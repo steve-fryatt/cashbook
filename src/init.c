@@ -42,7 +42,6 @@
 #include "init.h"
 
 #include "choices.h"
-#include "compiledate.h"
 #include "conversion.h"
 #include "date.h"
 #include "file.h"
@@ -78,7 +77,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
     add_ihelp_window (windows->prog_info, "ProgInfo", NULL);
     msgs_param_lookup ("Version",
                        window_def->icons[6].data.indirected_text.text, window_def->icons[6].data.indirected_text.size,
-                       INFO_BOX_DATE, NULL, NULL, NULL);
+                       BUILD_DATE, NULL, NULL, NULL);
     free (window_def);
   }
   else

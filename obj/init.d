@@ -31,8 +31,8 @@ init.0: src/init.c /home/steve/GCCSDK/libs/FlexLib/flex.h \
   /home/steve/GCCSDK/env/include/oslib/wimp.h \
   /home/steve/GCCSDK/env/include/oslib/types.h \
   /home/steve/GCCSDK/libs/SFLib/sflib/windows.h src/global.h src/init.h \
-  src/choices.h src/compiledate.h src/conversion.h src/date.h src/file.h \
-  src/filing.h src/ihelp.h src/transact.h
+  src/choices.h src/conversion.h src/date.h src/file.h src/filing.h \
+  src/ihelp.h src/transact.h
 src/init.c:
 /home/steve/GCCSDK/libs/FlexLib/flex.h:
 /home/steve/GCCSDK/env/include/oslib/wimp.h:
@@ -70,7 +70,6 @@ src/init.c:
 src/global.h:
 src/init.h:
 src/choices.h:
-src/compiledate.h:
 src/conversion.h:
 src/date.h:
 src/file.h:

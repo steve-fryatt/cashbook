@@ -16,7 +16,7 @@ ZIPFILE := cashbook$(RELEASE).zip
 
 # The build date.
 
-BUILD_DATE := $(shell date "+%-d %b %Y")
+BUILD_DATE := $(shell date "+%d %b %Y")
 
 
 # Build Tools

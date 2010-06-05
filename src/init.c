@@ -904,8 +904,9 @@ int initialise (void)
   wimp_MESSAGE_LIST(20)             message_list;
   wimp_version_no                   wimp_version;
   wimp_icon_create                  icon_bar;
-  wimp_w                            window_list[20];
+
   wimp_menu                         *menu_list[20];
+  menu_template                     menu_defs;
 
   osbool                            already_running;
 
@@ -1044,25 +1045,12 @@ int initialise (void)
 
   /* Load the menu structure. */
 
-  window_list[0] = windows.prog_info;
-  window_list[1] = windows.file_info;
-  window_list[2] = windows.save_as;
-  window_list[3] = windows.save_as;
-  window_list[4] = windows.save_as;
-  window_list[5] = windows.save_as;
-  window_list[6] = windows.save_as;
-  window_list[7] = windows.save_as;
-  window_list[8] = windows.save_as;
-  window_list[9] = windows.save_as;
-  window_list[10] = windows.save_as;
-  window_list[11] = windows.save_as;
-  window_list[12] = windows.save_as;
-  window_list[13] = windows.save_as;
-  window_list[14] = windows.save_as;
-  window_list[15] = windows.save_as;
-
   sprintf (res_temp, "%s.Menus", resources);
-  load_menus (res_temp, window_list, menu_list);
+  menu_defs = load_menus(res_temp, NULL, menu_list);
+
+  load_menus_dbox(menu_defs, "prog_info", windows.prog_info);
+  load_menus_dbox(menu_defs, "file_info", windows.file_info);
+  load_menus_dbox(menu_defs, "save_as", windows.save_as);
 
   menus.icon_bar        = menu_list[0];
   menus.main            = menu_list[1];

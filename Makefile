@@ -5,13 +5,14 @@
 # This file really needs to be run by GNUMake.
 # It is intended for cross-compilation under the GCCSDK.
 
-.PHONY: all clean documentation release
+.PHONY: all clean application documentation release backup
 
 
 # The archive to assemble the release files in.  If $(RELEASE) is set, then the file can be given
 # a standard version number suffix.
 
 ZIPFILE := cashbook$(RELEASE).zip
+BUZIPFILE := cashbook$(shell date "+%Y%m%d").zip
 
 
 # The build date.
@@ -43,6 +44,7 @@ MENUGEN := $(SFBIN)/menugen
 
 CCFLAGS := -mlibscl -mhard-float -static -mthrowback -Wall -O2 -D'BUILD_DATE="$(BUILD_DATE)"' -fno-strict-aliasing -mpoke-function-name
 ZIPFLAGS := -x "*/.svn/*" -r -, -9
+BUZIPFLAGS := -x "*/.svn/*" -r -9
 BINDHELPFLAGS := -f -r -v
 MENUGENFLAGS := -d
 
@@ -89,7 +91,12 @@ OBJS = account.o accview.o analysis.o budget.o calculation.o caret.o choices.o c
 
 # Build everything, but don't package it for release.
 
-all: documentation $(OUTDIR)/$(APP)/$(RUNIMAGE) $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS)
+all: application documentation
+
+
+# Build the application and its supporting binary files.
+
+application: $(OUTDIR)/$(APP)/$(RUNIMAGE) $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS)
 
 
 # Build the complete !RunImage from the object files.
@@ -139,10 +146,15 @@ $(OUTDIR)/$(README): $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) $(MANUAL)/$(READMEHDR
 # Build the release Zip file.
 
 release: clean all
-	$(RM) $(ZIPFILE)
-	(cd $(OUTDIR) ; $(ZIP) $(ZIPFLAGS) ../$(ZIPFILE) $(APP))
-	(cd $(OUTDIR) ; $(ZIP) $(ZIPFLAGS) ../$(ZIPFILE) $(README))
-	(cd $(OUTDIR) ; $(ZIP) $(ZIPFLAGS) ../$(ZIPFILE) $(LICENSE))
+	$(RM) ../$(ZIPFILE)
+	(cd $(OUTDIR) ; $(ZIP) $(ZIPFLAGS) ../../$(ZIPFILE) $(APP) $(README) $(LICENSE))
+
+
+# Build a backup Zip file
+
+backup:
+	$(RM) ../$(BUZIPFILE)
+	$(ZIP) $(BUZIPFLAGS) ../$(BUZIPFILE) *
 
 
 # Clean targets

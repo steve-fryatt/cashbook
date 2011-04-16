@@ -7,18 +7,30 @@
 
 .PHONY: all clean application documentation release backup
 
+# The build date.
+
+BUILD_DATE := $(shell date "+%d %b %Y")
+HELP_DATE := $(shell date "+%-d %B %Y")
+
+# Construct version or revision information.
+
+ifeq ($(VERSION),)
+  RELEASE := $(shell svnversion --no-newline)
+  VERSION := r$(RELEASE)
+  RELEASE := $(subst :,-,$(RELEASE))
+  HELP_VERSION := ----
+else
+  RELEASE := $(subst .,,$(VERSION))
+  HELP_VERSION := $(VERSION)
+endif
+
+$(info Building with version $(VERSION) ($(RELEASE)) on date $(BUILD_DATE))
 
 # The archive to assemble the release files in.  If $(RELEASE) is set, then the file can be given
 # a standard version number suffix.
 
 ZIPFILE := cashbook$(RELEASE).zip
 BUZIPFILE := cashbook$(shell date "+%Y%m%d").zip
-
-
-# The build date.
-
-BUILD_DATE := $(shell date "+%d %b %Y")
-
 
 # Build Tools
 
@@ -42,7 +54,7 @@ MENUGEN := $(SFBIN)/menugen
 
 # Build Flags
 
-CCFLAGS := -mlibscl -mhard-float -static -mthrowback -Wall -O2 -D'BUILD_DATE="$(BUILD_DATE)"' -fno-strict-aliasing -mpoke-function-name
+CCFLAGS := -mlibscl -mhard-float -static -mthrowback -Wall -O2 -D'BUILD_VERSION="$(VERSION)"' -D'BUILD_DATE="$(BUILD_DATE)"' -fno-strict-aliasing -mpoke-function-name
 ZIPFLAGS := -x "*/.svn/*" -r -, -9
 BUZIPFLAGS := -x "*/.svn/*" -r -9
 BINDHELPFLAGS := -f -r -v
@@ -131,10 +143,10 @@ $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS): $(MENUDIR)/$(MENUSRC)
 documentation: $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) $(OUTDIR)/$(APP)/$(UKRES)/$(SHHELP) $(OUTDIR)/$(README)
 
 $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP): $(MANUAL)/$(MANSRC)
-	$(TEXTMAN) $(MANUAL)/$(MANSRC) $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP)
+	$(TEXTMAN) -I$(MANUAL)/$(MANSRC) -O$(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) -D'version=$(HELP_VERSION)' -D'date=$(HELP_DATE)'
 
 $(OUTDIR)/$(APP)/$(UKRES)/$(SHHELP): $(MANUAL)/$(MANSRC) $(MANUAL)/$(MANSPR)
-	$(STRONGMAN) $(MANUAL)/$(MANSRC) SHTemp
+	$(STRONGMAN) -I$(MANUAL)/$(MANSRC) -OSHTemp -D'version=$(HELP_VERSION)' -D'date=$(HELP_DATE)'
 	$(CP) $(MANUAL)/$(MANSPR) SHTemp/Sprites,ff9
 	$(BINDHELP) SHTemp $(OUTDIR)/$(APP)/$(UKRES)/$(SHHELP) $(BINDHELPFLAGS)
 	$(RM) SHTemp

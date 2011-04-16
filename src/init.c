@@ -77,7 +77,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
     add_ihelp_window (windows->prog_info, "ProgInfo", NULL);
     msgs_param_lookup ("Version",
                        window_def->icons[6].data.indirected_text.text, window_def->icons[6].data.indirected_text.size,
-                       BUILD_DATE, NULL, NULL, NULL);
+                       BUILD_VERSION, BUILD_DATE, NULL, NULL);
     free (window_def);
   }
   else

@@ -1510,7 +1510,7 @@ void print_report_graphic (file_data *file, report_data *report, int fit_width, 
     page_height = page_top - page_bottom;
   }
 
-  error = xfont_convertto_os (page_width, page_height, &page_width, &page_height);
+  error = xfont_convertto_os (page_width, page_height, (int *) &page_width, (int *) &page_height);
 
   if (error != NULL)
   {

@@ -2399,7 +2399,7 @@ void decode_font_list_menu (wimp_selection *selection, wimp_pointer *pointer)
 
   font_decode_menu (0, font_buf1, (byte *) selection, 0, 0, NULL, &size);
   name = heap_alloc (size);
-  font_decode_menu (0, font_buf1, (byte *) selection, name, size, NULL, NULL);
+  font_decode_menu (0, font_buf1, (byte *) selection, (byte *) name, size, NULL, NULL);
 
   /* Extract the font name from the data returned from font_decode_menu (). */
 

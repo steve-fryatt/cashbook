@@ -599,6 +599,7 @@ Help.Find.Ref:This is a reference to be matched.
 Help.Find.Amount:This is an amount to be matched.
 Help.Find.Desc:This is a description to be matched.
 Help.Find.Case:\Stoggle whether the case of letters is taken into account when matching references and descriptions.
+Help.Find.Whole:\Stoggle text must be an exact match, or simply occur somewhere within a reference or description.
 Help.Find.And:\Smatch transactions only when all the completed fields are correct.
 Help.Find.Or:\Smatch transactions when any one or more of the completed fields is correct.
 Help.Find.Start:\Sbegin the search at the first transaction and work down.
@@ -610,8 +611,8 @@ Help.Find.Cancel:\Sabandon the search.|M\Areset the \w contents.
 
 Help.Found:\Tfound \w.
 Help.Found.Report:\Tline and field where the match was found.
-Help.Found.Prev:\Sfind the matching transaction before this in the file.
-Help.Found.Next:\Sfind the matching transaction after this in the file.
+Help.Found.Prev:\Sfind the previous matching transaction in the current search direction.
+Help.Found.Next:\Sfind the next matching transaction in the current search direction.
 Help.Found.Cancel:\Send the search.
 Help.Found.New:\Sstart a new search based on the current one.
 

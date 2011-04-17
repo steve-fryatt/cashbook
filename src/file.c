@@ -221,6 +221,7 @@ file_data *build_new_file_block (void)
 
   new->find.logic = FIND_OR;
   new->find.case_sensitive = 0;
+  new->find.whole_text = 0;
   new->find.direction = FIND_START;
 
   new->print.fit_width = read_config_opt ("PrintFitWidth");

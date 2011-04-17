@@ -803,14 +803,14 @@ void mouse_click_handler (wimp_pointer *pointer)
     }
     else if (pointer->i == FOUND_ICON_PREVIOUS && pointer->buttons == wimp_CLICK_SELECT)
     {
-      if (find_from_line (NULL, FIND_UP, NULL_TRANSACTION) == NULL_TRANSACTION)
+      if (find_from_line (NULL, FIND_PREVIOUS, NULL_TRANSACTION) == NULL_TRANSACTION)
       {
         wimp_close_window (windows.found);
       }
     }
     else if (pointer->i == FOUND_ICON_NEXT && pointer->buttons == wimp_CLICK_SELECT)
     {
-      if (find_from_line (NULL, FIND_DOWN, NULL_TRANSACTION) == NULL_TRANSACTION)
+      if (find_from_line (NULL, FIND_NEXT, NULL_TRANSACTION) == NULL_TRANSACTION)
       {
         wimp_close_window (windows.found);
       }

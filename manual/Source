@@ -1,6 +1,6 @@
 <document title="CashBook">
-<define name="version" value="Version 1.22" length=30 align="right">
-<define name="date" value="6 October 2009" length=30 align="right">
+<define name="version" value="" length=30 align="right">
+<define name="date" value="" length=30 align="right">
 
 
 
@@ -1102,7 +1102,7 @@ If the date or transaction number is not known, or if several similar transactio
 
 The top section of the dialogue allows the contents of some or all of the fields to be specified.  Any combination can be used, and it is possible to find transactions where all of the specified fields match or where any one or more match.  Values are entered as they would be in a transaction entry, with the same entry keys used for reconciliation of accounts and headings.
 
-The reference and description fields can include wildcards if required.  <entry>*</entry> will match any number of characters, including none, while <entry>#</entry> will match any single character.  Unless the <icon>Case sensitive</icon> option is on, upper and lower case are treated as the same in both fields.
+The reference and description fields can include wildcards if required.  <entry>*</entry> will match any number of characters, including none, while <entry>#</entry> will match any single character.  If <icon>Match whole field</icon> is ticked, then the entered text must be an exact match for the whole entry; otherwise, the text can appear anywhere in the cell. Unless the <icon>Case sensitive</icon> option is on, upper and lower case are treated as the same in both fields.
 
 The <icon>And</icon> and <icon>Or</icon> switches determine how multiple fields are treated.  If <icon>Or</icon> is selected, then any transactions where one or more of the specified fields match will be found.  If <icon>And</icon> is selected, all the specified fields must match for a transaction to be found.
 
@@ -1112,7 +1112,7 @@ The <icon>Search direction</icon> can be set to search forwards or backwards fro
 
 If any matching transactions are found, the <window>found transaction</window> dialogue will open and the caret will be placed in the first matching field of the line.  The dialogue shows which fields matched and gives the transaction number.
 
-The <icon>Previous</icon> and <icon>Next</icon> buttons allow the search to continue in either direction using the same parameters.  <icon>New search</icon> allows the current search parameters to be modified, while <icon>Cancel</icon> will abort the search.
+The <icon>Previous</icon> and <icon>Next</icon> buttons allow the search to continue in either way, relative to the current search direction, using the same parameters.  <icon>New search</icon> allows the current search parameters to be modified, while <icon>Cancel</icon> will abort the search.
 
 </chapter>
 
@@ -1450,6 +1450,16 @@ Update to third stable release.
 
 <list>
 <li>Fixed bug preventing analysis headings from being created or edited (added in 1.21).
+</list>
+
+
+<subhead title="1.23 (TBA)">
+
+Update to third stable release.
+
+<list>
+<li>Add match whole string option to <link ref="Find">find</link> dialogue.
+<li>Change <icon>Next</icon> and <icon>Previous</icon> buttons in <window>found</window> dialogue to work relative to the current search direction.
 </list>
 
 </chapter>

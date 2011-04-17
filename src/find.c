@@ -180,6 +180,7 @@ void fill_find_window (find *find_data, int clear)
     set_icon_selected (windows.find, FIND_ICON_END, find_data->direction == FIND_END);
 
     set_icon_selected (windows.find, FIND_ICON_CASE, find_data->case_sensitive);
+    set_icon_selected (windows.find, FIND_ICON_WHOLE, find_data->whole_text);
   }
 }
 
@@ -300,6 +301,7 @@ int process_find_window (void)
   }
 
   find_window_file->find.case_sensitive = read_icon_selected (windows.find, FIND_ICON_CASE);
+  find_window_file->find.whole_text = read_icon_selected (windows.find, FIND_ICON_WHOLE);
 
   /* Get the start line. */
 
@@ -346,10 +348,10 @@ int process_find_window (void)
 
 int find_from_line (find *new_params, int new_dir, int start)
 {
-  int                   match, icon, line, transaction;
+  int                   match, icon, line, transaction, direction;
   unsigned              test;
   wimp_pointer          pointer;
-  char                  buf1[64], buf2[64];
+  char                  buf1[64], buf2[64], ref[REF_FIELD_LEN+2], desc[DESCRIPT_FIELD_LEN+2];
 
   extern global_windows windows;
 
@@ -364,12 +366,12 @@ int find_from_line (find *new_params, int new_dir, int start)
     find_params.to = new_params->to;
     find_params.to_rec = new_params->to_rec;
     find_params.amount = new_params->amount;
-
     strcpy (find_params.ref, new_params->ref);
     strcpy (find_params.desc, new_params->desc);
 
     find_params.logic = new_params->logic;
     find_params.case_sensitive = new_params->case_sensitive;
+    find_params.whole_text = new_params->whole_text;
     find_params.direction = new_params->direction;
 
     /* Start and End have served their purpose; they now need to convert into up and down. */
@@ -384,28 +386,47 @@ int find_from_line (find *new_params, int new_dir, int start)
     }
   }
 
+
+  /* Take local copies of the two text fields, and add bracketing wildcards as necessary. */
+
+  if ((!find_params.whole_text) && (*(find_params.ref) != '\0')) {
+    snprintf(ref, REF_FIELD_LEN + 2, "*%s*", find_params.ref);
+  } else {
+    strcpy (ref, find_params.ref);
+  }
+
+  if ((!find_params.whole_text) && (*(find_params.desc) != '\0')) {
+    snprintf(desc, DESCRIPT_FIELD_LEN + 2, "*%s*", find_params.desc);
+  } else {
+    strcpy (desc, find_params.desc);
+  }
+
   /* If the search needs to change direction, do so now. */
 
-  if (new_dir == FIND_DOWN || new_dir == FIND_UP)
-  {
-    find_params.direction = new_dir;
+  if (new_dir == FIND_NEXT || new_dir == FIND_PREVIOUS) {
+    if (find_params.direction == FIND_UP)
+      direction = (new_dir == FIND_NEXT) ? FIND_UP : FIND_DOWN;
+    else
+      direction = (new_dir == FIND_NEXT) ? FIND_DOWN : FIND_UP;
+  } else {
+    direction = find_params.direction;
   }
 
   /* If a new start line is being specified, take note, elseuse the current edit line. */
 
   if (start == NULL_TRANSACTION)
   {
-    if (find_params.direction == FIND_DOWN)
+    if (direction == FIND_DOWN)
     {
-      line = find_window_file->transaction_window.entry_line+1;
+      line = find_window_file->transaction_window.entry_line + 1;
       if (line >= find_window_file->trans_count)
       {
-        line = find_window_file->trans_count-1;
+        line = find_window_file->trans_count - 1;
       }
     }
     else /* FIND_UP */
     {
-      line = find_window_file->transaction_window.entry_line-1;
+      line = find_window_file->transaction_window.entry_line - 1;
       if (line < 0)
       {
         line = 0;
@@ -468,9 +489,8 @@ int find_from_line (find *new_params, int new_dir, int start)
 
     transaction = find_window_file->transactions[line].sort_index;
 
-    if (*find_params.desc != '\0' &&
-        wildcard_strcmp (find_params.desc, find_window_file->transactions[transaction].description,
-                         !find_params.case_sensitive))
+    if (*desc != '\0' &&
+        wildcard_strcmp (desc, find_window_file->transactions[transaction].description, !find_params.case_sensitive))
     {
       test ^= FIND_TEST_DESC;
       icon = EDIT_ICON_DESCRIPT;
@@ -482,9 +502,8 @@ int find_from_line (find *new_params, int new_dir, int start)
       icon = EDIT_ICON_AMOUNT;
     }
 
-    if (*find_params.ref != '\0' &&
-        wildcard_strcmp (find_params.ref, find_window_file->transactions[transaction].reference,
-                         !find_params.case_sensitive))
+    if (*ref != '\0' &&
+        wildcard_strcmp (ref, find_window_file->transactions[transaction].reference, !find_params.case_sensitive))
     {
       test ^= FIND_TEST_REF;
       icon = EDIT_ICON_REF;
@@ -522,11 +541,7 @@ int find_from_line (find *new_params, int new_dir, int start)
     }
     else
     {
-      if (find_params.direction == FIND_DOWN)
-      {
-        line ++;
-      }
-      else if (find_params.direction == FIND_UP)
+      if (direction == FIND_UP)
       {
         line --;
       }

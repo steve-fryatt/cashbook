@@ -28,6 +28,7 @@
 #define FIND_ICON_OR 19
 
 #define FIND_ICON_CASE 17
+#define FIND_ICON_WHOLE 28
 
 #define FIND_ICON_START 22
 #define FIND_ICON_DOWN 23

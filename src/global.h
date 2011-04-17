@@ -152,6 +152,8 @@
 #define FIND_END   2
 #define FIND_UP    3
 #define FIND_DOWN  4
+#define FIND_NEXT  5
+#define FIND_PREVIOUS 6
 
 /* Drag types. */
 
@@ -603,6 +605,7 @@ typedef struct find
 
   int      logic;
   int      case_sensitive;
+  int      whole_text;
   int      direction;
 }
 find;

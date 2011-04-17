@@ -1,5 +1,5 @@
 <document title="CashBook">
-<define name="version" value="" length=30 align="right">
+<define name="version" value="">
 <define name="date" value="" length=30 align="right">
 
 
@@ -11,7 +11,7 @@ CashBook
 #Sprite 8,0 Logo
 #Align Right
 {f*/:Home Accounts Manager }
-$$version$$ ($$date$$) 
+Version $$version$$ ($$date$$) 
 #Below
 #Line
 #Align Centre
@@ -61,7 +61,7 @@ A plain text version of this manual is available <here=>*Filer_Run <CashBook$Hel
 
 <literal mode="Text">
 =============================================================================
-CashBook - Home Accounts Manager               $$version$$
+CashBook - Home Accounts Manager                                 Version $$version$$
 
 (C) Stephen Fryatt, 2003                       $$date$$
 =============================================================================

@@ -2483,10 +2483,6 @@ void user_message_handler (wimp_message *message)
       }
       break;
 
-    case message_URI_RETURN_RESULT:
-      url_bounce (message);
-      break;
-
     case message_CLAIM_ENTITY:
       release_clipboard (message);
       break;
@@ -2633,10 +2629,6 @@ void bounced_message_handler (wimp_message *message)
 {
   switch (message->action)
   {
-    case message_ANT_OPEN_URL:
-      url_bounce (message);
-      break;
-
     case message_RAM_TRANSMIT:
       wimp_msgtrans_error_report ("RAMXferFail");
       break;

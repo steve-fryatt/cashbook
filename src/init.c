@@ -1078,6 +1078,8 @@ int initialise (void)
   msgs_lookup ("TaskSpr", icon_bar.icon.data.sprite, osspriteop_NAME_LIMIT);
   wimp_create_icon (&icon_bar);
 
+  url_initialise();
+
   /* Initialise the file update mechanism: calling it now with no files loaded will force the date to be set up. */
 
   update_files_for_new_date ();

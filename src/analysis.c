@@ -3208,19 +3208,19 @@ void analysis_open_saved_report_dialogue(file_data *file, wimp_pointer *ptr, int
     switch (file->saved_reports[template].type)
     {
       case REPORT_TYPE_TRANS:
-        open_trans_report_window (file, ptr, template, read_config_opt ("RememberValues"));
+        open_trans_report_window (file, ptr, template, config_opt_read ("RememberValues"));
         break;
 
       case REPORT_TYPE_UNREC:
-        open_unrec_report_window (file, ptr, template, read_config_opt ("RememberValues"));
+        open_unrec_report_window (file, ptr, template, config_opt_read ("RememberValues"));
         break;
 
       case REPORT_TYPE_CASHFLOW:
-        open_cashflow_report_window (file, ptr, template, read_config_opt ("RememberValues"));
+        open_cashflow_report_window (file, ptr, template, config_opt_read ("RememberValues"));
         break;
 
       case REPORT_TYPE_BALANCE:
-        open_balance_report_window (file, ptr, template, read_config_opt ("RememberValues"));
+        open_balance_report_window (file, ptr, template, config_opt_read ("RememberValues"));
         break;
     }
   }

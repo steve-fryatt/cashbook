@@ -239,7 +239,7 @@ void start_column_width_drag (wimp_pointer *ptr)
     wimp_get_window_info_header_only (&parent);
 
     mapping = TRANSACT_PANE_COL_MAP;
-    widths = read_config_str ("LimTransactCols");
+    widths = config_str_read ("LimTransactCols");
   }
   else if ((column_drag_file = find_account_pane_file_block (ptr->w)) != NULL)
   {
@@ -251,7 +251,7 @@ void start_column_width_drag (wimp_pointer *ptr)
     wimp_get_window_info_header_only (&parent);
 
     mapping = ACCOUNT_PANE_COL_MAP;
-    widths = read_config_str ("LimAccountCols");
+    widths = config_str_read ("LimAccountCols");
   }
   else if ((column_drag_file = find_accview_pane_file_block (ptr->w)) != NULL)
   {
@@ -263,7 +263,7 @@ void start_column_width_drag (wimp_pointer *ptr)
     wimp_get_window_info_header_only (&parent);
 
     mapping = ACCVIEW_PANE_COL_MAP;
-    widths = read_config_str ("LimAccViewCols");
+    widths = config_str_read ("LimAccViewCols");
   }
   else if ((column_drag_file = find_sorder_pane_file_block (ptr->w)) != NULL)
   {
@@ -273,7 +273,7 @@ void start_column_width_drag (wimp_pointer *ptr)
     wimp_get_window_info_header_only (&parent);
 
     mapping = SORDER_PANE_COL_MAP;
-    widths = read_config_str ("LimSOrderCols");
+    widths = config_str_read ("LimSOrderCols");
   }
   else if ((column_drag_file = find_preset_pane_file_block (ptr->w)) != NULL)
   {
@@ -283,7 +283,7 @@ void start_column_width_drag (wimp_pointer *ptr)
     wimp_get_window_info_header_only (&parent);
 
     mapping = PRESET_PANE_COL_MAP;
-    widths = read_config_str ("LimPresetCols");
+    widths = config_str_read ("LimPresetCols");
   }
 
   column_drag_icon = ptr->i;
@@ -324,7 +324,7 @@ void terminate_column_width_drag (wimp_dragged *drag)
   switch (column_drag_type)
   {
     case COLUMN_DRAG_TRANSACT:
-      update_dragged_columns (TRANSACT_PANE_COL_MAP, read_config_str ("LimTransactCols"), column_drag_icon, width,
+      update_dragged_columns (TRANSACT_PANE_COL_MAP, config_str_read ("LimTransactCols"), column_drag_icon, width,
                               column_drag_file->transaction_window.column_width,
                               column_drag_file->transaction_window.column_position, TRANSACT_COLUMNS);
       adjust_transaction_window_columns (column_drag_file);
@@ -332,7 +332,7 @@ void terminate_column_width_drag (wimp_dragged *drag)
       break;
 
     case COLUMN_DRAG_ACCOUNT:
-      update_dragged_columns (ACCOUNT_PANE_COL_MAP, read_config_str ("LimAccountCols"), column_drag_icon, width,
+      update_dragged_columns (ACCOUNT_PANE_COL_MAP, config_str_read ("LimAccountCols"), column_drag_icon, width,
                               column_drag_file->account_windows[column_drag_entry].column_width,
                               column_drag_file->account_windows[column_drag_entry].column_position, ACCOUNT_COLUMNS);
       adjust_account_window_columns (column_drag_file, column_drag_entry);
@@ -340,7 +340,7 @@ void terminate_column_width_drag (wimp_dragged *drag)
       break;
 
     case COLUMN_DRAG_ACCVIEW:
-      update_dragged_columns (ACCVIEW_PANE_COL_MAP, read_config_str ("LimAccViewCols"), column_drag_icon, width,
+      update_dragged_columns (ACCVIEW_PANE_COL_MAP, config_str_read ("LimAccViewCols"), column_drag_icon, width,
                               (column_drag_file->accounts[column_drag_entry].account_view)->column_width,
                               (column_drag_file->accounts[column_drag_entry].account_view)->column_position,
                                ACCVIEW_COLUMNS);
@@ -358,7 +358,7 @@ void terminate_column_width_drag (wimp_dragged *drag)
       break;
 
     case COLUMN_DRAG_SORDER:
-      update_dragged_columns (SORDER_PANE_COL_MAP, read_config_str ("LimSOrderCols"), column_drag_icon, width,
+      update_dragged_columns (SORDER_PANE_COL_MAP, config_str_read ("LimSOrderCols"), column_drag_icon, width,
                               column_drag_file->sorder_window.column_width,
                               column_drag_file->sorder_window.column_position, SORDER_COLUMNS);
       adjust_sorder_window_columns (column_drag_file);
@@ -366,7 +366,7 @@ void terminate_column_width_drag (wimp_dragged *drag)
       break;
 
     case COLUMN_DRAG_PRESET:
-      update_dragged_columns (PRESET_PANE_COL_MAP, read_config_str ("LimPresetCols"), column_drag_icon, width,
+      update_dragged_columns (PRESET_PANE_COL_MAP, config_str_read ("LimPresetCols"), column_drag_icon, width,
                               column_drag_file->preset_window.column_width,
                               column_drag_file->preset_window.column_position, PRESET_COLUMNS);
       adjust_preset_window_columns (column_drag_file);

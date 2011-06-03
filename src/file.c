@@ -100,7 +100,7 @@ file_data *build_new_file_block (void)
   new->transaction_window.transaction_pane = NULL;
 
   init_window_columns (new->transaction_window.column_width, new->transaction_window.column_position,
-                       TRANSACT_COLUMNS, read_config_str ("TransactCols"));
+                       TRANSACT_COLUMNS, config_str_read ("TransactCols"));
 
   new->transaction_window.sort_order = SORT_DATE | SORT_ASCENDING;
 
@@ -113,7 +113,7 @@ file_data *build_new_file_block (void)
     new->account_windows[i].account_footer = NULL;
 
     init_window_columns (new->account_windows[i].column_width, new->account_windows[i].column_position,
-                         ACCOUNT_COLUMNS, read_config_str ("AccountCols"));
+                         ACCOUNT_COLUMNS, config_str_read ("AccountCols"));
 
     /* Blank out the footer icons. */
 
@@ -148,7 +148,7 @@ file_data *build_new_file_block (void)
   /* Initialise the account view window. */
 
   init_window_columns (new->accview_column_width, new->accview_column_position,
-                       ACCVIEW_COLUMNS, read_config_str ("AccViewCols"));
+                       ACCVIEW_COLUMNS, config_str_read ("AccViewCols"));
 
   new->accview_sort_order = SORT_DATE | SORT_ASCENDING;
 
@@ -158,7 +158,7 @@ file_data *build_new_file_block (void)
   new->sorder_window.sorder_pane = NULL;
 
   init_window_columns (new->sorder_window.column_width, new->sorder_window.column_position,
-                       SORDER_COLUMNS, read_config_str ("SOrderCols"));
+                       SORDER_COLUMNS, config_str_read ("SOrderCols"));
 
   new->sorder_window.sort_order = SORT_NEXTDATE | SORT_DESCENDING;
 
@@ -168,7 +168,7 @@ file_data *build_new_file_block (void)
   new->preset_window.preset_pane = NULL;
 
   init_window_columns (new->preset_window.column_width, new->preset_window.column_position,
-                       PRESET_COLUMNS, read_config_str ("PresetCols"));
+                       PRESET_COLUMNS, config_str_read ("PresetCols"));
 
   new->preset_window.sort_order = SORT_CHAR | SORT_ASCENDING;
 
@@ -224,10 +224,10 @@ file_data *build_new_file_block (void)
   new->find.whole_text = 0;
   new->find.direction = FIND_START;
 
-  new->print.fit_width = read_config_opt ("PrintFitWidth");
-  new->print.rotate = read_config_opt ("PrintRotate");
-  new->print.text = read_config_opt ("PrintText");
-  new->print.text_format = read_config_opt ("PrintTextFormat");
+  new->print.fit_width = config_opt_read ("PrintFitWidth");
+  new->print.rotate = config_opt_read ("PrintRotate");
+  new->print.text = config_opt_read ("PrintText");
+  new->print.text_format = config_opt_read ("PrintTextFormat");
   new->print.from = NULL_DATE;
   new->print.to = NULL_DATE;
 

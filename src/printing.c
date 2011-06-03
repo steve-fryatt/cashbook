@@ -358,13 +358,13 @@ void fill_simple_print_window (print *print_data, int clear)
 
   if (clear == 0)
   {
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_STANDARD, !read_config_opt ("PrintText"));
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_PORTRAIT, !read_config_opt ("PrintRotate"));
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_LANDSCAPE, read_config_opt ("PrintRotate"));
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_SCALE, read_config_opt ("PrintFitWidth"));
+    set_icon_selected (windows.simple_print, SIMPLE_PRINT_STANDARD, !config_opt_read ("PrintText"));
+    set_icon_selected (windows.simple_print, SIMPLE_PRINT_PORTRAIT, !config_opt_read ("PrintRotate"));
+    set_icon_selected (windows.simple_print, SIMPLE_PRINT_LANDSCAPE, config_opt_read ("PrintRotate"));
+    set_icon_selected (windows.simple_print, SIMPLE_PRINT_SCALE, config_opt_read ("PrintFitWidth"));
 
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_FASTTEXT, read_config_opt ("PrintText"));
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_TEXTFORMAT, read_config_opt ("PrintTextFormat"));
+    set_icon_selected (windows.simple_print, SIMPLE_PRINT_FASTTEXT, config_opt_read ("PrintText"));
+    set_icon_selected (windows.simple_print, SIMPLE_PRINT_TEXTFORMAT, config_opt_read ("PrintTextFormat"));
   }
   else
   {
@@ -512,13 +512,13 @@ void fill_date_print_window (print *print_data, int clear)
 
   if (clear == 0)
   {
-    set_icon_selected (windows.date_print, DATE_PRINT_STANDARD, !read_config_opt ("PrintText"));
-    set_icon_selected (windows.date_print, DATE_PRINT_PORTRAIT, !read_config_opt ("PrintRotate"));
-    set_icon_selected (windows.date_print, DATE_PRINT_LANDSCAPE, read_config_opt ("PrintRotate"));
-    set_icon_selected (windows.date_print, DATE_PRINT_SCALE, read_config_opt ("PrintFitWidth"));
+    set_icon_selected (windows.date_print, DATE_PRINT_STANDARD, !config_opt_read ("PrintText"));
+    set_icon_selected (windows.date_print, DATE_PRINT_PORTRAIT, !config_opt_read ("PrintRotate"));
+    set_icon_selected (windows.date_print, DATE_PRINT_LANDSCAPE, config_opt_read ("PrintRotate"));
+    set_icon_selected (windows.date_print, DATE_PRINT_SCALE, config_opt_read ("PrintFitWidth"));
 
-    set_icon_selected (windows.date_print, DATE_PRINT_FASTTEXT, read_config_opt ("PrintText"));
-    set_icon_selected (windows.date_print, DATE_PRINT_TEXTFORMAT, read_config_opt ("PrintTextFormat"));
+    set_icon_selected (windows.date_print, DATE_PRINT_FASTTEXT, config_opt_read ("PrintText"));
+    set_icon_selected (windows.date_print, DATE_PRINT_TEXTFORMAT, config_opt_read ("PrintTextFormat"));
 
     *indirected_icon_text (windows.date_print, DATE_PRINT_FROM) = '\0';
     *indirected_icon_text (windows.date_print, DATE_PRINT_TO) = '\0';

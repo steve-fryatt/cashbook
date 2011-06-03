@@ -341,7 +341,7 @@ int days_in_month (int month, int year)
   territory_calendar calendar;
 
 
-  if (read_config_opt ("Territory_dates"))
+  if (config_opt_read ("Territory_dates"))
   {
     ordinals.centisecond = 0;
     ordinals.second = 0;
@@ -395,7 +395,7 @@ int months_in_year (int year)
   territory_calendar calendar;
 
 
-  if (read_config_opt ("Territory_dates"))
+  if (config_opt_read ("Territory_dates"))
   {
     ordinals.centisecond = 0;
     ordinals.second = 0;
@@ -717,7 +717,7 @@ void set_weekend_days (void)
   oswordreadclock_utc (&clock);
   territory_read_calendar_information (territory_CURRENT, (const os_date_and_time *) &(clock.utc), &calendar);
 
-  if (read_config_opt ("TerritorySOrders"))
+  if (config_opt_read ("TerritorySOrders"))
   {
     weekend_days = 0;
 
@@ -749,13 +749,13 @@ void set_weekend_days (void)
   {
     /* Use the value as set in the Choices window. */
 
-    weekend_days = read_config_int ("WeekendDays");
+    weekend_days = config_int_read ("WeekendDays");
   }
 
   /* Set the other date info. */
 
-  date_sep_out = *read_config_str ("DateSepOut");
-  strcpy (date_sep_in, read_config_str ("DateSepIn"));
+  date_sep_out = *config_str_read ("DateSepOut");
+  strcpy (date_sep_in, config_str_read ("DateSepIn"));
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

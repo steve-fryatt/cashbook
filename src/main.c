@@ -344,7 +344,7 @@ void mouse_click_handler (wimp_pointer *pointer)
 
       case CHOICE_ICON_SAVE: /* Save */
         read_choices_window ();
-        save_configuration ();
+        config_save();
         if (pointer->buttons == wimp_CLICK_SELECT)
         {
           close_choices_window ();
@@ -367,8 +367,8 @@ void mouse_click_handler (wimp_pointer *pointer)
       case CHOICE_ICON_DEFAULT: /* Default */
         if (pointer->buttons == wimp_CLICK_SELECT)
         {
-          restore_default_configuration ();
-          redraw_choices_window ();
+          config_restore_default();
+          redraw_choices_window();
         }
         break;
 

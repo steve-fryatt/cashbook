@@ -1178,7 +1178,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_PRINT:
-        open_transact_print_window (file, pointer, read_config_opt ("RememberValues"));
+        open_transact_print_window (file, pointer, config_opt_read ("RememberValues"));
         break;
 
       case TRANSACT_PANE_ACCOUNTS:
@@ -1206,11 +1206,11 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_FIND:
-        open_find_window (file, pointer, read_config_opt ("RememberValues"));
+        open_find_window (file, pointer, config_opt_read ("RememberValues"));
         break;
 
       case TRANSACT_PANE_GOTO:
-        open_goto_window (file, pointer, read_config_opt ("RememberValues"));
+        open_goto_window (file, pointer, config_opt_read ("RememberValues"));
         break;
 
       case TRANSACT_PANE_SORT:
@@ -1248,15 +1248,15 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_PRINT:
-        open_transact_print_window (file, pointer, !read_config_opt ("RememberValues"));
+        open_transact_print_window (file, pointer, !config_opt_read ("RememberValues"));
         break;
 
       case TRANSACT_PANE_FIND:
-        open_find_window (file, pointer, !read_config_opt ("RememberValues"));
+        open_find_window (file, pointer, !config_opt_read ("RememberValues"));
         break;
 
       case TRANSACT_PANE_GOTO:
-        open_goto_window (file, pointer, !read_config_opt ("RememberValues"));
+        open_goto_window (file, pointer, !config_opt_read ("RememberValues"));
         break;
 
       case TRANSACT_PANE_SORT:
@@ -1382,7 +1382,7 @@ void transaction_window_keypress (file_data *file, wimp_key *key)
   else if (key->c == wimp_KEY_PRINT)
   {
     wimp_get_pointer_info (&pointer);
-    open_transact_print_window (file, &pointer, read_config_opt ("RememberValues"));
+    open_transact_print_window (file, &pointer, config_opt_read ("RememberValues"));
   }
 
   else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F1)
@@ -1413,13 +1413,13 @@ void transaction_window_keypress (file_data *file, wimp_key *key)
   else if (key->c == wimp_KEY_F4)
   {
     wimp_get_pointer_info (&pointer);
-    open_find_window (file, &pointer, read_config_opt ("RememberValues"));
+    open_find_window (file, &pointer, config_opt_read ("RememberValues"));
   }
 
   else if (key->c == wimp_KEY_F5)
   {
     wimp_get_pointer_info (&pointer);
-    open_goto_window (file, &pointer, read_config_opt ("RememberValues"));
+    open_goto_window (file, &pointer, config_opt_read ("RememberValues"));
   }
 
   else if (key->c == wimp_KEY_F6)
@@ -1464,7 +1464,7 @@ void transaction_window_keypress (file_data *file, wimp_key *key)
   }
 
   else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_DOWN) ||
-           (key->c == wimp_KEY_COPY && read_config_opt ("IyonixKeys")))
+           (key->c == wimp_KEY_COPY && config_opt_read ("IyonixKeys")))
   {
     scroll_transaction_window_to_end (file, +1);
   }

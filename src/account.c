@@ -1984,7 +1984,7 @@ void account_pane_click (file_data *file, wimp_pointer *pointer)
 
       case ACCOUNT_PANE_PRINT:
         open_account_print_window (file, find_accounts_window_type_from_handle (file, pointer->w), pointer,
-                                   read_config_opt ("RememberValues"));
+                                   config_opt_read ("RememberValues"));
         break;
 
       case ACCOUNT_PANE_ADDACCT:
@@ -2004,7 +2004,7 @@ void account_pane_click (file_data *file, wimp_pointer *pointer)
     {
       case ACCOUNT_PANE_PRINT:
         open_account_print_window (file, find_accounts_window_type_from_handle (file, pointer->w), pointer,
-                                   !read_config_opt ("RememberValues"));
+                                   !config_opt_read ("RememberValues"));
         break;
     }
   }

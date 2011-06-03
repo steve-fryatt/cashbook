@@ -187,9 +187,9 @@ amt_t convert_string_to_money (char *string)
 
 void set_up_money (void)
 {
-  print_zeros = read_config_opt ("PrintZeros");
+  print_zeros = config_opt_read ("PrintZeros");
 
-  if (read_config_opt ("TerritoryCurrency"))
+  if (config_opt_read ("TerritoryCurrency"))
   {
     decimal_point = *territory_read_string_symbols (territory_CURRENT, territory_SYMBOL_CURRENCY_POINT);
     decimal_places = territory_read_integer_symbols (territory_CURRENT, territory_SYMBOL_CURRENCY_PRECISION);
@@ -198,8 +198,8 @@ void set_up_money (void)
   }
   else
   {
-    decimal_point = *read_config_str ("DecimalPoint");
-    decimal_places = read_config_int ("DecimalPlaces");
-    bracket_negatives = read_config_opt ("BracketNegatives");
+    decimal_point = *config_str_read ("DecimalPoint");
+    decimal_places = config_int_read ("DecimalPlaces");
+    bracket_negatives = config_opt_read ("BracketNegatives");
   }
 }

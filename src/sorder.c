@@ -667,7 +667,7 @@ int delete_sorder (file_data *file, int sorder_no)
   if (file->sorder_window.sorder_window != NULL)
   {
     open_window (file->sorder_window.sorder_window);
-    if (read_config_opt ("AutoSortSOrders"))
+    if (config_opt_read ("AutoSortSOrders"))
     {
       sort_sorder_window (file);
       force_sorder_window_redraw (file, file->sorder_count, file->sorder_count);
@@ -1160,7 +1160,7 @@ int process_sorder_edit_window (void)
             indirected_icon_text (windows.edit_sorder, SORDER_EDIT_DESC));
   }
 
-  if (read_config_opt ("AutoSortSOrders"))
+  if (config_opt_read ("AutoSortSOrders"))
   {
     sort_sorder_window (edit_sorder_file);
   }
@@ -1199,7 +1199,7 @@ int stop_sorder_from_edit_window (void)
 
   /* Update the main standing order display window. */
 
-  if (read_config_opt ("AutoSortSOrders"))
+  if (config_opt_read ("AutoSortSOrders"))
   {
     sort_sorder_window (edit_sorder_file);
   }
@@ -1353,7 +1353,7 @@ void process_standing_orders (file_data *file)
     set_file_data_integrity (file, 1);
     file->sort_valid = 0;
 
-    if (read_config_opt ("SortAfterSOrders"))
+    if (config_opt_read ("SortAfterSOrders"))
     {
       sort_transaction_window (file);
     }
@@ -1363,7 +1363,7 @@ void process_standing_orders (file_data *file)
       refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
     }
 
-    if (read_config_opt ("AutoSortSOrders"))
+    if (config_opt_read ("AutoSortSOrders"))
     {
       sort_sorder_window (file);
     }
@@ -1773,7 +1773,7 @@ void sorder_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case SORDER_PANE_PRINT:
-        open_sorder_print_window (file, pointer, read_config_opt ("RememberValues"));
+        open_sorder_print_window (file, pointer, config_opt_read ("RememberValues"));
         break;
 
       case SORDER_PANE_ADDSORDER:
@@ -1791,7 +1791,7 @@ void sorder_pane_click (file_data *file, wimp_pointer *pointer)
     switch (pointer->i)
     {
       case SORDER_PANE_PRINT:
-        open_sorder_print_window (file, pointer, !read_config_opt ("RememberValues"));
+        open_sorder_print_window (file, pointer, !config_opt_read ("RememberValues"));
         break;
 
       case SORDER_PANE_SORT:

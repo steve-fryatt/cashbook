@@ -63,8 +63,8 @@ void redraw_transaction_window (wimp_draw *redraw, file_data *file)
     oy = redraw->box.y1 - redraw->yscroll;
 
     msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
-    shade_rec = read_config_opt ("ShadeReconciled");
-    shade_rec_col = read_config_int ("ShadeReconciledColour");
+    shade_rec = config_opt_read ("ShadeReconciled");
+    shade_rec_col = config_int_read ("ShadeReconciledColour");
 
     /* Set the horizontal positions of the icons. */
 
@@ -344,8 +344,8 @@ void redraw_account_window (wimp_draw *redraw, file_data *file)
   {
     window = &(file->account_windows[entry]);
 
-    shade_overdrawn = read_config_opt ("ShadeAccounts");
-    shade_overdrawn_col = read_config_int ("ShadeAccountsColour");
+    shade_overdrawn = config_opt_read ("ShadeAccounts");
+    shade_overdrawn_col = config_int_read ("ShadeAccountsColour");
 
     more = wimp_redraw_window (redraw);
 
@@ -720,12 +720,12 @@ void redraw_accview_window (wimp_draw *redraw, file_data *file)
   {
     window = file->accounts[account].account_view;
 
-    shade_budget = (file->accounts[account].type & (ACCOUNT_IN | ACCOUNT_OUT)) && read_config_opt ("ShadeBudgeted") &&
+    shade_budget = (file->accounts[account].type & (ACCOUNT_IN | ACCOUNT_OUT)) && config_opt_read ("ShadeBudgeted") &&
                    (file->budget.start != NULL_DATE || file->budget.finish != NULL_DATE);
-    shade_budget_col = read_config_int ("ShadeBudgetedColour");
+    shade_budget_col = config_int_read ("ShadeBudgetedColour");
 
-    shade_overdrawn = (file->accounts[account].type & ACCOUNT_FULL) && read_config_opt ("ShadeOverdrawn");
-    shade_overdrawn_col = read_config_int ("ShadeOverdrawnColour");
+    shade_overdrawn = (file->accounts[account].type & ACCOUNT_FULL) && config_opt_read ("ShadeOverdrawn");
+    shade_overdrawn_col = config_int_read ("ShadeOverdrawnColour");
 
     more = wimp_redraw_window (redraw);
 

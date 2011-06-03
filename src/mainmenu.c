@@ -279,12 +279,12 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_FILE_CONTINUE)
     {
-      open_continue_window (main_menu_file, pointer, read_config_opt ("RememberValues"));
+      open_continue_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_FILE_PRINT)
     {
-      open_transact_print_window (main_menu_file, pointer, read_config_opt ("RememberValues"));
+      open_transact_print_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
     }
   }
 
@@ -334,12 +334,12 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
   {
     if (selection->items[1] == MAIN_MENU_TRANS_FIND)
     {
-      open_find_window (main_menu_file, pointer, read_config_opt ("RememberValues"));
+      open_find_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_TRANS_GOTO) /* Goto */
     {
-      open_goto_window (main_menu_file, pointer, read_config_opt ("RememberValues"));
+      open_goto_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_TRANS_SORT) /* Sort */
@@ -391,22 +391,22 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_MONTHREP)
     {
-      open_trans_report_window (main_menu_file, pointer, NULL_TEMPLATE, read_config_opt ("RememberValues"));
+      open_trans_report_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_UNREC)
     {
-      open_unrec_report_window (main_menu_file, pointer, NULL_TEMPLATE, read_config_opt ("RememberValues"));
+      open_unrec_report_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_CASHFLOW)
     {
-      open_cashflow_report_window (main_menu_file, pointer, NULL_TEMPLATE, read_config_opt ("RememberValues"));
+      open_cashflow_report_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_BALANCE)
     {
-      open_balance_report_window (main_menu_file, pointer, NULL_TEMPLATE, read_config_opt ("RememberValues"));
+      open_balance_report_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_SOREP)
@@ -1438,7 +1438,7 @@ wimp_menu *build_refdesc_menu (file_data *file, int menu_type, int start_line)
 
   items = 0;
 
-  item_limit = read_config_int("MaxAutofillLen");
+  item_limit = config_int_read("MaxAutofillLen");
 
   if (refdesc_link != NULL && menu_type == REFDESC_MENU_REFERENCE)
   {
@@ -1823,7 +1823,7 @@ void decode_acclist_menu (wimp_selection *selection, wimp_pointer *pointer)
   }
   else if (selection->items[0] == ACCLIST_MENU_PRINT)
   {
-    open_account_print_window (main_menu_file, acclist_menu_type, pointer, read_config_opt ("RememberValues"));
+    open_account_print_window (main_menu_file, acclist_menu_type, pointer, config_opt_read ("RememberValues"));
   }
 
   set_acclist_menu (acclist_menu_type, main_menu_line, data);
@@ -1928,7 +1928,7 @@ void decode_accview_menu (wimp_selection *selection, wimp_pointer *pointer)
   }
   else if (selection->items[0] == ACCVIEW_MENU_PRINT)
   {
-    open_accview_print_window (main_menu_file, accview_menu_account, pointer, read_config_opt ("RememberValues"));
+    open_accview_print_window (main_menu_file, accview_menu_account, pointer, config_opt_read ("RememberValues"));
   }
 
   set_accview_menu (main_menu_file->accounts[accview_menu_account].type, main_menu_line);
@@ -2010,7 +2010,7 @@ void decode_sorder_menu (wimp_selection *selection, wimp_pointer *pointer)
   }
   else if (selection->items[0] == SORDER_MENU_PRINT)
   {
-    open_sorder_print_window (main_menu_file, pointer, read_config_opt ("RememberValues"));
+    open_sorder_print_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
   }
   else if (selection->items[0] == SORDER_MENU_FULLREP)
   {
@@ -2096,7 +2096,7 @@ void decode_preset_menu (wimp_selection *selection, wimp_pointer *pointer)
   }
   else if (selection->items[0] == PRESET_MENU_PRINT)
   {
-    open_preset_print_window (main_menu_file, pointer, read_config_opt ("RememberValues"));
+    open_preset_print_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
   }
 
   set_preset_menu (main_menu_line);
@@ -2167,7 +2167,7 @@ void decode_reportview_menu (wimp_selection *selection, wimp_pointer *pointer)
   }
   else if (selection->items[0] == REPVIEW_MENU_PRINT)
   {
-    open_report_print_window (main_menu_file, report_menu_block, pointer, read_config_opt ("RememberValues"));
+    open_report_print_window (main_menu_file, report_menu_block, pointer, config_opt_read ("RememberValues"));
   }
   else if (selection->items[0] == REPVIEW_MENU_TEMPLATE)
   {

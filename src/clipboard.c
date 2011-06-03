@@ -47,7 +47,7 @@ int copy_icon_to_clipboard (wimp_key *key)
   wimp_icon_state icon;
 
 
-  if (read_config_opt ("GlobalClipboardSupport"))
+  if (config_opt_read ("GlobalClipboardSupport"))
   {
     icon.w = key->w;
     icon.i = key->i;
@@ -66,7 +66,7 @@ int cut_icon_to_clipboard (wimp_key *key)
   wimp_icon_state icon;
 
 
-  if (read_config_opt ("GlobalClipboardSupport"))
+  if (config_opt_read ("GlobalClipboardSupport"))
   {
     icon.w = key->w;
     icon.i = key->i;
@@ -94,7 +94,7 @@ int paste_clipboard_to_icon (wimp_key *key)
    * Message_DataRequest.
    */
 
-  if (read_config_opt ("GlobalClipboardSupport"))
+  if (config_opt_read ("GlobalClipboardSupport"))
   {
     if (clipboard_data != NULL)
     {

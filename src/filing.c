@@ -86,7 +86,7 @@ void load_transaction_file (char *filename)
     {
       /* Find the next data block that is in the file. */
 
-      while ((result = read_config_token_pair (in, token, value, section)) != sf_READ_CONFIG_EOF)
+      while ((result = config_read_token_pair(in, token, value, section)) != sf_READ_CONFIG_EOF)
       {
         if (result == sf_READ_CONFIG_NEW_SECTION)
         {
@@ -199,7 +199,7 @@ void load_transaction_file (char *filename)
             }
             else if (strcmp_no_case (token, "RestrictPost") == 0)
             {
-              file->budget.limit_postdate = read_opt_string (value);
+              file->budget.limit_postdate = (config_read_opt_string(value) == TRUE);
             }
             else
             {
@@ -1001,7 +1001,7 @@ void save_transaction_file (file_data *file, char *filename)
     fprintf (out, "Start: %x\n", file->budget.start);
     fprintf (out, "Finish: %x\n", file->budget.finish);
     fprintf (out, "SOTrial: %x\n", file->budget.sorder_trial);
-    fprintf (out, "RestrictPost: %s\n", return_opt_string (file->budget.limit_postdate));
+    fprintf (out, "RestrictPost: %s\n", config_return_opt_string(file->budget.limit_postdate));
 
     /* Output the account data */
 
@@ -1024,31 +1024,31 @@ void save_transaction_file (file_data *file, char *filename)
                  file->accounts[i].cheque_num_width, file->accounts[i].next_cheque_num);
         if (*(file->accounts[i].name) != '\0')
         {
-          write_config_token_pair (out, "Name", file->accounts[i].name);
+          config_write_token_pair (out, "Name", file->accounts[i].name);
         }
         if (*(file->accounts[i].account_no) != '\0')
         {
-          write_config_token_pair (out, "AccNo", file->accounts[i].account_no);
+          config_write_token_pair (out, "AccNo", file->accounts[i].account_no);
         }
         if (*(file->accounts[i].sort_code) != '\0')
         {
-          write_config_token_pair (out, "SortCode", file->accounts[i].sort_code);
+          config_write_token_pair (out, "SortCode", file->accounts[i].sort_code);
         }
         if (*(file->accounts[i].address[0]) != '\0')
         {
-          write_config_token_pair (out, "Addr0", file->accounts[i].address[0]);
+          config_write_token_pair (out, "Addr0", file->accounts[i].address[0]);
         }
         if (*(file->accounts[i].address[1]) != '\0')
         {
-          write_config_token_pair (out, "Addr1", file->accounts[i].address[1]);
+          config_write_token_pair (out, "Addr1", file->accounts[i].address[1]);
         }
         if (*(file->accounts[i].address[2]) != '\0')
         {
-          write_config_token_pair (out, "Addr2", file->accounts[i].address[2]);
+          config_write_token_pair (out, "Addr2", file->accounts[i].address[2]);
         }
         if (*(file->accounts[i].address[3]) != '\0')
         {
-          write_config_token_pair (out, "Addr3", file->accounts[i].address[3]);
+          config_write_token_pair (out, "Addr3", file->accounts[i].address[3]);
         }
         if (file->accounts[i].payin_num_width != 0 || file->accounts[i].next_payin_num != 0)
         {
@@ -1077,7 +1077,7 @@ void save_transaction_file (file_data *file, char *filename)
             file->account_windows[j].line_data[i].type == ACCOUNT_LINE_FOOTER) &&
             *(file->account_windows[j].line_data[i].heading) != '\0')
         {
-          write_config_token_pair (out, "Heading", file->account_windows[j].line_data[i].heading);
+          config_write_token_pair (out, "Heading", file->account_windows[j].line_data[i].heading);
         }
       }
     }
@@ -1100,11 +1100,11 @@ void save_transaction_file (file_data *file, char *filename)
                file->transactions[i].to, file->transactions[i].amount);
       if (*(file->transactions[i].reference) != '\0')
       {
-        write_config_token_pair (out, "Ref", file->transactions[i].reference);
+        config_write_token_pair (out, "Ref", file->transactions[i].reference);
       }
       if (*(file->transactions[i].description) != '\0')
       {
-        write_config_token_pair (out, "Desc", file->transactions[i].description);
+        config_write_token_pair (out, "Desc", file->transactions[i].description);
       }
     }
 
@@ -1128,11 +1128,11 @@ void save_transaction_file (file_data *file, char *filename)
                file->sorders[i].normal_amount, file->sorders[i].first_amount, file->sorders[i].last_amount);
       if (*(file->sorders[i].reference) != '\0')
       {
-        write_config_token_pair (out, "Ref", file->sorders[i].reference);
+        config_write_token_pair (out, "Ref", file->sorders[i].reference);
       }
       if (*(file->sorders[i].description) != '\0')
       {
-        write_config_token_pair (out, "Desc", file->sorders[i].description);
+        config_write_token_pair (out, "Desc", file->sorders[i].description);
       }
     }
 
@@ -1155,15 +1155,15 @@ void save_transaction_file (file_data *file, char *filename)
                file->presets[i].from, file->presets[i].to, file->presets[i].amount);
       if (*(file->presets[i].name) != '\0')
       {
-        write_config_token_pair (out, "Name", file->presets[i].name);
+        config_write_token_pair (out, "Name", file->presets[i].name);
       }
       if (*(file->presets[i].reference) != '\0')
       {
-        write_config_token_pair (out, "Ref", file->presets[i].reference);
+        config_write_token_pair (out, "Ref", file->presets[i].reference);
       }
       if (*(file->presets[i].description) != '\0')
       {
-        write_config_token_pair (out, "Desc", file->presets[i].description);
+        config_write_token_pair (out, "Desc", file->presets[i].description);
       }
     }
 
@@ -1192,23 +1192,23 @@ void save_transaction_file (file_data *file, char *filename)
                    file->saved_reports[i].data.transaction.output_accsummary);
           if (*(file->saved_reports[i].name) != '\0')
           {
-            write_config_token_pair (out, "Name", file->saved_reports[i].name);
+            config_write_token_pair (out, "Name", file->saved_reports[i].name);
           }
           if (file->saved_reports[i].data.transaction.from_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.transaction.from, file->saved_reports[i].data.transaction.from_count);
-            write_config_token_pair (out, "From", buffer);
+            config_write_token_pair (out, "From", buffer);
           }
           if (file->saved_reports[i].data.transaction.to_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.transaction.to, file->saved_reports[i].data.transaction.to_count);
-            write_config_token_pair (out, "To", buffer);
+            config_write_token_pair (out, "To", buffer);
           }
           if (*(file->saved_reports[i].data.transaction.ref) != '\0')
           {
-            write_config_token_pair (out, "Ref", file->saved_reports[i].data.transaction.ref);
+            config_write_token_pair (out, "Ref", file->saved_reports[i].data.transaction.ref);
           }
           if (file->saved_reports[i].data.transaction.amount_min != NULL_CURRENCY ||
               file->saved_reports[i].data.transaction.amount_max != NULL_CURRENCY)
@@ -1216,11 +1216,11 @@ void save_transaction_file (file_data *file, char *filename)
             sprintf (buffer, "%x,%x",
                      file->saved_reports[i].data.transaction.amount_min,
                      file->saved_reports[i].data.transaction.amount_max);
-            write_config_token_pair (out, "Amount", buffer);
+            config_write_token_pair (out, "Amount", buffer);
           }
           if (*(file->saved_reports[i].data.transaction.desc) != '\0')
           {
-            write_config_token_pair (out, "Desc", file->saved_reports[i].data.transaction.desc);
+            config_write_token_pair (out, "Desc", file->saved_reports[i].data.transaction.desc);
           }
           break;
 
@@ -1236,19 +1236,19 @@ void save_transaction_file (file_data *file, char *filename)
                    file->saved_reports[i].data.unreconciled.lock);
           if (*(file->saved_reports[i].name) != '\0')
           {
-            write_config_token_pair (out, "Name", file->saved_reports[i].name);
+            config_write_token_pair (out, "Name", file->saved_reports[i].name);
           }
           if (file->saved_reports[i].data.unreconciled.from_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.unreconciled.from, file->saved_reports[i].data.unreconciled.from_count);
-            write_config_token_pair (out, "From", buffer);
+            config_write_token_pair (out, "From", buffer);
           }
           if (file->saved_reports[i].data.unreconciled.to_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.unreconciled.to, file->saved_reports[i].data.unreconciled.to_count);
-            write_config_token_pair (out, "To", buffer);
+            config_write_token_pair (out, "To", buffer);
           }
           break;
 
@@ -1266,25 +1266,25 @@ void save_transaction_file (file_data *file, char *filename)
                    file->saved_reports[i].data.cashflow.empty);
           if (*(file->saved_reports[i].name) != '\0')
           {
-            write_config_token_pair (out, "Name", file->saved_reports[i].name);
+            config_write_token_pair (out, "Name", file->saved_reports[i].name);
           }
           if (file->saved_reports[i].data.cashflow.accounts_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.cashflow.accounts, file->saved_reports[i].data.cashflow.accounts_count);
-            write_config_token_pair (out, "Accounts", buffer);
+            config_write_token_pair (out, "Accounts", buffer);
           }
           if (file->saved_reports[i].data.cashflow.incoming_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.cashflow.incoming, file->saved_reports[i].data.cashflow.incoming_count);
-            write_config_token_pair (out, "Incoming", buffer);
+            config_write_token_pair (out, "Incoming", buffer);
           }
           if (file->saved_reports[i].data.cashflow.outgoing_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.cashflow.outgoing, file->saved_reports[i].data.cashflow.outgoing_count);
-            write_config_token_pair (out, "Outgoing", buffer);
+            config_write_token_pair (out, "Outgoing", buffer);
           }
           break;
 
@@ -1301,25 +1301,25 @@ void save_transaction_file (file_data *file, char *filename)
                    file->saved_reports[i].data.balance.tabular);
           if (*(file->saved_reports[i].name) != '\0')
           {
-            write_config_token_pair (out, "Name", file->saved_reports[i].name);
+            config_write_token_pair (out, "Name", file->saved_reports[i].name);
           }
           if (file->saved_reports[i].data.balance.accounts_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.balance.accounts, file->saved_reports[i].data.balance.accounts_count);
-            write_config_token_pair (out, "Accounts", buffer);
+            config_write_token_pair (out, "Accounts", buffer);
           }
           if (file->saved_reports[i].data.balance.incoming_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.balance.incoming, file->saved_reports[i].data.balance.incoming_count);
-            write_config_token_pair (out, "Incoming", buffer);
+            config_write_token_pair (out, "Incoming", buffer);
           }
           if (file->saved_reports[i].data.balance.outgoing_count > 0)
           {
             analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.balance.outgoing, file->saved_reports[i].data.balance.outgoing_count);
-            write_config_token_pair (out, "Outgoing", buffer);
+            config_write_token_pair (out, "Outgoing", buffer);
           }
           break;
       }

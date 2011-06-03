@@ -653,7 +653,7 @@ int delete_preset (file_data *file, int preset_no)
   if (file->preset_window.preset_window != NULL)
   {
     open_window (file->preset_window.preset_window);
-    if (read_config_opt ("AutoSortPresets"))
+    if (config_opt_read ("AutoSortPresets"))
     {
       sort_preset_window (file);
       force_preset_window_redraw (file, file->preset_count, file->preset_count);
@@ -1034,7 +1034,7 @@ int process_preset_edit_window (void)
     }
   }
 
-  if (read_config_opt ("AutoSortPresets"))
+  if (config_opt_read ("AutoSortPresets"))
   {
     sort_preset_window (edit_preset_file);
   }
@@ -1297,7 +1297,7 @@ void preset_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case PRESET_PANE_PRINT:
-        open_preset_print_window (file, pointer, read_config_opt ("RememberValues"));
+        open_preset_print_window (file, pointer, config_opt_read ("RememberValues"));
         break;
 
       case PRESET_PANE_ADDPRESET:
@@ -1315,7 +1315,7 @@ void preset_pane_click (file_data *file, wimp_pointer *pointer)
     switch (pointer->i)
     {
       case PRESET_PANE_PRINT:
-        open_preset_print_window (file, pointer, !read_config_opt ("RememberValues"));
+        open_preset_print_window (file, pointer, !config_opt_read ("RememberValues"));
         break;
 
       case PRESET_PANE_SORT:

@@ -962,76 +962,76 @@ int initialise (void)
 
   /* Initialise the configuration. */
 
-  initialise_configuration (task_name, "CashBook", "<CashBook$Dir>");
+  config_initialise(task_name, "CashBook", "<CashBook$Dir>");
 
-  init_config_opt ("IyonixKeys", (osbyte1 (osbyte_IN_KEY, 0, 0xff) == 0xaa)); /* True only on an Iyonix. */
-  init_config_opt ("GlobalClipboardSupport", 1);
+  config_opt_init ("IyonixKeys", (osbyte1 (osbyte_IN_KEY, 0, 0xff) == 0xaa)); /* True only on an Iyonix. */
+  config_opt_init ("GlobalClipboardSupport", 1);
 
-  init_config_opt ("RememberValues", 1);
+  config_opt_init ("RememberValues", 1);
 
-  init_config_opt ("AllowTransDelete", 1);
+  config_opt_init ("AllowTransDelete", 1);
 
-  init_config_int ("MaxAutofillLen", 0);
+  config_int_init ("MaxAutofillLen", 0);
 
-  init_config_opt ("AutoSort", 1);
+  config_opt_init ("AutoSort", 1);
 
-  init_config_opt ("ShadeReconciled", 0);
-  init_config_int ("ShadeReconciledColour", 3);
+  config_opt_init ("ShadeReconciled", 0);
+  config_int_init ("ShadeReconciledColour", 3);
 
-  init_config_opt ("ShadeBudgeted", 0);
-  init_config_int ("ShadeBudgetedColour", 3);
+  config_opt_init ("ShadeBudgeted", 0);
+  config_int_init ("ShadeBudgetedColour", 3);
 
-  init_config_opt ("ShadeOverdrawn", 0);
-  init_config_int ("ShadeOverdrawnColour", 11);
+  config_opt_init ("ShadeOverdrawn", 0);
+  config_int_init ("ShadeOverdrawnColour", 11);
 
-  init_config_opt ("ShadeAccounts", 0);
-  init_config_int ("ShadeAccountsColour", 11);
+  config_opt_init ("ShadeAccounts", 0);
+  config_int_init ("ShadeAccountsColour", 11);
 
-  init_config_opt ("TerritoryDates", 1);
-  init_config_str ("DateSepIn", "-/\\.");
-  init_config_str ("DateSepOut", "-");
+  config_opt_init ("TerritoryDates", 1);
+  config_str_init ("DateSepIn", "-/\\.");
+  config_str_init ("DateSepOut", "-");
 
-  init_config_opt ("TerritoryCurrency", 1);
-  init_config_opt ("PrintZeros", 0);
-  init_config_opt ("BracketNegatives", 0);
-  init_config_int ("DecimalPlaces", 2);
-  init_config_str ("DecimalPoint", ".");
+  config_opt_init ("TerritoryCurrency", 1);
+  config_opt_init ("PrintZeros", 0);
+  config_opt_init ("BracketNegatives", 0);
+  config_int_init ("DecimalPlaces", 2);
+  config_str_init ("DecimalPoint", ".");
 
-  init_config_opt ("SortAfterSOrders", 1);
-  init_config_opt ("AutoSortSOrders", 1);
-  init_config_opt ("TerritorySOrders", 1);
-  init_config_int ("WeekendDays", 0x41);
+  config_opt_init ("SortAfterSOrders", 1);
+  config_opt_init ("AutoSortSOrders", 1);
+  config_opt_init ("TerritorySOrders", 1);
+  config_int_init ("WeekendDays", 0x41);
 
-  init_config_opt ("AutoSortPresets", 1);
+  config_opt_init ("AutoSortPresets", 1);
 
-  init_config_str ("ReportFontNormal", "Homerton.Medium");
-  init_config_str ("ReportFontBold", "Homerton.Bold");
-  init_config_int ("ReportFontSize", 12);
-  init_config_int ("ReportFontLinespace", 130);
+  config_str_init ("ReportFontNormal", "Homerton.Medium");
+  config_str_init ("ReportFontBold", "Homerton.Bold");
+  config_int_init ("ReportFontSize", 12);
+  config_int_init ("ReportFontLinespace", 130);
 
-  init_config_opt ("PrintFitWidth", 1);
-  init_config_opt ("PrintRotate", 0);
-  init_config_opt ("PrintText", 0);
-  init_config_opt ("PrintTextFormat", 1);
+  config_opt_init ("PrintFitWidth", 1);
+  config_opt_init ("PrintRotate", 0);
+  config_opt_init ("PrintText", 0);
+  config_opt_init ("PrintTextFormat", 1);
 
-  init_config_int ("PrintMarginTop", 0);
-  init_config_int ("PrintMarginLeft", 0);
-  init_config_int ("PrintMarginRight", 0);
-  init_config_int ("PrintMarginBottom", 0);
-  init_config_int ("PrintMarginUnits", 0); /* 0 = mm, 1 = cm, 2 = inch */
+  config_int_init ("PrintMarginTop", 0);
+  config_int_init ("PrintMarginLeft", 0);
+  config_int_init ("PrintMarginRight", 0);
+  config_int_init ("PrintMarginBottom", 0);
+  config_int_init ("PrintMarginUnits", 0); /* 0 = mm, 1 = cm, 2 = inch */
 
-  init_config_str ("TransactCols", "180,88,32,362,88,32,362,200,176,808");
-  init_config_str ("LimTransactCols", "140,88,32,140,88,32,140,140,140,200");
-  init_config_str ("AccountCols", "88,362,176,176,176,176");
-  init_config_str ("LimAccountCols", "88,140,140,140,140,140");
-  init_config_str ("AccViewCols", "180,88,32,362,200,176,176,176,808");
-  init_config_str ("LimAccViewCols", "140,88,32,140,140,140,140,140,200");
-  init_config_str ("SOrderCols", "88,32,362,88,32,362,176,500,180,100");
-  init_config_str ("LimSOrderCols", "88,32,140,88,32,140,140,200,140,60");
-  init_config_str ("PresetCols", "120,500,88,32,362,88,32,362,176,500");
-  init_config_str ("LimPresetCols", "88,200,88,32,140,88,32,140,140,200");
+  config_str_init ("TransactCols", "180,88,32,362,88,32,362,200,176,808");
+  config_str_init ("LimTransactCols", "140,88,32,140,88,32,140,140,140,200");
+  config_str_init ("AccountCols", "88,362,176,176,176,176");
+  config_str_init ("LimAccountCols", "88,140,140,140,140,140");
+  config_str_init ("AccViewCols", "180,88,32,362,200,176,176,176,808");
+  config_str_init ("LimAccViewCols", "140,88,32,140,140,140,140,140,200");
+  config_str_init ("SOrderCols", "88,32,362,88,32,362,176,500,180,100");
+  config_str_init ("LimSOrderCols", "88,32,140,88,32,140,140,200,140,60");
+  config_str_init ("PresetCols", "120,500,88,32,362,88,32,362,176,500");
+  config_str_init ("LimPresetCols", "88,200,88,32,140,88,32,140,140,200");
 
-  load_configuration ();
+  config_load();
 
   set_weekend_days ();
   set_up_money ();

@@ -499,10 +499,10 @@ void set_transaction_edit_line_shading (file_data *file)
   {
     transaction = file->transactions[file->transaction_window.entry_line].sort_index;
 
-    if (read_config_opt ("ShadeReconciled") && (file->transaction_window.entry_line < file->trans_count) &&
+    if (config_opt_read ("ShadeReconciled") && (file->transaction_window.entry_line < file->trans_count) &&
         ((file->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
     {
-      icon_fg_col = (read_config_int ("ShadeReconciledColour") << wimp_ICON_FG_COLOUR_SHIFT);
+      icon_fg_col = (config_int_read ("ShadeReconciledColour") << wimp_ICON_FG_COLOUR_SHIFT);
     }
     else
     {
@@ -1203,7 +1203,7 @@ void delete_edit_line_transaction (file_data *file)
   /* Only start if the delete line option is enabled, the file is the current entry window, and the line is in range.
    */
 
-  if (read_config_opt("AllowTransDelete") &&
+  if (config_opt_read("AllowTransDelete") &&
       entry_window == file && file->transaction_window.entry_line < file->trans_count)
   {
     transaction = file->transactions[file->transaction_window.entry_line].sort_index;
@@ -1381,7 +1381,7 @@ void process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
            (caret.i == EDIT_ICON_REF      && (file->transaction_window.sort_order & SORT_MASK) == SORT_REFERENCE) ||
            (caret.i == EDIT_ICON_AMOUNT   && (file->transaction_window.sort_order & SORT_MASK) == SORT_AMOUNT) ||
            (caret.i == EDIT_ICON_DESCRIPT && (file->transaction_window.sort_order & SORT_MASK) == SORT_DESCRIPTION)) &&
-            read_config_opt ("AutoSort"))
+            config_opt_read ("AutoSort"))
       {
         sort_transaction_window (file);
         if (file->transaction_window.entry_line < file->trans_count)
@@ -1719,7 +1719,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
                              && ((file->transaction_window.sort_order & SORT_MASK) == SORT_AMOUNT)) ||
              ((changed & (1 << EDIT_ICON_DESCRIPT))
                              && ((file->transaction_window.sort_order & SORT_MASK) == SORT_DESCRIPTION))) &&
-            read_config_opt ("AutoSort"))
+            config_opt_read ("AutoSort"))
         {
           sort_transaction_window (file);
           if (file->transaction_window.entry_line < file->trans_count)

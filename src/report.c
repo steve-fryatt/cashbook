@@ -159,10 +159,10 @@ void close_report (file_data *file, report_data *report)
 
     /* Set up the display details. */
 
-    strcpy (report->font_normal, read_config_str ("ReportFontNormal"));
-    strcpy (report->font_bold, read_config_str ("ReportFontBold"));
-    report->font_size = read_config_int ("ReportFontSize") * 16;
-    report->line_spacing = read_config_int ("ReportFontLinespace");
+    strcpy (report->font_normal, config_str_read ("ReportFontNormal"));
+    strcpy (report->font_bold, config_str_read ("ReportFontBold"));
+    report->font_size = config_int_read ("ReportFontSize") * 16;
+    report->line_spacing = config_int_read ("ReportFontLinespace");
     report->width = format_report_columns (report);
 
     /* Set up the window title */
@@ -230,10 +230,10 @@ void close_and_print_report (file_data *file, report_data *report, int text, int
 
     /* Set up the display details. */
 
-    strcpy (report->font_normal, read_config_str ("ReportFontNormal"));
-    strcpy (report->font_bold, read_config_str ("ReportFontBold"));
-    report->font_size = read_config_int ("ReportFontSize") * 16;
-    report->line_spacing = read_config_int ("ReportFontLinespace");
+    strcpy (report->font_normal, config_str_read ("ReportFontNormal"));
+    strcpy (report->font_bold, config_str_read ("ReportFontBold"));
+    report->font_size = config_int_read ("ReportFontSize") * 16;
+    report->line_spacing = config_int_read ("ReportFontLinespace");
     report->width = format_report_columns (report);
     font_convertto_os (1000 * (report->font_size / 16) * report->line_spacing / 100, 0, &linespace, NULL);
     report->height = report->lines * linespace + REPORT_BOTTOM_MARGIN;
@@ -1398,15 +1398,15 @@ void print_report_graphic (file_data *file, report_data *report, int fit_width, 
 
   margin_left = page_left;
 
-  if (read_config_int ("PrintMarginLeft") > 0 && read_config_int ("PrintMarginLeft") > margin_left)
+  if (config_int_read ("PrintMarginLeft") > 0 && config_int_read ("PrintMarginLeft") > margin_left)
   {
-    margin_left = read_config_int ("PrintMarginLeft");
+    margin_left = config_int_read ("PrintMarginLeft");
 
     page_left = margin_left;
   }
   else
   {
-    if (read_config_int ("PrintMarginLeft") > 0)
+    if (config_int_read ("PrintMarginLeft") > 0)
     {
       margin_fail = TRUE;
     }
@@ -1414,15 +1414,15 @@ void print_report_graphic (file_data *file, report_data *report, int fit_width, 
 
   margin_bottom = page_bottom;
 
-  if (read_config_int ("PrintMarginBottom") > 0 && read_config_int ("PrintMarginBottom") > margin_bottom)
+  if (config_int_read ("PrintMarginBottom") > 0 && config_int_read ("PrintMarginBottom") > margin_bottom)
   {
-    margin_bottom = read_config_int ("PrintMarginBottom");
+    margin_bottom = config_int_read ("PrintMarginBottom");
 
     page_bottom = margin_bottom;
   }
   else
   {
-    if (read_config_int ("PrintMarginBottom") > 0)
+    if (config_int_read ("PrintMarginBottom") > 0)
     {
       margin_fail = TRUE;
     }
@@ -1430,15 +1430,15 @@ void print_report_graphic (file_data *file, report_data *report, int fit_width, 
 
   margin_right = page_xsize - page_right;
 
-  if (read_config_int ("PrintMarginRight") > 0 && read_config_int ("PrintMarginRight") > margin_right)
+  if (config_int_read ("PrintMarginRight") > 0 && config_int_read ("PrintMarginRight") > margin_right)
   {
-    margin_right = read_config_int ("PrintMarginRight");
+    margin_right = config_int_read ("PrintMarginRight");
 
     page_right = page_xsize - margin_right;
   }
   else
   {
-    if (read_config_int ("PrintMarginRight") > 0)
+    if (config_int_read ("PrintMarginRight") > 0)
     {
       margin_fail = TRUE;
     }
@@ -1446,15 +1446,15 @@ void print_report_graphic (file_data *file, report_data *report, int fit_width, 
 
   margin_top = page_ysize - page_top;
 
-  if (read_config_int ("PrintMarginTop") > 0 && read_config_int ("PrintMarginTop") > margin_top)
+  if (config_int_read ("PrintMarginTop") > 0 && config_int_read ("PrintMarginTop") > margin_top)
   {
-    margin_top = read_config_int ("PrintMarginTop");
+    margin_top = config_int_read ("PrintMarginTop");
 
     page_top = page_ysize - margin_top;
   }
   else
   {
-    if (read_config_int ("PrintMarginTop") > 0)
+    if (config_int_read ("PrintMarginTop") > 0)
     {
       margin_fail = TRUE;
     }

@@ -1241,7 +1241,7 @@ void accview_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case ACCVIEW_PANE_PRINT:
-        open_accview_print_window (file, account, pointer, read_config_opt ("RememberValues"));
+        open_accview_print_window (file, account, pointer, config_opt_read ("RememberValues"));
         break;
 
       case ACCVIEW_PANE_EDIT:
@@ -1263,7 +1263,7 @@ void accview_pane_click (file_data *file, wimp_pointer *pointer)
     switch (pointer->i)
     {
       case ACCVIEW_PANE_PRINT:
-        open_accview_print_window (file, account, pointer, !read_config_opt ("RememberValues"));
+        open_accview_print_window (file, account, pointer, !config_opt_read ("RememberValues"));
         break;
 
       case ACCVIEW_PANE_SORT:

@@ -290,7 +290,7 @@ void set_choices_window (void)
                      config_opt_read ("AllowTransDelete"));
   set_icon_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HIGHLIGHT,
                      config_opt_read ("ShadeReconciled"));
-  set_colour_icon (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTCOL,
+  colpick_set_icon_colour (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTCOL,
                    config_int_read ("ShadeReconciledColour"));
   sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOCOMP), "%d",
            config_int_read ("MaxAutofillLen"));
@@ -301,15 +301,15 @@ void set_choices_window (void)
 
   set_icon_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHIGHLIGHT,
                      config_opt_read ("ShadeAccounts"));
-  set_colour_icon (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTCOL,
+  colpick_set_icon_colour (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTCOL,
                    config_int_read ("ShadeAccountsColour"));
   set_icon_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHIGHLIGHT,
                      config_opt_read ("ShadeBudgeted"));
-  set_colour_icon (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTCOL,
+  colpick_set_icon_colour (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTCOL,
                    config_int_read ("ShadeBudgetedColour"));
   set_icon_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHIGHLIGHT,
                      config_opt_read ("ShadeOverdrawn"));
-  set_colour_icon (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTCOL,
+  colpick_set_icon_colour (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTCOL,
            config_int_read ("ShadeOverdrawnColour"));
 }
 

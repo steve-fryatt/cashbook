@@ -226,9 +226,9 @@ void set_main_menu (file_data *file)
 {
   extern global_menus   menus;
 
-  tick_menu_item (menus.transaction_sub, MAIN_MENU_TRANS_RECONCILE, file->auto_reconcile);
-  shade_menu_item (menus.account_sub, MAIN_MENU_ACCOUNTS_VIEW, count_accounts_in_file (file, ACCOUNT_FULL) == 0);
-  shade_menu_item (menus.analysis_sub, MAIN_MENU_ANALYSIS_SAVEDREP, file->saved_report_count == 0);
+  menus_tick_entry (menus.transaction_sub, MAIN_MENU_TRANS_RECONCILE, file->auto_reconcile);
+  menus_shade_entry (menus.account_sub, MAIN_MENU_ACCOUNTS_VIEW, count_accounts_in_file (file, ACCOUNT_FULL) == 0);
+  menus_shade_entry (menus.analysis_sub, MAIN_MENU_ANALYSIS_SAVEDREP, file->saved_report_count == 0);
   set_accopen_menu (file);
   mainmenu_set_replist_menu (file);
 }
@@ -257,7 +257,7 @@ void open_main_menu (file_data *file, wimp_pointer *pointer)
   initialise_save_boxes (file, 0, 0);
   set_main_menu (file);
 
-  menus.menu_up = create_standard_menu (menus.main, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.main, pointer);
   menus.menu_id = MENU_ID_MAIN;
   main_menu_file = file;
 }
@@ -495,7 +495,7 @@ void open_accopen_menu (file_data *file, wimp_pointer *pointer)
   build_accopen_menu (file);
   set_accopen_menu (file);
 
-  menus.menu_up = create_standard_menu (menus.accopen, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.accopen, pointer);
   menus.menu_id = MENU_ID_ACCOPEN;
   main_menu_file = file;
 }
@@ -690,7 +690,7 @@ void open_account_menu (file_data *file, int type, int line,
   build_account_menu (file, include, title);
   set_account_menu (file);
 
-  menus.menu_up = create_standard_menu (menus.account, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.account, pointer);
   menus.menu_id = MENU_ID_ACCOUNT;
   main_menu_file = file;
   main_menu_line = line;
@@ -1157,7 +1157,7 @@ void open_date_menu (file_data *file, int line, wimp_pointer *pointer)
   build_date_menu (file);
   set_date_menu (file);
 
-  menus.menu_up = create_standard_menu (menus.date, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.date, pointer);
   menus.menu_id = MENU_ID_DATE;
   main_menu_file = file;
   main_menu_line = line;
@@ -1354,7 +1354,7 @@ void open_refdesc_menu (file_data *file, int menu_type, int line, wimp_pointer *
   build_refdesc_menu (file, menu_type, line);
   set_refdesc_menu (file, menu_type, line);
 
-  menus.menu_up = create_standard_menu (menus.refdesc, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.refdesc, pointer);
   menus.menu_id = MENU_ID_REFDESC;
   main_menu_file = file;
   main_menu_line = line;
@@ -1696,7 +1696,7 @@ void open_iconbar_menu (wimp_pointer *pointer)
 
   set_iconbar_menu ();
 
-  menus.menu_up = create_iconbar_menu (menus.icon_bar, pointer, 4, 0);
+  menus.menu_up = menus_create_iconbar_menu (menus.icon_bar, pointer);
   menus.menu_id = MENU_ID_ICONBAR;
 }
 
@@ -1744,23 +1744,23 @@ void set_acclist_menu (int type, int line, int data)
   {
     case ACCOUNT_FULL:
       msgs_lookup ("AcclistMenuTitleAcc", menus.acclist->title_data.text, 12);
-      msgs_lookup ("AcclistMenuViewAcc", indirected_menu_text (menus.acclist, ACCLIST_MENU_VIEWACCT), 20);
-      msgs_lookup ("AcclistMenuEditAcc", indirected_menu_text (menus.acclist, ACCLIST_MENU_EDITACCT), 20);
-      msgs_lookup ("AcclistMenuNewAcc", indirected_menu_text (menus.acclist, ACCLIST_MENU_NEWACCT), 20);
+      msgs_lookup ("AcclistMenuViewAcc", menus_get_indirected_text_addr (menus.acclist, ACCLIST_MENU_VIEWACCT), 20);
+      msgs_lookup ("AcclistMenuEditAcc", menus_get_indirected_text_addr (menus.acclist, ACCLIST_MENU_EDITACCT), 20);
+      msgs_lookup ("AcclistMenuNewAcc", menus_get_indirected_text_addr (menus.acclist, ACCLIST_MENU_NEWACCT), 20);
       break;
 
     case ACCOUNT_IN:
     case ACCOUNT_OUT:
       msgs_lookup ("AcclistMenuTitleHead", menus.acclist->title_data.text, 12);
-      msgs_lookup ("AcclistMenuViewHead", indirected_menu_text (menus.acclist, ACCLIST_MENU_VIEWACCT), 20);
-      msgs_lookup ("AcclistMenuEditHead", indirected_menu_text (menus.acclist, ACCLIST_MENU_EDITACCT), 20);
-      msgs_lookup ("AcclistMenuNewHead", indirected_menu_text (menus.acclist, ACCLIST_MENU_NEWACCT), 20);
+      msgs_lookup ("AcclistMenuViewHead", menus_get_indirected_text_addr (menus.acclist, ACCLIST_MENU_VIEWACCT), 20);
+      msgs_lookup ("AcclistMenuEditHead", menus_get_indirected_text_addr (menus.acclist, ACCLIST_MENU_EDITACCT), 20);
+      msgs_lookup ("AcclistMenuNewHead", menus_get_indirected_text_addr (menus.acclist, ACCLIST_MENU_NEWACCT), 20);
       break;
   }
 
-  shade_menu_item (menus.acclist, ACCLIST_MENU_VIEWACCT, line == -1 || data != ACCOUNT_LINE_DATA);
-  shade_menu_item (menus.acclist, ACCLIST_MENU_EDITACCT, line == -1 || data != ACCOUNT_LINE_DATA);
-  shade_menu_item (menus.acclist, ACCLIST_MENU_EDITSECT, line == -1 ||
+  menus_shade_entry (menus.acclist, ACCLIST_MENU_VIEWACCT, line == -1 || data != ACCOUNT_LINE_DATA);
+  menus_shade_entry (menus.acclist, ACCLIST_MENU_EDITACCT, line == -1 || data != ACCOUNT_LINE_DATA);
+  menus_shade_entry (menus.acclist, ACCLIST_MENU_EDITSECT, line == -1 ||
                    (data != ACCOUNT_LINE_HEADER && data != ACCOUNT_LINE_FOOTER));
 }
 
@@ -1779,7 +1779,7 @@ void open_acclist_menu (file_data *file, int type, int line, wimp_pointer *point
   initialise_save_boxes (file, find_accounts_window_entry_from_type (file, type), 0);
   set_acclist_menu (type, line, data);
 
-  menus.menu_up = create_standard_menu (menus.acclist, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.acclist, pointer);
   menus.menu_id = MENU_ID_ACCLIST;
   main_menu_file = file;
   main_menu_line = line;
@@ -1868,17 +1868,17 @@ void set_accview_menu (int type, int line)
   {
     case ACCOUNT_FULL:
       msgs_lookup ("AccviewMenuTitleAcc", menus.accview->title_data.text, 12);
-      msgs_lookup ("AccviewMenuEditAcc", indirected_menu_text (menus.accview, ACCVIEW_MENU_EDITACCT), 20);
+      msgs_lookup ("AccviewMenuEditAcc", menus_get_indirected_text_addr (menus.accview, ACCVIEW_MENU_EDITACCT), 20);
       break;
 
     case ACCOUNT_IN:
     case ACCOUNT_OUT:
       msgs_lookup ("AccviewMenuTitleHead", menus.accview->title_data.text, 12);
-      msgs_lookup ("AccviewMenuEditHead", indirected_menu_text (menus.accview, ACCVIEW_MENU_EDITACCT), 20);
+      msgs_lookup ("AccviewMenuEditHead", menus_get_indirected_text_addr (menus.accview, ACCVIEW_MENU_EDITACCT), 20);
       break;
   }
 
-  shade_menu_item (menus.accview, ACCVIEW_MENU_FINDTRANS, line == -1);
+  menus_shade_entry (menus.accview, ACCVIEW_MENU_FINDTRANS, line == -1);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -1891,7 +1891,7 @@ void open_accview_menu (file_data *file, int account, int line, wimp_pointer *po
   initialise_save_boxes (file, account, 0);
   set_accview_menu (file->accounts[account].type, line);
 
-  menus.menu_up = create_standard_menu (menus.accview, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.accview, pointer);
   menus.menu_id = MENU_ID_ACCVIEW;
   main_menu_file = file;
   main_menu_line = line;
@@ -1968,7 +1968,7 @@ void set_sorder_menu (int line)
 {
   extern global_menus   menus;
 
-  shade_menu_item (menus.sorder, SORDER_MENU_EDIT, line == -1);
+  menus_shade_entry (menus.sorder, SORDER_MENU_EDIT, line == -1);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -1981,7 +1981,7 @@ void open_sorder_menu (file_data *file, int line, wimp_pointer *pointer)
   initialise_save_boxes (file, 0, 0);
   set_sorder_menu (line);
 
-  menus.menu_up = create_standard_menu (menus.sorder, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.sorder, pointer);
   menus.menu_id = MENU_ID_SORDER;
   main_menu_file = file;
   main_menu_line = line;
@@ -2054,7 +2054,7 @@ void set_preset_menu (int line)
 {
   extern global_menus   menus;
 
-  shade_menu_item (menus.preset, PRESET_MENU_EDIT, line == -1);
+  menus_shade_entry (menus.preset, PRESET_MENU_EDIT, line == -1);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -2067,7 +2067,7 @@ void open_preset_menu (file_data *file, int line, wimp_pointer *pointer)
   initialise_save_boxes (file, 0, 0);
   set_preset_menu (line);
 
-  menus.menu_up = create_standard_menu (menus.preset, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.preset, pointer);
   menus.menu_id = MENU_ID_PRESET;
   main_menu_file = file;
   main_menu_line = line;
@@ -2136,7 +2136,7 @@ void set_reportview_menu (report_data *report)
 {
   extern global_menus   menus;
 
-  shade_menu_item (menus.reportview, REPVIEW_MENU_TEMPLATE, report->template.type == REPORT_TYPE_NONE);
+  menus_shade_entry (menus.reportview, REPVIEW_MENU_TEMPLATE, report->template.type == REPORT_TYPE_NONE);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -2149,7 +2149,7 @@ void open_reportview_menu (file_data *file, report_data *report, wimp_pointer *p
   initialise_save_boxes (file, (int) report, 0);
   set_reportview_menu (report);
 
-  menus.menu_up = create_standard_menu (menus.reportview, pointer);
+  menus.menu_up = menus_create_standard_menu (menus.reportview, pointer);
   menus.menu_id = MENU_ID_REPORTVIEW;
   main_menu_file = file;
   report_menu_block = report;
@@ -2223,7 +2223,7 @@ void mainmenu_open_replist_menu (file_data *file, wimp_pointer *pointer)
   mainmenu_build_replist_menu (file, 1);
   mainmenu_set_replist_menu (file);
 
-  menus.menu_up = create_popup_menu (menus.replist, pointer);
+  menus.menu_up = menus_create_popup_menu (menus.replist, pointer);
   menus.menu_id = MENU_ID_REPLIST;
   main_menu_file = file;
 }
@@ -2379,7 +2379,7 @@ void open_font_list_menu (wimp_pointer *pointer)
 
   menus.font_list = (wimp_menu *) font_buf1;
 
-  menus.menu_up = create_popup_menu (menus.font_list, pointer);
+  menus.menu_up = menus_create_popup_menu (menus.font_list, pointer);
   menus.menu_id = MENU_ID_FONTLIST;
   font_window = pointer->w;
   font_icon = pointer->i;

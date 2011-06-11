@@ -1046,11 +1046,11 @@ int initialise (void)
   /* Load the menu structure. */
 
   sprintf (res_temp, "%s.Menus", resources);
-  menu_defs = load_menus(res_temp, NULL, menu_list);
+  menu_defs = menus_load_templates(res_temp, NULL, menu_list, sizeof(menu_list));
 
-  load_menus_dbox(menu_defs, "prog_info", windows.prog_info);
-  load_menus_dbox(menu_defs, "file_info", windows.file_info);
-  load_menus_dbox(menu_defs, "save_as", windows.save_as);
+  menus_link_dbox(menu_defs, "prog_info", windows.prog_info);
+  menus_link_dbox(menu_defs, "file_info", windows.file_info);
+  menus_link_dbox(menu_defs, "save_as", windows.save_as);
 
   menus.icon_bar        = menu_list[0];
   menus.main            = menu_list[1];

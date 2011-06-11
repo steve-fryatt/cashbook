@@ -1493,7 +1493,7 @@ void open_account_lookup_window (file_data *file, wimp_w window, wimp_i icon, in
   pointer.w = window;
   pointer.i = icon;
 
-  create_popup_menu ((wimp_menu *) windows.enter_acc, &pointer);
+  menus_create_popup_menu ((wimp_menu *) windows.enter_acc, &pointer);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

@@ -437,7 +437,7 @@ void mouse_click_handler (wimp_pointer *pointer)
     if (pointer->i == CHOICE_ICON_HILIGHTMEN)
     {
       open_simple_colour_window (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTCOL);
-      create_popup_menu ((wimp_menu *) windows.colours, pointer);
+      menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
     }
   }
 
@@ -446,19 +446,19 @@ void mouse_click_handler (wimp_pointer *pointer)
     if (pointer->i == CHOICE_ICON_AHILIGHTMEN)
     {
       open_simple_colour_window (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTCOL);
-      create_popup_menu ((wimp_menu *) windows.colours, pointer);
+      menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
     }
 
     else if (pointer->i == CHOICE_ICON_SHILIGHTMEN)
     {
       open_simple_colour_window (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTCOL);
-      create_popup_menu ((wimp_menu *) windows.colours, pointer);
+      menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
     }
 
     else if (pointer->i == CHOICE_ICON_OHILIGHTMEN)
     {
       open_simple_colour_window (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTCOL);
-      create_popup_menu ((wimp_menu *) windows.colours, pointer);
+      menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
     }
   }
 

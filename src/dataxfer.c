@@ -168,7 +168,7 @@ void start_direct_menu_save (file_data *file)
   {
     wimp_get_pointer_info (&pointer);
     fill_save_as_window (file, SAVE_BOX_FILE);
-    create_standard_menu ((wimp_menu *) windows.save_as, &pointer);
+    menus_create_standard_menu ((wimp_menu *) windows.save_as, &pointer);
   }
 }
 

@@ -1174,7 +1174,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
       case TRANSACT_PANE_SAVE:
         initialise_save_boxes (file, 0, 0);
         fill_save_as_window (file, SAVE_BOX_FILE);
-        create_standard_menu ((wimp_menu *) windows.save_as, pointer);
+        menus_create_standard_menu ((wimp_menu *) windows.save_as, pointer);
         break;
 
       case TRANSACT_PANE_PRINT:
@@ -1389,7 +1389,7 @@ void transaction_window_keypress (file_data *file, wimp_key *key)
   {
     wimp_get_pointer_info (&pointer);
     fill_file_info_window (file);
-    create_standard_menu ((wimp_menu *) windows.file_info, &pointer);
+    menus_create_standard_menu ((wimp_menu *) windows.file_info, &pointer);
   }
 
   else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F2)
@@ -1402,7 +1402,7 @@ void transaction_window_keypress (file_data *file, wimp_key *key)
     wimp_get_pointer_info (&pointer);
     initialise_save_boxes (file, 0, 0);
     fill_save_as_window (file, SAVE_BOX_FILE);
-    create_standard_menu ((wimp_menu *) windows.save_as, &pointer);
+    menus_create_standard_menu ((wimp_menu *) windows.save_as, &pointer);
   }
 
   else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F3)

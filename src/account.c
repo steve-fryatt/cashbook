@@ -697,7 +697,7 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
       win = windows.edit_acct;
 
       msgs_lookup ("NewAcct", indirected_window_title (win), 50);
-      msgs_lookup ("NewAcctAct", indirected_icon_text (win, ACCT_EDIT_OK), 12);
+      msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (win, ACCT_EDIT_OK), 12);
     }
     else if (type & ACCOUNT_IN || type & ACCOUNT_OUT)
     {
@@ -705,7 +705,7 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
       win = windows.edit_hdr;
 
       msgs_lookup ("NewHdr", indirected_window_title (win), 50);
-      msgs_lookup ("NewAcctAct", indirected_icon_text (win, HEAD_EDIT_OK), 12);
+      msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (win, HEAD_EDIT_OK), 12);
     }
   }
   else
@@ -716,7 +716,7 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
       win = windows.edit_acct;
 
       msgs_lookup ("EditAcct", indirected_window_title (win), 50);
-      msgs_lookup ("EditAcctAct", indirected_icon_text (win, ACCT_EDIT_OK), 12);
+      msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (win, ACCT_EDIT_OK), 12);
     }
     else if (file->accounts[account].type & ACCOUNT_IN || file->accounts[account].type & ACCOUNT_OUT)
     {
@@ -724,7 +724,7 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
       win = windows.edit_hdr;
 
       msgs_lookup ("EditHdr", indirected_window_title (win), 50);
-      msgs_lookup ("EditAcctAct", indirected_icon_text (win, HEAD_EDIT_OK), 12);
+      msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (win, HEAD_EDIT_OK), 12);
     }
   }
 
@@ -754,10 +754,10 @@ void refresh_account_edit_window (void)
   extern global_windows windows;
 
   fill_account_edit_window (edit_account_file, edit_account_no);
-  redraw_icons_in_window (windows.edit_acct, 10, ACCT_EDIT_NAME, ACCT_EDIT_IDENT, ACCT_EDIT_CREDIT, ACCT_EDIT_BALANCE,
+  icons_redraw_group (windows.edit_acct, 10, ACCT_EDIT_NAME, ACCT_EDIT_IDENT, ACCT_EDIT_CREDIT, ACCT_EDIT_BALANCE,
                           ACCT_EDIT_ACCNO, ACCT_EDIT_SRTCD,
                           ACCT_EDIT_ADDR1, ACCT_EDIT_ADDR2, ACCT_EDIT_ADDR3, ACCT_EDIT_ADDR4);
-  replace_caret_in_window (windows.edit_acct);
+  icons_replace_caret_in_window (windows.edit_acct);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -767,8 +767,8 @@ void refresh_heading_edit_window (void)
   extern global_windows windows;
 
   fill_heading_edit_window (edit_account_file, edit_account_no, ACCOUNT_NULL);
-  redraw_icons_in_window (windows.edit_hdr, 3, HEAD_EDIT_NAME, HEAD_EDIT_IDENT, HEAD_EDIT_BUDGET);
-  replace_caret_in_window (windows.edit_hdr);
+  icons_redraw_group (windows.edit_hdr, 3, HEAD_EDIT_NAME, HEAD_EDIT_IDENT, HEAD_EDIT_BUDGET);
+  icons_replace_caret_in_window (windows.edit_hdr);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -782,47 +782,47 @@ void fill_account_edit_window (file_data *file, int account)
 
   if (account == NULL_ACCOUNT)
   {
-    *indirected_icon_text (windows.edit_acct, ACCT_EDIT_NAME) = '\0';
-    *indirected_icon_text (windows.edit_acct, ACCT_EDIT_IDENT) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_NAME) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT) = '\0';
 
-    convert_money_to_string (0, indirected_icon_text (windows.edit_acct, ACCT_EDIT_CREDIT));
-    convert_money_to_string (0, indirected_icon_text (windows.edit_acct, ACCT_EDIT_BALANCE));
+    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CREDIT));
+    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_BALANCE));
 
-    *indirected_icon_text (windows.edit_acct, ACCT_EDIT_PAYIN) = '\0';
-    *indirected_icon_text (windows.edit_acct, ACCT_EDIT_CHEQUE) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_PAYIN) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CHEQUE) = '\0';
 
-    *indirected_icon_text (windows.edit_acct, ACCT_EDIT_ACCNO) = '\0';
-    *indirected_icon_text (windows.edit_acct, ACCT_EDIT_SRTCD) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_ACCNO) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_SRTCD) = '\0';
 
     for (i=ACCT_EDIT_ADDR1; i<(ACCT_EDIT_ADDR1+ACCOUNT_ADDR_LINES); i++)
     {
-      *indirected_icon_text (windows.edit_acct, i) = '\0';
+      *icons_get_indirected_text_addr (windows.edit_acct, i) = '\0';
     }
 
-    set_icon_deleted (windows.edit_acct, ACCT_EDIT_DELETE, 1);
+    icons_set_deleted (windows.edit_acct, ACCT_EDIT_DELETE, 1);
   }
   else
   {
-    strcpy (indirected_icon_text (windows.edit_acct, ACCT_EDIT_NAME), file->accounts[account].name);
-    strcpy (indirected_icon_text (windows.edit_acct, ACCT_EDIT_IDENT), file->accounts[account].ident);
+    strcpy (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_NAME), file->accounts[account].name);
+    strcpy (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT), file->accounts[account].ident);
 
     convert_money_to_string (file->accounts[account].credit_limit,
-                             indirected_icon_text (windows.edit_acct, ACCT_EDIT_CREDIT));
+                             icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CREDIT));
     convert_money_to_string (file->accounts[account].opening_balance,
-                             indirected_icon_text (windows.edit_acct, ACCT_EDIT_BALANCE));
+                             icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_BALANCE));
 
-    get_next_cheque_number (file, NULL_ACCOUNT, account, 0, indirected_icon_text (windows.edit_acct, ACCT_EDIT_PAYIN));
-    get_next_cheque_number (file, account, NULL_ACCOUNT, 0, indirected_icon_text (windows.edit_acct, ACCT_EDIT_CHEQUE));
+    get_next_cheque_number (file, NULL_ACCOUNT, account, 0, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_PAYIN));
+    get_next_cheque_number (file, account, NULL_ACCOUNT, 0, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CHEQUE));
 
-    strcpy (indirected_icon_text (windows.edit_acct, ACCT_EDIT_ACCNO), file->accounts[account].account_no);
-    strcpy (indirected_icon_text (windows.edit_acct, ACCT_EDIT_SRTCD), file->accounts[account].sort_code);
+    strcpy (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_ACCNO), file->accounts[account].account_no);
+    strcpy (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_SRTCD), file->accounts[account].sort_code);
 
     for (i=ACCT_EDIT_ADDR1; i<(ACCT_EDIT_ADDR1+ACCOUNT_ADDR_LINES); i++)
     {
-      strcpy (indirected_icon_text (windows.edit_acct, i), file->accounts[account].address[i-ACCT_EDIT_ADDR1]);
+      strcpy (icons_get_indirected_text_addr (windows.edit_acct, i), file->accounts[account].address[i-ACCT_EDIT_ADDR1]);
     }
 
-    set_icon_deleted (windows.edit_acct, ACCT_EDIT_DELETE, 0);
+    icons_set_deleted (windows.edit_acct, ACCT_EDIT_DELETE, 0);
   }
 }
 
@@ -835,31 +835,31 @@ void fill_heading_edit_window (file_data *file, int account, int type)
 
   if (account == NULL_ACCOUNT)
   {
-    *indirected_icon_text (windows.edit_hdr, HEAD_EDIT_NAME) = '\0';
-    *indirected_icon_text (windows.edit_hdr, HEAD_EDIT_IDENT) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_NAME) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT) = '\0';
 
-    convert_money_to_string (0, indirected_icon_text (windows.edit_hdr, HEAD_EDIT_BUDGET));
+    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_BUDGET));
 
-    set_icon_shaded (windows.edit_hdr, HEAD_EDIT_INCOMING, 0);
-    set_icon_shaded (windows.edit_hdr, HEAD_EDIT_OUTGOING, 0);
-    set_icon_selected (windows.edit_hdr, HEAD_EDIT_INCOMING, (type & ACCOUNT_IN) || (type == ACCOUNT_NULL));
-    set_icon_selected (windows.edit_hdr, HEAD_EDIT_OUTGOING, (type & ACCOUNT_OUT));
+    icons_set_shaded (windows.edit_hdr, HEAD_EDIT_INCOMING, 0);
+    icons_set_shaded (windows.edit_hdr, HEAD_EDIT_OUTGOING, 0);
+    icons_set_selected (windows.edit_hdr, HEAD_EDIT_INCOMING, (type & ACCOUNT_IN) || (type == ACCOUNT_NULL));
+    icons_set_selected (windows.edit_hdr, HEAD_EDIT_OUTGOING, (type & ACCOUNT_OUT));
 
-    set_icon_deleted (windows.edit_hdr, HEAD_EDIT_DELETE, 1);
+    icons_set_deleted (windows.edit_hdr, HEAD_EDIT_DELETE, 1);
   }
   else
   {
-    strcpy (indirected_icon_text (windows.edit_hdr, HEAD_EDIT_NAME), file->accounts[account].name);
-    strcpy (indirected_icon_text (windows.edit_hdr, HEAD_EDIT_IDENT), file->accounts[account].ident);
+    strcpy (icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_NAME), file->accounts[account].name);
+    strcpy (icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT), file->accounts[account].ident);
 
-    convert_money_to_string (file->accounts[account].budget_amount, indirected_icon_text (windows.edit_hdr, HEAD_EDIT_BUDGET));
+    convert_money_to_string (file->accounts[account].budget_amount, icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_BUDGET));
 
-    set_icon_shaded (windows.edit_hdr, HEAD_EDIT_INCOMING, 1);
-    set_icon_shaded (windows.edit_hdr, HEAD_EDIT_OUTGOING, 1);
-    set_icon_selected (windows.edit_hdr, HEAD_EDIT_INCOMING, (file->accounts[account].type & ACCOUNT_IN));
-    set_icon_selected (windows.edit_hdr, HEAD_EDIT_OUTGOING, (file->accounts[account].type & ACCOUNT_OUT));
+    icons_set_shaded (windows.edit_hdr, HEAD_EDIT_INCOMING, 1);
+    icons_set_shaded (windows.edit_hdr, HEAD_EDIT_OUTGOING, 1);
+    icons_set_selected (windows.edit_hdr, HEAD_EDIT_INCOMING, (file->accounts[account].type & ACCOUNT_IN));
+    icons_set_selected (windows.edit_hdr, HEAD_EDIT_OUTGOING, (file->accounts[account].type & ACCOUNT_OUT));
 
-    set_icon_deleted (windows.edit_hdr, HEAD_EDIT_DELETE, 0);
+    icons_set_deleted (windows.edit_hdr, HEAD_EDIT_DELETE, 0);
   }
 }
 
@@ -878,7 +878,7 @@ int process_account_edit_window (void)
    * an error.
    */
 
-  check_ident = find_account (edit_account_file, indirected_icon_text (windows.edit_acct, ACCT_EDIT_IDENT),
+  check_ident = find_account (edit_account_file, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT),
                               ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT);
 
   if (check_ident != NULL_ACCOUNT && check_ident != edit_account_no)
@@ -893,15 +893,15 @@ int process_account_edit_window (void)
 
   if (edit_account_no == NULL_ACCOUNT)
   {
-    edit_account_no = add_account (edit_account_file, indirected_icon_text (windows.edit_acct, ACCT_EDIT_NAME),
-                                   indirected_icon_text (windows.edit_acct, ACCT_EDIT_IDENT), ACCOUNT_FULL);
+    edit_account_no = add_account (edit_account_file, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_NAME),
+                                   icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT), ACCOUNT_FULL);
   }
   else
   {
     strcpy (edit_account_file->accounts[edit_account_no].name,
-            indirected_icon_text (windows.edit_acct, ACCT_EDIT_NAME));
+            icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_NAME));
     strcpy (edit_account_file->accounts[edit_account_no].ident,
-            indirected_icon_text (windows.edit_acct, ACCT_EDIT_IDENT));
+            icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT));
   }
 
   /* If the account was created OK, store the rest of the data. */
@@ -909,17 +909,17 @@ int process_account_edit_window (void)
   if (edit_account_no != NULL_ACCOUNT)
   {
     edit_account_file->accounts[edit_account_no].opening_balance
-          = convert_string_to_money (indirected_icon_text (windows.edit_acct, ACCT_EDIT_BALANCE));
+          = convert_string_to_money (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_BALANCE));
 
     edit_account_file->accounts[edit_account_no].credit_limit
-          = convert_string_to_money (indirected_icon_text (windows.edit_acct, ACCT_EDIT_CREDIT));
+          = convert_string_to_money (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CREDIT));
 
-    len = strlen (indirected_icon_text (windows.edit_acct, ACCT_EDIT_PAYIN));
+    len = strlen (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_PAYIN));
     if (len > 0)
     {
       edit_account_file->accounts[edit_account_no].payin_num_width = len;
       edit_account_file->accounts[edit_account_no].next_payin_num
-          = atoi (indirected_icon_text (windows.edit_acct, ACCT_EDIT_PAYIN));
+          = atoi (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_PAYIN));
     }
     else
     {
@@ -927,12 +927,12 @@ int process_account_edit_window (void)
       edit_account_file->accounts[edit_account_no].next_payin_num = 0;
     }
 
-    len = strlen (indirected_icon_text (windows.edit_acct, ACCT_EDIT_CHEQUE));
+    len = strlen (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CHEQUE));
     if (len > 0)
     {
       edit_account_file->accounts[edit_account_no].cheque_num_width = len;
       edit_account_file->accounts[edit_account_no].next_cheque_num
-          = atoi (indirected_icon_text (windows.edit_acct, ACCT_EDIT_CHEQUE));
+          = atoi (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CHEQUE));
     }
     else
     {
@@ -941,14 +941,14 @@ int process_account_edit_window (void)
     }
 
     strcpy (edit_account_file->accounts[edit_account_no].account_no,
-            indirected_icon_text (windows.edit_acct, ACCT_EDIT_ACCNO));
+            icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_ACCNO));
     strcpy (edit_account_file->accounts[edit_account_no].sort_code,
-            indirected_icon_text (windows.edit_acct, ACCT_EDIT_SRTCD));
+            icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_SRTCD));
 
     for (i=ACCT_EDIT_ADDR1; i<(ACCT_EDIT_ADDR1+ACCOUNT_ADDR_LINES); i++)
     {
       strcpy (edit_account_file->accounts[edit_account_no].address[i-ACCT_EDIT_ADDR1],
-              indirected_icon_text (windows.edit_acct, i));
+              icons_get_indirected_text_addr (windows.edit_acct, i));
     }
   }
   else
@@ -984,9 +984,9 @@ int process_heading_edit_window (void)
    * category.  If it fails, exit with an error.
    */
 
-  type = read_icon_selected (windows.edit_hdr, HEAD_EDIT_INCOMING) ? ACCOUNT_IN : ACCOUNT_OUT;
+  type = icons_get_selected (windows.edit_hdr, HEAD_EDIT_INCOMING) ? ACCOUNT_IN : ACCOUNT_OUT;
 
-  check_ident = find_account (edit_account_file, indirected_icon_text (windows.edit_hdr, HEAD_EDIT_IDENT),
+  check_ident = find_account (edit_account_file, icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT),
                               ACCOUNT_FULL | type);
 
   if (check_ident != NULL_ACCOUNT && check_ident != edit_account_no)
@@ -1001,15 +1001,15 @@ int process_heading_edit_window (void)
 
   if (edit_account_no == NULL_ACCOUNT)
   {
-    edit_account_no = add_account (edit_account_file, indirected_icon_text (windows.edit_hdr, HEAD_EDIT_NAME),
-                                   indirected_icon_text (windows.edit_hdr, HEAD_EDIT_IDENT), type);
+    edit_account_no = add_account (edit_account_file, icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_NAME),
+                                   icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT), type);
   }
   else
   {
     strcpy (edit_account_file->accounts[edit_account_no].name,
-            indirected_icon_text (windows.edit_hdr, HEAD_EDIT_NAME));
+            icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_NAME));
     strcpy (edit_account_file->accounts[edit_account_no].ident,
-            indirected_icon_text (windows.edit_hdr, HEAD_EDIT_IDENT));
+            icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT));
   }
 
   /* If the heading was created OK, store the rest of the data. */
@@ -1017,7 +1017,7 @@ int process_heading_edit_window (void)
   if (edit_account_no != NULL_ACCOUNT)
   {
     edit_account_file->accounts[edit_account_no].budget_amount
-          = convert_string_to_money (indirected_icon_text (windows.edit_hdr, HEAD_EDIT_BUDGET));
+          = convert_string_to_money (icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_BUDGET));
   }
   else
   {
@@ -1115,14 +1115,14 @@ void open_section_edit_window (file_data *file, int entry, int line, wimp_pointe
     fill_section_edit_window (file, entry, line);
 
     msgs_lookup ("NewSect", indirected_window_title (windows.edit_sect), 50);
-    msgs_lookup ("NewAcctAct", indirected_icon_text (windows.edit_sect, SECTION_EDIT_OK), 12);
+    msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_OK), 12);
   }
   else
   {
     fill_section_edit_window (file, entry, line);
 
     msgs_lookup ("EditSect", indirected_window_title (windows.edit_sect), 50);
-    msgs_lookup ("EditAcctAct", indirected_icon_text (windows.edit_sect, SECTION_EDIT_OK), 12);
+    msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_OK), 12);
   }
 
   /* Set the pointers up so we can find this lot again and open the window. */
@@ -1142,8 +1142,8 @@ void refresh_section_edit_window (void)
   extern global_windows windows;
 
   fill_section_edit_window (edit_section_file, edit_section_entry, edit_section_line);
-  redraw_icons_in_window (windows.edit_sect, 1, SECTION_EDIT_TITLE);
-  replace_caret_in_window (windows.edit_sect);
+  icons_redraw_group (windows.edit_sect, 1, SECTION_EDIT_TITLE);
+  icons_replace_caret_in_window (windows.edit_sect);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -1155,23 +1155,23 @@ void fill_section_edit_window (file_data *file, int entry, int line)
 
   if (line == -1)
   {
-    *indirected_icon_text (windows.edit_sect, SECTION_EDIT_TITLE) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_TITLE) = '\0';
 
-    set_icon_selected (windows.edit_sect, SECTION_EDIT_HEADER, 1);
-    set_icon_selected (windows.edit_sect, SECTION_EDIT_FOOTER, 0);
+    icons_set_selected (windows.edit_sect, SECTION_EDIT_HEADER, 1);
+    icons_set_selected (windows.edit_sect, SECTION_EDIT_FOOTER, 0);
   }
   else
   {
-    strcpy (indirected_icon_text (windows.edit_sect, SECTION_EDIT_TITLE),
+    strcpy (icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_TITLE),
             file->account_windows[entry].line_data[line].heading);
 
-    set_icon_selected (windows.edit_sect, SECTION_EDIT_HEADER,
+    icons_set_selected (windows.edit_sect, SECTION_EDIT_HEADER,
                        (file->account_windows[entry].line_data[line].type == ACCOUNT_LINE_HEADER));
-    set_icon_selected (windows.edit_sect, SECTION_EDIT_FOOTER,
+    icons_set_selected (windows.edit_sect, SECTION_EDIT_FOOTER,
                        (file->account_windows[entry].line_data[line].type == ACCOUNT_LINE_FOOTER));
   }
 
-  set_icon_deleted (windows.edit_sect, SECTION_EDIT_DELETE, line == -1);
+  icons_set_deleted (windows.edit_sect, SECTION_EDIT_DELETE, line == -1);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -1200,13 +1200,13 @@ int process_section_edit_window (void)
   }
 
   strcpy (edit_section_file->account_windows[edit_section_entry].line_data[edit_section_line].heading,
-          indirected_icon_text (windows.edit_sect, SECTION_EDIT_TITLE));
+          icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_TITLE));
 
-  if (read_icon_selected (windows.edit_sect, SECTION_EDIT_HEADER))
+  if (icons_get_selected (windows.edit_sect, SECTION_EDIT_HEADER))
   {
     edit_section_file->account_windows[edit_section_entry].line_data[edit_section_line].type = ACCOUNT_LINE_HEADER;
   }
-  else if (read_icon_selected (windows.edit_sect, SECTION_EDIT_FOOTER))
+  else if (icons_get_selected (windows.edit_sect, SECTION_EDIT_FOOTER))
   {
     edit_section_file->account_windows[edit_section_entry].line_data[edit_section_line].type = ACCOUNT_LINE_FOOTER;
   }
@@ -1367,9 +1367,9 @@ int lookup_account_field (file_data *file, char key, int type, int account, int 
 
   /* Look up the text fields for the icons. */
 
-  ident_ptr = indirected_icon_text (window, ident);
-  name_ptr = indirected_icon_text (window, name);
-  rec_ptr = indirected_icon_text (window, rec);
+  ident_ptr = icons_get_indirected_text_addr (window, ident);
+  name_ptr = icons_get_indirected_text_addr (window, name);
+  rec_ptr = icons_get_indirected_text_addr (window, rec);
 
   /* If the character is an alphanumeric or a delete, look up the ident as it stends. */
 
@@ -1437,17 +1437,17 @@ int lookup_account_field (file_data *file, char key, int type, int account, int 
 void fill_account_field (file_data *file, acct_t account, int reconciled,
                          wimp_w window, wimp_i ident, wimp_i name, wimp_i rec_field)
 {
-  strcpy (indirected_icon_text (window, ident), find_account_ident (file, account));
+  strcpy (icons_get_indirected_text_addr (window, ident), find_account_ident (file, account));
 
   if (reconciled)
   {
-    msgs_lookup ("RecChar", indirected_icon_text (window, rec_field), REC_FIELD_LEN);
+    msgs_lookup ("RecChar", icons_get_indirected_text_addr (window, rec_field), REC_FIELD_LEN);
   }
   else
   {
-    *indirected_icon_text (window, rec_field) = '\0';
+    *icons_get_indirected_text_addr (window, rec_field) = '\0';
   }
-  strcpy (indirected_icon_text (window, name), find_account_name (file, account));
+  strcpy (icons_get_indirected_text_addr (window, name), find_account_name (file, account));
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -1456,13 +1456,13 @@ void fill_account_field (file_data *file, acct_t account, int reconciled,
 
 void toggle_account_reconcile_icon (wimp_w window, wimp_i icon)
 {
-  if (*indirected_icon_text (window, icon) == '\0')
+  if (*icons_get_indirected_text_addr (window, icon) == '\0')
   {
-    msgs_lookup ("RecChar", indirected_icon_text (window, icon), REC_FIELD_LEN);
+    msgs_lookup ("RecChar", icons_get_indirected_text_addr (window, icon), REC_FIELD_LEN);
   }
   else
   {
-    *indirected_icon_text (window, icon) = '\0';
+    *icons_get_indirected_text_addr (window, icon) = '\0';
   }
 
   wimp_set_icon_state (window, icon, 0, 0);
@@ -1479,9 +1479,9 @@ void open_account_lookup_window (file_data *file, wimp_w window, wimp_i icon, in
   extern global_windows windows;
 
 
-  strcpy (indirected_icon_text (windows.enter_acc, ACC_NAME_ENTRY_IDENT), find_account_ident (file, account));
-  strcpy (indirected_icon_text (windows.enter_acc, ACC_NAME_ENTRY_NAME), find_account_name (file, account));
-  *indirected_icon_text (windows.enter_acc, ACC_NAME_ENTRY_REC) = '\0';
+  strcpy (icons_get_indirected_text_addr (windows.enter_acc, ACC_NAME_ENTRY_IDENT), find_account_ident (file, account));
+  strcpy (icons_get_indirected_text_addr (windows.enter_acc, ACC_NAME_ENTRY_NAME), find_account_name (file, account));
+  *icons_get_indirected_text_addr (windows.enter_acc, ACC_NAME_ENTRY_REC) = '\0';
 
   account_name_lookup_file = file;
   account_name_lookup_flags = flags;
@@ -1616,14 +1616,14 @@ int process_account_lookup_window (void)
 
   /* Get the account number that was entered. */
 
-  account = find_account (account_name_lookup_file, indirected_icon_text (windows.enter_acc,ACC_NAME_ENTRY_IDENT),
+  account = find_account (account_name_lookup_file, icons_get_indirected_text_addr (windows.enter_acc,ACC_NAME_ENTRY_IDENT),
                                               account_name_lookup_flags);
 
   if (account != NULL_ACCOUNT)
   {
     /* Get the icon text, and the length of it. */
 
-    icon = indirected_icon_text (account_name_lookup_window, account_name_lookup_icon);
+    icon = icons_get_indirected_text_addr (account_name_lookup_window, account_name_lookup_icon);
     max_len = ctrl_strlen (icon);
 
     /* Check the caret position.  If it is in the target icon, move the insertion until it falls before a comma;
@@ -1667,8 +1667,8 @@ int process_account_lookup_window (void)
       }
     }
 
-    insert_text_into_icon (account_name_lookup_window, account_name_lookup_icon, index, ident, strlen (ident));
-    replace_caret_in_window (account_name_lookup_window);
+    icons_insert_text (account_name_lookup_window, account_name_lookup_icon, index, ident, strlen (ident));
+    icons_replace_caret_in_window (account_name_lookup_window);
   }
 
   return (0);
@@ -1809,15 +1809,15 @@ void print_account_window (int text, int format, int scale, int rotate)
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t", icon_text (window->account_pane, 0, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t\\s\\t", icons_copy_text (window->account_pane, 0, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icon_text (window->account_pane, 1, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->account_pane, 1, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icon_text (window->account_pane, 2, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->account_pane, 2, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icon_text (window->account_pane, 3, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->account_pane, 3, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s", icon_text (window->account_pane, 4, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s", icons_copy_text (window->account_pane, 4, numbuf1));
     strcat (line, buffer);
 
     write_report_line (report, 0, line);
@@ -1893,7 +1893,7 @@ void print_account_window (int text, int format, int scale, int rotate)
 
     /* Output the grand total line, taking the text from the window icons. */
 
-    icon_text (window->account_footer, 0, buffer);
+    icons_copy_text (window->account_footer, 0, buffer);
     sprintf (line, "\\u%s\\t\\s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s", buffer,
              window->footer_icon[0], window->footer_icon[1], window->footer_icon[2], window->footer_icon[3]);
     write_report_line (report, 0, line);
@@ -2144,7 +2144,7 @@ void force_accounts_window_redraw (file_data *file, int entry, int from, int to)
 
     /* Force a redraw of the three total icons in the footer. */
 
-    redraw_icons_in_window (file->account_windows[entry].account_footer, 4, 1, 2, 3, 4);
+    icons_redraw_group (file->account_windows[entry].account_footer, 4, 1, 2, 3, 4);
   }
 }
 

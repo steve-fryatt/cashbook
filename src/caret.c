@@ -51,7 +51,7 @@ void place_dialogue_caret (wimp_w window, wimp_i icon)
     old_index  = caret.index;
   }
 
-  put_caret_at_end (window, icon);
+  icons_put_caret_at_end (window, icon);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -88,16 +88,16 @@ void place_dialogue_caret_fallback (wimp_w window, int icons, ...)
 
     icon = va_arg (ap, wimp_i);
 
-    if (!read_icon_shaded (window, icon))
+    if (!icons_get_shaded (window, icon))
     {
-      put_caret_at_end (window, icon);
+      icons_put_caret_at_end (window, icon);
       i = -1;
     }
   }
 
   if (i != -1)
   {
-    put_caret_at_end (window, wimp_ICON_WINDOW);
+    icons_put_caret_at_end (window, wimp_ICON_WINDOW);
   }
 
   va_end (ap);

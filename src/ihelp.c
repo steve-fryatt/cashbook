@@ -167,7 +167,7 @@ char *find_ihelp (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_m
 
     if (*icon_name == '\0' && icon >= 0)
     {
-      if (get_validation_command (icon_name, window, icon, 'N'))
+      if (!icons_get_validation_command (icon_name, window, icon, 'N'))
       {
         sprintf (icon_name, "Icon%d", icon);
       }

@@ -360,7 +360,7 @@ void mouse_click_handler (wimp_pointer *pointer)
         {
           set_choices_window ();
           redraw_choices_window ();
-          replace_caret_in_window (windows.choices_pane[CHOICE_PANE_CURRENCY]);
+          icons_replace_caret_in_window (windows.choices_pane[CHOICE_PANE_CURRENCY]);
         }
         break;
 
@@ -376,7 +376,7 @@ void mouse_click_handler (wimp_pointer *pointer)
         if (pointer->i >= CHOICE_ICON_SELECT && pointer->i < (CHOICE_ICON_SELECT + CHOICES_PANES))
         {
           change_choices_pane (pointer->i - CHOICE_ICON_SELECT);
-          set_icon_selected (windows.choices, pointer->i, 1);
+          icons_set_selected (windows.choices, pointer->i, 1);
         }
         break;
     }
@@ -386,13 +386,13 @@ void mouse_click_handler (wimp_pointer *pointer)
   {
     if (pointer->i == CHOICE_ICON_TERRITORYNUM)
     {
-      set_icons_shaded_when_radio_on (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_TERRITORYNUM, 10,
+      icons_set_group_shaded_when_on (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_TERRITORYNUM, 10,
                                       CHOICE_ICON_FORMATFRAME, CHOICE_ICON_FORMATLABEL,
                                       CHOICE_ICON_DECIMALPLACELABEL, CHOICE_ICON_DECIMALPLACE,
                                       CHOICE_ICON_DECIMALPOINTLABEL, CHOICE_ICON_DECIMALPOINT,
                                       CHOICE_ICON_NEGFRAME, CHOICE_ICON_NEGLABEL,
                                       CHOICE_ICON_NEGMINUS, CHOICE_ICON_NEGBRACE);
-      replace_caret_in_window (windows.choices_pane[CHOICE_PANE_CURRENCY]);
+      icons_replace_caret_in_window (windows.choices_pane[CHOICE_PANE_CURRENCY]);
     }
   }
 
@@ -400,7 +400,7 @@ void mouse_click_handler (wimp_pointer *pointer)
   {
     if (pointer->i == CHOICE_ICON_TERRITORYSO)
     {
-      set_icons_shaded_when_radio_on (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO, 9,
+      icons_set_group_shaded_when_on (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO, 9,
                                       CHOICE_ICON_WEEKENDFRAME, CHOICE_ICON_WEEKENDLABEL,
                                       CHOICE_ICON_SOSUN, CHOICE_ICON_SOMON, CHOICE_ICON_SOTUE, CHOICE_ICON_SOWED,
                                       CHOICE_ICON_SOTHU, CHOICE_ICON_SOFRI, CHOICE_ICON_SOSAT);
@@ -415,7 +415,7 @@ void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == CHOICE_ICON_MINCH || pointer->i == CHOICE_ICON_MCM ||
          pointer->i == CHOICE_ICON_MMM))
     {
-      set_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], pointer->i, 1);
+      icons_set_selected (windows.choices_pane[CHOICE_PANE_PRINT], pointer->i, 1);
     }
   }
 
@@ -551,7 +551,7 @@ void mouse_click_handler (wimp_pointer *pointer)
     if (pointer->buttons == wimp_CLICK_ADJUST &&
         (pointer->i == HEAD_EDIT_INCOMING || pointer->i == HEAD_EDIT_OUTGOING)) /* Radio icons */
     {
-      set_icon_selected (windows.edit_hdr, pointer->i, 1);
+      icons_set_selected (windows.edit_hdr, pointer->i, 1);
     }
   }
 
@@ -590,7 +590,7 @@ void mouse_click_handler (wimp_pointer *pointer)
     if (pointer->buttons == wimp_CLICK_ADJUST &&
         (pointer->i == SECTION_EDIT_HEADER || pointer->i == SECTION_EDIT_FOOTER)) /* Radio icons */
     {
-      set_icon_selected (windows.edit_sect, pointer->i, 1);
+      icons_set_selected (windows.edit_sect, pointer->i, 1);
     }
   }
 
@@ -642,22 +642,22 @@ void mouse_click_handler (wimp_pointer *pointer)
 
     if (pointer->i == SORDER_EDIT_AVOID) /* Avoid radio icon */
     {
-      set_icons_shaded_when_radio_off (windows.edit_sorder, SORDER_EDIT_AVOID, 2,
+      icons_set_group_shaded_when_off (windows.edit_sorder, SORDER_EDIT_AVOID, 2,
                                        SORDER_EDIT_SKIPFWD, SORDER_EDIT_SKIPBACK);
     }
 
     if (pointer->i == SORDER_EDIT_FIRSTSW) /* First amount radio icon */
     {
-      set_icons_shaded_when_radio_off (windows.edit_sorder, SORDER_EDIT_FIRSTSW, 1,
+      icons_set_group_shaded_when_off (windows.edit_sorder, SORDER_EDIT_FIRSTSW, 1,
                                        SORDER_EDIT_FIRST);
-      replace_caret_in_window (windows.edit_sorder);
+      icons_replace_caret_in_window (windows.edit_sorder);
     }
 
     if (pointer->i == SORDER_EDIT_LASTSW) /* Last amount radio icon */
     {
-      set_icons_shaded_when_radio_off (windows.edit_sorder, SORDER_EDIT_LASTSW, 1,
+      icons_set_group_shaded_when_off (windows.edit_sorder, SORDER_EDIT_LASTSW, 1,
                                        SORDER_EDIT_LAST);
-      replace_caret_in_window (windows.edit_sorder);
+      icons_replace_caret_in_window (windows.edit_sorder);
     }
 
     if (pointer->buttons == wimp_CLICK_ADJUST &&
@@ -677,7 +677,7 @@ void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == SORDER_EDIT_PERYEARS || pointer->i == SORDER_EDIT_SKIPFWD ||
          pointer->i == SORDER_EDIT_SKIPBACK)) /* Radio icons */
     {
-      set_icon_selected (windows.edit_sorder  , pointer->i, 1);
+      icons_set_selected (windows.edit_sorder  , pointer->i, 1);
     }
   }
 
@@ -715,16 +715,16 @@ void mouse_click_handler (wimp_pointer *pointer)
 
     if (pointer->i == PRESET_EDIT_TODAY) /* Today radio icon */
     {
-      set_icons_shaded_when_radio_on (windows.edit_preset, PRESET_EDIT_TODAY, 1,
+      icons_set_group_shaded_when_on (windows.edit_preset, PRESET_EDIT_TODAY, 1,
                                        PRESET_EDIT_DATE);
-      replace_caret_in_window (windows.edit_preset);
+      icons_replace_caret_in_window (windows.edit_preset);
     }
 
     if (pointer->i == PRESET_EDIT_CHEQUE) /* Cheque radio icon */
     {
-      set_icons_shaded_when_radio_on (windows.edit_preset, PRESET_EDIT_CHEQUE, 1,
+      icons_set_group_shaded_when_on (windows.edit_preset, PRESET_EDIT_CHEQUE, 1,
                                        PRESET_EDIT_REF);
-      replace_caret_in_window (windows.edit_preset);
+      icons_replace_caret_in_window (windows.edit_preset);
     }
 
     if (pointer->buttons == wimp_CLICK_ADJUST &&
@@ -744,7 +744,7 @@ void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == PRESET_EDIT_CARETTO || pointer->i == PRESET_EDIT_CARETREF ||
          pointer->i == PRESET_EDIT_CARETAMOUNT || pointer->i == PRESET_EDIT_CARETDESC)) /* Radio icons */
     {
-      set_icon_selected (windows.edit_preset, pointer->i, 1);
+      icons_set_selected (windows.edit_preset, pointer->i, 1);
     }
   }
 
@@ -789,7 +789,7 @@ void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == FIND_ICON_START || pointer->i == FIND_ICON_DOWN ||
          pointer->i == FIND_ICON_END || pointer->i == FIND_ICON_UP)) /* Radio icons */
     {
-      set_icon_selected (windows.find, pointer->i, 1);
+      icons_set_selected (windows.find, pointer->i, 1);
     }
   }
 
@@ -848,7 +848,7 @@ void mouse_click_handler (wimp_pointer *pointer)
     if (pointer->buttons == wimp_CLICK_ADJUST &&
         (pointer->i == GOTO_ICON_NUMBER || pointer->i == GOTO_ICON_DATE)) /* Radio icons */
     {
-      set_icon_selected (windows.go_to, pointer->i, 1);
+      icons_set_selected (windows.go_to, pointer->i, 1);
     }
   }
 
@@ -878,9 +878,9 @@ void mouse_click_handler (wimp_pointer *pointer)
 
     else if (pointer->i == CONTINUE_ICON_TRANSACT)
     {
-      set_icons_shaded_when_radio_off (windows.continuation, CONTINUE_ICON_TRANSACT, 2,
+      icons_set_group_shaded_when_off (windows.continuation, CONTINUE_ICON_TRANSACT, 2,
                                        CONTINUE_ICON_DATE, CONTINUE_ICON_DATETEXT);
-      replace_caret_in_window (windows.continuation);
+      icons_replace_caret_in_window (windows.continuation);
     }
   }
 
@@ -977,12 +977,12 @@ void mouse_click_handler (wimp_pointer *pointer)
     {
       if (pointer->buttons == wimp_CLICK_ADJUST)
       {
-        set_icon_selected (windows.simple_print, pointer->i, 1);
+        icons_set_selected (windows.simple_print, pointer->i, 1);
       }
 
-      set_icons_shaded_when_radio_off (windows.simple_print, SIMPLE_PRINT_STANDARD, 3,
+      icons_set_group_shaded_when_off (windows.simple_print, SIMPLE_PRINT_STANDARD, 3,
                                        SIMPLE_PRINT_PORTRAIT, SIMPLE_PRINT_LANDSCAPE, SIMPLE_PRINT_SCALE);
-      set_icons_shaded_when_radio_off (windows.simple_print, SIMPLE_PRINT_FASTTEXT, 1,
+      icons_set_group_shaded_when_off (windows.simple_print, SIMPLE_PRINT_FASTTEXT, 1,
                                        SIMPLE_PRINT_TEXTFORMAT);
     }
 
@@ -990,7 +990,7 @@ void mouse_click_handler (wimp_pointer *pointer)
     {
       if (pointer->buttons == wimp_CLICK_ADJUST)
       {
-        set_icon_selected (windows.simple_print, pointer->i, 1);
+        icons_set_selected (windows.simple_print, pointer->i, 1);
       }
     }
   }
@@ -1027,12 +1027,12 @@ void mouse_click_handler (wimp_pointer *pointer)
     {
       if (pointer->buttons == wimp_CLICK_ADJUST)
       {
-        set_icon_selected (windows.date_print, pointer->i, 1);
+        icons_set_selected (windows.date_print, pointer->i, 1);
       }
 
-      set_icons_shaded_when_radio_off (windows.date_print, DATE_PRINT_STANDARD, 3,
+      icons_set_group_shaded_when_off (windows.date_print, DATE_PRINT_STANDARD, 3,
                                        DATE_PRINT_PORTRAIT, DATE_PRINT_LANDSCAPE, DATE_PRINT_SCALE);
-      set_icons_shaded_when_radio_off (windows.date_print, DATE_PRINT_FASTTEXT, 1,
+      icons_set_group_shaded_when_off (windows.date_print, DATE_PRINT_FASTTEXT, 1,
                                        DATE_PRINT_TEXTFORMAT);
     }
 
@@ -1040,7 +1040,7 @@ void mouse_click_handler (wimp_pointer *pointer)
     {
       if (pointer->buttons == wimp_CLICK_ADJUST)
       {
-        set_icon_selected (windows.date_print, pointer->i, 1);
+        icons_set_selected (windows.date_print, pointer->i, 1);
       }
     }
   }
@@ -1118,26 +1118,26 @@ void mouse_click_handler (wimp_pointer *pointer)
 
     else if (pointer->i == ANALYSIS_TRANS_BUDGET)
     {
-      set_icons_shaded_when_radio_on (windows.trans_rep, ANALYSIS_TRANS_BUDGET, 4,
+      icons_set_group_shaded_when_on (windows.trans_rep, ANALYSIS_TRANS_BUDGET, 4,
                                       ANALYSIS_TRANS_DATEFROMTXT, ANALYSIS_TRANS_DATEFROM,
                                       ANALYSIS_TRANS_DATETOTXT, ANALYSIS_TRANS_DATETO);
-      replace_caret_in_window (windows.trans_rep);
+      icons_replace_caret_in_window (windows.trans_rep);
     }
 
     else if (pointer->i == ANALYSIS_TRANS_GROUP)
     {
-      set_icons_shaded_when_radio_off (windows.trans_rep, ANALYSIS_TRANS_GROUP, 6,
+      icons_set_group_shaded_when_off (windows.trans_rep, ANALYSIS_TRANS_GROUP, 6,
                                   ANALYSIS_TRANS_PERIOD, ANALYSIS_TRANS_PTEXT,
                                   ANALYSIS_TRANS_PDAYS, ANALYSIS_TRANS_PMONTHS, ANALYSIS_TRANS_PYEARS,
                                   ANALYSIS_TRANS_LOCK);
-      replace_caret_in_window (windows.trans_rep);
+      icons_replace_caret_in_window (windows.trans_rep);
     }
 
     else if (pointer->buttons == wimp_CLICK_ADJUST &&
         (pointer->i == ANALYSIS_TRANS_PDAYS || pointer->i == ANALYSIS_TRANS_PMONTHS ||
          pointer->i == ANALYSIS_TRANS_PYEARS)) /* Radio icons */
     {
-      set_icon_selected (windows.trans_rep, pointer->i, 1);
+      icons_set_selected (windows.trans_rep, pointer->i, 1);
     }
 
     else if (pointer->buttons == wimp_CLICK_SELECT && pointer->i == ANALYSIS_TRANS_FROMSPECPOPUP)
@@ -1195,46 +1195,46 @@ void mouse_click_handler (wimp_pointer *pointer)
 
     else if (pointer->i == ANALYSIS_UNREC_BUDGET)
     {
-      set_icons_shaded_when_radio_on (windows.unrec_rep, ANALYSIS_UNREC_BUDGET, 4,
+      icons_set_group_shaded_when_on (windows.unrec_rep, ANALYSIS_UNREC_BUDGET, 4,
                                       ANALYSIS_UNREC_DATEFROMTXT, ANALYSIS_UNREC_DATEFROM,
                                       ANALYSIS_UNREC_DATETOTXT, ANALYSIS_UNREC_DATETO);
-      replace_caret_in_window (windows.unrec_rep);
+      icons_replace_caret_in_window (windows.unrec_rep);
     }
 
     else if (pointer->i == ANALYSIS_UNREC_GROUP)
     {
-      set_icons_shaded_when_radio_off (windows.unrec_rep, ANALYSIS_UNREC_GROUP, 2,
+      icons_set_group_shaded_when_off (windows.unrec_rep, ANALYSIS_UNREC_GROUP, 2,
                                        ANALYSIS_UNREC_GROUPACC, ANALYSIS_UNREC_GROUPDATE);
 
-      set_icons_shaded (windows.unrec_rep,
-                         !(read_icon_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUP) &&
-                           read_icon_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPDATE)),
+      icons_set_group_shaded (windows.unrec_rep,
+                         !(icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUP) &&
+                           icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPDATE)),
                         6,
                         ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_PTEXT, ANALYSIS_UNREC_LOCK,
                         ANALYSIS_UNREC_PDAYS, ANALYSIS_UNREC_PMONTHS, ANALYSIS_UNREC_PYEARS);
 
-      replace_caret_in_window (windows.unrec_rep);
+      icons_replace_caret_in_window (windows.unrec_rep);
     }
 
     else if (pointer->i == ANALYSIS_UNREC_GROUPACC || pointer->i == ANALYSIS_UNREC_GROUPDATE)
     {
-      set_icon_selected (windows.unrec_rep, pointer->i, 1);
+      icons_set_selected (windows.unrec_rep, pointer->i, 1);
 
-      set_icons_shaded (windows.unrec_rep,
-                         !(read_icon_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUP) &&
-                           read_icon_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPDATE)),
+      icons_set_group_shaded (windows.unrec_rep,
+                         !(icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUP) &&
+                           icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPDATE)),
                         6,
                         ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_PTEXT, ANALYSIS_UNREC_LOCK,
                         ANALYSIS_UNREC_PDAYS, ANALYSIS_UNREC_PMONTHS, ANALYSIS_UNREC_PYEARS);
 
-      replace_caret_in_window (windows.unrec_rep);
+      icons_replace_caret_in_window (windows.unrec_rep);
     }
 
     else if (pointer->buttons == wimp_CLICK_ADJUST &&
         (pointer->i == ANALYSIS_UNREC_PDAYS || pointer->i == ANALYSIS_UNREC_PMONTHS ||
          pointer->i == ANALYSIS_UNREC_PYEARS)) /* Radio icons */
     {
-      set_icon_selected (windows.unrec_rep, pointer->i, 1);
+      icons_set_selected (windows.unrec_rep, pointer->i, 1);
     }
 
     else if (pointer->buttons == wimp_CLICK_SELECT && pointer->i == ANALYSIS_UNREC_FROMSPECPOPUP)
@@ -1292,27 +1292,27 @@ void mouse_click_handler (wimp_pointer *pointer)
 
     else if (pointer->i == ANALYSIS_CASHFLOW_BUDGET)
     {
-      set_icons_shaded_when_radio_on (windows.cashflow_rep, ANALYSIS_CASHFLOW_BUDGET, 4,
+      icons_set_group_shaded_when_on (windows.cashflow_rep, ANALYSIS_CASHFLOW_BUDGET, 4,
                                       ANALYSIS_CASHFLOW_DATEFROMTXT, ANALYSIS_CASHFLOW_DATEFROM,
                                       ANALYSIS_CASHFLOW_DATETOTXT, ANALYSIS_CASHFLOW_DATETO);
-      replace_caret_in_window (windows.cashflow_rep);
+      icons_replace_caret_in_window (windows.cashflow_rep);
     }
 
     else if (pointer->i == ANALYSIS_UNREC_GROUP)
     {
-      set_icons_shaded_when_radio_off (windows.cashflow_rep, ANALYSIS_CASHFLOW_GROUP, 7,
+      icons_set_group_shaded_when_off (windows.cashflow_rep, ANALYSIS_CASHFLOW_GROUP, 7,
                                        ANALYSIS_CASHFLOW_PERIOD, ANALYSIS_CASHFLOW_PTEXT, ANALYSIS_CASHFLOW_LOCK,
                                        ANALYSIS_CASHFLOW_PDAYS, ANALYSIS_CASHFLOW_PMONTHS, ANALYSIS_CASHFLOW_PYEARS,
                                        ANALYSIS_CASHFLOW_EMPTY);
 
-      replace_caret_in_window (windows.cashflow_rep);
+      icons_replace_caret_in_window (windows.cashflow_rep);
     }
 
      else if (pointer->buttons == wimp_CLICK_ADJUST &&
         (pointer->i == ANALYSIS_CASHFLOW_PDAYS || pointer->i == ANALYSIS_CASHFLOW_PMONTHS ||
          pointer->i == ANALYSIS_CASHFLOW_PYEARS)) /* Radio icons */
     {
-      set_icon_selected (windows.cashflow_rep, pointer->i, 1);
+      icons_set_selected (windows.cashflow_rep, pointer->i, 1);
     }
 
     else if (pointer->buttons == wimp_CLICK_SELECT && pointer->i == ANALYSIS_CASHFLOW_ACCOUNTSPOPUP)
@@ -1376,26 +1376,26 @@ void mouse_click_handler (wimp_pointer *pointer)
 
     else if (pointer->i == ANALYSIS_BALANCE_BUDGET)
     {
-      set_icons_shaded_when_radio_on (windows.balance_rep, ANALYSIS_BALANCE_BUDGET, 4,
+      icons_set_group_shaded_when_on (windows.balance_rep, ANALYSIS_BALANCE_BUDGET, 4,
                                       ANALYSIS_BALANCE_DATEFROMTXT, ANALYSIS_BALANCE_DATEFROM,
                                       ANALYSIS_BALANCE_DATETOTXT, ANALYSIS_BALANCE_DATETO);
-      replace_caret_in_window (windows.balance_rep);
+      icons_replace_caret_in_window (windows.balance_rep);
     }
 
     else if (pointer->i == ANALYSIS_UNREC_GROUP)
     {
-      set_icons_shaded_when_radio_off (windows.balance_rep, ANALYSIS_BALANCE_GROUP, 6,
+      icons_set_group_shaded_when_off (windows.balance_rep, ANALYSIS_BALANCE_GROUP, 6,
                                        ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_PTEXT, ANALYSIS_BALANCE_LOCK,
                                        ANALYSIS_BALANCE_PDAYS, ANALYSIS_BALANCE_PMONTHS, ANALYSIS_BALANCE_PYEARS);
 
-      replace_caret_in_window (windows.balance_rep);
+      icons_replace_caret_in_window (windows.balance_rep);
     }
 
      else if (pointer->buttons == wimp_CLICK_ADJUST &&
         (pointer->i == ANALYSIS_BALANCE_PDAYS || pointer->i == ANALYSIS_BALANCE_PMONTHS ||
          pointer->i == ANALYSIS_BALANCE_PYEARS)) /* Radio icons */
     {
-      set_icon_selected (windows.balance_rep, pointer->i, 1);
+      icons_set_selected (windows.balance_rep, pointer->i, 1);
     }
 
     else if (pointer->buttons == wimp_CLICK_SELECT && pointer->i == ANALYSIS_BALANCE_ACCOUNTSPOPUP)
@@ -1489,7 +1489,7 @@ void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == TRANS_SORT_DESCRIPTION || pointer->i == TRANS_SORT_ASCENDING ||
          pointer->i == TRANS_SORT_DESCENDING)) /* Radio icons */
     {
-      set_icon_selected (windows.sort_trans, pointer->i, 1);
+      icons_set_selected (windows.sort_trans, pointer->i, 1);
     }
   }
 
@@ -1524,7 +1524,7 @@ void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == ACCVIEW_SORT_DESCRIPTION || pointer->i == ACCVIEW_SORT_ASCENDING ||
          pointer->i == ACCVIEW_SORT_DESCENDING)) /* Radio icons */
     {
-      set_icon_selected (windows.sort_accview, pointer->i, 1);
+      icons_set_selected (windows.sort_accview, pointer->i, 1);
     }
   }
 
@@ -1558,7 +1558,7 @@ void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == SORDER_SORT_NEXTDATE || pointer->i == SORDER_SORT_LEFT ||
          pointer->i == SORDER_SORT_ASCENDING || pointer->i == SORDER_SORT_DESCENDING)) /* Radio icons */
     {
-      set_icon_selected (windows.sort_sorder, pointer->i, 1);
+      icons_set_selected (windows.sort_sorder, pointer->i, 1);
     }
   }
 
@@ -1592,7 +1592,7 @@ void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == PRESET_SORT_KEY || pointer->i == PRESET_SORT_NAME ||
          pointer->i == PRESET_SORT_ASCENDING || pointer->i == PRESET_SORT_DESCENDING)) /* Radio icons */
     {
-      set_icon_selected (windows.sort_preset, pointer->i, 1);
+      icons_set_selected (windows.sort_preset, pointer->i, 1);
     }
   }
 

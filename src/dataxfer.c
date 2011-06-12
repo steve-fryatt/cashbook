@@ -133,7 +133,7 @@ void fill_save_as_window (file_data *file, int new_window)
 
   if (savebox_window != SAVE_BOX_NONE)
   {
-    strcpy (savebox_filename[savebox_window], indirected_icon_text (windows.save_as, 2));
+    strcpy (savebox_filename[savebox_window], icons_get_indirected_text_addr (windows.save_as, 2));
   }
 
   /* Set up the box for the new dialogue. */
@@ -143,8 +143,8 @@ void fill_save_as_window (file_data *file, int new_window)
   debug_printf ("Sprite: '%s'", savebox_sprites[new_window]);
   #endif
 
-  strcpy (indirected_icon_text (windows.save_as, 2), savebox_filename[new_window]);
-  strcpy (indirected_icon_text (windows.save_as, 3), savebox_sprites[new_window]);
+  strcpy (icons_get_indirected_text_addr (windows.save_as, 2), savebox_filename[new_window]);
+  strcpy (icons_get_indirected_text_addr (windows.save_as, 3), savebox_sprites[new_window]);
 
   savebox_window = new_window;
 }
@@ -255,7 +255,7 @@ void terminate_user_drag (wimp_dragged *drag)
     dragasprite_stop ();
   }
 
-  leafname = find_leafname (indirected_icon_text (windows.save_as, 2));
+  leafname = find_leafname (icons_get_indirected_text_addr (windows.save_as, 2));
 
   #ifdef DEBUG
   debug_printf ("\\DBegin data transfer");
@@ -396,7 +396,7 @@ int immediate_window_save (void)
   debug_printf ("\\DSave with mouse-click or RETURN");
   #endif
 
-  filename = indirected_icon_text (windows.save_as, 2);
+  filename = icons_get_indirected_text_addr (windows.save_as, 2);
 
   /* Test if the filename is valid or not.  Exit if not. */
 

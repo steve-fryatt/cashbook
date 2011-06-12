@@ -332,7 +332,7 @@ void refresh_simple_print_window (void)
   extern global_windows windows;
 
   fill_simple_print_window (&(simple_print_file->print), simple_print_clear);
-  replace_caret_in_window (windows.simple_print);
+  icons_replace_caret_in_window (windows.simple_print);
 
   xwimp_force_redraw_title (windows.simple_print);
 }
@@ -358,31 +358,31 @@ void fill_simple_print_window (print *print_data, int clear)
 
   if (clear == 0)
   {
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_STANDARD, !config_opt_read ("PrintText"));
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_PORTRAIT, !config_opt_read ("PrintRotate"));
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_LANDSCAPE, config_opt_read ("PrintRotate"));
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_SCALE, config_opt_read ("PrintFitWidth"));
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_STANDARD, !config_opt_read ("PrintText"));
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_PORTRAIT, !config_opt_read ("PrintRotate"));
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_LANDSCAPE, config_opt_read ("PrintRotate"));
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_SCALE, config_opt_read ("PrintFitWidth"));
 
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_FASTTEXT, config_opt_read ("PrintText"));
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_TEXTFORMAT, config_opt_read ("PrintTextFormat"));
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_FASTTEXT, config_opt_read ("PrintText"));
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_TEXTFORMAT, config_opt_read ("PrintTextFormat"));
   }
   else
   {
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_STANDARD, !print_data->text);
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_PORTRAIT, !print_data->rotate);
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_LANDSCAPE, print_data->rotate);
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_SCALE, print_data->fit_width);
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_STANDARD, !print_data->text);
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_PORTRAIT, !print_data->rotate);
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_LANDSCAPE, print_data->rotate);
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_SCALE, print_data->fit_width);
 
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_FASTTEXT, print_data->text);
-    set_icon_selected (windows.simple_print, SIMPLE_PRINT_TEXTFORMAT, print_data->text_format);
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_FASTTEXT, print_data->text);
+    icons_set_selected (windows.simple_print, SIMPLE_PRINT_TEXTFORMAT, print_data->text_format);
   }
 
-  set_icons_shaded_when_radio_off (windows.simple_print, SIMPLE_PRINT_STANDARD, 3,
+  icons_set_group_shaded_when_off (windows.simple_print, SIMPLE_PRINT_STANDARD, 3,
                                    SIMPLE_PRINT_PORTRAIT, SIMPLE_PRINT_LANDSCAPE, SIMPLE_PRINT_SCALE);
-  set_icons_shaded_when_radio_off (windows.simple_print, SIMPLE_PRINT_FASTTEXT, 1,
+  icons_set_group_shaded_when_off (windows.simple_print, SIMPLE_PRINT_FASTTEXT, 1,
                                    SIMPLE_PRINT_TEXTFORMAT);
 
-  set_icon_shaded (windows.simple_print, SIMPLE_PRINT_OK, error != NULL);
+  icons_set_shaded (windows.simple_print, SIMPLE_PRINT_OK, error != NULL);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -400,10 +400,10 @@ void process_simple_print_window (void)
 
   /* Extract the information and call the originator's print start function. */
 
-  simple_print_file->print.fit_width = read_icon_selected (windows.simple_print, SIMPLE_PRINT_SCALE);
-  simple_print_file->print.rotate = read_icon_selected (windows.simple_print, SIMPLE_PRINT_LANDSCAPE);
-  simple_print_file->print.text = read_icon_selected (windows.simple_print, SIMPLE_PRINT_FASTTEXT);
-  simple_print_file->print.text_format = read_icon_selected (windows.simple_print, SIMPLE_PRINT_TEXTFORMAT);
+  simple_print_file->print.fit_width = icons_get_selected (windows.simple_print, SIMPLE_PRINT_SCALE);
+  simple_print_file->print.rotate = icons_get_selected (windows.simple_print, SIMPLE_PRINT_LANDSCAPE);
+  simple_print_file->print.text = icons_get_selected (windows.simple_print, SIMPLE_PRINT_FASTTEXT);
+  simple_print_file->print.text_format = icons_get_selected (windows.simple_print, SIMPLE_PRINT_TEXTFORMAT);
 
   simple_print_start (simple_print_file->print.text,
                       simple_print_file->print.text_format,
@@ -486,7 +486,7 @@ void refresh_date_print_window (void)
   extern global_windows windows;
 
   fill_date_print_window (&(date_print_file->print), date_print_clear);
-  replace_caret_in_window (windows.date_print);
+  icons_replace_caret_in_window (windows.date_print);
 
   xwimp_force_redraw_title (windows.date_print);
 }
@@ -512,37 +512,37 @@ void fill_date_print_window (print *print_data, int clear)
 
   if (clear == 0)
   {
-    set_icon_selected (windows.date_print, DATE_PRINT_STANDARD, !config_opt_read ("PrintText"));
-    set_icon_selected (windows.date_print, DATE_PRINT_PORTRAIT, !config_opt_read ("PrintRotate"));
-    set_icon_selected (windows.date_print, DATE_PRINT_LANDSCAPE, config_opt_read ("PrintRotate"));
-    set_icon_selected (windows.date_print, DATE_PRINT_SCALE, config_opt_read ("PrintFitWidth"));
+    icons_set_selected (windows.date_print, DATE_PRINT_STANDARD, !config_opt_read ("PrintText"));
+    icons_set_selected (windows.date_print, DATE_PRINT_PORTRAIT, !config_opt_read ("PrintRotate"));
+    icons_set_selected (windows.date_print, DATE_PRINT_LANDSCAPE, config_opt_read ("PrintRotate"));
+    icons_set_selected (windows.date_print, DATE_PRINT_SCALE, config_opt_read ("PrintFitWidth"));
 
-    set_icon_selected (windows.date_print, DATE_PRINT_FASTTEXT, config_opt_read ("PrintText"));
-    set_icon_selected (windows.date_print, DATE_PRINT_TEXTFORMAT, config_opt_read ("PrintTextFormat"));
+    icons_set_selected (windows.date_print, DATE_PRINT_FASTTEXT, config_opt_read ("PrintText"));
+    icons_set_selected (windows.date_print, DATE_PRINT_TEXTFORMAT, config_opt_read ("PrintTextFormat"));
 
-    *indirected_icon_text (windows.date_print, DATE_PRINT_FROM) = '\0';
-    *indirected_icon_text (windows.date_print, DATE_PRINT_TO) = '\0';
+    *icons_get_indirected_text_addr (windows.date_print, DATE_PRINT_FROM) = '\0';
+    *icons_get_indirected_text_addr (windows.date_print, DATE_PRINT_TO) = '\0';
   }
   else
   {
-    set_icon_selected (windows.date_print, DATE_PRINT_STANDARD, !print_data->text);
-    set_icon_selected (windows.date_print, DATE_PRINT_PORTRAIT, !print_data->rotate);
-    set_icon_selected (windows.date_print, DATE_PRINT_LANDSCAPE, print_data->rotate);
-    set_icon_selected (windows.date_print, DATE_PRINT_SCALE, print_data->fit_width);
+    icons_set_selected (windows.date_print, DATE_PRINT_STANDARD, !print_data->text);
+    icons_set_selected (windows.date_print, DATE_PRINT_PORTRAIT, !print_data->rotate);
+    icons_set_selected (windows.date_print, DATE_PRINT_LANDSCAPE, print_data->rotate);
+    icons_set_selected (windows.date_print, DATE_PRINT_SCALE, print_data->fit_width);
 
-    set_icon_selected (windows.date_print, DATE_PRINT_FASTTEXT, print_data->text);
-    set_icon_selected (windows.date_print, DATE_PRINT_TEXTFORMAT, print_data->text_format);
+    icons_set_selected (windows.date_print, DATE_PRINT_FASTTEXT, print_data->text);
+    icons_set_selected (windows.date_print, DATE_PRINT_TEXTFORMAT, print_data->text_format);
 
-    convert_date_to_string (print_data->from, indirected_icon_text (windows.date_print, DATE_PRINT_FROM));
-    convert_date_to_string (print_data->to, indirected_icon_text (windows.date_print, DATE_PRINT_TO));
+    convert_date_to_string (print_data->from, icons_get_indirected_text_addr (windows.date_print, DATE_PRINT_FROM));
+    convert_date_to_string (print_data->to, icons_get_indirected_text_addr (windows.date_print, DATE_PRINT_TO));
   }
 
-  set_icons_shaded_when_radio_off (windows.date_print, DATE_PRINT_STANDARD, 3,
+  icons_set_group_shaded_when_off (windows.date_print, DATE_PRINT_STANDARD, 3,
                                    DATE_PRINT_PORTRAIT, DATE_PRINT_LANDSCAPE, DATE_PRINT_SCALE);
-  set_icons_shaded_when_radio_off (windows.date_print, DATE_PRINT_FASTTEXT, 1,
+  icons_set_group_shaded_when_off (windows.date_print, DATE_PRINT_FASTTEXT, 1,
                                    DATE_PRINT_TEXTFORMAT);
 
-  set_icon_shaded (windows.date_print, DATE_PRINT_OK, error != NULL);
+  icons_set_shaded (windows.date_print, DATE_PRINT_OK, error != NULL);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -560,14 +560,14 @@ void process_date_print_window (void)
 
   /* Extract the information and call the originator's print start function. */
 
-  date_print_file->print.fit_width = read_icon_selected (windows.date_print, DATE_PRINT_SCALE);
-  date_print_file->print.rotate = read_icon_selected (windows.date_print, DATE_PRINT_LANDSCAPE);
-  date_print_file->print.text = read_icon_selected (windows.date_print, DATE_PRINT_FASTTEXT);
-  date_print_file->print.text_format = read_icon_selected (windows.date_print, DATE_PRINT_TEXTFORMAT);
+  date_print_file->print.fit_width = icons_get_selected (windows.date_print, DATE_PRINT_SCALE);
+  date_print_file->print.rotate = icons_get_selected (windows.date_print, DATE_PRINT_LANDSCAPE);
+  date_print_file->print.text = icons_get_selected (windows.date_print, DATE_PRINT_FASTTEXT);
+  date_print_file->print.text_format = icons_get_selected (windows.date_print, DATE_PRINT_TEXTFORMAT);
 
-  date_print_file->print.from = convert_string_to_date (indirected_icon_text (windows.date_print, DATE_PRINT_FROM),
+  date_print_file->print.from = convert_string_to_date (icons_get_indirected_text_addr (windows.date_print, DATE_PRINT_FROM),
                                                         NULL_DATE, 0);
-  date_print_file->print.to = convert_string_to_date (indirected_icon_text (windows.date_print, DATE_PRINT_TO),
+  date_print_file->print.to = convert_string_to_date (icons_get_indirected_text_addr (windows.date_print, DATE_PRINT_TO),
                                                       NULL_DATE, 0);
 
   date_print_start (date_print_file->print.text,

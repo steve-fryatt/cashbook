@@ -370,7 +370,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
     else if (selection->items[1] == MAIN_MENU_TRANS_RECONCILE) /* Reconcile */
     {
       main_menu_file->auto_reconcile = !main_menu_file->auto_reconcile;
-      set_icon_selected (main_menu_file->transaction_window.transaction_pane, TRANSACT_PANE_RECONCILE,
+      icons_set_selected (main_menu_file->transaction_window.transaction_pane, TRANSACT_PANE_RECONCILE,
                          main_menu_file->auto_reconcile);
     }
   }
@@ -769,7 +769,7 @@ void decode_account_menu (wimp_selection *selection, wimp_pointer *pointer)
       wimp_set_icon_state (account_menu_window, account_menu_name_icon, 0, 0);
       wimp_set_icon_state (account_menu_window, account_menu_rec_icon, 0, 0);
 
-      replace_caret_in_window (account_menu_window);
+      icons_replace_caret_in_window (account_menu_window);
     }
   }
 
@@ -1911,7 +1911,7 @@ void decode_accview_menu (wimp_selection *selection, wimp_pointer *pointer)
                                     (main_menu_file->accounts[accview_menu_account].account_view)->
                                      line_data[(main_menu_file->accounts[accview_menu_account].account_view)->
                                       line_data[main_menu_line].sort_index].transaction));
-    put_caret_at_end (main_menu_file->transaction_window.transaction_window, 0);
+    icons_put_caret_at_end (main_menu_file->transaction_window.transaction_window, 0);
     find_transaction_edit_line (main_menu_file);
   }
   if (selection->items[0] == ACCVIEW_MENU_GOTOTRANS)
@@ -2239,10 +2239,10 @@ void mainmenu_decode_replist_menu (wimp_selection *selection, wimp_pointer *poin
 
   if (selection->items[0] != -1)
   {
-    strcpy (indirected_icon_text (windows.save_rep, ANALYSIS_SAVE_NAME), replist_link[selection->items[0]].name);
+    strcpy (icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_NAME), replist_link[selection->items[0]].name);
 
-    redraw_icons_in_window (windows.save_rep, 1, ANALYSIS_SAVE_NAME);
-    replace_caret_in_window (windows.save_rep);
+    icons_redraw_group (windows.save_rep, 1, ANALYSIS_SAVE_NAME);
+    icons_replace_caret_in_window (windows.save_rep);
   }
 
   mainmenu_set_replist_menu (main_menu_file);
@@ -2422,22 +2422,22 @@ void decode_font_list_menu (wimp_selection *selection, wimp_pointer *pointer)
 
   if (font_window== windows.choices_pane[CHOICE_PANE_REPORT] && font_icon == CHOICE_ICON_NFONTMENU)
   {
-    sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT), "%s", sub);
+    sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT), "%s", sub);
     wimp_set_icon_state (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT, 0, 0);
   }
   else if (font_window== windows.choices_pane[CHOICE_PANE_REPORT] && font_icon == CHOICE_ICON_BFONTMENU)
   {
-    sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT), "%s", sub);
+    sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT), "%s", sub);
     wimp_set_icon_state (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT, 0, 0);
   }
   else if (font_window== windows.report_format && font_icon == REPORT_FORMAT_NFONTMENU)
   {
-    sprintf (indirected_icon_text (windows.report_format, REPORT_FORMAT_NFONT), "%s", sub);
+    sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_NFONT), "%s", sub);
     wimp_set_icon_state (windows.report_format, REPORT_FORMAT_NFONT, 0, 0);
   }
   else if (font_window== windows.report_format && font_icon == REPORT_FORMAT_BFONTMENU)
   {
-    sprintf (indirected_icon_text (windows.report_format, REPORT_FORMAT_BFONT), "%s", sub);
+    sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_BFONT), "%s", sub);
     wimp_set_icon_state (windows.report_format, REPORT_FORMAT_BFONT, 0, 0);
   }
 

@@ -1569,8 +1569,8 @@ void import_csv_file (file_data *file, char *filename)
   msgs_param_lookup ("IRTotals", log, sizeof (log), b1, b2, NULL, NULL);
   write_report_line (file->import_report, 0, log);
 
-  sprintf (indirected_icon_text (windows.import_comp, ICOMP_ICON_IMPORTED), "%d", import_count);
-  sprintf (indirected_icon_text (windows.import_comp, ICOMP_ICON_REJECTED), "%d", reject_count);
+  sprintf (icons_get_indirected_text_addr (windows.import_comp, ICOMP_ICON_IMPORTED), "%d", import_count);
+  sprintf (icons_get_indirected_text_addr (windows.import_comp, ICOMP_ICON_REJECTED), "%d", reject_count);
 
   wimp_get_pointer_info (&pointer);
   open_window_centred_at_pointer (windows.import_comp, &pointer);
@@ -1635,17 +1635,17 @@ void export_delimited_file (file_data *file, char *filename, int format, int fil
 
     /* Output the headings line, taking the text from the window icons. */
 
-    icon_text (file->transaction_window.transaction_pane, 0, buffer);
+    icons_copy_text (file->transaction_window.transaction_pane, 0, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (file->transaction_window.transaction_pane, 1, buffer);
+    icons_copy_text (file->transaction_window.transaction_pane, 1, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (file->transaction_window.transaction_pane, 2, buffer);
+    icons_copy_text (file->transaction_window.transaction_pane, 2, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (file->transaction_window.transaction_pane, 3, buffer);
+    icons_copy_text (file->transaction_window.transaction_pane, 3, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (file->transaction_window.transaction_pane, 4, buffer);
+    icons_copy_text (file->transaction_window.transaction_pane, 4, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (file->transaction_window.transaction_pane, 5, buffer);
+    icons_copy_text (file->transaction_window.transaction_pane, 5, buffer);
     delimited_field_output (out, buffer, format, DELIMIT_LAST);
 
     /* Output the transaction data as a set of delimited lines. */
@@ -1703,15 +1703,15 @@ void export_delimited_accounts_file (file_data *file, int entry, char *filename,
 
     /* Output the headings line, taking the text from the window icons. */
 
-    icon_text (window->account_pane, 0, buffer);
+    icons_copy_text (window->account_pane, 0, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->account_pane, 1, buffer);
+    icons_copy_text (window->account_pane, 1, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->account_pane, 2, buffer);
+    icons_copy_text (window->account_pane, 2, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->account_pane, 3, buffer);
+    icons_copy_text (window->account_pane, 3, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->account_pane, 4, buffer);
+    icons_copy_text (window->account_pane, 4, buffer);
     delimited_field_output (out, buffer, format, DELIMIT_LAST);
 
     /* Output the transaction data as a set of delimited lines. */
@@ -1783,7 +1783,7 @@ void export_delimited_accounts_file (file_data *file, int entry, char *filename,
 
     /* Output the grand total line, taking the text from the window icons. */
 
-    icon_text (window->account_footer, 0, buffer);
+    icons_copy_text (window->account_footer, 0, buffer);
     delimited_field_output (out, buffer, format, 0);
     delimited_field_output (out, window->footer_icon[0], format, DELIMIT_NUM);
     delimited_field_output (out, window->footer_icon[1], format, DELIMIT_NUM);
@@ -1824,19 +1824,19 @@ void export_delimited_account_file (file_data *file, int account, char *filename
 
       /* Output the headings line, taking the text from the window icons. */
 
-      icon_text (window->accview_pane, 0, buffer);
+      icons_copy_text (window->accview_pane, 0, buffer);
       delimited_field_output (out, buffer, format, 0);
-      icon_text (window->accview_pane, 1, buffer);
+      icons_copy_text (window->accview_pane, 1, buffer);
       delimited_field_output (out, buffer, format, 0);
-      icon_text (window->accview_pane, 2, buffer);
+      icons_copy_text (window->accview_pane, 2, buffer);
       delimited_field_output (out, buffer, format, 0);
-      icon_text (window->accview_pane, 3, buffer);
+      icons_copy_text (window->accview_pane, 3, buffer);
       delimited_field_output (out, buffer, format, 0);
-      icon_text (window->accview_pane, 4, buffer);
+      icons_copy_text (window->accview_pane, 4, buffer);
       delimited_field_output (out, buffer, format, 0);
-      icon_text (window->accview_pane, 5, buffer);
+      icons_copy_text (window->accview_pane, 5, buffer);
       delimited_field_output (out, buffer, format, 0);
-      icon_text (window->accview_pane, 6, buffer);
+      icons_copy_text (window->accview_pane, 6, buffer);
       delimited_field_output (out, buffer, format, DELIMIT_LAST);
 
       /* Output the transaction data as a set of delimited lines. */
@@ -1910,17 +1910,17 @@ void export_delimited_sorder_file (file_data *file, char *filename, int format, 
 
     /* Output the headings line, taking the text from the window icons. */
 
-    icon_text (window->sorder_pane, 0, buffer);
+    icons_copy_text (window->sorder_pane, 0, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->sorder_pane, 1, buffer);
+    icons_copy_text (window->sorder_pane, 1, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->sorder_pane, 2, buffer);
+    icons_copy_text (window->sorder_pane, 2, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->sorder_pane, 3, buffer);
+    icons_copy_text (window->sorder_pane, 3, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->sorder_pane, 4, buffer);
+    icons_copy_text (window->sorder_pane, 4, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->sorder_pane, 5, buffer);
+    icons_copy_text (window->sorder_pane, 5, buffer);
     delimited_field_output (out, buffer, format, DELIMIT_LAST);
 
     /* Output the standing order data as a set of delimited lines. */
@@ -1987,17 +1987,17 @@ void export_delimited_preset_file (file_data *file, char *filename, int format, 
 
     /* Output the headings line, taking the text from the window icons. */
 
-    icon_text (window->preset_pane, 0, buffer);
+    icons_copy_text (window->preset_pane, 0, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->preset_pane, 1, buffer);
+    icons_copy_text (window->preset_pane, 1, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->preset_pane, 2, buffer);
+    icons_copy_text (window->preset_pane, 2, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->preset_pane, 3, buffer);
+    icons_copy_text (window->preset_pane, 3, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->preset_pane, 4, buffer);
+    icons_copy_text (window->preset_pane, 4, buffer);
     delimited_field_output (out, buffer, format, 0);
-    icon_text (window->preset_pane, 5, buffer);
+    icons_copy_text (window->preset_pane, 5, buffer);
     delimited_field_output (out, buffer, format, DELIMIT_LAST);
 
     /* Output the preset data as a set of delimited lines. */

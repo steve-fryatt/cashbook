@@ -84,8 +84,8 @@ void refresh_continue_window (void)
 
   fill_continue_window (&(continue_window_file->continuation), continue_window_clear);
 
-  redraw_icons_in_window (windows.continuation, 1, CONTINUE_ICON_DATE);
-  replace_caret_in_window (windows.continuation);
+  icons_redraw_group (windows.continuation, 1, CONTINUE_ICON_DATE);
+  icons_replace_caret_in_window (windows.continuation);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -96,24 +96,24 @@ void fill_continue_window (continuation *cont_data, int clear)
 
   if (clear == 0)
   {
-    set_icon_selected (windows.continuation, CONTINUE_ICON_TRANSACT, 1);
-    set_icon_selected (windows.continuation, CONTINUE_ICON_ACCOUNTS, 0);
-    set_icon_selected (windows.continuation, CONTINUE_ICON_HEADINGS, 0);
-    set_icon_selected (windows.continuation, CONTINUE_ICON_SORDERS, 0);
+    icons_set_selected (windows.continuation, CONTINUE_ICON_TRANSACT, 1);
+    icons_set_selected (windows.continuation, CONTINUE_ICON_ACCOUNTS, 0);
+    icons_set_selected (windows.continuation, CONTINUE_ICON_HEADINGS, 0);
+    icons_set_selected (windows.continuation, CONTINUE_ICON_SORDERS, 0);
 
-    *indirected_icon_text (windows.continuation, CONTINUE_ICON_DATE) = '\0';
+    *icons_get_indirected_text_addr (windows.continuation, CONTINUE_ICON_DATE) = '\0';
   }
   else
   {
-    set_icon_selected (windows.continuation, CONTINUE_ICON_TRANSACT, cont_data->transactions);
-    set_icon_selected (windows.continuation, CONTINUE_ICON_ACCOUNTS, cont_data->accounts);
-    set_icon_selected (windows.continuation, CONTINUE_ICON_HEADINGS, cont_data->headings);
-    set_icon_selected (windows.continuation, CONTINUE_ICON_SORDERS, cont_data->sorders);
+    icons_set_selected (windows.continuation, CONTINUE_ICON_TRANSACT, cont_data->transactions);
+    icons_set_selected (windows.continuation, CONTINUE_ICON_ACCOUNTS, cont_data->accounts);
+    icons_set_selected (windows.continuation, CONTINUE_ICON_HEADINGS, cont_data->headings);
+    icons_set_selected (windows.continuation, CONTINUE_ICON_SORDERS, cont_data->sorders);
 
-    convert_date_to_string (cont_data->before, indirected_icon_text (windows.continuation, CONTINUE_ICON_DATE));
+    convert_date_to_string (cont_data->before, icons_get_indirected_text_addr (windows.continuation, CONTINUE_ICON_DATE));
   }
 
-  set_icons_shaded_when_radio_off (windows.continuation, CONTINUE_ICON_TRANSACT, 2,
+  icons_set_group_shaded_when_off (windows.continuation, CONTINUE_ICON_TRANSACT, 2,
                                    CONTINUE_ICON_DATE, CONTINUE_ICON_DATETEXT);
 }
 
@@ -125,13 +125,13 @@ int process_continue_window (void)
 {
   extern global_windows windows;
 
-  continue_window_file->continuation.transactions = read_icon_selected (windows.continuation, CONTINUE_ICON_TRANSACT);
-  continue_window_file->continuation.accounts = read_icon_selected (windows.continuation, CONTINUE_ICON_ACCOUNTS);
-  continue_window_file->continuation.headings = read_icon_selected (windows.continuation, CONTINUE_ICON_HEADINGS);
-  continue_window_file->continuation.sorders = read_icon_selected (windows.continuation, CONTINUE_ICON_SORDERS);
+  continue_window_file->continuation.transactions = icons_get_selected (windows.continuation, CONTINUE_ICON_TRANSACT);
+  continue_window_file->continuation.accounts = icons_get_selected (windows.continuation, CONTINUE_ICON_ACCOUNTS);
+  continue_window_file->continuation.headings = icons_get_selected (windows.continuation, CONTINUE_ICON_HEADINGS);
+  continue_window_file->continuation.sorders = icons_get_selected (windows.continuation, CONTINUE_ICON_SORDERS);
 
   continue_window_file->continuation.before = convert_string_to_date (
-                                                  indirected_icon_text (windows.continuation, CONTINUE_ICON_DATE),
+                                                  icons_get_indirected_text_addr (windows.continuation, CONTINUE_ICON_DATE),
                                                   NULL_DATE, 0);
 
   if (continue_window_file->modified == 1 &&
@@ -279,7 +279,7 @@ void purge_file (file_data *file, int transactions, date_t date, int accounts, i
   set_transaction_window_extent (file);
 
   place_transaction_edit_line (file, file->trans_count);
-  put_caret_at_end (file->transaction_window.transaction_window, 0);
+  icons_put_caret_at_end (file->transaction_window.transaction_window, 0);
   find_transaction_edit_line (file);
 
   hourglass_off ();

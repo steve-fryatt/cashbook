@@ -480,15 +480,15 @@ void fill_preset_sort_window (int sort_option)
 {
   extern global_windows windows;
 
-  set_icon_selected (windows.sort_preset, PRESET_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
-  set_icon_selected (windows.sort_preset, PRESET_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
-  set_icon_selected (windows.sort_preset, PRESET_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
-  set_icon_selected (windows.sort_preset, PRESET_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
-  set_icon_selected (windows.sort_preset, PRESET_SORT_KEY, (sort_option & SORT_MASK) == SORT_CHAR);
-  set_icon_selected (windows.sort_preset, PRESET_SORT_NAME, (sort_option & SORT_MASK) == SORT_NAME);
+  icons_set_selected (windows.sort_preset, PRESET_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
+  icons_set_selected (windows.sort_preset, PRESET_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
+  icons_set_selected (windows.sort_preset, PRESET_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
+  icons_set_selected (windows.sort_preset, PRESET_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
+  icons_set_selected (windows.sort_preset, PRESET_SORT_KEY, (sort_option & SORT_MASK) == SORT_CHAR);
+  icons_set_selected (windows.sort_preset, PRESET_SORT_NAME, (sort_option & SORT_MASK) == SORT_NAME);
 
-  set_icon_selected (windows.sort_preset, PRESET_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-  set_icon_selected (windows.sort_preset, PRESET_SORT_DESCENDING, sort_option & SORT_DESCENDING);
+  icons_set_selected (windows.sort_preset, PRESET_SORT_ASCENDING, sort_option & SORT_ASCENDING);
+  icons_set_selected (windows.sort_preset, PRESET_SORT_DESCENDING, sort_option & SORT_DESCENDING);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -499,38 +499,38 @@ int process_preset_sort_window (void)
 
   sort_preset_window_file->preset_window.sort_order = SORT_NONE;
 
-  if (read_icon_selected (windows.sort_preset, PRESET_SORT_FROM))
+  if (icons_get_selected (windows.sort_preset, PRESET_SORT_FROM))
   {
     sort_preset_window_file->preset_window.sort_order = SORT_FROM;
   }
-  else if (read_icon_selected (windows.sort_preset, PRESET_SORT_TO))
+  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_TO))
   {
     sort_preset_window_file->preset_window.sort_order = SORT_TO;
   }
-  else if (read_icon_selected (windows.sort_preset, PRESET_SORT_AMOUNT))
+  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_AMOUNT))
   {
     sort_preset_window_file->preset_window.sort_order = SORT_AMOUNT;
   }
-  else if (read_icon_selected (windows.sort_preset, PRESET_SORT_DESCRIPTION))
+  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_DESCRIPTION))
   {
     sort_preset_window_file->preset_window.sort_order = SORT_DESCRIPTION;
   }
-  else if (read_icon_selected (windows.sort_preset, PRESET_SORT_KEY))
+  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_KEY))
   {
     sort_preset_window_file->preset_window.sort_order = SORT_CHAR;
   }
-  else if (read_icon_selected (windows.sort_preset, PRESET_SORT_NAME))
+  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_NAME))
   {
     sort_preset_window_file->preset_window.sort_order = SORT_NAME;
   }
 
   if (sort_preset_window_file->preset_window.sort_order != SORT_NONE)
   {
-    if (read_icon_selected (windows.sort_preset, PRESET_SORT_ASCENDING))
+    if (icons_get_selected (windows.sort_preset, PRESET_SORT_ASCENDING))
     {
       sort_preset_window_file->preset_window.sort_order |= SORT_ASCENDING;
     }
-    else if (read_icon_selected (windows.sort_preset, PRESET_SORT_DESCENDING))
+    else if (icons_get_selected (windows.sort_preset, PRESET_SORT_DESCENDING))
     {
       sort_preset_window_file->preset_window.sort_order |= SORT_DESCENDING;
     }
@@ -693,12 +693,12 @@ void open_preset_edit_window (file_data *file, int preset, wimp_pointer *ptr)
   if (preset == NULL_PRESET)
   {
     msgs_lookup ("NewPreset", indirected_window_title (windows.edit_preset), 50);
-    msgs_lookup ("NewAcctAct", indirected_icon_text (windows.edit_preset, PRESET_EDIT_OK), 12);
+    msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_OK), 12);
   }
   else
   {
     msgs_lookup ("EditPreset", indirected_window_title (windows.edit_preset), 50);
-    msgs_lookup ("EditAcctAct", indirected_icon_text (windows.edit_preset, PRESET_EDIT_OK), 12);
+    msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_OK), 12);
   }
 
   fill_preset_edit_window (file, preset);
@@ -719,12 +719,12 @@ void refresh_preset_edit_window (void)
   extern global_windows windows;
 
   fill_preset_edit_window (edit_preset_file, edit_preset_no);
-  redraw_icons_in_window (windows.edit_preset, 12,
+  icons_redraw_group (windows.edit_preset, 12,
                           PRESET_EDIT_NAME, PRESET_EDIT_KEY, PRESET_EDIT_DATE,
                           PRESET_EDIT_FMIDENT, PRESET_EDIT_FMREC, PRESET_EDIT_FMNAME,
                           PRESET_EDIT_TOIDENT, PRESET_EDIT_TOREC, PRESET_EDIT_TONAME,
                           PRESET_EDIT_REF, PRESET_EDIT_AMOUNT, PRESET_EDIT_DESC);
-  replace_caret_in_window (windows.edit_preset);
+  icons_replace_caret_in_window (windows.edit_preset);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -737,62 +737,62 @@ void fill_preset_edit_window (file_data *file, int preset)
   {
     /* Set name and key. */
 
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_NAME) = '\0';
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_KEY) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_KEY) = '\0';
 
     /* Set date. */
 
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_DATE) = '\0';
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_TODAY, 0);
-    set_icon_shaded (windows.edit_preset, PRESET_EDIT_DATE, 0);
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DATE) = '\0';
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_TODAY, 0);
+    icons_set_shaded (windows.edit_preset, PRESET_EDIT_DATE, 0);
 
     /* Fill in the from and to fields. */
 
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_FMIDENT) = '\0';
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_FMNAME) = '\0';
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_FMREC) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMIDENT) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMNAME) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMREC) = '\0';
 
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_TOIDENT) = '\0';
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_TONAME) = '\0';
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_TOREC) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TOIDENT) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TONAME) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TOREC) = '\0';
 
     /* Fill in the reference field. */
 
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_REF) = '\0';
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CHEQUE, 0);
-    set_icon_shaded (windows.edit_preset, PRESET_EDIT_REF, 0);
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_REF) = '\0';
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CHEQUE, 0);
+    icons_set_shaded (windows.edit_preset, PRESET_EDIT_REF, 0);
 
     /* Fill in the amount fields. */
 
-    convert_money_to_string (0, indirected_icon_text (windows.edit_preset, PRESET_EDIT_AMOUNT));
+    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_AMOUNT));
 
     /* Fill in the description field. */
 
-    *indirected_icon_text (windows.edit_preset, PRESET_EDIT_DESC) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DESC) = '\0';
 
     /* Set the caret location icons. */
 
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETDATE, 1);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETFROM, 0);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETTO, 0);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETREF, 0);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETAMOUNT, 0);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETDESC, 0);
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETDATE, 1);
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETFROM, 0);
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETTO, 0);
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETREF, 0);
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETAMOUNT, 0);
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETDESC, 0);
   }
   else
   {
     /* Set name and key. */
 
-    strcpy (indirected_icon_text (windows.edit_preset, PRESET_EDIT_NAME), file->presets[preset].name);
-    sprintf (indirected_icon_text (windows.edit_preset, PRESET_EDIT_KEY), "%c",
+    strcpy (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME), file->presets[preset].name);
+    sprintf (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_KEY), "%c",
              file->presets[preset].action_key);
 
     /* Set date. */
 
     convert_date_to_string (file->presets[preset].date,
-                            indirected_icon_text (windows.edit_preset, PRESET_EDIT_DATE));
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_TODAY, file->presets[preset].flags & TRANS_TAKE_TODAY);
-    set_icon_shaded (windows.edit_preset, PRESET_EDIT_DATE, file->presets[preset].flags & TRANS_TAKE_TODAY);
+                            icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DATE));
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_TODAY, file->presets[preset].flags & TRANS_TAKE_TODAY);
+    icons_set_shaded (windows.edit_preset, PRESET_EDIT_DATE, file->presets[preset].flags & TRANS_TAKE_TODAY);
 
     /* Fill in the from and to fields. */
 
@@ -804,38 +804,38 @@ void fill_preset_edit_window (file_data *file, int preset)
 
     /* Fill in the reference field. */
 
-    strcpy (indirected_icon_text (windows.edit_preset, PRESET_EDIT_REF), file->presets[preset].reference);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CHEQUE, file->presets[preset].flags & TRANS_TAKE_CHEQUE);
-    set_icon_shaded (windows.edit_preset, PRESET_EDIT_REF, file->presets[preset].flags & TRANS_TAKE_CHEQUE);
+    strcpy (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_REF), file->presets[preset].reference);
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CHEQUE, file->presets[preset].flags & TRANS_TAKE_CHEQUE);
+    icons_set_shaded (windows.edit_preset, PRESET_EDIT_REF, file->presets[preset].flags & TRANS_TAKE_CHEQUE);
 
     /* Fill in the amount fields. */
 
     convert_money_to_string (file->presets[preset].amount,
-                             indirected_icon_text (windows.edit_preset, PRESET_EDIT_AMOUNT));
+                             icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_AMOUNT));
 
     /* Fill in the description field. */
 
-    strcpy (indirected_icon_text (windows.edit_preset, PRESET_EDIT_DESC), file->presets[preset].description);
+    strcpy (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DESC), file->presets[preset].description);
 
     /* Set the caret location icons. */
 
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETDATE,
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETDATE,
                        file->presets[preset].caret_target == PRESET_CARET_DATE);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETFROM,
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETFROM,
                        file->presets[preset].caret_target == PRESET_CARET_FROM);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETTO,
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETTO,
                        file->presets[preset].caret_target == PRESET_CARET_TO);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETREF,
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETREF,
                        file->presets[preset].caret_target == PRESET_CARET_REFERENCE);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETAMOUNT,
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETAMOUNT,
                        file->presets[preset].caret_target == PRESET_CARET_AMOUNT);
-    set_icon_selected (windows.edit_preset, PRESET_EDIT_CARETDESC,
+    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETDESC,
                        file->presets[preset].caret_target == PRESET_CARET_DESCRIPTION);
   }
 
    /* Detele the irrelevant action buttons for a new preset. */
 
-   set_icon_deleted (windows.edit_preset, PRESET_EDIT_DELETE, preset == NULL_PRESET);
+   icons_set_deleted (windows.edit_preset, PRESET_EDIT_DELETE, preset == NULL_PRESET);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -913,7 +913,7 @@ int process_preset_edit_window (void)
 
   /* Test that the preset has been given a name, and reject the data if not. */
 
-  ctrl_strcpy (copyname,indirected_icon_text (windows.edit_preset, PRESET_EDIT_NAME));
+  ctrl_strcpy (copyname,icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME));
 
   if (*strip_surrounding_whitespace(copyname) == '\0')
   {
@@ -924,7 +924,7 @@ int process_preset_edit_window (void)
   /* Test that the key, if any, is unique. */
 
   check_key =
-      find_preset_from_keypress (edit_preset_file, *indirected_icon_text (windows.edit_preset, PRESET_EDIT_KEY));
+      find_preset_from_keypress (edit_preset_file, *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_KEY));
 
   if (check_key != NULL_PRESET && check_key != edit_preset_no)
   {
@@ -951,19 +951,19 @@ int process_preset_edit_window (void)
     /* Store the name. */
 
     strcpy (edit_preset_file->presets[edit_preset_no].name,
-            indirected_icon_text (windows.edit_preset, PRESET_EDIT_NAME));
+            icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME));
 
     /* Store the key. */
 
     edit_preset_file->presets[edit_preset_no].action_key =
-            toupper (*indirected_icon_text (windows.edit_preset, PRESET_EDIT_KEY));
+            toupper (*icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_KEY));
 
     /* Get the date and today settings. */
 
     edit_preset_file->presets[edit_preset_no].date =
-           convert_string_to_date (indirected_icon_text (windows.edit_preset, PRESET_EDIT_DATE), NULL_DATE, 0);
+           convert_string_to_date (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DATE), NULL_DATE, 0);
 
-    if (read_icon_selected (windows.edit_preset, PRESET_EDIT_TODAY))
+    if (icons_get_selected (windows.edit_preset, PRESET_EDIT_TODAY))
     {
       edit_preset_file->presets[edit_preset_no].flags |= TRANS_TAKE_TODAY;
     }
@@ -972,18 +972,18 @@ int process_preset_edit_window (void)
 
     edit_preset_file->presets[edit_preset_no].from =
           find_account (edit_preset_file,
-                        indirected_icon_text (windows.edit_preset, PRESET_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
+                        icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
 
     edit_preset_file->presets[edit_preset_no].to =
           find_account (edit_preset_file,
-                        indirected_icon_text (windows.edit_preset, PRESET_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
+                        icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
 
-    if (*indirected_icon_text (windows.edit_preset, PRESET_EDIT_FMREC) != '\0')
+    if (*icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMREC) != '\0')
     {
       edit_preset_file->presets[edit_preset_no].flags |= TRANS_REC_FROM;
     }
 
-    if (*indirected_icon_text (windows.edit_preset, PRESET_EDIT_TOREC) != '\0')
+    if (*icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TOREC) != '\0')
     {
       edit_preset_file->presets[edit_preset_no].flags |= TRANS_REC_TO;
     }
@@ -991,14 +991,14 @@ int process_preset_edit_window (void)
     /* Get the amounts. */
 
     edit_preset_file->presets[edit_preset_no].amount =
-          convert_string_to_money (indirected_icon_text (windows.edit_preset, PRESET_EDIT_AMOUNT));
+          convert_string_to_money (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_AMOUNT));
 
     /* Store the reference. */
 
     strcpy (edit_preset_file->presets[edit_preset_no].reference,
-            indirected_icon_text (windows.edit_preset, PRESET_EDIT_REF));
+            icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_REF));
 
-    if (read_icon_selected (windows.edit_preset, PRESET_EDIT_CHEQUE))
+    if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CHEQUE))
     {
       edit_preset_file->presets[edit_preset_no].flags |= TRANS_TAKE_CHEQUE;
     }
@@ -1006,29 +1006,29 @@ int process_preset_edit_window (void)
     /* Store the description. */
 
     strcpy (edit_preset_file->presets[edit_preset_no].description,
-            indirected_icon_text (windows.edit_preset, PRESET_EDIT_DESC));
+            icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DESC));
 
     /* Store the caret target. */
 
     edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_DATE;
 
-    if (read_icon_selected (windows.edit_preset, PRESET_EDIT_CARETFROM))
+    if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETFROM))
     {
       edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_FROM;
     }
-    else if (read_icon_selected (windows.edit_preset, PRESET_EDIT_CARETTO))
+    else if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETTO))
     {
       edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_TO;
     }
-    else if (read_icon_selected (windows.edit_preset, PRESET_EDIT_CARETREF))
+    else if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETREF))
     {
       edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_REFERENCE;
     }
-    else if (read_icon_selected (windows.edit_preset, PRESET_EDIT_CARETAMOUNT))
+    else if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETAMOUNT))
     {
       edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_AMOUNT;
     }
-    else if (read_icon_selected (windows.edit_preset, PRESET_EDIT_CARETDESC))
+    else if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETDESC))
     {
       edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_DESCRIPTION;
     }
@@ -1158,17 +1158,17 @@ void print_preset_window (int text, int format, int scale, int rotate)
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (window->preset_pane, 0, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->preset_pane, 0, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (window->preset_pane, 1, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->preset_pane, 1, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icon_text (window->preset_pane, 2, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->preset_pane, 2, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icon_text (window->preset_pane, 3, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->preset_pane, 3, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icon_text (window->preset_pane, 4, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->preset_pane, 4, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (window->preset_pane, 5, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->preset_pane, 5, numbuf1));
     strcat (line, buffer);
 
     write_report_line (report, 0, line);

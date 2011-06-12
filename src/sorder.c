@@ -487,15 +487,15 @@ void fill_sorder_sort_window (int sort_option)
 {
   extern global_windows windows;
 
-  set_icon_selected (windows.sort_sorder, SORDER_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
-  set_icon_selected (windows.sort_sorder, SORDER_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
-  set_icon_selected (windows.sort_sorder, SORDER_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
-  set_icon_selected (windows.sort_sorder, SORDER_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
-  set_icon_selected (windows.sort_sorder, SORDER_SORT_NEXTDATE, (sort_option & SORT_MASK) == SORT_NEXTDATE);
-  set_icon_selected (windows.sort_sorder, SORDER_SORT_LEFT, (sort_option & SORT_MASK) == SORT_LEFT);
+  icons_set_selected (windows.sort_sorder, SORDER_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
+  icons_set_selected (windows.sort_sorder, SORDER_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
+  icons_set_selected (windows.sort_sorder, SORDER_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
+  icons_set_selected (windows.sort_sorder, SORDER_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
+  icons_set_selected (windows.sort_sorder, SORDER_SORT_NEXTDATE, (sort_option & SORT_MASK) == SORT_NEXTDATE);
+  icons_set_selected (windows.sort_sorder, SORDER_SORT_LEFT, (sort_option & SORT_MASK) == SORT_LEFT);
 
-  set_icon_selected (windows.sort_sorder, SORDER_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-  set_icon_selected (windows.sort_sorder, SORDER_SORT_DESCENDING, sort_option & SORT_DESCENDING);
+  icons_set_selected (windows.sort_sorder, SORDER_SORT_ASCENDING, sort_option & SORT_ASCENDING);
+  icons_set_selected (windows.sort_sorder, SORDER_SORT_DESCENDING, sort_option & SORT_DESCENDING);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -506,38 +506,38 @@ int process_sorder_sort_window (void)
 
   sort_sorder_window_file->sorder_window.sort_order = SORT_NONE;
 
-  if (read_icon_selected (windows.sort_sorder, SORDER_SORT_FROM))
+  if (icons_get_selected (windows.sort_sorder, SORDER_SORT_FROM))
   {
     sort_sorder_window_file->sorder_window.sort_order = SORT_FROM;
   }
-  else if (read_icon_selected (windows.sort_sorder, SORDER_SORT_TO))
+  else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_TO))
   {
     sort_sorder_window_file->sorder_window.sort_order = SORT_TO;
   }
-  else if (read_icon_selected (windows.sort_sorder, SORDER_SORT_AMOUNT))
+  else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_AMOUNT))
   {
     sort_sorder_window_file->sorder_window.sort_order = SORT_AMOUNT;
   }
-  else if (read_icon_selected (windows.sort_sorder, SORDER_SORT_DESCRIPTION))
+  else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_DESCRIPTION))
   {
     sort_sorder_window_file->sorder_window.sort_order = SORT_DESCRIPTION;
   }
-  else if (read_icon_selected (windows.sort_sorder, SORDER_SORT_NEXTDATE))
+  else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_NEXTDATE))
   {
     sort_sorder_window_file->sorder_window.sort_order = SORT_NEXTDATE;
   }
-  else if (read_icon_selected (windows.sort_sorder, SORDER_SORT_LEFT))
+  else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_LEFT))
   {
     sort_sorder_window_file->sorder_window.sort_order = SORT_LEFT;
   }
 
   if (sort_sorder_window_file->sorder_window.sort_order != SORT_NONE)
   {
-    if (read_icon_selected (windows.sort_sorder, SORDER_SORT_ASCENDING))
+    if (icons_get_selected (windows.sort_sorder, SORDER_SORT_ASCENDING))
     {
       sort_sorder_window_file->sorder_window.sort_order |= SORT_ASCENDING;
     }
-    else if (read_icon_selected (windows.sort_sorder, SORDER_SORT_DESCENDING))
+    else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_DESCENDING))
     {
       sort_sorder_window_file->sorder_window.sort_order |= SORT_DESCENDING;
     }
@@ -715,12 +715,12 @@ void open_sorder_edit_window (file_data *file, int sorder, wimp_pointer *ptr)
   if (sorder == NULL_SORDER)
   {
     msgs_lookup ("NewSO", indirected_window_title (windows.edit_sorder), 50);
-    msgs_lookup ("NewAcctAct", indirected_icon_text (windows.edit_sorder, SORDER_EDIT_OK), 12);
+    msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_OK), 12);
   }
   else
   {
     msgs_lookup ("EditSO", indirected_window_title (windows.edit_sorder), 50);
-    msgs_lookup ("EditAcctAct", indirected_icon_text (windows.edit_sorder, SORDER_EDIT_OK), 12);
+    msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_OK), 12);
   }
 
   fill_sorder_edit_window (file, sorder, edit_mode);
@@ -743,13 +743,13 @@ void refresh_sorder_edit_window (void)
   fill_sorder_edit_window (edit_sorder_file, edit_sorder_no,
                            edit_sorder_no != NULL_SORDER &&
                            edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date != NULL_DATE);
-  redraw_icons_in_window (windows.edit_sorder, 14,
+  icons_redraw_group (windows.edit_sorder, 14,
                           SORDER_EDIT_START, SORDER_EDIT_NUMBER, SORDER_EDIT_PERIOD,
                           SORDER_EDIT_FMIDENT, SORDER_EDIT_FMREC, SORDER_EDIT_FMNAME,
                           SORDER_EDIT_TOIDENT, SORDER_EDIT_TOREC, SORDER_EDIT_TONAME,
                           SORDER_EDIT_REF, SORDER_EDIT_AMOUNT, SORDER_EDIT_FIRST, SORDER_EDIT_LAST,
                           SORDER_EDIT_DESC);
-  replace_caret_in_window (windows.edit_sorder);
+  icons_replace_caret_in_window (windows.edit_sorder);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -763,98 +763,98 @@ void fill_sorder_edit_window (file_data *file, int sorder, int edit_mode)
   {
     /* Set start date. */
 
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_START) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_START) = '\0';
 
     /* Set number. */
 
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_NUMBER) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_NUMBER) = '\0';
 
     /* Set period details. */
 
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_PERIOD) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_PERIOD) = '\0';
 
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_PERDAYS, 1);
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_PERMONTHS, 0);
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_PERYEARS, 0);
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_PERDAYS, 1);
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_PERMONTHS, 0);
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_PERYEARS, 0);
 
     /* Set the ignore weekends details. */
 
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_AVOID, 0);
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_AVOID, 0);
 
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_SKIPFWD, 1);
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_SKIPBACK, 0);
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_SKIPFWD, 1);
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_SKIPBACK, 0);
 
-    set_icon_shaded (windows.edit_sorder, SORDER_EDIT_SKIPFWD, 1);
-    set_icon_shaded (windows.edit_sorder, SORDER_EDIT_SKIPBACK, 1);
+    icons_set_shaded (windows.edit_sorder, SORDER_EDIT_SKIPFWD, 1);
+    icons_set_shaded (windows.edit_sorder, SORDER_EDIT_SKIPBACK, 1);
 
     /* Fill in the from and to fields. */
 
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_FMIDENT) = '\0';
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_FMNAME) = '\0';
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_FMREC) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FMIDENT) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FMNAME) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FMREC) = '\0';
 
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_TOIDENT) = '\0';
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_TONAME) = '\0';
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_TOREC) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_TOIDENT) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_TONAME) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_TOREC) = '\0';
 
     /* Fill in the reference field. */
 
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_REF) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_REF) = '\0';
 
     /* Fill in the amount fields. */
 
-    convert_money_to_string (0, indirected_icon_text (windows.edit_sorder, SORDER_EDIT_AMOUNT));
+    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_AMOUNT));
 
-    convert_money_to_string (0, indirected_icon_text (windows.edit_sorder, SORDER_EDIT_FIRST));
-    set_icon_shaded (windows.edit_sorder, SORDER_EDIT_FIRST, 1);
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_FIRSTSW, 0);
+    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FIRST));
+    icons_set_shaded (windows.edit_sorder, SORDER_EDIT_FIRST, 1);
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_FIRSTSW, 0);
 
-    convert_money_to_string (0, indirected_icon_text (windows.edit_sorder, SORDER_EDIT_LAST));
-    set_icon_shaded (windows.edit_sorder, SORDER_EDIT_LAST, 1);
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_LASTSW, 0);
+    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_LAST));
+    icons_set_shaded (windows.edit_sorder, SORDER_EDIT_LAST, 1);
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_LASTSW, 0);
 
     /* Fill in the description field. */
 
-    *indirected_icon_text (windows.edit_sorder, SORDER_EDIT_DESC) = '\0';
+    *icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_DESC) = '\0';
   }
   else
   {
     /* Set start date. */
 
     convert_date_to_string (file->sorders[sorder].start_date,
-                            indirected_icon_text (windows.edit_sorder, SORDER_EDIT_START));
+                            icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_START));
 
     /* Set number. */
 
-    sprintf (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_NUMBER), "%d",
+    sprintf (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_NUMBER), "%d",
              file->sorders[sorder].number);
 
     /* Set period details. */
 
-    sprintf (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_PERIOD), "%d",
+    sprintf (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_PERIOD), "%d",
              file->sorders[sorder].period);
 
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_PERDAYS,
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_PERDAYS,
                        file->sorders[sorder].period_unit == PERIOD_DAYS);
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_PERMONTHS,
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_PERMONTHS,
                        file->sorders[sorder].period_unit == PERIOD_MONTHS);
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_PERYEARS,
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_PERYEARS,
                        file->sorders[sorder].period_unit == PERIOD_YEARS);
 
     /* Set the ignore weekends details. */
 
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_AVOID,
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_AVOID,
                        (file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
                         file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
 
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_SKIPFWD, !(file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_SKIPBACK, (file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_SKIPFWD, !(file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_SKIPBACK, (file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
 
-    set_icon_shaded (windows.edit_sorder, SORDER_EDIT_SKIPFWD,
+    icons_set_shaded (windows.edit_sorder, SORDER_EDIT_SKIPFWD,
                      !(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
                       file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
 
-    set_icon_shaded (windows.edit_sorder, SORDER_EDIT_SKIPBACK,
+    icons_set_shaded (windows.edit_sorder, SORDER_EDIT_SKIPBACK,
                      !(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
                       file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
 
@@ -868,54 +868,54 @@ void fill_sorder_edit_window (file_data *file, int sorder, int edit_mode)
 
     /* Fill in the reference field. */
 
-    strcpy (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_REF), file->sorders[sorder].reference);
+    strcpy (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_REF), file->sorders[sorder].reference);
 
     /* Fill in the amount fields. */
 
     convert_money_to_string (file->sorders[sorder].normal_amount,
-                             indirected_icon_text (windows.edit_sorder, SORDER_EDIT_AMOUNT));
+                             icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_AMOUNT));
 
 
     convert_money_to_string (file->sorders[sorder].first_amount,
-                             indirected_icon_text (windows.edit_sorder, SORDER_EDIT_FIRST));
+                             icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FIRST));
 
-    set_icon_shaded (windows.edit_sorder, SORDER_EDIT_FIRST,
+    icons_set_shaded (windows.edit_sorder, SORDER_EDIT_FIRST,
                      (file->sorders[sorder].first_amount == file->sorders[sorder].normal_amount));
 
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_FIRSTSW,
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_FIRSTSW,
                        (file->sorders[sorder].first_amount != file->sorders[sorder].normal_amount));
 
 
     convert_money_to_string (file->sorders[sorder].last_amount,
-                             indirected_icon_text (windows.edit_sorder, SORDER_EDIT_LAST));
+                             icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_LAST));
 
-    set_icon_shaded (windows.edit_sorder, SORDER_EDIT_LAST,
+    icons_set_shaded (windows.edit_sorder, SORDER_EDIT_LAST,
                      (file->sorders[sorder].last_amount == file->sorders[sorder].normal_amount));
 
-    set_icon_selected (windows.edit_sorder, SORDER_EDIT_LASTSW,
+    icons_set_selected (windows.edit_sorder, SORDER_EDIT_LASTSW,
                        (file->sorders[sorder].last_amount != file->sorders[sorder].normal_amount));
 
     /* Fill in the description field. */
 
-    strcpy (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_DESC), file->sorders[sorder].description);
+    strcpy (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_DESC), file->sorders[sorder].description);
   }
 
   /* Shade icons as required for the edit mode.
    * This assumes that none of the relevant icons get shaded for any other reason...
    */
 
-   set_icon_shaded (windows.edit_sorder, SORDER_EDIT_START, edit_mode);
-   set_icon_shaded (windows.edit_sorder, SORDER_EDIT_PERIOD, edit_mode);
-   set_icon_shaded (windows.edit_sorder, SORDER_EDIT_PERDAYS, edit_mode);
-   set_icon_shaded (windows.edit_sorder, SORDER_EDIT_PERMONTHS, edit_mode);
-   set_icon_shaded (windows.edit_sorder, SORDER_EDIT_PERYEARS, edit_mode);
+   icons_set_shaded (windows.edit_sorder, SORDER_EDIT_START, edit_mode);
+   icons_set_shaded (windows.edit_sorder, SORDER_EDIT_PERIOD, edit_mode);
+   icons_set_shaded (windows.edit_sorder, SORDER_EDIT_PERDAYS, edit_mode);
+   icons_set_shaded (windows.edit_sorder, SORDER_EDIT_PERMONTHS, edit_mode);
+   icons_set_shaded (windows.edit_sorder, SORDER_EDIT_PERYEARS, edit_mode);
 
    /* Detele the irrelevant action buttins for a new standing order. */
 
-   set_icon_shaded (windows.edit_sorder, SORDER_EDIT_STOP, !edit_mode && sorder != NULL_SORDER);
+   icons_set_shaded (windows.edit_sorder, SORDER_EDIT_STOP, !edit_mode && sorder != NULL_SORDER);
 
-   set_icon_deleted (windows.edit_sorder, SORDER_EDIT_STOP, sorder == NULL_SORDER);
-   set_icon_deleted (windows.edit_sorder, SORDER_EDIT_DELETE, sorder == NULL_SORDER);
+   icons_set_deleted (windows.edit_sorder, SORDER_EDIT_STOP, sorder == NULL_SORDER);
+   icons_set_deleted (windows.edit_sorder, SORDER_EDIT_DELETE, sorder == NULL_SORDER);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -994,15 +994,15 @@ int process_sorder_edit_window (void)
    * the info isn't stored until later.
    */
 
-  if (read_icon_selected (windows.edit_sorder, SORDER_EDIT_PERDAYS))
+  if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_PERDAYS))
   {
     new_period_unit = PERIOD_DAYS;
   }
-  else if (read_icon_selected (windows.edit_sorder, SORDER_EDIT_PERMONTHS))
+  else if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_PERMONTHS))
   {
     new_period_unit = PERIOD_MONTHS;
   }
-  else if (read_icon_selected (windows.edit_sorder, SORDER_EDIT_PERYEARS))
+  else if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_PERYEARS))
   {
     new_period_unit = PERIOD_YEARS;
   }
@@ -1015,7 +1015,7 @@ int process_sorder_edit_window (void)
    * IF another period is used, the default of the number of days in the givem month is used.
    */
 
-  new_start_date = convert_string_to_date (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_START), NULL_DATE,
+  new_start_date = convert_string_to_date (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_START), NULL_DATE,
                                            ((new_period_unit == PERIOD_MONTHS) ? 31 : 0));
 
   /* If the standing order doesn't exsit, create it.  If it does exist, validate any data that requires it. */
@@ -1030,7 +1030,7 @@ int process_sorder_edit_window (void)
   else
   {
     done = edit_sorder_file->sorders[edit_sorder_no].number - edit_sorder_file->sorders[edit_sorder_no].left;
-    if (atoi (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_NUMBER)) < done &&
+    if (atoi (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_NUMBER)) < done &&
         edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date != NULL_DATE)
     {
       wimp_msgtrans_error_report ("BadSONumber");
@@ -1057,13 +1057,13 @@ int process_sorder_edit_window (void)
 
     /* Get the avoid mode. */
 
-    if (read_icon_selected (windows.edit_sorder, SORDER_EDIT_AVOID))
+    if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_AVOID))
     {
-      if (read_icon_selected (windows.edit_sorder, SORDER_EDIT_SKIPFWD))
+      if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_SKIPFWD))
       {
         edit_sorder_file->sorders[edit_sorder_no].flags |= TRANS_SKIP_FORWARD;
       }
-      else if (read_icon_selected (windows.edit_sorder, SORDER_EDIT_SKIPBACK))
+      else if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_SKIPBACK))
       {
         edit_sorder_file->sorders[edit_sorder_no].flags |= TRANS_SKIP_BACKWARD;
       }
@@ -1085,7 +1085,7 @@ int process_sorder_edit_window (void)
                                   edit_sorder_file->sorders[edit_sorder_no].flags);
 
       edit_sorder_file->sorders[edit_sorder_no].period =
-                 atoi (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_PERIOD));
+                 atoi (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_PERIOD));
 
       done = 0;
 
@@ -1094,7 +1094,7 @@ int process_sorder_edit_window (void)
     /* Get the number of transactions. */
 
     edit_sorder_file->sorders[edit_sorder_no].number =
-            atoi (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_NUMBER));
+            atoi (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_NUMBER));
 
     edit_sorder_file->sorders[edit_sorder_no].left =
             edit_sorder_file->sorders[edit_sorder_no].number - done;
@@ -1108,18 +1108,18 @@ int process_sorder_edit_window (void)
 
     edit_sorder_file->sorders[edit_sorder_no].from =
           find_account (edit_sorder_file,
-                        indirected_icon_text (windows.edit_sorder, SORDER_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
+                        icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
 
     edit_sorder_file->sorders[edit_sorder_no].to =
           find_account (edit_sorder_file,
-                        indirected_icon_text (windows.edit_sorder, SORDER_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
+                        icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
 
-    if (*indirected_icon_text (windows.edit_sorder, SORDER_EDIT_FMREC) != '\0')
+    if (*icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FMREC) != '\0')
     {
       edit_sorder_file->sorders[edit_sorder_no].flags |= TRANS_REC_FROM;
     }
 
-    if (*indirected_icon_text (windows.edit_sorder, SORDER_EDIT_TOREC) != '\0')
+    if (*icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_TOREC) != '\0')
     {
       edit_sorder_file->sorders[edit_sorder_no].flags |= TRANS_REC_TO;
     }
@@ -1127,22 +1127,22 @@ int process_sorder_edit_window (void)
     /* Get the amounts. */
 
     edit_sorder_file->sorders[edit_sorder_no].normal_amount =
-          convert_string_to_money (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_AMOUNT));
+          convert_string_to_money (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_AMOUNT));
 
-    if (read_icon_selected (windows.edit_sorder, SORDER_EDIT_FIRSTSW))
+    if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_FIRSTSW))
     {
       edit_sorder_file->sorders[edit_sorder_no].first_amount =
-            convert_string_to_money (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_FIRST));
+            convert_string_to_money (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FIRST));
     }
     else
     {
       edit_sorder_file->sorders[edit_sorder_no].first_amount = edit_sorder_file->sorders[edit_sorder_no].normal_amount;
     }
 
-    if (read_icon_selected (windows.edit_sorder, SORDER_EDIT_LASTSW))
+    if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_LASTSW))
     {
       edit_sorder_file->sorders[edit_sorder_no].last_amount =
-            convert_string_to_money (indirected_icon_text (windows.edit_sorder, SORDER_EDIT_LAST));
+            convert_string_to_money (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_LAST));
     }
     else
     {
@@ -1152,12 +1152,12 @@ int process_sorder_edit_window (void)
     /* Store the reference. */
 
     strcpy (edit_sorder_file->sorders[edit_sorder_no].reference,
-            indirected_icon_text (windows.edit_sorder, SORDER_EDIT_REF));
+            icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_REF));
 
     /* Store the description. */
 
     strcpy (edit_sorder_file->sorders[edit_sorder_no].description,
-            indirected_icon_text (windows.edit_sorder, SORDER_EDIT_DESC));
+            icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_DESC));
   }
 
   if (config_opt_read ("AutoSortSOrders"))
@@ -1499,17 +1499,17 @@ void print_sorder_window (int text, int format, int scale, int rotate)
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icon_text (window->sorder_pane, 0, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->sorder_pane, 0, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icon_text (window->sorder_pane, 1, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->sorder_pane, 1, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icon_text (window->sorder_pane, 2, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->sorder_pane, 2, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (window->sorder_pane, 3, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->sorder_pane, 3, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (window->sorder_pane, 4, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->sorder_pane, 4, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s", icon_text (window->sorder_pane, 5, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s", icons_copy_text (window->sorder_pane, 5, numbuf1));
     strcat (line, buffer);
 
     write_report_line (report, 0, line);

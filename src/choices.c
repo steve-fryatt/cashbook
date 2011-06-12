@@ -52,7 +52,7 @@ void open_choices_window (wimp_pointer *pointer)
 
   for (i=0; i<CHOICES_PANES; i++)
   {
-    set_icon_selected (windows.choices, CHOICE_ICON_SELECT + i, i == choices_pane);
+    icons_set_selected (windows.choices, CHOICE_ICON_SELECT + i, i == choices_pane);
   }
 
   set_choices_window ();
@@ -94,7 +94,7 @@ void change_choices_pane (int pane)
 
     for (i=0; i<CHOICES_PANES; i++)
     {
-      set_icon_selected (windows.choices, CHOICE_ICON_SELECT + i, i == choices_pane);
+      icons_set_selected (windows.choices, CHOICE_ICON_SELECT + i, i == choices_pane);
     }
 
     open_pane_centred_in_icon (windows.choices, windows.choices_pane[pane], CHOICE_ICON_PANE, 0,
@@ -158,37 +158,37 @@ void set_choices_window (void)
 
   /* Set the general pane up. */
 
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_CLIPBOARD,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_CLIPBOARD,
                      config_opt_read ("GlobalClipboardSupport"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_RO5KEYS,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_RO5KEYS,
                      config_opt_read ("IyonixKeys"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_REMEMBERDIALOGUE,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_REMEMBERDIALOGUE,
                      config_opt_read ("RememberValues"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_TERRITORYDATE,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_TERRITORYDATE,
                      config_opt_read ("TerritoryDates"));
 
-  sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEIN), "%s",
+  sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEIN), "%s",
            config_str_read ("DateSepIn"));
-  sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEOUT), "%s",
+  sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEOUT), "%s",
            config_str_read ("DateSepOut"));
 
   /* Set the currency pane up. */
 
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_SHOWZERO,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_SHOWZERO,
                      config_opt_read ("PrintZeros"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_TERRITORYNUM,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_TERRITORYNUM,
                      config_opt_read ("TerritoryCurrency"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_NEGMINUS,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_NEGMINUS,
                      !config_opt_read ("BracketNegatives"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_NEGBRACE,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_NEGBRACE,
                      config_opt_read ("BracketNegatives"));
 
-  sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_DECIMALPLACE), "%d",
+  sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_DECIMALPLACE), "%d",
            config_int_read ("DecimalPlaces"));
-  sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_DECIMALPOINT), "%s",
+  sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_DECIMALPOINT), "%s",
            config_str_read ("DecimalPoint"));
 
-  set_icons_shaded_when_radio_on (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_TERRITORYNUM, 10,
+  icons_set_group_shaded_when_on (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_TERRITORYNUM, 10,
                                   CHOICE_ICON_FORMATFRAME, CHOICE_ICON_FORMATLABEL,
                                   CHOICE_ICON_DECIMALPLACELABEL, CHOICE_ICON_DECIMALPLACE,
                                   CHOICE_ICON_DECIMALPOINTLABEL, CHOICE_ICON_DECIMALPOINT,
@@ -197,117 +197,117 @@ void set_choices_window (void)
 
   /* Set the standing order pane up. */
 
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_SORTAFTERSO,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_SORTAFTERSO,
                      config_opt_read ("SortAfterSOrders"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_AUTOSORTSO,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_AUTOSORTSO,
                      config_opt_read ("AutoSortSOrders"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO,
                      config_opt_read ("TerritorySOrders"));
 
   for (i=0; i<7; i++)
   {
-     set_icon_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_SOSUN+i,
+     icons_set_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_SOSUN+i,
                         config_int_read ("WeekendDays") & (1 << i));
   }
 
-  set_icons_shaded_when_radio_on (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO, 9,
+  icons_set_group_shaded_when_on (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO, 9,
                                   CHOICE_ICON_WEEKENDFRAME, CHOICE_ICON_WEEKENDLABEL,
                                   CHOICE_ICON_SOSUN, CHOICE_ICON_SOMON, CHOICE_ICON_SOTUE, CHOICE_ICON_SOWED,
                                   CHOICE_ICON_SOTHU, CHOICE_ICON_SOFRI, CHOICE_ICON_SOSAT);
 
   /* Set the printing pane up. */
 
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_STANDARD,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_STANDARD,
                      !config_opt_read ("PrintText"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_PORTRAIT,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_PORTRAIT,
                      !config_opt_read ("PrintRotate"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE,
                      config_opt_read ("PrintRotate"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_SCALE,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_SCALE,
                      config_opt_read ("PrintFitWidth"));
 
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT,
                      config_opt_read ("PrintText"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_TEXTFORMAT,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_TEXTFORMAT,
                      config_opt_read ("PrintTextFormat"));
 
-  set_radio_icon_group_selected (windows.choices_pane[CHOICE_PANE_PRINT], config_int_read ("PrintMarginUnits"), 3,
+  icons_set_radio_group_selected (windows.choices_pane[CHOICE_PANE_PRINT], config_int_read ("PrintMarginUnits"), 3,
                                  CHOICE_ICON_MMM, CHOICE_ICON_MCM, CHOICE_ICON_MINCH);
 
   switch (config_int_read ("PrintMarginUnits"))
   {
     case MARGIN_UNIT_MM:
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MTOP), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MTOP), "%.2f",
                (float) config_int_read ("PrintMarginTop") / UNIT_MM_TO_MILLIPOINT);
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MLEFT), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MLEFT), "%.2f",
                (float) config_int_read ("PrintMarginLeft") / UNIT_MM_TO_MILLIPOINT);
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MRIGHT), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MRIGHT), "%.2f",
                (float) config_int_read ("PrintMarginRight") / UNIT_MM_TO_MILLIPOINT);
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM), "%.2f",
                (float) config_int_read ("PrintMarginBottom") / UNIT_MM_TO_MILLIPOINT);
       break;
 
     case MARGIN_UNIT_CM:
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MTOP), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MTOP), "%.2f",
                (float) config_int_read ("PrintMarginTop") / UNIT_CM_TO_MILLIPOINT);
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MLEFT), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MLEFT), "%.2f",
                (float) config_int_read ("PrintMarginLeft") / UNIT_CM_TO_MILLIPOINT);
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MRIGHT), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MRIGHT), "%.2f",
                (float) config_int_read ("PrintMarginRight") / UNIT_CM_TO_MILLIPOINT);
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM), "%.2f",
                (float) config_int_read ("PrintMarginBottom") / UNIT_CM_TO_MILLIPOINT);
       break;
 
     case MARGIN_UNIT_INCH:
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MTOP), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MTOP), "%.2f",
                (float) config_int_read ("PrintMarginTop") / UNIT_INCH_TO_MILLIPOINT);
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MLEFT), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MLEFT), "%.2f",
                (float) config_int_read ("PrintMarginLeft") / UNIT_INCH_TO_MILLIPOINT);
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MRIGHT), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MRIGHT), "%.2f",
                (float) config_int_read ("PrintMarginRight") / UNIT_INCH_TO_MILLIPOINT);
-      sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM), "%.2f",
+      sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM), "%.2f",
                (float) config_int_read ("PrintMarginBottom") / UNIT_INCH_TO_MILLIPOINT);
       break;
   }
 
   /* Set the report pane up. */
 
-  sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT), "%s",
+  sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT), "%s",
            config_str_read ("ReportFontNormal"));
-  sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT), "%s",
+  sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT), "%s",
            config_str_read ("ReportFontBold"));
 
-  sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSIZE), "%d",
+  sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSIZE), "%d",
            config_int_read ("ReportFontSize"));
-  sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE), "%d",
+  sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE), "%d",
            config_int_read ("ReportFontLinespace"));
 
   /* Set the transaction pane up. */
 
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOSORT,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOSORT,
                      config_opt_read ("AutoSort"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_TRANSDEL,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_TRANSDEL,
                      config_opt_read ("AllowTransDelete"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HIGHLIGHT,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HIGHLIGHT,
                      config_opt_read ("ShadeReconciled"));
   colpick_set_icon_colour (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTCOL,
                    config_int_read ("ShadeReconciledColour"));
-  sprintf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOCOMP), "%d",
+  sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOCOMP), "%d",
            config_int_read ("MaxAutofillLen"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOSORTPRE,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOSORTPRE,
                      config_opt_read ("AutoSortPresets"));
 
   /* Set the account pane up. */
 
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHIGHLIGHT,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHIGHLIGHT,
                      config_opt_read ("ShadeAccounts"));
   colpick_set_icon_colour (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTCOL,
                    config_int_read ("ShadeAccountsColour"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHIGHLIGHT,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHIGHLIGHT,
                      config_opt_read ("ShadeBudgeted"));
   colpick_set_icon_colour (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTCOL,
                    config_int_read ("ShadeBudgetedColour"));
-  set_icon_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHIGHLIGHT,
+  icons_set_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHIGHLIGHT,
                      config_opt_read ("ShadeOverdrawn"));
   colpick_set_icon_colour (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTCOL,
            config_int_read ("ShadeOverdrawnColour"));
@@ -327,47 +327,47 @@ void read_choices_window (void)
   /* Read the general pane. */
 
   config_opt_set ("GlobalClipboardSupport",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_CLIPBOARD));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_CLIPBOARD));
   config_opt_set ("IyonixKeys",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_RO5KEYS));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_RO5KEYS));
   config_opt_set ("RememberValues",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_REMEMBERDIALOGUE));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_REMEMBERDIALOGUE));
   config_opt_set ("TerritoryDates",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_TERRITORYDATE));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_TERRITORYDATE));
 
   config_str_set ("DateSepIn",
-                  indirected_icon_text (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEIN));
+                  icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEIN));
   config_str_set ("DateSepOut",
-                  indirected_icon_text (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEOUT));
+                  icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEOUT));
 
 
   /* Read the currency pane. */
 
   config_opt_set ("PrintZeros",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_SHOWZERO));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_SHOWZERO));
   config_opt_set ("TerritoryCurrency",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_TERRITORYNUM));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_TERRITORYNUM));
   config_opt_set ("BracketNegatives",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_NEGBRACE));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_NEGBRACE));
   config_int_set ("DecimalPlaces",
-                  atoi (indirected_icon_text (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_DECIMALPLACE)));
+                  atoi (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_DECIMALPLACE)));
   config_str_set ("DecimalPoint",
-                  indirected_icon_text (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_DECIMALPOINT));
+                  icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_DECIMALPOINT));
 
   /* Read the standing order pane.*/
 
   config_opt_set ("SortAfterSOrders",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_SORTAFTERSO));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_SORTAFTERSO));
   config_opt_set ("AutoSortSOrders",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_AUTOSORTSO));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_AUTOSORTSO));
   config_opt_set ("TerritorySOrders",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO));
 
   ignore = 0;
 
   for (i=0; i<7; i++)
   {
-    if (read_icon_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_SOSUN+i))
+    if (icons_get_selected (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_SOSUN+i))
     {
       ignore |= 1 << i;
     }
@@ -378,21 +378,21 @@ void read_choices_window (void)
   /* Read the printing pane. */
 
   config_opt_set ("PrintFitWidth",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_SCALE));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_SCALE));
   config_opt_set ("PrintRotate",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE));
   config_opt_set ("PrintText",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT));
   config_opt_set ("PrintTextFormat",
-                  read_icon_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_TEXTFORMAT));
+                  icons_get_selected (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_TEXTFORMAT));
 
-  config_int_set ("PrintMarginUnits", read_radio_icon_group_selected (windows.choices_pane[CHOICE_PANE_PRINT], 3,
+  config_int_set ("PrintMarginUnits", icons_get_radio_group_selected (windows.choices_pane[CHOICE_PANE_PRINT], 3,
                   CHOICE_ICON_MMM, CHOICE_ICON_MCM, CHOICE_ICON_MINCH));
 
-  sscanf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MTOP), "%f", &top);
-  sscanf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MLEFT), "%f", &left);
-  sscanf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MRIGHT), "%f", &right);
-  sscanf (indirected_icon_text (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM), "%f", &bottom);
+  sscanf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MTOP), "%f", &top);
+  sscanf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MLEFT), "%f", &left);
+  sscanf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MRIGHT), "%f", &right);
+  sscanf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM), "%f", &bottom);
 
   switch (config_int_read ("PrintMarginUnits"))
   {
@@ -421,43 +421,43 @@ void read_choices_window (void)
   /* Read the report pane. */
 
   config_str_set ("ReportFontNormal",
-                  indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT));
+                  icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT));
   config_str_set ("ReportFontBold",
-                  indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT));
+                  icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT));
   config_int_set ("ReportFontSize",
-                  atoi (indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSIZE)));
+                  atoi (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSIZE)));
   config_int_set ("ReportFontLinespace",
-                  atoi (indirected_icon_text (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE)));
+                  atoi (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE)));
 
   /* Read the transaction pane. */
 
   config_opt_set ("AutoSort",
-                   read_icon_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOSORT));
+                   icons_get_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOSORT));
   config_opt_set ("AllowTransDelete",
-                   read_icon_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_TRANSDEL));
+                   icons_get_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_TRANSDEL));
   config_opt_set ("ShadeReconciled",
-                   read_icon_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HIGHLIGHT));
+                   icons_get_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HIGHLIGHT));
   config_int_set ("ShadeReconciledColour",
-                  atoi (indirected_icon_text (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTCOL)));
+                  atoi (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTCOL)));
   config_int_set ("MaxAutofillLen",
-                  atoi (indirected_icon_text (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOCOMP)));
+                  atoi (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOCOMP)));
    config_opt_set ("AutoSortPresets",
-                   read_icon_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOSORTPRE));
+                   icons_get_selected (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOSORTPRE));
 
   /* Read the account pane. */
 
   config_opt_set ("ShadeAccounts",
-                   read_icon_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHIGHLIGHT));
+                   icons_get_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHIGHLIGHT));
   config_int_set ("ShadeAccountsColour",
-                  atoi (indirected_icon_text (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTCOL)));
+                  atoi (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTCOL)));
   config_opt_set ("ShadeBudgeted",
-                   read_icon_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHIGHLIGHT));
+                   icons_get_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHIGHLIGHT));
   config_int_set ("ShadeBudgetedColour",
-                  atoi (indirected_icon_text (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTCOL)));
+                  atoi (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTCOL)));
   config_opt_set ("ShadeOverdrawn",
-                   read_icon_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHIGHLIGHT));
+                   icons_get_selected (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHIGHLIGHT));
   config_int_set ("ShadeOverdrawnColour",
-                  atoi (indirected_icon_text (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTCOL)));
+                  atoi (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTCOL)));
 
   /* Update stored data. */
 
@@ -481,12 +481,12 @@ void redraw_choices_window (void)
   switch (choices_pane)
   {
     case CHOICE_PANE_GENERAL:
-      redraw_icons_in_window (windows.choices_pane[CHOICE_PANE_GENERAL], 2,
+      icons_redraw_group (windows.choices_pane[CHOICE_PANE_GENERAL], 2,
                               CHOICE_ICON_DATEIN, CHOICE_ICON_DATEOUT);
       break;
 
     case CHOICE_PANE_CURRENCY:
-      redraw_icons_in_window (windows.choices_pane[CHOICE_PANE_CURRENCY], 2,
+      icons_redraw_group (windows.choices_pane[CHOICE_PANE_CURRENCY], 2,
                               CHOICE_ICON_DECIMALPLACE, CHOICE_ICON_DECIMALPOINT);
       break;
 
@@ -495,25 +495,25 @@ void redraw_choices_window (void)
       break;
 
     case CHOICE_PANE_PRINT:
-      redraw_icons_in_window (windows.choices_pane[CHOICE_PANE_PRINT], 4,
+      icons_redraw_group (windows.choices_pane[CHOICE_PANE_PRINT], 4,
                               CHOICE_ICON_MTOP, CHOICE_ICON_MLEFT, CHOICE_ICON_MRIGHT, CHOICE_ICON_MBOTTOM);
       break;
 
     case CHOICE_PANE_REPORT:
-      redraw_icons_in_window (windows.choices_pane[CHOICE_PANE_REPORT], 4,
+      icons_redraw_group (windows.choices_pane[CHOICE_PANE_REPORT], 4,
                               CHOICE_ICON_NFONT, CHOICE_ICON_BFONT, CHOICE_ICON_FONTSIZE, CHOICE_ICON_FONTSPACE);
       break;
 
     case CHOICE_PANE_TRANSACT:
-      redraw_icons_in_window (windows.choices_pane[CHOICE_PANE_TRANSACT], 1,
+      icons_redraw_group (windows.choices_pane[CHOICE_PANE_TRANSACT], 1,
                               CHOICE_ICON_HILIGHTCOL);
       break;
 
     case CHOICE_PANE_ACCOUNT:
-      redraw_icons_in_window (windows.choices_pane[CHOICE_PANE_ACCOUNT], 3,
+      icons_redraw_group (windows.choices_pane[CHOICE_PANE_ACCOUNT], 3,
                               CHOICE_ICON_AHILIGHTCOL, CHOICE_ICON_SHILIGHTCOL, CHOICE_ICON_OHILIGHTCOL);
       break;
   }
 
-  replace_caret_in_window (windows.choices_pane[choices_pane]);
+  icons_replace_caret_in_window (windows.choices_pane[choices_pane]);
 }

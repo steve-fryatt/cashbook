@@ -78,8 +78,8 @@ void refresh_goto_window (void)
 
   fill_goto_window (&(goto_window_file->go_to), goto_window_clear);
 
-  redraw_icons_in_window (windows.go_to, 1, GOTO_ICON_NUMBER_FIELD);
-  replace_caret_in_window (windows.go_to);
+  icons_redraw_group (windows.go_to, 1, GOTO_ICON_NUMBER_FIELD);
+  icons_replace_caret_in_window (windows.go_to);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -91,24 +91,24 @@ void fill_goto_window (go_to *go_to_data, int clear)
 
   if (clear == 0)
   {
-    *indirected_icon_text (windows.go_to, GOTO_ICON_NUMBER_FIELD) = '\0';
+    *icons_get_indirected_text_addr (windows.go_to, GOTO_ICON_NUMBER_FIELD) = '\0';
 
-    set_icon_selected (windows.go_to, GOTO_ICON_NUMBER, 0);
-    set_icon_selected (windows.go_to, GOTO_ICON_DATE, 1);
+    icons_set_selected (windows.go_to, GOTO_ICON_NUMBER, 0);
+    icons_set_selected (windows.go_to, GOTO_ICON_DATE, 1);
   }
   else
   {
     if (go_to_data->data_type == GOTO_TYPE_LINE)
     {
-      sprintf (indirected_icon_text (windows.go_to, GOTO_ICON_NUMBER_FIELD), "%d", go_to_data->data);
+      sprintf (icons_get_indirected_text_addr (windows.go_to, GOTO_ICON_NUMBER_FIELD), "%d", go_to_data->data);
     }
     else if (go_to_data->data_type == GOTO_TYPE_DATE)
     {
-      convert_date_to_string ((date_t) go_to_data->data, indirected_icon_text (windows.go_to, GOTO_ICON_NUMBER_FIELD));
+      convert_date_to_string ((date_t) go_to_data->data, icons_get_indirected_text_addr (windows.go_to, GOTO_ICON_NUMBER_FIELD));
     }
 
-    set_icon_selected (windows.go_to, GOTO_ICON_NUMBER, go_to_data->data_type == GOTO_TYPE_LINE);
-    set_icon_selected (windows.go_to, GOTO_ICON_DATE, go_to_data->data_type == GOTO_TYPE_DATE);
+    icons_set_selected (windows.go_to, GOTO_ICON_NUMBER, go_to_data->data_type == GOTO_TYPE_LINE);
+    icons_set_selected (windows.go_to, GOTO_ICON_DATE, go_to_data->data_type == GOTO_TYPE_DATE);
   }
 }
 
@@ -123,17 +123,17 @@ int process_goto_window (void)
 
   extern global_windows windows;
 
-  goto_window_file->go_to.data_type = (read_icon_selected (windows.go_to, GOTO_ICON_DATE)) ?
+  goto_window_file->go_to.data_type = (icons_get_selected (windows.go_to, GOTO_ICON_DATE)) ?
                                        GOTO_TYPE_DATE : GOTO_TYPE_LINE;
 
   if (goto_window_file->go_to.data_type == GOTO_TYPE_LINE)
   {
     /* Go to a plain transaction line number. */
 
-    goto_window_file->go_to.data = atoi (indirected_icon_text (windows.go_to, GOTO_ICON_NUMBER_FIELD));
+    goto_window_file->go_to.data = atoi (icons_get_indirected_text_addr (windows.go_to, GOTO_ICON_NUMBER_FIELD));
 
     if (goto_window_file->go_to.data <= 0 || goto_window_file->go_to.data > goto_window_file->trans_count ||
-        strlen (indirected_icon_text (windows.go_to, GOTO_ICON_NUMBER_FIELD)) == 0)
+        strlen (icons_get_indirected_text_addr (windows.go_to, GOTO_ICON_NUMBER_FIELD)) == 0)
     {
       wimp_msgtrans_info_report ("BadGotoLine");
 
@@ -152,7 +152,7 @@ int process_goto_window (void)
       sort_transactions (goto_window_file);
     }
 
-    target = convert_string_to_date (indirected_icon_text (windows.go_to, GOTO_ICON_NUMBER_FIELD), NULL_DATE, 0);
+    target = convert_string_to_date (icons_get_indirected_text_addr (windows.go_to, GOTO_ICON_NUMBER_FIELD), NULL_DATE, 0);
     goto_window_file->go_to.data = (unsigned) target;
 
     /* Search through the array using a binary search: assumes that transactions are stored in date order. */
@@ -178,7 +178,7 @@ int process_goto_window (void)
   }
 
   place_transaction_edit_line (goto_window_file, line);
-  put_caret_at_end (goto_window_file->transaction_window.transaction_window, 0);
+  icons_put_caret_at_end (goto_window_file->transaction_window.transaction_window, 0);
   find_transaction_edit_line (goto_window_file);
 
   return (0);

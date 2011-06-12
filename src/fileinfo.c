@@ -44,32 +44,32 @@ void fill_file_info_window (file_data *file)
 
   /* Now fill the window. */
 
-  make_file_pathname (file, indirected_icon_text (windows.file_info, FILEINFO_ICON_FILENAME), 255);
+  make_file_pathname (file, icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_FILENAME), 255);
 
   if (check_for_filepath (file))
   {
     territory_convert_standard_date_and_time (territory_CURRENT, (os_date_and_time const *) file->datestamp,
-                                              indirected_icon_text (windows.file_info, FILEINFO_ICON_DATE), 30);
+                                              icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_DATE), 30);
   }
   else
   {
-    msgs_lookup ("UnSaved", indirected_icon_text (windows.file_info, FILEINFO_ICON_DATE), 30);
+    msgs_lookup ("UnSaved", icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_DATE), 30);
   }
 
   if (file->modified)
   {
-    msgs_lookup ("Yes", indirected_icon_text (windows.file_info, FILEINFO_ICON_MODIFIED), 12);
+    msgs_lookup ("Yes", icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_MODIFIED), 12);
   }
   else
   {
-    msgs_lookup ("No", indirected_icon_text (windows.file_info, FILEINFO_ICON_MODIFIED), 12);
+    msgs_lookup ("No", icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_MODIFIED), 12);
   }
 
-  sprintf (indirected_icon_text (windows.file_info, FILEINFO_ICON_TRANSACT), "%d", file->trans_count);
-  sprintf (indirected_icon_text (windows.file_info, FILEINFO_ICON_SORDERS), "%d", file->sorder_count);
-  sprintf (indirected_icon_text (windows.file_info, FILEINFO_ICON_PRESETS), "%d", file->preset_count);
-  sprintf (indirected_icon_text (windows.file_info, FILEINFO_ICON_ACCOUNTS), "%d",
+  sprintf (icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_TRANSACT), "%d", file->trans_count);
+  sprintf (icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_SORDERS), "%d", file->sorder_count);
+  sprintf (icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_PRESETS), "%d", file->preset_count);
+  sprintf (icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_ACCOUNTS), "%d",
            count_accounts_in_file (file, ACCOUNT_FULL));
-  sprintf (indirected_icon_text (windows.file_info, FILEINFO_ICON_HEADINGS), "%d",
+  sprintf (icons_get_indirected_text_addr (windows.file_info, FILEINFO_ICON_HEADINGS), "%d",
            count_accounts_in_file (file, ACCOUNT_IN | ACCOUNT_OUT));
 }

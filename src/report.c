@@ -784,9 +784,9 @@ void refresh_report_format_window (void)
   extern global_windows windows;
 
   fill_report_format_window (report_format_file, report_format_report);
-  redraw_icons_in_window (windows.report_format, 4, REPORT_FORMAT_NFONT, REPORT_FORMAT_BFONT,
+  icons_redraw_group (windows.report_format, 4, REPORT_FORMAT_NFONT, REPORT_FORMAT_BFONT,
                           REPORT_FORMAT_FONTSIZE, REPORT_FORMAT_FONTSPACE);
-  replace_caret_in_window (windows.report_format);
+  icons_replace_caret_in_window (windows.report_format);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -796,11 +796,11 @@ void fill_report_format_window (file_data *file, report_data *report)
   extern global_windows windows;
 
 
-  sprintf (indirected_icon_text (windows.report_format, REPORT_FORMAT_NFONT), "%s", report->font_normal);
-  sprintf (indirected_icon_text (windows.report_format, REPORT_FORMAT_BFONT), "%s", report->font_bold);
+  sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_NFONT), "%s", report->font_normal);
+  sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_BFONT), "%s", report->font_bold);
 
-  sprintf (indirected_icon_text (windows.report_format, REPORT_FORMAT_FONTSIZE), "%d", report->font_size / 16);
-  sprintf (indirected_icon_text (windows.report_format, REPORT_FORMAT_FONTSPACE), "%d", report->line_spacing);
+  sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_FONTSIZE), "%d", report->font_size / 16);
+  sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_FONTSPACE), "%d", report->line_spacing);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -818,10 +818,10 @@ int process_report_format_window (void)
 
   /* Extract the information. */
 
-  strcpy (report_format_report->font_normal, indirected_icon_text (windows.report_format, REPORT_FORMAT_NFONT));
-  strcpy (report_format_report->font_bold, indirected_icon_text (windows.report_format, REPORT_FORMAT_BFONT));
-  report_format_report->font_size = atoi (indirected_icon_text (windows.report_format, REPORT_FORMAT_FONTSIZE)) * 16;
-  report_format_report->line_spacing = atoi (indirected_icon_text (windows.report_format, REPORT_FORMAT_FONTSPACE));
+  strcpy (report_format_report->font_normal, icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_NFONT));
+  strcpy (report_format_report->font_bold, icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_BFONT));
+  report_format_report->font_size = atoi (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_FONTSIZE)) * 16;
+  report_format_report->line_spacing = atoi (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_FONTSPACE));
 
   /* Tidy up and redraw the windows */
 

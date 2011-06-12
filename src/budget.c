@@ -74,8 +74,8 @@ void refresh_budget_window (void)
   extern global_windows windows;
 
   fill_budget_window (edit_budget_file);
-  redraw_icons_in_window (windows.budget, 3, BUDGET_ICON_START, BUDGET_ICON_FINISH, BUDGET_ICON_TRIAL);
-  replace_caret_in_window (windows.budget);
+  icons_redraw_group (windows.budget, 3, BUDGET_ICON_START, BUDGET_ICON_FINISH, BUDGET_ICON_TRIAL);
+  icons_replace_caret_in_window (windows.budget);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -85,12 +85,12 @@ void fill_budget_window (file_data *file)
   extern global_windows windows;
 
 
-  convert_date_to_string (file->budget.start, indirected_icon_text (windows.budget, BUDGET_ICON_START));
-  convert_date_to_string (file->budget.finish, indirected_icon_text (windows.budget, BUDGET_ICON_FINISH));
+  convert_date_to_string (file->budget.start, icons_get_indirected_text_addr (windows.budget, BUDGET_ICON_START));
+  convert_date_to_string (file->budget.finish, icons_get_indirected_text_addr (windows.budget, BUDGET_ICON_FINISH));
 
-  sprintf (indirected_icon_text (windows.budget, BUDGET_ICON_TRIAL), "%d", file->budget.sorder_trial);
+  sprintf (icons_get_indirected_text_addr (windows.budget, BUDGET_ICON_TRIAL), "%d", file->budget.sorder_trial);
 
-  set_icon_selected (windows.budget, BUDGET_ICON_RESTRICT, file->budget.limit_postdate);
+  icons_set_selected (windows.budget, BUDGET_ICON_RESTRICT, file->budget.limit_postdate);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -103,13 +103,13 @@ int process_budget_window (void)
 
 
   edit_budget_file->budget.start =
-       convert_string_to_date (indirected_icon_text (windows.budget, BUDGET_ICON_START), NULL_DATE, 0);
+       convert_string_to_date (icons_get_indirected_text_addr (windows.budget, BUDGET_ICON_START), NULL_DATE, 0);
   edit_budget_file->budget.finish =
-       convert_string_to_date (indirected_icon_text (windows.budget, BUDGET_ICON_FINISH), NULL_DATE, 0);
+       convert_string_to_date (icons_get_indirected_text_addr (windows.budget, BUDGET_ICON_FINISH), NULL_DATE, 0);
 
-  edit_budget_file->budget.sorder_trial = atoi (indirected_icon_text (windows.budget, BUDGET_ICON_TRIAL));
+  edit_budget_file->budget.sorder_trial = atoi (icons_get_indirected_text_addr (windows.budget, BUDGET_ICON_TRIAL));
 
-  edit_budget_file->budget.limit_postdate = read_icon_selected (windows.budget, BUDGET_ICON_RESTRICT);
+  edit_budget_file->budget.limit_postdate = icons_get_selected (windows.budget, BUDGET_ICON_RESTRICT);
 
   /* Tidy up and redraw the windows */
 

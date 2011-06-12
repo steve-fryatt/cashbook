@@ -76,7 +76,7 @@ int cut_icon_to_clipboard (wimp_key *key)
 
     *icon.icon.data.indirected_text.text = '\0';
     wimp_set_icon_state (key->w, key->i, 0, 0);
-    put_caret_at_end (key->w, key->i);
+    icons_put_caret_at_end (key->w, key->i);
   }
 
   return 0;
@@ -98,7 +98,7 @@ int paste_clipboard_to_icon (wimp_key *key)
   {
     if (clipboard_data != NULL)
     {
-      insert_text_into_icon (key->w, key->i, key->index, clipboard_data, clipboard_length);
+      icons_insert_text (key->w, key->i, key->index, clipboard_data, clipboard_length);
     }
     else
     {
@@ -230,7 +230,7 @@ int paste_received_clipboard (char **data, int data_size)
 
 
   wimp_get_caret_position (&caret);
-  insert_text_into_icon (caret.w, caret.i, caret.index, *data, data_size);
+  icons_insert_text (caret.w, caret.i, caret.index, *data, data_size);
 
   flex_free ((flex_ptr) data);
 

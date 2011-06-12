@@ -121,11 +121,11 @@ void refresh_find_window (void)
 
 
   fill_find_window (&(find_window_file->find), find_window_clear);
-  redraw_icons_in_window (windows.find, 10, FIND_ICON_DATE,
+  icons_redraw_group (windows.find, 10, FIND_ICON_DATE,
                           FIND_ICON_FMIDENT, FIND_ICON_FMREC, FIND_ICON_FMNAME,
                           FIND_ICON_TOIDENT, FIND_ICON_TOREC, FIND_ICON_TONAME,
                           FIND_ICON_REF, FIND_ICON_AMOUNT, FIND_ICON_DESC);
-  replace_caret_in_window (windows.find);
+  icons_replace_caret_in_window (windows.find);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -137,29 +137,29 @@ void fill_find_window (find *find_data, int clear)
 
   if (clear == 0)
   {
-    *indirected_icon_text (windows.find, FIND_ICON_DATE) = '\0';
-    *indirected_icon_text (windows.find, FIND_ICON_FMIDENT) = '\0';
-    *indirected_icon_text (windows.find, FIND_ICON_FMREC) = '\0';
-    *indirected_icon_text (windows.find, FIND_ICON_FMNAME) = '\0';
-    *indirected_icon_text (windows.find, FIND_ICON_TOIDENT) = '\0';
-    *indirected_icon_text (windows.find, FIND_ICON_TOREC) = '\0';
-    *indirected_icon_text (windows.find, FIND_ICON_TONAME) = '\0';
-    *indirected_icon_text (windows.find, FIND_ICON_REF) = '\0';
-    *indirected_icon_text (windows.find, FIND_ICON_AMOUNT) = '\0';
-    *indirected_icon_text (windows.find, FIND_ICON_DESC) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_DATE) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_FMIDENT) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_FMREC) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_FMNAME) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_TOIDENT) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_TOREC) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_TONAME) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_REF) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_AMOUNT) = '\0';
+    *icons_get_indirected_text_addr (windows.find, FIND_ICON_DESC) = '\0';
 
-    set_icon_selected (windows.find, FIND_ICON_AND, 1);
-    set_icon_selected (windows.find, FIND_ICON_OR, 0);
+    icons_set_selected (windows.find, FIND_ICON_AND, 1);
+    icons_set_selected (windows.find, FIND_ICON_OR, 0);
 
-    set_icon_selected (windows.find, FIND_ICON_START, 1);
-    set_icon_selected (windows.find, FIND_ICON_DOWN, 0);
-    set_icon_selected (windows.find, FIND_ICON_UP, 0);
-    set_icon_selected (windows.find, FIND_ICON_END, 0);
-    set_icon_selected (windows.find, FIND_ICON_CASE, 0);
+    icons_set_selected (windows.find, FIND_ICON_START, 1);
+    icons_set_selected (windows.find, FIND_ICON_DOWN, 0);
+    icons_set_selected (windows.find, FIND_ICON_UP, 0);
+    icons_set_selected (windows.find, FIND_ICON_END, 0);
+    icons_set_selected (windows.find, FIND_ICON_CASE, 0);
   }
   else
   {
-    convert_date_to_string (find_data->date, indirected_icon_text (windows.find, FIND_ICON_DATE));
+    convert_date_to_string (find_data->date, icons_get_indirected_text_addr (windows.find, FIND_ICON_DATE));
 
     fill_account_field(find_window_file, find_data->from, find_data->from_rec,
                        windows.find, FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC);
@@ -167,20 +167,20 @@ void fill_find_window (find *find_data, int clear)
     fill_account_field(find_window_file, find_data->to, find_data->to_rec,
                        windows.find, FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC);
 
-    strcpy (indirected_icon_text (windows.find, FIND_ICON_REF), find_data->ref);
-    convert_money_to_string (find_data->amount, indirected_icon_text (windows.find, FIND_ICON_AMOUNT));
-    strcpy (indirected_icon_text (windows.find, FIND_ICON_DESC), find_data->desc);
+    strcpy (icons_get_indirected_text_addr (windows.find, FIND_ICON_REF), find_data->ref);
+    convert_money_to_string (find_data->amount, icons_get_indirected_text_addr (windows.find, FIND_ICON_AMOUNT));
+    strcpy (icons_get_indirected_text_addr (windows.find, FIND_ICON_DESC), find_data->desc);
 
-    set_icon_selected (windows.find, FIND_ICON_AND, find_data->logic == FIND_AND);
-    set_icon_selected (windows.find, FIND_ICON_OR, find_data->logic == FIND_OR);
+    icons_set_selected (windows.find, FIND_ICON_AND, find_data->logic == FIND_AND);
+    icons_set_selected (windows.find, FIND_ICON_OR, find_data->logic == FIND_OR);
 
-    set_icon_selected (windows.find, FIND_ICON_START, find_data->direction == FIND_START);
-    set_icon_selected (windows.find, FIND_ICON_DOWN, find_data->direction == FIND_DOWN);
-    set_icon_selected (windows.find, FIND_ICON_UP, find_data->direction == FIND_UP);
-    set_icon_selected (windows.find, FIND_ICON_END, find_data->direction == FIND_END);
+    icons_set_selected (windows.find, FIND_ICON_START, find_data->direction == FIND_START);
+    icons_set_selected (windows.find, FIND_ICON_DOWN, find_data->direction == FIND_DOWN);
+    icons_set_selected (windows.find, FIND_ICON_UP, find_data->direction == FIND_UP);
+    icons_set_selected (windows.find, FIND_ICON_END, find_data->direction == FIND_END);
 
-    set_icon_selected (windows.find, FIND_ICON_CASE, find_data->case_sensitive);
-    set_icon_selected (windows.find, FIND_ICON_WHOLE, find_data->whole_text);
+    icons_set_selected (windows.find, FIND_ICON_CASE, find_data->case_sensitive);
+    icons_set_selected (windows.find, FIND_ICON_WHOLE, find_data->whole_text);
   }
 }
 
@@ -257,51 +257,51 @@ int process_find_window (void)
 
   /* Get the window contents. */
 
-  find_window_file->find.date = convert_string_to_date (indirected_icon_text (windows.find, FIND_ICON_DATE),
+  find_window_file->find.date = convert_string_to_date (icons_get_indirected_text_addr (windows.find, FIND_ICON_DATE),
                                                         NULL_DATE, 0);
-  find_window_file->find.from = find_account (find_window_file, indirected_icon_text (windows.find, FIND_ICON_FMIDENT),
+  find_window_file->find.from = find_account (find_window_file, icons_get_indirected_text_addr (windows.find, FIND_ICON_FMIDENT),
                                               ACCOUNT_FULL | ACCOUNT_IN);
-  find_window_file->find.from_rec = (*indirected_icon_text (windows.find, FIND_ICON_FMREC) == '\0') ?
+  find_window_file->find.from_rec = (*icons_get_indirected_text_addr (windows.find, FIND_ICON_FMREC) == '\0') ?
                                     0 : TRANS_REC_FROM;
-  find_window_file->find.to = find_account (find_window_file, indirected_icon_text (windows.find, FIND_ICON_TOIDENT),
+  find_window_file->find.to = find_account (find_window_file, icons_get_indirected_text_addr (windows.find, FIND_ICON_TOIDENT),
                                             ACCOUNT_FULL | ACCOUNT_OUT);
-  find_window_file->find.to_rec = (*indirected_icon_text (windows.find, FIND_ICON_TOREC) == '\0') ? 0 : TRANS_REC_TO;
-  find_window_file->find.amount = convert_string_to_money (indirected_icon_text (windows.find, FIND_ICON_AMOUNT));
-  strcpy (find_window_file->find.ref, indirected_icon_text (windows.find, FIND_ICON_REF));
-  strcpy (find_window_file->find.desc, indirected_icon_text (windows.find, FIND_ICON_DESC));
+  find_window_file->find.to_rec = (*icons_get_indirected_text_addr (windows.find, FIND_ICON_TOREC) == '\0') ? 0 : TRANS_REC_TO;
+  find_window_file->find.amount = convert_string_to_money (icons_get_indirected_text_addr (windows.find, FIND_ICON_AMOUNT));
+  strcpy (find_window_file->find.ref, icons_get_indirected_text_addr (windows.find, FIND_ICON_REF));
+  strcpy (find_window_file->find.desc, icons_get_indirected_text_addr (windows.find, FIND_ICON_DESC));
 
   /* Read find logic. */
 
-  if (read_icon_selected (windows.find, FIND_ICON_AND))
+  if (icons_get_selected (windows.find, FIND_ICON_AND))
   {
     find_window_file->find.logic = FIND_AND;
   }
-  else if (read_icon_selected (windows.find, FIND_ICON_OR))
+  else if (icons_get_selected (windows.find, FIND_ICON_OR))
   {
     find_window_file->find.logic = FIND_OR;
   }
 
   /* Read search direction. */
 
-  if (read_icon_selected (windows.find, FIND_ICON_START))
+  if (icons_get_selected (windows.find, FIND_ICON_START))
   {
     find_window_file->find.direction = FIND_START;
   }
-  else if (read_icon_selected (windows.find, FIND_ICON_END))
+  else if (icons_get_selected (windows.find, FIND_ICON_END))
   {
     find_window_file->find.direction = FIND_END;
   }
-  else if (read_icon_selected (windows.find, FIND_ICON_DOWN))
+  else if (icons_get_selected (windows.find, FIND_ICON_DOWN))
   {
     find_window_file->find.direction = FIND_DOWN;
   }
-  else if (read_icon_selected (windows.find, FIND_ICON_UP))
+  else if (icons_get_selected (windows.find, FIND_ICON_UP))
   {
     find_window_file->find.direction = FIND_UP;
   }
 
-  find_window_file->find.case_sensitive = read_icon_selected (windows.find, FIND_ICON_CASE);
-  find_window_file->find.whole_text = read_icon_selected (windows.find, FIND_ICON_WHOLE);
+  find_window_file->find.case_sensitive = icons_get_selected (windows.find, FIND_ICON_CASE);
+  find_window_file->find.whole_text = icons_get_selected (windows.find, FIND_ICON_WHOLE);
 
   /* Get the start line. */
 
@@ -557,13 +557,13 @@ int find_from_line (find *new_params, int new_dir, int start)
     wimp_close_window (windows.find);
 
     place_transaction_edit_line (find_window_file, line);
-    put_caret_at_end (find_window_file->transaction_window.transaction_window, icon);
+    icons_put_caret_at_end (find_window_file->transaction_window.transaction_window, icon);
     find_transaction_edit_line (find_window_file);
 
-    icon_text (find_window_file->transaction_window.transaction_pane, column_group (TRANSACT_PANE_COL_MAP,icon), buf1);
+    icons_copy_text (find_window_file->transaction_window.transaction_pane, column_group (TRANSACT_PANE_COL_MAP,icon), buf1);
     sprintf (buf2, "%d", line);
 
-    msgs_param_lookup("Found", indirected_icon_text (windows.found, FOUND_ICON_INFO), 64, buf1, buf2, NULL, NULL);
+    msgs_param_lookup("Found", icons_get_indirected_text_addr (windows.found, FOUND_ICON_INFO), 64, buf1, buf2, NULL, NULL);
 
     if (!window_is_open (windows.found))
     {
@@ -572,7 +572,7 @@ int find_from_line (find *new_params, int new_dir, int start)
     }
     else
     {
-      redraw_icons_in_window (windows.found, 1, FOUND_ICON_INFO);
+      icons_redraw_group (windows.found, 1, FOUND_ICON_INFO);
     }
 
     return (line);

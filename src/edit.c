@@ -558,7 +558,7 @@ void place_transaction_edit_line_transaction (file_data *file, int transaction)
           wimp_get_caret_position (&caret);
           if (caret.w == file->transaction_window.transaction_window)
           {
-            put_caret_at_end (file->transaction_window.transaction_window, 0);
+            icons_put_caret_at_end (file->transaction_window.transaction_window, 0);
           }
           find_transaction_edit_line (file);
 
@@ -572,7 +572,7 @@ void place_transaction_edit_line_transaction (file_data *file, int transaction)
       wimp_get_caret_position (&caret);
       if (caret.w == file->transaction_window.transaction_window)
       {
-        put_caret_at_end (file->transaction_window.transaction_window, 0);
+        icons_put_caret_at_end (file->transaction_window.transaction_window, 0);
       }
       find_transaction_edit_line (file);
     }
@@ -612,7 +612,7 @@ void toggle_reconcile_flag (file_data *file, int transaction, int change_flag)
 
       if (file->transactions[file->transaction_window.entry_line].sort_index == transaction)
       {
-        *indirected_icon_text (file->transaction_window.transaction_window, change_icon) = '\0';
+        *icons_get_indirected_text_addr (file->transaction_window.transaction_window, change_icon) = '\0';
       }
 
       changed = 1;
@@ -626,7 +626,7 @@ void toggle_reconcile_flag (file_data *file, int transaction, int change_flag)
       if (file->transactions[file->transaction_window.entry_line].sort_index == transaction)
       {
         msgs_lookup ("RecChar",
-                     indirected_icon_text (file->transaction_window.transaction_window, change_icon),
+                     icons_get_indirected_text_addr (file->transaction_window.transaction_window, change_icon),
                      REC_FIELD_LEN);
       }
 
@@ -727,7 +727,7 @@ void edit_change_transaction_date (file_data *file, int transaction, date_t new_
       {
         refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
         set_transaction_edit_line_shading (file);
-        replace_caret_in_window (file->transaction_window.transaction_window);
+        icons_replace_caret_in_window (file->transaction_window.transaction_window);
       }
       else
       {
@@ -788,7 +788,7 @@ void edit_change_transaction_amount (file_data *file, int transaction, amt_t new
       {
         refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
         set_transaction_edit_line_shading (file);
-        replace_caret_in_window (file->transaction_window.transaction_window);
+        icons_replace_caret_in_window (file->transaction_window.transaction_window);
       }
       else
       {
@@ -861,7 +861,7 @@ void edit_change_transaction_refdesc (file_data *file, int transaction, int chan
       {
         refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
         set_transaction_edit_line_shading (file);
-        replace_caret_in_window (file->transaction_window.transaction_window);
+        icons_replace_caret_in_window (file->transaction_window.transaction_window);
       }
       else
       {
@@ -984,7 +984,7 @@ void edit_change_transaction_account (file_data *file, int transaction, int chan
       {
         refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, change_icon, -1);
         set_transaction_edit_line_shading (file);
-        replace_caret_in_window (file->transaction_window.transaction_window);
+        icons_replace_caret_in_window (file->transaction_window.transaction_window);
       }
       else
       {
@@ -1020,7 +1020,7 @@ void insert_transaction_preset_full (file_data *file, int transaction, int prese
 
     place_transaction_edit_line_transaction (file, transaction);
 
-    put_caret_at_end (file->transaction_window.transaction_window,
+    icons_put_caret_at_end (file->transaction_window.transaction_window,
                       edit_convert_preset_icon_number (file->presets[preset].caret_target));
 
     if (changed)
@@ -1035,7 +1035,7 @@ void insert_transaction_preset_full (file_data *file, int transaction, int prese
       {
         refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
         set_transaction_edit_line_shading (file);
-        replace_caret_in_window (file->transaction_window.transaction_window);
+        icons_replace_caret_in_window (file->transaction_window.transaction_window);
       }
       else
       {
@@ -1404,7 +1404,7 @@ void process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
         {
           icon = EDIT_ICON_REF;
         }
-        put_caret_at_end (entry_window->transaction_window.transaction_window, icon);
+        icons_put_caret_at_end (entry_window->transaction_window.transaction_window, icon);
         find_transaction_edit_icon (file);
       }
       else
@@ -1417,7 +1417,7 @@ void process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
         {
           place_transaction_edit_line (file, file->transaction_window.entry_line+1);
         }
-        put_caret_at_end (entry_window->transaction_window.transaction_window, EDIT_ICON_DATE);
+        icons_put_caret_at_end (entry_window->transaction_window.transaction_window, EDIT_ICON_DATE);
         find_transaction_edit_icon (file);
         find_transaction_edit_line (file);
       }
@@ -1445,7 +1445,7 @@ void process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
         {
           icon = EDIT_ICON_FROM;
         }
-        put_caret_at_end (entry_window->transaction_window.transaction_window, icon);
+        icons_put_caret_at_end (entry_window->transaction_window.transaction_window, icon);
         find_transaction_edit_icon (file);
       }
       else
@@ -1453,7 +1453,7 @@ void process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
         if (file->transaction_window.entry_line > 0)
         {
           place_transaction_edit_line (file, file->transaction_window.entry_line-1);
-          put_caret_at_end (entry_window->transaction_window.transaction_window, EDIT_ICON_DESCRIPT);
+          icons_put_caret_at_end (entry_window->transaction_window.transaction_window, EDIT_ICON_DESCRIPT);
           find_transaction_edit_icon (file);
         }
       }
@@ -1541,7 +1541,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
         {
           convert_date_to_string (get_current_date (), buffer_date);
           wimp_set_icon_state (key->w, EDIT_ICON_DATE, 0, 0);
-          replace_caret_in_window (key->w);
+          icons_replace_caret_in_window (key->w);
         }
 
         previous_date = (line > 0) ? file->transactions[file->transactions[line - 1].sort_index].date : NULL_DATE;
@@ -1631,7 +1631,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
       get_next_cheque_number (file, file->transactions[transaction].from, file->transactions[transaction].to,
                               1, buffer_reference);
         wimp_set_icon_state (key->w, EDIT_ICON_REF, 0, 0);
-        replace_caret_in_window (key->w);
+        icons_replace_caret_in_window (key->w);
       }
 
       if (strcmp (file->transactions[transaction].reference, buffer_reference) != 0)
@@ -1657,7 +1657,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
       {
         find_complete_description (file, line, buffer_description);
         wimp_set_icon_state (key->w, EDIT_ICON_DESCRIPT, 0, 0);
-        replace_caret_in_window (key->w);
+        icons_replace_caret_in_window (key->w);
       }
 
       if (strcmp (file->transactions[transaction].description, buffer_description) != 0)
@@ -1698,7 +1698,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
 
         refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
         set_transaction_edit_line_shading (file);
-        put_caret_at_end (file->transaction_window.transaction_window,
+        icons_put_caret_at_end (file->transaction_window.transaction_window,
                           edit_convert_preset_icon_number (file->presets[preset].caret_target));
 
         /* If we're auto-sorting, and the sort column has been updated as part of the preset,

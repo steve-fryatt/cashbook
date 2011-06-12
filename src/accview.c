@@ -898,16 +898,16 @@ void fill_accview_sort_window (int sort_option)
 {
   extern global_windows windows;
 
-  set_icon_selected (windows.sort_accview, ACCVIEW_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
-  set_icon_selected (windows.sort_accview, ACCVIEW_SORT_FROMTO, (sort_option & SORT_MASK) == SORT_FROMTO);
-  set_icon_selected (windows.sort_accview, ACCVIEW_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
-  set_icon_selected (windows.sort_accview, ACCVIEW_SORT_PAYMENTS, (sort_option & SORT_MASK) == SORT_PAYMENTS);
-  set_icon_selected (windows.sort_accview, ACCVIEW_SORT_RECEIPTS, (sort_option & SORT_MASK) == SORT_RECEIPTS);
-  set_icon_selected (windows.sort_accview, ACCVIEW_SORT_BALANCE, (sort_option & SORT_MASK) == SORT_BALANCE);
-  set_icon_selected (windows.sort_accview, ACCVIEW_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
+  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
+  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_FROMTO, (sort_option & SORT_MASK) == SORT_FROMTO);
+  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
+  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_PAYMENTS, (sort_option & SORT_MASK) == SORT_PAYMENTS);
+  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_RECEIPTS, (sort_option & SORT_MASK) == SORT_RECEIPTS);
+  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_BALANCE, (sort_option & SORT_MASK) == SORT_BALANCE);
+  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
 
-  set_icon_selected (windows.sort_accview, ACCVIEW_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-  set_icon_selected (windows.sort_accview, ACCVIEW_SORT_DESCENDING, sort_option & SORT_DESCENDING);
+  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_ASCENDING, sort_option & SORT_ASCENDING);
+  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_DESCENDING, sort_option & SORT_DESCENDING);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -918,42 +918,42 @@ int process_accview_sort_window (void)
 
   (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_NONE;
 
-  if (read_icon_selected (windows.sort_accview, ACCVIEW_SORT_DATE))
+  if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_DATE))
   {
     (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_DATE;
   }
-  else if (read_icon_selected (windows.sort_accview, ACCVIEW_SORT_FROMTO))
+  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_FROMTO))
   {
     (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_FROMTO;
   }
-  else if (read_icon_selected (windows.sort_accview, ACCVIEW_SORT_REFERENCE))
+  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_REFERENCE))
   {
     (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_REFERENCE;
   }
-  else if (read_icon_selected (windows.sort_accview, ACCVIEW_SORT_PAYMENTS))
+  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_PAYMENTS))
   {
     (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_PAYMENTS;
   }
-  else if (read_icon_selected (windows.sort_accview, ACCVIEW_SORT_RECEIPTS))
+  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_RECEIPTS))
   {
     (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_RECEIPTS;
   }
-  else if (read_icon_selected (windows.sort_accview, ACCVIEW_SORT_BALANCE))
+  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_BALANCE))
   {
     (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_BALANCE;
   }
-  else if (read_icon_selected (windows.sort_accview, ACCVIEW_SORT_DESCRIPTION))
+  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_DESCRIPTION))
   {
     (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_DESCRIPTION;
   }
 
   if ((sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order != SORT_NONE)
   {
-    if (read_icon_selected (windows.sort_accview, ACCVIEW_SORT_ASCENDING))
+    if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_ASCENDING))
     {
       (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order |= SORT_ASCENDING;
     }
-    else if (read_icon_selected (windows.sort_accview, ACCVIEW_SORT_DESCENDING))
+    else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_DESCENDING))
     {
       (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order |= SORT_DESCENDING;
     }
@@ -1032,19 +1032,19 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (window->accview_pane, 0, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->accview_pane, 0, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icon_text (window->accview_pane, 1, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->accview_pane, 1, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (window->accview_pane, 2, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->accview_pane, 2, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icon_text (window->accview_pane, 3, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->accview_pane, 3, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icon_text (window->accview_pane, 4, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->accview_pane, 4, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icon_text (window->accview_pane, 5, numbuf1));
+    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->accview_pane, 5, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (window->accview_pane, 6, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->accview_pane, 6, numbuf1));
     strcat (line, buffer);
 
     write_report_line (report, 0, line);
@@ -1186,7 +1186,7 @@ void accview_window_click (file_data *file, wimp_pointer *pointer)
       trans_col =  (file->transactions[transaction].from == account) ? trans_col_to : trans_col_from;
 
       place_transaction_edit_line (file, locate_transaction_in_transact_window (file, transaction));
-      put_caret_at_end (file->transaction_window.transaction_window, trans_col[column]);
+      icons_put_caret_at_end (file->transaction_window.transaction_window, trans_col[column]);
       find_transaction_edit_line (file);
 
       if (pointer->buttons == wimp_DOUBLE_ADJUST)

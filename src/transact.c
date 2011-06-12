@@ -173,7 +173,7 @@ void create_transaction_window (file_data *file)
     /* Put the caret into the first empty line. */
 
     place_transaction_edit_line (file, file->trans_count);
-    put_caret_at_end (file->transaction_window.transaction_window, 0);
+    icons_put_caret_at_end (file->transaction_window.transaction_window, 0);
     find_transaction_edit_line (file);
   }
 }
@@ -701,15 +701,15 @@ void fill_transaction_sort_window (int sort_option)
 {
   extern global_windows windows;
 
-  set_icon_selected (windows.sort_trans, TRANS_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
-  set_icon_selected (windows.sort_trans, TRANS_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
-  set_icon_selected (windows.sort_trans, TRANS_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
-  set_icon_selected (windows.sort_trans, TRANS_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
-  set_icon_selected (windows.sort_trans, TRANS_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
-  set_icon_selected (windows.sort_trans, TRANS_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
+  icons_set_selected (windows.sort_trans, TRANS_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
+  icons_set_selected (windows.sort_trans, TRANS_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
+  icons_set_selected (windows.sort_trans, TRANS_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
+  icons_set_selected (windows.sort_trans, TRANS_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
+  icons_set_selected (windows.sort_trans, TRANS_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
+  icons_set_selected (windows.sort_trans, TRANS_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
 
-  set_icon_selected (windows.sort_trans, TRANS_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-  set_icon_selected (windows.sort_trans, TRANS_SORT_DESCENDING, sort_option & SORT_DESCENDING);
+  icons_set_selected (windows.sort_trans, TRANS_SORT_ASCENDING, sort_option & SORT_ASCENDING);
+  icons_set_selected (windows.sort_trans, TRANS_SORT_DESCENDING, sort_option & SORT_DESCENDING);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -720,38 +720,38 @@ int process_transaction_sort_window (void)
 
   sort_trans_window_file->transaction_window.sort_order = SORT_NONE;
 
-  if (read_icon_selected (windows.sort_trans, TRANS_SORT_DATE))
+  if (icons_get_selected (windows.sort_trans, TRANS_SORT_DATE))
   {
     sort_trans_window_file->transaction_window.sort_order = SORT_DATE;
   }
-  else if (read_icon_selected (windows.sort_trans, TRANS_SORT_FROM))
+  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_FROM))
   {
     sort_trans_window_file->transaction_window.sort_order = SORT_FROM;
   }
-  else if (read_icon_selected (windows.sort_trans, TRANS_SORT_TO))
+  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_TO))
   {
     sort_trans_window_file->transaction_window.sort_order = SORT_TO;
   }
-  else if (read_icon_selected (windows.sort_trans, TRANS_SORT_REFERENCE))
+  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_REFERENCE))
   {
     sort_trans_window_file->transaction_window.sort_order = SORT_REFERENCE;
   }
-  else if (read_icon_selected (windows.sort_trans, TRANS_SORT_AMOUNT))
+  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_AMOUNT))
   {
     sort_trans_window_file->transaction_window.sort_order = SORT_AMOUNT;
   }
-  else if (read_icon_selected (windows.sort_trans, TRANS_SORT_DESCRIPTION))
+  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_DESCRIPTION))
   {
     sort_trans_window_file->transaction_window.sort_order = SORT_DESCRIPTION;
   }
 
   if (sort_trans_window_file->transaction_window.sort_order != SORT_NONE)
   {
-    if (read_icon_selected (windows.sort_trans, TRANS_SORT_ASCENDING))
+    if (icons_get_selected (windows.sort_trans, TRANS_SORT_ASCENDING))
     {
       sort_trans_window_file->transaction_window.sort_order |= SORT_ASCENDING;
     }
-    else if (read_icon_selected (windows.sort_trans, TRANS_SORT_DESCENDING))
+    else if (icons_get_selected (windows.sort_trans, TRANS_SORT_DESCENDING))
     {
       sort_trans_window_file->transaction_window.sort_order |= SORT_DESCENDING;
     }
@@ -833,7 +833,7 @@ void find_next_reconcile_line (file_data *file, int set)
       if (found)
       {
         place_transaction_edit_line (file, line);
-        put_caret_at_end (file->transaction_window.transaction_window, found);
+        icons_put_caret_at_end (file->transaction_window.transaction_window, found);
         find_transaction_edit_line (file);
       }
     }
@@ -909,20 +909,20 @@ void print_transact_window (int text, int format, int scale, int rotate, date_t 
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (transact_print_file->transaction_window.transaction_pane, 0, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (transact_print_file->transaction_window.transaction_pane, 0, numbuf1));
     strcat (line, buffer);
     sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t",
-             icon_text (transact_print_file->transaction_window.transaction_pane, 1, numbuf1));
+             icons_copy_text (transact_print_file->transaction_window.transaction_pane, 1, numbuf1));
     strcat (line, buffer);
     sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t",
-             icon_text (transact_print_file->transaction_window.transaction_pane, 2, numbuf1));
+             icons_copy_text (transact_print_file->transaction_window.transaction_pane, 2, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (transact_print_file->transaction_window.transaction_pane, 3, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (transact_print_file->transaction_window.transaction_pane, 3, numbuf1));
     strcat (line, buffer);
     sprintf (buffer, "\\b\\r\\u%s\\t",
-             icon_text (transact_print_file->transaction_window.transaction_pane, 4, numbuf1));
+             icons_copy_text (transact_print_file->transaction_window.transaction_pane, 4, numbuf1));
     strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icon_text (transact_print_file->transaction_window.transaction_pane, 5, numbuf1));
+    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (transact_print_file->transaction_window.transaction_pane, 5, numbuf1));
     strcat (line, buffer);
 
     write_report_line (report, 0, line);
@@ -1036,21 +1036,21 @@ void transaction_window_click (file_data *file, wimp_pointer *pointer)
         }
         else if (ptr.i == EDIT_ICON_FROM_REC || ptr.i == EDIT_ICON_FROM_NAME)
         {
-          put_caret_at_end (ptr.w, EDIT_ICON_FROM);
+          icons_put_caret_at_end (ptr.w, EDIT_ICON_FROM);
         }
         else if (ptr.i == EDIT_ICON_TO_REC || ptr.i == EDIT_ICON_TO_NAME)
         {
-          put_caret_at_end (ptr.w, EDIT_ICON_TO);
+          icons_put_caret_at_end (ptr.w, EDIT_ICON_TO);
         }
       }
     }
     else if (pointer->i == EDIT_ICON_FROM_REC || pointer->i == EDIT_ICON_FROM_NAME)
     {
-      put_caret_at_end (pointer->w, EDIT_ICON_FROM);
+      icons_put_caret_at_end (pointer->w, EDIT_ICON_FROM);
     }
     else if (pointer->i == EDIT_ICON_TO_REC || pointer->i == EDIT_ICON_TO_NAME)
     {
-      put_caret_at_end (pointer->w, EDIT_ICON_TO);
+      icons_put_caret_at_end (pointer->w, EDIT_ICON_TO);
     }
   }
 
@@ -1624,7 +1624,7 @@ void force_transaction_window_redraw (file_data *file, int from, int to)
 
 void update_transaction_window_toolbar (file_data *file)
 {
-  set_icon_shaded (file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT,
+  icons_set_shaded (file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT,
                     count_accounts_in_file (file, ACCOUNT_FULL) == 0);
 }
 

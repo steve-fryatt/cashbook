@@ -303,7 +303,7 @@ void mouse_click_handler (wimp_pointer *pointer)
     {
       case 8: /* Website. */
         msgs_lookup ("SupportURL:http://www.stevefryatt.org.uk/software/", temp_buf, sizeof (temp_buf));
-        launch_url (temp_buf);
+        url_launch(temp_buf);
         if (pointer->buttons == wimp_CLICK_SELECT)
         {
           wimp_create_menu ((wimp_menu *) -1, 0, 0);

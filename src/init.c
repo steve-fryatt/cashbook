@@ -917,7 +917,7 @@ int initialise (void)
   hourglass_on ();
 
   strcpy (resources, "<CashBook$Dir>.Resources");
-  find_resource_path (resources, sizeof (resources));
+  resources_find_path (resources, sizeof (resources));
 
   /* Load the messages file. */
 
@@ -1038,7 +1038,7 @@ int initialise (void)
 
   /* Load the window templates. */
 
-  sprites = load_user_sprite_area ("<CashBook$Dir>.Sprites");
+  sprites = resources_load_user_sprite_area ("<CashBook$Dir>.Sprites");
 
   sprintf (res_temp, "%s.Templates", resources);
   load_templates (res_temp, &windows, sprites);

@@ -922,7 +922,7 @@ int initialise (void)
   /* Load the messages file. */
 
   sprintf (res_temp, "%s.Messages", resources);
-  msgs_init (res_temp);
+  msgs_initialise(res_temp);
 
   /* Initialise the error message system. */
 

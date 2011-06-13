@@ -90,7 +90,7 @@ int main (int argc, char *argv[])
 
   poll_loop ();
 
-  msgs_close_file ();
+  msgs_terminate();
   wimp_close_down (task_handle);
 
   return (0);

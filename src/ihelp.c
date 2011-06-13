@@ -128,7 +128,8 @@ char *find_ihelp (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_m
   char           help_text[IHELP_LENGTH], token[128], icon_name[64];
   ihelp_window   *win_data;
   wimp_selection menu_selection;
-  int            found, i;
+  int            i;
+  osbool         found;
 
   /* Set the buffer to a null string, to return no text if a result isn't found. */
 
@@ -139,7 +140,7 @@ char *find_ihelp (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_m
 
   if (window == wimp_ICON_BAR)
   {
-     if (msgs_lookup_result ("Help.IconBar", help_text, IHELP_LENGTH) == 0)
+     if (msgs_lookup_result ("Help.IconBar", help_text, IHELP_LENGTH))
      {
        strcpy (buffer, help_text);
      }
@@ -150,7 +151,7 @@ char *find_ihelp (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_m
 
   else if ((win_data = find_ihelp_window (window)) != NULL)
   {
-    found = 0;
+    found = FALSE;
     *icon_name = '\0';
 
 
@@ -178,7 +179,7 @@ char *find_ihelp (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_m
     if (*icon_name != '\0')
     {
       sprintf (token, "Help.%s%s.%s", win_data->name, win_data->modifier, icon_name);
-      found = (msgs_lookup_result (token, help_text, IHELP_LENGTH) == 0);
+      found = msgs_lookup_result (token, help_text, IHELP_LENGTH);
     }
 
     /* If the icon did not have a name, or it is the window background, look up a token for the window. */
@@ -186,7 +187,7 @@ char *find_ihelp (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_m
     if (!found)
     {
       sprintf (token, "Help.%s%s", win_data->name, win_data->modifier);
-      found = (msgs_lookup_result (token, help_text, IHELP_LENGTH) == 0);
+      found = msgs_lookup_result (token, help_text, IHELP_LENGTH);
     }
 
     /* If a message was found, return it. */
@@ -215,7 +216,7 @@ char *find_ihelp (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_m
         strcat (token, icon_name);
       }
 
-      if (msgs_lookup_result (token, help_text, IHELP_LENGTH) == 0)
+      if (msgs_lookup_result (token, help_text, IHELP_LENGTH))
       {
         strcpy (buffer, help_text);
       }

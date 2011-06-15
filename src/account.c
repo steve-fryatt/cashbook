@@ -119,7 +119,7 @@ void create_accounts_window (file_data *file, int type)
   {
     /* The window is open, so just bring it forward. */
 
-    open_window (file->account_windows[entry].account_window);
+    windows_open (file->account_windows[entry].account_window);
   }
   else
   {
@@ -164,7 +164,7 @@ void create_accounts_window (file_data *file, int type)
 
     tb_type = (type == ACCOUNT_FULL) ? 0 : 1; /* Use toolbar 0 if it's a full account, 1 otherwise. */
 
-    place_window_as_toolbar (windows.account_window_def, windows.account_pane_def[tb_type], ACCOUNT_TOOLBAR_HEIGHT-4);
+    windows_place_as_toolbar (windows.account_window_def, windows.account_pane_def[tb_type], ACCOUNT_TOOLBAR_HEIGHT-4);
 
     for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++)
     {
@@ -188,7 +188,7 @@ void create_accounts_window (file_data *file, int type)
 
     /* Create the footer pane. */
 
-    place_window_as_footer (windows.account_window_def, windows.account_footer_def, ACCOUNT_FOOTER_HEIGHT);
+    windows_place_as_footer (windows.account_window_def, windows.account_footer_def, ACCOUNT_FOOTER_HEIGHT);
 
     for (i=0; i < ACCOUNT_NUM_COLUMNS; i++)
     {
@@ -245,11 +245,11 @@ void create_accounts_window (file_data *file, int type)
       add_ihelp_window (file->account_windows[entry].account_footer , "HeadListFB", NULL);
     }
 
-    open_window (file->account_windows[entry].account_window);
-    open_window_nested_as_toolbar (file->account_windows[entry].account_pane,
+    windows_open (file->account_windows[entry].account_window);
+    windows_open_nested_as_toolbar (file->account_windows[entry].account_pane,
                                    file->account_windows[entry].account_window,
                                    ACCOUNT_TOOLBAR_HEIGHT-4);
-    open_window_nested_as_footer (file->account_windows[entry].account_footer,
+    windows_open_nested_as_footer (file->account_windows[entry].account_footer,
                                   file->account_windows[entry].account_window,
                                   ACCOUNT_FOOTER_HEIGHT);
   }
@@ -345,9 +345,9 @@ void adjust_account_window_columns (file_data *file, int entry)
 
   /* Replace the edit line to force a redraw and redraw the rest of the window. */
 
-  force_visible_window_redraw (file->account_windows[entry].account_window);
-  force_visible_window_redraw (file->account_windows[entry].account_pane);
-  force_visible_window_redraw (file->account_windows[entry].account_footer);
+  windows_redraw (file->account_windows[entry].account_window);
+  windows_redraw (file->account_windows[entry].account_pane);
+  windows_redraw (file->account_windows[entry].account_footer);
 
   /* Set the horizontal extent of the window and pane. */
 
@@ -366,7 +366,7 @@ void adjust_account_window_columns (file_data *file, int entry)
   window.extent.x1 = window.extent.x0 + new_extent;
   wimp_set_extent (window.w, &(window.extent));
 
-  open_window (window.w);
+  windows_open (window.w);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -616,7 +616,7 @@ int delete_account (file_data *file, int account)
       set_accounts_window_extent (file, i);
       if (file->account_windows[i].account_window != NULL)
       {
-        open_window (file->account_windows[i].account_window);
+        windows_open (file->account_windows[i].account_window);
         force_accounts_window_redraw (file, i, 0, file->account_windows[i].display_lines);
       }
     }
@@ -672,17 +672,17 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.edit_acct))
+  if (windows_get_open (windows.edit_acct))
   {
     wimp_close_window (windows.edit_acct);
   }
 
-  if (window_is_open (windows.edit_hdr))
+  if (windows_get_open (windows.edit_hdr))
   {
     wimp_close_window (windows.edit_hdr);
   }
 
-  if (window_is_open (windows.edit_sect))
+  if (windows_get_open (windows.edit_sect))
   {
     wimp_close_window (windows.edit_sect);
   }
@@ -696,7 +696,7 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
       fill_account_edit_window (file, account);
       win = windows.edit_acct;
 
-      msgs_lookup ("NewAcct", indirected_window_title (win), 50);
+      msgs_lookup ("NewAcct", windows_get_indirected_title_addr (win), 50);
       msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (win, ACCT_EDIT_OK), 12);
     }
     else if (type & ACCOUNT_IN || type & ACCOUNT_OUT)
@@ -704,7 +704,7 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
       fill_heading_edit_window (file, account, type);
       win = windows.edit_hdr;
 
-      msgs_lookup ("NewHdr", indirected_window_title (win), 50);
+      msgs_lookup ("NewHdr", windows_get_indirected_title_addr (win), 50);
       msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (win, HEAD_EDIT_OK), 12);
     }
   }
@@ -715,7 +715,7 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
       fill_account_edit_window (file, account);
       win = windows.edit_acct;
 
-      msgs_lookup ("EditAcct", indirected_window_title (win), 50);
+      msgs_lookup ("EditAcct", windows_get_indirected_title_addr (win), 50);
       msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (win, ACCT_EDIT_OK), 12);
     }
     else if (file->accounts[account].type & ACCOUNT_IN || file->accounts[account].type & ACCOUNT_OUT)
@@ -723,7 +723,7 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
       fill_heading_edit_window (file, account, type);
       win = windows.edit_hdr;
 
-      msgs_lookup ("EditHdr", indirected_window_title (win), 50);
+      msgs_lookup ("EditHdr", windows_get_indirected_title_addr (win), 50);
       msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (win, HEAD_EDIT_OK), 12);
     }
   }
@@ -735,7 +735,7 @@ void open_account_edit_window (file_data *file, int account, int type, wimp_poin
     edit_account_file = file;
     edit_account_no = account;
 
-    open_window_centred_at_pointer (win, ptr);
+    windows_open_centred_at_pointer (win, ptr);
     if (win == windows.edit_acct)
     {
       place_dialogue_caret (win, ACCT_EDIT_NAME);
@@ -1046,12 +1046,12 @@ void force_close_account_edit_window (file_data *file)
 
   if (edit_account_file == file)
   {
-    if (window_is_open (windows.edit_acct))
+    if (windows_get_open (windows.edit_acct))
     {
       close_dialogue_with_caret (windows.edit_acct);
     }
 
-    if (window_is_open (windows.edit_hdr))
+    if (windows_get_open (windows.edit_hdr))
     {
       close_dialogue_with_caret (windows.edit_hdr);
     }
@@ -1093,17 +1093,17 @@ void open_section_edit_window (file_data *file, int entry, int line, wimp_pointe
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.edit_acct))
+  if (windows_get_open (windows.edit_acct))
   {
     wimp_close_window (windows.edit_acct);
   }
 
-  if (window_is_open (windows.edit_hdr))
+  if (windows_get_open (windows.edit_hdr))
   {
     wimp_close_window (windows.edit_hdr);
   }
 
-  if (window_is_open (windows.edit_sect))
+  if (windows_get_open (windows.edit_sect))
   {
     wimp_close_window (windows.edit_sect);
   }
@@ -1114,14 +1114,14 @@ void open_section_edit_window (file_data *file, int entry, int line, wimp_pointe
   {
     fill_section_edit_window (file, entry, line);
 
-    msgs_lookup ("NewSect", indirected_window_title (windows.edit_sect), 50);
+    msgs_lookup ("NewSect", windows_get_indirected_title_addr (windows.edit_sect), 50);
     msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_OK), 12);
   }
   else
   {
     fill_section_edit_window (file, entry, line);
 
-    msgs_lookup ("EditSect", indirected_window_title (windows.edit_sect), 50);
+    msgs_lookup ("EditSect", windows_get_indirected_title_addr (windows.edit_sect), 50);
     msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_OK), 12);
   }
 
@@ -1131,7 +1131,7 @@ void open_section_edit_window (file_data *file, int entry, int line, wimp_pointe
   edit_section_entry = entry;
   edit_section_line = line;
 
-  open_window_centred_at_pointer (windows.edit_sect, ptr);
+  windows_open_centred_at_pointer (windows.edit_sect, ptr);
   place_dialogue_caret (windows.edit_sect, SECTION_EDIT_TITLE);
 }
 
@@ -1219,7 +1219,7 @@ int process_section_edit_window (void)
 
   perform_full_recalculation (edit_section_file);
   set_accounts_window_extent (edit_section_file, edit_section_entry);
-  open_window (edit_section_file->account_windows[edit_section_entry].account_window);
+  windows_open (edit_section_file->account_windows[edit_section_entry].account_window);
   force_accounts_window_redraw (edit_section_file, edit_section_entry,
                                 0, edit_section_file->account_windows[edit_section_entry].display_lines);
   set_file_data_integrity (edit_section_file, 1);
@@ -1236,7 +1236,7 @@ void force_close_section_edit_window (file_data *file)
   extern global_windows windows;
 
 
-  if (edit_section_file == file && window_is_open (windows.edit_sect))
+  if (edit_section_file == file && windows_get_open (windows.edit_sect))
   {
     close_dialogue_with_caret (windows.edit_sect);
   }
@@ -1262,7 +1262,7 @@ int delete_section_from_edit_window (void)
   /* Update the accounts display window. */
 
   set_accounts_window_extent (edit_section_file, edit_section_entry);
-  open_window (edit_section_file->account_windows[edit_section_entry].account_window);
+  windows_open (edit_section_file->account_windows[edit_section_entry].account_window);
   force_accounts_window_redraw (edit_section_file, edit_section_entry,
                                 0, edit_section_file->account_windows[edit_section_entry].display_lines);
   set_file_data_integrity (edit_section_file, 1);
@@ -1574,13 +1574,13 @@ void close_account_lookup_account_menu (void)
   extern global_windows windows;
 
 
-  if (window_is_open (windows.enter_acc))
+  if (windows_get_open (windows.enter_acc))
   {
     window_state.w = windows.enter_acc;
     wimp_get_window_state (&window_state);
     wimp_close_window (windows.enter_acc);
 
-    if (window_is_open (account_name_lookup_window))
+    if (windows_get_open (account_name_lookup_window))
     {
       wimp_create_menu ((wimp_menu *) -1, 0, 0);
       wimp_create_menu ((wimp_menu *) windows.enter_acc, window_state.visible.x0, window_state.visible.y1);
@@ -1979,7 +1979,7 @@ void account_pane_click (file_data *file, wimp_pointer *pointer)
     switch (pointer->i)
     {
       case ACCOUNT_PANE_PARENT:
-        open_window (file->transaction_window.transaction_window);
+        windows_open (file->transaction_window.transaction_window);
         break;
 
       case ACCOUNT_PANE_PRINT:
@@ -2278,7 +2278,7 @@ void start_account_drag (file_data *file, int entry, int line)
    * the data which won't like that data moving beneath them.
    */
 
-  if (!window_is_open (windows.edit_acct) && !window_is_open (windows.edit_hdr) && !window_is_open (windows.edit_sect))
+  if (!windows_get_open (windows.edit_acct) && !windows_get_open (windows.edit_hdr) && !windows_get_open (windows.edit_sect))
   {
     /* Get the basic information about the window. */
 

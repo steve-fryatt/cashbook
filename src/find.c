@@ -57,12 +57,12 @@ void open_find_window (file_data *file, wimp_pointer *ptr, int clear)
 
   /* If either of the find/found windows are already open, close them to start with. */
 
-  if (window_is_open (windows.find))
+  if (windows_get_open (windows.find))
   {
     wimp_close_window (windows.find);
   }
 
-  if (window_is_open (windows.found))
+  if (windows_get_open (windows.found))
   {
     wimp_close_window (windows.found);
   }
@@ -76,7 +76,7 @@ void open_find_window (file_data *file, wimp_pointer *ptr, int clear)
   find_window_file = file;
   find_window_clear = clear;
 
-  open_window_centred_at_pointer (windows.find, ptr);
+  windows_open_centred_at_pointer (windows.find, ptr);
   place_dialogue_caret (windows.find, FIND_ICON_DATE);
 }
 
@@ -91,12 +91,12 @@ void reopen_find_window (wimp_pointer *ptr)
 
   /* If either of the find/found windows are already open, close them to start with. */
 
-  if (window_is_open (windows.find))
+  if (windows_get_open (windows.find))
   {
     wimp_close_window (windows.find);
   }
 
-  if (window_is_open (windows.found))
+  if (windows_get_open (windows.found))
   {
     wimp_close_window (windows.found);
   }
@@ -107,7 +107,7 @@ void reopen_find_window (wimp_pointer *ptr)
 
   find_window_clear = 1;
 
-  open_window_centred_at_pointer (windows.find, ptr);
+  windows_open_centred_at_pointer (windows.find, ptr);
   place_dialogue_caret (windows.find, FIND_ICON_DATE);
 }
 
@@ -565,10 +565,10 @@ int find_from_line (find *new_params, int new_dir, int start)
 
     msgs_param_lookup("Found", icons_get_indirected_text_addr (windows.found, FOUND_ICON_INFO), 64, buf1, buf2, NULL, NULL);
 
-    if (!window_is_open (windows.found))
+    if (!windows_get_open (windows.found))
     {
       wimp_get_pointer_info (&pointer);
-      open_window_centred_at_pointer (windows.found, &pointer);
+      windows_open_centred_at_pointer (windows.found, &pointer);
     }
     else
     {
@@ -596,12 +596,12 @@ void force_close_find_window (file_data *file)
   extern global_windows windows;
 
 
-  if (find_window_file == file && window_is_open (windows.find))
+  if (find_window_file == file && windows_get_open (windows.find))
   {
     close_dialogue_with_caret (windows.find);
   }
 
-  if (find_window_file == file && window_is_open (windows.found))
+  if (find_window_file == file && windows_get_open (windows.found))
   {
     wimp_close_window (windows.found);
   }

@@ -82,7 +82,7 @@ void create_accview_window (file_data *file, int account)
   {
     /* The window is open, so just bring it forward. */
 
-    open_window (file->accounts[account].account_view->accview_window);
+    windows_open (file->accounts[account].account_view->accview_window);
   }
   else
   {
@@ -164,7 +164,7 @@ void create_accview_window (file_data *file, int account)
 
       /* Create the toolbar pane. */
 
-      place_window_as_toolbar (windows.accview_window_def, windows.accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT-4);
+      windows_place_as_toolbar (windows.accview_window_def, windows.accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT-4);
 
       for (i=0, j=0; j < ACCVIEW_COLUMNS; i++, j++)
       {
@@ -214,9 +214,9 @@ void create_accview_window (file_data *file, int account)
         add_ihelp_window ((file->accounts[account].account_view)->accview_pane , "HeadViewTB", NULL);
       }
 
-      open_window ((file->accounts[account].account_view)->accview_window);
+      windows_open ((file->accounts[account].account_view)->accview_window);
 
-      open_window_nested_as_toolbar ((file->accounts[account].account_view)->accview_pane,
+      windows_open_nested_as_toolbar ((file->accounts[account].account_view)->accview_pane,
                                      (file->accounts[account].account_view)->accview_window,
                                      ACCVIEW_TOOLBAR_HEIGHT-4);
     }
@@ -289,8 +289,8 @@ void adjust_accview_window_columns (file_data *file, int account)
 
   /* Replace the edit line to force a redraw and redraw the rest of the window. */
 
-  force_visible_window_redraw ((file->accounts[account].account_view)->accview_window);
-  force_visible_window_redraw ((file->accounts[account].account_view)->accview_pane);
+  windows_redraw ((file->accounts[account].account_view)->accview_window);
+  windows_redraw ((file->accounts[account].account_view)->accview_pane);
 
   /* Set the horizontal extent of the window and pane. */
 
@@ -304,7 +304,7 @@ void adjust_accview_window_columns (file_data *file, int account)
   window.extent.x1 = window.extent.x0 + new_extent;
   wimp_set_extent (window.w, &(window.extent));
 
-  open_window (window.w);
+  windows_open (window.w);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -582,7 +582,7 @@ void rebuild_account_view (file_data *file, int account)
     build_account_view (file, account);
     set_accview_window_extent (file, account);
     sort_accview_window (file, account);
-    force_visible_window_redraw ((file->accounts[account].account_view)->accview_window);
+    windows_redraw ((file->accounts[account].account_view)->accview_window);
   }
 }
 
@@ -663,7 +663,7 @@ void redraw_all_account_views (file_data *file)
   {
     if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
     {
-      force_visible_window_redraw ((file->accounts[i].account_view)->accview_window);
+      windows_redraw ((file->accounts[i].account_view)->accview_window);
     }
   }
 }
@@ -871,7 +871,7 @@ void open_accview_sort_window (file_data *file, int account, wimp_pointer *ptr)
 
   /* If the window is open elsewhere, close it first. */
 
-  if (window_is_open (windows.sort_accview))
+  if (windows_get_open (windows.sort_accview))
   {
     wimp_close_window (windows.sort_accview);
   }
@@ -881,7 +881,7 @@ void open_accview_sort_window (file_data *file, int account, wimp_pointer *ptr)
   sort_accview_window_file = file;
   sort_accview_window_account = account;
 
-  open_window_centred_at_pointer (windows.sort_accview, ptr);
+  windows_open_centred_at_pointer (windows.sort_accview, ptr);
   place_dialogue_caret (windows.sort_accview, wimp_ICON_WINDOW);
 }
 
@@ -960,7 +960,7 @@ int process_accview_sort_window (void)
   }
 
   adjust_accview_window_sort_icon (sort_accview_window_file, sort_accview_window_account);
-  force_visible_window_redraw ((sort_accview_window_file->
+  windows_redraw ((sort_accview_window_file->
                                 accounts[sort_accview_window_account].account_view)->accview_pane);
   sort_accview_window (sort_accview_window_file, sort_accview_window_account);
 
@@ -979,7 +979,7 @@ void force_close_accview_sort_window (file_data *file)
   extern global_windows windows;
 
 
-  if (sort_accview_window_file == file && window_is_open (windows.sort_accview))
+  if (sort_accview_window_file == file && windows_get_open (windows.sort_accview))
   {
     close_dialogue_with_caret (windows.sort_accview);
   }
@@ -1191,7 +1191,7 @@ void accview_window_click (file_data *file, wimp_pointer *pointer)
 
       if (pointer->buttons == wimp_DOUBLE_ADJUST)
       {
-        open_window (file->transaction_window.transaction_window);
+        windows_open (file->transaction_window.transaction_window);
       }
     }
 
@@ -1237,7 +1237,7 @@ void accview_pane_click (file_data *file, wimp_pointer *pointer)
     switch (pointer->i)
     {
       case ACCVIEW_PANE_PARENT:
-        open_window (file->transaction_window.transaction_window);
+        windows_open (file->transaction_window.transaction_window);
         break;
 
       case ACCVIEW_PANE_PRINT:
@@ -1341,7 +1341,7 @@ void accview_pane_click (file_data *file, wimp_pointer *pointer)
       }
 
       adjust_accview_window_sort_icon (file, account);
-      force_visible_window_redraw ((file->accounts[account].account_view)->accview_pane);
+      windows_redraw ((file->accounts[account].account_view)->accview_pane);
       sort_accview_window (file, account);
 
       file->accview_sort_order = (file->accounts[account].account_view)->sort_order;

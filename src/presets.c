@@ -77,7 +77,7 @@ void create_preset_window (file_data *file)
   {
     /* The window is open, so just bring it forward. */
 
-    open_window (file->preset_window.preset_window);
+    windows_open (file->preset_window.preset_window);
   }
   else
   {
@@ -117,7 +117,7 @@ void create_preset_window (file_data *file)
 
     /* Create the toolbar. */
 
-    place_window_as_toolbar (windows.preset_window_def, windows.preset_pane_def, PRESET_TOOLBAR_HEIGHT-4);
+    windows_place_as_toolbar (windows.preset_window_def, windows.preset_pane_def, PRESET_TOOLBAR_HEIGHT-4);
 
     #ifdef DEBUG
     debug_printf ("Window extents set...");
@@ -161,8 +161,8 @@ void create_preset_window (file_data *file)
     add_ihelp_window (file->preset_window.preset_window , "Preset", decode_preset_window_help);
     add_ihelp_window (file->preset_window.preset_pane , "PresetTB", NULL);
 
-    open_window (file->preset_window.preset_window);
-    open_window_nested_as_toolbar (file->preset_window.preset_pane,
+    windows_open (file->preset_window.preset_window);
+    windows_open_nested_as_toolbar (file->preset_window.preset_pane,
                                    file->preset_window.preset_window,
                                    PRESET_TOOLBAR_HEIGHT-4);
   }
@@ -226,8 +226,8 @@ void adjust_preset_window_columns (file_data *file)
 
   /* Replace the edit line to force a redraw and redraw the rest of the window. */
 
-  force_visible_window_redraw (file->preset_window.preset_window);
-  force_visible_window_redraw (file->preset_window.preset_pane);
+  windows_redraw (file->preset_window.preset_window);
+  windows_redraw (file->preset_window.preset_pane);
 
   /* Set the horizontal extent of the window and pane. */
 
@@ -241,7 +241,7 @@ void adjust_preset_window_columns (file_data *file)
   window.extent.x1 = window.extent.x0 + new_extent;
   wimp_set_extent (window.w, &(window.extent));
 
-  open_window (window.w);
+  windows_open (window.w);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -454,7 +454,7 @@ void open_preset_sort_window (file_data *file, wimp_pointer *ptr)
 
   /* If the window is open elsewhere, close it first. */
 
-  if (window_is_open (windows.sort_preset))
+  if (windows_get_open (windows.sort_preset))
   {
     wimp_close_window (windows.sort_preset);
   }
@@ -463,7 +463,7 @@ void open_preset_sort_window (file_data *file, wimp_pointer *ptr)
 
   sort_preset_window_file = file;
 
-  open_window_centred_at_pointer (windows.sort_preset, ptr);
+  windows_open_centred_at_pointer (windows.sort_preset, ptr);
   place_dialogue_caret (windows.sort_preset, wimp_ICON_WINDOW);
 }
 
@@ -537,7 +537,7 @@ int process_preset_sort_window (void)
   }
 
   adjust_preset_window_sort_icon (sort_preset_window_file);
-  force_visible_window_redraw (sort_preset_window_file->preset_window.preset_pane);
+  windows_redraw (sort_preset_window_file->preset_window.preset_pane);
   sort_preset_window (sort_preset_window_file);
 
   return (0);
@@ -552,7 +552,7 @@ void force_close_preset_sort_window (file_data *file)
   extern global_windows windows;
 
 
-  if (sort_preset_window_file == file && window_is_open (windows.sort_preset))
+  if (sort_preset_window_file == file && windows_get_open (windows.sort_preset))
   {
     close_dialogue_with_caret (windows.sort_preset);
   }
@@ -652,7 +652,7 @@ int delete_preset (file_data *file, int preset_no)
   set_preset_window_extent (file);
   if (file->preset_window.preset_window != NULL)
   {
-    open_window (file->preset_window.preset_window);
+    windows_open (file->preset_window.preset_window);
     if (config_opt_read ("AutoSortPresets"))
     {
       sort_preset_window (file);
@@ -683,7 +683,7 @@ void open_preset_edit_window (file_data *file, int preset, wimp_pointer *ptr)
    * any unsaved data and just close the window.
    */
 
-  if (window_is_open (windows.edit_preset))
+  if (windows_get_open (windows.edit_preset))
   {
     wimp_close_window (windows.edit_preset);
   }
@@ -692,12 +692,12 @@ void open_preset_edit_window (file_data *file, int preset, wimp_pointer *ptr)
 
   if (preset == NULL_PRESET)
   {
-    msgs_lookup ("NewPreset", indirected_window_title (windows.edit_preset), 50);
+    msgs_lookup ("NewPreset", windows_get_indirected_title_addr (windows.edit_preset), 50);
     msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_OK), 12);
   }
   else
   {
-    msgs_lookup ("EditPreset", indirected_window_title (windows.edit_preset), 50);
+    msgs_lookup ("EditPreset", windows_get_indirected_title_addr (windows.edit_preset), 50);
     msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_OK), 12);
   }
 
@@ -708,7 +708,7 @@ void open_preset_edit_window (file_data *file, int preset, wimp_pointer *ptr)
   edit_preset_file = file;
   edit_preset_no = preset;
 
-  open_window_centred_at_pointer (windows.edit_preset, ptr);
+  windows_open_centred_at_pointer (windows.edit_preset, ptr);
   place_dialogue_caret (windows.edit_preset, PRESET_EDIT_NAME);
 }
 
@@ -1071,7 +1071,7 @@ void force_close_preset_edit_window (file_data *file)
   extern global_windows windows;
 
 
-  if (edit_preset_file == file && window_is_open (windows.edit_preset))
+  if (edit_preset_file == file && windows_get_open (windows.edit_preset))
   {
     close_dialogue_with_caret (windows.edit_preset);
   }
@@ -1293,7 +1293,7 @@ void preset_pane_click (file_data *file, wimp_pointer *pointer)
     switch (pointer->i)
     {
       case PRESET_PANE_PARENT:
-        open_window (file->transaction_window.transaction_window);
+        windows_open (file->transaction_window.transaction_window);
         break;
 
       case PRESET_PANE_PRINT:
@@ -1389,7 +1389,7 @@ void preset_pane_click (file_data *file, wimp_pointer *pointer)
       }
 
       adjust_preset_window_sort_icon (file);
-      force_visible_window_redraw (file->preset_window.preset_pane);
+      windows_redraw (file->preset_window.preset_pane);
       sort_preset_window (file);
     }
   }

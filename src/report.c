@@ -197,7 +197,7 @@ void close_report (file_data *file, report_data *report)
     }
 
     report->window = wimp_create_window (windows.report_window_def);
-    open_window (report->window);
+    windows_open (report->window);
 
     add_ihelp_window (report->window, "Report", NULL);
   }
@@ -759,7 +759,7 @@ void open_report_format_window (file_data *file, report_data *report, wimp_point
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.report_format))
+  if (windows_get_open (windows.report_format))
   {
     wimp_close_window (windows.report_format);
   }
@@ -773,7 +773,7 @@ void open_report_format_window (file_data *file, report_data *report, wimp_point
   report_format_file = file;
   report_format_report = report;
 
-  open_window_centred_at_pointer (windows.report_format, ptr);
+  windows_open_centred_at_pointer (windows.report_format, ptr);
   place_dialogue_caret (windows.report_format, REPORT_FORMAT_FONTSIZE);
 }
 
@@ -894,7 +894,7 @@ int process_report_format_window (void)
   extent.y0 = new_yextent;
   wimp_set_extent (report_format_report->window, &extent);
 
-  force_visible_window_redraw (report_format_report->window);
+  windows_redraw (report_format_report->window);
 
   return (0);
 }
@@ -908,7 +908,7 @@ void force_close_report_format_window (file_data *file)
   extern global_windows windows;
 
 
-  if (report_format_file == file && window_is_open (windows.report_format))
+  if (report_format_file == file && windows_get_open (windows.report_format))
   {
     close_dialogue_with_caret (windows.report_format);
   }

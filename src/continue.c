@@ -56,7 +56,7 @@ void open_continue_window (file_data *file, wimp_pointer *ptr, int clear)
 
   /* If the window is already open, close it to start with. */
 
-  if (window_is_open (windows.continuation))
+  if (windows_get_open (windows.continuation))
   {
     wimp_close_window (windows.continuation);
   }
@@ -70,7 +70,7 @@ void open_continue_window (file_data *file, wimp_pointer *ptr, int clear)
   continue_window_file = file;
   continue_window_clear = clear;
 
-  open_window_centred_at_pointer (windows.continuation, ptr);
+  windows_open_centred_at_pointer (windows.continuation, ptr);
   place_dialogue_caret_fallback (windows.continuation, 1, CONTINUE_ICON_DATE);
 }
 
@@ -160,7 +160,7 @@ void force_close_continue_window (file_data *file)
   extern global_windows windows;
 
 
-  if (continue_window_file == file && window_is_open (windows.continuation))
+  if (continue_window_file == file && windows_get_open (windows.continuation))
   {
     close_dialogue_with_caret (windows.continuation);
   }

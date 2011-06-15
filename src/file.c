@@ -931,7 +931,7 @@ void redraw_file_windows (file_data *file)
   {
     if (rep_list->window != NULL)
     {
-        force_visible_window_redraw (rep_list->window);
+        windows_redraw (rep_list->window);
     }
     rep_list = rep_list->next;
   }

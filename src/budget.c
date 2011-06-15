@@ -50,7 +50,7 @@ void open_budget_window (file_data *file, wimp_pointer *ptr)
    * any unsaved data and just close the window.
    */
 
-  if (window_is_open (windows.budget))
+  if (windows_get_open (windows.budget))
   {
     wimp_close_window (windows.budget);
   }
@@ -63,7 +63,7 @@ void open_budget_window (file_data *file, wimp_pointer *ptr)
 
   edit_budget_file = file;
 
-  open_window_centred_at_pointer (windows.budget, ptr);
+  windows_open_centred_at_pointer (windows.budget, ptr);
   place_dialogue_caret (windows.budget, BUDGET_ICON_START);
 }
 
@@ -130,7 +130,7 @@ void force_close_budget_window (file_data *file)
   extern global_windows windows;
 
 
-  if (edit_budget_file == file && window_is_open (windows.budget))
+  if (edit_budget_file == file && windows_get_open (windows.budget))
   {
     close_dialogue_with_caret (windows.budget);
   }

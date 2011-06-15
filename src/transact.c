@@ -85,7 +85,7 @@ void create_transaction_window (file_data *file)
   {
     /* The window is open, so just bring it forward. */
 
-    open_window (file->transaction_window.transaction_window);
+    windows_open (file->transaction_window.transaction_window);
   }
   else
   {
@@ -120,7 +120,7 @@ void create_transaction_window (file_data *file)
 
     /* Create the toolbar pane. */
 
-    place_window_as_toolbar (windows.transaction_window_def, windows.transaction_pane_def, TRANSACT_TOOLBAR_HEIGHT-4);
+    windows_place_as_toolbar (windows.transaction_window_def, windows.transaction_pane_def, TRANSACT_TOOLBAR_HEIGHT-4);
 
     for (i=0, j=0; j < TRANSACT_COLUMNS; i++, j++)
     {
@@ -162,8 +162,8 @@ void create_transaction_window (file_data *file)
 
     /* Open the window. */
 
-    open_window (file->transaction_window.transaction_window);
-    open_window_nested_as_toolbar (file->transaction_window.transaction_pane,
+    windows_open (file->transaction_window.transaction_window);
+    windows_open_nested_as_toolbar (file->transaction_window.transaction_pane,
                                    file->transaction_window.transaction_window,
                                    TRANSACT_TOOLBAR_HEIGHT-4);
 
@@ -238,8 +238,8 @@ void adjust_transaction_window_columns (file_data *file)
   wimp_get_caret_position (&caret);
 
   place_transaction_edit_line (file, file->transaction_window.entry_line);
-  force_visible_window_redraw (file->transaction_window.transaction_window);
-  force_visible_window_redraw (file->transaction_window.transaction_pane);
+  windows_redraw (file->transaction_window.transaction_window);
+  windows_redraw (file->transaction_window.transaction_pane);
 
   if (file->transaction_window.transaction_window != NULL &&
       file->transaction_window.transaction_window == caret.w)
@@ -263,7 +263,7 @@ void adjust_transaction_window_columns (file_data *file)
   window.extent.x1 = window.extent.x0 + new_extent;
   wimp_set_extent (window.w, &(window.extent));
 
-  open_window (window.w);
+  windows_open (window.w);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -675,7 +675,7 @@ void open_transaction_sort_window (file_data *file, wimp_pointer *ptr)
 
   /* If the window is open elsewhere, close it first. */
 
-  if (window_is_open (windows.sort_trans))
+  if (windows_get_open (windows.sort_trans))
   {
     wimp_close_window (windows.sort_trans);
   }
@@ -684,7 +684,7 @@ void open_transaction_sort_window (file_data *file, wimp_pointer *ptr)
 
   sort_trans_window_file = file;
 
-  open_window_centred_at_pointer (windows.sort_trans, ptr);
+  windows_open_centred_at_pointer (windows.sort_trans, ptr);
   place_dialogue_caret (windows.sort_trans, wimp_ICON_WINDOW);
 }
 
@@ -758,7 +758,7 @@ int process_transaction_sort_window (void)
   }
 
   adjust_transaction_window_sort_icon (sort_trans_window_file);
-  force_visible_window_redraw (sort_trans_window_file->transaction_window.transaction_pane);
+  windows_redraw (sort_trans_window_file->transaction_window.transaction_pane);
   sort_transaction_window (sort_trans_window_file);
 
   return (0);
@@ -773,7 +773,7 @@ void force_close_transaction_sort_window (file_data *file)
   extern global_windows windows;
 
 
-  if (sort_trans_window_file == file && window_is_open (windows.sort_trans))
+  if (sort_trans_window_file == file && windows_get_open (windows.sort_trans))
   {
     close_dialogue_with_caret (windows.sort_trans);
   }
@@ -1334,7 +1334,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
       }
 
       adjust_transaction_window_sort_icon (file);
-      force_visible_window_redraw (file->transaction_window.transaction_pane);
+      windows_redraw (file->transaction_window.transaction_pane);
       sort_transaction_window (file);
     }
   }

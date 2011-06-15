@@ -298,12 +298,12 @@ void open_simple_print_window (file_data *file, wimp_pointer *ptr, int clear, ch
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.simple_print))
+  if (windows_get_open (windows.simple_print))
   {
     wimp_close_window (windows.simple_print);
   }
 
-  if (window_is_open (windows.date_print))
+  if (windows_get_open (windows.date_print))
   {
     wimp_close_window (windows.date_print);
   }
@@ -319,7 +319,7 @@ void open_simple_print_window (file_data *file, wimp_pointer *ptr, int clear, ch
 
   /* Open the window on screen. */
 
-  open_window_centred_at_pointer (windows.simple_print, ptr);
+  windows_open_centred_at_pointer (windows.simple_print, ptr);
   place_dialogue_caret (windows.simple_print, wimp_ICON_WINDOW);
 
   register_printer_update_handler (refresh_simple_print_window);
@@ -354,7 +354,7 @@ void fill_simple_print_window (print *print_data, int clear)
     name = buffer;
   }
 
-  msgs_param_lookup (simple_print_title, indirected_window_title (windows.simple_print), 64, name, NULL, NULL, NULL);
+  msgs_param_lookup (simple_print_title, windows_get_indirected_title_addr (windows.simple_print), 64, name, NULL, NULL, NULL);
 
   if (clear == 0)
   {
@@ -420,12 +420,12 @@ void force_close_print_windows (file_data *file)
   extern global_windows windows;
 
 
-  if (simple_print_file == file && window_is_open (windows.simple_print))
+  if (simple_print_file == file && windows_get_open (windows.simple_print))
   {
     close_dialogue_with_caret (windows.simple_print);
   }
 
-  if (date_print_file == file && window_is_open (windows.date_print))
+  if (date_print_file == file && windows_get_open (windows.date_print))
   {
     close_dialogue_with_caret (windows.date_print);
   }
@@ -452,12 +452,12 @@ void open_date_print_window (file_data *file, wimp_pointer *ptr, int clear, char
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.simple_print))
+  if (windows_get_open (windows.simple_print))
   {
     wimp_close_window (windows.simple_print);
   }
 
-  if (window_is_open (windows.date_print))
+  if (windows_get_open (windows.date_print))
   {
     wimp_close_window (windows.date_print);
   }
@@ -473,7 +473,7 @@ void open_date_print_window (file_data *file, wimp_pointer *ptr, int clear, char
 
   /* Open the window on screen. */
 
-  open_window_centred_at_pointer (windows.date_print, ptr);
+  windows_open_centred_at_pointer (windows.date_print, ptr);
   place_dialogue_caret (windows.date_print, DATE_PRINT_FROM);
 
   register_printer_update_handler (refresh_date_print_window);
@@ -508,7 +508,7 @@ void fill_date_print_window (print *print_data, int clear)
     name = buffer;
   }
 
-  msgs_param_lookup (date_print_title, indirected_window_title (windows.date_print), 64, name, NULL, NULL, NULL);
+  msgs_param_lookup (date_print_title, windows_get_indirected_title_addr (windows.date_print), 64, name, NULL, NULL, NULL);
 
   if (clear == 0)
   {

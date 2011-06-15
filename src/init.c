@@ -70,7 +70,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("ProgInfo");
+  window_def = windows_load_template ("ProgInfo");
   if (window_def != NULL)
   {
     windows->prog_info = wimp_create_window (window_def);
@@ -90,7 +90,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("FileInfo");
+  window_def = windows_load_template ("FileInfo");
   if (window_def != NULL)
   {
     windows->file_info = wimp_create_window (window_def);
@@ -107,7 +107,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("ImpComp");
+  window_def = windows_load_template ("ImpComp");
   if (window_def != NULL)
   {
     windows->import_comp = wimp_create_window (window_def);
@@ -124,7 +124,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("SaveAs");
+  window_def = windows_load_template ("SaveAs");
   if (window_def != NULL)
   {
     windows->save_as = wimp_create_window (window_def);
@@ -141,7 +141,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Choices");
+  window_def = windows_load_template ("Choices");
   if (window_def != NULL)
   {
     windows->choices = wimp_create_window (window_def);
@@ -158,7 +158,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Choices0");
+  window_def = windows_load_template ("Choices0");
   if (window_def != NULL)
   {
     windows->choices_pane[CHOICE_PANE_GENERAL] = wimp_create_window (window_def);
@@ -175,7 +175,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Choices1");
+  window_def = windows_load_template ("Choices1");
   if (window_def != NULL)
   {
     windows->choices_pane[CHOICE_PANE_CURRENCY] = wimp_create_window (window_def);
@@ -192,7 +192,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Choices2");
+  window_def = windows_load_template ("Choices2");
   if (window_def != NULL)
   {
     windows->choices_pane[CHOICE_PANE_SORDER] = wimp_create_window (window_def);
@@ -209,7 +209,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Choices3");
+  window_def = windows_load_template ("Choices3");
   if (window_def != NULL)
   {
     windows->choices_pane[CHOICE_PANE_PRINT] = wimp_create_window (window_def);
@@ -226,7 +226,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Choices4");
+  window_def = windows_load_template ("Choices4");
   if (window_def != NULL)
   {
     windows->choices_pane[CHOICE_PANE_TRANSACT] = wimp_create_window (window_def);
@@ -243,7 +243,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Choices5");
+  window_def = windows_load_template ("Choices5");
   if (window_def != NULL)
   {
     windows->choices_pane[CHOICE_PANE_REPORT] = wimp_create_window (window_def);
@@ -260,7 +260,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Choices6");
+  window_def = windows_load_template ("Choices6");
   if (window_def != NULL)
   {
     windows->choices_pane[CHOICE_PANE_ACCOUNT] = wimp_create_window (window_def);
@@ -277,7 +277,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("EditAccount");
+  window_def = windows_load_template ("EditAccount");
   if (window_def != NULL)
   {
     windows->edit_acct = wimp_create_window (window_def);
@@ -294,7 +294,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("EditHeading");
+  window_def = windows_load_template ("EditHeading");
   if (window_def != NULL)
   {
     windows->edit_hdr = wimp_create_window (window_def);
@@ -311,7 +311,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("EditAccSect");
+  window_def = windows_load_template ("EditAccSect");
   if (window_def != NULL)
   {
     windows->edit_sect = wimp_create_window (window_def);
@@ -328,7 +328,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("EditSOrder");
+  window_def = windows_load_template ("EditSOrder");
   if (window_def != NULL)
   {
     windows->edit_sorder = wimp_create_window (window_def);
@@ -345,7 +345,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("EditPreset");
+  window_def = windows_load_template ("EditPreset");
   if (window_def != NULL)
   {
     windows->edit_preset = wimp_create_window (window_def);
@@ -362,7 +362,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Goto");
+  window_def = windows_load_template ("Goto");
   if (window_def != NULL)
   {
     windows->go_to = wimp_create_window (window_def);
@@ -379,7 +379,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Find");
+  window_def = windows_load_template ("Find");
   if (window_def != NULL)
   {
     windows->find = wimp_create_window (window_def);
@@ -396,7 +396,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Found");
+  window_def = windows_load_template ("Found");
   if (window_def != NULL)
   {
     windows->found = wimp_create_window (window_def);
@@ -413,7 +413,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Budget");
+  window_def = windows_load_template ("Budget");
   if (window_def != NULL)
   {
     windows->budget = wimp_create_window (window_def);
@@ -430,7 +430,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("RepFormat");
+  window_def = windows_load_template ("RepFormat");
   if (window_def != NULL)
   {
     windows->report_format = wimp_create_window (window_def);
@@ -447,7 +447,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("SimplePrint");
+  window_def = windows_load_template ("SimplePrint");
   if (window_def != NULL)
   {
     windows->simple_print = wimp_create_window (window_def);
@@ -464,7 +464,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("DatePrint");
+  window_def = windows_load_template ("DatePrint");
   if (window_def != NULL)
   {
     windows->date_print = wimp_create_window (window_def);
@@ -481,7 +481,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("TransRep");
+  window_def = windows_load_template ("TransRep");
   if (window_def != NULL)
   {
     windows->trans_rep = wimp_create_window (window_def);
@@ -498,7 +498,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("UnrecRep");
+  window_def = windows_load_template ("UnrecRep");
   if (window_def != NULL)
   {
     windows->unrec_rep = wimp_create_window (window_def);
@@ -515,7 +515,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("CashFlwRep");
+  window_def = windows_load_template ("CashFlwRep");
   if (window_def != NULL)
   {
     windows->cashflow_rep = wimp_create_window (window_def);
@@ -532,7 +532,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("BalanceRep");
+  window_def = windows_load_template ("BalanceRep");
   if (window_def != NULL)
   {
     windows->balance_rep = wimp_create_window (window_def);
@@ -549,7 +549,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("AccEnter");
+  window_def = windows_load_template ("AccEnter");
   if (window_def != NULL)
   {
     windows->enter_acc = wimp_create_window (window_def);
@@ -566,7 +566,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Purge");
+  window_def = windows_load_template ("Purge");
   if (window_def != NULL)
   {
     windows->continuation = wimp_create_window (window_def);
@@ -583,7 +583,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("Colours");
+  window_def = windows_load_template ("Colours");
   if (window_def != NULL)
   {
     windows->colours = wimp_create_window (window_def);
@@ -600,7 +600,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("SortTrans");
+  window_def = windows_load_template ("SortTrans");
   if (window_def != NULL)
   {
     windows->sort_trans = wimp_create_window (window_def);
@@ -617,7 +617,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("SortAccView");
+  window_def = windows_load_template ("SortAccView");
   if (window_def != NULL)
   {
     windows->sort_accview = wimp_create_window (window_def);
@@ -634,7 +634,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("SortSOrder");
+  window_def = windows_load_template ("SortSOrder");
   if (window_def != NULL)
   {
     windows->sort_sorder = wimp_create_window (window_def);
@@ -651,7 +651,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("SortPreset");
+  window_def = windows_load_template ("SortPreset");
   if (window_def != NULL)
   {
     windows->sort_preset = wimp_create_window (window_def);
@@ -668,7 +668,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Created now.
    */
 
-  window_def = load_window_template ("SaveRepTemp");
+  window_def = windows_load_template ("SaveRepTemp");
   if (window_def != NULL)
   {
     windows->save_rep = wimp_create_window (window_def);
@@ -686,7 +686,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("Transact");
+  window_def = windows_load_template ("Transact");
   if (window_def != NULL)
   {
     window_def->icon_count = 0;
@@ -702,7 +702,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("TransactTB");
+  window_def = windows_load_template ("TransactTB");
   if (window_def != NULL)
   {
     window_def->sprite_area = sprites;
@@ -718,7 +718,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("Account");
+  window_def = windows_load_template ("Account");
   if (window_def != NULL)
   {
     window_def->icon_count = 0;
@@ -734,7 +734,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("AccountATB");
+  window_def = windows_load_template ("AccountATB");
   if (window_def != NULL)
   {
     window_def->sprite_area = sprites;
@@ -750,7 +750,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("AccountTot");
+  window_def = windows_load_template ("AccountTot");
   if (window_def != NULL)
   {
     windows->account_footer_def = window_def;
@@ -765,7 +765,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("AccountHTB");
+  window_def = windows_load_template ("AccountHTB");
   if (window_def != NULL)
   {
     window_def->sprite_area = sprites;
@@ -781,7 +781,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("SOrder");
+  window_def = windows_load_template ("SOrder");
   if (window_def != NULL)
   {
     window_def->icon_count = 0;
@@ -797,7 +797,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("SOrderTB");
+  window_def = windows_load_template ("SOrderTB");
   if (window_def != NULL)
   {
     window_def->sprite_area = sprites;
@@ -813,7 +813,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("AccView");
+  window_def = windows_load_template ("AccView");
   if (window_def != NULL)
   {
     window_def->icon_count = 0;
@@ -829,7 +829,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("AccViewTB");
+  window_def = windows_load_template ("AccViewTB");
   if (window_def != NULL)
   {
     window_def->sprite_area = sprites;
@@ -845,7 +845,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("Preset");
+  window_def = windows_load_template ("Preset");
   if (window_def != NULL)
   {
     window_def->icon_count = 0;
@@ -861,7 +861,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("PresetTB");
+  window_def = windows_load_template ("PresetTB");
   if (window_def != NULL)
   {
     window_def->sprite_area = sprites;
@@ -877,7 +877,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
    * Definition loaded for future use.
    */
 
-  window_def = load_window_template ("Report");
+  window_def = windows_load_template ("Report");
   if (window_def != NULL)
   {
     window_def->sprite_area = sprites;

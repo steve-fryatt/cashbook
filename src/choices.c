@@ -57,7 +57,7 @@ void open_choices_window (wimp_pointer *pointer)
 
   set_choices_window ();
 
-  open_pane_dialogue_centred_at_pointer (windows.choices, windows.choices_pane[choices_pane],
+  windows_open_with_pane_centred_at_pointer (windows.choices, windows.choices_pane[choices_pane],
                                          CHOICE_ICON_PANE, 0, pointer);
 
   place_dialogue_caret_fallback (windows.choices_pane[CHOICE_PANE_GENERAL], 2,
@@ -85,7 +85,7 @@ void change_choices_pane (int pane)
   extern global_windows windows;
 
 
-  if (pane < CHOICES_PANES && window_is_open (windows.choices) && pane != choices_pane)
+  if (pane < CHOICES_PANES && windows_get_open (windows.choices) && pane != choices_pane)
   {
     wimp_get_caret_position (&caret);
 
@@ -97,7 +97,7 @@ void change_choices_pane (int pane)
       icons_set_selected (windows.choices, CHOICE_ICON_SELECT + i, i == choices_pane);
     }
 
-    open_pane_centred_in_icon (windows.choices, windows.choices_pane[pane], CHOICE_ICON_PANE, 0,
+    windows_open_pane_centred_in_icon (windows.choices, windows.choices_pane[pane], CHOICE_ICON_PANE, 0,
                                windows.choices_pane[old_pane]);
 
     wimp_close_window (windows.choices_pane[old_pane]);

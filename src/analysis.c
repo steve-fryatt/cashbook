@@ -1789,7 +1789,7 @@ void open_trans_report_window (file_data *file, wimp_pointer *ptr, int template,
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.trans_rep))
+  if (windows_get_open (windows.trans_rep))
   {
     wimp_close_window (windows.trans_rep);
   }
@@ -1805,7 +1805,7 @@ void open_trans_report_window (file_data *file, wimp_pointer *ptr, int template,
     analysis_copy_trans_report_template (&(trans_rep_settings), &(file->saved_reports[template].data.transaction));
     trans_rep_template = template;
 
-    msgs_param_lookup ("GenRepTitle", indirected_window_title (windows.trans_rep), 50,
+    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (windows.trans_rep), 50,
                        file->saved_reports[template].name, NULL, NULL, NULL);
 
     clear = 1; /* If we use a template, we always want to reset to the template! */
@@ -1815,7 +1815,7 @@ void open_trans_report_window (file_data *file, wimp_pointer *ptr, int template,
     analysis_copy_trans_report_template (&(trans_rep_settings), &(file->trans_rep));
     trans_rep_template = NULL_TEMPLATE;
 
-    msgs_lookup ("TrnRepTitle", indirected_window_title (windows.trans_rep), 40);
+    msgs_lookup ("TrnRepTitle", windows_get_indirected_title_addr (windows.trans_rep), 40);
   }
 
   icons_set_deleted (windows.trans_rep, ANALYSIS_TRANS_DELETE, !template_mode);
@@ -1830,7 +1830,7 @@ void open_trans_report_window (file_data *file, wimp_pointer *ptr, int template,
   trans_rep_file = file;
   trans_rep_window_clear = clear;
 
-  open_window_centred_at_pointer (windows.trans_rep, ptr);
+  windows_open_centred_at_pointer (windows.trans_rep, ptr);
   place_dialogue_caret_fallback (windows.trans_rep, 4, ANALYSIS_TRANS_DATEFROM, ANALYSIS_TRANS_DATETO,
                                  ANALYSIS_TRANS_PERIOD, ANALYSIS_TRANS_FROMSPEC);
 }
@@ -2083,7 +2083,7 @@ void open_unrec_report_window (file_data *file, wimp_pointer *ptr, int template,
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.unrec_rep))
+  if (windows_get_open (windows.unrec_rep))
   {
     wimp_close_window (windows.unrec_rep);
   }
@@ -2099,7 +2099,7 @@ void open_unrec_report_window (file_data *file, wimp_pointer *ptr, int template,
     analysis_copy_unrec_report_template (&(unrec_rep_settings), &(file->saved_reports[template].data.unreconciled));
     unrec_rep_template = template;
 
-    msgs_param_lookup ("GenRepTitle", indirected_window_title (windows.unrec_rep), 50,
+    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (windows.unrec_rep), 50,
                        file->saved_reports[template].name, NULL, NULL, NULL);
 
     clear = 1; /* If we use a template, we always want to reset to the template! */
@@ -2109,7 +2109,7 @@ void open_unrec_report_window (file_data *file, wimp_pointer *ptr, int template,
     analysis_copy_unrec_report_template (&(unrec_rep_settings), &(file->unrec_rep));
     unrec_rep_template = NULL_TEMPLATE;
 
-    msgs_lookup ("UrcRepTitle", indirected_window_title (windows.unrec_rep), 40);
+    msgs_lookup ("UrcRepTitle", windows_get_indirected_title_addr (windows.unrec_rep), 40);
   }
 
   icons_set_deleted (windows.unrec_rep, ANALYSIS_UNREC_DELETE, !template_mode);
@@ -2124,7 +2124,7 @@ void open_unrec_report_window (file_data *file, wimp_pointer *ptr, int template,
   unrec_rep_file = file;
   unrec_rep_window_clear = clear;
 
-  open_window_centred_at_pointer (windows.unrec_rep, ptr);
+  windows_open_centred_at_pointer (windows.unrec_rep, ptr);
   place_dialogue_caret_fallback (windows.unrec_rep, 4, ANALYSIS_UNREC_DATEFROM, ANALYSIS_UNREC_DATETO,
                                  ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_FROMSPEC);
 }
@@ -2355,7 +2355,7 @@ void open_cashflow_report_window (file_data *file, wimp_pointer *ptr, int templa
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.cashflow_rep))
+  if (windows_get_open (windows.cashflow_rep))
   {
     wimp_close_window (windows.cashflow_rep);
   }
@@ -2371,7 +2371,7 @@ void open_cashflow_report_window (file_data *file, wimp_pointer *ptr, int templa
     analysis_copy_cashflow_report_template (&(cashflow_rep_settings), &(file->saved_reports[template].data.cashflow));
     cashflow_rep_template = template;
 
-    msgs_param_lookup ("GenRepTitle", indirected_window_title (windows.cashflow_rep), 50,
+    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (windows.cashflow_rep), 50,
                        file->saved_reports[template].name, NULL, NULL, NULL);
 
     clear = 1; /* If we use a template, we always want to reset to the template! */
@@ -2381,7 +2381,7 @@ void open_cashflow_report_window (file_data *file, wimp_pointer *ptr, int templa
     analysis_copy_cashflow_report_template (&(cashflow_rep_settings), &(file->cashflow_rep));
     cashflow_rep_template = NULL_TEMPLATE;
 
-    msgs_lookup ("CflRepTitle", indirected_window_title (windows.cashflow_rep), 40);
+    msgs_lookup ("CflRepTitle", windows_get_indirected_title_addr (windows.cashflow_rep), 40);
   }
 
   icons_set_deleted (windows.cashflow_rep, ANALYSIS_CASHFLOW_DELETE, !template_mode);
@@ -2396,7 +2396,7 @@ void open_cashflow_report_window (file_data *file, wimp_pointer *ptr, int templa
   cashflow_rep_file = file;
   cashflow_rep_window_clear = clear;
 
-  open_window_centred_at_pointer (windows.cashflow_rep, ptr);
+  windows_open_centred_at_pointer (windows.cashflow_rep, ptr);
   place_dialogue_caret_fallback (windows.cashflow_rep, 4, ANALYSIS_CASHFLOW_DATEFROM, ANALYSIS_CASHFLOW_DATETO,
                                  ANALYSIS_CASHFLOW_PERIOD, ANALYSIS_CASHFLOW_ACCOUNTS);
 }
@@ -2635,7 +2635,7 @@ void open_balance_report_window (file_data *file, wimp_pointer *ptr, int templat
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.balance_rep))
+  if (windows_get_open (windows.balance_rep))
   {
     wimp_close_window (windows.balance_rep);
   }
@@ -2651,7 +2651,7 @@ void open_balance_report_window (file_data *file, wimp_pointer *ptr, int templat
     analysis_copy_balance_report_template (&(balance_rep_settings), &(file->saved_reports[template].data.balance));
     balance_rep_template = template;
 
-    msgs_param_lookup ("GenRepTitle", indirected_window_title (windows.balance_rep), 50,
+    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (windows.balance_rep), 50,
                        file->saved_reports[template].name, NULL, NULL, NULL);
 
     clear = 1; /* If we use a template, we always want to reset to the template! */
@@ -2661,7 +2661,7 @@ void open_balance_report_window (file_data *file, wimp_pointer *ptr, int templat
     analysis_copy_balance_report_template (&(balance_rep_settings), &(file->balance_rep));
     balance_rep_template = NULL_TEMPLATE;
 
-    msgs_lookup ("BalRepTitle", indirected_window_title (windows.balance_rep), 40);
+    msgs_lookup ("BalRepTitle", windows_get_indirected_title_addr (windows.balance_rep), 40);
   }
 
   icons_set_deleted (windows.balance_rep, ANALYSIS_BALANCE_DELETE, !template_mode);
@@ -2676,7 +2676,7 @@ void open_balance_report_window (file_data *file, wimp_pointer *ptr, int templat
   balance_rep_file = file;
   balance_rep_window_clear = clear;
 
-  open_window_centred_at_pointer (windows.balance_rep, ptr);
+  windows_open_centred_at_pointer (windows.balance_rep, ptr);
   place_dialogue_caret_fallback (windows.balance_rep, 4, ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO,
                                  ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_ACCOUNTS);
 }
@@ -2909,14 +2909,14 @@ void open_save_report_window (file_data *file, report_data *report, wimp_pointer
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.save_rep))
+  if (windows_get_open (windows.save_rep))
   {
     wimp_close_window (windows.save_rep);
   }
 
   /* Set the window contents up. */
 
-  msgs_lookup ("SaveRepTitle", indirected_window_title (windows.save_rep), 20);
+  msgs_lookup ("SaveRepTitle", windows_get_indirected_title_addr (windows.save_rep), 20);
   msgs_lookup ("SaveRepSave", icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_OK), 10);
 
   /* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
@@ -2936,7 +2936,7 @@ void open_save_report_window (file_data *file, report_data *report, wimp_pointer
   save_report_report = report;
   save_report_mode = ANALYSIS_SAVE_MODE_SAVE;
 
-  open_window_centred_at_pointer (windows.save_rep, ptr);
+  windows_open_centred_at_pointer (windows.save_rep, ptr);
   place_dialogue_caret_fallback (windows.save_rep, 1, ANALYSIS_SAVE_NAME);
 }
 
@@ -2953,14 +2953,14 @@ void analysis_open_rename_report_window (file_data *file, int template, wimp_poi
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (window_is_open (windows.save_rep))
+  if (windows_get_open (windows.save_rep))
   {
     wimp_close_window (windows.save_rep);
   }
 
   /* Set the window contents up. */
 
-  msgs_lookup ("RenRepTitle", indirected_window_title (windows.save_rep), 20);
+  msgs_lookup ("RenRepTitle", windows_get_indirected_title_addr (windows.save_rep), 20);
   msgs_lookup ("RenRepRen", icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_OK), 10);
 
   /* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
@@ -2980,7 +2980,7 @@ void analysis_open_rename_report_window (file_data *file, int template, wimp_poi
   save_report_template = template;
   save_report_mode = ANALYSIS_SAVE_MODE_RENAME;
 
-  open_window_centred_at_pointer (windows.save_rep, ptr);
+  windows_open_centred_at_pointer (windows.save_rep, ptr);
   place_dialogue_caret_fallback (windows.save_rep, 1, ANALYSIS_SAVE_NAME);
 }
 
@@ -3100,7 +3100,7 @@ int process_save_report_window (void)
 
         if (w != NULL)
         {
-          msgs_param_lookup ("GenRepTitle", indirected_window_title (w), 50,
+          msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (w), 50,
                              save_report_file->saved_reports[save_report_template].name, NULL, NULL, NULL);
           xwimp_force_redraw_title (w); /* Nested Wimp only! */
         }
@@ -3131,27 +3131,27 @@ void force_close_report_windows (file_data *file)
   extern global_windows windows;
 
 
-  if (trans_rep_file == file && window_is_open (windows.trans_rep))
+  if (trans_rep_file == file && windows_get_open (windows.trans_rep))
   {
     close_dialogue_with_caret (windows.trans_rep);
   }
 
-  if (unrec_rep_file == file && window_is_open (windows.unrec_rep))
+  if (unrec_rep_file == file && windows_get_open (windows.unrec_rep))
   {
     close_dialogue_with_caret (windows.unrec_rep);
   }
 
-  if (cashflow_rep_file == file && window_is_open (windows.cashflow_rep))
+  if (cashflow_rep_file == file && windows_get_open (windows.cashflow_rep))
   {
     close_dialogue_with_caret (windows.cashflow_rep);
   }
 
-  if (balance_rep_file == file && window_is_open (windows.balance_rep))
+  if (balance_rep_file == file && windows_get_open (windows.balance_rep))
   {
     close_dialogue_with_caret (windows.balance_rep);
   }
 
-  if (save_report_file == file && window_is_open (windows.save_rep))
+  if (save_report_file == file && windows_get_open (windows.save_rep))
   {
     close_dialogue_with_caret (windows.save_rep);
   }
@@ -3165,7 +3165,7 @@ void analysis_force_close_report_save_window (file_data *file, report_data *repo
 
 
   if (save_report_mode == ANALYSIS_SAVE_MODE_SAVE &&
-      save_report_file == file && save_report_report == report && window_is_open (windows.save_rep))
+      save_report_file == file && save_report_report == report && windows_get_open (windows.save_rep))
   {
     close_dialogue_with_caret (windows.save_rep);
   }
@@ -3178,7 +3178,7 @@ void analysis_force_close_report_rename_window (wimp_w window)
   extern global_windows windows;
 
 
-  if (window_is_open (windows.save_rep) &&
+  if (windows_get_open (windows.save_rep) &&
       save_report_mode == ANALYSIS_SAVE_MODE_RENAME && save_report_template != NULL_TEMPLATE)
   {
     if ((window == windows.trans_rep &&
@@ -3294,7 +3294,7 @@ void analysis_delete_saved_report_template (file_data *file, int template)
 
     /* If the rename template window is open for this template, close it now before the pointer is lost. */
 
-    if (window_is_open (windows.save_rep) && save_report_mode == ANALYSIS_SAVE_MODE_RENAME &&
+    if (windows_get_open (windows.save_rep) && save_report_mode == ANALYSIS_SAVE_MODE_RENAME &&
         template == save_report_template)
     {
       close_dialogue_with_caret (windows.save_rep);

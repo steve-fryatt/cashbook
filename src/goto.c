@@ -50,7 +50,7 @@ void open_goto_window (file_data *file, wimp_pointer *ptr, int clear)
 
   /* If the window is already open, close it to start with. */
 
-  if (window_is_open (windows.go_to))
+  if (windows_get_open (windows.go_to))
   {
     wimp_close_window (windows.go_to);
   }
@@ -64,7 +64,7 @@ void open_goto_window (file_data *file, wimp_pointer *ptr, int clear)
   goto_window_file = file;
   goto_window_clear = clear;
 
-  open_window_centred_at_pointer (windows.go_to, ptr);
+  windows_open_centred_at_pointer (windows.go_to, ptr);
   place_dialogue_caret (windows.go_to, GOTO_ICON_NUMBER_FIELD);
 }
 
@@ -195,7 +195,7 @@ void force_close_goto_window (file_data *file)
   extern global_windows windows;
 
 
-  if (goto_window_file == file && window_is_open (windows.go_to))
+  if (goto_window_file == file && windows_get_open (windows.go_to))
   {
     close_dialogue_with_caret (windows.go_to);
   }

@@ -1391,7 +1391,7 @@ void import_csv_file (file_data *file, char *filename)
     file->import_report = NULL;
   }
 
-  if (window_is_open (windows.import_comp))
+  if (windows_get_open (windows.import_comp))
   {
     wimp_close_window (windows.import_comp);
   }
@@ -1573,7 +1573,7 @@ void import_csv_file (file_data *file, char *filename)
   sprintf (icons_get_indirected_text_addr (windows.import_comp, ICOMP_ICON_REJECTED), "%d", reject_count);
 
   wimp_get_pointer_info (&pointer);
-  open_window_centred_at_pointer (windows.import_comp, &pointer);
+  windows_open_centred_at_pointer (windows.import_comp, &pointer);
 
   hourglass_off ();
 }
@@ -1609,7 +1609,7 @@ void force_close_import_window (file_data *file)
 {
   extern global_windows windows;
 
-  if (import_window_file == file && window_is_open (windows.import_comp))
+  if (import_window_file == file && windows_get_open (windows.import_comp))
   {
     wimp_close_window (windows.import_comp);
 

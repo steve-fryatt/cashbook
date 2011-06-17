@@ -22,7 +22,6 @@
 #include "sflib/debug.h"
 #include "sflib/string.h"
 #include "sflib/msgs.h"
-#include "sflib/general.h"
 
 /* Application header files */
 
@@ -490,7 +489,7 @@ int find_from_line (find *new_params, int new_dir, int start)
     transaction = find_window_file->transactions[line].sort_index;
 
     if (*desc != '\0' &&
-        wildcard_strcmp (desc, find_window_file->transactions[transaction].description, !find_params.case_sensitive))
+        string_wildcard_compare (desc, find_window_file->transactions[transaction].description, !find_params.case_sensitive))
     {
       test ^= FIND_TEST_DESC;
       icon = EDIT_ICON_DESCRIPT;
@@ -503,7 +502,7 @@ int find_from_line (find *new_params, int new_dir, int start)
     }
 
     if (*ref != '\0' &&
-        wildcard_strcmp (ref, find_window_file->transactions[transaction].reference, !find_params.case_sensitive))
+        string_wildcard_compare (ref, find_window_file->transactions[transaction].reference, !find_params.case_sensitive))
     {
       test ^= FIND_TEST_REF;
       icon = EDIT_ICON_REF;

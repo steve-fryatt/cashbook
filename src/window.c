@@ -141,7 +141,7 @@ void set_initial_window_area (wimp_window *window, int width, int height, int x,
 
   /* Set up the X position. */
 
-  limit = mode_width ();
+  limit = general_mode_width ();
   width = (width < (limit * X_WINDOW_PERCENT_LIMIT / 100)) ? width : (limit * X_WINDOW_PERCENT_LIMIT / 100);
 
   if (x > -1)
@@ -163,7 +163,7 @@ void set_initial_window_area (wimp_window *window, int width, int height, int x,
 
   /* Set up the Y position. */
 
-  limit = mode_height ();                                  /* The Y screen size. */
+  limit = general_mode_height ();                                  /* The Y screen size. */
   lower_limit = (clear_iconbar) ? sf_ICONBAR_HEIGHT : 0;   /* The lower usable bound if clear-ibar is set. */
 
   /* Calculate the maximum visible height possible.  This is as a percentage of the total screen height.  If the

@@ -27,7 +27,6 @@
 #include "sflib/windows.h"
 #include "sflib/icons.h"
 #include "sflib/debug.h"
-#include "sflib/general.h"
 
 /* Application header files */
 
@@ -228,8 +227,8 @@ void generate_transaction_report (file_data *file)
                  ((file->accounts[file->transactions[i].to].report_flags & REPORT_TO) != 0))) &&
                  ((min_amount == NULL_CURRENCY) || (file->transactions[i].amount >= min_amount)) &&
                  ((max_amount == NULL_CURRENCY) || (file->transactions[i].amount <= max_amount)) &&
-                 ((match_ref == NULL) || wildcard_strcmp (match_ref, file->transactions[i].reference, TRUE)) &&
-                 ((match_desc == NULL) || wildcard_strcmp (match_desc, file->transactions[i].description, TRUE)))
+                 ((match_ref == NULL) || string_wildcard_compare (match_ref, file->transactions[i].reference, TRUE)) &&
+                 ((match_desc == NULL) || string_wildcard_compare (match_desc, file->transactions[i].description, TRUE)))
           {
             if (found == 0)
             {

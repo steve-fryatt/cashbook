@@ -1479,7 +1479,7 @@ wimp_menu *build_refdesc_menu (file_data *file, int menu_type, int start_line)
         if (start_line+i < file->trans_count)
         {
           if (no_original || (*(file->transactions[file->transactions[start_line].sort_index].reference) == '\0') ||
-              (strstr_no_case (file->transactions[file->transactions[start_line+i].sort_index].reference,
+              (string_nocase_strstr (file->transactions[file->transactions[start_line+i].sort_index].reference,
                                file->transactions[file->transactions[start_line].sort_index].reference) ==
                                file->transactions[file->transactions[start_line+i].sort_index].reference))
           {
@@ -1490,7 +1490,7 @@ wimp_menu *build_refdesc_menu (file_data *file, int menu_type, int start_line)
         if (start_line-i >= 0)
         {
           if (no_original || (*(file->transactions[file->transactions[start_line].sort_index].reference) == '\0') ||
-              (strstr_no_case (file->transactions[file->transactions[start_line-i].sort_index].reference,
+              (string_nocase_strstr (file->transactions[file->transactions[start_line-i].sort_index].reference,
                                file->transactions[file->transactions[start_line].sort_index].reference) ==
                                file->transactions[file->transactions[start_line-i].sort_index].reference))
           {
@@ -1507,7 +1507,7 @@ wimp_menu *build_refdesc_menu (file_data *file, int menu_type, int start_line)
         if (start_line+i < file->trans_count)
         {
           if (no_original || (*(file->transactions[file->transactions[start_line].sort_index].description) == '\0') ||
-              (strstr_no_case (file->transactions[file->transactions[start_line+i].sort_index].description,
+              (string_nocase_strstr (file->transactions[file->transactions[start_line+i].sort_index].description,
                                file->transactions[file->transactions[start_line].sort_index].description) ==
                                file->transactions[file->transactions[start_line+i].sort_index].description))
           {
@@ -1518,7 +1518,7 @@ wimp_menu *build_refdesc_menu (file_data *file, int menu_type, int start_line)
         if (start_line-i >= 0)
         {
           if (no_original || (*(file->transactions[file->transactions[start_line].sort_index].description) == '\0') ||
-              (strstr_no_case (file->transactions[file->transactions[start_line-i].sort_index].description,
+              (string_nocase_strstr (file->transactions[file->transactions[start_line-i].sort_index].description,
                                file->transactions[file->transactions[start_line].sort_index].description) ==
                                file->transactions[file->transactions[start_line-i].sort_index].description))
           {
@@ -1644,7 +1644,7 @@ void mainmenu_add_refdesc_menu_entry (refdesc_menu_link **entries, int *count, i
   {
     for (i=0; (i < *count) && (found == 0); i++)
     {
-      if (strcmp_no_case ((*entries)[i].name, new) == 0)
+      if (string_nocase_strcmp ((*entries)[i].name, new) == 0)
       {
         found = 1;
       }
@@ -1673,7 +1673,7 @@ int mainmenu_cmp_refdesc_menu_entries (const void *va, const void *vb)
 {
   refdesc_menu_link *a = (refdesc_menu_link *) va, *b = (refdesc_menu_link *) vb;
 
-  return (strcmp_no_case(a->name, b->name));
+  return (string_nocase_strcmp(a->name, b->name));
 }
 
 /* ==================================================================================================================
@@ -2357,7 +2357,7 @@ int mainmenu_cmp_replist_menu_entries (const void *va, const void *vb)
 {
   saved_report_menu_link *a = (saved_report_menu_link *) va, *b = (saved_report_menu_link *) vb;
 
-  return (strcmp_no_case(a->name, b->name));
+  return (string_nocase_strcmp(a->name, b->name));
 }
 
 /* ==================================================================================================================

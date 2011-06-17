@@ -3237,7 +3237,7 @@ int analysis_find_saved_report_template_from_name (file_data *file, char *name)
   {
     for (i=0; i<file->saved_report_count && found == -1; i++)
     {
-      if (strcmp_no_case (file->saved_reports[i].name, name) == 0)
+      if (string_nocase_strcmp (file->saved_reports[i].name, name) == 0)
       {
         found = i;
       }

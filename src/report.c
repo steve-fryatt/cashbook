@@ -592,7 +592,7 @@ int format_report_columns (report_data *report)
 
       /* ASCII text column width. */
 
-      t_width[tab] = ctrl_strlen (column);
+      t_width[tab] = string_ctrl_strlen (column);
 
       /* If the column is indented, add the indent to the column widths. */
 
@@ -1135,7 +1135,7 @@ void save_report_text (file_data *file, report_data *report, char *filename, int
       {
         flags = column;
         column += REPORT_FLAG_BYTES;
-        ctrl_strcpy (buffer, column);
+        string_ctrl_strcpy (buffer, column);
 
         escape = (*flags & REPORT_FLAG_BOLD) ? 0x01 : 0x00;
         if (*flags & REPORT_FLAG_UNDER)
@@ -1260,7 +1260,7 @@ void export_delimited_report_file (file_data *file, report_data *report, char *f
       {
         flags = column;
         column += REPORT_FLAG_BYTES;
-        ctrl_strcpy (buffer, column);
+        string_ctrl_strcpy (buffer, column);
 
         /* Find the next field. */
 

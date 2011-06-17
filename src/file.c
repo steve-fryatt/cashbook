@@ -848,7 +848,7 @@ char *make_file_leafname (file_data *file, char *leaf, int len)
 
   if (*(file->filename) != '\0')
   {
-    strcpy (leaf, find_leafname(file->filename));
+    strcpy (leaf, string_find_leafname(file->filename));
   }
   else
   {

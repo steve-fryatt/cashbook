@@ -255,7 +255,7 @@ void terminate_user_drag (wimp_dragged *drag)
     dragasprite_stop ();
   }
 
-  leafname = find_leafname (icons_get_indirected_text_addr (windows.save_as, 2));
+  leafname = string_find_leafname (icons_get_indirected_text_addr (windows.save_as, 2));
 
   #ifdef DEBUG
   debug_printf ("\\DBegin data transfer");

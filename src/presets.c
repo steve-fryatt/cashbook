@@ -913,9 +913,9 @@ int process_preset_edit_window (void)
 
   /* Test that the preset has been given a name, and reject the data if not. */
 
-  ctrl_strcpy (copyname,icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME));
+  string_ctrl_strcpy (copyname,icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME));
 
-  if (*strip_surrounding_whitespace(copyname) == '\0')
+  if (*string_strip_surrounding_whitespace(copyname) == '\0')
   {
     wimp_msgtrans_error_report ("NoPresetName");
     return (1);

@@ -173,7 +173,7 @@ int poll_loop (void)
             {
               strcpy(pathcopy, file->filename);
 
-              sprintf (buffer, "%%Filer_OpenDir %s", find_pathname (pathcopy));
+              sprintf (buffer, "%%Filer_OpenDir %s", string_find_pathname (pathcopy));
               xos_cli (buffer);
 
               free (pathcopy);

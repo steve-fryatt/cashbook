@@ -98,7 +98,7 @@ void load_transaction_file (char *filename)
           next_field (section, ':');
           sect_sup = next_field (NULL, ':');
 
-          if (strcmp_no_case (section, "Budget") == 0)
+          if (string_nocase_strcmp (section, "Budget") == 0)
           {
             sect_num = LOAD_SECT_BUDGET;
 
@@ -106,7 +106,7 @@ void load_transaction_file (char *filename)
             debug_printf ("\\rStart Budget section");
             #endif
           }
-          else if (strcmp_no_case (section, "Accounts") == 0)
+          else if (string_nocase_strcmp (section, "Accounts") == 0)
           {
             sect_num = LOAD_SECT_ACCOUNTS;
 
@@ -116,7 +116,7 @@ void load_transaction_file (char *filename)
             debug_printf ("\\rStart Account section (block size: %d)", block_size);
             #endif
           }
-          else if (strcmp_no_case (section, "AccountList") == 0)
+          else if (string_nocase_strcmp (section, "AccountList") == 0)
           {
             sect_num = LOAD_SECT_ACCLIST;
 
@@ -129,7 +129,7 @@ void load_transaction_file (char *filename)
             debug_printf ("\\rStart AccountList section for entry %d (block size: %d)", entry, block_size);
             #endif
           }
-          else if (strcmp_no_case (section, "Transactions") == 0)
+          else if (string_nocase_strcmp (section, "Transactions") == 0)
           {
             sect_num = LOAD_SECT_TRANSACT;
 
@@ -139,7 +139,7 @@ void load_transaction_file (char *filename)
             debug_printf ("\\rStart Transactions section (block size: %d)", block_size);
             #endif
           }
-          else if (strcmp_no_case (section, "StandingOrders") == 0)
+          else if (string_nocase_strcmp (section, "StandingOrders") == 0)
           {
             sect_num = LOAD_SECT_SORDER;
 
@@ -149,7 +149,7 @@ void load_transaction_file (char *filename)
             debug_printf ("\\rStart StandingOrders section (block size: %d)", block_size);
             #endif
           }
-          else if (strcmp_no_case (section, "Presets") == 0)
+          else if (string_nocase_strcmp (section, "Presets") == 0)
           {
             sect_num = LOAD_SECT_PRESET;
 
@@ -159,7 +159,7 @@ void load_transaction_file (char *filename)
             debug_printf ("\\rStart Presets section (block size: %d)", block_size);
             #endif
           }
-          else if (strcmp_no_case (section, "Reports") == 0)
+          else if (string_nocase_strcmp (section, "Reports") == 0)
           {
             sect_num = LOAD_SECT_REPORT;
 
@@ -185,19 +185,19 @@ void load_transaction_file (char *filename)
           /* Load the Budget data block. */
 
           case LOAD_SECT_BUDGET:
-            if (strcmp_no_case (token, "Start") == 0)
+            if (string_nocase_strcmp (token, "Start") == 0)
             {
               file->budget.start = strtoul (value, NULL, 16);
             }
-            else if (strcmp_no_case (token, "Finish") == 0)
+            else if (string_nocase_strcmp (token, "Finish") == 0)
             {
               file->budget.finish = strtoul (value, NULL, 16);
             }
-            else if (strcmp_no_case (token, "SOTrial") == 0)
+            else if (string_nocase_strcmp (token, "SOTrial") == 0)
             {
               file->budget.sorder_trial = strtoul (value, NULL, 16);
             }
-            else if (strcmp_no_case (token, "RestrictPost") == 0)
+            else if (string_nocase_strcmp (token, "RestrictPost") == 0)
             {
               file->budget.limit_postdate = (config_read_opt_string(value) == TRUE);
             }
@@ -210,7 +210,7 @@ void load_transaction_file (char *filename)
           /* Load the Account data block. */
 
           case LOAD_SECT_ACCOUNTS:
-            if (strcmp_no_case (token, "Entries") == 0)
+            if (string_nocase_strcmp (token, "Entries") == 0)
             {
               block_size = strtoul (value, NULL, 16);
               if (block_size > file->account_count)
@@ -225,16 +225,16 @@ void load_transaction_file (char *filename)
                 block_size = file->account_count;
               }
             }
-            else if (strcmp_no_case (token, "WinColumns") == 0)
+            else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
               init_window_columns (file->accview_column_width, file->accview_column_position,
                                    ACCVIEW_COLUMNS, value);
             }
-            else if (strcmp_no_case (token, "SortOrder") == 0)
+            else if (string_nocase_strcmp (token, "SortOrder") == 0)
             {
               file->accview_sort_order = strtoul (value, NULL, 16);
             }
-            else if (strcmp_no_case (token, "@") == 0)
+            else if (string_nocase_strcmp (token, "@") == 0)
             {
               /* A new account.  Take the account number, and see if it falls within the current defined set of
                * accounts (not the same thing as the pre-expanded account block.  If not, expand the acconut_count
@@ -316,35 +316,35 @@ void load_transaction_file (char *filename)
               *(file->accounts[i].address[2]) = '\0';
               *(file->accounts[i].address[3]) = '\0';
             }
-            else if (i != -1 && strcmp_no_case (token, "Name") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Name") == 0)
             {
               strcpy (file->accounts[i].name, value);
             }
-            else if (i != -1 && strcmp_no_case (token, "AccNo") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "AccNo") == 0)
             {
               strcpy (file->accounts[i].account_no, value);
             }
-            else if (i != -1 && strcmp_no_case (token, "SortCode") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "SortCode") == 0)
             {
               strcpy (file->accounts[i].sort_code, value);
             }
-            else if (i != -1 && strcmp_no_case (token, "Addr0") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Addr0") == 0)
             {
               strcpy (file->accounts[i].address[0], value);
             }
-            else if (i != -1 && strcmp_no_case (token, "Addr1") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Addr1") == 0)
             {
               strcpy (file->accounts[i].address[1], value);
             }
-            else if (i != -1 && strcmp_no_case (token, "Addr2") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Addr2") == 0)
             {
               strcpy (file->accounts[i].address[2], value);
             }
-            else if (i != -1 && strcmp_no_case (token, "Addr3") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Addr3") == 0)
             {
               strcpy (file->accounts[i].address[3], value);
             }
-            else if (i != -1 && strcmp_no_case (token, "PayIn") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "PayIn") == 0)
             {
               file->accounts[i].payin_num_width = strtoul (next_field (value, ','), NULL, 16);
               file->accounts[i].next_payin_num = strtoul (next_field (NULL, ','), NULL, 16);
@@ -358,7 +358,7 @@ void load_transaction_file (char *filename)
           /* Load the Account List data block. */
 
           case LOAD_SECT_ACCLIST:
-            if (strcmp_no_case (token, "Entries") == 0)
+            if (string_nocase_strcmp (token, "Entries") == 0)
             {
               block_size = strtoul (value, NULL, 16);
               if (block_size > file->account_windows[entry].display_lines)
@@ -374,13 +374,13 @@ void load_transaction_file (char *filename)
                 block_size = file->account_windows[entry].display_lines;
               }
             }
-            else if (strcmp_no_case (token, "WinColumns") == 0)
+            else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
               init_window_columns (file->account_windows[entry].column_width,
                                    file->account_windows[entry].column_position,
                                    ACCOUNT_COLUMNS, value);
             }
-            else if (strcmp_no_case (token, "@") == 0)
+            else if (string_nocase_strcmp (token, "@") == 0)
             {
               file->account_windows[entry].display_lines++;
               if (file->account_windows[entry].display_lines > block_size)
@@ -397,7 +397,7 @@ void load_transaction_file (char *filename)
               file->account_windows[entry].line_data[i].type = strtoul (next_field (value, ','), NULL, 16);
               file->account_windows[entry].line_data[i].account = strtoul (next_field (NULL, ','), NULL, 16);
             }
-            else if (i != -1 && strcmp_no_case (token, "Heading") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Heading") == 0)
             {
               strcpy (file->account_windows[entry].line_data[i].heading, value);
             }
@@ -410,7 +410,7 @@ void load_transaction_file (char *filename)
           /* Load in Transactions data block. */
 
           case LOAD_SECT_TRANSACT:
-            if (strcmp_no_case (token, "Entries") == 0)
+            if (string_nocase_strcmp (token, "Entries") == 0)
             {
               block_size = strtoul (value, NULL, 16);
               if (block_size > file->trans_count)
@@ -425,17 +425,17 @@ void load_transaction_file (char *filename)
                 block_size = file->trans_count;
               }
             }
-            else if (strcmp_no_case (token, "WinColumns") == 0)
+            else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
               init_window_columns (file->transaction_window.column_width,
                                    file->transaction_window.column_position,
                                    TRANSACT_COLUMNS, value);
             }
-            else if (strcmp_no_case (token, "SortOrder") == 0)
+            else if (string_nocase_strcmp (token, "SortOrder") == 0)
             {
               file->transaction_window.sort_order = strtoul (value, NULL, 16);
             }
-            else if (strcmp_no_case (token, "@") == 0)
+            else if (string_nocase_strcmp (token, "@") == 0)
             {
               file->trans_count++;
               if (file->trans_count > block_size)
@@ -458,11 +458,11 @@ void load_transaction_file (char *filename)
 
               file->transactions[i].sort_index = i;
             }
-            else if (i != -1 && strcmp_no_case (token, "Ref") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Ref") == 0)
             {
               strcpy (file->transactions[i].reference, value);
             }
-            else if (i != -1 && strcmp_no_case (token, "Desc") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Desc") == 0)
             {
               strcpy (file->transactions[i].description, value);
             }
@@ -475,7 +475,7 @@ void load_transaction_file (char *filename)
           /* Load in StandingOrders data block. */
 
           case LOAD_SECT_SORDER:
-            if (strcmp_no_case (token, "Entries") == 0)
+            if (string_nocase_strcmp (token, "Entries") == 0)
             {
               block_size = strtoul (value, NULL, 16);
               if (block_size > file->sorder_count)
@@ -490,17 +490,17 @@ void load_transaction_file (char *filename)
                 block_size = file->sorder_count;
               }
             }
-            else if (strcmp_no_case (token, "WinColumns") == 0)
+            else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
               init_window_columns (file->sorder_window.column_width,
                                    file->sorder_window.column_position,
                                    SORDER_COLUMNS, value);
             }
-            else if (strcmp_no_case (token, "SortOrder") == 0)
+            else if (string_nocase_strcmp (token, "SortOrder") == 0)
             {
               file->sorder_window.sort_order = strtoul (value, NULL, 16);
             }
-            else if (strcmp_no_case (token, "@") == 0)
+            else if (string_nocase_strcmp (token, "@") == 0)
             {
               file->sorder_count++;
               if (file->sorder_count > block_size)
@@ -529,11 +529,11 @@ void load_transaction_file (char *filename)
               *(file->sorders[i].description) = '\0';
               file->sorders[i].sort_index = i;
             }
-            else if (i != -1 && strcmp_no_case (token, "Ref") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Ref") == 0)
             {
               strcpy (file->sorders[i].reference, value);
             }
-            else if (i != -1 && strcmp_no_case (token, "Desc") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Desc") == 0)
             {
               strcpy (file->sorders[i].description, value);
             }
@@ -546,7 +546,7 @@ void load_transaction_file (char *filename)
           /* Load in Presets data block. */
 
           case LOAD_SECT_PRESET:
-            if (strcmp_no_case (token, "Entries") == 0)
+            if (string_nocase_strcmp (token, "Entries") == 0)
             {
               block_size = strtoul (value, NULL, 16);
               if (block_size > file->preset_count)
@@ -561,17 +561,17 @@ void load_transaction_file (char *filename)
                 block_size = file->preset_count;
               }
             }
-            else if (strcmp_no_case (token, "WinColumns") == 0)
+            else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
               init_window_columns (file->preset_window.column_width,
                                    file->preset_window.column_position,
                                    PRESET_COLUMNS, value);
             }
-            else if (strcmp_no_case (token, "SortOrder") == 0)
+            else if (string_nocase_strcmp (token, "SortOrder") == 0)
             {
               file->preset_window.sort_order = strtoul (value, NULL, 16);
             }
-            else if (strcmp_no_case (token, "@") == 0)
+            else if (string_nocase_strcmp (token, "@") == 0)
             {
               file->preset_count++;
               if (file->preset_count > block_size)
@@ -595,15 +595,15 @@ void load_transaction_file (char *filename)
               *(file->presets[i].description) = '\0';
               file->presets[i].sort_index = i;
             }
-            else if (i != -1 && strcmp_no_case (token, "Name") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Name") == 0)
             {
               strcpy (file->presets[i].name, value);
             }
-            else if (i != -1 && strcmp_no_case (token, "Ref") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Ref") == 0)
             {
               strcpy (file->presets[i].reference, value);
             }
-            else if (i != -1 && strcmp_no_case (token, "Desc") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Desc") == 0)
             {
               strcpy (file->presets[i].description, value);
             }
@@ -616,7 +616,7 @@ void load_transaction_file (char *filename)
           /* Load in Saved Reports data block. */
 
           case LOAD_SECT_REPORT:
-            if (strcmp_no_case (token, "Entries") == 0)
+            if (string_nocase_strcmp (token, "Entries") == 0)
             {
               block_size = strtoul (value, NULL, 16);
               if (block_size > file->saved_report_count)
@@ -631,7 +631,7 @@ void load_transaction_file (char *filename)
                 block_size = file->saved_report_count;
               }
             }
-            else if (strcmp_no_case (token, "@") == 0)
+            else if (string_nocase_strcmp (token, "@") == 0)
             {
               file->saved_report_count++;
               if (file->saved_report_count > block_size)
@@ -707,83 +707,83 @@ void load_transaction_file (char *filename)
                 break;
               }
             }
-            else if (i != -1 && strcmp_no_case (token, "Name") == 0)
+            else if (i != -1 && string_nocase_strcmp (token, "Name") == 0)
             {
               strcpy (file->saved_reports[i].name, value);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
-                     strcmp_no_case (token, "Accounts") == 0)
+                     string_nocase_strcmp (token, "Accounts") == 0)
             {
               file->saved_reports[i].data.cashflow.accounts_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.cashflow.accounts);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
-                     strcmp_no_case (token, "Incoming") == 0)
+                     string_nocase_strcmp (token, "Incoming") == 0)
             {
               file->saved_reports[i].data.cashflow.incoming_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.cashflow.incoming);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
-                     strcmp_no_case (token, "Outgoing") == 0)
+                     string_nocase_strcmp (token, "Outgoing") == 0)
             {
               file->saved_reports[i].data.cashflow.outgoing_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.cashflow.outgoing);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_BALANCE &&
-                     strcmp_no_case (token, "Accounts") == 0)
+                     string_nocase_strcmp (token, "Accounts") == 0)
             {
               file->saved_reports[i].data.balance.accounts_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.balance.accounts);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_BALANCE &&
-                     strcmp_no_case (token, "Incoming") == 0)
+                     string_nocase_strcmp (token, "Incoming") == 0)
             {
               file->saved_reports[i].data.balance.incoming_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.balance.incoming);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_BALANCE &&
-                     strcmp_no_case (token, "Outgoing") == 0)
+                     string_nocase_strcmp (token, "Outgoing") == 0)
             {
               file->saved_reports[i].data.balance.outgoing_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.balance.outgoing);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
-                     strcmp_no_case (token, "From") == 0)
+                     string_nocase_strcmp (token, "From") == 0)
             {
               file->saved_reports[i].data.transaction.from_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.transaction.from);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
-                     strcmp_no_case (token, "To") == 0)
+                     string_nocase_strcmp (token, "To") == 0)
             {
               file->saved_reports[i].data.transaction.to_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.transaction.to);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_UNREC &&
-                     strcmp_no_case (token, "From") == 0)
+                     string_nocase_strcmp (token, "From") == 0)
             {
               file->saved_reports[i].data.unreconciled.from_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.unreconciled.from);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_UNREC &&
-                     strcmp_no_case (token, "To") == 0)
+                     string_nocase_strcmp (token, "To") == 0)
             {
               file->saved_reports[i].data.unreconciled.to_count =
                 analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.unreconciled.to);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
-                     strcmp_no_case (token, "Ref") == 0)
+                     string_nocase_strcmp (token, "Ref") == 0)
             {
               strcpy (file->saved_reports[i].data.transaction.ref, value);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
-                     strcmp_no_case (token, "Amount") == 0)
+                     string_nocase_strcmp (token, "Amount") == 0)
             {
               file->saved_reports[i].data.transaction.amount_min = strtoul (next_field (value, ','), NULL, 16);
               file->saved_reports[i].data.transaction.amount_max = strtoul (next_field (NULL, ','), NULL, 16);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
-                     strcmp_no_case (token, "Desc") == 0)
+                     string_nocase_strcmp (token, "Desc") == 0)
             {
               strcpy (file->saved_reports[i].data.transaction.desc, value);
             }
@@ -947,7 +947,7 @@ char *next_plain_field (char *line, char sep)
 
   if (line != NULL)
   {
-    current = strip_surrounding_whitespace (line);
+    current = string_strip_surrounding_whitespace (line);
   }
 
   start = current;
@@ -2113,7 +2113,7 @@ int delimited_field_output (FILE *f, char *string, int format, int flags)
 
 char *unquote_string (char *string)
 {
-  string = strip_surrounding_whitespace (string);
+  string = string_strip_surrounding_whitespace (string);
 
   if (*string == '"' && *(strchr(string, '\0')-1) == '"')
   {

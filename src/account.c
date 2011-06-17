@@ -1303,7 +1303,7 @@ int find_account (file_data *file, char *ident, unsigned int type)
   account = 0;
 
   while ((account < file->account_count) &&
-         ((strcmp_no_case (ident, file->accounts[account].ident) != 0) || ((file->accounts[account].type & type) == 0)))
+         ((string_nocase_strcmp (ident, file->accounts[account].ident) != 0) || ((file->accounts[account].type & type) == 0)))
   {
     account++;
   }
@@ -1624,7 +1624,7 @@ int process_account_lookup_window (void)
     /* Get the icon text, and the length of it. */
 
     icon = icons_get_indirected_text_addr (account_name_lookup_window, account_name_lookup_icon);
-    max_len = ctrl_strlen (icon);
+    max_len = string_ctrl_strlen (icon);
 
     /* Check the caret position.  If it is in the target icon, move the insertion until it falls before a comma;
      * if not, place the index at the end of the text.

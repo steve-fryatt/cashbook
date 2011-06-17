@@ -1817,7 +1817,7 @@ char *find_complete_description (file_data *file, int line, char *buffer)
     t = file->transactions[i].sort_index;
 
     if (*(file->transactions[t].description) != '\0' &&
-        strstr_no_case (file->transactions[t].description, buffer) == file->transactions[t].description)
+        string_nocase_strstr (file->transactions[t].description, buffer) == file->transactions[t].description)
     {
       strcpy (buffer, file->transactions[t].description);
       break;

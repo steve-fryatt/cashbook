@@ -958,7 +958,7 @@ int initialise (void)
   /* Initialise the flex heap. */
 
   flex_init (task_name, 0, 0);
-  heap_init ();
+  heap_initialise();
 
   /* Initialise the configuration. */
 

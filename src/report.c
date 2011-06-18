@@ -203,7 +203,7 @@ void close_report (file_data *file, report_data *report)
   }
   else
   {
-    wimp_msgtrans_error_report ("NoMemReport");
+    error_msgs_report_error ("NoMemReport");
     delete_report (file, report);
   }
 }
@@ -261,7 +261,7 @@ void close_and_print_report (file_data *file, report_data *report, int text, int
   }
   else
   {
-    wimp_msgtrans_error_report ("NoMemReport");
+    error_msgs_report_error ("NoMemReport");
     delete_report (file, report);
   }
 }
@@ -1233,7 +1233,7 @@ void save_report_text (file_data *file, report_data *report, char *filename, int
   }
   else
   {
-    wimp_msgtrans_error_report ("FileSaveFail");
+    error_msgs_report_error ("FileSaveFail");
   }
 }
 
@@ -1295,7 +1295,7 @@ void export_delimited_report_file (file_data *file, report_data *report, char *f
   }
   else
   {
-    wimp_msgtrans_error_report ("FileSaveFail");
+    error_msgs_report_error ("FileSaveFail");
   }
 }
 
@@ -1462,7 +1462,7 @@ void print_report_graphic (file_data *file, report_data *report, int fit_width, 
 
   if (margin_fail)
   {
-    wimp_msgtrans_error_report ("BadPrintMargins");
+    error_msgs_report_error ("BadPrintMargins");
   }
 
   /* Open a printout file. */
@@ -1784,5 +1784,5 @@ void handle_print_error (os_fw file, os_error *error, font_f f1, font_f f2)
   }
 
   hourglass_off ();
-  wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+  error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
 }

@@ -2630,7 +2630,7 @@ void bounced_message_handler (wimp_message *message)
   switch (message->action)
   {
     case message_RAM_TRANSMIT:
-      wimp_msgtrans_error_report ("RAMXferFail");
+      error_msgs_report_error ("RAMXferFail");
       break;
 
     case message_RAM_FETCH:

@@ -90,7 +90,7 @@ file_data *build_new_file_block (void)
   new = (file_data *) heap_alloc (sizeof (file_data));
   if (new == NULL)
   {
-    wimp_msgtrans_error_report ("NoMemNewFile");
+    error_msgs_report_error ("NoMemNewFile");
     return (new);
   }
 
@@ -339,7 +339,7 @@ void delete_file (file_data *file)
 
   /* First check that the file is saved and, if not, prompt for deletion. */
 
-  if (file->modified == 1 && (button = wimp_msgtrans_question_report ("FileNotSaved", "FileNotSavedB")) >= 2)
+  if (file->modified == 1 && (button = error_msgs_report_question ("FileNotSaved", "FileNotSavedB")) >= 2)
   {
     if (button == 3)
     {
@@ -354,7 +354,7 @@ void delete_file (file_data *file)
 
   /* If there are any reports in the file with pending print jobs, prompt for deletion. */
 
-  if (pending_print_reports (file) && wimp_msgtrans_question_report ("PendingPrints", "PendingPrintsB") == 2)
+  if (pending_print_reports (file) && error_msgs_report_question ("PendingPrints", "PendingPrintsB") == 2)
   {
     return;
   }
@@ -775,7 +775,7 @@ int check_for_unsaved_files (void)
 
   if (modified)
   {
-    if (wimp_msgtrans_question_report ("FilesNotSaved", "FilesNotSavedB") == 1)
+    if (error_msgs_report_question ("FilesNotSaved", "FilesNotSavedB") == 1)
     {
       modified = 0;
     }
@@ -787,7 +787,7 @@ int check_for_unsaved_files (void)
 
   if (!modified && pending)
   {
-    if (wimp_msgtrans_question_report ("FPendingPrints", "FPendingPrintsB") == 1)
+    if (error_msgs_report_question ("FPendingPrints", "FPendingPrintsB") == 1)
     {
       pending = 0;
     }

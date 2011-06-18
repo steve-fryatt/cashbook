@@ -402,7 +402,7 @@ int immediate_window_save (void)
 
   if (strchr (filename, '.') == NULL)
   {
-    wimp_msgtrans_info_report ("DragSave");
+    error_msgs_report_info ("DragSave");
     return 0;
   }
 
@@ -556,7 +556,7 @@ int start_data_open_load (wimp_message *message)
       error = xwimp_send_message (wimp_USER_MESSAGE, (wimp_message *) xfer, xfer->sender);
       if (error != NULL)
       {
-        wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+        error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
         return -1;
       }
 

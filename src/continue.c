@@ -135,7 +135,7 @@ int process_continue_window (void)
                                                   NULL_DATE, 0);
 
   if (continue_window_file->modified == 1 &&
-      wimp_msgtrans_question_report ("ContFileNotSaved", "ContFileNotSavedB") == 2)
+      error_msgs_report_question ("ContFileNotSaved", "ContFileNotSavedB") == 2)
   {
     return (1);
   }

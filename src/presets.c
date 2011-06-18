@@ -111,7 +111,7 @@ void create_preset_window (file_data *file)
     error = xwimp_create_window (windows.preset_window_def, &(file->preset_window.preset_window));
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
       return;
     }
 
@@ -148,7 +148,7 @@ void create_preset_window (file_data *file)
     error = xwimp_create_window (windows.preset_pane_def, &(file->preset_window.preset_pane));
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
       return;
     }
 
@@ -592,7 +592,7 @@ int add_preset (file_data *file)
   }
   else
   {
-    wimp_msgtrans_error_report ("NoMemNewPreset");
+    error_msgs_report_error ("NoMemNewPreset");
     new = NULL_PRESET;
   }
 
@@ -917,7 +917,7 @@ int process_preset_edit_window (void)
 
   if (*string_strip_surrounding_whitespace(copyname) == '\0')
   {
-    wimp_msgtrans_error_report ("NoPresetName");
+    error_msgs_report_error ("NoPresetName");
     return (1);
   }
 
@@ -928,7 +928,7 @@ int process_preset_edit_window (void)
 
   if (check_key != NULL_PRESET && check_key != edit_preset_no)
   {
-    wimp_msgtrans_error_report ("BadPresetNo");
+    error_msgs_report_error ("BadPresetNo");
     return (1);
   }
 
@@ -1054,7 +1054,7 @@ int process_preset_edit_window (void)
 
 int delete_preset_from_edit_window (void)
 {
-  if (wimp_msgtrans_question_report ("DeletePreset", "DeletePresetB") == 2)
+  if (error_msgs_report_question ("DeletePreset", "DeletePresetB") == 2)
   {
     return (1);
   }
@@ -1225,7 +1225,7 @@ void print_preset_window (int text, int format, int scale, int rotate)
   }
   else
   {
-    wimp_msgtrans_error_report ("PrintMemFail");
+    error_msgs_report_error ("PrintMemFail");
   }
 
   close_and_print_report (preset_print_file, report, text, format, scale, rotate);

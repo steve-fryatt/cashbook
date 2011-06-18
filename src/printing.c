@@ -112,7 +112,7 @@ int send_start_print_save (void (*print_function) (char *), void (*cancel_functi
   error = xwimp_send_message (wimp_USER_MESSAGE_RECORDED, (wimp_message *) &datasave, wimp_BROADCAST);
   if (error != NULL)
   {
-    wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+    error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
     return -1;
   }
 
@@ -135,7 +135,7 @@ void handle_bounced_message_print_save (void)
   }
   else
   {
-    wimp_msgtrans_error_report ("NoPManager");
+    error_msgs_report_error ("NoPManager");
   }
 
   if (external_cancel_function != NULL)
@@ -161,11 +161,11 @@ void handle_message_print_error (wimp_message *message)
 
   if (print_error->size == 20)
   {
-    wimp_msgtrans_error_report ("PrintBusy");
+    error_msgs_report_error ("PrintBusy");
   }
   else
   {
-    wimp_error_report (print_error->errmess);
+    error_report_error (print_error->errmess);
   }
 
   if (external_cancel_function != NULL)
@@ -217,7 +217,7 @@ void handle_message_print_file (wimp_message *message)
     error = xwimp_send_message (wimp_USER_MESSAGE, (wimp_message *) print_file, print_file->sender);
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
     }
   }
   else
@@ -228,7 +228,7 @@ void handle_message_print_file (wimp_message *message)
     error = xwimp_send_message (wimp_USER_MESSAGE, (wimp_message *) print_file, print_file->sender);
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
     }
     else
     {

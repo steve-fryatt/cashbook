@@ -135,7 +135,7 @@ int process_goto_window (void)
     if (goto_window_file->go_to.data <= 0 || goto_window_file->go_to.data > goto_window_file->trans_count ||
         strlen (icons_get_indirected_text_addr (windows.go_to, GOTO_ICON_NUMBER_FIELD)) == 0)
     {
-      wimp_msgtrans_info_report ("BadGotoLine");
+      error_msgs_report_info ("BadGotoLine");
 
       return (1);
     }

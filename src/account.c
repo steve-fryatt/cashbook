@@ -154,8 +154,8 @@ void create_accounts_window (file_data *file, int type)
     error = xwimp_create_window (windows.account_window_def, &(file->account_windows[entry].account_window));
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
-      wimp_info_report ("Main window");
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_info ("Main window");
       delete_accounts_window (file, type);
       return;
     }
@@ -180,8 +180,8 @@ void create_accounts_window (file_data *file, int type)
     error = xwimp_create_window (windows.account_pane_def[tb_type], &(file->account_windows[entry].account_pane));
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
-      wimp_info_report ("Toolbar");
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_info ("Toolbar");
       delete_accounts_window (file, type);
       return;
     }
@@ -214,14 +214,14 @@ void create_accounts_window (file_data *file, int type)
       char buf[1024];
 
       sprintf (buf, "Footer bar; icons = %d", windows.account_footer_def->icon_count);
-      wimp_info_report (buf);
+      error_report_info (buf);
     }
 
     error = xwimp_create_window (windows.account_footer_def, &(file->account_windows[entry].account_footer));
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
-      wimp_info_report ("Footer bar");
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_info ("Footer bar");
       delete_accounts_window (file, type);
       return;
     }
@@ -456,7 +456,7 @@ int add_account (file_data *file, char *name, char *ident, unsigned int type)
 
   if (strcmp (ident, "") == 0)
   {
-    wimp_msgtrans_error_report ("BadAcctIdent");
+    error_msgs_report_error ("BadAcctIdent");
     return (new);
   }
 
@@ -516,7 +516,7 @@ int add_account (file_data *file, char *name, char *ident, unsigned int type)
   }
   else
   {
-    wimp_msgtrans_error_report ("NoMemNewAcct");
+    error_msgs_report_error ("NoMemNewAcct");
   }
 
   return (new);
@@ -546,7 +546,7 @@ void add_account_to_lists (file_data *file, int account)
     }
     else
     {
-      wimp_msgtrans_error_report ("NoMemLinkAcct");
+      error_msgs_report_error ("NoMemLinkAcct");
     }
   }
 }
@@ -883,7 +883,7 @@ int process_account_edit_window (void)
 
   if (check_ident != NULL_ACCOUNT && check_ident != edit_account_no)
   {
-    wimp_msgtrans_error_report ("UsedAcctIdent");
+    error_msgs_report_error ("UsedAcctIdent");
     return (1);
   }
 
@@ -991,7 +991,7 @@ int process_heading_edit_window (void)
 
   if (check_ident != NULL_ACCOUNT && check_ident != edit_account_no)
   {
-    wimp_msgtrans_error_report ("UsedAcctIdent");
+    error_msgs_report_error ("UsedAcctIdent");
     return (1);
   }
 
@@ -1065,11 +1065,11 @@ int delete_account_from_edit_window (void)
 {
   if (account_used_in_file (edit_account_file, edit_account_no))
   {
-    wimp_msgtrans_info_report ("CantDelAcct");
+    error_msgs_report_info ("CantDelAcct");
     return (1);
   }
 
-  if (wimp_msgtrans_question_report ("DeleteAcct", "DeleteAcctB") == 2)
+  if (error_msgs_report_question ("DeleteAcct", "DeleteAcctB") == 2)
   {
     return (1);
   }
@@ -1193,7 +1193,7 @@ int process_section_edit_window (void)
 
     if (edit_section_line == -1)
     {
-      wimp_msgtrans_error_report ("NoMemNewSect");
+      error_msgs_report_error ("NoMemNewSect");
 
       return (1);
     }
@@ -1248,7 +1248,7 @@ void force_close_section_edit_window (file_data *file)
 
 int delete_section_from_edit_window (void)
 {
-  if (wimp_msgtrans_question_report ("DeleteSection", "DeleteSectionB") == 2)
+  if (error_msgs_report_question ("DeleteSection", "DeleteSectionB") == 2)
   {
     return (1);
   }
@@ -1902,7 +1902,7 @@ void print_account_window (int text, int format, int scale, int rotate)
   }
   else
   {
-    wimp_msgtrans_error_report ("PrintMemFail");
+    error_msgs_report_error ("PrintMemFail");
   }
 
   close_and_print_report (account_print_file, report, text, format, scale, rotate);
@@ -2444,7 +2444,7 @@ char *get_next_cheque_number (file_data *file, acct_t from_account, acct_t to_ac
                        file->accounts[to_account].name, file->accounts[from_account].name, NULL, NULL);
     msgs_lookup ("ChqOrPayInB", bbuf, sizeof(bbuf));
 
-    if (wimp_question_report (mbuf, bbuf) == 1)
+    if (error_report_question (mbuf, bbuf) == 1)
     {
       to_ok = 0;
     }

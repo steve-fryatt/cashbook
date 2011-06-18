@@ -922,19 +922,19 @@ void load_transaction_file (char *filename)
     else
     {
       delete_file (file);
-      wimp_msgtrans_error_report ("FileLoadFail");
+      error_msgs_report_error ("FileLoadFail");
     }
 
     hourglass_off ();
 
     if (unknown_data)
     {
-      wimp_msgtrans_info_report ("UnknownFileData");
+      error_msgs_report_info ("UnknownFileData");
     }
   }
   else
   {
-    wimp_msgtrans_error_report ("NoMemForLoad");
+    error_msgs_report_error ("NoMemForLoad");
   }
 }
 
@@ -1356,7 +1356,7 @@ void save_transaction_file (file_data *file, char *filename)
   }
   else
   {
-    wimp_msgtrans_error_report ("FileSaveFail");
+    error_msgs_report_error ("FileSaveFail");
   }
 }
 
@@ -1680,7 +1680,7 @@ void export_delimited_file (file_data *file, char *filename, int format, int fil
   }
   else
   {
-    wimp_msgtrans_error_report ("FileSaveFail");
+    error_msgs_report_error ("FileSaveFail");
   }
 }
 
@@ -1799,7 +1799,7 @@ void export_delimited_accounts_file (file_data *file, int entry, char *filename,
   }
   else
   {
-    wimp_msgtrans_error_report ("FileSaveFail");
+    error_msgs_report_error ("FileSaveFail");
   }
 }
 
@@ -1887,7 +1887,7 @@ void export_delimited_account_file (file_data *file, int account, char *filename
   }
   else
   {
-    wimp_msgtrans_error_report ("FileSaveFail");
+    error_msgs_report_error ("FileSaveFail");
   }
 }
 
@@ -1963,7 +1963,7 @@ void export_delimited_sorder_file (file_data *file, char *filename, int format, 
   }
   else
   {
-    wimp_msgtrans_error_report ("FileSaveFail");
+    error_msgs_report_error ("FileSaveFail");
   }
 }
 
@@ -2032,7 +2032,7 @@ void export_delimited_preset_file (file_data *file, char *filename, int format, 
   }
   else
   {
-    wimp_msgtrans_error_report ("FileSaveFail");
+    error_msgs_report_error ("FileSaveFail");
   }
 }
 

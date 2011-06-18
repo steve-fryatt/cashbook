@@ -108,7 +108,7 @@ void create_transaction_window (file_data *file)
     error = xwimp_create_window (windows.transaction_window_def, &(file->transaction_window.transaction_window));
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
       return;
     }
 
@@ -143,7 +143,7 @@ void create_transaction_window (file_data *file)
     error = xwimp_create_window (windows.transaction_pane_def, &(file->transaction_window.transaction_pane));
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
       return;
     }
 
@@ -385,7 +385,7 @@ void add_raw_transaction (file_data *file, unsigned date, int from, int to, unsi
   }
   else
   {
-    wimp_msgtrans_error_report ("NoMemNewTrans");
+    error_msgs_report_error ("NoMemNewTrans");
   }
 }
 
@@ -980,7 +980,7 @@ void print_transact_window (int text, int format, int scale, int rotate, date_t 
   }
   else
   {
-    wimp_msgtrans_error_report ("PrintMemFail");
+    error_msgs_report_error ("PrintMemFail");
   }
 
   close_and_print_report (transact_print_file, report, text, format, scale, rotate);

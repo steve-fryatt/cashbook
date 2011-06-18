@@ -62,7 +62,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   error = xwimp_open_template (template_file);
   if (error != NULL)
   {
-    wimp_program_report (error);
+    error_report_program (error);
   }
 
   /* Program Info Window.
@@ -82,7 +82,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* File Info Window.
@@ -99,7 +99,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Import Complete Window.
@@ -116,7 +116,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Save Window.
@@ -133,7 +133,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Choices Window.
@@ -150,7 +150,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Choices Pane 0.
@@ -167,7 +167,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Choices Pane 1.
@@ -184,7 +184,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Choices Pane 2.
@@ -201,7 +201,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Choices Pane 3.
@@ -218,7 +218,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Choices Pane 4.
@@ -235,7 +235,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Choices Pane 5.
@@ -252,7 +252,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Choices Pane 6.
@@ -269,7 +269,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Edit Account Window.
@@ -286,7 +286,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Edit Heading Window.
@@ -303,7 +303,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Edit Section Window.
@@ -320,7 +320,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Edit Standing Order Window.
@@ -337,7 +337,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Edit Preset Window.
@@ -354,7 +354,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Goto Window.
@@ -371,7 +371,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Find Window.
@@ -388,7 +388,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Found Window.
@@ -405,7 +405,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Budget Window.
@@ -422,7 +422,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Report Format Window.
@@ -439,7 +439,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Simple Print Window.
@@ -456,7 +456,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Date Print Window.
@@ -473,7 +473,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Transaction Report Window.
@@ -490,7 +490,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Unreconciled Transaction Report Window.
@@ -507,7 +507,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Cashflow Report Window.
@@ -524,7 +524,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Balance Report Window.
@@ -541,7 +541,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Account Name Enter Window.
@@ -558,7 +558,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Purge File Window.
@@ -575,7 +575,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Colours Window.
@@ -592,7 +592,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Sort Transactions Window.
@@ -609,7 +609,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Sort AccView Window.
@@ -626,7 +626,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Sort SOrder Window.
@@ -643,7 +643,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Sort Preset Window.
@@ -660,7 +660,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Save Report Window.
@@ -677,7 +677,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
 
@@ -694,7 +694,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Transaction Pane.
@@ -710,7 +710,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Account Window.
@@ -726,7 +726,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Account Pane.
@@ -742,7 +742,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
    /* Account Footer.
@@ -757,7 +757,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Heading Pane.
@@ -773,7 +773,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Standing Order Window.
@@ -789,7 +789,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Standing Order Pane.
@@ -805,7 +805,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Account View Window.
@@ -821,7 +821,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Account View Pane.
@@ -837,7 +837,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Preset Window.
@@ -853,7 +853,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Preset Pane.
@@ -869,7 +869,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   /* Report Window.
@@ -885,7 +885,7 @@ void load_templates (char *template_file, global_windows *windows, osspriteop_ar
   }
   else
   {
-    wimp_msgtrans_fatal_report ("BadTemplate");
+    error_msgs_report_fatal ("BadTemplate");
   }
 
   wimp_close_template ();

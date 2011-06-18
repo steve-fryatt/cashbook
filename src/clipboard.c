@@ -116,7 +116,7 @@ int paste_clipboard_to_icon (wimp_key *key)
       error = xwimp_send_message (wimp_USER_MESSAGE, (wimp_message *) &datarequest, wimp_BROADCAST);
       if (error != NULL)
       {
-        wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+        error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
         return -1;
       }
     }
@@ -146,7 +146,7 @@ int copy_text_to_clipboard (char *text, int len)
 
   if (flex_alloc ((flex_ptr) &clipboard_data, len) == 0)
   {
-    wimp_msgtrans_error_report ("ClipAllocFail");
+    error_msgs_report_error ("ClipAllocFail");
     return -1;
   }
 
@@ -164,7 +164,7 @@ int copy_text_to_clipboard (char *text, int len)
   error = xwimp_send_message (wimp_USER_MESSAGE, (wimp_message *) &claimblock, wimp_BROADCAST);
   if (error != NULL)
   {
-    wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+    error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
 
     flex_free ((flex_ptr) &clipboard_data);
     clipboard_length = 0;

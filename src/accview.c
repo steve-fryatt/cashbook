@@ -100,7 +100,7 @@ void create_accview_window (file_data *file, int account)
 
     if (file->accounts[account].account_view == NULL)
     {
-      wimp_msgtrans_info_report ("AccviewMemErr1");
+      error_msgs_report_info ("AccviewMemErr1");
     }
     else
     {
@@ -153,7 +153,7 @@ void create_accview_window (file_data *file, int account)
                                    &((file->accounts[account].account_view)->accview_window));
       if (error != NULL)
       {
-        wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+        error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
         return;
       }
       #ifdef DEBUG
@@ -187,7 +187,7 @@ void create_accview_window (file_data *file, int account)
       error = xwimp_create_window (windows.accview_pane_def, &((file->accounts[account].account_view)->accview_pane));
       if (error != NULL)
       {
-        wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+        error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
         return;
       }
 
@@ -498,7 +498,7 @@ int build_account_view (file_data *file, int account)
     }
     else
     {
-      wimp_msgtrans_info_report ("AccviewMemErr2");
+      error_msgs_report_info ("AccviewMemErr2");
     }
   }
 
@@ -1123,7 +1123,7 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
   }
   else
   {
-    wimp_msgtrans_error_report ("PrintMemFail");
+    error_msgs_report_error ("PrintMemFail");
   }
 
   close_and_print_report (accview_print_file, report, text, format, scale, rotate);

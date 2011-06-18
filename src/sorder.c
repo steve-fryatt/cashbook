@@ -117,7 +117,7 @@ void create_sorder_window (file_data *file)
     error = xwimp_create_window (windows.sorder_window_def, &(file->sorder_window.sorder_window));
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
       return;
     }
 
@@ -154,7 +154,7 @@ void create_sorder_window (file_data *file)
     error = xwimp_create_window (windows.sorder_pane_def, &(file->sorder_window.sorder_pane));
     if (error != NULL)
     {
-      wimp_os_error_report (error, wimp_ERROR_BOX_CANCEL_ICON);
+      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
       return;
     }
 
@@ -606,7 +606,7 @@ int add_sorder (file_data *file)
   }
   else
   {
-    wimp_msgtrans_error_report ("NoMemNewSO");
+    error_msgs_report_error ("NoMemNewSO");
     new = NULL_SORDER;
   }
 
@@ -1033,14 +1033,14 @@ int process_sorder_edit_window (void)
     if (atoi (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_NUMBER)) < done &&
         edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date != NULL_DATE)
     {
-      wimp_msgtrans_error_report ("BadSONumber");
+      error_msgs_report_error ("BadSONumber");
       return (1);
     }
 
     if (edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date == NULL_DATE &&
         edit_sorder_file->sorders[edit_sorder_no].start_date == new_start_date)
     {
-      if (wimp_msgtrans_question_report ("CheckSODate", "CheckSODateB") == 2)
+      if (error_msgs_report_question ("CheckSODate", "CheckSODateB") == 2)
       {
         return (1);
       }
@@ -1182,7 +1182,7 @@ int process_sorder_edit_window (void)
 
 int stop_sorder_from_edit_window (void)
 {
-  if (wimp_msgtrans_question_report ("StopSOrder", "StopSOrderB") == 2)
+  if (error_msgs_report_question ("StopSOrder", "StopSOrderB") == 2)
   {
     return (1);
   }
@@ -1218,7 +1218,7 @@ int stop_sorder_from_edit_window (void)
 
 int delete_sorder_from_edit_window (void)
 {
-  if (wimp_msgtrans_question_report ("DeleteSOrder", "DeleteSOrderB") == 2)
+  if (error_msgs_report_question ("DeleteSOrder", "DeleteSOrderB") == 2)
   {
     return (1);
   }
@@ -1570,7 +1570,7 @@ void print_sorder_window (int text, int format, int scale, int rotate)
   }
   else
   {
-    wimp_msgtrans_error_report ("PrintMemFail");
+    error_msgs_report_error ("PrintMemFail");
   }
 
   close_and_print_report (sorder_print_file, report, text, format, scale, rotate);

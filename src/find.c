@@ -578,7 +578,7 @@ int find_from_line (find *new_params, int new_dir, int start)
   }
   else
   {
-    wimp_msgtrans_info_report ("BadFind");
+    error_msgs_report_info ("BadFind");
 
     return (NULL_TRANSACTION);
   }

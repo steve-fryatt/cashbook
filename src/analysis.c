@@ -2043,7 +2043,7 @@ void open_trans_lookup_window (wimp_i icon)
 int analysis_delete_trans_report_window (void)
 {
   if (trans_rep_template >= 0 && trans_rep_template < trans_rep_file->saved_report_count &&
-      wimp_msgtrans_question_report ("DeleteTemp", "DeleteTempB") == 1)
+      error_msgs_report_question ("DeleteTemp", "DeleteTempB") == 1)
   {
     analysis_delete_saved_report_template (trans_rep_file, trans_rep_template);
     trans_rep_template = NULL_TEMPLATE;
@@ -2315,7 +2315,7 @@ void open_unrec_lookup_window (wimp_i icon)
 int analysis_delete_unrec_report_window (void)
 {
   if (unrec_rep_template >= 0 && unrec_rep_template < unrec_rep_file->saved_report_count &&
-      wimp_msgtrans_question_report ("DeleteTemp", "DeleteTempB") == 1)
+      error_msgs_report_question ("DeleteTemp", "DeleteTempB") == 1)
   {
     analysis_delete_saved_report_template (unrec_rep_file, unrec_rep_template);
     unrec_rep_template = NULL_TEMPLATE;
@@ -2595,7 +2595,7 @@ void open_cashflow_lookup_window (wimp_i icon)
 int analysis_delete_cashflow_report_window (void)
 {
   if (cashflow_rep_template >= 0 && cashflow_rep_template < cashflow_rep_file->saved_report_count &&
-      wimp_msgtrans_question_report ("DeleteTemp", "DeleteTempB") == 1)
+      error_msgs_report_question ("DeleteTemp", "DeleteTempB") == 1)
   {
     analysis_delete_saved_report_template (cashflow_rep_file, cashflow_rep_template);
     cashflow_rep_template = NULL_TEMPLATE;
@@ -2870,7 +2870,7 @@ void open_balance_lookup_window (wimp_i icon)
 int analysis_delete_balance_report_window (void)
 {
   if (balance_rep_template >= 0 && balance_rep_template < balance_rep_file->saved_report_count &&
-      wimp_msgtrans_question_report ("DeleteTemp", "DeleteTempB") == 1)
+      error_msgs_report_question ("DeleteTemp", "DeleteTempB") == 1)
   {
     analysis_delete_saved_report_template (balance_rep_file, balance_rep_template);
     balance_rep_template = NULL_TEMPLATE;
@@ -3054,7 +3054,7 @@ int process_save_report_window (void)
   switch(save_report_mode)
   {
     case ANALYSIS_SAVE_MODE_SAVE:
-      if (template != NULL_TEMPLATE && wimp_msgtrans_question_report ("CheckTempOvr", "CheckTempOvrB") == 2)
+      if (template != NULL_TEMPLATE && error_msgs_report_question ("CheckTempOvr", "CheckTempOvrB") == 2)
       {
         return (1);
       }
@@ -3069,7 +3069,7 @@ int process_save_report_window (void)
       {
         if (template != NULL_TEMPLATE && template != save_report_template)
         {
-          wimp_msgtrans_error_report ("TempExists");
+          error_msgs_report_error ("TempExists");
           return (1);
         }
 
@@ -3259,7 +3259,7 @@ void analysis_store_saved_report_template (file_data *file, saved_report *report
     }
     else
     {
-      wimp_msgtrans_error_report ("NoMemNewTemp");
+      error_msgs_report_error ("NoMemNewTemp");
     }
   }
 

@@ -953,7 +953,7 @@ int initialise (void)
   msgs_lookup ("TaskName", task_name, sizeof (task_name));
   task_handle = wimp_initialise (wimp_VERSION_RO38, task_name, (wimp_message_list *) &message_list, &wimp_version);
 
-  already_running = test_for_duplicate_task (task_name, task_handle, "DupTask", "DupTaskB");
+  already_running = tasks_test_for_duplicate (task_name, task_handle, "DupTask", "DupTaskB");
 
   /* Initialise the flex heap. */
 

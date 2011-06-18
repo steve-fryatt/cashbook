@@ -216,7 +216,7 @@ int send_clipboard (wimp_message *message)
     return 0;
   }
 
-  send_start_data_save_block (requestblock->w, requestblock->i, requestblock->pos, requestblock->my_ref,
+  transfer_save_start_block (requestblock->w, requestblock->i, requestblock->pos, requestblock->my_ref,
                              &clipboard_data, clipboard_length, 0xfff, "CutText");
 
   return 1;

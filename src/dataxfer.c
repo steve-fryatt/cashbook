@@ -294,7 +294,7 @@ void terminate_user_drag (wimp_dragged *drag)
   if (filetype != 0)
   {
     wimp_get_pointer_info (&pointer);
-    send_start_data_save_function (pointer.w, pointer.i, pointer.pos, 0, drag_end_save, 0, filetype, leafname);
+    transfer_save_start_callback (pointer.w, pointer.i, pointer.pos, 0, drag_end_save, 0, filetype, leafname);
   }
 }
 

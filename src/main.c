@@ -2496,7 +2496,7 @@ void user_message_handler (wimp_message *message)
       {
         /* If your_ref != 0, we must have started the process so it must be the clipboard. */
 
-        receive_reply_data_save_block (message, &clipboard_data);
+        transfer_load_reply_datasave_block (message, &clipboard_data);
       }
       else
       {
@@ -2508,13 +2508,13 @@ void user_message_handler (wimp_message *message)
 
         if (initialise_data_load (message))
         {
-          receive_reply_data_save_function (message, drag_end_load);
+          transfer_load_reply_datasave_callback (message, drag_end_load);
         }
       }
       break;
 
     case message_DATA_SAVE_ACK:
-      send_reply_data_save_ack (message);
+      transfer_save_reply_datasaveack (message);
       break;
 
     case message_DATA_LOAD:
@@ -2526,7 +2526,7 @@ void user_message_handler (wimp_message *message)
          * and clipboard_size will return as 0.
          */
 
-        clipboard_size = receive_reply_data_load (message, NULL);
+        clipboard_size = transfer_load_reply_dataload (message, NULL);
         if (clipboard_size > 0)
         {
           paste_received_clipboard (&clipboard_data, clipboard_size);
@@ -2540,18 +2540,18 @@ void user_message_handler (wimp_message *message)
 
         if (initialise_data_load (message))
         {
-          receive_init_quick_data_load_function (message, drag_end_load);
-          receive_reply_data_load (message, NULL);
+          transfer_load_start_direct_callback (message, drag_end_load);
+          transfer_load_reply_dataload (message, NULL);
         }
       }
       break;
 
     case message_RAM_FETCH:
-      send_reply_ram_fetch (message, task_handle);
+      transfer_save_reply_ramfetch (message, task_handle);
       break;
 
     case message_RAM_TRANSMIT:
-      clipboard_size = recieve_reply_ram_transmit (message, NULL);
+      clipboard_size = transfer_load_reply_ramtransmit (message, NULL);
       if (clipboard_size > 0)
       {
         paste_received_clipboard (&clipboard_data, clipboard_size);
@@ -2634,7 +2634,7 @@ void bounced_message_handler (wimp_message *message)
       break;
 
     case message_RAM_FETCH:
-      receive_bounced_ram_fetch (message);
+      transfer_load_bounced_ramfetch (message);
       break;
 
     case message_PRINT_SAVE:

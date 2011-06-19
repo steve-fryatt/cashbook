@@ -114,7 +114,6 @@ osbool			main_quit_flag = FALSE;
 int main(int argc, char *argv[])
 {
 	main_initialise();
-
 	main_parse_command_line(argc, argv);
 
 	main_poll_loop();

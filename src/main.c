@@ -78,6 +78,8 @@
 static void		main_poll_loop(void);
 static void		main_initialise(void);
 static void		main_parse_command_line(int argc, char *argv[]);
+static osbool		main_message_quit(wimp_message *message);
+static osbool		main_message_prequit(wimp_message *message);
 
 
 
@@ -318,6 +320,9 @@ static void main_initialise(void)
 	if (tasks_test_for_duplicate(task_name, main_task_handle, "DupTask", "DupTaskB"))
 		main_quit_flag = TRUE;
 
+	event_add_message_handler(message_QUIT, EVENT_MESSAGE_INCOMING, main_message_quit);
+	event_add_message_handler(message_PRE_QUIT, EVENT_MESSAGE_INCOMING, main_message_prequit);
+
 	/* Initialise the flex heap. */
 
 	flex_init(task_name, 0, 0);
@@ -462,10 +467,32 @@ static void main_parse_command_line(int argc, char *argv[])
 }
 
 
+/**
+ * Handle incoming Message_Quit.
+ */
+
+static osbool main_message_quit(wimp_message *message)
+{
+	main_quit_flag = TRUE;
+
+	return TRUE;
+}
 
 
+/**
+ * Handle incoming Message_PreQuit.
+ */
 
+static osbool main_message_prequit(wimp_message *message)
+{
+	if (!check_for_unsaved_files())
+		return TRUE;
 
+	message->your_ref = message->my_ref;
+	wimp_send_message(wimp_USER_MESSAGE_ACKNOWLEDGE, message, message->sender);
+
+	return TRUE;
+}
 
 
 
@@ -3062,18 +3089,6 @@ static void user_message_handler (wimp_message *message)
 
   switch (message->action)
   {
-    case message_QUIT:
-      main_quit_flag=TRUE;
-      break;
-
-    case message_PRE_QUIT:
-      if (check_for_unsaved_files ())
-      {
-        message->your_ref = message->my_ref;
-        wimp_send_message (wimp_USER_MESSAGE_ACKNOWLEDGE, message, message->sender);
-      }
-      break;
-
     case message_CLAIM_ENTITY:
       release_clipboard (message);
       break;

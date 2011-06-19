@@ -199,7 +199,7 @@ void close_report (file_data *file, report_data *report)
     report->window = wimp_create_window (windows.report_window_def);
     windows_open (report->window);
 
-    add_ihelp_window (report->window, "Report", NULL);
+    ihelp_add_window (report->window, "Report", NULL);
   }
   else
   {
@@ -284,7 +284,7 @@ void delete_report_window (file_data *file, report_data *report)
     {
       analysis_force_close_report_save_window (file, report);
 
-      remove_ihelp_window (report->window);
+      ihelp_remove_window (report->window);
 
       wimp_delete_window (report->window);
       report->window = NULL;

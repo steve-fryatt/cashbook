@@ -234,15 +234,15 @@ void create_accounts_window (file_data *file, int type)
 
     if (type == ACCOUNT_FULL)
     {
-      add_ihelp_window (file->account_windows[entry].account_window , "AccList", decode_account_window_help);
-      add_ihelp_window (file->account_windows[entry].account_pane , "AccListTB", NULL);
-      add_ihelp_window (file->account_windows[entry].account_footer , "AccListFB", NULL);
+      ihelp_add_window (file->account_windows[entry].account_window , "AccList", decode_account_window_help);
+      ihelp_add_window (file->account_windows[entry].account_pane , "AccListTB", NULL);
+      ihelp_add_window (file->account_windows[entry].account_footer , "AccListFB", NULL);
     }
     else
     {
-      add_ihelp_window (file->account_windows[entry].account_window , "HeadList", decode_account_window_help);
-      add_ihelp_window (file->account_windows[entry].account_pane , "HeadListTB", NULL);
-      add_ihelp_window (file->account_windows[entry].account_footer , "HeadListFB", NULL);
+      ihelp_add_window (file->account_windows[entry].account_window , "HeadList", decode_account_window_help);
+      ihelp_add_window (file->account_windows[entry].account_pane , "HeadListTB", NULL);
+      ihelp_add_window (file->account_windows[entry].account_footer , "HeadListFB", NULL);
     }
 
     windows_open (file->account_windows[entry].account_window);
@@ -280,21 +280,21 @@ void delete_accounts_window (file_data *file, int type)
 
     if (file->account_windows[entry].account_window != NULL)
     {
-      remove_ihelp_window (file->account_windows[entry].account_window);
+      ihelp_remove_window (file->account_windows[entry].account_window);
       wimp_delete_window (file->account_windows[entry].account_window);
       file->account_windows[entry].account_window = NULL;
     }
 
     if (file->account_windows[entry].account_pane != NULL)
     {
-      remove_ihelp_window (file->account_windows[entry].account_footer);
+      ihelp_remove_window (file->account_windows[entry].account_footer);
       wimp_delete_window (file->account_windows[entry].account_pane);
       file->account_windows[entry].account_pane = NULL;
     }
 
     if (file->account_windows[entry].account_footer != NULL)
     {
-      remove_ihelp_window (file->account_windows[entry].account_footer);
+      ihelp_remove_window (file->account_windows[entry].account_footer);
       wimp_delete_window (file->account_windows[entry].account_footer);
       file->account_windows[entry].account_footer = NULL;
     }

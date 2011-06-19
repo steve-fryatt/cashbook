@@ -164,8 +164,8 @@ void create_sorder_window (file_data *file)
 
     /* Open the window. */
 
-    add_ihelp_window (file->sorder_window.sorder_window , "SOrder", decode_sorder_window_help);
-    add_ihelp_window (file->sorder_window.sorder_pane , "SOrderTB", NULL);
+    ihelp_add_window (file->sorder_window.sorder_window , "SOrder", decode_sorder_window_help);
+    ihelp_add_window (file->sorder_window.sorder_pane , "SOrderTB", NULL);
 
     windows_open (file->sorder_window.sorder_window);
     windows_open_nested_as_toolbar (file->sorder_window.sorder_pane,
@@ -186,8 +186,8 @@ void delete_sorder_window (file_data *file)
 
   if (file->sorder_window.sorder_window != NULL)
   {
-    remove_ihelp_window (file->sorder_window.sorder_window);
-    remove_ihelp_window (file->sorder_window.sorder_pane);
+    ihelp_remove_window (file->sorder_window.sorder_window);
+    ihelp_remove_window (file->sorder_window.sorder_pane);
 
     wimp_delete_window (file->sorder_window.sorder_window);
     wimp_delete_window (file->sorder_window.sorder_pane);

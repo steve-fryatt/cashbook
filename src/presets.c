@@ -158,8 +158,8 @@ void create_preset_window (file_data *file)
 
     /* Open the window. */
 
-    add_ihelp_window (file->preset_window.preset_window , "Preset", decode_preset_window_help);
-    add_ihelp_window (file->preset_window.preset_pane , "PresetTB", NULL);
+    ihelp_add_window (file->preset_window.preset_window , "Preset", decode_preset_window_help);
+    ihelp_add_window (file->preset_window.preset_pane , "PresetTB", NULL);
 
     windows_open (file->preset_window.preset_window);
     windows_open_nested_as_toolbar (file->preset_window.preset_pane,
@@ -180,8 +180,8 @@ void delete_preset_window (file_data *file)
 
   if (file->preset_window.preset_window != NULL)
   {
-    remove_ihelp_window (file->preset_window.preset_window);
-    remove_ihelp_window (file->preset_window.preset_pane);
+    ihelp_remove_window (file->preset_window.preset_window);
+    ihelp_remove_window (file->preset_window.preset_pane);
 
     wimp_delete_window (file->preset_window.preset_window);
     wimp_delete_window (file->preset_window.preset_pane);

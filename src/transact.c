@@ -167,8 +167,8 @@ void create_transaction_window (file_data *file)
                                    file->transaction_window.transaction_window,
                                    TRANSACT_TOOLBAR_HEIGHT-4);
 
-    add_ihelp_window (file->transaction_window.transaction_window , "Transact", decode_transact_window_help);
-    add_ihelp_window (file->transaction_window.transaction_pane , "TransactTB", NULL);
+    ihelp_add_window (file->transaction_window.transaction_window , "Transact", decode_transact_window_help);
+    ihelp_add_window (file->transaction_window.transaction_pane , "TransactTB", NULL);
 
     /* Put the caret into the first empty line. */
 
@@ -188,8 +188,8 @@ void delete_transaction_window (file_data *file)
 
   if (file->transaction_window.transaction_window != NULL)
   {
-    remove_ihelp_window (file->transaction_window.transaction_window);
-    remove_ihelp_window (file->transaction_window.transaction_pane);
+    ihelp_remove_window (file->transaction_window.transaction_window);
+    ihelp_remove_window (file->transaction_window.transaction_pane);
 
     wimp_delete_window (file->transaction_window.transaction_window);
     wimp_delete_window (file->transaction_window.transaction_pane);

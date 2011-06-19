@@ -1,10 +1,10 @@
 /* CashBook - mainmenu.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_MAINMENU
-#define _ACCOUNTS_MAINMENU
+#ifndef CASHBOOK_MAINMENU
+#define CASHBOOK_MAINMENU
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
@@ -13,7 +13,6 @@
 /* Menu IDs */
 
 #define MENU_ID_MAIN       0
-#define MENU_ID_ICONBAR    1
 #define MENU_ID_ACCOPEN    2
 #define MENU_ID_ACCOUNT    3
 #define MENU_ID_DATE       4
@@ -76,13 +75,6 @@
 /* RefDesc menu */
 
 #define REFDESC_MENU_CHEQUE 0
-
-/* Iconbar menu */
-
-#define ICONBAR_MENU_INFO 0
-#define ICONBAR_MENU_HELP 1
-#define ICONBAR_MENU_CHOICES 2
-#define ICONBAR_MENU_QUIT 3
 
 /* AccList menu */
 
@@ -190,7 +182,7 @@ saved_report_menu_link;
 
 void *claim_transient_shared_memory (int amount);
 void *extend_transient_shared_memory (int increase);
-char *get_current_menu_name (char *buffer);
+char *mainmenu_get_current_menu_name (char *buffer);
 
 /* Main menu */
 
@@ -240,12 +232,6 @@ wimp_menu *build_refdesc_menu (file_data *file, int menu_type, int start_line);
 void mainmenu_add_refdesc_menu_entry (refdesc_menu_link **entries, int *count, int *max, char *new);
 int mainmenu_cmp_refdesc_menu_entries (const void *va, const void *vb);
 
-/* Iconbar menu */
-
-void set_iconbar_menu (void);
-void open_iconbar_menu (wimp_pointer *pointer);
-
-void decode_iconbar_menu (wimp_selection *selection, wimp_pointer *pointer);
 
 /* Account list menu */
 

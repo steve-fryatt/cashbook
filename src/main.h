@@ -1,20 +1,26 @@
 /* CashBook - main.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_MAIN
-#define _ACCOUNTS_MAIN
+#ifndef CASHBOOK_MAIN
+#define CASHBOOK_MAIN
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+#include "oslib/wimp.h"
 
-int main (int argc, char *argv[]);
-int poll_loop (void);
-void mouse_click_handler (wimp_pointer *);
-void key_press_handler (wimp_key *key);
-void menu_selection_handler (wimp_selection *);
-void scroll_request_handler (wimp_scroll *);
-void user_message_handler (wimp_message *);
-void bounced_message_handler (wimp_message *);
+/**
+ * Application-wide global variables.
+ */
+
+extern wimp_t		main_task_handle;
+extern osbool		main_quit_flag;
+
+
+/**
+ * Main code entry point.
+ */
+
+int main(int argc, char *argv[]);
 
 #endif
+

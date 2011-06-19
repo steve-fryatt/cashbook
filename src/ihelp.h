@@ -1,53 +1,51 @@
 /* CashBook - ihelp.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_IHELP
-#define _ACCOUNTS_IHELP
+#ifndef CASHBOOK_IHELP
+#define CASHBOOK_IHELP
 
-/* ==================================================================================================================
- * Static constants
- */
 
 #define IHELP_LENGTH 236
+#define IHELP_INAME_LEN 64
 
-/* ==================================================================================================================
- * Data structures
+
+/**
+ * Initialise the interactive help system.
  */
 
-typedef struct ihelp_window
-{
-  wimp_w window;
-  char   name[13];
-  char   modifier[13];
-  void   (*pointer_location) (char *, wimp_w, wimp_i, os_coord, wimp_mouse_state);
+void ihelp_initialise(void);
 
-  struct ihelp_window *next;
-}
-ihelp_window;
 
-/* ==================================================================================================================
- * Function prototypes.
+/**
+ * Add a new interactive help window definition.
+ *
+ * \param window		The window handle to attach help to.
+ * \param *name			The token name to associate with the window.
+ * \param *decode		A function to use to help decode clicks in the window.
  */
 
-/* Adding and removing windows */
+void ihelp_add_window(wimp_w window, char* name, void (*decode) (char *, wimp_w, wimp_i, os_coord, wimp_mouse_state));
 
-void add_ihelp_window (wimp_w window, char* name, void (*decode) (char *, wimp_w, wimp_i, os_coord, wimp_mouse_state));
-void remove_ihelp_window (wimp_w window);
 
-/* Setting a window's modifier. */
+/**
+ * Remove an interactive help definition from the window list.
+ *
+ * \param window		The window handle to remove from the list.
+ */
 
-void ihelp_set_modifier (wimp_w window, char *modifier);
+void ihelp_remove_window(wimp_w window);
 
-/* Finding windows */
 
-ihelp_window *find_ihelp_window (wimp_w window);
+/**
+ * Change the window token modifier for a window's interactive help definition.
+ *
+ * \param window		The window handle to update.
+ * \param *modifier		The new window token modifier text.
+ */
 
-/* Token generation */
-
-char *find_ihelp (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_mouse_state buttons);
-
-int send_reply_help_request (wimp_message *message);
+void ihelp_set_modifier(wimp_w window, char *modifier);
 
 #endif
+

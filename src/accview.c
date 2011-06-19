@@ -203,15 +203,15 @@ void create_accview_window (file_data *file, int account)
 
       if (file->accounts[account].type == ACCOUNT_FULL)
       {
-        add_ihelp_window ((file->accounts[account].account_view)->accview_window , "AccView",
+        ihelp_add_window ((file->accounts[account].account_view)->accview_window , "AccView",
                           decode_accview_window_help);
-        add_ihelp_window ((file->accounts[account].account_view)->accview_pane , "AccViewTB", NULL);
+        ihelp_add_window ((file->accounts[account].account_view)->accview_pane , "AccViewTB", NULL);
       }
       else
       {
-        add_ihelp_window ((file->accounts[account].account_view)->accview_window , "HeadView",
+        ihelp_add_window ((file->accounts[account].account_view)->accview_window , "HeadView",
                           decode_accview_window_help);
-        add_ihelp_window ((file->accounts[account].account_view)->accview_pane , "HeadViewTB", NULL);
+        ihelp_add_window ((file->accounts[account].account_view)->accview_pane , "HeadViewTB", NULL);
       }
 
       windows_open ((file->accounts[account].account_view)->accview_window);
@@ -238,13 +238,13 @@ void delete_accview_window (file_data *file, int account)
   {
     if ((file->accounts[account].account_view)->accview_window != NULL)
     {
-      remove_ihelp_window ((file->accounts[account].account_view)->accview_window);
+      ihelp_remove_window ((file->accounts[account].account_view)->accview_window);
       wimp_delete_window ((file->accounts[account].account_view)->accview_window);
     }
 
     if (file->accounts[account].account_view->accview_pane != NULL)
     {
-      remove_ihelp_window ((file->accounts[account].account_view)->accview_window);
+      ihelp_remove_window ((file->accounts[account].account_view)->accview_window);
       wimp_delete_window ((file->accounts[account].account_view)->accview_pane);
     }
 

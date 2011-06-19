@@ -1,9 +1,7 @@
 /* Menus for CashBook
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  *
- * Version 1.13
- * 30 November 2008
  */
 
 
@@ -11,15 +9,14 @@
  * Icon bar menu.
  */
 
-menu (iconbar_menu, "CashBook")
+menu(iconbar_menu, "CashBook")
 {
-  item ("Info")
-  {
-    d_box (prog_info);
-  }
-  item ("Help");
-  item ("Choices...");
-  item ("Quit");
+	item("Info") {
+		d_box(ProgInfo);
+	}
+	item("Help");
+	item("Choices...");
+	item("Quit");
 }
 
 /* ==================================================================================================================

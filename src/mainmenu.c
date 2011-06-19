@@ -1,6 +1,6 @@
 /* CashBook - mainmenu.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -47,6 +47,7 @@
 #include "file.h"
 #include "fileinfo.h"
 #include "goto.h"
+#include "main.h"
 #include "presets.h"
 #include "report.h"
 #include "sorder.h"
@@ -131,7 +132,7 @@ void *extend_transient_shared_memory (int increase)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-char *get_current_menu_name (char *buffer)
+char *mainmenu_get_current_menu_name(char *buffer)
 {
   extern global_menus menus;
 
@@ -141,10 +142,6 @@ char *get_current_menu_name (char *buffer)
   if (menus.menu_id == MENU_ID_MAIN)
   {
     strcpy (buffer, "MainMenu");
-  }
-  else if (menus.menu_id == MENU_ID_ICONBAR)
-  {
-    strcpy (buffer, "IconBarMenu");
   }
   else if (menus.menu_id == MENU_ID_ACCOPEN)
   {
@@ -247,11 +244,11 @@ void open_main_menu (file_data *file, wimp_pointer *pointer)
 
   if (file->account_count == 0)
   {
-    menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = menus.icon_bar;
+    menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = menus.preset; /* \TODO -- Ugh! */
   }
   if (file->saved_report_count == 0)
   {
-    menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = menus.icon_bar;
+    menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = menus.preset; /* \TODO -- Ugh! */
   }
 
   initialise_save_boxes (file, 0, 0);
@@ -1676,58 +1673,6 @@ int mainmenu_cmp_refdesc_menu_entries (const void *va, const void *vb)
   return (string_nocase_strcmp(a->name, b->name));
 }
 
-/* ==================================================================================================================
- * Iconbar menu
- */
-
-/* Set and open the icon bar menu. */
-
-void set_iconbar_menu (void)
-{
-  return;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_iconbar_menu (wimp_pointer *pointer)
-{
-  extern global_menus   menus;
-
-
-  set_iconbar_menu ();
-
-  menus.menu_up = menus_create_iconbar_menu (menus.icon_bar, pointer);
-  menus.menu_id = MENU_ID_ICONBAR;
-}
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Decode the menu selections. */
-
-void decode_iconbar_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  extern int            quit_flag;
-
-
-  if (selection->items[0] == ICONBAR_MENU_HELP) /* Help */
-  {
-    os_cli ("%Filer_Run <CashBook$Dir>.!Help");
-  }
-  if (selection->items[0] == ICONBAR_MENU_CHOICES) /* Choices... */
-  {
-    open_choices_window (pointer);
-  }
-  else if (selection->items[0] == ICONBAR_MENU_QUIT) /* Quit */
-  {
-    if (!check_for_unsaved_files ())
-    {
-      quit_flag = TRUE;
-    }
-  }
-
-  set_iconbar_menu ();
-}
 
 /* ==================================================================================================================
  * Account list menu

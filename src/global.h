@@ -959,8 +959,6 @@ typedef struct
   wimp_menu   *menu_up;
   int         menu_id;
 
-  wimp_menu   *icon_bar;
-
   wimp_menu   *main;
   wimp_menu   *account_sub;
   wimp_menu   *transaction_sub;

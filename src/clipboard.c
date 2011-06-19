@@ -1,6 +1,6 @@
 /* CashBoob - clipboard.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* Acorn C header files */
@@ -23,6 +23,7 @@
 /* Application header files */
 
 #include "global.h"
+#include "main.h"
 #include "clipboard.h"
 
 /* ANSI C header files */
@@ -182,12 +183,10 @@ int release_clipboard (wimp_message *message)
 {
   wimp_full_message_claim_entity *claimblock = (wimp_full_message_claim_entity *) message;
 
-  extern wimp_t                  task_handle;
-
 
   /* Unset the contents of the clipboard if the claim was for that. */
 
-  if ((clipboard_data != NULL) && (claimblock->sender != task_handle) && (claimblock->flags & wimp_CLAIM_CLIPBOARD))
+  if ((clipboard_data != NULL) && (claimblock->sender != main_task_handle) && (claimblock->flags & wimp_CLAIM_CLIPBOARD))
   {
     flex_free ((flex_ptr) &clipboard_data);
     clipboard_length = 0;

@@ -406,6 +406,7 @@ static void choices_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer
 	choices_font_menu = fontlist_build();
 	choices_font_icon = pointer->i;
 	event_set_menu_block(choices_font_menu);
+	templates_set_menu(TEMPLATES_MENU_FONTS, choices_font_menu);
 }
 
 

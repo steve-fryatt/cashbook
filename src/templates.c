@@ -155,6 +155,22 @@ wimp_menu *templates_get_menu(enum templates_menus menu)
 
 
 /**
+ * Update the address of a menu to reflect changes in status from within
+ * a client module.
+ *
+ * \param menu		The menu file index of the required menu.
+ * \param *address	The new address of the menu block.
+ */
+
+void templates_set_menu(enum templates_menus menu, wimp_menu *address)
+{
+	if (menu >= 0 && menu < TEMPLATES_MENU_MAX_EXTENT)
+		templates_menu_list[menu] = address;
+
+}
+
+
+/**
  * Return a pointer to the name of the current menu.
  *
  * \param *buffer	Pointer to a buffer to hold the menu name.
@@ -178,6 +194,8 @@ char *templates_get_current_menu_name(char *buffer)
 		strcpy(buffer, "PresetMenu");
 	else if (menu_up == templates_menu_list[TEMPLATES_MENU_REPORT])
 		strcpy(buffer, "ReportMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_FONTS])
+		strcpy(buffer, "FontMenu");
 	else
 		mainmenu_get_current_menu_name(buffer);
 

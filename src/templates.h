@@ -24,6 +24,7 @@ enum templates_menus {
 	TEMPLATES_MENU_SORDER,							/**< The standing order window menu.		*/
 	TEMPLATES_MENU_PRESET,							/**< The transaction preset window menu.	*/
 	TEMPLATES_MENU_REPORT,							/**< The report window menu.			*/
+	TEMPLATES_MENU_FONTS,							/**< The fonts menu (built on the fly).		*/
 	TEMPLATES_MENU_MAX_EXTENT						/**< Determine the number of entries.		*/
 };
 
@@ -93,6 +94,17 @@ void templates_link_menu_dialogue(char *dbox, wimp_w w);
  */
 
 wimp_menu *templates_get_menu(enum templates_menus menu);
+
+
+/**
+ * Update the address of a menu to reflect changes in status from within
+ * a client module.
+ *
+ * \param menu		The menu file index of the required menu.
+ * \param *address	The new address of the menu block.
+ */
+
+void templates_set_menu(enum templates_menus menu, wimp_menu *address);
 
 
 /**

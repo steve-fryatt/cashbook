@@ -521,11 +521,10 @@ static void choices_change_pane(int pane)
 	}
 }
 
-/* ==================================================================================================================
- * Set choices window contents
- */
 
-/* Set the contents of the Choices window to reflect the current settings. */
+/**
+ * Set the contents of the Choices window to reflect the current settings.
+ */
 
 static void choices_set_window(void)
 {

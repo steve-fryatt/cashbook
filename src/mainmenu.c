@@ -46,6 +46,7 @@
 #include "find.h"
 #include "file.h"
 #include "fileinfo.h"
+#include "fontlist.h"
 #include "goto.h"
 #include "main.h"
 #include "presets.h"
@@ -86,8 +87,6 @@ static report_data *report_menu_block = NULL;
 
 static saved_report_menu_link *replist_link = NULL;
 
-static byte      *font_buf1 = NULL;
-static byte      *font_buf2 = NULL;
 static wimp_w    font_window;
 static wimp_i    font_icon;
 
@@ -2311,18 +2310,9 @@ int mainmenu_cmp_replist_menu_entries (const void *va, const void *vb)
 
 void open_font_list_menu (wimp_pointer *pointer)
 {
-  int size1, size2;
-
   extern global_menus   menus;
 
-  font_list_fonts (0, font_RETURN_FONT_MENU, 0, 0, 0, 0, &size1, &size2);
-
-  font_buf1 = heap_alloc (size1);
-  font_buf2 = heap_alloc (size2);
-
-  font_list_fonts (font_buf1, font_RETURN_FONT_MENU, size1, font_buf2, size2, 0, NULL, NULL);
-
-  menus.font_list = (wimp_menu *) font_buf1;
+  menus.font_list = fontlist_build();
 
   menus.menu_up = menus_create_popup_menu (menus.font_list, pointer);
   menus.menu_id = MENU_ID_FONTLIST;
@@ -2334,55 +2324,24 @@ void open_font_list_menu (wimp_pointer *pointer)
 
 void decode_font_list_menu (wimp_selection *selection, wimp_pointer *pointer)
 {
-  int  size;
-  char *name, *sub, *c;
+  char *name;
 
   extern global_windows windows;
 
-
-  /* Decode the font menu. */
-
-  font_decode_menu (0, font_buf1, (byte *) selection, 0, 0, NULL, &size);
-  name = heap_alloc (size);
-  font_decode_menu (0, font_buf1, (byte *) selection, (byte *) name, size, NULL, NULL);
-
-  /* Extract the font name from the data returned from font_decode_menu (). */
-
-  sub = strstr (name, "\\F");
-  if (sub == NULL)
-  {
-    sub = name;
-  }
-  else
-  {
-    sub += 2;
-  }
-
-  if ((c = strchr (sub, '\\')) != NULL)
-  {
-    *c = '\0';
-  }
+  name = fontlist_decode(selection);
+  if (name == NULL)
+  	return;
 
   /* Update the correct icon. */
 
-  if (font_window== windows.choices_pane[CHOICE_PANE_REPORT] && font_icon == CHOICE_ICON_NFONTMENU)
+  if (font_window== windows.report_format && font_icon == REPORT_FORMAT_NFONTMENU)
   {
-    sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT), "%s", sub);
-    wimp_set_icon_state (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT, 0, 0);
-  }
-  else if (font_window== windows.choices_pane[CHOICE_PANE_REPORT] && font_icon == CHOICE_ICON_BFONTMENU)
-  {
-    sprintf (icons_get_indirected_text_addr (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT), "%s", sub);
-    wimp_set_icon_state (windows.choices_pane[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT, 0, 0);
-  }
-  else if (font_window== windows.report_format && font_icon == REPORT_FORMAT_NFONTMENU)
-  {
-    sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_NFONT), "%s", sub);
+    sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_NFONT), "%s", name);
     wimp_set_icon_state (windows.report_format, REPORT_FORMAT_NFONT, 0, 0);
   }
   else if (font_window== windows.report_format && font_icon == REPORT_FORMAT_BFONTMENU)
   {
-    sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_BFONT), "%s", sub);
+    sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_BFONT), "%s", name);
     wimp_set_icon_state (windows.report_format, REPORT_FORMAT_BFONT, 0, 0);
   }
 
@@ -2394,7 +2353,7 @@ void decode_font_list_menu (wimp_selection *selection, wimp_pointer *pointer)
 
   if (pointer->buttons != wimp_CLICK_ADJUST)
   {
-    deallocate_font_list_menu ();
+    fontlist_destroy();
   }
 }
 
@@ -2402,15 +2361,5 @@ void decode_font_list_menu (wimp_selection *selection, wimp_pointer *pointer)
 
 void deallocate_font_list_menu (void)
 {
-  if (font_buf1 != NULL)
-  {
-    heap_free (font_buf1);
-    font_buf1 = NULL;
-  }
-
-  if (font_buf2 != NULL)
-  {
-    heap_free (font_buf2);
-    font_buf2 = NULL;
-  }
+	fontlist_destroy();
 }

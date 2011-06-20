@@ -416,6 +416,7 @@ static void main_initialise(void)
 	load_templates(&windows, sprites);
 
 	iconbar_initialise();
+	choices_initialise();
 
 	ihelp_initialise();
 	url_initialise();
@@ -546,70 +547,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
   windows->save_as = templates_create_window("SaveAs");
   ihelp_add_window (windows->save_as, "SaveAs", NULL);
-
-  /* Choices Window.
-   *
-   * Created now.
-   */
-
-  windows->choices = templates_create_window("Choices");
-  ihelp_add_window (windows->choices, "Choices", NULL);
-
-  /* Choices Pane 0.
-   *
-   * Created now.
-   */
-
-  windows->choices_pane[CHOICE_PANE_GENERAL] = templates_create_window("Choices0");
-  ihelp_add_window (windows->choices_pane[CHOICE_PANE_GENERAL], "Choices0", NULL);
-
-  /* Choices Pane 1.
-   *
-   * Created now.
-   */
-
-    windows->choices_pane[CHOICE_PANE_CURRENCY] = templates_create_window("Choices1");
-    ihelp_add_window (windows->choices_pane[CHOICE_PANE_CURRENCY], "Choices1", NULL);
-
-  /* Choices Pane 2.
-   *
-   * Created now.
-   */
-
-    windows->choices_pane[CHOICE_PANE_SORDER] = templates_create_window("Choices2");
-    ihelp_add_window (windows->choices_pane[CHOICE_PANE_SORDER], "Choices2", NULL);
-
-  /* Choices Pane 3.
-   *
-   * Created now.
-   */
-
-    windows->choices_pane[CHOICE_PANE_PRINT] = templates_create_window("Choices3");
-    ihelp_add_window (windows->choices_pane[CHOICE_PANE_PRINT], "Choices3", NULL);
-
-  /* Choices Pane 4.
-   *
-   * Created now.
-   */
-
-    windows->choices_pane[CHOICE_PANE_TRANSACT] = templates_create_window("Choices4");
-    ihelp_add_window (windows->choices_pane[CHOICE_PANE_TRANSACT], "Choices4", NULL);
-
-  /* Choices Pane 5.
-   *
-   * Created now.
-   */
-
-    windows->choices_pane[CHOICE_PANE_REPORT] = templates_create_window("Choices5");
-    ihelp_add_window (windows->choices_pane[CHOICE_PANE_REPORT], "Choices5", NULL);
-
-  /* Choices Pane 6.
-   *
-   * Created now.
-   */
-
-    windows->choices_pane[CHOICE_PANE_ACCOUNT] = templates_create_window("Choices6");
-    ihelp_add_window (windows->choices_pane[CHOICE_PANE_ACCOUNT], "Choices6", NULL);
 
   /* Edit Account Window.
    *
@@ -950,140 +887,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
        case ICOMP_ICON_LOG:
          close_import_complete_dialogue (TRUE);
          break;
-    }
-  }
-
-  /* Choices window. */
-
-  else if (pointer->w == windows.choices)
-  {
-    switch ((int) pointer->i)
-    {
-      case CHOICE_ICON_APPLY:
-        read_choices_window ();
-        if (pointer->buttons == wimp_CLICK_SELECT)
-        {
-          close_choices_window ();
-        }
-        break;
-
-      case CHOICE_ICON_SAVE: /* Save */
-        read_choices_window ();
-        config_save();
-        if (pointer->buttons == wimp_CLICK_SELECT)
-        {
-          close_choices_window ();
-        }
-        break;
-
-      case CHOICE_ICON_CANCEL: /* Cancel */
-        if (pointer->buttons == wimp_CLICK_SELECT) /* Close window. */
-        {
-          close_choices_window ();
-        }
-        else if (pointer->buttons == wimp_CLICK_ADJUST) /* Reset window contents. */
-        {
-          set_choices_window ();
-          redraw_choices_window ();
-          icons_replace_caret_in_window (windows.choices_pane[CHOICE_PANE_CURRENCY]);
-        }
-        break;
-
-      case CHOICE_ICON_DEFAULT: /* Default */
-        if (pointer->buttons == wimp_CLICK_SELECT)
-        {
-          config_restore_default();
-          redraw_choices_window();
-        }
-        break;
-
-      default:
-        if (pointer->i >= CHOICE_ICON_SELECT && pointer->i < (CHOICE_ICON_SELECT + CHOICES_PANES))
-        {
-          change_choices_pane (pointer->i - CHOICE_ICON_SELECT);
-          icons_set_selected (windows.choices, pointer->i, 1);
-        }
-        break;
-    }
-  }
-
-  else if (pointer->w == windows.choices_pane[CHOICE_PANE_CURRENCY])
-  {
-    if (pointer->i == CHOICE_ICON_TERRITORYNUM)
-    {
-      icons_set_group_shaded_when_on (windows.choices_pane[CHOICE_PANE_CURRENCY], CHOICE_ICON_TERRITORYNUM, 10,
-                                      CHOICE_ICON_FORMATFRAME, CHOICE_ICON_FORMATLABEL,
-                                      CHOICE_ICON_DECIMALPLACELABEL, CHOICE_ICON_DECIMALPLACE,
-                                      CHOICE_ICON_DECIMALPOINTLABEL, CHOICE_ICON_DECIMALPOINT,
-                                      CHOICE_ICON_NEGFRAME, CHOICE_ICON_NEGLABEL,
-                                      CHOICE_ICON_NEGMINUS, CHOICE_ICON_NEGBRACE);
-      icons_replace_caret_in_window (windows.choices_pane[CHOICE_PANE_CURRENCY]);
-    }
-  }
-
-  else if (pointer->w == windows.choices_pane[CHOICE_PANE_SORDER])
-  {
-    if (pointer->i == CHOICE_ICON_TERRITORYSO)
-    {
-      icons_set_group_shaded_when_on (windows.choices_pane[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO, 9,
-                                      CHOICE_ICON_WEEKENDFRAME, CHOICE_ICON_WEEKENDLABEL,
-                                      CHOICE_ICON_SOSUN, CHOICE_ICON_SOMON, CHOICE_ICON_SOTUE, CHOICE_ICON_SOWED,
-                                      CHOICE_ICON_SOTHU, CHOICE_ICON_SOFRI, CHOICE_ICON_SOSAT);
-    }
-  }
-
-  else if (pointer->w == windows.choices_pane[CHOICE_PANE_PRINT])
-  {
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == CHOICE_ICON_STANDARD || pointer->i == CHOICE_ICON_FASTTEXT ||
-         pointer->i == CHOICE_ICON_PORTRAIT || pointer->i == CHOICE_ICON_LANDSCAPE ||
-         pointer->i == CHOICE_ICON_MINCH || pointer->i == CHOICE_ICON_MCM ||
-         pointer->i == CHOICE_ICON_MMM))
-    {
-      icons_set_selected (windows.choices_pane[CHOICE_PANE_PRINT], pointer->i, 1);
-    }
-  }
-
-  else if (pointer->w == windows.choices_pane[CHOICE_PANE_REPORT])
-  {
-    if (pointer->i == CHOICE_ICON_NFONTMENU)
-    {
-      open_font_list_menu (pointer);
-    }
-
-    else if (pointer->i == CHOICE_ICON_BFONTMENU)
-    {
-      open_font_list_menu (pointer);
-    }
-  }
-
-  else if (pointer->w == windows.choices_pane[CHOICE_PANE_TRANSACT])
-  {
-    if (pointer->i == CHOICE_ICON_HILIGHTMEN)
-    {
-      colpick_open_window (windows.choices_pane[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTCOL);
-      menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
-    }
-  }
-
-  else if (pointer->w == windows.choices_pane[CHOICE_PANE_ACCOUNT])
-  {
-    if (pointer->i == CHOICE_ICON_AHILIGHTMEN)
-    {
-      colpick_open_window (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTCOL);
-      menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
-    }
-
-    else if (pointer->i == CHOICE_ICON_SHILIGHTMEN)
-    {
-      colpick_open_window (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTCOL);
-      menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
-    }
-
-    else if (pointer->i == CHOICE_ICON_OHILIGHTMEN)
-    {
-      colpick_open_window (windows.choices_pane[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTCOL);
-      menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
     }
   }
 
@@ -2802,31 +2605,6 @@ static void key_press_handler (wimp_key *key)
     }
   }
 
-  /* Choices window. */
-
-  else if (key->w == windows.choices ||
-           key->w == windows.choices_pane[CHOICE_PANE_GENERAL] ||
-           key->w == windows.choices_pane[CHOICE_PANE_CURRENCY] ||
-           key->w == windows.choices_pane[CHOICE_PANE_SORDER] ||
-           key->w == windows.choices_pane[CHOICE_PANE_PRINT] ||
-           key->w == windows.choices_pane[CHOICE_PANE_REPORT])
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        read_choices_window ();
-        close_choices_window ();
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_choices_window ();
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
 
   /* Transaction Sort Window */
 

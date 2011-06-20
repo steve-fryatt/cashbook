@@ -15,8 +15,6 @@
 #define IND_DATA_SIZE 8000
 #define MAX_LINE_LENGTH 1024
 
-#define CHOICES_PANES 7
-
 #define COLUMN_GUTTER 4
 #define LINE_GUTTER 4
 #define ICON_HEIGHT 36
@@ -931,9 +929,6 @@ typedef struct
   wimp_w      sort_sorder;
   wimp_w      sort_preset;
   wimp_w      save_rep;
-
-  wimp_w      choices;
-  wimp_w      choices_pane[CHOICES_PANES];
 
   wimp_window *transaction_window_def;
   wimp_window *transaction_pane_def;

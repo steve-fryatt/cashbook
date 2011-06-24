@@ -257,7 +257,7 @@ void close_and_print_report (file_data *file, report_data *report, int text, int
 
     report_print_report->print_pending++;
 
-    send_start_print_save (start_report_print, cancel_report_print, print_opt_text);
+    printing_send_start_print_save (start_report_print, cancel_report_print, print_opt_text);
   }
   else
   {
@@ -925,7 +925,7 @@ void open_report_print_window (file_data *file, report_data *report, wimp_pointe
   report_print_file = file;
   report_print_report = report;
 
-  open_simple_print_window (file, ptr, clear, "PrintReport", report_print_window_closed);
+  printing_open_simple_window (file, ptr, clear, "PrintReport", report_print_window_closed);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -952,7 +952,7 @@ void report_print_window_closed (int text, int format, int scale, int rotate)
 
   report_print_report->print_pending++;
 
-  send_start_print_save (start_report_print, cancel_report_print, print_opt_text);
+  printing_send_start_print_save (start_report_print, cancel_report_print, print_opt_text);
 }
 
 /* ================================================================================================================== */

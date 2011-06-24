@@ -877,7 +877,7 @@ void open_transact_print_window (file_data *file, wimp_pointer *ptr, int clear)
 
   transact_print_file = file;
 
-  open_date_print_window (file, ptr, clear, "PrintTransact", print_transact_window);
+  printing_open_advanced_window (file, ptr, clear, "PrintTransact", print_transact_window);
 }
 
 /* ==================================================================================================================

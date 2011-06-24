@@ -1087,7 +1087,7 @@ void open_preset_print_window (file_data *file, wimp_pointer *ptr, int clear)
 
   preset_print_file = file;
 
-  open_simple_print_window (file, ptr, clear, "PrintPreset", print_preset_window);
+  printing_open_simple_window (file, ptr, clear, "PrintPreset", print_preset_window);
 }
 
 /* ==================================================================================================================

@@ -996,7 +996,7 @@ void open_accview_print_window (file_data *file, int account, wimp_pointer *ptr,
   accview_print_file = file;
   accview_print_account = account;
 
-  open_date_print_window (file, ptr, clear, "PrintAccview", print_accview_window);
+  printing_open_advanced_window (file, ptr, clear, "PrintAccview", print_accview_window);
 }
 
 /* ==================================================================================================================

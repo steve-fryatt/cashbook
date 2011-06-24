@@ -1251,7 +1251,7 @@ void open_sorder_print_window (file_data *file, wimp_pointer *ptr, int clear)
 
   sorder_print_file = file;
 
-  open_simple_print_window (file, ptr, clear, "PrintSOrder", print_sorder_window);
+  printing_open_simple_window (file, ptr, clear, "PrintSOrder", print_sorder_window);
 }
 
 /* ==================================================================================================================

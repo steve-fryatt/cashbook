@@ -1283,11 +1283,11 @@ void open_account_print_window (file_data *file, int type, wimp_pointer *ptr, in
 
   if (type & ACCOUNT_FULL)
   {
-    open_simple_print_window (file, ptr, clear, "PrintAcclistAcc", print_account_window);
+    printing_open_simple_window (file, ptr, clear, "PrintAcclistAcc", print_account_window);
   }
   else if (type & ACCOUNT_IN || type & ACCOUNT_OUT)
   {
-    open_simple_print_window (file, ptr, clear, "PrintAcclistHead", print_account_window);
+    printing_open_simple_window (file, ptr, clear, "PrintAcclistHead", print_account_window);
   }
 }
 

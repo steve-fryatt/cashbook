@@ -420,6 +420,7 @@ static void main_initialise(void)
 
 	ihelp_initialise();
 	url_initialise();
+	printing_initialise();
 
 	templates_close();
 
@@ -628,22 +629,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
     windows->report_format = templates_create_window("RepFormat");
     ihelp_add_window (windows->report_format, "RepFormat", NULL);
-
-  /* Simple Print Window.
-   *
-   * Created now.
-   */
-
-    windows->simple_print = templates_create_window("SimplePrint");
-    ihelp_add_window (windows->simple_print, "SimplePrint", NULL);
-
-  /* Date Print Window.
-   *
-   * Created now.
-   */
-
-    windows->date_print = templates_create_window("DatePrint");
-    ihelp_add_window (windows->date_print, "DatePrint", NULL);
 
   /* Transaction Report Window.
    *
@@ -1371,106 +1356,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
       open_font_list_menu (pointer);
     }
 
-  }
-
-  /* Simple print window. */
-
-  else if (pointer->w == windows.simple_print)
-  {
-    if (pointer->i == SIMPLE_PRINT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.simple_print);
-        deregister_printer_update_handler (refresh_simple_print_window);
-
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_simple_print_window ();
-      }
-    }
-
-    else if (pointer->i == SIMPLE_PRINT_OK) /* 'OK' button */
-    {
-      process_simple_print_window ();
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.simple_print);
-        deregister_printer_update_handler (refresh_simple_print_window);
-      }
-    }
-
-    else if (pointer->i == SIMPLE_PRINT_STANDARD || pointer->i == SIMPLE_PRINT_FASTTEXT)
-    {
-      if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        icons_set_selected (windows.simple_print, pointer->i, 1);
-      }
-
-      icons_set_group_shaded_when_off (windows.simple_print, SIMPLE_PRINT_STANDARD, 3,
-                                       SIMPLE_PRINT_PORTRAIT, SIMPLE_PRINT_LANDSCAPE, SIMPLE_PRINT_SCALE);
-      icons_set_group_shaded_when_off (windows.simple_print, SIMPLE_PRINT_FASTTEXT, 1,
-                                       SIMPLE_PRINT_TEXTFORMAT);
-    }
-
-    else if (pointer->i == SIMPLE_PRINT_PORTRAIT || pointer->i == SIMPLE_PRINT_LANDSCAPE)
-    {
-      if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        icons_set_selected (windows.simple_print, pointer->i, 1);
-      }
-    }
-  }
-
-  /* Date-range print window. */
-
-  else if (pointer->w == windows.date_print)
-  {
-    if (pointer->i == DATE_PRINT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.date_print);
-        deregister_printer_update_handler (refresh_date_print_window);
-
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_date_print_window ();
-      }
-    }
-
-    else if (pointer->i == DATE_PRINT_OK) /* 'OK' button */
-    {
-      process_date_print_window ();
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.date_print);
-        deregister_printer_update_handler (refresh_date_print_window);
-      }
-    }
-
-    else if (pointer->i == DATE_PRINT_STANDARD || pointer->i == DATE_PRINT_FASTTEXT)
-    {
-      if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        icons_set_selected (windows.date_print, pointer->i, 1);
-      }
-
-      icons_set_group_shaded_when_off (windows.date_print, DATE_PRINT_STANDARD, 3,
-                                       DATE_PRINT_PORTRAIT, DATE_PRINT_LANDSCAPE, DATE_PRINT_SCALE);
-      icons_set_group_shaded_when_off (windows.date_print, DATE_PRINT_FASTTEXT, 1,
-                                       DATE_PRINT_TEXTFORMAT);
-    }
-
-    else if (pointer->i == DATE_PRINT_PORTRAIT || pointer->i == DATE_PRINT_LANDSCAPE)
-    {
-      if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        icons_set_selected (windows.date_print, pointer->i, 1);
-      }
-    }
   }
 
   /* Account name enrty window. */
@@ -2379,52 +2264,6 @@ static void key_press_handler (wimp_key *key)
     }
   }
 
-  /* Simple print window. */
-
-  else if (key->w == windows.simple_print)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        process_simple_print_window ();
-        close_dialogue_with_caret (windows.simple_print);
-        deregister_printer_update_handler (refresh_simple_print_window);
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.simple_print);
-        deregister_printer_update_handler (refresh_simple_print_window);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
-
-  /* Date-range print window. */
-
-  else if (key->w == windows.date_print)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        process_date_print_window ();
-        close_dialogue_with_caret (windows.date_print);
-        deregister_printer_update_handler (refresh_date_print_window);
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.date_print);
-        deregister_printer_update_handler (refresh_date_print_window);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
-
   /* Enter account name window. */
 
   else if (key->w == windows.enter_acc)
@@ -2945,19 +2784,6 @@ static void user_message_handler (wimp_message *message)
       start_data_open_load (message);
       break;
 
-    case message_PRINT_INIT:
-    case message_SET_PRINTER:
-      handle_message_set_printer ();
-      break;
-
-    case message_PRINT_ERROR:
-      handle_message_print_error (message);
-      break;
-
-    case message_PRINT_FILE:
-      handle_message_print_file (message);
-      break;
-
     case message_MENUS_DELETED:
       if (menus.menu_id == MENU_ID_FONTLIST)
       {
@@ -3014,10 +2840,6 @@ static void bounced_message_handler (wimp_message *message)
 
     case message_RAM_FETCH:
       transfer_load_bounced_ramfetch (message);
-      break;
-
-    case message_PRINT_SAVE:
-      handle_bounced_message_print_save ();
       break;
   }
 }

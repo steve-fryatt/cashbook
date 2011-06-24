@@ -612,17 +612,15 @@ find;
 
 /* Print dialogue. */
 
-typedef struct print
-{
-  int        fit_width;
-  int        rotate;
-  int        text;
-  int        text_format;
+typedef struct print {
+	osbool		fit_width;						/**< TRUE to fit width in graphics mode; FALSE to print 100%.					*/
+	osbool		rotate;							/**< TRUE to rotate 90 degrees in graphics mode to print Landscape; FALSE to print Portrait.	*/
+	osbool		text;							/**< TRUE to print in text mode; FALSE to print in graphics mode.				*/
+	osbool		text_format;						/**< TRUE to print with styles in text mode; FALSE to print plain text.				*/
 
-  date_t     from;
-  date_t     to;
-}
-print;
+	date_t		from;							/**< The date to print from in ranged prints (Advanced Print dialogue only).			*/
+	date_t		to;							/**< The date to print to in ranged prints (Advanced Print dialogue only).			*/
+} print;
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -915,8 +913,6 @@ typedef struct
   wimp_w      found;
   wimp_w      budget;
   wimp_w      report_format;
-  wimp_w      simple_print;
-  wimp_w      date_print;
   wimp_w      trans_rep;
   wimp_w      unrec_rep;
   wimp_w      cashflow_rep;

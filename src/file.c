@@ -418,7 +418,7 @@ void delete_file (file_data *file)
   force_close_find_window (file);
   force_close_budget_window (file);
   force_close_report_format_window (file);
-  force_close_print_windows (file);
+  printing_force_windows_closed (file);
   force_close_report_windows (file);
   force_close_continue_window (file);
   force_close_transaction_sort_window (file);

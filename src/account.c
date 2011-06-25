@@ -1809,7 +1809,7 @@ void print_account_window (int text, int format, int scale, int rotate)
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t", icons_copy_text (window->account_pane, 0, numbuf1));
+    sprintf (buffer, "\\k\\b\\u%s\\t\\s\\t", icons_copy_text (window->account_pane, 0, numbuf1));
     strcat (line, buffer);
     sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->account_pane, 1, numbuf1));
     strcat (line, buffer);
@@ -1868,14 +1868,14 @@ void print_account_window (int text, int format, int scale, int rotate)
                                      numbuf4);
             break;
         }
-        sprintf (line, "%s\\t%s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s",
+        sprintf (line, "\\k%s\\t%s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s",
                  find_account_ident (account_print_file, window->line_data[i].account),
                  find_account_name (account_print_file, window->line_data[i].account),
                  numbuf1, numbuf2, numbuf3, numbuf4);
       }
       else if (window->line_data[i].type == ACCOUNT_LINE_HEADER)
       {
-        sprintf (line, "\\u%s", window->line_data[i].heading);
+        sprintf (line, "\\k\\u%s", window->line_data[i].heading);
       }
       else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER)
       {
@@ -1884,7 +1884,7 @@ void print_account_window (int text, int format, int scale, int rotate)
         convert_money_to_string (window->line_data[i].total[2], numbuf3);
         convert_money_to_string (window->line_data[i].total[3], numbuf4);
 
-        sprintf (line, "%s\\t\\s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s",
+        sprintf (line, "\\k%s\\t\\s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s",
                  window->line_data[i].heading, numbuf1, numbuf2, numbuf3, numbuf4);
       }
 
@@ -1894,7 +1894,7 @@ void print_account_window (int text, int format, int scale, int rotate)
     /* Output the grand total line, taking the text from the window icons. */
 
     icons_copy_text (window->account_footer, 0, buffer);
-    sprintf (line, "\\u%s\\t\\s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s", buffer,
+    sprintf (line, "\\k\\u%s\\t\\s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s", buffer,
              window->footer_icon[0], window->footer_icon[1], window->footer_icon[2], window->footer_icon[3]);
     report_write_line (report, 0, line);
 

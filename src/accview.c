@@ -1032,7 +1032,7 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->accview_pane, 0, numbuf1));
+    sprintf (buffer, "\\k\\b\\u%s\\t", icons_copy_text (window->accview_pane, 0, numbuf1));
     strcat (line, buffer);
     sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->accview_pane, 1, numbuf1));
     strcat (line, buffer);
@@ -1061,7 +1061,7 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
         *line = '\0';
 
         convert_date_to_string (accview_print_file->transactions[transaction].date, numbuf1);
-        sprintf (buffer, "%s\\t", numbuf1);
+        sprintf (buffer, "\\k%s\\t", numbuf1);
         strcat (line, buffer);
 
         if (accview_print_file->transactions[transaction].from == accview_print_account)

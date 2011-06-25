@@ -5,6 +5,7 @@
 
 /* ANSI C header files */
 
+#include <math.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -75,9 +76,14 @@
 #define REPVIEW_MENU_TEMPLATE 5
 
 
+struct report_print_pagination {
+	int		header_line;						/**< A line to repeat as a header at the top of the page, or -1 for none.			*/
+	int		first_line;						/**< The first non-repeated line on the page from the report document.				*/
+	int		line_count;						/**< The total line count on the page, including a repeated header.				*/
+};
 
-report_data *report_format_report = NULL;					/**< The report to which the currently open Report Format window belongs.			*/
-report_data *report_print_report = NULL;					/**< The report to which the currently open Report Print dialogie belongs.			*/
+report_data		*report_format_report = NULL;				/**< The report to which the currently open Report Format window belongs.			*/
+report_data		*report_print_report = NULL;				/**< The report to which the currently open Report Print dialogie belongs.			*/
 
 static osbool		report_print_opt_text;					/**< TRUE if the current report is to be printed text format; FALSE to print graphically.	*/
 static osbool		report_print_opt_textformat;				/**< TRUE if text formatting should be applied to the current text format print; else FALSE.	*/
@@ -425,7 +431,8 @@ void report_delete(report_data *report)
  *	\d - This cell contains a number
  *	\r - Right-align the text in this 'cell'
  *	\s - Spill text from the previous cell into this one.
- *	\h - This line is a heading.
+ *	\k - This line is part of a keep-together block: the first line is a
+ *	     heading, repeated on subsequent pages.
  *
  * \param *report		The report to write to.
  * \param bar			The tab bar to use.
@@ -486,8 +493,8 @@ void report_write_line(report_data *report, int bar, char *text)
 				*flag |= REPORT_FLAG_SPILL;
 				break;
 
-			case 'h':
-				*flag |= REPORT_FLAG_HEADING;
+			case 'k':
+				*flag |= REPORT_FLAG_KEEPTOGETHER;
 				break;
 			}
 		} else {
@@ -1572,20 +1579,23 @@ static void report_cancel_print_job(void)
 
 static void report_print_as_graphic(report_data *report, osbool fit_width, osbool rotate)
 {
-	os_error		*error;
-	os_fw			out = 0;
-	os_box			p_rect, rect;
-	os_hom_trfm		p_trfm;
-	os_coord		p_pos;
-	char			title[1024];
-	pdriver_features	features;
-	font_f			font, font_n = 0, font_b = 0;
-	osbool			more, margin_fail;
-	int			page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
-	int			margin_left, margin_right, margin_top, margin_bottom;
-	int			top, base, y, linespace, bar, tab, indent, total, width;
-	unsigned int		page_width, page_height, scale, page_xstart, page_ystart;
-	char			*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN+10];
+	os_error			*error;
+	os_fw				out = 0;
+	os_box				p_rect, rect;
+	os_hom_trfm			p_trfm;
+	os_coord			p_pos;
+	char				title[1024];
+	pdriver_features		features;
+	font_f				font, font_n = 0, font_b = 0;
+	osbool				more, margin_fail;
+	int				page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
+	int				margin_left, margin_right, margin_top, margin_bottom, offset;
+	int				pages_x, pages_y, lines_per_page, page_x, page_y, lines, header, header_size, footer_size;
+	int				top, base, y, linespace, bar, tab, indent, total, width;
+	unsigned int			page_width, page_height, scale, page_xstart, page_ystart;
+	char				*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN+10];
+	double				scaling;
+	struct report_print_pagination	*pages;
 
 	hourglass_on();
 
@@ -1714,16 +1724,93 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 	 * proportion; otherwise, these stay as the true printable area in OS units.
 	 */
 
+	scaling = 1;
+
 	if (fit_width) {
-		if (page_width < report->width)
+		if (page_width < report->width) {
 			page_height = page_height * report->width / page_width;
+			scaling = page_width / report->width;
+		}
 
 		page_width = report->width;
 	}
 
+	/* \TODO -- Apply the header and footer here. */
+
 	/* Clip the page length to be an exect number of lines */
 
 	page_height -= (page_height % linespace);
+	lines_per_page = page_height / linespace;
+
+	/* Work out the number of pages.
+	 *
+	 * Start by deciding the basic number of pages based on usable page width and
+	 * height compared to report width and height.
+	 */
+
+	pages_x = ceil(report->width / page_width);
+	pages_y = ceil(report->height / page_height);
+
+	/* Adjust the pages vertically to allow for the possibility that
+	 * each page might have a header carried over from the previous page.
+	 * This is just for allocating the pagination memory.
+	 */
+
+	while ((pages_y * lines_per_page) < (report->lines + pages_y))
+		pages_y++;
+
+	#ifdef DEBUG
+	debug_printf("Pages required: x=%d, y=%d, lines per page=%d", pages_x, pages_y, lines_per_page);
+	#endif
+
+	pages = malloc(sizeof(struct report_print_pagination) * pages_y);
+
+	page_y = 0;
+	lines = 0;
+	header = -1;
+	bar = -1;
+
+	/* Paginate the file.  Run through the file line by line, tracking whether
+	 * we are in a keep-together block.  If we are when the page changes,
+	 * remember the first line of the block to be the repeated header for
+	 * the top of the next page.
+	 *
+	 * By the end of this, we know exactly how many pages will be required.
+	 *
+	 * \TODO -- There's no protection for running off the end of the
+	 *          pagination array...
+	 */
+
+	for (y = 0; y < report->lines; y++) {
+		if (lines <= 0) {
+			#ifdef DEBUG
+			debug_printf("Page %d starts at line %d, repeating heading from line %d", page, y, header);
+			#endif
+
+			pages[page_y].header_line = header;
+			pages[page_y].first_line = y;
+			page_y++;
+			lines = lines_per_page;
+			if (header != -1)
+				lines--;
+			pages[page_y - 1].line_count = (header == -1) ? 0 : 1;
+		}
+
+		if ((*(report->data + report->line_ptr[y] + REPORT_BAR_BYTES) & REPORT_FLAG_KEEPTOGETHER) &&
+				(*(report->data + report->line_ptr[y]) == bar)) {
+			if (header == -1)
+				header = y;
+		} else {
+			header = -1;
+		}
+
+		bar = *(report->data + report->line_ptr[y]);
+
+		pages[page_y - 1].line_count++;
+		lines --;
+	}
+
+	pages_y = page_y;
 
 	/* Set up the transformation matrix scale the page and rotate it as required. */
 
@@ -1741,7 +1828,9 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 
 	/* Loop through the pages down the report and across. */
 
-	for (page_ystart = 0; page_ystart < report->height; page_ystart += page_height) {
+	for (page_y = 0; page_y < pages_y; page_y++) {
+		page_x = 0;
+
 		for (page_xstart = 0; page_xstart < report->width; page_xstart += page_width) {
 			/* Calculate the area of the page to print and set up the print rectangle.  If the page is on the edge,
 			 * crop the area down to save memory.
@@ -1749,7 +1838,8 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 
 			p_rect.x0 = page_xstart;
 			p_rect.x1 = (page_xstart + page_width <= report->width) ? page_xstart + page_width : report->width;
-			p_rect.y1 = -page_ystart;
+			p_rect.y1 = (pages[page_y].header_line == -1) ? 0 : linespace;
+			p_rect.y0 = p_rect.y1 - (pages[page_y].line_count * linespace);
 
 			/* The bottom y edge is done specially, because we also need to set the print position.  If the page is at the
 			 * edge, it is cropped down to save on memory.
@@ -1760,31 +1850,25 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 			 * taken from the proportion of OS units used for layout.
 			 */
 
-			if (page_ystart + page_height <= report->height) {
-				p_rect.y0 = -page_ystart - page_height;
-
-				if (rotate) {
-					p_pos.x = page_right;
-					p_pos.y = page_bottom;
-				} else {
-					p_pos.x = page_left;
-					p_pos.y = page_bottom;
-				}
-			} else {
-				p_rect.y0 = -report->height;
-
-				if (rotate) {
-					p_pos.x = page_right - (page_right - page_left) * (page_height + (p_rect.y0 - p_rect.y1)) / page_height;
-					p_pos.y = page_bottom;
-				} else {
-					p_pos.x = page_left;
-					p_pos.y = page_bottom + (page_top - page_bottom) * (page_height + (p_rect.y0 - p_rect.y1)) / page_height;
-				}
+			error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1)) * scaling, 0, (int *) &offset, NULL);
+			if (error != NULL) {
+				report_handle_print_error(error, out, font_n, font_b);
+				return;
 			}
+
+			if (rotate) {
+				p_pos.x = page_right - offset;
+				p_pos.y = page_bottom;
+			} else {
+				p_pos.x = page_left;
+				p_pos.y = page_bottom + offset;
+			}
+
+			debug_printf("Page %d Rectangle x0=%d, y0=%d, x1=%d, y1=%d at x=%d, y=%d, height=%d, offset=%d", page_y, p_rect.x0, p_rect.y0, p_rect.x1, p_rect.y1, p_pos.x, p_pos.y, page_height, page_height + (p_rect.y0 - p_rect.y1));
 
 			/* Pass the page details to the printer driver and start to draw the page. */
 
-			error = xpdriver_give_rectangle(0, &p_rect, &p_trfm, &p_pos, os_COLOUR_WHITE);
+			error = xpdriver_give_rectangle(0, &p_rect, &p_trfm, &p_pos, os_COLOUR_VERY_LIGHT_GREY);
 			if (error != NULL) {
 				report_handle_print_error(error, out, font_n, font_b);
 				return;
@@ -1798,15 +1882,18 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 				/* Calculate the rows to redraw. */
 
 				top = -rect.y1 / linespace;
-				if (top < 0)
-					top = 0;
+				if (top < -1)
+					top = -1;
 				base = (linespace + (linespace / 2) - rect.y0 ) / linespace;
 
 				/* Redraw the data to the printer. */
 
-				for (y = top; y < report->lines && y <= base; y++) {
+				for (y = top; (pages[page_y].first_line + y) < report->lines && y <= base; y++) {
 					tab = 0;
-					column = report->data + report->line_ptr[y];
+					if (y < 0)
+						column = report->data + report->line_ptr[pages[page_y].header_line];
+					else
+						column = report->data + report->line_ptr[pages[page_y].first_line + y];
 					bar = (int) *column;
 					column += REPORT_BAR_BYTES;
 
@@ -1871,6 +1958,8 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 					return;
 				}
 			}
+
+			page_x++;
 		}
 	}
 
@@ -1889,6 +1978,8 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 
 	font_lose_font(font_n);
 	font_lose_font(font_b);
+
+	free(pages);
 
 	hourglass_off();
 }

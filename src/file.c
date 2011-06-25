@@ -354,7 +354,7 @@ void delete_file (file_data *file)
 
   /* If there are any reports in the file with pending print jobs, prompt for deletion. */
 
-  if (pending_print_reports (file) && error_msgs_report_question ("PendingPrints", "PendingPrintsB") == 2)
+  if (report_get_pending_print_jobs (file) && error_msgs_report_question ("PendingPrints", "PendingPrintsB") == 2)
   {
     return;
   }
@@ -405,7 +405,7 @@ void delete_file (file_data *file)
 
   while (file->reports != NULL)
   {
-    delete_report (file, file->reports);
+    report_delete(file->reports);
   }
 
   /* Do the same for any file-related dialogues that are open. */
@@ -417,8 +417,8 @@ void delete_file (file_data *file)
   force_close_goto_window (file);
   force_close_find_window (file);
   force_close_budget_window (file);
-  force_close_report_format_window (file);
-  printing_force_windows_closed (file);
+  report_force_format_windows_closed(file);
+  printing_force_windows_closed(file);
   force_close_report_windows (file);
   force_close_continue_window (file);
   force_close_transaction_sort_window (file);
@@ -763,7 +763,7 @@ int check_for_unsaved_files (void)
       modified = 1;
     }
 
-    if (pending_print_reports (list))
+    if (report_get_pending_print_jobs (list))
     {
       pending = 1;
     }

@@ -1387,7 +1387,7 @@ void import_csv_file (file_data *file, char *filename)
 
   if (file->import_report != NULL)
   {
-    delete_report (file, file->import_report);
+    report_delete(file->import_report);
     file->import_report = NULL;
   }
 
@@ -1399,18 +1399,18 @@ void import_csv_file (file_data *file, char *filename)
   /* Open a log report for the process, and title it. */
 
   msgs_lookup("IRWinT", log, sizeof (log));
-  file->import_report = open_new_report(file, log, NULL);
+  file->import_report = report_open(file, log, NULL);
 
   make_file_leafname (file, line, sizeof (line));
   msgs_param_lookup ("IRTitle", log, sizeof (log), line, NULL, NULL, NULL);
-  write_report_line (file->import_report, 0, log);
+  report_write_line (file->import_report, 0, log);
   msgs_param_lookup ("IRImpFile", log, sizeof (log), filename, NULL, NULL, NULL);
-  write_report_line (file->import_report, 0, log);
+  report_write_line (file->import_report, 0, log);
 
-  write_report_line (file->import_report, 0, "");
+  report_write_line (file->import_report, 0, "");
 
   msgs_lookup ("IRHeadings", log, sizeof (log));
-  write_report_line (file->import_report, 0, log);
+  report_write_line (file->import_report, 0, log);
 
   input = fopen (filename, "r");
 
@@ -1542,7 +1542,7 @@ void import_csv_file (file_data *file, char *filename)
 
       sprintf (log, "%s\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'",
                b1, date, raw_from, raw_to, ref, amount, description);
-      write_report_line (file->import_report, 0, log);
+      report_write_line (file->import_report, 0, log);
     }
     fclose (input);
 
@@ -1562,12 +1562,12 @@ void import_csv_file (file_data *file, char *filename)
 
   /* Sort out the import results window. */
 
-  write_report_line (file->import_report, 0, "");
+  report_write_line (file->import_report, 0, "");
 
   sprintf (b1, "%d", import_count);
   sprintf (b2, "%d", reject_count);
   msgs_param_lookup ("IRTotals", log, sizeof (log), b1, b2, NULL, NULL);
-  write_report_line (file->import_report, 0, log);
+  report_write_line (file->import_report, 0, log);
 
   sprintf (icons_get_indirected_text_addr (windows.import_comp, ICOMP_ICON_IMPORTED), "%d", import_count);
   sprintf (icons_get_indirected_text_addr (windows.import_comp, ICOMP_ICON_REJECTED), "%d", reject_count);
@@ -1590,11 +1590,11 @@ void close_import_complete_dialogue (int show_log)
 
   if (show_log)
   {
-    close_report (import_window_file, import_window_file->import_report);
+    report_close(import_window_file->import_report);
   }
   else
   {
-    delete_report (import_window_file, import_window_file->import_report);
+    report_delete(import_window_file->import_report);
   }
 
   wimp_close_window (windows.import_comp);

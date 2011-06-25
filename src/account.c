@@ -1750,7 +1750,7 @@ void print_account_window (int text, int format, int scale, int rotate)
 
   msgs_lookup ((account_print_type & ACCOUNT_FULL) ? "PrintTitleAcclistAcc" : "PrintTitleAcclistHead",
                buffer, sizeof (buffer));
-  report = open_new_report (account_print_file, buffer, NULL);
+  report = report_open (account_print_file, buffer, NULL);
 
   if (report != NULL)
   {
@@ -1777,7 +1777,7 @@ void print_account_window (int text, int format, int scale, int rotate)
         break;
     }
     sprintf (line, "\\b\\u%s", buffer);
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     if (account_print_file->budget.start != NULL_DATE || account_print_file->budget.finish != NULL_DATE)
     {
@@ -1801,10 +1801,10 @@ void print_account_window (int text, int format, int scale, int rotate)
 
       strcat (line, ".");
 
-      write_report_line (report, 0, line);
+      report_write_line (report, 0, line);
     }
 
-    write_report_line (report, 0, "");
+    report_write_line (report, 0, "");
 
     /* Output the headings line, taking the text from the window icons. */
 
@@ -1820,7 +1820,7 @@ void print_account_window (int text, int format, int scale, int rotate)
     sprintf (buffer, "\\b\\u\\r%s", icons_copy_text (window->account_pane, 4, numbuf1));
     strcat (line, buffer);
 
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     /* Output the account data as a set of delimited lines. */
     /* Output the transaction data as a set of delimited lines. */
@@ -1888,7 +1888,7 @@ void print_account_window (int text, int format, int scale, int rotate)
                  window->line_data[i].heading, numbuf1, numbuf2, numbuf3, numbuf4);
       }
 
-      write_report_line (report, 0, line);
+      report_write_line (report, 0, line);
     }
 
     /* Output the grand total line, taking the text from the window icons. */
@@ -1896,7 +1896,7 @@ void print_account_window (int text, int format, int scale, int rotate)
     icons_copy_text (window->account_footer, 0, buffer);
     sprintf (line, "\\u%s\\t\\s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s", buffer,
              window->footer_icon[0], window->footer_icon[1], window->footer_icon[2], window->footer_icon[3]);
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     hourglass_off ();
   }
@@ -1905,7 +1905,7 @@ void print_account_window (int text, int format, int scale, int rotate)
     error_msgs_report_error ("PrintMemFail");
   }
 
-  close_and_print_report (account_print_file, report, text, format, scale, rotate);
+  report_close_and_print(report, text, format, scale, rotate);
 }
 
 /* ==================================================================================================================

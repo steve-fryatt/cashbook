@@ -1,10 +1,10 @@
 /* CashBook - report.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_REPORT
-#define _ACCOUNTS_REPORT
+#ifndef CASHBOOK_REPORT
+#define CASHBOOK_REPORT
 
 /* Report data block format consists of a series of lines as follows:
  *
@@ -61,76 +61,111 @@
 #define REPORT_TEXT_COLUMN_INDENT 2
 
 
-/* Aeport format dialogue. */
 
-#define REPORT_FORMAT_OK 13
-#define REPORT_FORMAT_CANCEL 12
-#define REPORT_FORMAT_NFONT 1
-#define REPORT_FORMAT_NFONTMENU 2
-#define REPORT_FORMAT_BFONT 4
-#define REPORT_FORMAT_BFONTMENU 5
-#define REPORT_FORMAT_FONTSIZE 7
-#define REPORT_FORMAT_FONTSPACE 10
-
-/* ==================================================================================================================
- * Data structures
+/**
+ * Initialise the reporting system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-/* ==================================================================================================================
- * Function prototypes.
+void report_initialise(osspriteop_area *sprites);
+
+
+/**
+ * Create a new report, and return a handle ready to write data to.
+ *
+ * \param *file			The file to which the report belongs.
+ * \param *title		The window title for the report.
+ * \param *template		Pointer to the template used for the report, or
+ *				NULL for none.
+ * \return			Report handle, or NULL on failure.
  */
 
-/* Report creation and deletion. */
+report_data *report_open(file_data *file, char *title, saved_report *template);
 
-report_data *open_new_report (file_data *file, char *title, saved_report *template);
-void close_report (file_data *file, report_data *report);
-void close_and_print_report (file_data *file, report_data *report, int text, int textformat, int fitwidth, int rotate);
-void delete_report (file_data *file, report_data *report);
-void delete_report_window (file_data *file, report_data *report);
 
-int write_report_line (report_data *report, int bar, char *text);
+/**
+ * Close off a report that has had data written to it, and open a window
+ * to display it on screen.
+ *
+ * \param *report		The report handle.
+ */
 
-int find_report_fonts (report_data *report, font_f *normal, font_f *bold);
-int format_report_columns (report_data *report);
+void report_close(report_data *report);
 
-int pending_print_reports (file_data *file);
 
-/* Editing report format via the GUI. */
+/**
+ * Close off a report that has had data written to it, and send it directly
+ * to the printing system before deleting it.
+ *
+ * \param *report		The report handle.
+ * \param text			TRUE to print in text mode; FALSE for graphics.
+ * \param textformat		TRUE to apply formatting to text mode printing.
+ * \param fitwidth		TRUE to fit graphics printing to page width.
+ * \param rotate		TRUE to rotate grapchis printing to Landscape;
+ *				FALSE to print Portrait.
+ */
 
-void open_report_format_window (file_data *file, report_data *report, wimp_pointer *ptr);
-void refresh_report_format_window (void);
-void fill_report_format_window (file_data *file, report_data *report);
-int process_report_format_window (void);
-void force_close_report_format_window (file_data *file);
+void report_close_and_print(report_data *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate);
 
-/* Printing reports via the GUI. */
 
-void open_report_print_window (file_data *file, report_data *report, wimp_pointer *ptr, int clear);
-void report_print_window_closed (int text, int format, int scale, int rotate);
+/**
+ * Delete a report block, along with any window and data associated with
+ * it.
+ *
+ * \param *report		The report to delete.
+ */
 
-/* --- */
+void report_delete(report_data *report);
 
-report_data *find_report_window_from_handle (file_data *file, wimp_w window);
 
-/* Window handling. */
+/**
+ * Write a lone of text to an open report.  Lines are NULL terminated, and can
+ * contain the following inline commands:
+ *
+ *	\t - Tab (start a new column)
+ *	\i - Indent the text in the current 'cell'
+ *	\b - Format this 'cell' bold
+ *	\u - Format this 'cell' underlined
+ *	\d - This cell contains a number
+ *	\r - Right-align the text in this 'cell'
+ *	\s - Spill text from the previous cell into this one.
+ *	\h - This line is a heading.
+ *
+ * \param *report		The report to write to.
+ * \param bar			The tab bar to use.
+ * \param *text			The line of text to write.
+ */
 
-void report_window_click (file_data *file, wimp_pointer *pointer);
+void report_write_line(report_data *report, int bar, char *text);
 
-/* Window redraw. */
 
-void redraw_report_window (wimp_draw *redraw, file_data *file);
+/**
+ * Test for any pending report print jobs on the specified file.
+ *
+ * \param *file			The file to test.
+ * \return			TRUE if there are pending jobs; FALSE if not.
+ */
+
+osbool report_get_pending_print_jobs(file_data *file);
+
+
+/* Force the closure of any Report Format windows which are open and relate
+ * to the given file.
+ *
+ * \param *file			The file data block of interest.
+ */
+
+void report_force_format_windows_closed(file_data *file);
+
+
+
+
 
 /* Saving and export */
 
 void save_report_text (file_data *file, report_data *report, char *filename, int formatting);
 void export_delimited_report_file (file_data *file, report_data *report, char *filename, int format, int filetype);
 
-/* Report printing */
-
-void start_report_print (char *filename);
-void cancel_report_print (void);
-
-void print_report_graphic (file_data *file, report_data *report, int fit_width, int rotate);
-void handle_print_error (os_fw file, os_error *error, font_f f1, font_f f2);
-
 #endif
+

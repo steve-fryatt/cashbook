@@ -165,7 +165,7 @@ static wimp_w		choices_window;						/**< The choices window handle.				*/
 static wimp_w		choices_panes[CHOICES_PANES];				/**< The choices pane handles.				*/
 
 static wimp_menu	*choices_font_menu = NULL;				/**< The font menu handle.				*/
-static wimp_i		choices_font_icon = 0;					/**< The pop-up icon which opened the font menu.	*/
+static wimp_i		choices_font_icon = -1;					/**< The pop-up icon which opened the font menu.	*/
 
 /* Function Prototypes */
 
@@ -452,6 +452,8 @@ static void choices_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selec
 static void choices_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
 	fontlist_destroy();
+	choices_font_menu = NULL;
+	choices_font_icon = -1;
 }
 
 

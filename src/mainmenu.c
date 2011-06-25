@@ -83,12 +83,7 @@ static int                refdesc_menu_type = 0; /* The type of reference or des
 static char               *account_title_buffer = NULL; /* Buffer for the accounts menu et al.. */
 static char               *replist_title_buffer = NULL; /* Buffer for the Replist menu (coexists with AccList). */
 
-static report_data *report_menu_block = NULL;
-
 static saved_report_menu_link *replist_link = NULL;
-
-static wimp_w    font_window;
-static wimp_i    font_icon;
 
 /* ==================================================================================================================
  * General
@@ -196,17 +191,9 @@ char *mainmenu_get_current_menu_name(char *buffer)
   {
     strcpy (buffer, "PresetMenu");
   }
-  else if (menus.menu_id == MENU_ID_REPORTVIEW)
-  {
-    strcpy (buffer, "ReportMenu");
-  }
   else if (menus.menu_id == MENU_ID_REPLIST)
   {
     strcpy (buffer, "RepListMenu");
-  }
-  else if (menus.menu_id == MENU_ID_FONTLIST)
-  {
-    strcpy (buffer, "FontMenu");
   }
 
   return (buffer);
@@ -2070,85 +2057,6 @@ void preset_menu_submenu_message (wimp_full_message_menu_warning *submenu)
  }
 }
 
-/* ==================================================================================================================
- * Report view menu
- */
-
-/* Set and open the menu. */
-
-void set_reportview_menu (report_data *report)
-{
-  extern global_menus   menus;
-
-  menus_shade_entry (menus.reportview, REPVIEW_MENU_TEMPLATE, report->template.type == REPORT_TYPE_NONE);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_reportview_menu (file_data *file, report_data *report, wimp_pointer *pointer)
-{
-  extern global_menus   menus;
-
-
-  initialise_save_boxes (file, (int) report, 0);
-  set_reportview_menu (report);
-
-  menus.menu_up = menus_create_standard_menu (menus.reportview, pointer);
-  menus.menu_id = MENU_ID_REPORTVIEW;
-  main_menu_file = file;
-  report_menu_block = report;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Decode the menu selections. */
-
-void decode_reportview_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  if (selection->items[0] == REPVIEW_MENU_FORMAT)
-  {
-    open_report_format_window (main_menu_file, report_menu_block, pointer);
-  }
-  else if (selection->items[0] == REPVIEW_MENU_PRINT)
-  {
-    open_report_print_window (main_menu_file, report_menu_block, pointer, config_opt_read ("RememberValues"));
-  }
-  else if (selection->items[0] == REPVIEW_MENU_TEMPLATE)
-  {
-    open_save_report_window (main_menu_file, report_menu_block, pointer);
-  }
-
-  set_reportview_menu (report_menu_block);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Handle submenu warnings. */
-
-void reportview_menu_submenu_message (wimp_full_message_menu_warning *submenu)
-{
- #ifdef DEBUG
- debug_reporter_text0 ("\\BReceived submenu warning message.");
- #endif
-
- switch (submenu->selection.items[0])
- {
-   case REPVIEW_MENU_SAVETEXT:
-     fill_save_as_window (main_menu_file, SAVE_BOX_REPTEXT);
-     wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-     break;
-
-   case REPVIEW_MENU_EXPCSV:
-     fill_save_as_window (main_menu_file, SAVE_BOX_REPCSV);
-     wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-     break;
-
-   case REPVIEW_MENU_EXPTSV:
-     fill_save_as_window (main_menu_file, SAVE_BOX_REPTSV);
-     wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-     break;
- }
-}
 
 /* ==================================================================================================================
  * Saved Report menu. -- A list of saved reports, to select from.
@@ -2304,62 +2212,3 @@ int mainmenu_cmp_replist_menu_entries (const void *va, const void *vb)
   return (string_nocase_strcmp(a->name, b->name));
 }
 
-/* ==================================================================================================================
- * Font list menu
- */
-
-void open_font_list_menu (wimp_pointer *pointer)
-{
-  extern global_menus   menus;
-
-  menus.font_list = fontlist_build();
-
-  menus.menu_up = menus_create_popup_menu (menus.font_list, pointer);
-  menus.menu_id = MENU_ID_FONTLIST;
-  font_window = pointer->w;
-  font_icon = pointer->i;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void decode_font_list_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  char *name;
-
-  extern global_windows windows;
-
-  name = fontlist_decode(selection);
-  if (name == NULL)
-  	return;
-
-  /* Update the correct icon. */
-
-  if (font_window== windows.report_format && font_icon == REPORT_FORMAT_NFONTMENU)
-  {
-    sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_NFONT), "%s", name);
-    wimp_set_icon_state (windows.report_format, REPORT_FORMAT_NFONT, 0, 0);
-  }
-  else if (font_window== windows.report_format && font_icon == REPORT_FORMAT_BFONTMENU)
-  {
-    sprintf (icons_get_indirected_text_addr (windows.report_format, REPORT_FORMAT_BFONT), "%s", name);
-    wimp_set_icon_state (windows.report_format, REPORT_FORMAT_BFONT, 0, 0);
-  }
-
-  /* Free the name memory buffer. */
-
-  heap_free (name);
-
-  /* Clear the menu blocks if the menu is closed. */
-
-  if (pointer->buttons != wimp_CLICK_ADJUST)
-  {
-    fontlist_destroy();
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void deallocate_font_list_menu (void)
-{
-	fontlist_destroy();
-}

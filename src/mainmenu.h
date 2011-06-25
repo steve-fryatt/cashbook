@@ -20,8 +20,6 @@
 #define MENU_ID_ACCVIEW    6
 #define MENU_ID_SORDER     7
 #define MENU_ID_PRESET     8
-#define MENU_ID_REPORTVIEW 9
-#define MENU_ID_FONTLIST   10
 #define MENU_ID_REFDESC    11
 #define MENU_ID_REPLIST    12
 
@@ -116,14 +114,6 @@
 #define PRESET_MENU_EXPTSV 4
 #define PRESET_MENU_PRINT 5
 
-/* Report view menu */
-
-#define REPVIEW_MENU_FORMAT 0
-#define REPVIEW_MENU_SAVETEXT 1
-#define REPVIEW_MENU_EXPCSV 2
-#define REPVIEW_MENU_EXPTSV 3
-#define REPVIEW_MENU_PRINT 4
-#define REPVIEW_MENU_TEMPLATE 5
 
 /* General definitions */
 
@@ -267,15 +257,6 @@ void open_preset_menu (file_data *file, int line, wimp_pointer *pointer);
 void decode_preset_menu (wimp_selection *selection, wimp_pointer *pointer);
 void preset_menu_submenu_message (wimp_full_message_menu_warning *submenu);
 
-/* Report view menu */
-
-void set_reportview_menu (report_data *report);
-void open_reportview_menu (file_data *file, report_data *report, wimp_pointer *pointer);
-
-void decode_reportview_menu (wimp_selection *selection, wimp_pointer *pointer);
-
-void reportview_menu_submenu_message (wimp_full_message_menu_warning *submenu);
-
 /* Saved Report list menu */
 
 void mainmenu_set_replist_menu (file_data *file);
@@ -287,12 +268,5 @@ wimp_menu *mainmenu_build_replist_menu (file_data *file, int standalone);
 
 int mainmenu_cmp_replist_menu_entries (const void *va, const void *vb);
 
-/* Font list menu. */
-
-void open_font_list_menu (wimp_pointer *pointer);
-
-void decode_font_list_menu (wimp_selection *selection, wimp_pointer *pointer);
-
-void deallocate_font_list_menu (void);
-
 #endif
+

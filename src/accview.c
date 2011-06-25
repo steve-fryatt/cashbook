@@ -1012,7 +1012,7 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
 
   msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
   msgs_lookup ("PrintTitleAccview", buffer, sizeof (buffer));
-  report = open_new_report (accview_print_file, buffer, NULL);
+  report = report_open (accview_print_file, buffer, NULL);
 
   if (report != NULL)
   {
@@ -1026,8 +1026,8 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
     msgs_param_lookup ("AccviewTitle", buffer, sizeof (buffer),
                        accview_print_file->accounts[accview_print_account].name, numbuf1, NULL, NULL);
     sprintf (line, "\\b\\u%s", buffer);
-    write_report_line (report, 0, line);
-    write_report_line (report, 0, "");
+    report_write_line (report, 0, line);
+    report_write_line (report, 0, "");
 
     /* Output the headings line, taking the text from the window icons. */
 
@@ -1047,7 +1047,7 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
     sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->accview_pane, 6, numbuf1));
     strcat (line, buffer);
 
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     /* Output the transaction data as a set of delimited lines. */
 
@@ -1115,7 +1115,7 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
         sprintf (buffer, "%s\\t", accview_print_file->transactions[transaction].description);
         strcat (line, buffer);
 
-        write_report_line (report, 0, line);
+        report_write_line (report, 0, line);
       }
     }
 
@@ -1126,7 +1126,7 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
     error_msgs_report_error ("PrintMemFail");
   }
 
-  close_and_print_report (accview_print_file, report, text, format, scale, rotate);
+  report_close_and_print(report, text, format, scale, rotate);
 }
 
 /* ==================================================================================================================

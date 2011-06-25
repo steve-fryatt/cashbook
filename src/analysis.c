@@ -165,7 +165,7 @@ void generate_transaction_report (file_data *file)
   saved_report_template.type = REPORT_TYPE_TRANS;
 
   msgs_lookup ("TRWinT", line, sizeof (line));
-  report = open_new_report (file, line, &saved_report_template);
+  report = report_open (file, line, &saved_report_template);
 
   if (report != NULL)
   {
@@ -180,13 +180,13 @@ void generate_transaction_report (file_data *file)
     {
       msgs_param_lookup ("TRTitle", line, sizeof (line), b1, NULL, NULL, NULL);
     }
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     convert_date_to_string (start_date, b1);
     convert_date_to_string (end_date, b2);
     convert_date_to_string (get_current_date (), b3);
     msgs_param_lookup ("TRHeader", line, sizeof (line), b1, b2, b3, NULL);
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     initialise_date_period (start_date, end_date, period, unit, lock);
 
@@ -232,17 +232,17 @@ void generate_transaction_report (file_data *file)
           {
             if (found == 0)
             {
-              write_report_line (report, 0, "");
+              report_write_line (report, 0, "");
 
               if (group == TRUE)
               {
                 sprintf (line, "\\u%s", date_text);
-                write_report_line (report, 0, line);
+                report_write_line (report, 0, line);
               }
               if (output_trans)
               {
                 msgs_lookup ("TRHeadings", line, sizeof (line));
-                write_report_line (report, 1, line);
+                report_write_line (report, 1, line);
               }
             }
 
@@ -271,7 +271,7 @@ void generate_transaction_report (file_data *file)
                        find_account_name (file, file->transactions[i].to),
                        file->transactions[i].reference, b2, file->transactions[i].description);
 
-              write_report_line (report, 1, line);
+              report_write_line (report, 1, line);
             }
           }
         }
@@ -286,11 +286,11 @@ void generate_transaction_report (file_data *file)
 
           if (output_trans) /* Only output blank line if there are transactions above. */
           {
-            write_report_line (report, 0, "");
+            report_write_line (report, 0, "");
           }
           msgs_lookup ("TRAccounts", b1, sizeof (b1));
           sprintf(line, "\\i%s", b1);
-          write_report_line (report, 2, line);
+          report_write_line (report, 2, line);
 
           entry = find_accounts_window_entry_from_type (file, ACCOUNT_FULL);
 
@@ -305,14 +305,14 @@ void generate_transaction_report (file_data *file)
                 total += file->accounts[account].report_total;
                 convert_money_to_string (file->accounts[account].report_total, b1);
                 sprintf (line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
-                write_report_line (report, 2, line);
+                report_write_line (report, 2, line);
               }
             }
           }
           msgs_lookup ("TRTotal", b1, sizeof (b1));
           convert_money_to_string (total, b2);
           sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-          write_report_line (report, 2, line);
+          report_write_line (report, 2, line);
         }
 
 
@@ -326,7 +326,7 @@ void generate_transaction_report (file_data *file)
 
           if (output_trans || output_accsummary) /* Only output blank line if there is something above. */
           {
-            write_report_line (report, 0, "");
+            report_write_line (report, 0, "");
           }
           msgs_lookup ("TROutgoings", b1, sizeof (b1));
           sprintf(line, "\\i%s", b1);
@@ -335,7 +335,7 @@ void generate_transaction_report (file_data *file)
             msgs_lookup ("TRSummExtra", b1, sizeof (b1));
             strcat (line, b1);
           }
-          write_report_line (report, 2, line);
+          report_write_line (report, 2, line);
 
           entry = find_accounts_window_entry_from_type (file, ACCOUNT_OUT);
 
@@ -365,20 +365,20 @@ void generate_transaction_report (file_data *file)
                   sprintf (b2, "\\t\\d\\r%s", b1);
                   strcat (line, b2);
                 }
-                write_report_line (report, 2, line);
+                report_write_line (report, 2, line);
               }
             }
           }
           msgs_lookup ("TRTotal", b1, sizeof (b1));
           convert_money_to_string (total, b2);
           sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-          write_report_line (report, 2, line);
+          report_write_line (report, 2, line);
 
           /* Summarise the incomings. */
 
           total = 0;
 
-          write_report_line (report, 0, "");
+          report_write_line (report, 0, "");
           msgs_lookup ("TRIncomings", b1, sizeof (b1));
           sprintf(line, "\\i%s", b1);
           if (file->trans_rep.budget)
@@ -386,7 +386,7 @@ void generate_transaction_report (file_data *file)
             msgs_lookup ("TRSummExtra", b1, sizeof (b1));
             strcat (line, b1);
           }
-          write_report_line (report, 2, line);
+          report_write_line (report, 2, line);
 
           entry = find_accounts_window_entry_from_type (file, ACCOUNT_IN);
 
@@ -416,18 +416,18 @@ void generate_transaction_report (file_data *file)
                   sprintf (b2, "\\t\\d\\r%s", b1);
                   strcat (line, b2);
                 }
-                write_report_line (report, 2, line);
+                report_write_line (report, 2, line);
               }
             }
           }
           msgs_lookup ("TRTotal", b1, sizeof (b1));
           convert_money_to_string (-total, b2);
           sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-          write_report_line (report, 2, line);
+          report_write_line (report, 2, line);
         }
     }
 
-    close_report (file, report);
+    report_close(report);
   }
 
   hourglass_off ();
@@ -500,7 +500,7 @@ void generate_unreconciled_report (file_data *file)
   saved_report_template.type = REPORT_TYPE_UNREC;
 
   msgs_lookup ("URWinT", line, sizeof (line));
-  report = open_new_report (file, line, &saved_report_template);
+  report = report_open (file, line, &saved_report_template);
 
   if (report != NULL)
   {
@@ -515,13 +515,13 @@ void generate_unreconciled_report (file_data *file)
     {
       msgs_param_lookup ("URTitle", line, sizeof (line), b1, NULL, NULL, NULL);
     }
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     convert_date_to_string (start_date, b1);
     convert_date_to_string (end_date, b2);
     convert_date_to_string (get_current_date (), b3);
     msgs_param_lookup ("URHeader", line, sizeof (line), b1, b2, b3, NULL);
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     if (group && unit == PERIOD_NONE)
     {
@@ -557,15 +557,15 @@ void generate_unreconciled_report (file_data *file)
               {
                 if (found == 0)
                 {
-                  write_report_line (report, 0, "");
+                  report_write_line (report, 0, "");
 
                   if (group == TRUE)
                   {
                     sprintf (line, "\\u%s", find_account_name (file, acc));
-                    write_report_line (report, 0, line);
+                    report_write_line (report, 0, line);
                   }
                   msgs_lookup ("URHeadings", line, sizeof (line));
-                  write_report_line (report, 1, line);
+                  report_write_line (report, 1, line);
                 }
 
                 found++;
@@ -592,28 +592,28 @@ void generate_unreconciled_report (file_data *file)
                          r2, find_account_name (file, file->transactions[i].to),
                          file->transactions[i].reference, b2, file->transactions[i].description);
 
-                write_report_line (report, 1, line);
+                report_write_line (report, 1, line);
               }
             }
 
             if (found != 0)
             {
-              write_report_line (report, 2, "");
+              report_write_line (report, 2, "");
 
               msgs_lookup ("URTotalIn", b1, sizeof (b1));
               full_convert_money_to_string (tot_in, b2, TRUE);
               sprintf (line, "\\i%s\\t\\d\\r%s", b1, b2);
-              write_report_line (report, 2, line);
+              report_write_line (report, 2, line);
 
               msgs_lookup ("URTotalOut", b1, sizeof (b1));
               full_convert_money_to_string (tot_out, b2, TRUE);
               sprintf (line, "\\i%s\\t\\d\\r%s", b1, b2);
-              write_report_line (report, 2, line);
+              report_write_line (report, 2, line);
 
               msgs_lookup ("URTotal", b1, sizeof (b1));
               full_convert_money_to_string (tot_in+tot_out, b2, TRUE);
               sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-              write_report_line (report, 2, line);
+              report_write_line (report, 2, line);
             }
           }
         }
@@ -645,15 +645,15 @@ void generate_unreconciled_report (file_data *file)
           {
             if (found == 0)
             {
-              write_report_line (report, 0, "");
+              report_write_line (report, 0, "");
 
               if (group == TRUE)
               {
                 sprintf (line, "\\u%s", date_text);
-                write_report_line (report, 0, line);
+                report_write_line (report, 0, line);
               }
               msgs_param_lookup ("URHeadings", line, sizeof (line), NULL, NULL, NULL, NULL);
-              write_report_line (report, 1, line);
+              report_write_line (report, 1, line);
             }
 
             found++;
@@ -670,13 +670,13 @@ void generate_unreconciled_report (file_data *file)
                      r2, find_account_name (file, file->transactions[i].to),
                      file->transactions[i].reference, b2, file->transactions[i].description);
 
-            write_report_line (report, 1, line);
+            report_write_line (report, 1, line);
           }
         }
       }
     }
 
-    close_report (file, report);
+    report_close(report);
   }
 
   hourglass_off ();
@@ -768,7 +768,7 @@ void generate_cashflow_report (file_data *file)
   saved_report_template.type = REPORT_TYPE_CASHFLOW;
 
   msgs_lookup ("CRWinT", line, sizeof (line));
-  report = open_new_report (file, line, &saved_report_template);
+  report = report_open (file, line, &saved_report_template);
 
   if (report != NULL)
   {
@@ -783,19 +783,19 @@ void generate_cashflow_report (file_data *file)
     {
       msgs_param_lookup ("CRTitle", line, sizeof (line), b1, NULL, NULL, NULL);
     }
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     convert_date_to_string (start_date, b1);
     convert_date_to_string (end_date, b2);
     convert_date_to_string (get_current_date (), b3);
     msgs_param_lookup ("CRHeader", line, sizeof (line), b1, b2, b3, NULL);
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     /* Start to output the report. */
 
     if (tabular)
     {
-      write_report_line (report, 0, "");
+      report_write_line (report, 0, "");
       msgs_lookup ("CRDate", b1, sizeof (b1));
       sprintf (line, "\\b%s", b1);
 
@@ -821,7 +821,7 @@ void generate_cashflow_report (file_data *file)
       sprintf (b2, "\\t\\r\\b%s", b1);
       strcat (line, b2);
 
-      write_report_line (report, 1, line);
+      report_write_line (report, 1, line);
     }
 
     initialise_date_period (start_date, end_date, period, unit, lock);
@@ -892,15 +892,15 @@ void generate_cashflow_report (file_data *file)
           full_convert_money_to_string (total, b1, TRUE);
           sprintf (b2, "\\t\\d\\r%s", b1);
           strcat (line, b2);
-          write_report_line (report, 1, line);
+          report_write_line (report, 1, line);
         }
         else
         {
-          write_report_line (report, 0, "");
+          report_write_line (report, 0, "");
           if (group)
           {
             sprintf (line, "\\u%s", date_text);
-            write_report_line (report, 0, line);
+            report_write_line (report, 0, line);
           }
 
           total = 0;
@@ -920,7 +920,7 @@ void generate_cashflow_report (file_data *file)
                   total += file->accounts[acc].report_total;
                   full_convert_money_to_string (file->accounts[acc].report_total, b1, TRUE);
                   sprintf (line, "\\i%s\\t\\d\\r%s", file->accounts[acc].name, b1);
-                  write_report_line (report, 2, line);
+                  report_write_line (report, 2, line);
                 }
               }
             }
@@ -928,12 +928,12 @@ void generate_cashflow_report (file_data *file)
           msgs_lookup ("CRTotal", b1, sizeof (b1));
           full_convert_money_to_string (total, b2, TRUE);
           sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-          write_report_line (report, 2, line);
+          report_write_line (report, 2, line);
         }
       }
     }
 
-    close_report (file, report);
+    report_close(report);
   }
 
   hourglass_off ();
@@ -1024,7 +1024,7 @@ void generate_balance_report (file_data *file)
   saved_report_template.type = REPORT_TYPE_BALANCE;
 
   msgs_lookup ("BRWinT", line, sizeof (line));
-  report = open_new_report (file, line, &saved_report_template);
+  report = report_open (file, line, &saved_report_template);
 
   if (report != NULL)
   {
@@ -1039,19 +1039,19 @@ void generate_balance_report (file_data *file)
     {
       msgs_param_lookup ("BRTitle", line, sizeof (line), b1, NULL, NULL, NULL);
     }
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     convert_date_to_string (start_date, b1);
     convert_date_to_string (end_date, b2);
     convert_date_to_string (get_current_date (), b3);
     msgs_param_lookup ("BRHeader", line, sizeof (line), b1, b2, b3, NULL);
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     /* Start to output the report. */
 
     if (tabular)
     {
-      write_report_line (report, 0, "");
+      report_write_line (report, 0, "");
       msgs_lookup ("BRDate", b1, sizeof (b1));
       sprintf (line, "\\b%s", b1);
 
@@ -1077,7 +1077,7 @@ void generate_balance_report (file_data *file)
       sprintf (b2, "\\t\\r\\b%s", b1);
       strcat (line, b2);
 
-      write_report_line (report, 1, line);
+      report_write_line (report, 1, line);
     }
 
     initialise_date_period (start_date, end_date, period, unit, lock);
@@ -1143,15 +1143,15 @@ void generate_balance_report (file_data *file)
         full_convert_money_to_string (total, b1, TRUE);
         sprintf (b2, "\\t\\d\\r%s", b1);
         strcat (line, b2);
-        write_report_line (report, 1, line);
+        report_write_line (report, 1, line);
       }
       else
       {
-        write_report_line (report, 0, "");
+        report_write_line (report, 0, "");
         if (group)
         {
           sprintf (line, "\\u%s", date_text);
-          write_report_line (report, 0, line);
+          report_write_line (report, 0, line);
         }
 
         total = 0;
@@ -1171,7 +1171,7 @@ void generate_balance_report (file_data *file)
                 total += file->accounts[acc].report_total;
                 full_convert_money_to_string (file->accounts[acc].report_total, b1, TRUE);
                 sprintf (line, "\\i%s\\t\\d\\r%s", file->accounts[acc].name, b1);
-                write_report_line (report, 2, line);
+                report_write_line (report, 2, line);
               }
             }
           }
@@ -1179,11 +1179,11 @@ void generate_balance_report (file_data *file)
         msgs_lookup ("BRTotal", b1, sizeof (b1));
         full_convert_money_to_string (total, b2, TRUE);
         sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-        write_report_line (report, 2, line);
+        report_write_line (report, 2, line);
       }
     }
 
-    close_report (file, report);
+    report_close(report);
   }
 
   hourglass_off ();

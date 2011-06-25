@@ -1138,7 +1138,7 @@ void print_preset_window (int text, int format, int scale, int rotate)
 
   msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
   msgs_lookup ("PrintTitlePreset", buffer, sizeof (buffer));
-  report = open_new_report (preset_print_file, buffer, NULL);
+  report = report_open (preset_print_file, buffer, NULL);
 
 
   if (report != NULL)
@@ -1152,8 +1152,8 @@ void print_preset_window (int text, int format, int scale, int rotate)
     make_file_leafname (preset_print_file, numbuf1, sizeof (numbuf1));
     msgs_param_lookup ("PresetTitle", buffer, sizeof (buffer), numbuf1, NULL, NULL, NULL);
     sprintf (line, "\\b\\u%s", buffer);
-    write_report_line (report, 0, line);
-    write_report_line (report, 0, "");
+    report_write_line (report, 0, line);
+    report_write_line (report, 0, "");
 
     /* Output the headings line, taking the text from the window icons. */
 
@@ -1171,7 +1171,7 @@ void print_preset_window (int text, int format, int scale, int rotate)
     sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->preset_pane, 5, numbuf1));
     strcat (line, buffer);
 
-    write_report_line (report, 0, line);
+    report_write_line (report, 0, line);
 
     /* Output the standing order data as a set of delimited lines. */
 
@@ -1218,7 +1218,7 @@ void print_preset_window (int text, int format, int scale, int rotate)
       sprintf (buffer, "%s", preset_print_file->presets[t].description);
       strcat (line, buffer);
 
-      write_report_line (report, 0, line);
+      report_write_line (report, 0, line);
     }
 
     hourglass_off ();
@@ -1228,7 +1228,7 @@ void print_preset_window (int text, int format, int scale, int rotate)
     error_msgs_report_error ("PrintMemFail");
   }
 
-  close_and_print_report (preset_print_file, report, text, format, scale, rotate);
+  report_close_and_print(report, text, format, scale, rotate);
 }
 
 /* ==================================================================================================================

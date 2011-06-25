@@ -763,8 +763,12 @@ saved_report;
  * Report data structures
  */
 
+typedef struct file_data file_data;
+
 typedef struct report_data
 {
+  file_data		*file;							/**< The file that the report belongs to.		*/
+
   wimp_w             window;
   char               window_title[256];
 
@@ -815,7 +819,7 @@ report_data;
 
 /* File data struct. */
 
-typedef struct file_data
+struct file_data
 {
   /* File location */
 
@@ -888,8 +892,7 @@ typedef struct file_data
   balance_rep        balance_rep;
 
   struct file_data   *next;
-}
-file_data;
+};
 
 /* ==================================================================================================================
  * Window and menu handle structures.
@@ -912,7 +915,6 @@ typedef struct
   wimp_w      find;
   wimp_w      found;
   wimp_w      budget;
-  wimp_w      report_format;
   wimp_w      trans_rep;
   wimp_w      unrec_rep;
   wimp_w      cashflow_rep;
@@ -937,7 +939,6 @@ typedef struct
   wimp_window *accview_pane_def;
   wimp_window *preset_window_def;
   wimp_window *preset_pane_def;
-  wimp_window *report_window_def;
 }
 global_windows;
 
@@ -967,10 +968,6 @@ typedef struct
   wimp_menu   *sorder;
 
   wimp_menu   *preset;
-
-  wimp_menu   *reportview;
-
-  wimp_menu   *font_list;
 
   wimp_menu   *replist;
 }

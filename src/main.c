@@ -166,8 +166,6 @@ static void main_poll_loop(void)
 					redraw_sorder_window(&(blk.redraw), file);
 				else if ((file = find_preset_window_file_block(blk.redraw.w)) != NULL)
 					redraw_preset_window(&(blk.redraw), file);
-				else if ((file = find_report_window_file_block(blk.redraw.w)) != NULL)
-					redraw_report_window(&(blk.redraw), file);
 				break;
 
 			case wimp_OPEN_WINDOW_REQUEST:
@@ -204,8 +202,6 @@ static void main_poll_loop(void)
 					delete_sorder_window(file);
 				else if ((file = find_preset_window_file_block(blk.close.w)) != NULL)
 					delete_preset_window(file);
-				else if ((file = find_report_window_file_block(blk.close.w)) != NULL)
-					delete_report_window(file, find_report_window_from_handle(file, blk.close.w));
 				else
 					wimp_close_window(blk.close.w);
 				break;
@@ -421,6 +417,7 @@ static void main_initialise(void)
 	ihelp_initialise();
 	url_initialise();
 	printing_initialise();
+	report_initialise(sprites);
 
 	templates_close();
 
@@ -437,11 +434,9 @@ static void main_initialise(void)
 	menus.accview         = templates_get_menu(TEMPLATES_MENU_ACCVIEW);
 	menus.sorder          = templates_get_menu(TEMPLATES_MENU_SORDER);
 	menus.preset          = templates_get_menu(TEMPLATES_MENU_PRESET);
-	menus.reportview      = templates_get_menu(TEMPLATES_MENU_REPORT);
 
 	menus.accopen         = NULL;
 	menus.account         = NULL;
-	menus.font_list       = NULL;
 
 	/* Initialise the file update mechanism: calling it now with no files loaded will force the date to be set up. */
 
@@ -622,15 +617,7 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
     windows->budget = templates_create_window("Budget");
     ihelp_add_window (windows->budget, "Budget", NULL);
 
-  /* Report Format Window.
-   *
-   * Created now.
-   */
-
-    windows->report_format = templates_create_window("RepFormat");
-    ihelp_add_window (windows->report_format, "RepFormat", NULL);
-
-  /* Transaction Report Window.
+   /* Transaction Report Window.
    *
    * Created now.
    */
@@ -833,15 +820,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
   window_def = templates_load_window("PresetTB");
     window_def->sprite_area = sprites;
     windows->preset_pane_def = window_def;
-
-  /* Report Window.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("Report");
-    window_def->sprite_area = sprites;
-    windows->report_window_def = window_def;
 }
 
 
@@ -1320,42 +1298,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
         close_dialogue_with_caret (windows.budget);
       }
     }
-  }
-
-  /* Report format window. */
-
-  else if (pointer->w == windows.report_format)
-  {
-    if (pointer->i == REPORT_FORMAT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.report_format);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_report_format_window ();
-      }
-    }
-
-    if (pointer->i == REPORT_FORMAT_OK) /* 'OK' button */
-    {
-      if (!process_report_format_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.report_format);
-      }
-    }
-
-    if (pointer->i == REPORT_FORMAT_NFONTMENU)
-    {
-      open_font_list_menu (pointer);
-    }
-
-    else if (pointer->i == REPORT_FORMAT_BFONTMENU)
-    {
-      open_font_list_menu (pointer);
-    }
-
   }
 
   /* Account name enrty window. */
@@ -1979,13 +1921,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
   {
     preset_pane_click (file, pointer);
   }
-
-  /* Look for report windows. */
-
-  else if ((file = find_report_window_file_block (pointer->w)) != NULL)
-  {
-    report_window_click (file, pointer);
-  }
 }
 
 /* ==================================================================================================================
@@ -2233,29 +2168,6 @@ static void key_press_handler (wimp_key *key)
 
       case wimp_KEY_ESCAPE:
         close_dialogue_with_caret (windows.budget);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
-
-  /* Report format window. */
-
-  else if (key->w == windows.report_format)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_report_format_window ())
-        {
-          close_dialogue_with_caret (windows.report_format);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.report_format);
         break;
 
       default:
@@ -2624,25 +2536,11 @@ static void menu_selection_handler (wimp_selection *selection)
     decode_preset_menu (selection, &pointer);
   }
 
-  /* Decode the report view menu. */
-
-  else if (menus.menu_id == MENU_ID_REPORTVIEW)
-  {
-    decode_reportview_menu (selection, &pointer);
-  }
-
   /* Decode the report list menu when it appears apart from the main menu. */
 
   else if (menus.menu_id == MENU_ID_REPLIST)
   {
     mainmenu_decode_replist_menu (selection, &pointer);
-  }
-
-  /* Decode the transient font list menu. */
-
-  else if (menus.menu_id == MENU_ID_FONTLIST)
-  {
-    decode_font_list_menu (selection, &pointer);
   }
 
   /* If Adjust was used, reopen the menu. */
@@ -2785,11 +2683,7 @@ static void user_message_handler (wimp_message *message)
       break;
 
     case message_MENUS_DELETED:
-      if (menus.menu_id == MENU_ID_FONTLIST)
-      {
-        deallocate_font_list_menu ();
-      }
-      else if (menus.menu_id == MENU_ID_ACCOUNT)
+      if (menus.menu_id == MENU_ID_ACCOUNT)
       {
         account_menu_closed_message ((wimp_full_message_menus_deleted *) message);
       }
@@ -2819,10 +2713,6 @@ static void user_message_handler (wimp_message *message)
       else if (menus.menu_id == MENU_ID_PRESET)
       {
         preset_menu_submenu_message ((wimp_full_message_menu_warning *) message);
-      }
-      else if (menus.menu_id == MENU_ID_REPORTVIEW)
-      {
-        reportview_menu_submenu_message ((wimp_full_message_menu_warning *) message);
       }
       break;
   }

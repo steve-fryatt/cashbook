@@ -549,7 +549,8 @@ void report_write_line(report_data *report, int bar, char *text)
 
 static int report_reflow_content(report_data *report)
 {
-	int		width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS], right[REPORT_TAB_BARS][REPORT_TAB_STOPS],
+	osbool		right[REPORT_TAB_BARS][REPORT_TAB_STOPS];
+	int		width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS],
 			width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 			t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], t_width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 			i, j, line, bar, tab, total;
@@ -564,7 +565,7 @@ static int report_reflow_content(report_data *report)
 
 	for (i=0; i<REPORT_TAB_BARS; i++) {
 		for (j=0; j<REPORT_TAB_STOPS; j++) {
-			right[i][j]  = 0;		/* Flag to mark if anything in a column has been right-aligned. */
+			right[i][j]  = FALSE;		/* Flag to mark if anything in a column has been right-aligned. */
 
 							/* These are in OS units, for on screen rendering. */
 
@@ -626,7 +627,7 @@ static int report_reflow_content(report_data *report)
 			/* If the column is right aligned, record the fact. */
 
 			if (*flags & REPORT_FLAG_RIGHT)
-				right[bar][tab] = 1;
+				right[bar][tab] = TRUE;
 
 			/* If the column is a spill column, the width is carried over from the width of the preceeding column, minus the
 			 * inter-column gap.  The previous column is then zeroed.
@@ -1571,415 +1572,325 @@ static void report_cancel_print_job(void)
 
 static void report_print_as_graphic(report_data *report, osbool fit_width, osbool rotate)
 {
-  os_error         *error;
-  os_fw            out = 0;
-  os_box           p_rect, rect;
-  os_hom_trfm      p_trfm;
-  os_coord         p_pos;
-  char             title[1024];
-  pdriver_features features;
-  font_f           font, font_n = 0, font_b = 0;
-  osbool           more;
-  int              page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
-  int              margin_left, margin_right, margin_top, margin_bottom, margin_fail;
-  int              top, base, y, linespace, bar, tab, indent, total, width;
-  unsigned int     page_width, page_height, scale, page_xstart, page_ystart;
-  char             *column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN+10];
-
-  hourglass_on ();
-
-  /* Get the printer driver settings. */
-
-  error = xpdriver_info (NULL, NULL, NULL, &features, NULL, NULL, NULL, NULL);
-
-  if (error != NULL)
-  {
-    report_handle_print_error(error, out, font_n, font_b);
-    return;
-  }
-
-  /* Find the fonts we will use. */
-
-  report_find_fonts (report, &font_n, &font_b);
-  font_convertto_os (1000 * (report->font_size / 16) * report->line_spacing / 100, 0, &linespace, NULL);
-
-  /* Get the page dimensions, and set up the print margins.  If the margins are bigger than the print
-   * borders, the print borders are increased to match.
-   */
-
-  error = xpdriver_page_size (&page_xsize, &page_ysize, &page_left, &page_bottom, &page_right, &page_top);
-
-  if (error != NULL)
-  {
-    report_handle_print_error(error, out, font_n, font_b);
-    return;
-  }
-
-  margin_fail = FALSE;
-
-  margin_left = page_left;
-
-  if (config_int_read ("PrintMarginLeft") > 0 && config_int_read ("PrintMarginLeft") > margin_left)
-  {
-    margin_left = config_int_read ("PrintMarginLeft");
-
-    page_left = margin_left;
-  }
-  else
-  {
-    if (config_int_read ("PrintMarginLeft") > 0)
-    {
-      margin_fail = TRUE;
-    }
-  }
-
-  margin_bottom = page_bottom;
-
-  if (config_int_read ("PrintMarginBottom") > 0 && config_int_read ("PrintMarginBottom") > margin_bottom)
-  {
-    margin_bottom = config_int_read ("PrintMarginBottom");
-
-    page_bottom = margin_bottom;
-  }
-  else
-  {
-    if (config_int_read ("PrintMarginBottom") > 0)
-    {
-      margin_fail = TRUE;
-    }
-  }
-
-  margin_right = page_xsize - page_right;
-
-  if (config_int_read ("PrintMarginRight") > 0 && config_int_read ("PrintMarginRight") > margin_right)
-  {
-    margin_right = config_int_read ("PrintMarginRight");
-
-    page_right = page_xsize - margin_right;
-  }
-  else
-  {
-    if (config_int_read ("PrintMarginRight") > 0)
-    {
-      margin_fail = TRUE;
-    }
-  }
-
-  margin_top = page_ysize - page_top;
-
-  if (config_int_read ("PrintMarginTop") > 0 && config_int_read ("PrintMarginTop") > margin_top)
-  {
-    margin_top = config_int_read ("PrintMarginTop");
-
-    page_top = page_ysize - margin_top;
-  }
-  else
-  {
-    if (config_int_read ("PrintMarginTop") > 0)
-    {
-      margin_fail = TRUE;
-    }
-  }
-
-  if (margin_fail)
-  {
-    error_msgs_report_error ("BadPrintMargins");
-  }
-
-  /* Open a printout file. */
-
-  error = xosfind_openoutw (osfind_NO_PATH, "printer:", NULL, &out);
-
-  if (error != NULL)
-  {
-    report_handle_print_error(error, out, font_n, font_b);
-    return;
-  }
-
-  /* Start a print job. */
-
-  msgs_param_lookup ("PJobTitle", title, sizeof (title), report->window_title, NULL, NULL, NULL);
-  error = xpdriver_select_jobw (out, title, NULL);
-
-  if (error != NULL)
-  {
-    report_handle_print_error(error, out, font_n, font_b);
-    return;
-  }
-
-  /* Declare the fonts we are using, if required. */
-
-  if (features & pdriver_FEATURE_DECLARE_FONT)
-  {
-    xpdriver_declare_font (font_n, 0, pdriver_KERNED);
-    xpdriver_declare_font (font_b, 0, pdriver_KERNED);
-    xpdriver_declare_font (0, 0, 0);
-  }
-
-  /* Calculate the page size, positions, transformations etc. */
-
-  /* The printable page width and height, in milli-points and then into OS units. */
-
-  if (rotate)
-  {
-    page_width = page_top - page_bottom;
-    page_height = page_right - page_left;
-  }
-  else
-  {
-    page_width = page_right - page_left;
-    page_height = page_top - page_bottom;
-  }
-
-  error = xfont_convertto_os (page_width, page_height, (int *) &page_width, (int *) &page_height);
-
-  if (error != NULL)
-  {
-    report_handle_print_error(error, out, font_n, font_b);
-    return;
-  }
-
-  /* Scale is the scaling factor to get the width of the report to fit onto one page, if required. The scale is
-   * never more than 1:1 (we never enlarge the print).
-   */
-
-  if (fit_width)
-  {
-    scale = (1 << 16) * page_width / report->width;
-    scale = (scale > (1 << 16)) ? (1 << 16) : scale;
-  }
-  else
-  {
-    scale = 1 << 16;
-  }
-
-  /* The page width and page height now need to be worked out in terms of what we actually want to print.
-   * If scaling is on, the width is the report width and the height is the true page height scaled up in
-   * proportion; otherwise, these stay as the true printable area in OS units.
-   */
-
-  if (fit_width)
-  {
-    if (page_width < report->width)
-    {
-      page_height = page_height * report->width / page_width;
-    }
-
-    page_width = report->width;
-  }
-
-  /* Clip the page length to be an exect number of lines */
-
-  page_height -= (page_height % linespace);
-
-  /* Set up the transformation matrix scale the page and rotate it as required. */
-
-  if (rotate)
-  {
-    p_trfm.entries[0][0] = 0;
-    p_trfm.entries[0][1] = scale;
-    p_trfm.entries[1][0] = -scale;
-    p_trfm.entries[1][1] = 0;
-  }
-  else
-  {
-    p_trfm.entries[0][0] = scale;
-    p_trfm.entries[0][1] = 0;
-    p_trfm.entries[1][0] = 0;
-    p_trfm.entries[1][1] = scale;
-  }
-
-  /* Loop through the pages down the report and across. */
-
-  for (page_ystart = 0; page_ystart < report->height; page_ystart += page_height)
-  {
-    for (page_xstart = 0; page_xstart < report->width; page_xstart += page_width)
-    {
-      /* Calculate the area of the page to print and set up the print rectangle.  If the page is on the edge,
-       * crop the area down to save memory.
-       */
-
-      p_rect.x0 = page_xstart;
-      p_rect.x1 = (page_xstart + page_width <= report->width) ? page_xstart + page_width : report->width;
-      p_rect.y1 = -page_ystart;
-
-
-      /* The bottom y edge is done specially, because we also need to set the print position.  If the page is at the
-       * edge, it is cropped down to save on memory.
-       *
-       * The page origin will depend on rotation and the amount of text on the page.  For a full page, the
-       * origin is placed at one corner (either bottom left for a portrait, or bottom right for a landscape).
-       * For part pages, the origin is shifted left or up by the proportion of the page dimension (in milli-points)
-       * taken from the proportion of OS units used for layout.
-       */
-
-      if (page_ystart + page_height <= report->height)
-      {
-        p_rect.y0 = -page_ystart - page_height;
-
-        if (rotate)
-        {
-          p_pos.x = page_right;
-          p_pos.y = page_bottom;
-        }
-        else
-        {
-          p_pos.x = page_left;
-          p_pos.y = page_bottom;
-        }
-      }
-      else
-      {
-        p_rect.y0 = -report->height;
-
-        if (rotate)
-        {
-          p_pos.x = page_right - (page_right - page_left) * (page_height + (p_rect.y0 - p_rect.y1)) / page_height;
-          p_pos.y = page_bottom;
-        }
-        else
-        {
-          p_pos.x = page_left;
-          p_pos.y = page_bottom + (page_top - page_bottom) * (page_height + (p_rect.y0 - p_rect.y1)) / page_height;
-        }
-      }
-
-
-      /* Pass the page details to the printer driver and start to draw the page. */
-
-      error = xpdriver_give_rectangle (0, &p_rect, &p_trfm, &p_pos, os_COLOUR_WHITE);
-
-      if (error != NULL)
-      {
-        report_handle_print_error(error, out, font_n, font_b);
-        return;
-      }
-
-      error = xpdriver_draw_page (1, &rect, 0, 0, &more, NULL);
-
-      /* Perform the redraw. */
-
-      while (more)
-      {
-        /* Calculate the rows to redraw. */
-
-        top = -rect.y1 / linespace;
-        if (top < 0)
-        {
-          top = 0;
-        }
-
-        base = (linespace + (linespace / 2) - rect.y0 ) / linespace;
-
-        /* Redraw the data into the window. */
-
-        for (y = top; y < report->lines && y <= base; y++)
-        {
-          tab = 0;
-          column = report->data + report->line_ptr[y];
-          bar = (int) *column;
-          column += REPORT_BAR_BYTES;
-
-          do
-          {
-            flags = column;
-            column += REPORT_FLAG_BYTES;
-
-            font = (*flags & REPORT_FLAG_BOLD) ? font_b : font_n;
-            indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_COLUMN_INDENT : 0;
-
-            if (*flags & REPORT_FLAG_RIGHT)
-            {
-              error = xfont_scan_string (font, column, font_KERN | font_GIVEN_FONT, 0x7fffffff, 0x7fffffff, NULL, NULL,
-                                         0, NULL, &total, NULL, NULL);
-
-              if (error != NULL)
-              {
-                report_handle_print_error(error, out, font_n, font_b);
-                return;
-              }
-
-              error = xfont_convertto_os (total, 0, &width, NULL);
-
-              if (error != NULL)
-              {
-                report_handle_print_error(error, out, font_n, font_b);
-                return;
-              }
-
-              indent = report->font_width[bar][tab] - width;
-            }
-
-            if (*flags & REPORT_FLAG_UNDER)
-            {
-              *(buffer+0) = font_COMMAND_UNDERLINE;
-              *(buffer+1) = 230;
-              *(buffer+2) = 18;
-              strcpy (buffer+3, column);
-              paint = buffer;
-            }
-            else
-            {
-              paint = column;
-            }
-
-            error = xcolourtrans_set_font_colours (font, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
-
-            if (error != NULL)
-            {
-              report_handle_print_error(error, out, font_n, font_b);
-              return;
-            }
-
-            error = xfont_paint (font, paint, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
-                        + REPORT_LEFT_MARGIN + report->font_tab[bar][tab] + indent,
-                        - linespace * (y+1) + REPORT_BASELINE_OFFSET, NULL, NULL, 0);
-
-            if (error != NULL)
-            {
-              report_handle_print_error(error, out, font_n, font_b);
-              return;
-            }
-
-            while (*column != '\0' && *column != '\n')
-            {
-              column++;
-            }
-            column++;
-            tab++;
-          }
-          while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
-        }
-
-        error = xpdriver_get_rectangle (&rect, &more, NULL);
-
-        if (error != NULL)
-        {
-          report_handle_print_error(error, out, font_n, font_b);
-          return;
-        }
-      }
-    }
-  }
-
-  /* Terminate the print job. */
-
-  error = xpdriver_end_jobw (out);
-
-  if (error != NULL)
-  {
-    report_handle_print_error(error, out, font_n, font_b);
-    return;
-  }
-
-  /* Close the printout file. */
-
-  xosfind_closew (out);
-
-  font_lose_font (font_n);
-  font_lose_font (font_b);
-
-  hourglass_off ();
+	os_error		*error;
+	os_fw			out = 0;
+	os_box			p_rect, rect;
+	os_hom_trfm		p_trfm;
+	os_coord		p_pos;
+	char			title[1024];
+	pdriver_features	features;
+	font_f			font, font_n = 0, font_b = 0;
+	osbool			more, margin_fail;
+	int			page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
+	int			margin_left, margin_right, margin_top, margin_bottom;
+	int			top, base, y, linespace, bar, tab, indent, total, width;
+	unsigned int		page_width, page_height, scale, page_xstart, page_ystart;
+	char			*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN+10];
+
+	hourglass_on();
+
+	/* Get the printer driver settings. */
+
+	error = xpdriver_info (NULL, NULL, NULL, &features, NULL, NULL, NULL, NULL);
+	if (error != NULL) {
+		report_handle_print_error(error, out, font_n, font_b);
+		return;
+	}
+
+	/* Find the fonts we will use. */
+
+	report_find_fonts(report, &font_n, &font_b);
+	font_convertto_os(1000 * (report->font_size / 16) * report->line_spacing / 100, 0, &linespace, NULL);
+
+	/* Get the page dimensions, and set up the print margins.  If the margins are bigger than the print
+	 * borders, the print borders are increased to match.
+	 */
+
+	error = xpdriver_page_size(&page_xsize, &page_ysize, &page_left, &page_bottom, &page_right, &page_top);
+	if (error != NULL) {
+		report_handle_print_error(error, out, font_n, font_b);
+		return;
+	}
+
+	margin_fail = FALSE;
+
+	margin_left = page_left;
+
+	if (config_int_read("PrintMarginLeft") > 0 && config_int_read("PrintMarginLeft") > margin_left) {
+		margin_left = config_int_read("PrintMarginLeft");
+		page_left = margin_left;
+	} else if (config_int_read("PrintMarginLeft") > 0) {
+		margin_fail = TRUE;
+	}
+
+	margin_bottom = page_bottom;
+
+	if (config_int_read("PrintMarginBottom") > 0 && config_int_read("PrintMarginBottom") > margin_bottom) {
+		margin_bottom = config_int_read("PrintMarginBottom");
+		page_bottom = margin_bottom;
+	} else if (config_int_read("PrintMarginBottom") > 0) {
+		margin_fail = TRUE;
+	}
+
+	margin_right = page_xsize - page_right;
+
+	if (config_int_read("PrintMarginRight") > 0 && config_int_read("PrintMarginRight") > margin_right) {
+		margin_right = config_int_read("PrintMarginRight");
+		page_right = page_xsize - margin_right;
+	} else if (config_int_read("PrintMarginRight") > 0) {
+		margin_fail = TRUE;
+	}
+
+	margin_top = page_ysize - page_top;
+
+	if (config_int_read("PrintMarginTop") > 0 && config_int_read("PrintMarginTop") > margin_top) {
+		margin_top = config_int_read("PrintMarginTop");
+		page_top = page_ysize - margin_top;
+	} else if (config_int_read("PrintMarginTop") > 0) {
+		margin_fail = TRUE;
+	}
+
+	if (margin_fail) {
+		error_msgs_report_error("BadPrintMargins");
+		/* \TODO -- Should't we get out here? */
+	}
+
+	/* Open a printout file. */
+
+	error = xosfind_openoutw(osfind_NO_PATH, "printer:", NULL, &out);
+	if (error != NULL) {
+		report_handle_print_error(error, out, font_n, font_b);
+		return;
+	}
+
+	/* Start a print job. */
+
+	msgs_param_lookup("PJobTitle", title, sizeof(title), report->window_title, NULL, NULL, NULL);
+	error = xpdriver_select_jobw(out, title, NULL);
+	if (error != NULL) {
+		report_handle_print_error(error, out, font_n, font_b);
+		return;
+	}
+
+	/* Declare the fonts we are using, if required. */
+
+	if (features & pdriver_FEATURE_DECLARE_FONT) {
+		xpdriver_declare_font(font_n, 0, pdriver_KERNED);
+		xpdriver_declare_font(font_b, 0, pdriver_KERNED);
+		xpdriver_declare_font(0, 0, 0);
+	}
+
+	/* Calculate the page size, positions, transformations etc. */
+
+	/* The printable page width and height, in milli-points and then into OS units. */
+
+	if (rotate) {
+		page_width = page_top - page_bottom;
+		page_height = page_right - page_left;
+	} else {
+		page_width = page_right - page_left;
+		page_height = page_top - page_bottom;
+	}
+
+	error = xfont_convertto_os(page_width, page_height, (int *) &page_width, (int *) &page_height);
+	if (error != NULL) {
+		report_handle_print_error(error, out, font_n, font_b);
+		return;
+	}
+
+	/* Scale is the scaling factor to get the width of the report to fit onto one page, if required. The scale is
+	 * never more than 1:1 (we never enlarge the print).
+	 */
+
+	if (fit_width) {
+		scale = (1 << 16) * page_width / report->width;
+		scale = (scale > (1 << 16)) ? (1 << 16) : scale;
+	} else {
+		scale = 1 << 16;
+	}
+
+	/* The page width and page height now need to be worked out in terms of what we actually want to print.
+	 * If scaling is on, the width is the report width and the height is the true page height scaled up in
+	 * proportion; otherwise, these stay as the true printable area in OS units.
+	 */
+
+	if (fit_width) {
+		if (page_width < report->width)
+			page_height = page_height * report->width / page_width;
+
+		page_width = report->width;
+	}
+
+	/* Clip the page length to be an exect number of lines */
+
+	page_height -= (page_height % linespace);
+
+	/* Set up the transformation matrix scale the page and rotate it as required. */
+
+	if (rotate) {
+		p_trfm.entries[0][0] = 0;
+		p_trfm.entries[0][1] = scale;
+		p_trfm.entries[1][0] = -scale;
+		p_trfm.entries[1][1] = 0;
+	} else {
+		p_trfm.entries[0][0] = scale;
+		p_trfm.entries[0][1] = 0;
+		p_trfm.entries[1][0] = 0;
+		p_trfm.entries[1][1] = scale;
+	}
+
+	/* Loop through the pages down the report and across. */
+
+	for (page_ystart = 0; page_ystart < report->height; page_ystart += page_height) {
+		for (page_xstart = 0; page_xstart < report->width; page_xstart += page_width) {
+			/* Calculate the area of the page to print and set up the print rectangle.  If the page is on the edge,
+			 * crop the area down to save memory.
+			 */
+
+			p_rect.x0 = page_xstart;
+			p_rect.x1 = (page_xstart + page_width <= report->width) ? page_xstart + page_width : report->width;
+			p_rect.y1 = -page_ystart;
+
+			/* The bottom y edge is done specially, because we also need to set the print position.  If the page is at the
+			 * edge, it is cropped down to save on memory.
+			 *
+			 * The page origin will depend on rotation and the amount of text on the page.  For a full page, the
+			 * origin is placed at one corner (either bottom left for a portrait, or bottom right for a landscape).
+			 * For part pages, the origin is shifted left or up by the proportion of the page dimension (in milli-points)
+			 * taken from the proportion of OS units used for layout.
+			 */
+
+			if (page_ystart + page_height <= report->height) {
+				p_rect.y0 = -page_ystart - page_height;
+
+				if (rotate) {
+					p_pos.x = page_right;
+					p_pos.y = page_bottom;
+				} else {
+					p_pos.x = page_left;
+					p_pos.y = page_bottom;
+				}
+			} else {
+				p_rect.y0 = -report->height;
+
+				if (rotate) {
+					p_pos.x = page_right - (page_right - page_left) * (page_height + (p_rect.y0 - p_rect.y1)) / page_height;
+					p_pos.y = page_bottom;
+				} else {
+					p_pos.x = page_left;
+					p_pos.y = page_bottom + (page_top - page_bottom) * (page_height + (p_rect.y0 - p_rect.y1)) / page_height;
+				}
+			}
+
+			/* Pass the page details to the printer driver and start to draw the page. */
+
+			error = xpdriver_give_rectangle(0, &p_rect, &p_trfm, &p_pos, os_COLOUR_WHITE);
+			if (error != NULL) {
+				report_handle_print_error(error, out, font_n, font_b);
+				return;
+			}
+
+			error = xpdriver_draw_page(1, &rect, 0, 0, &more, NULL);
+
+			/* Perform the redraw. */
+
+			while (more) {
+				/* Calculate the rows to redraw. */
+
+				top = -rect.y1 / linespace;
+				if (top < 0)
+					top = 0;
+				base = (linespace + (linespace / 2) - rect.y0 ) / linespace;
+
+				/* Redraw the data to the printer. */
+
+				for (y = top; y < report->lines && y <= base; y++) {
+					tab = 0;
+					column = report->data + report->line_ptr[y];
+					bar = (int) *column;
+					column += REPORT_BAR_BYTES;
+
+					do {
+						flags = column;
+						column += REPORT_FLAG_BYTES;
+
+						font = (*flags & REPORT_FLAG_BOLD) ? font_b : font_n;
+						indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_COLUMN_INDENT : 0;
+
+						if (*flags & REPORT_FLAG_RIGHT) {
+							error = xfont_scan_string(font, column, font_KERN | font_GIVEN_FONT,
+									0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL, &total, NULL, NULL);
+							if (error != NULL) {
+								report_handle_print_error(error, out, font_n, font_b);
+								return;
+							}
+
+							error = xfont_convertto_os(total, 0, &width, NULL);
+							if (error != NULL) {
+								report_handle_print_error(error, out, font_n, font_b);
+								return;
+							}
+
+							indent = report->font_width[bar][tab] - width;
+						}
+
+						if (*flags & REPORT_FLAG_UNDER) {
+							*(buffer+0) = font_COMMAND_UNDERLINE;
+							*(buffer+1) = 230;
+							*(buffer+2) = 18;
+							strcpy (buffer+3, column);
+							paint = buffer;
+						} else {
+							paint = column;
+						}
+
+						error = xcolourtrans_set_font_colours(font, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
+						if (error != NULL) {
+							report_handle_print_error(error, out, font_n, font_b);
+							return;
+						}
+
+						error = xfont_paint(font, paint, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
+								+ REPORT_LEFT_MARGIN + report->font_tab[bar][tab] + indent,
+								- linespace * (y+1) + REPORT_BASELINE_OFFSET, NULL, NULL, 0);
+						if (error != NULL) {
+							report_handle_print_error(error, out, font_n, font_b);
+							return;
+						}
+
+						while (*column != '\0' && *column != '\n')
+							column++;
+						column++;
+						tab++;
+					} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+				}
+
+				error = xpdriver_get_rectangle(&rect, &more, NULL);
+				if (error != NULL) {
+					report_handle_print_error(error, out, font_n, font_b);
+					return;
+				}
+			}
+		}
+	}
+
+	/* Terminate the print job. */
+
+	error = xpdriver_end_jobw(out);
+
+	if (error != NULL) {
+		report_handle_print_error(error, out, font_n, font_b);
+		return;
+	}
+
+	/* Close the printout file. */
+
+	xosfind_closew(out);
+
+	font_lose_font(font_n);
+	font_lose_font(font_b);
+
+	hourglass_off();
 }
 
 

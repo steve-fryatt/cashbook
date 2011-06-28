@@ -128,6 +128,7 @@ static void		report_start_print_job(char *filename);
 static void		report_cancel_print_job(void);
 static void		report_print_as_graphic(report_data *report, osbool fit_width, osbool rotate);
 static void		report_handle_print_error(os_error *error, os_fw file, font_f f1, font_f f2);
+static os_error		*report_plot_line(report_data *report, unsigned int line, int x, int y, font_f normal, font_f bold);
 
 
 /**
@@ -922,12 +923,11 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 static void report_view_redraw_handler(wimp_draw *redraw)
 {
-	int		ox, oy, top, base, y, linespace, bar, tab, indent, total, width;
-	font_f		font, font_n, font_b;
+	int		ox, oy, top, base, y, linespace;
+	font_f		font_n, font_b;
 	report_data	*report;
 	osbool		more;
 	file_data	*file;
-	char		*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN+10];
 
 	report = event_get_window_user_data(redraw->w);
 
@@ -954,47 +954,12 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 		base = (linespace + (linespace / 2) + oy - redraw->clip.y0 ) / linespace;
 
-		for (y = top; y < report->lines && y <= base; y++) {
-			tab = 0;
-			column = report->data + report->line_ptr[y];
-			bar = (int) *column;
-			column += REPORT_BAR_BYTES;
+		wimp_set_font_colours(wimp_COLOUR_WHITE, wimp_COLOUR_BLACK);
 
-			do {
-				flags = column;
-				column += REPORT_FLAG_BYTES;
-
-				font = (*flags & REPORT_FLAG_BOLD) ? font_b : font_n;
-				indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_COLUMN_INDENT : 0;
-
-				if (*flags & REPORT_FLAG_RIGHT) {
-					font_scan_string(font, column, font_KERN | font_GIVEN_FONT, 0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL,
-							&total, NULL, NULL);
-					font_convertto_os (total, 0, &width, NULL);
-					indent = report->font_width[bar][tab] - width;
-				}
-
-				if (*flags & REPORT_FLAG_UNDER) {
-					*(buffer+0) = font_COMMAND_UNDERLINE;
-					*(buffer+1) = 230;
-					*(buffer+2) = 18;
-					strcpy(buffer+3, column);
-					paint = buffer;
-				} else {
-					paint = column;
-				}
-
-				wimp_set_font_colours(wimp_COLOUR_WHITE, wimp_COLOUR_BLACK);
-				font_paint(font, paint, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
-						ox + REPORT_LEFT_MARGIN + report->font_tab[bar][tab] + indent,
-						oy - linespace * (y+1) + REPORT_BASELINE_OFFSET, NULL, NULL, 0);
-
-				while (*column != '\0' && *column != '\n')
-					column++;
-				column++;
-				tab++;
-			} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
-		}
+		for (y = top; y < report->lines && y <= base; y++)
+			report_plot_line(report, y, ox + REPORT_LEFT_MARGIN,
+					oy - linespace * (y+1) + REPORT_BASELINE_OFFSET,
+					font_n, font_b);
 
 		more = wimp_get_rectangle(redraw);
 	}
@@ -1586,14 +1551,13 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 	os_coord			p_pos;
 	char				title[1024];
 	pdriver_features		features;
-	font_f				font, font_n = 0, font_b = 0;
+	font_f				font_n = 0, font_b = 0;
 	osbool				more, margin_fail;
 	int				page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
 	int				margin_left, margin_right, margin_top, margin_bottom, offset;
 	int				pages_x, pages_y, lines_per_page, page_x, page_y, lines, header, header_size, footer_size;
-	int				top, base, y, linespace, bar, tab, indent, total, width;
-	unsigned int			page_width, page_height, scale, page_xstart, page_ystart;
-	char				*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN+10];
+	int				top, base, y, linespace, bar;
+	unsigned int			page_width, page_height, scale, page_xstart, page_ystart, line;
 	double				scaling;
 	struct report_print_pagination	*pages;
 
@@ -1886,70 +1850,31 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 					top = -1;
 				base = (linespace + (linespace / 2) - rect.y0 ) / linespace;
 
+				error = xcolourtrans_set_font_colours(font_n, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
+				if (error != NULL) {
+					report_handle_print_error(error, out, font_n, font_b);
+					return;
+				}
+
+				error = xcolourtrans_set_font_colours(font_b, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
+				if (error != NULL) {
+					report_handle_print_error(error, out, font_n, font_b);
+					return;
+				}
+
 				/* Redraw the data to the printer. */
 
 				for (y = top; (pages[page_y].first_line + y) < report->lines && y <= base; y++) {
-					tab = 0;
 					if (y < 0)
-						column = report->data + report->line_ptr[pages[page_y].header_line];
+						line = pages[page_y].header_line;
 					else
-						column = report->data + report->line_ptr[pages[page_y].first_line + y];
-					bar = (int) *column;
-					column += REPORT_BAR_BYTES;
-
-					do {
-						flags = column;
-						column += REPORT_FLAG_BYTES;
-
-						font = (*flags & REPORT_FLAG_BOLD) ? font_b : font_n;
-						indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_COLUMN_INDENT : 0;
-
-						if (*flags & REPORT_FLAG_RIGHT) {
-							error = xfont_scan_string(font, column, font_KERN | font_GIVEN_FONT,
-									0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL, &total, NULL, NULL);
-							if (error != NULL) {
-								report_handle_print_error(error, out, font_n, font_b);
-								return;
-							}
-
-							error = xfont_convertto_os(total, 0, &width, NULL);
-							if (error != NULL) {
-								report_handle_print_error(error, out, font_n, font_b);
-								return;
-							}
-
-							indent = report->font_width[bar][tab] - width;
-						}
-
-						if (*flags & REPORT_FLAG_UNDER) {
-							*(buffer+0) = font_COMMAND_UNDERLINE;
-							*(buffer+1) = 230;
-							*(buffer+2) = 18;
-							strcpy (buffer+3, column);
-							paint = buffer;
-						} else {
-							paint = column;
-						}
-
-						error = xcolourtrans_set_font_colours(font, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
-						if (error != NULL) {
-							report_handle_print_error(error, out, font_n, font_b);
-							return;
-						}
-
-						error = xfont_paint(font, paint, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
-								+ REPORT_LEFT_MARGIN + report->font_tab[bar][tab] + indent,
-								- linespace * (y+1) + REPORT_BASELINE_OFFSET, NULL, NULL, 0);
-						if (error != NULL) {
-							report_handle_print_error(error, out, font_n, font_b);
-							return;
-						}
-
-						while (*column != '\0' && *column != '\n')
-							column++;
-						column++;
-						tab++;
-					} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+						line = pages[page_y].first_line + y;
+					error = report_plot_line(report, line, REPORT_LEFT_MARGIN,
+							- linespace * (y+1) + REPORT_BASELINE_OFFSET, font_n, font_b);
+					if (error != NULL) {
+						report_handle_print_error(error, out, font_n, font_b);
+						return;
+					}
 				}
 
 				error = xpdriver_get_rectangle(&rect, &more, NULL);
@@ -2011,3 +1936,71 @@ static void report_handle_print_error(os_error *error, os_fw file, font_f f1, fo
 	error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 }
 
+
+/**
+ * Plot a line of a report to screen or the printer drivers.
+ *
+ * \param *report	The report to use.
+ * \param line		The line to be printed.
+ * \param x		The x coordinate to plot at.
+ * \param y		The y coordinate to plot at.
+ * \param normal	The font handle for the normal font face.
+ * \param bold		The font handle for the bold font face.
+ * \return		Pointer to an error block, or NULL for success.
+ */
+
+static os_error *report_plot_line(report_data *report, unsigned int line, int x, int y, font_f normal, font_f bold)
+{
+	os_error	*error;
+	font_f		font;
+	int		bar, tab = 0, indent, total, width;
+	char		*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN+10];
+
+
+	column = report->data + report->line_ptr[line];
+	bar = (int) *column;
+	column += REPORT_BAR_BYTES;
+
+	do {
+		flags = column;
+		column += REPORT_FLAG_BYTES;
+
+		font = (*flags & REPORT_FLAG_BOLD) ? bold : normal;
+		indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_COLUMN_INDENT : 0;
+
+		if (*flags & REPORT_FLAG_RIGHT) {
+			error = xfont_scan_string(font, column, font_KERN | font_GIVEN_FONT,
+					0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL, &total, NULL, NULL);
+			if (error != NULL)
+				return error;
+
+			error = xfont_convertto_os(total, 0, &width, NULL);
+			if (error != NULL)
+				return error;
+
+			indent = report->font_width[bar][tab] - width;
+		}
+
+		if (*flags & REPORT_FLAG_UNDER) {
+			*(buffer+0) = font_COMMAND_UNDERLINE;
+			*(buffer+1) = 230;
+			*(buffer+2) = 18;
+			strcpy (buffer+3, column);
+			paint = buffer;
+		} else {
+			paint = column;
+		}
+
+		error = xfont_paint(font, paint, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
+				x + report->font_tab[bar][tab] + indent, y, NULL, NULL, 0);
+		if (error != NULL)
+			return error;
+
+		while (*column != '\0' && *column != '\n')
+			column++;
+		column++;
+		tab++;
+	} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+
+	return NULL;
+}

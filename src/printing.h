@@ -30,7 +30,8 @@ void printing_initialise(void);
 osbool printing_send_start_print_save(void (*callback_print) (char *), void (*callback_cancel) (void), osbool text_print);
 
 
-/* Force the closure of any printing windows which are open and relate
+/**
+ * Force the closure of any printing windows which are open and relate
  * to the given file.
  *
  * \param *file			The file data block of interest.

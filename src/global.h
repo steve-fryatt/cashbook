@@ -902,7 +902,6 @@ struct file_data
 
 typedef struct
 {
-  wimp_w      prog_info;
   wimp_w      file_info;
   wimp_w      save_as;
   wimp_w      import_comp;

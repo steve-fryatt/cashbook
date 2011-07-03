@@ -414,7 +414,7 @@ void delete_file (file_data *file)
   force_close_section_edit_window (file);
   force_close_sorder_edit_window (file);
   force_close_preset_edit_window (file);
-  force_close_goto_window (file);
+  goto_force_window_closed(file);
   force_close_find_window (file);
   force_close_budget_window (file);
   report_force_format_windows_closed(file);

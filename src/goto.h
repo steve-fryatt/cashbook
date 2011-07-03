@@ -1,44 +1,41 @@
 /* CashBook - goto.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_GOTO
-#define _ACCOUNTS_GOTO
-
-/* ==================================================================================================================
- * Static constants
- */
-
-#define GOTO_ICON_OK 0
-#define GOTO_ICON_CANCEL 1
-#define GOTO_ICON_NUMBER_FIELD 3
-#define GOTO_ICON_NUMBER 4
-#define GOTO_ICON_DATE 5
+#ifndef CASHBOOK_GOTO
+#define CASHBOOK_GOTO
 
 #define GOTO_TYPE_LINE 0
 #define GOTO_TYPE_DATE 1
 
-/* ==================================================================================================================
- * Data structures
+/**
+ * Initialise the Goto module.
  */
 
-/* ==================================================================================================================
- * Function prototypes.
+void goto_initialise(void);
+
+
+/**
+ * Open the Goto dialogue box.
+ *
+ * \param *file		The file owning the dialogue.
+ * \param *ptr		The current Wimp Pointer details.
+ * \param restore	TRUE to retain the last settings for the file; FALSE to
+ *			use the application defaults.
  */
 
-/* Open the goto window. */
+void goto_open_window(file_data *file, wimp_pointer *ptr, osbool restore);
 
-void open_goto_window (file_data *file, wimp_pointer *ptr, int clear);
-void refresh_goto_window (void);
-void fill_goto_window (go_to *go_to_data, int clear);
 
-/* Perform a goto operation. */
+/**
+ * Force the closure of the Goto window if it is open and relates
+ * to the given file.
+ *
+ * \param *file			The file data block of interest.
+ */
 
-int process_goto_window (void);
-
-/* Force the window to close. */
-
-void force_close_goto_window (file_data *file);
+void goto_force_window_closed(file_data *file);
 
 #endif
+

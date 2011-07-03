@@ -1210,7 +1210,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_GOTO:
-        open_goto_window (file, pointer, config_opt_read ("RememberValues"));
+        goto_open_window (file, pointer, config_opt_read ("RememberValues"));
         break;
 
       case TRANSACT_PANE_SORT:
@@ -1256,7 +1256,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_GOTO:
-        open_goto_window (file, pointer, !config_opt_read ("RememberValues"));
+        goto_open_window (file, pointer, !config_opt_read ("RememberValues"));
         break;
 
       case TRANSACT_PANE_SORT:
@@ -1419,7 +1419,7 @@ void transaction_window_keypress (file_data *file, wimp_key *key)
   else if (key->c == wimp_KEY_F5)
   {
     wimp_get_pointer_info (&pointer);
-    open_goto_window (file, &pointer, config_opt_read ("RememberValues"));
+    goto_open_window (file, &pointer, config_opt_read ("RememberValues"));
   }
 
   else if (key->c == wimp_KEY_F6)

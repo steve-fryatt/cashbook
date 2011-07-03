@@ -413,6 +413,7 @@ static void main_initialise(void)
 
 	iconbar_initialise();
 	choices_initialise();
+	goto_initialise();
 
 	ihelp_initialise();
 	url_initialise();
@@ -583,14 +584,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
     windows->edit_preset = templates_create_window("EditPreset");
     ihelp_add_window (windows->edit_preset, "EditPreset", NULL);
-
-  /* Goto Window.
-   *
-   * Created now.
-   */
-
-    windows->go_to = templates_create_window("Goto");
-    ihelp_add_window (windows->go_to, "Goto", NULL);
 
   /* Find Window.
    *
@@ -1209,37 +1202,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
     else if (pointer->i == FOUND_ICON_NEW && pointer->buttons == wimp_CLICK_SELECT)
     {
       reopen_find_window (pointer);
-    }
-  }
-
-  /* Goto transaction window. */
-
-  else if (pointer->w == windows.go_to)
-  {
-    if (pointer->i == GOTO_ICON_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.go_to);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_goto_window ();
-      }
-    }
-
-    if (pointer->i == GOTO_ICON_OK) /* 'OK' button */
-    {
-      if (!process_goto_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.go_to);
-      }
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == GOTO_ICON_NUMBER || pointer->i == GOTO_ICON_DATE)) /* Radio icons */
-    {
-      icons_set_selected (windows.go_to, pointer->i, 1);
     }
   }
 
@@ -2104,29 +2066,6 @@ static void key_press_handler (wimp_key *key)
     if (key->i == FIND_ICON_FMIDENT || key->i == FIND_ICON_TOIDENT)
     {
       update_find_account_fields (key);
-    }
-  }
-
-  /* Goto transaction window. */
-
-  else if (key->w == windows.go_to)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_goto_window ())
-        {
-          close_dialogue_with_caret (windows.go_to);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.go_to);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
     }
   }
 

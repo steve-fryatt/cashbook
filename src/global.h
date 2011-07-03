@@ -911,7 +911,6 @@ typedef struct
   wimp_w      edit_sect;
   wimp_w      edit_sorder;
   wimp_w      edit_preset;
-  wimp_w      go_to;
   wimp_w      find;
   wimp_w      found;
   wimp_w      budget;

@@ -274,9 +274,7 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 
 	hourglass_on();
 
-	#include "sflib/errors.h"
-#include "sflib/debug.h"
-/* Redraw the file now, so that the full extent of the original data
+	/* Redraw the file now, so that the full extent of the original data
 	 * is included in the redraw.
 	 */
 

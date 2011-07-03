@@ -41,7 +41,6 @@
 #include "budget.h"
 #include "clipboard.h"
 #include "calculation.h"
-#include "continue.h"
 #include "conversion.h"
 #include "dataxfer.h"
 #include "date.h"
@@ -52,6 +51,7 @@
 #include "mainmenu.h"
 #include "presets.h"
 #include "printing.h"
+#include "purge.h"
 #include "report.h"
 #include "sorder.h"
 #include "transact.h"
@@ -420,7 +420,7 @@ void delete_file (file_data *file)
   report_force_format_windows_closed(file);
   printing_force_windows_closed(file);
   force_close_report_windows (file);
-  force_close_continue_window (file);
+  purge_force_window_closed(file);
   force_close_transaction_sort_window (file);
   force_close_accview_sort_window (file);
   force_close_sorder_sort_window (file);

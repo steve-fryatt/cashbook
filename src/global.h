@@ -908,7 +908,6 @@ typedef struct
   wimp_w      find;
   wimp_w      found;
   wimp_w      budget;
-  wimp_w      continuation;
   wimp_w      trans_rep;
   wimp_w      unrec_rep;
   wimp_w      cashflow_rep;

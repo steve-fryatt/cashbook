@@ -39,7 +39,6 @@
 #include "calculation.h"
 #include "caret.h"
 #include "choices.h"
-#include "continue.h"
 #include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
@@ -50,6 +49,7 @@
 #include "goto.h"
 #include "main.h"
 #include "presets.h"
+#include "purge.h"
 #include "report.h"
 #include "sorder.h"
 #include "transact.h"
@@ -262,7 +262,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_FILE_CONTINUE)
     {
-      open_continue_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
+      purge_open_window(main_menu_file, pointer, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_FILE_PRINT)

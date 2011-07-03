@@ -51,7 +51,6 @@
 #include "caret.h"
 #include "choices.h"
 #include "clipboard.h"
-#include "continue.h"
 #include "conversion.h"
 #include "dataxfer.h"
 #include "date.h"
@@ -65,6 +64,7 @@
 #include "mainmenu.h"
 #include "presets.h"
 #include "printing.h"
+#include "purge.h"
 #include "redraw.h"
 #include "report.h"
 #include "sorder.h"
@@ -414,6 +414,7 @@ static void main_initialise(void)
 	choices_initialise();
 	find_initialise();
 	goto_initialise();
+	purge_initialise();
 
 	ihelp_initialise();
 	url_initialise();
@@ -632,14 +633,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
     windows->enter_acc = templates_create_window("AccEnter");
     ihelp_add_window (windows->enter_acc, "AccEnter", NULL);
-
-  /* Purge File Window.
-   *
-   * Created now.
-   */
-
-    windows->continuation = templates_create_window("Purge");
-    ihelp_add_window (windows->continuation, "Purge", NULL);
 
 
   /* Sort Transactions Window.
@@ -1105,38 +1098,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == PRESET_EDIT_CARETAMOUNT || pointer->i == PRESET_EDIT_CARETDESC)) /* Radio icons */
     {
       icons_set_selected (windows.edit_preset, pointer->i, 1);
-    }
-  }
-
-  /* Continuation window. */
-
-  else if (pointer->w == windows.continuation)
-  {
-    if (pointer->i == CONTINUE_ICON_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.continuation);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_continue_window ();
-      }
-    }
-
-    else if (pointer->i == CONTINUE_ICON_OK) /* 'OK' button */
-    {
-      if (!process_continue_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.continuation);
-      }
-    }
-
-    else if (pointer->i == CONTINUE_ICON_TRANSACT)
-    {
-      icons_set_group_shaded_when_off (windows.continuation, CONTINUE_ICON_TRANSACT, 2,
-                                       CONTINUE_ICON_DATE, CONTINUE_ICON_DATETEXT);
-      icons_replace_caret_in_window (windows.continuation);
     }
   }
 
@@ -1922,29 +1883,6 @@ static void key_press_handler (wimp_key *key)
 
       case wimp_KEY_ESCAPE:
         close_dialogue_with_caret (windows.edit_sect);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
-
-  /* Continuation window. */
-
-  else if (key->w == windows.continuation)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_continue_window ())
-        {
-          close_dialogue_with_caret (windows.continuation);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.continuation);
         break;
 
       default:

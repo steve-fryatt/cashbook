@@ -96,8 +96,8 @@ READMEHDR := Header
 MENUSRC := menudef
 
 OBJS = account.o accview.o analysis.o budget.o calculation.o caret.o choices.o clipboard.o \
-       continue.o conversion.o dataxfer.o date.o edit.o file.o fileinfo.o filing.o find.o \
-       fontlist.o goto.o iconbar.o ihelp.o main.o mainmenu.o presets.o printing.o redraw.o \
+       conversion.o dataxfer.o date.o edit.o file.o fileinfo.o filing.o find.o fontlist.o \
+       goto.o iconbar.o ihelp.o main.o mainmenu.o presets.o printing.o purge.o redraw.o \
        report.o sorder.o templates.o transact.o window.o
 
 

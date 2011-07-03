@@ -919,7 +919,6 @@ typedef struct
   wimp_w      balance_rep;
   wimp_w      enter_acc;
   wimp_w      continuation;
-  wimp_w      colours;
   wimp_w      sort_trans;
   wimp_w      sort_accview;
   wimp_w      sort_sorder;

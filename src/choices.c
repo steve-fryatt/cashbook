@@ -163,6 +163,7 @@ static int		choices_pane = 0;					/**< The choices pane that is currently displa
 
 static wimp_w		choices_window;						/**< The choices window handle.				*/
 static wimp_w		choices_panes[CHOICES_PANES];				/**< The choices pane handles.				*/
+static wimp_w		choices_colpick_window;					/**< The colour pick window.				*/
 
 static wimp_menu	*choices_font_menu = NULL;				/**< The font menu handle.				*/
 static wimp_i		choices_font_icon = -1;					/**< The pop-up icon which opened the font menu.	*/
@@ -179,6 +180,7 @@ static void		choices_change_pane(int pane);
 static void		choices_set_window(void);
 static void		choices_read_window(void);
 static void		choices_redraw_window(void);
+static void		choices_colpick_click_handler(wimp_pointer *pointer);
 
 
 /**
@@ -187,6 +189,10 @@ static void		choices_redraw_window(void);
 
 void choices_initialise(void)
 {
+	choices_colpick_window = templates_create_window("Colours");
+	ihelp_add_window (choices_colpick_window, "Colours", NULL);
+	event_add_window_mouse_event(choices_colpick_window, choices_colpick_click_handler);
+
 	choices_window = templates_create_window("Choices");
 	ihelp_add_window(choices_window, "Choices", NULL);
 	event_add_window_mouse_event(choices_window, choices_click_handler);
@@ -223,6 +229,8 @@ void choices_initialise(void)
 	ihelp_add_window (choices_panes[CHOICE_PANE_TRANSACT], "Choices4", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_TRANSACT], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_TRANSACT], choices_keypress_handler);
+	event_add_window_menu_prepare(choices_panes[CHOICE_PANE_TRANSACT], choices_menu_prepare_handler);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTMEN, (wimp_menu *) choices_colpick_window, -1);
 
 	choices_panes[CHOICE_PANE_REPORT] = templates_create_window("Choices5");
 	ihelp_add_window (choices_panes[CHOICE_PANE_REPORT], "Choices5", NULL);
@@ -238,6 +246,10 @@ void choices_initialise(void)
 	ihelp_add_window (choices_panes[CHOICE_PANE_ACCOUNT], "Choices6", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_ACCOUNT], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_ACCOUNT], choices_keypress_handler);
+	event_add_window_menu_prepare(choices_panes[CHOICE_PANE_ACCOUNT], choices_menu_prepare_handler);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTMEN, (wimp_menu *) choices_colpick_window, -1);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTMEN, (wimp_menu *) choices_colpick_window, -1);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTMEN, (wimp_menu *) choices_colpick_window, -1);
 }
 
 
@@ -285,8 +297,6 @@ static void choices_close_window(void)
 
 static void choices_click_handler(wimp_pointer *pointer)
 {
-	extern global_windows	windows;
-
 	if (pointer->w == choices_window) {
 		switch (pointer->i) {
 		case CHOICE_ICON_APPLY:
@@ -345,22 +355,6 @@ static void choices_click_handler(wimp_pointer *pointer)
 					CHOICE_ICON_SOSUN, CHOICE_ICON_SOMON, CHOICE_ICON_SOTUE, CHOICE_ICON_SOWED,
 					CHOICE_ICON_SOTHU, CHOICE_ICON_SOFRI, CHOICE_ICON_SOSAT);
 		}
-	} else if (pointer->w == choices_panes[CHOICE_PANE_TRANSACT]) {
-		if (pointer->i == CHOICE_ICON_HILIGHTMEN) {
-			colpick_open_window(choices_panes[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTCOL);
-			menus_create_popup_menu((wimp_menu *) windows.colours, pointer);
-		}
-	} else if (pointer->w == choices_panes[CHOICE_PANE_ACCOUNT]) {
-		if (pointer->i == CHOICE_ICON_AHILIGHTMEN) {
-			colpick_open_window (choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTCOL);
-			menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
-		} else if (pointer->i == CHOICE_ICON_SHILIGHTMEN) {
-			colpick_open_window (choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTCOL);
-			menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
-		} else if (pointer->i == CHOICE_ICON_OHILIGHTMEN) {
-			colpick_open_window (choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTCOL);
-			menus_create_popup_menu ((wimp_menu *) windows.colours, pointer);
-		}
 	}
 }
 
@@ -394,7 +388,8 @@ static osbool choices_keypress_handler(wimp_key *key)
 
 
 /**
- * Process menu prepare events in the Choices window.
+ * Process menu prepare events in the Choices window.  These include popups of
+ * the Colour Pick dialogue.
  *
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
@@ -403,10 +398,34 @@ static osbool choices_keypress_handler(wimp_key *key)
 
 static void choices_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	choices_font_menu = fontlist_build();
-	choices_font_icon = pointer->i;
-	event_set_menu_block(choices_font_menu);
-	templates_set_menu(TEMPLATES_MENU_FONTS, choices_font_menu);
+	wimp_i		icon = wimp_WINDOW_BACK;
+
+	if (menu == (wimp_menu *) choices_colpick_window) {
+		if (w == choices_panes[CHOICE_PANE_TRANSACT] && pointer->i == CHOICE_ICON_HILIGHTMEN) {
+			icon = CHOICE_ICON_HILIGHTCOL;
+		} else if (w == choices_panes[CHOICE_PANE_ACCOUNT]) {
+			switch (pointer->i) {
+			case CHOICE_ICON_AHILIGHTMEN:
+				icon = CHOICE_ICON_AHILIGHTCOL;
+				break;
+
+			case CHOICE_ICON_SHILIGHTMEN:
+				icon = CHOICE_ICON_SHILIGHTCOL;
+				break;
+
+			case CHOICE_ICON_OHILIGHTMEN:
+				icon = CHOICE_ICON_OHILIGHTCOL;
+				break;
+			}
+		}
+
+		colpick_open_window(w, icon);
+	} else {
+		choices_font_menu = fontlist_build();
+		choices_font_icon = pointer->i;
+		event_set_menu_block(choices_font_menu);
+		templates_set_menu(TEMPLATES_MENU_FONTS, choices_font_menu);
+	}
 }
 
 
@@ -878,3 +897,21 @@ static void choices_redraw_window(void)
 
 	icons_replace_caret_in_window(choices_panes[choices_pane]);
 }
+
+
+/**
+ * Process mouse clicks in the Colour Pick dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void choices_colpick_click_handler(wimp_pointer *pointer)
+{
+	if (pointer->i >= 1) {
+		colpick_select_colour(pointer->i - 1);
+
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			wimp_create_menu(NULL, 0, 0);
+	}
+}
+

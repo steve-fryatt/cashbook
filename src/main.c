@@ -24,7 +24,6 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/colpick.h"
 #include "sflib/config.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
@@ -658,13 +657,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
     windows->continuation = templates_create_window("Purge");
     ihelp_add_window (windows->continuation, "Purge", NULL);
 
-  /* Colours Window.
-   *
-   * Created now.
-   */
-
-    windows->colours = templates_create_window("Colours");
-    ihelp_add_window (windows->colours, "Colours", NULL);
 
   /* Sort Transactions Window.
    *
@@ -1661,20 +1653,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
     }
   }
 
-  /* Colour pick window. */
-
-  else if (pointer->w == windows.colours)
-  {
-    if (pointer->i >= 1)
-    {
-      colpick_select_colour (pointer->i - 1);
-
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        wimp_create_menu (NULL, 0, 0);
-      }
-    }
-  }
 
   /* Transaction Sort Window */
 

@@ -393,7 +393,7 @@ static void main_initialise(void)
 	config_str_init("PresetCols", "120,500,88,32,362,88,32,362,176,500");
 	config_str_init("LimPresetCols", "88,200,88,32,140,88,32,140,140,200");
 
-	 config_load();
+	config_load();
 
 	set_weekend_days();
 	set_up_money();
@@ -412,6 +412,7 @@ static void main_initialise(void)
 
 	iconbar_initialise();
 	choices_initialise();
+	find_initialise();
 	goto_initialise();
 
 	ihelp_initialise();
@@ -583,23 +584,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
     windows->edit_preset = templates_create_window("EditPreset");
     ihelp_add_window (windows->edit_preset, "EditPreset", NULL);
-
-  /* Find Window.
-   *
-   * Created now.
-   */
-
-    windows->find = templates_create_window("Find");
-    ihelp_add_window (windows->find, "Find", NULL);
-
-
-  /* Found Window.
-   *
-   * Created now.
-   */
-
-    windows->found = templates_create_window("Found");
-    ihelp_add_window (windows->found, "Found", NULL);
 
   /* Budget Window.
    *
@@ -1121,79 +1105,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == PRESET_EDIT_CARETAMOUNT || pointer->i == PRESET_EDIT_CARETDESC)) /* Radio icons */
     {
       icons_set_selected (windows.edit_preset, pointer->i, 1);
-    }
-  }
-
-  /* Find transaction window. */
-
-  else if (pointer->w == windows.find)
-  {
-    if (pointer->i == FIND_ICON_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.find);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_find_window ();
-      }
-    }
-
-    if (pointer->i == FIND_ICON_OK) /* 'OK' button */
-    {
-      if (!process_find_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.find);
-      }
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == FIND_ICON_FMNAME || pointer->i == FIND_ICON_TONAME))
-    {
-      open_find_account_menu (pointer);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == FIND_ICON_FMREC || pointer->i == FIND_ICON_TOREC))
-    {
-      toggle_find_reconcile_fields (pointer);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == FIND_ICON_AND || pointer->i == FIND_ICON_OR ||
-         pointer->i == FIND_ICON_START || pointer->i == FIND_ICON_DOWN ||
-         pointer->i == FIND_ICON_END || pointer->i == FIND_ICON_UP)) /* Radio icons */
-    {
-      icons_set_selected (windows.find, pointer->i, 1);
-    }
-  }
-
-  /* Found transaction window. */
-
-  else if (pointer->w == windows.found)
-  {
-    if (pointer->i == FOUND_ICON_CANCEL && pointer->buttons == wimp_CLICK_SELECT)
-    {
-      wimp_close_window (windows.found);
-    }
-    else if (pointer->i == FOUND_ICON_PREVIOUS && pointer->buttons == wimp_CLICK_SELECT)
-    {
-      if (find_from_line (NULL, FIND_PREVIOUS, NULL_TRANSACTION) == NULL_TRANSACTION)
-      {
-        wimp_close_window (windows.found);
-      }
-    }
-    else if (pointer->i == FOUND_ICON_NEXT && pointer->buttons == wimp_CLICK_SELECT)
-    {
-      if (find_from_line (NULL, FIND_NEXT, NULL_TRANSACTION) == NULL_TRANSACTION)
-      {
-        wimp_close_window (windows.found);
-      }
-    }
-    else if (pointer->i == FOUND_ICON_NEW && pointer->buttons == wimp_CLICK_SELECT)
-    {
-      reopen_find_window (pointer);
     }
   }
 
@@ -2016,34 +1927,6 @@ static void key_press_handler (wimp_key *key)
       default:
         wimp_process_key (key->c);
         break;
-    }
-  }
-
-  /* Find transaction window. */
-
-  else if (key->w == windows.find)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_find_window ())
-        {
-          close_dialogue_with_caret (windows.find);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.find);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-
-    if (key->i == FIND_ICON_FMIDENT || key->i == FIND_ICON_TOIDENT)
-    {
-      update_find_account_fields (key);
     }
   }
 

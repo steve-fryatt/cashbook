@@ -44,7 +44,7 @@
 
 
 static file_data	*goto_window_file = NULL;				/**< The file whoch currently owns the Goto dialogue.	*/
-static osbool		goto_window_restore = FALSE;				/**< The restore setting for the current dialogue.	*/
+static osbool		goto_restore = FALSE;					/**< The restore setting for the current dialogue.	*/
 static wimp_w		goto_window = NULL;					/**< The Goto dialogue handle.				*/
 
 
@@ -80,7 +80,7 @@ void goto_initialise(void)
  *			use the application defaults.
  */
 
-void goto_open_window (file_data *file, wimp_pointer *ptr, osbool restore)
+void goto_open_window(file_data *file, wimp_pointer *ptr, osbool restore)
 {
 	/* If the window is already open, close it to start with. */
 
@@ -94,7 +94,7 @@ void goto_open_window (file_data *file, wimp_pointer *ptr, osbool restore)
 	/* Set the pointer up to find the window again and open the window. */
 
 	goto_window_file = file;
-	goto_window_restore = restore;
+	goto_restore = restore;
 
 	windows_open_centred_at_pointer(goto_window, ptr);
 	place_dialogue_caret(goto_window, GOTO_ICON_NUMBER_FIELD);
@@ -159,11 +159,12 @@ static osbool goto_keypress_handler(wimp_key *key)
 
 static void goto_refresh_window(void)
 {
-	goto_fill_window(&(goto_window_file->go_to), goto_window_restore);
+	goto_fill_window(&(goto_window_file->go_to), goto_restore);
 
 	icons_redraw_group(goto_window, 1, GOTO_ICON_NUMBER_FIELD);
 	icons_replace_caret_in_window(goto_window);
 }
+
 
 /**
  * Fill the Goto window with values.
@@ -190,7 +191,6 @@ static void goto_fill_window(go_to *go_to_data, osbool restore)
 		icons_set_selected(goto_window, GOTO_ICON_DATE, go_to_data->data_type == GOTO_TYPE_DATE);
 	}
 }
-
 
 
 /**

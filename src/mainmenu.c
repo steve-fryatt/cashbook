@@ -317,7 +317,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
   {
     if (selection->items[1] == MAIN_MENU_TRANS_FIND)
     {
-      open_find_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
+      find_open_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_TRANS_GOTO) /* Goto */

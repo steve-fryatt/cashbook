@@ -364,7 +364,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
   {
     if (selection->items[1] == MAIN_MENU_ANALYSIS_BUDGET)
     {
-      open_budget_window (main_menu_file, pointer);
+      budget_open_window(main_menu_file, pointer);
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_SAVEDREP && selection->items[2] != -1)

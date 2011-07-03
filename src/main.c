@@ -412,6 +412,7 @@ static void main_initialise(void)
 
 	iconbar_initialise();
 	choices_initialise();
+	budget_initialise();
 	find_initialise();
 	goto_initialise();
 	purge_initialise();
@@ -585,14 +586,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
     windows->edit_preset = templates_create_window("EditPreset");
     ihelp_add_window (windows->edit_preset, "EditPreset", NULL);
-
-  /* Budget Window.
-   *
-   * Created now.
-   */
-
-    windows->budget = templates_create_window("Budget");
-    ihelp_add_window (windows->budget, "Budget", NULL);
 
    /* Transaction Report Window.
    *
@@ -1098,31 +1091,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
          pointer->i == PRESET_EDIT_CARETAMOUNT || pointer->i == PRESET_EDIT_CARETDESC)) /* Radio icons */
     {
       icons_set_selected (windows.edit_preset, pointer->i, 1);
-    }
-  }
-
-  /* Budget  window. */
-
-  else if (pointer->w == windows.budget)
-  {
-    if (pointer->i == BUDGET_ICON_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.budget);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_budget_window ();
-      }
-    }
-
-    if (pointer->i == BUDGET_ICON_OK) /* 'OK' button */
-    {
-      if (!process_budget_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.budget);
-      }
     }
   }
 
@@ -1883,29 +1851,6 @@ static void key_press_handler (wimp_key *key)
 
       case wimp_KEY_ESCAPE:
         close_dialogue_with_caret (windows.edit_sect);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
-
-  /* Budget  window. */
-
-  else if (key->w == windows.budget)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_budget_window ())
-        {
-          close_dialogue_with_caret (windows.budget);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.budget);
         break;
 
       default:

@@ -327,54 +327,54 @@ static void main_initialise(void)
 	config_initialise(task_name, "CashBook", "<CashBook$Dir>");
 
 	config_opt_init("IyonixKeys", (osbyte1(osbyte_IN_KEY, 0, 0xff) == 0xaa)); /* True only on an Iyonix. */
-	config_opt_init("GlobalClipboardSupport", 1);
+	config_opt_init("GlobalClipboardSupport", TRUE);
 
-	config_opt_init("RememberValues", 1);
+	config_opt_init("RememberValues", TRUE);
 
-	config_opt_init("AllowTransDelete", 1);
+	config_opt_init("AllowTransDelete", TRUE);
 
 	config_int_init("MaxAutofillLen", 0);
 
-	config_opt_init("AutoSort", 1);
+	config_opt_init("AutoSort", TRUE);
 
-	config_opt_init("ShadeReconciled", 0);
-	config_int_init("ShadeReconciledColour", 3);
+	config_opt_init("ShadeReconciled", FALSE);
+	config_int_init("ShadeReconciledColour", wimp_COLOUR_MID_LIGHT_GREY);
 
-	config_opt_init("ShadeBudgeted", 0);
-	config_int_init("ShadeBudgetedColour", 3);
+	config_opt_init("ShadeBudgeted", FALSE);
+	config_int_init("ShadeBudgetedColour", wimp_COLOUR_MID_LIGHT_GREY);
 
-	config_opt_init("ShadeOverdrawn", 0);
-	config_int_init("ShadeOverdrawnColour", 11);
+	config_opt_init("ShadeOverdrawn", FALSE);
+	config_int_init("ShadeOverdrawnColour", wimp_COLOUR_RED);
 
-	config_opt_init("ShadeAccounts", 0);
-	config_int_init("ShadeAccountsColour", 11);
+	config_opt_init("ShadeAccounts", FALSE);
+	config_int_init("ShadeAccountsColour", wimp_COLOUR_RED);
 
-	config_opt_init("TerritoryDates", 1);
+	config_opt_init("TerritoryDates", TRUE);
 	config_str_init("DateSepIn", "-/\\.");
 	config_str_init("DateSepOut", "-");
 
-	config_opt_init("TerritoryCurrency", 1);
-	config_opt_init("PrintZeros", 0);
-	config_opt_init("BracketNegatives", 0);
+	config_opt_init("TerritoryCurrency", TRUE);
+	config_opt_init("PrintZeros", FALSE);
+	config_opt_init("BracketNegatives", FALSE);
 	config_int_init("DecimalPlaces", 2);
 	config_str_init("DecimalPoint", ".");
 
-	config_opt_init("SortAfterSOrders", 1);
-	config_opt_init("AutoSortSOrders", 1);
-	config_opt_init("TerritorySOrders", 1);
+	config_opt_init("SortAfterSOrders", TRUE);
+	config_opt_init("AutoSortSOrders", TRUE);
+	config_opt_init("TerritorySOrders", TRUE);
 	config_int_init("WeekendDays", 0x41);
 
-	config_opt_init("AutoSortPresets", 1);
+	config_opt_init("AutoSortPresets", TRUE);
 
 	config_str_init("ReportFontNormal", "Homerton.Medium");
 	config_str_init("ReportFontBold", "Homerton.Bold");
 	config_int_init("ReportFontSize", 12);
 	config_int_init("ReportFontLinespace", 130);
 
-	config_opt_init("PrintFitWidth", 1);
-	config_opt_init("PrintRotate", 0);
-	config_opt_init("PrintText", 0);
-	config_opt_init("PrintTextFormat", 1);
+	config_opt_init("PrintFitWidth", TRUE);
+	config_opt_init("PrintRotate", FALSE);
+	config_opt_init("PrintText", FALSE);
+	config_opt_init("PrintTextFormat", TRUE);
 
 	config_int_init("PrintMarginTop", 0);
 	config_int_init("PrintMarginLeft", 0);

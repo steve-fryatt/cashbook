@@ -98,7 +98,7 @@ void budget_open_window(file_data *file, wimp_pointer *ptr)
 
 
 /**
- * Process mouse clicks in the Purge dialogue.
+ * Process mouse clicks in the Budget dialogue.
  *
  * \param *pointer		The mouse event block to handle.
  */
@@ -122,7 +122,7 @@ static void budget_click_handler(wimp_pointer *pointer)
 
 
 /**
- * Process keypresses in the Purge window.
+ * Process keypresses in the Budget window.
  *
  * \param *key		The keypress event block to handle.
  * \return		TRUE if the event was handled; else FALSE.

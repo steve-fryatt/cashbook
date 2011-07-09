@@ -1,6 +1,6 @@
 /* CashBook - analysis.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -83,6 +83,17 @@ static int balance_rep_template = NULL_TEMPLATE;
 static saved_report saved_report_template;
 
 static acct_t wildcard_account_list = NULL_ACCOUNT; /* Pass a pointer to this to set all accounts. */
+
+
+/**
+ * Initialise the Analysis module and all its dialogue boxes.
+ */
+
+void analysis_initialise(void)
+{
+
+}
+
 
 /* ==================================================================================================================
  * Transaction reporting
@@ -427,7 +438,7 @@ void generate_transaction_report (file_data *file)
         }
     }
 
-    report_close(report);
+     report_close(report);
   }
 
   hourglass_off ();

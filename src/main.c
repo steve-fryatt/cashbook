@@ -412,6 +412,7 @@ static void main_initialise(void)
 
 	iconbar_initialise();
 	choices_initialise();
+	analysis_initialise();
 	budget_initialise();
 	find_initialise();
 	goto_initialise();

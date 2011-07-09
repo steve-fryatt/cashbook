@@ -1,10 +1,10 @@
 /* CashBook - analysis.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_ANALYSIS
-#define _ACCOUNTS_ANALYSIS
+#ifndef CASHBOOK_ANALYSIS
+#define CASHBOOK_ANALYSIS
 
 /* ==================================================================================================================
  * Static constants
@@ -147,6 +147,13 @@
 /* ==================================================================================================================
  * Function prototypes.
  */
+
+/**
+ * Initialise the Analysis module and all its dialogue boxes.
+ */
+
+void analysis_initialise(void);
+
 
 /* Transaction reporting */
 

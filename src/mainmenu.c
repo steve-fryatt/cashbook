@@ -374,22 +374,22 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_MONTHREP)
     {
-      open_trans_report_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
+      analysis_open_transaction_window(main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_UNREC)
     {
-      open_unrec_report_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
+      analysis_open_unreconciled_window(main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_CASHFLOW)
     {
-      open_cashflow_report_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
+      analysis_open_cashflow_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_BALANCE)
     {
-      open_balance_report_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
+      analysis_open_balance_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_SOREP)

@@ -140,13 +140,6 @@
 #define ANALYSIS_SAVE_MODE_SAVE   1
 #define ANALYSIS_SAVE_MODE_RENAME 2
 
-/* ==================================================================================================================
- * Data structures
- */
-
-/* ==================================================================================================================
- * Function prototypes.
- */
 
 /**
  * Initialise the Analysis module and all its dialogue boxes.
@@ -155,13 +148,66 @@
 void analysis_initialise(void);
 
 
-/* Transaction reporting */
+/**
+ * Open the Transaction Report dialogue box.
+ *
+ * \param *file		The file owning the dialogue.
+ * \param *ptr		The current Wimp Pointer details.
+ * \param template	The report template to use for the dialogue.
+ * \param restore	TRUE to retain the last settings for the file; FALSE to
+ *			use the application defaults.
+ */
 
-void generate_transaction_report (file_data *file);
+void analysis_open_transaction_window(file_data *file, wimp_pointer *ptr, int template, osbool restore);
 
-void generate_unreconciled_report (file_data *file);
 
-void generate_cashflow_report (file_data *file);
+/**
+ * Open the Transaction Report dialogue box.
+ *
+ * \param *file		The file owning the dialogue.
+ * \param *ptr		The current Wimp Pointer details.
+ * \param template	The report template to use for the dialogue.
+ * \param restore	TRUE to retain the last settings for the file; FALSE to
+ *			use the application defaults.
+ */
+
+void analysis_open_unreconciled_window(file_data *file, wimp_pointer *ptr, int template, osbool restore);
+
+
+/**
+ * Open the Cashflow Report dialogue box.
+ *
+ * \param *file		The file owning the dialogue.
+ * \param *ptr		The current Wimp Pointer details.
+ * \param template	The report template to use for the dialogue.
+ * \param restore	TRUE to retain the last settings for the file; FALSE to
+ *			use the application defaults.
+ */
+
+void analysis_open_cashflow_window(file_data *file, wimp_pointer *ptr, int template, osbool restore);
+
+
+/**
+ * Open the Balance Report dialogue box.
+ *
+ * \param *file		The file owning the dialogue.
+ * \param *ptr		The current Wimp Pointer details.
+ * \param template	The report template to use for the dialogue.
+ * \param restore	TRUE to retain the last settings for the file; FALSE to
+ *			use the application defaults.
+ */
+
+void analysis_open_balance_window(file_data *file, wimp_pointer *ptr, int template, osbool restore);
+
+
+
+
+
+
+
+
+
+
 
 /* Date range manipulation. */
 
@@ -182,45 +228,12 @@ int analysis_convert_account_numbers_to_array (file_data *file, char *list, acct
 void analysis_convert_account_array_to_numbers (file_data *file, char *list, int size, acct_t *array, int len);
 void analysis_convert_account_array_to_list (file_data *file, char *list, acct_t *array, int len);
 
-/* Editing Transaction Report via the GUI. */
 
-void open_trans_report_window (file_data *file, wimp_pointer *ptr, int template, int clear);
-void refresh_trans_report_window (void);
-void fill_trans_report_window (file_data *file, int clear);
-int process_trans_report_window (void);
-void open_trans_lookup_window (wimp_i icon);
-int analysis_delete_trans_report_window (void);
-void analysis_rename_trans_report_window (wimp_pointer *ptr);
 
-/* Editing Unreconciled Report via the GUI. */
 
-void open_unrec_report_window (file_data *file, wimp_pointer *ptr, int template, int clear);
-void refresh_unrec_report_window (void);
-void fill_unrec_report_window (file_data *file, int clear);
-int process_unrec_report_window (void);
-void open_unrec_lookup_window (wimp_i icon);
-int analysis_delete_unrec_report_window (void);
-void analysis_rename_unrec_report_window (wimp_pointer *ptr);
 
-/* Editing Cashflow Report via the GUI. */
 
-void open_cashflow_report_window (file_data *file, wimp_pointer *ptr, int template, int clear);
-void refresh_cashflow_report_window (void);
-void fill_cashflow_report_window (file_data *file, int clear);
-int process_cashflow_report_window (void);
-void open_cashflow_lookup_window (wimp_i icon);
-int analysis_delete_cashflow_report_window (void);
-void analysis_rename_cashflow_report_window (wimp_pointer *ptr);
 
-/* Editing Balance Report via the GUI. */
-
-void open_balance_report_window (file_data *file, wimp_pointer *ptr, int template, int clear);
-void refresh_balance_report_window (void);
-void fill_balance_report_window (file_data *file, int clear);
-int process_balance_report_window (void);
-void open_balance_lookup_window (wimp_i icon);
-int analysis_delete_balance_report_window (void);
-void analysis_rename_balance_report_window (wimp_pointer *ptr);
 
 /* Saving and Renaming Report Templates via the GUI. */
 

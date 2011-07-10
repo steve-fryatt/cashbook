@@ -905,10 +905,6 @@ typedef struct
   wimp_w      file_info;
   wimp_w      save_as;
   wimp_w      import_comp;
-  wimp_w      trans_rep;
-  wimp_w      unrec_rep;
-  wimp_w      cashflow_rep;
-  wimp_w      balance_rep;
   wimp_w      enter_acc;
   wimp_w      save_rep;
   wimp_w      edit_acct;

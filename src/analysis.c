@@ -85,14 +85,508 @@ static saved_report saved_report_template;
 static acct_t wildcard_account_list = NULL_ACCOUNT; /* Pass a pointer to this to set all accounts. */
 
 
+
+
+static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.	*/
+static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.	*/
+static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.		*/
+static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.		*/
+
+
+
+static void		analysis_transaction_click_handler(wimp_pointer *pointer);
+static osbool		analysis_transaction_keypress_handler(wimp_key *key);
+static void		analysis_unreconciled_click_handler(wimp_pointer *pointer);
+static osbool		analysis_unreconciled_keypress_handler(wimp_key *key);
+static void		analysis_cashflow_click_handler(wimp_pointer *pointer);
+static osbool		analysis_cashflow_keypress_handler(wimp_key *key);
+static void		analysis_balance_click_handler(wimp_pointer *pointer);
+static osbool		analysis_balance_keypress_handler(wimp_key *key);
+
+
 /**
  * Initialise the Analysis module and all its dialogue boxes.
  */
 
 void analysis_initialise(void)
 {
+	analysis_transaction_window = templates_create_window("TransRep");
+	ihelp_add_window(analysis_transaction_window, "TransRep", NULL);
+	event_add_window_mouse_event(analysis_transaction_window, analysis_transaction_click_handler);
+	event_add_window_key_event(analysis_transaction_window, analysis_transaction_keypress_handler);
+	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PDAYS);
+	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS);
+	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS);
+
+	analysis_unreconciled_window = templates_create_window("UnrecRep");
+	ihelp_add_window(analysis_unreconciled_window, "UnrecRep", NULL);
+	event_add_window_mouse_event(analysis_unreconciled_window, analysis_unreconciled_click_handler);
+	event_add_window_key_event(analysis_unreconciled_window, analysis_unreconciled_keypress_handler);
+	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS);
+	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS);
+	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS);
+
+	analysis_cashflow_window = templates_create_window("CashFlwRep");
+	ihelp_add_window(analysis_cashflow_window, "CashFlwRep", NULL);
+	event_add_window_mouse_event(analysis_cashflow_window, analysis_cashflow_click_handler);
+	event_add_window_key_event(analysis_cashflow_window, analysis_cashflow_keypress_handler);
+	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS);
+	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS);
+	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS);
+
+	analysis_balance_window = templates_create_window("BalanceRep");
+	ihelp_add_window(analysis_balance_window, "BalanceRep", NULL);
+	event_add_window_mouse_event(analysis_balance_window, analysis_balance_click_handler);
+	event_add_window_key_event(analysis_balance_window, analysis_balance_keypress_handler);
+	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PDAYS);
+	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS);
+	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PYEARS);
+
 
 }
+
+
+
+
+
+/**
+ * Process mouse clicks in the Analysis Transaction dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void analysis_transaction_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case ANALYSIS_TRANS_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_transaction_window);
+			analysis_force_close_report_rename_window(analysis_transaction_window);
+		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+			refresh_trans_window();
+		}
+		break;
+
+	case ANALYSIS_TRANS_OK:
+		if (analysis_process_transaction_window() && pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_transaction_window);
+			analysis_force_close_report_rename_window(analysis_transaction_window);
+		}
+		break;
+
+	case ANALYSIS_TRANS_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_transaction_window())
+			close_dialogue_with_caret(analysis_transaction_window);
+		break;
+
+	case ANALYSIS_TRANS_RENAME:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			analysis_rename_trans_window(pointer);
+		break;
+
+	case ANALYSIS_TRANS_BUDGET:
+		icons_set_group_shaded_when_on(analysis_transaction_window, ANALYSIS_TRANS_BUDGET, 4,
+				ANALYSIS_TRANS_DATEFROMTXT, ANALYSIS_TRANS_DATEFROM,
+				ANALYSIS_TRANS_DATETOTXT, ANALYSIS_TRANS_DATETO);
+		icons_replace_caret_in_window(analysis_transaction_window);
+		break;
+
+	case ANALYSIS_TRANS_GROUP:
+		icons_set_group_shaded_when_off(analysis_transaction_window, ANALYSIS_TRANS_GROUP, 6,
+				ANALYSIS_TRANS_PERIOD, ANALYSIS_TRANS_PTEXT,
+				ANALYSIS_TRANS_PDAYS, ANALYSIS_TRANS_PMONTHS, ANALYSIS_TRANS_PYEARS,
+				ANALYSIS_TRANS_LOCK);
+		icons_replace_caret_in_window(analysis_transaction_window);
+		break;
+
+	case ANALYSIS_TRANS_FROMSPECPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_trans_lookup_window(ANALYSIS_TRANS_FROMSPEC);
+		break;
+
+	case ANALYSIS_TRANS_TOSPECPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_trans_lookup_window(ANALYSIS_TRANS_TOSPEC));
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Analysis Transaction window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool analysis_transaction_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (analysis_process_transaction_window()) {
+			close_dialogue_with_caret(analysis_transaction_window);
+			analysis_force_close_report_rename_window(analysis_transaction_window);
+		}
+		break;
+
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(analysis_transaction_window);
+		analysis_force_close_report_rename_window(analysis_transaction_window);
+		break;
+
+	case wimp_KEY_F1:
+		if (key->i == ANALYSIS_TRANS_FROMSPEC || key->i == ANALYSIS_TRANS_TOSPEC)
+			open_trans_lookup_window(key->i);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Process mouse clicks in the Analysis Unreconciled dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case ANALYSIS_UNREC_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_unreconciled_window);
+			analysis_force_close_report_rename_window(analysis_unreconciled_window);
+		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+			refresh_unrec_window();
+		}
+		break;
+
+	case ANALYSIS_UNREC_OK:
+		if (analysis_process_unreconciled_window() && pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_unreconciled_window);
+			analysis_force_close_report_rename_window(analysis_unreconciled_window);
+		}
+		break;
+
+	case ANALYSIS_UNREC_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_unreconciled_window())
+			close_dialogue_with_caret(analysis_unreconciled_window);
+		break;
+
+	case ANALYSIS_UNREC_RENAME:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			analysis_rename_unrec_window(pointer);
+		break;
+
+	case ANALYSIS_UNREC_BUDGET:
+		icons_set_group_shaded_when_on(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, 4,
+				ANALYSIS_UNREC_DATEFROMTXT, ANALYSIS_UNREC_DATEFROM,
+				ANALYSIS_UNREC_DATETOTXT, ANALYSIS_UNREC_DATETO);
+		icons_replace_caret_in_window(analysis_unreconciled_window);
+		break;
+
+	case ANALYSIS_UNREC_GROUP:
+		icons_set_group_shaded_when_off(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, 2,
+				ANALYSIS_UNREC_GROUPACC, ANALYSIS_UNREC_GROUPDATE);
+
+		icons_set_group_shaded(analysis_unreconciled_window,
+				!(icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP) &&
+				icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE)), 6,
+				ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_PTEXT, ANALYSIS_UNREC_LOCK,
+				ANALYSIS_UNREC_PDAYS, ANALYSIS_UNREC_PMONTHS, ANALYSIS_UNREC_PYEARS);
+
+		icons_replace_caret_in_window(analysis_unreconciled_window);
+		break;
+
+	case ANALYSIS_UNREC_GROUPACC:
+	case ANALYSIS_UNREC_GROUPDATE:
+		icons_set_selected(analysis_unreconciled_window, pointer->i, 1);
+
+		icons_set_group_shaded(analysis_unreconciled_window,
+				!(icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUP) &&
+				icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE)), 6,
+				ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_PTEXT, ANALYSIS_UNREC_LOCK,
+				ANALYSIS_UNREC_PDAYS, ANALYSIS_UNREC_PMONTHS, ANALYSIS_UNREC_PYEARS);
+
+		icons_replace_caret_in_window(analysis_unreconciled_window);
+		break;
+
+	case ANALYSIS_UNREC_FROMSPECPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_unrec_lookup_window(ANALYSIS_UNREC_FROMSPEC);
+		break;
+
+	case ANALYSIS_UNREC_TOSPECPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_unrec_lookup_window(ANALYSIS_UNREC_TOSPEC));
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Analysis Unreconciled window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool analysis_unreconciled_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (analysis_process_unreconciled_window()) {
+			close_dialogue_with_caret(analysis_unreconciled_window);
+			analysis_force_close_report_rename_window(analysis_unreconciled_window);
+		}
+		break;
+
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(analysis_unreconciled_window);
+		analysis_force_close_report_rename_window(analysis_unreconciled_window);
+		break;
+
+	case wimp_KEY_F1:
+		if (key->i == ANALYSIS_UNREC_FROMSPEC || key->i == ANALYSIS_UNREC_TOSPEC)
+			open_unrec_lookup_window(key->i);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Process mouse clicks in the Analysis Balance dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void analysis_balance_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case ANALYSIS_BALANCE_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_balance_window);
+			analysis_force_close_report_rename_window(analysis_balance_window);
+		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+			refresh_balance_window();
+		}
+		break;
+
+	case ANALYSIS_BALANCE_OK:
+		if (analysis_process_balance_window() && pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_balance_window);
+			analysis_force_close_report_rename_window(analysis_balance_window);
+		}
+		break;
+
+	case ANALYSIS_BALANCE_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_balance_window())
+			close_dialogue_with_caret(analysis_balance_window);
+		break;
+
+	case ANALYSIS_BALANCE_RENAME:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			analysis_rename_balance_window(pointer);
+		break;
+
+	case ANALYSIS_BALANCE_BUDGET:
+		icons_set_group_shaded_when_on(analysis_balance_window, ANALYSIS_BALANCE_BUDGET, 4,
+				ANALYSIS_BALANCE_DATEFROMTXT, ANALYSIS_BALANCE_DATEFROM,
+				ANALYSIS_BALANCE_DATETOTXT, ANALYSIS_BALANCE_DATETO);
+		icons_replace_caret_in_window(analysis_balance_window);
+		break;
+
+	case ANALYSIS_BALANCE_GROUP:
+		icons_set_group_shaded_when_off(analysis_balance_window, ANALYSIS_BALANCE_GROUP, 6,
+				ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_PTEXT, ANALYSIS_BALANCE_LOCK,
+				ANALYSIS_BALANCE_PDAYS, ANALYSIS_BALANCE_PMONTHS, ANALYSIS_BALANCE_PYEARS);
+
+		icons_replace_caret_in_window(analysis_balance_window);
+		break;
+
+	case ANALYSIS_BALANCE_ACCOUNTSPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_balance_lookup_window(ANALYSIS_BALANCE_ACCOUNTS);
+		break;
+
+	case ANALYSIS_BALANCE_INCOMINGPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_balance_lookup_window(ANALYSIS_BALANCE_INCOMING);
+		break;
+
+	case ANALYSIS_BALANCE_OUTGOINGPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_balance_lookup_window(ANALYSIS_BALANCE_OUTGOING);
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Analysis Balance window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool analysis_balance_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (analysis_process_balance_window()) {
+			close_dialogue_with_caret(analysis_balance_window);
+			analysis_force_close_report_rename_window(analysis_balance_window);
+		}
+		break;
+
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(analysis_balance_window);
+		analysis_force_close_report_rename_window(analysis_balance_window);
+		break;
+
+	case wimp_KEY_F1:
+		if (key->i == ANALYSIS_BALANCE_ACCOUNTS || key->i == ANALYSIS_BALANCE_INCOMING || key->i == ANALYSIS_BALANCE_OUTGOING)
+			open_balance_lookup_window(key->i);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Process mouse clicks in the Analysis Cashflow dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void analysis_cashflow_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case ANALYSIS_CASHFLOW_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_cashflow_window);
+			analysis_force_close_report_rename_window(analysis_cashflow_window);
+		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+			refresh_cashflow_window();
+		}
+		break;
+
+	case ANALYSIS_CASHFLOW_OK:
+		if (analysis_process_cashflow_window() && pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_cashflow_window);
+			analysis_force_close_report_rename_window(analysis_cashflow_window);
+		}
+		break;
+
+	case ANALYSIS_CASHFLOW_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_cashflow_window())
+			close_dialogue_with_caret(analysis_cashflow_window);
+		break;
+
+	case ANALYSIS_CASHFLOW_RENAME:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			analysis_rename_cashflow_window(pointer);
+		break;
+
+	case ANALYSIS_CASHFLOW_BUDGET:
+		icons_set_group_shaded_when_on(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, 4,
+				ANALYSIS_CASHFLOW_DATEFROMTXT, ANALYSIS_CASHFLOW_DATEFROM,
+				ANALYSIS_CASHFLOW_DATETOTXT, ANALYSIS_CASHFLOW_DATETO);
+		icons_replace_caret_in_window(analysis_cashflow_window);
+		break;
+
+	case ANALYSIS_CASHFLOW_GROUP:
+		icons_set_group_shaded_when_off(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, 7,
+				ANALYSIS_CASHFLOW_PERIOD, ANALYSIS_CASHFLOW_PTEXT, ANALYSIS_CASHFLOW_LOCK,
+				ANALYSIS_CASHFLOW_PDAYS, ANALYSIS_CASHFLOW_PMONTHS, ANALYSIS_CASHFLOW_PYEARS,
+				ANALYSIS_CASHFLOW_EMPTY);
+
+		icons_replace_caret_in_window(analysis_cashflow_window);
+		break;
+
+	case ANALYSIS_CASHFLOW_ACCOUNTSPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_cashflow_lookup_window(ANALYSIS_CASHFLOW_ACCOUNTS);
+		break;
+
+	case ANALYSIS_CASHFLOW_INCOMINGPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_cashflow_lookup_window(ANALYSIS_CASHFLOW_INCOMING);
+		break;
+
+	case ANALYSIS_CASHFLOW_OUTGOINGPOPUP:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			open_cashflow_lookup_window(ANALYSIS_CASHFLOW_OUTGOING);
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Analysis Cashflow window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool analysis_cashflow_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (analysis_process_cashflow_window()) {
+			close_dialogue_with_caret(analysis_cashflow_window);
+			analysis_force_close_report_rename_window(analysis_cashflow_window);
+		}
+		break;
+
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(analysis_cashflow_window);
+		analysis_force_close_report_rename_window(analysis_cashflow_window);
+		break;
+
+	case wimp_KEY_F1:
+		if (key->i == ANALYSIS_CASHFLOW_ACCOUNTS || key->i == ANALYSIS_CASHFLOW_INCOMING || key->i == ANALYSIS_CASHFLOW_OUTGOING)
+			open_cashflow_lookup_window(key->i);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* ==================================================================================================================
@@ -1787,7 +2281,7 @@ void analysis_convert_account_array_to_list (file_data *file, char *list, acct_t
  * Editing Transaction Report via the GUI.
  */
 
-void open_trans_report_window (file_data *file, wimp_pointer *ptr, int template, int clear)
+void open_trans_window (file_data *file, wimp_pointer *ptr, int template, int clear)
 {
   int    template_mode;
   extern global_windows windows;
@@ -1799,9 +2293,9 @@ void open_trans_report_window (file_data *file, wimp_pointer *ptr, int template,
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (windows_get_open (windows.trans_rep))
+  if (windows_get_open (analysis_transaction_window))
   {
-    wimp_close_window (windows.trans_rep);
+    wimp_close_window (analysis_transaction_window);
   }
 
   /* Copy the settings block contents into a static place that won't shift about on the flex heap
@@ -1815,7 +2309,7 @@ void open_trans_report_window (file_data *file, wimp_pointer *ptr, int template,
     analysis_copy_trans_report_template (&(trans_rep_settings), &(file->saved_reports[template].data.transaction));
     trans_rep_template = template;
 
-    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (windows.trans_rep), 50,
+    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (analysis_transaction_window), 50,
                        file->saved_reports[template].name, NULL, NULL, NULL);
 
     clear = 1; /* If we use a template, we always want to reset to the template! */
@@ -1825,45 +2319,45 @@ void open_trans_report_window (file_data *file, wimp_pointer *ptr, int template,
     analysis_copy_trans_report_template (&(trans_rep_settings), &(file->trans_rep));
     trans_rep_template = NULL_TEMPLATE;
 
-    msgs_lookup ("TrnRepTitle", windows_get_indirected_title_addr (windows.trans_rep), 40);
+    msgs_lookup ("TrnRepTitle", windows_get_indirected_title_addr (analysis_transaction_window), 40);
   }
 
-  icons_set_deleted (windows.trans_rep, ANALYSIS_TRANS_DELETE, !template_mode);
-  icons_set_deleted (windows.trans_rep, ANALYSIS_TRANS_RENAME, !template_mode);
+  icons_set_deleted (analysis_transaction_window, ANALYSIS_TRANS_DELETE, !template_mode);
+  icons_set_deleted (analysis_transaction_window, ANALYSIS_TRANS_RENAME, !template_mode);
 
   /* Set the window contents up. */
 
-  fill_trans_report_window (file, clear);
+  fill_trans_window (file, clear);
 
   /* Set the pointers up so we can find this lot again and open the window. */
 
   trans_rep_file = file;
   trans_rep_window_clear = clear;
 
-  windows_open_centred_at_pointer (windows.trans_rep, ptr);
-  place_dialogue_caret_fallback (windows.trans_rep, 4, ANALYSIS_TRANS_DATEFROM, ANALYSIS_TRANS_DATETO,
+  windows_open_centred_at_pointer (analysis_transaction_window, ptr);
+  place_dialogue_caret_fallback (analysis_transaction_window, 4, ANALYSIS_TRANS_DATEFROM, ANALYSIS_TRANS_DATETO,
                                  ANALYSIS_TRANS_PERIOD, ANALYSIS_TRANS_FROMSPEC);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_trans_report_window (void)
+void refresh_trans_window (void)
 {
   extern global_windows windows;
 
-  fill_trans_report_window (trans_rep_file, trans_rep_window_clear);
-  icons_redraw_group (windows.trans_rep, 9,
+  fill_trans_window (trans_rep_file, trans_rep_window_clear);
+  icons_redraw_group (analysis_transaction_window, 9,
                           ANALYSIS_TRANS_DATEFROM, ANALYSIS_TRANS_DATETO, ANALYSIS_TRANS_PERIOD,
                           ANALYSIS_TRANS_FROMSPEC, ANALYSIS_TRANS_TOSPEC,
                           ANALYSIS_TRANS_REFSPEC, ANALYSIS_TRANS_DESCSPEC,
                           ANALYSIS_TRANS_AMTLOSPEC, ANALYSIS_TRANS_AMTHISPEC);
 
-  icons_replace_caret_in_window (windows.trans_rep);
+  icons_replace_caret_in_window (analysis_transaction_window);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void fill_trans_report_window (file_data *file, int clear)
+void fill_trans_window (file_data *file, int clear)
 {
   extern global_windows windows;
 
@@ -1872,82 +2366,82 @@ void fill_trans_report_window (file_data *file, int clear)
   {
     /* Set the period icons. */
 
-    *icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_DATEFROM) = '\0';
-    *icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_DATETO) = '\0';
+    *icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_DATEFROM) = '\0';
+    *icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_DATETO) = '\0';
 
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_BUDGET, 0);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_BUDGET, 0);
 
     /* Set the grouping icons. */
 
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_GROUP, 0);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_GROUP, 0);
 
-    strcpy(icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_PERIOD), "1");
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_PDAYS, 0);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_PMONTHS, 1);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_PYEARS, 0);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_LOCK, 0);
+    strcpy(icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_PERIOD), "1");
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_PDAYS, 0);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, 1);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_PYEARS, 0);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_LOCK, 0);
 
     /* Set the include icons. */
 
-    *icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_FROMSPEC) = '\0';
-    *icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_TOSPEC) = '\0';
-    *icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_REFSPEC) = '\0';
-    *icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_AMTLOSPEC) = '\0';
-    *icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_AMTHISPEC) = '\0';
-    *icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_DESCSPEC) = '\0';
+    *icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC) = '\0';
+    *icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_TOSPEC) = '\0';
+    *icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_REFSPEC) = '\0';
+    *icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC) = '\0';
+    *icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC) = '\0';
+    *icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC) = '\0';
 
     /* Set the output icons. */
 
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_OPTRANS, 1);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_OPSUMMARY, 1);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_OPACCSUMMARY, 1);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_OPTRANS, 1);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY, 1);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY, 1);
   }
   else
   {
     /* Set the period icons. */
 
     convert_date_to_string(trans_rep_settings.date_from,
-                           icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_DATEFROM));
+                           icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_DATEFROM));
     convert_date_to_string(trans_rep_settings.date_to,
-                           icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_DATETO));
+                           icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_DATETO));
 
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_BUDGET, trans_rep_settings.budget);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_BUDGET, trans_rep_settings.budget);
 
     /* Set the grouping icons. */
 
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_GROUP, trans_rep_settings.group);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_GROUP, trans_rep_settings.group);
 
-    sprintf(icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_PERIOD), "%d", trans_rep_settings.period);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_PDAYS, trans_rep_settings.period_unit == PERIOD_DAYS);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_PMONTHS, trans_rep_settings.period_unit == PERIOD_MONTHS);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_PYEARS, trans_rep_settings.period_unit == PERIOD_YEARS);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_LOCK, trans_rep_settings.lock);
+    sprintf(icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_PERIOD), "%d", trans_rep_settings.period);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_PDAYS, trans_rep_settings.period_unit == PERIOD_DAYS);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, trans_rep_settings.period_unit == PERIOD_MONTHS);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_PYEARS, trans_rep_settings.period_unit == PERIOD_YEARS);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_LOCK, trans_rep_settings.lock);
 
     /* Set the include icons. */
 
-    analysis_convert_account_array_to_list (file, icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_FROMSPEC),
+    analysis_convert_account_array_to_list (file, icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC),
                                             trans_rep_settings.from, trans_rep_settings.from_count);
-    analysis_convert_account_array_to_list (file, icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_TOSPEC),
+    analysis_convert_account_array_to_list (file, icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
                                             trans_rep_settings.to, trans_rep_settings.to_count);
-    strcpy(icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_REFSPEC), trans_rep_settings.ref);
+    strcpy(icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_REFSPEC), trans_rep_settings.ref);
     convert_money_to_string (trans_rep_settings.amount_min,
-                             icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_AMTLOSPEC));
+                             icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC));
     convert_money_to_string (trans_rep_settings.amount_max,
-                             icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_AMTHISPEC));
-    strcpy(icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_DESCSPEC), trans_rep_settings.desc);
+                             icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC));
+    strcpy(icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC), trans_rep_settings.desc);
 
     /* Set the output icons. */
 
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_OPTRANS, trans_rep_settings.output_trans);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_OPSUMMARY, trans_rep_settings.output_summary);
-    icons_set_selected (windows.trans_rep, ANALYSIS_TRANS_OPACCSUMMARY, trans_rep_settings.output_accsummary);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_OPTRANS, trans_rep_settings.output_trans);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY, trans_rep_settings.output_summary);
+    icons_set_selected (analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY, trans_rep_settings.output_accsummary);
   }
 
-  icons_set_group_shaded_when_on (windows.trans_rep, ANALYSIS_TRANS_BUDGET, 4,
+  icons_set_group_shaded_when_on (analysis_transaction_window, ANALYSIS_TRANS_BUDGET, 4,
                                   ANALYSIS_TRANS_DATEFROMTXT, ANALYSIS_TRANS_DATEFROM,
                                   ANALYSIS_TRANS_DATETOTXT, ANALYSIS_TRANS_DATETO);
 
-  icons_set_group_shaded_when_off (windows.trans_rep, ANALYSIS_TRANS_GROUP, 6,
+  icons_set_group_shaded_when_off (analysis_transaction_window, ANALYSIS_TRANS_GROUP, 6,
                                    ANALYSIS_TRANS_PERIOD, ANALYSIS_TRANS_PTEXT,
                                    ANALYSIS_TRANS_PDAYS, ANALYSIS_TRANS_PMONTHS, ANALYSIS_TRANS_PYEARS,
                                    ANALYSIS_TRANS_LOCK);
@@ -1955,7 +2449,7 @@ void fill_trans_report_window (file_data *file, int clear)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int process_trans_report_window (void)
+static osbool analysis_process_transaction_window(void)
 {
   extern global_windows windows;
 
@@ -1963,25 +2457,25 @@ int process_trans_report_window (void)
   /* Read the date settings. */
 
   trans_rep_file->trans_rep.date_from =
-        convert_string_to_date (icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_DATEFROM), NULL_DATE, 0);
+        convert_string_to_date (icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_DATEFROM), NULL_DATE, 0);
   trans_rep_file->trans_rep.date_to =
-        convert_string_to_date (icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_DATETO), NULL_DATE, 0);
-  trans_rep_file->trans_rep.budget = icons_get_selected (windows.trans_rep, ANALYSIS_TRANS_BUDGET);
+        convert_string_to_date (icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_DATETO), NULL_DATE, 0);
+  trans_rep_file->trans_rep.budget = icons_get_selected (analysis_transaction_window, ANALYSIS_TRANS_BUDGET);
 
   /* Read the grouping settings. */
 
-  trans_rep_file->trans_rep.group = icons_get_selected (windows.trans_rep, ANALYSIS_TRANS_GROUP);
-  trans_rep_file->trans_rep.period = atoi (icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_PERIOD));
+  trans_rep_file->trans_rep.group = icons_get_selected (analysis_transaction_window, ANALYSIS_TRANS_GROUP);
+  trans_rep_file->trans_rep.period = atoi (icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_PERIOD));
 
-  if (icons_get_selected (windows.trans_rep, ANALYSIS_TRANS_PDAYS))
+  if (icons_get_selected (analysis_transaction_window, ANALYSIS_TRANS_PDAYS))
   {
     trans_rep_file->trans_rep.period_unit = PERIOD_DAYS;
   }
-  else if (icons_get_selected (windows.trans_rep, ANALYSIS_TRANS_PMONTHS))
+  else if (icons_get_selected (analysis_transaction_window, ANALYSIS_TRANS_PMONTHS))
   {
     trans_rep_file->trans_rep.period_unit = PERIOD_MONTHS;
   }
-  else if (icons_get_selected (windows.trans_rep, ANALYSIS_TRANS_PYEARS))
+  else if (icons_get_selected (analysis_transaction_window, ANALYSIS_TRANS_PYEARS))
   {
     trans_rep_file->trans_rep.period_unit = PERIOD_YEARS;
   }
@@ -1990,39 +2484,39 @@ int process_trans_report_window (void)
     trans_rep_file->trans_rep.period_unit = PERIOD_MONTHS;
   }
 
-  trans_rep_file->trans_rep.lock = icons_get_selected (windows.trans_rep, ANALYSIS_TRANS_LOCK);
+  trans_rep_file->trans_rep.lock = icons_get_selected (analysis_transaction_window, ANALYSIS_TRANS_LOCK);
 
   /* Read the account and heading settings. */
 
   trans_rep_file->trans_rep.from_count =
       analysis_convert_account_list_to_array (trans_rep_file, ACCOUNT_FULL | ACCOUNT_IN,
-                                              icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_FROMSPEC),
+                                              icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC),
                                               trans_rep_file->trans_rep.from);
   trans_rep_file->trans_rep.to_count =
       analysis_convert_account_list_to_array (trans_rep_file, ACCOUNT_FULL | ACCOUNT_OUT,
-                                              icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_TOSPEC),
+                                              icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
                                               trans_rep_file->trans_rep.to);
   strcpy(trans_rep_file->trans_rep.ref,
-         icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_REFSPEC));
+         icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_REFSPEC));
   strcpy(trans_rep_file->trans_rep.desc,
-         icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_DESCSPEC));
-  trans_rep_file->trans_rep.amount_min = (*icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_AMTLOSPEC) == '\0') ?
-           NULL_CURRENCY : convert_string_to_money (icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_AMTLOSPEC));
+         icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC));
+  trans_rep_file->trans_rep.amount_min = (*icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC) == '\0') ?
+           NULL_CURRENCY : convert_string_to_money (icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC));
 
-  trans_rep_file->trans_rep.amount_max = (*icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_AMTHISPEC) == '\0') ?
-           NULL_CURRENCY : convert_string_to_money (icons_get_indirected_text_addr (windows.trans_rep, ANALYSIS_TRANS_AMTHISPEC));
+  trans_rep_file->trans_rep.amount_max = (*icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC) == '\0') ?
+           NULL_CURRENCY : convert_string_to_money (icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC));
 
   /* Read the output options. */
 
-  trans_rep_file->trans_rep.output_trans = icons_get_selected (windows.trans_rep, ANALYSIS_TRANS_OPTRANS);
-  trans_rep_file->trans_rep.output_summary = icons_get_selected (windows.trans_rep, ANALYSIS_TRANS_OPSUMMARY);
-  trans_rep_file->trans_rep.output_accsummary = icons_get_selected (windows.trans_rep, ANALYSIS_TRANS_OPACCSUMMARY);
+  trans_rep_file->trans_rep.output_trans = icons_get_selected (analysis_transaction_window, ANALYSIS_TRANS_OPTRANS);
+  trans_rep_file->trans_rep.output_summary = icons_get_selected (analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY);
+  trans_rep_file->trans_rep.output_accsummary = icons_get_selected (analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY);
 
   /* Run the report. */
 
   generate_transaction_report (trans_rep_file);
 
-  return (0);
+  return TRUE;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -2046,12 +2540,12 @@ void open_trans_lookup_window (wimp_i icon)
     flags = ACCOUNT_NULL;
   }
 
-  open_account_lookup_window (trans_rep_file, windows.trans_rep, icon, NULL_ACCOUNT, flags);
+  open_account_lookup_window (trans_rep_file, analysis_transaction_window, icon, NULL_ACCOUNT, flags);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int analysis_delete_trans_report_window (void)
+static osbool analysis_delete_transaction_window(void)
 {
   if (trans_rep_template >= 0 && trans_rep_template < trans_rep_file->saved_report_count &&
       error_msgs_report_question ("DeleteTemp", "DeleteTempB") == 1)
@@ -2059,21 +2553,21 @@ int analysis_delete_trans_report_window (void)
     analysis_delete_saved_report_template (trans_rep_file, trans_rep_template);
     trans_rep_template = NULL_TEMPLATE;
 
-    return (0);
+    return TRUE;
   }
   else
   {
-    return (1);
+    return FALSE;
   }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_rename_trans_report_window (wimp_pointer *ptr)
+void analysis_rename_trans_window (wimp_pointer *ptr)
 {
   if (trans_rep_template >= 0 && trans_rep_template < trans_rep_file->saved_report_count)
   {
-    analysis_open_rename_report_window (trans_rep_file, trans_rep_template, ptr);
+    analysis_open_rename_window (trans_rep_file, trans_rep_template, ptr);
   }
 }
 
@@ -2081,7 +2575,7 @@ void analysis_rename_trans_report_window (wimp_pointer *ptr)
  * Editing Unreconciled Report via the GUI.
  */
 
-void open_unrec_report_window (file_data *file, wimp_pointer *ptr, int template, int clear)
+void open_unrec_window (file_data *file, wimp_pointer *ptr, int template, int clear)
 {
   int    template_mode;
   extern global_windows windows;
@@ -2093,9 +2587,9 @@ void open_unrec_report_window (file_data *file, wimp_pointer *ptr, int template,
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (windows_get_open (windows.unrec_rep))
+  if (windows_get_open (analysis_unreconciled_window))
   {
-    wimp_close_window (windows.unrec_rep);
+    wimp_close_window (analysis_unreconciled_window);
   }
 
   /* Copy the settings block contents into a static place that won't shift about on the flex heap
@@ -2109,7 +2603,7 @@ void open_unrec_report_window (file_data *file, wimp_pointer *ptr, int template,
     analysis_copy_unrec_report_template (&(unrec_rep_settings), &(file->saved_reports[template].data.unreconciled));
     unrec_rep_template = template;
 
-    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (windows.unrec_rep), 50,
+    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (analysis_unreconciled_window), 50,
                        file->saved_reports[template].name, NULL, NULL, NULL);
 
     clear = 1; /* If we use a template, we always want to reset to the template! */
@@ -2119,43 +2613,43 @@ void open_unrec_report_window (file_data *file, wimp_pointer *ptr, int template,
     analysis_copy_unrec_report_template (&(unrec_rep_settings), &(file->unrec_rep));
     unrec_rep_template = NULL_TEMPLATE;
 
-    msgs_lookup ("UrcRepTitle", windows_get_indirected_title_addr (windows.unrec_rep), 40);
+    msgs_lookup ("UrcRepTitle", windows_get_indirected_title_addr (analysis_unreconciled_window), 40);
   }
 
-  icons_set_deleted (windows.unrec_rep, ANALYSIS_UNREC_DELETE, !template_mode);
-  icons_set_deleted (windows.unrec_rep, ANALYSIS_UNREC_RENAME, !template_mode);
+  icons_set_deleted (analysis_unreconciled_window, ANALYSIS_UNREC_DELETE, !template_mode);
+  icons_set_deleted (analysis_unreconciled_window, ANALYSIS_UNREC_RENAME, !template_mode);
 
   /* Set the window contents up. */
 
-  fill_unrec_report_window (file, clear);
+  fill_unrec_window (file, clear);
 
   /* Set the pointers up so we can find this lot again and open the window. */
 
   unrec_rep_file = file;
   unrec_rep_window_clear = clear;
 
-  windows_open_centred_at_pointer (windows.unrec_rep, ptr);
-  place_dialogue_caret_fallback (windows.unrec_rep, 4, ANALYSIS_UNREC_DATEFROM, ANALYSIS_UNREC_DATETO,
+  windows_open_centred_at_pointer (analysis_unreconciled_window, ptr);
+  place_dialogue_caret_fallback (analysis_unreconciled_window, 4, ANALYSIS_UNREC_DATEFROM, ANALYSIS_UNREC_DATETO,
                                  ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_FROMSPEC);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_unrec_report_window (void)
+void refresh_unrec_window (void)
 {
   extern global_windows windows;
 
-  fill_unrec_report_window (unrec_rep_file, unrec_rep_window_clear);
-  icons_redraw_group (windows.unrec_rep, 5,
+  fill_unrec_window (unrec_rep_file, unrec_rep_window_clear);
+  icons_redraw_group (analysis_unreconciled_window, 5,
                           ANALYSIS_UNREC_DATEFROM, ANALYSIS_UNREC_DATETO, ANALYSIS_UNREC_PERIOD,
                           ANALYSIS_UNREC_FROMSPEC, ANALYSIS_UNREC_TOSPEC);
 
-  icons_replace_caret_in_window (windows.unrec_rep);
+  icons_replace_caret_in_window (analysis_unreconciled_window);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void fill_unrec_report_window (file_data *file, int clear)
+void fill_unrec_window (file_data *file, int clear)
 {
   extern global_windows windows;
 
@@ -2164,73 +2658,73 @@ void fill_unrec_report_window (file_data *file, int clear)
   {
     /* Set the period icons. */
 
-    *icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_DATEFROM) = '\0';
-    *icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_DATETO) = '\0';
+    *icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM) = '\0';
+    *icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_DATETO) = '\0';
 
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_BUDGET, 0);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, 0);
 
     /* Set the grouping icons. */
 
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUP, 0);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, 0);
 
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPACC, 1);
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPDATE, 0);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, 1);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, 0);
 
-    strcpy(icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_PERIOD), "1");
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_PDAYS, 0);
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_PMONTHS, 1);
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_PYEARS, 0);
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_LOCK, 0);
+    strcpy(icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD), "1");
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, 0);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS, 1);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, 0);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_LOCK, 0);
 
     /* Set the from and to spec fields. */
 
-    *icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_FROMSPEC) = '\0';
-    *icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_TOSPEC) = '\0';
+    *icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC) = '\0';
+    *icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC) = '\0';
   }
   else
   {
     /* Set the period icons. */
 
     convert_date_to_string(unrec_rep_settings.date_from,
-                           icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_DATEFROM));
+                           icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM));
     convert_date_to_string(unrec_rep_settings.date_to,
-                           icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_DATETO));
+                           icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_DATETO));
 
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_BUDGET, unrec_rep_settings.budget);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, unrec_rep_settings.budget);
 
     /* Set the grouping icons. */
 
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUP, unrec_rep_settings.group);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, unrec_rep_settings.group);
 
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPACC, unrec_rep_settings.period_unit == PERIOD_NONE);
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPDATE, unrec_rep_settings.period_unit != PERIOD_NONE);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, unrec_rep_settings.period_unit == PERIOD_NONE);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, unrec_rep_settings.period_unit != PERIOD_NONE);
 
-    sprintf(icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_PERIOD), "%d", unrec_rep_settings.period);
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_PDAYS, unrec_rep_settings.period_unit == PERIOD_DAYS);
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_PMONTHS,
+    sprintf(icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD), "%d", unrec_rep_settings.period);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, unrec_rep_settings.period_unit == PERIOD_DAYS);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS,
                        unrec_rep_settings.period_unit == PERIOD_MONTHS ||
                        unrec_rep_settings.period_unit == PERIOD_NONE);
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_PYEARS, unrec_rep_settings.period_unit == PERIOD_YEARS);
-    icons_set_selected (windows.unrec_rep, ANALYSIS_UNREC_LOCK, unrec_rep_settings.lock);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, unrec_rep_settings.period_unit == PERIOD_YEARS);
+    icons_set_selected (analysis_unreconciled_window, ANALYSIS_UNREC_LOCK, unrec_rep_settings.lock);
 
     /* Set the from and to spec fields. */
 
-    analysis_convert_account_array_to_list (file, icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_FROMSPEC),
+    analysis_convert_account_array_to_list (file, icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC),
                                             unrec_rep_settings.from, unrec_rep_settings.from_count);
-    analysis_convert_account_array_to_list (file, icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_TOSPEC),
+    analysis_convert_account_array_to_list (file, icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC),
                                             unrec_rep_settings.to, unrec_rep_settings.to_count);
   }
 
-  icons_set_group_shaded_when_on (windows.unrec_rep, ANALYSIS_UNREC_BUDGET, 4,
+  icons_set_group_shaded_when_on (analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, 4,
                                   ANALYSIS_UNREC_DATEFROMTXT, ANALYSIS_UNREC_DATEFROM,
                                   ANALYSIS_UNREC_DATETOTXT, ANALYSIS_UNREC_DATETO);
 
-  icons_set_group_shaded_when_off (windows.unrec_rep, ANALYSIS_UNREC_GROUP, 2,
+  icons_set_group_shaded_when_off (analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, 2,
                                    ANALYSIS_UNREC_GROUPACC, ANALYSIS_UNREC_GROUPDATE);
 
-  icons_set_group_shaded (windows.unrec_rep,
-                    !(icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUP) &&
-                      icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPDATE)),
+  icons_set_group_shaded (analysis_unreconciled_window,
+                    !(icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUP) &&
+                      icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE)),
                     6,
                     ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_PTEXT, ANALYSIS_UNREC_LOCK,
                     ANALYSIS_UNREC_PDAYS, ANALYSIS_UNREC_PMONTHS, ANALYSIS_UNREC_PYEARS);
@@ -2238,7 +2732,7 @@ void fill_unrec_report_window (file_data *file, int clear)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int process_unrec_report_window (void)
+static osbool analysis_process_unreconciled_window(void)
 {
   extern global_windows windows;
 
@@ -2246,29 +2740,29 @@ int process_unrec_report_window (void)
   /* Read the date settings. */
 
   unrec_rep_file->unrec_rep.date_from =
-        convert_string_to_date (icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_DATEFROM), NULL_DATE, 0);
+        convert_string_to_date (icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM), NULL_DATE, 0);
   unrec_rep_file->unrec_rep.date_to =
-        convert_string_to_date (icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_DATETO), NULL_DATE, 0);
-  unrec_rep_file->unrec_rep.budget = icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_BUDGET);
+        convert_string_to_date (icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_DATETO), NULL_DATE, 0);
+  unrec_rep_file->unrec_rep.budget = icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET);
 
   /* Read the grouping settings. */
 
-  unrec_rep_file->unrec_rep.group = icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUP);
-  unrec_rep_file->unrec_rep.period = atoi (icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_PERIOD));
+  unrec_rep_file->unrec_rep.group = icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUP);
+  unrec_rep_file->unrec_rep.period = atoi (icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD));
 
-  if (icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_GROUPACC))
+  if (icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC))
   {
     unrec_rep_file->unrec_rep.period_unit = PERIOD_NONE;
   }
-  else if (icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_PDAYS))
+  else if (icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS))
   {
     unrec_rep_file->unrec_rep.period_unit = PERIOD_DAYS;
   }
-  else if (icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_PMONTHS))
+  else if (icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS))
   {
     unrec_rep_file->unrec_rep.period_unit = PERIOD_MONTHS;
   }
-  else if (icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_PYEARS))
+  else if (icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS))
   {
     unrec_rep_file->unrec_rep.period_unit = PERIOD_YEARS;
   }
@@ -2277,24 +2771,24 @@ int process_unrec_report_window (void)
     unrec_rep_file->unrec_rep.period_unit = PERIOD_MONTHS;
   }
 
-  unrec_rep_file->unrec_rep.lock = icons_get_selected (windows.unrec_rep, ANALYSIS_UNREC_LOCK);
+  unrec_rep_file->unrec_rep.lock = icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_LOCK);
 
   /* Read the account and heading settings. */
 
   unrec_rep_file->unrec_rep.from_count =
       analysis_convert_account_list_to_array (unrec_rep_file, ACCOUNT_FULL | ACCOUNT_IN,
-                                              icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_FROMSPEC),
+                                              icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC),
                                               unrec_rep_file->unrec_rep.from);
   unrec_rep_file->unrec_rep.to_count =
       analysis_convert_account_list_to_array (unrec_rep_file, ACCOUNT_FULL | ACCOUNT_OUT,
-                                              icons_get_indirected_text_addr (windows.unrec_rep, ANALYSIS_UNREC_TOSPEC),
+                                              icons_get_indirected_text_addr (analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC),
                                               unrec_rep_file->unrec_rep.to);
 
   /* Run the report. */
 
   generate_unreconciled_report (unrec_rep_file);
 
-  return (0);
+  return TRUE;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -2318,12 +2812,12 @@ void open_unrec_lookup_window (wimp_i icon)
     flags = ACCOUNT_NULL;
   }
 
-  open_account_lookup_window (unrec_rep_file, windows.unrec_rep, icon, NULL_ACCOUNT, flags);
+  open_account_lookup_window (unrec_rep_file, analysis_unreconciled_window, icon, NULL_ACCOUNT, flags);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int analysis_delete_unrec_report_window (void)
+static osbool analysis_delete_unreconciled_window(void)
 {
   if (unrec_rep_template >= 0 && unrec_rep_template < unrec_rep_file->saved_report_count &&
       error_msgs_report_question ("DeleteTemp", "DeleteTempB") == 1)
@@ -2331,21 +2825,21 @@ int analysis_delete_unrec_report_window (void)
     analysis_delete_saved_report_template (unrec_rep_file, unrec_rep_template);
     unrec_rep_template = NULL_TEMPLATE;
 
-    return (0);
+    return TRUE;
   }
   else
   {
-    return (1);
+    return FALSE;
   }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_rename_unrec_report_window (wimp_pointer *ptr)
+void analysis_rename_unrec_window (wimp_pointer *ptr)
 {
   if (unrec_rep_template >= 0 && unrec_rep_template < unrec_rep_file->saved_report_count)
   {
-    analysis_open_rename_report_window (unrec_rep_file, unrec_rep_template, ptr);
+    analysis_open_rename_window (unrec_rep_file, unrec_rep_template, ptr);
   }
 }
 
@@ -2353,7 +2847,7 @@ void analysis_rename_unrec_report_window (wimp_pointer *ptr)
  * Editing Cashflow Report via the GUI.
  */
 
-void open_cashflow_report_window (file_data *file, wimp_pointer *ptr, int template, int clear)
+void open_cashflow_window (file_data *file, wimp_pointer *ptr, int template, int clear)
 {
   int    template_mode;
   extern global_windows windows;
@@ -2365,9 +2859,9 @@ void open_cashflow_report_window (file_data *file, wimp_pointer *ptr, int templa
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (windows_get_open (windows.cashflow_rep))
+  if (windows_get_open (analysis_cashflow_window))
   {
-    wimp_close_window (windows.cashflow_rep);
+    wimp_close_window (analysis_cashflow_window);
   }
 
   /* Copy the settings block contents into a static place that won't shift about on the flex heap
@@ -2381,7 +2875,7 @@ void open_cashflow_report_window (file_data *file, wimp_pointer *ptr, int templa
     analysis_copy_cashflow_report_template (&(cashflow_rep_settings), &(file->saved_reports[template].data.cashflow));
     cashflow_rep_template = template;
 
-    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (windows.cashflow_rep), 50,
+    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (analysis_cashflow_window), 50,
                        file->saved_reports[template].name, NULL, NULL, NULL);
 
     clear = 1; /* If we use a template, we always want to reset to the template! */
@@ -2391,43 +2885,43 @@ void open_cashflow_report_window (file_data *file, wimp_pointer *ptr, int templa
     analysis_copy_cashflow_report_template (&(cashflow_rep_settings), &(file->cashflow_rep));
     cashflow_rep_template = NULL_TEMPLATE;
 
-    msgs_lookup ("CflRepTitle", windows_get_indirected_title_addr (windows.cashflow_rep), 40);
+    msgs_lookup ("CflRepTitle", windows_get_indirected_title_addr (analysis_cashflow_window), 40);
   }
 
-  icons_set_deleted (windows.cashflow_rep, ANALYSIS_CASHFLOW_DELETE, !template_mode);
-  icons_set_deleted (windows.cashflow_rep, ANALYSIS_CASHFLOW_RENAME, !template_mode);
+  icons_set_deleted (analysis_cashflow_window, ANALYSIS_CASHFLOW_DELETE, !template_mode);
+  icons_set_deleted (analysis_cashflow_window, ANALYSIS_CASHFLOW_RENAME, !template_mode);
 
   /* Set the window contents up. */
 
-  fill_cashflow_report_window (file, clear);
+  fill_cashflow_window (file, clear);
 
   /* Set the pointers up so we can find this lot again and open the window. */
 
   cashflow_rep_file = file;
   cashflow_rep_window_clear = clear;
 
-  windows_open_centred_at_pointer (windows.cashflow_rep, ptr);
-  place_dialogue_caret_fallback (windows.cashflow_rep, 4, ANALYSIS_CASHFLOW_DATEFROM, ANALYSIS_CASHFLOW_DATETO,
+  windows_open_centred_at_pointer (analysis_cashflow_window, ptr);
+  place_dialogue_caret_fallback (analysis_cashflow_window, 4, ANALYSIS_CASHFLOW_DATEFROM, ANALYSIS_CASHFLOW_DATETO,
                                  ANALYSIS_CASHFLOW_PERIOD, ANALYSIS_CASHFLOW_ACCOUNTS);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_cashflow_report_window (void)
+void refresh_cashflow_window (void)
 {
   extern global_windows windows;
 
-  fill_cashflow_report_window (cashflow_rep_file, cashflow_rep_window_clear);
-  icons_redraw_group (windows.cashflow_rep, 6,
+  fill_cashflow_window (cashflow_rep_file, cashflow_rep_window_clear);
+  icons_redraw_group (analysis_cashflow_window, 6,
                           ANALYSIS_CASHFLOW_DATEFROM, ANALYSIS_CASHFLOW_DATETO, ANALYSIS_CASHFLOW_PERIOD,
                           ANALYSIS_CASHFLOW_ACCOUNTS, ANALYSIS_CASHFLOW_INCOMING, ANALYSIS_CASHFLOW_OUTGOING);
 
-  icons_replace_caret_in_window (windows.cashflow_rep);
+  icons_replace_caret_in_window (analysis_cashflow_window);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void fill_cashflow_report_window (file_data *file, int clear)
+void fill_cashflow_window (file_data *file, int clear)
 {
   extern global_windows windows;
 
@@ -2436,73 +2930,73 @@ void fill_cashflow_report_window (file_data *file, int clear)
   {
     /* Set the period icons. */
 
-    *icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_DATEFROM) = '\0';
-    *icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_DATETO) = '\0';
+    *icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM) = '\0';
+    *icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO) = '\0';
 
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_BUDGET, 0);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, 0);
 
     /* Set the grouping icons. */
 
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_GROUP, 0);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, 0);
 
-    strcpy(icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_PERIOD), "1");
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_PDAYS, 0);
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_PMONTHS, 1);
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_PYEARS, 0);
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_LOCK, 0);
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_EMPTY, 0);
+    strcpy(icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD), "1");
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, 0);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, 1);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, 0);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK, 0);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY, 0);
 
     /* Set the accounts and format details. */
 
-    *icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_ACCOUNTS) = '\0';
-    *icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_INCOMING) = '\0';
-    *icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_OUTGOING) = '\0';
+    *icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS) = '\0';
+    *icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING) = '\0';
+    *icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING) = '\0';
 
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_TABULAR, 0);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR, 0);
   }
   else
   {
     /* Set the period icons. */
 
     convert_date_to_string (cashflow_rep_settings.date_from,
-                            icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_DATEFROM));
+                            icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM));
     convert_date_to_string (cashflow_rep_settings.date_to,
-                            icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_DATETO));
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_BUDGET, cashflow_rep_settings.budget);
+                            icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO));
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, cashflow_rep_settings.budget);
 
     /* Set the grouping icons. */
 
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_GROUP, cashflow_rep_settings.group);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, cashflow_rep_settings.group);
 
-    sprintf(icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_PERIOD), "%d", cashflow_rep_settings.period);
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_PDAYS, cashflow_rep_settings.period_unit == PERIOD_DAYS);
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_PMONTHS,
+    sprintf(icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD), "%d", cashflow_rep_settings.period);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, cashflow_rep_settings.period_unit == PERIOD_DAYS);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS,
                        cashflow_rep_settings.period_unit == PERIOD_MONTHS);
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_PYEARS,
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS,
                        cashflow_rep_settings.period_unit == PERIOD_YEARS);
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_LOCK, cashflow_rep_settings.lock);
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_EMPTY, cashflow_rep_settings.empty);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK, cashflow_rep_settings.lock);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY, cashflow_rep_settings.empty);
 
     /* Set the accounts and format details. */
 
     analysis_convert_account_array_to_list (file,
-                                            icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_ACCOUNTS),
+                                            icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS),
                                             cashflow_rep_settings.accounts, cashflow_rep_settings.accounts_count);
     analysis_convert_account_array_to_list (file,
-                                            icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_INCOMING),
+                                            icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING),
                                             cashflow_rep_settings.incoming, cashflow_rep_settings.incoming_count);
     analysis_convert_account_array_to_list (file,
-                                            icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_OUTGOING),
+                                            icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING),
                                             cashflow_rep_settings.outgoing, cashflow_rep_settings.outgoing_count);
 
-    icons_set_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_TABULAR, cashflow_rep_settings.tabular);
+    icons_set_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR, cashflow_rep_settings.tabular);
   }
 
-  icons_set_group_shaded_when_on (windows.cashflow_rep, ANALYSIS_CASHFLOW_BUDGET, 4,
+  icons_set_group_shaded_when_on (analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, 4,
                                   ANALYSIS_CASHFLOW_DATEFROMTXT, ANALYSIS_CASHFLOW_DATEFROM,
                                   ANALYSIS_CASHFLOW_DATETOTXT, ANALYSIS_CASHFLOW_DATETO);
 
-  icons_set_group_shaded_when_off (windows.cashflow_rep, ANALYSIS_CASHFLOW_GROUP, 7,
+  icons_set_group_shaded_when_off (analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, 7,
                                    ANALYSIS_CASHFLOW_PERIOD, ANALYSIS_CASHFLOW_PTEXT, ANALYSIS_CASHFLOW_LOCK,
                                    ANALYSIS_CASHFLOW_PDAYS, ANALYSIS_CASHFLOW_PMONTHS, ANALYSIS_CASHFLOW_PYEARS,
                                    ANALYSIS_CASHFLOW_EMPTY);
@@ -2511,7 +3005,7 @@ void fill_cashflow_report_window (file_data *file, int clear)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int process_cashflow_report_window (void)
+static osbool analysis_process_balance_window(void)
 {
   extern global_windows windows;
 
@@ -2519,25 +3013,25 @@ int process_cashflow_report_window (void)
   /* Read the date settings. */
 
   cashflow_rep_file->cashflow_rep.date_from =
-        convert_string_to_date (icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_DATEFROM), NULL_DATE, 0);
+        convert_string_to_date (icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM), NULL_DATE, 0);
   cashflow_rep_file->cashflow_rep.date_to =
-        convert_string_to_date (icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_DATETO), NULL_DATE, 0);
-  cashflow_rep_file->cashflow_rep.budget = icons_get_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_BUDGET);
+        convert_string_to_date (icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO), NULL_DATE, 0);
+  cashflow_rep_file->cashflow_rep.budget = icons_get_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET);
 
   /* Read the grouping settings. */
 
-  cashflow_rep_file->cashflow_rep.group = icons_get_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_GROUP);
-  cashflow_rep_file->cashflow_rep.period = atoi (icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_PERIOD));
+  cashflow_rep_file->cashflow_rep.group = icons_get_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP);
+  cashflow_rep_file->cashflow_rep.period = atoi (icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD));
 
-  if (icons_get_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_PDAYS))
+  if (icons_get_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS))
   {
     cashflow_rep_file->cashflow_rep.period_unit = PERIOD_DAYS;
   }
-  else if (icons_get_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_PMONTHS))
+  else if (icons_get_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS))
   {
     cashflow_rep_file->cashflow_rep.period_unit = PERIOD_MONTHS;
   }
-  else if (icons_get_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_PYEARS))
+  else if (icons_get_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS))
   {
     cashflow_rep_file->cashflow_rep.period_unit = PERIOD_YEARS;
   }
@@ -2546,31 +3040,31 @@ int process_cashflow_report_window (void)
     cashflow_rep_file->cashflow_rep.period_unit = PERIOD_MONTHS;
   }
 
-  cashflow_rep_file->cashflow_rep.lock = icons_get_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_LOCK);
-  cashflow_rep_file->cashflow_rep.empty = icons_get_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_EMPTY);
+  cashflow_rep_file->cashflow_rep.lock = icons_get_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK);
+  cashflow_rep_file->cashflow_rep.empty = icons_get_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY);
 
   /* Read the account and heading settings. */
 
   cashflow_rep_file->cashflow_rep.accounts_count =
       analysis_convert_account_list_to_array (cashflow_rep_file, ACCOUNT_FULL,
-                                              icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_ACCOUNTS),
+                                              icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS),
                                               cashflow_rep_file->cashflow_rep.accounts);
   cashflow_rep_file->cashflow_rep.incoming_count =
       analysis_convert_account_list_to_array (cashflow_rep_file, ACCOUNT_IN,
-                                              icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_INCOMING),
+                                              icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING),
                                               cashflow_rep_file->cashflow_rep.incoming);
   cashflow_rep_file->cashflow_rep.outgoing_count =
       analysis_convert_account_list_to_array (cashflow_rep_file, ACCOUNT_OUT,
-                                              icons_get_indirected_text_addr (windows.cashflow_rep, ANALYSIS_CASHFLOW_OUTGOING),
+                                              icons_get_indirected_text_addr (analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING),
                                               cashflow_rep_file->cashflow_rep.outgoing);
 
-  cashflow_rep_file->cashflow_rep.tabular = icons_get_selected (windows.cashflow_rep, ANALYSIS_CASHFLOW_TABULAR);
+  cashflow_rep_file->cashflow_rep.tabular = icons_get_selected (analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR);
 
   /* Run the report. */
 
   generate_cashflow_report (cashflow_rep_file);
 
-  return (0);
+  return TRUE;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -2598,12 +3092,12 @@ void open_cashflow_lookup_window (wimp_i icon)
     flags = ACCOUNT_NULL;
   }
 
-  open_account_lookup_window (cashflow_rep_file, windows.cashflow_rep, icon, NULL_ACCOUNT, flags);
+  open_account_lookup_window (cashflow_rep_file, analysis_cashflow_window, icon, NULL_ACCOUNT, flags);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int analysis_delete_cashflow_report_window (void)
+static osbool analysis_delete_cashflow_window(void)
 {
   if (cashflow_rep_template >= 0 && cashflow_rep_template < cashflow_rep_file->saved_report_count &&
       error_msgs_report_question ("DeleteTemp", "DeleteTempB") == 1)
@@ -2611,21 +3105,21 @@ int analysis_delete_cashflow_report_window (void)
     analysis_delete_saved_report_template (cashflow_rep_file, cashflow_rep_template);
     cashflow_rep_template = NULL_TEMPLATE;
 
-    return (0);
+    return TRUE;
   }
   else
   {
-    return (1);
+    return FALSE;
   }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_rename_cashflow_report_window (wimp_pointer *ptr)
+void analysis_rename_cashflow_window (wimp_pointer *ptr)
 {
   if (cashflow_rep_template >= 0 && cashflow_rep_template < cashflow_rep_file->saved_report_count)
   {
-    analysis_open_rename_report_window (cashflow_rep_file, cashflow_rep_template, ptr);
+    analysis_open_rename_window (cashflow_rep_file, cashflow_rep_template, ptr);
   }
 }
 
@@ -2633,7 +3127,7 @@ void analysis_rename_cashflow_report_window (wimp_pointer *ptr)
  * Editing Balance Report via the GUI.
  */
 
-void open_balance_report_window (file_data *file, wimp_pointer *ptr, int template, int clear)
+void open_balance_window (file_data *file, wimp_pointer *ptr, int template, int clear)
 {
   int    template_mode;
   extern global_windows windows;
@@ -2645,9 +3139,9 @@ void open_balance_report_window (file_data *file, wimp_pointer *ptr, int templat
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (windows_get_open (windows.balance_rep))
+  if (windows_get_open (analysis_balance_window))
   {
-    wimp_close_window (windows.balance_rep);
+    wimp_close_window (analysis_balance_window);
   }
 
   /* Copy the settings block contents into a static place that won't shift about on the flex heap
@@ -2661,7 +3155,7 @@ void open_balance_report_window (file_data *file, wimp_pointer *ptr, int templat
     analysis_copy_balance_report_template (&(balance_rep_settings), &(file->saved_reports[template].data.balance));
     balance_rep_template = template;
 
-    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (windows.balance_rep), 50,
+    msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (analysis_balance_window), 50,
                        file->saved_reports[template].name, NULL, NULL, NULL);
 
     clear = 1; /* If we use a template, we always want to reset to the template! */
@@ -2671,43 +3165,43 @@ void open_balance_report_window (file_data *file, wimp_pointer *ptr, int templat
     analysis_copy_balance_report_template (&(balance_rep_settings), &(file->balance_rep));
     balance_rep_template = NULL_TEMPLATE;
 
-    msgs_lookup ("BalRepTitle", windows_get_indirected_title_addr (windows.balance_rep), 40);
+    msgs_lookup ("BalRepTitle", windows_get_indirected_title_addr (analysis_balance_window), 40);
   }
 
-  icons_set_deleted (windows.balance_rep, ANALYSIS_BALANCE_DELETE, !template_mode);
-  icons_set_deleted (windows.balance_rep, ANALYSIS_BALANCE_RENAME, !template_mode);
+  icons_set_deleted (analysis_balance_window, ANALYSIS_BALANCE_DELETE, !template_mode);
+  icons_set_deleted (analysis_balance_window, ANALYSIS_BALANCE_RENAME, !template_mode);
 
   /* Set the window contents up. */
 
-  fill_balance_report_window (file, clear);
+  fill_balance_window (file, clear);
 
   /* Set the pointers up so we can find this lot again and open the window. */
 
   balance_rep_file = file;
   balance_rep_window_clear = clear;
 
-  windows_open_centred_at_pointer (windows.balance_rep, ptr);
-  place_dialogue_caret_fallback (windows.balance_rep, 4, ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO,
+  windows_open_centred_at_pointer (analysis_balance_window, ptr);
+  place_dialogue_caret_fallback (analysis_balance_window, 4, ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO,
                                  ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_ACCOUNTS);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_balance_report_window (void)
+void refresh_balance_window (void)
 {
   extern global_windows windows;
 
-  fill_balance_report_window (balance_rep_file, balance_rep_window_clear);
-  icons_redraw_group (windows.balance_rep, 6,
+  fill_balance_window (balance_rep_file, balance_rep_window_clear);
+  icons_redraw_group (analysis_balance_window, 6,
                           ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO, ANALYSIS_BALANCE_PERIOD,
                           ANALYSIS_BALANCE_ACCOUNTS, ANALYSIS_BALANCE_INCOMING, ANALYSIS_BALANCE_OUTGOING);
 
-  icons_replace_caret_in_window (windows.balance_rep);
+  icons_replace_caret_in_window (analysis_balance_window);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void fill_balance_report_window (file_data *file, int clear)
+void fill_balance_window (file_data *file, int clear)
 {
   extern global_windows windows;
 
@@ -2716,70 +3210,70 @@ void fill_balance_report_window (file_data *file, int clear)
   {
     /* Set the period icons. */
 
-    *icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_DATEFROM) = '\0';
-    *icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_DATETO) = '\0';
+    *icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_DATEFROM) = '\0';
+    *icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_DATETO) = '\0';
 
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_BUDGET, 0);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_BUDGET, 0);
 
     /* Set the grouping icons. */
 
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_GROUP, 0);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_GROUP, 0);
 
-    strcpy(icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_PERIOD), "1");
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_PDAYS, 0);
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_PMONTHS, 1);
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_PYEARS, 0);
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_LOCK, 0);
+    strcpy(icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_PERIOD), "1");
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_PDAYS, 0);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_PMONTHS, 1);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_PYEARS, 0);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_LOCK, 0);
 
     /* Set the accounts and format details. */
 
-    *icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_ACCOUNTS) = '\0';
-    *icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_INCOMING) = '\0';
-    *icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_OUTGOING) = '\0';
+    *icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS) = '\0';
+    *icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_INCOMING) = '\0';
+    *icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_OUTGOING) = '\0';
 
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_TABULAR, 0);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_TABULAR, 0);
   }
   else
   {
     /* Set the period icons. */
 
     convert_date_to_string (balance_rep_settings.date_from,
-                            icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_DATEFROM));
+                            icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_DATEFROM));
     convert_date_to_string (balance_rep_settings.date_to,
-                            icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_DATETO));
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_BUDGET, balance_rep_settings.budget);
+                            icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_DATETO));
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_BUDGET, balance_rep_settings.budget);
 
     /* Set the grouping icons. */
 
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_GROUP, balance_rep_settings.group);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_GROUP, balance_rep_settings.group);
 
-    sprintf(icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_PERIOD), "%d", balance_rep_settings.period);
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_PDAYS, balance_rep_settings.period_unit == PERIOD_DAYS);
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_PMONTHS,
+    sprintf(icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_PERIOD), "%d", balance_rep_settings.period);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_PDAYS, balance_rep_settings.period_unit == PERIOD_DAYS);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_PMONTHS,
                        balance_rep_settings.period_unit == PERIOD_MONTHS);
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_PYEARS, balance_rep_settings.period_unit == PERIOD_YEARS);
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_LOCK, balance_rep_settings.lock);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_PYEARS, balance_rep_settings.period_unit == PERIOD_YEARS);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_LOCK, balance_rep_settings.lock);
 
     /* Set the accounts and format details. */
 
     analysis_convert_account_array_to_list (file,
-                                            icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_ACCOUNTS),
+                                            icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS),
                                             balance_rep_settings.accounts, balance_rep_settings.accounts_count);
     analysis_convert_account_array_to_list (file,
-                                            icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_INCOMING),
+                                            icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_INCOMING),
                                             balance_rep_settings.incoming, balance_rep_settings.incoming_count);
     analysis_convert_account_array_to_list (file,
-                                            icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_OUTGOING),
+                                            icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_OUTGOING),
                                             balance_rep_settings.outgoing, balance_rep_settings.outgoing_count);
 
-    icons_set_selected (windows.balance_rep, ANALYSIS_BALANCE_TABULAR, balance_rep_settings.tabular);
+    icons_set_selected (analysis_balance_window, ANALYSIS_BALANCE_TABULAR, balance_rep_settings.tabular);
   }
 
-  icons_set_group_shaded_when_on (windows.balance_rep, ANALYSIS_BALANCE_BUDGET, 4,
+  icons_set_group_shaded_when_on (analysis_balance_window, ANALYSIS_BALANCE_BUDGET, 4,
                                   ANALYSIS_BALANCE_DATEFROMTXT, ANALYSIS_BALANCE_DATEFROM,
                                   ANALYSIS_BALANCE_DATETOTXT, ANALYSIS_BALANCE_DATETO);
 
-  icons_set_group_shaded_when_off (windows.balance_rep, ANALYSIS_BALANCE_GROUP, 6,
+  icons_set_group_shaded_when_off (analysis_balance_window, ANALYSIS_BALANCE_GROUP, 6,
                                    ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_PTEXT, ANALYSIS_BALANCE_LOCK,
                                    ANALYSIS_BALANCE_PDAYS, ANALYSIS_BALANCE_PMONTHS, ANALYSIS_BALANCE_PYEARS);
 
@@ -2787,7 +3281,7 @@ void fill_balance_report_window (file_data *file, int clear)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int process_balance_report_window (void)
+static osbool analysis_process_balance_window(void)
 {
   extern global_windows windows;
 
@@ -2795,25 +3289,25 @@ int process_balance_report_window (void)
   /* Read the date settings. */
 
   balance_rep_file->balance_rep.date_from =
-        convert_string_to_date (icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_DATEFROM), NULL_DATE, 0);
+        convert_string_to_date (icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_DATEFROM), NULL_DATE, 0);
   balance_rep_file->balance_rep.date_to =
-        convert_string_to_date (icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_DATETO), NULL_DATE, 0);
-  balance_rep_file->balance_rep.budget = icons_get_selected (windows.balance_rep, ANALYSIS_BALANCE_BUDGET);
+        convert_string_to_date (icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_DATETO), NULL_DATE, 0);
+  balance_rep_file->balance_rep.budget = icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_BUDGET);
 
   /* Read the grouping settings. */
 
-  balance_rep_file->balance_rep.group = icons_get_selected (windows.balance_rep, ANALYSIS_BALANCE_GROUP);
-  balance_rep_file->balance_rep.period = atoi (icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_PERIOD));
+  balance_rep_file->balance_rep.group = icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_GROUP);
+  balance_rep_file->balance_rep.period = atoi (icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_PERIOD));
 
-  if (icons_get_selected (windows.balance_rep, ANALYSIS_BALANCE_PDAYS))
+  if (icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_PDAYS))
   {
     balance_rep_file->balance_rep.period_unit = PERIOD_DAYS;
   }
-  else if (icons_get_selected (windows.balance_rep, ANALYSIS_BALANCE_PMONTHS))
+  else if (icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_PMONTHS))
   {
     balance_rep_file->balance_rep.period_unit = PERIOD_MONTHS;
   }
-  else if (icons_get_selected (windows.balance_rep, ANALYSIS_BALANCE_PYEARS))
+  else if (icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_PYEARS))
   {
     balance_rep_file->balance_rep.period_unit = PERIOD_YEARS;
   }
@@ -2822,30 +3316,30 @@ int process_balance_report_window (void)
     balance_rep_file->balance_rep.period_unit = PERIOD_MONTHS;
   }
 
-  balance_rep_file->balance_rep.lock = icons_get_selected (windows.balance_rep, ANALYSIS_BALANCE_LOCK);
+  balance_rep_file->balance_rep.lock = icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_LOCK);
 
   /* Read the account and heading settings. */
 
   balance_rep_file->balance_rep.accounts_count =
       analysis_convert_account_list_to_array (balance_rep_file, ACCOUNT_FULL,
-                                              icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_ACCOUNTS),
+                                              icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS),
                                               balance_rep_file->balance_rep.accounts);
   balance_rep_file->balance_rep.incoming_count =
       analysis_convert_account_list_to_array (balance_rep_file, ACCOUNT_IN,
-                                              icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_INCOMING),
+                                              icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_INCOMING),
                                               balance_rep_file->balance_rep.incoming);
   balance_rep_file->balance_rep.outgoing_count =
       analysis_convert_account_list_to_array (balance_rep_file, ACCOUNT_OUT,
-                                              icons_get_indirected_text_addr (windows.balance_rep, ANALYSIS_BALANCE_OUTGOING),
+                                              icons_get_indirected_text_addr (analysis_balance_window, ANALYSIS_BALANCE_OUTGOING),
                                               balance_rep_file->balance_rep.outgoing);
 
-  balance_rep_file->balance_rep.tabular = icons_get_selected (windows.balance_rep, ANALYSIS_BALANCE_TABULAR);
+  balance_rep_file->balance_rep.tabular = icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_TABULAR);
 
   /* Run the report. */
 
   generate_balance_report (balance_rep_file);
 
-  return (0);
+  return TRUE;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -2873,12 +3367,12 @@ void open_balance_lookup_window (wimp_i icon)
     flags = ACCOUNT_NULL;
   }
 
-  open_account_lookup_window (balance_rep_file, windows.balance_rep, icon, NULL_ACCOUNT, flags);
+  open_account_lookup_window (balance_rep_file, analysis_balance_window, icon, NULL_ACCOUNT, flags);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int analysis_delete_balance_report_window (void)
+static osbool analysis_delete_balance_window(void)
 {
   if (balance_rep_template >= 0 && balance_rep_template < balance_rep_file->saved_report_count &&
       error_msgs_report_question ("DeleteTemp", "DeleteTempB") == 1)
@@ -2886,21 +3380,21 @@ int analysis_delete_balance_report_window (void)
     analysis_delete_saved_report_template (balance_rep_file, balance_rep_template);
     balance_rep_template = NULL_TEMPLATE;
 
-    return (0);
+    return TRUE;
   }
   else
   {
-    return (1);
+    return FALSE;
   }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_rename_balance_report_window (wimp_pointer *ptr)
+void analysis_rename_balance_window (wimp_pointer *ptr)
 {
   if (balance_rep_template >= 0 && balance_rep_template < balance_rep_file->saved_report_count)
   {
-    analysis_open_rename_report_window (balance_rep_file, balance_rep_template, ptr);
+    analysis_open_rename_window (balance_rep_file, balance_rep_template, ptr);
   }
 }
 
@@ -2908,7 +3402,7 @@ void analysis_rename_balance_report_window (wimp_pointer *ptr)
  * Saving and Renaming Report Templates via the GUI.
  */
 
-void open_save_report_window (file_data *file, report_data *report, wimp_pointer *ptr)
+void open_save_window (file_data *file, report_data *report, wimp_pointer *ptr)
 {
   extern global_windows windows;
 
@@ -2936,7 +3430,7 @@ void open_save_report_window (file_data *file, report_data *report, wimp_pointer
 
   icons_set_shaded (windows.save_rep, ANALYSIS_SAVE_NAMEPOPUP, file->saved_report_count == 0);
 
-  fill_save_report_window (report);
+  fill_save_window (report);
 
   ihelp_set_modifier (windows.save_rep, "Sav");
 
@@ -2952,7 +3446,7 @@ void open_save_report_window (file_data *file, report_data *report, wimp_pointer
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_open_rename_report_window (file_data *file, int template, wimp_pointer *ptr)
+void analysis_open_rename_window (file_data *file, int template, wimp_pointer *ptr)
 {
   extern global_windows windows;
 
@@ -2980,7 +3474,7 @@ void analysis_open_rename_report_window (file_data *file, int template, wimp_poi
 
   icons_set_shaded (windows.save_rep, ANALYSIS_SAVE_NAMEPOPUP, file->saved_report_count == 0);
 
-  analysis_fill_rename_report_window (file, template);
+  analysis_fill_rename_window (file, template);
 
   ihelp_set_modifier (windows.save_rep, "Ren");
 
@@ -2997,18 +3491,18 @@ void analysis_open_rename_report_window (file_data *file, int template, wimp_poi
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_save_report_window (void)
+void refresh_save_window (void)
 {
   extern global_windows windows;
 
   switch (save_report_mode)
   {
     case ANALYSIS_SAVE_MODE_SAVE:
-      fill_save_report_window (save_report_report);
+      fill_save_window (save_report_report);
       break;
 
     case ANALYSIS_SAVE_MODE_RENAME:
-      analysis_fill_rename_report_window (save_report_file, save_report_template);
+      analysis_fill_rename_window (save_report_file, save_report_template);
       break;
   }
   icons_redraw_group (windows.save_rep, 1, ANALYSIS_SAVE_NAME);
@@ -3018,7 +3512,7 @@ void refresh_save_report_window (void)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void fill_save_report_window (report_data *report)
+void fill_save_window (report_data *report)
 {
   extern global_windows windows;
 
@@ -3030,7 +3524,7 @@ void fill_save_report_window (report_data *report)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_fill_rename_report_window (file_data *file, int template)
+void analysis_fill_rename_window (file_data *file, int template)
 {
   extern global_windows windows;
 
@@ -3046,7 +3540,7 @@ void analysis_fill_rename_report_window (file_data *file, int template)
  * function.  If it is a rename, handle it directly here.
  */
 
-int process_save_report_window (void)
+int process_save_window (void)
 {
   int                   template;
   wimp_w                w;
@@ -3092,16 +3586,16 @@ int process_save_report_window (void)
         switch (save_report_file->saved_reports[save_report_template].type)
         {
           case REPORT_TYPE_TRANS:
-            w = windows.trans_rep;
+            w = analysis_transaction_window;
             break;
           case REPORT_TYPE_UNREC:
-            w = windows.unrec_rep;
+            w = analysis_unreconciled_window;
             break;
           case REPORT_TYPE_CASHFLOW:
-            w = windows.cashflow_rep;
+            w = analysis_cashflow_window;
             break;
           case REPORT_TYPE_BALANCE:
-            w = windows.balance_rep;
+            w = analysis_balance_window;
             break;
           default:
             w = NULL;
@@ -3136,29 +3630,29 @@ void analysis_open_save_report_popup_menu (wimp_pointer *ptr)
  * Force the closure of the report format window if the file disappears.
  */
 
-void force_close_report_windows (file_data *file)
+void force_close_windows (file_data *file)
 {
   extern global_windows windows;
 
 
-  if (trans_rep_file == file && windows_get_open (windows.trans_rep))
+  if (trans_rep_file == file && windows_get_open (analysis_transaction_window))
   {
-    close_dialogue_with_caret (windows.trans_rep);
+    close_dialogue_with_caret (analysis_transaction_window);
   }
 
-  if (unrec_rep_file == file && windows_get_open (windows.unrec_rep))
+  if (unrec_rep_file == file && windows_get_open (analysis_unreconciled_window))
   {
-    close_dialogue_with_caret (windows.unrec_rep);
+    close_dialogue_with_caret (analysis_unreconciled_window);
   }
 
-  if (cashflow_rep_file == file && windows_get_open (windows.cashflow_rep))
+  if (cashflow_rep_file == file && windows_get_open (analysis_cashflow_window))
   {
-    close_dialogue_with_caret (windows.cashflow_rep);
+    close_dialogue_with_caret (analysis_cashflow_window);
   }
 
-  if (balance_rep_file == file && windows_get_open (windows.balance_rep))
+  if (balance_rep_file == file && windows_get_open (analysis_balance_window))
   {
-    close_dialogue_with_caret (windows.balance_rep);
+    close_dialogue_with_caret (analysis_balance_window);
   }
 
   if (save_report_file == file && windows_get_open (windows.save_rep))
@@ -3191,13 +3685,13 @@ void analysis_force_close_report_rename_window (wimp_w window)
   if (windows_get_open (windows.save_rep) &&
       save_report_mode == ANALYSIS_SAVE_MODE_RENAME && save_report_template != NULL_TEMPLATE)
   {
-    if ((window == windows.trans_rep &&
+    if ((window == analysis_transaction_window &&
          save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_TRANS) ||
-        (window == windows.unrec_rep &&
+        (window == analysis_unreconciled_window &&
          save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_UNREC) ||
-        (window == windows.cashflow_rep &&
+        (window == analysis_cashflow_window &&
          save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_CASHFLOW) ||
-        (window == windows.balance_rep &&
+        (window == analysis_balance_window &&
          save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_BALANCE))
     {
       close_dialogue_with_caret (windows.save_rep);
@@ -3218,19 +3712,19 @@ void analysis_open_saved_report_dialogue(file_data *file, wimp_pointer *ptr, int
     switch (file->saved_reports[template].type)
     {
       case REPORT_TYPE_TRANS:
-        open_trans_report_window (file, ptr, template, config_opt_read ("RememberValues"));
+        open_trans_window (file, ptr, template, config_opt_read ("RememberValues"));
         break;
 
       case REPORT_TYPE_UNREC:
-        open_unrec_report_window (file, ptr, template, config_opt_read ("RememberValues"));
+        open_unrec_window (file, ptr, template, config_opt_read ("RememberValues"));
         break;
 
       case REPORT_TYPE_CASHFLOW:
-        open_cashflow_report_window (file, ptr, template, config_opt_read ("RememberValues"));
+        open_cashflow_window (file, ptr, template, config_opt_read ("RememberValues"));
         break;
 
       case REPORT_TYPE_BALANCE:
-        open_balance_report_window (file, ptr, template, config_opt_read ("RememberValues"));
+        open_balance_window (file, ptr, template, config_opt_read ("RememberValues"));
         break;
     }
   }

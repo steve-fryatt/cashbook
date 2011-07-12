@@ -209,11 +209,6 @@ void analysis_open_balance_window(file_data *file, wimp_pointer *ptr, int templa
 
 
 
-/* Date range manipulation. */
-
-void find_date_range (file_data *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, int budget);
-void initialise_date_period (date_t start, date_t end, int period, int unit, int lock);
-int get_next_date_period (date_t *next_start, date_t *next_end, char *date_text, int date_len);
 
 /* Account list manipulation. */
 

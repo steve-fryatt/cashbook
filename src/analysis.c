@@ -545,347 +545,302 @@ static osbool analysis_delete_transaction_window(void)
 
 static void analysis_generate_transaction_report(file_data *file)
 {
-  report_data *report;
-  int         i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
-              total_days, period_days, period_limit, entry, account;
-  date_t      start_date, end_date, next_start, next_end;
-  amt_t       min_amount, max_amount;
-  char        line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
-  char        *match_ref, *match_desc;
+	report_data	*report;
+	int		i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
+			total_days, period_days, period_limit, entry, account;
+	date_t		start_date, end_date, next_start, next_end;
+	amt_t		min_amount, max_amount;
+	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
+	char		*match_ref, *match_desc;
 
+	if (!(file->sort_valid))
+		sort_transactions(file);
 
-  hourglass_on ();
+	/* Read the date settings. */
 
-  if (!(file->sort_valid))
-  {
-    sort_transactions (file);
-  }
+	find_date_range(file, &start_date, &end_date,
+			file->trans_rep.date_from, file->trans_rep.date_to, file->trans_rep.budget);
 
-  /* Read the date settings. */
+	total_days = count_days(start_date, end_date);
 
-  find_date_range (file, &start_date, &end_date,
-                   file->trans_rep.date_from, file->trans_rep.date_to, file->trans_rep.budget);
+	/* Read the grouping settings. */
 
-  total_days = count_days (start_date, end_date);
+	group = file->trans_rep.group;
+	unit = file->trans_rep.period_unit;
+	lock = file->trans_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	period = (group) ? file->trans_rep.period : 0;
 
-  /* Read the grouping settings. */
+	/* Read the include list. */
 
-  group = file->trans_rep.group;
-  unit = file->trans_rep.period_unit;
-  lock = file->trans_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
-  period = (group) ? file->trans_rep.period : 0;
+	clear_analysis_account_report_flags(file);
 
-  /* Read the include list. */
+	if (file->trans_rep.from_count == 0 && file->trans_rep.to_count == 0) {
+		set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
+				&wildcard_account_list, 1);
+		set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
+				&wildcard_account_list, 1);
+	} else {
+		set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
+				file->trans_rep.from, file->trans_rep.from_count);
+		set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
+				file->trans_rep.to, file->trans_rep.to_count);
+	}
 
-  clear_analysis_account_report_flags (file);
+	min_amount = file->trans_rep.amount_min;
+	max_amount = file->trans_rep.amount_max;
 
-  if (file->trans_rep.from_count == 0 && file->trans_rep.to_count == 0)
-  {
-     set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
-                                                  &wildcard_account_list, 1);
-     set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
-                                                  &wildcard_account_list, 1);
-  }
-  else
-  {
-    set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
-                                                 file->trans_rep.from, file->trans_rep.from_count);
-    set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
-                                                 file->trans_rep.to, file->trans_rep.to_count);
-  }
+	match_ref = (*(file->trans_rep.ref) == '\0') ? NULL : file->trans_rep.ref;
+	match_desc = (*(file->trans_rep.desc) == '\0') ? NULL : file->trans_rep.desc;
 
-  min_amount = file->trans_rep.amount_min;
-  max_amount = file->trans_rep.amount_max;
+	/* Read the output options. */
 
-  match_ref = (*(file->trans_rep.ref) == '\0') ? NULL : file->trans_rep.ref;
-  match_desc = (*(file->trans_rep.desc) == '\0') ? NULL : file->trans_rep.desc;
+	output_trans = file->trans_rep.output_trans;
+	output_summary = file->trans_rep.output_summary;
+	output_accsummary = file->trans_rep.output_accsummary;
 
-  /* Read the output options. */
+	/* Open a new report for output. */
 
-  output_trans = file->trans_rep.output_trans;
-  output_summary = file->trans_rep.output_summary;
-  output_accsummary = file->trans_rep.output_accsummary;
+	analysis_copy_trans_report_template(&(saved_report_template.data.transaction), &(file->trans_rep));
+	if (trans_rep_template == NULL_TEMPLATE)
+		*(saved_report_template.name) = '\0';
+	else
+		strcpy(saved_report_template.name, file->saved_reports[trans_rep_template].name);
+	saved_report_template.type = REPORT_TYPE_TRANS;
 
-  /* Open a new report for output. */
+	msgs_lookup("TRWinT", line, sizeof (line));
+	report = report_open(file, line, &saved_report_template);
 
-  analysis_copy_trans_report_template (&(saved_report_template.data.transaction), &(file->trans_rep));
-  if (trans_rep_template == NULL_TEMPLATE)
-  {
-    *(saved_report_template.name) = '\0';
-  }
-  else
-  {
-    strcpy (saved_report_template.name, file->saved_reports[trans_rep_template].name);
-  }
-  saved_report_template.type = REPORT_TYPE_TRANS;
+	if (report == NULL)
+		return;
 
-  msgs_lookup ("TRWinT", line, sizeof (line));
-  report = report_open (file, line, &saved_report_template);
+	hourglass_on();
 
-  if (report != NULL)
-  {
-    /* Output report heading */
+	/* Output report heading */
 
-    make_file_leafname (file, b1, sizeof (b1));
-    if (*saved_report_template.name != '\0')
-    {
-      msgs_param_lookup ("GRTitle", line, sizeof (line), saved_report_template.name, b1, NULL, NULL);
-    }
-    else
-    {
-      msgs_param_lookup ("TRTitle", line, sizeof (line), b1, NULL, NULL, NULL);
-    }
-    report_write_line (report, 0, line);
+	 make_file_leafname(file, b1, sizeof(b1));
+	if (*saved_report_template.name != '\0')
+		msgs_param_lookup("GRTitle", line, sizeof(line), saved_report_template.name, b1, NULL, NULL);
+	else
+		msgs_param_lookup("TRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
+	report_write_line(report, 0, line);
 
-    convert_date_to_string (start_date, b1);
-    convert_date_to_string (end_date, b2);
-    convert_date_to_string (get_current_date (), b3);
-    msgs_param_lookup ("TRHeader", line, sizeof (line), b1, b2, b3, NULL);
-    report_write_line (report, 0, line);
+	convert_date_to_string(start_date, b1);
+	convert_date_to_string(end_date, b2);
+	convert_date_to_string(get_current_date(), b3);
+	msgs_param_lookup("TRHeader", line, sizeof(line), b1, b2, b3, NULL);
+	report_write_line(report, 0, line);
 
-    initialise_date_period (start_date, end_date, period, unit, lock);
+	initialise_date_period(start_date, end_date, period, unit, lock);
 
-    /* Initialise the heading remainder values for the report. */
+	/* Initialise the heading remainder values for the report. */
 
-    for (i=0; i < file->account_count; i++)
-    {
-      if (file->accounts[i].type & ACCOUNT_OUT)
-      {
-        file->accounts[i].report_balance = file->accounts[i].budget_amount;
-      }
-      else if (file->accounts[i].type & ACCOUNT_IN)
-      {
-        file->accounts[i].report_balance = -file->accounts[i].budget_amount;
-      }
-    }
+	for (i=0; i < file->account_count; i++) {
+		if (file->accounts[i].type & ACCOUNT_OUT)
+			file->accounts[i].report_balance = file->accounts[i].budget_amount;
+		else if (file->accounts[i].type & ACCOUNT_IN)
+			file->accounts[i].report_balance = -file->accounts[i].budget_amount;
+	}
 
-    while (get_next_date_period (&next_start, &next_end, date_text, sizeof (date_text)))
-    {
-        /* Zero the heading totals for the report. */
+	while (get_next_date_period(&next_start, &next_end, date_text, sizeof(date_text))) {
 
-        for (i=0; i < file->account_count; i++)
-        {
-          file->accounts[i].report_total = 0;
-        }
+		/* Zero the heading totals for the report. */
 
-        /* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
+		for (i=0; i < file->account_count; i++)
+			file->accounts[i].report_total = 0;
 
-        found = 0;
+		/* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
 
-        for (i=0; i < file->trans_count; i++)
-        {
-          if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
-              (next_end == NULL_DATE || file->transactions[i].date <= next_end) &&
-              (((file->transactions[i].from != NULL_ACCOUNT) &&
-                ((file->accounts[file->transactions[i].from].report_flags & REPORT_FROM) != 0)) ||
-                ((file->transactions[i].to != NULL_ACCOUNT) &&
-                 ((file->accounts[file->transactions[i].to].report_flags & REPORT_TO) != 0))) &&
-                 ((min_amount == NULL_CURRENCY) || (file->transactions[i].amount >= min_amount)) &&
-                 ((max_amount == NULL_CURRENCY) || (file->transactions[i].amount <= max_amount)) &&
-                 ((match_ref == NULL) || string_wildcard_compare (match_ref, file->transactions[i].reference, TRUE)) &&
-                 ((match_desc == NULL) || string_wildcard_compare (match_desc, file->transactions[i].description, TRUE)))
-          {
-            if (found == 0)
-            {
-              report_write_line (report, 0, "");
+		found = 0;
 
-              if (group == TRUE)
-              {
-                sprintf (line, "\\u%s", date_text);
-                report_write_line (report, 0, line);
-              }
-              if (output_trans)
-              {
-                msgs_lookup ("TRHeadings", line, sizeof (line));
-                report_write_line (report, 1, line);
-              }
-            }
+		for (i=0; i < file->trans_count; i++) {
+			if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
+					(next_end == NULL_DATE || file->transactions[i].date <= next_end) &&
+					(((file->transactions[i].from != NULL_ACCOUNT) &&
+					((file->accounts[file->transactions[i].from].report_flags & REPORT_FROM) != 0)) ||
+					((file->transactions[i].to != NULL_ACCOUNT) &&
+					((file->accounts[file->transactions[i].to].report_flags & REPORT_TO) != 0))) &&
+					((min_amount == NULL_CURRENCY) || (file->transactions[i].amount >= min_amount)) &&
+					((max_amount == NULL_CURRENCY) || (file->transactions[i].amount <= max_amount)) &&
+					((match_ref == NULL) || string_wildcard_compare(match_ref, file->transactions[i].reference, TRUE)) &&
+					((match_desc == NULL) || string_wildcard_compare(match_desc, file->transactions[i].description, TRUE))) {
+				if (found == 0) {
+					report_write_line(report, 0, "");
 
-            found++;
+					if (group == TRUE) {
+						sprintf(line, "\\u%s", date_text);
+						report_write_line(report, 0, line);
+					}
+					if (output_trans) {
+						msgs_lookup("TRHeadings", line, sizeof(line));
+						report_write_line(report, 1, line);
+					}
+				}
 
-            /* Update the totals and output the transaction to the report file. */
+				found++;
 
-            if (file->transactions[i].from != NULL_ACCOUNT)
-            {
-              file->accounts[file->transactions[i].from].report_total -= file->transactions[i].amount;
-            }
+				/* Update the totals and output the transaction to the report file. */
 
-            if (file->transactions[i].to != NULL_ACCOUNT)
-            {
-              file->accounts[file->transactions[i].to].report_total += file->transactions[i].amount;
-            }
+				if (file->transactions[i].from != NULL_ACCOUNT)
+					file->accounts[file->transactions[i].from].report_total -= file->transactions[i].amount;
 
-            if (output_trans)
-            {
-              convert_date_to_string (file->transactions[i].date, b1);
+				if (file->transactions[i].to != NULL_ACCOUNT)
+					file->accounts[file->transactions[i].to].report_total += file->transactions[i].amount;
 
-              convert_money_to_string (file->transactions[i].amount, b2);
+				if (output_trans) {
+					convert_date_to_string(file->transactions[i].date, b1);
 
-              sprintf (line, "%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
-                       find_account_name (file, file->transactions[i].from),
-                       find_account_name (file, file->transactions[i].to),
-                       file->transactions[i].reference, b2, file->transactions[i].description);
+					convert_money_to_string(file->transactions[i].amount, b2);
 
-              report_write_line (report, 1, line);
-            }
-          }
-        }
+					sprintf(line, "%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
+							find_account_name (file, file->transactions[i].from),
+							find_account_name (file, file->transactions[i].to),
+							file->transactions[i].reference, b2, file->transactions[i].description);
 
-        /* Print the account summaries. */
+					report_write_line(report, 1, line);
+				}
+			}
+		}
 
-        if (output_accsummary && found > 0)
-        {
-          /* Summarise the accounts. */
+		/* Print the account summaries. */
 
-          total = 0;
+		if (output_accsummary && found > 0) {
+			/* Summarise the accounts. */
 
-          if (output_trans) /* Only output blank line if there are transactions above. */
-          {
-            report_write_line (report, 0, "");
-          }
-          msgs_lookup ("TRAccounts", b1, sizeof (b1));
-          sprintf(line, "\\i%s", b1);
-          report_write_line (report, 2, line);
+			total = 0;
 
-          entry = find_accounts_window_entry_from_type (file, ACCOUNT_FULL);
+			if (output_trans) /* Only output blank line if there are transactions above. */
+				report_write_line(report, 0, "");
+			msgs_lookup("TRAccounts", b1, sizeof(b1));
+			sprintf(line, "\\i%s", b1);
+			report_write_line(report, 2, line);
 
-          for (i=0; i < file->account_windows[entry].display_lines; i++)
-          {
-            if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA)
-            {
-              account = file->account_windows[entry].line_data[i].account;
+			entry = find_accounts_window_entry_from_type(file, ACCOUNT_FULL);
 
-              if (file->accounts[account].report_total != 0)
-              {
-                total += file->accounts[account].report_total;
-                convert_money_to_string (file->accounts[account].report_total, b1);
-                sprintf (line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
-                report_write_line (report, 2, line);
-              }
-            }
-          }
-          msgs_lookup ("TRTotal", b1, sizeof (b1));
-          convert_money_to_string (total, b2);
-          sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-          report_write_line (report, 2, line);
-        }
+			for (i=0; i < file->account_windows[entry].display_lines; i++) {
+				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
+					account = file->account_windows[entry].line_data[i].account;
 
+					if (file->accounts[account].report_total != 0) {
+						total += file->accounts[account].report_total;
+						convert_money_to_string(file->accounts[account].report_total, b1);
+						sprintf(line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
+						report_write_line(report, 2, line);
+					}
+				}
+			}
 
-        /* Print the transaction summaries. */
+			msgs_lookup("TRTotal", b1, sizeof (b1));
+			convert_money_to_string(total, b2);
+			sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
+			report_write_line(report, 2, line);
+		}
 
-        if (output_summary && found > 0)
-        {
-          /* Summarise the outgoings. */
+		/* Print the transaction summaries. */
 
-          total = 0;
+		if (output_summary && found > 0) {
+			/* Summarise the outgoings. */
 
-          if (output_trans || output_accsummary) /* Only output blank line if there is something above. */
-          {
-            report_write_line (report, 0, "");
-          }
-          msgs_lookup ("TROutgoings", b1, sizeof (b1));
-          sprintf(line, "\\i%s", b1);
-          if (file->trans_rep.budget)
-          {
-            msgs_lookup ("TRSummExtra", b1, sizeof (b1));
-            strcat (line, b1);
-          }
-          report_write_line (report, 2, line);
+			total = 0;
 
-          entry = find_accounts_window_entry_from_type (file, ACCOUNT_OUT);
+			if (output_trans || output_accsummary) /* Only output blank line if there is something above. */
+				report_write_line(report, 0, "");
+			msgs_lookup("TROutgoings", b1, sizeof(b1));
+			sprintf(line, "\\i%s", b1);
+			if (file->trans_rep.budget){
+				msgs_lookup("TRSummExtra", b1, sizeof(b1));
+				strcat(line, b1);
+			}
+			report_write_line(report, 2, line);
 
-          for (i=0; i < file->account_windows[entry].display_lines; i++)
-          {
-            if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA)
-            {
-              account = file->account_windows[entry].line_data[i].account;
+			entry = find_accounts_window_entry_from_type(file, ACCOUNT_OUT);
 
-              if (file->accounts[account].report_total != 0)
-              {
-                total += file->accounts[account].report_total;
-                convert_money_to_string (file->accounts[account].report_total, b1);
-                sprintf (line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
-                if (file->trans_rep.budget)
-                {
-                  period_days = count_days (next_start, next_end);
-                  period_limit = file->accounts[account].budget_amount * period_days / total_days;
-                  convert_money_to_string (period_limit, b1);
-                  sprintf (b2, "\\t\\d\\r%s", b1);
-                  strcat (line, b2);
-                  convert_money_to_string (period_limit - file->accounts[account].report_total, b1);
-                  sprintf (b2, "\\t\\d\\r%s", b1);
-                  strcat (line, b2);
-                  file->accounts[i].report_balance -= file->accounts[account].report_total;
-                  convert_money_to_string (file->accounts[account].report_balance, b1);
-                  sprintf (b2, "\\t\\d\\r%s", b1);
-                  strcat (line, b2);
-                }
-                report_write_line (report, 2, line);
-              }
-            }
-          }
-          msgs_lookup ("TRTotal", b1, sizeof (b1));
-          convert_money_to_string (total, b2);
-          sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-          report_write_line (report, 2, line);
+			for (i=0; i < file->account_windows[entry].display_lines; i++) {
+				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
+					account = file->account_windows[entry].line_data[i].account;
 
-          /* Summarise the incomings. */
+					if (file->accounts[account].report_total != 0) {
+						total += file->accounts[account].report_total;
+						convert_money_to_string(file->accounts[account].report_total, b1);
+						sprintf(line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
+						if (file->trans_rep.budget) {
+							period_days = count_days(next_start, next_end);
+							period_limit = file->accounts[account].budget_amount * period_days / total_days;
+							convert_money_to_string(period_limit, b1);
+							sprintf(b2, "\\t\\d\\r%s", b1);
+							strcat(line, b2);
+							convert_money_to_string(period_limit - file->accounts[account].report_total, b1);
+							sprintf(b2, "\\t\\d\\r%s", b1);
+							strcat(line, b2);
+							file->accounts[i].report_balance -= file->accounts[account].report_total;
+							convert_money_to_string(file->accounts[account].report_balance, b1);
+							sprintf(b2, "\\t\\d\\r%s", b1);
+							strcat(line, b2);
+						}
 
-          total = 0;
+						report_write_line(report, 2, line);
+					}
+				}
+			}
 
-          report_write_line (report, 0, "");
-          msgs_lookup ("TRIncomings", b1, sizeof (b1));
-          sprintf(line, "\\i%s", b1);
-          if (file->trans_rep.budget)
-          {
-            msgs_lookup ("TRSummExtra", b1, sizeof (b1));
-            strcat (line, b1);
-          }
-          report_write_line (report, 2, line);
+			msgs_lookup("TRTotal", b1, sizeof(b1));
+			convert_money_to_string(total, b2);
+			sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
+			report_write_line(report, 2, line);
 
-          entry = find_accounts_window_entry_from_type (file, ACCOUNT_IN);
+			/* Summarise the incomings. */
 
-          for (i=0; i < file->account_windows[entry].display_lines; i++)
-          {
-            if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA)
-            {
-              account = file->account_windows[entry].line_data[i].account;
+			total = 0;
 
-              if (file->accounts[account].report_total != 0)
-              {
-                total += file->accounts[account].report_total;
-                convert_money_to_string (-file->accounts[account].report_total, b1);
-                sprintf (line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
-                if (file->trans_rep.budget)
-                {
-                  period_days = count_days (next_start, next_end);
-                  period_limit = file->accounts[account].budget_amount * period_days / total_days;
-                  convert_money_to_string (period_limit, b1);
-                  sprintf (b2, "\\t\\d\\r%s", b1);
-                  strcat (line, b2);
-                  convert_money_to_string (period_limit - file->accounts[account].report_total, b1);
-                  sprintf (b2, "\\t\\d\\r%s", b1);
-                  strcat (line, b2);
-                  file->accounts[i].report_balance -= file->accounts[account].report_total;
-                  convert_money_to_string (file->accounts[account].report_balance, b1);
-                  sprintf (b2, "\\t\\d\\r%s", b1);
-                  strcat (line, b2);
-                }
-                report_write_line (report, 2, line);
-              }
-            }
-          }
-          msgs_lookup ("TRTotal", b1, sizeof (b1));
-          convert_money_to_string (-total, b2);
-          sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-          report_write_line (report, 2, line);
-        }
-    }
+			report_write_line(report, 0, "");
+			msgs_lookup("TRIncomings", b1, sizeof(b1));
+			sprintf(line, "\\i%s", b1);
+			if (file->trans_rep.budget) {
+				msgs_lookup("TRSummExtra", b1, sizeof(b1));
+				strcat(line, b1);
+			}
 
-     report_close(report);
-  }
+			report_write_line(report, 2, line);
 
-  hourglass_off ();
+			entry = find_accounts_window_entry_from_type(file, ACCOUNT_IN);
+
+			for (i=0; i < file->account_windows[entry].display_lines; i++) {
+				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
+					account = file->account_windows[entry].line_data[i].account;
+
+					if (file->accounts[account].report_total != 0) {
+						total += file->accounts[account].report_total;
+						convert_money_to_string(-file->accounts[account].report_total, b1);
+						sprintf(line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
+						if (file->trans_rep.budget) {
+							period_days = count_days(next_start, next_end);
+							period_limit = file->accounts[account].budget_amount * period_days / total_days;
+							convert_money_to_string(period_limit, b1);
+							sprintf(b2, "\\t\\d\\r%s", b1);
+							strcat(line, b2);
+							convert_money_to_string(period_limit - file->accounts[account].report_total, b1);
+							sprintf(b2, "\\t\\d\\r%s", b1);
+							strcat(line, b2);
+							file->accounts[i].report_balance -= file->accounts[account].report_total;
+							convert_money_to_string(file->accounts[account].report_balance, b1);
+							sprintf(b2, "\\t\\d\\r%s", b1);
+							strcat(line, b2);
+						}
+
+						report_write_line(report, 2, line);
+					}
+				}
+			}
+
+			msgs_lookup("TRTotal", b1, sizeof(b1));
+			convert_money_to_string(-total, b2);
+			sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
+			report_write_line(report, 2, line);
+		}
+	}
+
+	report_close(report);
+
+	hourglass_off();
 }
 
 

@@ -1781,257 +1781,207 @@ static osbool analysis_delete_cashflow_window(void)
 
 static void analysis_generate_cashflow_report(file_data *file)
 {
-  int         i, acc, items, found, unit, period, group, lock, tabular, show_blank, total;
-  char        line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
-  date_t      start_date, end_date, next_start, next_end;
-  report_data *report;
-  int         entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	int		i, acc, items, found, unit, period, group, lock, tabular, show_blank, total;
+	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
+	date_t		start_date, end_date, next_start, next_end;
+	report_data	*report;
+	int		entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
+	hourglass_on();
 
-  hourglass_on ();
+	if (!(file->sort_valid))
+		sort_transactions(file);
 
-  if (!(file->sort_valid))
-  {
-    sort_transactions (file);
-  }
+	/* Read the date settings. */
 
-  /* Read the date settings. */
+	find_date_range(file, &start_date, &end_date, file->cashflow_rep.date_from, file->cashflow_rep.date_to, file->cashflow_rep.budget);
 
-  find_date_range (file, &start_date, &end_date,
-                   file->cashflow_rep.date_from, file->cashflow_rep.date_to, file->cashflow_rep.budget);
+	/* Read the grouping settings. */
 
-  /* Read the grouping settings. */
+	group = file->cashflow_rep.group;
+	unit = file->cashflow_rep.period_unit;
+	lock = file->cashflow_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	period = (group) ? file->cashflow_rep.period : 0;
+	show_blank = file->cashflow_rep.empty;
 
-  group = file->cashflow_rep.group;
-  unit = file->cashflow_rep.period_unit;
-  lock = file->cashflow_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
-  period = (group) ? file->cashflow_rep.period : 0;
-  show_blank = file->cashflow_rep.empty;
+	/* Read the include list. */
 
-  /* Read the include list. */
+	clear_analysis_account_report_flags(file);
 
-  clear_analysis_account_report_flags (file);
+	if (file->cashflow_rep.accounts_count == 0 && file->cashflow_rep.incoming_count == 0 &&
+			file->cashflow_rep.outgoing_count == 0) {
+		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &wildcard_account_list, 1);
+	} else {
+		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL, REPORT_INCLUDE, file->cashflow_rep.accounts, file->cashflow_rep.accounts_count);
+		set_analysis_account_report_flags_from_list(file, ACCOUNT_IN, REPORT_INCLUDE, file->cashflow_rep.incoming, file->cashflow_rep.incoming_count);
+		set_analysis_account_report_flags_from_list(file, ACCOUNT_OUT, REPORT_INCLUDE, file->cashflow_rep.outgoing, file->cashflow_rep.outgoing_count);
+	}
 
-  if (file->cashflow_rep.accounts_count == 0 && file->cashflow_rep.incoming_count == 0 &&
-      file->cashflow_rep.outgoing_count == 0)
-  {
-    set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE,
-                                                 &wildcard_account_list, 1);
-  }
-  else
-  {
-    set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL, REPORT_INCLUDE,
-                                                 file->cashflow_rep.accounts, file->cashflow_rep.accounts_count);
-    set_analysis_account_report_flags_from_list (file, ACCOUNT_IN, REPORT_INCLUDE,
-                                                 file->cashflow_rep.incoming, file->cashflow_rep.incoming_count);
-    set_analysis_account_report_flags_from_list (file, ACCOUNT_OUT, REPORT_INCLUDE,
-                                                 file->cashflow_rep.outgoing, file->cashflow_rep.outgoing_count);
-  }
+	tabular = file->cashflow_rep.tabular;
 
-  tabular = file->cashflow_rep.tabular;
+	/* Count the number of accounts and headings to be included.  If this comes to more than the number of tab
+	 * stops available (including 2 for account name and total), force the tabular format option off.
+	 */
 
-  /* Count the number of accounts and headings to be included.  If this comes to more than the number of tab
-   * stops available (including 2 for account name and total), force the tabular format option off.
-   */
+	items = 0;
 
-  items = 0;
+	for (i=0; i < file->account_count; i++)
+		if ((file->accounts[i].report_flags & REPORT_INCLUDE) != 0)
+			items++;
 
-  for (i=0; i < file->account_count; i++)
-  {
-    if ((file->accounts[i].report_flags & REPORT_INCLUDE) != 0)
-    {
-      items++;
-    }
-  }
+	if ((items + 2) > REPORT_TAB_STOPS)
+		tabular = FALSE;
 
-  if ((items + 2) > REPORT_TAB_STOPS)
-  {
-    tabular = FALSE;
-  }
+	/* Start to output the report details. */
 
-  /* Start to output the report details. */
+	analysis_copy_cashflow_report_template(&(saved_report_template.data.cashflow), &(file->cashflow_rep));
+	if (cashflow_rep_template == NULL_TEMPLATE)
+		*(saved_report_template.name) = '\0';
+	else
+		strcpy(saved_report_template.name, file->saved_reports[cashflow_rep_template].name);
+	saved_report_template.type = REPORT_TYPE_CASHFLOW;
 
-  analysis_copy_cashflow_report_template (&(saved_report_template.data.cashflow), &(file->cashflow_rep));
-  if (cashflow_rep_template == NULL_TEMPLATE)
-  {
-    *(saved_report_template.name) = '\0';
-  }
-  else
-  {
-    strcpy (saved_report_template.name, file->saved_reports[cashflow_rep_template].name);
-  }
-  saved_report_template.type = REPORT_TYPE_CASHFLOW;
+	msgs_lookup("CRWinT", line, sizeof(line));
+	report = report_open(file, line, &saved_report_template);
 
-  msgs_lookup ("CRWinT", line, sizeof (line));
-  report = report_open (file, line, &saved_report_template);
+	if (report == NULL) {
+		hourglass_off();
+		return;
+	}
 
-  if (report != NULL)
-  {
-    /* Output report heading */
+	/* Output report heading */
 
-    make_file_leafname (file, b1, sizeof (b1));
-    if (*saved_report_template.name != '\0')
-    {
-      msgs_param_lookup ("GRTitle", line, sizeof (line), saved_report_template.name, b1, NULL, NULL);
-    }
-    else
-    {
-      msgs_param_lookup ("CRTitle", line, sizeof (line), b1, NULL, NULL, NULL);
-    }
-    report_write_line (report, 0, line);
+	make_file_leafname(file, b1, sizeof(b1));
+	if (*saved_report_template.name != '\0')
+		msgs_param_lookup("GRTitle", line, sizeof(line), saved_report_template.name, b1, NULL, NULL);
+	else
+		msgs_param_lookup("CRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
+	report_write_line(report, 0, line);
 
-    convert_date_to_string (start_date, b1);
-    convert_date_to_string (end_date, b2);
-    convert_date_to_string (get_current_date (), b3);
-    msgs_param_lookup ("CRHeader", line, sizeof (line), b1, b2, b3, NULL);
-    report_write_line (report, 0, line);
+	convert_date_to_string(start_date, b1);
+	convert_date_to_string(end_date, b2);
+	convert_date_to_string(get_current_date (), b3);
+	msgs_param_lookup("CRHeader", line, sizeof(line), b1, b2, b3, NULL);
+	report_write_line(report, 0, line);
 
-    /* Start to output the report. */
+	/* Start to output the report. */
 
-    if (tabular)
-    {
-      report_write_line (report, 0, "");
-      msgs_lookup ("CRDate", b1, sizeof (b1));
-      sprintf (line, "\\b%s", b1);
+	if (tabular) {
+		report_write_line(report, 0, "");
+		msgs_lookup("CRDate", b1, sizeof(b1));
+		sprintf(line, "\\b%s", b1);
 
-      for (acc_group = 0; acc_group < groups; acc_group++)
-      {
-        entry = find_accounts_window_entry_from_type (file, sequence[acc_group]);
+		for (acc_group = 0; acc_group < groups; acc_group++) {
+			entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
 
-        for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++)
-        {
-          if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA)
-          {
-            acc = file->account_windows[entry].line_data[group_line].account;
+			for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
+				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
+					acc = file->account_windows[entry].line_data[group_line].account;
 
-            if ((file->accounts[acc].report_flags & REPORT_INCLUDE) != 0)
-            {
-              sprintf (b1, "\\t\\r\\b%s", file->accounts[acc].name);
-              strcat (line, b1);
-            }
-          }
-        }
-      }
-      msgs_lookup ("CRTotal", b1, sizeof (b1));
-      sprintf (b2, "\\t\\r\\b%s", b1);
-      strcat (line, b2);
+					if ((file->accounts[acc].report_flags & REPORT_INCLUDE) != 0) {
+						sprintf(b1, "\\t\\r\\b%s", file->accounts[acc].name);
+						strcat(line, b1);
+					}
+				}
+			}
+		}
+		msgs_lookup("CRTotal", b1, sizeof(b1));
+		sprintf(b2, "\\t\\r\\b%s", b1);
+		strcat(line, b2);
 
-      report_write_line (report, 1, line);
-    }
+		report_write_line(report, 1, line);
+	}
 
-    initialise_date_period (start_date, end_date, period, unit, lock);
+	initialise_date_period(start_date, end_date, period, unit, lock);
 
-    while (get_next_date_period (&next_start, &next_end, date_text, sizeof (date_text)))
-    {
-      /* Zero the heading totals for the report. */
+	while (get_next_date_period(&next_start, &next_end, date_text, sizeof(date_text))) {
+		/* Zero the heading totals for the report. */
 
-      for (i=0; i < file->account_count; i++)
-      {
-        file->accounts[i].report_total = 0;
-      }
+		for (i=0; i < file->account_count; i++)
+			file->accounts[i].report_total = 0;
 
-      /* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
+		/* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
 
-      found = 0;
+		found = 0;
 
-      for (i=0; i < file->trans_count; i++)
-      {
-        if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
-           (next_end == NULL_DATE || file->transactions[i].date <= next_end))
-        {
-          if (file->transactions[i].from != NULL_ACCOUNT)
-          {
-            file->accounts[file->transactions[i].from].report_total -= file->transactions[i].amount;
-          }
+		for (i=0; i < file->trans_count; i++) {
+			if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
+					(next_end == NULL_DATE || file->transactions[i].date <= next_end)) {
+				if (file->transactions[i].from != NULL_ACCOUNT)
+					file->accounts[file->transactions[i].from].report_total -= file->transactions[i].amount;
 
-          if (file->transactions[i].to != NULL_ACCOUNT)
-          {
-            file->accounts[file->transactions[i].to].report_total += file->transactions[i].amount;
-          }
+				if (file->transactions[i].to != NULL_ACCOUNT)
+					file->accounts[file->transactions[i].to].report_total += file->transactions[i].amount;
 
-          found++;
-        }
-      }
+				found++;
+			}
+		}
 
-      /* Print the transaction summaries. */
+		/* Print the transaction summaries. */
 
-      if (found > 0 || show_blank)
-      {
-        if (tabular)
-        {
-          strcpy (line, date_text);
+		if (found > 0 || show_blank) {
+			if (tabular) {
+				strcpy(line, date_text);
 
-          total = 0;
+				total = 0;
 
-          for (acc_group = 0; acc_group < groups; acc_group++)
-          {
-            entry = find_accounts_window_entry_from_type (file, sequence[acc_group]);
+				for (acc_group = 0; acc_group < groups; acc_group++) {
+					entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
 
-            for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++)
-            {
-              if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA)
-              {
-                acc = file->account_windows[entry].line_data[group_line].account;
+					for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
+						if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
+							acc = file->account_windows[entry].line_data[group_line].account;
 
-                if ((file->accounts[acc].report_flags & REPORT_INCLUDE) != 0)
-                {
-                  total += file->accounts[acc].report_total;
-                  full_convert_money_to_string (file->accounts[acc].report_total, b1, TRUE);
-                  sprintf (b2, "\\t\\d\\r%s", b1);
-                  strcat (line, b2);
-                }
-              }
-            }
-          }
+							if ((file->accounts[acc].report_flags & REPORT_INCLUDE) != 0) {
+								total += file->accounts[acc].report_total;
+								full_convert_money_to_string(file->accounts[acc].report_total, b1, TRUE);
+								sprintf(b2, "\\t\\d\\r%s", b1);
+								strcat(line, b2);
+							}
+						}
+					}
+				}
 
-          full_convert_money_to_string (total, b1, TRUE);
-          sprintf (b2, "\\t\\d\\r%s", b1);
-          strcat (line, b2);
-          report_write_line (report, 1, line);
-        }
-        else
-        {
-          report_write_line (report, 0, "");
-          if (group)
-          {
-            sprintf (line, "\\u%s", date_text);
-            report_write_line (report, 0, line);
-          }
+				full_convert_money_to_string(total, b1, TRUE);
+				sprintf(b2, "\\t\\d\\r%s", b1);
+				strcat(line, b2);
+				report_write_line(report, 1, line);
+			} else {
+				report_write_line(report, 0, "");
+				if (group) {
+					sprintf(line, "\\u%s", date_text);
+					report_write_line(report, 0, line);
+				}
 
-          total = 0;
+				total = 0;
 
-          for (acc_group = 0; acc_group < groups; acc_group++)
-          {
-            entry = find_accounts_window_entry_from_type (file, sequence[acc_group]);
+				for (acc_group = 0; acc_group < groups; acc_group++) {
+					entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
 
-            for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++)
-            {
-              if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA)
-              {
-                acc = file->account_windows[entry].line_data[group_line].account;
+					for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
+						if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
+							acc = file->account_windows[entry].line_data[group_line].account;
 
-                if (file->accounts[acc].report_total != 0 && (file->accounts[acc].report_flags & REPORT_INCLUDE) != 0)
-                {
-                  total += file->accounts[acc].report_total;
-                  full_convert_money_to_string (file->accounts[acc].report_total, b1, TRUE);
-                  sprintf (line, "\\i%s\\t\\d\\r%s", file->accounts[acc].name, b1);
-                  report_write_line (report, 2, line);
-                }
-              }
-            }
-          }
-          msgs_lookup ("CRTotal", b1, sizeof (b1));
-          full_convert_money_to_string (total, b2, TRUE);
-          sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-          report_write_line (report, 2, line);
-        }
-      }
-    }
+							if (file->accounts[acc].report_total != 0 && (file->accounts[acc].report_flags & REPORT_INCLUDE) != 0) {
+								total += file->accounts[acc].report_total;
+								full_convert_money_to_string(file->accounts[acc].report_total, b1, TRUE);
+								sprintf(line, "\\i%s\\t\\d\\r%s", file->accounts[acc].name, b1);
+								report_write_line(report, 2, line);
+							}
+						}
+					}
+				}
+				msgs_lookup("CRTotal", b1, sizeof(b1));
+				full_convert_money_to_string(total, b2, TRUE);
+				sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
+				report_write_line(report, 2, line);
+			}
+		}
+	}
 
-    report_close(report);
-  }
+	report_close(report);
 
-  hourglass_off ();
+	hourglass_off();
 }
 
 

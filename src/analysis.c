@@ -553,6 +553,8 @@ static void analysis_generate_transaction_report(file_data *file)
 	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	char		*match_ref, *match_desc;
 
+	hourglass_on();
+
 	if (!(file->sort_valid))
 		sort_transactions(file);
 
@@ -610,10 +612,10 @@ static void analysis_generate_transaction_report(file_data *file)
 	msgs_lookup("TRWinT", line, sizeof (line));
 	report = report_open(file, line, &saved_report_template);
 
-	if (report == NULL)
+	if (report == NULL) {
+		hourglass_off();
 		return;
-
-	hourglass_on();
+	}
 
 	/* Output report heading */
 
@@ -1210,249 +1212,210 @@ static osbool analysis_delete_unreconciled_window(void)
 
 static void analysis_generate_unreconciled_report(file_data *file)
 {
-  int         i, acc, found, unit, period, group, lock, tot_in, tot_out, entry;
-  char        line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
-              rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
-  date_t      start_date, end_date, next_start, next_end;
-  report_data *report;
+	int		i, acc, found, unit, period, group, lock, tot_in, tot_out, entry;
+	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
+			rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
+	date_t		start_date, end_date, next_start, next_end;
+	report_data	*report;
+	int		acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
-  int         acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	hourglass_on();
 
+	if (!(file->sort_valid))
+		sort_transactions(file);
 
-  hourglass_on ();
+	/* Read the date settings. */
 
-  if (!(file->sort_valid))
-  {
-    sort_transactions (file);
-  }
+	find_date_range(file, &start_date, &end_date, file->unrec_rep.date_from, file->unrec_rep.date_to, file->unrec_rep.budget);
 
-  /* Read the date settings. */
+	/* Read the grouping settings. */
 
-  find_date_range (file, &start_date, &end_date,
-                   file->unrec_rep.date_from, file->unrec_rep.date_to, file->unrec_rep.budget);
+	group = file->unrec_rep.group;
+	unit = file->unrec_rep.period_unit;
+	lock = file->unrec_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	period = (group) ? file->unrec_rep.period : 0;
 
-  /* Read the grouping settings. */
+	/* Read the include list. */
 
-  group = file->unrec_rep.group;
-  unit = file->unrec_rep.period_unit;
-  lock = file->unrec_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
-  period = (group) ? file->unrec_rep.period : 0;
+	clear_analysis_account_report_flags(file);
 
-  /* Read the include list. */
+	if (file->unrec_rep.from_count == 0 && file->unrec_rep.to_count == 0) {
+		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, &wildcard_account_list, 1);
+		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, &wildcard_account_list, 1);
+	} else {
+		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, file->unrec_rep.from, file->unrec_rep.from_count);
+		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, file->unrec_rep.to, file->unrec_rep.to_count);
+	}
 
-  clear_analysis_account_report_flags (file);
+	/* Start to output the report details. */
 
-  if (file->unrec_rep.from_count == 0 && file->unrec_rep.to_count == 0)
-  {
-     set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
-                                                  &wildcard_account_list, 1);
-     set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
-                                                  &wildcard_account_list, 1);
-  }
-  else
-  {
-    set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
-                                                 file->unrec_rep.from, file->unrec_rep.from_count);
-    set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
-                                                 file->unrec_rep.to, file->unrec_rep.to_count);
-  }
+	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 
-  /* Start to output the report details. */
+	analysis_copy_unrec_report_template(&(saved_report_template.data.unreconciled), &(file->unrec_rep));
+	if (unrec_rep_template == NULL_TEMPLATE)
+		*(saved_report_template.name) = '\0';
+	else
+		strcpy(saved_report_template.name, file->saved_reports[unrec_rep_template].name);
+	saved_report_template.type = REPORT_TYPE_UNREC;
 
-  msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
+	msgs_lookup("URWinT", line, sizeof(line));
+	report = report_open(file, line, &saved_report_template);
 
-  analysis_copy_unrec_report_template (&(saved_report_template.data.unreconciled), &(file->unrec_rep));
-  if (unrec_rep_template == NULL_TEMPLATE)
-  {
-    *(saved_report_template.name) = '\0';
-  }
-  else
-  {
-    strcpy (saved_report_template.name, file->saved_reports[unrec_rep_template].name);
-  }
-  saved_report_template.type = REPORT_TYPE_UNREC;
+	if (report == NULL) {
+		hourglass_off();
+		return;
+	}
 
-  msgs_lookup ("URWinT", line, sizeof (line));
-  report = report_open (file, line, &saved_report_template);
+	/* Output report heading */
 
-  if (report != NULL)
-  {
-    /* Output report heading */
+	make_file_leafname(file, b1, sizeof(b1));
+	if (*saved_report_template.name != '\0')
+		msgs_param_lookup("GRTitle", line, sizeof (line), saved_report_template.name, b1, NULL, NULL);
+	else
+		msgs_param_lookup("URTitle", line, sizeof (line), b1, NULL, NULL, NULL);
+	report_write_line(report, 0, line);
 
-    make_file_leafname (file, b1, sizeof (b1));
-    if (*saved_report_template.name != '\0')
-    {
-      msgs_param_lookup ("GRTitle", line, sizeof (line), saved_report_template.name, b1, NULL, NULL);
-    }
-    else
-    {
-      msgs_param_lookup ("URTitle", line, sizeof (line), b1, NULL, NULL, NULL);
-    }
-    report_write_line (report, 0, line);
+	convert_date_to_string(start_date, b1);
+	convert_date_to_string(end_date, b2);
+	convert_date_to_string(get_current_date(), b3);
+	msgs_param_lookup("URHeader", line, sizeof(line), b1, b2, b3, NULL);
+	report_write_line(report, 0, line);
 
-    convert_date_to_string (start_date, b1);
-    convert_date_to_string (end_date, b2);
-    convert_date_to_string (get_current_date (), b3);
-    msgs_param_lookup ("URHeader", line, sizeof (line), b1, b2, b3, NULL);
-    report_write_line (report, 0, line);
+	if (group && unit == PERIOD_NONE) {
+		/* We are doing a grouped-by-account report.
+		 *
+		 * Step through the accounts in account list order, and run through all the transactions each time.  A
+		 * transaction is added if it is unreconciled in the account concerned; transactions unreconciled in two
+		 * accounts may therefore appear twice in the list.
+		 */
 
-    if (group && unit == PERIOD_NONE)
-    {
-      /* We are doing a grouped-by-account report.
-       *
-       * Step through the accounts in account list order, and run through all the transactions each time.  A
-       * transaction is added if it is unreconciled in the account concerned; transactions unreconciled in two
-       * accounts may therefore appear twice in the list.
-       */
+		for (acc_group = 0; acc_group < groups; acc_group++) {
+			entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
 
-      for (acc_group = 0; acc_group < groups; acc_group++)
-      {
-        entry = find_accounts_window_entry_from_type (file, sequence[acc_group]);
+			for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
+				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
+					acc = file->account_windows[entry].line_data[group_line].account;
 
-        for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++)
-        {
-          if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA)
-          {
-            acc = file->account_windows[entry].line_data[group_line].account;
+					found = 0;
+					tot_in = 0;
+					tot_out = 0;
 
-            found = 0;
-            tot_in = 0;
-            tot_out = 0;
+					for (i=0; i < file->trans_count; i++) {
+						if ((start_date == NULL_DATE || file->transactions[i].date >= start_date) &&
+								(end_date == NULL_DATE || file->transactions[i].date <= end_date) &&
+								((file->transactions[i].from == acc && (file->accounts[acc].report_flags & REPORT_FROM) != 0 &&
+								(file->transactions[i].flags & TRANS_REC_FROM) == 0) ||
+								(file->transactions[i].to == acc && (file->accounts[acc].report_flags & REPORT_TO) != 0 &&
+								(file->transactions[i].flags & TRANS_REC_TO) == 0))) {
+							if (found == 0) {
+								report_write_line(report, 0, "");
 
-            for (i=0; i < file->trans_count; i++)
-            {
-              if ((start_date == NULL_DATE || file->transactions[i].date >= start_date) &&
-                  (end_date == NULL_DATE || file->transactions[i].date <= end_date) &&
-                  ((file->transactions[i].from == acc && (file->accounts[acc].report_flags & REPORT_FROM) != 0 &&
-                    (file->transactions[i].flags & TRANS_REC_FROM) == 0) ||
-                   (file->transactions[i].to == acc && (file->accounts[acc].report_flags & REPORT_TO) != 0 &&
-                    (file->transactions[i].flags & TRANS_REC_TO) == 0)))
-              {
-                if (found == 0)
-                {
-                  report_write_line (report, 0, "");
+								if (group == TRUE) {
+									sprintf(line, "\\u%s", find_account_name(file, acc));
+									report_write_line(report, 0, line);
+								}
+								msgs_lookup("URHeadings", line, sizeof(line));
+								report_write_line(report, 1, line);
+							}
 
-                  if (group == TRUE)
-                  {
-                    sprintf (line, "\\u%s", find_account_name (file, acc));
-                    report_write_line (report, 0, line);
-                  }
-                  msgs_lookup ("URHeadings", line, sizeof (line));
-                  report_write_line (report, 1, line);
-                }
+							found++;
 
-                found++;
+							if (file->transactions[i].from == acc)
+								tot_out -= file->transactions[i].amount;
+							else if (file->transactions[i].to == acc)
+								tot_in += file->transactions[i].amount;
 
-                if (file->transactions[i].from == acc)
-                {
-                  tot_out -= file->transactions[i].amount;
-                }
+							/* Output the transaction to the report. */
 
-                else if (file->transactions[i].to == acc)
-                {
-                  tot_in += file->transactions[i].amount;
-                }
+							strcpy(r1, (file->transactions[i].flags & TRANS_REC_FROM) ? rec_char : "");
+							strcpy(r2, (file->transactions[i].flags & TRANS_REC_TO) ? rec_char : "");
+							convert_date_to_string(file->transactions[i].date, b1);
+							convert_money_to_string(file->transactions[i].amount, b2);
 
-                /* Output the transaction to the report. */
+							sprintf(line, "%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
+									r1, find_account_name(file, file->transactions[i].from),
+									r2, find_account_name(file, file->transactions[i].to),
+									file->transactions[i].reference, b2, file->transactions[i].description);
 
-                strcpy (r1, (file->transactions[i].flags & TRANS_REC_FROM) ? rec_char : "");
-                strcpy (r2, (file->transactions[i].flags & TRANS_REC_TO) ? rec_char : "");
-                convert_date_to_string (file->transactions[i].date, b1);
-                convert_money_to_string (file->transactions[i].amount, b2);
+							report_write_line(report, 1, line);
+						}
+					}
 
-                sprintf (line, "%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
-                         r1, find_account_name (file, file->transactions[i].from),
-                         r2, find_account_name (file, file->transactions[i].to),
-                         file->transactions[i].reference, b2, file->transactions[i].description);
+					if (found != 0) {
+						report_write_line(report, 2, "");
 
-                report_write_line (report, 1, line);
-              }
-            }
+						msgs_lookup("URTotalIn", b1, sizeof(b1));
+						full_convert_money_to_string(tot_in, b2, TRUE);
+						sprintf(line, "\\i%s\\t\\d\\r%s", b1, b2);
+						report_write_line(report, 2, line);
 
-            if (found != 0)
-            {
-              report_write_line (report, 2, "");
+						msgs_lookup("URTotalOut", b1, sizeof(b1));
+						full_convert_money_to_string(tot_out, b2, TRUE);
+						sprintf(line, "\\i%s\\t\\d\\r%s", b1, b2);
+						report_write_line(report, 2, line);
 
-              msgs_lookup ("URTotalIn", b1, sizeof (b1));
-              full_convert_money_to_string (tot_in, b2, TRUE);
-              sprintf (line, "\\i%s\\t\\d\\r%s", b1, b2);
-              report_write_line (report, 2, line);
+						msgs_lookup("URTotal", b1, sizeof(b1));
+						full_convert_money_to_string(tot_in+tot_out, b2, TRUE);
+						sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
+						report_write_line(report, 2, line);
+					}
+				}
+			}
+		}
+	} else {
+		/* We are either doing a grouped-by-date report, or not grouping at all.
+		 *
+		 * For each date period, run through the transactions and output any which fall within it.
+		 */
 
-              msgs_lookup ("URTotalOut", b1, sizeof (b1));
-              full_convert_money_to_string (tot_out, b2, TRUE);
-              sprintf (line, "\\i%s\\t\\d\\r%s", b1, b2);
-              report_write_line (report, 2, line);
+		initialise_date_period(start_date, end_date, period, unit, lock);
 
-              msgs_lookup ("URTotal", b1, sizeof (b1));
-              full_convert_money_to_string (tot_in+tot_out, b2, TRUE);
-              sprintf (line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-              report_write_line (report, 2, line);
-            }
-          }
-        }
-      }
-    }
-    else
-    {
-      /* We are either doing a grouped-by-date report, or not grouping at all.
-       *
-       * For each date period, run through the transactions and output any which fall within it.
-       */
+		while (get_next_date_period(&next_start, &next_end, date_text, sizeof(date_text))) {
+			found = 0;
 
-      initialise_date_period (start_date, end_date, period, unit, lock);
+			for (i=0; i < file->trans_count; i++) {
+				if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
+						(next_end == NULL_DATE || file->transactions[i].date <= next_end) &&
+						(((file->transactions[i].flags & TRANS_REC_FROM) == 0 &&
+						(file->transactions[i].from != NULL_ACCOUNT) &&
+						(file->accounts[file->transactions[i].from].report_flags & REPORT_FROM) != 0) ||
+						((file->transactions[i].flags & TRANS_REC_TO) == 0 &&
+						(file->transactions[i].to != NULL_ACCOUNT) &&
+						(file->accounts[file->transactions[i].to].report_flags & REPORT_TO) != 0))) {
+					if (found == 0) {
+						report_write_line(report, 0, "");
 
-      while (get_next_date_period (&next_start, &next_end, date_text, sizeof (date_text)))
-      {
-        found = 0;
+						if (group == TRUE) {
+							sprintf(line, "\\u%s", date_text);
+							report_write_line(report, 0, line);
+						}
+						msgs_param_lookup("URHeadings", line, sizeof(line), NULL, NULL, NULL, NULL);
+						report_write_line(report, 1, line);
+					}
 
-        for (i=0; i < file->trans_count; i++)
-        {
-          if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
-              (next_end == NULL_DATE || file->transactions[i].date <= next_end) &&
-              (((file->transactions[i].flags & TRANS_REC_FROM) == 0 &&
-                (file->transactions[i].from != NULL_ACCOUNT) &&
-                (file->accounts[file->transactions[i].from].report_flags & REPORT_FROM) != 0) ||
-               ((file->transactions[i].flags & TRANS_REC_TO) == 0 &&
-                (file->transactions[i].to != NULL_ACCOUNT) &&
-                (file->accounts[file->transactions[i].to].report_flags & REPORT_TO) != 0)))
-          {
-            if (found == 0)
-            {
-              report_write_line (report, 0, "");
+					found++;
 
-              if (group == TRUE)
-              {
-                sprintf (line, "\\u%s", date_text);
-                report_write_line (report, 0, line);
-              }
-              msgs_param_lookup ("URHeadings", line, sizeof (line), NULL, NULL, NULL, NULL);
-              report_write_line (report, 1, line);
-            }
+					/* Output the transaction to the report. */
 
-            found++;
+					strcpy(r1, (file->transactions[i].flags & TRANS_REC_FROM) ? rec_char : "");
+					strcpy(r2, (file->transactions[i].flags & TRANS_REC_TO) ? rec_char : "");
+					convert_date_to_string(file->transactions[i].date, b1);
+					convert_money_to_string(file->transactions[i].amount, b2);
 
-            /* Output the transaction to the report. */
+					sprintf(line, "%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
+							r1, find_account_name(file, file->transactions[i].from),
+							r2, find_account_name(file, file->transactions[i].to),
+							file->transactions[i].reference, b2, file->transactions[i].description);
 
-            strcpy (r1, (file->transactions[i].flags & TRANS_REC_FROM) ? rec_char : "");
-            strcpy (r2, (file->transactions[i].flags & TRANS_REC_TO) ? rec_char : "");
-            convert_date_to_string (file->transactions[i].date, b1);
-            convert_money_to_string (file->transactions[i].amount, b2);
+					report_write_line(report, 1, line);
+				}
+			}
+		}
+	}
 
-            sprintf (line, "%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
-                     r1, find_account_name (file, file->transactions[i].from),
-                     r2, find_account_name (file, file->transactions[i].to),
-                     file->transactions[i].reference, b2, file->transactions[i].description);
+	report_close(report);
 
-            report_write_line (report, 1, line);
-          }
-        }
-      }
-    }
-
-    report_close(report);
-  }
-
-  hourglass_off ();
+	hourglass_off();
 }
 
 

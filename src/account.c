@@ -630,7 +630,7 @@ int delete_account (file_data *file, int account)
 
     /* Remove the account from any report templates. */
 
-    analysis_remove_account_from_reports (file, account);
+    analysis_remove_account_from_templates (file, account);
 
     /* Blank out the account. */
 

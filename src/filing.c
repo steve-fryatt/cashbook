@@ -715,61 +715,61 @@ void load_transaction_file (char *filename)
                      string_nocase_strcmp (token, "Accounts") == 0)
             {
               file->saved_reports[i].data.cashflow.accounts_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.cashflow.accounts);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.cashflow.accounts);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
                      string_nocase_strcmp (token, "Incoming") == 0)
             {
               file->saved_reports[i].data.cashflow.incoming_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.cashflow.incoming);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.cashflow.incoming);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
                      string_nocase_strcmp (token, "Outgoing") == 0)
             {
               file->saved_reports[i].data.cashflow.outgoing_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.cashflow.outgoing);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.cashflow.outgoing);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_BALANCE &&
                      string_nocase_strcmp (token, "Accounts") == 0)
             {
               file->saved_reports[i].data.balance.accounts_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.balance.accounts);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.balance.accounts);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_BALANCE &&
                      string_nocase_strcmp (token, "Incoming") == 0)
             {
               file->saved_reports[i].data.balance.incoming_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.balance.incoming);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.balance.incoming);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_BALANCE &&
                      string_nocase_strcmp (token, "Outgoing") == 0)
             {
               file->saved_reports[i].data.balance.outgoing_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.balance.outgoing);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.balance.outgoing);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
                      string_nocase_strcmp (token, "From") == 0)
             {
               file->saved_reports[i].data.transaction.from_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.transaction.from);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.transaction.from);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
                      string_nocase_strcmp (token, "To") == 0)
             {
               file->saved_reports[i].data.transaction.to_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.transaction.to);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.transaction.to);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_UNREC &&
                      string_nocase_strcmp (token, "From") == 0)
             {
               file->saved_reports[i].data.unreconciled.from_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.unreconciled.from);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.unreconciled.from);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_UNREC &&
                      string_nocase_strcmp (token, "To") == 0)
             {
               file->saved_reports[i].data.unreconciled.to_count =
-                analysis_convert_account_numbers_to_array (file, value, file->saved_reports[i].data.unreconciled.to);
+                analysis_account_hex_to_list (file, value, file->saved_reports[i].data.unreconciled.to);
             }
             else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
                      string_nocase_strcmp (token, "Ref") == 0)
@@ -1196,13 +1196,13 @@ void save_transaction_file (file_data *file, char *filename)
           }
           if (file->saved_reports[i].data.transaction.from_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.transaction.from, file->saved_reports[i].data.transaction.from_count);
             config_write_token_pair (out, "From", buffer);
           }
           if (file->saved_reports[i].data.transaction.to_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.transaction.to, file->saved_reports[i].data.transaction.to_count);
             config_write_token_pair (out, "To", buffer);
           }
@@ -1240,13 +1240,13 @@ void save_transaction_file (file_data *file, char *filename)
           }
           if (file->saved_reports[i].data.unreconciled.from_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.unreconciled.from, file->saved_reports[i].data.unreconciled.from_count);
             config_write_token_pair (out, "From", buffer);
           }
           if (file->saved_reports[i].data.unreconciled.to_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.unreconciled.to, file->saved_reports[i].data.unreconciled.to_count);
             config_write_token_pair (out, "To", buffer);
           }
@@ -1270,19 +1270,19 @@ void save_transaction_file (file_data *file, char *filename)
           }
           if (file->saved_reports[i].data.cashflow.accounts_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.cashflow.accounts, file->saved_reports[i].data.cashflow.accounts_count);
             config_write_token_pair (out, "Accounts", buffer);
           }
           if (file->saved_reports[i].data.cashflow.incoming_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.cashflow.incoming, file->saved_reports[i].data.cashflow.incoming_count);
             config_write_token_pair (out, "Incoming", buffer);
           }
           if (file->saved_reports[i].data.cashflow.outgoing_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.cashflow.outgoing, file->saved_reports[i].data.cashflow.outgoing_count);
             config_write_token_pair (out, "Outgoing", buffer);
           }
@@ -1305,19 +1305,19 @@ void save_transaction_file (file_data *file, char *filename)
           }
           if (file->saved_reports[i].data.balance.accounts_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.balance.accounts, file->saved_reports[i].data.balance.accounts_count);
             config_write_token_pair (out, "Accounts", buffer);
           }
           if (file->saved_reports[i].data.balance.incoming_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.balance.incoming, file->saved_reports[i].data.balance.incoming_count);
             config_write_token_pair (out, "Incoming", buffer);
           }
           if (file->saved_reports[i].data.balance.outgoing_count > 0)
           {
-            analysis_convert_account_array_to_numbers (file, buffer, MAX_FILE_LINE_LEN,
+            analysis_account_list_to_hex (file, buffer, MAX_FILE_LINE_LEN,
                 file->saved_reports[i].data.balance.outgoing, file->saved_reports[i].data.balance.outgoing_count);
             config_write_token_pair (out, "Outgoing", buffer);
           }

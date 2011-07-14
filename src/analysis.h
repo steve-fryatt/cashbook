@@ -207,21 +207,44 @@ void analysis_open_balance_window(file_data *file, wimp_pointer *ptr, int templa
 
 
 
+/**
+ * Remove an account from all of the report templates in a file (pending
+ * deletion).
+ *
+ * \param *file			The file to process.
+ * \param account		The account to remove.
+ */
+
+void analysis_remove_account_from_templates(file_data *file, acct_t account);
 
 
+/**
+ * Convert a textual comma-separated list of hex numbers into a numeric
+ * account list array.
+ *
+ * \param *file			The file to process.
+ * \param *list			The textual hex number list to process.
+ * \param *array		Pointer to memory to take the numeric list,
+ *				with space for REPORT_ACC_LIST_LEN entries.
+ * \return			The number of entries added to the list.
+ */
 
-/* Account list manipulation. */
+int analysis_account_hex_to_list(file_data *file, char *list, acct_t *array);
 
-void analysis_remove_account_from_reports (file_data *file, acct_t account);
-int analysis_remove_account_from_list (file_data *file, acct_t account, acct_t *array, int *count);
 
-void clear_analysis_account_report_flags (file_data *file);
-void set_analysis_account_report_flags_from_list (file_data *file, unsigned type, unsigned flags,
-                                                  acct_t *array, int count);
-int analysis_convert_account_list_to_array (file_data *file, unsigned type, char *list, acct_t *array);
-int analysis_convert_account_numbers_to_array (file_data *file, char *list, acct_t *array);
-void analysis_convert_account_array_to_numbers (file_data *file, char *list, int size, acct_t *array, int len);
-void analysis_convert_account_array_to_list (file_data *file, char *list, acct_t *array, int len);
+/* Convert a numeric account list array into a textual list of comma-separated
+ * hex values.
+ *
+ * \param *file			The file to process.
+ * \param *list			Pointer to the buffer to take the textual list.
+ * \param size			The size of the buffer.
+ * \param *array		The account list array to be converted.
+ * \param len			The number of accounts in the list.
+ */
+
+void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct_t *array, int len);
+
+
 
 
 

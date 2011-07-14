@@ -139,6 +139,15 @@ static void		analysis_initialise_date_period(date_t start, date_t end, int perio
 static osbool		analysis_get_next_date_period(date_t *next_start, date_t *next_end, char *date_text, size_t date_len);
 
 
+
+
+static int		analysis_remove_account_from_list(file_data *file, acct_t account, acct_t *array, int *count);
+static void		analysis_clear_account_report_flags(file_data *file);
+static void		analysis_set_account_report_flags_from_list(file_data *file, unsigned type, unsigned flags, acct_t *array, int count);
+static int		analysis_account_idents_to_list(file_data *file, unsigned type, char *list, acct_t *array);
+static void		analysis_account_list_to_idents(file_data *file, char *list, acct_t *array, int len);
+
+
 /**
  * Initialise the Analysis module and all its dialogue boxes.
  */
@@ -429,9 +438,9 @@ static void analysis_fill_transaction_window(file_data *file, osbool restore)
 
 		/* Set the include icons. */
 
-		analysis_convert_account_array_to_list(file, icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC),
+		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC),
 				trans_rep_settings.from, trans_rep_settings.from_count);
-		analysis_convert_account_array_to_list(file, icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
+		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
 				trans_rep_settings.to, trans_rep_settings.to_count);
 		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_REFSPEC, trans_rep_settings.ref);
 		convert_money_to_string(trans_rep_settings.amount_min,
@@ -495,11 +504,11 @@ static osbool analysis_process_transaction_window(void)
 	/* Read the account and heading settings. */
 
 	analysis_transaction_file->trans_rep.from_count =
-			analysis_convert_account_list_to_array(analysis_transaction_file, ACCOUNT_FULL | ACCOUNT_IN,
+			analysis_account_idents_to_list(analysis_transaction_file, ACCOUNT_FULL | ACCOUNT_IN,
 			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC),
 			analysis_transaction_file->trans_rep.from);
 	analysis_transaction_file->trans_rep.to_count =
-			analysis_convert_account_list_to_array(analysis_transaction_file, ACCOUNT_FULL | ACCOUNT_OUT,
+			analysis_account_idents_to_list(analysis_transaction_file, ACCOUNT_FULL | ACCOUNT_OUT,
 			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
 			analysis_transaction_file->trans_rep.to);
 	strcpy(analysis_transaction_file->trans_rep.ref,
@@ -583,17 +592,17 @@ static void analysis_generate_transaction_report(file_data *file)
 
 	/* Read the include list. */
 
-	clear_analysis_account_report_flags(file);
+	analysis_clear_account_report_flags(file);
 
 	if (file->trans_rep.from_count == 0 && file->trans_rep.to_count == 0) {
-		set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
 				&wildcard_account_list, 1);
-		set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
 				&wildcard_account_list, 1);
 	} else {
-		set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
 				file->trans_rep.from, file->trans_rep.from_count);
-		set_analysis_account_report_flags_from_list (file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
 				file->trans_rep.to, file->trans_rep.to_count);
 	}
 
@@ -1117,9 +1126,9 @@ static void analysis_fill_unreconciled_window(file_data *file, osbool restore)
 
 		/* Set the from and to spec fields. */
 
-		analysis_convert_account_array_to_list(file, icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC),
+		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC),
 				unrec_rep_settings.from, unrec_rep_settings.from_count);
-		analysis_convert_account_array_to_list(file, icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC),
+		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC),
 				unrec_rep_settings.to, unrec_rep_settings.to_count);
 	}
 
@@ -1177,11 +1186,11 @@ static osbool analysis_process_unreconciled_window(void)
 	/* Read the account and heading settings. */
 
 	analysis_unreconciled_file->unrec_rep.from_count =
-			analysis_convert_account_list_to_array(analysis_unreconciled_file, ACCOUNT_FULL | ACCOUNT_IN,
+			analysis_account_idents_to_list(analysis_unreconciled_file, ACCOUNT_FULL | ACCOUNT_IN,
 			icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC),
 			analysis_unreconciled_file->unrec_rep.from);
 	analysis_unreconciled_file->unrec_rep.to_count =
-			analysis_convert_account_list_to_array(analysis_unreconciled_file, ACCOUNT_FULL | ACCOUNT_OUT,
+			analysis_account_idents_to_list(analysis_unreconciled_file, ACCOUNT_FULL | ACCOUNT_OUT,
 			icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC),
 			analysis_unreconciled_file->unrec_rep.to);
 
@@ -1246,14 +1255,14 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 	/* Read the include list. */
 
-	clear_analysis_account_report_flags(file);
+	analysis_clear_account_report_flags(file);
 
 	if (file->unrec_rep.from_count == 0 && file->unrec_rep.to_count == 0) {
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, &wildcard_account_list, 1);
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, &wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, &wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, &wildcard_account_list, 1);
 	} else {
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, file->unrec_rep.from, file->unrec_rep.from_count);
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, file->unrec_rep.to, file->unrec_rep.to_count);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, file->unrec_rep.from, file->unrec_rep.from_count);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, file->unrec_rep.to, file->unrec_rep.to_count);
 	}
 
 	/* Start to output the report details. */
@@ -1678,13 +1687,13 @@ static void analysis_fill_cashflow_window(file_data *file, osbool restore)
 
 		/* Set the accounts and format details. */
 
-		analysis_convert_account_array_to_list(file,
+		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS),
 				cashflow_rep_settings.accounts, cashflow_rep_settings.accounts_count);
-		analysis_convert_account_array_to_list(file,
+		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING),
 				cashflow_rep_settings.incoming, cashflow_rep_settings.incoming_count);
-		analysis_convert_account_array_to_list(file,
+		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING),
 				cashflow_rep_settings.outgoing, cashflow_rep_settings.outgoing_count);
 
@@ -1740,15 +1749,15 @@ static osbool analysis_process_cashflow_window(void)
 	/* Read the account and heading settings. */
 
 	analysis_cashflow_file->cashflow_rep.accounts_count =
-			analysis_convert_account_list_to_array(analysis_cashflow_file, ACCOUNT_FULL,
+			analysis_account_idents_to_list(analysis_cashflow_file, ACCOUNT_FULL,
 			icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS),
 			analysis_cashflow_file->cashflow_rep.accounts);
 	analysis_cashflow_file->cashflow_rep.incoming_count =
-			analysis_convert_account_list_to_array(analysis_cashflow_file, ACCOUNT_IN,
+			analysis_account_idents_to_list(analysis_cashflow_file, ACCOUNT_IN,
 			icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING),
 			analysis_cashflow_file->cashflow_rep.incoming);
 	analysis_cashflow_file->cashflow_rep.outgoing_count =
-			analysis_convert_account_list_to_array(analysis_cashflow_file, ACCOUNT_OUT,
+			analysis_account_idents_to_list(analysis_cashflow_file, ACCOUNT_OUT,
 			icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING),
 			analysis_cashflow_file->cashflow_rep.outgoing);
 
@@ -1815,15 +1824,15 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	/* Read the include list. */
 
-	clear_analysis_account_report_flags(file);
+	analysis_clear_account_report_flags(file);
 
 	if (file->cashflow_rep.accounts_count == 0 && file->cashflow_rep.incoming_count == 0 &&
 			file->cashflow_rep.outgoing_count == 0) {
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &wildcard_account_list, 1);
 	} else {
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL, REPORT_INCLUDE, file->cashflow_rep.accounts, file->cashflow_rep.accounts_count);
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_IN, REPORT_INCLUDE, file->cashflow_rep.incoming, file->cashflow_rep.incoming_count);
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_OUT, REPORT_INCLUDE, file->cashflow_rep.outgoing, file->cashflow_rep.outgoing_count);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL, REPORT_INCLUDE, file->cashflow_rep.accounts, file->cashflow_rep.accounts_count);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_IN, REPORT_INCLUDE, file->cashflow_rep.incoming, file->cashflow_rep.incoming_count);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_OUT, REPORT_INCLUDE, file->cashflow_rep.outgoing, file->cashflow_rep.outgoing_count);
 	}
 
 	tabular = file->cashflow_rep.tabular;
@@ -2242,13 +2251,13 @@ static void analysis_fill_balance_window(file_data *file, osbool restore)
 
 		/* Set the accounts and format details. */
 
-		analysis_convert_account_array_to_list(file,
+		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS),
 				balance_rep_settings.accounts, balance_rep_settings.accounts_count);
-		analysis_convert_account_array_to_list(file,
+		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_INCOMING),
 				balance_rep_settings.incoming, balance_rep_settings.incoming_count);
-		analysis_convert_account_array_to_list(file,
+		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_OUTGOING),
 				balance_rep_settings.outgoing, balance_rep_settings.outgoing_count);
 
@@ -2302,15 +2311,15 @@ static osbool analysis_process_balance_window(void)
 	/* Read the account and heading settings. */
 
 	analysis_balance_file->balance_rep.accounts_count =
-			analysis_convert_account_list_to_array(analysis_balance_file, ACCOUNT_FULL,
+			analysis_account_idents_to_list(analysis_balance_file, ACCOUNT_FULL,
 			icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS),
 			analysis_balance_file->balance_rep.accounts);
 	analysis_balance_file->balance_rep.incoming_count =
-			analysis_convert_account_list_to_array(analysis_balance_file, ACCOUNT_IN,
+			analysis_account_idents_to_list(analysis_balance_file, ACCOUNT_IN,
 			icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_INCOMING),
 			analysis_balance_file->balance_rep.incoming);
 	analysis_balance_file->balance_rep.outgoing_count =
-			analysis_convert_account_list_to_array(analysis_balance_file, ACCOUNT_OUT,
+			analysis_account_idents_to_list(analysis_balance_file, ACCOUNT_OUT,
 			icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_OUTGOING),
 			analysis_balance_file->balance_rep.outgoing);
 
@@ -2376,14 +2385,14 @@ static void analysis_generate_balance_report(file_data *file)
 
 	/* Read the include list. */
 
-	clear_analysis_account_report_flags(file);
+	analysis_clear_account_report_flags(file);
 
 	if (file->balance_rep.accounts_count == 0 && file->balance_rep.incoming_count == 0 && file->balance_rep.outgoing_count == 0) {
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &wildcard_account_list, 1);
 	} else {
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_FULL, REPORT_INCLUDE, file->balance_rep.accounts, file->balance_rep.accounts_count);
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_IN, REPORT_INCLUDE, file->balance_rep.incoming, file->balance_rep.incoming_count);
-		set_analysis_account_report_flags_from_list(file, ACCOUNT_OUT, REPORT_INCLUDE, file->balance_rep.outgoing, file->balance_rep.outgoing_count);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL, REPORT_INCLUDE, file->balance_rep.accounts, file->balance_rep.accounts_count);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_IN, REPORT_INCLUDE, file->balance_rep.incoming, file->balance_rep.incoming_count);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_OUT, REPORT_INCLUDE, file->balance_rep.outgoing, file->balance_rep.outgoing_count);
 	}
 
 	tabular = file->balance_rep.tabular;
@@ -2775,350 +2784,347 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 
 
 
-
-
-
-
-
-
-/* ==================================================================================================================
- * Account list manipulation.
- */
-
-/* Remove an account from all of the report templates in a file. */
-
-void analysis_remove_account_from_reports (file_data *file, acct_t account)
-{
-  int         i;
-  report_data *report;
-
-  /* Handle the dialogue boxes. */
-
-  analysis_remove_account_from_list (file, account, file->trans_rep.from, &(file->trans_rep.from_count));
-  analysis_remove_account_from_list (file, account, file->trans_rep.to, &(file->trans_rep.to_count));
-
-  analysis_remove_account_from_list (file, account, file->unrec_rep.from, &(file->unrec_rep.from_count));
-  analysis_remove_account_from_list (file, account, file->unrec_rep.to, &(file->unrec_rep.to_count));
-
-  analysis_remove_account_from_list (file, account, file->cashflow_rep.accounts, &(file->cashflow_rep.accounts_count));
-  analysis_remove_account_from_list (file, account, file->cashflow_rep.incoming, &(file->cashflow_rep.incoming_count));
-  analysis_remove_account_from_list (file, account, file->cashflow_rep.outgoing, &(file->cashflow_rep.outgoing_count));
-
-  analysis_remove_account_from_list (file, account, file->balance_rep.accounts, &(file->balance_rep.accounts_count));
-  analysis_remove_account_from_list (file, account, file->balance_rep.incoming, &(file->balance_rep.incoming_count));
-  analysis_remove_account_from_list (file, account, file->balance_rep.outgoing, &(file->balance_rep.outgoing_count));
-
-  /* Now process any saved templates. */
-
-  for (i=0; i<file->saved_report_count; i++)
-  {
-    switch (file->saved_reports[i].type)
-    {
-      case REPORT_TYPE_TRANS:
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.transaction.from,
-                                           &(file->saved_reports[i].data.transaction.from_count));
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.transaction.to,
-                                           &(file->saved_reports[i].data.transaction.to_count));
-        break;
-      case REPORT_TYPE_UNREC:
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.unreconciled.from,
-                                           &(file->saved_reports[i].data.unreconciled.from_count));
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.unreconciled.to,
-                                           &(file->saved_reports[i].data.unreconciled.to_count));
-        break;
-      case REPORT_TYPE_CASHFLOW:
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.cashflow.accounts,
-                                           &(file->saved_reports[i].data.cashflow.accounts_count));
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.cashflow.incoming,
-                                           &(file->saved_reports[i].data.cashflow.incoming_count));
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.cashflow.outgoing,
-                                           &(file->saved_reports[i].data.cashflow.outgoing_count));
-        break;
-      case REPORT_TYPE_BALANCE:
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.balance.accounts,
-                                           &(file->saved_reports[i].data.balance.accounts_count));
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.balance.incoming,
-                                           &(file->saved_reports[i].data.balance.incoming_count));
-        analysis_remove_account_from_list (file, account, file->saved_reports[i].data.balance.outgoing,
-                                           &(file->saved_reports[i].data.balance.outgoing_count));
-        break;
-    }
-  }
-
-  /* Finally, work through any reports in the file. */
-
-  report = file->reports;
-
-  while (report != NULL)
-  {
-    switch (report->template.type)
-    {
-      case REPORT_TYPE_TRANS:
-        analysis_remove_account_from_list (file, account, report->template.data.transaction.from,
-                                           &(report->template.data.transaction.from_count));
-        analysis_remove_account_from_list (file, account, report->template.data.transaction.to,
-                                           &(report->template.data.transaction.to_count));
-        break;
-      case REPORT_TYPE_UNREC:
-        analysis_remove_account_from_list (file, account, report->template.data.unreconciled.from,
-                                           &(report->template.data.unreconciled.from_count));
-        analysis_remove_account_from_list (file, account, report->template.data.unreconciled.to,
-                                           &(report->template.data.unreconciled.to_count));
-        break;
-      case REPORT_TYPE_CASHFLOW:
-        analysis_remove_account_from_list (file, account, report->template.data.cashflow.accounts,
-                                           &(report->template.data.cashflow.accounts_count));
-        analysis_remove_account_from_list (file, account, report->template.data.cashflow.incoming,
-                                           &(report->template.data.cashflow.incoming_count));
-        analysis_remove_account_from_list (file, account, report->template.data.cashflow.outgoing,
-                                           &(report->template.data.cashflow.outgoing_count));
-        break;
-      case REPORT_TYPE_BALANCE:
-        analysis_remove_account_from_list (file, account, report->template.data.balance.accounts,
-                                           &(report->template.data.balance.accounts_count));
-        analysis_remove_account_from_list (file, account, report->template.data.balance.incoming,
-                                           &(report->template.data.balance.incoming_count));
-        analysis_remove_account_from_list (file, account, report->template.data.balance.outgoing,
-                                           &(report->template.data.balance.outgoing_count));
-        break;
-    }
-
-    report = report->next;
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Remove an account from an account list. */
-
-int analysis_remove_account_from_list (file_data *file, acct_t account, acct_t *array, int *count)
-{
-  int i, j;
-
-  i = 0;
-  j = 0;
-
-  while (i < *count && j < *count)
-  {
-    /* Skip j on until it finds an account that is to be left in. */
-    while (j < *count && array[j] == account)
-    {
-      j++;
-    }
-
-    /* If pointers are different, and not pointing to the account, copy down the account. */
-    if (i < j && i < *count && j < *count && array[j] != account)
-    {
-      array[i] = array[j];
-    }
-
-    /* Increment the pointers if necessary */
-    if (array[i] != account)
-    {
-      i++;
-      j++;
-    }
-  }
-
-  *count = i;
-
-  return (i);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Clear all the account report flags in a file. */
-
-void clear_analysis_account_report_flags (file_data *file)
-{
-  int i;
-
-  for (i=0; i < file->account_count; i++)
-  {
-    file->accounts[i].report_flags = 0;
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Set the specified report flags for all accounts that match the list given.
+/**
+ * Remove an account from all of the report templates in a file (pending
+ * deletion).
  *
- * The special account ident '*' means 'all'.
+ * \param *file			The file to process.
+ * \param account		The account to remove.
  */
 
-void set_analysis_account_report_flags_from_list (file_data *file, unsigned type, unsigned flags,
-                                                  acct_t *array, int count)
+void analysis_remove_account_from_templates(file_data *file, acct_t account)
 {
-  int  account, i;
+	int		i;
+	report_data	*report;
 
+	/* Handle the dialogue boxes. */
 
-  for (i=0; i<count; i++)
-  {
-    account = array[i];
+	analysis_remove_account_from_list(file, account, file->trans_rep.from, &(file->trans_rep.from_count));
+	analysis_remove_account_from_list(file, account, file->trans_rep.to, &(file->trans_rep.to_count));
 
-    if (account == NULL_ACCOUNT)
-    {
-      for (account=0; account < file->account_count; account++)
-      {
-        if ((file->accounts[account].type & type) != 0)
-        {
-          file->accounts[account].report_flags |= flags;
-        }
-      }
-    }
-    else
-    {
-      if (account < file->account_count)
-      {
-        file->accounts[account].report_flags |= flags;
-      }
-    }
-  }
+	analysis_remove_account_from_list(file, account, file->unrec_rep.from, &(file->unrec_rep.from_count));
+	analysis_remove_account_from_list(file, account, file->unrec_rep.to, &(file->unrec_rep.to_count));
+
+	analysis_remove_account_from_list(file, account, file->cashflow_rep.accounts, &(file->cashflow_rep.accounts_count));
+	analysis_remove_account_from_list(file, account, file->cashflow_rep.incoming, &(file->cashflow_rep.incoming_count));
+	analysis_remove_account_from_list(file, account, file->cashflow_rep.outgoing, &(file->cashflow_rep.outgoing_count));
+
+	analysis_remove_account_from_list(file, account, file->balance_rep.accounts, &(file->balance_rep.accounts_count));
+	analysis_remove_account_from_list(file, account, file->balance_rep.incoming, &(file->balance_rep.incoming_count));
+	analysis_remove_account_from_list(file, account, file->balance_rep.outgoing, &(file->balance_rep.outgoing_count));
+
+	/* Now process any saved templates. */
+
+	for (i=0; i<file->saved_report_count; i++) {
+		switch (file->saved_reports[i].type) {
+		case REPORT_TYPE_TRANS:
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.transaction.from,
+					&(file->saved_reports[i].data.transaction.from_count));
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.transaction.to,
+					&(file->saved_reports[i].data.transaction.to_count));
+			break;
+
+		case REPORT_TYPE_UNREC:
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.unreconciled.from,
+					&(file->saved_reports[i].data.unreconciled.from_count));
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.unreconciled.to,
+					&(file->saved_reports[i].data.unreconciled.to_count));
+			break;
+
+		case REPORT_TYPE_CASHFLOW:
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.cashflow.accounts,
+					&(file->saved_reports[i].data.cashflow.accounts_count));
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.cashflow.incoming,
+					&(file->saved_reports[i].data.cashflow.incoming_count));
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.cashflow.outgoing,
+					&(file->saved_reports[i].data.cashflow.outgoing_count));
+			break;
+
+		case REPORT_TYPE_BALANCE:
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.balance.accounts,
+					&(file->saved_reports[i].data.balance.accounts_count));
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.balance.incoming,
+					&(file->saved_reports[i].data.balance.incoming_count));
+			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.balance.outgoing,
+					&(file->saved_reports[i].data.balance.outgoing_count));
+			break;
+		}
+	}
+
+	/* Finally, work through any reports in the file. */
+
+	report = file->reports;
+
+	while (report != NULL) {
+		switch (report->template.type) {
+		case REPORT_TYPE_TRANS:
+			analysis_remove_account_from_list(file, account, report->template.data.transaction.from,
+					&(report->template.data.transaction.from_count));
+			analysis_remove_account_from_list(file, account, report->template.data.transaction.to,
+					&(report->template.data.transaction.to_count));
+			break;
+
+		case REPORT_TYPE_UNREC:
+			analysis_remove_account_from_list(file, account, report->template.data.unreconciled.from,
+					&(report->template.data.unreconciled.from_count));
+			analysis_remove_account_from_list(file, account, report->template.data.unreconciled.to,
+					&(report->template.data.unreconciled.to_count));
+			break;
+
+		case REPORT_TYPE_CASHFLOW:
+			analysis_remove_account_from_list(file, account, report->template.data.cashflow.accounts,
+					&(report->template.data.cashflow.accounts_count));
+			analysis_remove_account_from_list(file, account, report->template.data.cashflow.incoming,
+					&(report->template.data.cashflow.incoming_count));
+			analysis_remove_account_from_list(file, account, report->template.data.cashflow.outgoing,
+					&(report->template.data.cashflow.outgoing_count));
+			break;
+		case REPORT_TYPE_BALANCE:
+			analysis_remove_account_from_list(file, account, report->template.data.balance.accounts,
+					&(report->template.data.balance.accounts_count));
+			analysis_remove_account_from_list(file, account, report->template.data.balance.incoming,
+					&(report->template.data.balance.incoming_count));
+			analysis_remove_account_from_list(file, account, report->template.data.balance.outgoing,
+					&(report->template.data.balance.outgoing_count));
+			break;
+		}
+
+		report = report->next;
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Convert the account ident list into an array of account numbers.
+/**
+ * Remove any references to an account from an account list array.
  *
- * The special account ident '*' means 'all'.
+ * \param *file			The file to process.
+ * \param account		The account to remove, if present.
+ * \param *array		The account list array.
+ * \param *count		Pointer to number of accounts in the array, which
+ *				is updated before return.
+ * \return			The new account count in the array.
  */
 
-int analysis_convert_account_list_to_array (file_data *file, unsigned type, char *list, acct_t *array)
+static int analysis_remove_account_from_list(file_data *file, acct_t account, acct_t *array, int *count)
 {
-  char *copy, *ident;
-  int  account, i;
+	int	i = 0, j = 0;
 
+	while (i < *count && j < *count) {
+		/* Skip j on until it finds an account that is to be left in. */
 
-  copy = (char *) malloc (strlen (list) + 1);
-  i = 0;
+		while (j < *count && array[j] == account)
+			j++;
 
-  if (copy != NULL)
-  {
-    strcpy (copy, list);
+		/* If pointers are different, and not pointing to the account, copy down the account. */
+		if (i < j && i < *count && j < *count && array[j] != account)
+			array[i] = array[j];
 
-    ident = strtok (copy, ",");
+		/* Increment the pointers if necessary */
+		if (array[i] != account) {
+			i++;
+			j++;
+		}
+	}
 
-    while (ident != NULL && i < REPORT_ACC_LIST_LEN)
-    {
-      if (strcmp (ident, "*") == 0)
-      {
-        array[i++] = NULL_ACCOUNT;
-      }
-      else
-      {
-        account = find_account (file, ident, type);
+	*count = i;
 
-        if (account != NULL_ACCOUNT)
-        {
-          array[i++] = account;
-        }
-      }
-
-      ident = strtok (NULL, ",");
-    }
-
-    free (copy);
-  }
-
-  return (i);
+	return i;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Take a comma-separated list of hex numbers, and turn them into an account list array. */
-
-int analysis_convert_account_numbers_to_array (file_data *file, char *list, acct_t *array)
-{
-  char *copy, *value;
-  int  i;
-
-
-  copy = (char *) malloc (strlen (list) + 1);
-  i = 0;
-
-  if (copy != NULL)
-  {
-    strcpy (copy, list);
-
-    value = strtok (copy, ",");
-
-    while (value != NULL && i < REPORT_ACC_LIST_LEN)
-    {
-      array[i++] = strtoul (value, NULL, 16);
-
-      value = strtok (NULL, ",");
-    }
-
-    free (copy);
-  }
-
-  return (i);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Create a string of comma separated hex numbers from an account list array. */
-
-void analysis_convert_account_array_to_numbers (file_data *file, char *list, int size, acct_t *array, int len)
-{
-  char buffer[32];
-  int  i;
-
-  *list = '\0';
-
-  for (i=0; i<len; i++)
-  {
-    sprintf (buffer, "%x", array[i]);
-
-    if (strlen(list) > 0 && strlen(list)+1 < size)
-    {
-      strcat(list, ",");
-    }
-
-    if (strlen(list) + strlen(buffer) < size)
-    {
-      strcat(list, buffer);
-    }
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Convert the account number list into a string of account idents.
+/**
+ * Clear all the account report flags in a file, to allow them to be re-set
+ * for a new report.
  *
- * The special account ident '*' means 'all'.
+ * \param *file			The file to clear.
  */
 
-void analysis_convert_account_array_to_list (file_data *file, char *list, acct_t *array, int len)
+static void analysis_clear_account_report_flags(file_data *file)
 {
-  char buffer[ACCOUNT_IDENT_LEN];
-  int  account, i;
+	int	i;
 
-  *list = '\0';
-
-  for (i=0; i<len; i++)
-  {
-    account = array[i];
-
-    if (account != NULL_ACCOUNT)
-    {
-      strcpy (buffer, find_account_ident (file, account));
-    }
-    else
-    {
-      strcpy (buffer, "*");
-    }
-
-    if (strlen(list) > 0 && strlen(list)+1 < REPORT_ACC_SPEC_LEN)
-    {
-      strcat(list, ",");
-    }
-
-    if (strlen(list) + strlen(buffer) < REPORT_ACC_SPEC_LEN)
-    {
-      strcat(list, buffer);
-    }
-  }
+	for (i=0; i < file->account_count; i++)
+		file->accounts[i].report_flags = 0;
 }
+
+
+/**
+ * Set the specified report flags for all accounts that match the list given.
+ * The account NULL_ACCOUNT will set all the acounts that match the given type.
+ *
+ * \param *file			The file to process.
+ * \param type			The type(s) of account to match for NULL_ACCOUNT.
+ * \param flags			The report flags to set for matching accounts.
+ * \param *array		The account list array to use.
+ * \param count			The number of accounts in the account list.
+ */
+
+static void analysis_set_account_report_flags_from_list(file_data *file, unsigned type, unsigned flags, acct_t *array, int count)
+{
+	int	account, i;
+
+	for (i=0; i<count; i++) {
+		account = array[i];
+
+		if (account == NULL_ACCOUNT) {
+			/* 'Wildcard': set all the accounts which match the
+			 * given account type.
+			 */
+
+			for (account=0; account < file->account_count; account++)
+				if ((file->accounts[account].type & type) != 0)
+					file->accounts[account].report_flags |= flags;
+		} else {
+			/* Set a specific account. */
+
+			if (account < file->account_count)
+				file->accounts[account].report_flags |= flags;
+		}
+	}
+}
+
+
+/**
+ * Convert a textual comma-separated list of account idents into a numeric
+ * account list array.  The special account ident '*' means 'all', and is
+ * stored as the 'wildcard' value (in this context) NULL_ACCOUNT.
+ *
+ * \param *file			The file to process.
+ * \param type			The type(s) of account to process.
+ * \param *list			The textual account ident list to process.
+ * \param *array		Pointer to memory to take the numeric list,
+ *				with space for REPORT_ACC_LIST_LEN entries.
+ * \return			The number of entries added to the list.
+ */
+
+static int analysis_account_idents_to_list(file_data *file, unsigned type, char *list, acct_t *array)
+{
+	char	*copy, *ident;
+	int	account, i = 0;
+
+	copy = strdup(list);
+
+	if (copy == NULL)
+		return 0;
+
+	ident = strtok(copy, ",");
+
+	while (ident != NULL && i < REPORT_ACC_LIST_LEN) {
+		if (strcmp(ident, "*") == 0) {
+			array[i++] = NULL_ACCOUNT;
+		} else {
+			account = find_account(file, ident, type);
+
+			if (account != NULL_ACCOUNT)
+				array[i++] = account;
+		}
+
+		ident = strtok(NULL, ",");
+	}
+
+	free(copy);
+
+	return i;
+}
+
+
+/* Convert a numeric account list array into a textual list of comma-separated
+ * account idents.
+ *
+ * \param *file			The file to process.
+ * \param *list			Pointer to the buffer to take the textual
+ *				list, which must be REPORT_ACC_SPEC_LEN long.
+ * \param *array		The account list array to be converted.
+ * \param len			The number of accounts in the list.
+ */
+
+static void analysis_account_list_to_idents(file_data *file, char *list, acct_t *array, int len)
+{
+	char	buffer[ACCOUNT_IDENT_LEN];
+	int	account, i;
+
+	*list = '\0';
+
+	for (i=0; i<len; i++) {
+		account = array[i];
+
+		if (account != NULL_ACCOUNT)
+			strcpy(buffer, find_account_ident(file, account));
+		else
+			strcpy(buffer, "*");
+
+		if (strlen(list) > 0 && strlen(list)+1 < REPORT_ACC_SPEC_LEN)
+			strcat(list, ",");
+
+		if (strlen(list) + strlen(buffer) < REPORT_ACC_SPEC_LEN)
+			strcat(list, buffer);
+	}
+}
+
+
+/**
+ * Convert a textual comma-separated list of hex numbers into a numeric
+ * account list array.
+ *
+ * \param *file			The file to process.
+ * \param *list			The textual hex number list to process.
+ * \param *array		Pointer to memory to take the numeric list,
+ *				with space for REPORT_ACC_LIST_LEN entries.
+ * \return			The number of entries added to the list.
+ */
+
+int analysis_account_hex_to_list(file_data *file, char *list, acct_t *array)
+{
+	char	*copy, *value;
+	int	i = 0;
+
+	copy = strdup(list);
+
+	if (copy == NULL)
+		return 0;
+
+	value = strtok(copy, ",");
+
+	while (value != NULL && i < REPORT_ACC_LIST_LEN) {
+		array[i++] = strtoul(value, NULL, 16);
+
+		value = strtok(NULL, ",");
+	}
+
+	free(copy);
+
+	return i;
+}
+
+
+/* Convert a numeric account list array into a textual list of comma-separated
+ * hex values.
+ *
+ * \param *file			The file to process.
+ * \param *list			Pointer to the buffer to take the textual list.
+ * \param size			The size of the buffer.
+ * \param *array		The account list array to be converted.
+ * \param len			The number of accounts in the list.
+ */
+
+void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct_t *array, int len)
+{
+	char	buffer[32];
+	int	i;
+
+	*list = '\0';
+
+	for (i=0; i<len; i++) {
+		sprintf(buffer, "%x", array[i]);
+
+		if (strlen(list) > 0 && strlen(list)+1 < size)
+			strcat(list, ",");
+
+		if (strlen(list) + strlen(buffer) < size)
+			strcat(list, buffer);
+	}
+}
+
 
 
 

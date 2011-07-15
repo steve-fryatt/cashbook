@@ -906,7 +906,6 @@ typedef struct
   wimp_w      save_as;
   wimp_w      import_comp;
   wimp_w      enter_acc;
-  wimp_w      save_rep;
   wimp_w      edit_acct;
   wimp_w      edit_hdr;
   wimp_w      edit_sect;
@@ -957,8 +956,6 @@ typedef struct
   wimp_menu   *sorder;
 
   wimp_menu   *preset;
-
-  wimp_menu   *replist;
 }
 global_menus;
 

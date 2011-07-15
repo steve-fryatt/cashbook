@@ -21,7 +21,6 @@
 #define MENU_ID_SORDER     7
 #define MENU_ID_PRESET     8
 #define MENU_ID_REFDESC    11
-#define MENU_ID_REPLIST    12
 
 #define REFDESC_MENU_REFERENCE   1
 #define REFDESC_MENU_DESCRIPTION 2
@@ -159,12 +158,6 @@ typedef struct refdesc_menu_link
 }
 refdesc_menu_link;
 
-typedef struct saved_report_menu_link
-{
-  char name[SAVED_REPORT_NAME_LEN+3]; /* +3 to allow space for ellipsis... */
-  int  saved_report;
-}
-saved_report_menu_link;
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Function prototypes.
@@ -182,6 +175,7 @@ void open_main_menu (file_data *file, wimp_pointer *pointer);
 void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer);
 
 void main_menu_submenu_message (wimp_full_message_menu_warning *submenu);
+void main_menu_closed_message (void);
 
 /* Account open menu. */
 
@@ -256,17 +250,6 @@ void set_preset_menu (int line);
 void open_preset_menu (file_data *file, int line, wimp_pointer *pointer);
 void decode_preset_menu (wimp_selection *selection, wimp_pointer *pointer);
 void preset_menu_submenu_message (wimp_full_message_menu_warning *submenu);
-
-/* Saved Report list menu */
-
-void mainmenu_set_replist_menu (file_data *file);
-void mainmenu_open_replist_menu (file_data *file, wimp_pointer *pointer);
-
-void mainmenu_decode_replist_menu (wimp_selection *selection, wimp_pointer *pointer);
-
-wimp_menu *mainmenu_build_replist_menu (file_data *file, int standalone);
-
-int mainmenu_cmp_replist_menu_entries (const void *va, const void *vb);
 
 #endif
 

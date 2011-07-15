@@ -629,14 +629,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
     windows->sort_preset = templates_create_window("SortPreset");
     ihelp_add_window (windows->sort_preset, "SortPreset", NULL);
 
-  /* Save Report Window.
-   *
-   * Created now.
-   */
-
-    windows->save_rep = templates_create_window("SaveRepTemp");
-    ihelp_add_window (windows->save_rep, "SaveRepTemp", NULL);
-
 
   /* Transaction Window.
    *
@@ -1093,40 +1085,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
   }
 
 
-
-
-
-  /* Save report template window. */
-
-  else if (pointer->w == windows.save_rep)
-  {
-    if (pointer->i == ANALYSIS_SAVE_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.save_rep);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_save_report_window ();
-      }
-    }
-
-    else if (pointer->i == ANALYSIS_SAVE_OK) /* 'OK' button */
-    {
-      if (!process_save_report_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.save_rep);
-      }
-    }
-
-    else if (pointer->buttons == wimp_CLICK_SELECT && pointer->i == ANALYSIS_SAVE_NAMEPOPUP)
-    {
-      analysis_open_save_report_popup_menu (pointer);
-    }
-  }
-
-
   /* Transaction Sort Window */
 
   else if (pointer->w == windows.sort_trans)
@@ -1517,29 +1475,6 @@ static void key_press_handler (wimp_key *key)
 
   }
 
-  /* Save report template window. */
-
-  else if (key->w == windows.save_rep)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_save_report_window ())
-        {
-          close_dialogue_with_caret (windows.save_rep);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.save_rep);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
-
 
   /* Transaction Sort Window */
 
@@ -1720,19 +1655,16 @@ static void menu_selection_handler (wimp_selection *selection)
     decode_preset_menu (selection, &pointer);
   }
 
-  /* Decode the report list menu when it appears apart from the main menu. */
-
-  else if (menus.menu_id == MENU_ID_REPLIST)
-  {
-    mainmenu_decode_replist_menu (selection, &pointer);
-  }
-
   /* If Adjust was used, reopen the menu. */
 
   if (pointer.buttons == wimp_CLICK_ADJUST)
   {
     wimp_create_menu (menus.menu_up, 0, 0);
   }
+  else if (menus.menu_id == MENU_ID_MAIN)
+  {
+     main_menu_closed_message ();
+   }
 }
 
 /* ==================================================================================================================
@@ -1867,7 +1799,11 @@ static void user_message_handler (wimp_message *message)
       break;
 
     case message_MENUS_DELETED:
-      if (menus.menu_id == MENU_ID_ACCOUNT)
+      if (menus.menu_id == MENU_ID_MAIN)
+      {
+        main_menu_closed_message ();
+      }
+      else if (menus.menu_id == MENU_ID_ACCOUNT)
       {
         account_menu_closed_message ((wimp_full_message_menus_deleted *) message);
       }

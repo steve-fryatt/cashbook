@@ -196,6 +196,8 @@ char *templates_get_current_menu_name(char *buffer)
 		strcpy(buffer, "ReportMenu");
 	else if (menu_up == templates_menu_list[TEMPLATES_MENU_FONTS])
 		strcpy(buffer, "FontMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_TEMPLATES])
+		strcpy(buffer, "RepListMenu");
 	else
 		mainmenu_get_current_menu_name(buffer);
 

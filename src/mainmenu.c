@@ -81,9 +81,6 @@ static refdesc_menu_link  *refdesc_link = NULL;  /* Links from the refdesc menu 
 static int                refdesc_menu_type = 0; /* The type of reference or description menu open. */
 
 static char               *account_title_buffer = NULL; /* Buffer for the accounts menu et al.. */
-static char               *replist_title_buffer = NULL; /* Buffer for the Replist menu (coexists with AccList). */
-
-static saved_report_menu_link *replist_link = NULL;
 
 /* ==================================================================================================================
  * General
@@ -191,10 +188,6 @@ char *mainmenu_get_current_menu_name(char *buffer)
   {
     strcpy (buffer, "PresetMenu");
   }
-  else if (menus.menu_id == MENU_ID_REPLIST)
-  {
-    strcpy (buffer, "RepListMenu");
-  }
 
   return (buffer);
 }
@@ -213,7 +206,6 @@ void set_main_menu (file_data *file)
   menus_shade_entry (menus.account_sub, MAIN_MENU_ACCOUNTS_VIEW, count_accounts_in_file (file, ACCOUNT_FULL) == 0);
   menus_shade_entry (menus.analysis_sub, MAIN_MENU_ANALYSIS_SAVEDREP, file->saved_report_count == 0);
   set_accopen_menu (file);
-  mainmenu_set_replist_menu (file);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -224,7 +216,8 @@ void open_main_menu (file_data *file, wimp_pointer *pointer)
 
 
   build_accopen_menu (file);
-  mainmenu_build_replist_menu (file, 0);
+
+  menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = analysis_template_menu_build(file, FALSE);
 
   /* If the submenus concerned are greyed out, give them a valid submenu pointer so that the arrow shows. */
 
@@ -369,7 +362,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_SAVEDREP && selection->items[2] != -1)
     {
-      analysis_open_saved_report_dialogue (main_menu_file, pointer, replist_link[selection->items[2]].saved_report);
+      analysis_open_saved_report_dialogue (main_menu_file, pointer, selection->items[2]);
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_MONTHREP)
@@ -438,6 +431,14 @@ void main_menu_submenu_message (wimp_full_message_menu_warning *submenu)
       }
       break;
   }
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+void main_menu_closed_message (void)
+{
+  	analysis_template_menu_destroy();
+
 }
 
 /* ==================================================================================================================
@@ -2055,160 +2056,5 @@ void preset_menu_submenu_message (wimp_full_message_menu_warning *submenu)
      wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
      break;
  }
-}
-
-
-/* ==================================================================================================================
- * Saved Report menu. -- A list of saved reports, to select from.
- */
-
-void mainmenu_set_replist_menu (file_data *file)
-{
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void mainmenu_open_replist_menu (file_data *file, wimp_pointer *pointer)
-{
-  extern global_menus   menus;
-
-  mainmenu_build_replist_menu (file, 1);
-  mainmenu_set_replist_menu (file);
-
-  menus.menu_up = menus_create_popup_menu (menus.replist, pointer);
-  menus.menu_id = MENU_ID_REPLIST;
-  main_menu_file = file;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Decode the menu selections. */
-
-void mainmenu_decode_replist_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  extern global_windows windows;
-
-
-  if (selection->items[0] != -1)
-  {
-    strcpy (icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_NAME), replist_link[selection->items[0]].name);
-
-    icons_redraw_group (windows.save_rep, 1, ANALYSIS_SAVE_NAME);
-    icons_replace_caret_in_window (windows.save_rep);
-  }
-
-  mainmenu_set_replist_menu (main_menu_file);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-wimp_menu *mainmenu_build_replist_menu (file_data *file, int standalone)
-{
-  int                 line, width;
-
-  extern global_menus menus;
-
-
-  /* Claim enough memory to build the menu in.   This can't use the shared allocation, as that is already in
-   * use for the acclist menu when the main menu is open.
-   */
-
-  if (menus.replist != NULL)
-  {
-    heap_free (menus.replist);
-  }
-  if (replist_link != NULL)
-  {
-    heap_free (replist_link);
-  }
-
-  menus.replist = NULL;
-  replist_link = NULL;
-
-  if (file->saved_report_count > 0)
-  {
-    menus.replist = (wimp_menu *) heap_alloc (28 + 24 * file->saved_report_count);
-    replist_link = (saved_report_menu_link *) heap_alloc (file->saved_report_count * sizeof (saved_report_menu_link));
-  }
-
-  /* Populate the menu. */
-
-  if (menus.replist != NULL && replist_link != NULL)
-  {
-    width = 0;
-
-    for (line = 0; line < file->saved_report_count; line++)
-    {
-      /* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
-       * well move while the menu is open.  The account number is also stored, to allow the account to be found.
-       */
-
-      strcpy (replist_link[line].name, file->saved_reports[line].name);
-      if (!standalone)
-      {
-        strcat(replist_link[line].name, "...");
-      }
-      replist_link[line].saved_report = line;
-      if (strlen (replist_link[line].name) > width)
-      {
-        width = strlen (replist_link[line].name);
-      }
-    }
-
-    qsort (replist_link, line, sizeof (saved_report_menu_link), mainmenu_cmp_replist_menu_entries);
-
-    for (line = 0; line < file->saved_report_count; line++)
-    {
-      /* Set the menu and icon flags up. */
-
-      menus.replist->entries[line].menu_flags = 0;
-
-      menus.replist->entries[line].sub_menu = (wimp_menu *) -1;
-      menus.replist->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-                                           wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-                                           wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-      /* Set the menu icon contents up. */
-
-      menus.replist->entries[line].data.indirected_text.text = replist_link[line].name;
-      menus.replist->entries[line].data.indirected_text.validation = NULL;
-      menus.replist->entries[line].data.indirected_text.size = ACCOUNT_NAME_LEN;
-
-      #ifdef DEBUG
-      debug_printf ("Line %d: '%s'", line, replist_link[line].name);
-      #endif
-    }
-
-    menus.replist->entries[line - 1].menu_flags |= wimp_MENU_LAST;
-
-    if (replist_title_buffer == NULL)
-    {
-      replist_title_buffer = (char *) malloc (ACCOUNT_MENU_TITLE_LEN);
-    }
-    msgs_lookup ((standalone) ? "RepListMenuT2" : "RepListMenuT1", replist_title_buffer, ACCOUNT_MENU_TITLE_LEN);
-    menus.replist->title_data.indirected_text.text = replist_title_buffer;
-    menus.replist->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
-    menus.replist->title_fg = wimp_COLOUR_BLACK;
-    menus.replist->title_bg = wimp_COLOUR_LIGHT_GREY;
-    menus.replist->work_fg = wimp_COLOUR_BLACK;
-    menus.replist->work_bg = wimp_COLOUR_WHITE;
-
-    menus.replist->width = (width + 1) * 16;
-    menus.replist->height = 44;
-    menus.replist->gap = 0;
-  }
-
-  menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = menus.replist;
-
-  return (menus.replist);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-int mainmenu_cmp_replist_menu_entries (const void *va, const void *vb)
-{
-  saved_report_menu_link *a = (saved_report_menu_link *) va, *b = (saved_report_menu_link *) vb;
-
-  return (string_nocase_strcmp(a->name, b->name));
 }
 

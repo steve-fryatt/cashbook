@@ -23,6 +23,7 @@
 #include "sflib/config.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
+#include "sflib/heap.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
 #include "sflib/windows.h"
@@ -44,6 +45,21 @@
 #include "report.h"
 #include "templates.h"
 #include "transact.h"
+
+
+enum analysis_save_mode {
+	ANALYSIS_SAVE_MODE_NONE = 0,
+	ANALYSIS_SAVE_MODE_SAVE,
+	ANALYSIS_SAVE_MODE_RENAME
+};
+
+
+struct analysis_template_link
+{
+	char			name[SAVED_REPORT_NAME_LEN+3];			/**< The name as it appears in the menu (+3 for ellipsis...)	*/
+	int			template;					/**< Link to the associated report template.			*/
+};
+
 
 
 /* Report windows. */
@@ -73,13 +89,22 @@ static int			analysis_period_unit;
 static osbool			analysis_period_lock;
 static osbool			analysis_period_first = TRUE;
 
+/* Save/Rename Reports. */
 
+static wimp_w			analysis_save_window = NULL;			/**< The handle of the Save/Rename window.			*/
 
 static file_data *save_report_file = NULL;
 static report_data *save_report_report = NULL;
 static int save_report_template = NULL_TEMPLATE;
 
-static int save_report_mode = 0;
+static enum analysis_save_mode	analysis_save_mode = 0;
+
+
+/* Template List Menu. */
+
+static wimp_menu			*analysis_template_menu = NULL;		/**< The saved template menu block.				*/
+static struct analysis_template_link	*analysis_template_menu_link = NULL;	/**< Links for the template menu.				*/
+static char				*analysis_template_menu_title = NULL;	/**< The menu title buffer.					*/
 
 
 static trans_rep trans_rep_settings;
@@ -148,6 +173,35 @@ static int		analysis_account_idents_to_list(file_data *file, unsigned type, char
 static void		analysis_account_list_to_idents(file_data *file, char *list, acct_t *array, int len);
 
 
+
+
+static void		analysis_open_rename_window(file_data *file, int template, wimp_pointer *ptr);
+static void		analysis_save_click_handler(wimp_pointer *pointer);
+static osbool		analysis_save_keypress_handler(wimp_key *key);
+static void		analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void		analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+static void		analysis_save_menu_close_handler(wimp_w w, wimp_menu *menu);
+static void		analysis_refresh_save_window(void);
+static void		analysis_fill_save_window(report_data *report);
+static void		analysis_fill_rename_window(file_data *file, int template);
+static osbool		analysis_process_save_window(void);
+
+static int		analysis_template_menu_compare_entries(const void *va, const void *vb);
+
+
+
+
+
+
+
+
+static void		analysis_copy_transaction_template(trans_rep *to, trans_rep *from);
+static void		analysis_copy_unreconciled_template(unrec_rep *to, unrec_rep *from);
+static void		analysis_copy_cashflow_template(cashflow_rep *to, cashflow_rep *from);
+static void		analysis_copy_balance_template(balance_rep *to, balance_rep *from);
+
+
+
 /**
  * Initialise the Analysis module and all its dialogue boxes.
  */
@@ -186,7 +240,14 @@ void analysis_initialise(void)
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS);
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PYEARS);
 
-
+	analysis_save_window = templates_create_window("SaveRepTemp");
+	ihelp_add_window(analysis_save_window, "SaveRepTemp", NULL);
+	event_add_window_mouse_event(analysis_save_window, analysis_save_click_handler);
+	event_add_window_key_event(analysis_save_window, analysis_save_keypress_handler);
+	event_add_window_menu_prepare(analysis_save_window, analysis_save_menu_prepare_handler);
+	event_add_window_menu_selection(analysis_save_window, analysis_save_menu_selection_handler);
+	event_add_window_menu_close(analysis_save_window, analysis_save_menu_close_handler);
+	event_add_window_icon_popup(analysis_save_window, ANALYSIS_SAVE_NAMEPOPUP, NULL, -1);
 }
 
 
@@ -220,7 +281,7 @@ void analysis_open_transaction_window(file_data *file, wimp_pointer *ptr, int te
 	template_mode = (template >= 0 && template < file->saved_report_count);
 
 	if (template_mode) {
-		analysis_copy_trans_report_template(&(trans_rep_settings), &(file->saved_reports[template].data.transaction));
+		analysis_copy_transaction_template(&(trans_rep_settings), &(file->saved_reports[template].data.transaction));
 		trans_rep_template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_transaction_window), 50,
@@ -228,7 +289,7 @@ void analysis_open_transaction_window(file_data *file, wimp_pointer *ptr, int te
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_trans_report_template(&(trans_rep_settings), &(file->trans_rep));
+		analysis_copy_transaction_template(&(trans_rep_settings), &(file->trans_rep));
 		trans_rep_template = NULL_TEMPLATE;
 
 		msgs_lookup("TrnRepTitle", windows_get_indirected_title_addr(analysis_transaction_window), 40);
@@ -284,7 +345,7 @@ static void analysis_transaction_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_TRANS_RENAME:
 		if (pointer->buttons == wimp_CLICK_SELECT && trans_rep_template >= 0 && trans_rep_template < analysis_transaction_file->saved_report_count)
-			analysis_open_rename_report_window(analysis_transaction_file, trans_rep_template, pointer);
+			analysis_open_rename_window(analysis_transaction_file, trans_rep_template, pointer);
 		break;
 
 	case ANALYSIS_TRANS_BUDGET:
@@ -620,7 +681,7 @@ static void analysis_generate_transaction_report(file_data *file)
 
 	/* Open a new report for output. */
 
-	analysis_copy_trans_report_template(&(saved_report_template.data.transaction), &(file->trans_rep));
+	analysis_copy_transaction_template(&(saved_report_template.data.transaction), &(file->trans_rep));
 	if (trans_rep_template == NULL_TEMPLATE)
 		*(saved_report_template.name) = '\0';
 	else
@@ -894,7 +955,7 @@ void analysis_open_unreconciled_window(file_data *file, wimp_pointer *ptr, int t
 	template_mode = (template >= 0 && template < file->saved_report_count);
 
 	if (template_mode) {
-		analysis_copy_unrec_report_template(&(unrec_rep_settings), &(file->saved_reports[template].data.unreconciled));
+		analysis_copy_unreconciled_template(&(unrec_rep_settings), &(file->saved_reports[template].data.unreconciled));
 		unrec_rep_template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window), 50,
@@ -902,7 +963,7 @@ void analysis_open_unreconciled_window(file_data *file, wimp_pointer *ptr, int t
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_unrec_report_template(&(unrec_rep_settings), &(file->unrec_rep));
+		analysis_copy_unreconciled_template(&(unrec_rep_settings), &(file->unrec_rep));
 		unrec_rep_template = NULL_TEMPLATE;
 
 		msgs_lookup("UrcRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window), 40);
@@ -958,7 +1019,7 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_UNREC_RENAME:
 		if (pointer->buttons == wimp_CLICK_SELECT && unrec_rep_template >= 0 && unrec_rep_template < analysis_unreconciled_file->saved_report_count)
-			analysis_open_rename_report_window (analysis_unreconciled_file, unrec_rep_template, pointer);
+			analysis_open_rename_window (analysis_unreconciled_file, unrec_rep_template, pointer);
 		break;
 
 	case ANALYSIS_UNREC_BUDGET:
@@ -1269,7 +1330,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 
-	analysis_copy_unrec_report_template(&(saved_report_template.data.unreconciled), &(file->unrec_rep));
+	analysis_copy_unreconciled_template(&(saved_report_template.data.unreconciled), &(file->unrec_rep));
 	if (unrec_rep_template == NULL_TEMPLATE)
 		*(saved_report_template.name) = '\0';
 	else
@@ -1467,7 +1528,7 @@ void analysis_open_cashflow_window(file_data *file, wimp_pointer *ptr, int templ
 	template_mode = (template >= 0 && template < file->saved_report_count);
 
 	if (template_mode) {
-		analysis_copy_cashflow_report_template(&(cashflow_rep_settings), &(file->saved_reports[template].data.cashflow));
+		analysis_copy_cashflow_template(&(cashflow_rep_settings), &(file->saved_reports[template].data.cashflow));
 		cashflow_rep_template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window), 50,
@@ -1475,7 +1536,7 @@ void analysis_open_cashflow_window(file_data *file, wimp_pointer *ptr, int templ
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_cashflow_report_template(&(cashflow_rep_settings), &(file->cashflow_rep));
+		analysis_copy_cashflow_template(&(cashflow_rep_settings), &(file->cashflow_rep));
 		cashflow_rep_template = NULL_TEMPLATE;
 
 		msgs_lookup ("CflRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window), 40);
@@ -1531,7 +1592,7 @@ static void analysis_cashflow_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_CASHFLOW_RENAME:
 		if (pointer->buttons == wimp_CLICK_SELECT && cashflow_rep_template >= 0 && cashflow_rep_template < analysis_cashflow_file->saved_report_count)
-			analysis_open_rename_report_window(analysis_cashflow_file, cashflow_rep_template, pointer);
+			analysis_open_rename_window(analysis_cashflow_file, cashflow_rep_template, pointer);
 		break;
 
 	case ANALYSIS_CASHFLOW_BUDGET:
@@ -1852,7 +1913,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	/* Start to output the report details. */
 
-	analysis_copy_cashflow_report_template(&(saved_report_template.data.cashflow), &(file->cashflow_rep));
+	analysis_copy_cashflow_template(&(saved_report_template.data.cashflow), &(file->cashflow_rep));
 	if (cashflow_rep_template == NULL_TEMPLATE)
 		*(saved_report_template.name) = '\0';
 	else
@@ -2033,7 +2094,7 @@ void analysis_open_balance_window(file_data *file, wimp_pointer *ptr, int templa
 	template_mode = (template >= 0 && template < file->saved_report_count);
 
 	if (template_mode) {
-		analysis_copy_balance_report_template(&(balance_rep_settings), &(file->saved_reports[template].data.balance));
+		analysis_copy_balance_template(&(balance_rep_settings), &(file->saved_reports[template].data.balance));
 		balance_rep_template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_balance_window), 50,
@@ -2041,7 +2102,7 @@ void analysis_open_balance_window(file_data *file, wimp_pointer *ptr, int templa
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_balance_report_template (&(balance_rep_settings), &(file->balance_rep));
+		analysis_copy_balance_template (&(balance_rep_settings), &(file->balance_rep));
 		balance_rep_template = NULL_TEMPLATE;
 
 		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(analysis_balance_window), 40);
@@ -2097,7 +2158,7 @@ static void analysis_balance_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_BALANCE_RENAME:
 		if (pointer->buttons == wimp_CLICK_SELECT && balance_rep_template >= 0 && balance_rep_template < analysis_balance_file->saved_report_count)
-			analysis_open_rename_report_window(analysis_balance_file, balance_rep_template, pointer);
+			analysis_open_rename_window(analysis_balance_file, balance_rep_template, pointer);
 		break;
 
 	case ANALYSIS_BALANCE_BUDGET:
@@ -2412,7 +2473,7 @@ static void analysis_generate_balance_report(file_data *file)
 
 	/* Start to output the report details. */
 
-	analysis_copy_balance_report_template(&(saved_report_template.data.balance), &(file->balance_rep));
+	analysis_copy_balance_template(&(saved_report_template.data.balance), &(file->balance_rep));
 	if (balance_rep_template == NULL_TEMPLATE)
 		*(saved_report_template.name) = '\0';
 	else
@@ -2776,14 +2837,6 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 }
 
 
-
-
-
-
-
-
-
-
 /**
  * Remove an account from all of the report templates in a file (pending
  * deletion).
@@ -3126,235 +3179,468 @@ void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct
 }
 
 
-
-
-/* ==================================================================================================================
- * Saving and Renaming Report Templates via the GUI.
+/**
+ * Open the Save Template dialogue box.
+ *
+ * \param *report	The report to be saved into the template.
+ * \param *ptr		The current Wimp Pointer details.
  */
 
-void open_save_report_window (file_data *file, report_data *report, wimp_pointer *ptr)
+void analysis_open_save_window(report_data *report, wimp_pointer *ptr)
 {
-  extern global_windows windows;
+	/* If the window is already open, another report is being saved.  Assume the user wants to lose
+	 * any unsaved data and just close the window.
+	 *
+	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
+	 */
 
+	if (windows_get_open(analysis_save_window))
+		wimp_close_window(analysis_save_window);
 
-  /* If the window is already open, another report is being saved.  Assume the user wants to lose
-   * any unsaved data and just close the window.
-   *
-   * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-   */
+	/* Set the window contents up. */
 
-  if (windows_get_open (windows.save_rep))
-  {
-    wimp_close_window (windows.save_rep);
-  }
+	msgs_lookup("SaveRepTitle", windows_get_indirected_title_addr(analysis_save_window), 20);
+	msgs_lookup("SaveRepSave", icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_OK), 10);
 
-  /* Set the window contents up. */
+	/* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
+	 * can only be done via this dislogue.  In the (unlikely) event that the Save dialogue is open when the last
+	 * report is deleted, then the popup remains active but no memu will appear...
+	 */
 
-  msgs_lookup ("SaveRepTitle", windows_get_indirected_title_addr (windows.save_rep), 20);
-  msgs_lookup ("SaveRepSave", icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_OK), 10);
+	icons_set_shaded(analysis_save_window, ANALYSIS_SAVE_NAMEPOPUP, report->file->saved_report_count == 0);
 
-  /* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
-   * can only be done via this dislogue.  In the (unlikely) event that the Save dialogue is open when the last
-   * report is deleted, then the popup remains active but no memu will appear...
-   */
+	analysis_fill_save_window(report);
 
-  icons_set_shaded (windows.save_rep, ANALYSIS_SAVE_NAMEPOPUP, file->saved_report_count == 0);
+	ihelp_set_modifier(analysis_save_window, "Sav");
 
-  fill_save_report_window (report);
+	/* Set the pointers up so we can find this lot again and open the window. */
 
-  ihelp_set_modifier (windows.save_rep, "Sav");
+	save_report_file = report->file;
+	save_report_report = report;
+	analysis_save_mode = ANALYSIS_SAVE_MODE_SAVE;
 
-  /* Set the pointers up so we can find this lot again and open the window. */
-
-  save_report_file = file;
-  save_report_report = report;
-  save_report_mode = ANALYSIS_SAVE_MODE_SAVE;
-
-  windows_open_centred_at_pointer (windows.save_rep, ptr);
-  place_dialogue_caret_fallback (windows.save_rep, 1, ANALYSIS_SAVE_NAME);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void analysis_open_rename_report_window (file_data *file, int template, wimp_pointer *ptr)
-{
-  extern global_windows windows;
-
-
-  /* If the window is already open, another report is being saved.  Assume the user wants to lose
-   * any unsaved data and just close the window.
-   *
-   * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-   */
-
-  if (windows_get_open (windows.save_rep))
-  {
-    wimp_close_window (windows.save_rep);
-  }
-
-  /* Set the window contents up. */
-
-  msgs_lookup ("RenRepTitle", windows_get_indirected_title_addr (windows.save_rep), 20);
-  msgs_lookup ("RenRepRen", icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_OK), 10);
-
-  /* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
-   * can only be done via this dislogue.  In the (unlikely) event that the Save dialogue is open when the last
-   * report is deleted, then the popup remains active but no memu will appear...
-   */
-
-  icons_set_shaded (windows.save_rep, ANALYSIS_SAVE_NAMEPOPUP, file->saved_report_count == 0);
-
-  analysis_fill_rename_report_window (file, template);
-
-  ihelp_set_modifier (windows.save_rep, "Ren");
-
-  /* Set the pointers up so we can find this lot again and open the window. */
-
-  save_report_file = file;
-  save_report_template = template;
-  save_report_mode = ANALYSIS_SAVE_MODE_RENAME;
-
-  windows_open_centred_at_pointer (windows.save_rep, ptr);
-  place_dialogue_caret_fallback (windows.save_rep, 1, ANALYSIS_SAVE_NAME);
+	windows_open_centred_at_pointer(analysis_save_window, ptr);
+	place_dialogue_caret_fallback(analysis_save_window, 1, ANALYSIS_SAVE_NAME);
 }
 
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void refresh_save_report_window (void)
-{
-  extern global_windows windows;
-
-  switch (save_report_mode)
-  {
-    case ANALYSIS_SAVE_MODE_SAVE:
-      fill_save_report_window (save_report_report);
-      break;
-
-    case ANALYSIS_SAVE_MODE_RENAME:
-      analysis_fill_rename_report_window (save_report_file, save_report_template);
-      break;
-  }
-  icons_redraw_group (windows.save_rep, 1, ANALYSIS_SAVE_NAME);
-
-  icons_replace_caret_in_window (windows.save_rep);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void fill_save_report_window (report_data *report)
-{
-  extern global_windows windows;
-
-
-  /* Set the name icons. */
-
-  strcpy (icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_NAME), report->template.name);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void analysis_fill_rename_report_window (file_data *file, int template)
-{
-  extern global_windows windows;
-
-
-  /* Set the name icons. */
-
-  strcpy (icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_NAME), file->saved_reports[template].name);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Process OK clicks in the save report window.  If it is a real save, pass the call on to the store saved report
- * function.  If it is a rename, handle it directly here.
+/**
+ * Open the Rename Template dialogue box.
+ *
+ * \param *file		The file owning the template.
+ * \param template	The template to be renamed.
+ * \param *ptr		The current Wimp Pointer details.
  */
 
-int process_save_report_window (void)
+static void analysis_open_rename_window(file_data *file, int template, wimp_pointer *ptr)
 {
-  int                   template;
-  wimp_w                w;
+	/* If the window is already open, another report is being saved.  Assume the user wants to lose
+	 * any unsaved data and just close the window.
+	 *
+	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
+	 */
 
+	if (windows_get_open(analysis_save_window))
+		wimp_close_window(analysis_save_window);
 
-  extern global_windows windows;
+	/* Set the window contents up. */
 
-  if (*icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_NAME) == '\0')
-  {
-    return (1);
-  }
+	msgs_lookup ("RenRepTitle", windows_get_indirected_title_addr(analysis_save_window), 20);
+	msgs_lookup ("RenRepRen", icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_OK), 10);
 
-  template = analysis_find_saved_report_template_from_name (save_report_file,
-                   icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_NAME));
+	/* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
+	 * can only be done via this dislogue.  In the (unlikely) event that the Save dialogue is open when the last
+	 * report is deleted, then the popup remains active but no memu will appear...
+	 */
 
-  switch(save_report_mode)
-  {
-    case ANALYSIS_SAVE_MODE_SAVE:
-      if (template != NULL_TEMPLATE && error_msgs_report_question ("CheckTempOvr", "CheckTempOvrB") == 2)
-      {
-        return (1);
-      }
+	icons_set_shaded(analysis_save_window, ANALYSIS_SAVE_NAMEPOPUP, file->saved_report_count == 0);
 
-      strcpy(save_report_report->template.name, icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_NAME));
+	analysis_fill_rename_window(file, template);
 
-      analysis_store_saved_report_template (save_report_file, &(save_report_report->template), template);
-      break;
+	ihelp_set_modifier(analysis_save_window, "Ren");
 
-    case ANALYSIS_SAVE_MODE_RENAME:
-      if (save_report_template != NULL_TEMPLATE)
-      {
-        if (template != NULL_TEMPLATE && template != save_report_template)
-        {
-          error_msgs_report_error ("TempExists");
-          return (1);
-        }
+	/* Set the pointers up so we can find this lot again and open the window. */
 
-        strcpy(save_report_file->saved_reports[save_report_template].name,
-               icons_get_indirected_text_addr (windows.save_rep, ANALYSIS_SAVE_NAME));
+	save_report_file = file;
+	save_report_template = template;
+	analysis_save_mode = ANALYSIS_SAVE_MODE_RENAME;
 
-        /* Update the window title of the parent report dialogue. */
-
-        switch (save_report_file->saved_reports[save_report_template].type)
-        {
-          case REPORT_TYPE_TRANS:
-            w = analysis_transaction_window;
-            break;
-          case REPORT_TYPE_UNREC:
-            w = analysis_unreconciled_window;
-            break;
-          case REPORT_TYPE_CASHFLOW:
-            w = analysis_cashflow_window;
-            break;
-          case REPORT_TYPE_BALANCE:
-            w = analysis_balance_window;
-            break;
-          default:
-            w = NULL;
-            break;
-        }
-
-        if (w != NULL)
-        {
-          msgs_param_lookup ("GenRepTitle", windows_get_indirected_title_addr (w), 50,
-                             save_report_file->saved_reports[save_report_template].name, NULL, NULL, NULL);
-          xwimp_force_redraw_title (w); /* Nested Wimp only! */
-        }
-
-        /* Mark the file has being modified. */
-
-        set_file_data_integrity (save_report_file, 1);
-      }
-      break;
-  }
-
-  return (0);
+	windows_open_centred_at_pointer(analysis_save_window, ptr);
+	place_dialogue_caret_fallback(analysis_save_window, 1, ANALYSIS_SAVE_NAME);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_open_save_report_popup_menu (wimp_pointer *ptr)
+/**
+ * Process mouse clicks in the Save/Rename Report dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void analysis_save_click_handler(wimp_pointer *pointer)
 {
-  mainmenu_open_replist_menu (save_report_file, ptr);
+	switch (pointer->i) {
+	case ANALYSIS_SAVE_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_save_window);
+		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+			analysis_refresh_save_window();
+		}
+		break;
+
+	case ANALYSIS_SAVE_OK:
+		if (analysis_process_save_window() && pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(analysis_save_window);
+		}
+		break;
+	}
 }
+
+
+/**
+ * Process keypresses in the Save/Rename Report window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool analysis_save_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (analysis_process_save_window()) {
+			close_dialogue_with_caret(analysis_save_window);
+		}
+		break;
+
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(analysis_save_window);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Process menu prepare events in the Save/Rename Report window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *pointer	The pointer position, or NULL for a re-open.
+ */
+
+static void analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+{
+	wimp_menu	*template_menu;
+
+	template_menu = analysis_template_menu_build(save_report_file, TRUE);
+	event_set_menu_block(template_menu);
+	templates_set_menu(TEMPLATES_MENU_TEMPLATES, template_menu);
+}
+
+
+/**
+ * Process menu selection events in the Save/Rename Report window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *selection	The menu selection details.
+ */
+
+static void analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
+{
+	if (selection->items[0] == -1)
+		return;
+
+	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, analysis_template_menu_link[selection->items[0]].name);
+	icons_redraw_group(analysis_save_window, 1, ANALYSIS_SAVE_NAME);
+	icons_replace_caret_in_window(analysis_save_window);
+}
+
+
+/**
+ * Process menu close events in the Save/Rename Report window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ */
+
+static void analysis_save_menu_close_handler(wimp_w w, wimp_menu *menu)
+{
+	analysis_template_menu_destroy();
+}
+
+
+/**
+ * Refresh the contents of the current Save/Rename Report window.
+ */
+
+static void analysis_refresh_save_window(void)
+{
+	switch (analysis_save_mode) {
+	case ANALYSIS_SAVE_MODE_SAVE:
+		analysis_fill_save_window(save_report_report);
+		break;
+
+	case ANALYSIS_SAVE_MODE_RENAME:
+		analysis_fill_rename_window(save_report_file, save_report_template);
+		break;
+
+	default:
+		break;
+	}
+
+	icons_redraw_group(analysis_save_window, 1, ANALYSIS_SAVE_NAME);
+
+	icons_replace_caret_in_window(analysis_save_window);
+}
+
+
+/**
+ * Fill the Save Report Window with values.
+ *
+ * \param: *report		The report to be saved.
+ */
+
+static void analysis_fill_save_window(report_data *report)
+{
+	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, report->template.name);
+}
+
+
+/**
+ * Fill the Rename Template Window with values.
+ *
+ * \param: *file		The file containing the template.
+ * \param: template		The template to be renamed.
+ */
+
+static void analysis_fill_rename_window(file_data *file, int template)
+{
+	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, file->saved_reports[template].name);
+}
+
+
+/**
+ * Process OK clicks in the Save/Rename Template window.  If it is a real save,
+ * pass the call on to the store saved report function.  If it is a rename,
+ * handle it directly here.
+ */
+
+static osbool analysis_process_save_window(void)
+{
+	int		template;
+	wimp_w		w;
+
+	if (*icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME) == '\0')
+		return FALSE;
+
+	template = analysis_find_saved_report_template_from_name(save_report_file,
+			icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
+
+	switch (analysis_save_mode) {
+	case ANALYSIS_SAVE_MODE_SAVE:
+		if (template != NULL_TEMPLATE && error_msgs_report_question("CheckTempOvr", "CheckTempOvrB") == 2)
+			return FALSE;
+
+		strcpy(save_report_report->template.name, icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
+		analysis_store_saved_report_template(save_report_file, &(save_report_report->template), template);
+		break;
+
+	case ANALYSIS_SAVE_MODE_RENAME:
+		if (save_report_template != NULL_TEMPLATE) {
+			if (template != NULL_TEMPLATE && template != save_report_template) {
+				error_msgs_report_error("TempExists");
+				return FALSE;
+			}
+
+			strcpy(save_report_file->saved_reports[save_report_template].name,
+					icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
+
+			/* Update the window title of the parent report dialogue. */
+
+			switch (save_report_file->saved_reports[save_report_template].type) {
+			case REPORT_TYPE_TRANS:
+				w = analysis_transaction_window;
+				break;
+			case REPORT_TYPE_UNREC:
+				w = analysis_unreconciled_window;
+				break;
+			case REPORT_TYPE_CASHFLOW:
+				w = analysis_cashflow_window;
+				break;
+			case REPORT_TYPE_BALANCE:
+				w = analysis_balance_window;
+				break;
+			default:
+				w = NULL;
+				break;
+			}
+
+			if (w != NULL) {
+				msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(w), 50,
+						save_report_file->saved_reports[save_report_template].name, NULL, NULL, NULL);
+						xwimp_force_redraw_title(w); /* Nested Wimp only! */
+			}
+
+			/* Mark the file has being modified. */
+
+			set_file_data_integrity(save_report_file, 1);
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Build a Template List menu and return the pointer.
+ *
+ * \param *file			The file to build the menu for.
+ * \param standalone		TRUE if the menu is standalone; FALSE for part of
+ *				the main menu.
+ * \return			The created menu, or NULL for an error.
+ */
+
+wimp_menu *analysis_template_menu_build(file_data *file, osbool standalone)
+{
+	int	line, width;
+
+	/* Claim enough memory to build the menu in. */
+
+	analysis_template_menu_destroy();
+
+	if (file->saved_report_count > 0) {
+		analysis_template_menu = heap_alloc(28 + 24 * file->saved_report_count);
+		analysis_template_menu_link = heap_alloc(file->saved_report_count * sizeof(struct analysis_template_link));
+		analysis_template_menu_title = heap_alloc(ACCOUNT_MENU_TITLE_LEN);
+	}
+
+	if (analysis_template_menu == NULL || analysis_template_menu_link == NULL || analysis_template_menu_title == NULL) {
+		analysis_template_menu_destroy();
+		return NULL;
+	}
+
+	/* Populate the menu. */
+
+	width = 0;
+
+	for (line = 0; line < file->saved_report_count; line++) {
+		/* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
+		 * well move while the menu is open.  The account number is also stored, to allow the account to be found.
+		 */
+
+		strcpy(analysis_template_menu_link[line].name, file->saved_reports[line].name);
+		if (!standalone)
+			strcat(analysis_template_menu_link[line].name, "...");
+		analysis_template_menu_link[line].template = line;
+		if (strlen(analysis_template_menu_link[line].name) > width)
+			width = strlen(analysis_template_menu_link[line].name);
+	}
+
+	qsort(analysis_template_menu_link, line, sizeof(struct analysis_template_link), analysis_template_menu_compare_entries);
+
+	for (line = 0; line < file->saved_report_count; line++) {
+		/* Set the menu and icon flags up. */
+
+		analysis_template_menu->entries[line].menu_flags = 0;
+
+		analysis_template_menu->entries[line].sub_menu = (wimp_menu *) -1;
+		analysis_template_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
+				wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
+				wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
+
+		/* Set the menu icon contents up. */
+
+		analysis_template_menu->entries[line].data.indirected_text.text = analysis_template_menu_link[line].name;
+		analysis_template_menu->entries[line].data.indirected_text.validation = NULL;
+		analysis_template_menu->entries[line].data.indirected_text.size = ACCOUNT_NAME_LEN;
+
+		#ifdef DEBUG
+		debug_printf("Line %d: '%s'", line, analysis_template_menu_link[line].name);
+		#endif
+	}
+
+	analysis_template_menu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
+
+	msgs_lookup((standalone) ? "RepListMenuT2" : "RepListMenuT1", analysis_template_menu_title, ACCOUNT_MENU_TITLE_LEN);
+	analysis_template_menu->title_data.indirected_text.text = analysis_template_menu_title;
+	analysis_template_menu->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
+	analysis_template_menu->title_fg = wimp_COLOUR_BLACK;
+	analysis_template_menu->title_bg = wimp_COLOUR_LIGHT_GREY;
+	analysis_template_menu->work_fg = wimp_COLOUR_BLACK;
+	analysis_template_menu->work_bg = wimp_COLOUR_WHITE;
+
+	analysis_template_menu->width = (width + 1) * 16;
+	analysis_template_menu->height = 44;
+	analysis_template_menu->gap = 0;
+
+	return analysis_template_menu;
+}
+
+
+/**
+ * Destroy any Template List menu which is currently open.
+ */
+
+void analysis_template_menu_destroy(void)
+{
+	if (analysis_template_menu != NULL)
+		heap_free(analysis_template_menu);
+
+	if (analysis_template_menu_link != NULL)
+		heap_free(analysis_template_menu_link);
+
+	if (analysis_template_menu_title != NULL)
+		heap_free(analysis_template_menu_title);
+
+	analysis_template_menu = NULL;
+	analysis_template_menu_link = NULL;
+	analysis_template_menu_title = NULL;
+}
+
+
+/**
+ * Compare two Template List menu entries for the benefit of qsort().
+ *
+ * \param *va			The first item structure.
+ * \param *vb			The second item structure.
+ * \return			Comparison result.
+ */
+
+static int analysis_template_menu_compare_entries(const void *va, const void *vb)
+{
+	struct analysis_template_link *a = (struct analysis_template_link *) va;
+	struct analysis_template_link *b = (struct analysis_template_link *) vb;
+
+	return (string_nocase_strcmp(a->name, b->name));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ==================================================================================================================
  * Force the closure of the report format window if the file disappears.
@@ -3362,9 +3648,6 @@ void analysis_open_save_report_popup_menu (wimp_pointer *ptr)
 
 void force_close_report_windows (file_data *file)
 {
-  extern global_windows windows;
-
-
   if (analysis_transaction_file == file && windows_get_open (analysis_transaction_window))
   {
     close_dialogue_with_caret (analysis_transaction_window);
@@ -3385,9 +3668,9 @@ void force_close_report_windows (file_data *file)
     close_dialogue_with_caret (analysis_balance_window);
   }
 
-  if (save_report_file == file && windows_get_open (windows.save_rep))
+  if (save_report_file == file && windows_get_open (analysis_save_window))
   {
-    close_dialogue_with_caret (windows.save_rep);
+    close_dialogue_with_caret (analysis_save_window);
   }
 }
 
@@ -3395,13 +3678,10 @@ void force_close_report_windows (file_data *file)
 
 void analysis_force_close_report_save_window (file_data *file, report_data *report)
 {
-  extern global_windows windows;
-
-
-  if (save_report_mode == ANALYSIS_SAVE_MODE_SAVE &&
-      save_report_file == file && save_report_report == report && windows_get_open (windows.save_rep))
+  if (analysis_save_mode == ANALYSIS_SAVE_MODE_SAVE &&
+      save_report_file == file && save_report_report == report && windows_get_open (analysis_save_window))
   {
-    close_dialogue_with_caret (windows.save_rep);
+    close_dialogue_with_caret (analysis_save_window);
   }
 }
 
@@ -3409,11 +3689,8 @@ void analysis_force_close_report_save_window (file_data *file, report_data *repo
 
 void analysis_force_close_report_rename_window (wimp_w window)
 {
-  extern global_windows windows;
-
-
-  if (windows_get_open (windows.save_rep) &&
-      save_report_mode == ANALYSIS_SAVE_MODE_RENAME && save_report_template != NULL_TEMPLATE)
+  if (windows_get_open (analysis_save_window) &&
+      analysis_save_mode == ANALYSIS_SAVE_MODE_RENAME && save_report_template != NULL_TEMPLATE)
   {
     if ((window == analysis_transaction_window &&
          save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_TRANS) ||
@@ -3424,7 +3701,7 @@ void analysis_force_close_report_rename_window (wimp_w window)
         (window == analysis_balance_window &&
          save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_BALANCE))
     {
-      close_dialogue_with_caret (windows.save_rep);
+      close_dialogue_with_caret (analysis_save_window);
     }
   }
 }
@@ -3435,8 +3712,15 @@ void analysis_force_close_report_rename_window (wimp_w window)
 
 /* Open a report from a saved template. */
 
-void analysis_open_saved_report_dialogue(file_data *file, wimp_pointer *ptr, int template)
+void analysis_open_saved_report_dialogue(file_data *file, wimp_pointer *ptr, int selection)
 {
+	int template;
+
+	if (analysis_template_menu_link == NULL || selection < 0 || selection >= file->saved_report_count)
+		return;
+
+	template = analysis_template_menu_link[selection].template;
+
   if (template >= 0 && template < file->saved_report_count)
   {
     switch (file->saved_reports[template].type)
@@ -3500,7 +3784,7 @@ void analysis_store_saved_report_template (file_data *file, saved_report *report
 
   if (number >= 0 && number < file->saved_report_count)
   {
-    analysis_copy_saved_report_template(&(file->saved_reports[number]), report);
+    analysis_copy_template(&(file->saved_reports[number]), report);
     set_file_data_integrity (file, 1);
   }
 }
@@ -3510,9 +3794,6 @@ void analysis_store_saved_report_template (file_data *file, saved_report *report
 void analysis_delete_saved_report_template (file_data *file, int template)
 {
   int type;
-
-  extern global_windows windows;
-
 
   /* delete the specified template. */
 
@@ -3528,10 +3809,10 @@ void analysis_delete_saved_report_template (file_data *file, int template)
 
     /* If the rename template window is open for this template, close it now before the pointer is lost. */
 
-    if (windows_get_open (windows.save_rep) && save_report_mode == ANALYSIS_SAVE_MODE_RENAME &&
+    if (windows_get_open (analysis_save_window) && analysis_save_mode == ANALYSIS_SAVE_MODE_RENAME &&
         template == save_report_template)
     {
-      close_dialogue_with_caret (windows.save_rep);
+      close_dialogue_with_caret (analysis_save_window);
     }
 
     /* Now adjust any other template pointers, which may be pointing further up the array.
@@ -3566,181 +3847,203 @@ void analysis_delete_saved_report_template (file_data *file, int template)
   }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Copy a saved report template from one place to another. */
 
-void analysis_copy_saved_report_template(saved_report *to, saved_report *from)
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Copy a Report Template from one structure to another.
+ *
+ * \param *to			The template structure to take the copy.
+ * \param *from			The template to be copied.
+ */
+
+void analysis_copy_template(saved_report *to, saved_report *from)
 {
-  if (from != NULL && to != NULL)
-  {
-    strcpy (to->name, from->name);
-    to->type = from->type;
+	if (from == NULL || to == NULL)
+		return;
 
-    switch (from->type)
-    {
-      case REPORT_TYPE_TRANS:
-        analysis_copy_trans_report_template(&(to->data.transaction), &(from->data.transaction));
-        break;
+	strcpy(to->name, from->name);
+	to->type = from->type;
 
-      case REPORT_TYPE_UNREC:
-        analysis_copy_unrec_report_template(&(to->data.unreconciled), &(from->data.unreconciled));
-        break;
+	switch (from->type) {
+	case REPORT_TYPE_TRANS:
+		analysis_copy_transaction_template(&(to->data.transaction), &(from->data.transaction));
+		break;
 
-      case REPORT_TYPE_CASHFLOW:
-        analysis_copy_cashflow_report_template(&(to->data.cashflow), &(from->data.cashflow));
-        break;
+	case REPORT_TYPE_UNREC:
+		analysis_copy_unreconciled_template(&(to->data.unreconciled), &(from->data.unreconciled));
+		break;
 
-      case REPORT_TYPE_BALANCE:
-        analysis_copy_balance_report_template(&(to->data.balance), &(from->data.balance));
-        break;
+	case REPORT_TYPE_CASHFLOW:
+		analysis_copy_cashflow_template(&(to->data.cashflow), &(from->data.cashflow));
+		break;
 
-    }
-  }
+	case REPORT_TYPE_BALANCE:
+		analysis_copy_balance_template(&(to->data.balance), &(from->data.balance));
+		break;
+	}
 }
 
-/* ----------------------------------------------------------------------------------------------------------------- */
-/* Copy a transation report definition from one place to another. */
 
-void analysis_copy_trans_report_template(trans_rep *to, trans_rep *from)
+/**
+ * Copy a Transaction Report Template from one structure to another.
+ *
+ * \param *to			The template structure to take the copy.
+ * \param *from			The template to be copied.
+ */
+
+static void analysis_copy_transaction_template(trans_rep *to, trans_rep *from)
 {
-  int i;
+	int	i;
 
-  if (from != NULL && to != NULL)
-  {
-    to->date_from = from->date_from;
-    to->date_to = from->date_to;
-    to->budget = from->budget;
+	if (from == NULL || to == NULL)
+		return;
 
-    to->group = from->group;
-    to->period = from->period;
-    to->period_unit = from->period_unit;
-    to->lock = from->lock;
+	to->date_from = from->date_from;
+	to->date_to = from->date_to;
+	to->budget = from->budget;
 
-    to->from_count = from->from_count;
-    for (i=0; i<from->from_count; i++)
-    {
-      to->from[i] = from->from[i];
-    }
-    to->to_count = from->to_count;
-    for (i=0; i<from->to_count; i++)
-    {
-      to->to[i] = from->to[i];
-    }
-    strcpy (to->ref, from->ref);
-    strcpy (to->desc, from->desc);
-    to->amount_min = from->amount_min;
-    to->amount_max = from->amount_max;
+	to->group = from->group;
+	to->period = from->period;
+	to->period_unit = from->period_unit;
+	to->lock = from->lock;
 
-    to->output_trans = from->output_trans;
-    to->output_summary = from->output_summary;
-    to->output_accsummary = from->output_accsummary;
-  }
+	to->from_count = from->from_count;
+	for (i=0; i<from->from_count; i++)
+		to->from[i] = from->from[i];
+
+	to->to_count = from->to_count;
+	for (i=0; i<from->to_count; i++)
+		to->to[i] = from->to[i];
+
+	strcpy(to->ref, from->ref);
+	strcpy(to->desc, from->desc);
+	to->amount_min = from->amount_min;
+	to->amount_max = from->amount_max;
+
+	to->output_trans = from->output_trans;
+	to->output_summary = from->output_summary;
+	to->output_accsummary = from->output_accsummary;
 }
 
-/* ----------------------------------------------------------------------------------------------------------------- */
-/* Copy an unreconciled transaction report definition from one place to another. */
 
-void analysis_copy_unrec_report_template(unrec_rep *to, unrec_rep *from)
+/**
+ * Copy a Unreconciled Report Template from one structure to another.
+ *
+ * \param *to			The template structure to take the copy.
+ * \param *from			The template to be copied.
+ */
+
+static void analysis_copy_unreconciled_template(unrec_rep *to, unrec_rep *from)
 {
-  int i;
+	int	i;
 
-  if (from != NULL && to != NULL)
-  {
-    to->date_from = from->date_from;
-    to->date_to = from->date_to;
-    to->budget = from->budget;
+	if (from == NULL || to == NULL)
+		return;
 
-    to->group = from->group;
-    to->period = from->period;
-    to->period_unit = from->period_unit;
-    to->lock = from->lock;
+	to->date_from = from->date_from;
+	to->date_to = from->date_to;
+	to->budget = from->budget;
 
-    to->from_count = from->from_count;
-    for (i=0; i<from->from_count; i++)
-    {
-      to->from[i] = from->from[i];
-    }
-    to->to_count = from->to_count;
-    for (i=0; i<from->to_count; i++)
-    {
-      to->to[i] = from->to[i];
-    }
-  }
+	to->group = from->group;
+	to->period = from->period;
+	to->period_unit = from->period_unit;
+	to->lock = from->lock;
+
+	to->from_count = from->from_count;
+	for (i=0; i<from->from_count; i++)
+		to->from[i] = from->from[i];
+
+	to->to_count = from->to_count;
+	for (i=0; i<from->to_count; i++)
+		to->to[i] = from->to[i];
 }
 
-/* ----------------------------------------------------------------------------------------------------------------- */
-/* Copy a cashflow report definition from one place to another. */
 
-void analysis_copy_cashflow_report_template(cashflow_rep *to, cashflow_rep *from)
+/**
+ * Copy a Cashflow Report Template from one structure to another.
+ *
+ * \param *to			The template structure to take the copy.
+ * \param *from			The template to be copied.
+ */
+
+static void analysis_copy_cashflow_template(cashflow_rep *to, cashflow_rep *from)
 {
-  int i;
+	int	i;
 
-  if (from != NULL && to != NULL)
-  {
-    to->date_from = from->date_from;
-    to->date_to = from->date_to;
-    to->budget = from->budget;
+	if (from == NULL || to == NULL)
+		return;
 
-    to->group = from->group;
-    to->period = from->period;
-    to->period_unit = from->period_unit;
-    to->lock = from->lock;
-    to->empty = from->empty;
+	to->date_from = from->date_from;
+	to->date_to = from->date_to;
+	to->budget = from->budget;
 
-    to->accounts_count = from->accounts_count;
-    for (i=0; i<from->accounts_count; i++)
-    {
-      to->accounts[i] = from->accounts[i];
-    }
-    to->incoming_count = from->incoming_count;
-    for (i=0; i<from->incoming_count; i++)
-    {
-      to->incoming[i] = from->incoming[i];
-    }
-    to->outgoing_count = from->outgoing_count;
-    for (i=0; i<from->outgoing_count; i++)
-    {
-      to->outgoing[i] = from->outgoing[i];
-    }
+	to->group = from->group;
+	to->period = from->period;
+	to->period_unit = from->period_unit;
+	to->lock = from->lock;
+	to->empty = from->empty;
 
-    to->tabular = from->tabular;
-  }
+	to->accounts_count = from->accounts_count;
+	for (i=0; i<from->accounts_count; i++)
+		to->accounts[i] = from->accounts[i];
+
+	to->incoming_count = from->incoming_count;
+	for (i=0; i<from->incoming_count; i++)
+		to->incoming[i] = from->incoming[i];
+
+	to->outgoing_count = from->outgoing_count;
+	for (i=0; i<from->outgoing_count; i++)
+		to->outgoing[i] = from->outgoing[i];
+
+	to->tabular = from->tabular;
 }
 
-/* ----------------------------------------------------------------------------------------------------------------- */
-/* Copy a balance report definition from one place to another. */
 
-void analysis_copy_balance_report_template(balance_rep *to, balance_rep *from)
+/**
+ * Copy a Balance Report Template from one structure to another.
+ *
+ * \param *to			The template structure to take the copy.
+ * \param *from			The template to be copied.
+ */
+
+static void analysis_copy_balance_template(balance_rep *to, balance_rep *from)
 {
-  int i;
+	int	i;
 
-  if (from != NULL && to != NULL)
-  {
-    to->date_from = from->date_from;
-    to->date_to = from->date_to;
-    to->budget = from->budget;
+	if (from == NULL || to == NULL)
+		return;
 
-    to->group = from->group;
-    to->period = from->period;
-    to->period_unit = from->period_unit;
-    to->lock = from->lock;
+	to->date_from = from->date_from;
+	to->date_to = from->date_to;
+	to->budget = from->budget;
 
-    to->accounts_count = from->accounts_count;
-    for (i=0; i<from->accounts_count; i++)
-    {
-      to->accounts[i] = from->accounts[i];
-    }
-    to->incoming_count = from->incoming_count;
-    for (i=0; i<from->incoming_count; i++)
-    {
-      to->incoming[i] = from->incoming[i];
-    }
-    to->outgoing_count = from->outgoing_count;
-    for (i=0; i<from->outgoing_count; i++)
-    {
-      to->outgoing[i] = from->outgoing[i];
-    }
+	to->group = from->group;
+	to->period = from->period;
+	to->period_unit = from->period_unit;
+	to->lock = from->lock;
 
-    to->tabular = from->tabular;
-  }
+	to->accounts_count = from->accounts_count;
+	for (i=0; i<from->accounts_count; i++)
+		to->accounts[i] = from->accounts[i];
+	to->incoming_count = from->incoming_count;
+
+	for (i=0; i<from->incoming_count; i++)
+		to->incoming[i] = from->incoming[i];
+
+	to->outgoing_count = from->outgoing_count;
+	for (i=0; i<from->outgoing_count; i++)
+		to->outgoing[i] = from->outgoing[i];
+
+	to->tabular = from->tabular;
 }
+

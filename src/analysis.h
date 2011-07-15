@@ -135,10 +135,6 @@
 #define ANALYSIS_SAVE_NAME 1
 #define ANALYSIS_SAVE_NAMEPOPUP 2
 
-/* Save Report Dialoge Modes */
-
-#define ANALYSIS_SAVE_MODE_SAVE   1
-#define ANALYSIS_SAVE_MODE_RENAME 2
 
 
 /**
@@ -245,6 +241,33 @@ int analysis_account_hex_to_list(file_data *file, char *list, acct_t *array);
 void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct_t *array, int len);
 
 
+/**
+ * Open the Save Template dialogue box.
+ *
+ * \param *report	The report to be saved into the template.
+ * \param *ptr		The current Wimp Pointer details.
+ */
+
+void analysis_open_save_window(report_data *report, wimp_pointer *ptr);
+
+
+/**
+ * Build a Template List menu and return the pointer.
+ *
+ * \param *file			The file to build the menu for.
+ * \param standalone		TRUE if the menu is standalone; FALSE for part of
+ *				the main menu.
+ * \return			The created menu, or NULL for an error.
+ */
+
+wimp_menu *analysis_template_menu_build(file_data *file, osbool standalone);
+
+
+/**
+ * Destroy any Template List menu which is currently open.
+ */
+
+void analysis_template_menu_destroy(void);
 
 
 
@@ -253,15 +276,7 @@ void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct
 
 
 
-/* Saving and Renaming Report Templates via the GUI. */
 
-void open_save_report_window (file_data *file, report_data *report, wimp_pointer *ptr);
-void analysis_open_rename_report_window (file_data *file, int template, wimp_pointer *ptr);
-void refresh_save_report_window (void);
-void fill_save_report_window (report_data *report);
-void analysis_fill_rename_report_window (file_data *file, int template);
-int process_save_report_window (void);
-void analysis_open_save_report_popup_menu (wimp_pointer *ptr);
 
 /* Force the closure of the report format windows if the file disappears. */
 
@@ -275,10 +290,19 @@ void analysis_open_saved_report_dialogue(file_data *file, wimp_pointer *ptr, int
 int analysis_find_saved_report_template_from_name (file_data *file, char *name);
 void analysis_store_saved_report_template (file_data *file, saved_report *report, int number);
 void analysis_delete_saved_report_template (file_data *file, int template);
-void analysis_copy_saved_report_template(saved_report *to, saved_report *from);
-void analysis_copy_trans_report_template(trans_rep *to, trans_rep *from);
-void analysis_copy_unrec_report_template(unrec_rep *to, unrec_rep *from);
-void analysis_copy_cashflow_report_template(cashflow_rep *to, cashflow_rep *from);
-void analysis_copy_balance_report_template(balance_rep *to, balance_rep *from);
+
+
+
+
+
+/**
+ * Copy a Report Template from one structure to another.
+ *
+ * \param *to			The template structure to take the copy.
+ * \param *from			The template to be copied.
+ */
+
+void analysis_copy_template(saved_report *to, saved_report *from);
 
 #endif
+

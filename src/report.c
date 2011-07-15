@@ -221,7 +221,7 @@ report_data *report_open(file_data *file, char *title, saved_report *template)
 		new->flags |= REPORT_STATUS_MEMERR;
 
 	if (template != NULL)
-		analysis_copy_saved_report_template(&(new->template), template);
+		analysis_copy_template(&(new->template), template);
 	else
 		new->template.type = REPORT_TYPE_NONE;
 
@@ -876,7 +876,7 @@ static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 		break;
 
 	case REPVIEW_MENU_TEMPLATE:
-		open_save_report_window(report->file, report, &pointer);
+		analysis_open_save_window(report, &pointer);
 		break;
 	}
 }

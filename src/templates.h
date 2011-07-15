@@ -25,6 +25,7 @@ enum templates_menus {
 	TEMPLATES_MENU_PRESET,							/**< The transaction preset window menu.	*/
 	TEMPLATES_MENU_REPORT,							/**< The report window menu.			*/
 	TEMPLATES_MENU_FONTS,							/**< The fonts menu (built on the fly).		*/
+	TEMPLATES_MENU_TEMPLATES,						/**< The templates menu (built on the fly).	*/
 	TEMPLATES_MENU_MAX_EXTENT						/**< Determine the number of entries.		*/
 };
 

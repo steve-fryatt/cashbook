@@ -27,6 +27,9 @@ wimp_menu *fontlist_build(void)
 {
 	int	size1, size2;
 
+	if (fontlist_menu != NULL || fontlist_indirection != NULL)
+		fontlist_destroy();
+
 	font_list_fonts(0, font_RETURN_FONT_MENU, 0, 0, 0, 0, &size1, &size2);
 
 	fontlist_menu = heap_alloc(size1);

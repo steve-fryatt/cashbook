@@ -419,7 +419,7 @@ void delete_file (file_data *file)
   budget_force_window_closed(file);
   report_force_format_windows_closed(file);
   printing_force_windows_closed(file);
-  force_close_report_windows (file);
+  analysis_force_windows_closed(file);
   purge_force_window_closed(file);
   force_close_transaction_sort_window (file);
   force_close_accview_sort_window (file);

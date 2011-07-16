@@ -270,29 +270,35 @@ wimp_menu *analysis_template_menu_build(file_data *file, osbool standalone);
 void analysis_template_menu_destroy(void);
 
 
+/**
+ * Force the closure of any Analysis windows which are open and relate
+ * to the given file.
+ *
+ * \param *file			The file data block of interest.
+ */
+
+void analysis_force_windows_closed(file_data *file);
 
 
+/**
+ * Force the closure of the Save Template window if it is open to save the
+ * given report.
+ *
+ * \param *report			The report of interest.
+ */
+
+void analysis_force_close_report_save_window(report_data *report);
 
 
+/* Open a report from a saved template, following its selection from the
+ * template list menu.
+ *
+ * \param *file			The file owning the template.
+ * \param *ptr			The Wimp pointer details.
+ * \param selection		The menu selection entry.
+ */
 
-
-
-
-/* Force the closure of the report format windows if the file disappears. */
-
-void force_close_report_windows (file_data *file);
-void analysis_force_close_report_save_window (file_data *file, report_data *report);
-void analysis_force_close_report_rename_window (wimp_w window);
-
-/* Saved template handling. */
-
-void analysis_open_saved_report_dialogue(file_data *file, wimp_pointer *ptr, int template);
-int analysis_find_saved_report_template_from_name (file_data *file, char *name);
-void analysis_store_saved_report_template (file_data *file, saved_report *report, int number);
-void analysis_delete_saved_report_template (file_data *file, int template);
-
-
-
+void analysis_open_template_from_menu(file_data *file, wimp_pointer *ptr, int selection);
 
 
 /**

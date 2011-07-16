@@ -48,11 +48,10 @@
 
 
 enum analysis_save_mode {
-	ANALYSIS_SAVE_MODE_NONE = 0,
-	ANALYSIS_SAVE_MODE_SAVE,
-	ANALYSIS_SAVE_MODE_RENAME
+	ANALYSIS_SAVE_MODE_NONE = 0,						/**< The Save/Rename dialogue isn't used.			*/
+	ANALYSIS_SAVE_MODE_SAVE,						/**< The Save/Rename dialogue is in Save mode.			*/
+	ANALYSIS_SAVE_MODE_RENAME						/**< The Save/Rename dialogue is in Rename mode.		*/
 };
-
 
 struct analysis_template_link
 {
@@ -60,25 +59,35 @@ struct analysis_template_link
 	int			template;					/**< Link to the associated report template.			*/
 };
 
-
-
 /* Report windows. */
 
 static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.		*/
 static file_data		*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.	*/
 static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.	*/
+static trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.	*/
+static int			analysis_transaction_template = NULL_TEMPLATE;	/**< The template which applies to the Transaction dialogue.	*/
 
 static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.		*/
 static file_data		*analysis_unreconciled_file = NULL;		/**< The file currently owning the unreconciled dialogue.	*/
 static osbool			analysis_unreconciled_restore = FALSE;		/**< The restore setting for the current Unreconciled dialogue.	*/
+static unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.	*/
+static int			analysis_unreconciled_template = NULL_TEMPLATE;	/**< The template which applies to the Unreconciled dialogue.	*/
 
 static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.			*/
 static file_data		*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.		*/
 static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.	*/
+static cashflow_rep		analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.		*/
+static int			analysis_cashflow_template = NULL_TEMPLATE;	/**< The template which applies to the Cashflow dialogue.	*/
 
 static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.			*/
 static file_data		*analysis_balance_file = NULL;			/**< The file currently owning the balance dialogue.		*/
 static osbool			analysis_balance_restore = FALSE;		/**< The restore setting for the current Balance dialogue.	*/
+static balance_rep		analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.		*/
+static int			analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.	*/
+
+static saved_report		analysis_report_template;			/**< New report settings for passing to the Report module.	*/
+
+static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a pointer to this to set all accounts.		*/
 
 /* Date period management. */
 
@@ -92,38 +101,16 @@ static osbool			analysis_period_first = TRUE;
 /* Save/Rename Reports. */
 
 static wimp_w			analysis_save_window = NULL;			/**< The handle of the Save/Rename window.			*/
-
-static file_data *save_report_file = NULL;
-static report_data *save_report_report = NULL;
-static int save_report_template = NULL_TEMPLATE;
-
-static enum analysis_save_mode	analysis_save_mode = 0;
-
+static file_data		*analysis_save_file = NULL;			/**< The file currently owning the Save/Rename window.		*/
+static report_data		*analysis_save_report = NULL;			/**< The report currently owning the Save/Rename window.	*/
+static int			analysis_save_template = NULL_TEMPLATE;		/**< The template currently owning the Save/Rename window.	*/
+static enum analysis_save_mode	analysis_save_mode = ANALYSIS_SAVE_MODE_NONE;	/**< The current mode of the Save/Rename window.		*/
 
 /* Template List Menu. */
 
 static wimp_menu			*analysis_template_menu = NULL;		/**< The saved template menu block.				*/
 static struct analysis_template_link	*analysis_template_menu_link = NULL;	/**< Links for the template menu.				*/
 static char				*analysis_template_menu_title = NULL;	/**< The menu title buffer.					*/
-
-
-static trans_rep trans_rep_settings;
-static unrec_rep unrec_rep_settings;
-static cashflow_rep cashflow_rep_settings;
-static balance_rep balance_rep_settings;
-
-static int trans_rep_template = NULL_TEMPLATE;
-static int unrec_rep_template = NULL_TEMPLATE;
-static int cashflow_rep_template = NULL_TEMPLATE;
-static int balance_rep_template = NULL_TEMPLATE;
-
-static saved_report saved_report_template;
-
-static acct_t wildcard_account_list = NULL_ACCOUNT; /* Pass a pointer to this to set all accounts. */
-
-
-
-
 
 
 
@@ -163,17 +150,11 @@ static void		analysis_find_date_range(file_data *file, date_t *start_date, date_
 static void		analysis_initialise_date_period(date_t start, date_t end, int period, int unit, osbool lock);
 static osbool		analysis_get_next_date_period(date_t *next_start, date_t *next_end, char *date_text, size_t date_len);
 
-
-
-
 static int		analysis_remove_account_from_list(file_data *file, acct_t account, acct_t *array, int *count);
 static void		analysis_clear_account_report_flags(file_data *file);
 static void		analysis_set_account_report_flags_from_list(file_data *file, unsigned type, unsigned flags, acct_t *array, int count);
 static int		analysis_account_idents_to_list(file_data *file, unsigned type, char *list, acct_t *array);
 static void		analysis_account_list_to_idents(file_data *file, char *list, acct_t *array, int len);
-
-
-
 
 static void		analysis_open_rename_window(file_data *file, int template, wimp_pointer *ptr);
 static void		analysis_save_click_handler(wimp_pointer *pointer);
@@ -188,12 +169,11 @@ static osbool		analysis_process_save_window(void);
 
 static int		analysis_template_menu_compare_entries(const void *va, const void *vb);
 
+static void		analysis_force_close_report_rename_window(wimp_w window);
 
-
-
-
-
-
+static int		analysis_get_template_from_name(file_data *file, char *name);
+static void		analysis_store_template(file_data *file, saved_report *report, int template);
+static void		analysis_delete_template(file_data *file, int template);
 
 static void		analysis_copy_transaction_template(trans_rep *to, trans_rep *from);
 static void		analysis_copy_unreconciled_template(unrec_rep *to, unrec_rep *from);
@@ -281,16 +261,16 @@ void analysis_open_transaction_window(file_data *file, wimp_pointer *ptr, int te
 	template_mode = (template >= 0 && template < file->saved_report_count);
 
 	if (template_mode) {
-		analysis_copy_transaction_template(&(trans_rep_settings), &(file->saved_reports[template].data.transaction));
-		trans_rep_template = template;
+		analysis_copy_transaction_template(&(analysis_transaction_settings), &(file->saved_reports[template].data.transaction));
+		analysis_transaction_template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_transaction_window), 50,
 				file->saved_reports[template].name, NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_transaction_template(&(trans_rep_settings), &(file->trans_rep));
-		trans_rep_template = NULL_TEMPLATE;
+		analysis_copy_transaction_template(&(analysis_transaction_settings), &(file->trans_rep));
+		analysis_transaction_template = NULL_TEMPLATE;
 
 		msgs_lookup("TrnRepTitle", windows_get_indirected_title_addr(analysis_transaction_window), 40);
 	}
@@ -344,8 +324,8 @@ static void analysis_transaction_click_handler(wimp_pointer *pointer)
 		break;
 
 	case ANALYSIS_TRANS_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && trans_rep_template >= 0 && trans_rep_template < analysis_transaction_file->saved_report_count)
-			analysis_open_rename_window(analysis_transaction_file, trans_rep_template, pointer);
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_transaction_template >= 0 && analysis_transaction_template < analysis_transaction_file->saved_report_count)
+			analysis_open_rename_window(analysis_transaction_file, analysis_transaction_template, pointer);
 		break;
 
 	case ANALYSIS_TRANS_BUDGET:
@@ -480,41 +460,41 @@ static void analysis_fill_transaction_window(file_data *file, osbool restore)
 	} else {
 		/* Set the period icons. */
 
-		convert_date_to_string(trans_rep_settings.date_from,
+		convert_date_to_string(analysis_transaction_settings.date_from,
 				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM));
-		convert_date_to_string(trans_rep_settings.date_to,
+		convert_date_to_string(analysis_transaction_settings.date_to,
 				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATETO));
 
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_BUDGET, trans_rep_settings.budget);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_BUDGET, analysis_transaction_settings.budget);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_GROUP, trans_rep_settings.group);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_GROUP, analysis_transaction_settings.group);
 
-		icons_printf(analysis_transaction_window, ANALYSIS_TRANS_PERIOD, "%d", trans_rep_settings.period);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, trans_rep_settings.period_unit == PERIOD_DAYS);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, trans_rep_settings.period_unit == PERIOD_MONTHS);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, trans_rep_settings.period_unit == PERIOD_YEARS);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_LOCK, trans_rep_settings.lock);
+		icons_printf(analysis_transaction_window, ANALYSIS_TRANS_PERIOD, "%d", analysis_transaction_settings.period);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, analysis_transaction_settings.period_unit == PERIOD_DAYS);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, analysis_transaction_settings.period_unit == PERIOD_MONTHS);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, analysis_transaction_settings.period_unit == PERIOD_YEARS);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_LOCK, analysis_transaction_settings.lock);
 
 		/* Set the include icons. */
 
 		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC),
-				trans_rep_settings.from, trans_rep_settings.from_count);
+				analysis_transaction_settings.from, analysis_transaction_settings.from_count);
 		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
-				trans_rep_settings.to, trans_rep_settings.to_count);
-		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_REFSPEC, trans_rep_settings.ref);
-		convert_money_to_string(trans_rep_settings.amount_min,
+				analysis_transaction_settings.to, analysis_transaction_settings.to_count);
+		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_REFSPEC, analysis_transaction_settings.ref);
+		convert_money_to_string(analysis_transaction_settings.amount_min,
 				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC));
-		convert_money_to_string(trans_rep_settings.amount_max,
+		convert_money_to_string(analysis_transaction_settings.amount_max,
 				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC));
-		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC, trans_rep_settings.desc);
+		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC, analysis_transaction_settings.desc);
 
 		/* Set the output icons. */
 
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPTRANS, trans_rep_settings.output_trans);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY, trans_rep_settings.output_summary);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY, trans_rep_settings.output_accsummary);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPTRANS, analysis_transaction_settings.output_trans);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY, analysis_transaction_settings.output_summary);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY, analysis_transaction_settings.output_accsummary);
 	}
 
 	icons_set_group_shaded_when_on(analysis_transaction_window, ANALYSIS_TRANS_BUDGET, 4,
@@ -604,10 +584,10 @@ static osbool analysis_process_transaction_window(void)
 
 static osbool analysis_delete_transaction_window(void)
 {
-	if (trans_rep_template >= 0 && trans_rep_template < analysis_transaction_file->saved_report_count &&
+	if (analysis_transaction_template >= 0 && analysis_transaction_template < analysis_transaction_file->saved_report_count &&
 			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 1) {
-		analysis_delete_saved_report_template(analysis_transaction_file, trans_rep_template);
-		trans_rep_template = NULL_TEMPLATE;
+		analysis_delete_template(analysis_transaction_file, analysis_transaction_template);
+		analysis_transaction_template = NULL_TEMPLATE;
 
 		return TRUE;
 	} else {
@@ -657,9 +637,9 @@ static void analysis_generate_transaction_report(file_data *file)
 
 	if (file->trans_rep.from_count == 0 && file->trans_rep.to_count == 0) {
 		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
-				&wildcard_account_list, 1);
+				&analysis_wildcard_account_list, 1);
 		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
-				&wildcard_account_list, 1);
+				&analysis_wildcard_account_list, 1);
 	} else {
 		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
 				file->trans_rep.from, file->trans_rep.from_count);
@@ -681,15 +661,15 @@ static void analysis_generate_transaction_report(file_data *file)
 
 	/* Open a new report for output. */
 
-	analysis_copy_transaction_template(&(saved_report_template.data.transaction), &(file->trans_rep));
-	if (trans_rep_template == NULL_TEMPLATE)
-		*(saved_report_template.name) = '\0';
+	analysis_copy_transaction_template(&(analysis_report_template.data.transaction), &(file->trans_rep));
+	if (analysis_transaction_template == NULL_TEMPLATE)
+		*(analysis_report_template.name) = '\0';
 	else
-		strcpy(saved_report_template.name, file->saved_reports[trans_rep_template].name);
-	saved_report_template.type = REPORT_TYPE_TRANS;
+		strcpy(analysis_report_template.name, file->saved_reports[analysis_transaction_template].name);
+	analysis_report_template.type = REPORT_TYPE_TRANS;
 
 	msgs_lookup("TRWinT", line, sizeof (line));
-	report = report_open(file, line, &saved_report_template);
+	report = report_open(file, line, &analysis_report_template);
 
 	if (report == NULL) {
 		hourglass_off();
@@ -699,8 +679,8 @@ static void analysis_generate_transaction_report(file_data *file)
 	/* Output report heading */
 
 	 make_file_leafname(file, b1, sizeof(b1));
-	if (*saved_report_template.name != '\0')
-		msgs_param_lookup("GRTitle", line, sizeof(line), saved_report_template.name, b1, NULL, NULL);
+	if (*analysis_report_template.name != '\0')
+		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
 	else
 		msgs_param_lookup("TRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
@@ -955,16 +935,16 @@ void analysis_open_unreconciled_window(file_data *file, wimp_pointer *ptr, int t
 	template_mode = (template >= 0 && template < file->saved_report_count);
 
 	if (template_mode) {
-		analysis_copy_unreconciled_template(&(unrec_rep_settings), &(file->saved_reports[template].data.unreconciled));
-		unrec_rep_template = template;
+		analysis_copy_unreconciled_template(&(analysis_unreconciled_settings), &(file->saved_reports[template].data.unreconciled));
+		analysis_unreconciled_template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window), 50,
 				file->saved_reports[template].name, NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_unreconciled_template(&(unrec_rep_settings), &(file->unrec_rep));
-		unrec_rep_template = NULL_TEMPLATE;
+		analysis_copy_unreconciled_template(&(analysis_unreconciled_settings), &(file->unrec_rep));
+		analysis_unreconciled_template = NULL_TEMPLATE;
 
 		msgs_lookup("UrcRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window), 40);
 	}
@@ -1018,8 +998,8 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 		break;
 
 	case ANALYSIS_UNREC_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && unrec_rep_template >= 0 && unrec_rep_template < analysis_unreconciled_file->saved_report_count)
-			analysis_open_rename_window (analysis_unreconciled_file, unrec_rep_template, pointer);
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_unreconciled_template >= 0 && analysis_unreconciled_template < analysis_unreconciled_file->saved_report_count)
+			analysis_open_rename_window (analysis_unreconciled_file, analysis_unreconciled_template, pointer);
 		break;
 
 	case ANALYSIS_UNREC_BUDGET:
@@ -1163,34 +1143,34 @@ static void analysis_fill_unreconciled_window(file_data *file, osbool restore)
 	} else {
 		/* Set the period icons. */
 
-		convert_date_to_string(unrec_rep_settings.date_from,
+		convert_date_to_string(analysis_unreconciled_settings.date_from,
 				icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM));
-		convert_date_to_string(unrec_rep_settings.date_to,
+		convert_date_to_string(analysis_unreconciled_settings.date_to,
 				icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO));
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, unrec_rep_settings.budget);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, analysis_unreconciled_settings.budget);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, unrec_rep_settings.group);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, analysis_unreconciled_settings.group);
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, unrec_rep_settings.period_unit == PERIOD_NONE);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, unrec_rep_settings.period_unit != PERIOD_NONE);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, analysis_unreconciled_settings.period_unit == PERIOD_NONE);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, analysis_unreconciled_settings.period_unit != PERIOD_NONE);
 
-		icons_printf(analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD, "%d", unrec_rep_settings.period);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, unrec_rep_settings.period_unit == PERIOD_DAYS);
+		icons_printf(analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD, "%d", analysis_unreconciled_settings.period);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, analysis_unreconciled_settings.period_unit == PERIOD_DAYS);
 		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS,
-				unrec_rep_settings.period_unit == PERIOD_MONTHS ||
-				unrec_rep_settings.period_unit == PERIOD_NONE);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, unrec_rep_settings.period_unit == PERIOD_YEARS);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_LOCK, unrec_rep_settings.lock);
+				analysis_unreconciled_settings.period_unit == PERIOD_MONTHS ||
+				analysis_unreconciled_settings.period_unit == PERIOD_NONE);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, analysis_unreconciled_settings.period_unit == PERIOD_YEARS);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_LOCK, analysis_unreconciled_settings.lock);
 
 		/* Set the from and to spec fields. */
 
 		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC),
-				unrec_rep_settings.from, unrec_rep_settings.from_count);
+				analysis_unreconciled_settings.from, analysis_unreconciled_settings.from_count);
 		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC),
-				unrec_rep_settings.to, unrec_rep_settings.to_count);
+				analysis_unreconciled_settings.to, analysis_unreconciled_settings.to_count);
 	}
 
 	icons_set_group_shaded_when_on(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, 4,
@@ -1271,10 +1251,10 @@ static osbool analysis_process_unreconciled_window(void)
 
 static osbool analysis_delete_unreconciled_window(void)
 {
-	if (unrec_rep_template >= 0 && unrec_rep_template < analysis_unreconciled_file->saved_report_count &&
+	if (analysis_unreconciled_template >= 0 && analysis_unreconciled_template < analysis_unreconciled_file->saved_report_count &&
 			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 1) {
-		analysis_delete_saved_report_template(analysis_unreconciled_file, unrec_rep_template);
-		unrec_rep_template = NULL_TEMPLATE;
+		analysis_delete_template(analysis_unreconciled_file, analysis_unreconciled_template);
+		analysis_unreconciled_template = NULL_TEMPLATE;
 
 		return TRUE;
 	} else {
@@ -1319,8 +1299,8 @@ static void analysis_generate_unreconciled_report(file_data *file)
 	analysis_clear_account_report_flags(file);
 
 	if (file->unrec_rep.from_count == 0 && file->unrec_rep.to_count == 0) {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, &wildcard_account_list, 1);
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, &wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, &analysis_wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, &analysis_wildcard_account_list, 1);
 	} else {
 		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, file->unrec_rep.from, file->unrec_rep.from_count);
 		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, file->unrec_rep.to, file->unrec_rep.to_count);
@@ -1330,15 +1310,15 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 
-	analysis_copy_unreconciled_template(&(saved_report_template.data.unreconciled), &(file->unrec_rep));
-	if (unrec_rep_template == NULL_TEMPLATE)
-		*(saved_report_template.name) = '\0';
+	analysis_copy_unreconciled_template(&(analysis_report_template.data.unreconciled), &(file->unrec_rep));
+	if (analysis_unreconciled_template == NULL_TEMPLATE)
+		*(analysis_report_template.name) = '\0';
 	else
-		strcpy(saved_report_template.name, file->saved_reports[unrec_rep_template].name);
-	saved_report_template.type = REPORT_TYPE_UNREC;
+		strcpy(analysis_report_template.name, file->saved_reports[analysis_unreconciled_template].name);
+	analysis_report_template.type = REPORT_TYPE_UNREC;
 
 	msgs_lookup("URWinT", line, sizeof(line));
-	report = report_open(file, line, &saved_report_template);
+	report = report_open(file, line, &analysis_report_template);
 
 	if (report == NULL) {
 		hourglass_off();
@@ -1348,8 +1328,8 @@ static void analysis_generate_unreconciled_report(file_data *file)
 	/* Output report heading */
 
 	make_file_leafname(file, b1, sizeof(b1));
-	if (*saved_report_template.name != '\0')
-		msgs_param_lookup("GRTitle", line, sizeof (line), saved_report_template.name, b1, NULL, NULL);
+	if (*analysis_report_template.name != '\0')
+		msgs_param_lookup("GRTitle", line, sizeof (line), analysis_report_template.name, b1, NULL, NULL);
 	else
 		msgs_param_lookup("URTitle", line, sizeof (line), b1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
@@ -1528,16 +1508,16 @@ void analysis_open_cashflow_window(file_data *file, wimp_pointer *ptr, int templ
 	template_mode = (template >= 0 && template < file->saved_report_count);
 
 	if (template_mode) {
-		analysis_copy_cashflow_template(&(cashflow_rep_settings), &(file->saved_reports[template].data.cashflow));
-		cashflow_rep_template = template;
+		analysis_copy_cashflow_template(&(analysis_cashflow_settings), &(file->saved_reports[template].data.cashflow));
+		analysis_cashflow_template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window), 50,
 				file->saved_reports[template].name, NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_cashflow_template(&(cashflow_rep_settings), &(file->cashflow_rep));
-		cashflow_rep_template = NULL_TEMPLATE;
+		analysis_copy_cashflow_template(&(analysis_cashflow_settings), &(file->cashflow_rep));
+		analysis_cashflow_template = NULL_TEMPLATE;
 
 		msgs_lookup ("CflRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window), 40);
 	}
@@ -1591,8 +1571,8 @@ static void analysis_cashflow_click_handler(wimp_pointer *pointer)
 		break;
 
 	case ANALYSIS_CASHFLOW_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && cashflow_rep_template >= 0 && cashflow_rep_template < analysis_cashflow_file->saved_report_count)
-			analysis_open_rename_window(analysis_cashflow_file, cashflow_rep_template, pointer);
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_cashflow_template >= 0 && analysis_cashflow_template < analysis_cashflow_file->saved_report_count)
+			analysis_open_rename_window(analysis_cashflow_file, analysis_cashflow_template, pointer);
 		break;
 
 	case ANALYSIS_CASHFLOW_BUDGET:
@@ -1729,36 +1709,36 @@ static void analysis_fill_cashflow_window(file_data *file, osbool restore)
 	} else {
 		/* Set the period icons. */
 
-		convert_date_to_string(cashflow_rep_settings.date_from,
+		convert_date_to_string(analysis_cashflow_settings.date_from,
 				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM));
-		convert_date_to_string(cashflow_rep_settings.date_to,
+		convert_date_to_string(analysis_cashflow_settings.date_to,
 				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO));
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, cashflow_rep_settings.budget);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, analysis_cashflow_settings.budget);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, cashflow_rep_settings.group);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, analysis_cashflow_settings.group);
 
-		icons_printf(analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD, "%d", cashflow_rep_settings.period);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, cashflow_rep_settings.period_unit == PERIOD_DAYS);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, cashflow_rep_settings.period_unit == PERIOD_MONTHS);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, cashflow_rep_settings.period_unit == PERIOD_YEARS);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK, cashflow_rep_settings.lock);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY, cashflow_rep_settings.empty);
+		icons_printf(analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD, "%d", analysis_cashflow_settings.period);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, analysis_cashflow_settings.period_unit == PERIOD_DAYS);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, analysis_cashflow_settings.period_unit == PERIOD_MONTHS);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, analysis_cashflow_settings.period_unit == PERIOD_YEARS);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK, analysis_cashflow_settings.lock);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY, analysis_cashflow_settings.empty);
 
 		/* Set the accounts and format details. */
 
 		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS),
-				cashflow_rep_settings.accounts, cashflow_rep_settings.accounts_count);
+				analysis_cashflow_settings.accounts, analysis_cashflow_settings.accounts_count);
 		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING),
-				cashflow_rep_settings.incoming, cashflow_rep_settings.incoming_count);
+				analysis_cashflow_settings.incoming, analysis_cashflow_settings.incoming_count);
 		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING),
-				cashflow_rep_settings.outgoing, cashflow_rep_settings.outgoing_count);
+				analysis_cashflow_settings.outgoing, analysis_cashflow_settings.outgoing_count);
 
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR, cashflow_rep_settings.tabular);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR, analysis_cashflow_settings.tabular);
 	}
 
 	icons_set_group_shaded_when_on(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, 4,
@@ -1840,10 +1820,10 @@ static osbool analysis_process_cashflow_window(void)
 
 static osbool analysis_delete_cashflow_window(void)
 {
-	if (cashflow_rep_template >= 0 && cashflow_rep_template < analysis_cashflow_file->saved_report_count &&
+	if (analysis_cashflow_template >= 0 && analysis_cashflow_template < analysis_cashflow_file->saved_report_count &&
 			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 1) {
-		analysis_delete_saved_report_template(analysis_cashflow_file, cashflow_rep_template);
-		cashflow_rep_template = NULL_TEMPLATE;
+		analysis_delete_template(analysis_cashflow_file, analysis_cashflow_template);
+		analysis_cashflow_template = NULL_TEMPLATE;
 
 		return TRUE;
 	} else {
@@ -1889,7 +1869,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	if (file->cashflow_rep.accounts_count == 0 && file->cashflow_rep.incoming_count == 0 &&
 			file->cashflow_rep.outgoing_count == 0) {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &analysis_wildcard_account_list, 1);
 	} else {
 		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL, REPORT_INCLUDE, file->cashflow_rep.accounts, file->cashflow_rep.accounts_count);
 		analysis_set_account_report_flags_from_list(file, ACCOUNT_IN, REPORT_INCLUDE, file->cashflow_rep.incoming, file->cashflow_rep.incoming_count);
@@ -1913,15 +1893,15 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	/* Start to output the report details. */
 
-	analysis_copy_cashflow_template(&(saved_report_template.data.cashflow), &(file->cashflow_rep));
-	if (cashflow_rep_template == NULL_TEMPLATE)
-		*(saved_report_template.name) = '\0';
+	analysis_copy_cashflow_template(&(analysis_report_template.data.cashflow), &(file->cashflow_rep));
+	if (analysis_cashflow_template == NULL_TEMPLATE)
+		*(analysis_report_template.name) = '\0';
 	else
-		strcpy(saved_report_template.name, file->saved_reports[cashflow_rep_template].name);
-	saved_report_template.type = REPORT_TYPE_CASHFLOW;
+		strcpy(analysis_report_template.name, file->saved_reports[analysis_cashflow_template].name);
+	analysis_report_template.type = REPORT_TYPE_CASHFLOW;
 
 	msgs_lookup("CRWinT", line, sizeof(line));
-	report = report_open(file, line, &saved_report_template);
+	report = report_open(file, line, &analysis_report_template);
 
 	if (report == NULL) {
 		hourglass_off();
@@ -1931,8 +1911,8 @@ static void analysis_generate_cashflow_report(file_data *file)
 	/* Output report heading */
 
 	make_file_leafname(file, b1, sizeof(b1));
-	if (*saved_report_template.name != '\0')
-		msgs_param_lookup("GRTitle", line, sizeof(line), saved_report_template.name, b1, NULL, NULL);
+	if (*analysis_report_template.name != '\0')
+		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
 	else
 		msgs_param_lookup("CRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
@@ -2094,16 +2074,16 @@ void analysis_open_balance_window(file_data *file, wimp_pointer *ptr, int templa
 	template_mode = (template >= 0 && template < file->saved_report_count);
 
 	if (template_mode) {
-		analysis_copy_balance_template(&(balance_rep_settings), &(file->saved_reports[template].data.balance));
-		balance_rep_template = template;
+		analysis_copy_balance_template(&(analysis_balance_settings), &(file->saved_reports[template].data.balance));
+		analysis_balance_template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_balance_window), 50,
 				file->saved_reports[template].name, NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_balance_template (&(balance_rep_settings), &(file->balance_rep));
-		balance_rep_template = NULL_TEMPLATE;
+		analysis_copy_balance_template (&(analysis_balance_settings), &(file->balance_rep));
+		analysis_balance_template = NULL_TEMPLATE;
 
 		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(analysis_balance_window), 40);
 	}
@@ -2157,8 +2137,8 @@ static void analysis_balance_click_handler(wimp_pointer *pointer)
 		break;
 
 	case ANALYSIS_BALANCE_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && balance_rep_template >= 0 && balance_rep_template < analysis_balance_file->saved_report_count)
-			analysis_open_rename_window(analysis_balance_file, balance_rep_template, pointer);
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_balance_template >= 0 && analysis_balance_template < analysis_balance_file->saved_report_count)
+			analysis_open_rename_window(analysis_balance_file, analysis_balance_template, pointer);
 		break;
 
 	case ANALYSIS_BALANCE_BUDGET:
@@ -2293,36 +2273,36 @@ static void analysis_fill_balance_window(file_data *file, osbool restore)
 	} else {
 		/* Set the period icons. */
 
-		convert_date_to_string(balance_rep_settings.date_from,
+		convert_date_to_string(analysis_balance_settings.date_from,
 				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM));
-		convert_date_to_string(balance_rep_settings.date_to,
+		convert_date_to_string(analysis_balance_settings.date_to,
 				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATETO));
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_BUDGET, balance_rep_settings.budget);
+		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_BUDGET, analysis_balance_settings.budget);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_GROUP, balance_rep_settings.group);
+		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_GROUP, analysis_balance_settings.group);
 
-		icons_printf(analysis_balance_window, ANALYSIS_BALANCE_PERIOD, "%d", balance_rep_settings.period);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, balance_rep_settings.period_unit == PERIOD_DAYS);
+		icons_printf(analysis_balance_window, ANALYSIS_BALANCE_PERIOD, "%d", analysis_balance_settings.period);
+		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, analysis_balance_settings.period_unit == PERIOD_DAYS);
 		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS,
-				balance_rep_settings.period_unit == PERIOD_MONTHS);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, balance_rep_settings.period_unit == PERIOD_YEARS);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_LOCK, balance_rep_settings.lock);
+				analysis_balance_settings.period_unit == PERIOD_MONTHS);
+		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, analysis_balance_settings.period_unit == PERIOD_YEARS);
+		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_LOCK, analysis_balance_settings.lock);
 
 		/* Set the accounts and format details. */
 
 		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS),
-				balance_rep_settings.accounts, balance_rep_settings.accounts_count);
+				analysis_balance_settings.accounts, analysis_balance_settings.accounts_count);
 		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_INCOMING),
-				balance_rep_settings.incoming, balance_rep_settings.incoming_count);
+				analysis_balance_settings.incoming, analysis_balance_settings.incoming_count);
 		analysis_account_list_to_idents(file,
 				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_OUTGOING),
-				balance_rep_settings.outgoing, balance_rep_settings.outgoing_count);
+				analysis_balance_settings.outgoing, analysis_balance_settings.outgoing_count);
 
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_TABULAR, balance_rep_settings.tabular);
+		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_TABULAR, analysis_balance_settings.tabular);
 	}
 
 	icons_set_group_shaded_when_on (analysis_balance_window, ANALYSIS_BALANCE_BUDGET, 4,
@@ -2402,10 +2382,10 @@ static osbool analysis_process_balance_window(void)
 
 static osbool analysis_delete_balance_window(void)
 {
-	if (balance_rep_template >= 0 && balance_rep_template < analysis_balance_file->saved_report_count &&
+	if (analysis_balance_template >= 0 && analysis_balance_template < analysis_balance_file->saved_report_count &&
 			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 1) {
-		analysis_delete_saved_report_template(analysis_balance_file, balance_rep_template);
-		balance_rep_template = NULL_TEMPLATE;
+		analysis_delete_template(analysis_balance_file, analysis_balance_template);
+		analysis_balance_template = NULL_TEMPLATE;
 
 		return TRUE;
 	} else {
@@ -2449,7 +2429,7 @@ static void analysis_generate_balance_report(file_data *file)
 	analysis_clear_account_report_flags(file);
 
 	if (file->balance_rep.accounts_count == 0 && file->balance_rep.incoming_count == 0 && file->balance_rep.outgoing_count == 0) {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &analysis_wildcard_account_list, 1);
 	} else {
 		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL, REPORT_INCLUDE, file->balance_rep.accounts, file->balance_rep.accounts_count);
 		analysis_set_account_report_flags_from_list(file, ACCOUNT_IN, REPORT_INCLUDE, file->balance_rep.incoming, file->balance_rep.incoming_count);
@@ -2473,15 +2453,15 @@ static void analysis_generate_balance_report(file_data *file)
 
 	/* Start to output the report details. */
 
-	analysis_copy_balance_template(&(saved_report_template.data.balance), &(file->balance_rep));
-	if (balance_rep_template == NULL_TEMPLATE)
-		*(saved_report_template.name) = '\0';
+	analysis_copy_balance_template(&(analysis_report_template.data.balance), &(file->balance_rep));
+	if (analysis_balance_template == NULL_TEMPLATE)
+		*(analysis_report_template.name) = '\0';
 	else
-		strcpy(saved_report_template.name, file->saved_reports[balance_rep_template].name);
-	saved_report_template.type = REPORT_TYPE_BALANCE;
+		strcpy(analysis_report_template.name, file->saved_reports[analysis_balance_template].name);
+	analysis_report_template.type = REPORT_TYPE_BALANCE;
 
 	msgs_lookup("BRWinT", line, sizeof(line));
-	report = report_open(file, line, &saved_report_template);
+	report = report_open(file, line, &analysis_report_template);
 
 	if (report == NULL) {
 		hourglass_off();
@@ -2491,8 +2471,8 @@ static void analysis_generate_balance_report(file_data *file)
 	/* Output report heading */
 
 	make_file_leafname(file, b1, sizeof(b1));
-	if (*saved_report_template.name != '\0')
-		msgs_param_lookup("GRTitle", line, sizeof(line), saved_report_template.name, b1, NULL, NULL);
+	if (*analysis_report_template.name != '\0')
+		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
 	else
 		msgs_param_lookup("BRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
@@ -3215,8 +3195,8 @@ void analysis_open_save_window(report_data *report, wimp_pointer *ptr)
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
-	save_report_file = report->file;
-	save_report_report = report;
+	analysis_save_file = report->file;
+	analysis_save_report = report;
 	analysis_save_mode = ANALYSIS_SAVE_MODE_SAVE;
 
 	windows_open_centred_at_pointer(analysis_save_window, ptr);
@@ -3261,8 +3241,8 @@ static void analysis_open_rename_window(file_data *file, int template, wimp_poin
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
-	save_report_file = file;
-	save_report_template = template;
+	analysis_save_file = file;
+	analysis_save_template = template;
 	analysis_save_mode = ANALYSIS_SAVE_MODE_RENAME;
 
 	windows_open_centred_at_pointer(analysis_save_window, ptr);
@@ -3337,7 +3317,7 @@ static void analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 {
 	wimp_menu	*template_menu;
 
-	template_menu = analysis_template_menu_build(save_report_file, TRUE);
+	template_menu = analysis_template_menu_build(analysis_save_file, TRUE);
 	event_set_menu_block(template_menu);
 	templates_set_menu(TEMPLATES_MENU_TEMPLATES, template_menu);
 }
@@ -3383,11 +3363,11 @@ static void analysis_refresh_save_window(void)
 {
 	switch (analysis_save_mode) {
 	case ANALYSIS_SAVE_MODE_SAVE:
-		analysis_fill_save_window(save_report_report);
+		analysis_fill_save_window(analysis_save_report);
 		break;
 
 	case ANALYSIS_SAVE_MODE_RENAME:
-		analysis_fill_rename_window(save_report_file, save_report_template);
+		analysis_fill_rename_window(analysis_save_file, analysis_save_template);
 		break;
 
 	default:
@@ -3439,7 +3419,7 @@ static osbool analysis_process_save_window(void)
 	if (*icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME) == '\0')
 		return FALSE;
 
-	template = analysis_find_saved_report_template_from_name(save_report_file,
+	template = analysis_get_template_from_name(analysis_save_file,
 			icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
 
 	switch (analysis_save_mode) {
@@ -3447,23 +3427,23 @@ static osbool analysis_process_save_window(void)
 		if (template != NULL_TEMPLATE && error_msgs_report_question("CheckTempOvr", "CheckTempOvrB") == 2)
 			return FALSE;
 
-		strcpy(save_report_report->template.name, icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
-		analysis_store_saved_report_template(save_report_file, &(save_report_report->template), template);
+		strcpy(analysis_save_report->template.name, icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
+		analysis_store_template(analysis_save_file, &(analysis_save_report->template), template);
 		break;
 
 	case ANALYSIS_SAVE_MODE_RENAME:
-		if (save_report_template != NULL_TEMPLATE) {
-			if (template != NULL_TEMPLATE && template != save_report_template) {
+		if (analysis_save_template != NULL_TEMPLATE) {
+			if (template != NULL_TEMPLATE && template != analysis_save_template) {
 				error_msgs_report_error("TempExists");
 				return FALSE;
 			}
 
-			strcpy(save_report_file->saved_reports[save_report_template].name,
+			strcpy(analysis_save_file->saved_reports[analysis_save_template].name,
 					icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
 
 			/* Update the window title of the parent report dialogue. */
 
-			switch (save_report_file->saved_reports[save_report_template].type) {
+			switch (analysis_save_file->saved_reports[analysis_save_template].type) {
 			case REPORT_TYPE_TRANS:
 				w = analysis_transaction_window;
 				break;
@@ -3483,13 +3463,13 @@ static osbool analysis_process_save_window(void)
 
 			if (w != NULL) {
 				msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(w), 50,
-						save_report_file->saved_reports[save_report_template].name, NULL, NULL, NULL);
+						analysis_save_file->saved_reports[analysis_save_template].name, NULL, NULL, NULL);
 						xwimp_force_redraw_title(w); /* Nested Wimp only! */
 			}
 
 			/* Mark the file has being modified. */
 
-			set_file_data_integrity(save_report_file, 1);
+			set_file_data_integrity(analysis_save_file, 1);
 		}
 		break;
 
@@ -3625,94 +3605,83 @@ static int analysis_template_menu_compare_entries(const void *va, const void *vb
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ==================================================================================================================
- * Force the closure of the report format window if the file disappears.
+/**
+ * Force the closure of any Analysis windows which are open and relate
+ * to the given file.
+ *
+ * \param *file			The file data block of interest.
  */
 
-void force_close_report_windows (file_data *file)
+void analysis_force_windows_closed(file_data *file)
 {
-  if (analysis_transaction_file == file && windows_get_open (analysis_transaction_window))
-  {
-    close_dialogue_with_caret (analysis_transaction_window);
-  }
+	if (analysis_transaction_file == file && windows_get_open(analysis_transaction_window))
+		close_dialogue_with_caret(analysis_transaction_window);
 
-  if (analysis_unreconciled_file == file && windows_get_open (analysis_unreconciled_window))
-  {
-    close_dialogue_with_caret (analysis_unreconciled_window);
-  }
+	if (analysis_unreconciled_file == file && windows_get_open(analysis_unreconciled_window))
+		close_dialogue_with_caret(analysis_unreconciled_window);
 
-  if (analysis_cashflow_file == file && windows_get_open (analysis_cashflow_window))
-  {
-    close_dialogue_with_caret (analysis_cashflow_window);
-  }
+	if (analysis_cashflow_file == file && windows_get_open(analysis_cashflow_window))
+		close_dialogue_with_caret(analysis_cashflow_window);
 
-  if (analysis_balance_file == file && windows_get_open (analysis_balance_window))
-  {
-    close_dialogue_with_caret (analysis_balance_window);
-  }
+	if (analysis_balance_file == file && windows_get_open(analysis_balance_window))
+		close_dialogue_with_caret(analysis_balance_window);
 
-  if (save_report_file == file && windows_get_open (analysis_save_window))
-  {
-    close_dialogue_with_caret (analysis_save_window);
-  }
+	if (analysis_save_file == file && windows_get_open(analysis_save_window))
+		close_dialogue_with_caret(analysis_save_window);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_force_close_report_save_window (file_data *file, report_data *report)
-{
-  if (analysis_save_mode == ANALYSIS_SAVE_MODE_SAVE &&
-      save_report_file == file && save_report_report == report && windows_get_open (analysis_save_window))
-  {
-    close_dialogue_with_caret (analysis_save_window);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void analysis_force_close_report_rename_window (wimp_w window)
-{
-  if (windows_get_open (analysis_save_window) &&
-      analysis_save_mode == ANALYSIS_SAVE_MODE_RENAME && save_report_template != NULL_TEMPLATE)
-  {
-    if ((window == analysis_transaction_window &&
-         save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_TRANS) ||
-        (window == analysis_unreconciled_window &&
-         save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_UNREC) ||
-        (window == analysis_cashflow_window &&
-         save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_CASHFLOW) ||
-        (window == analysis_balance_window &&
-         save_report_file->saved_reports[save_report_template].type == REPORT_TYPE_BALANCE))
-    {
-      close_dialogue_with_caret (analysis_save_window);
-    }
-  }
-}
-
-/* ==================================================================================================================
- * Saved template handling.
+/**
+ * Force the closure of the Save Template window if it is open to save the
+ * given report.
+ *
+ * \param *report			The report of interest.
  */
 
-/* Open a report from a saved template. */
+void analysis_force_close_report_save_window(report_data *report)
+{
+	if (analysis_save_mode == ANALYSIS_SAVE_MODE_SAVE &&
+			analysis_save_file == report->file && analysis_save_report == report &&
+			windows_get_open(analysis_save_window))
+		close_dialogue_with_caret(analysis_save_window);
+}
 
-void analysis_open_saved_report_dialogue(file_data *file, wimp_pointer *ptr, int selection)
+
+/**
+ * Force the closure of the Rename Template window if it is open to rename the
+ * given template.
+ *
+ * \param *report			The report of interest.
+ */
+
+static void analysis_force_close_report_rename_window(wimp_w window)
+{
+	if (!windows_get_open(analysis_save_window) ||
+			analysis_save_mode != ANALYSIS_SAVE_MODE_RENAME ||
+			analysis_save_template == NULL_TEMPLATE)
+		return;
+
+	if ((window == analysis_transaction_window &&
+			analysis_save_file->saved_reports[analysis_save_template].type == REPORT_TYPE_TRANS) ||
+			(window == analysis_unreconciled_window &&
+			analysis_save_file->saved_reports[analysis_save_template].type == REPORT_TYPE_UNREC) ||
+			(window == analysis_cashflow_window &&
+			analysis_save_file->saved_reports[analysis_save_template].type == REPORT_TYPE_CASHFLOW) ||
+			(window == analysis_balance_window &&
+			analysis_save_file->saved_reports[analysis_save_template].type == REPORT_TYPE_BALANCE))
+		close_dialogue_with_caret(analysis_save_window);
+}
+
+
+/* Open a report from a saved template, following its selection from the
+ * template list menu.
+ *
+ * \param *file			The file owning the template.
+ * \param *ptr			The Wimp pointer details.
+ * \param selection		The menu selection entry.
+ */
+
+void analysis_open_template_from_menu(file_data *file, wimp_pointer *ptr, int selection)
 {
 	int template;
 
@@ -3721,142 +3690,129 @@ void analysis_open_saved_report_dialogue(file_data *file, wimp_pointer *ptr, int
 
 	template = analysis_template_menu_link[selection].template;
 
-  if (template >= 0 && template < file->saved_report_count)
-  {
-    switch (file->saved_reports[template].type)
-    {
-      case REPORT_TYPE_TRANS:
-        analysis_open_transaction_window(file, ptr, template, config_opt_read ("RememberValues"));
-        break;
+	if (template < 0 || template >= file->saved_report_count)
+		return;
 
-      case REPORT_TYPE_UNREC:
-        analysis_open_unreconciled_window(file, ptr, template, config_opt_read ("RememberValues"));
-        break;
+	switch (file->saved_reports[template].type) {
+	case REPORT_TYPE_TRANS:
+		analysis_open_transaction_window(file, ptr, template, config_opt_read ("RememberValues"));
+		break;
 
-      case REPORT_TYPE_CASHFLOW:
-        analysis_open_cashflow_window(file, ptr, template, config_opt_read ("RememberValues"));
-        break;
+	case REPORT_TYPE_UNREC:
+		analysis_open_unreconciled_window(file, ptr, template, config_opt_read ("RememberValues"));
+		break;
 
-      case REPORT_TYPE_BALANCE:
-        analysis_open_balance_window(file, ptr, template, config_opt_read ("RememberValues"));
-        break;
-    }
-  }
+	case REPORT_TYPE_CASHFLOW:
+		analysis_open_cashflow_window(file, ptr, template, config_opt_read ("RememberValues"));
+		break;
+
+	case REPORT_TYPE_BALANCE:
+		analysis_open_balance_window(file, ptr, template, config_opt_read ("RememberValues"));
+		break;
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Find a saved template based on its name. */
 
-int analysis_find_saved_report_template_from_name (file_data *file, char *name)
+/**
+ * Find a save template ID based on its name.
+ *
+ * \param *file			The file to search in.
+ * \param *name			The name to search for.
+ * \return			The matching template ID, or NULL_TEMPLATE.
+ */
+
+static int analysis_get_template_from_name(file_data *file, char *name)
 {
-  int i, found = -1;
+	int	i, found = NULL_TEMPLATE;
 
-  if (file != NULL && file->saved_report_count > 0)
-  {
-    for (i=0; i<file->saved_report_count && found == -1; i++)
-    {
-      if (string_nocase_strcmp (file->saved_reports[i].name, name) == 0)
-      {
-        found = i;
-      }
-    }
-  }
+	if (file != NULL && file->saved_report_count > 0)
+		for (i=0; i<file->saved_report_count && found == -1; i++)
+			if (string_nocase_strcmp (file->saved_reports[i].name, name) == 0)
+				found = i;
 
-  return (found);
+	return found;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_store_saved_report_template (file_data *file, saved_report *report, int number)
+/**
+ * Store a report's template into a file.
+ *
+ * \param *file			The file to work on.
+ * \param *report		The report to take the template from.
+ * \param template		The template pointer to save to, or
+ *				NULL_TEMPLATE to add a new entry.
+ */
+
+static void analysis_store_template(file_data *file, saved_report *report, int template)
 {
+	if (template == NULL_TEMPLATE) {
+		if (flex_extend((flex_ptr) &(file->saved_reports), sizeof(saved_report) * (file->saved_report_count+1)) == 1)
+			template = file->saved_report_count++;
+		else
+			error_msgs_report_error("NoMemNewTemp");
+		}
 
-  if (number == NULL_TEMPLATE)
-  {
-    if (flex_extend ((flex_ptr) &(file->saved_reports), sizeof (saved_report) * (file->saved_report_count+1)) == 1)
-    {
-      number = file->saved_report_count++;
-    }
-    else
-    {
-      error_msgs_report_error ("NoMemNewTemp");
-    }
-  }
-
-  if (number >= 0 && number < file->saved_report_count)
-  {
-    analysis_copy_template(&(file->saved_reports[number]), report);
-    set_file_data_integrity (file, 1);
-  }
+	if (template >= 0 && template < file->saved_report_count) {
+		analysis_copy_template(&(file->saved_reports[template]), report);
+		set_file_data_integrity(file, TRUE);
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void analysis_delete_saved_report_template (file_data *file, int template)
+/**
+ * Delete a saved report from the file, and adjust any other template pointers
+ * which are currently in use.
+ *
+ * \param *file			The file to delete the template from.
+ * \param template		The template to delete.
+ */
+
+static void analysis_delete_template(file_data *file, int template)
 {
-  int type;
+	int	type;
 
-  /* delete the specified template. */
+	/* delete the specified template. */
 
-  if (template >= 0 && template < file->saved_report_count)
-  {
-    type = file->saved_reports[template].type;
+	if (template < 0 || template >= file->saved_report_count)
+		return;
 
-    /* first remove the template from the flex block. */
+	type = file->saved_reports[template].type;
 
-    flex_midextend ((flex_ptr) &(file->saved_reports), (template + 1) * sizeof (saved_report), -sizeof (saved_report));
-    file->saved_report_count--;
-    set_file_data_integrity (file, 1);
+	/* first remove the template from the flex block. */
 
-    /* If the rename template window is open for this template, close it now before the pointer is lost. */
+	flex_midextend((flex_ptr) &(file->saved_reports), (template + 1) * sizeof(saved_report), -sizeof(saved_report));
+	file->saved_report_count--;
+	set_file_data_integrity(file, TRUE);
 
-    if (windows_get_open (analysis_save_window) && analysis_save_mode == ANALYSIS_SAVE_MODE_RENAME &&
-        template == save_report_template)
-    {
-      close_dialogue_with_caret (analysis_save_window);
-    }
+	/* If the rename template window is open for this template, close it now before the pointer is lost. */
 
-    /* Now adjust any other template pointers, which may be pointing further up the array.
-     * In addition, if the rename template pointer (save_report_template) is pointing to the deleted
-     * item, it needs to be unset.
-     */
+	if (windows_get_open(analysis_save_window) && analysis_save_mode == ANALYSIS_SAVE_MODE_RENAME &&
+			template == analysis_save_template)
+		close_dialogue_with_caret(analysis_save_window);
 
-    if (type != REPORT_TYPE_TRANS && trans_rep_template > template)
-    {
-      trans_rep_template--;
-    }
-    if (type != REPORT_TYPE_UNREC && unrec_rep_template > template)
-    {
-      unrec_rep_template--;
-    }
-    if (type != REPORT_TYPE_CASHFLOW && cashflow_rep_template > template)
-    {
-      cashflow_rep_template--;
-    }
-    if (type != REPORT_TYPE_BALANCE && balance_rep_template > template)
-    {
-      balance_rep_template--;
-    }
-    if (save_report_template > template)
-    {
-      save_report_template--;
-    }
-    else if (save_report_template == template)
-    {
-      save_report_template = NULL_TEMPLATE;
-    }
-  }
+	/* Now adjust any other template pointers for currently open report dialogues,
+	 * which may be pointing further up the array.
+	 * In addition, if the rename template pointer (analysis_save_template) is pointing to the deleted
+	 * item, it needs to be unset.
+	 */
+
+	if (type != REPORT_TYPE_TRANS && analysis_transaction_template > template)
+		analysis_transaction_template--;
+
+	if (type != REPORT_TYPE_UNREC && analysis_unreconciled_template > template)
+		analysis_unreconciled_template--;
+
+	if (type != REPORT_TYPE_CASHFLOW && analysis_cashflow_template > template)
+		analysis_cashflow_template--;
+
+	if (type != REPORT_TYPE_BALANCE && analysis_balance_template > template)
+		analysis_balance_template--;
+
+	if (analysis_save_template > template)
+		analysis_save_template--;
+	else if (analysis_save_template == template)
+		analysis_save_template = NULL_TEMPLATE;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**

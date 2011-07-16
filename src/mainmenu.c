@@ -362,7 +362,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_SAVEDREP && selection->items[2] != -1)
     {
-      analysis_open_saved_report_dialogue (main_menu_file, pointer, selection->items[2]);
+      analysis_open_template_from_menu (main_menu_file, pointer, selection->items[2]);
     }
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_MONTHREP)

@@ -812,7 +812,7 @@ static void report_view_close_window_handler(wimp_close *close)
 	/* Close the window */
 
 	if (report->window != NULL) {
-		analysis_force_close_report_save_window(report->file, report);
+		analysis_force_close_report_save_window(report);
 
 		ihelp_remove_window(report->window);
 		event_delete_window(report->window);
@@ -1242,7 +1242,8 @@ static void report_process_format_window(void)
 }
 
 
-/* Force the closure of any Report Format windows which are open and relate
+/**
+ * Force the closure of any Report Format windows which are open and relate
  * to the given file.
  *
  * \param *file			The file data block of interest.

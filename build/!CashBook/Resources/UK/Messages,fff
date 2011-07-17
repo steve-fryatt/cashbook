@@ -283,6 +283,11 @@ PendingPrintsB:Close,Cancel
 FPendingPrints:There are reports which are queued for printing: do you wish to quit anyway?
 FPendingPrintsB:Quit,Cancel
 
+# Page numbering
+
+Page1: Page %0 of %1
+Page2: Page %0 x %1 of %2 x %3
+
 # Report date periods
 
 PRPeriod:From %0 to %1

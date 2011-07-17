@@ -326,12 +326,12 @@ static void main_initialise(void)
 
 	config_initialise(task_name, "CashBook", "<CashBook$Dir>");
 
-	config_opt_init("IyonixKeys", (osbyte1(osbyte_IN_KEY, 0, 0xff) == 0xaa)); /* True only on an Iyonix. */
-	config_opt_init("GlobalClipboardSupport", TRUE);
+	config_opt_init("IyonixKeys", (osbyte1(osbyte_IN_KEY, 0, 0xff) == 0xaa));	/**< Use RISC OS 5 Delete: default true only on an Iyonix.	*/
+	config_opt_init("GlobalClipboardSupport", TRUE);				/**< Support the global clipboard in the transaction window.	*/
 
-	config_opt_init("RememberValues", TRUE);
+	config_opt_init("RememberValues", TRUE);					/**< Remember previous values in dialogue boxes.		*/
 
-	config_opt_init("AllowTransDelete", TRUE);
+	config_opt_init("AllowTransDelete", TRUE);					/**< Enable the use of Ctrl-F10 to delete whole transactions.	*/
 
 	config_int_init("MaxAutofillLen", 0);
 
@@ -371,16 +371,18 @@ static void main_initialise(void)
 	config_int_init("ReportFontSize", 12);
 	config_int_init("ReportFontLinespace", 130);
 
-	config_opt_init("PrintFitWidth", TRUE);
-	config_opt_init("PrintRotate", FALSE);
-	config_opt_init("PrintText", FALSE);
-	config_opt_init("PrintTextFormat", TRUE);
+	config_opt_init("PrintFitWidth", TRUE);						/**< Fit printout to one page width when PrintText == FALSE.	*/
+	config_opt_init("PrintRotate", FALSE);						/**< Print Landscape when PrintText == FALSE.			*/
+	config_opt_init("PrintPageNumbers", TRUE);					/**< Include page numbers when PrintText == FALSE.		*/
+	config_opt_init("PrintText", FALSE);						/**< Print in legacy text mode instead of graphics.		*/
+	config_opt_init("PrintTextFormat", TRUE);					/**< Include Fancy Text formatting when PrintText == TRUE.	*/
 
-	config_int_init("PrintMarginTop", 0);
-	config_int_init("PrintMarginLeft", 0);
-	config_int_init("PrintMarginRight", 0);
-	config_int_init("PrintMarginBottom", 0);
-	config_int_init("PrintMarginUnits", 0); /* 0 = mm, 1 = cm, 2 = inch */
+	config_int_init("PrintMarginTop", 0);						/**< Paper top margin (millipoints).				*/
+	config_int_init("PrintMarginLeft", 0);						/**< Paper left margin (millipoints).				*/
+	config_int_init("PrintMarginRight", 0);						/**< Paper right margin (millipoints).				*/
+	config_int_init("PrintMarginBottom", 0);					/**< Paper bottom margin (millipoints).				*/
+	config_int_init("PrintMarginInternal", 18000);					/**< Header/Footer margin (millipoints).			*/
+	config_int_init("PrintMarginUnits", 0);						/**< Page units used in Choices (0 = mm, 1 = cm, 2 = inch).	*/
 
 	config_str_init("TransactCols", "180,88,32,362,88,32,362,200,176,808");
 	config_str_init("LimTransactCols", "140,88,32,140,88,32,140,140,140,200");

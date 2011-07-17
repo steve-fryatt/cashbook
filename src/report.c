@@ -135,7 +135,7 @@ static void			report_cancel_print_job(void);
 static void			report_print_as_graphic(report_data *report, osbool fit_width, osbool rotate);
 static void			report_handle_print_error(os_error *error, os_fw file, font_f f1, font_f f2);
 static os_error			*report_plot_line(report_data *report, unsigned int line, int x, int y, font_f normal, font_f bold);
-static enum report_page_area	report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer);
+static enum report_page_area	report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer, unsigned header_size, unsigned footer_size);
 
 
 /**
@@ -1554,20 +1554,20 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 {
 	os_error			*error;
 	os_fw				out = 0;
-	os_box				p_rect, rect, body, footer;
+	os_box				p_rect, f_rect, rect, body = {0, 0, 0, 0}, footer = {0, 0, 0, 0};
 	os_hom_trfm			p_trfm;
-	os_coord			p_pos;
-	char				title[1024];
+	os_coord			p_pos, f_pos;
+	char				title[1024], b0[10], b1[10], b2[10], b3[10];
 	pdriver_features		features;
 	font_f				font_n = 0, font_b = 0;
 	osbool				more;
-	int				offset;
-	int				pages_x, pages_y, lines_per_page, page_x, page_y, lines, header, header_size, footer_size;
+	int				width, offset;
+	int				pages_x, pages_y, lines_per_page, trim, page_x, page_y, lines, header;
 	int				top, base, y, linespace, bar;
-	unsigned int			page_width, page_height, scale, page_xstart, page_ystart, line;
+	unsigned int			footer_width, footer_height, header_height, page_width, page_height, scale, page_xstart, line;
 	double				scaling;
 	struct report_print_pagination	*pages;
-	enum report_page_area		sections;
+	enum report_page_area		areas, area;
 
 	hourglass_on();
 
@@ -1577,16 +1577,17 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 	if (error != NULL)
 		return;
 
-	/* Find the fonts we will use. */
+	/* Find the fonts we will use and size the header and footer accordingly. */
 
 	report_find_fonts(report, &font_n, &font_b);
-	font_convertto_os(1000 * (report->font_size / 16) * report->line_spacing / 100, 0, &linespace, NULL);
+	font_convertto_os((1000 * report->font_size) * report->line_spacing / 1600, 0, &linespace, NULL);
 
 	/* Establish the page dimensions. */
 
-	report_get_page_areas(rotate, &body, NULL, &footer);
+	header_height = 0;
+	footer_height = (config_opt_read("PrintPageNumbers")) ? (1000 * report->font_size) * report->line_spacing / 1600 : 0;
 
-
+	areas = report_get_page_areas(rotate, &body, NULL, &footer, header_height, footer_height);
 
 	/* Open a printout file. */
 
@@ -1649,17 +1650,20 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 	if (fit_width) {
 		if (page_width < report->width) {
 			page_height = page_height * report->width / page_width;
-			scaling = page_width / report->width;
+			scaling = (double) page_width / (double) report->width;
 		}
 
 		page_width = report->width;
 	}
 
+	debug_printf("Scaling = %f", scaling);
+
 	/* \TODO -- Apply the header and footer here. */
 
 	/* Clip the page length to be an exect number of lines */
 
-	page_height -= (page_height % linespace);
+	trim = (page_height % linespace);
+	page_height -= trim;
 	lines_per_page = page_height / linespace;
 
 	/* Work out the number of pages.
@@ -1668,8 +1672,8 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 	 * height compared to report width and height.
 	 */
 
-	pages_x = ceil(report->width / page_width);
-	pages_y = ceil(report->height / page_height);
+	pages_x = (int) ceil((double) report->width / (double) page_width);
+	pages_y = (int) ceil((double) report->height / (double) page_height);
 
 	/* Adjust the pages vertically to allow for the possibility that
 	 * each page might have a header carried over from the previous page.
@@ -1732,19 +1736,56 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 
 	pages_y = page_y;
 
+	if (pages_x == 1) {
+		snprintf(b1, sizeof(b1), "%d", pages_y);
+	} else {
+		snprintf(b2, sizeof(b2), "%d", pages_x);
+		snprintf(b3, sizeof(b3), "%d", pages_y);
+	}
+
 	/* Set up the transformation matrix scale the page and rotate it as required. */
+
+	footer_width = footer.x1 - footer.x0;
+
+	error = xfont_convertto_os(footer_width, footer_height, (int *) &footer_width, (int *) &footer_height);
+	if (error != NULL) {
+		report_handle_print_error(error, out, font_n, font_b);
+		return;
+	}
+
+	/* If the page is wider than the footer, then make the footer wider
+	 * as it will get scaled back in the transformation.
+	 */
+
+	if (fit_width && page_width > footer_width)
+		footer_width = page_width;
+
+	debug_printf("Footer width=%d, Footer height=%d", footer_width, footer_height);
+
+	f_rect.x0 = 0;
+	f_rect.x1 = footer_width;
+	f_rect.y1 = footer_height;
+	f_rect.y0 = 0;
 
 	if (rotate) {
 		p_trfm.entries[0][0] = 0;
 		p_trfm.entries[0][1] = scale;
 		p_trfm.entries[1][0] = -scale;
 		p_trfm.entries[1][1] = 0;
+
+		f_pos.x = footer.y0;
+		f_pos.y = footer.x0;
 	} else {
 		p_trfm.entries[0][0] = scale;
 		p_trfm.entries[0][1] = 0;
 		p_trfm.entries[1][0] = 0;
 		p_trfm.entries[1][1] = scale;
+
+		f_pos.x = footer.x0;
+		f_pos.y = footer.y0;
 	}
+
+	debug_printf("Pages x=%d, Pages y=%d", pages_x, pages_y);
 
 	/* Loop through the pages down the report and across. */
 
@@ -1771,18 +1812,18 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 			 */
 
 			if (rotate) {
-				error = xfont_converttopoints((page_width + (p_rect.y0 - p_rect.y1)) * scaling, 0, (int *) &offset, NULL);
+				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1) + trim) * scaling, 0, (int *) &offset, NULL);
 				if (error != NULL) {
 					report_handle_print_error(error, out, font_n, font_b);
 					return;
 				}
 
-				p_pos.x = body.x1 - offset;
-				p_pos.y = body.y0;
+				p_pos.x = body.y0 - offset;
+				p_pos.y = body.x0;
 
-				debug_printf("Page %d Rectangle x0=%d, y0=%d, x1=%d, y1=%d at x=%d, y=%d, height=%d, offset=%d", page_y, p_rect.x0, p_rect.y0, p_rect.x1, p_rect.y1, p_pos.x, p_pos.y, page_width, page_width + (p_rect.y0 - p_rect.y1));
+				debug_printf("Page %d Rectangle x0=%d, y0=%d, x1=%d, y1=%d at x=%d, y=%d, height=%d, offset=%d", page_y, p_rect.x0, p_rect.y0, p_rect.x1, p_rect.y1, p_pos.x, p_pos.y, page_width, page_height + (p_rect.y0 - p_rect.y1));
 			} else {
-				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1)) * scaling, 0, (int *) &offset, NULL);
+				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1) + trim) * scaling, 0, (int *) &offset, NULL);
 				if (error != NULL) {
 					report_handle_print_error(error, out, font_n, font_b);
 					return;
@@ -1796,52 +1837,101 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 
 			/* Pass the page details to the printer driver and start to draw the page. */
 
-			error = xpdriver_give_rectangle(0, &p_rect, &p_trfm, &p_pos, os_COLOUR_VERY_LIGHT_GREY); /* \TODO -- Replace with os_COLOUR_WHITE */
+			error = xpdriver_give_rectangle(REPORT_PAGE_BODY, &p_rect, &p_trfm, &p_pos, os_COLOUR_RED); /* \TODO -- Replace with os_COLOUR_WHITE */
 			if (error != NULL) {
 				report_handle_print_error(error, out, font_n, font_b);
 				return;
 			}
 
-			error = xpdriver_draw_page(1, &rect, 0, 0, &more, NULL);
+			if (areas & REPORT_PAGE_FOOTER) {
+				error = xpdriver_give_rectangle(REPORT_PAGE_FOOTER, &f_rect, &p_trfm, &f_pos, os_COLOUR_ORANGE); /* \TODO -- Replace with os_COLOUR_WHITE */
+				if (error != NULL) {
+					report_handle_print_error(error, out, font_n, font_b);
+					return;
+				}
+			}
+
+			error = xpdriver_draw_page(1, &rect, 0, 0, &more, (int *) &area);
 
 			/* Perform the redraw. */
 
 			while (more) {
-				/* Calculate the rows to redraw. */
+				switch (area) {
+				case REPORT_PAGE_BODY:
+					/* Calculate the rows to redraw. */
 
-				top = -rect.y1 / linespace;
-				if (top < -1)
-					top = -1;
-				base = (linespace + (linespace / 2) - rect.y0 ) / linespace;
+					top = -rect.y1 / linespace;
+					if (top < -1)
+						top = -1;
+					base = (linespace + (linespace / 2) - rect.y0 ) / linespace;
 
-				error = xcolourtrans_set_font_colours(font_n, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
-				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
-					return;
-				}
-
-				error = xcolourtrans_set_font_colours(font_b, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
-				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
-					return;
-				}
-
-				/* Redraw the data to the printer. */
-
-				for (y = top; (pages[page_y].first_line + y) < report->lines && y <= base; y++) {
-					if (y < 0)
-						line = pages[page_y].header_line;
-					else
-						line = pages[page_y].first_line + y;
-					error = report_plot_line(report, line, REPORT_LEFT_MARGIN,
-							- linespace * (y+1) + REPORT_BASELINE_OFFSET, font_n, font_b);
+					error = xcolourtrans_set_font_colours(font_n, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
 					if (error != NULL) {
 						report_handle_print_error(error, out, font_n, font_b);
 						return;
 					}
+
+					error = xcolourtrans_set_font_colours(font_b, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
+					if (error != NULL) {
+						report_handle_print_error(error, out, font_n, font_b);
+						return;
+					}
+
+					/* Redraw the data to the printer. */
+
+					for (y = top; (pages[page_y].first_line + y) < report->lines && y <= base; y++) {
+						if (y < 0)
+							line = pages[page_y].header_line;
+						else
+							line = pages[page_y].first_line + y;
+						error = report_plot_line(report, line, REPORT_LEFT_MARGIN,
+								- linespace * (y+1) + REPORT_BASELINE_OFFSET, font_n, font_b);
+						if (error != NULL) {
+							report_handle_print_error(error, out, font_n, font_b);
+							return;
+						}
+					}
+					break;
+
+				case REPORT_PAGE_FOOTER:
+					snprintf(b0, sizeof(b0), "%d", page_y);
+					if (pages_x == 1) {
+						snprintf(b0, sizeof(b0), "%d", page_y + 1);
+						msgs_param_lookup("Page1", title, sizeof(title), b0, b1, NULL, NULL);
+					} else {
+						snprintf(b0, sizeof(b0), "%d", page_x + 1);
+						snprintf(b1, sizeof(b1), "%d", page_y + 1);
+						msgs_param_lookup("Page2", title, sizeof(title), b0, b1, b2, b3);
+					}
+
+					error = xfont_scan_string(font_n, title, font_KERN | font_GIVEN_FONT,
+							0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL, &width, NULL, NULL);
+					if (error != NULL) {
+						report_handle_print_error(error, out, font_n, font_b);
+						return;
+					}
+
+					error = xfont_convertto_os(width, 0, &width, NULL);
+					if (error != NULL) {
+						report_handle_print_error(error, out, font_n, font_b);
+						return;
+					}
+
+					debug_printf("Printing footer: x=%d, y=%d", (footer_width - width) / 2, 4);
+
+					error = xfont_paint(font_n, title, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
+							(footer_width - width) / 2, 4, NULL, NULL, 0);
+					if (error != NULL) {
+						report_handle_print_error(error, out, font_n, font_b);
+						return;
+					}
+					break;
+
+				default:
+					break;
 				}
 
-				error = xpdriver_get_rectangle(&rect, &more, NULL);
+				error = xpdriver_get_rectangle(&rect, &more, (int *) &area);
 				if (error != NULL) {
 					report_handle_print_error(error, out, font_n, font_b);
 					return;
@@ -1978,14 +2068,16 @@ static os_error *report_plot_line(report_data *report, unsigned int line, int x,
  * \param *body			Structure to return the body area, or NULL for none.
  * \param *header		Structure to return the header area, or NULL for none.
  * \param *footer		Structure to return the footer area, or NULL for none.
+ * \param header_size		The required height of the header, in millipoints.
+ * \param footer_size		The required height of the footer, in millipoints.
  * \return			Flagword indicating which areas were set up.
  */
 
-static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer)
+static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer, unsigned header_size, unsigned footer_size)
 {
 	os_error			*error;
 	osbool				margin_fail = FALSE;
-	enum report_page_area		sections = REPORT_PAGE_NONE;
+	enum report_page_area		areas = REPORT_PAGE_NONE;
 	int				page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
 	int				margin_left, margin_right, margin_top, margin_bottom;
 
@@ -1996,6 +2088,8 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 	error = xpdriver_page_size(&page_xsize, &page_ysize, &page_left, &page_bottom, &page_right, &page_top);
 	if (error != NULL)
 		return REPORT_PAGE_NONE;
+
+	debug_printf("x=%d, y=%d, left=%d, right=%d, top=%d, bottom=%d", page_xsize, page_ysize, page_left, page_right, page_top, page_bottom);
 
 	margin_left = page_left;
 
@@ -2039,6 +2133,8 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 	debug_printf("Rotate setting: %d", rotate);
 
 	if (body != NULL) {
+		areas |= REPORT_PAGE_BODY;
+
 		if (rotate) {
 			body->x0 = page_bottom;
 			body->x1 = page_top;
@@ -2051,12 +2147,32 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 			body->y1 = page_top;
 		}
 
+		if (header != NULL && header_size > 0) {
+			header->x0 = body->x0;
+			header->x1 = body->x1;
+			header->y1 = body->y1;
+
+			header->y0 = header->y1 - (header_size * ((rotate) ? -1 : 1));
+			body->y1 = header->y0 - (config_int_read("PrintMarginInternal") * ((rotate) ? -1 : 1));
+
+			areas |= REPORT_PAGE_HEADER;
+		}
+
+		if (footer != NULL && footer_size > 0) {
+			footer->x0 = body->x0;
+			footer->x1 = body->x1;
+			footer->y0 = body->y0;
+
+			footer->y1 = footer->y0 + (footer_size * ((rotate) ? -1 : 1));
+			body->y0 = footer->y1 + (config_int_read("PrintMarginInternal") * ((rotate) ? -1 : 1));
+
+			areas |= REPORT_PAGE_FOOTER;
+		}
 	}
 
 	if (margin_fail)
 		error_msgs_report_error("BadPrintMargins");
 
-	return sections;
+	return areas;
 }
-
 

@@ -103,10 +103,11 @@ void report_close(report_data *report);
  * \param textformat		TRUE to apply formatting to text mode printing.
  * \param fitwidth		TRUE to fit graphics printing to page width.
  * \param rotate		TRUE to rotate grapchis printing to Landscape;
+ * \param pagenum		TRUE to include page numbers in graphics printing.
  *				FALSE to print Portrait.
  */
 
-void report_close_and_print(report_data *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate);
+void report_close_and_print(report_data *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum);
 
 
 /**

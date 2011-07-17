@@ -1741,7 +1741,7 @@ int count_accounts_in_file (file_data *file, unsigned int type)
 
 /* Print the account window by sending the data to a report. */
 
-void print_account_window (int text, int format, int scale, int rotate)
+void print_account_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
   report_data *report;
   int            i, entry;
@@ -1905,7 +1905,7 @@ void print_account_window (int text, int format, int scale, int rotate)
     error_msgs_report_error ("PrintMemFail");
   }
 
-  report_close_and_print(report, text, format, scale, rotate);
+  report_close_and_print(report, text, format, scale, rotate, pagenum);
 }
 
 /* ==================================================================================================================

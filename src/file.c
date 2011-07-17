@@ -225,6 +225,7 @@ file_data *build_new_file_block (void)
   new->find.direction = FIND_START;
 
   new->print.fit_width = config_opt_read ("PrintFitWidth");
+  new->print.page_numbers = config_opt_read ("PrintPageNumbers");
   new->print.rotate = config_opt_read ("PrintRotate");
   new->print.text = config_opt_read ("PrintText");
   new->print.text_format = config_opt_read ("PrintTextFormat");

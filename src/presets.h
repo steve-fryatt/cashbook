@@ -135,7 +135,7 @@ int find_preset_from_keypress (file_data *file, char key);
 
 /* File and print output */
 
-void print_preset_window (int text, int format, int scale, int rotate);
+void print_preset_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 /* Preset window handling */
 

@@ -130,7 +130,7 @@ void trial_standing_orders (file_data *file);
 
 /* File and print output. */
 
-void print_sorder_window (int text, int format, int scale, int rotate);
+void print_sorder_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 /* Report generation. */
 

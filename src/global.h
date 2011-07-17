@@ -614,6 +614,7 @@ find;
 
 typedef struct print {
 	osbool		fit_width;						/**< TRUE to fit width in graphics mode; FALSE to print 100%.					*/
+	osbool		page_numbers;						/**< TRUE to print page numbers; FALSE to omit them.						*/
 	osbool		rotate;							/**< TRUE to rotate 90 degrees in graphics mode to print Landscape; FALSE to print Portrait.	*/
 	osbool		text;							/**< TRUE to print in text mode; FALSE to print in graphics mode.				*/
 	osbool		text_format;						/**< TRUE to print with styles in text mode; FALSE to print plain text.				*/

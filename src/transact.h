@@ -96,7 +96,7 @@ void open_transact_print_window (file_data *file, wimp_pointer *ptr, int clear);
 
 /* File and print output */
 
-void print_transact_window (int text, int format, int scale, int rotate, date_t from, date_t to);
+void print_transact_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
 
 /* Transaction window handling */
 

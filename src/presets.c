@@ -1129,7 +1129,7 @@ int find_preset_from_keypress (file_data *file, char key)
 
 /* Print the standing order window by sending the data to a report. */
 
-void print_preset_window (int text, int format, int scale, int rotate)
+void print_preset_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
   report_data *report;
   int            i, t;
@@ -1158,7 +1158,7 @@ void print_preset_window (int text, int format, int scale, int rotate)
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->preset_pane, 0, numbuf1));
+    sprintf (buffer, "\\k\\b\\u%s\\t", icons_copy_text (window->preset_pane, 0, numbuf1));
     strcat (line, buffer);
     sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->preset_pane, 1, numbuf1));
     strcat (line, buffer);
@@ -1185,7 +1185,7 @@ void print_preset_window (int text, int format, int scale, int rotate)
        * first string will end there and then.
        */
 
-      sprintf (buffer, "%c", preset_print_file->presets[t].action_key);
+      sprintf (buffer, "\\k%c", preset_print_file->presets[t].action_key);
       strcat (line, buffer);
 
       sprintf (buffer, "\\t%s\\t", preset_print_file->presets[t].name);
@@ -1228,7 +1228,7 @@ void print_preset_window (int text, int format, int scale, int rotate)
     error_msgs_report_error ("PrintMemFail");
   }
 
-  report_close_and_print(report, text, format, scale, rotate);
+  report_close_and_print(report, text, format, scale, rotate, pagenum);
 }
 
 /* ==================================================================================================================

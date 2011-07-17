@@ -155,7 +155,7 @@ int count_accounts_in_file (file_data *file, unsigned int type);
 
 /* File and print output */
 
-void print_account_window (int text, int format, int scale, int rotate);
+void print_account_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 /* Account window handling */
 

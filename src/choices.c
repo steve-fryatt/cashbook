@@ -116,6 +116,8 @@
 #define CHOICE_ICON_MMM 16
 #define CHOICE_ICON_FASTTEXT 17
 #define CHOICE_ICON_TEXTFORMAT 18
+#define CHOICE_ICON_PNUM 19
+#define CHOICE_ICON_GUTTER 21
 
 /* Report pane icons. */
 
@@ -614,6 +616,8 @@ static void choices_set_window(void)
 			config_opt_read("PrintRotate"));
 	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_SCALE,
 			config_opt_read("PrintFitWidth"));
+	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_PNUM,
+			config_opt_read("PrintPageNumbers"));
 
 	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT,
 			config_opt_read("PrintText"));
@@ -633,6 +637,8 @@ static void choices_set_window(void)
 				(float) config_int_read("PrintMarginRight") / UNIT_MM_TO_MILLIPOINT);
 		icons_printf(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM, "%.2f",
 				(float) config_int_read("PrintMarginBottom") / UNIT_MM_TO_MILLIPOINT);
+		icons_printf(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_GUTTER, "%.2f",
+				(float) config_int_read("PrintMarginInternal") / UNIT_MM_TO_MILLIPOINT);
 		break;
 
 	case MARGIN_UNIT_CM:
@@ -644,6 +650,8 @@ static void choices_set_window(void)
 				(float) config_int_read("PrintMarginRight") / UNIT_CM_TO_MILLIPOINT);
 		icons_printf(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM, "%.2f",
 				(float) config_int_read("PrintMarginBottom") / UNIT_CM_TO_MILLIPOINT);
+		icons_printf(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_GUTTER, "%.2f",
+				(float) config_int_read("PrintMarginInternal") / UNIT_CM_TO_MILLIPOINT);
 		break;
 
 	case MARGIN_UNIT_INCH:
@@ -655,6 +663,8 @@ static void choices_set_window(void)
 				(float) config_int_read("PrintMarginRight") / UNIT_INCH_TO_MILLIPOINT);
 		icons_printf(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM, "%.2f",
 				(float) config_int_read("PrintMarginBottom") / UNIT_INCH_TO_MILLIPOINT);
+		icons_printf(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_GUTTER, "%.2f",
+				(float) config_int_read("PrintMarginInternal") / UNIT_INCH_TO_MILLIPOINT);
 		break;
 	}
 
@@ -709,7 +719,7 @@ static void choices_set_window(void)
 static void choices_read_window(void)
 {
 	int		i, ignore;
-	float		top, left, right, bottom;
+	float		top, left, right, bottom, internal;
 
 	/* Read the general pane. */
 
@@ -764,6 +774,8 @@ static void choices_read_window(void)
 			icons_get_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_SCALE));
 	config_opt_set("PrintRotate",
 			icons_get_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE));
+	config_opt_set("PrintPageNumbers",
+			icons_get_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_PNUM));
 	config_opt_set("PrintText",
 			icons_get_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT));
 	config_opt_set("PrintTextFormat",
@@ -776,6 +788,7 @@ static void choices_read_window(void)
 	sscanf(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MLEFT), "%f", &left);
 	sscanf(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MRIGHT), "%f", &right);
 	sscanf(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MBOTTOM), "%f", &bottom);
+	sscanf(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_GUTTER), "%f", &internal);
 
 	switch (config_int_read("PrintMarginUnits")) {
 	case MARGIN_UNIT_MM:
@@ -783,6 +796,7 @@ static void choices_read_window(void)
 		config_int_set("PrintMarginLeft", (int) (left * UNIT_MM_TO_MILLIPOINT));
 		config_int_set("PrintMarginRight", (int) (right * UNIT_MM_TO_MILLIPOINT));
 		config_int_set("PrintMarginBottom", (int) (bottom * UNIT_MM_TO_MILLIPOINT));
+		config_int_set("PrintMarginInternal", (int) (internal * UNIT_MM_TO_MILLIPOINT));
 		break;
 
 	case MARGIN_UNIT_CM:
@@ -790,6 +804,7 @@ static void choices_read_window(void)
 		config_int_set("PrintMarginLeft", (int) (left * UNIT_CM_TO_MILLIPOINT));
 		config_int_set("PrintMarginRight", (int) (right * UNIT_CM_TO_MILLIPOINT));
 		config_int_set("PrintMarginBottom", (int) (bottom * UNIT_CM_TO_MILLIPOINT));
+		config_int_set("PrintMarginInternal", (int) (internal * UNIT_CM_TO_MILLIPOINT));
 		break;
 
 	case MARGIN_UNIT_INCH:
@@ -797,6 +812,7 @@ static void choices_read_window(void)
 		config_int_set("PrintMarginLeft", (int) (left * UNIT_INCH_TO_MILLIPOINT));
 		config_int_set("PrintMarginRight", (int) (right * UNIT_INCH_TO_MILLIPOINT));
 		config_int_set("PrintMarginBottom", (int) (bottom * UNIT_INCH_TO_MILLIPOINT));
+		config_int_set("PrintMarginInternal", (int) (internal * UNIT_INCH_TO_MILLIPOINT));
 		break;
 	}
 

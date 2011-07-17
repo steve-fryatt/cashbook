@@ -1003,7 +1003,7 @@ void open_accview_print_window (file_data *file, int account, wimp_pointer *ptr,
  * File and print output
  */
 
-void print_accview_window (int text, int format, int scale, int rotate, date_t from, date_t to)
+void print_accview_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
 {
   report_data *report;
   int            i, transaction=0;
@@ -1126,7 +1126,7 @@ void print_accview_window (int text, int format, int scale, int rotate, date_t f
     error_msgs_report_error ("PrintMemFail");
   }
 
-  report_close_and_print(report, text, format, scale, rotate);
+  report_close_and_print(report, text, format, scale, rotate, pagenum);
 }
 
 /* ==================================================================================================================

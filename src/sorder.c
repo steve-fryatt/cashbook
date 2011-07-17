@@ -1470,7 +1470,7 @@ void trial_standing_orders (file_data *file)
 
 /* Print the standing order window by sending the data to a report. */
 
-void print_sorder_window (int text, int format, int scale, int rotate)
+void print_sorder_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
   report_data *report;
   int            i, t;
@@ -1499,7 +1499,7 @@ void print_sorder_window (int text, int format, int scale, int rotate)
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->sorder_pane, 0, numbuf1));
+    sprintf (buffer, "\\k\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->sorder_pane, 0, numbuf1));
     strcat (line, buffer);
     sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->sorder_pane, 1, numbuf1));
     strcat (line, buffer);
@@ -1522,7 +1522,7 @@ void print_sorder_window (int text, int format, int scale, int rotate)
 
       *line = '\0';
 
-      sprintf (buffer, "%s\\t", find_account_ident (sorder_print_file, sorder_print_file->sorders[t].from));
+      sprintf (buffer, "\\k%s\\t", find_account_ident (sorder_print_file, sorder_print_file->sorders[t].from));
       strcat (line, buffer);
 
       strcpy (numbuf1, (sorder_print_file->sorders[t].flags & TRANS_REC_FROM) ? rec_char : "");
@@ -1573,7 +1573,7 @@ void print_sorder_window (int text, int format, int scale, int rotate)
     error_msgs_report_error ("PrintMemFail");
   }
 
-  report_close_and_print(report, text, format, scale, rotate);
+  report_close_and_print(report, text, format, scale, rotate, pagenum);
 }
 
 /* ==================================================================================================================

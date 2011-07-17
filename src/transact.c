@@ -884,7 +884,7 @@ void open_transact_print_window (file_data *file, wimp_pointer *ptr, int clear)
  * File and print output
  */
 
-void print_transact_window (int text, int format, int scale, int rotate, date_t from, date_t to)
+void print_transact_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
 {
   report_data *report;
   int            i, t;
@@ -909,7 +909,7 @@ void print_transact_window (int text, int format, int scale, int rotate, date_t 
     /* Output the headings line, taking the text from the window icons. */
 
     *line = '\0';
-    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (transact_print_file->transaction_window.transaction_pane, 0, numbuf1));
+    sprintf (buffer, "\\k\\b\\u%s\\t", icons_copy_text (transact_print_file->transaction_window.transaction_pane, 0, numbuf1));
     strcat (line, buffer);
     sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t",
              icons_copy_text (transact_print_file->transaction_window.transaction_pane, 1, numbuf1));
@@ -939,7 +939,7 @@ void print_transact_window (int text, int format, int scale, int rotate, date_t 
         t = transact_print_file->transactions[i].sort_index;
 
         convert_date_to_string (transact_print_file->transactions[t].date, numbuf1);
-        sprintf (buffer, "%s\\t", numbuf1);
+        sprintf (buffer, "\\k%s\\t", numbuf1);
         strcat (line, buffer);
 
         sprintf (buffer, "%s\\t", find_account_ident (transact_print_file, transact_print_file->transactions[t].from));
@@ -983,7 +983,7 @@ void print_transact_window (int text, int format, int scale, int rotate, date_t 
     error_msgs_report_error ("PrintMemFail");
   }
 
-  report_close_and_print(report, text, format, scale, rotate);
+  report_close_and_print(report, text, format, scale, rotate, pagenum);
 }
 
 /* ==================================================================================================================

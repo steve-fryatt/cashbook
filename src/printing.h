@@ -53,7 +53,7 @@ void printing_force_windows_closed(file_data *file);
  */
 
 void printing_open_simple_window(file_data *file, wimp_pointer *ptr, osbool restore, char *title,
-		void (callback) (osbool, osbool, osbool, osbool));
+		void (callback) (osbool, osbool, osbool, osbool, osbool));
 
 
 /**
@@ -69,7 +69,7 @@ void printing_open_simple_window(file_data *file, wimp_pointer *ptr, osbool rest
  */
 
 void printing_open_advanced_window(file_data *file, wimp_pointer *ptr, osbool restore, char *title,
-		void (callback) (osbool, osbool, osbool, osbool, date_t, date_t));
+		void (callback) (osbool, osbool, osbool, osbool, osbool, date_t, date_t));
 
 #endif
 

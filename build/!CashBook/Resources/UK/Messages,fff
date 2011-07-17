@@ -706,6 +706,7 @@ Help.Choices3.MTop:\Tmargin at the top of the page.|MEnter 0 (zero) to use the d
 Help.Choices3.MLeft:\Tmargin at the left-hand of the page.|MEnter 0 (zero) to use the default paper margins.
 Help.Choices3.MRight:\Tmargin at the right-hand of the page.|MEnter 0 (zero) to use the default paper margins.
 Help.Choices3.MBottom:\Tmargin at the bottom of the page.|MEnter 0 (zero) to use the default paper margins.
+Help.Choices3.Gutt:\Tspace between the page body and the header or footer.
 Help.Choices3.MInch:\Sdefine the page margins in inches.
 Help.Choices3.Mcm:\Sdefine the page margins in cm.
 Help.Choices3.Mmm:\Sdefine the page margins in mm.
@@ -845,6 +846,7 @@ Help.SimplePrint/Help.DatePrint:\Tprint \w.
 Help.SimplePrint.Standard/Help.DatePrint.Standard/Help.Choices3.Standard:\Sprint using normal printing mode, with a choice of outline font and different size text.
 Help.SimplePrint.Portrait/Help.DatePrint.Portrait/Help.Choices3.Portrait:\Sprint text on the page in portrait orientation.
 Help.SimplePrint.Landscape/Help.DatePrint.Landscape/Help.Choices3.Landscape:\Sprint text on the page in landscape orientation.
+Help.SimplePrint.PNum/Help.DatePrint.PNum/Help.Choices3.PNum:\Stoggle the printing of page numbers.
 Help.SimplePrint.Scale/Help.DatePrint.Scale/Help.Choices3.Scale:\Stoggle scaling the font size to fit everything to one page width.
 Help.SimplePrint.FastText/Help.DatePrint.FastText/Help.Choices3.FastText:\Sprint using a printer's fast text mode instead of outline fonts.
 Help.SimplePrint.TextForm/Help.DatePrint.TextForm/Help.Choices3.TextForm:\Stoggle the use effects (bold and underline) with fast text printing.

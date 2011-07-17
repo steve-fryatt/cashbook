@@ -878,7 +878,7 @@ static void analysis_generate_transaction_report(file_data *file)
 
 					convert_money_to_string(file->transactions[i].amount, b2);
 
-					sprintf(line, "%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
+					sprintf(line, "\\k%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
 							find_account_name (file, file->transactions[i].from),
 							find_account_name (file, file->transactions[i].to),
 							file->transactions[i].reference, b2, file->transactions[i].description);
@@ -910,7 +910,7 @@ static void analysis_generate_transaction_report(file_data *file)
 					if (file->accounts[account].report_total != 0) {
 						total += file->accounts[account].report_total;
 						convert_money_to_string(file->accounts[account].report_total, b1);
-						sprintf(line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
+						sprintf(line, "\\k\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
 						report_write_line(report, 2, line);
 					}
 				}
@@ -918,7 +918,7 @@ static void analysis_generate_transaction_report(file_data *file)
 
 			msgs_lookup("TRTotal", b1, sizeof (b1));
 			convert_money_to_string(total, b2);
-			sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
+			sprintf(line, "\\i\\k\\b%s\\t\\d\\r\\b%s", b1, b2);
 			report_write_line(report, 2, line);
 		}
 
@@ -948,7 +948,7 @@ static void analysis_generate_transaction_report(file_data *file)
 					if (file->accounts[account].report_total != 0) {
 						total += file->accounts[account].report_total;
 						convert_money_to_string(file->accounts[account].report_total, b1);
-						sprintf(line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
+						sprintf(line, "\\i\\k%s\\t\\d\\r%s", file->accounts[account].name, b1);
 						if (file->trans_rep.budget) {
 							period_days = count_days(next_start, next_end);
 							period_limit = file->accounts[account].budget_amount * period_days / total_days;
@@ -971,7 +971,7 @@ static void analysis_generate_transaction_report(file_data *file)
 
 			msgs_lookup("TRTotal", b1, sizeof(b1));
 			convert_money_to_string(total, b2);
-			sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
+			sprintf(line, "\\i\\k\\b%s\\t\\d\\r\\b%s", b1, b2);
 			report_write_line(report, 2, line);
 
 			/* Summarise the incomings. */
@@ -997,7 +997,7 @@ static void analysis_generate_transaction_report(file_data *file)
 					if (file->accounts[account].report_total != 0) {
 						total += file->accounts[account].report_total;
 						convert_money_to_string(-file->accounts[account].report_total, b1);
-						sprintf(line, "\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
+						sprintf(line, "\\i\\k%s\\t\\d\\r%s", file->accounts[account].name, b1);
 						if (file->trans_rep.budget) {
 							period_days = count_days(next_start, next_end);
 							period_limit = file->accounts[account].budget_amount * period_days / total_days;
@@ -1020,7 +1020,7 @@ static void analysis_generate_transaction_report(file_data *file)
 
 			msgs_lookup("TRTotal", b1, sizeof(b1));
 			convert_money_to_string(-total, b2);
-			sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
+			sprintf(line, "\\i\\k\\b%s\\t\\d\\r\\b%s", b1, b2);
 			report_write_line(report, 2, line);
 		}
 	}
@@ -1517,7 +1517,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 							convert_date_to_string(file->transactions[i].date, b1);
 							convert_money_to_string(file->transactions[i].amount, b2);
 
-							sprintf(line, "%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
+							sprintf(line, "\\k%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
 									r1, find_account_name(file, file->transactions[i].from),
 									r2, find_account_name(file, file->transactions[i].to),
 									file->transactions[i].reference, b2, file->transactions[i].description);
@@ -1587,7 +1587,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 					convert_date_to_string(file->transactions[i].date, b1);
 					convert_money_to_string(file->transactions[i].amount, b2);
 
-					sprintf(line, "%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
+					sprintf(line, "\\k%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
 							r1, find_account_name(file, file->transactions[i].from),
 							r2, find_account_name(file, file->transactions[i].to),
 							file->transactions[i].reference, b2, file->transactions[i].description);
@@ -2054,7 +2054,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 	if (tabular) {
 		report_write_line(report, 0, "");
 		msgs_lookup("CRDate", b1, sizeof(b1));
-		sprintf(line, "\\b%s", b1);
+		sprintf(line, "\\k\\b%s", b1);
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
 			entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
@@ -2106,7 +2106,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 		if (found > 0 || show_blank) {
 			if (tabular) {
-				strcpy(line, date_text);
+				sprintf(line, "\\k%s", date_text);
 
 				total = 0;
 
@@ -2614,7 +2614,7 @@ static void analysis_generate_balance_report(file_data *file)
 	if (tabular) {
 		report_write_line(report, 0, "");
 		msgs_lookup("BRDate", b1, sizeof(b1));
-		sprintf(line, "\\b%s", b1);
+		sprintf(line, "\\k\\b%s", b1);
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
 			entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
@@ -2662,7 +2662,7 @@ static void analysis_generate_balance_report(file_data *file)
 		/* Print the transaction summaries. */
 
 		if (tabular) {
-			strcpy(line, date_text);
+			sprintf(line, "\\k%s", date_text);
 
 			total = 0;
 

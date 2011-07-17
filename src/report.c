@@ -1614,8 +1614,6 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 		xpdriver_declare_font(0, 0, 0);
 	}
 
-	debug_printf("x0=%d, x1=%d, y0=%d, y1=%d", body.x0, body.x1, body.y0, body.y1);
-
 	/* Calculate the page size, positions, transformations etc. */
 
 	/* The printable page width and height, in milli-points and then into OS units. */
@@ -1656,8 +1654,6 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 		page_width = report->width;
 	}
 
-	debug_printf("Scaling = %f", scaling);
-
 	/* \TODO -- Apply the header and footer here. */
 
 	/* Clip the page length to be an exect number of lines */
@@ -1683,9 +1679,9 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 	while ((pages_y * lines_per_page) < (report->lines + pages_y))
 		pages_y++;
 
-//	#ifdef DEBUG
+	#ifdef DEBUG
 	debug_printf("Pages required: x=%d, y=%d, lines per page=%d", pages_x, pages_y, lines_per_page);
-//	#endif
+	#endif
 
 	pages = malloc(sizeof(struct report_print_pagination) * pages_y);
 
@@ -1707,9 +1703,9 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 
 	for (y = 0; y < report->lines; y++) {
 		if (lines <= 0) {
-//			#ifdef DEBUG
+			#ifdef DEBUG
 			debug_printf("Page %d starts at line %d, repeating heading from line %d", page_y, y, header);
-//			#endif
+			#endif
 
 			pages[page_y].header_line = header;
 			pages[page_y].first_line = y;
@@ -1760,8 +1756,6 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 	if (fit_width && page_width > footer_width)
 		footer_width = page_width;
 
-	debug_printf("Footer width=%d, Footer height=%d", footer_width, footer_height);
-
 	f_rect.x0 = 0;
 	f_rect.x1 = footer_width;
 	f_rect.y1 = footer_height;
@@ -1784,8 +1778,6 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 		f_pos.x = footer.x0;
 		f_pos.y = footer.y0;
 	}
-
-	debug_printf("Pages x=%d, Pages y=%d", pages_x, pages_y);
 
 	/* Loop through the pages down the report and across. */
 
@@ -1820,8 +1812,6 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 
 				p_pos.x = body.y0 - offset;
 				p_pos.y = body.x0;
-
-				debug_printf("Page %d Rectangle x0=%d, y0=%d, x1=%d, y1=%d at x=%d, y=%d, height=%d, offset=%d", page_y, p_rect.x0, p_rect.y0, p_rect.x1, p_rect.y1, p_pos.x, p_pos.y, page_width, page_height + (p_rect.y0 - p_rect.y1));
 			} else {
 				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1) + trim) * scaling, 0, (int *) &offset, NULL);
 				if (error != NULL) {
@@ -1831,8 +1821,6 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 
 				p_pos.x = body.x0;
 				p_pos.y = body.y0 + offset;
-
-				debug_printf("Page %d Rectangle x0=%d, y0=%d, x1=%d, y1=%d at x=%d, y=%d, height=%d, offset=%d", page_y, p_rect.x0, p_rect.y0, p_rect.x1, p_rect.y1, p_pos.x, p_pos.y, page_height, page_height + (p_rect.y0 - p_rect.y1));
 			}
 
 			/* Pass the page details to the printer driver and start to draw the page. */
@@ -1916,8 +1904,6 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 						report_handle_print_error(error, out, font_n, font_b);
 						return;
 					}
-
-					debug_printf("Printing footer: x=%d, y=%d", (footer_width - width) / 2, 4);
 
 					error = xfont_paint(font_n, title, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
 							(footer_width - width) / 2, 4, NULL, NULL, 0);
@@ -2089,8 +2075,6 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 	if (error != NULL)
 		return REPORT_PAGE_NONE;
 
-	debug_printf("x=%d, y=%d, left=%d, right=%d, top=%d, bottom=%d", page_xsize, page_ysize, page_left, page_right, page_top, page_bottom);
-
 	margin_left = page_left;
 
 	if (config_int_read("PrintMarginLeft") > 0 && config_int_read("PrintMarginLeft") > margin_left) {
@@ -2126,11 +2110,6 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 	} else if (config_int_read("PrintMarginTop") > 0) {
 		margin_fail = TRUE;
 	}
-
-	debug_printf("x=%d, y=%d, left=%d, right=%d, top=%d, bottom=%d", page_xsize, page_ysize, page_left, page_right, page_top, page_bottom);
-	debug_printf("left=%d, right=%d, top=%d, bottom=%d", margin_left, margin_right, margin_top, margin_bottom);
-
-	debug_printf("Rotate setting: %d", rotate);
 
 	if (body != NULL) {
 		areas |= REPORT_PAGE_BODY;

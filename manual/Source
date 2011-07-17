@@ -965,9 +965,11 @@ The default options for printing, including the choice between standard and fast
 
 The default method of printing uses outline fonts, which can be scaled as required. This method is the most flexible, allowing the text to be sized and rotated to provide the best fit on a page, but on older printers it can also be slow. Selecting <icon>Standard printing</icon> will use this mode.
 
-The <icon>Portrait</icon> and <icon>Landscape</icon> options determine the orientation of the text on the page. Using landscape will allow longer lines to fit on a single sheet of paper, at the expense of getting fewer lines per page. Setting <icon>Scale to fit pages</icon> will shrink the text size if this is required to fit the whole width on one page. Otherwise, the printout will be tiled across as many sheets of paper as necessary.
+The <icon>Portrait</icon> and <icon>Landscape</icon> options determine the orientation of the text on the page. Using landscape will allow longer lines to fit on a single sheet of paper, at the expense of getting fewer lines per page. Setting <icon>Scale to fit pages</icon> will shrink the text size if this is required to fit the whole width on one page. Otherwise, the printout will be tiled across as many sheets of paper as necessary.  <icon>Include page numbers</icon> will number each printed sheet at the foot of the page, to make it easier to identify the correct order; where the print is more than one sheet wide, numbers are of the form X, Y.
 
 The margins used for are those set in the <icon>Printing</icon> section of the <link ref="Config">choices window</link>. If these are set to be smaller than the current printer's margins, a warning will be given and the margins will be temporarily increased.  The fonts used for printing are the ones set in the <icon>Fonts</icon> section of the <link ref="Config">choices window</link> (which also set the default font for the report viewer).
+
+When printing in standard mode, column headings for tables will be repeated if lines from the table continue over a page break.
 
 
 <subhead title="Fast text printing">
@@ -1219,11 +1221,11 @@ The <icon>Printing</icon> section controls the printing options, including print
 
 The <icon>Standard printing</icon> and <icon>Fast text printing</icon> options determine the default mode to be used for print jobs.  Standard uses RISC OS fonts and should work with all but the most elderly of printers; while it will be slower on old hardware, it allows more options for scaling text and fitting it on the page.  Fast text will only work on printers that offer a text mode: this is mainly old dot-matrixes and PostScript devices.  It has the advantage of speed, but is much less flexible in terms of layout and formatting.
 
-When printing in standard mode, the text can be placed on the page in either <icon>Portrait</icon> or <icon>Landscape</icon> mode; the latter is useful if there are long lines present.  Ticking <icon>Scale width to fit page</icon> will ensure that print jobs always come out one page wide, by reducing the font size until the widest line fits.
+When printing in standard mode, the text can be placed on the page in either <icon>Portrait</icon> or <icon>Landscape</icon> mode; the latter is useful if there are long lines present.  Ticking <icon>Scale width to fit page</icon> will ensure that print jobs always come out one page wide, by reducing the font size until the widest line fits. Page numbers can be added by ticking <icon>Include page numbers</icon>.
 
 The font used for printing is the one set in the <icon>Fonts</icon> section of the choices.
 
-The <icon>Print margins</icon> should be set to keep the page contents away from the edges of the paper.  They are measured from the edge of the paper, and should be larger than the margins set in the printer drivers; if they are not, a warning will be given whenever a page is printed.
+The <icon>Print margins</icon> should be set to keep the page contents away from the edges of the paper.  They are measured from the edge of the paper, and should be larger than the margins set in the printer drivers; if they are not, a warning will be given whenever a page is printed. The <icon>Gutter<icon> is the space between the footer area containing the page number and the bottom of the main printable area: if page numbering is off, then the footer is not included in the layout and the gutter dimension will not be used.
 
 For fast text printing, the <icon>Use text formatting</icon> option can be used to include bold and underline formatting on the page.  This depends on support from both the printer itself and from the text mode drivers in the RISC OS printing system.
 
@@ -1460,6 +1462,16 @@ Update to third stable release.
 <list>
 <li>Add match whole string option to <link ref="Find">find</link> dialogue.
 <li>Change <icon>Next</icon> and <icon>Previous</icon> buttons in <window>found</window> dialogue to work relative to the current search direction.
+</list>
+
+
+<subhead title="Pending release">
+
+Alpha release, for feedback and comment.
+
+<list>
+<li>Extensive internal restructuring.
+<li>Support for page numbering and heading line repetition when printing.
 </list>
 
 </chapter>

@@ -432,7 +432,7 @@ void report_delete(report_data *report)
 
 
 /**
- * Write a lone of text to an open report.  Lines are NULL terminated, and can
+ * Write a line of text to an open report.  Lines are NULL terminated, and can
  * contain the following inline commands:
  *
  *	\t - Tab (start a new column)

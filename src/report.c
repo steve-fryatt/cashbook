@@ -1825,14 +1825,14 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 
 			/* Pass the page details to the printer driver and start to draw the page. */
 
-			error = xpdriver_give_rectangle(REPORT_PAGE_BODY, &p_rect, &p_trfm, &p_pos, os_COLOUR_RED); /* \TODO -- Replace with os_COLOUR_WHITE */
+			error = xpdriver_give_rectangle(REPORT_PAGE_BODY, &p_rect, &p_trfm, &p_pos, os_COLOUR_WHITE);
 			if (error != NULL) {
 				report_handle_print_error(error, out, font_n, font_b);
 				return;
 			}
 
 			if (areas & REPORT_PAGE_FOOTER) {
-				error = xpdriver_give_rectangle(REPORT_PAGE_FOOTER, &f_rect, &p_trfm, &f_pos, os_COLOUR_ORANGE); /* \TODO -- Replace with os_COLOUR_WHITE */
+				error = xpdriver_give_rectangle(REPORT_PAGE_FOOTER, &f_rect, &p_trfm, &f_pos, os_COLOUR_WHITE);
 				if (error != NULL) {
 					report_handle_print_error(error, out, font_n, font_b);
 					return;

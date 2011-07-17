@@ -66,8 +66,8 @@ void goto_initialise(void)
 
 	event_add_window_mouse_event(goto_window, goto_click_handler);
 	event_add_window_key_event(goto_window, goto_keypress_handler);
-	event_add_window_icon_radio(goto_window, GOTO_ICON_NUMBER);
-	event_add_window_icon_radio(goto_window, GOTO_ICON_DATE);
+	event_add_window_icon_radio(goto_window, GOTO_ICON_NUMBER, TRUE);
+	event_add_window_icon_radio(goto_window, GOTO_ICON_DATE, TRUE);
 }
 
 

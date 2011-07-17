@@ -139,19 +139,19 @@ void printing_initialise(void)
 	ihelp_add_window(printing_simple_window, "SimplePrint", NULL);
 	event_add_window_mouse_event(printing_simple_window, printing_simple_click_handler);
 	event_add_window_key_event(printing_simple_window, printing_simple_keypress_handler);
-	event_add_window_icon_radio(printing_simple_window, SIMPLE_PRINT_STANDARD);
-	event_add_window_icon_radio(printing_simple_window, SIMPLE_PRINT_FASTTEXT);
-	event_add_window_icon_radio(printing_simple_window, SIMPLE_PRINT_PORTRAIT);
-	event_add_window_icon_radio(printing_simple_window, SIMPLE_PRINT_LANDSCAPE);
+	event_add_window_icon_radio(printing_simple_window, SIMPLE_PRINT_STANDARD, TRUE);
+	event_add_window_icon_radio(printing_simple_window, SIMPLE_PRINT_FASTTEXT, TRUE);
+	event_add_window_icon_radio(printing_simple_window, SIMPLE_PRINT_PORTRAIT, TRUE);
+	event_add_window_icon_radio(printing_simple_window, SIMPLE_PRINT_LANDSCAPE, TRUE);
 
 	printing_advanced_window = templates_create_window("DatePrint");
 	ihelp_add_window(printing_advanced_window, "DatePrint", NULL);
 	event_add_window_mouse_event(printing_advanced_window, printing_advanced_click_handler);
 	event_add_window_key_event(printing_advanced_window, printing_advanced_keypress_handler);
-	event_add_window_icon_radio(printing_advanced_window, DATE_PRINT_STANDARD);
-	event_add_window_icon_radio(printing_advanced_window, DATE_PRINT_FASTTEXT);
-	event_add_window_icon_radio(printing_advanced_window, DATE_PRINT_PORTRAIT);
-	event_add_window_icon_radio(printing_advanced_window, DATE_PRINT_LANDSCAPE);
+	event_add_window_icon_radio(printing_advanced_window, DATE_PRINT_STANDARD, TRUE);
+	event_add_window_icon_radio(printing_advanced_window, DATE_PRINT_FASTTEXT, TRUE);
+	event_add_window_icon_radio(printing_advanced_window, DATE_PRINT_PORTRAIT, TRUE);
+	event_add_window_icon_radio(printing_advanced_window, DATE_PRINT_LANDSCAPE, TRUE);
 
 	/* Register the Wimp message handlers. */
 

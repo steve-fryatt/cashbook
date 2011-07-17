@@ -219,13 +219,13 @@ void choices_initialise(void)
 	ihelp_add_window (choices_panes[CHOICE_PANE_PRINT], "Choices3", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_PRINT], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_PRINT], choices_keypress_handler);
-	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_STANDARD);
-	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT);
-	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_PORTRAIT);
-	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE);
-	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MINCH);
-	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MCM);
-	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MMM);
+	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_STANDARD, TRUE);
+	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT, TRUE);
+	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_PORTRAIT, TRUE);
+	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE, TRUE);
+	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MINCH, TRUE);
+	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MCM, TRUE);
+	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MMM, TRUE);
 
 	choices_panes[CHOICE_PANE_TRANSACT] = templates_create_window("Choices4");
 	ihelp_add_window (choices_panes[CHOICE_PANE_TRANSACT], "Choices4", NULL);

@@ -318,33 +318,33 @@ void analysis_initialise(void)
 	ihelp_add_window(analysis_transaction_window, "TransRep", NULL);
 	event_add_window_mouse_event(analysis_transaction_window, analysis_transaction_click_handler);
 	event_add_window_key_event(analysis_transaction_window, analysis_transaction_keypress_handler);
-	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PDAYS);
-	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS);
-	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS);
+	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, TRUE);
+	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, TRUE);
+	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, TRUE);
 
 	analysis_unreconciled_window = templates_create_window("UnrecRep");
 	ihelp_add_window(analysis_unreconciled_window, "UnrecRep", NULL);
 	event_add_window_mouse_event(analysis_unreconciled_window, analysis_unreconciled_click_handler);
 	event_add_window_key_event(analysis_unreconciled_window, analysis_unreconciled_keypress_handler);
-	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS);
-	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS);
-	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS);
+	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, TRUE);
+	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS, TRUE);
+	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, TRUE);
 
 	analysis_cashflow_window = templates_create_window("CashFlwRep");
 	ihelp_add_window(analysis_cashflow_window, "CashFlwRep", NULL);
 	event_add_window_mouse_event(analysis_cashflow_window, analysis_cashflow_click_handler);
 	event_add_window_key_event(analysis_cashflow_window, analysis_cashflow_keypress_handler);
-	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS);
-	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS);
-	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS);
+	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, TRUE);
+	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, TRUE);
+	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, TRUE);
 
 	analysis_balance_window = templates_create_window("BalanceRep");
 	ihelp_add_window(analysis_balance_window, "BalanceRep", NULL);
 	event_add_window_mouse_event(analysis_balance_window, analysis_balance_click_handler);
 	event_add_window_key_event(analysis_balance_window, analysis_balance_keypress_handler);
-	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PDAYS);
-	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS);
-	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PYEARS);
+	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, TRUE);
+	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS, TRUE);
+	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, TRUE);
 
 	analysis_save_window = templates_create_window("SaveRepTemp");
 	ihelp_add_window(analysis_save_window, "SaveRepTemp", NULL);

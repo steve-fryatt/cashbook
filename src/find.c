@@ -108,12 +108,12 @@ void find_initialise(void)
 	ihelp_add_window(find_window , "Find", NULL);
 	event_add_window_mouse_event(find_window, find_click_handler);
 	event_add_window_key_event(find_window, find_keypress_handler);
-	event_add_window_icon_radio(find_window, FIND_ICON_AND);
-	event_add_window_icon_radio(find_window, FIND_ICON_OR);
-	event_add_window_icon_radio(find_window, FIND_ICON_START);
-	event_add_window_icon_radio(find_window, FIND_ICON_END);
-	event_add_window_icon_radio(find_window, FIND_ICON_UP);
-	event_add_window_icon_radio(find_window, FIND_ICON_DOWN);
+	event_add_window_icon_radio(find_window, FIND_ICON_AND, TRUE);
+	event_add_window_icon_radio(find_window, FIND_ICON_OR, TRUE);
+	event_add_window_icon_radio(find_window, FIND_ICON_START, TRUE);
+	event_add_window_icon_radio(find_window, FIND_ICON_END, TRUE);
+	event_add_window_icon_radio(find_window, FIND_ICON_UP, TRUE);
+	event_add_window_icon_radio(find_window, FIND_ICON_DOWN, TRUE);
 
 
 

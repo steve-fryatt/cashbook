@@ -414,7 +414,6 @@ void delete_file (file_data *file)
   force_close_account_edit_window (file);
   force_close_section_edit_window (file);
   force_close_sorder_edit_window (file);
-  force_close_preset_edit_window (file);
   goto_force_window_closed(file);
   find_force_windows_closed(file);
   budget_force_window_closed(file);
@@ -425,7 +424,7 @@ void delete_file (file_data *file)
   force_close_transaction_sort_window (file);
   force_close_accview_sort_window (file);
   force_close_sorder_sort_window (file);
-  force_close_preset_sort_window (file);
+  preset_force_windows_closed(file);
   force_close_import_window (file);
 
   /* Delink the block and delete it. */

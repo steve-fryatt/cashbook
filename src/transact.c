@@ -1234,7 +1234,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_ADDPRESET:
-        open_preset_edit_window (file, NULL_PRESET, pointer);
+        preset_open_edit_window (file, NULL_PRESET, pointer);
         break;
     }
   }

@@ -336,7 +336,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_TRANS_PRESETNEW) /* Add presets */
     {
-      open_preset_edit_window (main_menu_file, NULL_PRESET, pointer);
+      preset_open_edit_window (main_menu_file, NULL_PRESET, pointer);
     }
 
     else if (selection->items[1] == MAIN_MENU_TRANS_RECONCILE) /* Reconcile */

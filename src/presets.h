@@ -1,10 +1,10 @@
 /* CashBook - presets.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_PRESETS
-#define _ACCOUNTS_PRESETS
+#ifndef CASHBOOK_PRESETS
+#define CASHBOOK_PRESETS
 
 /* ==================================================================================================================
  * Static constants
@@ -76,16 +76,43 @@
 #define PRESET_CARET_AMOUNT 4
 #define PRESET_CARET_DESCRIPTION 5
 
-/* ==================================================================================================================
- * Data structures
+/**
+ * Initialise the preset system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-/* ==================================================================================================================
- * Function prototypes.
+void preset_initialise(osspriteop_area *sprites);
+
+
+/**
+ * Create and open a Preset List window for the given file.
+ *
+ * \param *file			The file to open a window for.
  */
 
-void create_preset_window (file_data *file);
-void delete_preset_window (file_data *file);
+void preset_open_window(file_data *file);
+
+
+/**
+ * Close and delete the Preset List Window associated with the given
+ * file block.
+ *
+ * \param *file			The file to use.
+ */
+
+void preset_delete_window(file_data *file);
+
+
+
+
+
+
+
+
+
+
+
 void adjust_preset_window_columns (file_data *file);
 void adjust_preset_window_sort_icon (file_data *file);
 void update_preset_window_sort_icon (file_data *file, wimp_icon *icon);
@@ -95,9 +122,7 @@ void update_preset_window_sort_icon (file_data *file, wimp_icon *icon);
 void sort_preset_window (file_data *file);
 
 void open_preset_sort_window (file_data *file, wimp_pointer *ptr);
-void refresh_preset_sort_window (void);
 void fill_preset_sort_window (int sort_option);
-int process_preset_sort_window (void);
 void force_close_preset_sort_window (file_data *file);
 
 /* Adding new presets. */
@@ -108,12 +133,10 @@ int delete_preset (file_data *file, int preset_no);
 /* Editing presets via the GUI */
 
 void open_preset_edit_window (file_data *file, int preset, wimp_pointer *ptr);
-void refresh_preset_edit_window (void);
 void fill_preset_edit_window (file_data *file, int preset);
 void update_preset_edit_account_fields (wimp_key *key);
 void open_preset_edit_account_menu (wimp_pointer *ptr);
 void toggle_preset_edit_reconcile_fields (wimp_pointer *ptr);
-int process_preset_edit_window (void);
 int delete_preset_from_edit_window (void);
 void force_close_preset_edit_window (file_data *file);
 
@@ -121,16 +144,9 @@ void force_close_preset_edit_window (file_data *file);
 
 void open_preset_print_window (file_data *file, wimp_pointer *ptr, int clear);
 
-
-
-
-
 /* Preset handling */
 
 int find_preset_from_keypress (file_data *file, char key);
-
-
-
 
 
 /* File and print output */
@@ -139,14 +155,12 @@ void print_preset_window(osbool text, osbool format, osbool scale, osbool rotate
 
 /* Preset window handling */
 
-void preset_window_click (file_data *file, wimp_pointer *pointer);
-void preset_pane_click (file_data *file, wimp_pointer *pointer);
 void set_preset_window_extent (file_data *file);
 void build_preset_window_title (file_data *file);
 void force_preset_window_redraw (file_data *file, int from, int to);
-void preset_window_scroll_event (file_data *file, wimp_scroll *scroll);
 void decode_preset_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
 
 #endif
+

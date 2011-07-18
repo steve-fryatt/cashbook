@@ -37,8 +37,4 @@ void redraw_accview_window (wimp_draw *redraw, file_data *file);
 
 void redraw_sorder_window (wimp_draw *redraw, file_data *file);
 
-/* Preset window redraw */
-
-void redraw_preset_window (wimp_draw *redraw, file_data *file);
-
 #endif

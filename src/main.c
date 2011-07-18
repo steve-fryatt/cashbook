@@ -163,8 +163,6 @@ static void main_poll_loop(void)
 					redraw_accview_window(&(blk.redraw), file);
 				else if ((file = find_sorder_window_file_block(blk.redraw.w)) != NULL)
 					redraw_sorder_window(&(blk.redraw), file);
-				else if ((file = find_preset_window_file_block(blk.redraw.w)) != NULL)
-					redraw_preset_window(&(blk.redraw), file);
 				break;
 
 			case wimp_OPEN_WINDOW_REQUEST:
@@ -199,8 +197,6 @@ static void main_poll_loop(void)
 					delete_accview_window(file, find_accview_window_from_handle(file, blk.close.w));
 				else if ((file = find_sorder_window_file_block(blk.close.w)) != NULL)
 					delete_sorder_window(file);
-				else if ((file = find_preset_window_file_block(blk.close.w)) != NULL)
-					delete_preset_window(file);
 				else
 					wimp_close_window(blk.close.w);
 				break;
@@ -420,6 +416,8 @@ static void main_initialise(void)
 	goto_initialise();
 	purge_initialise();
 
+	preset_initialise(sprites);
+
 	ihelp_initialise();
 	url_initialise();
 	printing_initialise();
@@ -439,7 +437,6 @@ static void main_initialise(void)
 	menus.acclist         = templates_get_menu(TEMPLATES_MENU_ACCLIST);
 	menus.accview         = templates_get_menu(TEMPLATES_MENU_ACCVIEW);
 	menus.sorder          = templates_get_menu(TEMPLATES_MENU_SORDER);
-	menus.preset          = templates_get_menu(TEMPLATES_MENU_PRESET);
 
 	menus.accopen         = NULL;
 	menus.account         = NULL;
@@ -582,13 +579,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
     windows->edit_sorder = templates_create_window("EditSOrder");
     ihelp_add_window (windows->edit_sorder, "EditSOrder", NULL);
 
-  /* Edit Preset Window.
-   *
-   * Created now.
-   */
-
-    windows->edit_preset = templates_create_window("EditPreset");
-    ihelp_add_window (windows->edit_preset, "EditPreset", NULL);
 
   /* Account Name Enter Window.
    *
@@ -622,15 +612,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
     windows->sort_sorder = templates_create_window("SortSOrder");
     ihelp_add_window (windows->sort_sorder, "SortSOrder", NULL);
-
-  /* Sort Preset Window.
-   *
-   * Created now.
-   */
-
-    windows->sort_preset = templates_create_window("SortPreset");
-    ihelp_add_window (windows->sort_preset, "SortPreset", NULL);
-
 
   /* Transaction Window.
    *
@@ -720,24 +701,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
   window_def = templates_load_window("AccViewTB");
     window_def->sprite_area = sprites;
     windows->accview_pane_def = window_def;
-
-  /* Preset Window.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("Preset");
-    window_def->icon_count = 0;
-    windows->preset_window_def = window_def;
-
-  /* Preset Pane.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("PresetTB");
-    window_def->sprite_area = sprites;
-    windows->preset_pane_def = window_def;
 }
 
 
@@ -990,73 +953,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
     }
   }
 
-  /* Edit Preset Window. */
-
-  else if (pointer->w == windows.edit_preset)
-  {
-    if (pointer->i == PRESET_EDIT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.edit_preset);
-      }
-      else
-      {
-        refresh_preset_edit_window ();
-      }
-    }
-
-    if (pointer->i == PRESET_EDIT_OK) /* 'OK' button */
-    {
-      if (!process_preset_edit_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.edit_preset);
-      }
-    }
-
-    if (pointer->i == PRESET_EDIT_DELETE) /* 'Delete' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT && !delete_preset_from_edit_window ())
-      {
-        close_dialogue_with_caret (windows.edit_preset);
-      }
-    }
-
-    if (pointer->i == PRESET_EDIT_TODAY) /* Today radio icon */
-    {
-      icons_set_group_shaded_when_on (windows.edit_preset, PRESET_EDIT_TODAY, 1,
-                                       PRESET_EDIT_DATE);
-      icons_replace_caret_in_window (windows.edit_preset);
-    }
-
-    if (pointer->i == PRESET_EDIT_CHEQUE) /* Cheque radio icon */
-    {
-      icons_set_group_shaded_when_on (windows.edit_preset, PRESET_EDIT_CHEQUE, 1,
-                                       PRESET_EDIT_REF);
-      icons_replace_caret_in_window (windows.edit_preset);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == PRESET_EDIT_FMNAME || pointer->i == PRESET_EDIT_TONAME))
-    {
-      open_preset_edit_account_menu (pointer);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == PRESET_EDIT_FMREC || pointer->i == PRESET_EDIT_TOREC))
-    {
-      toggle_preset_edit_reconcile_fields (pointer);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == PRESET_EDIT_CARETDATE || pointer->i == PRESET_EDIT_CARETFROM ||
-         pointer->i == PRESET_EDIT_CARETTO || pointer->i == PRESET_EDIT_CARETREF ||
-         pointer->i == PRESET_EDIT_CARETAMOUNT || pointer->i == PRESET_EDIT_CARETDESC)) /* Radio icons */
-    {
-      icons_set_selected (windows.edit_preset, pointer->i, 1);
-    }
-  }
-
   /* Account name enrty window. */
 
   else if (pointer->w == windows.enter_acc)
@@ -1190,40 +1086,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
     }
   }
 
-  /* Preset Sort Window */
-
-  else if (pointer->w == windows.sort_preset)
-  {
-    if (pointer->i == PRESET_SORT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.sort_preset);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_preset_sort_window ();
-      }
-    }
-
-    else if (pointer->i == PRESET_SORT_OK) /* 'OK' button */
-    {
-      if (!process_preset_sort_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.sort_preset);
-      }
-    }
-
-    else if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == PRESET_SORT_FROM || pointer->i == PRESET_SORT_TO ||
-         pointer->i == PRESET_SORT_AMOUNT || pointer->i == PRESET_SORT_DESCRIPTION ||
-         pointer->i == PRESET_SORT_KEY || pointer->i == PRESET_SORT_NAME ||
-         pointer->i == PRESET_SORT_ASCENDING || pointer->i == PRESET_SORT_DESCENDING)) /* Radio icons */
-    {
-      icons_set_selected (windows.sort_preset, pointer->i, 1);
-    }
-  }
-
 
   /* Look for transaction windows. */
 
@@ -1279,20 +1141,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
   else if ((file = find_sorder_pane_file_block (pointer->w)) != NULL)
   {
     sorder_pane_click (file, pointer);
-  }
-
-  /* Look for preset windows. */
-
-  else if ((file = find_preset_window_file_block (pointer->w)) != NULL)
-  {
-    preset_window_click (file, pointer);
-  }
-
-  /* Look for preset window toolbars. */
-
-  else if ((file = find_preset_pane_file_block (pointer->w)) != NULL)
-  {
-    preset_pane_click (file, pointer);
   }
 }
 
@@ -1401,33 +1249,6 @@ static void key_press_handler (wimp_key *key)
     }
   }
 
-  /* Edit preset window. */
-
-  else if (key->w == windows.edit_preset)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_preset_edit_window ())
-        {
-          close_dialogue_with_caret (windows.edit_preset);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.edit_preset);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-
-    if (key->i == PRESET_EDIT_FMIDENT || key->i == PRESET_EDIT_TOIDENT)
-    {
-      update_preset_edit_account_fields (key);
-    }
-  }
 
   /* Edit Section Window. */
 
@@ -1547,29 +1368,6 @@ static void key_press_handler (wimp_key *key)
     }
   }
 
-  /* Preset Sort Window */
-
-  else if (key->w == windows.sort_preset)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_preset_sort_window ())
-        {
-          close_dialogue_with_caret (windows.sort_preset);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.sort_preset);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
-
 
   /* Look for transaction windows. */
 
@@ -1650,13 +1448,6 @@ static void menu_selection_handler (wimp_selection *selection)
     decode_sorder_menu (selection, &pointer);
   }
 
-  /* Decode the preset window menu. */
-
-  else if (menus.menu_id == MENU_ID_PRESET)
-  {
-    decode_preset_menu (selection, &pointer);
-  }
-
   /* If Adjust was used, reopen the menu. */
 
   if (pointer.buttons == wimp_CLICK_ADJUST)
@@ -1698,11 +1489,6 @@ static void scroll_request_handler (wimp_scroll *scroll)
   else if ((file = find_sorder_window_file_block (scroll->w)) != NULL)
   {
     sorder_window_scroll_event (file, scroll);
-  }
-
-  else if ((file = find_preset_window_file_block (scroll->w)) != NULL)
-  {
-    preset_window_scroll_event (file, scroll);
   }
 }
 
@@ -1831,10 +1617,6 @@ static void user_message_handler (wimp_message *message)
       else if (menus.menu_id == MENU_ID_SORDER)
       {
         sorder_menu_submenu_message ((wimp_full_message_menu_warning *) message);
-      }
-      else if (menus.menu_id == MENU_ID_PRESET)
-      {
-        preset_menu_submenu_message ((wimp_full_message_menu_warning *) message);
       }
       break;
   }

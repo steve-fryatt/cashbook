@@ -19,7 +19,6 @@
 #define MENU_ID_ACCLIST    5
 #define MENU_ID_ACCVIEW    6
 #define MENU_ID_SORDER     7
-#define MENU_ID_PRESET     8
 #define MENU_ID_REFDESC    11
 
 #define REFDESC_MENU_REFERENCE   1
@@ -103,16 +102,6 @@
 #define SORDER_MENU_EXPTSV 4
 #define SORDER_MENU_PRINT 5
 #define SORDER_MENU_FULLREP 6
-
-/* Preset menu */
-
-#define PRESET_MENU_SORT 0
-#define PRESET_MENU_EDIT 1
-#define PRESET_MENU_NEWPRESET 2
-#define PRESET_MENU_EXPCSV 3
-#define PRESET_MENU_EXPTSV 4
-#define PRESET_MENU_PRINT 5
-
 
 /* General definitions */
 
@@ -243,13 +232,6 @@ void open_sorder_menu (file_data *file, int line, wimp_pointer *pointer);
 void decode_sorder_menu (wimp_selection *selection, wimp_pointer *pointer);
 
 void sorder_menu_submenu_message (wimp_full_message_menu_warning *submenu);
-
-/* Preset menu */
-
-void set_preset_menu (int line);
-void open_preset_menu (file_data *file, int line, wimp_pointer *pointer);
-void decode_preset_menu (wimp_selection *selection, wimp_pointer *pointer);
-void preset_menu_submenu_message (wimp_full_message_menu_warning *submenu);
 
 #endif
 

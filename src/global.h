@@ -911,11 +911,9 @@ typedef struct
   wimp_w      edit_hdr;
   wimp_w      edit_sect;
   wimp_w      edit_sorder;
-  wimp_w      edit_preset;
   wimp_w      sort_trans;
   wimp_w      sort_accview;
   wimp_w      sort_sorder;
-  wimp_w      sort_preset;
 
   wimp_window *transaction_window_def;
   wimp_window *transaction_pane_def;
@@ -926,8 +924,6 @@ typedef struct
   wimp_window *sorder_pane_def;
   wimp_window *accview_window_def;
   wimp_window *accview_pane_def;
-  wimp_window *preset_window_def;
-  wimp_window *preset_pane_def;
 }
 global_windows;
 
@@ -955,8 +951,6 @@ typedef struct
   wimp_menu   *accview;
 
   wimp_menu   *sorder;
-
-  wimp_menu   *preset;
 }
 global_menus;
 

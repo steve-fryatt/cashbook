@@ -1,6 +1,6 @@
 /* CashBook - presets.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -23,7 +23,9 @@
 #include "sflib/config.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
+#include "sflib/event.h"
 #include "sflib/icons.h"
+#include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
 #include "sflib/windows.h"
@@ -36,160 +38,1040 @@
 #include "account.h"
 #include "caret.h"
 #include "conversion.h"
+#include "dataxfer.h"
 #include "date.h"
 #include "file.h"
 #include "ihelp.h"
 #include "mainmenu.h"
 #include "printing.h"
 #include "report.h"
+#include "templates.h"
 #include "window.h"
 
-/* ==================================================================================================================
- * Global variables.
- */
 
-static file_data *edit_preset_file = NULL;
-static file_data *preset_print_file = NULL;
-static file_data *sort_preset_window_file = NULL;
+/* Preset menu */
 
-static int       edit_preset_no = -1;
+#define PRESET_MENU_SORT 0
+#define PRESET_MENU_EDIT 1
+#define PRESET_MENU_NEWPRESET 2
+#define PRESET_MENU_EXPCSV 3
+#define PRESET_MENU_EXPTSV 4
+#define PRESET_MENU_PRINT 5
+
+
+static wimp_w			preset_edit_window = NULL;			/**< The handle of the preset edit window.				*/
+static file_data		*preset_edit_file = NULL;			/**< The file currently owning the preset edit window.			*/
+static int			preset_edit_number = -1;			/**< The preset currently being edited.					*/
+
+static file_data		*preset_print_file = NULL;			/**< The file currently owning the preset print window.			*/
+
+static wimp_w			preset_sort_window = NULL;			/**< The handle of the preset sort window.				*/
+static file_data		*preset_sort_file = NULL;			/**< The file currently owning the preset sort window.			*/
+
+
+static wimp_window		*preset_window_def = NULL;			/**< The definition for the Preset Window.				*/
+static wimp_window		*preset_pane_def = NULL;			/**< The definition for the Preset Window pane.				*/
+static wimp_menu		*preset_window_menu = NULL;			/**< The Preset Window menu handle.					*/
+static int			preset_window_menu_line = -1;			/**< The line over which the Preset Window Menu was opened.		*/
 
 static wimp_i preset_pane_sort_substitute_icon = PRESET_PANE_FROM;
 
-/* ==================================================================================================================
- * Window creation and deletion
+
+
+
+static void		preset_close_window_handler(wimp_close *close);
+static void		preset_window_click_handler(wimp_pointer *pointer);
+static void		preset_pane_click_handler(wimp_pointer *pointer);
+static void		preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void		preset_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+static void		preset_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
+static void		preset_window_menu_close_handler(wimp_w w, wimp_menu *menu);
+static void		preset_window_scroll_handler(wimp_scroll *scroll);
+static void		preset_window_redraw_handler(wimp_draw *redraw);
+
+
+
+
+
+
+
+
+
+
+
+static void		preset_edit_click_handler(wimp_pointer *pointer);
+static osbool		preset_edit_keypress_handler(wimp_key *key);
+
+
+static void		preset_sort_click_handler(wimp_pointer *pointer);
+static osbool		preset_sort_keypress_handler(wimp_key *key);
+
+
+
+static void		preset_refresh_sort_window(void);
+static osbool		preset_process_sort_window(void);
+
+static void		preset_refresh_edit_window(void);
+static osbool		preset_process_edit_window(void);
+
+
+
+/**
+ * Initialise the preset system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-/* Create and open a standing order window. */
-
-void create_preset_window (file_data *file)
+void preset_initialise(osspriteop_area *sprites)
 {
-  int                   i, j, height;
-  wimp_window_state     parent;
-  os_error              *error;
+	preset_edit_window = templates_create_window("EditPreset");
+	ihelp_add_window(preset_edit_window, "EditPreset", NULL);
+	event_add_window_mouse_event(preset_edit_window, preset_edit_click_handler);
+	event_add_window_key_event(preset_edit_window, preset_edit_keypress_handler);
+	event_add_window_icon_radio(preset_edit_window, PRESET_EDIT_CARETDATE, TRUE);
+	event_add_window_icon_radio(preset_edit_window, PRESET_EDIT_CARETFROM, TRUE);
+	event_add_window_icon_radio(preset_edit_window, PRESET_EDIT_CARETTO, TRUE);
+	event_add_window_icon_radio(preset_edit_window, PRESET_EDIT_CARETREF, TRUE);
+	event_add_window_icon_radio(preset_edit_window, PRESET_EDIT_CARETAMOUNT, TRUE);
+	event_add_window_icon_radio(preset_edit_window, PRESET_EDIT_CARETDESC, TRUE);
 
-  extern global_windows windows;
+	preset_sort_window = templates_create_window("SortPreset");
+	ihelp_add_window(preset_sort_window, "SortPreset", NULL);
+	event_add_window_mouse_event(preset_sort_window, preset_sort_click_handler);
+	event_add_window_key_event(preset_sort_window, preset_sort_keypress_handler);
+	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_FROM, TRUE);
+	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_TO, TRUE);
+	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_AMOUNT, TRUE);
+	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_DESCRIPTION, TRUE);
+	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_KEY, TRUE);
+	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_NAME, TRUE);
+	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_ASCENDING, TRUE);
+	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_DESCENDING, TRUE);
 
+	preset_window_def = templates_load_window("Preset");
+	preset_window_def->icon_count = 0;
 
-  /* Create or re-open the window. */
+	preset_pane_def = templates_load_window("PresetTB");
+	preset_pane_def->sprite_area = sprites;
 
-  if (file->preset_window.preset_window != NULL)
-  {
-    /* The window is open, so just bring it forward. */
-
-    windows_open (file->preset_window.preset_window);
-  }
-  else
-  {
-    #ifdef DEBUG
-    debug_printf ("\\CCreating preset window");
-    #endif
-
-    /* Create the new window data and build the window. */
-
-    *(file->preset_window.window_title) = '\0';
-    windows.preset_window_def->title_data.indirected_text.text = file->preset_window.window_title;
-
-    height =  (file->preset_count > MIN_PRESET_ENTRIES) ? file->preset_count : MIN_PRESET_ENTRIES;
-
-    parent.w = file->transaction_window.transaction_pane;
-    wimp_get_window_state (&parent);
-
-    set_initial_window_area (windows.preset_window_def,
-                             file->preset_window.column_position[PRESET_COLUMNS-1] +
-                             file->preset_window.column_width[PRESET_COLUMNS-1],
-                              ((ICON_HEIGHT+LINE_GUTTER) * height) + PRESET_TOOLBAR_HEIGHT,
-                               parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
-                               parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
-
-    file->child_x_offset++;
-    if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
-    {
-      file->child_x_offset = 0;
-    }
-
-    error = xwimp_create_window (windows.preset_window_def, &(file->preset_window.preset_window));
-    if (error != NULL)
-    {
-      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-      return;
-    }
-
-    /* Create the toolbar. */
-
-    windows_place_as_toolbar (windows.preset_window_def, windows.preset_pane_def, PRESET_TOOLBAR_HEIGHT-4);
-
-    #ifdef DEBUG
-    debug_printf ("Window extents set...");
-    #endif
-
-    for (i=0, j=0; j < PRESET_COLUMNS; i++, j++)
-    {
-      windows.preset_pane_def->icons[i].extent.x0 = file->preset_window.column_position[j];
-
-      j = rightmost_group_column (PRESET_PANE_COL_MAP, i);
-
-      windows.preset_pane_def->icons[i].extent.x1 = file->preset_window.column_position[j] +
-                                                    file->preset_window.column_width[j] +
-                                                    COLUMN_HEADING_MARGIN;
-    }
-
-    windows.preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
-                             (osspriteop_id) file->preset_window.sort_sprite;
-    windows.preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-                             windows.preset_pane_def->sprite_area;
-
-    update_preset_window_sort_icon (file, &(windows.preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
-
-    #ifdef DEBUG
-    debug_printf ("Toolbar icons adjusted...");
-    #endif
-
-    error = xwimp_create_window (windows.preset_pane_def, &(file->preset_window.preset_pane));
-    if (error != NULL)
-    {
-      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-      return;
-    }
-
-    /* Set the title */
-
-    build_preset_window_title (file);
-
-    /* Open the window. */
-
-    ihelp_add_window (file->preset_window.preset_window , "Preset", decode_preset_window_help);
-    ihelp_add_window (file->preset_window.preset_pane , "PresetTB", NULL);
-
-    windows_open (file->preset_window.preset_window);
-    windows_open_nested_as_toolbar (file->preset_window.preset_pane,
-                                   file->preset_window.preset_window,
-                                   PRESET_TOOLBAR_HEIGHT-4);
-  }
+	preset_window_menu = templates_get_menu(TEMPLATES_MENU_PRESET);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Close and delete the accounts window associated with the file block. */
+/**
+ * Create and open a Preset List window for the given file.
+ *
+ * \param *file			The file to open a window for.
+ */
 
-void delete_preset_window (file_data *file)
+void preset_open_window(file_data *file)
 {
-  #ifdef DEBUG
-  debug_printf ("\\RDeleting preset window");
-  #endif
+	int			i, j, height;
+	wimp_window_state	parent;
+	os_error		*error;
 
-  if (file->preset_window.preset_window != NULL)
-  {
-    ihelp_remove_window (file->preset_window.preset_window);
-    ihelp_remove_window (file->preset_window.preset_pane);
+	/* Create or re-open the window. */
 
-    wimp_delete_window (file->preset_window.preset_window);
-    wimp_delete_window (file->preset_window.preset_pane);
+	if (file->preset_window.preset_window != NULL) {
+		/* The window is open, so just bring it forward. */
 
-    file->preset_window.preset_window = NULL;
-    file->preset_window.preset_pane = NULL;
-  }
+		windows_open(file->preset_window.preset_window);
+		return;
+	}
+
+	#ifdef DEBUG
+	debug_printf("\\CCreating preset window");
+	#endif
+
+	/* Create the new window data and build the window. */
+
+	*(file->preset_window.window_title) = '\0';
+	preset_window_def->title_data.indirected_text.text = file->preset_window.window_title;
+
+	height = (file->preset_count > MIN_PRESET_ENTRIES) ? file->preset_count : MIN_PRESET_ENTRIES;
+
+	parent.w = file->transaction_window.transaction_pane;
+	wimp_get_window_state(&parent);
+
+	set_initial_window_area(preset_window_def,
+			file->preset_window.column_position[PRESET_COLUMNS-1] +
+			file->preset_window.column_width[PRESET_COLUMNS-1],
+			((ICON_HEIGHT+LINE_GUTTER) * height) + PRESET_TOOLBAR_HEIGHT,
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
+
+	file->child_x_offset++;
+	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
+		file->child_x_offset = 0;
+
+	error = xwimp_create_window(preset_window_def, &(file->preset_window.preset_window));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	/* Create the toolbar. */
+
+	windows_place_as_toolbar(preset_window_def, preset_pane_def, PRESET_TOOLBAR_HEIGHT-4);
+
+	#ifdef DEBUG
+	debug_printf ("Window extents set...");
+	#endif
+
+	for (i=0, j=0; j < PRESET_COLUMNS; i++, j++) {
+		preset_pane_def->icons[i].extent.x0 = file->preset_window.column_position[j];
+
+		j = rightmost_group_column(PRESET_PANE_COL_MAP, i);
+
+		preset_pane_def->icons[i].extent.x1 = file->preset_window.column_position[j] +
+				file->preset_window.column_width[j] +
+				COLUMN_HEADING_MARGIN;
+	}
+
+	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
+			(osspriteop_id) file->preset_window.sort_sprite;
+	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
+			preset_pane_def->sprite_area;
+
+	update_preset_window_sort_icon(file, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
+
+	#ifdef DEBUG
+	debug_printf ("Toolbar icons adjusted...");
+	#endif
+
+	error = xwimp_create_window(preset_pane_def, &(file->preset_window.preset_pane));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	/* Set the title */
+
+	build_preset_window_title(file);
+
+	/* Open the window. */
+
+	ihelp_add_window(file->preset_window.preset_window , "Preset", decode_preset_window_help);
+	ihelp_add_window(file->preset_window.preset_pane , "PresetTB", NULL);
+
+	windows_open(file->preset_window.preset_window);
+	windows_open_nested_as_toolbar(file->preset_window.preset_pane,
+			file->preset_window.preset_window, PRESET_TOOLBAR_HEIGHT-4);
+
+	/* Register event handlers for the two windows. */
+
+	event_add_window_menu(file->preset_window.preset_window, preset_window_menu);
+	event_add_window_user_data(file->preset_window.preset_window, file);
+	event_add_window_close_event(file->preset_window.preset_window, preset_close_window_handler);
+	event_add_window_mouse_event(file->preset_window.preset_window, preset_window_click_handler);
+	event_add_window_scroll_event(file->preset_window.preset_window, preset_window_scroll_handler);
+	event_add_window_redraw_event(file->preset_window.preset_window, preset_window_redraw_handler);
+	event_add_window_menu_prepare(file->preset_window.preset_window, preset_window_menu_prepare_handler);
+	event_add_window_menu_selection(file->preset_window.preset_window, preset_window_menu_selection_handler);
+	event_add_window_menu_warning(file->preset_window.preset_window, preset_window_menu_warning_handler);
+	event_add_window_menu_close(file->preset_window.preset_window, preset_window_menu_close_handler);
+
+	event_add_window_menu(file->preset_window.preset_pane, preset_window_menu);
+	event_add_window_user_data(file->preset_window.preset_pane, file);
+	event_add_window_mouse_event(file->preset_window.preset_pane, preset_pane_click_handler);
+	event_add_window_menu_prepare(file->preset_window.preset_pane, preset_window_menu_prepare_handler);
+	event_add_window_menu_selection(file->preset_window.preset_pane, preset_window_menu_selection_handler);
+	event_add_window_menu_warning(file->preset_window.preset_pane, preset_window_menu_warning_handler);
+	event_add_window_menu_close(file->preset_window.preset_pane, preset_window_menu_close_handler);
 }
+
+
+/**
+ * Close and delete the Preset List Window associated with the given
+ * file block.
+ *
+ * \param *file			The file to use.
+ */
+
+void preset_delete_window(file_data *file)
+{
+	#ifdef DEBUG
+	debug_printf ("\\RDeleting preset window");
+	#endif
+
+	if (file == NULL)
+		return;
+
+	if (file->preset_window.preset_window != NULL) {
+		ihelp_remove_window(file->preset_window.preset_window);
+		event_delete_window(file->preset_window.preset_window);
+		wimp_delete_window(file->preset_window.preset_window);
+		file->preset_window.preset_window = NULL;
+	}
+
+	if (file->preset_window.preset_pane != NULL) {
+		ihelp_remove_window(file->preset_window.preset_pane);
+		event_delete_window(file->preset_window.preset_pane);
+		wimp_delete_window(file->preset_window.preset_pane);
+		file->preset_window.preset_pane = NULL;
+	}
+}
+
+
+/**
+ * Handle Close events on Preset List windows, deleting the window.
+ *
+ * \param *close		The Wimp Close data block.
+ */
+
+static void preset_close_window_handler(wimp_close *close)
+{
+	file_data	*file;
+
+	#ifdef DEBUG
+	debug_printf ("\\RClosing Preset window");
+	#endif
+
+	file = event_get_window_user_data(close->w);
+	if (file == NULL)
+		return;
+
+	/* Close the window */
+
+	preset_delete_window(file);
+}
+
+
+/**
+ * Process mouse clicks in the Preset List window.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void preset_window_click_handler(wimp_pointer *pointer)
+{
+	file_data		*file;
+	int			line;
+	wimp_window_state	window;
+
+	file = event_get_window_user_data(pointer->w);
+	if (file == NULL)
+		return;
+
+	/* Find the window type and get the line clicked on. */
+
+	window.w = pointer->w;
+	wimp_get_window_state(&window);
+
+	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+	if (line < 0 || line >= file->preset_count)
+		line = -1;
+
+	/* Handle double-clicks, which will open an edit preset window. */
+
+	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
+		open_preset_edit_window(file, file->presets[line].sort_index, pointer);
+}
+
+
+/**
+ * Process mouse clicks in the Preset List pane.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void preset_pane_click_handler(wimp_pointer *pointer)
+{
+	file_data		*file;
+	wimp_window_state	window;
+	wimp_icon_state		icon;
+	int			ox;
+
+	file = event_get_window_user_data(pointer->w);
+	if (file == NULL)
+		return;
+
+	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
+
+	if (pointer->i == PRESET_PANE_SORT_DIR_ICON)
+		pointer->i = preset_pane_sort_substitute_icon;
+
+	/* Process toolbar clicks and column heading drags. */
+
+	if (pointer->buttons == wimp_CLICK_SELECT) {
+		switch (pointer->i) {
+		case PRESET_PANE_PARENT:
+			windows_open(file->transaction_window.transaction_window);
+			break;
+
+		case PRESET_PANE_PRINT:
+			open_preset_print_window(file, pointer, config_opt_read("RememberValues"));
+			break;
+
+		case PRESET_PANE_ADDPRESET:
+			open_preset_edit_window(file, NULL_PRESET, pointer);
+			break;
+
+		case PRESET_PANE_SORT:
+			open_preset_sort_window(file, pointer);
+			break;
+		}
+	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+		switch (pointer->i) {
+		case PRESET_PANE_PRINT:
+			open_preset_print_window(file, pointer, !config_opt_read("RememberValues"));
+			break;
+
+		case PRESET_PANE_SORT:
+			sort_preset_window(file);
+			break;
+		}
+	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
+			pointer->i != wimp_ICON_WINDOW) {
+		window.w = pointer->w;
+		wimp_get_window_state(&window);
+
+		ox = window.visible.x0 - window.xscroll;
+
+		icon.w = pointer->w;
+		icon.i = pointer->i;
+		wimp_get_icon_state(&icon);
+
+		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
+			file->preset_window.sort_order = SORT_NONE;
+
+			switch (pointer->i) {
+			case PRESET_PANE_KEY:
+				file->preset_window.sort_order = SORT_CHAR;
+				break;
+
+			case PRESET_PANE_NAME:
+				file->preset_window.sort_order = SORT_NAME;
+				break;
+
+			case PRESET_PANE_FROM:
+				file->preset_window.sort_order = SORT_FROM;
+				break;
+
+			case PRESET_PANE_TO:
+				file->preset_window.sort_order = SORT_TO;
+				break;
+
+			case PRESET_PANE_AMOUNT:
+				file->preset_window.sort_order = SORT_AMOUNT;
+				break;
+
+			case PRESET_PANE_DESCRIPTION:
+				file->preset_window.sort_order = SORT_DESCRIPTION;
+				break;
+			}
+
+			if (file->preset_window.sort_order != SORT_NONE) {
+				if (pointer->buttons == wimp_CLICK_SELECT * 256)
+					file->preset_window.sort_order |= SORT_ASCENDING;
+				else
+					file->preset_window.sort_order |= SORT_DESCENDING;
+			}
+
+			adjust_preset_window_sort_icon(file);
+			windows_redraw(file->preset_window.preset_pane);
+			sort_preset_window(file);
+		}
+	} else if (pointer->buttons == wimp_DRAG_SELECT) {
+		start_column_width_drag(pointer);
+	}
+}
+
+
+/**
+ * Process menu prepare events in the Preset List window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *pointer	The pointer position, or NULL for a re-open.
+ */
+
+static void preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+{
+	file_data		*file;
+	int			line;
+	wimp_window_state	window;
+
+
+	file = event_get_window_user_data(w);
+	if (file == NULL)
+		return;
+
+	if (pointer != NULL) {
+		preset_window_menu_line = -1;
+
+		if (w == file->preset_window.preset_window) {
+			window.w = w;
+			wimp_get_window_state(&window);
+
+			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+			if (line >= 0 && line < file->preset_count)
+				preset_window_menu_line = line;
+		}
+
+		initialise_save_boxes(file, 0, 0);
+	}
+
+	menus_shade_entry(preset_window_menu, PRESET_MENU_EDIT, preset_window_menu_line == -1);
+}
+
+
+/**
+ * Process menu selection events in the Preset List window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *selection	The menu selection details.
+ */
+
+static void preset_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
+{
+	file_data		*file;
+	wimp_pointer	pointer;
+
+	file = event_get_window_user_data(w);
+	if (file == NULL)
+		return;
+
+	wimp_get_pointer_info(&pointer);
+
+	switch (selection->items[0]){
+	case PRESET_MENU_SORT:
+		open_preset_sort_window(file, &pointer);
+		break;
+
+	case PRESET_MENU_EDIT:
+		if (preset_window_menu_line != -1)
+			open_preset_edit_window(file, file->presets[preset_window_menu_line].sort_index, &pointer);
+		break;
+
+	case PRESET_MENU_NEWPRESET:
+		open_preset_edit_window(file, NULL_PRESET, &pointer);
+		break;
+
+	case PRESET_MENU_PRINT:
+		open_preset_print_window(file, &pointer, config_opt_read("RememberValues"));
+		break;
+	}
+}
+
+
+/**
+ * Process submenu warning events in the Preset List window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *warning	The submenu warning message data.
+ */
+
+static void preset_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
+{
+	file_data		*file;
+
+	file = event_get_window_user_data(w);
+	if (file == NULL)
+		return;
+
+	switch (warning->selection.items[0]) {
+	case PRESET_MENU_EXPCSV:
+		fill_save_as_window(file, SAVE_BOX_PRESETCSV);
+		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+		break;
+
+	case PRESET_MENU_EXPTSV:
+		fill_save_as_window(file, SAVE_BOX_PRESETTSV);
+		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+		break;
+	}
+}
+
+
+/**
+ * Process menu close events in the Preset List window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ */
+
+static void preset_window_menu_close_handler(wimp_w w, wimp_menu *menu)
+{
+	preset_window_menu_line = -1;
+}
+
+
+/**
+ * Process scroll events in the Preset List window.
+ *
+ * \param *scroll		The scroll event block to handle.
+ */
+
+static void preset_window_scroll_handler(wimp_scroll *scroll)
+{
+	file_data	*file;
+	int		width, height, error;
+
+	file = event_get_window_user_data(scroll->w);
+	if (file == NULL)
+		return;
+
+	/* Add in the X scroll offset. */
+
+	width = scroll->visible.x1 - scroll->visible.x0;
+
+	switch (scroll->xmin) {
+	case wimp_SCROLL_COLUMN_LEFT:
+		scroll->xscroll -= HORIZONTAL_SCROLL;
+		break;
+
+	case wimp_SCROLL_COLUMN_RIGHT:
+		scroll->xscroll += HORIZONTAL_SCROLL;
+		break;
+
+	case wimp_SCROLL_PAGE_LEFT:
+		scroll->xscroll -= width;
+		break;
+
+	case wimp_SCROLL_PAGE_RIGHT:
+		scroll->xscroll += width;
+		break;
+	}
+
+	/* Add in the Y scroll offset. */
+
+	height = (scroll->visible.y1 - scroll->visible.y0) - PRESET_TOOLBAR_HEIGHT;
+
+	switch (scroll->ymin) {
+	case wimp_SCROLL_LINE_UP:
+		scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
+		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		break;
+
+	case wimp_SCROLL_LINE_DOWN:
+		scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
+		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= error;
+		break;
+
+	case wimp_SCROLL_PAGE_UP:
+		scroll->yscroll += height;
+		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		break;
+
+	case wimp_SCROLL_PAGE_DOWN:
+		scroll->yscroll -= height;
+		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= error;
+		break;
+	}
+
+	/* Re-open the window.
+	 *
+	 * It is assumed that the wimp will deal with out-of-bounds offsets for us.
+	 */
+
+	wimp_open_window((wimp_open *) scroll);
+}
+
+
+/**
+ * Process redraw events in the Preset List window.
+ *
+ * \param *redraw		The draw event block to handle.
+ */
+
+static void preset_window_redraw_handler(wimp_draw *redraw)
+{
+	file_data	*file;
+	int		ox, oy, top, base, y, i, t;
+	char		icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool		more;
+
+	file = event_get_window_user_data(redraw->w);
+	if (file == NULL)
+		return;
+
+	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
+
+	/* Set the horizontal positions of the icons. */
+
+	for (i=0; i < PRESET_COLUMNS; i++) {
+		preset_window_def->icons[i].extent.x0 = file->preset_window.column_position[i];
+		preset_window_def->icons[i].extent.x1 = file->preset_window.column_position[i] +
+				file->preset_window.column_width[i];
+		preset_window_def->icons[i].data.indirected_text.text = icon_buffer;
+	}
+
+	/* Perform the redraw. */
+
+	more = wimp_redraw_window(redraw);
+
+	ox = redraw->box.x0 - redraw->xscroll;
+	oy = redraw->box.y1 - redraw->yscroll;
+
+	while (more) {
+		/* Calculate the rows to redraw. */
+
+		top = (oy - redraw->clip.y1 - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		if (top < 0)
+			top = 0;
+
+		base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2) +
+				oy - redraw->clip.y0 - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+		/* Redraw the data into the window. */
+
+		for (y = top; y <= base; y++) {
+			t = (y < file->preset_count) ? file->presets[y].sort_index : 0;
+
+			/* Plot out the background with a filled white rectangle. */
+
+			wimp_set_colour(wimp_COLOUR_WHITE);
+			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - PRESET_TOOLBAR_HEIGHT);
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
+					ox + file->preset_window.column_position[PRESET_COLUMNS-1] +
+					file->preset_window.column_width[PRESET_COLUMNS-1],
+					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - PRESET_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+
+			/* Key field */
+
+			preset_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+			if (y < file->preset_count)
+				sprintf(icon_buffer, "%c", file->presets[t].action_key);
+			else
+				*icon_buffer = '\0';
+			wimp_plot_icon(&(preset_window_def->icons[0]));
+
+			/* Name field */
+
+			preset_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+			if (y < file->preset_count) {
+				preset_window_def->icons[1].data.indirected_text.text = file->presets[t].name;
+			} else {
+				preset_window_def->icons[1].data.indirected_text.text = icon_buffer;
+				*icon_buffer = '\0';
+			}
+			wimp_plot_icon (&(preset_window_def->icons[1]));
+
+			/* From field */
+
+			preset_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+
+			preset_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+
+			preset_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+
+
+			if (y < file->preset_count && file->presets[t].from != NULL_ACCOUNT) {
+				preset_window_def->icons[2].data.indirected_text.text = file->accounts[file->presets[t].from].ident;
+				preset_window_def->icons[3].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[4].data.indirected_text.text = file->accounts[file->presets[t].from].name;
+
+				if (file->presets[t].flags & TRANS_REC_FROM)
+					strcpy(icon_buffer, rec_char);
+				else
+					*icon_buffer = '\0';
+			} else {
+				preset_window_def->icons[2].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[3].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[4].data.indirected_text.text = icon_buffer;
+				*icon_buffer = '\0';
+			}
+
+			wimp_plot_icon(&(preset_window_def->icons[2]));
+			wimp_plot_icon(&(preset_window_def->icons[3]));
+			wimp_plot_icon(&(preset_window_def->icons[4]));
+
+			/* To field */
+
+			preset_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+
+			preset_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+
+			preset_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+
+			if (y < file->preset_count && file->presets[t].to != NULL_ACCOUNT) {
+				preset_window_def->icons[5].data.indirected_text.text = file->accounts[file->presets[t].to].ident;
+				preset_window_def->icons[6].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[7].data.indirected_text.text = file->accounts[file->presets[t].to].name;
+
+				if (file->presets[t].flags & TRANS_REC_TO)
+					strcpy(icon_buffer, rec_char);
+				else
+					*icon_buffer = '\0';
+			} else {
+				preset_window_def->icons[5].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[6].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[7].data.indirected_text.text = icon_buffer;
+				*icon_buffer = '\0';
+			}
+
+			wimp_plot_icon(&(preset_window_def->icons[5]));
+			wimp_plot_icon(&(preset_window_def->icons[6]));
+			wimp_plot_icon(&(preset_window_def->icons[7]));
+
+			/* Amount field */
+
+			preset_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+			if (y < file->preset_count)
+				convert_money_to_string(file->presets[t].amount, icon_buffer);
+			else
+				*icon_buffer = '\0';
+			wimp_plot_icon(&(preset_window_def->icons[8]));
+
+			/* Comments field */
+
+			preset_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			preset_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					PRESET_TOOLBAR_HEIGHT;
+			if (y < file->preset_count) {
+				preset_window_def->icons[9].data.indirected_text.text = file->presets[t].description;
+			} else {
+				preset_window_def->icons[9].data.indirected_text.text = icon_buffer;
+				*icon_buffer = '\0';
+			}
+			wimp_plot_icon(&(preset_window_def->icons[9]));
+		}
+
+		more = wimp_get_rectangle(redraw);
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Process mouse clicks in the Preset Edit dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void preset_edit_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case PRESET_EDIT_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(preset_edit_window);
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			preset_refresh_edit_window();
+		break;
+
+	case PRESET_EDIT_OK:
+		if (preset_process_edit_window() && pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(preset_edit_window);
+		break;
+
+	case PRESET_EDIT_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && delete_preset_from_edit_window())
+			close_dialogue_with_caret(preset_edit_window);
+		break;
+
+	case PRESET_EDIT_TODAY:
+		icons_set_group_shaded_when_on(preset_edit_window, PRESET_EDIT_TODAY, 1, PRESET_EDIT_DATE);
+		icons_replace_caret_in_window(preset_edit_window);
+		break;
+
+	case PRESET_EDIT_CHEQUE:
+		icons_set_group_shaded_when_on(preset_edit_window, PRESET_EDIT_CHEQUE, 1, PRESET_EDIT_REF);
+		icons_replace_caret_in_window(preset_edit_window);
+		break;
+
+	case PRESET_EDIT_FMNAME:
+		if (pointer->buttons == wimp_CLICK_ADJUST)
+			open_account_menu(preset_edit_file, ACCOUNT_MENU_FROM, 0,
+					preset_edit_window, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC, pointer);
+		break;
+
+	case PRESET_EDIT_TONAME:
+		if (pointer->buttons == wimp_CLICK_ADJUST)
+			open_account_menu(preset_edit_file, ACCOUNT_MENU_TO, 0,
+					preset_edit_window, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC, pointer);
+		break;
+
+	case PRESET_EDIT_FMREC:
+		if (pointer->buttons == wimp_CLICK_ADJUST)
+			toggle_account_reconcile_icon(preset_edit_window, PRESET_EDIT_FMREC);
+		break;
+
+	case PRESET_EDIT_TOREC:
+		if (pointer->buttons == wimp_CLICK_ADJUST)
+			toggle_account_reconcile_icon(preset_edit_window, PRESET_EDIT_TOREC);
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Preset Edit window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool preset_edit_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (preset_process_edit_window())
+			close_dialogue_with_caret(preset_edit_window);
+		break;
+
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(preset_edit_window);
+		break;
+
+	default:
+		if (key->i != PRESET_EDIT_FMIDENT && key->i != PRESET_EDIT_TOIDENT)
+			return FALSE;
+
+		if (key->i == PRESET_EDIT_FMIDENT)
+			lookup_account_field(preset_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+					preset_edit_window, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC);
+
+		else if (key->i == PRESET_EDIT_TOIDENT)
+			lookup_account_field(preset_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+					preset_edit_window, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC);
+		break;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Process mouse clicks in the Preset Sort dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void preset_sort_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case PRESET_SORT_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(preset_sort_window);
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			preset_refresh_sort_window();
+		break;
+
+	case PRESET_SORT_OK:
+		if (preset_process_sort_window() && pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(preset_sort_window);
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Preset Sort window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool preset_sort_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (preset_process_sort_window())
+			close_dialogue_with_caret(preset_sort_window);
+		break;
+
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret (preset_sort_window);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -450,97 +1332,91 @@ void sort_preset_window (file_data *file)
 
 void open_preset_sort_window (file_data *file, wimp_pointer *ptr)
 {
-  extern global_windows windows;
-
   /* If the window is open elsewhere, close it first. */
 
-  if (windows_get_open (windows.sort_preset))
+  if (windows_get_open (preset_sort_window))
   {
-    wimp_close_window (windows.sort_preset);
+    wimp_close_window (preset_sort_window);
   }
 
   fill_preset_sort_window (file->preset_window.sort_order);
 
-  sort_preset_window_file = file;
+  preset_sort_file = file;
 
-  windows_open_centred_at_pointer (windows.sort_preset, ptr);
-  place_dialogue_caret (windows.sort_preset, wimp_ICON_WINDOW);
+  windows_open_centred_at_pointer (preset_sort_window, ptr);
+  place_dialogue_caret (preset_sort_window, wimp_ICON_WINDOW);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_preset_sort_window (void)
+static void preset_refresh_sort_window(void)
 {
-  fill_preset_sort_window (sort_preset_window_file->preset_window.sort_order);
+  fill_preset_sort_window (preset_sort_file->preset_window.sort_order);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 void fill_preset_sort_window (int sort_option)
 {
-  extern global_windows windows;
+  icons_set_selected (preset_sort_window, PRESET_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
+  icons_set_selected (preset_sort_window, PRESET_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
+  icons_set_selected (preset_sort_window, PRESET_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
+  icons_set_selected (preset_sort_window, PRESET_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
+  icons_set_selected (preset_sort_window, PRESET_SORT_KEY, (sort_option & SORT_MASK) == SORT_CHAR);
+  icons_set_selected (preset_sort_window, PRESET_SORT_NAME, (sort_option & SORT_MASK) == SORT_NAME);
 
-  icons_set_selected (windows.sort_preset, PRESET_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
-  icons_set_selected (windows.sort_preset, PRESET_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
-  icons_set_selected (windows.sort_preset, PRESET_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
-  icons_set_selected (windows.sort_preset, PRESET_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
-  icons_set_selected (windows.sort_preset, PRESET_SORT_KEY, (sort_option & SORT_MASK) == SORT_CHAR);
-  icons_set_selected (windows.sort_preset, PRESET_SORT_NAME, (sort_option & SORT_MASK) == SORT_NAME);
-
-  icons_set_selected (windows.sort_preset, PRESET_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-  icons_set_selected (windows.sort_preset, PRESET_SORT_DESCENDING, sort_option & SORT_DESCENDING);
+  icons_set_selected (preset_sort_window, PRESET_SORT_ASCENDING, sort_option & SORT_ASCENDING);
+  icons_set_selected (preset_sort_window, PRESET_SORT_DESCENDING, sort_option & SORT_DESCENDING);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int process_preset_sort_window (void)
+static osbool preset_process_sort_window(void)
 {
-  extern global_windows windows;
+  preset_sort_file->preset_window.sort_order = SORT_NONE;
 
-  sort_preset_window_file->preset_window.sort_order = SORT_NONE;
-
-  if (icons_get_selected (windows.sort_preset, PRESET_SORT_FROM))
+  if (icons_get_selected (preset_sort_window, PRESET_SORT_FROM))
   {
-    sort_preset_window_file->preset_window.sort_order = SORT_FROM;
+    preset_sort_file->preset_window.sort_order = SORT_FROM;
   }
-  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_TO))
+  else if (icons_get_selected (preset_sort_window, PRESET_SORT_TO))
   {
-    sort_preset_window_file->preset_window.sort_order = SORT_TO;
+    preset_sort_file->preset_window.sort_order = SORT_TO;
   }
-  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_AMOUNT))
+  else if (icons_get_selected (preset_sort_window, PRESET_SORT_AMOUNT))
   {
-    sort_preset_window_file->preset_window.sort_order = SORT_AMOUNT;
+    preset_sort_file->preset_window.sort_order = SORT_AMOUNT;
   }
-  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_DESCRIPTION))
+  else if (icons_get_selected (preset_sort_window, PRESET_SORT_DESCRIPTION))
   {
-    sort_preset_window_file->preset_window.sort_order = SORT_DESCRIPTION;
+    preset_sort_file->preset_window.sort_order = SORT_DESCRIPTION;
   }
-  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_KEY))
+  else if (icons_get_selected (preset_sort_window, PRESET_SORT_KEY))
   {
-    sort_preset_window_file->preset_window.sort_order = SORT_CHAR;
+    preset_sort_file->preset_window.sort_order = SORT_CHAR;
   }
-  else if (icons_get_selected (windows.sort_preset, PRESET_SORT_NAME))
+  else if (icons_get_selected (preset_sort_window, PRESET_SORT_NAME))
   {
-    sort_preset_window_file->preset_window.sort_order = SORT_NAME;
+    preset_sort_file->preset_window.sort_order = SORT_NAME;
   }
 
-  if (sort_preset_window_file->preset_window.sort_order != SORT_NONE)
+  if (preset_sort_file->preset_window.sort_order != SORT_NONE)
   {
-    if (icons_get_selected (windows.sort_preset, PRESET_SORT_ASCENDING))
+    if (icons_get_selected (preset_sort_window, PRESET_SORT_ASCENDING))
     {
-      sort_preset_window_file->preset_window.sort_order |= SORT_ASCENDING;
+      preset_sort_file->preset_window.sort_order |= SORT_ASCENDING;
     }
-    else if (icons_get_selected (windows.sort_preset, PRESET_SORT_DESCENDING))
+    else if (icons_get_selected (preset_sort_window, PRESET_SORT_DESCENDING))
     {
-      sort_preset_window_file->preset_window.sort_order |= SORT_DESCENDING;
+      preset_sort_file->preset_window.sort_order |= SORT_DESCENDING;
     }
   }
 
-  adjust_preset_window_sort_icon (sort_preset_window_file);
-  windows_redraw (sort_preset_window_file->preset_window.preset_pane);
-  sort_preset_window (sort_preset_window_file);
+  adjust_preset_window_sort_icon (preset_sort_file);
+  windows_redraw (preset_sort_file->preset_window.preset_pane);
+  sort_preset_window (preset_sort_file);
 
-  return (0);
+  return TRUE;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -549,12 +1425,9 @@ int process_preset_sort_window (void)
 
 void force_close_preset_sort_window (file_data *file)
 {
-  extern global_windows windows;
-
-
-  if (sort_preset_window_file == file && windows_get_open (windows.sort_preset))
+  if (preset_sort_file == file && windows_get_open (preset_sort_window))
   {
-    close_dialogue_with_caret (windows.sort_preset);
+    close_dialogue_with_caret (preset_sort_window);
   }
 }
 
@@ -601,7 +1474,7 @@ int add_preset (file_data *file)
 
 /* ================================================================================================================== */
 
-int delete_preset (file_data *file, int preset_no)
+osbool delete_preset (file_data *file, int preset_no)
 {
   int i, index;
 
@@ -665,7 +1538,7 @@ int delete_preset (file_data *file, int preset_no)
   }
   set_file_data_integrity (file, 1);
 
-  return (0);
+  return TRUE;
 }
 
 /* ==================================================================================================================
@@ -676,390 +1549,319 @@ int delete_preset (file_data *file, int preset_no)
 
 void open_preset_edit_window (file_data *file, int preset, wimp_pointer *ptr)
 {
-  extern global_windows windows;
-
-
   /* If the window is already open, another preset is being edited or created.  Assume the user wants to lose
    * any unsaved data and just close the window.
    */
 
-  if (windows_get_open (windows.edit_preset))
+  if (windows_get_open (preset_edit_window))
   {
-    wimp_close_window (windows.edit_preset);
+    wimp_close_window (preset_edit_window);
   }
 
   /* Set the contents of the window up. */
 
   if (preset == NULL_PRESET)
   {
-    msgs_lookup ("NewPreset", windows_get_indirected_title_addr (windows.edit_preset), 50);
-    msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_OK), 12);
+    msgs_lookup ("NewPreset", windows_get_indirected_title_addr (preset_edit_window), 50);
+    msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_OK), 12);
   }
   else
   {
-    msgs_lookup ("EditPreset", windows_get_indirected_title_addr (windows.edit_preset), 50);
-    msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_OK), 12);
+    msgs_lookup ("EditPreset", windows_get_indirected_title_addr (preset_edit_window), 50);
+    msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_OK), 12);
   }
 
   fill_preset_edit_window (file, preset);
 
   /* Set the pointers up so we can find this lot again and open the window. */
 
-  edit_preset_file = file;
-  edit_preset_no = preset;
+  preset_edit_file = file;
+  preset_edit_number = preset;
 
-  windows_open_centred_at_pointer (windows.edit_preset, ptr);
-  place_dialogue_caret (windows.edit_preset, PRESET_EDIT_NAME);
+  windows_open_centred_at_pointer (preset_edit_window, ptr);
+  place_dialogue_caret (preset_edit_window, PRESET_EDIT_NAME);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_preset_edit_window (void)
+static void preset_refresh_edit_window(void)
 {
-  extern global_windows windows;
-
-  fill_preset_edit_window (edit_preset_file, edit_preset_no);
-  icons_redraw_group (windows.edit_preset, 12,
+  fill_preset_edit_window (preset_edit_file, preset_edit_number);
+  icons_redraw_group (preset_edit_window, 12,
                           PRESET_EDIT_NAME, PRESET_EDIT_KEY, PRESET_EDIT_DATE,
                           PRESET_EDIT_FMIDENT, PRESET_EDIT_FMREC, PRESET_EDIT_FMNAME,
                           PRESET_EDIT_TOIDENT, PRESET_EDIT_TOREC, PRESET_EDIT_TONAME,
                           PRESET_EDIT_REF, PRESET_EDIT_AMOUNT, PRESET_EDIT_DESC);
-  icons_replace_caret_in_window (windows.edit_preset);
+  icons_replace_caret_in_window (preset_edit_window);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 void fill_preset_edit_window (file_data *file, int preset)
 {
-  extern global_windows windows;
-
   if (preset == NULL_PRESET)
   {
     /* Set name and key. */
 
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME) = '\0';
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_KEY) = '\0';
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_NAME) = '\0';
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_KEY) = '\0';
 
     /* Set date. */
 
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DATE) = '\0';
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_TODAY, 0);
-    icons_set_shaded (windows.edit_preset, PRESET_EDIT_DATE, 0);
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_DATE) = '\0';
+    icons_set_selected (preset_edit_window, PRESET_EDIT_TODAY, 0);
+    icons_set_shaded (preset_edit_window, PRESET_EDIT_DATE, 0);
 
     /* Fill in the from and to fields. */
 
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMIDENT) = '\0';
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMNAME) = '\0';
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMREC) = '\0';
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_FMIDENT) = '\0';
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_FMNAME) = '\0';
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_FMREC) = '\0';
 
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TOIDENT) = '\0';
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TONAME) = '\0';
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TOREC) = '\0';
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_TOIDENT) = '\0';
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_TONAME) = '\0';
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_TOREC) = '\0';
 
     /* Fill in the reference field. */
 
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_REF) = '\0';
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CHEQUE, 0);
-    icons_set_shaded (windows.edit_preset, PRESET_EDIT_REF, 0);
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_REF) = '\0';
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CHEQUE, 0);
+    icons_set_shaded (preset_edit_window, PRESET_EDIT_REF, 0);
 
     /* Fill in the amount fields. */
 
-    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_AMOUNT));
+    convert_money_to_string (0, icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_AMOUNT));
 
     /* Fill in the description field. */
 
-    *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DESC) = '\0';
+    *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_DESC) = '\0';
 
     /* Set the caret location icons. */
 
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETDATE, 1);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETFROM, 0);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETTO, 0);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETREF, 0);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETAMOUNT, 0);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETDESC, 0);
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETDATE, 1);
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETFROM, 0);
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETTO, 0);
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETREF, 0);
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETAMOUNT, 0);
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETDESC, 0);
   }
   else
   {
     /* Set name and key. */
 
-    strcpy (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME), file->presets[preset].name);
-    sprintf (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_KEY), "%c",
+    strcpy (icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_NAME), file->presets[preset].name);
+    sprintf (icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_KEY), "%c",
              file->presets[preset].action_key);
 
     /* Set date. */
 
     convert_date_to_string (file->presets[preset].date,
-                            icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DATE));
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_TODAY, file->presets[preset].flags & TRANS_TAKE_TODAY);
-    icons_set_shaded (windows.edit_preset, PRESET_EDIT_DATE, file->presets[preset].flags & TRANS_TAKE_TODAY);
+                            icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_DATE));
+    icons_set_selected (preset_edit_window, PRESET_EDIT_TODAY, file->presets[preset].flags & TRANS_TAKE_TODAY);
+    icons_set_shaded (preset_edit_window, PRESET_EDIT_DATE, file->presets[preset].flags & TRANS_TAKE_TODAY);
 
     /* Fill in the from and to fields. */
 
     fill_account_field(file, file->presets[preset].from, file->presets[preset].flags & TRANS_REC_FROM,
-                       windows.edit_preset, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC);
+                       preset_edit_window, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC);
 
     fill_account_field(file, file->presets[preset].to, file->presets[preset].flags & TRANS_REC_TO,
-                       windows.edit_preset, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC);
+                       preset_edit_window, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC);
 
     /* Fill in the reference field. */
 
-    strcpy (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_REF), file->presets[preset].reference);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CHEQUE, file->presets[preset].flags & TRANS_TAKE_CHEQUE);
-    icons_set_shaded (windows.edit_preset, PRESET_EDIT_REF, file->presets[preset].flags & TRANS_TAKE_CHEQUE);
+    strcpy (icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_REF), file->presets[preset].reference);
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CHEQUE, file->presets[preset].flags & TRANS_TAKE_CHEQUE);
+    icons_set_shaded (preset_edit_window, PRESET_EDIT_REF, file->presets[preset].flags & TRANS_TAKE_CHEQUE);
 
     /* Fill in the amount fields. */
 
     convert_money_to_string (file->presets[preset].amount,
-                             icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_AMOUNT));
+                             icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_AMOUNT));
 
     /* Fill in the description field. */
 
-    strcpy (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DESC), file->presets[preset].description);
+    strcpy (icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_DESC), file->presets[preset].description);
 
     /* Set the caret location icons. */
 
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETDATE,
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETDATE,
                        file->presets[preset].caret_target == PRESET_CARET_DATE);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETFROM,
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETFROM,
                        file->presets[preset].caret_target == PRESET_CARET_FROM);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETTO,
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETTO,
                        file->presets[preset].caret_target == PRESET_CARET_TO);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETREF,
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETREF,
                        file->presets[preset].caret_target == PRESET_CARET_REFERENCE);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETAMOUNT,
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETAMOUNT,
                        file->presets[preset].caret_target == PRESET_CARET_AMOUNT);
-    icons_set_selected (windows.edit_preset, PRESET_EDIT_CARETDESC,
+    icons_set_selected (preset_edit_window, PRESET_EDIT_CARETDESC,
                        file->presets[preset].caret_target == PRESET_CARET_DESCRIPTION);
   }
 
    /* Detele the irrelevant action buttons for a new preset. */
 
-   icons_set_deleted (windows.edit_preset, PRESET_EDIT_DELETE, preset == NULL_PRESET);
+   icons_set_deleted (preset_edit_window, PRESET_EDIT_DELETE, preset == NULL_PRESET);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Update the account name fields in the standing order edit window. */
-
-void update_preset_edit_account_fields (wimp_key *key)
-{
-  extern global_windows windows;
-
-
-  if (key->i == PRESET_EDIT_FMIDENT)
-  {
-    lookup_account_field (edit_preset_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-                          windows.edit_preset, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC);
-  }
-
-  else if (key->i == PRESET_EDIT_TOIDENT)
-  {
-    lookup_account_field (edit_preset_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-                          windows.edit_preset, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_preset_edit_account_menu (wimp_pointer *ptr)
-{
-  extern global_windows windows;
-
-
-  if (ptr->i == PRESET_EDIT_FMNAME)
-  {
-    open_account_menu (edit_preset_file, ACCOUNT_MENU_FROM, 0,
-                          windows.edit_preset, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC, ptr);
-  }
-
-  else if (ptr->i == PRESET_EDIT_TONAME)
-  {
-    open_account_menu (edit_preset_file, ACCOUNT_MENU_TO, 0,
-                          windows.edit_preset, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC, ptr);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void toggle_preset_edit_reconcile_fields (wimp_pointer *ptr)
-{
-  extern global_windows windows;
-
-
-  if (ptr->i == PRESET_EDIT_FMREC)
-  {
-    toggle_account_reconcile_icon (windows.edit_preset, PRESET_EDIT_FMREC);
-  }
-
-  else if (ptr->i == PRESET_EDIT_TOREC)
-  {
-    toggle_account_reconcile_icon (windows.edit_preset, PRESET_EDIT_TOREC);
-  }
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Take the contents of an updated edit preset window and process the data. */
 
-int process_preset_edit_window (void)
+static osbool preset_process_edit_window(void)
 {
   char copyname[PRESET_NAME_LEN];
   int  check_key;
 
-  extern global_windows windows;
-
-
-
   /* Test that the preset has been given a name, and reject the data if not. */
 
-  string_ctrl_strcpy (copyname,icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME));
+  string_ctrl_strcpy (copyname,icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_NAME));
 
   if (*string_strip_surrounding_whitespace(copyname) == '\0')
   {
     error_msgs_report_error ("NoPresetName");
-    return (1);
+    return FALSE;
   }
 
   /* Test that the key, if any, is unique. */
 
   check_key =
-      find_preset_from_keypress (edit_preset_file, *icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_KEY));
+      find_preset_from_keypress (preset_edit_file, *icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_KEY));
 
-  if (check_key != NULL_PRESET && check_key != edit_preset_no)
+  if (check_key != NULL_PRESET && check_key != preset_edit_number)
   {
     error_msgs_report_error ("BadPresetNo");
-    return (1);
+    return FALSE;
   }
 
 
   /* If the preset doesn't exsit, create it.  If it does exist, validate any data that requires it. */
 
-  if (edit_preset_no == NULL_PRESET)
+  if (preset_edit_number == NULL_PRESET)
   {
-    edit_preset_no = add_preset (edit_preset_file);
+    preset_edit_number = add_preset (preset_edit_file);
   }
 
   /* If the preset was created OK, store the rest of the data. */
 
-  if (edit_preset_no != NULL_PRESET)
+  if (preset_edit_number != NULL_PRESET)
   {
     /* Zero the flags and reset them as required. */
 
-    edit_preset_file->presets[edit_preset_no].flags = 0;
+    preset_edit_file->presets[preset_edit_number].flags = 0;
 
     /* Store the name. */
 
-    strcpy (edit_preset_file->presets[edit_preset_no].name,
-            icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_NAME));
+    strcpy (preset_edit_file->presets[preset_edit_number].name,
+            icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_NAME));
 
     /* Store the key. */
 
-    edit_preset_file->presets[edit_preset_no].action_key =
-            toupper (*icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_KEY));
+    preset_edit_file->presets[preset_edit_number].action_key =
+            toupper (*icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_KEY));
 
     /* Get the date and today settings. */
 
-    edit_preset_file->presets[edit_preset_no].date =
-           convert_string_to_date (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DATE), NULL_DATE, 0);
+    preset_edit_file->presets[preset_edit_number].date =
+           convert_string_to_date (icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_DATE), NULL_DATE, 0);
 
-    if (icons_get_selected (windows.edit_preset, PRESET_EDIT_TODAY))
+    if (icons_get_selected (preset_edit_window, PRESET_EDIT_TODAY))
     {
-      edit_preset_file->presets[edit_preset_no].flags |= TRANS_TAKE_TODAY;
+      preset_edit_file->presets[preset_edit_number].flags |= TRANS_TAKE_TODAY;
     }
 
     /* Get the from and to fields. */
 
-    edit_preset_file->presets[edit_preset_no].from =
-          find_account (edit_preset_file,
-                        icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
+    preset_edit_file->presets[preset_edit_number].from =
+          find_account (preset_edit_file,
+                        icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
 
-    edit_preset_file->presets[edit_preset_no].to =
-          find_account (edit_preset_file,
-                        icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
+    preset_edit_file->presets[preset_edit_number].to =
+          find_account (preset_edit_file,
+                        icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
 
-    if (*icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_FMREC) != '\0')
+    if (*icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_FMREC) != '\0')
     {
-      edit_preset_file->presets[edit_preset_no].flags |= TRANS_REC_FROM;
+      preset_edit_file->presets[preset_edit_number].flags |= TRANS_REC_FROM;
     }
 
-    if (*icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_TOREC) != '\0')
+    if (*icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_TOREC) != '\0')
     {
-      edit_preset_file->presets[edit_preset_no].flags |= TRANS_REC_TO;
+      preset_edit_file->presets[preset_edit_number].flags |= TRANS_REC_TO;
     }
 
     /* Get the amounts. */
 
-    edit_preset_file->presets[edit_preset_no].amount =
-          convert_string_to_money (icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_AMOUNT));
+    preset_edit_file->presets[preset_edit_number].amount =
+          convert_string_to_money (icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_AMOUNT));
 
     /* Store the reference. */
 
-    strcpy (edit_preset_file->presets[edit_preset_no].reference,
-            icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_REF));
+    strcpy (preset_edit_file->presets[preset_edit_number].reference,
+            icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_REF));
 
-    if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CHEQUE))
+    if (icons_get_selected (preset_edit_window, PRESET_EDIT_CHEQUE))
     {
-      edit_preset_file->presets[edit_preset_no].flags |= TRANS_TAKE_CHEQUE;
+      preset_edit_file->presets[preset_edit_number].flags |= TRANS_TAKE_CHEQUE;
     }
 
     /* Store the description. */
 
-    strcpy (edit_preset_file->presets[edit_preset_no].description,
-            icons_get_indirected_text_addr (windows.edit_preset, PRESET_EDIT_DESC));
+    strcpy (preset_edit_file->presets[preset_edit_number].description,
+            icons_get_indirected_text_addr (preset_edit_window, PRESET_EDIT_DESC));
 
     /* Store the caret target. */
 
-    edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_DATE;
+    preset_edit_file->presets[preset_edit_number].caret_target = PRESET_CARET_DATE;
 
-    if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETFROM))
+    if (icons_get_selected (preset_edit_window, PRESET_EDIT_CARETFROM))
     {
-      edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_FROM;
+      preset_edit_file->presets[preset_edit_number].caret_target = PRESET_CARET_FROM;
     }
-    else if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETTO))
+    else if (icons_get_selected (preset_edit_window, PRESET_EDIT_CARETTO))
     {
-      edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_TO;
+      preset_edit_file->presets[preset_edit_number].caret_target = PRESET_CARET_TO;
     }
-    else if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETREF))
+    else if (icons_get_selected (preset_edit_window, PRESET_EDIT_CARETREF))
     {
-      edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_REFERENCE;
+      preset_edit_file->presets[preset_edit_number].caret_target = PRESET_CARET_REFERENCE;
     }
-    else if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETAMOUNT))
+    else if (icons_get_selected (preset_edit_window, PRESET_EDIT_CARETAMOUNT))
     {
-      edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_AMOUNT;
+      preset_edit_file->presets[preset_edit_number].caret_target = PRESET_CARET_AMOUNT;
     }
-    else if (icons_get_selected (windows.edit_preset, PRESET_EDIT_CARETDESC))
+    else if (icons_get_selected (preset_edit_window, PRESET_EDIT_CARETDESC))
     {
-      edit_preset_file->presets[edit_preset_no].caret_target = PRESET_CARET_DESCRIPTION;
+      preset_edit_file->presets[preset_edit_number].caret_target = PRESET_CARET_DESCRIPTION;
     }
   }
 
   if (config_opt_read ("AutoSortPresets"))
   {
-    sort_preset_window (edit_preset_file);
+    sort_preset_window (preset_edit_file);
   }
   else
   {
-    force_preset_window_redraw (edit_preset_file, edit_preset_no, edit_preset_no);
+    force_preset_window_redraw (preset_edit_file, preset_edit_number, preset_edit_number);
   }
 
-  set_file_data_integrity (edit_preset_file, 1);
+  set_file_data_integrity (preset_edit_file, 1);
 
-  return (0);
+  return TRUE;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Delete a preset here and now. */
 
-int delete_preset_from_edit_window (void)
+osbool delete_preset_from_edit_window (void)
 {
-  if (error_msgs_report_question ("DeletePreset", "DeletePresetB") == 2)
-  {
-    return (1);
-  }
+	if (error_msgs_report_question ("DeletePreset", "DeletePresetB") == 2)
+		return FALSE;
 
-  return (delete_preset (edit_preset_file, edit_preset_no));
+	return delete_preset(preset_edit_file, preset_edit_number);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -1068,12 +1870,9 @@ int delete_preset_from_edit_window (void)
 
 void force_close_preset_edit_window (file_data *file)
 {
-  extern global_windows windows;
-
-
-  if (edit_preset_file == file && windows_get_open (windows.edit_preset))
+  if (preset_edit_file == file && windows_get_open (preset_edit_window))
   {
-    close_dialogue_with_caret (windows.edit_preset);
+    close_dialogue_with_caret (preset_edit_window);
   }
 }
 
@@ -1235,170 +2034,6 @@ void print_preset_window(osbool text, osbool format, osbool scale, osbool rotate
  * Preset window handling
  */
 
-void preset_window_click (file_data *file, wimp_pointer *pointer)
-{
-  int               line;
-  wimp_window_state window;
-
-
-  /* Find the window type and get the line clicked on. */
-
-  window.w = pointer->w;
-  wimp_get_window_state (&window);
-
-  line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - PRESET_TOOLBAR_HEIGHT)
-         / (ICON_HEIGHT+LINE_GUTTER);
-
-  if (line < 0 || line >= file->preset_count)
-  {
-    line = -1;
-  }
-
-  /* Handle double-clicks, which will open an edit accout window. */
-
-  if (pointer->buttons == wimp_DOUBLE_SELECT)
-  {
-    if (line != -1)
-    {
-      open_preset_edit_window (file, file->presets[line].sort_index, pointer);
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_preset_menu (file, line, pointer);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void preset_pane_click (file_data *file, wimp_pointer *pointer)
-{
-  wimp_window_state     window;
-  wimp_icon_state       icon;
-  int                   ox;
-
-  extern global_windows windows;
-
-
-  /* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
-
-  if (pointer->i == PRESET_PANE_SORT_DIR_ICON)
-  {
-    pointer->i = preset_pane_sort_substitute_icon;
-  }
-
-  if (pointer->buttons == wimp_CLICK_SELECT)
-  {
-    switch (pointer->i)
-    {
-      case PRESET_PANE_PARENT:
-        windows_open (file->transaction_window.transaction_window);
-        break;
-
-      case PRESET_PANE_PRINT:
-        open_preset_print_window (file, pointer, config_opt_read ("RememberValues"));
-        break;
-
-      case PRESET_PANE_ADDPRESET:
-        open_preset_edit_window (file, NULL_PRESET, pointer);
-        break;
-
-      case PRESET_PANE_SORT:
-        open_preset_sort_window (file, pointer);
-	break;
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_ADJUST)
-  {
-    switch (pointer->i)
-    {
-      case PRESET_PANE_PRINT:
-        open_preset_print_window (file, pointer, !config_opt_read ("RememberValues"));
-        break;
-
-      case PRESET_PANE_SORT:
-        sort_preset_window (file);
-        break;
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_preset_menu (file, -1, pointer);
-  }
-
-  /* Process clicks on the column headings, for sorting the data.  This tests to see if the click was
-   * outside of the column size drag hotspot before proceeding.
-   */
-
-  else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
-            pointer->i != wimp_ICON_WINDOW)
-  {
-    window.w = pointer->w;
-    wimp_get_window_state (&window);
-
-    ox = window.visible.x0 - window.xscroll;
-
-    icon.w = pointer->w;
-    icon.i = pointer->i;
-    wimp_get_icon_state (&icon);
-
-    if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT))
-    {
-      file->preset_window.sort_order = SORT_NONE;
-
-      switch (pointer->i)
-      {
-        case PRESET_PANE_KEY:
-          file->preset_window.sort_order = SORT_CHAR;
-          break;
-
-        case PRESET_PANE_NAME:
-          file->preset_window.sort_order = SORT_NAME;
-          break;
-
-        case PRESET_PANE_FROM:
-          file->preset_window.sort_order = SORT_FROM;
-          break;
-
-        case PRESET_PANE_TO:
-          file->preset_window.sort_order = SORT_TO;
-          break;
-
-        case PRESET_PANE_AMOUNT:
-          file->preset_window.sort_order = SORT_AMOUNT;
-          break;
-
-        case PRESET_PANE_DESCRIPTION:
-          file->preset_window.sort_order = SORT_DESCRIPTION;
-          break;
-      }
-
-      if (file->preset_window.sort_order != SORT_NONE)
-      {
-        if (pointer->buttons == wimp_CLICK_SELECT * 256)
-        {
-          file->preset_window.sort_order |= SORT_ASCENDING;
-        }
-        else
-        {
-          file->preset_window.sort_order |= SORT_DESCENDING;
-        }
-      }
-
-      adjust_preset_window_sort_icon (file);
-      windows_redraw (file->preset_window.preset_pane);
-      sort_preset_window (file);
-    }
-  }
-
-  else if (pointer->buttons == wimp_DRAG_SELECT)
-  {
-    start_column_width_drag (pointer);
-  }
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -1508,84 +2143,6 @@ void force_preset_window_redraw (file_data *file, int from, int to)
   }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Handle scroll events that occur in a preset window */
-
-void preset_window_scroll_event (file_data *file, wimp_scroll *scroll)
-{
-  int width, height, error;
-
-
-  /* Add in the X scroll offset. */
-
-  width = scroll->visible.x1 - scroll->visible.x0;
-
-  switch (scroll->xmin)
-  {
-    case wimp_SCROLL_COLUMN_LEFT:
-      scroll->xscroll -= HORIZONTAL_SCROLL;
-      break;
-
-    case wimp_SCROLL_COLUMN_RIGHT:
-      scroll->xscroll += HORIZONTAL_SCROLL;
-      break;
-
-    case wimp_SCROLL_PAGE_LEFT:
-      scroll->xscroll -= width;
-      break;
-
-    case wimp_SCROLL_PAGE_RIGHT:
-      scroll->xscroll += width;
-      break;
-  }
-
-  /* Add in the Y scroll offset. */
-
-  height = (scroll->visible.y1 - scroll->visible.y0) - PRESET_TOOLBAR_HEIGHT;
-
-  switch (scroll->ymin)
-  {
-    case wimp_SCROLL_LINE_UP:
-      scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
-
-    case wimp_SCROLL_LINE_DOWN:
-      scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
-
-    case wimp_SCROLL_PAGE_UP:
-      scroll->yscroll += height;
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
-
-    case wimp_SCROLL_PAGE_DOWN:
-      scroll->yscroll -= height;
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
-  }
-
-  /* Re-open the window.
-   *
-   * It is assumed that the wimp will deal with out-of-bounds offsets for us.
-   */
-
-  wimp_open_window ((wimp_open *) scroll);
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -1614,3 +2171,4 @@ void decode_preset_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, 
     sprintf (buffer, "Col%d", column);
   }
 }
+

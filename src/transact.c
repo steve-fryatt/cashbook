@@ -1230,7 +1230,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_PRESET:
-        create_preset_window (file);
+        preset_open_window (file);
         break;
 
       case TRANSACT_PANE_ADDPRESET:

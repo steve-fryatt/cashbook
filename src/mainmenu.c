@@ -184,10 +184,6 @@ char *mainmenu_get_current_menu_name(char *buffer)
   {
     strcpy (buffer, "SOrderMenu");
   }
-  else if (menus.menu_id == MENU_ID_PRESET)
-  {
-    strcpy (buffer, "PresetMenu");
-  }
 
   return (buffer);
 }
@@ -223,11 +219,11 @@ void open_main_menu (file_data *file, wimp_pointer *pointer)
 
   if (file->account_count == 0)
   {
-    menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = menus.preset; /* \TODO -- Ugh! */
+    menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = menus.sorder; /* \TODO -- Ugh! */
   }
   if (file->saved_report_count == 0)
   {
-    menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = menus.preset; /* \TODO -- Ugh! */
+    menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = menus.sorder; /* \TODO -- Ugh! */
   }
 
   initialise_save_boxes (file, 0, 0);
@@ -335,7 +331,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_TRANS_PRESET) /* View presets */
     {
-      create_preset_window (main_menu_file);
+      preset_open_window (main_menu_file);
     }
 
     else if (selection->items[1] == MAIN_MENU_TRANS_PRESETNEW) /* Add presets */
@@ -1971,88 +1967,6 @@ void sorder_menu_submenu_message (wimp_full_message_menu_warning *submenu)
 
    case SORDER_MENU_EXPTSV: /* TSV save window */
      fill_save_as_window (main_menu_file, SAVE_BOX_SORDERTSV);
-     wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-     break;
- }
-}
-
-/* ==================================================================================================================
- * Preset menu
- */
-
-/* Set and open the menu. */
-
-void set_preset_menu (int line)
-{
-  extern global_menus   menus;
-
-  menus_shade_entry (menus.preset, PRESET_MENU_EDIT, line == -1);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_preset_menu (file_data *file, int line, wimp_pointer *pointer)
-{
-  extern global_menus   menus;
-
-
-  initialise_save_boxes (file, 0, 0);
-  set_preset_menu (line);
-
-  menus.menu_up = menus_create_standard_menu (menus.preset, pointer);
-  menus.menu_id = MENU_ID_PRESET;
-  main_menu_file = file;
-  main_menu_line = line;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Decode the menu selections. */
-
-void decode_preset_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  if (selection->items[0] == PRESET_MENU_SORT)
-  {
-    open_preset_sort_window (main_menu_file, pointer);
-  }
-  else if (selection->items[0] == PRESET_MENU_EDIT)
-  {
-    if (main_menu_line != -1)
-    {
-      open_preset_edit_window (main_menu_file, main_menu_file->presets[main_menu_line].sort_index, pointer);
-    }
-  }
-  else if (selection->items[0] == PRESET_MENU_NEWPRESET)
-  {
-    open_preset_edit_window (main_menu_file, NULL_PRESET, pointer);
-  }
-  else if (selection->items[0] == PRESET_MENU_PRINT)
-  {
-    open_preset_print_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
-  }
-
-  set_preset_menu (main_menu_line);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Handle submenu warnings. */
-
-void preset_menu_submenu_message (wimp_full_message_menu_warning *submenu)
-{
- #ifdef DEBUG
- debug_reporter_text0 ("\\BReceived submenu warning message.");
- #endif
-
- switch (submenu->selection.items[0])
- {
-   case PRESET_MENU_EXPCSV: /* CSV save window */
-     fill_save_as_window (main_menu_file, SAVE_BOX_PRESETCSV);
-     wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-     break;
-
-   case PRESET_MENU_EXPTSV: /* TSV save window */
-     fill_save_as_window (main_menu_file, SAVE_BOX_PRESETTSV);
      wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
      break;
  }

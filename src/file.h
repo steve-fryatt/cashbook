@@ -33,11 +33,9 @@ file_data *find_account_window_file_block (wimp_w window);
 file_data *find_account_pane_file_block (wimp_w window);
 file_data *find_sorder_window_file_block (wimp_w window);
 file_data *find_sorder_pane_file_block (wimp_w window);
-file_data *find_preset_window_file_block (wimp_w window);
 file_data *find_preset_pane_file_block (wimp_w window);
 file_data *find_accview_window_file_block (wimp_w window);
 file_data *find_accview_pane_file_block (wimp_w window);
-file_data *find_report_window_file_block (wimp_w window);
 
 /* Saved files and data integrity */
 

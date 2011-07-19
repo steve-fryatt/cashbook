@@ -602,28 +602,6 @@ file_data *find_sorder_pane_file_block (wimp_w window)
   return (list);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Find the file block that corresponds to a given preset window handle. */
-
-file_data *find_preset_window_file_block (wimp_w window)
-{
-  file_data *list;
-
-
-  list = file_list;
-
-  while (list != NULL && list->preset_window.preset_window != window)
-  {
-    list = list->next;
-  }
-
-  /* If the window is not a preset window, this loop falls out with (list == NULL) ready to return the
-   * NULL (not found) value.
-   */
-
-  return (list);
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -706,38 +684,6 @@ file_data *find_accview_pane_file_block (wimp_w window)
   return (found);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Find the file block that corresponds to a given account view pane handle. */
-
-file_data *find_report_window_file_block (wimp_w window)
-{
-  file_data   *list, *found;
-  report_data *rep;
-
-
-  list = file_list;
-  found = NULL;
-
-  while (list != NULL && found == NULL)
-  {
-    rep = list->reports;
-
-    while (rep != NULL && found == NULL)
-    {
-      if (rep->window == window)
-      {
-        found = list;
-      }
-
-      rep = rep->next;
-    }
-
-    list = list->next;
-  }
-
-  return (found);
-}
 
 /* ==================================================================================================================
  * Saved files and data integrity

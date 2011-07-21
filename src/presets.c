@@ -1503,7 +1503,7 @@ static void preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool 
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void adjust_preset_window_columns (file_data *file)
+static void adjust_preset_window_columns (file_data *file)
 {
   int              i, j, new_extent;
   wimp_icon_state  icon;

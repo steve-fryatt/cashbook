@@ -84,9 +84,6 @@ void preset_force_windows_closed(file_data *file);
 
 
 
-void adjust_preset_window_columns (file_data *file);
-void adjust_preset_window_sort_icon (file_data *file);
-void update_preset_window_sort_icon (file_data *file, wimp_icon *icon);
 
 /* Sorting presets */
 

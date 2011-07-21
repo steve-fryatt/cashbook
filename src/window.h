@@ -1,10 +1,10 @@
 /* CashBook - window.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_WINDOW
-#define _ACCOUNTS_WINDOW
+#ifndef CASHBOOK_WINDOW
+#define CASHBOOK_WINDOW
 
 /* ==================================================================================================================
  * Static constants
@@ -35,8 +35,8 @@
 
 /* Setting up columned windows. */
 
-void init_window_columns (int width[], int pos[], int columns, char *widths);
-char *write_window_columns_text (int width[], int columns, char *buffer);
+void column_init_window (int width[], int pos[], int columns, char *widths);
+char *column_write_as_text (int width[], int columns, char *buffer);
 
 void set_initial_window_area (wimp_window *window, int width, int height, int x, int y, int yoff);
 
@@ -44,16 +44,12 @@ void set_initial_window_area (wimp_window *window, int width, int height, int x,
 
 void start_column_width_drag (wimp_pointer *ptr);
 void terminate_column_width_drag (wimp_dragged *drag);
-void update_dragged_columns (char *mapping, char *widths, int heading, int width,
-                             int col_widths[], int col_pos[], int columns);
 
 /* Column grouping information. */
 
-int leftmost_group_column (char *mapping, int heading);
-int rightmost_group_column (char *mapping, int heading);
-int column_group (char *mapping, int column);
-int minimum_group_width (char *mapping, char *widths, int heading);
-
-int minimum_column_width (char *widths, int column);
+int column_get_leftmost_in_group (char *mapping, int heading);
+int column_get_rightmost_in_group (char *mapping, int heading);
+int column_get_group (char *mapping, int column);
 
 #endif
+

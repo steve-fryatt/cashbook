@@ -133,7 +133,7 @@ void create_sorder_window (file_data *file)
     {
       windows.sorder_pane_def->icons[i].extent.x0 = file->sorder_window.column_position[j];
 
-      j = rightmost_group_column (SORDER_PANE_COL_MAP, i);
+      j = column_get_rightmost_in_group (SORDER_PANE_COL_MAP, i);
 
       windows.sorder_pane_def->icons[i].extent.x1 = file->sorder_window.column_position[j] +
                                                     file->sorder_window.column_width[j] +
@@ -216,7 +216,7 @@ void adjust_sorder_window_columns (file_data *file)
 
     icon.icon.extent.x0 = file->sorder_window.column_position[j];
 
-    j = rightmost_group_column (SORDER_PANE_COL_MAP, i);
+    j = column_get_rightmost_in_group (SORDER_PANE_COL_MAP, i);
 
     icon.icon.extent.x1 = file->sorder_window.column_position[j] +
                           file->sorder_window.column_width[j] + COLUMN_HEADING_MARGIN;

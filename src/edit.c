@@ -310,7 +310,7 @@ void find_transaction_edit_icon (file_data *file)
       /* Find the group holding the current icon. */
 
       group = 0;
-      while (caret.i > rightmost_group_column (TRANSACT_PANE_COL_MAP, group))
+      while (caret.i > column_get_rightmost_in_group (TRANSACT_PANE_COL_MAP, group))
       {
         group ++;
       }
@@ -318,14 +318,14 @@ void find_transaction_edit_icon (file_data *file)
       /* Get the left hand icon dimension */
 
       icon.w = window.w;
-      icon.i = leftmost_group_column (TRANSACT_PANE_COL_MAP, group);
+      icon.i = column_get_leftmost_in_group (TRANSACT_PANE_COL_MAP, group);
       wimp_get_icon_state (&icon);
       icon_xmin = icon.icon.extent.x0;
 
       /* Get the right hand icon dimension */
 
       icon.w = window.w;
-      icon.i = rightmost_group_column (TRANSACT_PANE_COL_MAP, group);
+      icon.i = column_get_rightmost_in_group (TRANSACT_PANE_COL_MAP, group);
       wimp_get_icon_state (&icon);
       icon_xmax = icon.icon.extent.x1;
 

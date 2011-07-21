@@ -126,7 +126,7 @@ void create_transaction_window (file_data *file)
     {
       windows.transaction_pane_def->icons[i].extent.x0 = file->transaction_window.column_position[j];
 
-      j = rightmost_group_column (TRANSACT_PANE_COL_MAP, i);
+      j = column_get_rightmost_in_group (TRANSACT_PANE_COL_MAP, i);
 
       windows.transaction_pane_def->icons[i].extent.x1 = file->transaction_window.column_position[j] +
                                                          file->transaction_window.column_width[j] +
@@ -201,12 +201,17 @@ void delete_transaction_window (file_data *file)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void adjust_transaction_window_columns (file_data *file)
+void adjust_transaction_window_columns (file_data *file, int icon, int width)
 {
   int              i, j, new_extent;
   wimp_icon_state  icon;
   wimp_window_info window;
   wimp_caret       caret;
+
+  update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), icon, width,
+                              file->transaction_window.column_width,
+                              file->transaction_window.column_position, TRANSACT_COLUMNS);
+
 
 
   /* Re-adjust the icons in the pane. */
@@ -219,7 +224,7 @@ void adjust_transaction_window_columns (file_data *file)
 
     icon.icon.extent.x0 = file->transaction_window.column_position[j];
 
-    j = rightmost_group_column (TRANSACT_PANE_COL_MAP, i);
+    j = column_get_rightmost_in_group (TRANSACT_PANE_COL_MAP, i);
 
     icon.icon.extent.x1 = file->transaction_window.column_position[j] +
                           file->transaction_window.column_width[j] + COLUMN_HEADING_MARGIN;
@@ -1342,6 +1347,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
   else if (pointer->buttons == wimp_DRAG_SELECT && pointer->i <= TRANSACT_PANE_DRAG_LIMIT)
   {
     start_column_width_drag (pointer);
+    column_start_drag(pointer, file, file->transaction_window.transaction_window, TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"),  adjust_transaction_window_columns)
   }
 }
 

@@ -99,7 +99,7 @@ file_data *build_new_file_block (void)
   new->transaction_window.transaction_window = NULL;
   new->transaction_window.transaction_pane = NULL;
 
-  init_window_columns (new->transaction_window.column_width, new->transaction_window.column_position,
+  column_init_window (new->transaction_window.column_width, new->transaction_window.column_position,
                        TRANSACT_COLUMNS, config_str_read ("TransactCols"));
 
   new->transaction_window.sort_order = SORT_DATE | SORT_ASCENDING;
@@ -112,7 +112,7 @@ file_data *build_new_file_block (void)
     new->account_windows[i].account_pane = NULL;
     new->account_windows[i].account_footer = NULL;
 
-    init_window_columns (new->account_windows[i].column_width, new->account_windows[i].column_position,
+    column_init_window (new->account_windows[i].column_width, new->account_windows[i].column_position,
                          ACCOUNT_COLUMNS, config_str_read ("AccountCols"));
 
     /* Blank out the footer icons. */
@@ -147,7 +147,7 @@ file_data *build_new_file_block (void)
 
   /* Initialise the account view window. */
 
-  init_window_columns (new->accview_column_width, new->accview_column_position,
+  column_init_window (new->accview_column_width, new->accview_column_position,
                        ACCVIEW_COLUMNS, config_str_read ("AccViewCols"));
 
   new->accview_sort_order = SORT_DATE | SORT_ASCENDING;
@@ -157,7 +157,7 @@ file_data *build_new_file_block (void)
   new->sorder_window.sorder_window = NULL;
   new->sorder_window.sorder_pane = NULL;
 
-  init_window_columns (new->sorder_window.column_width, new->sorder_window.column_position,
+  column_init_window (new->sorder_window.column_width, new->sorder_window.column_position,
                        SORDER_COLUMNS, config_str_read ("SOrderCols"));
 
   new->sorder_window.sort_order = SORT_NEXTDATE | SORT_DESCENDING;
@@ -167,7 +167,7 @@ file_data *build_new_file_block (void)
   new->preset_window.preset_window = NULL;
   new->preset_window.preset_pane = NULL;
 
-  init_window_columns (new->preset_window.column_width, new->preset_window.column_position,
+  column_init_window (new->preset_window.column_width, new->preset_window.column_position,
                        PRESET_COLUMNS, config_str_read ("PresetCols"));
 
   new->preset_window.sort_order = SORT_CHAR | SORT_ASCENDING;

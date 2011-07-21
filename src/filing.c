@@ -227,7 +227,7 @@ void load_transaction_file (char *filename)
             }
             else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
-              init_window_columns (file->accview_column_width, file->accview_column_position,
+              column_init_window (file->accview_column_width, file->accview_column_position,
                                    ACCVIEW_COLUMNS, value);
             }
             else if (string_nocase_strcmp (token, "SortOrder") == 0)
@@ -376,7 +376,7 @@ void load_transaction_file (char *filename)
             }
             else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
-              init_window_columns (file->account_windows[entry].column_width,
+              column_init_window (file->account_windows[entry].column_width,
                                    file->account_windows[entry].column_position,
                                    ACCOUNT_COLUMNS, value);
             }
@@ -427,7 +427,7 @@ void load_transaction_file (char *filename)
             }
             else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
-              init_window_columns (file->transaction_window.column_width,
+              column_init_window (file->transaction_window.column_width,
                                    file->transaction_window.column_position,
                                    TRANSACT_COLUMNS, value);
             }
@@ -492,7 +492,7 @@ void load_transaction_file (char *filename)
             }
             else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
-              init_window_columns (file->sorder_window.column_width,
+              column_init_window (file->sorder_window.column_width,
                                    file->sorder_window.column_position,
                                    SORDER_COLUMNS, value);
             }
@@ -563,7 +563,7 @@ void load_transaction_file (char *filename)
             }
             else if (string_nocase_strcmp (token, "WinColumns") == 0)
             {
-              init_window_columns (file->preset_window.column_width,
+              column_init_window (file->preset_window.column_width,
                                    file->preset_window.column_position,
                                    PRESET_COLUMNS, value);
             }
@@ -1009,7 +1009,7 @@ void save_transaction_file (file_data *file, char *filename)
 
     fprintf (out, "Entries: %x\n", file->account_count);
 
-    write_window_columns_text (file->accview_column_width, ACCVIEW_COLUMNS, buffer);
+    column_write_as_text (file->accview_column_width, ACCVIEW_COLUMNS, buffer);
     fprintf (out, "WinColumns: %s\n", buffer);
 
     fprintf (out, "SortOrder: %x\n", file->accview_sort_order);
@@ -1065,7 +1065,7 @@ void save_transaction_file (file_data *file, char *filename)
 
       fprintf (out, "Entries: %x\n", file->account_windows[j].display_lines);
 
-      write_window_columns_text (file->account_windows[j].column_width, ACCOUNT_COLUMNS, buffer);
+      column_write_as_text (file->account_windows[j].column_width, ACCOUNT_COLUMNS, buffer);
       fprintf (out, "WinColumns: %s\n", buffer);
 
       for (i=0; i<file->account_windows[j].display_lines; i++)
@@ -1088,7 +1088,7 @@ void save_transaction_file (file_data *file, char *filename)
 
     fprintf (out, "Entries: %x\n", file->trans_count);
 
-    write_window_columns_text (file->transaction_window.column_width, TRANSACT_COLUMNS, buffer);
+    column_write_as_text (file->transaction_window.column_width, TRANSACT_COLUMNS, buffer);
     fprintf (out, "WinColumns: %s\n", buffer);
 
     fprintf (out, "SortOrder: %x\n", file->transaction_window.sort_order);
@@ -1114,7 +1114,7 @@ void save_transaction_file (file_data *file, char *filename)
 
     fprintf (out, "Entries: %x\n", file->sorder_count);
 
-    write_window_columns_text (file->sorder_window.column_width, SORDER_COLUMNS, buffer);
+    column_write_as_text (file->sorder_window.column_width, SORDER_COLUMNS, buffer);
     fprintf (out, "WinColumns: %s\n", buffer);
 
     fprintf (out, "SortOrder: %x\n", file->sorder_window.sort_order);
@@ -1142,7 +1142,7 @@ void save_transaction_file (file_data *file, char *filename)
 
     fprintf (out, "Entries: %x\n", file->preset_count);
 
-    write_window_columns_text (file->preset_window.column_width, PRESET_COLUMNS, buffer);
+    column_write_as_text (file->preset_window.column_width, PRESET_COLUMNS, buffer);
     fprintf (out, "WinColumns: %s\n", buffer);
 
     fprintf (out, "SortOrder: %x\n", file->preset_window.sort_order);

@@ -170,7 +170,7 @@ void create_accounts_window (file_data *file, int type)
     {
       windows.account_pane_def[tb_type]->icons[i].extent.x0 = file->account_windows[entry].column_position[j];
 
-      j = rightmost_group_column (ACCOUNT_PANE_COL_MAP, i);
+      j = column_get_rightmost_in_group (ACCOUNT_PANE_COL_MAP, i);
 
       windows.account_pane_def[tb_type]->icons[i].extent.x1 = file->account_windows[entry].column_position[j]
                                                               + file->account_windows[entry].column_width[j]
@@ -201,7 +201,7 @@ void create_accounts_window (file_data *file, int type)
       windows.account_footer_def->icons[i].extent.y0 = -ACCOUNT_FOOTER_HEIGHT;
       windows.account_footer_def->icons[i].extent.y1 = 0;
 
-      j = rightmost_group_column (ACCOUNT_PANE_COL_MAP, i);
+      j = column_get_rightmost_in_group (ACCOUNT_PANE_COL_MAP, i);
 
       windows.account_footer_def->icons[i].extent.x1 = file->account_windows[entry].column_position[j]
                                                        + file->account_windows[entry].column_width[j];
@@ -325,7 +325,7 @@ void adjust_account_window_columns (file_data *file, int entry)
 
     icon2.icon.extent.x0 = file->account_windows[entry].column_position[j];
 
-    j = rightmost_group_column (ACCOUNT_PANE_COL_MAP, i);
+    j = column_get_rightmost_in_group (ACCOUNT_PANE_COL_MAP, i);
 
     icon1.icon.extent.x1 = file->account_windows[entry].column_position[j] +
                            file->account_windows[entry].column_width[j] + COLUMN_HEADING_MARGIN;

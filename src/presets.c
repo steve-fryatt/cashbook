@@ -272,7 +272,7 @@ void preset_open_window(file_data *file)
 	for (i=0, j=0; j < PRESET_COLUMNS; i++, j++) {
 		preset_pane_def->icons[i].extent.x0 = file->preset_window.column_position[j];
 
-		j = rightmost_group_column(PRESET_PANE_COL_MAP, i);
+		j = column_get_rightmost_in_group(PRESET_PANE_COL_MAP, i);
 
 		preset_pane_def->icons[i].extent.x1 = file->preset_window.column_position[j] +
 				file->preset_window.column_width[j] +
@@ -1520,7 +1520,7 @@ void adjust_preset_window_columns (file_data *file)
 
     icon.icon.extent.x0 = file->preset_window.column_position[j];
 
-    j = rightmost_group_column (PRESET_PANE_COL_MAP, i);
+    j = column_get_rightmost_in_group (PRESET_PANE_COL_MAP, i);
 
     icon.icon.extent.x1 = file->preset_window.column_position[j] +
                           file->preset_window.column_width[j] + COLUMN_HEADING_MARGIN;

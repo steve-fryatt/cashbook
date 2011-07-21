@@ -621,7 +621,7 @@ static int find_from_line(find *new_params, int new_dir, int start)
 	icons_put_caret_at_end(find_window_file->transaction_window.transaction_window, icon);
 	find_transaction_edit_line(find_window_file);
 
-	icons_copy_text(find_window_file->transaction_window.transaction_pane, column_group(TRANSACT_PANE_COL_MAP, icon), buf1);
+	icons_copy_text(find_window_file->transaction_window.transaction_pane, column_get_group(TRANSACT_PANE_COL_MAP, icon), buf1);
 	snprintf(buf2, sizeof(buf2), "%d", line);
 
 	msgs_param_lookup("Found", icons_get_indirected_text_addr(find_result_window, FOUND_ICON_INFO), 64, buf1, buf2, NULL, NULL);

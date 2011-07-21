@@ -170,7 +170,7 @@ void create_accview_window (file_data *file, int account)
       {
         windows.accview_pane_def->icons[i].extent.x0 = (file->accounts[account].account_view)->column_position[j];
 
-        j = rightmost_group_column (ACCVIEW_PANE_COL_MAP, i);
+        j = column_get_rightmost_in_group (ACCVIEW_PANE_COL_MAP, i);
 
         windows.accview_pane_def->icons[i].extent.x1 = (file->accounts[account].account_view)->column_position[j] +
                                                         (file->accounts[account].account_view)->column_width[j] +
@@ -273,7 +273,7 @@ void adjust_accview_window_columns (file_data *file, int account)
 
     icon.icon.extent.x0 = (file->accounts[account].account_view)->column_position[j];
 
-    j = rightmost_group_column (ACCVIEW_PANE_COL_MAP, i);
+    j = column_get_rightmost_in_group (ACCVIEW_PANE_COL_MAP, i);
 
     icon.icon.extent.x1 = (file->accounts[account].account_view)->column_position[j] +
                           (file->accounts[account].account_view)->column_width[j] + COLUMN_HEADING_MARGIN;
@@ -1350,7 +1350,7 @@ void accview_pane_click (file_data *file, wimp_pointer *pointer)
 
   else if (pointer->buttons == wimp_DRAG_SELECT)
   {
-    start_column_width_drag (pointer);
+    start_column_width_drag(pointer, file, (file->accounts[account].account_view)->accview_window, ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), );
   }
 }
 /* ------------------------------------------------------------------------------------------------------------------ */

@@ -82,7 +82,7 @@
 
 void create_accounts_window (file_data *file, int type);
 void delete_accounts_window (file_data *file, int type);
-void adjust_account_window_columns (file_data *file, int entry);
+void adjust_account_window_columns (file_data *file, int entry, wimp_i icon, int width);
 
 int find_accounts_window_type_from_handle (file_data *file, wimp_w window);
 int find_accounts_window_entry_from_type (file_data *file, int type);

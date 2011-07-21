@@ -40,9 +40,11 @@ char *column_write_as_text (int width[], int columns, char *buffer);
 
 void set_initial_window_area (wimp_window *window, int width, int height, int x, int y, int yoff);
 
+void update_dragged_columns(char *mapping, char *widths, int heading, int width, int col_widths[], int col_pos[], int columns);
+
 /* Column dragging */
 
-void start_column_width_drag (wimp_pointer *ptr);
+void column_start_drag(wimp_pointer *ptr, file_data *file, int data, wimp_w w, char *mapping, char *widths, void (*callback)(file_data *, int, wimp_i, int));
 void terminate_column_width_drag (wimp_dragged *drag);
 
 /* Column grouping information. */

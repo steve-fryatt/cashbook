@@ -222,10 +222,6 @@ static void main_poll_loop(void)
 				case ACCOUNT_DRAG:
 					terminate_account_drag(&(blk.dragged));
 					break;
-
-				case COLUMN_DRAG:
-					terminate_column_width_drag(&(blk.dragged));
-					break;
 				}
 				break;
 

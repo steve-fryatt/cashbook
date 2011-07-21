@@ -199,11 +199,16 @@ void delete_sorder_window (file_data *file)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void adjust_sorder_window_columns (file_data *file)
+void adjust_sorder_window_columns (file_data *file, int data, wimp_i target, int width)
 {
   int              i, j, new_extent;
   wimp_icon_state  icon;
   wimp_window_info window;
+
+
+      update_dragged_columns(SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), target, width,
+                              file->sorder_window.column_width,
+                              file->sorder_window.column_position, SORDER_COLUMNS);
 
 
   /* Re-adjust the icons in the pane. */
@@ -1872,7 +1877,7 @@ void sorder_pane_click (file_data *file, wimp_pointer *pointer)
 
   else if (pointer->buttons == wimp_DRAG_SELECT)
   {
-    start_column_width_drag (pointer);
+    column_start_drag(pointer, file, 0, file->sorder_window.sorder_window, SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), adjust_sorder_window_columns);
   }
 }
 

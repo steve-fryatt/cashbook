@@ -1,6 +1,6 @@
 /* CashBook - window.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -18,10 +18,11 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/config.h"
+#include "sflib/debug.h"
+#include "sflib/event.h"
 #include "sflib/general.h"
 #include "sflib/windows.h"
-#include "sflib/debug.h"
-#include "sflib/config.h"
 
 /* Application header files */
 
@@ -41,12 +42,13 @@
  */
 
 static file_data	*column_drag_file;
-static int		column_drag_type;
-static int		column_drag_entry;
+static int		column_drag_data;
 static int		column_drag_icon;
 
+static wimp_i		column_drag_icon;					/**< The handle of the icon being dragged.			*/
+static void		(*column_drag_callback)(file_data *, int, wimp_i, int);	/**< The callback handler for the drag.				*/
 
-
+static void		column_terminate_drag(wimp_dragged *drag, void *data);
 
 static int		column_get_minimum_group_width(char *mapping, char *widths, int heading);
 static int		column_get_minimum_width(char *widths, int column);
@@ -118,9 +120,13 @@ char *column_write_as_text(int width[], int columns, char *buffer)
  */
 
 
-void column_start_drag(wimp_pointer *ptr, file_data *file, wimp_w w, char *mapping, char *widths, void (*callback)(file_data *))
+void column_start_drag(wimp_pointer *ptr, file_data *file, int data, wimp_w w, char *mapping, char *widths, void (*callback)(file_data *, int, wimp_i, int))
 {
-
+	wimp_window_state	window;
+	wimp_window_info	parent;
+	wimp_icon_state		icon;
+	wimp_drag		drag;
+	int			ox, oy;
 
 	window.w = ptr->w;
 	wimp_get_window_state(&window);
@@ -137,6 +143,8 @@ void column_start_drag(wimp_pointer *ptr, file_data *file, wimp_w w, char *mappi
 
 	column_drag_icon = ptr->i;
 	column_drag_file = file;
+	column_drag_data = data;
+	column_drag_callback = callback;
 
 	/* If the window exists and the hot-spot was hit, set up the drag parameters and start the drag. */
 
@@ -161,183 +169,19 @@ void column_start_drag(wimp_pointer *ptr, file_data *file, wimp_w w, char *mappi
 	}
 }
 
-void start_column_width_drag (wimp_pointer *ptr)
-{
-  wimp_window_state     window;
-  wimp_window_info      parent;
-  wimp_icon_state       icon;
-  wimp_drag             drag;
-  int                   ox, oy;
-  char                  *mapping = NULL, *widths = NULL;
-
-  extern int global_drag_type;
-
-
-  /* Get the basic information about the window and icon. */
-
-  window.w = ptr->w;
-  wimp_get_window_state (&window);
-
-  ox = window.visible.x0 - window.xscroll;
-  oy = window.visible.y1 - window.yscroll;
-
-  icon.w = ptr->w;
-  icon.i = ptr->i;
-  wimp_get_icon_state (&icon);
-
-  /* Find the window type and file block. */
-
-  if ((column_drag_file = find_transaction_pane_file_block (ptr->w)) != NULL)
-  {
-    column_drag_type = COLUMN_DRAG_TRANSACT;
-
-    parent.w = column_drag_file->transaction_window.transaction_window;
-    wimp_get_window_info_header_only (&parent);
-
-    mapping = TRANSACT_PANE_COL_MAP;
-    widths = config_str_read ("LimTransactCols");
-  }
-  else if ((column_drag_file = find_account_pane_file_block (ptr->w)) != NULL)
-  {
-    column_drag_type = COLUMN_DRAG_ACCOUNT;
-
-    column_drag_entry = find_accounts_window_entry_from_handle (column_drag_file, ptr->w);
-
-    parent.w = column_drag_file->account_windows[column_drag_entry].account_window;
-    wimp_get_window_info_header_only (&parent);
-
-    mapping = ACCOUNT_PANE_COL_MAP;
-    widths = config_str_read ("LimAccountCols");
-  }
-  else if ((column_drag_file = find_accview_pane_file_block (ptr->w)) != NULL)
-  {
-    column_drag_type = COLUMN_DRAG_ACCVIEW;
-
-    column_drag_entry = find_accview_window_from_handle (column_drag_file, ptr->w);
-
-    parent.w = (column_drag_file->accounts[column_drag_entry].account_view)->accview_window;
-    wimp_get_window_info_header_only (&parent);
-
-    mapping = ACCVIEW_PANE_COL_MAP;
-    widths = config_str_read ("LimAccViewCols");
-  }
-  else if ((column_drag_file = find_sorder_pane_file_block (ptr->w)) != NULL)
-  {
-    column_drag_type = COLUMN_DRAG_SORDER;
-
-    parent.w = column_drag_file->sorder_window.sorder_window;
-    wimp_get_window_info_header_only (&parent);
-
-    mapping = SORDER_PANE_COL_MAP;
-    widths = config_str_read ("LimSOrderCols");
-  }
-  else if ((column_drag_file = find_preset_pane_file_block (ptr->w)) != NULL)
-  {
-    column_drag_type = COLUMN_DRAG_PRESET;
-
-    parent.w = column_drag_file->preset_window.preset_window;
-    wimp_get_window_info_header_only (&parent);
-
-    mapping = PRESET_PANE_COL_MAP;
-    widths = config_str_read ("LimPresetCols");
-  }
-
-  column_drag_icon = ptr->i;
-
-  /* If the window exists and the hot-spot was hit, set up the drag parameters and start the drag. */
-
-  if (column_drag_file != NULL && ptr->pos.x >= (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT))
-  {
-    drag.w = ptr->w;
-    drag.type = wimp_DRAG_USER_RUBBER;
-
-    drag.initial.x0 = ox + icon.icon.extent.x0;
-    drag.initial.y0 = parent.visible.y0;
-    drag.initial.x1 = ox + icon.icon.extent.x1;
-    drag.initial.y1 = oy + icon.icon.extent.y1;
-
-    drag.bbox.x0 = ox + icon.icon.extent.x0 -
-                   (icon.icon.extent.x1 - icon.icon.extent.x0 - column_get_minimum_group_width (mapping, widths, ptr->i));
-    drag.bbox.y0 = parent.visible.y0;
-    drag.bbox.x1 = 0x7fffffff;
-    drag.bbox.y1 = oy + icon.icon.extent.y1;
-
-    wimp_drag_box (&drag);
-
-    global_drag_type = COLUMN_DRAG;
-  }
-}
-
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-static wimp_i		column_drag_icon;					/**< The handle of the icon being dragged.			*/
-static char		*column_drag_mapping;					/**< The column mapping of the window being dragged.		*/
-static char		*column_drag_widths;					/**< The column widths of the window being dragged.		*/
 
 static void column_terminate_drag(wimp_dragged *drag, void *data)
 {
-	int		width, i;
+	int		width;
 
-	width = drag->final.x1 - drag_final.x0;
+	width = drag->final.x1 - drag->final.x0;
 
 	if (column_drag_callback != NULL) {
-		column_drag_callback(column_drag_file, column_drag_icon, width);
+		column_drag_callback(column_drag_file, column_drag_data, column_drag_icon, width);
 		set_file_data_integrity(column_drag_file, TRUE);
 	}
-}
-
-void terminate_column_width_drag (wimp_dragged *drag)
-{
-  int width, i;
-
-
-  width = drag->final.x1 - drag->final.x0;
-
-  switch (column_drag_type)
-  {
-
-    case COLUMN_DRAG_ACCOUNT:
-      update_dragged_columns (ACCOUNT_PANE_COL_MAP, config_str_read ("LimAccountCols"), column_drag_icon, width,
-                              column_drag_file->account_windows[column_drag_entry].column_width,
-                              column_drag_file->account_windows[column_drag_entry].column_position, ACCOUNT_COLUMNS);
-      adjust_account_window_columns (column_drag_file, column_drag_entry);
-      set_file_data_integrity (column_drag_file, 1);
-      break;
-
-    case COLUMN_DRAG_ACCVIEW:
-      update_dragged_columns (ACCVIEW_PANE_COL_MAP, config_str_read ("LimAccViewCols"), column_drag_icon, width,
-                              (column_drag_file->accounts[column_drag_entry].account_view)->column_width,
-                              (column_drag_file->accounts[column_drag_entry].account_view)->column_position,
-                               ACCVIEW_COLUMNS);
-
-      for (i=0; i<ACCVIEW_COLUMNS; i++)
-      {
-        column_drag_file->accview_column_width[i] =
-                              (column_drag_file->accounts[column_drag_entry].account_view)->column_width[i];
-        column_drag_file->accview_column_position[i] =
-                              (column_drag_file->accounts[column_drag_entry].account_view)->column_position[i];
-      }
-
-      adjust_accview_window_columns (column_drag_file, column_drag_entry);
-      set_file_data_integrity (column_drag_file, 1);
-      break;
-
-    case COLUMN_DRAG_SORDER:
-      update_dragged_columns (SORDER_PANE_COL_MAP, config_str_read ("LimSOrderCols"), column_drag_icon, width,
-                              column_drag_file->sorder_window.column_width,
-                              column_drag_file->sorder_window.column_position, SORDER_COLUMNS);
-      adjust_sorder_window_columns (column_drag_file);
-      set_file_data_integrity (column_drag_file, 1);
-      break;
-
-    case COLUMN_DRAG_PRESET:
-      update_dragged_columns (PRESET_PANE_COL_MAP, config_str_read ("LimPresetCols"), column_drag_icon, width,
-                              column_drag_file->preset_window.column_width,
-                              column_drag_file->preset_window.column_position, PRESET_COLUMNS);
-      adjust_preset_window_columns (column_drag_file);
-      set_file_data_integrity (column_drag_file, 1);
-      break;
-  }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -348,7 +192,7 @@ void terminate_column_width_drag (wimp_dragged *drag)
  * Column position redraw data is updated.
  */
 
-static void update_dragged_columns(char *mapping, char *widths, int heading, int width, int col_widths[], int col_pos[], int columns)
+void update_dragged_columns(char *mapping, char *widths, int heading, int width, int col_widths[], int col_pos[], int columns)
 {
 	int	sum = 0, i, left, right;
 
@@ -423,7 +267,7 @@ int column_get_rightmost_in_group(char *mapping, int heading)
 	char	*copy, *token, *value;
 	int	column = 0;
 
-	copy = strlen(mapping);
+	copy = strdup(mapping);
 
 	if (copy == NULL)
 		return column;

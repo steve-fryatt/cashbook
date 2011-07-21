@@ -201,14 +201,14 @@ void delete_transaction_window (file_data *file)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void adjust_transaction_window_columns (file_data *file, int icon, int width)
+void adjust_transaction_window_columns (file_data *file, int data, wimp_i target, int width)
 {
   int              i, j, new_extent;
   wimp_icon_state  icon;
   wimp_window_info window;
   wimp_caret       caret;
 
-  update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), icon, width,
+  update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), target, width,
                               file->transaction_window.column_width,
                               file->transaction_window.column_position, TRANSACT_COLUMNS);
 
@@ -1346,8 +1346,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
 
   else if (pointer->buttons == wimp_DRAG_SELECT && pointer->i <= TRANSACT_PANE_DRAG_LIMIT)
   {
-    start_column_width_drag (pointer);
-    column_start_drag(pointer, file, file->transaction_window.transaction_window, TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"),  adjust_transaction_window_columns)
+    column_start_drag(pointer, file, 0, file->transaction_window.transaction_window, TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"),  adjust_transaction_window_columns);
   }
 }
 

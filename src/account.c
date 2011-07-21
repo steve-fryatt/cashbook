@@ -302,11 +302,15 @@ void delete_accounts_window (file_data *file, int type)
 }
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void adjust_account_window_columns (file_data *file, int entry)
+void adjust_account_window_columns(file_data *file, int entry, wimp_i icon, int width)
 {
   int              i, j, new_extent;
   wimp_icon_state  icon1, icon2;
   wimp_window_info window;
+
+      update_dragged_columns (ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), icon, width,
+                              file->account_windows[entry].column_width,
+                              file->account_windows[entry].column_position, ACCOUNT_COLUMNS);
 
 
   /* Re-adjust the icons in the pane. */
@@ -1974,6 +1978,8 @@ void account_window_click (file_data *file, wimp_pointer *pointer)
 
 void account_pane_click (file_data *file, wimp_pointer *pointer)
 {
+  int entry;
+
   if (pointer->buttons == wimp_CLICK_SELECT)
   {
     switch (pointer->i)
@@ -2016,7 +2022,8 @@ void account_pane_click (file_data *file, wimp_pointer *pointer)
 
   else if (pointer->buttons == wimp_DRAG_SELECT)
   {
-    start_column_width_drag (pointer);
+    entry = find_accounts_window_entry_from_handle(file, pointer->w);
+    column_start_drag (pointer, file, entry, file->account_windows[entry].account_window, ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), adjust_account_window_columns);
   }
 }
 

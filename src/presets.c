@@ -160,6 +160,14 @@ static void		preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool
 
 
 
+static void		adjust_preset_window_columns(file_data *file, int data, wimp_i icon, int width);
+static void		adjust_preset_window_sort_icon(file_data *file);
+static void		update_preset_window_sort_icon(file_data *file, wimp_icon *icon);
+
+
+
+
+
 
 static void		preset_set_window_extent(file_data *file);
 static void		preset_build_window_title(file_data *file);
@@ -525,7 +533,8 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 			sort_preset_window(file);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		start_column_width_drag(pointer);
+		column_start_drag(pointer, file, 0, file->preset_window.preset_window,
+				PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), adjust_preset_window_columns);
 	}
 }
 
@@ -1503,11 +1512,16 @@ static void preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool 
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-static void adjust_preset_window_columns (file_data *file)
+static void adjust_preset_window_columns(file_data *file, int data, wimp_i target, int width)
 {
   int              i, j, new_extent;
   wimp_icon_state  icon;
   wimp_window_info window;
+
+   update_dragged_columns(PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), target, width,
+                              file->preset_window.column_width,
+                              file->preset_window.column_position, PRESET_COLUMNS);
+
 
 
   /* Re-adjust the icons in the pane. */
@@ -1556,7 +1570,8 @@ static void adjust_preset_window_columns (file_data *file)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void adjust_preset_window_sort_icon (file_data *file)
+
+static void adjust_preset_window_sort_icon(file_data *file)
 {
   wimp_icon_state icon;
 
@@ -1572,7 +1587,7 @@ void adjust_preset_window_sort_icon (file_data *file)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void update_preset_window_sort_icon (file_data *file, wimp_icon *icon)
+static void update_preset_window_sort_icon(file_data *file, wimp_icon *icon)
 {
   int  i, width, anchor;
 

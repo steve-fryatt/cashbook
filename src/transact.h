@@ -62,7 +62,7 @@
 
 void create_transaction_window (file_data *file);
 void delete_transaction_window (file_data *file);
-void adjust_transaction_window_columns (file_data *file);
+void adjust_transaction_window_columns (file_data *file, int data, wimp_i icon, int width);
 void adjust_transaction_window_sort_icon (file_data *file);
 void update_transaction_window_sort_icon (file_data *file, wimp_icon *icon);
 

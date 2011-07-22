@@ -38,6 +38,7 @@
 #include "account.h"
 #include "accview.h"
 #include "caret.h"
+#include "column.h"
 #include "conversion.h"
 #include "calculation.h"
 #include "date.h"

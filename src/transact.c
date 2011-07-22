@@ -42,6 +42,7 @@
 #include "calculation.h"
 #include "caret.h"
 #include "clipboard.h"
+#include "column.h"
 #include "conversion.h"
 #include "dataxfer.h"
 #include "date.h"

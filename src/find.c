@@ -31,6 +31,7 @@
 
 #include "account.h"
 #include "caret.h"
+#include "column.h"
 #include "conversion.h"
 #include "date.h"
 #include "edit.h"
@@ -38,8 +39,6 @@
 #include "mainmenu.h"
 #include "templates.h"
 #include "transact.h"
-#include "window.h"
-
 
 #define FIND_ICON_OK 26
 #define FIND_ICON_CANCEL 27

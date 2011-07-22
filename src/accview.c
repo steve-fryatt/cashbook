@@ -35,6 +35,7 @@
 #include "account.h"
 #include "conversion.h"
 #include "caret.h"
+#include "column.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"

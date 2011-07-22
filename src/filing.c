@@ -39,6 +39,7 @@
 #include "accview.h"
 #include "analysis.h"
 #include "calculation.h"
+#include "column.h"
 #include "conversion.h"
 #include "dataxfer.h"
 #include "date.h"

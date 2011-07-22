@@ -36,13 +36,13 @@
 #include "account.h"
 #include "accview.h"
 #include "calculation.h"
+#include "column.h"
 #include "conversion.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
 #include "presets.h"
 #include "transact.h"
-#include "window.h"
 
 /* ==================================================================================================================
  * Global variables.

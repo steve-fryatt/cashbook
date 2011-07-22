@@ -41,6 +41,7 @@
 #include "budget.h"
 #include "clipboard.h"
 #include "calculation.h"
+#include "column.h"
 #include "conversion.h"
 #include "dataxfer.h"
 #include "date.h"
@@ -55,7 +56,6 @@
 #include "report.h"
 #include "sorder.h"
 #include "transact.h"
-#include "window.h"
 
 /* ==================================================================================================================
  * Global variables.

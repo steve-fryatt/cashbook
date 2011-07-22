@@ -6,15 +6,12 @@
 #ifndef CASHBOOK_COLUMN
 #define CASHBOOK_COLUMN
 
-/* ==================================================================================================================
- * Static constants
- */
-
 
 #define COLUMN_WIDTH_DEFAULT 100
 
 #define COLUMN_DRAG_HOTSPOT 40
 #define COLUMN_DRAG_MIN 140
+
 
 /**
  * Set a window's column data up, based on the supplied values.

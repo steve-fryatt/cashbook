@@ -43,8 +43,8 @@ static int		column_drag_data;					/**< Additional client-specific data for the d
 static wimp_i		column_drag_icon;					/**< The handle of the icon being dragged.			*/
 static void		(*column_drag_callback)(file_data *, int, wimp_i, int);	/**< The callback handler for the drag.				*/
 
-static void		column_terminate_drag(wimp_dragged *drag, void *data);
 
+static void		column_terminate_drag(wimp_dragged *drag, void *data);
 static int		column_get_minimum_group_width(char *mapping, char *widths, int group);
 static int		column_get_minimum_width(char *widths, int column);
 

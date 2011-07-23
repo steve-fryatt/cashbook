@@ -313,8 +313,8 @@ void preset_open_window(file_data *file)
 
 	/* Register event handlers for the two windows. */
 
-	event_add_window_menu(file->preset_window.preset_window, preset_window_menu);
 	event_add_window_user_data(file->preset_window.preset_window, file);
+	event_add_window_menu(file->preset_window.preset_window, preset_window_menu);
 	event_add_window_close_event(file->preset_window.preset_window, preset_close_window_handler);
 	event_add_window_mouse_event(file->preset_window.preset_window, preset_window_click_handler);
 	event_add_window_scroll_event(file->preset_window.preset_window, preset_window_scroll_handler);
@@ -324,8 +324,8 @@ void preset_open_window(file_data *file)
 	event_add_window_menu_warning(file->preset_window.preset_window, preset_window_menu_warning_handler);
 	event_add_window_menu_close(file->preset_window.preset_window, preset_window_menu_close_handler);
 
-	event_add_window_menu(file->preset_window.preset_pane, preset_window_menu);
 	event_add_window_user_data(file->preset_window.preset_pane, file);
+	event_add_window_menu(file->preset_window.preset_pane, preset_window_menu);
 	event_add_window_mouse_event(file->preset_window.preset_pane, preset_pane_click_handler);
 	event_add_window_menu_prepare(file->preset_window.preset_pane, preset_window_menu_prepare_handler);
 	event_add_window_menu_selection(file->preset_window.preset_pane, preset_window_menu_selection_handler);

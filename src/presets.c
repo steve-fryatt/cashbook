@@ -118,11 +118,10 @@ static wimp_w			preset_edit_window = NULL;			/**< The handle of the preset edit 
 static file_data		*preset_edit_file = NULL;			/**< The file currently owning the preset edit window.			*/
 static int			preset_edit_number = -1;			/**< The preset currently being edited.					*/
 
-static file_data		*preset_print_file = NULL;			/**< The file currently owning the preset print window.			*/
-
 static wimp_w			preset_sort_window = NULL;			/**< The handle of the preset sort window.				*/
 static file_data		*preset_sort_file = NULL;			/**< The file currently owning the preset sort window.			*/
 
+static file_data		*preset_print_file = NULL;			/**< The file currently owning the preset print window.			*/
 
 static wimp_window		*preset_window_def = NULL;			/**< The definition for the Preset Window.				*/
 static wimp_window		*preset_pane_def = NULL;			/**< The definition for the Preset Window pane.				*/

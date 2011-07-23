@@ -129,7 +129,7 @@ static wimp_window		*preset_pane_def = NULL;			/**< The definition for the Prese
 static wimp_menu		*preset_window_menu = NULL;			/**< The Preset Window menu handle.					*/
 static int			preset_window_menu_line = -1;			/**< The line over which the Preset Window Menu was opened.		*/
 
-static wimp_i preset_pane_sort_substitute_icon = PRESET_PANE_FROM;
+static wimp_i			preset_substitute_sort_icon = PRESET_PANE_FROM;	/**< The icon currently obscured by the sort icon.			*/
 
 
 static void		preset_close_window_handler(wimp_close *close);
@@ -141,13 +141,20 @@ static void		preset_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_
 static void		preset_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void		preset_window_scroll_handler(wimp_scroll *scroll);
 static void		preset_window_redraw_handler(wimp_draw *redraw);
+static void		preset_adjust_window_columns(file_data *file, int data, wimp_i icon, int width);
+static void		preset_adjust_sort_icon(file_data *file);
+static void		preset_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
+static void		preset_set_window_extent(file_data *file);
+static void		preset_build_window_title(file_data *file);
+static void		preset_force_window_redraw(file_data *file, int from, int to);
+static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void		preset_edit_click_handler(wimp_pointer *pointer);
 static osbool		preset_edit_keypress_handler(wimp_key *key);
 static void		preset_refresh_edit_window(void);
 static void		preset_fill_edit_window(file_data *file, int preset);
 static osbool		preset_process_edit_window(void);
-static osbool		delete_preset_from_edit_window(void);
+static osbool		preset_delete_from_edit_window(void);
 
 static void		preset_open_sort_window(file_data *file, wimp_pointer *ptr);
 static void		preset_sort_click_handler(wimp_pointer *pointer);
@@ -157,23 +164,10 @@ static void		preset_fill_sort_window(int sort_option);
 static osbool		preset_process_sort_window(void);
 
 static void		preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore);
+static void		preset_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
-
-
-
-static void		adjust_preset_window_columns(file_data *file, int data, wimp_i icon, int width);
-static void		adjust_preset_window_sort_icon(file_data *file);
-static void		update_preset_window_sort_icon(file_data *file, wimp_icon *icon);
-
-
-
-
-
-
-static void		preset_set_window_extent(file_data *file);
-static void		preset_build_window_title(file_data *file);
-static void		preset_force_window_redraw(file_data *file, int from, int to);
-static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+static int		preset_add(file_data *file);
+static osbool		preset_delete(file_data *file, int preset);
 
 
 /**
@@ -293,7 +287,7 @@ void preset_open_window(file_data *file)
 	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
 			preset_pane_def->sprite_area;
 
-	update_preset_window_sort_icon(file, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
+	preset_adjust_sort_icon_data(file, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
 
 	#ifdef DEBUG
 	debug_printf ("Toolbar icons adjusted...");
@@ -450,7 +444,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
 	if (pointer->i == PRESET_PANE_SORT_DIR_ICON)
-		pointer->i = preset_pane_sort_substitute_icon;
+		pointer->i = preset_substitute_sort_icon;
 
 	/* Process toolbar clicks and column heading drags. */
 
@@ -479,7 +473,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case PRESET_PANE_SORT:
-			sort_preset_window(file);
+			preset_sort(file);
 			break;
 		}
 	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
@@ -529,13 +523,13 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 					file->preset_window.sort_order |= SORT_DESCENDING;
 			}
 
-			adjust_preset_window_sort_icon(file);
+			preset_adjust_sort_icon(file);
 			windows_redraw(file->preset_window.preset_pane);
-			sort_preset_window(file);
+			preset_sort(file);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
 		column_start_drag(pointer, file, 0, file->preset_window.preset_window,
-				PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), adjust_preset_window_columns);
+				PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), preset_adjust_window_columns);
 	}
 }
 
@@ -932,6 +926,304 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 
 /**
+ * Callback handler for completing the drag of a column heading.
+ *
+ * \param *file			The file owning the dragged preset window.
+ * \param data			Unused data field.
+ * \param group		The column group which has been dragged.
+ * \param width			The new width for the group.
+ */
+
+static void preset_adjust_window_columns(file_data *file, int data, wimp_i group, int width)
+{
+	int			i, j, new_extent;
+	wimp_icon_state		icon;
+	wimp_window_info	window;
+
+	update_dragged_columns(PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), group, width,
+			file->preset_window.column_width,
+			file->preset_window.column_position, PRESET_COLUMNS);
+
+	/* Re-adjust the icons in the pane. */
+
+	for (i=0, j=0; j < PRESET_COLUMNS; i++, j++) {
+		icon.w = file->preset_window.preset_pane;
+		icon.i = i;
+		wimp_get_icon_state(&icon);
+
+		icon.icon.extent.x0 = file->preset_window.column_position[j];
+
+		j = column_get_rightmost_in_group(PRESET_PANE_COL_MAP, i);
+
+		icon.icon.extent.x1 = file->preset_window.column_position[j] +
+				file->preset_window.column_width[j] + COLUMN_HEADING_MARGIN;
+
+		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+				icon.icon.extent.x1, icon.icon.extent.y1);
+
+		new_extent = file->preset_window.column_position[PRESET_COLUMNS-1] +
+				file->preset_window.column_width[PRESET_COLUMNS-1];
+	}
+
+	preset_adjust_sort_icon(file);
+
+	/* Replace the edit line to force a redraw and redraw the rest of the window. */
+
+	windows_redraw(file->preset_window.preset_window);
+	windows_redraw(file->preset_window.preset_pane);
+
+	/* Set the horizontal extent of the window and pane. */
+
+	window.w = file->preset_window.preset_pane;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	window.w = file->preset_window.preset_window;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	windows_open(window.w);
+}
+
+
+/**
+ * Adjust the sort icon in a preset window, to reflect the current column
+ * heading positions.
+ *
+ * \param *file			The file to update the window for.
+ */
+
+static void preset_adjust_sort_icon(file_data *file)
+{
+	wimp_icon_state		icon;
+
+	icon.w = file->preset_window.preset_pane;
+	icon.i = PRESET_PANE_SORT_DIR_ICON;
+	wimp_get_icon_state(&icon);
+
+	preset_adjust_sort_icon_data(file, &(icon.icon));
+
+	wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+			icon.icon.extent.x1, icon.icon.extent.y1);
+}
+
+
+/**
+ * Adjust an icon definition to match the current preset sort settings.
+ *
+ * \param *file			The file to be updated.
+ * \param *icon			The icon to be updated.
+ */
+
+static void preset_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
+{
+	int	i = 0, width, anchor;
+
+	if (file->preset_window.sort_order & SORT_ASCENDING)
+		strcpy(file->preset_window.sort_sprite, "sortarrd");
+	else if (file->preset_window.sort_order & SORT_DESCENDING)
+		strcpy(file->preset_window.sort_sprite, "sortarru");
+
+	switch (file->preset_window.sort_order & SORT_MASK) {
+	case SORT_CHAR:
+		i = 0;
+		preset_substitute_sort_icon = PRESET_PANE_KEY;
+		break;
+
+	case SORT_NAME:
+		i = 1;
+		preset_substitute_sort_icon = PRESET_PANE_NAME;
+		break;
+
+	case SORT_FROM:
+		i = 4;
+		preset_substitute_sort_icon = PRESET_PANE_FROM;
+		break;
+
+	case SORT_TO:
+		i = 7;
+		preset_substitute_sort_icon = PRESET_PANE_TO;
+		break;
+
+	case SORT_AMOUNT:
+		i = 8;
+		preset_substitute_sort_icon = PRESET_PANE_AMOUNT;
+		break;
+
+	case SORT_DESCRIPTION:
+		i = 9;
+		preset_substitute_sort_icon = PRESET_PANE_DESCRIPTION;
+		break;
+	}
+
+	width = icon->extent.x1 - icon->extent.x0;
+
+	if ((file->preset_window.sort_order & SORT_MASK) == SORT_AMOUNT) {
+		anchor = file->preset_window.column_position[i] + COLUMN_HEADING_MARGIN;
+		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
+		icon->extent.x1 = icon->extent.x0 + width;
+	} else {
+		anchor = file->preset_window.column_position[i] +
+				file->preset_window.column_width[i] + COLUMN_HEADING_MARGIN;
+		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
+		icon->extent.x0 = icon->extent.x1 - width;
+	}
+}
+
+
+/**
+ * Set the extent of the preset window for the specified file.
+ *
+ * \param *file			The file to update.
+ */
+
+static void preset_set_window_extent(file_data *file)
+{
+	wimp_window_state	state;
+	os_box			extent;
+	int			new_lines, visible_extent, new_extent, new_scroll;
+
+
+	/* Set the extent. */
+
+	if (file == NULL || file->preset_window.preset_window == NULL)
+		return;
+
+	/* Get the number of rows to show in the window, and work out the window extent from this. */
+
+	new_lines = (file->preset_count > MIN_PRESET_ENTRIES) ? file->preset_count : MIN_PRESET_ENTRIES;
+
+	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_lines) - PRESET_TOOLBAR_HEIGHT;
+
+	/* Get the current window details, and find the extent of the bottom of the visible area. */
+
+	state.w = file->preset_window.preset_window;
+	wimp_get_window_state(&state);
+
+	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
+
+	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
+
+	if (new_extent > visible_extent) {
+		/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
+		 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
+		 */
+
+		new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
+
+		if (new_scroll > 0) {
+			state.visible.y0 += new_scroll;
+			state.yscroll = 0;
+		} else {
+			state.yscroll = new_scroll;
+		}
+
+		wimp_open_window((wimp_open *) &state);
+	}
+
+	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
+	 * exist.
+	 */
+
+	extent.x0 = 0;
+	extent.y1 = 0;
+	extent.x1 = file->preset_window.column_position[PRESET_COLUMNS-1] +
+			file->preset_window.column_width[PRESET_COLUMNS-1] + COLUMN_GUTTER;
+	extent.y0 = new_extent;
+
+	wimp_set_extent(file->preset_window.preset_window, &extent);
+}
+
+
+/**
+ * Recreate the title of the Preset List window connected to the given file.
+ *
+ * \param *file			The file to rebuild the title for.
+ */
+
+static void preset_build_window_title(file_data *file)
+{
+	char	name[256];
+
+	if (file->preset_window.preset_window == NULL)
+		return;
+
+	make_file_leafname(file, name, sizeof(name));
+
+	msgs_param_lookup("PresetTitle", file->preset_window.window_title,
+			sizeof(file->preset_window.window_title),
+			name, NULL, NULL, NULL);
+
+	wimp_force_redraw_title(file->preset_window.preset_window);
+}
+
+
+/**
+ * Force a redraw of the Preset list window, for the given range of lines.
+ *
+ * \param *file			The file owning the window.
+ * \param from			The first line to redraw, inclusive.
+ * \param to			The last line to redraw, inclusive.
+ */
+
+static void preset_force_window_redraw(file_data *file, int from, int to)
+{
+	int			y0, y1;
+	wimp_window_info	window;
+
+	if (file->preset_window.preset_window == NULL)
+		return;
+
+	 window.w = file->preset_window.preset_window;
+	wimp_get_window_info_header_only(&window);
+
+	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
+	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
+
+	wimp_force_redraw(file->preset_window.preset_window, window.extent.x0, y0, window.extent.x1, y1);
+}
+
+
+/**
+ * Turn a mouse position over the Preset List window into an interactive help
+ * token.
+ *
+ * \param *buffer		A buffer to take the generated token.
+ * \param w			The window under the pointer.
+ * \param i			The icon under the pointer.
+ * \param pos			The current mouse position.
+ * \param buttons		The current mouse button state.
+ */
+
+static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
+{
+	int			column, xpos;
+	wimp_window_state	window;
+	file_data		*file;
+
+	*buffer = '\0';
+
+	file = event_get_window_user_data(w);
+	if (file == NULL)
+		return;
+
+	window.w = w;
+	wimp_get_window_state(&window);
+
+	xpos = (pos.x - window.visible.x0) + window.xscroll;
+
+	for (column = 0;
+			column < PRESET_COLUMNS &&
+			xpos > (file->preset_window.column_position[column] + file->preset_window.column_width[column]);
+			column++);
+
+	sprintf(buffer, "Col%d", column);
+}
+
+
+/**
  * Open the Preset Edit dialogue for a given preset list window.
  *
  * \param *file			The file to own the dialogue.
@@ -992,7 +1284,7 @@ static void preset_edit_click_handler(wimp_pointer *pointer)
 		break;
 
 	case PRESET_EDIT_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && delete_preset_from_edit_window())
+		if (pointer->buttons == wimp_CLICK_SELECT && preset_delete_from_edit_window())
 			close_dialogue_with_caret(preset_edit_window);
 		break;
 
@@ -1215,7 +1507,7 @@ static osbool preset_process_edit_window(void)
 
 	/* Test that the key, if any, is unique. */
 
-	check_key = find_preset_from_keypress(preset_edit_file, *icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_KEY));
+	check_key = preset_find_from_keypress(preset_edit_file, *icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_KEY));
 
 	if (check_key != NULL_PRESET && check_key != preset_edit_number) {
 		error_msgs_report_error("BadPresetNo");
@@ -1225,7 +1517,7 @@ static osbool preset_process_edit_window(void)
 	/* If the preset doesn't exsit, create it.  If it does exist, validate any data that requires it. */
 
 	if (preset_edit_number == NULL_PRESET)
-		preset_edit_number = add_preset(preset_edit_file);
+		preset_edit_number = preset_add(preset_edit_file);
 
 	/* If the preset was created OK, store the rest of the data.
 	 *
@@ -1304,7 +1596,7 @@ static osbool preset_process_edit_window(void)
 		preset_edit_file->presets[preset_edit_number].caret_target = PRESET_CARET_DESCRIPTION;
 
 	if (config_opt_read("AutoSortPresets"))
-		sort_preset_window(preset_edit_file);
+		preset_sort(preset_edit_file);
 	else
 		preset_force_window_redraw(preset_edit_file, preset_edit_number, preset_edit_number);
 
@@ -1318,12 +1610,12 @@ static osbool preset_process_edit_window(void)
  * Delete the preset associated with the currently open Preset Edit window.
  */
 
-static osbool delete_preset_from_edit_window(void)
+static osbool preset_delete_from_edit_window(void)
 {
 	if (error_msgs_report_question ("DeletePreset", "DeletePresetB") == 2)
 		return FALSE;
 
-	return delete_preset(preset_edit_file, preset_edit_number);
+	return preset_delete(preset_edit_file, preset_edit_number);
 }
 
 
@@ -1461,9 +1753,9 @@ static osbool preset_process_sort_window(void)
 			preset_sort_file->preset_window.sort_order |= SORT_DESCENDING;
 	}
 
-	adjust_preset_window_sort_icon(preset_sort_file);
+	preset_adjust_sort_icon(preset_sort_file);
 	windows_redraw(preset_sort_file->preset_window.preset_pane);
-	sort_preset_window(preset_sort_file);
+	preset_sort(preset_sort_file);
 
 	return TRUE;
 }
@@ -1496,700 +1788,361 @@ void preset_force_windows_closed(file_data *file)
 static void preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore)
 {
 	preset_print_file = file;
-	printing_open_simple_window(file, ptr, restore, "PrintPreset", print_preset_window);
+	printing_open_simple_window(file, ptr, restore, "PrintPreset", preset_print);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-static void adjust_preset_window_columns(file_data *file, int data, wimp_i target, int width)
-{
-  int              i, j, new_extent;
-  wimp_icon_state  icon;
-  wimp_window_info window;
-
-   update_dragged_columns(PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), target, width,
-                              file->preset_window.column_width,
-                              file->preset_window.column_position, PRESET_COLUMNS);
-
-
-
-  /* Re-adjust the icons in the pane. */
-
-  for (i=0, j=0; j < PRESET_COLUMNS; i++, j++)
-  {
-    icon.w = file->preset_window.preset_pane;
-    icon.i = i;
-    wimp_get_icon_state (&icon);
-
-    icon.icon.extent.x0 = file->preset_window.column_position[j];
-
-    j = column_get_rightmost_in_group (PRESET_PANE_COL_MAP, i);
-
-    icon.icon.extent.x1 = file->preset_window.column_position[j] +
-                          file->preset_window.column_width[j] + COLUMN_HEADING_MARGIN;
-
-    wimp_resize_icon (icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-                                      icon.icon.extent.x1, icon.icon.extent.y1);
-
-    new_extent = file->preset_window.column_position[PRESET_COLUMNS-1] +
-                 file->preset_window.column_width[PRESET_COLUMNS-1];
-  }
-
-  adjust_preset_window_sort_icon (file);
-
-  /* Replace the edit line to force a redraw and redraw the rest of the window. */
-
-  windows_redraw (file->preset_window.preset_window);
-  windows_redraw (file->preset_window.preset_pane);
-
-  /* Set the horizontal extent of the window and pane. */
-
-  window.w = file->preset_window.preset_pane;
-  wimp_get_window_info_header_only (&window);
-  window.extent.x1 = window.extent.x0 + new_extent;
-  wimp_set_extent (window.w, &(window.extent));
-
-  window.w = file->preset_window.preset_window;
-  wimp_get_window_info_header_only (&window);
-  window.extent.x1 = window.extent.x0 + new_extent;
-  wimp_set_extent (window.w, &(window.extent));
-
-  windows_open (window.w);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
-static void adjust_preset_window_sort_icon(file_data *file)
-{
-  wimp_icon_state icon;
-
-  icon.w = file->preset_window.preset_pane;
-  icon.i = PRESET_PANE_SORT_DIR_ICON;
-  wimp_get_icon_state (&icon);
-
-  update_preset_window_sort_icon (file, &(icon.icon));
-
-  wimp_resize_icon (icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-                                    icon.icon.extent.x1, icon.icon.extent.y1);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-static void update_preset_window_sort_icon(file_data *file, wimp_icon *icon)
-{
-  int  i, width, anchor;
-
-
-  i = 0;
-
-  if (file->preset_window.sort_order & SORT_ASCENDING)
-  {
-    strcpy (file->preset_window.sort_sprite, "sortarrd");
-  }
-  else if (file->preset_window.sort_order & SORT_DESCENDING)
-  {
-    strcpy (file->preset_window.sort_sprite, "sortarru");
-  }
-
-  switch (file->preset_window.sort_order & SORT_MASK)
-  {
-    case SORT_CHAR:
-      i = 0;
-      preset_pane_sort_substitute_icon = PRESET_PANE_KEY;
-      break;
-
-    case SORT_NAME:
-      i = 1;
-      preset_pane_sort_substitute_icon = PRESET_PANE_NAME;
-      break;
-
-    case SORT_FROM:
-      i = 4;
-      preset_pane_sort_substitute_icon = PRESET_PANE_FROM;
-      break;
-
-    case SORT_TO:
-      i = 7;
-      preset_pane_sort_substitute_icon = PRESET_PANE_TO;
-      break;
-
-    case SORT_AMOUNT:
-      i = 8;
-      preset_pane_sort_substitute_icon = PRESET_PANE_AMOUNT;
-      break;
-
-    case SORT_DESCRIPTION:
-      i = 9;
-      preset_pane_sort_substitute_icon = PRESET_PANE_DESCRIPTION;
-      break;
-  }
-
-  width = icon->extent.x1 - icon->extent.x0;
-
-  if ((file->preset_window.sort_order & SORT_MASK) == SORT_AMOUNT)
-  {
-    anchor = file->preset_window.column_position[i] + COLUMN_HEADING_MARGIN;
-    icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
-    icon->extent.x1 = icon->extent.x0 + width;
-  }
-  else
-  {
-    anchor = file->preset_window.column_position[i] +
-             file->preset_window.column_width[i] + COLUMN_HEADING_MARGIN;
-    icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
-    icon->extent.x0 = icon->extent.x1 - width;
-  }
-}
-
-/* ==================================================================================================================
- * Sorting presets
- */
-
-void sort_preset_window (file_data *file)
-{
-  int         sorted, reorder, gap, comb, temp, order;
-
-
-  #ifdef DEBUG
-  debug_printf("Sorting standing order window");
-  #endif
-
-  hourglass_on ();
-
-  /* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
-   * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
-   */
-
-  gap = file->preset_count - 1;
-
-  order = file->preset_window.sort_order;
-
-  do
-  {
-    gap = (gap > 1) ? (gap * 10 / 13) : 1;
-    if ((file->preset_count >= 12) && (gap == 9 || gap == 10))
-    {
-      gap = 11;
-    }
-
-    sorted = 1;
-    for (comb = 0; (comb + gap) < file->preset_count; comb++)
-    {
-      switch (order)
-      {
-        case SORT_CHAR | SORT_ASCENDING:
-          reorder = (file->presets[file->presets[comb+gap].sort_index].action_key <
-                     file->presets[file->presets[comb].sort_index].action_key);
-          break;
-
-        case SORT_CHAR | SORT_DESCENDING:
-          reorder = (file->presets[file->presets[comb+gap].sort_index].action_key >
-                     file->presets[file->presets[comb].sort_index].action_key);
-          break;
-
-        case SORT_NAME | SORT_ASCENDING:
-          reorder = (strcmp(file->presets[file->presets[comb+gap].sort_index].name,
-                     file->presets[file->presets[comb].sort_index].name) < 0);
-          break;
-
-        case SORT_NAME | SORT_DESCENDING:
-          reorder = (strcmp(file->presets[file->presets[comb+gap].sort_index].name,
-                     file->presets[file->presets[comb].sort_index].name) > 0);
-          break;
-
-        case SORT_FROM | SORT_ASCENDING:
-          reorder = (strcmp(find_account_name(file, file->presets[file->presets[comb+gap].sort_index].from),
-                     find_account_name(file, file->presets[file->presets[comb].sort_index].from)) < 0);
-          break;
-
-        case SORT_FROM | SORT_DESCENDING:
-          reorder = (strcmp(find_account_name(file, file->presets[file->presets[comb+gap].sort_index].from),
-                     find_account_name(file, file->presets[file->presets[comb].sort_index].from)) > 0);
-          break;
-
-        case SORT_TO | SORT_ASCENDING:
-          reorder = (strcmp(find_account_name(file, file->presets[file->presets[comb+gap].sort_index].to),
-                     find_account_name(file, file->presets[file->presets[comb].sort_index].to)) < 0);
-          break;
-
-        case SORT_TO | SORT_DESCENDING:
-          reorder = (strcmp(find_account_name(file, file->presets[file->presets[comb+gap].sort_index].to),
-                     find_account_name(file, file->presets[file->presets[comb].sort_index].to)) > 0);
-          break;
-
-        case SORT_AMOUNT | SORT_ASCENDING:
-          reorder = (file->presets[file->presets[comb+gap].sort_index].amount <
-                     file->presets[file->presets[comb].sort_index].amount);
-          break;
-
-        case SORT_AMOUNT | SORT_DESCENDING:
-          reorder = (file->presets[file->presets[comb+gap].sort_index].amount >
-                     file->presets[file->presets[comb].sort_index].amount);
-          break;
-
-        case SORT_DESCRIPTION | SORT_ASCENDING:
-          reorder = (strcmp(file->presets[file->presets[comb+gap].sort_index].description,
-                     file->presets[file->presets[comb].sort_index].description) < 0);
-          break;
-
-        case SORT_DESCRIPTION | SORT_DESCENDING:
-          reorder = (strcmp(file->presets[file->presets[comb+gap].sort_index].description,
-                     file->presets[file->presets[comb].sort_index].description) > 0);
-          break;
-
-        default:
-          reorder = 0;
-          break;
-      }
-
-      if (reorder)
-      {
-        temp = file->presets[comb+gap].sort_index;
-        file->presets[comb+gap].sort_index = file->presets[comb].sort_index;
-        file->presets[comb].sort_index = temp;
-
-        sorted = 0;
-      }
-    }
-  }
-  while (!sorted || gap != 1);
-
-  preset_force_window_redraw (file, 0, file->preset_count - 1);
-
-  hourglass_off ();
-}
-
-/* ================================================================================================================== */
-
-
-/* ==================================================================================================================
- * Adding new presets
- */
-
-/* Create a new preset with null details.  Values values are zeroed and left to be set up later. */
-
-int add_preset (file_data *file)
-{
-  int new;
-
-
-  if (flex_extend ((flex_ptr) &(file->presets), sizeof (preset) * (file->preset_count+1)) == 1)
-  {
-    new = file->preset_count++;
-
-    *file->presets[new].name = '\0';
-    file->presets[new].action_key = 0;
-
-    file->presets[new].flags = 0;
-
-    file->presets[new].date = NULL_DATE;
-    file->presets[new].from = NULL_ACCOUNT;
-    file->presets[new].to = NULL_ACCOUNT;
-    file->presets[new].amount = NULL_CURRENCY;
-
-    *file->presets[new].reference = '\0';
-    *file->presets[new].description = '\0';
-
-    file->presets[new].sort_index = new;
-
-    preset_set_window_extent (file);
-  }
-  else
-  {
-    error_msgs_report_error ("NoMemNewPreset");
-    new = NULL_PRESET;
-  }
-
-  return (new);
-}
-
-/* ================================================================================================================== */
-
-osbool delete_preset (file_data *file, int preset_no)
-{
-  int i, index;
-
-  /* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along
-   * so that they remain in the correct places. */
-
-  for (i=0; i<file->preset_count && file->presets[i].sort_index != preset_no; i++);
-
-  if (file->presets[i].sort_index == preset_no && i != preset_no)
-  {
-    index = i;
-
-    if (index > preset_no)
-    {
-      for (i=index; i>preset_no; i--)
-      {
-        file->presets[i].sort_index = file->presets[i-1].sort_index;
-      }
-    }
-    else
-    {
-      for (i=index; i<preset_no; i++)
-      {
-        file->presets[i].sort_index = file->presets[i+1].sort_index;
-      }
-    }
-  }
-
-  /* Delete the preset */
-
-  flex_midextend ((flex_ptr) &(file->presets), (preset_no + 1) * sizeof (preset), -sizeof (preset));
-  file->preset_count--;
-
-  /* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
-   * greater than the deleted entry by one.
-   */
-
-  for (i=0; i<file->preset_count; i++)
-  {
-    if (file->presets[i].sort_index > preset_no)
-    {
-      file->presets[i].sort_index = file->presets[i].sort_index - 1;
-    }
-  }
-
-  /* Update the main preset display window. */
-
-  preset_set_window_extent (file);
-  if (file->preset_window.preset_window != NULL)
-  {
-    windows_open (file->preset_window.preset_window);
-    if (config_opt_read ("AutoSortPresets"))
-    {
-      sort_preset_window (file);
-      preset_force_window_redraw (file, file->preset_count, file->preset_count);
-    }
-    else
-    {
-      preset_force_window_redraw (file, 0, file->preset_count);
-    }
-  }
-  set_file_data_integrity (file, 1);
-
-  return TRUE;
-}
-
-
-
-
-/* ==================================================================================================================
- * Preset handling
- */
-
-/* Find a preset based on the key pressed.  If the key is '\0', no search is made and no match is returned. */
-
-int find_preset_from_keypress (file_data *file, char key)
-{
-  int preset;
-
-
-  if (key != '\0')
-  {
-    preset = 0;
-
-    while ((preset < file->preset_count) && (file->presets[preset].action_key != key))
-    {
-      preset++;
-    }
-
-    if (preset == file->preset_count)
-    {
-      preset = NULL_PRESET;
-    }
-  }
-  else
-  {
-    preset = NULL_PRESET;
-  }
-
-  return (preset);
-}
-
-/* ==================================================================================================================
- * File and print output
- */
-
-/* Print the standing order window by sending the data to a report. */
-
-void print_preset_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
-{
-  report_data *report;
-  int            i, t;
-  char           line[1024], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
-  preset_window  *window;
-
-  msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
-  msgs_lookup ("PrintTitlePreset", buffer, sizeof (buffer));
-  report = report_open (preset_print_file, buffer, NULL);
-
-
-  if (report != NULL)
-  {
-    hourglass_on ();
-
-    window = &(preset_print_file->preset_window);
-
-    /* Output the page title. */
-
-    make_file_leafname (preset_print_file, numbuf1, sizeof (numbuf1));
-    msgs_param_lookup ("PresetTitle", buffer, sizeof (buffer), numbuf1, NULL, NULL, NULL);
-    sprintf (line, "\\b\\u%s", buffer);
-    report_write_line (report, 0, line);
-    report_write_line (report, 0, "");
-
-    /* Output the headings line, taking the text from the window icons. */
-
-    *line = '\0';
-    sprintf (buffer, "\\k\\b\\u%s\\t", icons_copy_text (window->preset_pane, 0, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->preset_pane, 1, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->preset_pane, 2, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->preset_pane, 3, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->preset_pane, 4, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->preset_pane, 5, numbuf1));
-    strcat (line, buffer);
-
-    report_write_line (report, 0, line);
-
-    /* Output the standing order data as a set of delimited lines. */
-
-    for (i=0; i < preset_print_file->preset_count; i++)
-    {
-      t = preset_print_file->presets[i].sort_index;
-
-      *line = '\0';
-
-      /* The tab after the first field is in the second, as the %c can be zero in which case the
-       * first string will end there and then.
-       */
-
-      sprintf (buffer, "\\k%c", preset_print_file->presets[t].action_key);
-      strcat (line, buffer);
-
-      sprintf (buffer, "\\t%s\\t", preset_print_file->presets[t].name);
-      strcat (line, buffer);
-
-      sprintf (buffer, "%s\\t", find_account_ident (preset_print_file, preset_print_file->presets[t].from));
-      strcat (line, buffer);
-
-      strcpy (numbuf1, (preset_print_file->presets[t].flags & TRANS_REC_FROM) ? rec_char : "");
-      sprintf (buffer, "%s\\t", numbuf1);
-      strcat (line, buffer);
-
-      sprintf (buffer, "%s\\t", find_account_name (preset_print_file, preset_print_file->presets[t].from));
-      strcat (line, buffer);
-
-      sprintf (buffer, "%s\\t", find_account_ident (preset_print_file, preset_print_file->presets[t].to));
-      strcat (line, buffer);
-
-      strcpy (numbuf1, (preset_print_file->presets[t].flags & TRANS_REC_TO) ? rec_char : "");
-      sprintf (buffer, "%s\\t", numbuf1);
-      strcat (line, buffer);
-
-      sprintf (buffer, "%s\\t", find_account_name (preset_print_file, preset_print_file->presets[t].to));
-      strcat (line, buffer);
-
-      convert_money_to_string (preset_print_file->presets[t].amount, numbuf1);
-      sprintf (buffer, "\\r%s\\t", numbuf1);
-      strcat (line, buffer);
-
-      sprintf (buffer, "%s", preset_print_file->presets[t].description);
-      strcat (line, buffer);
-
-      report_write_line (report, 0, line);
-    }
-
-    hourglass_off ();
-  }
-  else
-  {
-    error_msgs_report_error ("PrintMemFail");
-  }
-
-  report_close_and_print(report, text, format, scale, rotate, pagenum);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**
- * Set the extent of the preset window for the specified file.
+ * Send the contents of the Preset Window to the printer, via the reporting
+ * system.
  *
- * \param *file			The file to update.
- */
+ * \param text			TRUE to print in text format; FALSE for graphics.
+ * \param format		TRUE to apply text formatting in text mode.
+ * \param scale			TRUE to scale width in graphics mode.
+ * \param rotate		TRUE to print landscape in grapics mode.
+ * \param pagenum		TRUE to include page numbers in graphics mode.
 
-static void preset_set_window_extent(file_data *file)
+Print the standing order window by sending the data to a report. */
+
+static void preset_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
-	wimp_window_state	state;
-	os_box			extent;
-	int			new_lines, visible_extent, new_extent, new_scroll;
+	report_data	*report;
+	int		i, t;
+	char		line[1024], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+	preset_window	*window;
 
+	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
+	msgs_lookup("PrintTitlePreset", buffer, sizeof(buffer));
+	report = report_open(preset_print_file, buffer, NULL);
 
-	/* Set the extent. */
-
-	if (file == NULL || file->preset_window.preset_window == NULL)
+	if (report == NULL) {
+		error_msgs_report_error("PrintMemFail");
 		return;
-
-	/* Get the number of rows to show in the window, and work out the window extent from this. */
-
-	new_lines = (file->preset_count > MIN_PRESET_ENTRIES) ? file->preset_count : MIN_PRESET_ENTRIES;
-
-	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_lines) - PRESET_TOOLBAR_HEIGHT;
-
-	/* Get the current window details, and find the extent of the bottom of the visible area. */
-
-	state.w = file->preset_window.preset_window;
-	wimp_get_window_state(&state);
-
-	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-	if (new_extent > visible_extent) {
-		/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
-		 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
-		 */
-
-		new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
-
-		if (new_scroll > 0) {
-			state.visible.y0 += new_scroll;
-			state.yscroll = 0;
-		} else {
-			state.yscroll = new_scroll;
-		}
-
-		wimp_open_window((wimp_open *) &state);
 	}
 
-	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-	 * exist.
+	hourglass_on();
+
+	window = &(preset_print_file->preset_window);
+
+	/* Output the page title. */
+
+	make_file_leafname(preset_print_file, numbuf1, sizeof(numbuf1));
+	msgs_param_lookup("PresetTitle", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
+	sprintf(line, "\\b\\u%s", buffer);
+	report_write_line(report, 0, line);
+	report_write_line(report, 0, "");
+
+	/* Output the headings line, taking the text from the window icons. */
+
+	*line = '\0';
+	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(window->preset_pane, 0, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, 1, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, 2, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, 3, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->preset_pane, 4, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, 5, numbuf1));
+	strcat(line, buffer);
+
+	report_write_line(report, 0, line);
+
+	/* Output the standing order data as a set of delimited lines. */
+
+	for (i=0; i < preset_print_file->preset_count; i++) {
+		t = preset_print_file->presets[i].sort_index;
+
+		*line = '\0';
+
+		/* The tab after the first field is in the second, as the %c can be zero in which case the
+		 * first string will end there and then.
+		 */
+
+		sprintf(buffer, "\\k%c", preset_print_file->presets[t].action_key);
+		strcat(line, buffer);
+
+		sprintf(buffer, "\\t%s\\t", preset_print_file->presets[t].name);
+		strcat(line, buffer);
+
+		sprintf(buffer, "%s\\t", find_account_ident (preset_print_file, preset_print_file->presets[t].from));
+		strcat(line, buffer);
+
+		strcpy(numbuf1, (preset_print_file->presets[t].flags & TRANS_REC_FROM) ? rec_char : "");
+		sprintf(buffer, "%s\\t", numbuf1);
+		strcat(line, buffer);
+
+		sprintf(buffer, "%s\\t", find_account_name (preset_print_file, preset_print_file->presets[t].from));
+		strcat(line, buffer);
+
+		sprintf(buffer, "%s\\t", find_account_ident (preset_print_file, preset_print_file->presets[t].to));
+		strcat(line, buffer);
+
+		strcpy(numbuf1, (preset_print_file->presets[t].flags & TRANS_REC_TO) ? rec_char : "");
+		sprintf(buffer, "%s\\t", numbuf1);
+		strcat(line, buffer);
+
+		sprintf(buffer, "%s\\t", find_account_name (preset_print_file, preset_print_file->presets[t].to));
+		strcat(line, buffer);
+
+		convert_money_to_string(preset_print_file->presets[t].amount, numbuf1);
+		sprintf(buffer, "\\r%s\\t", numbuf1);
+		strcat(line, buffer);
+
+		sprintf(buffer, "%s", preset_print_file->presets[t].description);
+		strcat(line, buffer);
+
+		report_write_line(report, 0, line);
+	}
+
+	hourglass_off();
+
+	report_close_and_print(report, text, format, scale, rotate, pagenum);
+}
+
+
+/**
+ * Sort the presets in a given file based on that file's sort setting.
+ *
+ * \param *file			The file to sort.
+ */
+
+void preset_sort(file_data *file)
+{
+	int		gap, comb, temp, order;
+	osbool		sorted, reorder;
+
+	#ifdef DEBUG
+	debug_printf("Sorting standing order window");
+	#endif
+
+	hourglass_on();
+
+	/* Sort the entries using a combsort.  This has the advantage over qsort() that the order of entries is only
+	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
 	 */
 
-	extent.x0 = 0;
-	extent.y1 = 0;
-	extent.x1 = file->preset_window.column_position[PRESET_COLUMNS-1] +
-			file->preset_window.column_width[PRESET_COLUMNS-1] + COLUMN_GUTTER;
-	extent.y0 = new_extent;
+	gap = file->preset_count - 1;
 
-	wimp_set_extent(file->preset_window.preset_window, &extent);
+	order = file->preset_window.sort_order;
+
+	do {
+		gap = (gap > 1) ? (gap * 10 / 13) : 1;
+		if ((file->preset_count >= 12) && (gap == 9 || gap == 10))
+			gap = 11;
+
+		sorted = TRUE;
+		for (comb = 0; (comb + gap) < file->preset_count; comb++) {
+			switch (order) {
+			case SORT_CHAR | SORT_ASCENDING:
+				reorder = (file->presets[file->presets[comb+gap].sort_index].action_key <
+						file->presets[file->presets[comb].sort_index].action_key);
+				break;
+
+			case SORT_CHAR | SORT_DESCENDING:
+				reorder = (file->presets[file->presets[comb+gap].sort_index].action_key >
+						file->presets[file->presets[comb].sort_index].action_key);
+				break;
+
+			case SORT_NAME | SORT_ASCENDING:
+				reorder = (strcmp(file->presets[file->presets[comb+gap].sort_index].name,
+						file->presets[file->presets[comb].sort_index].name) < 0);
+				break;
+
+			case SORT_NAME | SORT_DESCENDING:
+				reorder = (strcmp(file->presets[file->presets[comb+gap].sort_index].name,
+						file->presets[file->presets[comb].sort_index].name) > 0);
+				break;
+
+			case SORT_FROM | SORT_ASCENDING:
+				reorder = (strcmp(find_account_name(file, file->presets[file->presets[comb+gap].sort_index].from),
+						find_account_name(file, file->presets[file->presets[comb].sort_index].from)) < 0);
+				break;
+
+			case SORT_FROM | SORT_DESCENDING:
+				reorder = (strcmp(find_account_name(file, file->presets[file->presets[comb+gap].sort_index].from),
+						find_account_name(file, file->presets[file->presets[comb].sort_index].from)) > 0);
+				break;
+
+			case SORT_TO | SORT_ASCENDING:
+				reorder = (strcmp(find_account_name(file, file->presets[file->presets[comb+gap].sort_index].to),
+						find_account_name(file, file->presets[file->presets[comb].sort_index].to)) < 0);
+				break;
+
+			case SORT_TO | SORT_DESCENDING:
+				reorder = (strcmp(find_account_name(file, file->presets[file->presets[comb+gap].sort_index].to),
+						find_account_name(file, file->presets[file->presets[comb].sort_index].to)) > 0);
+				break;
+
+			case SORT_AMOUNT | SORT_ASCENDING:
+				reorder = (file->presets[file->presets[comb+gap].sort_index].amount <
+						file->presets[file->presets[comb].sort_index].amount);
+				break;
+
+			case SORT_AMOUNT | SORT_DESCENDING:
+				reorder = (file->presets[file->presets[comb+gap].sort_index].amount >
+						file->presets[file->presets[comb].sort_index].amount);
+				break;
+
+			case SORT_DESCRIPTION | SORT_ASCENDING:
+				reorder = (strcmp(file->presets[file->presets[comb+gap].sort_index].description,
+						file->presets[file->presets[comb].sort_index].description) < 0);
+				break;
+
+			case SORT_DESCRIPTION | SORT_DESCENDING:
+				reorder = (strcmp(file->presets[file->presets[comb+gap].sort_index].description,
+						file->presets[file->presets[comb].sort_index].description) > 0);
+				break;
+
+			default:
+				reorder = FALSE;
+				break;
+			}
+
+			if (reorder) {
+				temp = file->presets[comb+gap].sort_index;
+				file->presets[comb+gap].sort_index = file->presets[comb].sort_index;
+				file->presets[comb].sort_index = temp;
+
+				sorted = FALSE;
+			}
+		}
+	} while (!sorted || gap != 1);
+
+	preset_force_window_redraw(file, 0, file->preset_count - 1);
+
+	hourglass_off();
 }
 
 
 /**
- * Recreate the title of the Preset List window connected to the given file.
+ * Create a new preset with null details.  Values are left to be set up later.
  *
- * \param *file			The file to rebuild the title for.
+ * \param *file			The file to add the preset to.
+ * \return			The new preset index, or NULL_PRESET.
  */
 
-static void preset_build_window_title(file_data *file)
+static int preset_add(file_data *file)
 {
-	char	name[256];
+	int	new;
 
-	if (file->preset_window.preset_window == NULL)
-		return;
 
-	make_file_leafname(file, name, sizeof(name));
+	if (flex_extend((flex_ptr) &(file->presets), sizeof(preset) * (file->preset_count+1)) != 1) {
+		error_msgs_report_error("NoMemNewPreset");
+		return NULL_PRESET;
+ 	}
 
-	msgs_param_lookup("PresetTitle", file->preset_window.window_title,
-			sizeof(file->preset_window.window_title),
-			name, NULL, NULL, NULL);
+	new = file->preset_count++;
 
-	wimp_force_redraw_title(file->preset_window.preset_window);
+	*file->presets[new].name = '\0';
+	file->presets[new].action_key = 0;
+
+	file->presets[new].flags = 0;
+
+	file->presets[new].date = NULL_DATE;
+	file->presets[new].from = NULL_ACCOUNT;
+	file->presets[new].to = NULL_ACCOUNT;
+	file->presets[new].amount = NULL_CURRENCY;
+
+	*file->presets[new].reference = '\0';
+	*file->presets[new].description = '\0';
+
+	file->presets[new].sort_index = new;
+
+	preset_set_window_extent(file);
+
+	return new;
 }
 
 
 /**
- * Force a redraw of the Preset list window, for the given range of lines.
+ * Delete a preset from a file.
  *
- * \param *file			The file owning the window.
- * \param from			The first line to redraw, inclusive.
- * \param to			The last line to redraw, inclusive.
+ * \param *file			The file to act on.
+ * \param preset		The preset to be deleted.
+ * \return 			TRUE if successful; else FALSE.
  */
 
-static void preset_force_window_redraw(file_data *file, int from, int to)
+static osbool preset_delete(file_data *file, int preset)
 {
-	int			y0, y1;
-	wimp_window_info	window;
+	int	i, index;
 
-	if (file->preset_window.preset_window == NULL)
-		return;
+	/* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along
+	 * so that they remain in the correct places. */
 
-	 window.w = file->preset_window.preset_window;
-	wimp_get_window_info_header_only(&window);
+	for (i=0; i<file->preset_count && file->presets[i].sort_index != preset; i++);
 
-	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
-	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
+	if (file->presets[i].sort_index == preset && i != preset) {
+		index = i;
 
-	wimp_force_redraw(file->preset_window.preset_window, window.extent.x0, y0, window.extent.x1, y1);
+		if (index > preset)
+			for (i=index; i>preset; i--)
+				file->presets[i].sort_index = file->presets[i-1].sort_index;
+		else
+			for (i=index; i<preset; i++)
+				file->presets[i].sort_index = file->presets[i+1].sort_index;
+	}
+
+	/* Delete the preset */
+
+	flex_midextend((flex_ptr) &(file->presets), (preset + 1) * sizeof(preset), -sizeof(preset));
+	file->preset_count--;
+
+	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
+	 * greater than the deleted entry by one.
+	 */
+
+	for (i=0; i<file->preset_count; i++)
+		if (file->presets[i].sort_index > preset)
+			file->presets[i].sort_index = file->presets[i].sort_index - 1;
+
+	/* Update the main preset display window. */
+
+	preset_set_window_extent(file);
+
+	if (file->preset_window.preset_window != NULL) {
+		windows_open(file->preset_window.preset_window);
+		if (config_opt_read("AutoSortPresets")) {
+			preset_sort(file);
+			preset_force_window_redraw(file, file->preset_count, file->preset_count);
+		} else {
+			preset_force_window_redraw(file, 0, file->preset_count);
+		}
+	}
+
+	set_file_data_integrity(file, TRUE);
+
+	return TRUE;
 }
 
 
 /**
- * Turn a mouse position over the Preset List window into an interactive help
- * token.
+ * Find a preset index based on its shortcut key.  If the key is '\0', or no
+ * match is found, NULL_PRESET is returned.
  *
- * \param *buffer		A buffer to take the generated token.
- * \param w			The window under the pointer.
- * \param i			The icon under the pointer.
- * \param pos			The current mouse position.
- * \param buttons		The current mouse button state.
+ * \param *file			The file to search in.
+ * \param key			The shortcut key to search for.
+ * \return			The matching preset index, or NULL_PRESET.
  */
 
-static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
+int preset_find_from_keypress(file_data *file, char key)
 {
-	int			column, xpos;
-	wimp_window_state	window;
-	file_data		*file;
+	int	preset = NULL_PRESET;
 
-	*buffer = '\0';
 
-	file = event_get_window_user_data(w);
-	if (file == NULL)
-		return;
+	if (key == '\0')
+		return preset;
 
-	window.w = w;
-	wimp_get_window_state(&window);
+	preset = 0;
 
-	xpos = (pos.x - window.visible.x0) + window.xscroll;
+	while ((preset < file->preset_count) && (file->presets[preset].action_key != key))
+		preset++;
 
-	for (column = 0;
-			column < PRESET_COLUMNS &&
-			xpos > (file->preset_window.column_position[column] + file->preset_window.column_width[column]);
-			column++);
+	if (preset == file->preset_count)
+		preset = NULL_PRESET;
 
-	sprintf(buffer, "Col%d", column);
+	return preset;
 }
 

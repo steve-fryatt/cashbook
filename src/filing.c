@@ -917,7 +917,7 @@ void load_transaction_file (char *filename)
       perform_full_recalculation (file);
       sort_transaction_window (file);
       sort_sorder_window (file);
-      sort_preset_window (file);
+      preset_sort (file);
       create_transaction_window (file); /* The window extent is set in this action. */
     }
     else

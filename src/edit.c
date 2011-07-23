@@ -1522,7 +1522,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
     {
       if (isalpha(key->c))
       {
-        preset = find_preset_from_keypress (file, toupper(key->c));
+        preset = preset_find_from_keypress (file, toupper(key->c));
 
         if (preset != NULL_PRESET)
         {

@@ -6,14 +6,9 @@
 #ifndef CASHBOOK_PRESETS
 #define CASHBOOK_PRESETS
 
-/* ==================================================================================================================
- * Static constants
- */
-
 
 #define PRESET_PANE_COL_MAP "0;1;2,3,4;5,6,7;8;9"
 #define PRESET_PANE_SORT_DIR_ICON 10
-
 
 /* Caret end locations */
 
@@ -73,46 +68,25 @@ void preset_open_edit_window(file_data *file, int preset, wimp_pointer *ptr);
 void preset_force_windows_closed(file_data *file);
 
 
+/**
+ * Sort the presets in a given file based on that file's sort setting.
+ *
+ * \param *file			The file to sort.
+ */
+
+void preset_sort(file_data *file);
 
 
+/**
+ * Find a preset index based on its shortcut key.  If the key is '\0', or no
+ * match is found, NULL_PRESET is returned.
+ *
+ * \param *file			The file to search in.
+ * \param key			The shortcut key to search for.
+ * \return			The matching preset index, or NULL_PRESET.
+ */
 
-
-
-
-
-
-
-
-
-
-/* Sorting presets */
-
-void sort_preset_window (file_data *file);
-
-
-
-
-
-
-
-/* Adding new presets. */
-
-int add_preset (file_data *file);
-int delete_preset (file_data *file, int preset_no);
-
-
-
-/* Preset handling */
-
-int find_preset_from_keypress (file_data *file, char key);
-
-
-/* File and print output */
-
-void print_preset_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
-
-
-
+int preset_find_from_keypress(file_data *file, char key);
 
 #endif
 

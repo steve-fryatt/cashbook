@@ -557,10 +557,10 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	/* Set the horizontal positions of the icons. */
 
 	for (i=0; i < SORDER_COLUMNS; i++) {
-		windows.sorder_window_def->icons[i].extent.x0 = file->sorder_window.column_position[i];
-		windows.sorder_window_def->icons[i].extent.x1 = file->sorder_window.column_position[i] +
+		sorder_window_def->icons[i].extent.x0 = file->sorder_window.column_position[i];
+		sorder_window_def->icons[i].extent.x1 = file->sorder_window.column_position[i] +
 				file->sorder_window.column_width[i];
-		windows.sorder_window_def->icons[i].data.indirected_text.text = icon_buffer;
+		sorder_window_def->icons[i].data.indirected_text.text = icon_buffer;
 	}
 
 	/* Perform the redraw. */
@@ -591,26 +591,26 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* From field */
 
-			windows.sorder_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			windows.sorder_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			windows.sorder_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
 			if (y < file->sorder_count && file->sorders[t].from != NULL_ACCOUNT) {
-				windows.sorder_window_def->icons[0].data.indirected_text.text =
+				sorder_window_def->icons[0].data.indirected_text.text =
 						file->accounts[file->sorders[t].from].ident;
-				windows.sorder_window_def->icons[1].data.indirected_text.text = icon_buffer;
-				windows.sorder_window_def->icons[2].data.indirected_text.text =
+				sorder_window_def->icons[1].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[2].data.indirected_text.text =
 						file->accounts[file->sorders[t].from].name;
 
 				if (file->sorders[t].flags & TRANS_REC_FROM)
@@ -618,38 +618,38 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 				else
 					*icon_buffer = '\0';
 			} else {
-				windows.sorder_window_def->icons[0].data.indirected_text.text = icon_buffer;
-				windows.sorder_window_def->icons[1].data.indirected_text.text = icon_buffer;
-				windows.sorder_window_def->icons[2].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[0].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[1].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[2].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
 
-			wimp_plot_icon(&(windows.sorder_window_def->icons[0]));
-			wimp_plot_icon(&(windows.sorder_window_def->icons[1]));
-			wimp_plot_icon(&(windows.sorder_window_def->icons[2]));
+			wimp_plot_icon(&(sorder_window_def->icons[0]));
+			wimp_plot_icon(&(sorder_window_def->icons[1]));
+			wimp_plot_icon(&(sorder_window_def->icons[2]));
 
 			/* To field */
 
-			windows.sorder_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			windows.sorder_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			windows.sorder_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
 			if (y < file->sorder_count && file->sorders[t].to != NULL_ACCOUNT) {
-				windows.sorder_window_def->icons[3].data.indirected_text.text =
+				sorder_window_def->icons[3].data.indirected_text.text =
 						file->accounts[file->sorders[t].to].ident;
-				windows.sorder_window_def->icons[4].data.indirected_text.text = icon_buffer;
-				windows.sorder_window_def->icons[5].data.indirected_text.text =
+				sorder_window_def->icons[4].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[5].data.indirected_text.text =
 						file->accounts[file->sorders[t].to].name;
 
 				if (file->sorders[t].flags & TRANS_REC_TO)
@@ -657,47 +657,47 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 				else
 					*icon_buffer = '\0';
 			} else {
-				windows.sorder_window_def->icons[3].data.indirected_text.text = icon_buffer;
-				windows.sorder_window_def->icons[4].data.indirected_text.text = icon_buffer;
-				windows.sorder_window_def->icons[5].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[3].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[4].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[5].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
 
-			wimp_plot_icon(&(windows.sorder_window_def->icons[3]));
-			wimp_plot_icon(&(windows.sorder_window_def->icons[4]));
-			wimp_plot_icon(&(windows.sorder_window_def->icons[5]));
+			wimp_plot_icon(&(sorder_window_def->icons[3]));
+			wimp_plot_icon(&(sorder_window_def->icons[4]));
+			wimp_plot_icon(&(sorder_window_def->icons[5]));
 
 			/* Amount field */
 
-			windows.sorder_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count)
 				convert_money_to_string(file->sorders[t].normal_amount, icon_buffer);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon(&(windows.sorder_window_def->icons[6]));
+			wimp_plot_icon(&(sorder_window_def->icons[6]));
 
 			/* Comments field */
 
-			windows.sorder_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count){
-				windows.sorder_window_def->icons[7].data.indirected_text.text = file->sorders[t].description;
+				sorder_window_def->icons[7].data.indirected_text.text = file->sorders[t].description;
 			} else {
-				windows.sorder_window_def->icons[7].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[7].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
-			wimp_plot_icon(&(windows.sorder_window_def->icons[7]));
+			wimp_plot_icon(&(sorder_window_def->icons[7]));
 
 			/* Next date field */
 
-			windows.sorder_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count) {
 				if (file->sorders[t].adjusted_next_date != NULL_DATE)
@@ -707,19 +707,19 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			} else {
 				*icon_buffer = '\0';
 			}
-			wimp_plot_icon(&(windows.sorder_window_def->icons[8]));
+			wimp_plot_icon(&(sorder_window_def->icons[8]));
 
 			/* Left field */
 
-			windows.sorder_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			windows.sorder_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count)
 				sprintf (icon_buffer, "%d", file->sorders[t].left);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon (&(windows.sorder_window_def->icons[9]));
+			wimp_plot_icon (&(sorder_window_def->icons[9]));
 			}
 
 		more = wimp_get_rectangle (redraw);

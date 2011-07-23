@@ -920,7 +920,6 @@ typedef struct
   wimp_window *account_window_def;
   wimp_window *account_pane_def[2];
   wimp_window *account_footer_def;
-//  wimp_window *sorder_window_def;
   wimp_window *accview_window_def;
   wimp_window *accview_pane_def;
 }

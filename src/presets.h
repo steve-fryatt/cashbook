@@ -48,6 +48,17 @@ void preset_delete_window(file_data *file);
 
 
 /**
+ * Force a redraw of the Preset list window, for the given range of lines.
+ *
+ * \param *file			The file owning the window.
+ * \param from			The first line to redraw, inclusive.
+ * \param to			The last line to redraw, inclusive.
+ */
+
+void preset_force_window_redraw(file_data *file, int from, int to);
+
+
+/**
  * Open the Preset Edit dialogue for a given preset list window.
  *
  * \param *file			The file to own the dialogue.

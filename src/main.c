@@ -824,92 +824,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
     }
   }
 
-  /* Edit Standing Order Window. */
-
-  else if (pointer->w == windows.edit_sorder)
-  {
-    if (pointer->i == SORDER_EDIT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.edit_sorder);
-      }
-      else
-      {
-        refresh_sorder_edit_window ();
-      }
-    }
-
-    if (pointer->i == SORDER_EDIT_OK) /* 'OK' button */
-    {
-      if (!process_sorder_edit_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.edit_sorder);
-      }
-    }
-
-    if (pointer->i == SORDER_EDIT_STOP) /* Stop button */
-    {
-      result = stop_sorder_from_edit_window ();
-
-      if (!result && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.edit_sorder);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_sorder_edit_window ();
-      }
-    }
-
-    if (pointer->i == SORDER_EDIT_DELETE) /* 'Delete' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT && !delete_sorder_from_edit_window ())
-      {
-        close_dialogue_with_caret (windows.edit_sorder);
-      }
-    }
-
-    if (pointer->i == SORDER_EDIT_AVOID) /* Avoid radio icon */
-    {
-      icons_set_group_shaded_when_off (windows.edit_sorder, SORDER_EDIT_AVOID, 2,
-                                       SORDER_EDIT_SKIPFWD, SORDER_EDIT_SKIPBACK);
-    }
-
-    if (pointer->i == SORDER_EDIT_FIRSTSW) /* First amount radio icon */
-    {
-      icons_set_group_shaded_when_off (windows.edit_sorder, SORDER_EDIT_FIRSTSW, 1,
-                                       SORDER_EDIT_FIRST);
-      icons_replace_caret_in_window (windows.edit_sorder);
-    }
-
-    if (pointer->i == SORDER_EDIT_LASTSW) /* Last amount radio icon */
-    {
-      icons_set_group_shaded_when_off (windows.edit_sorder, SORDER_EDIT_LASTSW, 1,
-                                       SORDER_EDIT_LAST);
-      icons_replace_caret_in_window (windows.edit_sorder);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == SORDER_EDIT_FMNAME || pointer->i == SORDER_EDIT_TONAME))
-    {
-      open_sorder_edit_account_menu (pointer);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == SORDER_EDIT_FMREC || pointer->i == SORDER_EDIT_TOREC))
-    {
-      toggle_sorder_edit_reconcile_fields (pointer);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == SORDER_EDIT_PERDAYS || pointer->i == SORDER_EDIT_PERMONTHS ||
-         pointer->i == SORDER_EDIT_PERYEARS || pointer->i == SORDER_EDIT_SKIPFWD ||
-         pointer->i == SORDER_EDIT_SKIPBACK)) /* Radio icons */
-    {
-      icons_set_selected (windows.edit_sorder  , pointer->i, 1);
-    }
-  }
 
   /* Account name enrty window. */
 
@@ -1009,41 +923,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
       icons_set_selected (windows.sort_accview, pointer->i, 1);
     }
   }
-
-  /* SOrder Sort Window */
-
-  else if (pointer->w == windows.sort_sorder)
-  {
-    if (pointer->i == SORDER_SORT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.sort_sorder);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_sorder_sort_window ();
-      }
-    }
-
-    else if (pointer->i == SORDER_SORT_OK) /* 'OK' button */
-    {
-      if (!process_sorder_sort_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.sort_sorder);
-      }
-    }
-
-    else if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == SORDER_SORT_FROM || pointer->i == SORDER_SORT_TO ||
-         pointer->i == SORDER_SORT_AMOUNT || pointer->i == SORDER_SORT_DESCRIPTION ||
-         pointer->i == SORDER_SORT_NEXTDATE || pointer->i == SORDER_SORT_LEFT ||
-         pointer->i == SORDER_SORT_ASCENDING || pointer->i == SORDER_SORT_DESCENDING)) /* Radio icons */
-    {
-      icons_set_selected (windows.sort_sorder, pointer->i, 1);
-    }
-  }
-
 
   /* Look for transaction windows. */
 
@@ -1165,35 +1044,6 @@ static void key_press_handler (wimp_key *key)
     }
   }
 
-  /* Edit standing order window. */
-
-  else if (key->w == windows.edit_sorder)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_sorder_edit_window ())
-        {
-          close_dialogue_with_caret (windows.edit_sorder);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.edit_sorder);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-
-    if (key->i == SORDER_EDIT_FMIDENT || key->i == SORDER_EDIT_TOIDENT)
-    {
-      update_sorder_edit_account_fields (key);
-    }
-  }
-
-
   /* Edit Section Window. */
 
   else if (key->w == windows.edit_sect)
@@ -1289,28 +1139,6 @@ static void key_press_handler (wimp_key *key)
     }
   }
 
-  /* SOrder Sort Window */
-
-  else if (key->w == windows.sort_sorder)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_sorder_sort_window ())
-        {
-          close_dialogue_with_caret (windows.sort_sorder);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.sort_sorder);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
 
 
   /* Look for transaction windows. */
@@ -1383,13 +1211,6 @@ static void menu_selection_handler (wimp_selection *selection)
   else if (menus.menu_id == MENU_ID_ACCVIEW)
   {
     decode_accview_menu (selection, &pointer);
-  }
-
-  /* Decode the standing order menu. */
-
-  else if (menus.menu_id == MENU_ID_SORDER)
-  {
-    decode_sorder_menu (selection, &pointer);
   }
 
   /* If Adjust was used, reopen the menu. */
@@ -1552,10 +1373,6 @@ static void user_message_handler (wimp_message *message)
       else if (menus.menu_id == MENU_ID_ACCOUNT)
       {
         account_menu_submenu_message ((wimp_full_message_menu_warning *) message);
-      }
-      else if (menus.menu_id == MENU_ID_SORDER)
-      {
-        sorder_menu_submenu_message ((wimp_full_message_menu_warning *) message);
       }
       break;
   }

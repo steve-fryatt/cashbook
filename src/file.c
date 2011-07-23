@@ -413,7 +413,6 @@ void delete_file (file_data *file)
 
   force_close_account_edit_window (file);
   force_close_section_edit_window (file);
-  force_close_sorder_edit_window (file);
   goto_force_window_closed(file);
   find_force_windows_closed(file);
   budget_force_window_closed(file);
@@ -423,7 +422,7 @@ void delete_file (file_data *file)
   purge_force_window_closed(file);
   force_close_transaction_sort_window (file);
   force_close_accview_sort_window (file);
-  force_close_sorder_sort_window (file);
+  sorder_force_windows_closed(file);
   preset_force_windows_closed(file);
   force_close_import_window (file);
 
@@ -867,7 +866,9 @@ void redraw_file_windows (file_data *file)
 
   /* Redraw the standing order window. */
 
-  force_sorder_window_redraw (file, 0, file->sorder_count);
+  sorder_force_window_redraw (file, 0, file->sorder_count);
+
+  preset_force_window_redraw(file, 0, file->preset_count);
 
   /* Redraw the report windows. */
 

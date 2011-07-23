@@ -180,10 +180,6 @@ char *mainmenu_get_current_menu_name(char *buffer)
       strcpy (buffer, "HeadViewMenu");
     }
   }
-  else if (menus.menu_id == MENU_ID_SORDER)
-  {
-    strcpy (buffer, "SOrderMenu");
-  }
 
   return (buffer);
 }
@@ -219,11 +215,11 @@ void open_main_menu (file_data *file, wimp_pointer *pointer)
 
   if (file->account_count == 0)
   {
-    menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = menus.sorder; /* \TODO -- Ugh! */
+    menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = 0x8000; /* \TODO -- Ugh! */
   }
   if (file->saved_report_count == 0)
   {
-    menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = menus.sorder; /* \TODO -- Ugh! */
+    menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = 0x8000; /* \TODO -- Ugh! */
   }
 
   initialise_save_boxes (file, 0, 0);
@@ -326,7 +322,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_TRANS_AUTONEW) /* Add SOs */
     {
-      open_sorder_edit_window (main_menu_file, NULL_SORDER, pointer);
+      sorder_open_edit_window(main_menu_file, NULL_SORDER, pointer);
     }
 
     else if (selection->items[1] == MAIN_MENU_TRANS_PRESET) /* View presets */
@@ -1881,92 +1877,6 @@ void accview_menu_submenu_message (wimp_full_message_menu_warning *submenu)
 
    case ACCVIEW_MENU_EXPTSV: /* TSV save window */
      fill_save_as_window (main_menu_file, SAVE_BOX_ACCVIEWTSV);
-     wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-     break;
- }
-}
-
-/* ==================================================================================================================
- * Standing order menu
- */
-
-/* Set and open the menu. */
-
-void set_sorder_menu (int line)
-{
-  extern global_menus   menus;
-
-  menus_shade_entry (menus.sorder, SORDER_MENU_EDIT, line == -1);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_sorder_menu (file_data *file, int line, wimp_pointer *pointer)
-{
-  extern global_menus   menus;
-
-
-  initialise_save_boxes (file, 0, 0);
-  set_sorder_menu (line);
-
-  menus.menu_up = menus_create_standard_menu (menus.sorder, pointer);
-  menus.menu_id = MENU_ID_SORDER;
-  main_menu_file = file;
-  main_menu_line = line;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Decode the menu selections. */
-
-void decode_sorder_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  if (selection->items[0] == SORDER_MENU_SORT)
-  {
-    open_sorder_sort_window (main_menu_file, pointer);
-  }
-  else if (selection->items[0] == SORDER_MENU_EDIT)
-  {
-    if (main_menu_line != -1)
-    {
-      open_sorder_edit_window (main_menu_file, main_menu_file->sorders[main_menu_line].sort_index, pointer);
-    }
-  }
-  else if (selection->items[0] == SORDER_MENU_NEWSORDER)
-  {
-    open_sorder_edit_window (main_menu_file, NULL_SORDER, pointer);
-  }
-  else if (selection->items[0] == SORDER_MENU_PRINT)
-  {
-    open_sorder_print_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
-  }
-  else if (selection->items[0] == SORDER_MENU_FULLREP)
-  {
-    generate_full_sorder_report (main_menu_file);
-  }
-
-  set_sorder_menu (main_menu_line);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Handle submenu warnings. */
-
-void sorder_menu_submenu_message (wimp_full_message_menu_warning *submenu)
-{
- #ifdef DEBUG
- debug_reporter_text0 ("\\BReceived submenu warning message.");
- #endif
-
- switch (submenu->selection.items[0])
- {
-   case SORDER_MENU_EXPCSV: /* CSV save window */
-     fill_save_as_window (main_menu_file, SAVE_BOX_SORDERCSV);
-     wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-     break;
-
-   case SORDER_MENU_EXPTSV: /* TSV save window */
-     fill_save_as_window (main_menu_file, SAVE_BOX_SORDERTSV);
      wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
      break;
  }

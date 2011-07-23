@@ -145,7 +145,6 @@ static void		preset_adjust_sort_icon(file_data *file);
 static void		preset_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
 static void		preset_set_window_extent(file_data *file);
 static void		preset_build_window_title(file_data *file);
-static void		preset_force_window_redraw(file_data *file, int from, int to);
 static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void		preset_edit_click_handler(wimp_pointer *pointer);
@@ -929,7 +928,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
  *
  * \param *file			The file owning the dragged preset window.
  * \param data			Unused data field.
- * \param group		The column group which has been dragged.
+ * \param group			The column group which has been dragged.
  * \param width			The new width for the group.
  */
 
@@ -1146,7 +1145,7 @@ static void preset_build_window_title(file_data *file)
 {
 	char	name[256];
 
-	if (file->preset_window.preset_window == NULL)
+	if (file == NULL || file->preset_window.preset_window == NULL)
 		return;
 
 	make_file_leafname(file, name, sizeof(name));
@@ -1167,12 +1166,12 @@ static void preset_build_window_title(file_data *file)
  * \param to			The last line to redraw, inclusive.
  */
 
-static void preset_force_window_redraw(file_data *file, int from, int to)
+void preset_force_window_redraw(file_data *file, int from, int to)
 {
 	int			y0, y1;
 	wimp_window_info	window;
 
-	if (file->preset_window.preset_window == NULL)
+	if (file == NULL || file->preset_window.preset_window == NULL)
 		return;
 
 	 window.w = file->preset_window.preset_window;
@@ -1681,7 +1680,7 @@ static osbool preset_sort_keypress_handler(wimp_key *key)
 		break;
 
 	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret (preset_sort_window);
+		close_dialogue_with_caret(preset_sort_window);
 		break;
 
 	default:
@@ -1726,6 +1725,8 @@ static void preset_fill_sort_window(int sort_option)
 
 /**
  * Take the contents of an updated Preset Sort window and process the data.
+ *
+ * \return			TRUE if successful; else FALSE.
  */
 
 static osbool preset_process_sort_window(void)
@@ -1800,8 +1801,7 @@ static void preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool 
  * \param scale			TRUE to scale width in graphics mode.
  * \param rotate		TRUE to print landscape in grapics mode.
  * \param pagenum		TRUE to include page numbers in graphics mode.
-
-Print the standing order window by sending the data to a report. */
+ */
 
 static void preset_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {

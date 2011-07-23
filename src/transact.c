@@ -1232,7 +1232,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_ADDSORDER:
-        open_sorder_edit_window (file, NULL_SORDER, pointer);
+        sorder_open_edit_window(file, NULL_SORDER, pointer);
         break;
 
       case TRANSACT_PANE_PRESET:

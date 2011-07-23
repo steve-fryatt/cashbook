@@ -947,8 +947,6 @@ typedef struct
 
   wimp_menu   *acclist;
   wimp_menu   *accview;
-
-  wimp_menu   *sorder;
 }
 global_menus;
 

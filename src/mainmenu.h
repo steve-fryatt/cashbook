@@ -18,7 +18,6 @@
 #define MENU_ID_DATE       4
 #define MENU_ID_ACCLIST    5
 #define MENU_ID_ACCVIEW    6
-#define MENU_ID_SORDER     7
 #define MENU_ID_REFDESC    11
 
 #define REFDESC_MENU_REFERENCE   1
@@ -92,16 +91,6 @@
 #define ACCVIEW_MENU_EXPCSV 4
 #define ACCVIEW_MENU_EXPTSV 5
 #define ACCVIEW_MENU_PRINT 6
-
-/* SOrder menu */
-
-#define SORDER_MENU_SORT 0
-#define SORDER_MENU_EDIT 1
-#define SORDER_MENU_NEWSORDER 2
-#define SORDER_MENU_EXPCSV 3
-#define SORDER_MENU_EXPTSV 4
-#define SORDER_MENU_PRINT 5
-#define SORDER_MENU_FULLREP 6
 
 /* General definitions */
 
@@ -223,15 +212,6 @@ void open_accview_menu (file_data *file, int account, int line, wimp_pointer *po
 void decode_accview_menu (wimp_selection *selection, wimp_pointer *pointer);
 
 void accview_menu_submenu_message (wimp_full_message_menu_warning *submenu);
-
-/* Standing order menu */
-
-void set_sorder_menu (int line);
-void open_sorder_menu (file_data *file, int line, wimp_pointer *pointer);
-
-void decode_sorder_menu (wimp_selection *selection, wimp_pointer *pointer);
-
-void sorder_menu_submenu_message (wimp_full_message_menu_warning *submenu);
 
 #endif
 

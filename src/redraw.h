@@ -33,8 +33,4 @@ void redraw_account_window (wimp_draw *redraw, file_data *file);
 
 void redraw_accview_window (wimp_draw *redraw, file_data *file);
 
-/* Standing order window redraw */
-
-void redraw_sorder_window (wimp_draw *redraw, file_data *file);
-
 #endif

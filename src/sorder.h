@@ -1,10 +1,10 @@
 /* CashBook - sorder.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_SORDER
-#define _ACCOUNTS_SORDER
+#ifndef CASHBOOK_SORDER
+#define CASHBOOK_SORDER
 
 /* ==================================================================================================================
  * Static constants
@@ -72,18 +72,37 @@
 #define SORDER_SORT_DESCENDING 11
 
 
-/* ==================================================================================================================
- * Data structures
+/**
+ * Initialise the standing order system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-/* ==================================================================================================================
- * Function prototypes.
+void sorder_initialise(osspriteop_area *sprites);
+
+
+/**
+ * Create and open a Standing Order List window for the given file.
+ *
+ * \param *file			The file to open a window for.
  */
 
-/* Window creation and deletion */
+void sorder_open_window(file_data *file);
 
-void create_sorder_window (file_data *file);
-void delete_sorder_window (file_data *file);
+
+/**
+ * Close and delete the Standing order List Window associated with the given
+ * file block.
+ *
+ * \param *file			The file to use.
+ */
+
+void sorder_delete_window(file_data *file);
+
+
+
+
+
 void adjust_sorder_window_columns (file_data *file, int data, wimp_i icon, int width);
 void adjust_sorder_window_sort_icon (file_data *file);
 void update_sorder_window_sort_icon (file_data *file, wimp_icon *icon);
@@ -138,13 +157,11 @@ void generate_full_sorder_report (file_data *file);
 
 /* Standing order window handling */
 
-void sorder_window_click (file_data *file, wimp_pointer *pointer);
-void sorder_pane_click (file_data *file, wimp_pointer *pointer);
 void set_sorder_window_extent (file_data *file);
 void build_sorder_window_title (file_data *file);
 void force_sorder_window_redraw (file_data *file, int from, int to);
-void sorder_window_scroll_event (file_data *file, wimp_scroll *scroll);
 
 void decode_sorder_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 #endif
+

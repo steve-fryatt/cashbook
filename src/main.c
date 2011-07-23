@@ -161,8 +161,6 @@ static void main_poll_loop(void)
 					redraw_account_window(&(blk.redraw), file);
 				else if ((file = find_accview_window_file_block(blk.redraw.w)) != NULL)
 					redraw_accview_window(&(blk.redraw), file);
-				else if ((file = find_sorder_window_file_block(blk.redraw.w)) != NULL)
-					redraw_sorder_window(&(blk.redraw), file);
 				break;
 
 			case wimp_OPEN_WINDOW_REQUEST:
@@ -195,8 +193,6 @@ static void main_poll_loop(void)
 					delete_accounts_window(file, find_accounts_window_type_from_handle(file, blk.close.w));
 				else if ((file = find_accview_window_file_block (blk.close.w)) != NULL)
 					delete_accview_window(file, find_accview_window_from_handle(file, blk.close.w));
-				else if ((file = find_sorder_window_file_block(blk.close.w)) != NULL)
-					delete_sorder_window(file);
 				else
 					wimp_close_window(blk.close.w);
 				break;
@@ -412,6 +408,7 @@ static void main_initialise(void)
 	goto_initialise();
 	purge_initialise();
 
+	sorder_initialise(sprites);
 	preset_initialise(sprites);
 
 	ihelp_initialise();
@@ -567,15 +564,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
     windows->edit_sect = templates_create_window("EditAccSect");
     ihelp_add_window (windows->edit_sect, "EditAccSect", NULL);
 
-  /* Edit Standing Order Window.
-   *
-   * Created now.
-   */
-
-    windows->edit_sorder = templates_create_window("EditSOrder");
-    ihelp_add_window (windows->edit_sorder, "EditSOrder", NULL);
-
-
   /* Account Name Enter Window.
    *
    * Created now.
@@ -600,14 +588,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
      windows->sort_accview = templates_create_window("SortAccView");
     ihelp_add_window (windows->sort_accview, "SortAccView", NULL);
-
-  /* Sort SOrder Window.
-   *
-   * Created now.
-   */
-
-    windows->sort_sorder = templates_create_window("SortSOrder");
-    ihelp_add_window (windows->sort_sorder, "SortSOrder", NULL);
 
   /* Transaction Window.
    *
@@ -661,24 +641,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
   window_def = templates_load_window("AccountHTB");
     window_def->sprite_area = sprites;
     windows->account_pane_def[1] = window_def;
-
-  /* Standing Order Window.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("SOrder");
-    window_def->icon_count = 0;
-    windows->sorder_window_def = window_def;
-
-  /* Standing Order Pane.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("SOrderTB");
-    window_def->sprite_area = sprites;
-    windows->sorder_pane_def = window_def;
 
   /* Account View Window.
    *
@@ -1124,20 +1086,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
   {
     accview_pane_click (file, pointer);
   }
-
-  /* Look for standing order windows. */
-
-  else if ((file = find_sorder_window_file_block (pointer->w)) != NULL)
-  {
-    sorder_window_click (file, pointer);
-  }
-
-  /* Look for standing order window toolbars. */
-
-  else if ((file = find_sorder_pane_file_block (pointer->w)) != NULL)
-  {
-    sorder_pane_click (file, pointer);
-  }
 }
 
 /* ==================================================================================================================
@@ -1480,11 +1428,6 @@ static void scroll_request_handler (wimp_scroll *scroll)
   else if ((file = find_accview_window_file_block (scroll->w)) != NULL)
   {
     accview_window_scroll_event (file, scroll);
-  }
-
-  else if ((file = find_sorder_window_file_block (scroll->w)) != NULL)
-  {
-    sorder_window_scroll_event (file, scroll);
   }
 }
 

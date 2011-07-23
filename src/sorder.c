@@ -1,6 +1,6 @@
 /* CashBook - sorder.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -22,13 +22,14 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/errors.h"
-#include "sflib/debug.h"
-#include "sflib/windows.h"
-#include "sflib/string.h"
-#include "sflib/msgs.h"
-#include "sflib/icons.h"
 #include "sflib/config.h"
+#include "sflib/debug.h"
+#include "sflib/errors.h"
+#include "sflib/events.h"
+#include "sflib/icons.h"
+#include "sflib/msgs.h"
+#include "sflib/string.h"
+#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -48,155 +49,694 @@
 #include "mainmenu.h"
 #include "printing.h"
 #include "report.h"
+#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
-/* ==================================================================================================================
- * Global variables.
+
+static wimp_w			sorder_edit_window = NULL;			/**< The handle of the standing order edit window.			*/
+static file_data		*sorder_edit_file = NULL;			/**< The file currently owning the standing order edit window.		*/
+static int			sorder_edit_number = -1;			/**< The standing order currently being edited.				*/
+
+static wimp_w			sorder_sort_window = NULL;			/**< The handle of the standing order sort window.			*/
+static file_data		*sorder_sort_file = NULL;			/**< The file currently owning the standing order sort window.		*/
+
+static file_data		*sorder_print_file = NULL;			/**< The file currently owning the standing order print window.		*/
+
+static wimp_window		*sorder_window_def = NULL;			/**< The definition for the Standing Order Window.			*/
+static wimp_window		*sorder_pane_def = NULL;			/**< The definition for the Standing Order Window pane.			*/
+static wimp_menu		*sorder_window_menu = NULL;			/**< The Standing Order Window menu handle.				*/
+static int			sorder_window_menu_line = -1;			/**< The line over which the Standing Order Window Menu was opened.	*/
+
+static wimp_i			sorder_substitute_sort_icon = SORDER_PANE_FROM;	/**< The icon currently obscured by the sort icon.			*/
+
+
+
+
+
+static void			sorder_close_window_handler(wimp_close *close);
+static void			sorder_window_click_handler(wimp_pointer *pointer);
+static void			sorder_pane_click_handler(wimp_pointer *pointer);
+
+
+static void			sorder_window_scroll_handler(wimp_scroll *scroll);
+static void			sorder_window_redraw_handler(wimp_draw *redraw);
+
+
+
+
+
+
+/**
+ * Initialise the standing order system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-static file_data *edit_sorder_file = NULL;
-static file_data *sorder_print_file = NULL;
-static file_data *sort_sorder_window_file = NULL;
+void sorder_initialise(osspriteop_area *sprites)
+{
+	sorder_edit_window = templates_create_window("EditSOrder");
+	ihelp_add_window(sorder_edit_window, "EditSOrder", NULL);
 
-static int       edit_sorder_no = -1;
 
-static wimp_i sorder_pane_sort_substitute_icon = SORDER_PANE_FROM;
+	sorder_sort_window = templates_create_window("SortSOrder");
+	ihelp_add_window(sorder_sort_window, "SortSOrder", NULL);
 
-/* ==================================================================================================================
- * Window creation and deletion
+
+	sorder_window_def = templates_load_window("SOrder");
+	sorder_window_def->icon_count = 0;
+
+
+	sorder_pane_def = templates_load_window("SOrderTB");
+	sorder_pane_def->sprite_area = sprites;
+
+
+
+
+}
+
+
+/**
+ * Create and open a Standing Order List window for the given file.
+ *
+ * \param *file			The file to open a window for.
  */
 
-/* Create and open a standing order window. */
-
-void create_sorder_window (file_data *file)
+void sorder_open_window(file_data *file)
 {
-  int                   i, j, height;
-  wimp_window_state     parent;
-  os_error              *error;
+	int			i, j, height;
+	wimp_window_state	parent;
+	os_error		*error;
 
-  extern global_windows windows;
+	/* Create or re-open the window. */
 
+	if (file->sorder_window.sorder_window != NULL) {
+		windows_open(file->sorder_window.sorder_window);
+		return;
+	}
 
-  /* Create or re-open the window. */
+	#ifdef DEBUG
+	debug_printf("\\CCreating standing order window");
+	#endif
 
-  if (file->sorder_window.sorder_window != NULL)
-  {
-    /* The window is open, so just bring it forward. */
+	/* Create the new window data and build the window. */
 
-    windows_open (file->sorder_window.sorder_window);
-  }
-  else
-  {
-    #ifdef DEBUG
-    debug_printf ("\\CCreating standing order window");
-    #endif
+	*(file->sorder_window.window_title) = '\0';
+	sorder_window_def->title_data.indirected_text.text = file->sorder_window.window_title;
 
-    /* Create the new window data and build the window. */
+	height =  (file->sorder_count > MIN_SORDER_ENTRIES) ? file->sorder_count : MIN_SORDER_ENTRIES;
 
-    *(file->sorder_window.window_title) = '\0';
-    windows.sorder_window_def->title_data.indirected_text.text = file->sorder_window.window_title;
+	parent.w = file->transaction_window.transaction_pane;
+	wimp_get_window_state(&parent);
 
-    height =  (file->sorder_count > MIN_SORDER_ENTRIES) ? file->sorder_count : MIN_SORDER_ENTRIES;
+	set_initial_window_area (sorder_window_def,
+			file->sorder_window.column_position[SORDER_COLUMNS-1] +
+			file->sorder_window.column_width[SORDER_COLUMNS-1],
+			((ICON_HEIGHT+LINE_GUTTER) * height) + SORDER_TOOLBAR_HEIGHT,
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
-    parent.w = file->transaction_window.transaction_pane;
-    wimp_get_window_state (&parent);
+	file->child_x_offset++;
+	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
+		file->child_x_offset = 0;
 
-    set_initial_window_area (windows.sorder_window_def,
-                             file->sorder_window.column_position[SORDER_COLUMNS-1] +
-                             file->sorder_window.column_width[SORDER_COLUMNS-1],
-                              ((ICON_HEIGHT+LINE_GUTTER) * height) + SORDER_TOOLBAR_HEIGHT,
-                               parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
-                               parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
+	error = xwimp_create_window(sorder_window_def, &(file->sorder_window.sorder_window));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
 
-    file->child_x_offset++;
-    if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
-    {
-      file->child_x_offset = 0;
-    }
+	/* Create the toolbar. */
 
-    error = xwimp_create_window (windows.sorder_window_def, &(file->sorder_window.sorder_window));
-    if (error != NULL)
-    {
-      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-      return;
-    }
+	windows_place_as_toolbar(sorder_window_def, sorder_pane_def, SORDER_TOOLBAR_HEIGHT-4);
 
-    /* Create the toolbar. */
+	#ifdef DEBUG
+	debug_printf("Window extents set...");
+	#endif
 
-    windows_place_as_toolbar (windows.sorder_window_def, windows.sorder_pane_def, SORDER_TOOLBAR_HEIGHT-4);
+	for (i=0, j=0; j < SORDER_COLUMNS; i++, j++) {
+		sorder_pane_def->icons[i].extent.x0 = file->sorder_window.column_position[j];
 
-    #ifdef DEBUG
-    debug_printf ("Window extents set...");
-    #endif
+		j = column_get_rightmost_in_group(SORDER_PANE_COL_MAP, i);
 
-    for (i=0, j=0; j < SORDER_COLUMNS; i++, j++)
-    {
-      windows.sorder_pane_def->icons[i].extent.x0 = file->sorder_window.column_position[j];
+		sorder_pane_def->icons[i].extent.x1 = file->sorder_window.column_position[j] +
+				file->sorder_window.column_width[j] +
+				COLUMN_HEADING_MARGIN;
+	}
 
-      j = column_get_rightmost_in_group (SORDER_PANE_COL_MAP, i);
+	sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
+			(osspriteop_id) file->sorder_window.sort_sprite;
+	sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
+			sorder_pane_def->sprite_area;
 
-      windows.sorder_pane_def->icons[i].extent.x1 = file->sorder_window.column_position[j] +
-                                                    file->sorder_window.column_width[j] +
-                                                    COLUMN_HEADING_MARGIN;
-    }
+	update_sorder_window_sort_icon(file, &(sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON]));
 
-    windows.sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
-                             (osspriteop_id) file->sorder_window.sort_sprite;
-    windows.sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-                             windows.sorder_pane_def->sprite_area;
+	#ifdef DEBUG
+	debug_printf("Toolbar icons adjusted...");
+	#endif
 
-    update_sorder_window_sort_icon (file, &(windows.sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON]));
+	error = xwimp_create_window(sorder_pane_def, &(file->sorder_window.sorder_pane));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
 
-    #ifdef DEBUG
-    debug_printf ("Toolbar icons adjusted...");
-    #endif
+	/* Set the title */
 
-    error = xwimp_create_window (windows.sorder_pane_def, &(file->sorder_window.sorder_pane));
-    if (error != NULL)
-    {
-      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-      return;
-    }
+	build_sorder_window_title(file);
 
-    /* Set the title */
+	/* Open the window. */
 
-    build_sorder_window_title (file);
+	ihelp_add_window(file->sorder_window.sorder_window , "SOrder", decode_sorder_window_help);
+	ihelp_add_window(file->sorder_window.sorder_pane , "SOrderTB", NULL);
 
-    /* Open the window. */
+	windows_open(file->sorder_window.sorder_window);
+	windows_open_nested_as_toolbar(file->sorder_window.sorder_pane,
+			file->sorder_window.sorder_window,
+			SORDER_TOOLBAR_HEIGHT-4);
 
-    ihelp_add_window (file->sorder_window.sorder_window , "SOrder", decode_sorder_window_help);
-    ihelp_add_window (file->sorder_window.sorder_pane , "SOrderTB", NULL);
+	/* Register event handlers for the two windows. */
 
-    windows_open (file->sorder_window.sorder_window);
-    windows_open_nested_as_toolbar (file->sorder_window.sorder_pane,
-                                   file->sorder_window.sorder_window,
-                                   SORDER_TOOLBAR_HEIGHT-4);
-  }
+	event_add_window_user_data(file->sorder_window.sorder_window, file);
+	event_add_window_menu(file->sorder_window.sorder_window, sorder_window_menu);
+	event_add_window_close_event(file->sorder_window.sorder_window, sorder_close_window_handler);
+	event_add_window_mouse_event(file->sorder_window.sorder_window, sorder_window_click_handler);
+	event_add_window_scroll_event(file->sorder_window.sorder_window, sorder_window_scroll_handler);
+	event_add_window_redraw_event(file->sorder_window.sorder_window, sorder_window_redraw_handler);
+//	event_add_window_menu_prepare(file->sorder_window.sorder_window, sorder_window_menu_prepare_handler);
+//	event_add_window_menu_selection(file->sorder_window.sorder_window, sorder_window_menu_selection_handler);
+//	event_add_window_menu_warning(file->sorder_window.sorder_window, sorder_window_menu_warning_handler);
+//	event_add_window_menu_close(file->sorder_window.sorder_window, sorder_window_menu_close_handler);
+
+	event_add_window_user_data(file->sorder_window.sorder_pane, file);
+	event_add_window_menu(file->sorder_window.sorder_pane, sorder_window_menu);
+	event_add_window_mouse_event(file->sorder_window.sorder_pane, sorder_pane_click_handler);
+//	event_add_window_menu_prepare(file->sorder_window.sorder_pane, sorder_window_menu_prepare_handler);
+//	event_add_window_menu_selection(file->sorder_window.sorder_pane, sorder_window_menu_selection_handler);
+//	event_add_window_menu_warning(file->sorder_window.sorder_pane, sorder_window_menu_warning_handler);
+//	event_add_window_menu_close(file->sorder_window.sorder_pane, sorder_window_menu_close_handler);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Close and delete the accounts window associated with the file block. */
+/**
+ * Close and delete the Standing order List Window associated with the given
+ * file block.
+ *
+ * \param *file			The file to use.
+ */
 
-void delete_sorder_window (file_data *file)
+void sorder_delete_window(file_data *file)
 {
-  #ifdef DEBUG
-  debug_printf ("\\RDeleting standing order window");
-  #endif
+	#ifdef DEBUG
+	debug_printf ("\\RDeleting standing order window");
+	#endif
 
-  if (file->sorder_window.sorder_window != NULL)
-  {
-    ihelp_remove_window (file->sorder_window.sorder_window);
-    ihelp_remove_window (file->sorder_window.sorder_pane);
+	if (file == NULL)
+		return;
 
-    wimp_delete_window (file->sorder_window.sorder_window);
-    wimp_delete_window (file->sorder_window.sorder_pane);
+	if (file->sorder_window.sorder_window != NULL) {
+		ihelp_remove_window (file->sorder_window.sorder_window);
+		event_delete_window(file->sorder_window.sorder_window);
+		wimp_delete_window (file->sorder_window.sorder_window);
+		file->sorder_window.sorder_window = NULL;
+	}
 
-    file->sorder_window.sorder_window = NULL;
-    file->sorder_window.sorder_pane = NULL;
-  }
+	if (file->sorder_window.sorder_pane != NULL) {
+		ihelp_remove_window (file->sorder_window.sorder_pane);
+		event_delete_window(file->sorder_window.sorder_pane);
+		wimp_delete_window (file->sorder_window.sorder_pane);
+		file->sorder_window.sorder_pane = NULL;
+	}
 }
+
+
+/**
+ * Handle Close events on Standing Order List windows, deleting the window.
+ *
+ * \param *close		The Wimp Close data block.
+ */
+
+static void sorder_close_window_handler(wimp_close *close)
+{
+	file_data	*file;
+
+	#ifdef DEBUG
+	debug_printf ("\\RClosing Standing Order window");
+	#endif
+
+	file = event_get_window_user_data(close->w);
+	if (file == NULL)
+		return;
+
+	/* Close the window */
+
+	sorder_delete_window(file);
+}
+
+
+/**
+ * Process mouse clicks in the Standing Order List window.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void sorder_window_click_handler(wimp_pointer *pointer)
+{
+	file_data		*file;
+	int			line;
+	wimp_window_state	window;
+
+
+	file = event_get_window_user_data(pointer->w);
+	if (file == NULL)
+		return;
+
+	/* Find the window type and get the line clicked on. */
+
+	window.w = pointer->w;
+	wimp_get_window_state(&window);
+
+	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+	if (line < 0 || line >= file->sorder_count)
+		line = -1;
+
+	/* Handle double-clicks, which will open an edit accout window. */
+
+	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
+		open_sorder_edit_window(file, file->sorders[line].sort_index, pointer);
+}
+
+
+/**
+ * Process mouse clicks in the Standing Order List pane.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void sorder_pane_click_handler(wimp_pointer *pointer)
+{
+	file_data		*file;
+	wimp_window_state	window;
+	wimp_icon_state		icon;
+	int			ox;
+
+	file = event_get_window_user_data(pointer->w);
+	if (file == NULL)
+		return;
+
+	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
+
+	if (pointer->i == SORDER_PANE_SORT_DIR_ICON)
+		pointer->i = sorder_substitute_sort_icon;
+
+	if (pointer->buttons == wimp_CLICK_SELECT) {
+		switch (pointer->i) {
+		case SORDER_PANE_PARENT:
+			windows_open(file->transaction_window.transaction_window);
+			break;
+
+		case SORDER_PANE_PRINT:
+			open_sorder_print_window(file, pointer, config_opt_read("RememberValues"));
+			break;
+
+		case SORDER_PANE_ADDSORDER:
+			open_sorder_edit_window(file, NULL_SORDER, pointer);
+			break;
+
+		case SORDER_PANE_SORT:
+			open_sorder_sort_window(file, pointer);
+			break;
+		}
+	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+		switch (pointer->i) {
+		case SORDER_PANE_PRINT:
+			open_sorder_print_window(file, pointer, !config_opt_read("RememberValues"));
+			break;
+
+		case SORDER_PANE_SORT:
+			sort_sorder_window(file);
+			break;
+		}
+	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
+			pointer->i != wimp_ICON_WINDOW) {
+		window.w = pointer->w;
+		wimp_get_window_state(&window);
+
+		ox = window.visible.x0 - window.xscroll;
+
+		icon.w = pointer->w;
+		icon.i = pointer->i;
+		wimp_get_icon_state(&icon);
+
+		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
+			file->sorder_window.sort_order = SORT_NONE;
+
+			switch (pointer->i) {
+			case SORDER_PANE_FROM:
+				file->sorder_window.sort_order = SORT_FROM;
+				break;
+
+			case SORDER_PANE_TO:
+				file->sorder_window.sort_order = SORT_TO;
+				break;
+
+			case SORDER_PANE_AMOUNT:
+				file->sorder_window.sort_order = SORT_AMOUNT;
+				break;
+
+			case SORDER_PANE_DESCRIPTION:
+				file->sorder_window.sort_order = SORT_DESCRIPTION;
+				break;
+
+			case SORDER_PANE_NEXTDATE:
+				file->sorder_window.sort_order = SORT_NEXTDATE;
+				break;
+
+			case SORDER_PANE_LEFT:
+				file->sorder_window.sort_order = SORT_LEFT;
+				break;
+			}
+
+			if (file->sorder_window.sort_order != SORT_NONE) {
+				if (pointer->buttons == wimp_CLICK_SELECT * 256)
+					file->sorder_window.sort_order |= SORT_ASCENDING;
+				else
+					file->sorder_window.sort_order |= SORT_DESCENDING;
+			}
+
+			adjust_sorder_window_sort_icon(file);
+			windows_redraw(file->sorder_window.sorder_pane);
+			sort_sorder_window(file);
+		}
+	} else if (pointer->buttons == wimp_DRAG_SELECT) {
+		column_start_drag(pointer, file, 0, file->sorder_window.sorder_window,
+				SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), adjust_sorder_window_columns);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Process scroll events in the Standing Order List window.
+ *
+ * \param *scroll		The scroll event block to handle.
+ */
+
+static void sorder_window_scroll_handler(wimp_scroll *scroll)
+{
+	file_data	*file;
+	int		width, height, error;
+
+	file = event_get_window_user_data(scroll->w);
+	if (file == NULL)
+		return;
+
+	/* Add in the X scroll offset. */
+
+	width = scroll->visible.x1 - scroll->visible.x0;
+
+	switch (scroll->xmin) {
+	case wimp_SCROLL_COLUMN_LEFT:
+		scroll->xscroll -= HORIZONTAL_SCROLL;
+		break;
+
+	case wimp_SCROLL_COLUMN_RIGHT:
+		scroll->xscroll += HORIZONTAL_SCROLL;
+		break;
+
+	case wimp_SCROLL_PAGE_LEFT:
+		scroll->xscroll -= width;
+		break;
+
+	case wimp_SCROLL_PAGE_RIGHT:
+		scroll->xscroll += width;
+		break;
+	}
+
+	/* Add in the Y scroll offset. */
+
+	height = (scroll->visible.y1 - scroll->visible.y0) - SORDER_TOOLBAR_HEIGHT;
+
+	switch (scroll->ymin) {
+	case wimp_SCROLL_LINE_UP:
+		scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
+		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		break;
+
+	case wimp_SCROLL_LINE_DOWN:
+		scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
+		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= error;
+		break;
+
+	case wimp_SCROLL_PAGE_UP:
+		scroll->yscroll += height;
+		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		break;
+
+	case wimp_SCROLL_PAGE_DOWN:
+		scroll->yscroll -= height;
+		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= error;
+		break;
+	}
+
+	/* Re-open the window.
+	 *
+	 * It is assumed that the wimp will deal with out-of-bounds offsets for us.
+	 */
+
+	wimp_open_window((wimp_open *) scroll);
+}
+
+
+/**
+ * Process redraw events in the Standing Order List window.
+ *
+ * \param *redraw		The draw event block to handle.
+ */
+
+static void sorder_window_redraw_handler(wimp_draw *redraw)
+{
+	file_data	*file;
+	int		ox, oy, top, base, y, i, t;
+	char		icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool		more;
+
+
+	file = event_get_window_user_data(redraw->w);
+	if (file == NULL)
+		return;
+
+	more = wimp_redraw_window(redraw);
+
+	ox = redraw->box.x0 - redraw->xscroll;
+	oy = redraw->box.y1 - redraw->yscroll;
+
+	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
+
+	/* Set the horizontal positions of the icons. */
+
+	for (i=0; i < SORDER_COLUMNS; i++) {
+		windows.sorder_window_def->icons[i].extent.x0 = file->sorder_window.column_position[i];
+		windows.sorder_window_def->icons[i].extent.x1 = file->sorder_window.column_position[i] +
+				file->sorder_window.column_width[i];
+		windows.sorder_window_def->icons[i].data.indirected_text.text = icon_buffer;
+	}
+
+	/* Perform the redraw. */
+
+	while (more) {
+		/* Calculate the rows to redraw. */
+
+		top = (oy - redraw->clip.y1 - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		if (top < 0)
+			top = 0;
+
+		base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2) +
+				oy - redraw->clip.y0 - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+		/* Redraw the data into the window. */
+
+		for (y = top; y <= base; y++) {
+			t = (y < file->sorder_count) ? file->sorders[y].sort_index : 0;
+
+			/* Plot out the background with a filled white rectangle. */
+
+			wimp_set_colour(wimp_COLOUR_WHITE);
+			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - SORDER_TOOLBAR_HEIGHT);
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
+					ox + file->sorder_window.column_position[SORDER_COLUMNS-1] +
+					file->sorder_window.column_width[SORDER_COLUMNS-1],
+					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - SORDER_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+
+			/* From field */
+
+			windows.sorder_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+
+			windows.sorder_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+
+			windows.sorder_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+
+			if (y < file->sorder_count && file->sorders[t].from != NULL_ACCOUNT) {
+				windows.sorder_window_def->icons[0].data.indirected_text.text =
+						file->accounts[file->sorders[t].from].ident;
+				windows.sorder_window_def->icons[1].data.indirected_text.text = icon_buffer;
+				windows.sorder_window_def->icons[2].data.indirected_text.text =
+						file->accounts[file->sorders[t].from].name;
+
+				if (file->sorders[t].flags & TRANS_REC_FROM)
+					strcpy(icon_buffer, rec_char);
+				else
+					*icon_buffer = '\0';
+			} else {
+				windows.sorder_window_def->icons[0].data.indirected_text.text = icon_buffer;
+				windows.sorder_window_def->icons[1].data.indirected_text.text = icon_buffer;
+				windows.sorder_window_def->icons[2].data.indirected_text.text = icon_buffer;
+				*icon_buffer = '\0';
+			}
+
+			wimp_plot_icon(&(windows.sorder_window_def->icons[0]));
+			wimp_plot_icon(&(windows.sorder_window_def->icons[1]));
+			wimp_plot_icon(&(windows.sorder_window_def->icons[2]));
+
+			/* To field */
+
+			windows.sorder_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+
+			windows.sorder_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+
+			windows.sorder_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+
+			if (y < file->sorder_count && file->sorders[t].to != NULL_ACCOUNT) {
+				windows.sorder_window_def->icons[3].data.indirected_text.text =
+						file->accounts[file->sorders[t].to].ident;
+				windows.sorder_window_def->icons[4].data.indirected_text.text = icon_buffer;
+				windows.sorder_window_def->icons[5].data.indirected_text.text =
+						file->accounts[file->sorders[t].to].name;
+
+				if (file->sorders[t].flags & TRANS_REC_TO)
+					strcpy(icon_buffer, rec_char);
+				else
+					*icon_buffer = '\0';
+			} else {
+				windows.sorder_window_def->icons[3].data.indirected_text.text = icon_buffer;
+				windows.sorder_window_def->icons[4].data.indirected_text.text = icon_buffer;
+				windows.sorder_window_def->icons[5].data.indirected_text.text = icon_buffer;
+				*icon_buffer = '\0';
+			}
+
+			wimp_plot_icon(&(windows.sorder_window_def->icons[3]));
+			wimp_plot_icon(&(windows.sorder_window_def->icons[4]));
+			wimp_plot_icon(&(windows.sorder_window_def->icons[5]));
+
+			/* Amount field */
+
+			windows.sorder_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+			if (y < file->sorder_count)
+				convert_money_to_string(file->sorders[t].normal_amount, icon_buffer);
+			else
+				*icon_buffer = '\0';
+			wimp_plot_icon(&(windows.sorder_window_def->icons[6]));
+
+			/* Comments field */
+
+			windows.sorder_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+			if (y < file->sorder_count){
+				windows.sorder_window_def->icons[7].data.indirected_text.text = file->sorders[t].description;
+			} else {
+				windows.sorder_window_def->icons[7].data.indirected_text.text = icon_buffer;
+				*icon_buffer = '\0';
+			}
+			wimp_plot_icon(&(windows.sorder_window_def->icons[7]));
+
+			/* Next date field */
+
+			windows.sorder_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+			if (y < file->sorder_count) {
+				if (file->sorders[t].adjusted_next_date != NULL_DATE)
+					convert_date_to_string(file->sorders[t].adjusted_next_date, icon_buffer);
+				else
+					msgs_lookup("SOrderStopped", icon_buffer, sizeof (icon_buffer));
+			} else {
+				*icon_buffer = '\0';
+			}
+			wimp_plot_icon(&(windows.sorder_window_def->icons[8]));
+
+			/* Left field */
+
+			windows.sorder_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			windows.sorder_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+					SORDER_TOOLBAR_HEIGHT;
+			if (y < file->sorder_count)
+				sprintf (icon_buffer, "%d", file->sorders[t].left);
+			else
+				*icon_buffer = '\0';
+			wimp_plot_icon (&(windows.sorder_window_def->icons[9]));
+			}
+
+		more = wimp_get_rectangle (redraw);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -294,32 +834,32 @@ void update_sorder_window_sort_icon (file_data *file, wimp_icon *icon)
   {
     case SORT_FROM:
       i = 2;
-      sorder_pane_sort_substitute_icon = SORDER_PANE_FROM;
+      sorder_substitute_sort_icon = SORDER_PANE_FROM;
       break;
 
     case SORT_TO:
       i = 5;
-      sorder_pane_sort_substitute_icon = SORDER_PANE_TO;
+      sorder_substitute_sort_icon = SORDER_PANE_TO;
       break;
 
     case SORT_AMOUNT:
       i = 6;
-      sorder_pane_sort_substitute_icon = SORDER_PANE_AMOUNT;
+      sorder_substitute_sort_icon = SORDER_PANE_AMOUNT;
       break;
 
     case SORT_DESCRIPTION:
       i = 7;
-      sorder_pane_sort_substitute_icon = SORDER_PANE_DESCRIPTION;
+      sorder_substitute_sort_icon = SORDER_PANE_DESCRIPTION;
       break;
 
     case SORT_NEXTDATE:
       i = 8;
-      sorder_pane_sort_substitute_icon = SORDER_PANE_NEXTDATE;
+      sorder_substitute_sort_icon = SORDER_PANE_NEXTDATE;
       break;
 
     case SORT_LEFT:
       i = 9;
-      sorder_pane_sort_substitute_icon = SORDER_PANE_LEFT;
+      sorder_substitute_sort_icon = SORDER_PANE_LEFT;
       break;
   }
 
@@ -474,7 +1014,7 @@ void open_sorder_sort_window (file_data *file, wimp_pointer *ptr)
 
   fill_sorder_sort_window (file->sorder_window.sort_order);
 
-  sort_sorder_window_file = file;
+  sorder_sort_file = file;
 
   windows_open_centred_at_pointer (windows.sort_sorder, ptr);
   place_dialogue_caret (windows.sort_sorder, wimp_ICON_WINDOW);
@@ -484,7 +1024,7 @@ void open_sorder_sort_window (file_data *file, wimp_pointer *ptr)
 
 void refresh_sorder_sort_window (void)
 {
-  fill_sorder_sort_window (sort_sorder_window_file->sorder_window.sort_order);
+  fill_sorder_sort_window (sorder_sort_file->sorder_window.sort_order);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -510,48 +1050,48 @@ int process_sorder_sort_window (void)
 {
   extern global_windows windows;
 
-  sort_sorder_window_file->sorder_window.sort_order = SORT_NONE;
+  sorder_sort_file->sorder_window.sort_order = SORT_NONE;
 
   if (icons_get_selected (windows.sort_sorder, SORDER_SORT_FROM))
   {
-    sort_sorder_window_file->sorder_window.sort_order = SORT_FROM;
+    sorder_sort_file->sorder_window.sort_order = SORT_FROM;
   }
   else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_TO))
   {
-    sort_sorder_window_file->sorder_window.sort_order = SORT_TO;
+    sorder_sort_file->sorder_window.sort_order = SORT_TO;
   }
   else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_AMOUNT))
   {
-    sort_sorder_window_file->sorder_window.sort_order = SORT_AMOUNT;
+    sorder_sort_file->sorder_window.sort_order = SORT_AMOUNT;
   }
   else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_DESCRIPTION))
   {
-    sort_sorder_window_file->sorder_window.sort_order = SORT_DESCRIPTION;
+    sorder_sort_file->sorder_window.sort_order = SORT_DESCRIPTION;
   }
   else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_NEXTDATE))
   {
-    sort_sorder_window_file->sorder_window.sort_order = SORT_NEXTDATE;
+    sorder_sort_file->sorder_window.sort_order = SORT_NEXTDATE;
   }
   else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_LEFT))
   {
-    sort_sorder_window_file->sorder_window.sort_order = SORT_LEFT;
+    sorder_sort_file->sorder_window.sort_order = SORT_LEFT;
   }
 
-  if (sort_sorder_window_file->sorder_window.sort_order != SORT_NONE)
+  if (sorder_sort_file->sorder_window.sort_order != SORT_NONE)
   {
     if (icons_get_selected (windows.sort_sorder, SORDER_SORT_ASCENDING))
     {
-      sort_sorder_window_file->sorder_window.sort_order |= SORT_ASCENDING;
+      sorder_sort_file->sorder_window.sort_order |= SORT_ASCENDING;
     }
     else if (icons_get_selected (windows.sort_sorder, SORDER_SORT_DESCENDING))
     {
-      sort_sorder_window_file->sorder_window.sort_order |= SORT_DESCENDING;
+      sorder_sort_file->sorder_window.sort_order |= SORT_DESCENDING;
     }
   }
 
-  adjust_sorder_window_sort_icon (sort_sorder_window_file);
-  windows_redraw (sort_sorder_window_file->sorder_window.sorder_pane);
-  sort_sorder_window (sort_sorder_window_file);
+  adjust_sorder_window_sort_icon (sorder_sort_file);
+  windows_redraw (sorder_sort_file->sorder_window.sorder_pane);
+  sort_sorder_window (sorder_sort_file);
 
   return (0);
 }
@@ -565,7 +1105,7 @@ void force_close_sorder_sort_window (file_data *file)
   extern global_windows windows;
 
 
-  if (sort_sorder_window_file == file && windows_get_open (windows.sort_sorder))
+  if (sorder_sort_file == file && windows_get_open (windows.sort_sorder))
   {
     close_dialogue_with_caret (windows.sort_sorder);
   }
@@ -733,8 +1273,8 @@ void open_sorder_edit_window (file_data *file, int sorder, wimp_pointer *ptr)
 
   /* Set the pointers up so we can find this lot again and open the window. */
 
-  edit_sorder_file = file;
-  edit_sorder_no = sorder;
+  sorder_edit_file = file;
+  sorder_edit_number = sorder;
 
   windows_open_centred_at_pointer (windows.edit_sorder, ptr);
   place_dialogue_caret (windows.edit_sorder, edit_mode ? SORDER_EDIT_NUMBER : SORDER_EDIT_START);
@@ -746,9 +1286,9 @@ void refresh_sorder_edit_window (void)
 {
   extern global_windows windows;
 
-  fill_sorder_edit_window (edit_sorder_file, edit_sorder_no,
-                           edit_sorder_no != NULL_SORDER &&
-                           edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date != NULL_DATE);
+  fill_sorder_edit_window (sorder_edit_file, sorder_edit_number,
+                           sorder_edit_number != NULL_SORDER &&
+                           sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE);
   icons_redraw_group (windows.edit_sorder, 14,
                           SORDER_EDIT_START, SORDER_EDIT_NUMBER, SORDER_EDIT_PERIOD,
                           SORDER_EDIT_FMIDENT, SORDER_EDIT_FMREC, SORDER_EDIT_FMNAME,
@@ -935,13 +1475,13 @@ void update_sorder_edit_account_fields (wimp_key *key)
 
   if (key->i == SORDER_EDIT_FMIDENT)
   {
-    lookup_account_field (edit_sorder_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+    lookup_account_field (sorder_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
                           windows.edit_sorder, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC);
   }
 
   else if (key->i == SORDER_EDIT_TOIDENT)
   {
-    lookup_account_field (edit_sorder_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+    lookup_account_field (sorder_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
                           windows.edit_sorder, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC);
   }
 }
@@ -955,13 +1495,13 @@ void open_sorder_edit_account_menu (wimp_pointer *ptr)
 
   if (ptr->i == SORDER_EDIT_FMNAME)
   {
-    open_account_menu (edit_sorder_file, ACCOUNT_MENU_FROM, 0,
+    open_account_menu (sorder_edit_file, ACCOUNT_MENU_FROM, 0,
                           windows.edit_sorder, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC, ptr);
   }
 
   else if (ptr->i == SORDER_EDIT_TONAME)
   {
-    open_account_menu (edit_sorder_file, ACCOUNT_MENU_TO, 0,
+    open_account_menu (sorder_edit_file, ACCOUNT_MENU_TO, 0,
                           windows.edit_sorder, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC, ptr);
   }
 }
@@ -1026,25 +1566,25 @@ int process_sorder_edit_window (void)
 
   /* If the standing order doesn't exsit, create it.  If it does exist, validate any data that requires it. */
 
-  if (edit_sorder_no == NULL_SORDER)
+  if (sorder_edit_number == NULL_SORDER)
   {
-    edit_sorder_no = add_sorder (edit_sorder_file);
-    edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date = NULL_DATE; /* Set to allow editing. */
+    sorder_edit_number = add_sorder (sorder_edit_file);
+    sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE; /* Set to allow editing. */
 
     done = 0;
   }
   else
   {
-    done = edit_sorder_file->sorders[edit_sorder_no].number - edit_sorder_file->sorders[edit_sorder_no].left;
+    done = sorder_edit_file->sorders[sorder_edit_number].number - sorder_edit_file->sorders[sorder_edit_number].left;
     if (atoi (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_NUMBER)) < done &&
-        edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date != NULL_DATE)
+        sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE)
     {
       error_msgs_report_error ("BadSONumber");
       return (1);
     }
 
-    if (edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date == NULL_DATE &&
-        edit_sorder_file->sorders[edit_sorder_no].start_date == new_start_date)
+    if (sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE &&
+        sorder_edit_file->sorders[sorder_edit_number].start_date == new_start_date)
     {
       if (error_msgs_report_question ("CheckSODate", "CheckSODateB") == 2)
       {
@@ -1055,11 +1595,11 @@ int process_sorder_edit_window (void)
 
   /* If the standing order was created OK, store the rest of the data. */
 
-  if (edit_sorder_no != NULL_SORDER)
+  if (sorder_edit_number != NULL_SORDER)
   {
     /* Zero the flags and reset them as required. */
 
-    edit_sorder_file->sorders[edit_sorder_no].flags = 0;
+    sorder_edit_file->sorders[sorder_edit_number].flags = 0;
 
     /* Get the avoid mode. */
 
@@ -1067,30 +1607,30 @@ int process_sorder_edit_window (void)
     {
       if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_SKIPFWD))
       {
-        edit_sorder_file->sorders[edit_sorder_no].flags |= TRANS_SKIP_FORWARD;
+        sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_SKIP_FORWARD;
       }
       else if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_SKIPBACK))
       {
-        edit_sorder_file->sorders[edit_sorder_no].flags |= TRANS_SKIP_BACKWARD;
+        sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_SKIP_BACKWARD;
       }
     }
 
     /* If it's a new/finished order, get the start date and period and set up the date fields. */
 
-    if (edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date == NULL_DATE)
+    if (sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE)
     {
-      edit_sorder_file->sorders[edit_sorder_no].period_unit = new_period_unit;
+      sorder_edit_file->sorders[sorder_edit_number].period_unit = new_period_unit;
 
-      edit_sorder_file->sorders[edit_sorder_no].start_date = new_start_date;
+      sorder_edit_file->sorders[sorder_edit_number].start_date = new_start_date;
 
-      edit_sorder_file->sorders[edit_sorder_no].raw_next_date =
-                 edit_sorder_file->sorders[edit_sorder_no].start_date;
+      sorder_edit_file->sorders[sorder_edit_number].raw_next_date =
+                 sorder_edit_file->sorders[sorder_edit_number].start_date;
 
-      edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date =
-                 get_sorder_date (edit_sorder_file->sorders[edit_sorder_no].raw_next_date,
-                                  edit_sorder_file->sorders[edit_sorder_no].flags);
+      sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date =
+                 get_sorder_date (sorder_edit_file->sorders[sorder_edit_number].raw_next_date,
+                                  sorder_edit_file->sorders[sorder_edit_number].flags);
 
-      edit_sorder_file->sorders[edit_sorder_no].period =
+      sorder_edit_file->sorders[sorder_edit_number].period =
                  atoi (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_PERIOD));
 
       done = 0;
@@ -1099,85 +1639,85 @@ int process_sorder_edit_window (void)
 
     /* Get the number of transactions. */
 
-    edit_sorder_file->sorders[edit_sorder_no].number =
+    sorder_edit_file->sorders[sorder_edit_number].number =
             atoi (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_NUMBER));
 
-    edit_sorder_file->sorders[edit_sorder_no].left =
-            edit_sorder_file->sorders[edit_sorder_no].number - done;
+    sorder_edit_file->sorders[sorder_edit_number].left =
+            sorder_edit_file->sorders[sorder_edit_number].number - done;
 
-    if (edit_sorder_file->sorders[edit_sorder_no].left == 0)
+    if (sorder_edit_file->sorders[sorder_edit_number].left == 0)
     {
-      edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date = NULL_DATE;
+      sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
     }
 
     /* Get the from and to fields. */
 
-    edit_sorder_file->sorders[edit_sorder_no].from =
-          find_account (edit_sorder_file,
+    sorder_edit_file->sorders[sorder_edit_number].from =
+          find_account (sorder_edit_file,
                         icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
 
-    edit_sorder_file->sorders[edit_sorder_no].to =
-          find_account (edit_sorder_file,
+    sorder_edit_file->sorders[sorder_edit_number].to =
+          find_account (sorder_edit_file,
                         icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
 
     if (*icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FMREC) != '\0')
     {
-      edit_sorder_file->sorders[edit_sorder_no].flags |= TRANS_REC_FROM;
+      sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_REC_FROM;
     }
 
     if (*icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_TOREC) != '\0')
     {
-      edit_sorder_file->sorders[edit_sorder_no].flags |= TRANS_REC_TO;
+      sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_REC_TO;
     }
 
     /* Get the amounts. */
 
-    edit_sorder_file->sorders[edit_sorder_no].normal_amount =
+    sorder_edit_file->sorders[sorder_edit_number].normal_amount =
           convert_string_to_money (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_AMOUNT));
 
     if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_FIRSTSW))
     {
-      edit_sorder_file->sorders[edit_sorder_no].first_amount =
+      sorder_edit_file->sorders[sorder_edit_number].first_amount =
             convert_string_to_money (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_FIRST));
     }
     else
     {
-      edit_sorder_file->sorders[edit_sorder_no].first_amount = edit_sorder_file->sorders[edit_sorder_no].normal_amount;
+      sorder_edit_file->sorders[sorder_edit_number].first_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
     }
 
     if (icons_get_selected (windows.edit_sorder, SORDER_EDIT_LASTSW))
     {
-      edit_sorder_file->sorders[edit_sorder_no].last_amount =
+      sorder_edit_file->sorders[sorder_edit_number].last_amount =
             convert_string_to_money (icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_LAST));
     }
     else
     {
-      edit_sorder_file->sorders[edit_sorder_no].last_amount = edit_sorder_file->sorders[edit_sorder_no].normal_amount;
+      sorder_edit_file->sorders[sorder_edit_number].last_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
     }
 
     /* Store the reference. */
 
-    strcpy (edit_sorder_file->sorders[edit_sorder_no].reference,
+    strcpy (sorder_edit_file->sorders[sorder_edit_number].reference,
             icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_REF));
 
     /* Store the description. */
 
-    strcpy (edit_sorder_file->sorders[edit_sorder_no].description,
+    strcpy (sorder_edit_file->sorders[sorder_edit_number].description,
             icons_get_indirected_text_addr (windows.edit_sorder, SORDER_EDIT_DESC));
   }
 
   if (config_opt_read ("AutoSortSOrders"))
   {
-    sort_sorder_window (edit_sorder_file);
+    sort_sorder_window (sorder_edit_file);
   }
   else
   {
-    force_sorder_window_redraw (edit_sorder_file, edit_sorder_no, edit_sorder_no);
+    force_sorder_window_redraw (sorder_edit_file, sorder_edit_number, sorder_edit_number);
   }
-  set_file_data_integrity (edit_sorder_file, 1);
-  process_standing_orders (edit_sorder_file);
-  perform_full_recalculation (edit_sorder_file);
-  set_transaction_window_extent (edit_sorder_file);
+  set_file_data_integrity (sorder_edit_file, 1);
+  process_standing_orders (sorder_edit_file);
+  perform_full_recalculation (sorder_edit_file);
+  set_transaction_window_extent (sorder_edit_file);
 
   return (0);
 }
@@ -1195,9 +1735,9 @@ int stop_sorder_from_edit_window (void)
 
   /* Stop the order */
 
-  edit_sorder_file->sorders[edit_sorder_no].raw_next_date = NULL_DATE;
-  edit_sorder_file->sorders[edit_sorder_no].adjusted_next_date = NULL_DATE;
-  edit_sorder_file->sorders[edit_sorder_no].left = 0;
+  sorder_edit_file->sorders[sorder_edit_number].raw_next_date = NULL_DATE;
+  sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
+  sorder_edit_file->sorders[sorder_edit_number].left = 0;
 
   /* Redraw the standing order edit window's contents. */
 
@@ -1207,13 +1747,13 @@ int stop_sorder_from_edit_window (void)
 
   if (config_opt_read ("AutoSortSOrders"))
   {
-    sort_sorder_window (edit_sorder_file);
+    sort_sorder_window (sorder_edit_file);
   }
   else
   {
-    force_sorder_window_redraw (edit_sorder_file, edit_sorder_no, edit_sorder_no);
+    force_sorder_window_redraw (sorder_edit_file, sorder_edit_number, sorder_edit_number);
   }
-  set_file_data_integrity (edit_sorder_file, 1);
+  set_file_data_integrity (sorder_edit_file, 1);
 
   return (0);
 }
@@ -1229,7 +1769,7 @@ int delete_sorder_from_edit_window (void)
     return (1);
   }
 
-  return (delete_sorder (edit_sorder_file, edit_sorder_no));
+  return (delete_sorder (sorder_edit_file, sorder_edit_number));
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -1241,7 +1781,7 @@ void force_close_sorder_edit_window (file_data *file)
   extern global_windows windows;
 
 
-  if (edit_sorder_file == file && windows_get_open (windows.edit_sorder))
+  if (sorder_edit_file == file && windows_get_open (windows.edit_sorder))
   {
     close_dialogue_with_caret (windows.edit_sorder);
   }
@@ -1713,174 +2253,6 @@ void generate_full_sorder_report (file_data *file)
   }
 }
 
-/* ==================================================================================================================
- * Standing order window handling
- */
-
-void sorder_window_click (file_data *file, wimp_pointer *pointer)
-{
-  int               line;
-  wimp_window_state window;
-
-
-  /* Find the window type and get the line clicked on. */
-
-  window.w = pointer->w;
-  wimp_get_window_state (&window);
-
-  line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - SORDER_TOOLBAR_HEIGHT)
-         / (ICON_HEIGHT+LINE_GUTTER);
-
-  if (line < 0 || line >= file->sorder_count)
-  {
-    line = -1;
-  }
-
-  /* Handle double-clicks, which will open an edit accout window. */
-
-  if (pointer->buttons == wimp_DOUBLE_SELECT)
-  {
-    if (line != -1)
-    {
-      open_sorder_edit_window (file, file->sorders[line].sort_index, pointer);
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_sorder_menu (file, line, pointer);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void sorder_pane_click (file_data *file, wimp_pointer *pointer)
-{
-  wimp_window_state     window;
-  wimp_icon_state       icon;
-  int                   ox;
-
-  extern global_windows windows;
-
-
-  /* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
-
-  if (pointer->i == SORDER_PANE_SORT_DIR_ICON)
-  {
-    pointer->i = sorder_pane_sort_substitute_icon;
-  }
-
-  if (pointer->buttons == wimp_CLICK_SELECT)
-  {
-    switch (pointer->i)
-    {
-      case SORDER_PANE_PARENT:
-        windows_open (file->transaction_window.transaction_window);
-        break;
-
-      case SORDER_PANE_PRINT:
-        open_sorder_print_window (file, pointer, config_opt_read ("RememberValues"));
-        break;
-
-      case SORDER_PANE_ADDSORDER:
-        open_sorder_edit_window (file, NULL_SORDER, pointer);
-        break;
-
-      case SORDER_PANE_SORT:
-        open_sorder_sort_window (file, pointer);
-	break;
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_ADJUST)
-  {
-    switch (pointer->i)
-    {
-      case SORDER_PANE_PRINT:
-        open_sorder_print_window (file, pointer, !config_opt_read ("RememberValues"));
-        break;
-
-      case SORDER_PANE_SORT:
-        sort_sorder_window (file);
-        break;
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_sorder_menu (file, -1, pointer);
-  }
-
-  /* Process clicks on the column headings, for sorting the data.  This tests to see if the click was
-   * outside of the column size drag hotspot before proceeding.
-   */
-
-  else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
-            pointer->i != wimp_ICON_WINDOW)
-  {
-    window.w = pointer->w;
-    wimp_get_window_state (&window);
-
-    ox = window.visible.x0 - window.xscroll;
-
-    icon.w = pointer->w;
-    icon.i = pointer->i;
-    wimp_get_icon_state (&icon);
-
-    if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT))
-    {
-      file->sorder_window.sort_order = SORT_NONE;
-
-      switch (pointer->i)
-      {
-        case SORDER_PANE_FROM:
-          file->sorder_window.sort_order = SORT_FROM;
-          break;
-
-        case SORDER_PANE_TO:
-          file->sorder_window.sort_order = SORT_TO;
-          break;
-
-        case SORDER_PANE_AMOUNT:
-          file->sorder_window.sort_order = SORT_AMOUNT;
-          break;
-
-        case SORDER_PANE_DESCRIPTION:
-          file->sorder_window.sort_order = SORT_DESCRIPTION;
-          break;
-
-        case SORDER_PANE_NEXTDATE:
-          file->sorder_window.sort_order = SORT_NEXTDATE;
-          break;
-
-        case SORDER_PANE_LEFT:
-          file->sorder_window.sort_order = SORT_LEFT;
-          break;
-      }
-
-      if (file->sorder_window.sort_order != SORT_NONE)
-      {
-        if (pointer->buttons == wimp_CLICK_SELECT * 256)
-        {
-          file->sorder_window.sort_order |= SORT_ASCENDING;
-        }
-        else
-        {
-          file->sorder_window.sort_order |= SORT_DESCENDING;
-        }
-      }
-
-      adjust_sorder_window_sort_icon (file);
-      windows_redraw (file->sorder_window.sorder_pane);
-      sort_sorder_window (file);
-    }
-  }
-
-  else if (pointer->buttons == wimp_DRAG_SELECT)
-  {
-    column_start_drag(pointer, file, 0, file->sorder_window.sorder_window, SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), adjust_sorder_window_columns);
-  }
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -1992,82 +2364,6 @@ void force_sorder_window_redraw (file_data *file, int from, int to)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Handle scroll events that occur in a standing window */
-
-void sorder_window_scroll_event (file_data *file, wimp_scroll *scroll)
-{
-  int width, height, error;
-
-
-  /* Add in the X scroll offset. */
-
-  width = scroll->visible.x1 - scroll->visible.x0;
-
-  switch (scroll->xmin)
-  {
-    case wimp_SCROLL_COLUMN_LEFT:
-      scroll->xscroll -= HORIZONTAL_SCROLL;
-      break;
-
-    case wimp_SCROLL_COLUMN_RIGHT:
-      scroll->xscroll += HORIZONTAL_SCROLL;
-      break;
-
-    case wimp_SCROLL_PAGE_LEFT:
-      scroll->xscroll -= width;
-      break;
-
-    case wimp_SCROLL_PAGE_RIGHT:
-      scroll->xscroll += width;
-      break;
-  }
-
-  /* Add in the Y scroll offset. */
-
-  height = (scroll->visible.y1 - scroll->visible.y0) - SORDER_TOOLBAR_HEIGHT;
-
-  switch (scroll->ymin)
-  {
-    case wimp_SCROLL_LINE_UP:
-      scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
-
-    case wimp_SCROLL_LINE_DOWN:
-      scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
-
-    case wimp_SCROLL_PAGE_UP:
-      scroll->yscroll += height;
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
-
-    case wimp_SCROLL_PAGE_DOWN:
-      scroll->yscroll -= height;
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
-  }
-
-  /* Re-open the window.
-   *
-   * It is assumed that the wimp will deal with out-of-bounds offsets for us.
-   */
-
-  wimp_open_window ((wimp_open *) scroll);
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 

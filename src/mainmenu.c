@@ -321,7 +321,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_TRANS_AUTOVIEW) /* View SOs */
     {
-      create_sorder_window (main_menu_file);
+      sorder_open_window (main_menu_file);
     }
 
     else if (selection->items[1] == MAIN_MENU_TRANS_AUTONEW) /* Add SOs */

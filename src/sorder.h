@@ -131,6 +131,16 @@ void sorder_full_report(file_data *file);
 
 
 /**
+ * Save the standing order details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *f			The file handle to write to.
+ */
+
+void sorder_write_file(file_data *file, FILE *f);
+
+
+/**
  * Export the standing order data from a file into CSV or TSV format.
  *
  * \param *file			The file to export from.

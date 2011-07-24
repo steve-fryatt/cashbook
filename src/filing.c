@@ -1111,31 +1111,7 @@ void save_transaction_file (file_data *file, char *filename)
 
     /* Output the standing order data. */
 
-    fprintf (out, "\n[StandingOrders]\n");
-
-    fprintf (out, "Entries: %x\n", file->sorder_count);
-
-    column_write_as_text (file->sorder_window.column_width, SORDER_COLUMNS, buffer);
-    fprintf (out, "WinColumns: %s\n", buffer);
-
-    fprintf (out, "SortOrder: %x\n", file->sorder_window.sort_order);
-
-    for (i=0; i < file->sorder_count; i++)
-    {
-      fprintf (out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
-               file->sorders[i].start_date, file->sorders[i].number, file->sorders[i].period,
-               file->sorders[i].period_unit, file->sorders[i].raw_next_date, file->sorders[i].adjusted_next_date,
-               file->sorders[i].left, file->sorders[i].flags, file->sorders[i].from, file->sorders[i].to,
-               file->sorders[i].normal_amount, file->sorders[i].first_amount, file->sorders[i].last_amount);
-      if (*(file->sorders[i].reference) != '\0')
-      {
-        config_write_token_pair (out, "Ref", file->sorders[i].reference);
-      }
-      if (*(file->sorders[i].description) != '\0')
-      {
-        config_write_token_pair (out, "Desc", file->sorders[i].description);
-      }
-    }
+    sorder_write_file(file, out);
 
     /* Output the preset data. */
 

@@ -4129,3 +4129,158 @@ static void analysis_copy_balance_template(balance_rep *to, balance_rep *from)
 	to->tabular = from->tabular;
 }
 
+
+/**
+ * Save the Report Template details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void analysis_write_file(file_data *file, FILE *out)
+{
+	int	i;
+	char	buffer[MAX_FILE_LINE_LEN];
+
+	fprintf(out, "\n[Reports]\n");
+
+	fprintf(out, "Entries: %x\n", file->saved_report_count);
+
+	for (i = 0; i < file->saved_report_count; i++) {
+		switch(file->saved_reports[i].type) {
+		case REPORT_TYPE_TRANS:
+			fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
+					REPORT_TYPE_TRANS,
+					file->saved_reports[i].data.transaction.date_from,
+					file->saved_reports[i].data.transaction.date_to,
+					file->saved_reports[i].data.transaction.budget,
+					file->saved_reports[i].data.transaction.group,
+					file->saved_reports[i].data.transaction.period,
+					file->saved_reports[i].data.transaction.period_unit,
+					file->saved_reports[i].data.transaction.lock,
+					file->saved_reports[i].data.transaction.output_trans,
+					file->saved_reports[i].data.transaction.output_summary,
+					file->saved_reports[i].data.transaction.output_accsummary);
+			if (*(file->saved_reports[i].name) != '\0')
+				config_write_token_pair(out, "Name", file->saved_reports[i].name);
+			if (file->saved_reports[i].data.transaction.from_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.transaction.from,
+						file->saved_reports[i].data.transaction.from_count);
+				config_write_token_pair(out, "From", buffer);
+			}
+			if (file->saved_reports[i].data.transaction.to_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.transaction.to,
+						file->saved_reports[i].data.transaction.to_count);
+				config_write_token_pair(out, "To", buffer);
+			}
+			if (*(file->saved_reports[i].data.transaction.ref) != '\0')
+				config_write_token_pair(out, "Ref", file->saved_reports[i].data.transaction.ref);
+			if (file->saved_reports[i].data.transaction.amount_min != NULL_CURRENCY ||
+					file->saved_reports[i].data.transaction.amount_max != NULL_CURRENCY) {
+				sprintf(buffer, "%x,%x",
+						file->saved_reports[i].data.transaction.amount_min,
+						file->saved_reports[i].data.transaction.amount_max);
+				config_write_token_pair(out, "Amount", buffer);
+			}
+			if (*(file->saved_reports[i].data.transaction.desc) != '\0')
+				config_write_token_pair(out, "Desc", file->saved_reports[i].data.transaction.desc);
+			break;
+
+		case REPORT_TYPE_UNREC:
+			fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x\n",
+					REPORT_TYPE_UNREC,
+					file->saved_reports[i].data.unreconciled.date_from,
+					file->saved_reports[i].data.unreconciled.date_to,
+					file->saved_reports[i].data.unreconciled.budget,
+					file->saved_reports[i].data.unreconciled.group,
+					file->saved_reports[i].data.unreconciled.period,
+					file->saved_reports[i].data.unreconciled.period_unit,
+					file->saved_reports[i].data.unreconciled.lock);
+			if (*(file->saved_reports[i].name) != '\0')
+				config_write_token_pair(out, "Name", file->saved_reports[i].name);
+			if (file->saved_reports[i].data.unreconciled.from_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.unreconciled.from,
+						file->saved_reports[i].data.unreconciled.from_count);
+				config_write_token_pair(out, "From", buffer);
+			}
+			if (file->saved_reports[i].data.unreconciled.to_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.unreconciled.to,
+						file->saved_reports[i].data.unreconciled.to_count);
+				config_write_token_pair(out, "To", buffer);
+			}
+			break;
+
+		case REPORT_TYPE_CASHFLOW:
+			fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
+					REPORT_TYPE_CASHFLOW,
+					file->saved_reports[i].data.cashflow.date_from,
+					file->saved_reports[i].data.cashflow.date_to,
+					file->saved_reports[i].data.cashflow.budget,
+					file->saved_reports[i].data.cashflow.group,
+					file->saved_reports[i].data.cashflow.period,
+					file->saved_reports[i].data.cashflow.period_unit,
+					file->saved_reports[i].data.cashflow.lock,
+					file->saved_reports[i].data.cashflow.tabular,
+					file->saved_reports[i].data.cashflow.empty);
+			if (*(file->saved_reports[i].name) != '\0')
+				config_write_token_pair(out, "Name", file->saved_reports[i].name);
+			if (file->saved_reports[i].data.cashflow.accounts_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.cashflow.accounts,
+						file->saved_reports[i].data.cashflow.accounts_count);
+				config_write_token_pair(out, "Accounts", buffer);
+			}
+			if (file->saved_reports[i].data.cashflow.incoming_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.cashflow.incoming,
+						file->saved_reports[i].data.cashflow.incoming_count);
+				config_write_token_pair(out, "Incoming", buffer);
+			}
+			if (file->saved_reports[i].data.cashflow.outgoing_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.cashflow.outgoing,
+						file->saved_reports[i].data.cashflow.outgoing_count);
+				config_write_token_pair(out, "Outgoing", buffer);
+			}
+			break;
+
+		case REPORT_TYPE_BALANCE:
+			fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x\n",
+					REPORT_TYPE_BALANCE,
+					file->saved_reports[i].data.balance.date_from,
+					file->saved_reports[i].data.balance.date_to,
+					file->saved_reports[i].data.balance.budget,
+					file->saved_reports[i].data.balance.group,
+					file->saved_reports[i].data.balance.period,
+					file->saved_reports[i].data.balance.period_unit,
+					file->saved_reports[i].data.balance.lock,
+					file->saved_reports[i].data.balance.tabular);
+			if (*(file->saved_reports[i].name) != '\0')
+				config_write_token_pair(out, "Name", file->saved_reports[i].name);
+			if (file->saved_reports[i].data.balance.accounts_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.balance.accounts,
+						file->saved_reports[i].data.balance.accounts_count);
+				config_write_token_pair(out, "Accounts", buffer);
+			}
+			if (file->saved_reports[i].data.balance.incoming_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.balance.incoming,
+						file->saved_reports[i].data.balance.incoming_count);
+				config_write_token_pair(out, "Incoming", buffer);
+			}
+			if (file->saved_reports[i].data.balance.outgoing_count > 0) {
+				analysis_account_list_to_hex(file, buffer, MAX_FILE_LINE_LEN,
+						file->saved_reports[i].data.balance.outgoing,
+						file->saved_reports[i].data.balance.outgoing_count);
+				config_write_token_pair(out, "Outgoing", buffer);
+			}
+			break;
+		}
+	}
+}
+

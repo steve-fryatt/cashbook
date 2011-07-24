@@ -172,5 +172,15 @@ void analysis_open_template_from_menu(file_data *file, wimp_pointer *ptr, int se
 
 void analysis_copy_template(saved_report *to, saved_report *from);
 
+
+/**
+ * Save the Report Template details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void analysis_write_file(file_data *file, FILE *out);
+
 #endif
 

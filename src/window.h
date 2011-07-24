@@ -14,7 +14,20 @@
 #define Y_WINDOW_PERCENT_LIMIT 40
 #define Y_WINDOW_PERCENT_ORIGIN 75
 
-void set_initial_window_area (wimp_window *window, int width, int height, int x, int y, int yoff);
+
+/**
+ * Set up the extent and visible area of a window in its creation block so that
+ * it can be passed to Wimp_CreateWindow.
+ *
+ * \param *window		The window creation data block to update.
+ * \param width			The width of the work area (not visible area).
+ * \param height		The height of the work area (not visible area).
+ * \param x			X position of top-left of window (or -1 for default).
+ * \param y			Y position of top-left of window (or -1 for default).
+ * \param yoff			Y Offset to apply to enable raked openings.
+ */
+
+void set_initial_window_area(wimp_window *window, int width, int height, int x, int y, int yoff);
 
 #endif
 

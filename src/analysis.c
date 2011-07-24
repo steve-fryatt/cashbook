@@ -4284,3 +4284,181 @@ void analysis_write_file(file_data *file, FILE *out)
 	}
 }
 
+
+/**
+ * Read Report Template details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+int analysis_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+{
+	int	result, block_size, i = -1;
+
+	block_size = flex_size((flex_ptr) &(file->saved_reports)) / sizeof(saved_report);
+
+	do {
+		if (string_nocase_strcmp(token, "Entries") == 0) {
+			block_size = strtoul(value, NULL, 16);
+			if (block_size > file->saved_report_count) {
+				#ifdef DEBUG
+				debug_printf("Section block pre-expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->saved_reports), sizeof(saved_report) * block_size);
+			} else {
+				block_size = file->saved_report_count;
+			}
+		} else if (string_nocase_strcmp(token, "@") == 0) {
+			file->saved_report_count++;
+			if (file->saved_report_count > block_size) {
+				block_size = file->saved_report_count;
+				#ifdef DEBUG
+				debug_printf("Section block expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->saved_reports), sizeof(saved_report) * block_size);
+			}
+			i = file->saved_report_count-1;
+			file->saved_reports[i].type = strtoul(next_field(value, ','), NULL, 16);
+			switch(file->saved_reports[i].type) {
+			case REPORT_TYPE_TRANS:
+				file->saved_reports[i].data.transaction.date_from = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.date_to = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.budget = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.group = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.period = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.period_unit = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.lock = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.output_trans = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.output_summary = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.output_accsummary = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.transaction.amount_min = NULL_CURRENCY;
+				file->saved_reports[i].data.transaction.amount_max = NULL_CURRENCY;
+				file->saved_reports[i].data.transaction.from_count = 0;
+				file->saved_reports[i].data.transaction.to_count = 0;
+				*(file->saved_reports[i].data.transaction.ref) = '\0';
+				*(file->saved_reports[i].data.transaction.desc) = '\0';
+				break;
+
+			case REPORT_TYPE_UNREC:
+				file->saved_reports[i].data.unreconciled.date_from = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.unreconciled.date_to = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.unreconciled.budget = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.unreconciled.group = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.unreconciled.period = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.unreconciled.period_unit = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.unreconciled.lock = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.unreconciled.from_count = 0;
+				file->saved_reports[i].data.unreconciled.to_count = 0;
+				break;
+
+			case REPORT_TYPE_CASHFLOW:
+				file->saved_reports[i].data.cashflow.date_from = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.cashflow.date_to = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.cashflow.budget = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.cashflow.group = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.cashflow.period = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.cashflow.period_unit = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.cashflow.lock = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.cashflow.tabular = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.cashflow.empty = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.cashflow.accounts_count = 0;
+				file->saved_reports[i].data.cashflow.incoming_count = 0;
+				file->saved_reports[i].data.cashflow.outgoing_count = 0;
+				break;
+
+			case REPORT_TYPE_BALANCE:
+				file->saved_reports[i].data.balance.date_from = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.balance.date_to = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.balance.budget = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.balance.group = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.balance.period = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.balance.period_unit = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.balance.lock = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.balance.tabular = strtoul(next_field(NULL, ','), NULL, 16);
+				file->saved_reports[i].data.balance.accounts_count = 0;
+				file->saved_reports[i].data.balance.incoming_count = 0;
+				file->saved_reports[i].data.balance.outgoing_count = 0;
+				break;
+			}
+		} else if (i != -1 && string_nocase_strcmp(token, "Name") == 0) {
+			strcpy(file->saved_reports[i].name, value);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
+				string_nocase_strcmp(token, "Accounts") == 0) {
+			file->saved_reports[i].data.cashflow.accounts_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.cashflow.accounts);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
+				string_nocase_strcmp(token, "Incoming") == 0) {
+			file->saved_reports[i].data.cashflow.incoming_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.cashflow.incoming);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
+				string_nocase_strcmp(token, "Outgoing") == 0) {
+			file->saved_reports[i].data.cashflow.outgoing_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.cashflow.outgoing);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_BALANCE &&
+				string_nocase_strcmp(token, "Accounts") == 0) {
+			file->saved_reports[i].data.balance.accounts_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.balance.accounts);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_BALANCE &&
+				string_nocase_strcmp(token, "Incoming") == 0) {
+			file->saved_reports[i].data.balance.incoming_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.balance.incoming);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_BALANCE &&
+				string_nocase_strcmp(token, "Outgoing") == 0) {
+			file->saved_reports[i].data.balance.outgoing_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.balance.outgoing);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
+				string_nocase_strcmp(token, "From") == 0) {
+			file->saved_reports[i].data.transaction.from_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.transaction.from);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
+				string_nocase_strcmp(token, "To") == 0) {
+			file->saved_reports[i].data.transaction.to_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.transaction.to);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_UNREC &&
+				string_nocase_strcmp(token, "From") == 0) {
+			file->saved_reports[i].data.unreconciled.from_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.unreconciled.from);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_UNREC &&
+				string_nocase_strcmp(token, "To") == 0) {
+			file->saved_reports[i].data.unreconciled.to_count =
+					analysis_account_hex_to_list(file, value, file->saved_reports[i].data.unreconciled.to);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
+				string_nocase_strcmp(token, "Ref") == 0) {
+			strcpy(file->saved_reports[i].data.transaction.ref, value);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
+				string_nocase_strcmp(token, "Amount") == 0) {
+			file->saved_reports[i].data.transaction.amount_min = strtoul(next_field(value, ','), NULL, 16);
+			file->saved_reports[i].data.transaction.amount_max = strtoul(next_field(NULL, ','), NULL, 16);
+		} else if (i != -1 && file->saved_reports[i].type == REPORT_TYPE_TRANS &&
+				string_nocase_strcmp(token, "Desc") == 0) {
+			strcpy(file->saved_reports[i].data.transaction.desc, value);
+		} else {
+			*unknown_data = TRUE;
+		}
+
+		result = config_read_token_pair(in, token, value, section);
+	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+
+	block_size = flex_size((flex_ptr) &(file->saved_reports)) / sizeof(saved_report);
+
+	#ifdef DEBUG
+	debug_printf("Saved Report block size: %d, required: %d", block_size, file->saved_report_count);
+	#endif
+
+	if (block_size > file->saved_report_count) {
+		block_size = file->saved_report_count;
+		flex_extend((flex_ptr) &(file->saved_reports), sizeof(saved_report) * block_size);
+
+		#ifdef DEBUG
+		debug_printf("Block shrunk to %d", block_size);
+		#endif
+	}
+
+	return result;
+}
+

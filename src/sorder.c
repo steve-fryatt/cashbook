@@ -2611,7 +2611,7 @@ void sorder_full_report(file_data *file)
 
 
 /**
- * Save the standing order details from a file to a CashBook file
+ * Save the standing order details from a file to a CashBook file.
  *
  * \param *file			The file to write.
  * \param *out			The file handle to write to.
@@ -2642,6 +2642,96 @@ void sorder_write_file(file_data *file, FILE *out)
 		if (*(file->sorders[i].description) != '\0')
 			config_write_token_pair (out, "Desc", file->sorders[i].description);
 	}
+}
+
+
+/**
+ * Read standing order details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+int sorder_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+{
+	int	result, block_size, i = -1;
+
+	block_size = flex_size((flex_ptr) &(file->sorders)) / sizeof(struct sorder);
+
+	do {
+		if (string_nocase_strcmp(token, "Entries") == 0) {
+			block_size = strtoul(value, NULL, 16);
+			if (block_size > file->sorder_count) {
+				#ifdef DEBUG
+				debug_printf("Section block pre-expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->sorders), sizeof(struct sorder) * block_size);
+			} else {
+				block_size = file->sorder_count;
+			}
+		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
+			column_init_window(file->sorder_window.column_width,
+					file->sorder_window.column_position,
+					SORDER_COLUMNS, value);
+		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
+			file->sorder_window.sort_order = strtoul(value, NULL, 16);
+		} else if (string_nocase_strcmp (token, "@") == 0) {
+			file->sorder_count++;
+			if (file->sorder_count > block_size) {
+				block_size = file->sorder_count;
+				#ifdef DEBUG
+				debug_printf("Section block expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->sorders), sizeof(struct sorder) * block_size);
+			}
+			i = file->sorder_count-1;
+			file->sorders[i].start_date = strtoul (next_field (value, ','), NULL, 16);
+			file->sorders[i].number = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].period = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].period_unit = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].raw_next_date = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].adjusted_next_date = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].left = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].flags = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].from = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].to = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].normal_amount = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].first_amount = strtoul (next_field (NULL, ','), NULL, 16);
+			file->sorders[i].last_amount = strtoul (next_field (NULL, ','), NULL, 16);
+			*(file->sorders[i].reference) = '\0';
+			*(file->sorders[i].description) = '\0';
+			file->sorders[i].sort_index = i;
+		} else if (i != -1 && string_nocase_strcmp(token, "Ref") == 0) {
+			strcpy(file->sorders[i].reference, value);
+		} else if (i != -1 && string_nocase_strcmp (token, "Desc") == 0) {
+			strcpy(file->sorders[i].description, value);
+		} else {
+			*unknown_data = TRUE;
+		}
+
+		result = config_read_token_pair(in, token, value, section);
+	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+
+	block_size = flex_size((flex_ptr) &(file->sorders)) / sizeof(struct sorder);
+
+	#ifdef DEBUG
+	debug_printf("StandingOrder block size: %d, required: %d", block_size, file->sorder_count);
+	#endif
+
+	if (block_size > file->sorder_count) {
+		block_size = file->sorder_count;
+		flex_extend((flex_ptr) &(file->sorders), sizeof(struct sorder) * block_size);
+
+		#ifdef DEBUG
+		debug_printf("Block shrunk to %d", block_size);
+		#endif
+	}
+
+	return result;
 }
 
 

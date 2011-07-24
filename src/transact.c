@@ -32,6 +32,7 @@
 #include "sflib/menus.h"
 #include "sflib/icons.h"
 #include "sflib/debug.h"
+#include "sflib/string.h"
 
 /* Application header files */
 
@@ -1916,6 +1917,90 @@ void transact_write_file(file_data *file, FILE *out)
 		if (*(file->transactions[i].description) != '\0')
 			config_write_token_pair(out, "Desc", file->transactions[i].description);
 	}
+}
+
+
+/**
+ * Read transaction details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+int transact_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+{
+	int	result, block_size, i = -1;
+
+	block_size = flex_size((flex_ptr) &(file->transactions)) / sizeof(transaction);
+
+	do {
+		if (string_nocase_strcmp(token, "Entries") == 0) {
+			block_size = strtoul(value, NULL, 16);
+			if (block_size > file->trans_count) {
+				#ifdef DEBUG
+				debug_printf("Section block pre-expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->transactions), sizeof(transaction) * block_size);
+			} else {
+				block_size = file->trans_count;
+			}
+		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
+			column_init_window(file->transaction_window.column_width,
+				file->transaction_window.column_position,
+				TRANSACT_COLUMNS, value);
+		} else if (string_nocase_strcmp(token, "SortOrder") == 0){
+			file->transaction_window.sort_order = strtoul(value, NULL, 16);
+		} else if (string_nocase_strcmp(token, "@") == 0) {
+			file->trans_count++;
+			if (file->trans_count > block_size) {
+				block_size = file->trans_count;
+				#ifdef DEBUG
+				debug_printf("Section block expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->transactions), sizeof(transaction) * block_size);
+			}
+			i = file->trans_count-1;
+			file->transactions[i].date = strtoul(next_field (value, ','), NULL, 16);
+			file->transactions[i].flags = strtoul(next_field (NULL, ','), NULL, 16);
+			file->transactions[i].from = strtoul(next_field (NULL, ','), NULL, 16);
+			file->transactions[i].to = strtoul(next_field (NULL, ','), NULL, 16);
+			file->transactions[i].amount = strtoul(next_field (NULL, ','), NULL, 16);
+
+			*(file->transactions[i].reference) = '\0';
+			*(file->transactions[i].description) = '\0';
+
+			file->transactions[i].sort_index = i;
+		} else if (i != -1 && string_nocase_strcmp(token, "Ref") == 0) {
+			strcpy(file->transactions[i].reference, value);
+		} else if (i != -1 && string_nocase_strcmp(token, "Desc") == 0) {
+			strcpy(file->transactions[i].description, value);
+		} else {
+			*unknown_data = TRUE;
+		}
+
+		result = config_read_token_pair(in, token, value, section);
+	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+
+	block_size = flex_size((flex_ptr) &(file->transactions)) / sizeof(transaction);
+
+	#ifdef DEBUG
+	debug_printf("Transaction block size: %d, required: %d", block_size, file->trans_count);
+	#endif
+
+	if (block_size > file->trans_count) {
+		block_size = file->trans_count;
+		flex_extend((flex_ptr) &(file->transactions), sizeof(transaction) * block_size);
+
+		#ifdef DEBUG
+		debug_printf("Block shrunk to %d", block_size);
+		#endif
+	}
+
+	return result;
 }
 
 

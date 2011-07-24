@@ -2188,6 +2188,93 @@ void preset_write_file(file_data *file, FILE *out)
 
 
 /**
+ * Read preset details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+int preset_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+{
+	int	result, block_size, i = -1;
+
+	block_size = flex_size((flex_ptr) &(file->presets)) / sizeof(struct preset);
+
+	do {
+		if (string_nocase_strcmp(token, "Entries") == 0) {
+			block_size = strtoul (value, NULL, 16);
+			if (block_size > file->preset_count) {
+				#ifdef DEBUG
+				debug_printf("Section block pre-expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->presets), sizeof(struct preset) * block_size);
+			} else {
+				block_size = file->preset_count;
+			}
+		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
+			column_init_window(file->preset_window.column_width,
+					file->preset_window.column_position,
+					PRESET_COLUMNS, value);
+		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
+			file->preset_window.sort_order = strtoul(value, NULL, 16);
+		} else if (string_nocase_strcmp(token, "@") == 0) {
+			file->preset_count++;
+			if (file->preset_count > block_size) {
+				block_size = file->preset_count;
+				#ifdef DEBUG
+				debug_printf("Section block expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->presets), sizeof(struct preset) * block_size);
+			}
+			i = file->preset_count-1;
+			file->presets[i].action_key = strtoul(next_field (value, ','), NULL, 16);
+			file->presets[i].caret_target = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets[i].date = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets[i].flags = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets[i].from = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets[i].to = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets[i].amount = strtoul(next_field (NULL, ','), NULL, 16);
+			*(file->presets[i].name) = '\0';
+			*(file->presets[i].reference) = '\0';
+			*(file->presets[i].description) = '\0';
+			file->presets[i].sort_index = i;
+		} else if (i != -1 && string_nocase_strcmp(token, "Name") == 0) {
+			strcpy(file->presets[i].name, value);
+		} else if (i != -1 && string_nocase_strcmp(token, "Ref") == 0) {
+			strcpy(file->presets[i].reference, value);
+		} else if (i != -1 && string_nocase_strcmp(token, "Desc") == 0) {
+			strcpy(file->presets[i].description, value);
+		} else {
+			*unknown_data = TRUE;
+		}
+
+		result = config_read_token_pair(in, token, value, section);
+	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+
+	block_size = flex_size((flex_ptr) &(file->presets)) / sizeof(struct preset);
+
+	#ifdef DEBUG
+	debug_printf("Preset block size: %d, required: %d", block_size, file->preset_count);
+	#endif
+
+	if (block_size > file->preset_count) {
+		block_size = file->preset_count;
+		flex_extend((flex_ptr) &(file->presets), sizeof(struct preset) * block_size);
+
+		#ifdef DEBUG
+		debug_printf("Block shrunk to %d", block_size);
+		#endif
+	}
+
+	return result;
+}
+
+
+/**
  * Export the preset data from a file into CSV or TSV format.
  *
  * \param *file			The file to export from.

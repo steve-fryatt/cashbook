@@ -141,6 +141,20 @@ void sorder_write_file(file_data *file, FILE *f);
 
 
 /**
+ * Read standing order details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+int sorder_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+
+
+/**
  * Export the standing order data from a file into CSV or TSV format.
  *
  * \param *file			The file to export from.

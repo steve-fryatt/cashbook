@@ -1083,37 +1083,10 @@ void save_transaction_file (file_data *file, char *filename)
       }
     }
 
-    /* Output the transaction data. */
-
-    fprintf (out, "\n[Transactions]\n");
-
-    fprintf (out, "Entries: %x\n", file->trans_count);
-
-    column_write_as_text (file->transaction_window.column_width, TRANSACT_COLUMNS, buffer);
-    fprintf (out, "WinColumns: %s\n", buffer);
-
-    fprintf (out, "SortOrder: %x\n", file->transaction_window.sort_order);
-
-    for (i=0; i < file->trans_count; i++)
-    {
-      fprintf (out, "@: %x,%x,%x,%x,%x\n",
-               file->transactions[i].date, file->transactions[i].flags, file->transactions[i].from,
-               file->transactions[i].to, file->transactions[i].amount);
-      if (*(file->transactions[i].reference) != '\0')
-      {
-        config_write_token_pair (out, "Ref", file->transactions[i].reference);
-      }
-      if (*(file->transactions[i].description) != '\0')
-      {
-        config_write_token_pair (out, "Desc", file->transactions[i].description);
-      }
-    }
-
-    /* Output the standing order and preset data. */
-
-    sorder_write_file(file, out);
-    preset_write_file(file, out);
-    analysis_write_file(file, out);
+	transact_write_file(file, out);
+	sorder_write_file(file, out);
+	preset_write_file(file, out);
+	analysis_write_file(file, out);
 
     /* Close the file and set the type correctly. */
 

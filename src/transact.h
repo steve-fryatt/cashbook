@@ -121,6 +121,17 @@ void decode_transact_window_help (char *buffer, wimp_w window, wimp_i icon, os_c
 int locate_transaction_in_transact_window (file_data *file, int transaction);
 
 
+
+/**
+ * Save the transaction details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void transact_write_file(file_data *file, FILE *out);
+
+
 /**
  * Export the transaction data from a file into CSV or TSV format.
  *

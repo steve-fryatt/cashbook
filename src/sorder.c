@@ -2204,7 +2204,7 @@ static int sorder_add(file_data *file)
 {
 	int	new;
 
-	if (flex_extend((flex_ptr) &(file->sorders), sizeof(sorder) * (file->sorder_count+1)) != 1) {
+	if (flex_extend((flex_ptr) &(file->sorders), sizeof(struct sorder) * (file->sorder_count+1)) != 1) {
 		error_msgs_report_error("NoMemNewSO");
 		return NULL_SORDER;
 	}
@@ -2254,29 +2254,29 @@ osbool sorder_delete(file_data *file, int sorder)
 	/* Find the index entry for the deleted order, and if it doesn't index itself, shuffle all the indexes along
 	 * so that they remain in the correct places. */
 
-	for (i=0; i<file->sorder_count && file->sorders[i].sort_index != sorder; i++);
+	for (i = 0; i < file->sorder_count && file->sorders[i].sort_index != sorder; i++);
 
 	if (file->sorders[i].sort_index == sorder && i != sorder) {
 		index = i;
 
 		if (index > sorder)
-			for (i=index; i>sorder; i--)
+			for (i = index; i > sorder; i--)
 				file->sorders[i].sort_index = file->sorders[i-1].sort_index;
 		else
-			for (i=index; i<sorder; i++)
+			for (i = index; i < sorder; i++)
 				file->sorders[i].sort_index = file->sorders[i+1].sort_index;
 	}
 
 	/* Delete the order */
 
-	flex_midextend((flex_ptr) &(file->sorders), (sorder + 1) * sizeof(sorder), -sizeof(sorder));
+	flex_midextend((flex_ptr) &(file->sorders), (sorder + 1) * sizeof(struct sorder), -sizeof(struct sorder));
 	file->sorder_count--;
 
-	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
+	/* Adjust the sort indexes that point to entries above the deleted one, by reducing any indexes that are
 	 * greater than the deleted entry by one.
 	 */
 
-	for (i=0; i<file->sorder_count; i++)
+	for (i = 0; i < file->sorder_count; i++)
 		if (file->sorders[i].sort_index > sorder)
 			file->sorders[i].sort_index = file->sorders[i].sort_index - 1;
 

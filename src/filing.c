@@ -144,7 +144,7 @@ void load_transaction_file (char *filename)
           {
             sect_num = LOAD_SECT_SORDER;
 
-            block_size = flex_size ((flex_ptr) &(file->sorders)) / sizeof (sorder);
+            block_size = flex_size ((flex_ptr) &(file->sorders)) / sizeof(struct sorder);
 
             #ifdef DEBUG
             debug_printf ("\\rStart StandingOrders section (block size: %d)", block_size);
@@ -154,7 +154,7 @@ void load_transaction_file (char *filename)
           {
             sect_num = LOAD_SECT_PRESET;
 
-            block_size = flex_size ((flex_ptr) &(file->presets)) / sizeof (preset);
+            block_size = flex_size ((flex_ptr) &(file->presets)) / sizeof(struct preset);
 
             #ifdef DEBUG
             debug_printf ("\\rStart Presets section (block size: %d)", block_size);
@@ -484,7 +484,7 @@ void load_transaction_file (char *filename)
                 #ifdef DEBUG
                 debug_printf ("Section block pre-expand to %d", block_size);
                 #endif
-                flex_extend ((flex_ptr) &(file->sorders), sizeof (sorder) * block_size);
+                flex_extend ((flex_ptr) &(file->sorders), sizeof(struct sorder) * block_size);
               }
               else
               {
@@ -510,7 +510,7 @@ void load_transaction_file (char *filename)
                 #ifdef DEBUG
                 debug_printf ("Section block expand to %d", block_size);
                 #endif
-                flex_extend ((flex_ptr) &(file->sorders), sizeof (sorder) * block_size);
+                flex_extend ((flex_ptr) &(file->sorders), sizeof(struct sorder) * block_size);
               }
               i = file->sorder_count-1;
               file->sorders[i].start_date = strtoul (next_field (value, ','), NULL, 16);
@@ -555,7 +555,7 @@ void load_transaction_file (char *filename)
                 #ifdef DEBUG
                 debug_printf ("Section block pre-expand to %d", block_size);
                 #endif
-                flex_extend ((flex_ptr) &(file->presets), sizeof (preset) * block_size);
+                flex_extend ((flex_ptr) &(file->presets), sizeof(struct preset) * block_size);
               }
               else
               {
@@ -581,7 +581,7 @@ void load_transaction_file (char *filename)
                 #ifdef DEBUG
                 debug_printf ("Section block expand to %d", block_size);
                 #endif
-                flex_extend ((flex_ptr) &(file->presets), sizeof (preset) * block_size);
+                flex_extend ((flex_ptr) &(file->presets), sizeof(struct preset) * block_size);
               }
               i = file->preset_count-1;
               file->presets[i].action_key = strtoul (next_field (value, ','), NULL, 16);
@@ -856,7 +856,7 @@ void load_transaction_file (char *filename)
         #endif
       }
 
-      block_size = flex_size ((flex_ptr) &(file->sorders)) / sizeof (sorder);
+      block_size = flex_size ((flex_ptr) &(file->sorders)) / sizeof(struct sorder);
 
       #ifdef DEBUG
       debug_printf ("StandingOrder block size: %d, required: %d", block_size, file->sorder_count);
@@ -865,14 +865,14 @@ void load_transaction_file (char *filename)
       if (block_size > file->sorder_count)
       {
         block_size = file->sorder_count;
-        flex_extend ((flex_ptr) &(file->sorders), sizeof (sorder) * block_size);
+        flex_extend ((flex_ptr) &(file->sorders), sizeof(struct sorder) * block_size);
 
         #ifdef DEBUG
         debug_printf ("Block shrunk to %d", block_size);
         #endif
       }
 
-      block_size = flex_size ((flex_ptr) &(file->presets)) / sizeof (preset);
+      block_size = flex_size ((flex_ptr) &(file->presets)) / sizeof(struct preset);
 
       #ifdef DEBUG
       debug_printf ("Preset block size: %d, required: %d", block_size, file->preset_count);
@@ -881,7 +881,7 @@ void load_transaction_file (char *filename)
       if (block_size > file->preset_count)
       {
         block_size = file->preset_count;
-        flex_extend ((flex_ptr) &(file->presets), sizeof (preset) * block_size);
+        flex_extend ((flex_ptr) &(file->presets), sizeof(struct preset) * block_size);
 
         #ifdef DEBUG
         debug_printf ("Block shrunk to %d", block_size);

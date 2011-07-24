@@ -2031,7 +2031,7 @@ static int preset_add(file_data *file)
 	int	new;
 
 
-	if (flex_extend((flex_ptr) &(file->presets), sizeof(preset) * (file->preset_count+1)) != 1) {
+	if (flex_extend((flex_ptr) &(file->presets), sizeof(struct preset) * (file->preset_count+1)) != 1) {
 		error_msgs_report_error("NoMemNewPreset");
 		return NULL_PRESET;
  	}
@@ -2089,7 +2089,7 @@ static osbool preset_delete(file_data *file, int preset)
 
 	/* Delete the preset */
 
-	flex_midextend((flex_ptr) &(file->presets), (preset + 1) * sizeof(preset), -sizeof(preset));
+	flex_midextend((flex_ptr) &(file->presets), (preset + 1) * sizeof(struct preset), -sizeof(struct preset));
 	file->preset_count--;
 
 	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are

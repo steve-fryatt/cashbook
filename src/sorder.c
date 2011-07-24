@@ -125,6 +125,43 @@
 #define SORDER_SORT_ASCENDING 10
 #define SORDER_SORT_DESCENDING 11
 
+#define SORDER_PANE_COL_MAP "0,1,2;3,4,5;6;7;8;9"
+#define SORDER_PANE_SORT_DIR_ICON 10
+
+/**
+ * Standing order data structure -- implementation.
+ */
+
+struct sorder
+{
+	unsigned	start_date;                       /* The date on which the first order should be processed. */
+	int		number;                           /* The number of orders to be added. */
+	int		period;                           /* The period between orders. */
+	int		period_unit;                      /* The unit in which the period is measured. */
+
+	unsigned	raw_next_date;                    /* The uncorrected date for the next order, used for getting the next. */
+	unsigned	adjusted_next_date;               /* The date of the next order, taking into account months, weekends etc. */
+
+	int		left;                             /* The number of orders remaining. */
+
+	unsigned	flags;                            /* Order flags (containing transaction flags, order flags, etc). */
+
+	int		from;                             /* Order details. */
+	int		to;
+	int		normal_amount;
+	int		first_amount;
+	int		last_amount;
+	char		reference[REF_FIELD_LEN];
+	char		description[DESCRIPT_FIELD_LEN];
+
+	/* Sort index entries.
+	 *
+	 * NB - These are unconnected to the rest of the sorder data, and are in effect a separate array that is used
+	 * for handling entries in the sorder window.
+	 */
+
+	int		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
+};
 
 
 static wimp_w			sorder_edit_window = NULL;			/**< The handle of the standing order edit window.			*/
@@ -142,9 +179,6 @@ static wimp_menu		*sorder_window_menu = NULL;			/**< The Standing Order Window m
 static int			sorder_window_menu_line = -1;			/**< The line over which the Standing Order Window Menu was opened.	*/
 
 static wimp_i			sorder_substitute_sort_icon = SORDER_PANE_FROM;	/**< The icon currently obscured by the sort icon.			*/
-
-
-
 
 
 static void			sorder_close_window_handler(wimp_close *close);

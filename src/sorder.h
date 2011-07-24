@@ -8,9 +8,6 @@
 
 #include "filing.h"
 
-#define SORDER_PANE_COL_MAP "0,1,2;3,4,5;6;7;8;9"
-#define SORDER_PANE_SORT_DIR_ICON 10
-
 
 /**
  * Initialise the standing order system.

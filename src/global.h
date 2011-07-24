@@ -228,6 +228,14 @@ typedef unsigned int date_t; /* A date */
 typedef int          amt_t;  /* An amount. */
 typedef unsigned int acct_t; /* An account number. */
 
+
+/* \TODO -- These need to move into their modules once we've sorted the rest
+ *          of this mess out.
+ */
+
+struct sorder;
+
+
 /* ==================================================================================================================
  * Initial window data structures
  */
@@ -364,40 +372,6 @@ typedef struct account
 }
 account;
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Standing order data struct. */
-
-struct sorder
-{
-	unsigned	start_date;                       /* The date on which the first order should be processed. */
-	int		number;                           /* The number of orders to be added. */
-	int		period;                           /* The period between orders. */
-	int		period_unit;                      /* The unit in which the period is measured. */
-
-	unsigned	raw_next_date;                    /* The uncorrected date for the next order, used for getting the next. */
-	unsigned	adjusted_next_date;               /* The date of the next order, taking into account months, weekends etc. */
-
-	int		left;                             /* The number of orders remaining. */
-
-	unsigned	flags;                            /* Order flags (containing transaction flags, order flags, etc). */
-
-	int		from;                             /* Order details. */
-	int		to;
-	int		normal_amount;
-	int		first_amount;
-	int		last_amount;
-	char		reference[REF_FIELD_LEN];
-	char		description[DESCRIPT_FIELD_LEN];
-
-	/* Sort index entries.
-	 *
-	 * NB - These are unconnected to the rest of the sorder data, and are in effect a separate array that is used
-	 * for handling entries in the sorder window.
-	 */
-
-	int		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
-};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 

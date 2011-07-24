@@ -93,14 +93,12 @@ void sorder_sort(file_data *file);
 
 
 /**
- * Delete a standing order from a file.
+ * Purge unused standing orders from a file.
  *
- * \param *file			The file to act on.
- * \param sorder		The standing order to be deleted.
- * \return 			TRUE if successful; else FALSE.
+ * \param *file			The file to purge.
  */
 
-osbool sorder_delete(file_data *file, int sorder);
+void sorder_purge(file_data *file);
 
 
 /**

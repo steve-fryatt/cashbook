@@ -181,12 +181,7 @@ static void			sorder_open_print_window(file_data *file, wimp_pointer *ptr, osboo
 static void			sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 static int			sorder_add(file_data *file);
-
-
-
-
-
-
+static osbool			sorder_delete(file_data *file, int sorder);
 
 
 /**
@@ -2249,7 +2244,7 @@ static int sorder_add(file_data *file)
  * \return 			TRUE if successful; else FALSE.
  */
 
-osbool sorder_delete(file_data *file, int sorder)
+static osbool sorder_delete(file_data *file, int sorder)
 {
 	int	i, index;
 
@@ -2298,6 +2293,23 @@ osbool sorder_delete(file_data *file, int sorder)
 	set_file_data_integrity(file, TRUE);
 
 	return TRUE;
+}
+
+
+/**
+ * Purge unused standing orders from a file.
+ *
+ * \param *file			The file to purge.
+ */
+
+void sorder_purge(file_data *file)
+{
+	int	i;
+
+	for (i = 0; i < file->sorder_count; i++) {
+		if (file->sorders[i].adjusted_next_date == NULL_DATE && sorder_delete(file, i))
+			i--; /* Account for the record having been deleted. */
+	}
 }
 
 

@@ -1021,7 +1021,7 @@ void insert_transaction_preset_full (file_data *file, int transaction, int prese
     place_transaction_edit_line_transaction (file, transaction);
 
     icons_put_caret_at_end (file->transaction_window.transaction_window,
-                      edit_convert_preset_icon_number (file->presets[preset].caret_target));
+                      edit_convert_preset_icon_number (preset_get_caret_destination(file, preset)));
 
     if (changed)
     {
@@ -1052,101 +1052,28 @@ void insert_transaction_preset_full (file_data *file, int transaction, int prese
 
 int insert_transaction_preset (file_data *file, int transaction, int preset)
 {
-  int          changed = 0;
+	int		changed = 0;
 
+	/* Only do anything if the transaction is inside the limit of the file. */
 
-  /* Only do anything if the transaction is inside the limit of the file. */
+	/* This function is assumed to be called by code that takes care of updating the transaction record and
+	 * all the associated totals.  Normally, this would be done by wrapping the call up inside a pair of
+	 * remove_transaction_from_totals () and restore_transaction_to_totals (file, transaction).
+	 *
+	 * We call this direct from process_transaction_edit_line_entry_keys (); from elsewhere, we call it via
+	 * insert_transaction_preset_full (), which does all of the wrapping up.
+	 */
 
-  /* This function is assumed to be called by code that takes care of updating the transaction record and
-   * all the associated totals.  Normally, this would be done by wrapping the call up inside a pair of
-   * remove_transaction_from_totals () and restore_transaction_to_totals (file, transaction).
-   *
-   * We call this direct from process_transaction_edit_line_entry_keys (); from elsewhere, we call it via
-   * insert_transaction_preset_full (), which does all of the wrapping up.
-   */
+	if (transaction < file->trans_count && preset != NULL_PRESET && preset < file->preset_count)
+		changed = preset_apply(file, preset, &(file->transactions[transaction].date),
+				&(file->transactions[transaction].from),
+				&(file->transactions[transaction].to),
+				&(file->transactions[transaction].flags),
+				&(file->transactions[transaction].amount),
+				file->transactions[transaction].reference,
+				file->transactions[transaction].description);
 
-  if (transaction < file->trans_count && preset != NULL_PRESET && preset < file->preset_count)
-  {
-   /* Update the transaction, piece by piece.
-    *
-    * Start with the date.
-    */
-
-    if (file->presets[preset].flags & TRANS_TAKE_TODAY)
-    {
-      file->transactions[transaction].date = get_current_date ();
-      changed |= (1 << EDIT_ICON_DATE);
-    }
-    else
-    {
-      if (file->presets[preset].date != NULL_DATE &&
-          file->transactions[transaction].date != file->presets[preset].date)
-      {
-        file->transactions[transaction].date = file->presets[preset].date;
-        changed |= (1 << EDIT_ICON_DATE);
-      }
-    }
-
-    /* Update the From account. */
-
-    if (file->presets[preset].from != NULL_ACCOUNT)
-    {
-      file->transactions[transaction].from = file->presets[preset].from;
-
-      file->transactions[transaction].flags = (file->transactions[transaction].flags & ~TRANS_REC_FROM) |
-                                              (file->presets[preset].flags & TRANS_REC_FROM);
-      changed |= (1 << EDIT_ICON_FROM);
-    }
-
-    /* Update the To account. */
-
-    if (file->presets[preset].to != NULL_ACCOUNT)
-    {
-      file->transactions[transaction].to = file->presets[preset].to;
-
-      file->transactions[transaction].flags = (file->transactions[transaction].flags & ~TRANS_REC_TO) |
-                                              (file->presets[preset].flags & TRANS_REC_TO);
-      changed |= (1 << EDIT_ICON_TO);
-    }
-
-    /* Update the reference. */
-
-    if (file->presets[preset].flags & TRANS_TAKE_CHEQUE)
-    {
-      get_next_cheque_number (file, file->transactions[transaction].from, file->transactions[transaction].to, 1,
-                              file->transactions[transaction].reference);
-      changed |= (1 << EDIT_ICON_REF);
-    }
-    else
-    {
-      if (*(file->presets[preset].reference) != '\0' &&
-          strcmp (file->transactions[transaction].reference, file->presets[preset].reference) != 0)
-      {
-        strcpy (file->transactions[transaction].reference, file->presets[preset].reference);
-        changed |= (1 << EDIT_ICON_REF);
-      }
-    }
-
-    /* Update the amount. */
-
-    if (file->presets[preset].amount != NULL_CURRENCY &&
-        file->transactions[transaction].amount != file->presets[preset].amount)
-    {
-      file->transactions[transaction].amount = file->presets[preset].amount;
-      changed |= (1 << EDIT_ICON_AMOUNT);
-    }
-
-    /* Update the description. */
-
-    if (*(file->presets[preset].description) != '\0' &&
-        strcmp (file->transactions[transaction].description, file->presets[preset].description) != 0)
-    {
-      strcpy (file->transactions[transaction].description, file->presets[preset].description);
-      changed |= (1 << EDIT_ICON_DESCRIPT);
-    }
-  }
-
-  return (changed);
+	return changed;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -1699,7 +1626,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
         refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
         set_transaction_edit_line_shading (file);
         icons_put_caret_at_end (file->transaction_window.transaction_window,
-                          edit_convert_preset_icon_number (file->presets[preset].caret_target));
+                          edit_convert_preset_icon_number (preset_get_caret_destination(file, preset)));
 
         /* If we're auto-sorting, and the sort column has been updated as part of the preset,
          * then do an auto sort now.

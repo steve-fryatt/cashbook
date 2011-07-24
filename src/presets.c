@@ -42,6 +42,7 @@
 #include "conversion.h"
 #include "dataxfer.h"
 #include "date.h"
+#include "edit.h"
 #include "file.h"
 #include "filing.h"
 #include "ihelp.h"
@@ -2148,6 +2149,103 @@ int preset_find_from_keypress(file_data *file, char key)
 		preset = NULL_PRESET;
 
 	return preset;
+}
+
+
+/**
+ * Find the caret target for the given preset.
+ *
+ * \param *file			The file holding the preset.
+ * \param preset		The preset to check.
+ * \return			The preset's caret target.
+ */
+
+int preset_get_caret_destination(file_data *file, int preset)
+{
+	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_count)
+		return 0;
+
+	return file->presets[preset].caret_target;
+
+}
+
+
+/**
+ * Apply a preset to fields of a transaction.
+ *
+ * \param *file			The file holding the preset.
+ * \param preset		The preset to apply.
+ * \param *date			The date field to be updated.
+ * \param *from			The from field to be updated.
+ * \param *to			The to field to be updated.
+ * \param *flags		The flags field to be updated.
+ * \param *amount		The amount field to be updated.
+ * \param *reference		The reference field to be updated.
+ * \param *description		The description field to be updated.
+ * \return			Bitfield indicating which fields have changed.
+ */
+
+unsigned preset_apply(file_data *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description)
+{
+	unsigned	changed = 0;
+
+	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_count)
+		return changed;
+
+	/* Update the transaction, piece by piece.
+	 *
+	 * Start with the date.
+	 */
+
+	if (file->presets[preset].flags & TRANS_TAKE_TODAY) {
+		*date = get_current_date();
+		changed |= (1 << EDIT_ICON_DATE);
+	} else if (file->presets[preset].date != NULL_DATE && *date != file->presets[preset].date) {
+		*date = file->presets[preset].date;
+		changed |= (1 << EDIT_ICON_DATE);
+	}
+
+	/* Update the From account. */
+
+	if (file->presets[preset].from != NULL_ACCOUNT) {
+		*from = file->presets[preset].from;
+		*flags = (*flags & ~TRANS_REC_FROM) | (file->presets[preset].flags & TRANS_REC_FROM);
+		changed |= (1 << EDIT_ICON_FROM);
+	}
+
+	/* Update the To account. */
+
+	if (file->presets[preset].to != NULL_ACCOUNT) {
+		*to = file->presets[preset].to;
+		*flags = (*flags & ~TRANS_REC_TO) | (file->presets[preset].flags & TRANS_REC_TO);
+		changed |= (1 << EDIT_ICON_TO);
+	}
+
+	/* Update the reference. */
+
+	if (file->presets[preset].flags & TRANS_TAKE_CHEQUE) {
+		get_next_cheque_number(file, *from, *to, 1, reference);
+		changed |= (1 << EDIT_ICON_REF);
+	} else if (*(file->presets[preset].reference) != '\0' && strcmp(reference, file->presets[preset].reference) != 0) {
+		strcpy(reference, file->presets[preset].reference);
+		changed |= (1 << EDIT_ICON_REF);
+	}
+
+	/* Update the amount. */
+
+	if (file->presets[preset].amount != NULL_CURRENCY && *amount != file->presets[preset].amount) {
+		*amount = file->presets[preset].amount;
+		changed |= (1 << EDIT_ICON_AMOUNT);
+	}
+
+	/* Update the description. */
+
+	if (*(file->presets[preset].description) != '\0' && strcmp(description, file->presets[preset].description) != 0) {
+		strcpy(description, file->presets[preset].description);
+		changed |= (1 << EDIT_ICON_DESCRIPT);
+	}
+
+	return changed;
 }
 
 

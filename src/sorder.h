@@ -6,6 +6,7 @@
 #ifndef CASHBOOK_SORDER
 #define CASHBOOK_SORDER
 
+#include "filing.h"
 
 #define SORDER_PANE_COL_MAP "0,1,2;3,4,5;6;7;8;9"
 #define SORDER_PANE_SORT_DIR_ICON 10
@@ -129,6 +130,18 @@ void sorder_trial(file_data *file);
  */
 
 void sorder_full_report(file_data *file);
+
+
+/**
+ * Export the standing order data from a file into CSV or TSV format.
+ *
+ * \param *file			The file to export from.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
+
+void sorder_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
 
 #endif
 

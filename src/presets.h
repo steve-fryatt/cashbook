@@ -6,6 +6,7 @@
 #ifndef CASHBOOK_PRESETS
 #define CASHBOOK_PRESETS
 
+#include "filing.h"
 
 #define PRESET_PANE_COL_MAP "0;1;2,3,4;5,6,7;8;9"
 #define PRESET_PANE_SORT_DIR_ICON 10
@@ -107,6 +108,18 @@ void preset_sort(file_data *file);
  */
 
 int preset_find_from_keypress(file_data *file, char key);
+
+
+/**
+ * Export the preset data from a file into CSV or TSV format.
+ *
+ * \param *file			The file to export from.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
+
+void preset_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
 
 #endif
 

@@ -39,7 +39,9 @@
 #include "calculation.h"
 #include "file.h"
 #include "filing.h"
+#include "presets.h"
 #include "report.h"
+#include "sorder.h"
 #include "transact.h"
 
 /* ==================================================================================================================
@@ -346,19 +348,19 @@ int drag_end_save (char *filename)
       break;
 
     case SAVE_BOX_SORDERCSV:
-      export_delimited_sorder_file (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+      sorder_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_SORDERTSV:
-      export_delimited_sorder_file (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+      sorder_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_PRESETCSV:
-      export_delimited_preset_file (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+      preset_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_PRESETTSV:
-      export_delimited_preset_file (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+      preset_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_REPTEXT:
@@ -441,19 +443,19 @@ int immediate_window_save (void)
       break;
 
     case SAVE_BOX_SORDERCSV:
-      export_delimited_sorder_file (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+      sorder_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_SORDERTSV:
-      export_delimited_sorder_file (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+      sorder_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_PRESETCSV:
-      export_delimited_preset_file (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+      preset_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_PRESETTSV:
-      export_delimited_preset_file (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+      preset_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_REPTEXT:

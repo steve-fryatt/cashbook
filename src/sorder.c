@@ -17,6 +17,7 @@
 
 #include "oslib/wimp.h"
 #include "oslib/os.h"
+#include "oslib/osfile.h"
 #include "oslib/hourglass.h"
 #include "oslib/osspriteop.h"
 
@@ -47,6 +48,7 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
+#include "filing.h"
 #include "ihelp.h"
 #include "mainmenu.h"
 #include "printing.h"
@@ -2591,6 +2593,83 @@ void sorder_full_report(file_data *file)
 	/* Close the report. */
 
 	report_close(report);
+
+	hourglass_off();
+}
+
+
+/**
+ * Export the standing order data from a file into CSV or TSV format.
+ *
+ * \param *file			The file to export from.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
+
+void sorder_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
+{
+	FILE		*out;
+	int		i, t;
+	char		buffer[256];
+	sorder_window	*window;
+
+	out = fopen(filename, "w");
+
+	if (out == NULL) {
+		error_msgs_report_error("FileSaveFail");
+		return;
+	}
+
+	hourglass_on();
+
+	window = &(file->sorder_window);
+
+	/* Output the headings line, taking the text from the window icons. */
+
+	icons_copy_text(window->sorder_pane, 0, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->sorder_pane, 1, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->sorder_pane, 2, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->sorder_pane, 3, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->sorder_pane, 4, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->sorder_pane, 5, buffer);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
+
+	/* Output the standing order data as a set of delimited lines. */
+
+	for (i=0; i < file->sorder_count; i++) {
+		t = file->sorders[i].sort_index;
+
+		build_account_name_pair(file, file->sorders[t].from, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+
+		build_account_name_pair(file, file->sorders[t].to, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+
+		convert_money_to_string(file->sorders[t].normal_amount, buffer);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+
+		filing_output_delimited_field(out, file->sorders[t].description, format, 0);
+
+		if (file->sorders[t].adjusted_next_date != NULL_DATE)
+			convert_date_to_string(file->sorders[t].adjusted_next_date, buffer);
+		else
+			msgs_lookup("SOrderStopped", buffer, sizeof(buffer));
+		filing_output_delimited_field(out, buffer, format, 0);
+
+		sprintf(buffer, "%d", file->sorders[t].left);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+	}
+
+	/* Close the file and set the type correctly. */
+
+	fclose(out);
+	osfile_set_type(filename, (bits) filetype);
 
 	hourglass_off();
 }

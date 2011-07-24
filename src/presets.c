@@ -16,6 +16,7 @@
 /* OSLib header files */
 
 #include "oslib/hourglass.h"
+#include "oslib/osfile.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib header files. */
@@ -42,6 +43,7 @@
 #include "dataxfer.h"
 #include "date.h"
 #include "file.h"
+#include "filing.h"
 #include "ihelp.h"
 #include "mainmenu.h"
 #include "printing.h"
@@ -2146,5 +2148,78 @@ int preset_find_from_keypress(file_data *file, char key)
 		preset = NULL_PRESET;
 
 	return preset;
+}
+
+
+/**
+ * Export the preset data from a file into CSV or TSV format.
+ *
+ * \param *file			The file to export from.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
+
+void preset_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
+{
+	FILE			*out;
+	int			i, t;
+	char			buffer[256];
+	preset_window		*window;
+
+	out = fopen(filename, "w");
+
+	if (out == NULL) {
+		error_msgs_report_error("FileSaveFail");
+		return;
+	}
+
+	hourglass_on();
+
+	window = &(file->preset_window);
+
+	/* Output the headings line, taking the text from the window icons. */
+
+	icons_copy_text(window->preset_pane, 0, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->preset_pane, 1, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->preset_pane, 2, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->preset_pane, 3, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->preset_pane, 4, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->preset_pane, 5, buffer);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
+
+	/* Output the preset data as a set of delimited lines. */
+
+	for (i=0; i < file->preset_count; i++) {
+		t = file->presets[i].sort_index;
+
+		sprintf(buffer, "%c", file->presets[t].action_key);
+		filing_output_delimited_field(out, buffer, format, 0);
+
+		filing_output_delimited_field(out, file->presets[t].name, format, 0);
+
+		build_account_name_pair(file, file->presets[t].from, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+
+		build_account_name_pair(file, file->presets[t].to, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+
+		convert_money_to_string(file->presets[t].amount, buffer);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+
+		filing_output_delimited_field(out, file->presets[t].description, format, DELIMIT_LAST);
+	}
+
+	/* Close the file and set the type correctly. */
+
+	fclose(out);
+	osfile_set_type(filename, (bits) filetype);
+
+	hourglass_off();
 }
 

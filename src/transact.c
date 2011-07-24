@@ -1,6 +1,6 @@
 /* CashBook - transact.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -1876,3 +1876,27 @@ int locate_transaction_in_transact_window (file_data *file, int transaction)
 
   return (line);
 }
+
+
+
+/**
+ * Check the transactions in a file to see if the given account is used
+ * in any of them.
+ *
+ * \param *file			The file to check.
+ * \param account		The account to search for.
+ * \return			TRUE if the account is used; FALSE if not.
+ */
+
+osbool transact_check_account(file_data *file, int account)
+{
+	int		i;
+	osbool		found = FALSE;
+
+	for (i = 0; i < file->trans_count && !found; i++)
+		if (file->transactions[i].from == account || file->transactions[i].to == account)
+			found = TRUE;
+
+	return found;
+}
+

@@ -2674,3 +2674,25 @@ void sorder_export_delimited(file_data *file, char *filename, enum filing_delimi
 	hourglass_off();
 }
 
+
+/**
+ * Check the standing orders in a file to see if the given account is used
+ * in any of them.
+ *
+ * \param *file			The file to check.
+ * \param account		The account to search for.
+ * \return			TRUE if the account is used; FALSE if not.
+ */
+
+osbool sorder_check_account(file_data *file, int account)
+{
+	int		i;
+	osbool		found = FALSE;
+
+	for (i = 0; i < file->sorder_count && !found; i++)
+		if (file->sorders[i].from == account || file->sorders[i].to == account)
+			found = TRUE;
+
+	return found;
+}
+

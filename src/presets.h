@@ -121,5 +121,17 @@ int preset_find_from_keypress(file_data *file, char key);
 
 void preset_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
 
+
+/**
+ * Check the presets in a file to see if the given account is used
+ * in any of them.
+ *
+ * \param *file			The file to check.
+ * \param account		The account to search for.
+ * \return			TRUE if the account is used; FALSE if not.
+ */
+
+osbool preset_check_account(file_data *file, int account);
+
 #endif
 

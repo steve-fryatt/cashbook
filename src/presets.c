@@ -2223,3 +2223,25 @@ void preset_export_delimited(file_data *file, char *filename, enum filing_delimi
 	hourglass_off();
 }
 
+
+/**
+ * Check the presets in a file to see if the given account is used
+ * in any of them.
+ *
+ * \param *file			The file to check.
+ * \param account		The account to search for.
+ * \return			TRUE if the account is used; FALSE if not.
+ */
+
+osbool preset_check_account(file_data *file, int account)
+{
+	int		i;
+	osbool		found = FALSE;
+
+	for (i = 0; i < file->preset_count && !found; i++)
+		if (file->presets[i].from == account || file->presets[i].to == account)
+			found = TRUE;
+
+	return found;
+}
+

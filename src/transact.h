@@ -1,10 +1,10 @@
 /* CashBook - transact.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_TRANSACT
-#define _ACCOUNTS_TRANSACT
+#ifndef CASHBOOK_TRANSACT
+#define CASHBOOK_TRANSACT
 
 #include "oslib/wimp.h"
 
@@ -118,4 +118,17 @@ void decode_transact_window_help (char *buffer, wimp_w window, wimp_i icon, os_c
 
 int locate_transaction_in_transact_window (file_data *file, int transaction);
 
+
+/**
+ * Check the transactions in a file to see if the given account is used
+ * in any of them.
+ *
+ * \param *file			The file to check.
+ * \param account		The account to search for.
+ * \return			TRUE if the account is used; FALSE if not.
+ */
+
+osbool transact_check_account(file_data *file, int account);
+
 #endif
+

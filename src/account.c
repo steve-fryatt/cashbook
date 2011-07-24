@@ -49,6 +49,7 @@
 #include "file.h"
 #include "ihelp.h"
 #include "mainmenu.h"
+#include "presets.h"
 #include "printing.h"
 #include "report.h"
 #include "sorder.h"
@@ -1681,43 +1682,28 @@ int process_account_lookup_window (void)
 
 /* ================================================================================================================== */
 
-/* Check if an account number is used in any transactions or standing orders in a file. */
+/**
+ * Check if an account is used in anywhere in a file.
+ *
+ * \param *file			The file to check.
+ * \param account		The account to check for.
+ * \return			TRUE if the account is found; else FALSE.
+ */
 
-int account_used_in_file (file_data *file, int account)
+osbool account_used_in_file(file_data *file, int account)
 {
-  int i, found;
+	osbool		found = FALSE;
 
-  found = 0;
-  i = 0;
+	if (transact_check_account(file, account))
+		found = TRUE;
 
-  while (i<file->trans_count && !found)
-  {
-    if (file->transactions[i].from == account || file->transactions[i].to == account)
-    {
-      found = 1;
-    }
-    i++;
-  }
+	if (sorder_check_account(file, account))
+		found = TRUE;
 
-  while (i<file->sorder_count && !found)
-  {
-    if (file->sorders[i].from == account || file->sorders[i].to == account)
-    {
-      found = 1;
-    }
-    i++;
-  }
+	if (preset_check_account(file, account))
+		found = TRUE;
 
-  while (i<file->preset_count && !found)
-  {
-    if (file->presets[i].from == account || file->presets[i].to == account)
-    {
-      found = 1;
-    }
-    i++;
-  }
-
-  return (found);
+	return found;
 }
 
 /* ================================================================================================================== */

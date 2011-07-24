@@ -66,7 +66,17 @@ void export_delimited_account_file (file_data *file, int account, char *filename
 void export_delimited_sorder_file (file_data *file, char *filename, int format, int filetype);
 void export_delimited_preset_file (file_data *file, char *filename, int format, int filetype);
 
-/* Delimited string output */
+
+/**
+ * Output a text string to a file, treating it as a field in a delimited format
+ * and applying the necessary quoting as required.
+ *
+ * \param *f			The file handle to write to.
+ * \param *string		The string to write.
+ * \param format		The file format to be written.
+ * \param flags			Flags indicating addtional formatting to apply.
+ * \return			0 on success.
+ */
 
 int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_type format, enum filing_delimit_flags flags);
 

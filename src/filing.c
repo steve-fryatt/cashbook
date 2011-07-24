@@ -2038,8 +2038,17 @@ void export_delimited_preset_file (file_data *file, char *filename, int format, 
   }
 }
 
-/* ==================================================================================================================
- * Delimited string output
+
+
+/**
+ * Output a text string to a file, treating it as a field in a delimited format
+ * and applying the necessary quoting as required.
+ *
+ * \param *f			The file handle to write to.
+ * \param *string		The string to write.
+ * \param format		The file format to be written.
+ * \param flags			Flags indicating addtional formatting to apply.
+ * \return			0 on success.
  */
 
 int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_type format, enum filing_delimit_flags flags)
@@ -2050,11 +2059,11 @@ int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_typ
 	/* Decide whether to enclose in quotes. */
 
 	switch (format) {
-	case DELIMIT_TAB: /* Never quote. */
+	case DELIMIT_TAB:		/* Never quote. */
 		quote = FALSE;
 		break;
 
-	case DELIMIT_COMMA: /* Only quote if leading whitespace, trailing whitespace, or enclosed comma. */
+	case DELIMIT_COMMA:		/* Only quote if leading whitespace, trailing whitespace, or enclosed comma. */
 		if (isspace(string[0]) || isspace (string[strlen(string)-1]))
 			quote = TRUE;
 
@@ -2063,12 +2072,12 @@ int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_typ
 				quote = TRUE;
 		break;
 
-	case DELIMIT_QUOTED_COMMA: /* Always quote. */
+	case DELIMIT_QUOTED_COMMA:	/* Always quote. */
 		quote = TRUE;
 		break;
 	}
 
-	if (flags & DELIMIT_NUM) /* Exception: numbers are never quoted. */
+	if (flags & DELIMIT_NUM)	/* Exception: numbers are never quoted. */
 		quote = FALSE;
 
 	/* Output the string. */

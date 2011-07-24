@@ -2644,6 +2644,7 @@ void sorder_write_file(file_data *file, FILE *out)
 	}
 }
 
+
 /**
  * Export the standing order data from a file into CSV or TSV format.
  *

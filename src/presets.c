@@ -2152,6 +2152,42 @@ int preset_find_from_keypress(file_data *file, char key)
 
 
 /**
+ * Save the standing order details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void preset_write_file(file_data *file, FILE *out)
+{
+	int	i;
+	char	buffer[MAX_FILE_LINE_LEN];
+
+	fprintf(out, "\n[Presets]\n");
+
+	fprintf(out, "Entries: %x\n", file->preset_count);
+
+	column_write_as_text(file->preset_window.column_width, PRESET_COLUMNS, buffer);
+	fprintf(out, "WinColumns: %s\n", buffer);
+
+	fprintf(out, "SortOrder: %x\n", file->preset_window.sort_order);
+
+	for (i = 0; i < file->preset_count; i++) {
+		fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x\n",
+				file->presets[i].action_key, file->presets[i].caret_target,
+				file->presets[i].date, file->presets[i].flags,
+				file->presets[i].from, file->presets[i].to, file->presets[i].amount);
+		if (*(file->presets[i].name) != '\0')
+			config_write_token_pair(out, "Name", file->presets[i].name);
+		if (*(file->presets[i].reference) != '\0')
+			config_write_token_pair(out, "Ref", file->presets[i].reference);
+		if (*(file->presets[i].description) != '\0')
+			config_write_token_pair(out, "Desc", file->presets[i].description);
+	}
+}
+
+
+/**
  * Export the preset data from a file into CSV or TSV format.
  *
  * \param *file			The file to export from.

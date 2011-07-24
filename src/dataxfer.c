@@ -324,11 +324,11 @@ int drag_end_save (char *filename)
       break;
 
     case SAVE_BOX_CSV:
-      export_delimited_file (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+      transact_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_TSV:
-      export_delimited_file (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+      transact_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_ACCCSV:
@@ -419,11 +419,11 @@ int immediate_window_save (void)
       break;
 
     case SAVE_BOX_CSV:
-      export_delimited_file (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+      transact_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_TSV:
-      export_delimited_file (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+      transact_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_ACCCSV:

@@ -8,6 +8,8 @@
 
 #include "oslib/wimp.h"
 
+#include "filing.h"
+
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
  */
@@ -117,6 +119,18 @@ int find_transaction_window_centre (file_data *file, int account);
 void decode_transact_window_help (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_mouse_state buttons);
 
 int locate_transaction_in_transact_window (file_data *file, int transaction);
+
+
+/**
+ * Export the transaction data from a file into CSV or TSV format.
+ *
+ * \param *file			The file to export from.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
+
+void transact_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
 
 
 /**

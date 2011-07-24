@@ -1623,68 +1623,6 @@ void force_close_import_window (file_data *file)
  * Delimited file export
  */
 
-void export_delimited_file (file_data *file, char *filename, int format, int filetype)
-{
-  FILE *out;
-  int  i, t;
-  char buffer[256];
-
-  out = fopen (filename, "w");
-
-  if (out != NULL)
-  {
-    hourglass_on ();
-
-    /* Output the headings line, taking the text from the window icons. */
-
-    icons_copy_text (file->transaction_window.transaction_pane, 0, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    icons_copy_text (file->transaction_window.transaction_pane, 1, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    icons_copy_text (file->transaction_window.transaction_pane, 2, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    icons_copy_text (file->transaction_window.transaction_pane, 3, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    icons_copy_text (file->transaction_window.transaction_pane, 4, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    icons_copy_text (file->transaction_window.transaction_pane, 5, buffer);
-    filing_output_delimited_field (out, buffer, format, DELIMIT_LAST);
-
-    /* Output the transaction data as a set of delimited lines. */
-
-    for (i=0; i < file->trans_count; i++)
-    {
-      t = file->transactions[i].sort_index;
-
-      convert_date_to_string (file->transactions[t].date, buffer);
-      filing_output_delimited_field (out, buffer, format, 0);
-
-      build_account_name_pair (file, file->transactions[t].from, buffer);
-      filing_output_delimited_field (out, buffer, format, 0);
-
-      build_account_name_pair (file, file->transactions[t].to, buffer);
-      filing_output_delimited_field (out, buffer, format, 0);
-
-      filing_output_delimited_field (out, file->transactions[t].reference, format, 0);
-
-      convert_money_to_string (file->transactions[t].amount, buffer);
-      filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-
-      filing_output_delimited_field (out, file->transactions[t].description, format, DELIMIT_LAST);
-    }
-
-    /* Close the file and set the type correctly. */
-
-    fclose (out);
-    osfile_set_type (filename, (bits) filetype);
-
-    hourglass_off ();
-  }
-  else
-  {
-    error_msgs_report_error ("FileSaveFail");
-  }
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 

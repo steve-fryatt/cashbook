@@ -60,7 +60,6 @@ void force_close_import_window (file_data *file);
 
 /* Delimited file export */
 
-void export_delimited_file (file_data *file, char *filename, int format, int filetype);
 void export_delimited_accounts_file (file_data *file, int entry, char *filename, int format, int filetype);
 void export_delimited_account_file (file_data *file, int account, char *filename, int format, int filetype);
 

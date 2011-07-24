@@ -1488,7 +1488,7 @@ void export_delimited_report_file (file_data *file, report_data *report, char *f
           delimit |= DELIMIT_NUM;
         }
 
-        delimited_field_output (out, buffer, format, delimit);
+        filing_output_delimited_field(out, buffer, format, delimit);
 
         column++;
         tab++;

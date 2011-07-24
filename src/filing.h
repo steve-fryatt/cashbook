@@ -1,10 +1,10 @@
 /* CashBook - filing.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_FILING
-#define _ACCOUNTS_FILING
+#ifndef CASHBOOK_FILING
+#define CASHBOOK_FILING
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
@@ -19,19 +19,24 @@
 #define LOAD_SECT_PRESET   6
 #define LOAD_SECT_REPORT   7
 
-#define DELIMIT_TAB 1
-#define DELIMIT_COMMA 2
-#define DELIMIT_QUOTED_COMMA 3
-
-#define DELIMIT_LAST 0x01
-#define DELIMIT_NUM 0x02
-
 #define ICOMP_ICON_IMPORTED 0
 #define ICOMP_ICON_REJECTED 2
 #define ICOMP_ICON_CLOSE 5
 #define ICOMP_ICON_LOG 4
 
 #define MAX_FILE_LINE_LEN 1024
+
+enum filing_delimit_type {
+	DELIMIT_TAB,								/**< Fields delimited by tabs.							*/
+	DELIMIT_COMMA,								/**< Fields delimited by commas; text quoted when whitespace requires.		*/
+	DELIMIT_QUOTED_COMMA							/**< Fields delimited by commas; text always quoted.				*/
+};
+
+enum filing_delimit_flags {
+	DELIMIT_NONE	= 0,							/**< Flags unset.								*/
+	DELIMIT_LAST	= 0x01,							/**< Last field on the line (no delimiter follows).				*/
+	DELIMIT_NUM	= 0x02							/**< Numeric field, so no quoting required.					*/
+};
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Function prototypes.
@@ -63,7 +68,7 @@ void export_delimited_preset_file (file_data *file, char *filename, int format, 
 
 /* Delimited string output */
 
-int delimited_field_output (FILE *f, char *string, int format, int flags);
+int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_type format, enum filing_delimit_flags flags);
 
 /* String processing */
 

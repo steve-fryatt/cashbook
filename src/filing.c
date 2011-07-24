@@ -1,6 +1,6 @@
 /* CashBook - filing.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -1638,17 +1638,17 @@ void export_delimited_file (file_data *file, char *filename, int format, int fil
     /* Output the headings line, taking the text from the window icons. */
 
     icons_copy_text (file->transaction_window.transaction_pane, 0, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (file->transaction_window.transaction_pane, 1, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (file->transaction_window.transaction_pane, 2, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (file->transaction_window.transaction_pane, 3, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (file->transaction_window.transaction_pane, 4, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (file->transaction_window.transaction_pane, 5, buffer);
-    delimited_field_output (out, buffer, format, DELIMIT_LAST);
+    filing_output_delimited_field (out, buffer, format, DELIMIT_LAST);
 
     /* Output the transaction data as a set of delimited lines. */
 
@@ -1657,20 +1657,20 @@ void export_delimited_file (file_data *file, char *filename, int format, int fil
       t = file->transactions[i].sort_index;
 
       convert_date_to_string (file->transactions[t].date, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
 
       build_account_name_pair (file, file->transactions[t].from, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
 
       build_account_name_pair (file, file->transactions[t].to, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
 
-      delimited_field_output (out, file->transactions[t].reference, format, 0);
+      filing_output_delimited_field (out, file->transactions[t].reference, format, 0);
 
       convert_money_to_string (file->transactions[t].amount, buffer);
-      delimited_field_output (out, buffer, format, DELIMIT_NUM);
+      filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
 
-      delimited_field_output (out, file->transactions[t].description, format, DELIMIT_LAST);
+      filing_output_delimited_field (out, file->transactions[t].description, format, DELIMIT_LAST);
     }
 
     /* Close the file and set the type correctly. */
@@ -1706,15 +1706,15 @@ void export_delimited_accounts_file (file_data *file, int entry, char *filename,
     /* Output the headings line, taking the text from the window icons. */
 
     icons_copy_text (window->account_pane, 0, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->account_pane, 1, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->account_pane, 2, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->account_pane, 3, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->account_pane, 4, buffer);
-    delimited_field_output (out, buffer, format, DELIMIT_LAST);
+    filing_output_delimited_field (out, buffer, format, DELIMIT_LAST);
 
     /* Output the transaction data as a set of delimited lines. */
 
@@ -1723,74 +1723,74 @@ void export_delimited_accounts_file (file_data *file, int entry, char *filename,
       if (window->line_data[i].type == ACCOUNT_LINE_DATA)
       {
         build_account_name_pair (file, window->line_data[i].account, buffer);
-        delimited_field_output (out, buffer, format, 0);
+        filing_output_delimited_field (out, buffer, format, 0);
 
         switch (window->type)
         {
           case ACCOUNT_FULL:
             convert_money_to_string (file->accounts[window->line_data[i].account].statement_balance, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
             convert_money_to_string (file->accounts[window->line_data[i].account].current_balance, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
             convert_money_to_string (file->accounts[window->line_data[i].account].trial_balance, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
             convert_money_to_string (file->accounts[window->line_data[i].account].budget_balance, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
             break;
 
           case ACCOUNT_IN:
             convert_money_to_string (-file->accounts[window->line_data[i].account].future_balance, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
             convert_money_to_string (file->accounts[window->line_data[i].account].budget_amount, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
             convert_money_to_string (-file->accounts[window->line_data[i].account].budget_balance, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
             convert_money_to_string (file->accounts[window->line_data[i].account].budget_result, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
             break;
 
           case ACCOUNT_OUT:
             convert_money_to_string (file->accounts[window->line_data[i].account].future_balance, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
             convert_money_to_string (file->accounts[window->line_data[i].account].budget_amount, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
             convert_money_to_string (file->accounts[window->line_data[i].account].budget_balance, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
             convert_money_to_string (file->accounts[window->line_data[i].account].budget_result, buffer);
-            delimited_field_output (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
             break;
         }
       }
       else if (window->line_data[i].type == ACCOUNT_LINE_HEADER)
       {
-        delimited_field_output (out, window->line_data[i].heading, format, 1);
+        filing_output_delimited_field (out, window->line_data[i].heading, format, 1);
       }
       else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER)
       {
-        delimited_field_output (out, window->line_data[i].heading, format, 0);
+        filing_output_delimited_field (out, window->line_data[i].heading, format, 0);
 
         convert_money_to_string (window->line_data[i].total[0], buffer);
-        delimited_field_output (out, buffer, format, DELIMIT_NUM);
+        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
 
         convert_money_to_string (window->line_data[i].total[1], buffer);
-        delimited_field_output (out, buffer, format, DELIMIT_NUM);
+        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
 
         convert_money_to_string (window->line_data[i].total[2], buffer);
-        delimited_field_output (out, buffer, format, DELIMIT_NUM);
+        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
 
         convert_money_to_string (window->line_data[i].total[3], buffer);
-        delimited_field_output (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
       }
     }
 
     /* Output the grand total line, taking the text from the window icons. */
 
     icons_copy_text (window->account_footer, 0, buffer);
-    delimited_field_output (out, buffer, format, 0);
-    delimited_field_output (out, window->footer_icon[0], format, DELIMIT_NUM);
-    delimited_field_output (out, window->footer_icon[1], format, DELIMIT_NUM);
-    delimited_field_output (out, window->footer_icon[2], format, DELIMIT_NUM);
-    delimited_field_output (out, window->footer_icon[3], format, DELIMIT_NUM | DELIMIT_LAST);
+    filing_output_delimited_field (out, buffer, format, 0);
+    filing_output_delimited_field (out, window->footer_icon[0], format, DELIMIT_NUM);
+    filing_output_delimited_field (out, window->footer_icon[1], format, DELIMIT_NUM);
+    filing_output_delimited_field (out, window->footer_icon[2], format, DELIMIT_NUM);
+    filing_output_delimited_field (out, window->footer_icon[3], format, DELIMIT_NUM | DELIMIT_LAST);
 
     /* Close the file and set the type correctly. */
 
@@ -1827,19 +1827,19 @@ void export_delimited_account_file (file_data *file, int account, char *filename
       /* Output the headings line, taking the text from the window icons. */
 
       icons_copy_text (window->accview_pane, 0, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
       icons_copy_text (window->accview_pane, 1, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
       icons_copy_text (window->accview_pane, 2, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
       icons_copy_text (window->accview_pane, 3, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
       icons_copy_text (window->accview_pane, 4, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
       icons_copy_text (window->accview_pane, 5, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
       icons_copy_text (window->accview_pane, 6, buffer);
-      delimited_field_output (out, buffer, format, DELIMIT_LAST);
+      filing_output_delimited_field (out, buffer, format, DELIMIT_LAST);
 
       /* Output the transaction data as a set of delimited lines. */
       for (i=0; i < window->display_lines; i++)
@@ -1847,7 +1847,7 @@ void export_delimited_account_file (file_data *file, int account, char *filename
         transaction = (window->line_data)[(window->line_data)[i].sort_index].transaction;
 
         convert_date_to_string (file->transactions[transaction].date, buffer);
-        delimited_field_output (out, buffer, format, 0);
+        filing_output_delimited_field (out, buffer, format, 0);
 
         if (file->transactions[transaction].from == account)
         {
@@ -1857,27 +1857,27 @@ void export_delimited_account_file (file_data *file, int account, char *filename
         {
           build_account_name_pair (file, file->transactions[transaction].from, buffer);
         }
-        delimited_field_output (out, buffer, format, 0);
+        filing_output_delimited_field (out, buffer, format, 0);
 
-        delimited_field_output (out, file->transactions[transaction].reference, format, 0);
+        filing_output_delimited_field (out, file->transactions[transaction].reference, format, 0);
 
         if (file->transactions[transaction].from == account)
         {
           convert_money_to_string (file->transactions[transaction].amount, buffer);
-          delimited_field_output (out, buffer, format, DELIMIT_NUM);
-          delimited_field_output (out, "", format, DELIMIT_NUM);
+          filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
+          filing_output_delimited_field (out, "", format, DELIMIT_NUM);
         }
         else
         {
           convert_money_to_string (file->transactions[transaction].amount, buffer);
-          delimited_field_output (out, "", format, DELIMIT_NUM);
-          delimited_field_output (out, buffer, format, DELIMIT_NUM);
+          filing_output_delimited_field (out, "", format, DELIMIT_NUM);
+          filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
         }
 
         convert_money_to_string (window->line_data[i].balance, buffer);
-        delimited_field_output (out, buffer, format, DELIMIT_NUM);
+        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
 
-        delimited_field_output (out, file->transactions[transaction].description, format, DELIMIT_LAST);
+        filing_output_delimited_field (out, file->transactions[transaction].description, format, DELIMIT_LAST);
       }
     }
     /* Close the file and set the type correctly. */
@@ -1913,17 +1913,17 @@ void export_delimited_sorder_file (file_data *file, char *filename, int format, 
     /* Output the headings line, taking the text from the window icons. */
 
     icons_copy_text (window->sorder_pane, 0, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->sorder_pane, 1, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->sorder_pane, 2, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->sorder_pane, 3, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->sorder_pane, 4, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->sorder_pane, 5, buffer);
-    delimited_field_output (out, buffer, format, DELIMIT_LAST);
+    filing_output_delimited_field (out, buffer, format, DELIMIT_LAST);
 
     /* Output the standing order data as a set of delimited lines. */
 
@@ -1932,15 +1932,15 @@ void export_delimited_sorder_file (file_data *file, char *filename, int format, 
       t = file->sorders[i].sort_index;
 
       build_account_name_pair (file, file->sorders[t].from, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
 
       build_account_name_pair (file, file->sorders[t].to, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
 
       convert_money_to_string (file->sorders[t].normal_amount, buffer);
-      delimited_field_output (out, buffer, format, DELIMIT_NUM);
+      filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
 
-      delimited_field_output (out, file->sorders[t].description, format, 0);
+      filing_output_delimited_field (out, file->sorders[t].description, format, 0);
 
       if (file->sorders[t].adjusted_next_date != NULL_DATE)
       {
@@ -1950,10 +1950,10 @@ void export_delimited_sorder_file (file_data *file, char *filename, int format, 
       {
         msgs_lookup ("SOrderStopped", buffer, sizeof (buffer));
       }
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
 
       sprintf (buffer, "%d", file->sorders[t].left);
-      delimited_field_output (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+      filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
     }
 
     /* Close the file and set the type correctly. */
@@ -1990,17 +1990,17 @@ void export_delimited_preset_file (file_data *file, char *filename, int format, 
     /* Output the headings line, taking the text from the window icons. */
 
     icons_copy_text (window->preset_pane, 0, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->preset_pane, 1, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->preset_pane, 2, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->preset_pane, 3, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->preset_pane, 4, buffer);
-    delimited_field_output (out, buffer, format, 0);
+    filing_output_delimited_field (out, buffer, format, 0);
     icons_copy_text (window->preset_pane, 5, buffer);
-    delimited_field_output (out, buffer, format, DELIMIT_LAST);
+    filing_output_delimited_field (out, buffer, format, DELIMIT_LAST);
 
     /* Output the preset data as a set of delimited lines. */
 
@@ -2009,20 +2009,20 @@ void export_delimited_preset_file (file_data *file, char *filename, int format, 
       t = file->presets[i].sort_index;
 
       sprintf (buffer, "%c", file->presets[t].action_key);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
 
-      delimited_field_output (out, file->presets[t].name, format, 0);
+      filing_output_delimited_field (out, file->presets[t].name, format, 0);
 
       build_account_name_pair (file, file->presets[t].from, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
 
       build_account_name_pair (file, file->presets[t].to, buffer);
-      delimited_field_output (out, buffer, format, 0);
+      filing_output_delimited_field (out, buffer, format, 0);
 
       convert_money_to_string (file->presets[t].amount, buffer);
-      delimited_field_output (out, buffer, format, DELIMIT_NUM);
+      filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
 
-      delimited_field_output (out, file->presets[t].description, format, DELIMIT_LAST);
+      filing_output_delimited_field (out, file->presets[t].description, format, DELIMIT_LAST);
     }
 
     /* Close the file and set the type correctly. */
@@ -2042,71 +2042,52 @@ void export_delimited_preset_file (file_data *file, char *filename, int format, 
  * Delimited string output
  */
 
-int delimited_field_output (FILE *f, char *string, int format, int flags)
+int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_type format, enum filing_delimit_flags flags)
 {
-  int i, quote = 0;
+	int	i;
+	osbool	quote = FALSE;
 
+	/* Decide whether to enclose in quotes. */
 
-  /* Decide whether to enclose in quotes. */
+	switch (format) {
+	case DELIMIT_TAB: /* Never quote. */
+		quote = FALSE;
+		break;
 
-  switch (format)
-  {
-    case DELIMIT_TAB: /* Never quote. */
-      quote = 0;
-      break;
+	case DELIMIT_COMMA: /* Only quote if leading whitespace, trailing whitespace, or enclosed comma. */
+		if (isspace(string[0]) || isspace (string[strlen(string)-1]))
+			quote = TRUE;
 
-    case DELIMIT_COMMA: /* Only quote if leading whitespace, trailing whitespace, or enclosed comma. */
-      if (isspace (string[0]) || isspace (string[strlen (string)-1]))
-      {
-        quote = 1;
-      }
+		for (i = 0; string[i] != 0 && quote == 0; i++)
+			if (string[i] == ',')
+				quote = TRUE;
+		break;
 
-      for (i=0; string[i] != 0 && quote == 0; i++)
-      {
-        if (string[i] == ',')
-        {
-          quote = 1;
-        }
-      }
-      break;
+	case DELIMIT_QUOTED_COMMA: /* Always quote. */
+		quote = TRUE;
+		break;
+	}
 
-    case DELIMIT_QUOTED_COMMA: /* Always quote. */
-      quote = 1;
-      break;
-  }
+	if (flags & DELIMIT_NUM) /* Exception: numbers are never quoted. */
+		quote = FALSE;
 
-  if (flags & DELIMIT_NUM) /* Exception: numbers are never quoted. */
-  {
-    quote = 0;
-  }
+	/* Output the string. */
 
-  /* Output the string. */
+	if (quote)
+		fprintf(f, "\"%s\"", string);
+	else
+		fprintf(f, "%s", string);
 
-  if (quote)
-  {
-    fprintf (f, "\"%s\"", string);
-  }
-  else
-  {
-    fprintf (f, "%s", string);
-  }
+	/* Output the field separator. */
 
-  /* Output the field separator. */
+	if (flags & DELIMIT_LAST)
+		fprintf(f, "\n");
+	else if (format == DELIMIT_COMMA || format == DELIMIT_QUOTED_COMMA)
+		fprintf(f, ",");
+	else if (format == DELIMIT_TAB)
+		fprintf(f, "\t");
 
-  if (flags & DELIMIT_LAST)
-  {
-    fprintf (f, "\n");
-  }
-  else if (format == DELIMIT_COMMA || format == DELIMIT_QUOTED_COMMA)
-  {
-    fprintf (f, ",");
-  }
-  else if (format == DELIMIT_TAB)
-  {
-    fprintf (f, "\t");
-  }
-
-  return (0);
+	return 0;
 }
 
 /* ==================================================================================================================

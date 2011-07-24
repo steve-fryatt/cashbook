@@ -215,11 +215,11 @@ void open_main_menu (file_data *file, wimp_pointer *pointer)
 
   if (file->account_count == 0)
   {
-    menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = 0x8000; /* \TODO -- Ugh! */
+    menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
   }
   if (file->saved_report_count == 0)
   {
-    menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = 0x8000; /* \TODO -- Ugh! */
+    menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
   }
 
   initialise_save_boxes (file, 0, 0);
@@ -379,7 +379,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_ANALYSIS_SOREP)
     {
-      generate_full_sorder_report (main_menu_file);
+      sorder_full_report (main_menu_file);
     }
   }
 

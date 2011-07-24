@@ -40,6 +40,16 @@ void sorder_delete_window(file_data *file);
 
 
 /**
+ * Recreate the title of the Standing Order List window connected to the given
+ * file.
+ *
+ * \param *file			The file to rebuild the title for.
+ */
+
+void sorder_build_window_title(file_data *file);
+
+
+/**
  * Force a redraw of the Standing Order list window, for the given range of
  * lines.
  *
@@ -69,48 +79,56 @@ void sorder_open_edit_window(file_data *file, int sorder, wimp_pointer *ptr);
  * \param *file			The file which has closed.
  */
 
-void sorder_force_windows_closed(file_data *file)
+void sorder_force_windows_closed(file_data *file);
 
 
+/**
+ * Sort the standing orders in a given file based on that file's sort setting.
+ *
+ * \param *file			The file to sort.
+ */
+
+void sorder_sort(file_data *file);
 
 
+/**
+ * Delete a standing order from a file.
+ *
+ * \param *file			The file to act on.
+ * \param sorder		The standing order to be deleted.
+ * \return 			TRUE if successful; else FALSE.
+ */
 
-/* Sorting Standing Orders */
-
-void sort_sorder_window (file_data *file);
-
-
-
-/* Adding new standing orders */
-
-int add_sorder (file_data *file);
-int delete_sorder (file_data *file, int sorder_no);
-
-/* Editing standing orders via GUI */
-
-void open_sorder_edit_window (file_data *file, int sorder, wimp_pointer *ptr);
-void fill_sorder_edit_window (file_data *date, int sorder, int edit_mode);
-
-void refresh_sorder_edit_window ();
-
-void update_sorder_edit_account_fields (wimp_key *key);
-void open_sorder_edit_account_menu (wimp_pointer *ptr);
-void toggle_sorder_edit_reconcile_fields (wimp_pointer *ptr);
-
-int process_sorder_edit_window (void);
-int stop_sorder_from_edit_window (void);
-int delete_sorder_from_edit_window (void);
+osbool sorder_delete(file_data *file, int sorder);
 
 
-/* Standing order processing. */
+/**
+ * Scan the standing orders in a file, adding transactions for any which have
+ * fallen due.
+ *
+ * \param *file			The file to process.
+ */
 
-void process_standing_orders (file_data *file);
-void trial_standing_orders (file_data *file);
+void sorder_process(file_data *file);
 
 
-/* Report generation. */
+/**
+ * Scan the standing orders in a file, and update the traial values to reflect
+ * any pending transactions.
+ *
+ * \param *file			The file to scan.
+ */
 
-void generate_full_sorder_report (file_data *file);
+void sorder_trial(file_data *file);
+
+
+/**
+ * Generate a report detailing all of the standing orders in a file.
+ *
+ * \param *file			The file to report on.
+ */
+
+void sorder_full_report(file_data *file);
 
 #endif
 

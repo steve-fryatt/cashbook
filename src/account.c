@@ -961,7 +961,7 @@ int process_account_edit_window (void)
     return (1);
   }
 
-  trial_standing_orders (edit_account_file);
+  sorder_trial(edit_account_file);
   perform_full_recalculation (edit_account_file);
   recalculate_account_view (edit_account_file, edit_account_no, 0);
   force_transaction_window_redraw (edit_account_file, 0, edit_account_file->trans_count - 1);

@@ -144,7 +144,6 @@ static void		preset_adjust_window_columns(file_data *file, int data, wimp_i icon
 static void		preset_adjust_sort_icon(file_data *file);
 static void		preset_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
 static void		preset_set_window_extent(file_data *file);
-static void		preset_build_window_title(file_data *file);
 static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void		preset_edit_click_handler(wimp_pointer *pointer);
@@ -1141,7 +1140,7 @@ static void preset_set_window_extent(file_data *file)
  * \param *file			The file to rebuild the title for.
  */
 
-static void preset_build_window_title(file_data *file)
+void preset_build_window_title(file_data *file)
 {
 	char	name[256];
 
@@ -1487,6 +1486,8 @@ static void preset_fill_edit_window(file_data *file, int preset)
 
 /**
  * Take the contents of an updated Preset Edit window and process the data.
+ *
+ * \return			TRUE if the data was valid; FALSE otherwise.
  */
 
 static osbool preset_process_edit_window(void)
@@ -1606,6 +1607,8 @@ static osbool preset_process_edit_window(void)
 
 /**
  * Delete the preset associated with the currently open Preset Edit window.
+ *
+ * \return			TRUE if deleted; else FALSE.
  */
 
 static osbool preset_delete_from_edit_window(void)

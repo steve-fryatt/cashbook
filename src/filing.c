@@ -912,12 +912,12 @@ void load_transaction_file (char *filename)
       /* Tidy up, create the transaction window and open it up. */
 
       strcpy (file->filename, filename);
-      process_standing_orders (file);
+      sorder_process(file);
       sort_transactions (file);
       perform_full_recalculation (file);
       sort_transaction_window (file);
-      sort_sorder_window (file);
-      preset_sort (file);
+      sorder_sort(file);
+      preset_sort(file);
       create_transaction_window (file); /* The window extent is set in this action. */
     }
     else
@@ -1351,7 +1351,8 @@ void save_transaction_file (file_data *file, char *filename)
     {
       build_accview_window_title (file, i);
     }
-    build_sorder_window_title (file);
+    sorder_build_window_title(file);
+    preset_build_window_title(file);
 
     hourglass_off ();
   }
@@ -1552,10 +1553,10 @@ void import_csv_file (file_data *file, char *filename)
     set_transaction_window_extent (file);
 
     sort_transactions (file);
-    trial_standing_orders (file);
+    sorder_trial(file);
     perform_full_recalculation (file);
     rebuild_all_account_views (file);
-    set_file_data_integrity (file, 1);
+    set_file_data_integrity (file, TRUE);
 
     refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
     force_transaction_window_redraw (file, 0, file->trans_count - 1);

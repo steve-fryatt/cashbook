@@ -25,8 +25,9 @@
 #include "sflib/config.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
-#include "sflib/events.h"
+#include "sflib/event.h"
 #include "sflib/icons.h"
+#include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
 #include "sflib/windows.h"
@@ -42,6 +43,7 @@
 #include "column.h"
 #include "conversion.h"
 #include "calculation.h"
+#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
@@ -156,15 +158,15 @@ static void			sorder_adjust_window_columns(file_data *file, int data, wimp_i gro
 static void			sorder_adjust_sort_icon(file_data *file);
 static void			sorder_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
 static void			sorder_set_window_extent(file_data *file);
-static void			sorder_build_window_title(file_data *file);
 static void			sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void			sorder_edit_click_handler(wimp_pointer *pointer);
 static osbool			sorder_edit_keypress_handler(wimp_key *key);
-
-
-
-
+static void			sorder_refresh_edit_window(void);
+static void			sorder_fill_edit_window(file_data *file, int sorder, osbool edit_mode);
+static osbool			sorder_process_edit_window(void);
+static osbool			sorder_delete_from_edit_window(void);
+static osbool			sorder_stop_from_edit_window(void);
 
 static void			sorder_open_sort_window(file_data *file, wimp_pointer *ptr);
 static void			sorder_sort_click_handler(wimp_pointer *pointer);
@@ -176,6 +178,7 @@ static osbool			sorder_process_sort_window(void);
 static void			sorder_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore);
 static void			sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
+static int			sorder_add(file_data *file);
 
 
 
@@ -196,7 +199,11 @@ void sorder_initialise(osspriteop_area *sprites)
 	ihelp_add_window(sorder_edit_window, "EditSOrder", NULL);
 	event_add_window_mouse_event(sorder_edit_window, sorder_edit_click_handler);
 	event_add_window_key_event(sorder_edit_window, sorder_edit_keypress_handler);
-
+	event_add_window_icon_radio(sorder_edit_window, SORDER_EDIT_PERDAYS, TRUE);
+	event_add_window_icon_radio(sorder_edit_window, SORDER_EDIT_PERMONTHS, TRUE);
+	event_add_window_icon_radio(sorder_edit_window, SORDER_EDIT_PERYEARS, TRUE);
+	event_add_window_icon_radio(sorder_edit_window, SORDER_EDIT_SKIPFWD, TRUE);
+	event_add_window_icon_radio(sorder_edit_window, SORDER_EDIT_SKIPBACK, TRUE);
 
 	sorder_sort_window = templates_create_window("SortSOrder");
 	ihelp_add_window(sorder_sort_window, "SortSOrder", NULL);
@@ -429,7 +436,7 @@ static void sorder_window_click_handler(wimp_pointer *pointer)
 	/* Handle double-clicks, which will open an edit accout window. */
 
 	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
-		open_sorder_edit_window(file, file->sorders[line].sort_index, pointer);
+		sorder_open_edit_window(file, file->sorders[line].sort_index, pointer);
 }
 
 
@@ -466,7 +473,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case SORDER_PANE_ADDSORDER:
-			open_sorder_edit_window(file, NULL_SORDER, pointer);
+			sorder_open_edit_window(file, NULL_SORDER, pointer);
 			break;
 
 		case SORDER_PANE_SORT:
@@ -480,7 +487,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case SORDER_PANE_SORT:
-			sort_sorder_window(file);
+			sorder_sort(file);
 			break;
 		}
 	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
@@ -532,7 +539,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 
 			sorder_adjust_sort_icon(file);
 			windows_redraw(file->sorder_window.sorder_pane);
-			sort_sorder_window(file);
+			sorder_sort(file);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
 		column_start_drag(pointer, file, 0, file->sorder_window.sorder_window,
@@ -619,7 +626,7 @@ static void sorder_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 		break;
 
 	case SORDER_MENU_FULLREP:
-		generate_full_sorder_report(file);
+		sorder_full_report(file);
 		break;
 	}
 }
@@ -958,7 +965,7 @@ static void sorder_adjust_window_columns(file_data *file, int data, wimp_i group
 	wimp_window_info	window;
 
 
-	update_dragged_columns(SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), target, width,
+	update_dragged_columns(SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), group, width,
 			file->sorder_window.column_width,
 			file->sorder_window.column_position, SORDER_COLUMNS);
 
@@ -1162,7 +1169,7 @@ static void sorder_set_window_extent(file_data *file)
  * \param *file			The file to rebuild the title for.
  */
 
-static void sorder_build_window_title(file_data *file)
+void sorder_build_window_title(file_data *file)
 {
 	char	name[256];
 
@@ -1278,7 +1285,7 @@ void sorder_open_edit_window(file_data *file, int sorder, wimp_pointer *ptr)
 		msgs_lookup("EditAcctAct", icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_OK), 12);
 	}
 
-	fill_sorder_edit_window(file, sorder, edit_mode);
+	sorder_fill_edit_window(file, sorder, edit_mode);
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
@@ -1299,146 +1306,68 @@ void sorder_open_edit_window(file_data *file, int sorder, wimp_pointer *ptr)
 static void sorder_edit_click_handler(wimp_pointer *pointer)
 {
 	switch (pointer->i) {
-	case PRESET_EDIT_CANCEL:
+	case SORDER_EDIT_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(preset_edit_window);
+			close_dialogue_with_caret(sorder_edit_window);
 		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			preset_refresh_edit_window();
+			sorder_refresh_edit_window();
 		break;
 
-	case PRESET_EDIT_OK:
-		if (preset_process_edit_window() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(preset_edit_window);
+	case SORDER_EDIT_OK:
+		if (sorder_process_edit_window() && pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(sorder_edit_window);
 		break;
 
-	case PRESET_EDIT_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && preset_delete_from_edit_window())
-			close_dialogue_with_caret(preset_edit_window);
+	case SORDER_EDIT_STOP:
+		if (sorder_stop_from_edit_window() && pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(sorder_edit_window);
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			sorder_refresh_edit_window();
 		break;
 
-	case PRESET_EDIT_TODAY:
-		icons_set_group_shaded_when_on(preset_edit_window, PRESET_EDIT_TODAY, 1, PRESET_EDIT_DATE);
-		icons_replace_caret_in_window(preset_edit_window);
+	case SORDER_EDIT_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && sorder_delete_from_edit_window())
+			close_dialogue_with_caret(sorder_edit_window);
 		break;
 
-	case PRESET_EDIT_CHEQUE:
-		icons_set_group_shaded_when_on(preset_edit_window, PRESET_EDIT_CHEQUE, 1, PRESET_EDIT_REF);
-		icons_replace_caret_in_window(preset_edit_window);
+	case SORDER_EDIT_AVOID:
+		icons_set_group_shaded_when_off(sorder_edit_window, SORDER_EDIT_AVOID, 2,
+				SORDER_EDIT_SKIPFWD, SORDER_EDIT_SKIPBACK);
 		break;
 
-	case PRESET_EDIT_FMNAME:
+	case SORDER_EDIT_FIRSTSW:
+		icons_set_group_shaded_when_off(sorder_edit_window, SORDER_EDIT_FIRSTSW, 1, SORDER_EDIT_FIRST);
+		icons_replace_caret_in_window(sorder_edit_window);
+		break;
+
+	case SORDER_EDIT_LASTSW:
+		icons_set_group_shaded_when_off(sorder_edit_window, SORDER_EDIT_LASTSW, 1, SORDER_EDIT_LAST);
+		icons_replace_caret_in_window(sorder_edit_window);
+		break;
+
+	case SORDER_EDIT_FMNAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(preset_edit_file, ACCOUNT_MENU_FROM, 0,
-					preset_edit_window, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC, pointer);
+			open_account_menu(sorder_edit_file, ACCOUNT_MENU_FROM, 0,
+					sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC, pointer);
 		break;
 
-	case PRESET_EDIT_TONAME:
+	case SORDER_EDIT_TONAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(preset_edit_file, ACCOUNT_MENU_TO, 0,
-					preset_edit_window, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC, pointer);
+			open_account_menu(sorder_edit_file, ACCOUNT_MENU_TO, 0,
+					sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC, pointer);
 		break;
 
-	case PRESET_EDIT_FMREC:
+	case SORDER_EDIT_FMREC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			toggle_account_reconcile_icon(preset_edit_window, PRESET_EDIT_FMREC);
+			toggle_account_reconcile_icon(sorder_edit_window, SORDER_EDIT_FMREC);
 		break;
 
-	case PRESET_EDIT_TOREC:
+	case SORDER_EDIT_TOREC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			toggle_account_reconcile_icon(preset_edit_window, PRESET_EDIT_TOREC);
+			toggle_account_reconcile_icon(sorder_edit_window, SORDER_EDIT_TOREC);
 		break;
 	}
 }
-
-
-  /* Edit Standing Order Window. */
-
-  else if (pointer->w == windows.edit_sorder)
-  {
-    if (pointer->i == SORDER_EDIT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.edit_sorder);
-      }
-      else
-      {
-        refresh_sorder_edit_window ();
-      }
-    }
-
-    if (pointer->i == SORDER_EDIT_OK) /* 'OK' button */
-    {
-      if (!process_sorder_edit_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.edit_sorder);
-      }
-    }
-
-    if (pointer->i == SORDER_EDIT_STOP) /* Stop button */
-    {
-      result = stop_sorder_from_edit_window ();
-
-      if (!result && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.edit_sorder);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_sorder_edit_window ();
-      }
-    }
-
-    if (pointer->i == SORDER_EDIT_DELETE) /* 'Delete' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT && !delete_sorder_from_edit_window ())
-      {
-        close_dialogue_with_caret (windows.edit_sorder);
-      }
-    }
-
-    if (pointer->i == SORDER_EDIT_AVOID) /* Avoid radio icon */
-    {
-      icons_set_group_shaded_when_off (windows.edit_sorder, SORDER_EDIT_AVOID, 2,
-                                       SORDER_EDIT_SKIPFWD, SORDER_EDIT_SKIPBACK);
-    }
-
-    if (pointer->i == SORDER_EDIT_FIRSTSW) /* First amount radio icon */
-    {
-      icons_set_group_shaded_when_off (windows.edit_sorder, SORDER_EDIT_FIRSTSW, 1,
-                                       SORDER_EDIT_FIRST);
-      icons_replace_caret_in_window (windows.edit_sorder);
-    }
-
-    if (pointer->i == SORDER_EDIT_LASTSW) /* Last amount radio icon */
-    {
-      icons_set_group_shaded_when_off (windows.edit_sorder, SORDER_EDIT_LASTSW, 1,
-                                       SORDER_EDIT_LAST);
-      icons_replace_caret_in_window (windows.edit_sorder);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == SORDER_EDIT_FMNAME || pointer->i == SORDER_EDIT_TONAME))
-    {
-      open_sorder_edit_account_menu (pointer);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == SORDER_EDIT_FMREC || pointer->i == SORDER_EDIT_TOREC))
-    {
-      toggle_sorder_edit_reconcile_fields (pointer);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == SORDER_EDIT_PERDAYS || pointer->i == SORDER_EDIT_PERMONTHS ||
-         pointer->i == SORDER_EDIT_PERYEARS || pointer->i == SORDER_EDIT_SKIPFWD ||
-         pointer->i == SORDER_EDIT_SKIPBACK)) /* Radio icons */
-    {
-      icons_set_selected (windows.edit_sorder  , pointer->i, 1);
-    }
-  }
-
-
 
 
 /**
@@ -1457,85 +1386,413 @@ static osbool sorder_edit_keypress_handler(wimp_key *key)
 		break;
 
 	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(preset_edit_window);
+		close_dialogue_with_caret(sorder_edit_window);
 		break;
 
 	default:
-		if (key->i != PRESET_EDIT_FMIDENT && key->i != PRESET_EDIT_TOIDENT)
+		if (key->i != SORDER_EDIT_FMIDENT && key->i != SORDER_EDIT_TOIDENT)
 			return FALSE;
 
-		if (key->i == PRESET_EDIT_FMIDENT)
-			lookup_account_field(preset_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-					preset_edit_window, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC);
+		if (key->i == SORDER_EDIT_FMIDENT)
+			lookup_account_field(sorder_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+					sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC);
 
-		else if (key->i == PRESET_EDIT_TOIDENT)
-			lookup_account_field(preset_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-					preset_edit_window, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC);
+		else if (key->i == SORDER_EDIT_TOIDENT)
+			lookup_account_field(sorder_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+					sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC);
 		break;
 	}
 
 	return TRUE;
 }
 
-  /* Edit standing order window. */
 
-  else if (key->w == windows.edit_sorder)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_sorder_edit_window ())
-        {
-          close_dialogue_with_caret (windows.edit_sorder);
-        }
-        break;
+/**
+ * Refresh the contents of the Standing Order Edit window.
+ */
 
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.edit_sorder);
-        break;
+static void sorder_refresh_edit_window(void)
+{
+	sorder_fill_edit_window(sorder_edit_file, sorder_edit_number,
+			sorder_edit_number != NULL_SORDER &&
+			sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE);
+	icons_redraw_group(sorder_edit_window, 14,
+			SORDER_EDIT_START, SORDER_EDIT_NUMBER, SORDER_EDIT_PERIOD,
+			SORDER_EDIT_FMIDENT, SORDER_EDIT_FMREC, SORDER_EDIT_FMNAME,
+			SORDER_EDIT_TOIDENT, SORDER_EDIT_TOREC, SORDER_EDIT_TONAME,
+			SORDER_EDIT_REF, SORDER_EDIT_AMOUNT, SORDER_EDIT_FIRST, SORDER_EDIT_LAST,
+			SORDER_EDIT_DESC);
+	icons_replace_caret_in_window(sorder_edit_window);
+}
 
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
+/**
+ * Update the contents of the Standing Order Edit window to reflect the current
+ * settings of the given file and standing order.
+ *
+ * \param *file			The file to use.
+ * \param preset		The preset to display, or NULL_PRESET for none.
+ */
 
-    if (key->i == SORDER_EDIT_FMIDENT || key->i == SORDER_EDIT_TOIDENT)
-    {
-      update_sorder_edit_account_fields (key);
-    }
-  }
+static void sorder_fill_edit_window(file_data *file, int sorder, osbool edit_mode)
+{
+	if (sorder == NULL_SORDER) {
+		/* Set start date. */
+
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_START) = '\0';
+
+		/* Set number. */
+
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_NUMBER) = '\0';
+
+		/* Set period details. */
+
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_PERIOD) = '\0';
+
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERDAYS, TRUE);
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERMONTHS, FALSE);
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERYEARS, FALSE);
+
+		/* Set the ignore weekends details. */
+
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_AVOID, FALSE);
+
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_SKIPFWD, TRUE);
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_SKIPBACK, FALSE);
+
+		icons_set_shaded(sorder_edit_window, SORDER_EDIT_SKIPFWD, TRUE);
+		icons_set_shaded(sorder_edit_window, SORDER_EDIT_SKIPBACK, TRUE);
+
+		/* Fill in the from and to fields. */
+
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FMIDENT) = '\0';
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FMNAME) = '\0';
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FMREC) = '\0';
+
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_TOIDENT) = '\0';
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_TONAME) = '\0';
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_TOREC) = '\0';
+
+		/* Fill in the reference field. */
+
+		*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_REF) = '\0';
+
+		/* Fill in the amount fields. */
+
+		convert_money_to_string(0, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT));
+
+		convert_money_to_string(0, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST));
+		icons_set_shaded(sorder_edit_window, SORDER_EDIT_FIRST, TRUE);
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_FIRSTSW, FALSE);
+
+		convert_money_to_string(0, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST));
+		icons_set_shaded(sorder_edit_window, SORDER_EDIT_LAST, TRUE);
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_LASTSW, FALSE);
+
+		/* Fill in the description field. */
+
+		*icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_DESC) = '\0';
+	} else {
+		/* Set start date. */
+
+		convert_date_to_string(file->sorders[sorder].start_date,
+				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_START));
+
+		/* Set number. */
+
+		icons_printf(sorder_edit_window, SORDER_EDIT_NUMBER, "%d", file->sorders[sorder].number);
+
+		/* Set period details. */
+
+		icons_printf(sorder_edit_window, SORDER_EDIT_PERIOD, "%d", file->sorders[sorder].period);
+
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERDAYS,
+				file->sorders[sorder].period_unit == PERIOD_DAYS);
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERMONTHS,
+				file->sorders[sorder].period_unit == PERIOD_MONTHS);
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERYEARS,
+				file->sorders[sorder].period_unit == PERIOD_YEARS);
+
+		/* Set the ignore weekends details. */
+
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_AVOID,
+				(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
+				file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_SKIPFWD, !(file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_SKIPBACK, (file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+
+		icons_set_shaded(sorder_edit_window, SORDER_EDIT_SKIPFWD,
+				!(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
+				file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+
+		icons_set_shaded(sorder_edit_window, SORDER_EDIT_SKIPBACK,
+				!(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
+				file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+
+		/* Fill in the from and to fields. */
+
+		fill_account_field(file, file->sorders[sorder].from, file->sorders[sorder].flags & TRANS_REC_FROM,
+				sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC);
+
+		fill_account_field(file, file->sorders[sorder].to, file->sorders[sorder].flags & TRANS_REC_TO,
+				sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC);
+
+		/* Fill in the reference field. */
+
+		icons_strncpy(sorder_edit_window, SORDER_EDIT_REF, file->sorders[sorder].reference);
+
+		/* Fill in the amount fields. */
+
+		convert_money_to_string(file->sorders[sorder].normal_amount,
+				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT));
+
+
+		convert_money_to_string(file->sorders[sorder].first_amount,
+				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST));
+
+		icons_set_shaded(sorder_edit_window, SORDER_EDIT_FIRST,
+				(file->sorders[sorder].first_amount == file->sorders[sorder].normal_amount));
+
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_FIRSTSW,
+				(file->sorders[sorder].first_amount != file->sorders[sorder].normal_amount));
+
+		convert_money_to_string(file->sorders[sorder].last_amount,
+				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST));
+
+		icons_set_shaded(sorder_edit_window, SORDER_EDIT_LAST,
+				(file->sorders[sorder].last_amount == file->sorders[sorder].normal_amount));
+
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_LASTSW,
+				(file->sorders[sorder].last_amount != file->sorders[sorder].normal_amount));
+
+		/* Fill in the description field. */
+
+		icons_strncpy(sorder_edit_window, SORDER_EDIT_DESC, file->sorders[sorder].description);
+	}
+
+	/* Shade icons as required for the edit mode.
+	 * This assumes that none of the relevant icons get shaded for any other reason...
+	 */
+
+	icons_set_shaded(sorder_edit_window, SORDER_EDIT_START, edit_mode);
+	icons_set_shaded(sorder_edit_window, SORDER_EDIT_PERIOD, edit_mode);
+	icons_set_shaded(sorder_edit_window, SORDER_EDIT_PERDAYS, edit_mode);
+	icons_set_shaded(sorder_edit_window, SORDER_EDIT_PERMONTHS, edit_mode);
+	icons_set_shaded(sorder_edit_window, SORDER_EDIT_PERYEARS, edit_mode);
+
+	/* Detele the irrelevant action buttins for a new standing order. */
+
+	icons_set_shaded(sorder_edit_window, SORDER_EDIT_STOP, !edit_mode && sorder != NULL_SORDER);
+
+	icons_set_deleted(sorder_edit_window, SORDER_EDIT_STOP, sorder == NULL_SORDER);
+	icons_set_deleted(sorder_edit_window, SORDER_EDIT_DELETE, sorder == NULL_SORDER);
+}
+
+
+/**
+ * Take the contents of an updated Standing Order Edit window and process the
+ * data.
+ *
+ * \return			TRUE if the data was valid; FALSE otherwise.
+ */
+
+static osbool sorder_process_edit_window(void)
+{
+	int		done, new_period_unit;
+	date_t		new_start_date;
+
+	/* Extract the start date from the dialogue.  Do this first so that we can test the value;
+	 * the info isn't stored until later.
+	 */
+
+	if (icons_get_selected (sorder_edit_window, SORDER_EDIT_PERDAYS))
+		new_period_unit = PERIOD_DAYS;
+	else if (icons_get_selected (sorder_edit_window, SORDER_EDIT_PERMONTHS))
+		new_period_unit = PERIOD_MONTHS;
+	else if (icons_get_selected (sorder_edit_window, SORDER_EDIT_PERYEARS))
+		new_period_unit = PERIOD_YEARS;
+	else
+		new_period_unit = PERIOD_NONE;
+
+	/* If the period is months, 31 days are always allowed in the date conversion to allow for the longest months.
+	 * IF another period is used, the default of the number of days in the givem month is used.
+	 */
+
+	new_start_date = convert_string_to_date(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_START), NULL_DATE,
+			((new_period_unit == PERIOD_MONTHS) ? 31 : 0));
+
+	/* If the standing order doesn't exsit, create it.  If it does exist, validate any data that requires it. */
+
+	if (sorder_edit_number == NULL_SORDER) {
+		sorder_edit_number = sorder_add(sorder_edit_file);
+		sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE; /* Set to allow editing. */
+
+		done = 0;
+	} else {
+		done = sorder_edit_file->sorders[sorder_edit_number].number - sorder_edit_file->sorders[sorder_edit_number].left;
+		if (atoi(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_NUMBER)) < done &&
+				sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE) {
+			error_msgs_report_error("BadSONumber");
+			return FALSE;
+		}
+
+		if (sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE &&
+				sorder_edit_file->sorders[sorder_edit_number].start_date == new_start_date &&
+				(error_msgs_report_question("CheckSODate", "CheckSODateB") == 2))
+			return FALSE;
+	}
+
+	/* If the standing order was created OK, store the rest of the data. */
+
+	if (sorder_edit_number == NULL_SORDER)
+		return FALSE;
+
+	/* Zero the flags and reset them as required. */
+
+	sorder_edit_file->sorders[sorder_edit_number].flags = 0;
+
+	/* Get the avoid mode. */
+
+	if (icons_get_selected(sorder_edit_window, SORDER_EDIT_AVOID)) {
+		if (icons_get_selected(sorder_edit_window, SORDER_EDIT_SKIPFWD))
+			sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_SKIP_FORWARD;
+		else if (icons_get_selected(sorder_edit_window, SORDER_EDIT_SKIPBACK))
+			sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_SKIP_BACKWARD;
+	}
+
+	/* If it's a new/finished order, get the start date and period and set up the date fields. */
+
+	if (sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE) {
+		sorder_edit_file->sorders[sorder_edit_number].period_unit = new_period_unit;
+
+		sorder_edit_file->sorders[sorder_edit_number].start_date = new_start_date;
+
+		sorder_edit_file->sorders[sorder_edit_number].raw_next_date =
+				sorder_edit_file->sorders[sorder_edit_number].start_date;
+
+		sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date =
+				get_sorder_date(sorder_edit_file->sorders[sorder_edit_number].raw_next_date,
+				sorder_edit_file->sorders[sorder_edit_number].flags);
+
+		sorder_edit_file->sorders[sorder_edit_number].period =
+				atoi(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_PERIOD));
+
+		done = 0;
+	}
+
+	/* Get the number of transactions. */
+
+	sorder_edit_file->sorders[sorder_edit_number].number =
+			atoi(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_NUMBER));
+
+	sorder_edit_file->sorders[sorder_edit_number].left =
+			sorder_edit_file->sorders[sorder_edit_number].number - done;
+
+	if (sorder_edit_file->sorders[sorder_edit_number].left == 0)
+		sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
+
+	/* Get the from and to fields. */
+
+	sorder_edit_file->sorders[sorder_edit_number].from = find_account (sorder_edit_file,
+			icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
+
+	sorder_edit_file->sorders[sorder_edit_number].to = find_account (sorder_edit_file,
+			icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
+
+	if (*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FMREC) != '\0')
+		sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_REC_FROM;
+
+	if (*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_TOREC) != '\0')
+		sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_REC_TO;
+
+	/* Get the amounts. */
+
+	sorder_edit_file->sorders[sorder_edit_number].normal_amount =
+		convert_string_to_money(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT));
+
+	if (icons_get_selected(sorder_edit_window, SORDER_EDIT_FIRSTSW))
+		sorder_edit_file->sorders[sorder_edit_number].first_amount =
+				convert_string_to_money(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST));
+	else
+		sorder_edit_file->sorders[sorder_edit_number].first_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
+
+	if (icons_get_selected(sorder_edit_window, SORDER_EDIT_LASTSW))
+		sorder_edit_file->sorders[sorder_edit_number].last_amount =
+				convert_string_to_money(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST));
+	else
+		sorder_edit_file->sorders[sorder_edit_number].last_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
+
+	/* Store the reference. */
+
+	strcpy(sorder_edit_file->sorders[sorder_edit_number].reference, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_REF));
+
+	/* Store the description. */
+
+	strcpy(sorder_edit_file->sorders[sorder_edit_number].description, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_DESC));
+
+	if (config_opt_read("AutoSortSOrders"))
+		sorder_sort(sorder_edit_file);
+	else
+		sorder_force_window_redraw(sorder_edit_file, sorder_edit_number, sorder_edit_number);
+
+	set_file_data_integrity(sorder_edit_file, TRUE);
+	sorder_process(sorder_edit_file);
+	perform_full_recalculation(sorder_edit_file);
+	set_transaction_window_extent(sorder_edit_file);
+
+	return TRUE;
+}
+
+
+/**
+ * Delete the standing order associated with the currently open Standing
+ * Order Edit window.
+ *
+ * \return			TRUE if deleted; else FALSE.
+ */
+
+static osbool sorder_delete_from_edit_window(void)
+{
+	if (error_msgs_report_question("DeleteSOrder", "DeleteSOrderB") == 2)
+		return FALSE;
+
+	return sorder_delete(sorder_edit_file, sorder_edit_number);
+}
 
 
 
+/**
+ * Stop the standing order associated with the currently open Standing
+ * Order Edit window.  Set the next dates to NULL and zero the left count.
+ *
+ * \return			TRUE if stopped; else FALSE.
+ */
 
+static osbool sorder_stop_from_edit_window(void)
+{
+	if (error_msgs_report_question("StopSOrder", "StopSOrderB") == 2)
+		return FALSE;
 
+	/* Stop the order */
 
+	sorder_edit_file->sorders[sorder_edit_number].raw_next_date = NULL_DATE;
+	sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
+	sorder_edit_file->sorders[sorder_edit_number].left = 0;
 
+	/* Redraw the standing order edit window's contents. */
 
+	sorder_refresh_edit_window();
 
+	/* Update the main standing order display window. */
 
+	if (config_opt_read("AutoSortSOrders"))
+		sorder_sort(sorder_edit_file);
+	else
+		sorder_force_window_redraw(sorder_edit_file, sorder_edit_number, sorder_edit_number);
+	set_file_data_integrity(sorder_edit_file, TRUE);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	return TRUE;
+}
 
 
 /**
@@ -1674,7 +1931,7 @@ static osbool sorder_process_sort_window(void)
 
 	sorder_adjust_sort_icon(sorder_sort_file);
 	windows_redraw(sorder_sort_file->sorder_window.sorder_pane);
-	sort_sorder_window(sorder_sort_file);
+	sorder_sort(sorder_sort_file);
 
 	return TRUE;
 }
@@ -1821,1103 +2078,520 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ==================================================================================================================
- * Sorting standing orders
+/**
+ * Sort the standing orders in a given file based on that file's sort setting.
+ *
+ * \param *file			The file to sort.
  */
 
-void sort_sorder_window (file_data *file)
+void sorder_sort(file_data *file)
 {
-  int         sorted, reorder, gap, comb, temp, order;
+	int		gap, comb, temp, order;
+	osbool		sorted, reorder;
 
+	#ifdef DEBUG
+	debug_printf("Sorting standing order window");
+	#endif
 
-  #ifdef DEBUG
-  debug_printf("Sorting standing order window");
-  #endif
+	hourglass_on();
 
-  hourglass_on ();
+	/* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
+	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
+	 */
 
-  /* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
-   * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
-   */
+	gap = file->sorder_count - 1;
 
-  gap = file->sorder_count - 1;
+	order = file->sorder_window.sort_order;
 
-  order = file->sorder_window.sort_order;
+	do {
+		gap = (gap > 1) ? (gap * 10 / 13) : 1;
+		if ((file->sorder_count >= 12) && (gap == 9 || gap == 10))
+			gap = 11;
 
-  do
-  {
-    gap = (gap > 1) ? (gap * 10 / 13) : 1;
-    if ((file->sorder_count >= 12) && (gap == 9 || gap == 10))
-    {
-      gap = 11;
-    }
+		sorted = TRUE;
+		for (comb = 0; (comb + gap) < file->sorder_count; comb++) {
+			switch (order) {
+			case SORT_FROM | SORT_ASCENDING:
+				reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
+						find_account_name(file, file->sorders[file->sorders[comb].sort_index].from)) < 0);
+				break;
 
-    sorted = 1;
-    for (comb = 0; (comb + gap) < file->sorder_count; comb++)
-    {
-      switch (order)
-      {
-        case SORT_FROM | SORT_ASCENDING:
-          reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
-                     find_account_name(file, file->sorders[file->sorders[comb].sort_index].from)) < 0);
-          break;
+			case SORT_FROM | SORT_DESCENDING:
+				reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
+						find_account_name(file, file->sorders[file->sorders[comb].sort_index].from)) > 0);
+				break;
 
-        case SORT_FROM | SORT_DESCENDING:
-          reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
-                     find_account_name(file, file->sorders[file->sorders[comb].sort_index].from)) > 0);
-          break;
+			case SORT_TO | SORT_ASCENDING:
+				reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
+						find_account_name(file, file->sorders[file->sorders[comb].sort_index].to)) < 0);
+				break;
 
-        case SORT_TO | SORT_ASCENDING:
-          reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
-                     find_account_name(file, file->sorders[file->sorders[comb].sort_index].to)) < 0);
-          break;
+			case SORT_TO | SORT_DESCENDING:
+				reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
+						find_account_name(file, file->sorders[file->sorders[comb].sort_index].to)) > 0);
+				break;
 
-        case SORT_TO | SORT_DESCENDING:
-          reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
-                     find_account_name(file, file->sorders[file->sorders[comb].sort_index].to)) > 0);
-          break;
+			case SORT_AMOUNT | SORT_ASCENDING:
+				reorder = (file->sorders[file->sorders[comb+gap].sort_index].normal_amount <
+						file->sorders[file->sorders[comb].sort_index].normal_amount);
+				break;
 
-        case SORT_AMOUNT | SORT_ASCENDING:
-          reorder = (file->sorders[file->sorders[comb+gap].sort_index].normal_amount <
-                     file->sorders[file->sorders[comb].sort_index].normal_amount);
-          break;
+			case SORT_AMOUNT | SORT_DESCENDING:
+				reorder = (file->sorders[file->sorders[comb+gap].sort_index].normal_amount >
+						file->sorders[file->sorders[comb].sort_index].normal_amount);
+				break;
 
-        case SORT_AMOUNT | SORT_DESCENDING:
-          reorder = (file->sorders[file->sorders[comb+gap].sort_index].normal_amount >
-                     file->sorders[file->sorders[comb].sort_index].normal_amount);
-          break;
+			case SORT_DESCRIPTION | SORT_ASCENDING:
+				reorder = (strcmp(file->sorders[file->sorders[comb+gap].sort_index].description,
+						file->sorders[file->sorders[comb].sort_index].description) < 0);
+				break;
 
-        case SORT_DESCRIPTION | SORT_ASCENDING:
-          reorder = (strcmp(file->sorders[file->sorders[comb+gap].sort_index].description,
-                     file->sorders[file->sorders[comb].sort_index].description) < 0);
-          break;
+			case SORT_DESCRIPTION | SORT_DESCENDING:
+				reorder = (strcmp(file->sorders[file->sorders[comb+gap].sort_index].description,
+						file->sorders[file->sorders[comb].sort_index].description) > 0);
+				break;
 
-        case SORT_DESCRIPTION | SORT_DESCENDING:
-          reorder = (strcmp(file->sorders[file->sorders[comb+gap].sort_index].description,
-                     file->sorders[file->sorders[comb].sort_index].description) > 0);
-          break;
+			case SORT_NEXTDATE | SORT_ASCENDING:
+				reorder = (file->sorders[file->sorders[comb+gap].sort_index].adjusted_next_date >
+						file->sorders[file->sorders[comb].sort_index].adjusted_next_date);
+				break;
 
-        case SORT_NEXTDATE | SORT_ASCENDING:
-          reorder = (file->sorders[file->sorders[comb+gap].sort_index].adjusted_next_date >
-                     file->sorders[file->sorders[comb].sort_index].adjusted_next_date);
-          break;
+			case SORT_NEXTDATE | SORT_DESCENDING:
+				reorder = (file->sorders[file->sorders[comb+gap].sort_index].adjusted_next_date <
+						file->sorders[file->sorders[comb].sort_index].adjusted_next_date);
+				break;
 
-        case SORT_NEXTDATE | SORT_DESCENDING:
-          reorder = (file->sorders[file->sorders[comb+gap].sort_index].adjusted_next_date <
-                     file->sorders[file->sorders[comb].sort_index].adjusted_next_date);
-          break;
+			case SORT_LEFT | SORT_ASCENDING:
+				reorder = (file->sorders[file->sorders[comb+gap].sort_index].left <
+						file->sorders[file->sorders[comb].sort_index].left);
+				break;
 
-        case SORT_LEFT | SORT_ASCENDING:
-          reorder = (file->sorders[file->sorders[comb+gap].sort_index].left <
-                     file->sorders[file->sorders[comb].sort_index].left);
-          break;
+			case SORT_LEFT | SORT_DESCENDING:
+				reorder = (file->sorders[file->sorders[comb+gap].sort_index].left >
+						file->sorders[file->sorders[comb].sort_index].left);
+				break;
 
-        case SORT_LEFT | SORT_DESCENDING:
-          reorder = (file->sorders[file->sorders[comb+gap].sort_index].left >
-                     file->sorders[file->sorders[comb].sort_index].left);
-          break;
+			default:
+				reorder = FALSE;
+				break;
+			}
 
-        default:
-          reorder = 0;
-          break;
-      }
+			if (reorder) {
+				temp = file->sorders[comb+gap].sort_index;
+				file->sorders[comb+gap].sort_index = file->sorders[comb].sort_index;
+				file->sorders[comb].sort_index = temp;
 
-      if (reorder)
-      {
-        temp = file->sorders[comb+gap].sort_index;
-        file->sorders[comb+gap].sort_index = file->sorders[comb].sort_index;
-        file->sorders[comb].sort_index = temp;
+				sorted = FALSE;
+			}
+		}
+	} while (!sorted || gap != 1);
 
-        sorted = 0;
-      }
-    }
-  }
-  while (!sorted || gap != 1);
+	sorder_force_window_redraw(file, 0, file->sorder_count - 1);
 
-  sorder_force_window_redraw (file, 0, file->sorder_count - 1);
-
-  hourglass_off ();
+	hourglass_off();
 }
 
 
-/* ==================================================================================================================
- * Adding new standing orders
+/**
+ * Create a new standing order with null details.  Values are left to be set
+ * up later.
+ *
+ * \param *file			The file to add the standing order to.
+ * \return			The new standing order index, or NULL_SORDER.
  */
 
-/* Create a new standing with null details.  Values values are zeroed and left to be set up later. */
-
-int add_sorder (file_data *file)
+static int sorder_add(file_data *file)
 {
-  int new;
+	int	new;
 
+	if (flex_extend((flex_ptr) &(file->sorders), sizeof(sorder) * (file->sorder_count+1)) != 1) {
+		error_msgs_report_error("NoMemNewSO");
+		return NULL_SORDER;
+	}
 
-  if (flex_extend ((flex_ptr) &(file->sorders), sizeof (sorder) * (file->sorder_count+1)) == 1)
-  {
-    new = file->sorder_count++;
+	new = file->sorder_count++;
 
-    file->sorders[new].start_date = NULL_DATE;
-    file->sorders[new].raw_next_date = NULL_DATE;
-    file->sorders[new].adjusted_next_date = NULL_DATE;
+	file->sorders[new].start_date = NULL_DATE;
+	file->sorders[new].raw_next_date = NULL_DATE;
+	file->sorders[new].adjusted_next_date = NULL_DATE;
 
-    file->sorders[new].number = 0;
-    file->sorders[new].left = 0;
-    file->sorders[new].period = 0;
-    file->sorders[new].period_unit = 0;
+	file->sorders[new].number = 0;
+	file->sorders[new].left = 0;
+	file->sorders[new].period = 0;
+	file->sorders[new].period_unit = 0;
 
-    file->sorders[new].flags = 0;
+	file->sorders[new].flags = 0;
 
-    file->sorders[new].from = NULL_ACCOUNT;
-    file->sorders[new].to = NULL_ACCOUNT;
-    file->sorders[new].normal_amount = NULL_CURRENCY;
-    file->sorders[new].first_amount = NULL_CURRENCY;
-    file->sorders[new].last_amount = NULL_CURRENCY;
+	file->sorders[new].from = NULL_ACCOUNT;
+	file->sorders[new].to = NULL_ACCOUNT;
+	file->sorders[new].normal_amount = NULL_CURRENCY;
+	file->sorders[new].first_amount = NULL_CURRENCY;
+	file->sorders[new].last_amount = NULL_CURRENCY;
 
-    *file->sorders[new].reference = '\0';
-    *file->sorders[new].description = '\0';
+	*file->sorders[new].reference = '\0';
+	*file->sorders[new].description = '\0';
 
-    file->sorders[new].sort_index = new;
+	file->sorders[new].sort_index = new;
 
-    sorder_set_window_extent (file);
-  }
-  else
-  {
-    error_msgs_report_error ("NoMemNewSO");
-    new = NULL_SORDER;
-  }
+	sorder_set_window_extent(file);
 
-  return (new);
+	return new;
 }
 
-/* ================================================================================================================== */
 
-int delete_sorder (file_data *file, int sorder_no)
-{
-  int i, index;
-
-  /* Find the index entry for the deleted order, and if it doesn't index itself, shuffle all the indexes along
-   * so that they remain in the correct places. */
-
-  for (i=0; i<file->sorder_count && file->sorders[i].sort_index != sorder_no; i++);
-
-  if (file->sorders[i].sort_index == sorder_no && i != sorder_no)
-  {
-    index = i;
-
-    if (index > sorder_no)
-    {
-      for (i=index; i>sorder_no; i--)
-      {
-        file->sorders[i].sort_index = file->sorders[i-1].sort_index;
-      }
-    }
-    else
-    {
-      for (i=index; i<sorder_no; i++)
-      {
-        file->sorders[i].sort_index = file->sorders[i+1].sort_index;
-      }
-    }
-  }
-
-  /* Delete the order */
-
-  flex_midextend ((flex_ptr) &(file->sorders), (sorder_no + 1) * sizeof (sorder), -sizeof (sorder));
-  file->sorder_count--;
-
-  /* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
-   * greater than the deleted entry by one.
-   */
-
-  for (i=0; i<file->sorder_count; i++)
-  {
-    if (file->sorders[i].sort_index > sorder_no)
-    {
-      file->sorders[i].sort_index = file->sorders[i].sort_index - 1;
-    }
-  }
-
-  /* Update the main standing order display window. */
-
-  sorder_set_window_extent (file);
-  if (file->sorder_window.sorder_window != NULL)
-  {
-    windows_open (file->sorder_window.sorder_window);
-    if (config_opt_read ("AutoSortSOrders"))
-    {
-      sort_sorder_window (file);
-      sorder_force_window_redraw (file, file->sorder_count, file->sorder_count);
-    }
-    else
-    {
-      sorder_force_window_redraw (file, 0, file->sorder_count);
-    }
-  }
-  set_file_data_integrity (file, 1);
-
-  return (0);
-}
-
-/* ==================================================================================================================
- * Editing standing orders via GUI.
+/**
+ * Delete a standing order from a file.
+ *
+ * \param *file			The file to act on.
+ * \param sorder		The standing order to be deleted.
+ * \return 			TRUE if successful; else FALSE.
  */
 
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void refresh_sorder_edit_window (void)
+osbool sorder_delete(file_data *file, int sorder)
 {
-  extern global_windows windows;
+	int	i, index;
 
-  fill_sorder_edit_window (sorder_edit_file, sorder_edit_number,
-                           sorder_edit_number != NULL_SORDER &&
-                           sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE);
-  icons_redraw_group (sorder_edit_window, 14,
-                          SORDER_EDIT_START, SORDER_EDIT_NUMBER, SORDER_EDIT_PERIOD,
-                          SORDER_EDIT_FMIDENT, SORDER_EDIT_FMREC, SORDER_EDIT_FMNAME,
-                          SORDER_EDIT_TOIDENT, SORDER_EDIT_TOREC, SORDER_EDIT_TONAME,
-                          SORDER_EDIT_REF, SORDER_EDIT_AMOUNT, SORDER_EDIT_FIRST, SORDER_EDIT_LAST,
-                          SORDER_EDIT_DESC);
-  icons_replace_caret_in_window (sorder_edit_window);
-}
+	/* Find the index entry for the deleted order, and if it doesn't index itself, shuffle all the indexes along
+	 * so that they remain in the correct places. */
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+	for (i=0; i<file->sorder_count && file->sorders[i].sort_index != sorder; i++);
 
-void fill_sorder_edit_window (file_data *file, int sorder, int edit_mode)
-{
-  extern global_windows windows;
+	if (file->sorders[i].sort_index == sorder && i != sorder) {
+		index = i;
 
+		if (index > sorder)
+			for (i=index; i>sorder; i--)
+				file->sorders[i].sort_index = file->sorders[i-1].sort_index;
+		else
+			for (i=index; i<sorder; i++)
+				file->sorders[i].sort_index = file->sorders[i+1].sort_index;
+	}
 
-  if (sorder == NULL_SORDER)
-  {
-    /* Set start date. */
+	/* Delete the order */
 
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_START) = '\0';
+	flex_midextend((flex_ptr) &(file->sorders), (sorder + 1) * sizeof(sorder), -sizeof(sorder));
+	file->sorder_count--;
 
-    /* Set number. */
+	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
+	 * greater than the deleted entry by one.
+	 */
 
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_NUMBER) = '\0';
+	for (i=0; i<file->sorder_count; i++)
+		if (file->sorders[i].sort_index > sorder)
+			file->sorders[i].sort_index = file->sorders[i].sort_index - 1;
 
-    /* Set period details. */
+	/* Update the main standing order display window. */
 
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_PERIOD) = '\0';
+	sorder_set_window_extent(file);
+	if (file->sorder_window.sorder_window != NULL) {
+		windows_open(file->sorder_window.sorder_window);
+		if (config_opt_read("AutoSortSOrders")) {
+			sorder_sort(file);
+			sorder_force_window_redraw(file, file->sorder_count, file->sorder_count);
+		} else {
+			sorder_force_window_redraw(file, 0, file->sorder_count);
+		}
+	}
 
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_PERDAYS, 1);
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_PERMONTHS, 0);
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_PERYEARS, 0);
+	set_file_data_integrity(file, TRUE);
 
-    /* Set the ignore weekends details. */
-
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_AVOID, 0);
-
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_SKIPFWD, 1);
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_SKIPBACK, 0);
-
-    icons_set_shaded (sorder_edit_window, SORDER_EDIT_SKIPFWD, 1);
-    icons_set_shaded (sorder_edit_window, SORDER_EDIT_SKIPBACK, 1);
-
-    /* Fill in the from and to fields. */
-
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_FMIDENT) = '\0';
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_FMNAME) = '\0';
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_FMREC) = '\0';
-
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_TOIDENT) = '\0';
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_TONAME) = '\0';
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_TOREC) = '\0';
-
-    /* Fill in the reference field. */
-
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_REF) = '\0';
-
-    /* Fill in the amount fields. */
-
-    convert_money_to_string (0, icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_AMOUNT));
-
-    convert_money_to_string (0, icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_FIRST));
-    icons_set_shaded (sorder_edit_window, SORDER_EDIT_FIRST, 1);
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_FIRSTSW, 0);
-
-    convert_money_to_string (0, icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_LAST));
-    icons_set_shaded (sorder_edit_window, SORDER_EDIT_LAST, 1);
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_LASTSW, 0);
-
-    /* Fill in the description field. */
-
-    *icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_DESC) = '\0';
-  }
-  else
-  {
-    /* Set start date. */
-
-    convert_date_to_string (file->sorders[sorder].start_date,
-                            icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_START));
-
-    /* Set number. */
-
-    sprintf (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_NUMBER), "%d",
-             file->sorders[sorder].number);
-
-    /* Set period details. */
-
-    sprintf (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_PERIOD), "%d",
-             file->sorders[sorder].period);
-
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_PERDAYS,
-                       file->sorders[sorder].period_unit == PERIOD_DAYS);
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_PERMONTHS,
-                       file->sorders[sorder].period_unit == PERIOD_MONTHS);
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_PERYEARS,
-                       file->sorders[sorder].period_unit == PERIOD_YEARS);
-
-    /* Set the ignore weekends details. */
-
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_AVOID,
-                       (file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
-                        file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
-
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_SKIPFWD, !(file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_SKIPBACK, (file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
-
-    icons_set_shaded (sorder_edit_window, SORDER_EDIT_SKIPFWD,
-                     !(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
-                      file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
-
-    icons_set_shaded (sorder_edit_window, SORDER_EDIT_SKIPBACK,
-                     !(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
-                      file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
-
-    /* Fill in the from and to fields. */
-
-    fill_account_field(file, file->sorders[sorder].from, file->sorders[sorder].flags & TRANS_REC_FROM,
-                       sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC);
-
-    fill_account_field(file, file->sorders[sorder].to, file->sorders[sorder].flags & TRANS_REC_TO,
-                       sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC);
-
-    /* Fill in the reference field. */
-
-    strcpy (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_REF), file->sorders[sorder].reference);
-
-    /* Fill in the amount fields. */
-
-    convert_money_to_string (file->sorders[sorder].normal_amount,
-                             icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_AMOUNT));
-
-
-    convert_money_to_string (file->sorders[sorder].first_amount,
-                             icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_FIRST));
-
-    icons_set_shaded (sorder_edit_window, SORDER_EDIT_FIRST,
-                     (file->sorders[sorder].first_amount == file->sorders[sorder].normal_amount));
-
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_FIRSTSW,
-                       (file->sorders[sorder].first_amount != file->sorders[sorder].normal_amount));
-
-
-    convert_money_to_string (file->sorders[sorder].last_amount,
-                             icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_LAST));
-
-    icons_set_shaded (sorder_edit_window, SORDER_EDIT_LAST,
-                     (file->sorders[sorder].last_amount == file->sorders[sorder].normal_amount));
-
-    icons_set_selected (sorder_edit_window, SORDER_EDIT_LASTSW,
-                       (file->sorders[sorder].last_amount != file->sorders[sorder].normal_amount));
-
-    /* Fill in the description field. */
-
-    strcpy (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_DESC), file->sorders[sorder].description);
-  }
-
-  /* Shade icons as required for the edit mode.
-   * This assumes that none of the relevant icons get shaded for any other reason...
-   */
-
-   icons_set_shaded (sorder_edit_window, SORDER_EDIT_START, edit_mode);
-   icons_set_shaded (sorder_edit_window, SORDER_EDIT_PERIOD, edit_mode);
-   icons_set_shaded (sorder_edit_window, SORDER_EDIT_PERDAYS, edit_mode);
-   icons_set_shaded (sorder_edit_window, SORDER_EDIT_PERMONTHS, edit_mode);
-   icons_set_shaded (sorder_edit_window, SORDER_EDIT_PERYEARS, edit_mode);
-
-   /* Detele the irrelevant action buttins for a new standing order. */
-
-   icons_set_shaded (sorder_edit_window, SORDER_EDIT_STOP, !edit_mode && sorder != NULL_SORDER);
-
-   icons_set_deleted (sorder_edit_window, SORDER_EDIT_STOP, sorder == NULL_SORDER);
-   icons_set_deleted (sorder_edit_window, SORDER_EDIT_DELETE, sorder == NULL_SORDER);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Update the account name fields in the standing order edit window. */
-
-void update_sorder_edit_account_fields (wimp_key *key)
-{
-  extern global_windows windows;
-
-
-  if (key->i == SORDER_EDIT_FMIDENT)
-  {
-    lookup_account_field (sorder_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-                          sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC);
-  }
-
-  else if (key->i == SORDER_EDIT_TOIDENT)
-  {
-    lookup_account_field (sorder_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-                          sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_sorder_edit_account_menu (wimp_pointer *ptr)
-{
-  extern global_windows windows;
-
-
-  if (ptr->i == SORDER_EDIT_FMNAME)
-  {
-    open_account_menu (sorder_edit_file, ACCOUNT_MENU_FROM, 0,
-                          sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC, ptr);
-  }
-
-  else if (ptr->i == SORDER_EDIT_TONAME)
-  {
-    open_account_menu (sorder_edit_file, ACCOUNT_MENU_TO, 0,
-                          sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC, ptr);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void toggle_sorder_edit_reconcile_fields (wimp_pointer *ptr)
-{
-  extern global_windows windows;
-
-
-  if (ptr->i == SORDER_EDIT_FMREC)
-  {
-    toggle_account_reconcile_icon (sorder_edit_window, SORDER_EDIT_FMREC);
-  }
-
-  else if (ptr->i == SORDER_EDIT_TOREC)
-  {
-    toggle_account_reconcile_icon (sorder_edit_window, SORDER_EDIT_TOREC);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Take the contents of an updated edit standing order window and process the data. */
-
-int process_sorder_edit_window (void)
-{
-  int                   done, new_period_unit;
-  date_t                new_start_date;
-
-  extern global_windows windows;
-
-
-  /* Extract the start date from the dialogue.  Do this first so that we can test the value;
-   * the info isn't stored until later.
-   */
-
-  if (icons_get_selected (sorder_edit_window, SORDER_EDIT_PERDAYS))
-  {
-    new_period_unit = PERIOD_DAYS;
-  }
-  else if (icons_get_selected (sorder_edit_window, SORDER_EDIT_PERMONTHS))
-  {
-    new_period_unit = PERIOD_MONTHS;
-  }
-  else if (icons_get_selected (sorder_edit_window, SORDER_EDIT_PERYEARS))
-  {
-    new_period_unit = PERIOD_YEARS;
-  }
-  else
-  {
-    new_period_unit = PERIOD_NONE;
-  }
-
-  /* If the period is months, 31 days are always allowed in the date conversion to allow for the longest months.
-   * IF another period is used, the default of the number of days in the givem month is used.
-   */
-
-  new_start_date = convert_string_to_date (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_START), NULL_DATE,
-                                           ((new_period_unit == PERIOD_MONTHS) ? 31 : 0));
-
-  /* If the standing order doesn't exsit, create it.  If it does exist, validate any data that requires it. */
-
-  if (sorder_edit_number == NULL_SORDER)
-  {
-    sorder_edit_number = add_sorder (sorder_edit_file);
-    sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE; /* Set to allow editing. */
-
-    done = 0;
-  }
-  else
-  {
-    done = sorder_edit_file->sorders[sorder_edit_number].number - sorder_edit_file->sorders[sorder_edit_number].left;
-    if (atoi (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_NUMBER)) < done &&
-        sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE)
-    {
-      error_msgs_report_error ("BadSONumber");
-      return (1);
-    }
-
-    if (sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE &&
-        sorder_edit_file->sorders[sorder_edit_number].start_date == new_start_date)
-    {
-      if (error_msgs_report_question ("CheckSODate", "CheckSODateB") == 2)
-      {
-        return (1);
-      }
-    }
-  }
-
-  /* If the standing order was created OK, store the rest of the data. */
-
-  if (sorder_edit_number != NULL_SORDER)
-  {
-    /* Zero the flags and reset them as required. */
-
-    sorder_edit_file->sorders[sorder_edit_number].flags = 0;
-
-    /* Get the avoid mode. */
-
-    if (icons_get_selected (sorder_edit_window, SORDER_EDIT_AVOID))
-    {
-      if (icons_get_selected (sorder_edit_window, SORDER_EDIT_SKIPFWD))
-      {
-        sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_SKIP_FORWARD;
-      }
-      else if (icons_get_selected (sorder_edit_window, SORDER_EDIT_SKIPBACK))
-      {
-        sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_SKIP_BACKWARD;
-      }
-    }
-
-    /* If it's a new/finished order, get the start date and period and set up the date fields. */
-
-    if (sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE)
-    {
-      sorder_edit_file->sorders[sorder_edit_number].period_unit = new_period_unit;
-
-      sorder_edit_file->sorders[sorder_edit_number].start_date = new_start_date;
-
-      sorder_edit_file->sorders[sorder_edit_number].raw_next_date =
-                 sorder_edit_file->sorders[sorder_edit_number].start_date;
-
-      sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date =
-                 get_sorder_date (sorder_edit_file->sorders[sorder_edit_number].raw_next_date,
-                                  sorder_edit_file->sorders[sorder_edit_number].flags);
-
-      sorder_edit_file->sorders[sorder_edit_number].period =
-                 atoi (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_PERIOD));
-
-      done = 0;
-
-    }
-
-    /* Get the number of transactions. */
-
-    sorder_edit_file->sorders[sorder_edit_number].number =
-            atoi (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_NUMBER));
-
-    sorder_edit_file->sorders[sorder_edit_number].left =
-            sorder_edit_file->sorders[sorder_edit_number].number - done;
-
-    if (sorder_edit_file->sorders[sorder_edit_number].left == 0)
-    {
-      sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
-    }
-
-    /* Get the from and to fields. */
-
-    sorder_edit_file->sorders[sorder_edit_number].from =
-          find_account (sorder_edit_file,
-                        icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
-
-    sorder_edit_file->sorders[sorder_edit_number].to =
-          find_account (sorder_edit_file,
-                        icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
-
-    if (*icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_FMREC) != '\0')
-    {
-      sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_REC_FROM;
-    }
-
-    if (*icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_TOREC) != '\0')
-    {
-      sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_REC_TO;
-    }
-
-    /* Get the amounts. */
-
-    sorder_edit_file->sorders[sorder_edit_number].normal_amount =
-          convert_string_to_money (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_AMOUNT));
-
-    if (icons_get_selected (sorder_edit_window, SORDER_EDIT_FIRSTSW))
-    {
-      sorder_edit_file->sorders[sorder_edit_number].first_amount =
-            convert_string_to_money (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_FIRST));
-    }
-    else
-    {
-      sorder_edit_file->sorders[sorder_edit_number].first_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
-    }
-
-    if (icons_get_selected (sorder_edit_window, SORDER_EDIT_LASTSW))
-    {
-      sorder_edit_file->sorders[sorder_edit_number].last_amount =
-            convert_string_to_money (icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_LAST));
-    }
-    else
-    {
-      sorder_edit_file->sorders[sorder_edit_number].last_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
-    }
-
-    /* Store the reference. */
-
-    strcpy (sorder_edit_file->sorders[sorder_edit_number].reference,
-            icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_REF));
-
-    /* Store the description. */
-
-    strcpy (sorder_edit_file->sorders[sorder_edit_number].description,
-            icons_get_indirected_text_addr (sorder_edit_window, SORDER_EDIT_DESC));
-  }
-
-  if (config_opt_read ("AutoSortSOrders"))
-  {
-    sort_sorder_window (sorder_edit_file);
-  }
-  else
-  {
-    sorder_force_window_redraw (sorder_edit_file, sorder_edit_number, sorder_edit_number);
-  }
-  set_file_data_integrity (sorder_edit_file, 1);
-  process_standing_orders (sorder_edit_file);
-  perform_full_recalculation (sorder_edit_file);
-  set_transaction_window_extent (sorder_edit_file);
-
-  return (0);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Stop a standing order here and now.  Set the next dates to NULL and zero the left count. */
-
-int stop_sorder_from_edit_window (void)
-{
-  if (error_msgs_report_question ("StopSOrder", "StopSOrderB") == 2)
-  {
-    return (1);
-  }
-
-  /* Stop the order */
-
-  sorder_edit_file->sorders[sorder_edit_number].raw_next_date = NULL_DATE;
-  sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
-  sorder_edit_file->sorders[sorder_edit_number].left = 0;
-
-  /* Redraw the standing order edit window's contents. */
-
-  refresh_sorder_edit_window ();
-
-  /* Update the main standing order display window. */
-
-  if (config_opt_read ("AutoSortSOrders"))
-  {
-    sort_sorder_window (sorder_edit_file);
-  }
-  else
-  {
-    sorder_force_window_redraw (sorder_edit_file, sorder_edit_number, sorder_edit_number);
-  }
-  set_file_data_integrity (sorder_edit_file, 1);
-
-  return (0);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Delete a standing order here and now. */
-
-int delete_sorder_from_edit_window (void)
-{
-  if (error_msgs_report_question ("DeleteSOrder", "DeleteSOrderB") == 2)
-  {
-    return (1);
-  }
-
-  return (delete_sorder (sorder_edit_file, sorder_edit_number));
+	return TRUE;
 }
 
 
-
-/* ==================================================================================================================
- * Standing order processing
+/**
+ * Scan the standing orders in a file, adding transactions for any which have
+ * fallen due.
+ *
+ * \param *file			The file to process.
  */
 
-/* Called to add any outstanding standing orders to a file. */
-
-void process_standing_orders (file_data *file)
+void sorder_process(file_data *file)
 {
-  unsigned int today;
-  int          order, changed, amount;
-  char         ref[REF_FIELD_LEN], desc[DESCRIPT_FIELD_LEN];
+	unsigned int	today;
+	int		order, amount;
+	osbool		changed;
+	char		ref[REF_FIELD_LEN], desc[DESCRIPT_FIELD_LEN];
 
+	#ifdef DEBUG
+	debug_printf("\\YStanding Order processing");
+	#endif
 
-  #ifdef DEBUG
-  debug_printf ("\\YStanding Order processing");
-  #endif
+	today = get_current_date();
+	changed = FALSE;
 
-  today = get_current_date ();
-  changed = 0;
+	for (order=0; order<file->sorder_count; order++) {
+		#ifdef DEBUG
+		debug_printf ("Processing order %d...", order);
+		#endif
 
-  for (order=0; order<file->sorder_count; order++)
-  {
-    #ifdef DEBUG
-    debug_printf ("Processing order %d...", order);
-    #endif
+		/* While the next date for the standing order is today or before today, process it. */
 
-    /* While the next date for the standing order is today or before today, process it. */
+		while (file->sorders[order].adjusted_next_date!= NULL_DATE && file->sorders[order].adjusted_next_date <= today) {
+			/* Action the standing order. */
 
-    while (file->sorders[order].adjusted_next_date!= NULL_DATE && file->sorders[order].adjusted_next_date <= today)
-    {
-      /* Action the standing order. */
+			if (file->sorders[order].left == file->sorders[order].number)
+				amount = file->sorders[order].first_amount;
+			else if (file->sorders[order].left == 1)
+				amount = file->sorders[order].last_amount;
+			else
+				amount = file->sorders[order].normal_amount;
 
-      if (file->sorders[order].left == file->sorders[order].number)
-      {
-        amount = file->sorders[order].first_amount;
-      }
-      else if (file->sorders[order].left == 1)
-      {
-        amount = file->sorders[order].last_amount;
-      }
-      else
-      {
-        amount = file->sorders[order].normal_amount;
-      }
+			/* Reference and description are copied out of the block first as pointers are passed in to add_raw_transaction ()
+			 * and the act of adding the transaction will move the flex block and invalidate those pointers before they
+			 * get used.
+			 */
 
-      /* Reference and description are copied out of the block first as pointers are passed in to add_raw_transaction ()
-       * and the act of adding the transaction will move the flex block and invalidate those pointers before they
-       * get used.
-       */
+			strcpy(ref, file->sorders[order].reference);
+			strcpy(desc, file->sorders[order].description);
 
-      strcpy (ref, file->sorders[order].reference);
-      strcpy (desc, file->sorders[order].description);
+			add_raw_transaction(file, file->sorders[order].adjusted_next_date,
+					file->sorders[order].from, file->sorders[order].to,
+					file->sorders[order].flags & (TRANS_REC_FROM | TRANS_REC_TO), amount, ref, desc);
 
-      add_raw_transaction (file, file->sorders[order].adjusted_next_date,
-                           file->sorders[order].from, file->sorders[order].to,
-                           file->sorders[order].flags & (TRANS_REC_FROM | TRANS_REC_TO), amount, ref, desc);
+			#ifdef DEBUG
+			debug_printf("Adding SO, ref '%s', desc '%s'...", file->sorders[order].reference, file->sorders[order].description);
+			#endif
 
-      #ifdef DEBUG
-      debug_printf ("Adding SO, ref '%s', desc '%s'...",
-                    file->sorders[order].reference, file->sorders[order].description);
-      #endif
+			changed = TRUE;
 
-      changed = 1;
+			/* Decrement the outstanding orders. */
 
-      /* Decrement the outstanding orders. */
+			file->sorders[order].left--;
 
-      file->sorders[order].left--;
+			/* If there are outstanding orders to carry out, work out the next date and remember that. */
 
-      /* If there are outstanding orders to carry out, work out the next date and remember that. */
+			if (file->sorders[order].left > 0) {
+				file->sorders[order].raw_next_date = add_to_date(file->sorders[order].raw_next_date,
+						file->sorders[order].period_unit, file->sorders[order].period);
 
-      if (file->sorders[order].left > 0)
-      {
-        file->sorders[order].raw_next_date = add_to_date (file->sorders[order].raw_next_date,
-                                                          file->sorders[order].period_unit,
-                                                          file->sorders[order].period);
+				file->sorders[order].adjusted_next_date = get_sorder_date(file->sorders[order].raw_next_date,
+						file->sorders[order].flags);
+			} else {
+				file->sorders[order].adjusted_next_date = NULL_DATE;
+			}
 
-        file->sorders[order].adjusted_next_date = get_sorder_date (file->sorders[order].raw_next_date,
-                                                                   file->sorders[order].flags);
-      }
-      else
-      {
-        file->sorders[order].adjusted_next_date = NULL_DATE;
-      }
+			sorder_force_window_redraw(file, order, order);
+		}
+	}
 
-      sorder_force_window_redraw (file, order, order);
-    }
-  }
+	/* Update the trial values for the file. */
 
-  /* Update the trial values for the file. */
+	sorder_trial(file);
 
-  trial_standing_orders (file);
+	/* Refresh things if they have changed. */
 
-  /* Refresh things if they have changed. */
+	if (changed) {
+		set_file_data_integrity(file, TRUE);
+		file->sort_valid = 0;
 
-  if (changed)
-  {
-    set_file_data_integrity (file, 1);
-    file->sort_valid = 0;
+		if (config_opt_read("SortAfterSOrders")) {
+			sort_transaction_window(file);
+		} else {
+			force_transaction_window_redraw(file, 0, file->trans_count - 1);
+			refresh_transaction_edit_line_icons(file->transaction_window.transaction_window, -1, -1);
+		}
 
-    if (config_opt_read ("SortAfterSOrders"))
-    {
-      sort_transaction_window (file);
-    }
-    else
-    {
-      force_transaction_window_redraw (file, 0, file->trans_count - 1);
-      refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
-    }
+		if (config_opt_read("AutoSortSOrders"))
+			sorder_sort(file);
 
-    if (config_opt_read ("AutoSortSOrders"))
-    {
-      sort_sorder_window (file);
-    }
-
-    rebuild_all_account_views (file);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Called to update the standing order trial valus for a file. */
-
-void trial_standing_orders (file_data *file)
-{
-  unsigned int trial_date, raw_next_date, adjusted_next_date;
-  int          i, order, amount, left;
-
-
-  #ifdef DEBUG
-  debug_printf ("\\YStanding Order trialling");
-  #endif
-
-  /* Find the cutoff date for the trial. */
-
-  trial_date = add_to_date (get_current_date (), PERIOD_DAYS, file->budget.sorder_trial);
-
-  /* Zero the order trial values. */
-
-  for (i=0; i<file->account_count; i++)
-  {
-    file->accounts[i].sorder_trial = 0;
-  }
-
-  /* Process the standing orders. */
-
-  for (order=0; order<file->sorder_count; order++)
-  {
-    #ifdef DEBUG
-    debug_printf ("Trialling order %d...", order);
-    #endif
-
-    /* While the next date for the standing order is today or before today, process it. */
-
-    raw_next_date = file->sorders[order].raw_next_date;
-    adjusted_next_date = file->sorders[order].adjusted_next_date;
-    left = file->sorders[order].left;
-
-    while (adjusted_next_date!= NULL_DATE && adjusted_next_date <= trial_date)
-    {
-      /* Action the standing order. */
-
-      if (left == file->sorders[order].number)
-      {
-        amount = file->sorders[order].first_amount;
-      }
-      else if (file->sorders[order].left == 1)
-      {
-        amount = file->sorders[order].last_amount;
-      }
-      else
-      {
-        amount = file->sorders[order].normal_amount;
-      }
-
-
-      #ifdef DEBUG
-      debug_printf ("Adding trial SO, ref '%s', desc '%s'...",
-                    file->sorders[order].reference, file->sorders[order].description);
-      #endif
-
-      if (file->sorders[order].from != NULL_ACCOUNT)
-      {
-        file->accounts[file->sorders[order].from].sorder_trial -= amount;
-      }
-
-      if (file->sorders[order].to != NULL_ACCOUNT)
-      {
-        file->accounts[file->sorders[order].to].sorder_trial += amount;
-      }
-
-      /* Decrement the outstanding orders. */
-
-      left--;
-
-      /* If there are outstanding orders to carry out, work out the next date and remember that. */
-
-      if (left > 0)
-      {
-        raw_next_date = add_to_date (raw_next_date, file->sorders[order].period_unit, file->sorders[order].period);
-
-        adjusted_next_date = get_sorder_date (raw_next_date, file->sorders[order].flags);
-      }
-      else
-      {
-        adjusted_next_date = NULL_DATE;
-      }
-    }
-  }
+		rebuild_all_account_views(file);
+	}
 }
 
 
-/* ==================================================================================================================
- * Report generation
+/**
+ * Scan the standing orders in a file, and update the traial values to reflect
+ * any pending transactions.
+ *
+ * \param *file			The file to scan.
  */
 
-void generate_full_sorder_report (file_data *file)
+void sorder_trial(file_data *file)
 {
-  report_data    *report;
-  int            i;
-  char           line[1024], buffer[256], numbuf1[256], numbuf2[32], numbuf3[32];
+	unsigned int	trial_date, raw_next_date, adjusted_next_date;
+	int		i, order, amount, left;
 
-  msgs_lookup ("SORWinT", buffer, sizeof (buffer));
-  report = report_open (file, buffer, NULL);
+	#ifdef DEBUG
+	debug_printf("\\YStanding Order trialling");
+	#endif
 
-  if (report != NULL)
-  {
-    hourglass_on ();
+	/* Find the cutoff date for the trial. */
 
-    make_file_leafname (file, numbuf1, sizeof (numbuf1));
-    msgs_param_lookup ("SORTitle", line, sizeof (line), numbuf1, NULL, NULL, NULL);
-    report_write_line (report, 0, line);
+	trial_date = add_to_date(get_current_date(), PERIOD_DAYS, file->budget.sorder_trial);
 
-    convert_date_to_string (get_current_date (), numbuf1);
-    msgs_param_lookup ("SORHeader", line, sizeof (line), numbuf1, NULL, NULL, NULL);
-    report_write_line (report, 0, line);
+	/* Zero the order trial values. */
 
-    sprintf (numbuf1, "%d", file->sorder_count);
-    msgs_param_lookup ("SORCount", line, sizeof (line), numbuf1, NULL, NULL, NULL);
-    report_write_line (report, 0, line);
+	for (i=0; i<file->account_count; i++)
+		file->accounts[i].sorder_trial = 0;
 
-    /* Output the data for each of the standing orders in turn. */
+	/* Process the standing orders. */
 
-    for (i=0; i < file->sorder_count; i++)
-    {
-      report_write_line (report, 0, ""); /* Separate each entry with a blank line. */
+	for (order=0; order<file->sorder_count; order++) {
+		#ifdef DEBUG
+		debug_printf("Trialling order %d...", order);
+		#endif
 
-      sprintf (numbuf1, "%d", i+1);
-      msgs_param_lookup ("SORNumber", line, sizeof (line), numbuf1, NULL, NULL, NULL);
-      report_write_line (report, 0, line);
+		/* While the next date for the standing order is today or before today, process it. */
 
-      msgs_param_lookup ("SORFrom", line, sizeof (line), find_account_name (file, file->sorders[i].from),
-                         NULL, NULL, NULL);
-      report_write_line (report, 0, line);
+		raw_next_date = file->sorders[order].raw_next_date;
+		adjusted_next_date = file->sorders[order].adjusted_next_date;
+		left = file->sorders[order].left;
 
-      msgs_param_lookup ("SORTo", line, sizeof (line), find_account_name (file, file->sorders[i].to),
-                         NULL, NULL, NULL);
-      report_write_line (report, 0, line);
+		while (adjusted_next_date!= NULL_DATE && adjusted_next_date <= trial_date) {
+			/* Action the standing order. */
 
-      msgs_param_lookup ("SORRef", line, sizeof (line), file->sorders[i].reference, NULL, NULL, NULL);
-      report_write_line (report, 0, line);
+			if (left == file->sorders[order].number)
+				amount = file->sorders[order].first_amount;
+			else if (file->sorders[order].left == 1)
+				amount = file->sorders[order].last_amount;
+			else
+				amount = file->sorders[order].normal_amount;
 
-      convert_money_to_string (file->sorders[i].normal_amount, numbuf1);
-      msgs_param_lookup ("SORAmount", line, sizeof (line), numbuf1, NULL, NULL, NULL);
-      report_write_line (report, 0, line);
+			#ifdef DEBUG
+			debug_printf("Adding trial SO, ref '%s', desc '%s'...", file->sorders[order].reference, file->sorders[order].description);
+			#endif
 
-      if (file->sorders[i].normal_amount != file->sorders[i].first_amount)
-      {
-        convert_money_to_string (file->sorders[i].first_amount, numbuf1);
-        msgs_param_lookup ("SORFirst", line, sizeof (line), numbuf1, NULL, NULL, NULL);
-        report_write_line (report, 0, line);
-      }
+			if (file->sorders[order].from != NULL_ACCOUNT)
+				file->accounts[file->sorders[order].from].sorder_trial -= amount;
 
-      if (file->sorders[i].normal_amount != file->sorders[i].last_amount)
-      {
-        convert_money_to_string (file->sorders[i].last_amount, numbuf1);
-        msgs_param_lookup ("SORFirst", line, sizeof (line), numbuf1, NULL, NULL, NULL);
-        report_write_line (report, 0, line);
-      }
+			if (file->sorders[order].to != NULL_ACCOUNT)
+				file->accounts[file->sorders[order].to].sorder_trial += amount;
 
-      msgs_param_lookup ("SORDesc", line, sizeof (line), file->sorders[i].description, NULL, NULL, NULL);
-      report_write_line (report, 0, line);
+			/* Decrement the outstanding orders. */
 
-      sprintf (numbuf1, "%d", file->sorders[i].number);
-      sprintf (numbuf2, "%d", file->sorders[i].number - file->sorders[i].left);
-      sprintf (numbuf3, "%d", file->sorders[i].left);
-      msgs_param_lookup ("SORCounts", line, sizeof (line), numbuf1, numbuf2, numbuf3, NULL);
-      report_write_line (report, 0, line);
+			left--;
 
-      convert_date_to_string (file->sorders[i].start_date, numbuf1);
-      msgs_param_lookup ("SORStart", line, sizeof (line), numbuf1, NULL, NULL, NULL);
-      report_write_line (report, 0, line);
+			/* If there are outstanding orders to carry out, work out the next date and remember that. */
 
-      sprintf (numbuf1, "%d", file->sorders[i].period);
-      *numbuf2 = '\0';
-      switch (file->sorders[i].period_unit)
-      {
-        case PERIOD_DAYS:
-          msgs_lookup ("SOrderDays", numbuf2, sizeof (numbuf2));
-          break;
-
-        case PERIOD_MONTHS:
-          msgs_lookup ("SOrderMonths", numbuf2, sizeof (numbuf2));
-          break;
-
-        case PERIOD_YEARS:
-          msgs_lookup ("SOrderYears", numbuf2, sizeof (numbuf2));
-          break;
-      }
-      msgs_param_lookup ("SOREvery", line, sizeof (line), numbuf1, numbuf2, NULL, NULL);
-      report_write_line (report, 0, line);
-
-      if (file->sorders[i].flags & TRANS_SKIP_FORWARD)
-      {
-        msgs_lookup ("SORAvoidFwd", line, sizeof (line));
-        report_write_line (report, 0, line);
-      }
-      else if (file->sorders[i].flags & TRANS_SKIP_BACKWARD)
-      {
-        msgs_lookup ("SORAvoidBack", line, sizeof (line));
-        report_write_line (report, 0, line);
-      }
-
-      if (file->sorders[i].adjusted_next_date != NULL_DATE)
-      {
-        convert_date_to_string (file->sorders[i].adjusted_next_date, numbuf1);
-      }
-      else
-      {
-        msgs_lookup ("SOrderStopped", numbuf1, sizeof (numbuf1));
-      }
-      msgs_param_lookup ("SORNext", line, sizeof (line), numbuf1, NULL, NULL, NULL);
-      report_write_line (report, 0, line);
-    }
-
-    /* Close the report. */
-
-    report_close(report);
-
-    hourglass_off ();
-  }
+			if (left > 0) {
+				raw_next_date = add_to_date(raw_next_date, file->sorders[order].period_unit, file->sorders[order].period);
+				adjusted_next_date = get_sorder_date(raw_next_date, file->sorders[order].flags);
+			} else {
+				adjusted_next_date = NULL_DATE;
+			}
+		}
+	}
 }
 
 
+/**
+ * Generate a report detailing all of the standing orders in a file.
+ *
+ * \param *file			The file to report on.
+ */
 
+void sorder_full_report(file_data *file)
+{
+	report_data	*report;
+	int		i;
+	char		line[1024], buffer[256], numbuf1[256], numbuf2[32], numbuf3[32];
+
+	msgs_lookup("SORWinT", buffer, sizeof(buffer));
+	report = report_open(file, buffer, NULL);
+
+	if (report == NULL)
+		return;
+
+	hourglass_on();
+
+	make_file_leafname(file, numbuf1, sizeof(numbuf1));
+	msgs_param_lookup("SORTitle", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+	report_write_line(report, 0, line);
+
+	convert_date_to_string (get_current_date(), numbuf1);
+	msgs_param_lookup("SORHeader", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+	report_write_line(report, 0, line);
+
+	snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorder_count);
+	msgs_param_lookup("SORCount", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+	report_write_line(report, 0, line);
+
+	/* Output the data for each of the standing orders in turn. */
+
+	for (i=0; i < file->sorder_count; i++) {
+		report_write_line(report, 0, ""); /* Separate each entry with a blank line. */
+
+		snprintf(numbuf1, sizeof(numbuf1), "%d", i+1);
+		msgs_param_lookup("SORNumber", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+		report_write_line(report, 0, line);
+
+		msgs_param_lookup("SORFrom", line, sizeof(line), find_account_name(file, file->sorders[i].from), NULL, NULL, NULL);
+		report_write_line(report, 0, line);
+
+		msgs_param_lookup("SORTo", line, sizeof(line), find_account_name(file, file->sorders[i].to), NULL, NULL, NULL);
+		report_write_line(report, 0, line);
+
+		msgs_param_lookup("SORRef", line, sizeof(line), file->sorders[i].reference, NULL, NULL, NULL);
+		report_write_line(report, 0, line);
+
+		convert_money_to_string(file->sorders[i].normal_amount, numbuf1);
+		msgs_param_lookup("SORAmount", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+		report_write_line(report, 0, line);
+
+		if (file->sorders[i].normal_amount != file->sorders[i].first_amount) {
+			convert_money_to_string(file->sorders[i].first_amount, numbuf1);
+			msgs_param_lookup("SORFirst", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+			report_write_line(report, 0, line);
+		}
+
+		if (file->sorders[i].normal_amount != file->sorders[i].last_amount) {
+			convert_money_to_string(file->sorders[i].last_amount, numbuf1);
+			msgs_param_lookup("SORFirst", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+			report_write_line(report, 0, line);
+		}
+
+		msgs_param_lookup("SORDesc", line, sizeof(line), file->sorders[i].description, NULL, NULL, NULL);
+		report_write_line(report, 0, line);
+
+		snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorders[i].number);
+		snprintf(numbuf2, sizeof(numbuf2), "%d", file->sorders[i].number - file->sorders[i].left);
+		snprintf(numbuf3, sizeof(numbuf3), "%d", file->sorders[i].left);
+		msgs_param_lookup("SORCounts", line, sizeof(line), numbuf1, numbuf2, numbuf3, NULL);
+		report_write_line(report, 0, line);
+
+		convert_date_to_string(file->sorders[i].start_date, numbuf1);
+		msgs_param_lookup("SORStart", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+		report_write_line(report, 0, line);
+
+		snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorders[i].period);
+		*numbuf2 = '\0';
+		switch (file->sorders[i].period_unit) {
+		case PERIOD_DAYS:
+			msgs_lookup("SOrderDays", numbuf2, sizeof(numbuf2));
+			break;
+
+		case PERIOD_MONTHS:
+			msgs_lookup("SOrderMonths", numbuf2, sizeof(numbuf2));
+			break;
+
+		case PERIOD_YEARS:
+			msgs_lookup("SOrderYears", numbuf2, sizeof(numbuf2));
+			break;
+		}
+		msgs_param_lookup("SOREvery", line, sizeof(line), numbuf1, numbuf2, NULL, NULL);
+		report_write_line(report, 0, line);
+
+		if (file->sorders[i].flags & TRANS_SKIP_FORWARD) {
+			msgs_lookup("SORAvoidFwd", line, sizeof(line));
+			report_write_line(report, 0, line);
+		} else if (file->sorders[i].flags & TRANS_SKIP_BACKWARD) {
+			msgs_lookup("SORAvoidBack", line, sizeof(line));
+			report_write_line(report, 0, line);
+		}
+
+		if (file->sorders[i].adjusted_next_date != NULL_DATE)
+			convert_date_to_string(file->sorders[i].adjusted_next_date, numbuf1);
+		else
+			msgs_lookup("SOrderStopped", numbuf1, sizeof(numbuf1));
+		msgs_param_lookup("SORNext", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+		report_write_line(report, 0, line);
+	}
+
+	/* Close the report. */
+
+	report_close(report);
+
+	hourglass_off();
+}
 

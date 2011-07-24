@@ -322,7 +322,7 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 
 	if (sorders) {
 		for (i=0; i<file->sorder_count; i++) {
-			if (file->sorders[i].adjusted_next_date == NULL_DATE && !delete_sorder(file, i))
+			if (file->sorders[i].adjusted_next_date == NULL_DATE && sorder_delete(file, i))
 				i--; /* Account for the record having been deleted. */
 		}
 	}

@@ -65,10 +65,6 @@ void export_delimited_preset_file (file_data *file, char *filename, int format, 
 
 int delimited_field_output (FILE *f, char *string, int format, int flags);
 
-/* Report export */
-
-void generate_full_sorder_report (file_data *file);
-
 /* String processing */
 
 char *unquote_string (char *string);

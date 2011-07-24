@@ -429,7 +429,6 @@ static void main_initialise(void)
 	menus.analysis_sub    = templates_get_menu(TEMPLATES_MENU_MAIN_ANALYSIS);
 	menus.acclist         = templates_get_menu(TEMPLATES_MENU_ACCLIST);
 	menus.accview         = templates_get_menu(TEMPLATES_MENU_ACCVIEW);
-	menus.sorder          = templates_get_menu(TEMPLATES_MENU_SORDER);
 
 	menus.accopen         = NULL;
 	menus.account         = NULL;
@@ -670,7 +669,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
 static void mouse_click_handler (wimp_pointer *pointer)
 {
-  int       result;
   file_data *file;
 
   extern global_windows windows;

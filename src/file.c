@@ -916,7 +916,7 @@ void update_files_for_new_date (void)
       debug_printf ("Updateing file...");
       #endif
 
-      process_standing_orders (file);
+      sorder_process(file);
       perform_full_recalculation (file);
       set_transaction_window_extent (file);
 

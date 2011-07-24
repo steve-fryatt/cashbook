@@ -48,6 +48,15 @@ void preset_delete_window(file_data *file);
 
 
 /**
+ * Recreate the title of the Preset List window connected to the given file.
+ *
+ * \param *file			The file to rebuild the title for.
+ */
+
+void preset_build_window_title(file_data *file);
+
+
+/**
  * Force a redraw of the Preset list window, for the given range of lines.
  *
  * \param *file			The file owning the window.

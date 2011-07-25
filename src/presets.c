@@ -117,6 +117,9 @@
 #define PRESET_PANE_PRINT 8
 #define PRESET_PANE_SORT 9
 
+#define PRESET_PANE_COL_MAP "0;1;2,3,4;5,6,7;8;9"
+#define PRESET_PANE_SORT_DIR_ICON 10
+
 
 /**
  * Preset data structure -- implementation.

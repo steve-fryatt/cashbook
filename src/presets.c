@@ -25,6 +25,7 @@
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
@@ -117,21 +118,69 @@
 #define PRESET_PANE_SORT 9
 
 
+/**
+ * Preset data structure -- implementation.
+ */
+
+struct preset {
+	char		name[PRESET_NAME_LEN];					/**< The name of the preset. */
+	char		action_key;						/**< The key used to insert it. */
+
+	unsigned	flags;							/**< Preset flags (containing transaction flags, preset flags, etc). */
+
+	unsigned	caret_target;						/**< The target icon for the caret. */
+
+	date_t		date;							/**< Preset details. */
+	int		from;
+	int		to;
+	amt_t		amount;
+	char		reference[REF_FIELD_LEN];
+	char		description[DESCRIPT_FIELD_LEN];
+
+	/* Sort index entries.
+	 *
+	 * NB - These are unconnected to the rest of the preset data, and are in effect a separate array that is used
+	 * for handling entries in the preset window.
+	 */
+
+	int		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
+};
+
+struct preset_complete_link
+{
+	char			name[PRESET_NAME_LEN];				/**< The name as it appears in the menu.				*/
+	int			preset;						/**< Link to the associated preset.					*/
+};
+
+
+/* Preset Edit Window. */
+
 static wimp_w			preset_edit_window = NULL;			/**< The handle of the preset edit window.				*/
 static file_data		*preset_edit_file = NULL;			/**< The file currently owning the preset edit window.			*/
 static int			preset_edit_number = -1;			/**< The preset currently being edited.					*/
 
+/* Preset Sort Window. */
+
 static wimp_w			preset_sort_window = NULL;			/**< The handle of the preset sort window.				*/
 static file_data		*preset_sort_file = NULL;			/**< The file currently owning the preset sort window.			*/
 
+/* Preset Print Window. */
+
 static file_data		*preset_print_file = NULL;			/**< The file currently owning the preset print window.			*/
+
+/* Preset List Window. */
 
 static wimp_window		*preset_window_def = NULL;			/**< The definition for the Preset Window.				*/
 static wimp_window		*preset_pane_def = NULL;			/**< The definition for the Preset Window pane.				*/
 static wimp_menu		*preset_window_menu = NULL;			/**< The Preset Window menu handle.					*/
 static int			preset_window_menu_line = -1;			/**< The line over which the Preset Window Menu was opened.		*/
-
 static wimp_i			preset_substitute_sort_icon = PRESET_PANE_FROM;	/**< The icon currently obscured by the sort icon.			*/
+
+/* Preset Shortcut Menu. */
+
+static wimp_menu			*preset_complete_menu = NULL;		/**< The preset shortcut menu block.				*/
+static struct preset_complete_link	*preset_complete_menu_link = NULL;	/**< Links for the shortcut menu.				*/
+static char				*preset_complete_menu_title = NULL;	/**< The menu title buffer.					*/
 
 
 static void		preset_close_window_handler(wimp_close *close);
@@ -1905,6 +1954,142 @@ static void preset_print(osbool text, osbool format, osbool scale, osbool rotate
 	hourglass_off();
 
 	report_close_and_print(report, text, format, scale, rotate, pagenum);
+}
+
+
+/**
+ * Build a Preset Complete menu and return the pointer.
+ *
+ * \param *file			The file to build the menu for.
+ * \return			The created menu, or NULL for an error.
+ */
+
+wimp_menu *preset_complete_menu_build(file_data *file)
+{
+	int	line, width, i, p;
+
+	/* Claim enough memory to build the menu in. */
+
+	preset_complete_menu_destroy();
+
+	preset_complete_menu = heap_alloc(28 + 24 * (file->preset_count + 1));
+	preset_complete_menu_link = heap_alloc(sizeof(struct preset_complete_link) * (file->preset_count + 1));
+	preset_complete_menu_title = heap_alloc(ACCOUNT_MENU_TITLE_LEN);
+
+	if (preset_complete_menu == NULL || preset_complete_menu_link == NULL || preset_complete_menu_title == NULL) {
+		preset_complete_menu_destroy();
+		return NULL;
+	}
+
+	/* Populate the menu. */
+
+	line = 0;
+
+	/* Set up the today's date field. */
+
+	msgs_lookup("DateMenuToday", preset_complete_menu_link[line].name, PRESET_NAME_LEN);
+	preset_complete_menu_link[line].preset = NULL_PRESET;
+
+	width = strlen(preset_complete_menu_link[line].name);
+
+	/* Set the menu and icon flags up. */
+
+	preset_complete_menu->entries[line].menu_flags = (file->preset_count > 0) ? wimp_MENU_SEPARATE : 0;
+	preset_complete_menu->entries[line].sub_menu = (wimp_menu *) -1;
+	preset_complete_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
+			wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
+			wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
+
+	/* Set the menu icon contents up. */
+
+	preset_complete_menu->entries[line].data.indirected_text.text = preset_complete_menu_link[line].name;
+	preset_complete_menu->entries[line].data.indirected_text.validation = NULL;
+	preset_complete_menu->entries[line].data.indirected_text.size = PRESET_NAME_LEN;
+
+	if (file->preset_count > 0) {
+		for (i=0; i<file->preset_count; i++) {
+			line++;
+
+			p = file->presets[i].sort_index;
+
+			strcpy (preset_complete_menu_link[line].name, file->presets[p].name);
+			preset_complete_menu_link[line].preset = p;
+
+			if (strlen (preset_complete_menu_link[line].name) > width)
+				width = strlen (preset_complete_menu_link[line].name);
+
+			/* Set the menu and icon flags up. */
+
+			preset_complete_menu->entries[line].menu_flags = 0;
+
+			preset_complete_menu->entries[line].sub_menu = (wimp_menu *) -1;
+			preset_complete_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
+					wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
+					wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
+
+			/* Set the menu icon contents up. */
+
+			preset_complete_menu->entries[line].data.indirected_text.text = preset_complete_menu_link[line].name;
+			preset_complete_menu->entries[line].data.indirected_text.validation = NULL;
+			preset_complete_menu->entries[line].data.indirected_text.size = PRESET_NAME_LEN;
+		}
+	}
+
+	/* Finish off the menu, marking the last entry and filling in the header. */
+
+	preset_complete_menu->entries[line].menu_flags |= wimp_MENU_LAST;
+
+	msgs_lookup ("DateMenuTitle", preset_complete_menu_title, ACCOUNT_MENU_TITLE_LEN);
+	preset_complete_menu->title_data.indirected_text.text = preset_complete_menu_title;
+	preset_complete_menu->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
+	preset_complete_menu->title_fg = wimp_COLOUR_BLACK;
+	preset_complete_menu->title_bg = wimp_COLOUR_LIGHT_GREY;
+	preset_complete_menu->work_fg = wimp_COLOUR_BLACK;
+	preset_complete_menu->work_bg = wimp_COLOUR_WHITE;
+
+	preset_complete_menu->width = (width + 1) * 16;
+	preset_complete_menu->height = 44;
+	preset_complete_menu->gap = 0;
+
+	return preset_complete_menu;
+}
+
+
+/**
+ * Destroy any Preset Complete menu which is currently open.
+ */
+
+void preset_complete_menu_destroy(void)
+{
+	if (preset_complete_menu != NULL)
+		heap_free(preset_complete_menu);
+
+	if (preset_complete_menu_link != NULL)
+		heap_free(preset_complete_menu_link);
+
+	if (preset_complete_menu_title != NULL)
+		heap_free(preset_complete_menu_title);
+
+	preset_complete_menu = NULL;
+	preset_complete_menu_link = NULL;
+	preset_complete_menu_title = NULL;
+}
+
+
+/**
+ * Decode a selection from the Preset Complete menu, converting to a preset
+ * index number.
+ *
+ * \param *selection		The Wimp Menu Selection to decode.
+ * \return			The preset index, or NULL_PRESET.
+ */
+
+int preset_complete_menu_decode(wimp_selection *selection)
+{
+	if (preset_complete_menu_link == NULL || selection == NULL || selection->items[0] != -1)
+		return NULL_PRESET;
+
+	return preset_complete_menu_link[selection->items[0]].preset;
 }
 
 

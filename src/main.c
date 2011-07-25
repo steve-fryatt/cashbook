@@ -1220,7 +1220,11 @@ static void menu_selection_handler (wimp_selection *selection)
   else if (menus.menu_id == MENU_ID_MAIN)
   {
      main_menu_closed_message ();
-   }
+  }
+  else if (menus.menu_id == MENU_ID_DATE)
+  {
+    date_menu_closed_message();
+  }
 }
 
 /* ==================================================================================================================
@@ -1352,6 +1356,10 @@ static void user_message_handler (wimp_message *message)
       else if (menus.menu_id == MENU_ID_ACCOUNT)
       {
         account_menu_closed_message ((wimp_full_message_menus_deleted *) message);
+      }
+      else if (menus.menu_id == MENU_ID_DATE)
+      {
+        date_menu_closed_message();
       }
       break;
 

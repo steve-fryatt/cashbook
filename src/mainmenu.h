@@ -180,10 +180,9 @@ wimp_menu *build_account_submenu (file_data *file, wimp_full_message_menu_warnin
 
 /* Date menu */
 
-void set_date_menu (file_data *file);
-void open_date_menu (file_data *file, int line, wimp_pointer *pointer);
-void decode_date_menu (wimp_selection *selection, wimp_pointer *pointer);
-wimp_menu *build_date_menu (file_data *file);
+void open_date_menu(file_data *file, int line, wimp_pointer *pointer);
+void decode_date_menu(wimp_selection *selection, wimp_pointer *pointer);
+void date_menu_closed_message(void);
 
 /* RefDesc Menu */
 

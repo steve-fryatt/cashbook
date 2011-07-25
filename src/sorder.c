@@ -134,19 +134,19 @@
 
 struct sorder
 {
-	unsigned	start_date;                       /* The date on which the first order should be processed. */
-	int		number;                           /* The number of orders to be added. */
-	int		period;                           /* The period between orders. */
-	int		period_unit;                      /* The unit in which the period is measured. */
+	unsigned	start_date;						/**< The date on which the first order should be processed. */
+	int		number;							/**< The number of orders to be added. */
+	int		period;							/**< The period between orders. */
+	int		period_unit;						/**< The unit in which the period is measured. */
 
-	unsigned	raw_next_date;                    /* The uncorrected date for the next order, used for getting the next. */
-	unsigned	adjusted_next_date;               /* The date of the next order, taking into account months, weekends etc. */
+	unsigned	raw_next_date;						/**< The uncorrected date for the next order, used for getting the next. */
+	unsigned	adjusted_next_date;					/**< The date of the next order, taking into account months, weekends etc. */
 
-	int		left;                             /* The number of orders remaining. */
+	int		left;							/**< The number of orders remaining. */
 
-	unsigned	flags;                            /* Order flags (containing transaction flags, order flags, etc). */
+	unsigned	flags;							/**< Order flags (containing transaction flags, order flags, etc). */
 
-	int		from;                             /* Order details. */
+	int		from;							/**< Order details. */
 	int		to;
 	int		normal_amount;
 	int		first_amount;
@@ -163,21 +163,27 @@ struct sorder
 	int		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
 };
 
+/* Standing Order Edit Window. */
 
 static wimp_w			sorder_edit_window = NULL;			/**< The handle of the standing order edit window.			*/
 static file_data		*sorder_edit_file = NULL;			/**< The file currently owning the standing order edit window.		*/
 static int			sorder_edit_number = -1;			/**< The standing order currently being edited.				*/
 
+/* Standing Order Sort Window. */
+
 static wimp_w			sorder_sort_window = NULL;			/**< The handle of the standing order sort window.			*/
 static file_data		*sorder_sort_file = NULL;			/**< The file currently owning the standing order sort window.		*/
 
+/* Standing Order Print Window. */
+
 static file_data		*sorder_print_file = NULL;			/**< The file currently owning the standing order print window.		*/
+
+/* Standing Order List Window. */
 
 static wimp_window		*sorder_window_def = NULL;			/**< The definition for the Standing Order Window.			*/
 static wimp_window		*sorder_pane_def = NULL;			/**< The definition for the Standing Order Window pane.			*/
 static wimp_menu		*sorder_window_menu = NULL;			/**< The Standing Order Window menu handle.				*/
 static int			sorder_window_menu_line = -1;			/**< The line over which the Standing Order Window Menu was opened.	*/
-
 static wimp_i			sorder_substitute_sort_icon = SORDER_PANE_FROM;	/**< The icon currently obscured by the sort icon.			*/
 
 

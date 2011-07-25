@@ -1119,31 +1119,30 @@ wimp_menu *build_account_submenu (file_data *file, wimp_full_message_menu_warnin
  * Date menu -- List of presets to select from
  */
 
-void set_date_menu (file_data *file)
+
+void open_date_menu(file_data *file, int line, wimp_pointer *pointer)
 {
+	extern global_menus menus;
+
+	menus.date = preset_complete_menu_build(file);
+
+	if (menus.date == NULL)
+		return;
+
+	menus.menu_up = menus_create_standard_menu(menus.date, pointer);
+	menus.menu_id = MENU_ID_DATE;
+	main_menu_file = file;
+	main_menu_line = line;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void open_date_menu (file_data *file, int line, wimp_pointer *pointer)
+void decode_date_menu(wimp_selection *selection, wimp_pointer *pointer)
 {
-  extern global_menus menus;
+	int i;
 
-
-  build_date_menu (file);
-  set_date_menu (file);
-
-  menus.menu_up = menus_create_standard_menu (menus.date, pointer);
-  menus.menu_id = MENU_ID_DATE;
-  main_menu_file = file;
-  main_menu_line = line;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void decode_date_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  int i;
+	if (main_menu_file == NULL)
+		return;
 
 
   if (main_menu_file != NULL)
@@ -1183,114 +1182,9 @@ void decode_date_menu (wimp_selection *selection, wimp_pointer *pointer)
   }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-wimp_menu *build_date_menu (file_data *file)
+void date_menu_closed_message(void)
 {
-  int                 i, line, width, p;
-  void                *mem;
-
-  extern global_menus menus;
-
-
-
-  /* Claim enough memory to build the menu in. */
-
-  menus.date = NULL;
-  date_menu = NULL;
-
-  mem = claim_transient_shared_memory ((28 + 24 * (file->preset_count + 1)) +
-                                       (sizeof (date_menu_link) * (file->preset_count + 1)));
-
-  if (mem != NULL)
-  {
-    menus.date = (wimp_menu *) mem;
-    date_menu = (date_menu_link *) (mem + (28 + 24 * (file->preset_count + 1)));
-  }
-
-  /* Populate the menu. */
-
-  line = 0;
-
-  if (menus.date != NULL && date_menu != NULL)
-  {
-    /* Set up the today's date field. */
-
-    msgs_lookup ("DateMenuToday", date_menu[line].name, PRESET_NAME_LEN);
-    date_menu[line].preset = NULL_PRESET;
-
-    width = strlen (date_menu[line].name);
-
-    /* Set the menu and icon flags up. */
-
-    menus.date->entries[line].menu_flags = (file->preset_count > 0) ? wimp_MENU_SEPARATE : 0;
-
-    menus.date->entries[line].sub_menu = (wimp_menu *) -1;
-    menus.date->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-                                              wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-                                              wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-    /* Set the menu icon contents up. */
-
-    menus.date->entries[line].data.indirected_text.text = date_menu[line].name;
-    menus.date->entries[line].data.indirected_text.validation = NULL;
-    menus.date->entries[line].data.indirected_text.size = PRESET_NAME_LEN;
-
-    if (file->preset_count > 0)
-    {
-      for (i=0; i<file->preset_count; i++)
-      {
-        line++;
-
-        p = file->presets[i].sort_index;
-
-        strcpy (date_menu[line].name, file->presets[p].name);
-        date_menu[line].preset = p;
-
-        if (strlen (date_menu[line].name) > width)
-        {
-          width = strlen (date_menu[line].name);
-        }
-
-        /* Set the menu and icon flags up. */
-
-        menus.date->entries[line].menu_flags = 0;
-
-        menus.date->entries[line].sub_menu = (wimp_menu *) -1;
-        menus.date->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-                                                  wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-                                                  wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-        /* Set the menu icon contents up. */
-
-        menus.date->entries[line].data.indirected_text.text = date_menu[line].name;
-        menus.date->entries[line].data.indirected_text.validation = NULL;
-        menus.date->entries[line].data.indirected_text.size = PRESET_NAME_LEN;
-      }
-    }
-
-    /* Finish off the menu, marking the last entry and filling in the header. */
-
-    menus.date->entries[line].menu_flags |= wimp_MENU_LAST;
-
-    if (account_title_buffer == NULL)
-    {
-      account_title_buffer = (char *) malloc (ACCOUNT_MENU_TITLE_LEN);
-    }
-    msgs_lookup ("DateMenuTitle", account_title_buffer, ACCOUNT_MENU_TITLE_LEN);
-    menus.date->title_data.indirected_text.text = account_title_buffer;
-    menus.date->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
-    menus.date->title_fg = wimp_COLOUR_BLACK;
-    menus.date->title_bg = wimp_COLOUR_LIGHT_GREY;
-    menus.date->work_fg = wimp_COLOUR_BLACK;
-    menus.date->work_bg = wimp_COLOUR_WHITE;
-
-    menus.date->width = (width + 1) * 16;
-    menus.date->height = 44;
-    menus.date->gap = 0;
-  }
-
-  return (menus.date);
+	preset_complete_menu_destroy();
 }
 
 

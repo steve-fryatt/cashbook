@@ -90,6 +90,34 @@ void preset_force_windows_closed(file_data *file);
 
 
 /**
+ * Build a Preset Complete menu and return the pointer.
+ *
+ * \param *file			The file to build the menu for.
+ * \return			The created menu, or NULL for an error.
+ */
+
+wimp_menu *preset_complete_menu_build(file_data *file);
+
+
+/**
+ * Destroy any Preset Complete menu which is currently open.
+ */
+
+void preset_complete_menu_destroy(void);
+
+
+/**
+ * Decode a selection from the Preset Complete menu, converting to a preset
+ * index number.
+ *
+ * \param *selection		The Wimp Menu Selection to decode.
+ * \return			The preset index, or NULL_PRESET.
+ */
+
+int preset_complete_menu_decode(wimp_selection *selection);
+
+
+/**
  * Sort the presets in a given file based on that file's sort setting.
  *
  * \param *file			The file to sort.

@@ -234,6 +234,7 @@ typedef unsigned int acct_t; /* An account number. */
  */
 
 struct sorder;
+struct preset;
 
 
 /* ==================================================================================================================
@@ -371,35 +372,6 @@ typedef struct account
   unsigned report_flags;
 }
 account;
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Preset data struct. */
-
-struct preset {
-	char		name[PRESET_NAME_LEN];            /* The name of the preset. */
-	char		action_key;                       /* The key used to insert it. */
-
-	unsigned	flags;                            /* Preset flags (containing transaction flags, preset flags, etc). */
-
-	unsigned	caret_target;                     /* The target icon for the caret. */
-
-	date_t		date;                             /* Preset details. */
-	int		from;
-	int		to;
-	amt_t		amount;
-	char		reference[REF_FIELD_LEN];
-	char		description[DESCRIPT_FIELD_LEN];
-
-	/* Sort index entries.
-	 *
-	 * NB - These are unconnected to the rest of the preset data, and are in effect a separate array that is used
-	 * for handling entries in the preset window.
-	 */
-
-	int		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
-};
 
 /* ==================================================================================================================
  * Window redraw data structures

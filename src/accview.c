@@ -1,6 +1,6 @@
 /* CashBook - accview.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -18,14 +18,15 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/heap.h"
-#include "sflib/windows.h"
-#include "sflib/errors.h"
-#include "sflib/debug.h"
 #include "sflib/config.h"
-#include "sflib/string.h"
-#include "sflib/msgs.h"
+#include "sflib/debug.h"
+#include "sflib/errors.h"
+#include "sflib/event.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/msgs.h"
+#include "sflib/string.h"
+#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -43,6 +44,7 @@
 #include "mainmenu.h"
 #include "printing.h"
 #include "report.h"
+#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -50,211 +52,914 @@
  * Global variables.
  */
 
-/* Print dialogue */
 
-file_data     *sort_accview_window_file = NULL;
-int           sort_accview_window_account = NULL_ACCOUNT;
+/* Account View Sort Window. */
 
-file_data     *accview_print_file = NULL;
-int           accview_print_account = NULL_ACCOUNT;
+static file_data		*accview_sort_file = NULL;			/**< The file currently owning the account view sort window.		*/
+static acct_t			accview_sort_account = NULL_ACCOUNT;		/**< The account currently owning the account view print window.	*/
 
-static wimp_i accview_pane_sort_substitute_icon = ACCVIEW_PANE_DATE;
+/* Account View Print Window. */
 
-/* ==================================================================================================================
- * Window creation and deletion
+static file_data		*accview_print_file = NULL;			/**< The file currently owning the account view print window.		*/
+static acct_t			accview_print_account = NULL_ACCOUNT;		/**< The account currently owning the account view print window.	*/
+
+/* Account View Window. */
+
+static wimp_window		*accview_window_def = NULL;			/**< The definition for the Account View Window.			*/
+static wimp_window		*accview_pane_def = NULL;			/**< The definition for the Account View Window pane.			*/
+static wimp_menu		*accview_window_menu = NULL;			/**< The Account View Window menu handle.				*/
+static int			accview_window_menu_line = -1;			/**< The line over which the Account View Window Menu was opened.	*/
+static wimp_i			accview_substitute_sort_icon = ACCVIEW_PANE_DATE;/**< The icon currently obscured by the sort icon.			*/
+
+
+
+
+
+
+static void		accview_close_window_handler(wimp_close *close);
+static void		accview_window_click_handler(wimp_pointer *pointer);
+static void		accview_pane_click_handler(wimp_pointer *pointer);
+static void		accview_window_scroll_handler(wimp_scroll *scroll);
+static void		accview_window_redraw_handler(wimp_draw *redraw);
+
+
+
+/**
+ * Initialise the account view system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-/* Create and open an account view window associated with the file block. */
-
-void create_accview_window (file_data *file, int account)
+void accview_initialise(osspriteop_area *sprites)
 {
-  int               i, j, height;
-  os_error          *error;
-  wimp_window_state parent;
-
-  accview_window    *new;
-
-  extern            global_windows windows;
 
 
-  /* Create or re-open the window. */
 
-  if (file->accounts[account].account_view != NULL)
-  {
-    /* The window is open, so just bring it forward. */
+	accview_window_def = templates_load_window("AccView");
+	accview_window_def->icon_count = 0;
 
-    windows_open (file->accounts[account].account_view->accview_window);
-  }
-  else
-  {
-    if (!(file->sort_valid))
-    {
-      sort_transactions (file);
-    }
 
-    /* The block pointer is put into the new variable, as the file->accounts[account].account_view pointer may move
-     * as a result of the flex heap shifting for heap_alloc ().
-     */
+	accview_pane_def = templates_load_window("AccViewTB");
+	accview_pane_def->sprite_area = sprites;
 
-    new = (accview_window *) heap_alloc (sizeof (accview_window));
-    file->accounts[account].account_view = new;
-
-    if (file->accounts[account].account_view == NULL)
-    {
-      error_msgs_report_info ("AccviewMemErr1");
-    }
-    else
-    {
-      #ifdef DEBUG
-      debug_printf ("\\BCreate Account View for %d", account);
-      #endif
-
-      build_account_view (file, account);
-
-      /* Set the main window extent and create it. */
-
-      *((file->accounts[account].account_view)->window_title) = '\0';
-      windows.accview_window_def->title_data.indirected_text.text =
-                 (file->accounts[account].account_view)->window_title;
-
-      for (i=0; i<ACCVIEW_COLUMNS; i++)
-      {
-        (file->accounts[account].account_view)->column_width[i] = file->accview_column_width[i];
-        (file->accounts[account].account_view)->column_position[i] = file->accview_column_position[i];
-      }
-
-      height =  ((file->accounts[account].account_view)->display_lines > MIN_ACCVIEW_ENTRIES) ?
-                 (file->accounts[account].account_view)->display_lines : MIN_ACCVIEW_ENTRIES;
-
-      (file->accounts[account].account_view)->sort_order = file->accview_sort_order;
-
-      /* Find the position to open the window at. */
-
-      parent.w = file->transaction_window.transaction_pane;
-      wimp_get_window_state (&parent);
-
-      set_initial_window_area (windows.accview_window_def,
-                               (file->accounts[account].account_view)->column_position[ACCVIEW_COLUMNS-1] +
-                               (file->accounts[account].account_view)->column_width[ACCVIEW_COLUMNS-1],
-                                ((ICON_HEIGHT+LINE_GUTTER) * height) + ACCVIEW_TOOLBAR_HEIGHT,
-                                 parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
-                                 parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
-
-      file->child_x_offset++;
-      if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
-      {
-        file->child_x_offset = 0;
-      }
-
-      /* Set the scroll offset to show the contents of the transaction window */
-
-      windows.accview_window_def->yscroll = align_accview_with_transact_y_offset (file, account);
-
-      error = xwimp_create_window (windows.accview_window_def,
-                                   &((file->accounts[account].account_view)->accview_window));
-      if (error != NULL)
-      {
-        error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-        return;
-      }
-      #ifdef DEBUG
-      debug_printf ("Created window: %d, %d, %d, %d...", windows.accview_window_def->visible.x0,
-       windows.accview_window_def->visible.x1, windows.accview_window_def->visible.y0,
-        windows.accview_window_def->visible.y1);
-      #endif
-
-      /* Create the toolbar pane. */
-
-      windows_place_as_toolbar (windows.accview_window_def, windows.accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT-4);
-
-      for (i=0, j=0; j < ACCVIEW_COLUMNS; i++, j++)
-      {
-        windows.accview_pane_def->icons[i].extent.x0 = (file->accounts[account].account_view)->column_position[j];
-
-        j = column_get_rightmost_in_group (ACCVIEW_PANE_COL_MAP, i);
-
-        windows.accview_pane_def->icons[i].extent.x1 = (file->accounts[account].account_view)->column_position[j] +
-                                                        (file->accounts[account].account_view)->column_width[j] +
-                                                        COLUMN_HEADING_MARGIN;
-      }
-
-      windows.accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
-                                     (osspriteop_id) (file->accounts[account].account_view)->sort_sprite;
-      windows.accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-                                     windows.accview_pane_def->sprite_area;
-
-      update_accview_window_sort_icon (file, account, &(windows.accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON]));
-
-      error = xwimp_create_window (windows.accview_pane_def, &((file->accounts[account].account_view)->accview_pane));
-      if (error != NULL)
-      {
-        error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-        return;
-      }
-
-      /* Set the title */
-
-      build_accview_window_title (file, account);
-
-      /* Sort the window contents. */
-
-      sort_accview_window (file, account);
-
-      /* Open the window. */
-
-      if (file->accounts[account].type == ACCOUNT_FULL)
-      {
-        ihelp_add_window ((file->accounts[account].account_view)->accview_window , "AccView",
-                          decode_accview_window_help);
-        ihelp_add_window ((file->accounts[account].account_view)->accview_pane , "AccViewTB", NULL);
-      }
-      else
-      {
-        ihelp_add_window ((file->accounts[account].account_view)->accview_window , "HeadView",
-                          decode_accview_window_help);
-        ihelp_add_window ((file->accounts[account].account_view)->accview_pane , "HeadViewTB", NULL);
-      }
-
-      windows_open ((file->accounts[account].account_view)->accview_window);
-
-      windows_open_nested_as_toolbar ((file->accounts[account].account_view)->accview_pane,
-                                     (file->accounts[account].account_view)->accview_window,
-                                     ACCVIEW_TOOLBAR_HEIGHT-4);
-    }
-  }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Close and delete the account view window associated with the file block. */
+/**
+ * Create and open a Account View window for the given file and account.
+ *
+ * \param *file			The file to open a window for.
+ * \param account		The account to open a window for.
+ */
 
-void delete_accview_window (file_data *file, int account)
+void accview_open_window(file_data *file, acct_t account)
 {
-  #ifdef DEBUG
-  debug_printf ("\\RDeleting account view window");
-  debug_printf ("Account: %d", account);
-  #endif
+	int			i, j, height;
+	os_error		*error;
+	wimp_window_state	parent;
+	struct accview_window	*new;
 
-  if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL)
-  {
-    if ((file->accounts[account].account_view)->accview_window != NULL)
-    {
-      ihelp_remove_window ((file->accounts[account].account_view)->accview_window);
-      wimp_delete_window ((file->accounts[account].account_view)->accview_window);
-    }
+	/* Create or re-open the window. */
 
-    if (file->accounts[account].account_view->accview_pane != NULL)
-    {
-      ihelp_remove_window ((file->accounts[account].account_view)->accview_window);
-      wimp_delete_window ((file->accounts[account].account_view)->accview_pane);
-    }
+	if (file->accounts[account].account_view != NULL) {
+		windows_open (file->accounts[account].account_view->accview_window);
+		return;
+	}
 
-    flex_free ((flex_ptr) &((file->accounts[account].account_view)->line_data));
+	if (!(file->sort_valid))
+		sort_transactions(file);
 
-    heap_free (file->accounts[account].account_view);
-    file->accounts[account].account_view = NULL;
-  }
+	/* The block pointer is put into the new variable, as the file->accounts[account].account_view pointer may move
+	 * as a result of the flex heap shifting for heap_alloc ().
+	 */
+
+	new = heap_alloc(sizeof(struct accview_window));
+	file->accounts[account].account_view = new;
+
+	if (file->accounts[account].account_view == NULL) {
+		error_msgs_report_info("AccviewMemErr1");
+		return;
+	}
+
+	#ifdef DEBUG
+	debug_printf("\\BCreate Account View for %d", account);
+	#endif
+
+	build_account_view(file, account);
+
+	/* Set the main window extent and create it. */
+
+	*((file->accounts[account].account_view)->window_title) = '\0';
+	accview_window_def->title_data.indirected_text.text =
+			(file->accounts[account].account_view)->window_title;
+
+	for (i=0; i<ACCVIEW_COLUMNS; i++) {
+		(file->accounts[account].account_view)->column_width[i] = file->accview_column_width[i];
+		(file->accounts[account].account_view)->column_position[i] = file->accview_column_position[i];
+	}
+
+	height = ((file->accounts[account].account_view)->display_lines > MIN_ACCVIEW_ENTRIES) ?
+			(file->accounts[account].account_view)->display_lines : MIN_ACCVIEW_ENTRIES;
+
+	(file->accounts[account].account_view)->sort_order = file->accview_sort_order;
+
+	/* Find the position to open the window at. */
+
+	parent.w = file->transaction_window.transaction_pane;
+	wimp_get_window_state(&parent);
+
+	set_initial_window_area(accview_window_def,
+			(file->accounts[account].account_view)->column_position[ACCVIEW_COLUMNS-1] +
+			(file->accounts[account].account_view)->column_width[ACCVIEW_COLUMNS-1],
+			((ICON_HEIGHT+LINE_GUTTER) * height) + ACCVIEW_TOOLBAR_HEIGHT,
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
+
+	file->child_x_offset++;
+	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
+		file->child_x_offset = 0;
+
+	/* Set the scroll offset to show the contents of the transaction window */
+
+	accview_window_def->yscroll = align_accview_with_transact_y_offset (file, account);
+
+	error = xwimp_create_window(accview_window_def, &((file->accounts[account].account_view)->accview_window));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	#ifdef DEBUG
+	debug_printf("Created window: %d, %d, %d, %d...", accview_window_def->visible.x0,
+			accview_window_def->visible.x1, accview_window_def->visible.y0,
+			accview_window_def->visible.y1);
+	#endif
+
+	/* Create the toolbar pane. */
+
+	windows_place_as_toolbar(accview_window_def, accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT-4);
+
+	for (i=0, j=0; j < ACCVIEW_COLUMNS; i++, j++) {
+		accview_pane_def->icons[i].extent.x0 = (file->accounts[account].account_view)->column_position[j];
+
+		j = column_get_rightmost_in_group (ACCVIEW_PANE_COL_MAP, i);
+
+		accview_pane_def->icons[i].extent.x1 = (file->accounts[account].account_view)->column_position[j] +
+				(file->accounts[account].account_view)->column_width[j] + COLUMN_HEADING_MARGIN;
+	}
+
+	accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
+			(osspriteop_id) (file->accounts[account].account_view)->sort_sprite;
+	accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
+			accview_pane_def->sprite_area;
+
+	update_accview_window_sort_icon(file, account, &(accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON]));
+
+	error = xwimp_create_window(accview_pane_def, &((file->accounts[account].account_view)->accview_pane));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	/* Set the title */
+
+	build_accview_window_title(file, account);
+
+	/* Sort the window contents. */
+
+	sort_accview_window(file, account);
+
+	/* Open the window. */
+
+	if (file->accounts[account].type == ACCOUNT_FULL) {
+		ihelp_add_window((file->accounts[account].account_view)->accview_window, "AccView", decode_accview_window_help);
+		ihelp_add_window((file->accounts[account].account_view)->accview_pane, "AccViewTB", NULL);
+	} else {
+		ihelp_add_window((file->accounts[account].account_view)->accview_window, "HeadView", decode_accview_window_help);
+		ihelp_add_window((file->accounts[account].account_view)->accview_pane, "HeadViewTB", NULL);
+	}
+
+	windows_open((file->accounts[account].account_view)->accview_window);
+	windows_open_nested_as_toolbar((file->accounts[account].account_view)->accview_pane,
+			(file->accounts[account].account_view)->accview_window,
+			ACCVIEW_TOOLBAR_HEIGHT-4);
+
+	/* Register event handlers for the two windows. */
+
+	event_add_window_user_data((file->accounts[account].account_view)->accview_window, file);
+//	event_add_window_menu((file->accounts[account].account_view)->accview_window, accview_window_menu);
+	event_add_window_close_event((file->accounts[account].account_view)->accview_window, accview_close_window_handler);
+	event_add_window_mouse_event((file->accounts[account].account_view)->accview_window, accview_window_click_handler);
+	event_add_window_scroll_event((file->accounts[account].account_view)->accview_window, accview_window_scroll_handler);
+	event_add_window_redraw_event((file->accounts[account].account_view)->accview_window, accview_window_redraw_handler);
+//	event_add_window_menu_prepare((file->accounts[account].account_view)->accview_window, accview_window_menu_prepare_handler);
+//	event_add_window_menu_selection((file->accounts[account].account_view)->accview_window, accview_window_menu_selection_handler);
+//	event_add_window_menu_warning((file->accounts[account].account_view)->accview_window, accview_window_menu_warning_handler);
+//	event_add_window_menu_close((file->accounts[account].account_view)->accview_window, accview_window_menu_close_handler);
+
+	event_add_window_user_data((file->accounts[account].account_view)->accview_pane, file);
+//	event_add_window_menu((file->accounts[account].account_view)->accview_pane, accview_window_menu);
+	event_add_window_mouse_event((file->accounts[account].account_view)->accview_pane, accview_pane_click_handler);
+//	event_add_window_menu_prepare((file->accounts[account].account_view)->accview_pane, accview_window_menu_prepare_handler);
+//	event_add_window_menu_selection((file->accounts[account].account_view)->accview_pane, accview_window_menu_selection_handler);
+//	event_add_window_menu_warning((file->accounts[account].account_view)->accview_pane, accview_window_menu_warning_handler);
+//	event_add_window_menu_close((file->accounts[account].account_view)->accview_pane, accview_window_menu_close_handler);
 }
+
+
+/**
+ * Close and delete the Account View Window associated with the given
+ * file block and account.
+ *
+ * \param *file			The file to use.
+ * \param account		The account to close the window for.
+ */
+
+void accview_delete_window(file_data *file, acct_t account)
+{
+	#ifdef DEBUG
+	debug_printf("\\RDeleting account view window");
+	debug_printf("Account: %d", account);
+	#endif
+
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL)
+		return;
+
+	if ((file->accounts[account].account_view)->accview_window != NULL) {
+		ihelp_remove_window((file->accounts[account].account_view)->accview_window);
+		event_delete_window((file->accounts[account].account_view)->accview_window);
+		wimp_delete_window((file->accounts[account].account_view)->accview_window);
+	}
+
+	if (file->accounts[account].account_view->accview_pane != NULL) {
+		ihelp_remove_window((file->accounts[account].account_view)->accview_pane);
+		event_delete_window((file->accounts[account].account_view)->accview_pane);
+		wimp_delete_window((file->accounts[account].account_view)->accview_pane);
+	}
+
+	flex_free((flex_ptr) &((file->accounts[account].account_view)->line_data));
+
+	heap_free(file->accounts[account].account_view);
+	file->accounts[account].account_view = NULL;
+}
+
+
+/**
+ * Handle Close events on Account View windows, deleting the window.
+ *
+ * \param *close		The Wimp Close data block.
+ */
+
+static void accview_close_window_handler(wimp_close *close)
+{
+	file_data	*file;
+	acct_t		account;
+
+	#ifdef DEBUG
+	debug_printf ("\\RClosing Account View window");
+	#endif
+
+	file = event_get_window_user_data(close->w);
+	if (file == NULL)
+		return;
+
+	/* Close the window */
+
+	account = find_accview_window_from_handle(file, close->w);
+	if (account != NULL_ACCOUNT)
+		accview_delete_window(file, account);
+}
+
+
+/**
+ * Process mouse clicks in the Account View window.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void accview_window_click_handler(wimp_pointer *pointer)
+{
+	file_data		*file;
+	acct_t			account;
+	int			line, column, xpos, transaction, toggle_flag;
+	int			trans_col_from[] = {0,1,1,1,7,8,8,8,9}, trans_col_to[] = {0,4,4,4,7,8,8,8,9}, *trans_col;
+	wimp_window_state	window;
+	accview_window		*accview;
+
+	#ifdef DEBUG
+	debug_printf("Accview window click: %d", pointer->buttons);
+	#endif
+
+	file = event_get_window_user_data(pointer->w);
+	if (file == NULL)
+		return;
+
+	/* Find the window's account, and get the line clicked on. */
+
+	account = find_accview_window_from_handle(file, pointer->w);
+	if (account == NULL_ACCOUNT)
+		return;
+
+	accview = file->accounts[account].account_view;
+
+	window.w = pointer->w;
+	wimp_get_window_state(&window);
+
+	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+	if (line < 0 || line >= accview->display_lines)
+		line = -1;
+
+	/* If the line is a transaction, handle mouse clicks over it.  Menu clicks are ignored and dealt with in the
+	 * else clause.
+	 */
+
+	if (line == -1)
+		return;
+
+	transaction = accview->line_data[accview->line_data[line].sort_index].transaction;
+
+	xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
+
+	for (column = 0;
+			column < ACCVIEW_COLUMNS && xpos > (accview->column_position[column] + accview->column_width[column]);
+			column++);
+
+	if (column != ACCVIEW_COLUMN_RECONCILE && (pointer->buttons == wimp_DOUBLE_SELECT || pointer->buttons == wimp_DOUBLE_ADJUST)) {
+		/* Handle double-clicks, which will locate the transaction in the main window.  Clicks in the reconcile
+		 * column are not used, as these are used to toggle the reconcile flag.
+		 */
+
+		trans_col = (file->transactions[transaction].from == account) ? trans_col_to : trans_col_from;
+
+		place_transaction_edit_line(file, locate_transaction_in_transact_window (file, transaction));
+		icons_put_caret_at_end(file->transaction_window.transaction_window, trans_col[column]);
+		find_transaction_edit_line(file);
+
+		if (pointer->buttons == wimp_DOUBLE_ADJUST)
+			windows_open(file->transaction_window.transaction_window);
+	} else if (column == ACCVIEW_COLUMN_RECONCILE && pointer->buttons == wimp_SINGLE_ADJUST) {
+		/* Handle adjust-clicks in the reconcile column, to toggle the status. */
+
+		toggle_flag = (file->transactions[transaction].from == account) ? TRANS_REC_FROM : TRANS_REC_TO;
+		toggle_reconcile_flag(file, transaction, toggle_flag);
+	}
+}
+
+
+/**
+ * Process mouse clicks in the Account View pane.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void accview_pane_click_handler(wimp_pointer *pointer)
+{
+	file_data		*file;
+	acct_t			account;
+	wimp_window_state	window;
+	wimp_icon_state		icon;
+	int			ox;
+
+	file = event_get_window_user_data(pointer->w);
+	if (file == NULL)
+		return;
+
+	/* Find the window's account. */
+
+	account = find_accview_window_from_handle(file, pointer->w);
+	if (account == NULL_ACCOUNT)
+		return;
+
+	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
+
+	if (pointer->i == ACCVIEW_PANE_SORT_DIR_ICON)
+		pointer->i = accview_substitute_sort_icon;
+
+	/* Decode the mouse click. */
+
+	if (pointer->buttons == wimp_CLICK_SELECT) {
+		switch (pointer->i) {
+		case ACCVIEW_PANE_PARENT:
+			windows_open(file->transaction_window.transaction_window);
+			break;
+
+		case ACCVIEW_PANE_PRINT:
+			open_accview_print_window(file, account, pointer, config_opt_read ("RememberValues"));
+			break;
+
+		case ACCVIEW_PANE_EDIT:
+			open_account_edit_window(file, account, -1, pointer);
+			break;
+
+		case ACCVIEW_PANE_GOTOEDIT:
+			align_accview_with_transact(file, account);
+			break;
+
+		case ACCVIEW_PANE_SORT:
+			open_accview_sort_window(file, account, pointer);
+			break;
+		}
+	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+		switch (pointer->i) {
+		case ACCVIEW_PANE_PRINT:
+			open_accview_print_window(file, account, pointer, !config_opt_read ("RememberValues"));
+			break;
+
+		case ACCVIEW_PANE_SORT:
+			sort_accview_window(file, account);
+			break;
+		}
+	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
+			pointer->i != wimp_ICON_WINDOW) {
+		window.w = pointer->w;
+		wimp_get_window_state(&window);
+
+		ox = window.visible.x0 - window.xscroll;
+
+		icon.w = pointer->w;
+		icon.i = pointer->i;
+		wimp_get_icon_state(&icon);
+
+		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
+			(file->accounts[account].account_view)->sort_order = SORT_NONE;
+
+			switch (pointer->i) {
+			case ACCVIEW_PANE_DATE:
+				(file->accounts[account].account_view)->sort_order = SORT_DATE;
+				break;
+
+			case ACCVIEW_PANE_FROMTO:
+				(file->accounts[account].account_view)->sort_order = SORT_FROMTO;
+				break;
+
+			case ACCVIEW_PANE_REFERENCE:
+				(file->accounts[account].account_view)->sort_order = SORT_REFERENCE;
+				break;
+
+			case ACCVIEW_PANE_PAYMENTS:
+				(file->accounts[account].account_view)->sort_order = SORT_PAYMENTS;
+				break;
+
+			case ACCVIEW_PANE_RECEIPTS:
+				(file->accounts[account].account_view)->sort_order = SORT_RECEIPTS;
+				break;
+
+			case ACCVIEW_PANE_BALANCE:
+				(file->accounts[account].account_view)->sort_order = SORT_BALANCE;
+				break;
+
+			case ACCVIEW_PANE_DESCRIPTION:
+				(file->accounts[account].account_view)->sort_order = SORT_DESCRIPTION;
+				break;
+			}
+
+			if ((file->accounts[account].account_view)->sort_order != SORT_NONE) {
+				if (pointer->buttons == wimp_CLICK_SELECT * 256)
+					(file->accounts[account].account_view)->sort_order |= SORT_ASCENDING;
+				else
+					(file->accounts[account].account_view)->sort_order |= SORT_DESCENDING;
+			}
+
+			adjust_accview_window_sort_icon(file, account);
+			windows_redraw((file->accounts[account].account_view)->accview_pane);
+			sort_accview_window(file, account);
+
+			file->accview_sort_order = (file->accounts[account].account_view)->sort_order;
+		}
+	} else if (pointer->buttons == wimp_DRAG_SELECT) {
+		column_start_drag(pointer, file, account, (file->accounts[account].account_view)->accview_window,
+				ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), adjust_accview_window_columns);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Process scroll events in the Account View window.
+ *
+ * \param *scroll		The scroll event block to handle.
+ */
+
+static void accview_window_scroll_handler(wimp_scroll *scroll)
+{
+	file_data	*file;
+	int		width, height, error;
+
+	file = event_get_window_user_data(scroll->w);
+	if (file == NULL)
+		return;
+
+  /* Add in the X scroll offset. */
+
+  width = scroll->visible.x1 - scroll->visible.x0;
+
+  switch (scroll->xmin)
+  {
+    case wimp_SCROLL_COLUMN_LEFT:
+      scroll->xscroll -= HORIZONTAL_SCROLL;
+      break;
+
+    case wimp_SCROLL_COLUMN_RIGHT:
+      scroll->xscroll += HORIZONTAL_SCROLL;
+      break;
+
+    case wimp_SCROLL_PAGE_LEFT:
+      scroll->xscroll -= width;
+      break;
+
+    case wimp_SCROLL_PAGE_RIGHT:
+      scroll->xscroll += width;
+      break;
+  }
+
+  /* Add in the Y scroll offset. */
+
+  height = (scroll->visible.y1 - scroll->visible.y0) - ACCVIEW_TOOLBAR_HEIGHT;
+
+  switch (scroll->ymin)
+  {
+    case wimp_SCROLL_LINE_UP:
+      scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
+      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+      {
+        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+      }
+      break;
+
+    case wimp_SCROLL_LINE_DOWN:
+      scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
+      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+      {
+        scroll->yscroll -= error;
+      }
+      break;
+
+    case wimp_SCROLL_PAGE_UP:
+      scroll->yscroll += height;
+      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+      {
+        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+      }
+      break;
+
+    case wimp_SCROLL_PAGE_DOWN:
+      scroll->yscroll -= height;
+      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+      {
+        scroll->yscroll -= error;
+      }
+      break;
+  }
+
+  /* Re-open the window.
+   *
+   * It is assumed that the wimp will deal with out-of-bounds offsets for us.
+   */
+
+  wimp_open_window ((wimp_open *) scroll);
+}
+
+
+/**
+ * Process redraw events in the Account View window.
+ *
+ * \param *redraw		The draw event block to handle.
+ */
+
+static void accview_window_redraw_handler(wimp_draw *redraw)
+{
+	file_data	*file;
+	acct_t		account;
+  int                   ox, oy, top, base, y, i, transaction, shade_budget, shade_budget_col,
+                        shade_overdrawn, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
+  char                  icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+  osbool                more;
+  accview_window        *window;
+
+
+	file = event_get_window_user_data(redraw->w);
+	if (file == NULL)
+		return;
+
+	account = find_accview_window_from_handle(file, redraw->w);
+	if (account == NULL_ACCOUNT)
+		return;
+
+    window = file->accounts[account].account_view;
+
+    shade_budget = (file->accounts[account].type & (ACCOUNT_IN | ACCOUNT_OUT)) && config_opt_read ("ShadeBudgeted") &&
+                   (file->budget.start != NULL_DATE || file->budget.finish != NULL_DATE);
+    shade_budget_col = config_int_read ("ShadeBudgetedColour");
+
+    shade_overdrawn = (file->accounts[account].type & ACCOUNT_FULL) && config_opt_read ("ShadeOverdrawn");
+    shade_overdrawn_col = config_int_read ("ShadeOverdrawnColour");
+
+    more = wimp_redraw_window (redraw);
+
+    ox = redraw->box.x0 - redraw->xscroll;
+    oy = redraw->box.y1 - redraw->yscroll;
+
+    msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
+
+    /* Set the horizontal positions of the icons for the account lines. */
+
+    for (i=0; i < ACCVIEW_COLUMNS; i++)
+    {
+      accview_window_def->icons[i].extent.x0 = window->column_position[i];
+      accview_window_def->icons[i].extent.x1 = window->column_position[i] + window->column_width[i];
+      accview_window_def->icons[i].data.indirected_text.text = icon_buffer;
+    }
+
+    /* Perform the redraw. */
+
+    while (more)
+    {
+      /* Calculate the rows to redraw. */
+
+      top = (oy - redraw->clip.y1 - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+      if (top < 0)
+      {
+        top = 0;
+      }
+
+      base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2)
+             + oy - redraw->clip.y0 - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+
+      /* Redraw the data into the window. */
+
+      for (y = top; y <= base; y++)
+      {
+        /* Plot out the background with a filled white rectangle. */
+
+        wimp_set_colour (wimp_COLOUR_WHITE);
+        os_plot (os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT);
+        os_plot (os_PLOT_RECTANGLE + os_PLOT_TO,
+                 ox + window->column_position[ACCVIEW_COLUMNS-1] + window->column_width[ACCVIEW_COLUMNS-1],
+                 oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+
+        /* Find the transaction that applies to this line. */
+
+        transaction = (y < window->display_lines) ?
+                         (window->line_data)[(window->line_data)[y].sort_index].transaction : 0;
+
+        /* work out the foreground colour for the line, based on whether the line is to be shaded or not. */
+
+        if (shade_budget && (y < window->display_lines) &&
+            ((file->budget.start == NULL_DATE || file->transactions[transaction].date < file->budget.start) ||
+             (file->budget.finish == NULL_DATE || file->transactions[transaction].date > file->budget.finish)))
+        {
+          icon_fg_col = (shade_budget_col << wimp_ICON_FG_COLOUR_SHIFT);
+          icon_fg_balance_col = (shade_budget_col << wimp_ICON_FG_COLOUR_SHIFT);
+        }
+        else if (shade_overdrawn && (y < window->display_lines) &&
+              ((window->line_data)[(window->line_data)[y].sort_index].balance < - file->accounts[account].credit_limit))
+        {
+          icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+          icon_fg_balance_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+        }
+        else
+        {
+          icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+          icon_fg_balance_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+        }
+
+        *icon_buffer = '\0';
+
+        /* Date field */
+
+        accview_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+        accview_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT;
+
+	accview_window_def->icons[0].flags &= ~wimp_ICON_FG_COLOUR;
+	accview_window_def->icons[0].flags |= icon_fg_col;
+
+        if (y < window->display_lines)
+        {
+          convert_date_to_string (file->transactions[transaction].date, icon_buffer);
+        }
+        else
+        {
+          *icon_buffer = '\0';
+        }
+        wimp_plot_icon (&(accview_window_def->icons[0]));
+
+        /* From / To field */
+
+        accview_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                             - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+        accview_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                             - ACCVIEW_TOOLBAR_HEIGHT;
+
+	accview_window_def->icons[1].flags &= ~wimp_ICON_FG_COLOUR;
+	accview_window_def->icons[1].flags |= icon_fg_col;
+
+        accview_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                             - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+        accview_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                             - ACCVIEW_TOOLBAR_HEIGHT;
+
+	accview_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
+	accview_window_def->icons[2].flags |= icon_fg_col;
+
+        accview_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                             - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+        accview_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                             - ACCVIEW_TOOLBAR_HEIGHT;
+
+	accview_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
+	accview_window_def->icons[3].flags |= icon_fg_col;
+
+        if (y < window->display_lines && file->transactions[transaction].from == account &&
+           file->transactions[transaction].to != NULL_ACCOUNT)
+        {
+          accview_window_def->icons[1].data.indirected_text.text =
+             file->accounts[file->transactions[transaction].to].ident;
+          accview_window_def->icons[2].data.indirected_text.text = icon_buffer;
+          accview_window_def->icons[3].data.indirected_text.text =
+             file->accounts[file->transactions[transaction].to].name;
+
+          if (file->transactions[transaction].flags & TRANS_REC_FROM)
+          {
+            strcpy (icon_buffer, rec_char);
+          }
+          else
+          {
+            *icon_buffer = '\0';
+          }
+        }
+        else if (y < window->display_lines && file->transactions[transaction].to == account &&
+           file->transactions[transaction].from != NULL_ACCOUNT)
+        {
+          accview_window_def->icons[1].data.indirected_text.text =
+             file->accounts[file->transactions[transaction].from].ident;
+          accview_window_def->icons[2].data.indirected_text.text = icon_buffer;
+          accview_window_def->icons[3].data.indirected_text.text =
+             file->accounts[file->transactions[transaction].from].name;
+
+          if (file->transactions[transaction].flags & TRANS_REC_TO)
+          {
+            strcpy (icon_buffer, rec_char);
+          }
+          else
+          {
+            *icon_buffer = '\0';
+          }
+        }
+        else
+        {
+          accview_window_def->icons[1].data.indirected_text.text = icon_buffer;
+          accview_window_def->icons[2].data.indirected_text.text = icon_buffer;
+          accview_window_def->icons[3].data.indirected_text.text = icon_buffer;
+          *icon_buffer = '\0';
+        }
+
+        wimp_plot_icon (&(accview_window_def->icons[1]));
+        wimp_plot_icon (&(accview_window_def->icons[2]));
+        wimp_plot_icon (&(accview_window_def->icons[3]));
+
+        /* Reference field */
+
+        accview_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+        accview_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT;
+
+	accview_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
+	accview_window_def->icons[4].flags |= icon_fg_col;
+
+        if (y < window->display_lines)
+        {
+          accview_window_def->icons[4].data.indirected_text.text = file->transactions[transaction].reference;
+        }
+        else
+        {
+          accview_window_def->icons[4].data.indirected_text.text = icon_buffer;
+          *icon_buffer = '\0';
+        }
+        wimp_plot_icon (&(accview_window_def->icons[4]));
+
+        /* Payments field */
+
+        accview_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+        accview_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT;
+
+	accview_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
+	accview_window_def->icons[5].flags |= icon_fg_col;
+
+        if (y < window->display_lines && file->transactions[transaction].from == account)
+        {
+          convert_money_to_string (file->transactions[transaction].amount, icon_buffer);
+        }
+        else
+        {
+          *icon_buffer = '\0';
+        }
+        wimp_plot_icon (&(accview_window_def->icons[5]));
+
+        /* Receipts field */
+
+        accview_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+        accview_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT;
+
+	accview_window_def->icons[6].flags &= ~wimp_ICON_FG_COLOUR;
+	accview_window_def->icons[6].flags |= icon_fg_col;
+
+        if (y < window->display_lines && file->transactions[transaction].to == account)
+        {
+          convert_money_to_string (file->transactions[transaction].amount, icon_buffer);
+        }
+        else
+        {
+          *icon_buffer = '\0';
+        }
+        wimp_plot_icon (&(accview_window_def->icons[6]));
+
+        /* Balance field */
+
+        accview_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+        accview_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT;
+
+	accview_window_def->icons[7].flags &= ~wimp_ICON_FG_COLOUR;
+	accview_window_def->icons[7].flags |= icon_fg_balance_col;
+
+        if (y < window->display_lines)
+        {
+          convert_money_to_string ((window->line_data)[(window->line_data)[y].sort_index].balance, icon_buffer);
+        }
+        else
+        {
+          *icon_buffer = '\0';
+        }
+        wimp_plot_icon (&(accview_window_def->icons[7]));
+
+       /* Comments field */
+
+        accview_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+        accview_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                         - ACCVIEW_TOOLBAR_HEIGHT;
+
+	accview_window_def->icons[8].flags &= ~wimp_ICON_FG_COLOUR;
+	accview_window_def->icons[8].flags |= icon_fg_col;
+
+        if (y < window->display_lines)
+        {
+          accview_window_def->icons[8].data.indirected_text.text = file->transactions[transaction].description;
+        }
+        else
+        {
+          accview_window_def->icons[8].data.indirected_text.text = icon_buffer;
+          *icon_buffer = '\0';
+        }
+        wimp_plot_icon (&(accview_window_def->icons[8]));
+      }
+      more = wimp_get_rectangle (redraw);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 void adjust_accview_window_columns (file_data *file, int account, wimp_i target, int width)
@@ -358,37 +1063,37 @@ void update_accview_window_sort_icon (file_data *file, int account, wimp_icon *i
   {
     case SORT_DATE:
       i = 0;
-      accview_pane_sort_substitute_icon = ACCVIEW_PANE_DATE;
+      accview_substitute_sort_icon = ACCVIEW_PANE_DATE;
       break;
 
     case SORT_FROMTO:
       i = 3;
-      accview_pane_sort_substitute_icon = ACCVIEW_PANE_FROMTO;
+      accview_substitute_sort_icon = ACCVIEW_PANE_FROMTO;
       break;
 
     case SORT_REFERENCE:
       i = 4;
-      accview_pane_sort_substitute_icon = ACCVIEW_PANE_REFERENCE;
+      accview_substitute_sort_icon = ACCVIEW_PANE_REFERENCE;
       break;
 
     case SORT_PAYMENTS:
       i = 5;
-      accview_pane_sort_substitute_icon = ACCVIEW_PANE_PAYMENTS;
+      accview_substitute_sort_icon = ACCVIEW_PANE_PAYMENTS;
       break;
 
     case SORT_RECEIPTS:
       i = 6;
-      accview_pane_sort_substitute_icon = ACCVIEW_PANE_RECEIPTS;
+      accview_substitute_sort_icon = ACCVIEW_PANE_RECEIPTS;
       break;
 
     case SORT_BALANCE:
       i = 7;
-      accview_pane_sort_substitute_icon = ACCVIEW_PANE_BALANCE;
+      accview_substitute_sort_icon = ACCVIEW_PANE_BALANCE;
       break;
 
     case SORT_DESCRIPTION:
       i = 8;
-      accview_pane_sort_substitute_icon = ACCVIEW_PANE_DESCRIPTION;
+      accview_substitute_sort_icon = ACCVIEW_PANE_DESCRIPTION;
       break;
   }
 
@@ -891,8 +1596,8 @@ void open_accview_sort_window (file_data *file, int account, wimp_pointer *ptr)
 
   fill_accview_sort_window ((file->accounts[account].account_view)->sort_order);
 
-  sort_accview_window_file = file;
-  sort_accview_window_account = account;
+  accview_sort_file = file;
+  accview_sort_account = account;
 
   windows_open_centred_at_pointer (windows.sort_accview, ptr);
   place_dialogue_caret (windows.sort_accview, wimp_ICON_WINDOW);
@@ -902,7 +1607,7 @@ void open_accview_sort_window (file_data *file, int account, wimp_pointer *ptr)
 
 void refresh_accview_sort_window (void)
 {
-  fill_accview_sort_window ((sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order);
+  fill_accview_sort_window ((accview_sort_file->accounts[accview_sort_account].account_view)->sort_order);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -929,56 +1634,56 @@ int process_accview_sort_window (void)
 {
   extern global_windows windows;
 
-  (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_NONE;
+  (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_NONE;
 
   if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_DATE))
   {
-    (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_DATE;
+    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_DATE;
   }
   else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_FROMTO))
   {
-    (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_FROMTO;
+    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_FROMTO;
   }
   else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_REFERENCE))
   {
-    (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_REFERENCE;
+    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_REFERENCE;
   }
   else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_PAYMENTS))
   {
-    (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_PAYMENTS;
+    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_PAYMENTS;
   }
   else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_RECEIPTS))
   {
-    (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_RECEIPTS;
+    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_RECEIPTS;
   }
   else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_BALANCE))
   {
-    (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_BALANCE;
+    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_BALANCE;
   }
   else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_DESCRIPTION))
   {
-    (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order = SORT_DESCRIPTION;
+    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_DESCRIPTION;
   }
 
-  if ((sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order != SORT_NONE)
+  if ((accview_sort_file->accounts[accview_sort_account].account_view)->sort_order != SORT_NONE)
   {
     if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_ASCENDING))
     {
-      (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order |= SORT_ASCENDING;
+      (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order |= SORT_ASCENDING;
     }
     else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_DESCENDING))
     {
-      (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order |= SORT_DESCENDING;
+      (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order |= SORT_DESCENDING;
     }
   }
 
-  adjust_accview_window_sort_icon (sort_accview_window_file, sort_accview_window_account);
-  windows_redraw ((sort_accview_window_file->
-                                accounts[sort_accview_window_account].account_view)->accview_pane);
-  sort_accview_window (sort_accview_window_file, sort_accview_window_account);
+  adjust_accview_window_sort_icon (accview_sort_file, accview_sort_account);
+  windows_redraw ((accview_sort_file->
+                                accounts[accview_sort_account].account_view)->accview_pane);
+  sort_accview_window (accview_sort_file, accview_sort_account);
 
-  sort_accview_window_file->accview_sort_order =
-       (sort_accview_window_file->accounts[sort_accview_window_account].account_view)->sort_order;
+  accview_sort_file->accview_sort_order =
+       (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order;
 
   return (0);
 }
@@ -992,7 +1697,7 @@ void force_close_accview_sort_window (file_data *file)
   extern global_windows windows;
 
 
-  if (sort_accview_window_file == file && windows_get_open (windows.sort_accview))
+  if (accview_sort_file == file && windows_get_open (windows.sort_accview))
   {
     close_dialogue_with_caret (windows.sort_accview);
   }
@@ -1146,226 +1851,6 @@ void print_accview_window(osbool text, osbool format, osbool scale, osbool rotat
  * Account View window handling
  */
 
-void accview_window_click (file_data *file, wimp_pointer *pointer)
-{
-  int               line, column, xpos, transaction, account, toggle_flag;
-  int               trans_col_from [] = {0,1,1,1,7,8,8,8,9}, trans_col_to [] = {0,4,4,4,7,8,8,8,9}, *trans_col;
-  wimp_window_state window;
-  accview_window    *accview;
-
-
-  #ifdef DEBUG
-  debug_printf ("Accview window click: %d", pointer->buttons);
-  #endif
-
-  /* Find the window's account, and get the line clicked on. */
-
-  account = find_accview_window_from_handle (file, pointer->w);
-
-  accview = file->accounts[account].account_view;
-
-  window.w = pointer->w;
-  wimp_get_window_state (&window);
-
-  line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCVIEW_TOOLBAR_HEIGHT)
-         / (ICON_HEIGHT+LINE_GUTTER);
-
-  if (line < 0 || line >= accview->display_lines)
-  {
-    line = -1;
-  }
-
-  /* If the line is a transaction, handle mouse clicks over it.  Menu clicks are ignored and dealt with in the
-   * else clause.
-   */
-
-  if (line != -1 && pointer->buttons != wimp_CLICK_MENU)
-  {
-    transaction = accview->line_data[accview->line_data[line].sort_index].transaction;
-
-    xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
-
-    for (column = 0;
-         column < ACCVIEW_COLUMNS && xpos > (accview->column_position[column] + accview->column_width[column]);
-         column++);
-
-    if (column != ACCVIEW_COLUMN_RECONCILE &&
-        (pointer->buttons == wimp_DOUBLE_SELECT || pointer->buttons == wimp_DOUBLE_ADJUST))
-    {
-      /* Handle double-clicks, which will locate the transaction in the main window.  Clicks in the reconcile
-       * column are not used, as these are used to toggle the reconcile flag.
-       */
-
-      trans_col =  (file->transactions[transaction].from == account) ? trans_col_to : trans_col_from;
-
-      place_transaction_edit_line (file, locate_transaction_in_transact_window (file, transaction));
-      icons_put_caret_at_end (file->transaction_window.transaction_window, trans_col[column]);
-      find_transaction_edit_line (file);
-
-      if (pointer->buttons == wimp_DOUBLE_ADJUST)
-      {
-        windows_open (file->transaction_window.transaction_window);
-      }
-    }
-
-    else if (column == ACCVIEW_COLUMN_RECONCILE && pointer->buttons == wimp_SINGLE_ADJUST)
-    {
-      /* Handle adjust-clicks in the reconcile column, to toggle the status. */
-
-      toggle_flag = (file->transactions[transaction].from == account) ? TRANS_REC_FROM : TRANS_REC_TO;
-
-      toggle_reconcile_flag (file, transaction, toggle_flag);
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_accview_menu (file, account, line, pointer);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void accview_pane_click (file_data *file, wimp_pointer *pointer)
-{
-  wimp_window_state     window;
-  wimp_icon_state       icon;
-  int                   account, ox;
-
-  /* Find the window's account. */
-
-  account = find_accview_window_from_handle (file, pointer->w);
-
-  /* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
-
-  if (pointer->i == ACCVIEW_PANE_SORT_DIR_ICON)
-  {
-    pointer->i = accview_pane_sort_substitute_icon;
-  }
-
-  /* Decode the mouse click. */
-
-  if (pointer->buttons == wimp_CLICK_SELECT)
-  {
-    switch (pointer->i)
-    {
-      case ACCVIEW_PANE_PARENT:
-        windows_open (file->transaction_window.transaction_window);
-        break;
-
-      case ACCVIEW_PANE_PRINT:
-        open_accview_print_window (file, account, pointer, config_opt_read ("RememberValues"));
-        break;
-
-      case ACCVIEW_PANE_EDIT:
-        open_account_edit_window (file, account, -1, pointer);
-        break;
-
-      case ACCVIEW_PANE_GOTOEDIT:
-        align_accview_with_transact (file, account);
-        break;
-
-      case ACCVIEW_PANE_SORT:
-        open_accview_sort_window (file, account, pointer);
-        break;
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_ADJUST)
-  {
-    switch (pointer->i)
-    {
-      case ACCVIEW_PANE_PRINT:
-        open_accview_print_window (file, account, pointer, !config_opt_read ("RememberValues"));
-        break;
-
-      case ACCVIEW_PANE_SORT:
-        sort_accview_window (file, account);
-        break;
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_accview_menu (file, account, -1, pointer);
-  }
-
-  /* Process clicks on the column headings, for sorting the data.  This tests to see if the click was
-   * outside of the column size drag hotspot before proceeding.
-   */
-
-  else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
-            pointer->i != wimp_ICON_WINDOW)
-  {
-    window.w = pointer->w;
-    wimp_get_window_state (&window);
-
-    ox = window.visible.x0 - window.xscroll;
-
-    icon.w = pointer->w;
-    icon.i = pointer->i;
-    wimp_get_icon_state (&icon);
-
-    if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT))
-    {
-      (file->accounts[account].account_view)->sort_order = SORT_NONE;
-
-      switch (pointer->i)
-      {
-        case ACCVIEW_PANE_DATE:
-          (file->accounts[account].account_view)->sort_order = SORT_DATE;
-          break;
-
-        case ACCVIEW_PANE_FROMTO:
-          (file->accounts[account].account_view)->sort_order = SORT_FROMTO;
-          break;
-
-        case ACCVIEW_PANE_REFERENCE:
-          (file->accounts[account].account_view)->sort_order = SORT_REFERENCE;
-          break;
-
-        case ACCVIEW_PANE_PAYMENTS:
-          (file->accounts[account].account_view)->sort_order = SORT_PAYMENTS;
-          break;
-
-        case ACCVIEW_PANE_RECEIPTS:
-          (file->accounts[account].account_view)->sort_order = SORT_RECEIPTS;
-          break;
-
-        case ACCVIEW_PANE_BALANCE:
-          (file->accounts[account].account_view)->sort_order = SORT_BALANCE;
-          break;
-
-        case ACCVIEW_PANE_DESCRIPTION:
-          (file->accounts[account].account_view)->sort_order = SORT_DESCRIPTION;
-          break;
-      }
-
-      if ((file->accounts[account].account_view)->sort_order != SORT_NONE)
-      {
-        if (pointer->buttons == wimp_CLICK_SELECT * 256)
-        {
-          (file->accounts[account].account_view)->sort_order |= SORT_ASCENDING;
-        }
-        else
-        {
-          (file->accounts[account].account_view)->sort_order |= SORT_DESCENDING;
-        }
-      }
-
-      adjust_accview_window_sort_icon (file, account);
-      windows_redraw ((file->accounts[account].account_view)->accview_pane);
-      sort_accview_window (file, account);
-
-      file->accview_sort_order = (file->accounts[account].account_view)->sort_order;
-    }
-  }
-
-  else if (pointer->buttons == wimp_DRAG_SELECT)
-  {
-    column_start_drag(pointer, file, account, (file->accounts[account].account_view)->accview_window, ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), adjust_accview_window_columns);
-  }
-}
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Set the extent of the account view window for the specified file. */
 
@@ -1477,82 +1962,6 @@ void force_accview_window_redraw (file_data *file, int account, int from, int to
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Handle scroll events that occur in an accavount view window */
-
-void accview_window_scroll_event (file_data *file, wimp_scroll *scroll)
-{
-  int width, height, error;
-
-
-  /* Add in the X scroll offset. */
-
-  width = scroll->visible.x1 - scroll->visible.x0;
-
-  switch (scroll->xmin)
-  {
-    case wimp_SCROLL_COLUMN_LEFT:
-      scroll->xscroll -= HORIZONTAL_SCROLL;
-      break;
-
-    case wimp_SCROLL_COLUMN_RIGHT:
-      scroll->xscroll += HORIZONTAL_SCROLL;
-      break;
-
-    case wimp_SCROLL_PAGE_LEFT:
-      scroll->xscroll -= width;
-      break;
-
-    case wimp_SCROLL_PAGE_RIGHT:
-      scroll->xscroll += width;
-      break;
-  }
-
-  /* Add in the Y scroll offset. */
-
-  height = (scroll->visible.y1 - scroll->visible.y0) - ACCVIEW_TOOLBAR_HEIGHT;
-
-  switch (scroll->ymin)
-  {
-    case wimp_SCROLL_LINE_UP:
-      scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
-
-    case wimp_SCROLL_LINE_DOWN:
-      scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
-
-    case wimp_SCROLL_PAGE_UP:
-      scroll->yscroll += height;
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
-
-    case wimp_SCROLL_PAGE_DOWN:
-      scroll->yscroll -= height;
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
-  }
-
-  /* Re-open the window.
-   *
-   * It is assumed that the wimp will deal with out-of-bounds offsets for us.
-   */
-
-  wimp_open_window ((wimp_open *) scroll);
-}
 
 /* ==================================================================================================================
  * Aligning Account View window with Transaction Window.

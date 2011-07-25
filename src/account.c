@@ -631,7 +631,7 @@ int delete_account (file_data *file, int account)
 
     if (file->accounts[account].account_view != NULL)
     {
-      delete_accview_window(file, account);
+      accview_delete_window(file, account);
     }
 
     /* Remove the account from any report templates. */
@@ -1930,7 +1930,7 @@ void account_window_click (file_data *file, wimp_pointer *pointer)
   {
     if (file->account_windows[entry].line_data[line].type == ACCOUNT_LINE_DATA)
     {
-      create_accview_window (file, file->account_windows[entry].line_data[line].account);
+      accview_open_window (file, file->account_windows[entry].line_data[line].account);
     }
   }
 

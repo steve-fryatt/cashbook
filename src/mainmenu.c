@@ -262,7 +262,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
   {
     if (selection->items[1] == MAIN_MENU_ACCOUNTS_VIEW && selection->items[2] != -1) /* View */
     {
-      create_accview_window (main_menu_file, account_link[selection->items[2]].account);
+      accview_open_window (main_menu_file, account_link[selection->items[2]].account);
     }
 
     else if (selection->items[1] == MAIN_MENU_ACCOUNTS_LIST) /* List */
@@ -486,7 +486,7 @@ void decode_accopen_menu (wimp_selection *selection, wimp_pointer *pointer)
 
   if (selection->items[0] != -1)
   {
-    create_accview_window (main_menu_file, account_link[selection->items[0]].account);
+    accview_open_window (main_menu_file, account_link[selection->items[0]].account);
   }
 
   set_accopen_menu (main_menu_file);
@@ -1619,7 +1619,7 @@ void decode_acclist_menu (wimp_selection *selection, wimp_pointer *pointer)
 
   if (selection->items[0] == ACCLIST_MENU_VIEWACCT)
   {
-    create_accview_window (main_menu_file, main_menu_file->account_windows[entry].line_data[main_menu_line].account);
+    accview_open_window (main_menu_file, main_menu_file->account_windows[entry].line_data[main_menu_line].account);
   }
   else if (selection->items[0] == ACCLIST_MENU_EDITACCT)
   {

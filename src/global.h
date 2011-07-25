@@ -224,9 +224,9 @@
 
 /* None of these are fully used as yet... */
 
-typedef unsigned int date_t; /* A date */
-typedef int          amt_t;  /* An amount. */
-typedef unsigned int acct_t; /* An account number. */
+typedef unsigned int	date_t;							/**< A date.							*/
+typedef int		amt_t;							/**< An amount.							*/
+typedef int		acct_t;							/**< An account number.						*/
 
 
 /* \TODO -- These need to move into their modules once we've sorted the rest
@@ -853,18 +853,14 @@ typedef struct
   wimp_w      edit_acct;
   wimp_w      edit_hdr;
   wimp_w      edit_sect;
-//  wimp_w      edit_sorder;
   wimp_w      sort_trans;
   wimp_w      sort_accview;
-//  wimp_w      sort_sorder;
 
   wimp_window *transaction_window_def;
   wimp_window *transaction_pane_def;
   wimp_window *account_window_def;
   wimp_window *account_pane_def[2];
   wimp_window *account_footer_def;
-  wimp_window *accview_window_def;
-  wimp_window *accview_pane_def;
 }
 global_windows;
 

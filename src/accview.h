@@ -1,10 +1,10 @@
 /* CashBook - accview.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_ACCVIEW
-#define _ACCOUNTS_ACCVIEW
+#ifndef CASHBOOK_ACCVIEW
+#define CASHBOOK_ACCVIEW
 
 /* ==================================================================================================================
  * Static constants
@@ -43,18 +43,40 @@
 #define ACCVIEW_SORT_ASCENDING 11
 #define ACCVIEW_SORT_DESCENDING 12
 
-/* ==================================================================================================================
- * Data structures
+/**
+ * Initialise the account view system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-/* ==================================================================================================================
- * Function prototypes.
+void accview_initialise(osspriteop_area *sprites);
+
+
+/**
+ * Create and open a Account View window for the given file and account.
+ *
+ * \param *file			The file to open a window for.
+ * \param account		The account to open a window for.
  */
 
-/* Window creation and deletion */
+void accview_open_window(file_data *file, acct_t account);
 
-void create_accview_window (file_data *file, int account);
-void delete_accview_window (file_data *file, int account);
+
+/**
+ * Close and delete the Account View Window associated with the given
+ * file block and account.
+ *
+ * \param *file			The file to use.
+ * \param account		The account to close the window for.
+ */
+
+void accview_delete_window(file_data *file, acct_t account);
+
+
+
+
+
+
 void adjust_accview_window_columns (file_data *file, int account, wimp_i icon, int width);
 void adjust_accview_window_sort_icon (file_data *file, int account);
 void update_accview_window_sort_icon (file_data *file, int account, wimp_icon *icon);
@@ -95,12 +117,9 @@ void print_accview_window(osbool text, osbool format, osbool scale, osbool rotat
 
 /* Account View window handling. */
 
-void accview_window_click (file_data *file, wimp_pointer *pointer);
-void accview_pane_click (file_data *file, wimp_pointer *pointer);
 void set_accview_window_extent (file_data *file, int entry);
 void build_accview_window_title (file_data *file, int account);
 void force_accview_window_redraw (file_data *file, int account, int from, int to);
-void accview_window_scroll_event (file_data *file, wimp_scroll *scroll);
 
 int align_accview_with_transact_line (file_data *file, int account);
 int align_accview_with_transact_y_offset (file_data *file, int account);

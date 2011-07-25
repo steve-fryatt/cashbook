@@ -159,8 +159,6 @@ static void main_poll_loop(void)
 					redraw_transaction_window(&(blk.redraw), file);
 				else if ((file = find_account_window_file_block(blk.redraw.w)) != NULL)
 					redraw_account_window(&(blk.redraw), file);
-				else if ((file = find_accview_window_file_block(blk.redraw.w)) != NULL)
-					redraw_accview_window(&(blk.redraw), file);
 				break;
 
 			case wimp_OPEN_WINDOW_REQUEST:
@@ -191,8 +189,6 @@ static void main_poll_loop(void)
 						delete_file(file);
 				} else if ((file = find_account_window_file_block(blk.close.w)) != NULL)
 					delete_accounts_window(file, find_accounts_window_type_from_handle(file, blk.close.w));
-				else if ((file = find_accview_window_file_block (blk.close.w)) != NULL)
-					delete_accview_window(file, find_accview_window_from_handle(file, blk.close.w));
 				else
 					wimp_close_window(blk.close.w);
 				break;
@@ -408,6 +404,7 @@ static void main_initialise(void)
 	goto_initialise();
 	purge_initialise();
 
+	accview_initialise(sprites);
 	sorder_initialise(sprites);
 	preset_initialise(sprites);
 
@@ -640,24 +637,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
   window_def = templates_load_window("AccountHTB");
     window_def->sprite_area = sprites;
     windows->account_pane_def[1] = window_def;
-
-  /* Account View Window.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("AccView");
-    window_def->icon_count = 0;
-    windows->accview_window_def = window_def;
-
-  /* Account View Pane.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("AccViewTB");
-    window_def->sprite_area = sprites;
-    windows->accview_pane_def = window_def;
 }
 
 
@@ -949,20 +928,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
   {
     account_pane_click (file, pointer);
   }
-
-  /* Look for account view windows. */
-
-  else if ((file = find_accview_window_file_block (pointer->w)) != NULL)
-  {
-    accview_window_click (file, pointer);
-  }
-
-  /* Look for account view window toolbars. */
-
-  else if ((file = find_accview_pane_file_block (pointer->w)) != NULL)
-  {
-    accview_pane_click (file, pointer);
-  }
 }
 
 /* ==================================================================================================================
@@ -1246,11 +1211,6 @@ static void scroll_request_handler (wimp_scroll *scroll)
   else if ((file = find_account_window_file_block (scroll->w)) != NULL)
   {
     account_window_scroll_event (file, scroll);
-  }
-
-  else if ((file = find_accview_window_file_block (scroll->w)) != NULL)
-  {
-    accview_window_scroll_event (file, scroll);
   }
 }
 

@@ -406,14 +406,14 @@ void sorder_delete_window(file_data *file)
 	if (file->sorder_window.sorder_window != NULL) {
 		ihelp_remove_window (file->sorder_window.sorder_window);
 		event_delete_window(file->sorder_window.sorder_window);
-		wimp_delete_window (file->sorder_window.sorder_window);
+		wimp_delete_window(file->sorder_window.sorder_window);
 		file->sorder_window.sorder_window = NULL;
 	}
 
 	if (file->sorder_window.sorder_pane != NULL) {
 		ihelp_remove_window (file->sorder_window.sorder_pane);
 		event_delete_window(file->sorder_window.sorder_pane);
-		wimp_delete_window (file->sorder_window.sorder_pane);
+		wimp_delete_window(file->sorder_window.sorder_pane);
 		file->sorder_window.sorder_pane = NULL;
 	}
 }
@@ -454,7 +454,6 @@ static void sorder_window_click_handler(wimp_pointer *pointer)
 	file_data		*file;
 	int			line;
 	wimp_window_state	window;
-
 
 	file = event_get_window_user_data(pointer->w);
 	if (file == NULL)

@@ -398,7 +398,7 @@ void delete_file (file_data *file)
       debug_printf ("Account %d has a view to delete.", i);
       #endif
 
-      delete_accview_window (file, i);
+      accview_delete_window(file, i);
     }
   }
 

@@ -24,6 +24,7 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
 #include "sflib/windows.h"
@@ -37,6 +38,7 @@
 #include "conversion.h"
 #include "caret.h"
 #include "column.h"
+#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
@@ -76,11 +78,15 @@ static wimp_i			accview_substitute_sort_icon = ACCVIEW_PANE_DATE;/**< The icon c
 
 
 
-static void		accview_close_window_handler(wimp_close *close);
-static void		accview_window_click_handler(wimp_pointer *pointer);
-static void		accview_pane_click_handler(wimp_pointer *pointer);
-static void		accview_window_scroll_handler(wimp_scroll *scroll);
-static void		accview_window_redraw_handler(wimp_draw *redraw);
+static void			accview_close_window_handler(wimp_close *close);
+static void			accview_window_click_handler(wimp_pointer *pointer);
+static void			accview_pane_click_handler(wimp_pointer *pointer);
+static void			accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void			accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+static void			accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
+static void			accview_window_menu_close_handler(wimp_w w, wimp_menu *menu);
+static void			accview_window_scroll_handler(wimp_scroll *scroll);
+static void			accview_window_redraw_handler(wimp_draw *redraw);
 
 
 
@@ -102,6 +108,7 @@ void accview_initialise(osspriteop_area *sprites)
 	accview_pane_def = templates_load_window("AccViewTB");
 	accview_pane_def->sprite_area = sprites;
 
+	accview_window_menu = templates_get_menu(TEMPLATES_MENU_ACCVIEW);
 }
 
 
@@ -247,23 +254,23 @@ void accview_open_window(file_data *file, acct_t account)
 	/* Register event handlers for the two windows. */
 
 	event_add_window_user_data((file->accounts[account].account_view)->accview_window, file);
-//	event_add_window_menu((file->accounts[account].account_view)->accview_window, accview_window_menu);
+	event_add_window_menu((file->accounts[account].account_view)->accview_window, accview_window_menu);
 	event_add_window_close_event((file->accounts[account].account_view)->accview_window, accview_close_window_handler);
 	event_add_window_mouse_event((file->accounts[account].account_view)->accview_window, accview_window_click_handler);
 	event_add_window_scroll_event((file->accounts[account].account_view)->accview_window, accview_window_scroll_handler);
 	event_add_window_redraw_event((file->accounts[account].account_view)->accview_window, accview_window_redraw_handler);
-//	event_add_window_menu_prepare((file->accounts[account].account_view)->accview_window, accview_window_menu_prepare_handler);
-//	event_add_window_menu_selection((file->accounts[account].account_view)->accview_window, accview_window_menu_selection_handler);
-//	event_add_window_menu_warning((file->accounts[account].account_view)->accview_window, accview_window_menu_warning_handler);
-//	event_add_window_menu_close((file->accounts[account].account_view)->accview_window, accview_window_menu_close_handler);
+	event_add_window_menu_prepare((file->accounts[account].account_view)->accview_window, accview_window_menu_prepare_handler);
+	event_add_window_menu_selection((file->accounts[account].account_view)->accview_window, accview_window_menu_selection_handler);
+	event_add_window_menu_warning((file->accounts[account].account_view)->accview_window, accview_window_menu_warning_handler);
+	event_add_window_menu_close((file->accounts[account].account_view)->accview_window, accview_window_menu_close_handler);
 
 	event_add_window_user_data((file->accounts[account].account_view)->accview_pane, file);
-//	event_add_window_menu((file->accounts[account].account_view)->accview_pane, accview_window_menu);
+	event_add_window_menu((file->accounts[account].account_view)->accview_pane, accview_window_menu);
 	event_add_window_mouse_event((file->accounts[account].account_view)->accview_pane, accview_pane_click_handler);
-//	event_add_window_menu_prepare((file->accounts[account].account_view)->accview_pane, accview_window_menu_prepare_handler);
-//	event_add_window_menu_selection((file->accounts[account].account_view)->accview_pane, accview_window_menu_selection_handler);
-//	event_add_window_menu_warning((file->accounts[account].account_view)->accview_pane, accview_window_menu_warning_handler);
-//	event_add_window_menu_close((file->accounts[account].account_view)->accview_pane, accview_window_menu_close_handler);
+	event_add_window_menu_prepare((file->accounts[account].account_view)->accview_pane, accview_window_menu_prepare_handler);
+	event_add_window_menu_selection((file->accounts[account].account_view)->accview_pane, accview_window_menu_selection_handler);
+	event_add_window_menu_warning((file->accounts[account].account_view)->accview_pane, accview_window_menu_warning_handler);
+	event_add_window_menu_close((file->accounts[account].account_view)->accview_pane, accview_window_menu_close_handler);
 }
 
 
@@ -533,27 +540,160 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 }
 
 
+/**
+ * Process menu prepare events in the Account View window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *pointer	The pointer position, or NULL for a re-open.
+ */
+
+static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+{
+	file_data		*file;
+	acct_t			account;
+	int			line;
+	wimp_window_state	window;
 
 
+	file = event_get_window_user_data(w);
+	if (file == NULL)
+		return;
+
+	/* Find the window's account. */
+
+	account = find_accview_window_from_handle(file, pointer->w);
+	if (account == NULL_ACCOUNT)
+		return;
+
+	if (pointer != NULL) {
+		accview_window_menu_line = -1;
+
+		if (w == (file->accounts[account].account_view)->accview_window) {
+			window.w = w;
+			wimp_get_window_state(&window);
+
+			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+			if (line >= 0 && line < (file->accounts[account].account_view)->display_lines)
+				accview_window_menu_line = line;
+		}
+
+		initialise_save_boxes(file, account, 0);
+
+		switch (file->accounts[account].type) {
+		case ACCOUNT_FULL:
+			msgs_lookup("AccviewMenuTitleAcc", accview_window_menu->title_data.text, 12);
+			msgs_lookup("AccviewMenuEditAcc", menus_get_indirected_text_addr(accview_window_menu, ACCVIEW_MENU_EDITACCT), 20);
+			templates_set_menu_token("AccViewMenu");
+			break;
+
+		case ACCOUNT_IN:
+		case ACCOUNT_OUT:
+			msgs_lookup("AccviewMenuTitleHead", accview_window_menu->title_data.text, 12);
+			msgs_lookup("AccviewMenuEditHead", menus_get_indirected_text_addr(accview_window_menu, ACCVIEW_MENU_EDITACCT), 20);
+			templates_set_menu_token("HeadViewMenu");
+			break;
+		}
+	}
+
+	menus_shade_entry(accview_window_menu, ACCVIEW_MENU_FINDTRANS, accview_window_menu_line == -1);
+}
 
 
+/**
+ * Process menu selection events in the Account View window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *selection	The menu selection details.
+ */
+
+static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
+{
+	file_data		*file;
+	acct_t			account;
+	wimp_pointer		pointer;
+
+	file = event_get_window_user_data(w);
+	if (file == NULL)
+		return;
+
+	/* Find the window's account. */
+
+	account = find_accview_window_from_handle(file, w);
+	if (account == NULL_ACCOUNT)
+		return;
+
+	wimp_get_pointer_info(&pointer);
+
+	switch (selection->items[0]){
+	case ACCVIEW_MENU_FINDTRANS:
+		place_transaction_edit_line(file, locate_transaction_in_transact_window(file,
+				(file->accounts[account].account_view)->
+				line_data[(file->accounts[account].account_view)->
+				line_data[accview_window_menu_line].sort_index].transaction));
+		icons_put_caret_at_end(file->transaction_window.transaction_window, 0);
+		find_transaction_edit_line(file);
+		break;
+	case ACCVIEW_MENU_GOTOTRANS:
+		align_accview_with_transact(file, account);
+		break;
+	case ACCVIEW_MENU_SORT:
+		open_accview_sort_window(file, account, &pointer);
+		break;
+	case ACCVIEW_MENU_EDITACCT:
+		open_account_edit_window(file, account, -1, &pointer);
+		break;
+	case ACCVIEW_MENU_PRINT:
+		open_accview_print_window(file, account, &pointer, config_opt_read("RememberValues"));
+		break;
+	}
+}
 
 
+/**
+ * Process submenu warning events in the Account View window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *warning	The submenu warning message data.
+ */
+
+static void accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
+{
+	file_data		*file;
+
+	file = event_get_window_user_data(w);
+	if (file == NULL)
+		return;
+
+	switch (warning->selection.items[0]) {
+	case ACCVIEW_MENU_EXPCSV:
+		fill_save_as_window(file, SAVE_BOX_ACCVIEWCSV);
+		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+		break;
+
+	case ACCVIEW_MENU_EXPTSV:
+		fill_save_as_window(file, SAVE_BOX_ACCVIEWTSV);
+		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+		break;
+	}
+}
 
 
+/**
+ * Process menu close events in the Account View window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ */
 
-
-
-
-
-
-
-
-
-
-
-
-
+static void accview_window_menu_close_handler(wimp_w w, wimp_menu *menu)
+{
+	accview_window_menu_line = -1;
+	templates_set_menu_token(NULL);
+}
 
 
 /**

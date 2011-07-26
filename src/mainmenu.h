@@ -17,7 +17,6 @@
 #define MENU_ID_ACCOUNT    3
 #define MENU_ID_DATE       4
 #define MENU_ID_ACCLIST    5
-#define MENU_ID_ACCVIEW    6
 #define MENU_ID_REFDESC    11
 
 #define REFDESC_MENU_REFERENCE   1
@@ -202,15 +201,6 @@ void open_acclist_menu (file_data *file, int type, int line, wimp_pointer *point
 void decode_acclist_menu (wimp_selection *selection, wimp_pointer *pointer);
 
 void acclist_menu_submenu_message (wimp_full_message_menu_warning *submenu);
-
-/* Account view menu */
-
-void set_accview_menu (int type, int line);
-void open_accview_menu (file_data *file, int account, int line, wimp_pointer *pointer);
-
-void decode_accview_menu (wimp_selection *selection, wimp_pointer *pointer);
-
-void accview_menu_submenu_message (wimp_full_message_menu_warning *submenu);
 
 #endif
 

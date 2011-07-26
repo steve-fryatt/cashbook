@@ -33,10 +33,12 @@
 #include "ihelp.h"
 #include "mainmenu.h"
 
+#define TEMPLATES_HELP_TOKEN_LENGTH 64
 
 static wimp_menu	*menu_up = NULL;					/**< The currently open menu.					*/
 static wimp_menu	*templates_menu_list[TEMPLATES_MENU_MAX_EXTENT];	/**< The menu definitions loaded from the menus template.	*/
 static menu_template	menu_definitions;					/**< The menu definition block handle.				*/
+static char		templates_menu_help_token[TEMPLATES_HELP_TOKEN_LENGTH];	/**< The current token to be used for interactive help.		*/
 
 
 /**
@@ -121,6 +123,7 @@ void templates_load_menus(char *file)
 {
 	menu_definitions = menus_load_templates(file, NULL, templates_menu_list, TEMPLATES_MENU_MAX_EXTENT);
 	event_set_menu_pointer(&menu_up);
+	templates_set_menu_token(NULL);
 }
 
 
@@ -171,6 +174,22 @@ void templates_set_menu(enum templates_menus menu, wimp_menu *address)
 
 
 /**
+ * Update the interactive help token to be supplied for undefined
+ * menus.
+ *
+ * \param *token	The token to use, or NULL to unset.
+ */
+
+void templates_set_menu_token(char *token)
+{
+	if (token == NULL)
+		strcpy(templates_menu_help_token, "");
+	else
+		strcpy(templates_menu_help_token, token);
+}
+
+
+/**
  * Return a pointer to the name of the current menu.
  *
  * \param *buffer	Pointer to a buffer to hold the menu name.
@@ -198,6 +217,8 @@ char *templates_get_current_menu_name(char *buffer)
 		strcpy(buffer, "FontMenu");
 	else if (menu_up == templates_menu_list[TEMPLATES_MENU_TEMPLATES])
 		strcpy(buffer, "RepListMenu");
+	else if (*templates_menu_help_token != '\0')
+		strcpy(buffer, templates_menu_help_token);
 	else
 		mainmenu_get_current_menu_name(buffer);
 

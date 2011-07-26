@@ -62,7 +62,6 @@ static void      *transient_shared_data = NULL; /* A pointer to a block of share
 
 static file_data *main_menu_file = NULL; /* Point to the file block connected to the main menu. */
 static int       acclist_menu_type = ACCOUNT_NULL; /* Remember the account type for an acclist menu. */
-static int       accview_menu_account = NULL_ACCOUNT; /* Remember the account for an accview menu. */
 static int       main_menu_line = -1; /* Remember the line that a menu applies to. */
 static int       main_menu_column = -1; /* Remember the column that a menu applies to. */
 
@@ -166,18 +165,6 @@ char *mainmenu_get_current_menu_name(char *buffer)
     else if (acclist_menu_type == ACCOUNT_IN || acclist_menu_type == ACCOUNT_OUT)
     {
       strcpy (buffer, "HeadListMenu");
-    }
-  }
-  else if (menus.menu_id == MENU_ID_ACCVIEW)
-  {
-    if (main_menu_file->accounts[accview_menu_account].type == ACCOUNT_FULL)
-    {
-      strcpy (buffer, "AccViewMenu");
-    }
-    else if (main_menu_file->accounts[accview_menu_account].type == ACCOUNT_IN ||
-             main_menu_file->accounts[accview_menu_account].type == ACCOUNT_OUT)
-    {
-      strcpy (buffer, "HeadViewMenu");
     }
   }
 
@@ -1666,111 +1653,6 @@ void acclist_menu_submenu_message (wimp_full_message_menu_warning *submenu)
 
    case ACCLIST_MENU_EXPTSV: /* TSV save window */
      fill_save_as_window (main_menu_file, SAVE_BOX_ACCTSV);
-     wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-     break;
- }
-}
-
-/* ==================================================================================================================
- * Account view menu
- */
-
-/* Set and open the menu. */
-
-void set_accview_menu (int type, int line)
-{
-  extern global_menus   menus;
-
-
-  switch (type)
-  {
-    case ACCOUNT_FULL:
-      msgs_lookup ("AccviewMenuTitleAcc", menus.accview->title_data.text, 12);
-      msgs_lookup ("AccviewMenuEditAcc", menus_get_indirected_text_addr (menus.accview, ACCVIEW_MENU_EDITACCT), 20);
-      break;
-
-    case ACCOUNT_IN:
-    case ACCOUNT_OUT:
-      msgs_lookup ("AccviewMenuTitleHead", menus.accview->title_data.text, 12);
-      msgs_lookup ("AccviewMenuEditHead", menus_get_indirected_text_addr (menus.accview, ACCVIEW_MENU_EDITACCT), 20);
-      break;
-  }
-
-  menus_shade_entry (menus.accview, ACCVIEW_MENU_FINDTRANS, line == -1);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_accview_menu (file_data *file, int account, int line, wimp_pointer *pointer)
-{
-  extern global_menus   menus;
-
-
-  initialise_save_boxes (file, account, 0);
-  set_accview_menu (file->accounts[account].type, line);
-
-  menus.menu_up = menus_create_standard_menu (menus.accview, pointer);
-  menus.menu_id = MENU_ID_ACCVIEW;
-  main_menu_file = file;
-  main_menu_line = line;
-  accview_menu_account = account;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Decode the menu selections. */
-
-void decode_accview_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  if (selection->items[0] == ACCVIEW_MENU_FINDTRANS)
-  {
-    place_transaction_edit_line (main_menu_file,
-                                 locate_transaction_in_transact_window (main_menu_file,
-                                    (main_menu_file->accounts[accview_menu_account].account_view)->
-                                     line_data[(main_menu_file->accounts[accview_menu_account].account_view)->
-                                      line_data[main_menu_line].sort_index].transaction));
-    icons_put_caret_at_end (main_menu_file->transaction_window.transaction_window, 0);
-    find_transaction_edit_line (main_menu_file);
-  }
-  if (selection->items[0] == ACCVIEW_MENU_GOTOTRANS)
-  {
-    align_accview_with_transact (main_menu_file, accview_menu_account);
-  }
-  if (selection->items[0] == ACCVIEW_MENU_SORT)
-  {
-    open_accview_sort_window (main_menu_file, accview_menu_account, pointer);
-  }
-  else if (selection->items[0] == ACCVIEW_MENU_EDITACCT)
-  {
-    open_account_edit_window (main_menu_file, accview_menu_account, -1, pointer);
-  }
-  else if (selection->items[0] == ACCVIEW_MENU_PRINT)
-  {
-    open_accview_print_window (main_menu_file, accview_menu_account, pointer, config_opt_read ("RememberValues"));
-  }
-
-  set_accview_menu (main_menu_file->accounts[accview_menu_account].type, main_menu_line);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Handle submenu warnings. */
-
-void accview_menu_submenu_message (wimp_full_message_menu_warning *submenu)
-{
- #ifdef DEBUG
- debug_reporter_text0 ("\\BReceived submenu warning message.");
- #endif
-
- switch (submenu->selection.items[0])
- {
-   case ACCVIEW_MENU_EXPCSV: /* CSV save window */
-     fill_save_as_window (main_menu_file, SAVE_BOX_ACCVIEWCSV);
-     wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-     break;
-
-   case ACCVIEW_MENU_EXPTSV: /* TSV save window */
-     fill_save_as_window (main_menu_file, SAVE_BOX_ACCVIEWTSV);
      wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
      break;
  }

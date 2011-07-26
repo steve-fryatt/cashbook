@@ -885,7 +885,7 @@ typedef struct
   wimp_menu   *refdesc;
 
   wimp_menu   *acclist;
-  wimp_menu   *accview;
+//  wimp_menu   *accview;
 }
 global_menus;
 

@@ -235,7 +235,7 @@ typedef int		acct_t;							/**< An account number.						*/
 
 struct sorder;
 struct preset;
-struct accview_window;
+struct accview;
 
 
 
@@ -285,7 +285,7 @@ typedef struct account
 
   /* Pointer to account view window data. */
 
-  struct accview_window		*account_view;
+  struct accview		*account_view;
 
   /* Cheque tracking data. */
 

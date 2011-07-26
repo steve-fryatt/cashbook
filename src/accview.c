@@ -2201,6 +2201,21 @@ void decode_accview_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos,
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Export the account view transaction data from a file into CSV or TSV format.
  *
@@ -2217,82 +2232,72 @@ void accview_export_delimited(file_data *file, acct_t account, char *filename, e
 	char				buffer[256];
 	struct accview_window		*window;
 
-  out = fopen (filename, "w");
+	out = fopen(filename, "w");
 
-  if (out != NULL)
-  {
-    hourglass_on ();
+	if (out == NULL) {
+		error_msgs_report_error("FileSaveFail");
+		return;
+	}
 
-    if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL)
-    {
-      window = file->accounts[account].account_view;
+	hourglass_on();
 
-      /* Output the headings line, taking the text from the window icons. */
+	if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL) {
+		window = file->accounts[account].account_view;
 
-      icons_copy_text (window->accview_pane, 0, buffer);
-      filing_output_delimited_field (out, buffer, format, 0);
-      icons_copy_text (window->accview_pane, 1, buffer);
-      filing_output_delimited_field (out, buffer, format, 0);
-      icons_copy_text (window->accview_pane, 2, buffer);
-      filing_output_delimited_field (out, buffer, format, 0);
-      icons_copy_text (window->accview_pane, 3, buffer);
-      filing_output_delimited_field (out, buffer, format, 0);
-      icons_copy_text (window->accview_pane, 4, buffer);
-      filing_output_delimited_field (out, buffer, format, 0);
-      icons_copy_text (window->accview_pane, 5, buffer);
-      filing_output_delimited_field (out, buffer, format, 0);
-      icons_copy_text (window->accview_pane, 6, buffer);
-      filing_output_delimited_field (out, buffer, format, DELIMIT_LAST);
+		/* Output the headings line, taking the text from the window icons. */
 
-      /* Output the transaction data as a set of delimited lines. */
-      for (i=0; i < window->display_lines; i++)
-      {
-        transaction = (window->line_data)[(window->line_data)[i].sort_index].transaction;
+		icons_copy_text(window->accview_pane, 0, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+		icons_copy_text(window->accview_pane, 1, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+		icons_copy_text(window->accview_pane, 2, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+		icons_copy_text(window->accview_pane, 3, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+		icons_copy_text(window->accview_pane, 4, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+		icons_copy_text(window->accview_pane, 5, buffer);
+		filing_output_delimited_field(out, buffer, format, 0);
+		icons_copy_text(window->accview_pane, 6, buffer);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
-        convert_date_to_string (file->transactions[transaction].date, buffer);
-        filing_output_delimited_field (out, buffer, format, 0);
+		/* Output the transaction data as a set of delimited lines. */
+		for (i=0; i < window->display_lines; i++) {
+			transaction = (window->line_data)[(window->line_data)[i].sort_index].transaction;
 
-        if (file->transactions[transaction].from == account)
-        {
-          build_account_name_pair (file, file->transactions[transaction].to, buffer);
-        }
-        else
-        {
-          build_account_name_pair (file, file->transactions[transaction].from, buffer);
-        }
-        filing_output_delimited_field (out, buffer, format, 0);
+			convert_date_to_string(file->transactions[transaction].date, buffer);
+			filing_output_delimited_field(out, buffer, format, 0);
 
-        filing_output_delimited_field (out, file->transactions[transaction].reference, format, 0);
+			if (file->transactions[transaction].from == account)
+				build_account_name_pair(file, file->transactions[transaction].to, buffer);
+			else
+				build_account_name_pair(file, file->transactions[transaction].from, buffer);
+			filing_output_delimited_field(out, buffer, format, 0);
 
-        if (file->transactions[transaction].from == account)
-        {
-          convert_money_to_string (file->transactions[transaction].amount, buffer);
-          filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-          filing_output_delimited_field (out, "", format, DELIMIT_NUM);
-        }
-        else
-        {
-          convert_money_to_string (file->transactions[transaction].amount, buffer);
-          filing_output_delimited_field (out, "", format, DELIMIT_NUM);
-          filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-        }
+			filing_output_delimited_field(out, file->transactions[transaction].reference, format, 0);
 
-        convert_money_to_string (window->line_data[i].balance, buffer);
-        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
+			if (file->transactions[transaction].from == account) {
+				convert_money_to_string(file->transactions[transaction].amount, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				filing_output_delimited_field(out, "", format, DELIMIT_NUM);
+			} else {
+				convert_money_to_string(file->transactions[transaction].amount, buffer);
+				filing_output_delimited_field(out, "", format, DELIMIT_NUM);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+			}
 
-        filing_output_delimited_field (out, file->transactions[transaction].description, format, DELIMIT_LAST);
-      }
-    }
-    /* Close the file and set the type correctly. */
+			convert_money_to_string(window->line_data[i].balance, buffer);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-    fclose (out);
-    osfile_set_type (filename, (bits) filetype);
+			filing_output_delimited_field(out, file->transactions[transaction].description, format, DELIMIT_LAST);
+		}
+	}
 
-    hourglass_off ();
-  }
-  else
-  {
-    error_msgs_report_error ("FileSaveFail");
-  }
+	/* Close the file and set the type correctly. */
+
+	fclose(out);
+	osfile_set_type(filename, (bits) filetype);
+
+	hourglass_off();
 }
 

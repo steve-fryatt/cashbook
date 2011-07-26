@@ -6,6 +6,8 @@
 #ifndef CASHBOOK_ACCVIEW
 #define CASHBOOK_ACCVIEW
 
+#include "filing.h"
+
 /* ==================================================================================================================
  * Static constants
  */
@@ -127,4 +129,18 @@ void align_accview_with_transact (file_data *file, int account);
 void find_accview_line (file_data *file, int account, int line);
 void decode_accview_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
+
+
+/**
+ * Export the account view transaction data from a file into CSV or TSV format.
+ *
+ * \param *file			The file to export from.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
+
+void accview_export_delimited(file_data *file, acct_t account, char *filename, enum filing_delimit_type format, int filetype);
+
 #endif
+

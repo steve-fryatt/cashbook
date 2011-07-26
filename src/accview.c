@@ -13,8 +13,9 @@
 
 /* OSLib header files */
 
-#include "oslib/wimp.h"
 #include "oslib/hourglass.h"
+#include "oslib/osfile.h"
+#include "oslib/wimp.h"
 
 /* SF-Lib header files. */
 
@@ -50,9 +51,47 @@
 #include "transact.h"
 #include "window.h"
 
-/* ==================================================================================================================
- * Global variables.
- */
+
+struct accview_redraw {
+  int transaction; /* Pointer to the transaction entry. */
+  int balance;     /* Running balance at this point. */
+
+  /* Sort index entries.
+   *
+   * NB - These are unconnected to the rest of the redraw data, and are in effect a separate array that is used
+   * for handling entries in the account view window.
+   */
+
+  int sort_index;  /* Point to another line, to allow the window to be sorted. */
+};
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/* Account view window data struct */
+
+struct accview_window {
+  /* Account window handle and title details. */
+
+  wimp_w           accview_window;      /* Window handle of the account window */
+  char             window_title[256];
+  wimp_w           accview_pane;        /* Window handle of the account window toolbar pane */
+
+  /* Display column details. */
+
+  int              column_width[ACCVIEW_COLUMNS]; /* Array holding the column widths in the account window. */
+  int              column_position[ACCVIEW_COLUMNS]; /* Array holding the column X-offsets in the acct window */
+
+  /* Data parameters */
+
+  int              display_lines;       /* Count of the lines in the window */
+  struct accview_redraw   *line_data;          /* Pointer to array of line data for the redraw */
+
+  int              sort_order;
+
+  char             sort_sprite[12];    /* Space for the sort icon's indirected data. */
+};
+
+
 
 
 /* Account View Sort Window. */
@@ -351,7 +390,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 	int			line, column, xpos, transaction, toggle_flag;
 	int			trans_col_from[] = {0,1,1,1,7,8,8,8,9}, trans_col_to[] = {0,4,4,4,7,8,8,8,9}, *trans_col;
 	wimp_window_state	window;
-	accview_window		*accview;
+	struct accview_window	*accview;
 
 	#ifdef DEBUG
 	debug_printf("Accview window click: %d", pointer->buttons);
@@ -780,12 +819,12 @@ static void accview_window_scroll_handler(wimp_scroll *scroll)
 
 static void accview_window_redraw_handler(wimp_draw *redraw)
 {
-	file_data	*file;
-	acct_t		account;
-	int		ox, oy, top, base, y, i, transaction, shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
-	char		icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
-	osbool		more, shade_budget, shade_overdrawn;
-	accview_window	*window;
+	file_data		*file;
+	acct_t			account;
+	int			ox, oy, top, base, y, i, transaction, shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
+	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool			more, shade_budget, shade_overdrawn;
+	struct accview_window	*window;
 
 	file = event_get_window_user_data(redraw->w);
 	if (file == NULL)
@@ -1282,12 +1321,12 @@ int build_account_view (file_data *file, int account)
     #endif
 
     if (flex_alloc ((flex_ptr)  &((file->accounts[account].account_view)->line_data),
-                    file->trans_count * sizeof (accview_redraw)))
+                    file->trans_count * sizeof(struct accview_redraw)))
     {
       lines = calculate_account_view (file, account);
 
       flex_extend ((flex_ptr) &((file->accounts[account].account_view)->line_data),
-                   lines * sizeof (accview_redraw));
+                   lines * sizeof(struct accview_redraw));
 
       for (i=0; i<lines; i++)
       {
@@ -1501,8 +1540,8 @@ void rebuild_all_account_views (file_data *file)
 
 void sort_accview_window (file_data *file, int account)
 {
-  int            sorted, reorder, gap, comb, temp, order;
-  accview_window *window;
+  int				sorted, reorder, gap, comb, temp, order;
+  struct accview_window		*window;
 
 
   #ifdef DEBUG
@@ -1803,10 +1842,10 @@ void open_accview_print_window (file_data *file, int account, wimp_pointer *ptr,
 
 void print_accview_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
 {
-  report_data *report;
-  int            i, transaction=0;
-  char           line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
-  accview_window *window;
+  report_data			*report;
+  int				i, transaction=0;
+  char				line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+  struct accview_window		*window;
 
   msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
   msgs_lookup ("PrintTitleAccview", buffer, sizeof (buffer));
@@ -2049,8 +2088,8 @@ void force_accview_window_redraw (file_data *file, int account, int from, int to
 
 int align_accview_with_transact_line (file_data *file, int account)
 {
-  int            centre_transact, line = 0;
-  accview_window *window;
+  int				centre_transact, line = 0;
+  struct accview_window		*window;
 
 
   if (account != NULL_ACCOUNT)
@@ -2141,7 +2180,7 @@ void decode_accview_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos,
 
   *buffer = '\0';
 
-  file = find_accview_window_file_block (w);
+  file = event_get_window_user_data(w);
   account = find_accview_window_from_handle (file, w);
 
   if (file != NULL && account != NULL_ACCOUNT)
@@ -2160,3 +2199,100 @@ void decode_accview_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos,
     sprintf (buffer, "Col%d", column);
   }
 }
+
+
+/**
+ * Export the account view transaction data from a file into CSV or TSV format.
+ *
+ * \param *file			The file to export from.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
+
+void accview_export_delimited(file_data *file, acct_t account, char *filename, enum filing_delimit_type format, int filetype)
+{
+	FILE				*out;
+	int				i, transaction=0;
+	char				buffer[256];
+	struct accview_window		*window;
+
+  out = fopen (filename, "w");
+
+  if (out != NULL)
+  {
+    hourglass_on ();
+
+    if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL)
+    {
+      window = file->accounts[account].account_view;
+
+      /* Output the headings line, taking the text from the window icons. */
+
+      icons_copy_text (window->accview_pane, 0, buffer);
+      filing_output_delimited_field (out, buffer, format, 0);
+      icons_copy_text (window->accview_pane, 1, buffer);
+      filing_output_delimited_field (out, buffer, format, 0);
+      icons_copy_text (window->accview_pane, 2, buffer);
+      filing_output_delimited_field (out, buffer, format, 0);
+      icons_copy_text (window->accview_pane, 3, buffer);
+      filing_output_delimited_field (out, buffer, format, 0);
+      icons_copy_text (window->accview_pane, 4, buffer);
+      filing_output_delimited_field (out, buffer, format, 0);
+      icons_copy_text (window->accview_pane, 5, buffer);
+      filing_output_delimited_field (out, buffer, format, 0);
+      icons_copy_text (window->accview_pane, 6, buffer);
+      filing_output_delimited_field (out, buffer, format, DELIMIT_LAST);
+
+      /* Output the transaction data as a set of delimited lines. */
+      for (i=0; i < window->display_lines; i++)
+      {
+        transaction = (window->line_data)[(window->line_data)[i].sort_index].transaction;
+
+        convert_date_to_string (file->transactions[transaction].date, buffer);
+        filing_output_delimited_field (out, buffer, format, 0);
+
+        if (file->transactions[transaction].from == account)
+        {
+          build_account_name_pair (file, file->transactions[transaction].to, buffer);
+        }
+        else
+        {
+          build_account_name_pair (file, file->transactions[transaction].from, buffer);
+        }
+        filing_output_delimited_field (out, buffer, format, 0);
+
+        filing_output_delimited_field (out, file->transactions[transaction].reference, format, 0);
+
+        if (file->transactions[transaction].from == account)
+        {
+          convert_money_to_string (file->transactions[transaction].amount, buffer);
+          filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
+          filing_output_delimited_field (out, "", format, DELIMIT_NUM);
+        }
+        else
+        {
+          convert_money_to_string (file->transactions[transaction].amount, buffer);
+          filing_output_delimited_field (out, "", format, DELIMIT_NUM);
+          filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
+        }
+
+        convert_money_to_string (window->line_data[i].balance, buffer);
+        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
+
+        filing_output_delimited_field (out, file->transactions[transaction].description, format, DELIMIT_LAST);
+      }
+    }
+    /* Close the file and set the type correctly. */
+
+    fclose (out);
+    osfile_set_type (filename, (bits) filetype);
+
+    hourglass_off ();
+  }
+  else
+  {
+    error_msgs_report_error ("FileSaveFail");
+  }
+}
+

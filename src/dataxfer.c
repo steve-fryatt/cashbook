@@ -36,6 +36,7 @@
 #include "dataxfer.h"
 
 #include "account.h"
+#include "accview.h"
 #include "calculation.h"
 #include "file.h"
 #include "filing.h"
@@ -340,11 +341,11 @@ int drag_end_save (char *filename)
       break;
 
     case SAVE_BOX_ACCVIEWCSV:
-      export_delimited_account_file (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_ACCVIEWTSV:
-      export_delimited_account_file (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_SORDERCSV:
@@ -435,11 +436,11 @@ int immediate_window_save (void)
       break;
 
     case SAVE_BOX_ACCVIEWCSV:
-      export_delimited_account_file (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_ACCVIEWTSV:
-      export_delimited_account_file (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
       break;
 
     case SAVE_BOX_SORDERCSV:

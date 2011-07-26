@@ -235,54 +235,8 @@ typedef int		acct_t;							/**< An account number.						*/
 
 struct sorder;
 struct preset;
+struct accview_window;
 
-
-/* ==================================================================================================================
- * Initial window data structures
- */
-
-typedef struct accview_redraw
-{
-  int transaction; /* Pointer to the transaction entry. */
-  int balance;     /* Running balance at this point. */
-
-  /* Sort index entries.
-   *
-   * NB - These are unconnected to the rest of the redraw data, and are in effect a separate array that is used
-   * for handling entries in the account view window.
-   */
-
-  int sort_index;  /* Point to another line, to allow the window to be sorted. */
-}
-accview_redraw;
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Account view window data struct */
-
-typedef struct accview_window
-{
-  /* Account window handle and title details. */
-
-  wimp_w           accview_window;      /* Window handle of the account window */
-  char             window_title[256];
-  wimp_w           accview_pane;        /* Window handle of the account window toolbar pane */
-
-  /* Display column details. */
-
-  int              column_width[ACCVIEW_COLUMNS]; /* Array holding the column widths in the account window. */
-  int              column_position[ACCVIEW_COLUMNS]; /* Array holding the column X-offsets in the acct window */
-
-  /* Data parameters */
-
-  int              display_lines;       /* Count of the lines in the window */
-  accview_redraw   *line_data;          /* Pointer to array of line data for the redraw */
-
-  int              sort_order;
-
-  char             sort_sprite[12];    /* Space for the sort icon's indirected data. */
-}
-accview_window;
 
 
 /* ==================================================================================================================
@@ -331,7 +285,7 @@ typedef struct account
 
   /* Pointer to account view window data. */
 
-  accview_window *account_view;
+  struct accview_window		*account_view;
 
   /* Cheque tracking data. */
 

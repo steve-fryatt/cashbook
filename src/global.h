@@ -761,11 +761,11 @@ struct file_data
 
   /* Data integrity. */
 
-  int                modified;           /* Flag to show if the file has been modified since the last save. */
-  int                sort_valid;         /* Flag to show that the transaction data is sorted OK. */
+  osbool             modified;           /* Flag to show if the file has been modified since the last save. */
+  osbool             sort_valid;         /* Flag to show that the transaction data is sorted OK. */
   int                untitled_count;     /* Count to allow default title of the form <Untitled n>. */
   int                child_x_offset;     /* Count for child window opening offset. */
-  int                auto_reconcile;     /* Flag to show if reconcile should jump to the next unreconcliled entry. */
+  osbool             auto_reconcile;     /* Flag to show if reconcile should jump to the next unreconcliled entry. */
 
   /* Report data structure */
 

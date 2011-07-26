@@ -617,13 +617,12 @@ int check_for_unsaved_files (void)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void set_file_data_integrity (file_data *file, int unsafe)
+void set_file_data_integrity(file_data *file, osbool unsafe)
 {
-  if (file->modified != unsafe)
-  {
-    file->modified = unsafe;
-    build_transaction_window_title (file);
-  }
+	if (file->modified != unsafe) {
+		file->modified = unsafe;
+		build_transaction_window_title(file);
+	}
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

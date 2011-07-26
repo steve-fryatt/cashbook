@@ -35,7 +35,7 @@ file_data *find_account_pane_file_block (wimp_w window);
 /* Saved files and data integrity */
 
 int  check_for_unsaved_files (void);
-void set_file_data_integrity (file_data *data, int unsafe);
+void set_file_data_integrity(file_data *data, osbool unsafe);
 int check_for_filepath (file_data *file);
 
 /* Default filenames. */

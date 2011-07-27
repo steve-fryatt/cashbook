@@ -1,6 +1,6 @@
 /* CashBook - account.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -25,13 +25,14 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
-#include "sflib/errors.h"
 #include "sflib/debug.h"
-#include "sflib/windows.h"
-#include "sflib/string.h"
-#include "sflib/msgs.h"
+#include "sflib/errors.h"
+#include "sflib/event.h"
 #include "sflib/icons.h"
 #include "sflib/menus.h"
+#include "sflib/msgs.h"
+#include "sflib/string.h"
+#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -53,6 +54,7 @@
 #include "printing.h"
 #include "report.h"
 #include "sorder.h"
+#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -91,217 +93,886 @@ static unsigned  account_name_lookup_flags;
 static wimp_w    account_name_lookup_window;
 static wimp_i    account_name_lookup_icon;
 
-/* ==================================================================================================================
- * Window creation and deletion
+
+
+
+static wimp_window		*account_window_def = NULL;
+static wimp_window		*account_pane_def[2] = {NULL, NULL};
+static wimp_window		*account_foot_def = NULL;
+
+
+
+
+static void		account_delete_window(struct account_window *window);
+static void		account_close_window_handler(wimp_close *close);
+static void		account_window_click_handler(wimp_pointer *pointer);
+static void		account_pane_click_handler(wimp_pointer *pointer);
+
+static void		account_window_scroll_handler(wimp_scroll *scroll);
+static void		account_window_redraw_handler(wimp_draw *redraw);
+
+
+
+
+/**
+ * Initialise the account system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-/* Create and open an accounts window associated with the file block. */
-
-void create_accounts_window (file_data *file, int type)
+void account_initialise(osspriteop_area *sprites)
 {
-  int               entry, i, j, tb_type, height;
-  os_error          *error;
-  wimp_window_state parent;
-
-  extern            global_windows windows;
 
 
-  /* Find the window block to use. */
-
-  entry = find_accounts_window_entry_from_type (file, type);
-
-  if (entry == -1)
-  {
-    return;
-  }
-
-  /* Create or re-open the window. */
-
-  if (file->account_windows[entry].account_window != NULL)
-  {
-    /* The window is open, so just bring it forward. */
-
-    windows_open (file->account_windows[entry].account_window);
-  }
-  else
-  {
-    /* Set the main window extent and create it. */
-
-    *(file->account_windows[entry].window_title) = '\0';
-    windows.account_window_def->title_data.indirected_text.text = file->account_windows[entry].window_title;
-
-    height =  (file->account_windows[entry].display_lines > MIN_ACCOUNT_ENTRIES) ?
-               file->account_windows[entry].display_lines : MIN_ACCOUNT_ENTRIES;
 
 
-    /* Find the position to open the window at. */
+	account_window_def = templates_load_window("Account");
+	account_window_def->icon_count = 0;
 
-    parent.w = file->transaction_window.transaction_pane;
-    wimp_get_window_state (&parent);
+	account_pane_def[0] = templates_load_window("AccountATB");
+	account_pane_def[0]->sprite_area = sprites;
 
-    set_initial_window_area (windows.account_window_def,
-                             file->account_windows[entry].column_position[ACCOUNT_COLUMNS-1] +
-                             file->account_windows[entry].column_width[ACCOUNT_COLUMNS-1],
-                              ((ICON_HEIGHT+LINE_GUTTER) * height) +
-                              (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2),
-                               parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
-                               parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
+	account_pane_def[1] = templates_load_window("AccountHTB");
+	account_pane_def[1]->sprite_area = sprites;
 
-    file->child_x_offset++;
-    if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
-    {
-      file->child_x_offset = 0;
-    }
+	account_foot_def = templates_load_window("AccountTot");
 
-    error = xwimp_create_window (windows.account_window_def, &(file->account_windows[entry].account_window));
-    if (error != NULL)
-    {
-      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-      error_report_info ("Main window");
-      delete_accounts_window (file, type);
-      return;
-    }
 
-    /* Create the toolbar pane. */
 
-    tb_type = (type == ACCOUNT_FULL) ? 0 : 1; /* Use toolbar 0 if it's a full account, 1 otherwise. */
 
-    windows_place_as_toolbar (windows.account_window_def, windows.account_pane_def[tb_type], ACCOUNT_TOOLBAR_HEIGHT-4);
-
-    for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++)
-    {
-      windows.account_pane_def[tb_type]->icons[i].extent.x0 = file->account_windows[entry].column_position[j];
-
-      j = column_get_rightmost_in_group (ACCOUNT_PANE_COL_MAP, i);
-
-      windows.account_pane_def[tb_type]->icons[i].extent.x1 = file->account_windows[entry].column_position[j]
-                                                              + file->account_windows[entry].column_width[j]
-                                                              + COLUMN_HEADING_MARGIN;
-    }
-
-    error = xwimp_create_window (windows.account_pane_def[tb_type], &(file->account_windows[entry].account_pane));
-    if (error != NULL)
-    {
-      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-      error_report_info ("Toolbar");
-      delete_accounts_window (file, type);
-      return;
-    }
-
-    /* Create the footer pane. */
-
-    windows_place_as_footer (windows.account_window_def, windows.account_footer_def, ACCOUNT_FOOTER_HEIGHT);
-
-    for (i=0; i < ACCOUNT_NUM_COLUMNS; i++)
-    {
-      windows.account_footer_def->icons[i+1].data.indirected_text.text = file->account_windows[entry].footer_icon[i];
-    }
-
-    for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++)
-    {
-      windows.account_footer_def->icons[i].extent.x0 = file->account_windows[entry].column_position[j];
-      windows.account_footer_def->icons[i].extent.y0 = -ACCOUNT_FOOTER_HEIGHT;
-      windows.account_footer_def->icons[i].extent.y1 = 0;
-
-      j = column_get_rightmost_in_group (ACCOUNT_PANE_COL_MAP, i);
-
-      windows.account_footer_def->icons[i].extent.x1 = file->account_windows[entry].column_position[j]
-                                                       + file->account_windows[entry].column_width[j];
-    }
-
-    /* The following block is for debug. */
-
-    if (windows.account_footer_def->icon_count != 5)
-    {
-      char buf[1024];
-
-      sprintf (buf, "Footer bar; icons = %d", windows.account_footer_def->icon_count);
-      error_report_info (buf);
-    }
-
-    error = xwimp_create_window (windows.account_footer_def, &(file->account_windows[entry].account_footer));
-    if (error != NULL)
-    {
-      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-      error_report_info ("Footer bar");
-      delete_accounts_window (file, type);
-      return;
-    }
-
-    /* Set the title */
-
-    build_account_window_title (file, entry);
-
-    /* Open the window. */
-
-    if (type == ACCOUNT_FULL)
-    {
-      ihelp_add_window (file->account_windows[entry].account_window , "AccList", decode_account_window_help);
-      ihelp_add_window (file->account_windows[entry].account_pane , "AccListTB", NULL);
-      ihelp_add_window (file->account_windows[entry].account_footer , "AccListFB", NULL);
-    }
-    else
-    {
-      ihelp_add_window (file->account_windows[entry].account_window , "HeadList", decode_account_window_help);
-      ihelp_add_window (file->account_windows[entry].account_pane , "HeadListTB", NULL);
-      ihelp_add_window (file->account_windows[entry].account_footer , "HeadListFB", NULL);
-    }
-
-    windows_open (file->account_windows[entry].account_window);
-    windows_open_nested_as_toolbar (file->account_windows[entry].account_pane,
-                                   file->account_windows[entry].account_window,
-                                   ACCOUNT_TOOLBAR_HEIGHT-4);
-    windows_open_nested_as_footer (file->account_windows[entry].account_footer,
-                                  file->account_windows[entry].account_window,
-                                  ACCOUNT_FOOTER_HEIGHT);
-  }
+//	account_window_menu = templates_get_menu(TEMPLATES_MENU_ACCVIEW);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Close and delete the accounts window associated with the file block. */
+/**
+ * Create and open an Accounts List window for the given file and account type.
+ *
+ * \param *file			The file to open a window for.
+ * \param type			The type of account to open a window for.
+ */
 
-void delete_accounts_window (file_data *file, int type)
+void account_open_window(file_data *file, enum account_type type)
 {
-  int    entry;
+	int			entry, i, j, tb_type, height;
+	os_error		*error;
+	wimp_window_state	parent;
+	struct account_window	*window;
 
+	/* Find the window block to use. */
 
-  /* Find the window block to use. */
+	entry = find_accounts_window_entry_from_type(file, type);
 
+	if (entry == -1)
+		return;
 
-  entry = find_accounts_window_entry_from_type (file, type);
+	window = &(file->account_windows[entry]);
 
-  #ifdef DEBUG
-  debug_printf ("\\RDeleting accounts window");
-  debug_printf ("Entry: %d", entry);
-  #endif
+	/* Create or re-open the window. */
 
-  if (entry != -1)
-  {
-    /* Delete the window, if it exists. */
+	if (window->account_window != NULL) {
+		windows_open(window->account_window);
+		return;
+	}
 
-    if (file->account_windows[entry].account_window != NULL)
-    {
-      ihelp_remove_window (file->account_windows[entry].account_window);
-      wimp_delete_window (file->account_windows[entry].account_window);
-      file->account_windows[entry].account_window = NULL;
-    }
+	/* Set the main window extent and create it. */
 
-    if (file->account_windows[entry].account_pane != NULL)
-    {
-      ihelp_remove_window (file->account_windows[entry].account_footer);
-      wimp_delete_window (file->account_windows[entry].account_pane);
-      file->account_windows[entry].account_pane = NULL;
-    }
+	*(window->window_title) = '\0';
+	account_window_def->title_data.indirected_text.text = window->window_title;
 
-    if (file->account_windows[entry].account_footer != NULL)
-    {
-      ihelp_remove_window (file->account_windows[entry].account_footer);
-      wimp_delete_window (file->account_windows[entry].account_footer);
-      file->account_windows[entry].account_footer = NULL;
-    }
-  }
+	height =  (window->display_lines > MIN_ACCOUNT_ENTRIES) ? window->display_lines : MIN_ACCOUNT_ENTRIES;
+
+	/* Find the position to open the window at. */
+
+	parent.w = file->transaction_window.transaction_pane;
+	wimp_get_window_state(&parent);
+
+	set_initial_window_area(account_window_def,
+			window->column_position[ACCOUNT_COLUMNS-1] +
+			window->column_width[ACCOUNT_COLUMNS-1],
+			((ICON_HEIGHT+LINE_GUTTER) * height) +
+			(ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2),
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
+
+	file->child_x_offset++;
+	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
+		file->child_x_offset = 0;
+
+	error = xwimp_create_window (account_window_def, &(window->account_window));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		error_report_info("Main window");
+		account_delete_window(window);
+		return;
+	}
+
+	/* Create the toolbar pane. */
+
+	tb_type = (type == ACCOUNT_FULL) ? 0 : 1; /* Use toolbar 0 if it's a full account, 1 otherwise. */
+
+	windows_place_as_toolbar(account_window_def, account_pane_def[tb_type], ACCOUNT_TOOLBAR_HEIGHT-4);
+
+	for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++) {
+		account_pane_def[tb_type]->icons[i].extent.x0 = window->column_position[j];
+		j = column_get_rightmost_in_group(ACCOUNT_PANE_COL_MAP, i);
+		account_pane_def[tb_type]->icons[i].extent.x1 = window->column_position[j] + window->column_width[j] + COLUMN_HEADING_MARGIN;
+	}
+
+	error = xwimp_create_window(account_pane_def[tb_type], &(window->account_pane));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		error_report_info("Toolbar");
+		account_delete_window(window);
+		return;
+	}
+
+	/* Create the footer pane. */
+
+	windows_place_as_footer(account_window_def, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
+
+	for (i=0; i < ACCOUNT_NUM_COLUMNS; i++)
+		account_foot_def->icons[i+1].data.indirected_text.text = window->footer_icon[i];
+
+	for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++) {
+		account_foot_def->icons[i].extent.x0 = window->column_position[j];
+		account_foot_def->icons[i].extent.y0 = -ACCOUNT_FOOTER_HEIGHT;
+		account_foot_def->icons[i].extent.y1 = 0;
+
+		j = column_get_rightmost_in_group(ACCOUNT_PANE_COL_MAP, i);
+
+		account_foot_def->icons[i].extent.x1 = window->column_position[j] + window->column_width[j];
+	}
+
+	error = xwimp_create_window(account_foot_def, &(window->account_footer));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		error_report_info("Footer bar");
+		account_delete_window(window);
+		return;
+	}
+
+	/* Set the title */
+
+	build_account_window_title(file, entry);
+
+	/* Open the window. */
+
+	if (type == ACCOUNT_FULL) {
+		ihelp_add_window(window->account_window , "AccList", decode_account_window_help);
+		ihelp_add_window(window->account_pane , "AccListTB", NULL);
+		ihelp_add_window(window->account_footer , "AccListFB", NULL);
+	} else {
+		ihelp_add_window(window->account_window , "HeadList", decode_account_window_help);
+		ihelp_add_window(window->account_pane , "HeadListTB", NULL);
+		ihelp_add_window(window->account_footer , "HeadListFB", NULL);
+	}
+
+	windows_open(window->account_window);
+	windows_open_nested_as_toolbar(window->account_pane, window->account_window, ACCOUNT_TOOLBAR_HEIGHT-4);
+	windows_open_nested_as_footer(window->account_footer, window->account_window, ACCOUNT_FOOTER_HEIGHT);
+
+	/* Register event handlers for the two windows. */
+	/* \TODO -- Should this be all three windows?   */
+
+	event_add_window_user_data(window->account_window, window);
+//	event_add_window_menu(window->account_window, account_window_menu);
+	event_add_window_close_event(window->account_window, account_close_window_handler);
+	event_add_window_mouse_event(window->account_window, account_window_click_handler);
+	event_add_window_scroll_event(window->account_window, account_window_scroll_handler);
+	event_add_window_redraw_event(window->account_window, account_window_redraw_handler);
+//	event_add_window_menu_prepare(window->account_window, account_window_menu_prepare_handler);
+//	event_add_window_menu_selection(window->account_window, account_window_menu_selection_handler);
+//	event_add_window_menu_warning(window->account_window, account_window_menu_warning_handler);
+//	event_add_window_menu_close(window->account_window, account_window_menu_close_handler);
+
+	event_add_window_user_data(window->account_pane, window);
+//	event_add_window_menu(window->account_pane, account_window_menu);
+	event_add_window_mouse_event(window->account_pane, account_pane_click_handler);
+//	event_add_window_menu_prepare(window->account_pane, account_window_menu_prepare_handler);
+//	event_add_window_menu_selection(window->account_pane, account_window_menu_selection_handler);
+//	event_add_window_menu_warning(window->account_pane, account_window_menu_warning_handler);
+//	event_add_window_menu_close(window->account_pane, account_window_menu_close_handler);
 }
+
+
+/**
+ * Close and delete an Accounts List Window associated with the given
+ * account window block.
+ *
+ * \param *window		The window to delete.
+ */
+
+static void account_delete_window(struct account_window *window)
+{
+	if (window == NULL)
+		return;
+
+	#ifdef DEBUG
+	debug_printf ("\\RDeleting accounts window");
+	debug_printf ("Entry: %d", entry);
+	#endif
+
+	/* Delete the window, if it exists. */
+
+	if (window->account_window != NULL) {
+		ihelp_remove_window(window->account_window);
+		event_delete_window(window->account_window);
+		wimp_delete_window(window->account_window);
+		window->account_window = NULL;
+	}
+
+	if (window->account_pane != NULL) {
+		ihelp_remove_window(window->account_pane);
+		event_delete_window(window->account_pane);
+		wimp_delete_window(window->account_pane);
+		window->account_pane = NULL;
+	}
+
+	if (window->account_footer != NULL) {
+		ihelp_remove_window(window->account_footer);
+		wimp_delete_window(window->account_footer);
+		window->account_footer = NULL;
+	}
+}
+
+
+/**
+ * Handle Close events on Accounts List windows, deleting the window.
+ *
+ * \param *close		The Wimp Close data block.
+ */
+
+static void account_close_window_handler(wimp_close *close)
+{
+	struct account_window	*window;
+
+	#ifdef DEBUG
+	debug_printf ("\\RClosing Accounts List window");
+	#endif
+
+	window = event_get_window_user_data(close->w);
+	if (window != NULL)
+		account_delete_window(window);
+}
+
+
+/**
+ * Process mouse clicks in the Accounts List window.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void account_window_click_handler(wimp_pointer *pointer)
+{
+	struct account_window	*win;
+	int			line;
+	wimp_window_state	window;
+
+	win = event_get_window_user_data(pointer->w);
+	if (win == NULL)
+		return;
+
+	window.w = pointer->w;
+	wimp_get_window_state(&window);
+
+	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+	if (line < 0 || line >= win->display_lines)
+		line = -1;
+
+	/* Handle double-clicks, which will open a statement view or an edit accout window. */
+
+	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1) {
+		if (win->line_data[line].type == ACCOUNT_LINE_DATA)
+			accview_open_window(win->file, win->line_data[line].account);
+	} else if (pointer->buttons == wimp_DOUBLE_ADJUST && line != -1) {
+		switch (win->line_data[line].type) {
+		case ACCOUNT_LINE_DATA:
+			open_account_edit_window(win->file, win->line_data[line].account, ACCOUNT_NULL, pointer);
+			break;
+
+		case ACCOUNT_LINE_HEADER:
+		case ACCOUNT_LINE_FOOTER:
+			open_section_edit_window(win->file, win->entry, line, pointer);
+			break;
+		}
+	} else if (pointer->buttons == wimp_DRAG_SELECT && line != -1) {
+		start_account_drag(win->file, win->entry, line);
+	}
+}
+
+
+/**
+ * Process mouse clicks in the Accounts List pane.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void account_pane_click_handler(wimp_pointer *pointer)
+{
+	struct account_window		*win;
+
+	win = event_get_window_user_data(pointer->w);
+	if (win == NULL)
+		return;
+
+	if (pointer->buttons == wimp_CLICK_SELECT) {
+		switch (pointer->i) {
+		case ACCOUNT_PANE_PARENT:
+			windows_open(win->file->transaction_window.transaction_window);
+			break;
+
+		case ACCOUNT_PANE_PRINT:
+			open_account_print_window(win->file, win->type, pointer, config_opt_read("RememberValues"));
+			break;
+
+		case ACCOUNT_PANE_ADDACCT:
+			open_account_edit_window(win->file, NULL_ACCOUNT, win->type, pointer);
+			break;
+
+		case ACCOUNT_PANE_ADDSECT:
+			open_section_edit_window(win->file, win->entry, -1, pointer);
+			break;
+		}
+	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+		switch (pointer->i) {
+		case ACCOUNT_PANE_PRINT:
+			open_account_print_window(win->file, win->type, pointer, !config_opt_read("RememberValues"));
+			break;
+		}
+	} else if (pointer->buttons == wimp_DRAG_SELECT) {
+		column_start_drag(pointer, win->file, win->entry, win->account_window, ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), adjust_account_window_columns);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Process scroll events in the Accounts List window.
+ *
+ * \param *scroll		The scroll event block to handle.
+ */
+
+static void account_window_scroll_handler(wimp_scroll *scroll)
+{
+  int width, height, error;
+
+
+  /* Add in the X scroll offset. */
+
+  width = scroll->visible.x1 - scroll->visible.x0;
+
+  switch (scroll->xmin)
+  {
+    case wimp_SCROLL_COLUMN_LEFT:
+      scroll->xscroll -= HORIZONTAL_SCROLL;
+      break;
+
+    case wimp_SCROLL_COLUMN_RIGHT:
+      scroll->xscroll += HORIZONTAL_SCROLL;
+      break;
+
+    case wimp_SCROLL_PAGE_LEFT:
+      scroll->xscroll -= width;
+      break;
+
+    case wimp_SCROLL_PAGE_RIGHT:
+      scroll->xscroll += width;
+      break;
+  }
+
+  /* Add in the Y scroll offset. */
+
+  height = (scroll->visible.y1 - scroll->visible.y0) - (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT);
+
+  switch (scroll->ymin)
+  {
+    case wimp_SCROLL_LINE_UP:
+      scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
+      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+      {
+        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+      }
+      break;
+
+    case wimp_SCROLL_LINE_DOWN:
+      scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
+      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+      {
+        scroll->yscroll -= error;
+      }
+      break;
+
+    case wimp_SCROLL_PAGE_UP:
+      scroll->yscroll += height;
+      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+      {
+        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+      }
+      break;
+
+    case wimp_SCROLL_PAGE_DOWN:
+      scroll->yscroll -= height;
+      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+      {
+        scroll->yscroll -= error;
+      }
+      break;
+  }
+
+  /* Re-open the window.
+   *
+   * It is assumed that the wimp will deal with out-of-bounds offsets for us.
+   */
+
+  wimp_open_window ((wimp_open *) scroll);
+}
+
+
+/**
+ * Process redraw events in the Account View window.
+ *
+ * \param *redraw		The draw event block to handle.
+ */
+
+static void account_window_redraw_handler(wimp_draw *redraw)
+{
+	int			ox, oy, top, base, y, i, shade_overdrawn_col, icon_fg_col;
+	char			icon_buffer1[AMOUNT_FIELD_LEN], icon_buffer2[AMOUNT_FIELD_LEN], icon_buffer3[AMOUNT_FIELD_LEN],
+				icon_buffer4[AMOUNT_FIELD_LEN];
+	osbool			more, shade_overdrawn;
+	struct account_window	*window;
+	file_data		*file;
+
+	window = event_get_window_user_data(redraw->w);
+	if (window == NULL)
+		return;
+
+	file = window->file;
+
+
+    shade_overdrawn = config_opt_read ("ShadeAccounts");
+    shade_overdrawn_col = config_int_read ("ShadeAccountsColour");
+
+    more = wimp_redraw_window (redraw);
+
+    ox = redraw->box.x0 - redraw->xscroll;
+    oy = redraw->box.y1 - redraw->yscroll;
+
+    /* Set the horizontal positions of the icons for the account lines. */
+
+    for (i=0; i < ACCOUNT_COLUMNS; i++)
+    {
+      account_window_def->icons[i].extent.x0 = window->column_position[i];
+      account_window_def->icons[i].extent.x1 = window->column_position[i] + window->column_width[i];
+    }
+
+    /* Set the positions for the heading lines. */
+
+    account_window_def->icons[6].extent.x0 = window->column_position[0];
+    account_window_def->icons[6].extent.x1 = window->column_position[ACCOUNT_COLUMNS-1] +
+                                                     window->column_width[ACCOUNT_COLUMNS-1];
+
+    /* Set the positions for the footer lines. */
+
+    account_window_def->icons[7].extent.x0 = window->column_position[0];
+    account_window_def->icons[7].extent.x1 = window->column_position[1] +
+                                                     window->column_width[1];
+
+    account_window_def->icons[8].extent.x0 = window->column_position[2];
+    account_window_def->icons[8].extent.x1 = window->column_position[2] +
+                                                     window->column_width[2];
+
+    account_window_def->icons[9].extent.x0 = window->column_position[3];
+    account_window_def->icons[9].extent.x1 = window->column_position[3] +
+                                                     window->column_width[3];
+
+    account_window_def->icons[10].extent.x0 = window->column_position[4];
+    account_window_def->icons[10].extent.x1 = window->column_position[4] +
+                                                     window->column_width[4];
+
+    account_window_def->icons[11].extent.x0 = window->column_position[5];
+    account_window_def->icons[11].extent.x1 = window->column_position[ACCOUNT_COLUMNS-1] +
+                                                     window->column_width[ACCOUNT_COLUMNS-1];
+
+    /* The three numerical columns keep their icon buffers for the whole time, so set them up now. */
+
+    account_window_def->icons[2].data.indirected_text.text = icon_buffer1;
+    account_window_def->icons[3].data.indirected_text.text = icon_buffer2;
+    account_window_def->icons[4].data.indirected_text.text = icon_buffer3;
+    account_window_def->icons[5].data.indirected_text.text = icon_buffer4;
+
+    account_window_def->icons[8].data.indirected_text.text = icon_buffer1;
+    account_window_def->icons[9].data.indirected_text.text = icon_buffer2;
+    account_window_def->icons[10].data.indirected_text.text = icon_buffer3;
+    account_window_def->icons[11].data.indirected_text.text = icon_buffer4;
+
+    /* Reset all the icon colours. */
+
+    account_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
+    account_window_def->icons[2].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+
+    account_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
+    account_window_def->icons[3].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+
+    account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
+    account_window_def->icons[4].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+
+    account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
+    account_window_def->icons[5].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+
+    /* Perform the redraw. */
+
+    while (more)
+    {
+      /* Calculate the rows to redraw. */
+
+      top = (oy - redraw->clip.y1 - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+      if (top < 0)
+      {
+        top = 0;
+      }
+
+      base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2)
+             + oy - redraw->clip.y0 - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+
+      /* Redraw the data into the window. */
+
+      for (y = top; y <= base; y++)
+      {
+        /* Plot out the background with a filled white rectangle. */
+
+        wimp_set_colour (wimp_COLOUR_WHITE);
+        os_plot (os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT);
+        os_plot (os_PLOT_RECTANGLE + os_PLOT_TO,
+                 ox + window->column_position[ACCOUNT_COLUMNS-1] + window->column_width[ACCOUNT_COLUMNS-1],
+                 oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+
+        if (y<window->display_lines && window->line_data[y].type == ACCOUNT_LINE_DATA)
+        {
+        /* Account field */
+
+          account_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[0].data.indirected_text.text =
+             file->accounts[window->line_data[y].account].ident;
+          account_window_def->icons[1].data.indirected_text.text =
+             file->accounts[window->line_data[y].account].name;
+
+          wimp_plot_icon (&(account_window_def->icons[0]));
+          wimp_plot_icon (&(account_window_def->icons[1]));
+
+          /* Place the four numerical columns. */
+
+          account_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          /* Set the column data depending on the window type. */
+
+          switch (window->type)
+          {
+            case ACCOUNT_FULL:
+              convert_money_to_string (file->accounts[window->line_data[y].account].statement_balance, icon_buffer1);
+              convert_money_to_string (file->accounts[window->line_data[y].account].current_balance, icon_buffer2);
+              convert_money_to_string (file->accounts[window->line_data[y].account].trial_balance, icon_buffer3);
+              convert_money_to_string (file->accounts[window->line_data[y].account].budget_balance, icon_buffer4);
+
+              if (shade_overdrawn &&
+                  (file->accounts[window->line_data[y].account].statement_balance <
+                   -file->accounts[window->line_data[y].account].credit_limit))
+              {
+                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+              else
+              {
+                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+              account_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
+              account_window_def->icons[2].flags |= icon_fg_col;
+
+              if (shade_overdrawn &&
+                  (file->accounts[window->line_data[y].account].current_balance <
+                   -file->accounts[window->line_data[y].account].credit_limit))
+              {
+                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+              else
+              {
+                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+              account_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
+              account_window_def->icons[3].flags |= icon_fg_col;
+
+              if (shade_overdrawn &&
+                  (file->accounts[window->line_data[y].account].trial_balance < 0))
+              {
+                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+              else
+              {
+                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+              account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
+              account_window_def->icons[4].flags |= icon_fg_col;
+              break;
+
+            case ACCOUNT_IN:
+              convert_money_to_string (-file->accounts[window->line_data[y].account].future_balance, icon_buffer1);
+              convert_money_to_string (file->accounts[window->line_data[y].account].budget_amount, icon_buffer2);
+              convert_money_to_string (-file->accounts[window->line_data[y].account].budget_balance, icon_buffer3);
+              convert_money_to_string (file->accounts[window->line_data[y].account].budget_result, icon_buffer4);
+
+              if (shade_overdrawn &&
+                  (-file->accounts[window->line_data[y].account].budget_balance <
+                   file->accounts[window->line_data[y].account].budget_amount))
+              {
+                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+              else
+              {
+                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+              account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
+              account_window_def->icons[4].flags |= icon_fg_col;
+              account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
+              account_window_def->icons[5].flags |= icon_fg_col;
+              break;
+
+            case ACCOUNT_OUT:
+              convert_money_to_string (file->accounts[window->line_data[y].account].future_balance, icon_buffer1);
+              convert_money_to_string (file->accounts[window->line_data[y].account].budget_amount, icon_buffer2);
+              convert_money_to_string (file->accounts[window->line_data[y].account].budget_balance, icon_buffer3);
+              convert_money_to_string (file->accounts[window->line_data[y].account].budget_result, icon_buffer4);
+
+              if (shade_overdrawn &&
+                  (file->accounts[window->line_data[y].account].budget_balance >
+                   file->accounts[window->line_data[y].account].budget_amount))
+              {
+                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+              else
+              {
+                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+              }
+
+              account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
+              account_window_def->icons[4].flags |= icon_fg_col;
+              account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
+              account_window_def->icons[5].flags |= icon_fg_col;
+              break;
+          }
+
+          /* Plot the three icons. */
+
+          wimp_plot_icon (&(account_window_def->icons[2]));
+          wimp_plot_icon (&(account_window_def->icons[3]));
+          wimp_plot_icon (&(account_window_def->icons[4]));
+          wimp_plot_icon (&(account_window_def->icons[5]));
+        }
+        else if (y<window->display_lines && window->line_data[y].type == ACCOUNT_LINE_HEADER)
+        {
+          /* Block header line */
+
+          account_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[6].data.indirected_text.text = window->line_data[y].heading;
+
+          wimp_plot_icon (&(account_window_def->icons[6]));
+        }
+        else if (y<window->display_lines && window->line_data[y].type == ACCOUNT_LINE_FOOTER)
+        {
+          /* Block footer line */
+
+          account_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[10].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[10].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[11].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[11].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[7].data.indirected_text.text = window->line_data[y].heading;
+          convert_money_to_string (window->line_data[y].total[0], icon_buffer1);
+          convert_money_to_string (window->line_data[y].total[1], icon_buffer2);
+          convert_money_to_string (window->line_data[y].total[2], icon_buffer3);
+          convert_money_to_string (window->line_data[y].total[3], icon_buffer4);
+
+          wimp_plot_icon (&(account_window_def->icons[7]));
+          wimp_plot_icon (&(account_window_def->icons[8]));
+          wimp_plot_icon (&(account_window_def->icons[9]));
+          wimp_plot_icon (&(account_window_def->icons[10]));
+          wimp_plot_icon (&(account_window_def->icons[11]));
+        }
+        else
+        {
+          /* Blank line */
+          account_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+          account_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+                                                           - ACCOUNT_TOOLBAR_HEIGHT;
+
+          account_window_def->icons[0].data.indirected_text.text = icon_buffer1;
+          account_window_def->icons[1].data.indirected_text.text = icon_buffer1;
+          *icon_buffer1 = '\0';
+          *icon_buffer2 = '\0';
+          *icon_buffer3 = '\0';
+          *icon_buffer4 = '\0';
+
+          wimp_plot_icon (&(account_window_def->icons[0]));
+          wimp_plot_icon (&(account_window_def->icons[1]));
+          wimp_plot_icon (&(account_window_def->icons[2]));
+          wimp_plot_icon (&(account_window_def->icons[3]));
+          wimp_plot_icon (&(account_window_def->icons[4]));
+          wimp_plot_icon (&(account_window_def->icons[5]));
+        }
+      }
+
+      more = wimp_get_rectangle (redraw);
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 void adjust_account_window_columns(file_data *file, int entry, wimp_i icon, int width)
@@ -375,35 +1046,12 @@ void adjust_account_window_columns(file_data *file, int entry, wimp_i icon, int 
   windows_open (window.w);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Return the type of account stored in the given window. */
-
-int find_accounts_window_type_from_handle (file_data *file, wimp_w window)
-{
-  int i, type;
-
-
-  /* Find the window block. */
-
-  type = ACCOUNT_NULL;
-
-  for (i=0; i<ACCOUNT_WINDOWS; i++)
-  {
-    if (file->account_windows[i].account_window == window || file->account_windows[i].account_pane == window)
-    {
-      type = file->account_windows[i].type;
-    }
-  }
-
-  return (type);
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Return the entry in the window list that corresponds to the given account type. */
 
-int find_accounts_window_entry_from_type (file_data *file, int type)
+int find_accounts_window_entry_from_type (file_data *file, enum account_type type)
 {
   int i, entry;
 
@@ -1737,7 +2385,7 @@ void print_account_window(osbool text, osbool format, osbool scale, osbool rotat
   report_data *report;
   int            i, entry;
   char           line[4096], buffer[256], numbuf1[64], numbuf2[64], numbuf3[64], numbuf4[64];
-  account_window  *window;
+  struct account_window  *window;
 
   msgs_lookup ((account_print_type & ACCOUNT_FULL) ? "PrintTitleAcclistAcc" : "PrintTitleAcclistHead",
                buffer, sizeof (buffer));
@@ -1903,116 +2551,6 @@ void print_account_window(osbool text, osbool format, osbool scale, osbool rotat
  * Account window handling
  */
 
-void account_window_click (file_data *file, wimp_pointer *pointer)
-{
-  int               line, entry;
-  wimp_window_state window;
-
-
-  /* Find the window type and get the line clicked on. */
-
-  entry = find_accounts_window_entry_from_handle (file, pointer->w);
-
-  window.w = pointer->w;
-  wimp_get_window_state (&window);
-
-  line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCOUNT_TOOLBAR_HEIGHT)
-         / (ICON_HEIGHT+LINE_GUTTER);
-
-  if (line < 0 || line >= file->account_windows[entry].display_lines)
-  {
-    line = -1;
-  }
-
-  /* Handle double-clicks, which will open a statement view or an edit accout window. */
-
-  if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
-  {
-    if (file->account_windows[entry].line_data[line].type == ACCOUNT_LINE_DATA)
-    {
-      accview_open_window (file, file->account_windows[entry].line_data[line].account);
-    }
-  }
-
-  else if (pointer->buttons == wimp_DOUBLE_ADJUST && line != -1)
-  {
-    switch (file->account_windows[entry].line_data[line].type)
-    {
-      case ACCOUNT_LINE_DATA:
-        open_account_edit_window (file, file->account_windows[entry].line_data[line].account, ACCOUNT_NULL, pointer);
-        break;
-
-      case ACCOUNT_LINE_HEADER:
-      case ACCOUNT_LINE_FOOTER:
-        open_section_edit_window (file, entry, line, pointer);
-        break;
-    }
-  }
-
-  else if (pointer->buttons == wimp_DRAG_SELECT && line != -1)
-  {
-    start_account_drag (file, entry, line);
-  }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_acclist_menu (file, find_accounts_window_type_from_handle (file, pointer->w), line, pointer);
-  }
-
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void account_pane_click (file_data *file, wimp_pointer *pointer)
-{
-  int entry;
-
-  if (pointer->buttons == wimp_CLICK_SELECT)
-  {
-    switch (pointer->i)
-    {
-      case ACCOUNT_PANE_PARENT:
-        windows_open (file->transaction_window.transaction_window);
-        break;
-
-      case ACCOUNT_PANE_PRINT:
-        open_account_print_window (file, find_accounts_window_type_from_handle (file, pointer->w), pointer,
-                                   config_opt_read ("RememberValues"));
-        break;
-
-      case ACCOUNT_PANE_ADDACCT:
-        open_account_edit_window (file, NULL_ACCOUNT,
-                                  find_accounts_window_type_from_handle (file, pointer->w), pointer);
-        break;
-
-      case ACCOUNT_PANE_ADDSECT:
-        open_section_edit_window (file, find_accounts_window_entry_from_handle (file, pointer->w), -1, pointer);
-        break;
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_ADJUST)
-  {
-    switch (pointer->i)
-    {
-      case ACCOUNT_PANE_PRINT:
-        open_account_print_window (file, find_accounts_window_type_from_handle (file, pointer->w), pointer,
-                                   !config_opt_read ("RememberValues"));
-        break;
-    }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_acclist_menu (file, find_accounts_window_type_from_handle (file, pointer->w), -1, pointer);
-  }
-
-  else if (pointer->buttons == wimp_DRAG_SELECT)
-  {
-    entry = find_accounts_window_entry_from_handle(file, pointer->w);
-    column_start_drag (pointer, file, entry, file->account_windows[entry].account_window, ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), adjust_account_window_columns);
-  }
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Set the extent of the standing order window for the specified file. */
@@ -2142,84 +2680,6 @@ void force_accounts_window_redraw (file_data *file, int entry, int from, int to)
   }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Handle scroll events that occur in a account window */
-
-void account_window_scroll_event (file_data *file, wimp_scroll *scroll)
-{
-  int width, height, error;
-
-
-  /* Add in the X scroll offset. */
-
-  width = scroll->visible.x1 - scroll->visible.x0;
-
-  switch (scroll->xmin)
-  {
-    case wimp_SCROLL_COLUMN_LEFT:
-      scroll->xscroll -= HORIZONTAL_SCROLL;
-      break;
-
-    case wimp_SCROLL_COLUMN_RIGHT:
-      scroll->xscroll += HORIZONTAL_SCROLL;
-      break;
-
-    case wimp_SCROLL_PAGE_LEFT:
-      scroll->xscroll -= width;
-      break;
-
-    case wimp_SCROLL_PAGE_RIGHT:
-      scroll->xscroll += width;
-      break;
-  }
-
-  /* Add in the Y scroll offset. */
-
-  height = (scroll->visible.y1 - scroll->visible.y0) - (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT);
-
-  switch (scroll->ymin)
-  {
-    case wimp_SCROLL_LINE_UP:
-      scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
-
-    case wimp_SCROLL_LINE_DOWN:
-      scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
-
-    case wimp_SCROLL_PAGE_UP:
-      scroll->yscroll += height;
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
-
-    case wimp_SCROLL_PAGE_DOWN:
-      scroll->yscroll -= height;
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
-  }
-
-  /* Re-open the window.
-   *
-   * It is assumed that the wimp will deal with out-of-bounds offsets for us.
-   */
-
-  wimp_open_window ((wimp_open *) scroll);
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 

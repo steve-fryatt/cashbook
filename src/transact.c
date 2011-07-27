@@ -1190,7 +1190,7 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_ACCOUNTS:
-        create_accounts_window (file, ACCOUNT_FULL);
+        account_open_window (file, ACCOUNT_FULL);
         break;
 
       case TRANSACT_PANE_VIEWACCT:
@@ -1202,11 +1202,11 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_IN:
-        create_accounts_window (file, ACCOUNT_IN);
+        account_open_window (file, ACCOUNT_IN);
         break;
 
       case TRANSACT_PANE_OUT:
-        create_accounts_window (file, ACCOUNT_OUT);
+        account_open_window (file, ACCOUNT_OUT);
         break;
 
       case TRANSACT_PANE_ADDHEAD:
@@ -1438,17 +1438,17 @@ void transaction_window_keypress (file_data *file, wimp_key *key)
 
   else if (key->c == wimp_KEY_F9)
   {
-    create_accounts_window (file, ACCOUNT_FULL);
+    account_open_window (file, ACCOUNT_FULL);
   }
 
   else if (key->c == wimp_KEY_F10)
   {
-    create_accounts_window (file, ACCOUNT_IN);
+    account_open_window (file, ACCOUNT_IN);
   }
 
   else if (key->c == wimp_KEY_F11)
   {
-    create_accounts_window (file, ACCOUNT_OUT);
+    account_open_window (file, ACCOUNT_OUT);
   }
 
   else if (key->c == wimp_KEY_PAGE_UP || key->c == wimp_KEY_PAGE_DOWN)

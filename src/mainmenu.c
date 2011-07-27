@@ -254,7 +254,7 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     else if (selection->items[1] == MAIN_MENU_ACCOUNTS_LIST) /* List */
     {
-      create_accounts_window (main_menu_file, ACCOUNT_FULL);
+      account_open_window (main_menu_file, ACCOUNT_FULL);
     }
 
     else if (selection->items[1] == MAIN_MENU_ACCOUNTS_NEW) /* New... */
@@ -269,12 +269,12 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
   {
     if (selection->items[1] == MAIN_MENU_HEADINGS_LISTIN) /* Incoming */
     {
-      create_accounts_window (main_menu_file, ACCOUNT_IN);
+      account_open_window (main_menu_file, ACCOUNT_IN);
     }
 
     else if (selection->items[1] == MAIN_MENU_HEADINGS_LISTOUT) /* Outgoing */
     {
-      create_accounts_window (main_menu_file, ACCOUNT_OUT);
+      account_open_window (main_menu_file, ACCOUNT_OUT);
     }
 
     else if (selection->items[1] == MAIN_MENU_HEADINGS_NEW) /* New... */

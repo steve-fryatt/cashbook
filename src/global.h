@@ -105,6 +105,13 @@
 
 /* Account types (bitwise allocation, to allow oring of values) */
 
+enum account_type {
+	ACCOUNT_NULL = 0x0000,							/**< Unset account type.				*/
+	ACCOUNT_FULL = 0x0001,							/**< Bank account type.					*/
+	ACCOUNT_IN   = 0x0100,							/**< Income enabled analysis header.			*/
+	ACCOUNT_OUT  = 0x0200							/**< Outgoing enabled analysis header.			*/
+};
+
 #define ACCOUNT_NULL 0x0000 /* Unset account type */
 
 #define ACCOUNT_FULL 0x0001 /* Bank account type */
@@ -237,6 +244,7 @@ struct sorder;
 struct preset;
 struct accview;
 
+typedef struct file_data file_data;
 
 
 /* ==================================================================================================================
@@ -349,29 +357,30 @@ account_redraw;
 
 /* Account window data struct */
 
-typedef struct account_window
-{
-  /* Account window handle and title details. */
+struct account_window {
+	file_data		*file;						/**< The file owning the block (for reverse lookup).		*/
+	int			entry;						/**< The array index of the block (for reverse lookup).		*/
 
-  wimp_w           account_window;      /* Window handle of the account window */
-  char             window_title[256];
-  wimp_w           account_pane;        /* Window handle of the account window toolbar pane */
-  wimp_w           account_footer;      /* Window handle of the account window footer pane */
-  char             footer_icon[ACCOUNT_COLUMNS-2][AMOUNT_FIELD_LEN]; /* Indirected blocks for footer icons. */
+	/* Account window handle and title details. */
 
-  /* Display column details. */
+	wimp_w			account_window;					/* Window handle of the account window */
+	char			window_title[256];
+	wimp_w			account_pane;					/* Window handle of the account window toolbar pane */
+	wimp_w			account_footer;					/* Window handle of the account window footer pane */
+	char			footer_icon[ACCOUNT_COLUMNS-2][AMOUNT_FIELD_LEN]; /* Indirected blocks for footer icons. */
 
-  int              column_width[ACCOUNT_COLUMNS]; /* Array holding the column widths in the account window. */
-  int              column_position[ACCOUNT_COLUMNS]; /* Array holding the column X-offsets in the acct window */
+	/* Display column details. */
 
-  /* Data parameters */
+	int			column_width[ACCOUNT_COLUMNS];			/* Array holding the column widths in the account window. */
+	int			column_position[ACCOUNT_COLUMNS];		/* Array holding the column X-offsets in the acct window */
 
-  int              type;                /* Type of accounts contained within the window */
+	/* Data parameters */
 
-  int              display_lines;       /* Count of the lines in the window */
-  account_redraw   *line_data;          /* Pointer to array of line data for the redraw */
-}
-account_window;
+	enum account_type	type;						/* Type of accounts contained within the window */
+
+	int			display_lines;					/* Count of the lines in the window */
+	account_redraw		*line_data;					/* Pointer to array of line data for the redraw */
+};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -661,7 +670,6 @@ saved_report;
  * Report data structures
  */
 
-typedef struct file_data file_data;
 
 typedef struct report_data
 {
@@ -727,7 +735,7 @@ struct file_data
   /* Details of the attached windows. */
 
   transaction_window transaction_window; /* Structure holding transaction window information */
-  account_window     account_windows[ACCOUNT_WINDOWS]; /* Array holding account window information */
+  struct account_window     account_windows[ACCOUNT_WINDOWS]; /* Array holding account window information */
   sorder_window      sorder_window;      /* Structure holding standing order window information. */
   preset_window      preset_window;      /* Structure holding preset window information. */
 
@@ -812,9 +820,6 @@ typedef struct
 
   wimp_window *transaction_window_def;
   wimp_window *transaction_pane_def;
-  wimp_window *account_window_def;
-  wimp_window *account_pane_def[2];
-  wimp_window *account_footer_def;
 }
 global_windows;
 

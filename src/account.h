@@ -1,10 +1,10 @@
 /* CashBook - account.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_ACCOUNT
-#define _ACCOUNTS_ACCOUNT
+#ifndef CASHBOOK_ACCOUNT
+#define CASHBOOK_ACCOUNT
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
@@ -68,24 +68,46 @@
 #define ACC_NAME_ENTRY_CANCEL 3
 #define ACC_NAME_ENTRY_OK 4
 
-/* ------------------------------------------------------------------------------------------------------------------
- * File data structures
+
+/**
+ * Initialise the account system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
+void account_initialise(osspriteop_area *sprites);
 
 
-/* ------------------------------------------------------------------------------------------------------------------
- * Function prototypes.
+/**
+ * Create and open an Accounts window for the given file and account type.
+ *
+ * \param *file			The file to open a window for.
+ * \param type			The type of account to open a window for.
  */
+
+void account_open_window(file_data *file, enum account_type type);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void redraw_account_window (wimp_draw *redraw, file_data *file);
 
 /* Window creation and deletion */
 
-void create_accounts_window (file_data *file, int type);
-void delete_accounts_window (file_data *file, int type);
 void adjust_account_window_columns (file_data *file, int entry, wimp_i icon, int width);
 
-int find_accounts_window_type_from_handle (file_data *file, wimp_w window);
-int find_accounts_window_entry_from_type (file_data *file, int type);
+int find_accounts_window_entry_from_type (file_data *file, enum account_type type);
 int find_accounts_window_entry_from_handle (file_data *file, wimp_w window);
 
 /* Adding new accounts */

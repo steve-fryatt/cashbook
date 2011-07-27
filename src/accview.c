@@ -125,7 +125,7 @@ static void			accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wim
 static void			accview_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			accview_window_scroll_handler(wimp_scroll *scroll);
 static void			accview_window_redraw_handler(wimp_draw *redraw);
-
+static void			accview_adjust_window_columns(file_data *file, int account, wimp_i group, int width);
 
 
 /**
@@ -1063,7 +1063,7 @@ static void accview_adjust_window_columns(file_data *file, int account, wimp_i g
   wimp_icon_state  icon;
   wimp_window_info window;
 
-        update_dragged_columns (ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), target, width,
+        update_dragged_columns (ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), group, width,
                               (file->accounts[account].account_view)->column_width,
                               (file->accounts[account].account_view)->column_position,
                                ACCVIEW_COLUMNS);
@@ -1119,16 +1119,6 @@ static void accview_adjust_window_columns(file_data *file, int account, wimp_i g
 
   windows_open (window.w);
 }
-
-
-/**
- * Adjust the sort icon in an account view window, to reflect the current column
- * heading positions.
- *
- * \param *file			The file to update the window for.
- */
-
-static void sorder_adjust_sort_icon(file_data *file)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 

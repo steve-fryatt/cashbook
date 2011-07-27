@@ -108,6 +108,9 @@ file_data *build_new_file_block (void)
 
   for (i=0; i<ACCOUNT_WINDOWS; i++)
   {
+    new->account_windows[i].file = new;
+    new->account_windows[i].entry = i;
+
     new->account_windows[i].account_window = NULL;
     new->account_windows[i].account_pane = NULL;
     new->account_windows[i].account_footer = NULL;

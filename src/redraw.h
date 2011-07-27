@@ -25,8 +25,4 @@
 
 void redraw_transaction_window (wimp_draw *redraw, file_data *file);
 
-/* Account window redraw */
-
-void redraw_account_window (wimp_draw *redraw, file_data *file);
-
 #endif

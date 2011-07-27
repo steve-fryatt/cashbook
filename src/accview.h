@@ -79,7 +79,6 @@ void accview_delete_window(file_data *file, acct_t account);
 
 
 
-void adjust_accview_window_columns (file_data *file, int account, wimp_i icon, int width);
 void adjust_accview_window_sort_icon (file_data *file, int account);
 void update_accview_window_sort_icon (file_data *file, int account, wimp_icon *icon);
 

@@ -157,8 +157,6 @@ static void main_poll_loop(void)
 			case wimp_REDRAW_WINDOW_REQUEST:
 				if ((file = find_transaction_window_file_block(blk.redraw.w)) != NULL)
 					redraw_transaction_window(&(blk.redraw), file);
-				else if ((file = find_account_window_file_block(blk.redraw.w)) != NULL)
-					redraw_account_window(&(blk.redraw), file);
 				break;
 
 			case wimp_OPEN_WINDOW_REQUEST:
@@ -187,9 +185,7 @@ static void main_poll_loop(void)
 					if (!((osbyte1(osbyte_IN_KEY, 0xfc, 0xff) == 0xff || osbyte1(osbyte_IN_KEY, 0xf9, 0xff) == 0xff) &&
 							ptr.buttons == wimp_CLICK_ADJUST))
 						delete_file(file);
-				} else if ((file = find_account_window_file_block(blk.close.w)) != NULL)
-					delete_accounts_window(file, find_accounts_window_type_from_handle(file, blk.close.w));
-				else
+				} else
 					wimp_close_window(blk.close.w);
 				break;
 
@@ -404,6 +400,7 @@ static void main_initialise(void)
 	goto_initialise();
 	purge_initialise();
 
+	account_initialise(sprites);
 	accview_initialise(sprites);
 	sorder_initialise(sprites);
 	preset_initialise(sprites);
@@ -601,41 +598,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
   window_def = templates_load_window("TransactTB");
     window_def->sprite_area = sprites;
     windows->transaction_pane_def = window_def;
-
-  /* Account Window.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("Account");
-    window_def->icon_count = 0;
-    windows->account_window_def = window_def;
-
-  /* Account Pane.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("AccountATB");
-    window_def->sprite_area = sprites;
-    windows->account_pane_def[0] = window_def;
-
-   /* Account Footer.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("AccountTot");
-    windows->account_footer_def = window_def;
-
-  /* Heading Pane.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("AccountHTB");
-    window_def->sprite_area = sprites;
-    windows->account_pane_def[1] = window_def;
 }
 
 
@@ -913,20 +875,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
   {
     transaction_pane_click (file, pointer);
   }
-
-  /* Look for account windows. */
-
-  else if ((file = find_account_window_file_block (pointer->w)) != NULL)
-  {
-    account_window_click (file, pointer);
-  }
-
-  /* Look for account window toolbars. */
-
-  else if ((file = find_account_pane_file_block (pointer->w)) != NULL)
-  {
-    account_pane_click (file, pointer);
-  }
 }
 
 /* ==================================================================================================================
@@ -1198,11 +1146,6 @@ static void scroll_request_handler (wimp_scroll *scroll)
   if ((file = find_transaction_window_file_block (scroll->w)) != NULL)
   {
     transaction_window_scroll_event (file, scroll);
-  }
-
-  else if ((file = find_account_window_file_block (scroll->w)) != NULL)
-  {
-    account_window_scroll_event (file, scroll);
   }
 }
 

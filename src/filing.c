@@ -872,7 +872,7 @@ void export_delimited_accounts_file (file_data *file, int entry, char *filename,
   FILE           *out;
   int            i;
   char           buffer[256];
-  account_window *window;
+  struct account_window *window;
 
   out = fopen (filename, "w");
 

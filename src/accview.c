@@ -51,6 +51,15 @@
 #include "transact.h"
 #include "window.h"
 
+/* AccView menu */
+
+#define ACCVIEW_MENU_FINDTRANS 0
+#define ACCVIEW_MENU_GOTOTRANS 1
+#define ACCVIEW_MENU_SORT 2
+#define ACCVIEW_MENU_EDITACCT 3
+#define ACCVIEW_MENU_EXPCSV 4
+#define ACCVIEW_MENU_EXPTSV 5
+#define ACCVIEW_MENU_PRINT 6
 
 struct accview_redraw {
 	int			transaction;					/**< Pointer to the transaction entry.					*/

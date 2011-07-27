@@ -16,7 +16,6 @@
 #define MENU_ID_ACCOPEN    2
 #define MENU_ID_ACCOUNT    3
 #define MENU_ID_DATE       4
-#define MENU_ID_ACCLIST    5
 #define MENU_ID_REFDESC    11
 
 #define REFDESC_MENU_REFERENCE   1
@@ -69,27 +68,6 @@
 /* RefDesc menu */
 
 #define REFDESC_MENU_CHEQUE 0
-
-/* AccList menu */
-
-#define ACCLIST_MENU_VIEWACCT 0
-#define ACCLIST_MENU_EDITACCT 1
-#define ACCLIST_MENU_EDITSECT 2
-#define ACCLIST_MENU_NEWACCT 3
-#define ACCLIST_MENU_NEWHEADER 4
-#define ACCLIST_MENU_EXPCSV 5
-#define ACCLIST_MENU_EXPTSV 6
-#define ACCLIST_MENU_PRINT 7
-
-/* AccView menu */
-
-#define ACCVIEW_MENU_FINDTRANS 0
-#define ACCVIEW_MENU_GOTOTRANS 1
-#define ACCVIEW_MENU_SORT 2
-#define ACCVIEW_MENU_EDITACCT 3
-#define ACCVIEW_MENU_EXPCSV 4
-#define ACCVIEW_MENU_EXPTSV 5
-#define ACCVIEW_MENU_PRINT 6
 
 /* General definitions */
 
@@ -191,16 +169,6 @@ void decode_refdesc_menu (wimp_selection *selection, wimp_pointer *pointer);
 wimp_menu *build_refdesc_menu (file_data *file, int menu_type, int start_line);
 void mainmenu_add_refdesc_menu_entry (refdesc_menu_link **entries, int *count, int *max, char *new);
 int mainmenu_cmp_refdesc_menu_entries (const void *va, const void *vb);
-
-
-/* Account list menu */
-
-void set_acclist_menu (int type, int line, int data);
-void open_acclist_menu (file_data *file, int type, int line, wimp_pointer *pointer);
-
-void decode_acclist_menu (wimp_selection *selection, wimp_pointer *pointer);
-
-void acclist_menu_submenu_message (wimp_full_message_menu_warning *submenu);
 
 #endif
 

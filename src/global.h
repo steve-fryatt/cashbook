@@ -127,6 +127,13 @@ enum account_type {
 
 /* Account window line types */
 
+enum account_line_type {
+	ACCOUNT_LINE_BLANK = 0,
+	ACCOUNT_LINE_DATA,
+	ACCOUNT_LINE_HEADER,
+	ACCOUNT_LINE_FOOTER
+};
+
 #define ACCOUNT_LINE_BLANK 0
 #define ACCOUNT_LINE_DATA 1
 #define ACCOUNT_LINE_HEADER 2
@@ -341,15 +348,13 @@ account;
 
 /* Account window line redraw data struct */
 
-typedef struct account_redraw
-{
-  int      type;                         /* Type of line (account, header, footer, blank, etc) */
+typedef struct account_redraw {
+	enum account_line_type	type;						/* Type of line (account, header, footer, blank, etc) */
 
-  int      account;                      /* Number of account. */
-  int      total[ACCOUNT_COLUMNS-2];     /* Balance totals for section. */
-  char     heading[ACCOUNT_SECTION_LEN]; /* Heading for section. */
-}
-account_redraw;
+	int			account;					/* Number of account. */
+	int			total[ACCOUNT_COLUMNS-2];			/* Balance totals for section. */
+	char			heading[ACCOUNT_SECTION_LEN];			/* Heading for section. */
+} account_redraw;
 
 /* ==================================================================================================================
  * Window data structures
@@ -842,8 +847,6 @@ typedef struct
   wimp_menu   *date;
   wimp_menu   *account;
   wimp_menu   *refdesc;
-
-  wimp_menu   *acclist;
 }
 global_menus;
 

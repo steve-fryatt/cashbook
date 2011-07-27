@@ -421,7 +421,6 @@ static void main_initialise(void)
 	menus.account_sub     = templates_get_menu(TEMPLATES_MENU_MAIN_ACCOUNTS);
 	menus.transaction_sub = templates_get_menu(TEMPLATES_MENU_MAIN_TRANSACTIONS);
 	menus.analysis_sub    = templates_get_menu(TEMPLATES_MENU_MAIN_ANALYSIS);
-	menus.acclist         = templates_get_menu(TEMPLATES_MENU_ACCLIST);
 
 	menus.accopen         = NULL;
 	menus.account         = NULL;
@@ -1109,13 +1108,6 @@ static void menu_selection_handler (wimp_selection *selection)
     decode_refdesc_menu (selection, &pointer);
   }
 
-  /* Decode the account list menu. */
-
-  else if (menus.menu_id == MENU_ID_ACCLIST)
-  {
-    decode_acclist_menu (selection, &pointer);
-  }
-
   /* If Adjust was used, reopen the menu. */
 
   if (pointer.buttons == wimp_CLICK_ADJUST)
@@ -1262,10 +1254,6 @@ static void user_message_handler (wimp_message *message)
       if (menus.menu_id == MENU_ID_MAIN)
       {
         main_menu_submenu_message ((wimp_full_message_menu_warning *) message);
-      }
-      else if (menus.menu_id == MENU_ID_ACCLIST)
-      {
-        acclist_menu_submenu_message ((wimp_full_message_menu_warning *) message);
       }
       else if (menus.menu_id == MENU_ID_ACCOUNT)
       {

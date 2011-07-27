@@ -521,54 +521,54 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			(file->accounts[account].account_view)->sort_order = SORT_NONE;
+			view->sort_order = SORT_NONE;
 
 			switch (pointer->i) {
 			case ACCVIEW_PANE_DATE:
-				(file->accounts[account].account_view)->sort_order = SORT_DATE;
+				view->sort_order = SORT_DATE;
 				break;
 
 			case ACCVIEW_PANE_FROMTO:
-				(file->accounts[account].account_view)->sort_order = SORT_FROMTO;
+				view->sort_order = SORT_FROMTO;
 				break;
 
 			case ACCVIEW_PANE_REFERENCE:
-				(file->accounts[account].account_view)->sort_order = SORT_REFERENCE;
+				view->sort_order = SORT_REFERENCE;
 				break;
 
 			case ACCVIEW_PANE_PAYMENTS:
-				(file->accounts[account].account_view)->sort_order = SORT_PAYMENTS;
+				view->sort_order = SORT_PAYMENTS;
 				break;
 
 			case ACCVIEW_PANE_RECEIPTS:
-				(file->accounts[account].account_view)->sort_order = SORT_RECEIPTS;
+				view->sort_order = SORT_RECEIPTS;
 				break;
 
 			case ACCVIEW_PANE_BALANCE:
-				(file->accounts[account].account_view)->sort_order = SORT_BALANCE;
+				view->sort_order = SORT_BALANCE;
 				break;
 
 			case ACCVIEW_PANE_DESCRIPTION:
-				(file->accounts[account].account_view)->sort_order = SORT_DESCRIPTION;
+				view->sort_order = SORT_DESCRIPTION;
 				break;
 			}
 
-			if ((file->accounts[account].account_view)->sort_order != SORT_NONE) {
+			if (view->sort_order != SORT_NONE) {
 				if (pointer->buttons == wimp_CLICK_SELECT * 256)
-					(file->accounts[account].account_view)->sort_order |= SORT_ASCENDING;
+					view->sort_order |= SORT_ASCENDING;
 				else
-					(file->accounts[account].account_view)->sort_order |= SORT_DESCENDING;
+					view->sort_order |= SORT_DESCENDING;
 			}
 
 			adjust_accview_window_sort_icon(file, account);
-			windows_redraw((file->accounts[account].account_view)->accview_pane);
+			windows_redraw(view->accview_pane);
 			sort_accview_window(file, account);
 
-			file->accview_sort_order = (file->accounts[account].account_view)->sort_order;
+			file->accview_sort_order = view->sort_order;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, file, account, (file->accounts[account].account_view)->accview_window,
-				ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), adjust_accview_window_columns);
+		column_start_drag(pointer, file, account, view->accview_window,
+				ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), accview_adjust_window_columns);
 	}
 }
 
@@ -1048,20 +1048,16 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 }
 
 
+/**
+ * Callback handler for completing the drag of a column heading.
+ *
+ * \param *file			The file owning the dragged preset window.
+ * \param account		The account whose view is to be updated.
+ * \param group			The column group which has been dragged.
+ * \param width			The new width for the group.
+ */
 
-
-
-
-
-
-
-
-
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void adjust_accview_window_columns (file_data *file, int account, wimp_i target, int width)
+static void accview_adjust_window_columns(file_data *file, int account, wimp_i group, int width)
 {
   int              i, j, new_extent;
   wimp_icon_state  icon;
@@ -1123,6 +1119,16 @@ void adjust_accview_window_columns (file_data *file, int account, wimp_i target,
 
   windows_open (window.w);
 }
+
+
+/**
+ * Adjust the sort icon in an account view window, to reflect the current column
+ * heading positions.
+ *
+ * \param *file			The file to update the window for.
+ */
+
+static void sorder_adjust_sort_icon(file_data *file)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 

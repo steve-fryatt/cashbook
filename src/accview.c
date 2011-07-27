@@ -670,15 +670,19 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		icons_put_caret_at_end(view->file->transaction_window.transaction_window, 0);
 		find_transaction_edit_line(view->file);
 		break;
+
 	case ACCVIEW_MENU_GOTOTRANS:
 		align_accview_with_transact(view->file, view->account);
 		break;
+
 	case ACCVIEW_MENU_SORT:
 		open_accview_sort_window(view->file, view->account, &pointer);
 		break;
+
 	case ACCVIEW_MENU_EDITACCT:
 		open_account_edit_window(view->file, view->account, -1, &pointer);
 		break;
+
 	case ACCVIEW_MENU_PRINT:
 		open_accview_print_window(view->file, view->account, &pointer, config_opt_read("RememberValues"));
 		break;

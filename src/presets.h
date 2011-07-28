@@ -39,10 +39,10 @@ void preset_open_window(file_data *file);
  * Close and delete the Preset List Window associated with the given
  * file block.
  *
- * \param *file			The file to use.
+ * \param *windat		The window to delete.
  */
 
-void preset_delete_window(file_data *file);
+void preset_delete_window(struct preset_window *windat);
 
 
 /**

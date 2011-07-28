@@ -366,7 +366,7 @@ void preset_open_window(file_data *file)
 
 	/* Register event handlers for the two windows. */
 
-	event_add_window_user_data(file->preset_window.preset_window, file);
+	event_add_window_user_data(file->preset_window.preset_window, &(file->preset_window));
 	event_add_window_menu(file->preset_window.preset_window, preset_window_menu);
 	event_add_window_close_event(file->preset_window.preset_window, preset_close_window_handler);
 	event_add_window_mouse_event(file->preset_window.preset_window, preset_window_click_handler);
@@ -377,7 +377,7 @@ void preset_open_window(file_data *file)
 	event_add_window_menu_warning(file->preset_window.preset_window, preset_window_menu_warning_handler);
 	event_add_window_menu_close(file->preset_window.preset_window, preset_window_menu_close_handler);
 
-	event_add_window_user_data(file->preset_window.preset_pane, file);
+	event_add_window_user_data(file->preset_window.preset_pane, &(file->preset_window));
 	event_add_window_menu(file->preset_window.preset_pane, preset_window_menu);
 	event_add_window_mouse_event(file->preset_window.preset_pane, preset_pane_click_handler);
 	event_add_window_menu_prepare(file->preset_window.preset_pane, preset_window_menu_prepare_handler);
@@ -391,30 +391,30 @@ void preset_open_window(file_data *file)
  * Close and delete the Preset List Window associated with the given
  * file block.
  *
- * \param *file			The file to use.
+ * \param *windat			The window to delete.
  */
 
-void preset_delete_window(file_data *file)
+void preset_delete_window(struct preset_window *windat)
 {
 	#ifdef DEBUG
 	debug_printf ("\\RDeleting preset window");
 	#endif
 
-	if (file == NULL)
+	if (windat == NULL)
 		return;
 
-	if (file->preset_window.preset_window != NULL) {
-		ihelp_remove_window(file->preset_window.preset_window);
-		event_delete_window(file->preset_window.preset_window);
-		wimp_delete_window(file->preset_window.preset_window);
-		file->preset_window.preset_window = NULL;
+	if (windat->preset_window != NULL) {
+		ihelp_remove_window(windat->preset_window);
+		event_delete_window(windat->preset_window);
+		wimp_delete_window(windat->preset_window);
+		windat->preset_window = NULL;
 	}
 
-	if (file->preset_window.preset_pane != NULL) {
-		ihelp_remove_window(file->preset_window.preset_pane);
-		event_delete_window(file->preset_window.preset_pane);
-		wimp_delete_window(file->preset_window.preset_pane);
-		file->preset_window.preset_pane = NULL;
+	if (windat->preset_pane != NULL) {
+		ihelp_remove_window(windat->preset_pane);
+		event_delete_window(windat->preset_pane);
+		wimp_delete_window(windat->preset_pane);
+		windat->preset_pane = NULL;
 	}
 }
 
@@ -427,19 +427,19 @@ void preset_delete_window(file_data *file)
 
 static void preset_close_window_handler(wimp_close *close)
 {
-	file_data	*file;
+	struct preset_window	*windat;
 
 	#ifdef DEBUG
-	debug_printf ("\\RClosing Preset window");
+	debug_printf("\\RClosing Preset window");
 	#endif
 
-	file = event_get_window_user_data(close->w);
-	if (file == NULL)
+	windat = event_get_window_user_data(close->w);
+	if (windat == NULL)
 		return;
 
 	/* Close the window */
 
-	preset_delete_window(file);
+	preset_delete_window(windat);
 }
 
 
@@ -451,13 +451,16 @@ static void preset_close_window_handler(wimp_close *close)
 
 static void preset_window_click_handler(wimp_pointer *pointer)
 {
+	struct preset_window	*windat;
 	file_data		*file;
 	int			line;
 	wimp_window_state	window;
 
-	file = event_get_window_user_data(pointer->w);
-	if (file == NULL)
+	windat = event_get_window_user_data(pointer->w);
+	if (windat == NULL || windat->file == NULL)
 		return;
+
+	file = windat->file;
 
 	/* Find the window type and get the line clicked on. */
 
@@ -484,14 +487,17 @@ static void preset_window_click_handler(wimp_pointer *pointer)
 
 static void preset_pane_click_handler(wimp_pointer *pointer)
 {
+	struct preset_window	*windat;
 	file_data		*file;
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
 
-	file = event_get_window_user_data(pointer->w);
-	if (file == NULL)
+	windat = event_get_window_user_data(pointer->w);
+	if (windat == NULL || windat->file == NULL)
 		return;
+
+	file = windat->file;
 
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
@@ -540,47 +546,47 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			file->preset_window.sort_order = SORT_NONE;
+			windat->sort_order = SORT_NONE;
 
 			switch (pointer->i) {
 			case PRESET_PANE_KEY:
-				file->preset_window.sort_order = SORT_CHAR;
+				windat->sort_order = SORT_CHAR;
 				break;
 
 			case PRESET_PANE_NAME:
-				file->preset_window.sort_order = SORT_NAME;
+				windat->sort_order = SORT_NAME;
 				break;
 
 			case PRESET_PANE_FROM:
-				file->preset_window.sort_order = SORT_FROM;
+				windat->sort_order = SORT_FROM;
 				break;
 
 			case PRESET_PANE_TO:
-				file->preset_window.sort_order = SORT_TO;
+				windat->sort_order = SORT_TO;
 				break;
 
 			case PRESET_PANE_AMOUNT:
-				file->preset_window.sort_order = SORT_AMOUNT;
+				windat->sort_order = SORT_AMOUNT;
 				break;
 
 			case PRESET_PANE_DESCRIPTION:
-				file->preset_window.sort_order = SORT_DESCRIPTION;
+				windat->sort_order = SORT_DESCRIPTION;
 				break;
 			}
 
-			if (file->preset_window.sort_order != SORT_NONE) {
+			if (windat->sort_order != SORT_NONE) {
 				if (pointer->buttons == wimp_CLICK_SELECT * 256)
-					file->preset_window.sort_order |= SORT_ASCENDING;
+					windat->sort_order |= SORT_ASCENDING;
 				else
-					file->preset_window.sort_order |= SORT_DESCENDING;
+					windat->sort_order |= SORT_DESCENDING;
 			}
 
 			preset_adjust_sort_icon(file);
-			windows_redraw(file->preset_window.preset_pane);
+			windows_redraw(windat->preset_pane);
 			preset_sort(file);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, file, 0, file->preset_window.preset_window,
+		column_start_drag(pointer, file, 0, windat->preset_window,
 				PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), preset_adjust_window_columns);
 	}
 }
@@ -596,29 +602,29 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 
 static void preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	file_data		*file;
+	struct preset_window	*windat;
 	int			line;
 	wimp_window_state	window;
 
 
-	file = event_get_window_user_data(w);
-	if (file == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL || windat->file == NULL)
 		return;
 
 	if (pointer != NULL) {
 		preset_window_menu_line = -1;
 
-		if (w == file->preset_window.preset_window) {
+		if (w == windat->preset_window) {
 			window.w = w;
 			wimp_get_window_state(&window);
 
 			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-			if (line >= 0 && line < file->preset_count)
+			if (line >= 0 && line < windat->file->preset_count)
 				preset_window_menu_line = line;
 		}
 
-		initialise_save_boxes(file, 0, 0);
+		initialise_save_boxes(windat->file, 0, 0);
 	}
 
 	menus_shade_entry(preset_window_menu, PRESET_MENU_EDIT, preset_window_menu_line == -1);
@@ -635,31 +641,31 @@ static void preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 
 static void preset_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	file_data		*file;
+	struct preset_window	*windat;
 	wimp_pointer	pointer;
 
-	file = event_get_window_user_data(w);
-	if (file == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL || windat->file == NULL)
 		return;
 
 	wimp_get_pointer_info(&pointer);
 
 	switch (selection->items[0]){
 	case PRESET_MENU_SORT:
-		preset_open_sort_window(file, &pointer);
+		preset_open_sort_window(windat->file, &pointer);
 		break;
 
 	case PRESET_MENU_EDIT:
 		if (preset_window_menu_line != -1)
-			preset_open_edit_window(file, file->presets[preset_window_menu_line].sort_index, &pointer);
+			preset_open_edit_window(windat->file, windat->file->presets[preset_window_menu_line].sort_index, &pointer);
 		break;
 
 	case PRESET_MENU_NEWPRESET:
-		preset_open_edit_window(file, NULL_PRESET, &pointer);
+		preset_open_edit_window(windat->file, NULL_PRESET, &pointer);
 		break;
 
 	case PRESET_MENU_PRINT:
-		preset_open_print_window(file, &pointer, config_opt_read("RememberValues"));
+		preset_open_print_window(windat->file, &pointer, config_opt_read("RememberValues"));
 		break;
 	}
 }
@@ -675,20 +681,20 @@ static void preset_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 
 static void preset_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-	file_data		*file;
+	struct preset_window	*windat;
 
-	file = event_get_window_user_data(w);
-	if (file == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL || windat->file == NULL)
 		return;
 
 	switch (warning->selection.items[0]) {
 	case PRESET_MENU_EXPCSV:
-		fill_save_as_window(file, SAVE_BOX_PRESETCSV);
+		fill_save_as_window(windat->file, SAVE_BOX_PRESETCSV);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case PRESET_MENU_EXPTSV:
-		fill_save_as_window(file, SAVE_BOX_PRESETTSV);
+		fill_save_as_window(windat->file, SAVE_BOX_PRESETTSV);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -716,12 +722,7 @@ static void preset_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void preset_window_scroll_handler(wimp_scroll *scroll)
 {
-	file_data	*file;
 	int		width, height, error;
-
-	file = event_get_window_user_data(scroll->w);
-	if (file == NULL)
-		return;
 
 	/* Add in the X scroll offset. */
 
@@ -792,23 +793,26 @@ static void preset_window_scroll_handler(wimp_scroll *scroll)
 
 static void preset_window_redraw_handler(wimp_draw *redraw)
 {
-	file_data	*file;
-	int		ox, oy, top, base, y, i, t;
-	char		icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
-	osbool		more;
+	struct preset_window	*windat;
+	file_data		*file;
+	int			ox, oy, top, base, y, i, t;
+	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool			more;
 
-	file = event_get_window_user_data(redraw->w);
-	if (file == NULL)
+	windat = event_get_window_user_data(redraw->w);
+	if (windat == NULL || windat->file == NULL)
 		return;
+
+	file = windat->file;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 
 	/* Set the horizontal positions of the icons. */
 
 	for (i=0; i < PRESET_COLUMNS; i++) {
-		preset_window_def->icons[i].extent.x0 = file->preset_window.column_position[i];
-		preset_window_def->icons[i].extent.x1 = file->preset_window.column_position[i] +
-				file->preset_window.column_width[i];
+		preset_window_def->icons[i].extent.x0 = windat->column_position[i];
+		preset_window_def->icons[i].extent.x1 = windat->column_position[i] +
+				windat->column_width[i];
 		preset_window_def->icons[i].data.indirected_text.text = icon_buffer;
 	}
 
@@ -839,8 +843,8 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 			wimp_set_colour(wimp_COLOUR_WHITE);
 			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - PRESET_TOOLBAR_HEIGHT);
 			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
-					ox + file->preset_window.column_position[PRESET_COLUMNS-1] +
-					file->preset_window.column_width[PRESET_COLUMNS-1],
+					ox + windat->column_position[PRESET_COLUMNS-1] +
+					windat->column_width[PRESET_COLUMNS-1],
 					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - PRESET_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
 
 			/* Key field */
@@ -1253,12 +1257,12 @@ static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 {
 	int			column, xpos;
 	wimp_window_state	window;
-	file_data		*file;
+	struct preset_window	*windat;
 
 	*buffer = '\0';
 
-	file = event_get_window_user_data(w);
-	if (file == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
 		return;
 
 	window.w = w;
@@ -1267,8 +1271,7 @@ static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
 	for (column = 0;
-			column < PRESET_COLUMNS &&
-			xpos > (file->preset_window.column_position[column] + file->preset_window.column_width[column]);
+			column < PRESET_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
 			column++);
 
 	sprintf(buffer, "Col%d", column);

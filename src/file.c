@@ -377,7 +377,7 @@ void delete_file (file_data *file)
 
   delete_transaction_window (file);
   sorder_delete_window(file);
-  preset_delete_window(file);
+  preset_delete_window(&(file->preset_window));
 
   for (i=0; i<ACCOUNT_WINDOWS; i++) /* Step through the account list windows. */
   {

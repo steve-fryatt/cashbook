@@ -366,7 +366,7 @@ void sorder_open_window(file_data *file)
 
 	/* Register event handlers for the two windows. */
 
-	event_add_window_user_data(file->sorder_window.sorder_window, file);
+	event_add_window_user_data(file->sorder_window.sorder_window, &(file->sorder_window));
 	event_add_window_menu(file->sorder_window.sorder_window, sorder_window_menu);
 	event_add_window_close_event(file->sorder_window.sorder_window, sorder_close_window_handler);
 	event_add_window_mouse_event(file->sorder_window.sorder_window, sorder_window_click_handler);
@@ -377,7 +377,7 @@ void sorder_open_window(file_data *file)
 	event_add_window_menu_warning(file->sorder_window.sorder_window, sorder_window_menu_warning_handler);
 	event_add_window_menu_close(file->sorder_window.sorder_window, sorder_window_menu_close_handler);
 
-	event_add_window_user_data(file->sorder_window.sorder_pane, file);
+	event_add_window_user_data(file->sorder_window.sorder_pane, &(file->sorder_window));
 	event_add_window_menu(file->sorder_window.sorder_pane, sorder_window_menu);
 	event_add_window_mouse_event(file->sorder_window.sorder_pane, sorder_pane_click_handler);
 	event_add_window_menu_prepare(file->sorder_window.sorder_pane, sorder_window_menu_prepare_handler);
@@ -391,30 +391,30 @@ void sorder_open_window(file_data *file)
  * Close and delete the Standing order List Window associated with the given
  * file block.
  *
- * \param *file			The file to use.
+ * \param *windat		The window to delete.
  */
 
-void sorder_delete_window(file_data *file)
+void sorder_delete_window(struct sorder_window *windat)
 {
 	#ifdef DEBUG
 	debug_printf ("\\RDeleting standing order window");
 	#endif
 
-	if (file == NULL)
+	if (windat == NULL)
 		return;
 
-	if (file->sorder_window.sorder_window != NULL) {
-		ihelp_remove_window (file->sorder_window.sorder_window);
-		event_delete_window(file->sorder_window.sorder_window);
-		wimp_delete_window(file->sorder_window.sorder_window);
-		file->sorder_window.sorder_window = NULL;
+	if (windat->sorder_window != NULL) {
+		ihelp_remove_window (windat->sorder_window);
+		event_delete_window(windat->sorder_window);
+		wimp_delete_window(windat->sorder_window);
+		windat->sorder_window = NULL;
 	}
 
-	if (file->sorder_window.sorder_pane != NULL) {
-		ihelp_remove_window (file->sorder_window.sorder_pane);
-		event_delete_window(file->sorder_window.sorder_pane);
-		wimp_delete_window(file->sorder_window.sorder_pane);
-		file->sorder_window.sorder_pane = NULL;
+	if (windat->sorder_pane != NULL) {
+		ihelp_remove_window (windat->sorder_pane);
+		event_delete_window(windat->sorder_pane);
+		wimp_delete_window(windat->sorder_pane);
+		windat->sorder_pane = NULL;
 	}
 }
 
@@ -427,19 +427,19 @@ void sorder_delete_window(file_data *file)
 
 static void sorder_close_window_handler(wimp_close *close)
 {
-	file_data	*file;
+	struct sorder_window	*windat;
 
 	#ifdef DEBUG
-	debug_printf ("\\RClosing Standing Order window");
+	debug_printf("\\RClosing Standing Order window");
 	#endif
 
-	file = event_get_window_user_data(close->w);
-	if (file == NULL)
+	windat = event_get_window_user_data(close->w);
+	if (windat == NULL)
 		return;
 
 	/* Close the window */
 
-	sorder_delete_window(file);
+	sorder_delete_window(windat);
 }
 
 
@@ -451,13 +451,16 @@ static void sorder_close_window_handler(wimp_close *close)
 
 static void sorder_window_click_handler(wimp_pointer *pointer)
 {
+	struct sorder_window	*windat;
 	file_data		*file;
 	int			line;
 	wimp_window_state	window;
 
-	file = event_get_window_user_data(pointer->w);
-	if (file == NULL)
+	windat = event_get_window_user_data(pointer->w);
+	if (windat == NULL || windat->file == NULL)
 		return;
+
+	file = windat->file;
 
 	/* Find the window type and get the line clicked on. */
 
@@ -484,14 +487,17 @@ static void sorder_window_click_handler(wimp_pointer *pointer)
 
 static void sorder_pane_click_handler(wimp_pointer *pointer)
 {
+	struct sorder_window	*windat;
 	file_data		*file;
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
 
-	file = event_get_window_user_data(pointer->w);
-	if (file == NULL)
+	windat = event_get_window_user_data(pointer->w);
+	if (windat == NULL || windat->file == NULL)
 		return;
+
+	file = windat->file;
 
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
@@ -538,47 +544,47 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			file->sorder_window.sort_order = SORT_NONE;
+			windat->sort_order = SORT_NONE;
 
 			switch (pointer->i) {
 			case SORDER_PANE_FROM:
-				file->sorder_window.sort_order = SORT_FROM;
+				windat->sort_order = SORT_FROM;
 				break;
 
 			case SORDER_PANE_TO:
-				file->sorder_window.sort_order = SORT_TO;
+				windat->sort_order = SORT_TO;
 				break;
 
 			case SORDER_PANE_AMOUNT:
-				file->sorder_window.sort_order = SORT_AMOUNT;
+				windat->sort_order = SORT_AMOUNT;
 				break;
 
 			case SORDER_PANE_DESCRIPTION:
-				file->sorder_window.sort_order = SORT_DESCRIPTION;
+				windat->sort_order = SORT_DESCRIPTION;
 				break;
 
 			case SORDER_PANE_NEXTDATE:
-				file->sorder_window.sort_order = SORT_NEXTDATE;
+				windat->sort_order = SORT_NEXTDATE;
 				break;
 
 			case SORDER_PANE_LEFT:
-				file->sorder_window.sort_order = SORT_LEFT;
+				windat->sort_order = SORT_LEFT;
 				break;
 			}
 
-			if (file->sorder_window.sort_order != SORT_NONE) {
+			if (windat->sort_order != SORT_NONE) {
 				if (pointer->buttons == wimp_CLICK_SELECT * 256)
-					file->sorder_window.sort_order |= SORT_ASCENDING;
+					windat->sort_order |= SORT_ASCENDING;
 				else
-					file->sorder_window.sort_order |= SORT_DESCENDING;
+					windat->sort_order |= SORT_DESCENDING;
 			}
 
 			sorder_adjust_sort_icon(file);
-			windows_redraw(file->sorder_window.sorder_pane);
+			windows_redraw(windat->sorder_pane);
 			sorder_sort(file);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, file, 0, file->sorder_window.sorder_window,
+		column_start_drag(pointer, file, 0, windat->sorder_window,
 				SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), sorder_adjust_window_columns);
 	}
 }
@@ -594,30 +600,29 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 
 static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	file_data		*file;
+	struct sorder_window	*windat;
 	int			line;
 	wimp_window_state	window;
 
-
-	file = event_get_window_user_data(w);
-	if (file == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
 		return;
 
 	if (pointer != NULL) {
 		sorder_window_menu_line = -1;
 
-		if (w == file->sorder_window.sorder_window) {
+		if (w == windat->sorder_window) {
 			window.w = w;
 			wimp_get_window_state(&window);
 
 
 			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-			if (line >= 0 && line < file->sorder_count)
+			if (line >= 0 && line < windat->file->sorder_count)
 				sorder_window_menu_line = line;
 		}
 
-		initialise_save_boxes(file, 0, 0);
+		initialise_save_boxes(windat->file, 0, 0);
 	}
 
 	menus_shade_entry(sorder_window_menu, SORDER_MENU_EDIT, sorder_window_menu_line == -1);
@@ -634,12 +639,15 @@ static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 
 static void sorder_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
+	struct sorder_window	*windat;
 	file_data		*file;
-	wimp_pointer	pointer;
+	wimp_pointer		pointer;
 
-	file = event_get_window_user_data(w);
-	if (file == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL || windat->file == NULL)
 		return;
+
+	file = windat->file;
 
 	wimp_get_pointer_info(&pointer);
 
@@ -678,20 +686,20 @@ static void sorder_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 
 static void sorder_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-	file_data		*file;
+	struct sorder_window	*windat;
 
-	file = event_get_window_user_data(w);
-	if (file == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
 		return;
 
 	switch (warning->selection.items[0]) {
 	case SORDER_MENU_EXPCSV:
-		fill_save_as_window(file, SAVE_BOX_SORDERCSV);
+		fill_save_as_window(windat->file, SAVE_BOX_SORDERCSV);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case SORDER_MENU_EXPTSV:
-		fill_save_as_window(file, SAVE_BOX_SORDERTSV);
+		fill_save_as_window(windat->file, SAVE_BOX_SORDERTSV);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -719,12 +727,7 @@ static void sorder_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void sorder_window_scroll_handler(wimp_scroll *scroll)
 {
-	file_data	*file;
 	int		width, height, error;
-
-	file = event_get_window_user_data(scroll->w);
-	if (file == NULL)
-		return;
 
 	/* Add in the X scroll offset. */
 
@@ -795,15 +798,17 @@ static void sorder_window_scroll_handler(wimp_scroll *scroll)
 
 static void sorder_window_redraw_handler(wimp_draw *redraw)
 {
-	file_data	*file;
-	int		ox, oy, top, base, y, i, t;
-	char		icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
-	osbool		more;
+	struct sorder_window	*windat;
+	file_data		*file;
+	int			ox, oy, top, base, y, i, t;
+	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool			more;
 
-
-	file = event_get_window_user_data(redraw->w);
-	if (file == NULL)
+	windat = event_get_window_user_data(redraw->w);
+	if (windat == NULL || windat->file == NULL)
 		return;
+
+	file = windat->file;
 
 	more = wimp_redraw_window(redraw);
 
@@ -815,9 +820,9 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	/* Set the horizontal positions of the icons. */
 
 	for (i=0; i < SORDER_COLUMNS; i++) {
-		sorder_window_def->icons[i].extent.x0 = file->sorder_window.column_position[i];
-		sorder_window_def->icons[i].extent.x1 = file->sorder_window.column_position[i] +
-				file->sorder_window.column_width[i];
+		sorder_window_def->icons[i].extent.x0 = windat->column_position[i];
+		sorder_window_def->icons[i].extent.x1 = windat->column_position[i] +
+				windat->column_width[i];
 		sorder_window_def->icons[i].data.indirected_text.text = icon_buffer;
 	}
 
@@ -843,8 +848,8 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			wimp_set_colour(wimp_COLOUR_WHITE);
 			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - SORDER_TOOLBAR_HEIGHT);
 			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
-					ox + file->sorder_window.column_position[SORDER_COLUMNS-1] +
-					file->sorder_window.column_width[SORDER_COLUMNS-1],
+					ox + windat->column_position[SORDER_COLUMNS-1] +
+					windat->column_width[SORDER_COLUMNS-1],
 					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - SORDER_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
 
 			/* From field */
@@ -1264,12 +1269,12 @@ static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 {
 	int			column, xpos;
 	wimp_window_state	window;
-	file_data		*file;
+	struct sorder_window	*windat;
 
 	*buffer = '\0';
 
-	file = event_get_window_user_data(w);
-	if (file == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
 		return;
 
 	window.w = w;
@@ -1278,8 +1283,7 @@ static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
 	for (column = 0;
-			column < SORDER_COLUMNS &&
-			xpos > (file->sorder_window.column_position[column] + file->sorder_window.column_width[column]);
+			column < SORDER_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
 			column++);
 
 	sprintf(buffer, "Col%d", column);

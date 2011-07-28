@@ -31,10 +31,10 @@ void sorder_open_window(file_data *file);
  * Close and delete the Standing order List Window associated with the given
  * file block.
  *
- * \param *file			The file to use.
+ * \param *windat		The window to delete.
  */
 
-void sorder_delete_window(file_data *file);
+void sorder_delete_window(struct sorder_window *windat);
 
 
 /**

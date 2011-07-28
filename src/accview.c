@@ -74,7 +74,7 @@ struct accview_redraw {
 	int			sort_index;					/**< Point to another line, to allow the window to be sorted.		*/
 };
 
-struct accview {
+struct accview_window {
 	file_data		*file;						/**< The handle of the parent file.					*/
 	acct_t			account;					/**< The account number of the parent account.				*/
 
@@ -171,7 +171,7 @@ void accview_open_window(file_data *file, acct_t account)
 	int			i, j, height;
 	os_error		*error;
 	wimp_window_state	parent;
-	struct accview		*new;
+	struct accview_window	*new;
 
 	/* Create or re-open the window. */
 
@@ -187,7 +187,7 @@ void accview_open_window(file_data *file, acct_t account)
 	 * as a result of the flex heap shifting for heap_alloc ().
 	 */
 
-	new = heap_alloc(sizeof(struct accview));
+	new = heap_alloc(sizeof(struct accview_window));
 	file->accounts[account].account_view = new;
 
 	if (new == NULL) {
@@ -369,15 +369,15 @@ void accview_delete_window(file_data *file, acct_t account)
 
 static void accview_close_window_handler(wimp_close *close)
 {
-	struct accview	*view;
+	struct accview_window	*windat;
 
 	#ifdef DEBUG
 	debug_printf ("\\RClosing Account View window");
 	#endif
 
-	view = event_get_window_user_data(close->w);
-	if (view != NULL && view->file != NULL && view->account != NULL_ACCOUNT)
-		accview_delete_window(view->file, view->account);
+	windat = event_get_window_user_data(close->w);
+	if (windat != NULL && windat->file != NULL && windat->account != NULL_ACCOUNT)
+		accview_delete_window(windat->file, windat->account);
 }
 
 
@@ -393,27 +393,27 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 	int			line, column, xpos, transaction, toggle_flag;
 	int			trans_col_from[] = {0,1,1,1,7,8,8,8,9}, trans_col_to[] = {0,4,4,4,7,8,8,8,9}, *trans_col;
 	wimp_window_state	window;
-	struct accview		*accview;
+	struct accview_window	*windat;
 
 	#ifdef DEBUG
 	debug_printf("Accview window click: %d", pointer->buttons);
 	#endif
 
-	accview = event_get_window_user_data(pointer->w);
-	if (accview == NULL)
+	windat = event_get_window_user_data(pointer->w);
+	if (windat == NULL)
 		return;
 
 	/* Find the window's account, and get the line clicked on. */
 
-	file = accview->file;
-	if (file == NULL || accview->account == NULL_ACCOUNT)
+	file = windat->file;
+	if (file == NULL || windat->account == NULL_ACCOUNT)
 		return;
 
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
 	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-	if (line < 0 || line >= accview->display_lines)
+	if (line < 0 || line >= windat->display_lines)
 		line = -1;
 
 	/* If the line is a transaction, handle mouse clicks over it.  Menu clicks are ignored and dealt with in the
@@ -423,12 +423,12 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 	if (line == -1)
 		return;
 
-	transaction = accview->line_data[accview->line_data[line].sort_index].transaction;
+	transaction = windat->line_data[windat->line_data[line].sort_index].transaction;
 
 	xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
 
 	for (column = 0;
-			column < ACCVIEW_COLUMNS && xpos > (accview->column_position[column] + accview->column_width[column]);
+			column < ACCVIEW_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
 			column++);
 
 	if (column != ACCVIEW_COLUMN_RECONCILE && (pointer->buttons == wimp_DOUBLE_SELECT || pointer->buttons == wimp_DOUBLE_ADJUST)) {
@@ -436,7 +436,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 		 * column are not used, as these are used to toggle the reconcile flag.
 		 */
 
-		trans_col = (file->transactions[transaction].from == accview->account) ? trans_col_to : trans_col_from;
+		trans_col = (file->transactions[transaction].from == windat->account) ? trans_col_to : trans_col_from;
 
 		place_transaction_edit_line(file, locate_transaction_in_transact_window (file, transaction));
 		icons_put_caret_at_end(file->transaction_window.transaction_window, trans_col[column]);
@@ -447,7 +447,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 	} else if (column == ACCVIEW_COLUMN_RECONCILE && pointer->buttons == wimp_SINGLE_ADJUST) {
 		/* Handle adjust-clicks in the reconcile column, to toggle the status. */
 
-		toggle_flag = (file->transactions[transaction].from == accview->account) ? TRANS_REC_FROM : TRANS_REC_TO;
+		toggle_flag = (file->transactions[transaction].from == windat->account) ? TRANS_REC_FROM : TRANS_REC_TO;
 		toggle_reconcile_flag(file, transaction, toggle_flag);
 	}
 }
@@ -461,21 +461,21 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 
 static void accview_pane_click_handler(wimp_pointer *pointer)
 {
-	struct accview		*view;
+	struct accview_window	*windat;
 	file_data		*file;
 	acct_t			account;
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
 
-	view = event_get_window_user_data(pointer->w);
-	if (view == NULL)
+	windat = event_get_window_user_data(pointer->w);
+	if (windat == NULL)
 		return;
 
 	/* Find the window's account. */
 
-	file = view->file;
-	account = view->account;
+	file = windat->file;
+	account = windat->account;
 	if (file == NULL || account == NULL_ACCOUNT)
 		return;
 
@@ -530,53 +530,53 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			view->sort_order = SORT_NONE;
+			windat->sort_order = SORT_NONE;
 
 			switch (pointer->i) {
 			case ACCVIEW_PANE_DATE:
-				view->sort_order = SORT_DATE;
+				windat->sort_order = SORT_DATE;
 				break;
 
 			case ACCVIEW_PANE_FROMTO:
-				view->sort_order = SORT_FROMTO;
+				windat->sort_order = SORT_FROMTO;
 				break;
 
 			case ACCVIEW_PANE_REFERENCE:
-				view->sort_order = SORT_REFERENCE;
+				windat->sort_order = SORT_REFERENCE;
 				break;
 
 			case ACCVIEW_PANE_PAYMENTS:
-				view->sort_order = SORT_PAYMENTS;
+				windat->sort_order = SORT_PAYMENTS;
 				break;
 
 			case ACCVIEW_PANE_RECEIPTS:
-				view->sort_order = SORT_RECEIPTS;
+				windat->sort_order = SORT_RECEIPTS;
 				break;
 
 			case ACCVIEW_PANE_BALANCE:
-				view->sort_order = SORT_BALANCE;
+				windat->sort_order = SORT_BALANCE;
 				break;
 
 			case ACCVIEW_PANE_DESCRIPTION:
-				view->sort_order = SORT_DESCRIPTION;
+				windat->sort_order = SORT_DESCRIPTION;
 				break;
 			}
 
-			if (view->sort_order != SORT_NONE) {
+			if (windat->sort_order != SORT_NONE) {
 				if (pointer->buttons == wimp_CLICK_SELECT * 256)
-					view->sort_order |= SORT_ASCENDING;
+					windat->sort_order |= SORT_ASCENDING;
 				else
-					view->sort_order |= SORT_DESCENDING;
+					windat->sort_order |= SORT_DESCENDING;
 			}
 
 			adjust_accview_window_sort_icon(file, account);
-			windows_redraw(view->accview_pane);
+			windows_redraw(windat->accview_pane);
 			sort_accview_window(file, account);
 
-			file->accview_sort_order = view->sort_order;
+			file->accview_sort_order = windat->sort_order;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, file, account, view->accview_window,
+		column_start_drag(pointer, file, account, windat->accview_window,
 				ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), accview_adjust_window_columns);
 	}
 }
@@ -592,34 +592,34 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 
 static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	struct accview		*view;
+	struct accview_window	*windat;
 	int			line;
 	wimp_window_state	window;
 
 
-	view = event_get_window_user_data(w);
-	if (view == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
 		return;
 
-	if (view->file == NULL || view->account == NULL_ACCOUNT)
+	if (windat->file == NULL || windat->account == NULL_ACCOUNT)
 		return;
 
 	if (pointer != NULL) {
 		accview_window_menu_line = -1;
 
-		if (w == view->accview_window) {
+		if (w == windat->accview_window) {
 			window.w = w;
 			wimp_get_window_state(&window);
 
 			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-			if (line >= 0 && line < view->display_lines)
+			if (line >= 0 && line < windat->display_lines)
 				accview_window_menu_line = line;
 		}
 
-		initialise_save_boxes(view->file, view->account, 0);
+		initialise_save_boxes(windat->file, windat->account, 0);
 
-		switch (view->file->accounts[view->account].type) {
+		switch (windat->file->accounts[windat->account].type) {
 		case ACCOUNT_FULL:
 			msgs_lookup("AccviewMenuTitleAcc", accview_window_menu->title_data.text, 12);
 			msgs_lookup("AccviewMenuEditAcc", menus_get_indirected_text_addr(accview_window_menu, ACCVIEW_MENU_EDITACCT), 20);
@@ -649,42 +649,42 @@ static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 
 static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	struct accview		*view;
+	struct accview_window	*windat;
 	wimp_pointer		pointer;
 
-	view = event_get_window_user_data(w);
-	if (view == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
 		return;
 
 	/* Find the window's account. */
 
-	if (view->file == NULL || view->account == NULL_ACCOUNT)
+	if (windat->file == NULL || windat->account == NULL_ACCOUNT)
 		return;
 
 	wimp_get_pointer_info(&pointer);
 
 	switch (selection->items[0]){
 	case ACCVIEW_MENU_FINDTRANS:
-		place_transaction_edit_line(view->file, locate_transaction_in_transact_window(view->file,
-				view->line_data[view->line_data[accview_window_menu_line].sort_index].transaction));
-		icons_put_caret_at_end(view->file->transaction_window.transaction_window, 0);
-		find_transaction_edit_line(view->file);
+		place_transaction_edit_line(windat->file, locate_transaction_in_transact_window(windat->file,
+				windat->line_data[windat->line_data[accview_window_menu_line].sort_index].transaction));
+		icons_put_caret_at_end(windat->file->transaction_window.transaction_window, 0);
+		find_transaction_edit_line(windat->file);
 		break;
 
 	case ACCVIEW_MENU_GOTOTRANS:
-		align_accview_with_transact(view->file, view->account);
+		align_accview_with_transact(windat->file, windat->account);
 		break;
 
 	case ACCVIEW_MENU_SORT:
-		open_accview_sort_window(view->file, view->account, &pointer);
+		open_accview_sort_window(windat->file, windat->account, &pointer);
 		break;
 
 	case ACCVIEW_MENU_EDITACCT:
-		open_account_edit_window(view->file, view->account, -1, &pointer);
+		open_account_edit_window(windat->file, windat->account, -1, &pointer);
 		break;
 
 	case ACCVIEW_MENU_PRINT:
-		open_accview_print_window(view->file, view->account, &pointer, config_opt_read("RememberValues"));
+		open_accview_print_window(windat->file, windat->account, &pointer, config_opt_read("RememberValues"));
 		break;
 	}
 }
@@ -700,20 +700,20 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 
 static void accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-	struct accview		*view;
+	struct accview_window	*windat;
 
-	view = event_get_window_user_data(w);
-	if (view == NULL || view->file == NULL)
+	windat = event_get_window_user_data(w);
+	if (windat == NULL || windat->file == NULL)
 		return;
 
 	switch (warning->selection.items[0]) {
 	case ACCVIEW_MENU_EXPCSV:
-		fill_save_as_window(view->file, SAVE_BOX_ACCVIEWCSV);
+		fill_save_as_window(windat->file, SAVE_BOX_ACCVIEWCSV);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case ACCVIEW_MENU_EXPTSV:
-		fill_save_as_window(view->file, SAVE_BOX_ACCVIEWTSV);
+		fill_save_as_window(windat->file, SAVE_BOX_ACCVIEWTSV);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -813,19 +813,19 @@ static void accview_window_scroll_handler(wimp_scroll *scroll)
 
 static void accview_window_redraw_handler(wimp_draw *redraw)
 {
-	struct accview		*window;
+	struct accview_window	*windat;
 	file_data		*file;
 	acct_t			account;
 	int			ox, oy, top, base, y, i, transaction, shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
 	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more, shade_budget, shade_overdrawn;
 
-	window = event_get_window_user_data(redraw->w);
-	if (window == NULL)
+	windat = event_get_window_user_data(redraw->w);
+	if (windat == NULL)
 		return;
 
-	file = window->file;
-	account = window->account;
+	file = windat->file;
+	account = windat->account;
 	if (file == NULL || account == NULL_ACCOUNT)
 		return;
 
@@ -846,8 +846,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	/* Set the horizontal positions of the icons for the account lines. */
 
 	for (i=0; i < ACCVIEW_COLUMNS; i++) {
-		accview_window_def->icons[i].extent.x0 = window->column_position[i];
-		accview_window_def->icons[i].extent.x1 = window->column_position[i] + window->column_width[i];
+		accview_window_def->icons[i].extent.x0 = windat->column_position[i];
+		accview_window_def->icons[i].extent.x1 = windat->column_position[i] + windat->column_width[i];
 		accview_window_def->icons[i].data.indirected_text.text = icon_buffer;
 	}
 
@@ -872,22 +872,22 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			wimp_set_colour (wimp_COLOUR_WHITE);
 			os_plot (os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT);
 			os_plot (os_PLOT_RECTANGLE + os_PLOT_TO,
-					ox + window->column_position[ACCVIEW_COLUMNS-1] + window->column_width[ACCVIEW_COLUMNS-1],
+					ox + windat->column_position[ACCVIEW_COLUMNS-1] + windat->column_width[ACCVIEW_COLUMNS-1],
 					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
 
 			/* Find the transaction that applies to this line. */
 
-			transaction = (y < window->display_lines) ? (window->line_data)[(window->line_data)[y].sort_index].transaction : 0;
+			transaction = (y < windat->display_lines) ? (windat->line_data)[(windat->line_data)[y].sort_index].transaction : 0;
 
 			/* work out the foreground colour for the line, based on whether the line is to be shaded or not. */
 
-			if (shade_budget && (y < window->display_lines) &&
+			if (shade_budget && (y < windat->display_lines) &&
 					((file->budget.start == NULL_DATE || file->transactions[transaction].date < file->budget.start) ||
 					(file->budget.finish == NULL_DATE || file->transactions[transaction].date > file->budget.finish))) {
 				icon_fg_col = (shade_budget_col << wimp_ICON_FG_COLOUR_SHIFT);
 				icon_fg_balance_col = (shade_budget_col << wimp_ICON_FG_COLOUR_SHIFT);
-			} else if (shade_overdrawn && (y < window->display_lines) &&
-					((window->line_data)[(window->line_data)[y].sort_index].balance < - file->accounts[account].credit_limit)) {
+			} else if (shade_overdrawn && (y < windat->display_lines) &&
+					((windat->line_data)[(windat->line_data)[y].sort_index].balance < - file->accounts[account].credit_limit)) {
 				icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 				icon_fg_balance_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
 			} else {
@@ -905,7 +905,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[0].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[0].flags |= icon_fg_col;
 
-			if (y < window->display_lines)
+			if (y < windat->display_lines)
 				convert_date_to_string (file->transactions[transaction].date, icon_buffer);
 			else
 				*icon_buffer = '\0';
@@ -937,7 +937,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[3].flags |= icon_fg_col;
 
-			if (y < window->display_lines && file->transactions[transaction].from == account &&
+			if (y < windat->display_lines && file->transactions[transaction].from == account &&
 					file->transactions[transaction].to != NULL_ACCOUNT) {
 				accview_window_def->icons[1].data.indirected_text.text =
 						file->accounts[file->transactions[transaction].to].ident;
@@ -949,7 +949,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 					strcpy (icon_buffer, rec_char);
 				else
 					*icon_buffer = '\0';
-			} else if (y < window->display_lines && file->transactions[transaction].to == account &&
+			} else if (y < windat->display_lines && file->transactions[transaction].to == account &&
 					file->transactions[transaction].from != NULL_ACCOUNT) {
 				accview_window_def->icons[1].data.indirected_text.text =
 						file->accounts[file->transactions[transaction].from].ident;
@@ -982,7 +982,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[4].flags |= icon_fg_col;
 
-			if (y < window->display_lines) {
+			if (y < windat->display_lines) {
 				accview_window_def->icons[4].data.indirected_text.text = file->transactions[transaction].reference;
 			} else {
 				accview_window_def->icons[4].data.indirected_text.text = icon_buffer;
@@ -1000,7 +1000,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[5].flags |= icon_fg_col;
 
-			if (y < window->display_lines && file->transactions[transaction].from == account)
+			if (y < windat->display_lines && file->transactions[transaction].from == account)
 				convert_money_to_string (file->transactions[transaction].amount, icon_buffer);
 			else
 				*icon_buffer = '\0';
@@ -1016,7 +1016,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[6].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[6].flags |= icon_fg_col;
 
-			if (y < window->display_lines && file->transactions[transaction].to == account)
+			if (y < windat->display_lines && file->transactions[transaction].to == account)
 				convert_money_to_string (file->transactions[transaction].amount, icon_buffer);
 			else
 				*icon_buffer = '\0';
@@ -1032,8 +1032,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[7].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[7].flags |= icon_fg_balance_col;
 
-			if (y < window->display_lines)
-				convert_money_to_string ((window->line_data)[(window->line_data)[y].sort_index].balance, icon_buffer);
+			if (y < windat->display_lines)
+				convert_money_to_string ((windat->line_data)[(windat->line_data)[y].sort_index].balance, icon_buffer);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon (&(accview_window_def->icons[7]));
@@ -1048,7 +1048,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[8].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[8].flags |= icon_fg_col;
 
-			if (y < window->display_lines) {
+			if (y < windat->display_lines) {
 				accview_window_def->icons[8].data.indirected_text.text = file->transactions[transaction].description;
 			} else {
 				accview_window_def->icons[8].data.indirected_text.text = icon_buffer;
@@ -1530,7 +1530,7 @@ void rebuild_all_account_views (file_data *file)
 void sort_accview_window (file_data *file, int account)
 {
   int				sorted, reorder, gap, comb, temp, order;
-  struct accview		*window;
+  struct accview_window		*window;
 
 
   #ifdef DEBUG
@@ -1834,7 +1834,7 @@ void print_accview_window(osbool text, osbool format, osbool scale, osbool rotat
   report_data			*report;
   int				i, transaction=0;
   char				line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
-  struct accview		*window;
+  struct accview_window		*window;
 
   msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
   msgs_lookup ("PrintTitleAccview", buffer, sizeof (buffer));
@@ -2078,7 +2078,7 @@ void force_accview_window_redraw (file_data *file, int account, int from, int to
 int align_accview_with_transact_line (file_data *file, int account)
 {
   int				centre_transact, line = 0;
-  struct accview		*window;
+  struct accview_window		*window;
 
 
   if (account != NULL_ACCOUNT)
@@ -2165,13 +2165,13 @@ void decode_accview_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos,
 {
 	int			column, xpos;
 	wimp_window_state	window;
-	struct accview		*view;
+	struct accview_window	*windat;
 
 	*buffer = '\0';
 
-	view = event_get_window_user_data(w);
+	windat = event_get_window_user_data(w);
 
-	if (view == NULL)
+	if (windat == NULL)
 		return;
 
 	window.w = w;
@@ -2180,7 +2180,7 @@ void decode_accview_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos,
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
 	for (column = 0;
-			column < TRANSACT_COLUMNS && xpos > (view->column_position[column] + view->column_width[column]);
+			column < TRANSACT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
 			column++);
 
 	sprintf(buffer, "Col%d", column);
@@ -2216,7 +2216,7 @@ void accview_export_delimited(file_data *file, acct_t account, char *filename, e
 	FILE				*out;
 	int				i, transaction=0;
 	char				buffer[256];
-	struct accview		*window;
+	struct accview_window		*windat;
 
 	out = fopen(filename, "w");
 
@@ -2228,28 +2228,28 @@ void accview_export_delimited(file_data *file, acct_t account, char *filename, e
 	hourglass_on();
 
 	if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL) {
-		window = file->accounts[account].account_view;
+		windat = file->accounts[account].account_view;
 
 		/* Output the headings line, taking the text from the window icons. */
 
-		icons_copy_text(window->accview_pane, 0, buffer);
+		icons_copy_text(windat->accview_pane, 0, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(window->accview_pane, 1, buffer);
+		icons_copy_text(windat->accview_pane, 1, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(window->accview_pane, 2, buffer);
+		icons_copy_text(windat->accview_pane, 2, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(window->accview_pane, 3, buffer);
+		icons_copy_text(windat->accview_pane, 3, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(window->accview_pane, 4, buffer);
+		icons_copy_text(windat->accview_pane, 4, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(window->accview_pane, 5, buffer);
+		icons_copy_text(windat->accview_pane, 5, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(window->accview_pane, 6, buffer);
+		icons_copy_text(windat->accview_pane, 6, buffer);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 		/* Output the transaction data as a set of delimited lines. */
-		for (i=0; i < window->display_lines; i++) {
-			transaction = (window->line_data)[(window->line_data)[i].sort_index].transaction;
+		for (i=0; i < windat->display_lines; i++) {
+			transaction = (windat->line_data)[(windat->line_data)[i].sort_index].transaction;
 
 			convert_date_to_string(file->transactions[transaction].date, buffer);
 			filing_output_delimited_field(out, buffer, format, 0);
@@ -2272,7 +2272,7 @@ void accview_export_delimited(file_data *file, acct_t account, char *filename, e
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 			}
 
-			convert_money_to_string(window->line_data[i].balance, buffer);
+			convert_money_to_string(windat->line_data[i].balance, buffer);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 			filing_output_delimited_field(out, file->transactions[transaction].description, format, DELIMIT_LAST);

@@ -21,6 +21,9 @@
 #define EDIT_ICON_AMOUNT 8
 #define EDIT_ICON_DESCRIPT 9
 
+
+extern wimp_window *edit_transact_window_def;
+
 /* ------------------------------------------------------------------------------------------------------------------
  * Data structures
  */

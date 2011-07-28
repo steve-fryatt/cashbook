@@ -823,9 +823,6 @@ typedef struct
   wimp_w      edit_sect;
   wimp_w      sort_trans;
   wimp_w      sort_accview;
-
-  wimp_window *transaction_window_def;
-  wimp_window *transaction_pane_def;
 }
 global_windows;
 

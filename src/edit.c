@@ -60,6 +60,8 @@ static char      buffer_date[DATE_FIELD_LEN], buffer_from_ident[ACCOUNT_IDENT_LE
                  buffer_to_rec[REC_FIELD_LEN], buffer_reference [REF_FIELD_LEN],
                  buffer_amount[AMOUNT_FIELD_LEN], buffer_description[DESCRIPT_FIELD_LEN];
 
+wimp_window *edit_transact_window_def = NULL;	/* \TODO -- Ick! */
+
 /* ==================================================================================================================
  * Edit line creation.
  */
@@ -72,8 +74,6 @@ void place_transaction_edit_line (file_data* file, int line)
 {
   int                   i, transaction;
   wimp_icon_create      icon_block;
-
-  extern global_windows windows;
 
 
   if (line > -1)
@@ -108,35 +108,35 @@ void place_transaction_edit_line (file_data* file, int line)
 
     /* Set up the indirected buffers. */
 
-    windows.transaction_window_def->icons[0].data.indirected_text.text = buffer_date;
-    windows.transaction_window_def->icons[0].data.indirected_text.size = DATE_FIELD_LEN;
+    edit_transact_window_def->icons[0].data.indirected_text.text = buffer_date;
+    edit_transact_window_def->icons[0].data.indirected_text.size = DATE_FIELD_LEN;
 
-    windows.transaction_window_def->icons[1].data.indirected_text.text = buffer_from_ident;
-    windows.transaction_window_def->icons[1].data.indirected_text.size = ACCOUNT_IDENT_LEN;
+    edit_transact_window_def->icons[1].data.indirected_text.text = buffer_from_ident;
+    edit_transact_window_def->icons[1].data.indirected_text.size = ACCOUNT_IDENT_LEN;
 
-    windows.transaction_window_def->icons[2].data.indirected_text.text = buffer_from_rec;
-    windows.transaction_window_def->icons[2].data.indirected_text.size = REC_FIELD_LEN;
+    edit_transact_window_def->icons[2].data.indirected_text.text = buffer_from_rec;
+    edit_transact_window_def->icons[2].data.indirected_text.size = REC_FIELD_LEN;
 
-    windows.transaction_window_def->icons[3].data.indirected_text.text = buffer_from_name;
-    windows.transaction_window_def->icons[3].data.indirected_text.size = ACCOUNT_NAME_LEN;
+    edit_transact_window_def->icons[3].data.indirected_text.text = buffer_from_name;
+    edit_transact_window_def->icons[3].data.indirected_text.size = ACCOUNT_NAME_LEN;
 
-    windows.transaction_window_def->icons[4].data.indirected_text.text = buffer_to_ident;
-    windows.transaction_window_def->icons[4].data.indirected_text.size = ACCOUNT_IDENT_LEN;
+    edit_transact_window_def->icons[4].data.indirected_text.text = buffer_to_ident;
+    edit_transact_window_def->icons[4].data.indirected_text.size = ACCOUNT_IDENT_LEN;
 
-    windows.transaction_window_def->icons[5].data.indirected_text.text = buffer_to_rec;
-    windows.transaction_window_def->icons[5].data.indirected_text.size = REC_FIELD_LEN;
+    edit_transact_window_def->icons[5].data.indirected_text.text = buffer_to_rec;
+    edit_transact_window_def->icons[5].data.indirected_text.size = REC_FIELD_LEN;
 
-    windows.transaction_window_def->icons[6].data.indirected_text.text = buffer_to_name;
-    windows.transaction_window_def->icons[6].data.indirected_text.size = ACCOUNT_NAME_LEN;
+    edit_transact_window_def->icons[6].data.indirected_text.text = buffer_to_name;
+    edit_transact_window_def->icons[6].data.indirected_text.size = ACCOUNT_NAME_LEN;
 
-    windows.transaction_window_def->icons[7].data.indirected_text.text = buffer_reference;
-    windows.transaction_window_def->icons[7].data.indirected_text.size = REF_FIELD_LEN;
+    edit_transact_window_def->icons[7].data.indirected_text.text = buffer_reference;
+    edit_transact_window_def->icons[7].data.indirected_text.size = REF_FIELD_LEN;
 
-    windows.transaction_window_def->icons[8].data.indirected_text.text = buffer_amount;
-    windows.transaction_window_def->icons[8].data.indirected_text.size = AMOUNT_FIELD_LEN;
+    edit_transact_window_def->icons[8].data.indirected_text.text = buffer_amount;
+    edit_transact_window_def->icons[8].data.indirected_text.size = AMOUNT_FIELD_LEN;
 
-    windows.transaction_window_def->icons[9].data.indirected_text.text = buffer_description;
-    windows.transaction_window_def->icons[9].data.indirected_text.size = DESCRIPT_FIELD_LEN;
+    edit_transact_window_def->icons[9].data.indirected_text.text = buffer_description;
+    edit_transact_window_def->icons[9].data.indirected_text.size = DESCRIPT_FIELD_LEN;
 
     /* Initialise the data. */
 
@@ -187,7 +187,7 @@ void place_transaction_edit_line (file_data* file, int line)
 
     for (i=0; i < TRANSACT_COLUMNS; i++)
     {
-      memcpy (&(icon_block.icon), &(windows.transaction_window_def->icons[i]), sizeof (wimp_icon));
+      memcpy (&(icon_block.icon), &(edit_transact_window_def->icons[i]), sizeof (wimp_icon));
 
       icon_block.icon.extent.x0 = file->transaction_window.column_position[i];
       icon_block.icon.extent.x1 = file->transaction_window.column_position[i]

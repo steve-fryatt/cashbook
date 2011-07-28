@@ -56,9 +56,19 @@
 #define TRANS_SORT_ASCENDING 10
 #define TRANS_SORT_DESCENDING 11
 
-/* ------------------------------------------------------------------------------------------------------------------
- * Function prototypes.
+
+/**
+ * Initialise the transaction system.
+ *
+ * \param *sprites		The application sprite area.
  */
+
+void transact_initialise(osspriteop_area *sprites);
+
+
+
+void redraw_transaction_window (wimp_draw *redraw, file_data *file);
+
 
 /* Window creation and deletion */
 

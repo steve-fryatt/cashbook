@@ -65,7 +65,6 @@
 #include "presets.h"
 #include "printing.h"
 #include "purge.h"
-#include "redraw.h"
 #include "report.h"
 #include "sorder.h"
 #include "templates.h"
@@ -400,6 +399,7 @@ static void main_initialise(void)
 	goto_initialise();
 	purge_initialise();
 
+	transact_initialise(sprites);
 	account_initialise(sprites);
 	accview_initialise(sprites);
 	sorder_initialise(sprites);
@@ -416,11 +416,6 @@ static void main_initialise(void)
 
 	templates_link_menu_dialogue("file_info", windows.file_info);
 	templates_link_menu_dialogue("save_as", windows.save_as);
-
-	menus.main            = templates_get_menu(TEMPLATES_MENU_MAIN);
-	menus.account_sub     = templates_get_menu(TEMPLATES_MENU_MAIN_ACCOUNTS);
-	menus.transaction_sub = templates_get_menu(TEMPLATES_MENU_MAIN_TRANSACTIONS);
-	menus.analysis_sub    = templates_get_menu(TEMPLATES_MENU_MAIN_ANALYSIS);
 
 	menus.accopen         = NULL;
 	menus.account         = NULL;
@@ -504,9 +499,6 @@ static osbool main_message_prequit(wimp_message *message)
 
 static void load_templates(global_windows *windows, osspriteop_area *sprites)
 {
-  wimp_window  *window_def;
-
-
   /* File Info Window.
    *
    * Created now.
@@ -579,24 +571,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
      windows->sort_accview = templates_create_window("SortAccView");
     ihelp_add_window (windows->sort_accview, "SortAccView", NULL);
-
-  /* Transaction Window.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("Transact");
-    window_def->icon_count = 0;
-    windows->transaction_window_def = window_def;
-
-  /* Transaction Pane.
-   *
-   * Definition loaded for future use.
-   */
-
-  window_def = templates_load_window("TransactTB");
-    window_def->sprite_area = sprites;
-    windows->transaction_pane_def = window_def;
 }
 
 

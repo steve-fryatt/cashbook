@@ -72,6 +72,23 @@
 #define ACCLIST_MENU_PRINT 7
 
 
+/* Account List Print Window. */
+
+static file_data		*account_print_file = NULL;			/**< The file owning the Account List Print window.			*/
+static enum account_type	account_print_type = ACCOUNT_NULL;		/**< The type of account owning the Account List Print window.		*/
+
+/* Account List Window. */
+
+static wimp_window		*account_window_def = NULL;			/**< The definition for the Accounts List Window.			*/
+static wimp_window		*account_pane_def[2] = {NULL, NULL};		/**< The definition for the Accounts List Toolbar pane.			*/
+static wimp_window		*account_foot_def = NULL;			/**< The definition for the Accounts List Footer pane.			*/
+static wimp_menu		*account_window_menu = NULL;			/**< The Accounts List Window menu handle.				*/
+static int			account_window_menu_line = -1;			/**< The line over which the Accounts List Window Menu was opened.	*/
+
+
+
+/* \TODO -- These entries should probably become struct account_window * pointers? */
+
 /* Account and heading editing constants. */
 
 static file_data *edit_account_file = NULL;
@@ -85,8 +102,6 @@ static int       edit_section_line = -1;
 
 /* Printing constants */
 
-static file_data *account_print_file = NULL;
-static int       account_print_type = 0;
 
 
 /* Account drag constants. */
@@ -104,13 +119,6 @@ static wimp_w    account_name_lookup_window;
 static wimp_i    account_name_lookup_icon;
 
 
-
-
-static wimp_window		*account_window_def = NULL;			/**< The definition for the Accounts List Window.			*/
-static wimp_window		*account_pane_def[2] = {NULL, NULL};		/**< The definition for the Accounts List Toolbar pane.			*/
-static wimp_window		*account_foot_def = NULL;			/**< The definition for the Accounts List Footer pane.			*/
-static wimp_menu		*account_window_menu = NULL;			/**< The Accounts List Window menu handle.				*/
-static int			account_window_menu_line = -1;			/**< The line over which the Accounts List Window Menu was opened.	*/
 
 
 

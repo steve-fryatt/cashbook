@@ -406,6 +406,8 @@ static void account_window_click_handler(wimp_pointer *pointer)
 		case ACCOUNT_LINE_FOOTER:
 			open_section_edit_window(windat->file, windat->entry, line, pointer);
 			break;
+		default:
+			break;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && line != -1) {
 		start_account_drag(windat->file, windat->entry, line);
@@ -509,6 +511,8 @@ static void account_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 			msgs_lookup("AcclistMenuEditHead", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_EDITACCT), 20);
 			msgs_lookup("AcclistMenuNewHead", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_NEWACCT), 20);
 			templates_set_menu_token("HeadListMenu");
+			break;
+		default:
 			break;
 		}
 	} else {
@@ -953,6 +957,8 @@ static void account_window_redraw_handler(wimp_draw *redraw)
               account_window_def->icons[4].flags |= icon_fg_col;
               account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
               account_window_def->icons[5].flags |= icon_fg_col;
+              break;
+            default:
               break;
           }
 
@@ -2556,6 +2562,9 @@ void print_account_window(osbool text, osbool format, osbool scale, osbool rotat
       case ACCOUNT_OUT:
         msgs_param_lookup ("AcclistTitleHOut", buffer, sizeof (buffer), numbuf1, NULL, NULL, NULL);
         break;
+
+      default:
+        break;
     }
     sprintf (line, "\\b\\u%s", buffer);
     report_write_line (report, 0, line);
@@ -2647,6 +2656,9 @@ void print_account_window(osbool text, osbool format, osbool scale, osbool rotat
                                      numbuf3);
             convert_money_to_string (account_print_file->accounts[window->line_data[i].account].budget_result,
                                      numbuf4);
+            break;
+
+          default:
             break;
         }
         sprintf (line, "\\k%s\\t%s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s",
@@ -2791,6 +2803,9 @@ void build_account_window_title (file_data *file, int entry)
         msgs_param_lookup ("AcclistTitleHOut", file->account_windows[entry].window_title,
                            sizeof (file->account_windows[entry].window_title),
                            name, NULL, NULL, NULL);
+        break;
+
+      default:
         break;
     }
 

@@ -938,6 +938,9 @@ void export_delimited_accounts_file (file_data *file, int entry, char *filename,
             convert_money_to_string (file->accounts[window->line_data[i].account].budget_result, buffer);
             filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
             break;
+
+          default:
+            break;
         }
       }
       else if (window->line_data[i].type == ACCOUNT_LINE_HEADER)

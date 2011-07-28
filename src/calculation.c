@@ -174,6 +174,9 @@ void recalculate_account_windows (file_data *file)
           file->account_windows[entry].line_data[i].total[j] = sub_total[j];
         }
         break;
+
+      default:
+        break;
     }
   }
 
@@ -231,6 +234,9 @@ void recalculate_account_windows (file_data *file)
         {
           file->account_windows[entry].line_data[i].total[j] = sub_total[j];
         }
+        break;
+
+      default:
         break;
     }
   }
@@ -290,6 +296,9 @@ void recalculate_account_windows (file_data *file)
         {
           file->account_windows[entry].line_data[i].total[j] = sub_total[j];
         }
+        break;
+
+      default:
         break;
     }
   }

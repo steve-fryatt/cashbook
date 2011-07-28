@@ -64,7 +64,7 @@ void delete_edit_line_transaction (file_data *file);
 
 /* Keypress handling */
 
-void process_transaction_edit_line_keypress (file_data *file, wimp_key *key);
+osbool process_transaction_edit_line_keypress (file_data *file, wimp_key *key);
 void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key);
 
 /* Descript completion. */

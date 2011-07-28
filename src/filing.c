@@ -140,7 +140,7 @@ void load_transaction_file(char *filename)
 	sort_transaction_window(file);
 	sorder_sort(file);
 	preset_sort(file);
-	create_transaction_window(file); /* The window extent is set in this action. */
+	transact_open_window(file); /* The window extent is set in this action. */
 
 	hourglass_off();
 

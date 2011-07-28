@@ -330,7 +330,7 @@ void create_new_file (void)
 
   if (file != NULL)
   {
-    create_transaction_window (file);
+    transact_open_window (file);
   }
 }
 
@@ -375,7 +375,7 @@ void delete_file (file_data *file)
 
   /* Delete the windows. */
 
-  delete_transaction_window (file);
+  transact_delete_window(&(file->transaction_window));
   sorder_delete_window(&(file->sorder_window));
   preset_delete_window(&(file->preset_window));
 

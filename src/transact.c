@@ -18,6 +18,7 @@
 
 #include "oslib/wimp.h"
 #include "oslib/os.h"
+#include "oslib/osbyte.h"
 #include "oslib/osfile.h"
 #include "oslib/hourglass.h"
 #include "oslib/osspriteop.h"
@@ -88,6 +89,14 @@ static int			transact_window_menu_line = -1;			/**< The line over which the Tran
 
 
 
+static void			transact_close_window_handler(wimp_close *close);
+static void			transact_window_click_handler(wimp_pointer *pointer);
+static void			transact_pane_click_handler(wimp_pointer *pointer);
+static osbool			transact_window_keypress_handler(wimp_key *key);
+
+static void			transact_window_scroll_handler(wimp_scroll *scroll);
+static void			transact_window_redraw_handler(wimp_draw *redraw);
+
 
 
 
@@ -114,148 +123,219 @@ void transact_initialise(osspriteop_area *sprites)
 }
 
 
-
-
-/* ==================================================================================================================
- * Window creation and deletion
+/**
+ * Create and open a Transaction List window for the given file.
+ *
+ * \param *file			The file to open a window for.
  */
 
-void create_transaction_window (file_data *file)
+void transact_open_window(file_data *file)
 {
-  int                   i, j, height;
-  os_error              *error;
+	int		i, j, height;
+	os_error	*error;
 
+	if (file->transaction_window.transaction_window != NULL) {
+		windows_open(file->transaction_window.transaction_window);
+		return;
+	}
 
-  if (file->transaction_window.transaction_window != NULL)
-  {
-    /* The window is open, so just bring it forward. */
+	/* Create the new window data and build the window. */
 
-    windows_open (file->transaction_window.transaction_window);
-  }
-  else
-  {
-    /* Create the new window data and build the window. */
+	*(file->transaction_window.window_title) = '\0';
+	transact_window_def->title_data.indirected_text.text = file->transaction_window.window_title;
 
-    *(file->transaction_window.window_title) = '\0';
-    transact_window_def->title_data.indirected_text.text = file->transaction_window.window_title;
+	file->transaction_window.display_lines = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
+			file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 
-    file->transaction_window.display_lines = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-                                             file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
+	height =  file->transaction_window.display_lines;
 
-    height =  file->transaction_window.display_lines;
+	set_initial_window_area(transact_window_def,
+			file->transaction_window.column_position[TRANSACT_COLUMNS-1] +
+			file->transaction_window.column_width[TRANSACT_COLUMNS-1],
+			((ICON_HEIGHT+LINE_GUTTER) * height) + TRANSACT_TOOLBAR_HEIGHT,
+			-1, -1, new_transaction_window_offset * TRANSACTION_WINDOW_OPEN_OFFSET);
 
-    set_initial_window_area (transact_window_def,
-                             file->transaction_window.column_position[TRANSACT_COLUMNS-1] +
-                             file->transaction_window.column_width[TRANSACT_COLUMNS-1],
-                              ((ICON_HEIGHT+LINE_GUTTER) * height) + TRANSACT_TOOLBAR_HEIGHT,
-                               -1, -1, new_transaction_window_offset * TRANSACTION_WINDOW_OPEN_OFFSET);
+	error = xwimp_create_window(transact_window_def, &(file->transaction_window.transaction_window));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
 
-    error = xwimp_create_window (transact_window_def, &(file->transaction_window.transaction_window));
-    if (error != NULL)
-    {
-      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-      return;
-    }
+	new_transaction_window_offset++;
+	if (new_transaction_window_offset >= TRANSACTION_WINDOW_OFFSET_LIMIT)
+		new_transaction_window_offset = 0;
 
-    new_transaction_window_offset++;
-    if (new_transaction_window_offset >= TRANSACTION_WINDOW_OFFSET_LIMIT)
-    {
-      new_transaction_window_offset = 0;
-    }
+	/* Create the toolbar pane. */
 
-    /* Create the toolbar pane. */
+	windows_place_as_toolbar(transact_window_def, transact_pane_def, TRANSACT_TOOLBAR_HEIGHT-4);
 
-    windows_place_as_toolbar (transact_window_def, transact_pane_def, TRANSACT_TOOLBAR_HEIGHT-4);
+	for (i=0, j=0; j < TRANSACT_COLUMNS; i++, j++) {
+		transact_pane_def->icons[i].extent.x0 = file->transaction_window.column_position[j];
+		j = column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, i);
+		transact_pane_def->icons[i].extent.x1 = file->transaction_window.column_position[j] +
+				file->transaction_window.column_width[j] +
+				COLUMN_HEADING_MARGIN;
+	}
 
-    for (i=0, j=0; j < TRANSACT_COLUMNS; i++, j++)
-    {
-      transact_pane_def->icons[i].extent.x0 = file->transaction_window.column_position[j];
+	transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
+			(osspriteop_id) file->transaction_window.sort_sprite;
+	transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
+			transact_pane_def->sprite_area;
 
-      j = column_get_rightmost_in_group (TRANSACT_PANE_COL_MAP, i);
+	update_transaction_window_sort_icon(file, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
 
-      transact_pane_def->icons[i].extent.x1 = file->transaction_window.column_position[j] +
-                                                         file->transaction_window.column_width[j] +
-                                                         COLUMN_HEADING_MARGIN;
-    }
+	error = xwimp_create_window(transact_pane_def, &(file->transaction_window.transaction_pane));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
 
-    transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
-                                  (osspriteop_id) file->transaction_window.sort_sprite;
-    transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-                                  transact_pane_def->sprite_area;
+	/* Set the title */
 
-    update_transaction_window_sort_icon (file, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
+	build_transaction_window_title(file);
 
-    error = xwimp_create_window (transact_pane_def, &(file->transaction_window.transaction_pane));
-    if (error != NULL)
-    {
-      error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-      return;
-    }
+	/* Update the toolbar */
 
-    /* Set the title */
+	update_transaction_window_toolbar(file);
 
-    build_transaction_window_title (file);
+	/* Set the default values */
 
-    /* Update the toolbar */
+	file->transaction_window.entry_line = -1;
+	file->transaction_window.display_lines = MIN_TRANSACT_ENTRIES;
 
-    update_transaction_window_toolbar (file);
+	/* Open the window. */
 
-    /* Set the default values */
+	windows_open(file->transaction_window.transaction_window);
+	windows_open_nested_as_toolbar(file->transaction_window.transaction_pane,
+			file->transaction_window.transaction_window,
+			TRANSACT_TOOLBAR_HEIGHT-4);
 
-    file->transaction_window.entry_line = -1;
-    file->transaction_window.display_lines = MIN_TRANSACT_ENTRIES;
+	ihelp_add_window(file->transaction_window.transaction_window , "Transact", decode_transact_window_help);
+	ihelp_add_window(file->transaction_window.transaction_pane , "TransactTB", NULL);
 
-    /* Open the window. */
+	/* Register event handlers for the two windows. */
+	/* \TODO -- Should this be all three windows?   */
 
-    windows_open (file->transaction_window.transaction_window);
-    windows_open_nested_as_toolbar (file->transaction_window.transaction_pane,
-                                   file->transaction_window.transaction_window,
-                                   TRANSACT_TOOLBAR_HEIGHT-4);
+	event_add_window_user_data(file->transaction_window.transaction_window, &(file->transaction_window));
+//	event_add_window_menu(file->transaction_window.transaction_window, transact_window_menu);
+	event_add_window_close_event(file->transaction_window.transaction_window, transact_close_window_handler);
+	event_add_window_mouse_event(file->transaction_window.transaction_window, transact_window_click_handler);
+	event_add_window_key_event(file->transaction_window.transaction_window, transact_window_keypress_handler);
+	event_add_window_scroll_event(file->transaction_window.transaction_window, transact_window_scroll_handler);
+	event_add_window_redraw_event(file->transaction_window.transaction_window, transact_window_redraw_handler);
+//	event_add_window_menu_prepare(file->transaction_window.transaction_window, transact_window_menu_prepare_handler);
+//	event_add_window_menu_selection(file->transaction_window.transaction_window, transact_window_menu_selection_handler);
+//	event_add_window_menu_warning(file->transaction_window.transaction_window, transact_window_menu_warning_handler);
+//	event_add_window_menu_close(file->transaction_window.transaction_window, transact_window_menu_close_handler);
 
-    ihelp_add_window (file->transaction_window.transaction_window , "Transact", decode_transact_window_help);
-    ihelp_add_window (file->transaction_window.transaction_pane , "TransactTB", NULL);
+	event_add_window_user_data(file->transaction_window.transaction_pane, &(file->transaction_window));
+//	event_add_window_menu(file->transaction_window.transaction_pane, transact_window_menu);
+	event_add_window_mouse_event(file->transaction_window.transaction_pane, transact_pane_click_handler);
+//	event_add_window_menu_prepare(file->transaction_window.transaction_pane, transact_window_menu_prepare_handler);
+//	event_add_window_menu_selection(file->transaction_window.transaction_pane, transact_window_menu_selection_handler);
+//	event_add_window_menu_warning(file->transaction_window.transaction_pane, transact_window_menu_warning_handler);
+//	event_add_window_menu_close(file->transaction_window.transaction_pane, transact_window_menu_close_handler);
 
-    /* Put the caret into the first empty line. */
+	/* Put the caret into the first empty line. */
 
-    place_transaction_edit_line (file, file->trans_count);
-    icons_put_caret_at_end (file->transaction_window.transaction_window, 0);
-    find_transaction_edit_line (file);
-  }
+	place_transaction_edit_line(file, file->trans_count);
+	icons_put_caret_at_end(file->transaction_window.transaction_window, 0);
+	find_transaction_edit_line(file);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void delete_transaction_window (file_data *file)
-{
-  #ifdef DEBUG
-  debug_printf ("\\RDeleting transaction window");
-  #endif
-
-  if (file->transaction_window.transaction_window != NULL)
-  {
-    ihelp_remove_window (file->transaction_window.transaction_window);
-    ihelp_remove_window (file->transaction_window.transaction_pane);
-
-    wimp_delete_window (file->transaction_window.transaction_window);
-    wimp_delete_window (file->transaction_window.transaction_pane);
-
-    file->transaction_window.transaction_window = NULL;
-    file->transaction_window.transaction_pane = NULL;
-  }
-}
-
-/* ==================================================================================================================
- * Transaction window handling.
+/**
+ * Close and delete a Transaction List Window associated with the given
+ * transaction window block.
+ *
+ * \param *windat		The window to delete.
  */
 
-/* Deal with mouse clicks in the transaction window. */
-
-void transaction_window_click (file_data *file, wimp_pointer *pointer)
+void transact_delete_window(struct transaction_window *windat)
 {
-  int                 line, transaction, xpos, column;
-  wimp_window_state   window;
-  wimp_pointer        ptr;
+	#ifdef DEBUG
+	debug_printf("\\RDeleting transaction window");
+	#endif
 
+	if (windat == NULL)
+		return;
+
+	if (windat->transaction_window != NULL) {
+		ihelp_remove_window(windat->transaction_window);
+		event_delete_window(windat->transaction_window);
+		wimp_delete_window(windat->transaction_window);
+		windat->transaction_window = NULL;
+	}
+
+	if (windat->transaction_pane != NULL) {
+		ihelp_remove_window(windat->transaction_pane);
+		event_delete_window(windat->transaction_pane);
+		wimp_delete_window(windat->transaction_pane);
+		windat->transaction_pane = NULL;
+	}
+}
+
+
+/**
+ * Handle Close events on Transaction List windows, deleting the window.
+ *
+ * \param *close		The Wimp Close data block.
+ */
+
+static void transact_close_window_handler(wimp_close *close)
+{
+	struct transaction_window	*windat;
+	wimp_pointer			pointer;
+	char				buffer[1024], *pathcopy;
+
+	#ifdef DEBUG
+	debug_printf("\\RClosing Transaction List window");
+	#endif
+
+	windat = event_get_window_user_data(close->w);
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	wimp_get_pointer_info(&pointer);
+
+	/* If Adjust was clicked, find the pathname and open the parent directory. */
+
+	if (pointer.buttons == wimp_CLICK_ADJUST && check_for_filepath(windat->file)) {
+		pathcopy = strdup(windat->file->filename);
+		if (pathcopy != NULL) {
+			snprintf(buffer, sizeof(buffer), "%%Filer_OpenDir %s", string_find_pathname(pathcopy));
+			xos_cli(buffer);
+			free(pathcopy);
+		}
+	}
+
+	/* If it was NOT an Adjust click with Shift held down, close the file. */
+
+	if (!((osbyte1(osbyte_IN_KEY, 0xfc, 0xff) == 0xff || osbyte1(osbyte_IN_KEY, 0xf9, 0xff) == 0xff) &&
+			pointer.buttons == wimp_CLICK_ADJUST))
+		delete_file(windat->file);
+}
+
+
+/**
+ * Process mouse clicks in the Transaction List window.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void transact_window_click_handler(wimp_pointer *pointer)
+{
+	struct transaction_window	*windat;
+	file_data			*file;
+	int				line, transaction, xpos, column;
+	wimp_window_state		window;
+	wimp_pointer			ptr;
+
+	windat = event_get_window_user_data(pointer->w);
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
 
   /* Force a refresh of the current edit line, if there is one.  We avoid refreshing the icon where the mouse
    * was clicked.
@@ -405,18 +485,29 @@ void transaction_window_click (file_data *file, wimp_pointer *pointer)
   }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Deal with clicks in the transaction toolbar. */
+/**
+ * Process mouse clicks in the Transaction List pane.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
 
-void transaction_pane_click (file_data *file, wimp_pointer *pointer)
+static void transact_pane_click_handler(wimp_pointer *pointer)
 {
-  wimp_window_state     window;
-  wimp_icon_state       icon;
-  int                   ox;
+	struct transaction_window	*windat;
+	file_data			*file;
+	wimp_window_state		window;
+	wimp_icon_state			icon;
+	int				ox;
 
   extern global_windows windows;
 
+
+	windat = event_get_window_user_data(pointer->w);
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
 
   /* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
@@ -603,18 +694,28 @@ void transaction_pane_click (file_data *file, wimp_pointer *pointer)
   }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Deal with keypresses in the transaction window.  All hotkeys are handled, then any remaining presses are passed
- * on to the edit line handling code for attention.
+/**
+ * Process keypresses in the Transaction List window.  All hotkeys are handled,
+ * then any remaining presses are passed on to the edit line handling code
+ * for attention.
+ *
+ * \param *key		The keypress event block to handle.
  */
 
-void transaction_window_keypress (file_data *file, wimp_key *key)
+static osbool transact_window_keypress_handler(wimp_key *key)
 {
-  wimp_pointer pointer;
+	struct transaction_window	*windat;
+	file_data			*file;
+	wimp_pointer			pointer;
 
   extern global_windows windows;
 
+	windat = event_get_window_user_data(key->w);
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	file = windat->file;
 
   /* The global clipboard keys. */
 
@@ -713,7 +814,7 @@ void transaction_window_keypress (file_data *file, wimp_key *key)
     scroll.xmin = wimp_SCROLL_NONE;
     scroll.ymin = (key->c == wimp_KEY_PAGE_UP) ? wimp_SCROLL_PAGE_UP : wimp_SCROLL_PAGE_DOWN;
 
-    transaction_window_scroll_event (file, &scroll);
+    transact_window_scroll_handler(&scroll);
   }
 
   else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_UP) || key->c == wimp_KEY_HOME)
@@ -731,19 +832,50 @@ void transaction_window_keypress (file_data *file, wimp_key *key)
 
   else
   {
-    process_transaction_edit_line_keypress (file, key);
+    return process_transaction_edit_line_keypress (file, key);
   }
+
+  return TRUE;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
 
 
-/* Handle scroll events that occur in a transaction window */
 
-void transaction_window_scroll_event (file_data *file, wimp_scroll *scroll)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Process scroll events in the Transaction List window.
+ *
+ * \param *scroll		The scroll event block to handle.
+ */
+
+static void transact_window_scroll_handler(wimp_scroll *scroll)
 {
   int width, height, line, error;
+	struct transaction_window	*windat;
+	file_data			*file;
+
+	windat = event_get_window_user_data(scroll->w);
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
 
 
   /* Add in the X scroll offset. */
@@ -828,16 +960,27 @@ void transaction_window_scroll_event (file_data *file, wimp_scroll *scroll)
 }
 
 
+/**
+ * Process redraw events in the Transaction List window.
+ *
+ * \param *redraw		The draw event block to handle.
+ */
 
-
-void redraw_transaction_window (wimp_draw *redraw, file_data *file)
+static void transact_window_redraw_handler(wimp_draw *redraw)
 {
+	struct transaction_window	*windat;
+	file_data			*file;
   int                   ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col;
   char                  icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
   osbool                more;
 
   extern global_windows windows;
 
+	windat = event_get_window_user_data(redraw->w);
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
 
   /* Perform the redraw if a window was found. */
 

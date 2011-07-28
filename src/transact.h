@@ -66,14 +66,31 @@
 void transact_initialise(osspriteop_area *sprites);
 
 
+/**
+ * Create and open a Transaction List window for the given file.
+ *
+ * \param *file			The file to open a window for.
+ */
+
+void transact_open_window(file_data *file);
+
+
+/**
+ * Close and delete a Transaction List Window associated with the given
+ * transaction window block.
+ *
+ * \param *windat		The window to delete.
+ */
+
+void transact_delete_window(struct transaction_window *windat);
+
+
 
 void redraw_transaction_window (wimp_draw *redraw, file_data *file);
 
 
 /* Window creation and deletion */
 
-void create_transaction_window (file_data *file);
-void delete_transaction_window (file_data *file);
 void adjust_transaction_window_columns (file_data *file, int data, wimp_i icon, int width);
 void adjust_transaction_window_sort_icon (file_data *file);
 void update_transaction_window_sort_icon (file_data *file, wimp_icon *icon);
@@ -112,8 +129,6 @@ void print_transact_window(osbool text, osbool format, osbool scale, osbool rota
 
 /* Transaction window handling */
 
-void transaction_window_click (file_data *file, wimp_pointer *pointer);
-void transaction_pane_click (file_data *file, wimp_pointer *pointer);
 void transaction_window_keypress (file_data *file, wimp_key *key);
 void set_transaction_window_extent (file_data *file);
 void minimise_transaction_window_extent (file_data *file);
@@ -121,7 +136,6 @@ void build_transaction_window_title (file_data *file);
 void force_transaction_window_redraw (file_data *file, int from, int to);
 void update_transaction_window_toolbar (file_data *file);
 
-void transaction_window_scroll_event (file_data *file, wimp_scroll *scroll);
 void scroll_transaction_window_to_end (file_data *file, int dir);
 
 int find_transaction_window_centre (file_data *file, int account);

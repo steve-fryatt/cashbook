@@ -86,7 +86,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites);
 static void mouse_click_handler (wimp_pointer *);
 static void key_press_handler (wimp_key *key);
 static void menu_selection_handler (wimp_selection *);
-static void scroll_request_handler (wimp_scroll *);
 static void user_message_handler (wimp_message *);
 static void bounced_message_handler (wimp_message *);
 
@@ -131,8 +130,6 @@ static void main_poll_loop(void)
 {
 	file_data	*file;
 	os_t		poll_time;
-	wimp_pointer	ptr;
-	char		buffer[1024], *pathcopy;
 	wimp_block	blk;
 	wimp_event_no	reason;
 
@@ -153,39 +150,14 @@ static void main_poll_loop(void)
 				poll_time += 6000; /* Wait for a minute for the next Null poll */
 				break;
 
-			case wimp_REDRAW_WINDOW_REQUEST:
-				if ((file = find_transaction_window_file_block(blk.redraw.w)) != NULL)
-					redraw_transaction_window(&(blk.redraw), file);
-				break;
-
 			case wimp_OPEN_WINDOW_REQUEST:
-				if ((file = find_transaction_window_file_block(blk.redraw.w)) != NULL)
+				if ((file = find_transaction_window_file_block(blk.redraw.w)) != NULL) /* \TODO -- This needs to go into its own handler. */
 					minimise_transaction_window_extent(file);
 				wimp_open_window(&(blk.open));
 				break;
 
 			case wimp_CLOSE_WINDOW_REQUEST:
-				if ((file = find_transaction_window_file_block(blk.close.w)) != NULL) {
-					wimp_get_pointer_info(&ptr);
-
-					/* If Adjust was clicked, find the pathname and open the parent directory. */
-
-					if (ptr.buttons == wimp_CLICK_ADJUST && check_for_filepath(file)) {
-						pathcopy = strdup(file->filename);
-						if (pathcopy != NULL) {
-							snprintf(buffer, sizeof(buffer), "%%Filer_OpenDir %s", string_find_pathname(pathcopy));
-							xos_cli(buffer);
-							free(pathcopy);
-						}
-					}
-
-					/* If it was NOT an Adjust click with Shift held down, close the file. */
-
-					if (!((osbyte1(osbyte_IN_KEY, 0xfc, 0xff) == 0xff || osbyte1(osbyte_IN_KEY, 0xf9, 0xff) == 0xff) &&
-							ptr.buttons == wimp_CLICK_ADJUST))
-						delete_file(file);
-				} else
-					wimp_close_window(blk.close.w);
+				wimp_close_window(blk.close.w);
 				break;
 
 			case wimp_MOUSE_CLICK:
@@ -210,10 +182,6 @@ static void main_poll_loop(void)
 					terminate_account_drag(&(blk.dragged));
 					break;
 				}
-				break;
-
-			case wimp_SCROLL_REQUEST:
-				scroll_request_handler(&(blk.scroll));
 				break;
 
 			case wimp_LOSE_CARET:
@@ -582,8 +550,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
 static void mouse_click_handler (wimp_pointer *pointer)
 {
-  file_data *file;
-
   extern global_windows windows;
 
 
@@ -834,20 +800,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
       icons_set_selected (windows.sort_accview, pointer->i, 1);
     }
   }
-
-  /* Look for transaction windows. */
-
-  else if ((file = find_transaction_window_file_block (pointer->w)) != NULL)
-  {
-    transaction_window_click (file, pointer);
-  }
-
-  /* Look for transaction toolbars. */
-
-  else if ((file = find_transaction_pane_file_block (pointer->w)) != NULL)
-  {
-    transaction_pane_click (file, pointer);
-  }
 }
 
 /* ==================================================================================================================
@@ -856,8 +808,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
 
 static void key_press_handler (wimp_key *key)
 {
-  file_data *file;
-
   extern global_windows windows;
 
 
@@ -1021,15 +971,6 @@ static void key_press_handler (wimp_key *key)
         break;
     }
   }
-
-
-
-  /* Look for transaction windows. */
-
-  else if ((file = find_transaction_window_file_block (key->w)) != NULL)
-  {
-    transaction_window_keypress (file, key);
-  }
 }
 
 /* ==================================================================================================================
@@ -1098,22 +1039,6 @@ static void menu_selection_handler (wimp_selection *selection)
   }
 }
 
-/* ==================================================================================================================
- * Scroll request handler
- */
-
-static void scroll_request_handler (wimp_scroll *scroll)
-{
-  file_data *file;
-
-
-  /* Check if the window is a transaction window. */
-
-  if ((file = find_transaction_window_file_block (scroll->w)) != NULL)
-  {
-    transaction_window_scroll_event (file, scroll);
-  }
-}
 
 /* ==================================================================================================================
  * User message handlers

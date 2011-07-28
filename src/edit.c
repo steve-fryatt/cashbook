@@ -1174,7 +1174,7 @@ void delete_edit_line_transaction (file_data *file)
 
 /* Handle the specific keys in the edit line.  Any that are not recognised go on to the update handler below. */
 
-void process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
+osbool process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
 {
   wimp_caret   caret;
   wimp_i       icon;
@@ -1392,8 +1392,10 @@ void process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
   else
   {
     process_transaction_edit_line_entry_keys (file, key);
-    wimp_process_key (key->c);
+    return FALSE;
   }
+
+  return TRUE;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

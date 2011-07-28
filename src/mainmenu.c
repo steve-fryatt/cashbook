@@ -61,7 +61,6 @@
 static void      *transient_shared_data = NULL; /* A pointer to a block of shared data for transient menus. */
 
 static file_data *main_menu_file = NULL; /* Point to the file block connected to the main menu. */
-static int       acclist_menu_type = ACCOUNT_NULL; /* Remember the account type for an acclist menu. */
 static int       main_menu_line = -1; /* Remember the line that a menu applies to. */
 static int       main_menu_column = -1; /* Remember the column that a menu applies to. */
 

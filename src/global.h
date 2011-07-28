@@ -419,51 +419,47 @@ transaction_window;
 
 /* Standing order window data struct */
 
-typedef struct sorder_window
-{
-  /* Transactcion window handle and title details. */
+struct sorder_window {
+	/* Transactcion window handle and title details. */
 
-  wimp_w           sorder_window;  /* Window handle of the standing order window */
-  char             window_title[256];
-  wimp_w           sorder_pane;    /* Window handle of the standing order window toolbar pane */
+	wimp_w		sorder_window;						/**< Window handle of the standing order window */
+	char		window_title[256];
+	wimp_w		sorder_pane;						/**< Window handle of the standing order window toolbar pane */
 
-  /* Display column details. */
+	/* Display column details. */
 
-  int              column_width[SORDER_COLUMNS];  /* Array holding the column widths in the transaction window. */
-  int              column_position[SORDER_COLUMNS]; /* Array holding the column X-offsets in the transact window. */
+	int		column_width[SORDER_COLUMNS];				/**< Array holding the column widths in the transaction window. */
+	int		column_position[SORDER_COLUMNS];			/**< Array holding the column X-offsets in the transact window. */
 
-  /* Other window details. */
+	/* Other window details. */
 
-  int              sort_order;         /* The order in which the window is sorted. */
+	int		sort_order;						/**< The order in which the window is sorted. */
 
-  char             sort_sprite[12];    /* Space for the sort icon's indirected data. */
-}
-sorder_window;
+	char		sort_sprite[12];					/**< Space for the sort icon's indirected data. */
+};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Preset window data struct */
 
-typedef struct preset_window
-{
-  /* Preset window handle and title details. */
+struct preset_window {
+	/* Preset window handle and title details. */
 
-  wimp_w           preset_window;  /* Window handle of the preset window */
-  char             window_title[256];
-  wimp_w           preset_pane;    /* Window handle of the preset window toolbar pane */
+	wimp_w		preset_window;						/* Window handle of the preset window */
+	char		window_title[256];
+	wimp_w		preset_pane;						/* Window handle of the preset window toolbar pane */
 
-  /* Display column details. */
+	/* Display column details. */
 
-  int              column_width[PRESET_COLUMNS];  /* Array holding the column widths in the transaction window. */
-  int              column_position[PRESET_COLUMNS]; /* Array holding the column X-offsets in the transact window. */
+	int		column_width[PRESET_COLUMNS];				/* Array holding the column widths in the transaction window. */
+	int		column_position[PRESET_COLUMNS];			/* Array holding the column X-offsets in the transact window. */
 
-  /* Other window details. */
+	/* Other window details. */
 
-  int              sort_order;         /* The order in which the window is sorted. */
+	int		sort_order;						/* The order in which the window is sorted. */
 
-  char             sort_sprite[12];    /* Space for the sort icon's indirected data. */
-}
-preset_window;
+	char		sort_sprite[12];					/* Space for the sort icon's indirected data. */
+};
 
 /* ==================================================================================================================
  * Budgeting data
@@ -742,8 +738,8 @@ struct file_data
 
   transaction_window transaction_window; /* Structure holding transaction window information */
   struct account_window     account_windows[ACCOUNT_WINDOWS]; /* Array holding account window information */
-  sorder_window      sorder_window;      /* Structure holding standing order window information. */
-  preset_window      preset_window;      /* Structure holding preset window information. */
+  struct sorder_window      sorder_window;      /* Structure holding standing order window information. */
+  struct preset_window      preset_window;      /* Structure holding preset window information. */
 
   /* Default display details for the accview windows. */
 

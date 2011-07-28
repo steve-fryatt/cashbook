@@ -2017,10 +2017,10 @@ static void sorder_open_print_window(file_data *file, wimp_pointer *ptr, osbool 
 
 static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
-	report_data	*report;
-	int		i, t;
-	char		line[1024], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
-	sorder_window	*window;
+	report_data		*report;
+	int			i, t;
+	char			line[1024], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+	struct sorder_window	*window;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 	msgs_lookup("PrintTitleSOrder", buffer, sizeof (buffer));
@@ -2785,10 +2785,10 @@ int sorder_read_file(file_data *file, FILE *in, char *section, char *token, char
 
 void sorder_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
 {
-	FILE		*out;
-	int		i, t;
-	char		buffer[256];
-	sorder_window	*window;
+	FILE			*out;
+	int			i, t;
+	char			buffer[256];
+	struct sorder_window	*window;
 
 	out = fopen(filename, "w");
 

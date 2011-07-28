@@ -392,47 +392,24 @@ struct account_window {
 
 /* Transaction window data struct */
 
-typedef struct transaction_window
-{
-  /* Transactcion window handle and title details. */
+struct transaction_window {
+	file_data	*file;							/**< The file to which the window belongs.			*/
 
-  wimp_w           transaction_window;  /* Window handle of the transaction window */
-  char             window_title[256];
-  wimp_w           transaction_pane;    /* Window handle of the transaction window toolbar pane */
-
-  /* Display column details. */
-
-  int              column_width[TRANSACT_COLUMNS];  /* Array holding the column widths in the transaction window. */
-  int              column_position[TRANSACT_COLUMNS]; /* Array holding the column X-offsets in the transact window. */
-
-  /* Other window information. */
-
-  int              display_lines;      /* How many lines the current work area is formatted to display. */
-  int              entry_line;         /* The line currently marked for data entry, in terms of window lines. */
-  int              sort_order;         /* The order in which the window is sorted. */
-
-  char             sort_sprite[12];    /* Space for the sort icon's indirected data. */
-}
-transaction_window;
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Standing order window data struct */
-
-struct sorder_window {
 	/* Transactcion window handle and title details. */
 
-	wimp_w		sorder_window;						/**< Window handle of the standing order window */
+	wimp_w		transaction_window;					/**< Window handle of the transaction window */
 	char		window_title[256];
-	wimp_w		sorder_pane;						/**< Window handle of the standing order window toolbar pane */
+	wimp_w		transaction_pane;					/**< Window handle of the transaction window toolbar pane */
 
 	/* Display column details. */
 
-	int		column_width[SORDER_COLUMNS];				/**< Array holding the column widths in the transaction window. */
-	int		column_position[SORDER_COLUMNS];			/**< Array holding the column X-offsets in the transact window. */
+	int		column_width[TRANSACT_COLUMNS];				/**< Array holding the column widths in the transaction window. */
+	int		column_position[TRANSACT_COLUMNS];			/**< Array holding the column X-offsets in the transact window. */
 
-	/* Other window details. */
+	/* Other window information. */
 
+	int		display_lines;						/**< How many lines the current work area is formatted to display. */
+	int		entry_line;						/**< The line currently marked for data entry, in terms of window lines. */
 	int		sort_order;						/**< The order in which the window is sorted. */
 
 	char		sort_sprite[12];					/**< Space for the sort icon's indirected data. */
@@ -440,25 +417,52 @@ struct sorder_window {
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Preset window data struct */
+/* Standing order window data struct */
 
-struct preset_window {
-	/* Preset window handle and title details. */
+struct sorder_window {
+	file_data	*file;							/**< The file to which the window belongs.			*/
 
-	wimp_w		preset_window;						/* Window handle of the preset window */
+	/* Transactcion window handle and title details. */
+
+	wimp_w		sorder_window;						/**< Window handle of the standing order window.		*/
 	char		window_title[256];
-	wimp_w		preset_pane;						/* Window handle of the preset window toolbar pane */
+	wimp_w		sorder_pane;						/**< Window handle of the standing order window toolbar pane.	*/
 
 	/* Display column details. */
 
-	int		column_width[PRESET_COLUMNS];				/* Array holding the column widths in the transaction window. */
-	int		column_position[PRESET_COLUMNS];			/* Array holding the column X-offsets in the transact window. */
+	int		column_width[SORDER_COLUMNS];				/**< Array holding the column widths in the transaction window.	*/
+	int		column_position[SORDER_COLUMNS];			/**< Array holding the column X-offsets in the transact window.	*/
 
 	/* Other window details. */
 
-	int		sort_order;						/* The order in which the window is sorted. */
+	int		sort_order;						/**< The order in which the window is sorted.			*/
 
-	char		sort_sprite[12];					/* Space for the sort icon's indirected data. */
+	char		sort_sprite[12];					/**< Space for the sort icon's indirected data.			*/
+};
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/* Preset window data struct */
+
+struct preset_window {
+	file_data	*file;							/**< The file to which the window belongs.			*/
+
+	/* Preset window handle and title details. */
+
+	wimp_w		preset_window;						/**< Window handle of the preset window.			*/
+	char		window_title[256];
+	wimp_w		preset_pane;						/**< Window handle of the preset window toolbar pane.		*/
+
+	/* Display column details. */
+
+	int		column_width[PRESET_COLUMNS];				/**< Array holding the column widths in the transaction window.	*/
+	int		column_position[PRESET_COLUMNS];			/**< Array holding the column X-offsets in the transact window.	*/
+
+	/* Other window details. */
+
+	int		sort_order;						/**< The order in which the window is sorted.			*/
+
+	char		sort_sprite[12];					/**< Space for the sort icon's indirected data.			*/
 };
 
 /* ==================================================================================================================
@@ -736,7 +740,7 @@ struct file_data
 
   /* Details of the attached windows. */
 
-  transaction_window transaction_window; /* Structure holding transaction window information */
+  struct transaction_window transaction_window; /* Structure holding transaction window information */
   struct account_window     account_windows[ACCOUNT_WINDOWS]; /* Array holding account window information */
   struct sorder_window      sorder_window;      /* Structure holding standing order window information. */
   struct preset_window      preset_window;      /* Structure holding preset window information. */

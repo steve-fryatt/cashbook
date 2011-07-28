@@ -96,6 +96,8 @@ file_data *build_new_file_block (void)
 
   /* Initialise the transaction window. */
 
+  new->transaction_window.file = new;
+
   new->transaction_window.transaction_window = NULL;
   new->transaction_window.transaction_pane = NULL;
 
@@ -157,6 +159,8 @@ file_data *build_new_file_block (void)
 
   /* Initialise the standing order window. */
 
+  new->sorder_window.file = new;
+
   new->sorder_window.sorder_window = NULL;
   new->sorder_window.sorder_pane = NULL;
 
@@ -166,6 +170,8 @@ file_data *build_new_file_block (void)
   new->sorder_window.sort_order = SORT_NEXTDATE | SORT_DESCENDING;
 
   /* Initialise the preset window. */
+
+  new->preset_window.file = new;
 
   new->preset_window.preset_window = NULL;
   new->preset_window.preset_pane = NULL;

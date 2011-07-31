@@ -506,64 +506,6 @@ file_data *find_transaction_pane_file_block (wimp_w window)
   return (list);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Find the file block that corresponds to a given account window handle. */
-
-file_data *find_account_window_file_block (wimp_w window)
-{
-  file_data *list, *found;
-  int       i;
-
-
-  list = file_list;
-  found = NULL;
-
-  while (list != NULL && found == NULL)
-  {
-    for (i=0; i<ACCOUNT_WINDOWS; i++)
-    {
-      if (list->account_windows[i].account_window == window)
-      {
-        found = list;
-      }
-    }
-
-    list = list->next;
-  }
-
-  return (found);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Find the file block that corresponds to a given account pane handle. */
-
-file_data *find_account_pane_file_block (wimp_w window)
-{
-  file_data *list, *found;
-  int       i;
-
-
-  list = file_list;
-  found = NULL;
-
-  while (list != NULL && found == NULL)
-  {
-    for (i=0; i<ACCOUNT_WINDOWS; i++)
-    {
-      if (list->account_windows[i].account_pane == window)
-      {
-        found = list;
-      }
-    }
-
-    list = list->next;
-  }
-
-  return (found);
-}
-
 
 /* ==================================================================================================================
  * Saved files and data integrity

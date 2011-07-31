@@ -2859,32 +2859,28 @@ void force_accounts_window_redraw (file_data *file, int entry, int from, int to)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void decode_account_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
+void decode_account_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
-  int                 entry, column, xpos;
+  int                 column, xpos;
   wimp_window_state   window;
-  file_data           *file;
+	struct account_window		*windat;
 
-  *buffer = '\0';
+	*buffer = '\0';
 
-  file = find_account_window_file_block (w);
-  entry = find_accounts_window_entry_from_handle (file, w);
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
+		return;
 
-  if (file != NULL)
-  {
-    window.w = w;
-    wimp_get_window_state (&window);
+	window.w = w;
+	wimp_get_window_state(&window);
 
-    xpos = (pos.x - window.visible.x0) + window.xscroll;
+	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
-    for (column = 0;
-         column < ACCOUNT_COLUMNS &&
-         xpos > (file->account_windows[entry].column_position[column] +
-                 file->account_windows[entry].column_width[column]);
-         column++);
+	for (column = 0;
+			column < ACCOUNT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
+			column++);
 
-    sprintf (buffer, "Col%d", column);
-  }
+	sprintf(buffer, "Col%d", column);
 }
 
 /* ==================================================================================================================

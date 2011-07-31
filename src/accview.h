@@ -111,7 +111,7 @@ void accview_sort(file_data *file, int account);
 
 
 
-nt find_accview_line_from_transaction (file_data *file, int account, int transaction);
+int find_accview_line_from_transaction (file_data *file, int account, int transaction);
 
 /* Account view creation. */
 

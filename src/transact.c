@@ -43,6 +43,8 @@
 
 #include "account.h"
 #include "accview.h"
+#include "analysis.h"
+#include "budget.h"
 #include "calculation.h"
 #include "caret.h"
 #include "clipboard.h"
@@ -60,10 +62,53 @@
 #include "mainmenu.h"
 #include "presets.h"
 #include "printing.h"
+#include "purge.h"
 #include "report.h"
 #include "sorder.h"
 #include "templates.h"
 #include "window.h"
+
+
+/* Main Menu */
+
+#define MAIN_MENU_SUB_FILE 0
+#define MAIN_MENU_SUB_ACCOUNTS 1
+#define MAIN_MENU_SUB_HEADINGS 2
+#define MAIN_MENU_SUB_TRANS 3
+#define MAIN_MENU_SUB_UTILS 4
+
+#define MAIN_MENU_FILE_INFO 0
+#define MAIN_MENU_FILE_SAVE 1
+#define MAIN_MENU_FILE_EXPCSV 2
+#define MAIN_MENU_FILE_EXPTSV 3
+#define MAIN_MENU_FILE_CONTINUE 4
+#define MAIN_MENU_FILE_PRINT 5
+
+#define MAIN_MENU_ACCOUNTS_VIEW 0
+#define MAIN_MENU_ACCOUNTS_LIST 1
+#define MAIN_MENU_ACCOUNTS_NEW 2
+
+#define MAIN_MENU_HEADINGS_LISTIN 0
+#define MAIN_MENU_HEADINGS_LISTOUT 1
+#define MAIN_MENU_HEADINGS_NEW 2
+
+#define MAIN_MENU_TRANS_FIND 0
+#define MAIN_MENU_TRANS_GOTO 1
+#define MAIN_MENU_TRANS_SORT 2
+#define MAIN_MENU_TRANS_AUTOVIEW 3
+#define MAIN_MENU_TRANS_AUTONEW 4
+#define MAIN_MENU_TRANS_PRESET 5
+#define MAIN_MENU_TRANS_PRESETNEW 6
+#define MAIN_MENU_TRANS_RECONCILE 7
+
+#define MAIN_MENU_ANALYSIS_BUDGET 0
+#define MAIN_MENU_ANALYSIS_SAVEDREP 1
+#define MAIN_MENU_ANALYSIS_MONTHREP 2
+#define MAIN_MENU_ANALYSIS_UNREC 3
+#define MAIN_MENU_ANALYSIS_CASHFLOW 4
+#define MAIN_MENU_ANALYSIS_BALANCE 5
+#define MAIN_MENU_ANALYSIS_SOREP 6
+
 
 /* ==================================================================================================================
  * Global variables
@@ -93,7 +138,10 @@ static void			transact_close_window_handler(wimp_close *close);
 static void			transact_window_click_handler(wimp_pointer *pointer);
 static void			transact_pane_click_handler(wimp_pointer *pointer);
 static osbool			transact_window_keypress_handler(wimp_key *key);
-
+static void			transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void			transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+static void			transact_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
+static void			transact_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			transact_window_scroll_handler(wimp_scroll *scroll);
 static void			transact_window_redraw_handler(wimp_draw *redraw);
 
@@ -116,10 +164,10 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_pane_def = templates_load_window("TransactTB");
 	transact_pane_def->sprite_area = sprites;
 
-//	transact_window_menu = templates_get_menu(TEMPLATES_MENU_MAIN);
-//	transact_window_menu_account = templates_get_menu(TEMPLATES_MENU_MAIN_ACCOUNTS);
-//	transact_window_menu_transact = templates_get_menu(TEMPLATES_MENU_MAIN_TRANSACTIONS);
-//	transact_window_menu_analysis = templates_get_menu(TEMPLATES_MENU_MAIN_ANALYSIS);
+	transact_window_menu = templates_get_menu(TEMPLATES_MENU_MAIN);
+	transact_window_menu_account = templates_get_menu(TEMPLATES_MENU_MAIN_ACCOUNTS);
+	transact_window_menu_transact = templates_get_menu(TEMPLATES_MENU_MAIN_TRANSACTIONS);
+	transact_window_menu_analysis = templates_get_menu(TEMPLATES_MENU_MAIN_ANALYSIS);
 }
 
 
@@ -217,24 +265,24 @@ void transact_open_window(file_data *file)
 	/* \TODO -- Should this be all three windows?   */
 
 	event_add_window_user_data(file->transaction_window.transaction_window, &(file->transaction_window));
-//	event_add_window_menu(file->transaction_window.transaction_window, transact_window_menu);
+	event_add_window_menu(file->transaction_window.transaction_window, transact_window_menu);
 	event_add_window_close_event(file->transaction_window.transaction_window, transact_close_window_handler);
 	event_add_window_mouse_event(file->transaction_window.transaction_window, transact_window_click_handler);
 	event_add_window_key_event(file->transaction_window.transaction_window, transact_window_keypress_handler);
 	event_add_window_scroll_event(file->transaction_window.transaction_window, transact_window_scroll_handler);
 	event_add_window_redraw_event(file->transaction_window.transaction_window, transact_window_redraw_handler);
-//	event_add_window_menu_prepare(file->transaction_window.transaction_window, transact_window_menu_prepare_handler);
-//	event_add_window_menu_selection(file->transaction_window.transaction_window, transact_window_menu_selection_handler);
-//	event_add_window_menu_warning(file->transaction_window.transaction_window, transact_window_menu_warning_handler);
-//	event_add_window_menu_close(file->transaction_window.transaction_window, transact_window_menu_close_handler);
+	event_add_window_menu_prepare(file->transaction_window.transaction_window, transact_window_menu_prepare_handler);
+	event_add_window_menu_selection(file->transaction_window.transaction_window, transact_window_menu_selection_handler);
+	event_add_window_menu_warning(file->transaction_window.transaction_window, transact_window_menu_warning_handler);
+	event_add_window_menu_close(file->transaction_window.transaction_window, transact_window_menu_close_handler);
 
 	event_add_window_user_data(file->transaction_window.transaction_pane, &(file->transaction_window));
-//	event_add_window_menu(file->transaction_window.transaction_pane, transact_window_menu);
+	event_add_window_menu(file->transaction_window.transaction_pane, transact_window_menu);
 	event_add_window_mouse_event(file->transaction_window.transaction_pane, transact_pane_click_handler);
-//	event_add_window_menu_prepare(file->transaction_window.transaction_pane, transact_window_menu_prepare_handler);
-//	event_add_window_menu_selection(file->transaction_window.transaction_pane, transact_window_menu_selection_handler);
-//	event_add_window_menu_warning(file->transaction_window.transaction_pane, transact_window_menu_warning_handler);
-//	event_add_window_menu_close(file->transaction_window.transaction_pane, transact_window_menu_close_handler);
+	event_add_window_menu_prepare(file->transaction_window.transaction_pane, transact_window_menu_prepare_handler);
+	event_add_window_menu_selection(file->transaction_window.transaction_pane, transact_window_menu_selection_handler);
+	event_add_window_menu_warning(file->transaction_window.transaction_pane, transact_window_menu_warning_handler);
+	event_add_window_menu_close(file->transaction_window.transaction_pane, transact_window_menu_close_handler);
 
 	/* Put the caret into the first empty line. */
 
@@ -478,11 +526,6 @@ static void transact_window_click_handler(wimp_pointer *pointer)
       }
     }
   }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_main_menu (file, pointer);
-  }
 }
 
 
@@ -616,11 +659,6 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
         file->auto_reconcile = !file->auto_reconcile;
         break;
     }
-  }
-
-  else if (pointer->buttons == wimp_CLICK_MENU)
-  {
-    open_main_menu (file, pointer);
   }
 
   /* Process clicks on the column headings, for sorting the data.  This tests to see if the click was
@@ -839,24 +877,258 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 }
 
 
+/**
+ * Process menu prepare events in the Transaction List window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *pointer	The pointer position, or NULL for a re-open.
+ */
+
+static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+{
+	struct transaction_window	*windat;
+	int				line;
+	wimp_window_state		window;
+
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
+		return;
+
+	if (pointer != NULL) {
+		transact_window_menu_line = -1;
+
+		if (w == windat->transaction_window) {
+			window.w = w;
+			wimp_get_window_state(&window);
+
+			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+			if (line >= 0 && line < windat->file->trans_count)
+				transact_window_menu_line = line;
+		}
+
+		transact_window_menu_account->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = build_accopen_menu(windat->file);
+		transact_window_menu_analysis->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = analysis_template_menu_build(windat->file, FALSE);
+
+		/* If the submenus concerned are greyed out, give them a valid submenu pointer so that the arrow shows. */
+
+		if (windat->file->account_count == 0)
+			transact_window_menu_account->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
+		if (windat->file->saved_report_count == 0)
+			transact_window_menu_analysis->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
+
+		initialise_save_boxes(windat->file, 0, 0);
+	}
+
+	menus_tick_entry(transact_window_menu_transact, MAIN_MENU_TRANS_RECONCILE, windat->file->auto_reconcile);
+	menus_shade_entry(transact_window_menu_account, MAIN_MENU_ACCOUNTS_VIEW, count_accounts_in_file(windat->file, ACCOUNT_FULL) == 0);
+	menus_shade_entry(transact_window_menu_analysis, MAIN_MENU_ANALYSIS_SAVEDREP, windat->file->saved_report_count == 0);
+	set_accopen_menu(windat->file);
+}
 
 
+/**
+ * Process menu selection events in the Transaction List window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *selection	The menu selection details.
+ */
+
+static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
+{
+	struct transaction_window	*windat;
+	file_data			*file;
+	wimp_pointer			pointer;
+
+	windat = event_get_window_user_data(w);
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
+
+	wimp_get_pointer_info(&pointer);
+
+	switch (selection->items[0]){
+	case MAIN_MENU_SUB_FILE:
+		switch (selection->items[1]) {
+		case MAIN_MENU_FILE_SAVE:
+			start_direct_menu_save(windat->file);
+			break;
+
+		case MAIN_MENU_FILE_CONTINUE:
+			purge_open_window(windat->file, &pointer, config_opt_read("RememberValues"));
+			break;
+
+		case MAIN_MENU_FILE_PRINT:
+			open_transact_print_window(windat->file, &pointer, config_opt_read("RememberValues"));
+			break;
+		}
+		break;
+
+	case MAIN_MENU_SUB_ACCOUNTS:
+		switch (selection->items[1]) {
+		case MAIN_MENU_ACCOUNTS_VIEW:
+			if (selection->items[2] != -1)
+				accview_open_window(windat->file, decode_accopen_menu_item(selection->items[2]));
+			break;
+
+		case MAIN_MENU_ACCOUNTS_LIST:
+			account_open_window(windat->file, ACCOUNT_FULL);
+			break;
+
+		case MAIN_MENU_ACCOUNTS_NEW:
+			open_account_edit_window(windat->file, -1, ACCOUNT_FULL, &pointer);
+			break;
+		}
+		break;
+
+	case MAIN_MENU_SUB_HEADINGS:
+		switch (selection->items[1]) {
+		case MAIN_MENU_HEADINGS_LISTIN:
+			account_open_window(windat->file, ACCOUNT_IN);
+			break;
+
+		case MAIN_MENU_HEADINGS_LISTOUT:
+			account_open_window(windat->file, ACCOUNT_OUT);
+			break;
+
+		case MAIN_MENU_HEADINGS_NEW:
+			open_account_edit_window(windat->file, -1, ACCOUNT_IN, &pointer);
+			break;
+		}
+		break;
+
+	case MAIN_MENU_SUB_TRANS:
+		switch (selection->items[1]) {
+		case MAIN_MENU_TRANS_FIND:
+			find_open_window(windat->file, &pointer, config_opt_read("RememberValues"));
+			break;
+
+		case MAIN_MENU_TRANS_GOTO:
+			goto_open_window(windat->file, &pointer, config_opt_read("RememberValues"));
+			break;
+
+		case MAIN_MENU_TRANS_SORT:
+			open_transaction_sort_window(windat->file, &pointer);
+			break;
+
+		case MAIN_MENU_TRANS_AUTOVIEW:
+			sorder_open_window(windat->file);
+			break;
+
+		case MAIN_MENU_TRANS_AUTONEW:
+			sorder_open_edit_window(windat->file, NULL_SORDER, &pointer);
+			break;
+
+		case MAIN_MENU_TRANS_PRESET:
+			preset_open_window(windat->file);
+			break;
+
+		case MAIN_MENU_TRANS_PRESETNEW:
+			preset_open_edit_window(windat->file, NULL_PRESET, &pointer);
+			break;
+
+		case MAIN_MENU_TRANS_RECONCILE:
+			windat->file->auto_reconcile = !windat->file->auto_reconcile;
+			icons_set_selected(windat->file->transaction_window.transaction_pane, TRANSACT_PANE_RECONCILE, windat->file->auto_reconcile);
+			break;
+		}
+		break;
+
+	case MAIN_MENU_SUB_UTILS:
+		switch (selection->items[1]) {
+		case MAIN_MENU_ANALYSIS_BUDGET:
+			budget_open_window(windat->file, &pointer);
+			break;
+
+		case MAIN_MENU_ANALYSIS_SAVEDREP:
+			if (selection->items[2] != -1)
+				analysis_open_template_from_menu(windat->file, &pointer, selection->items[2]);
+			break;
+
+		case MAIN_MENU_ANALYSIS_MONTHREP:
+			analysis_open_transaction_window(windat->file, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			break;
+
+		case MAIN_MENU_ANALYSIS_UNREC:
+			analysis_open_unreconciled_window(windat->file, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			break;
+
+		case MAIN_MENU_ANALYSIS_CASHFLOW:
+			analysis_open_cashflow_window(windat->file, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			break;
+
+		case MAIN_MENU_ANALYSIS_BALANCE:
+			analysis_open_balance_window(windat->file, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			break;
+
+		case MAIN_MENU_ANALYSIS_SOREP:
+			sorder_full_report(windat->file);
+			break;
+		}
+		break;
+	}
+}
 
 
+/**
+ * Process submenu warning events in the Transaction` List window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *warning	The submenu warning message data.
+ */
+
+static void transact_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
+{
+	struct transaction_window	*windat;
+
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
+		return;
+
+	switch (warning->selection.items[0]) {
+	case MAIN_MENU_SUB_FILE:
+		switch (warning->selection.items[1]) {
+		case MAIN_MENU_FILE_INFO:
+			fill_file_info_window(windat->file);
+			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+			break;
+
+		case MAIN_MENU_FILE_SAVE:
+			fill_save_as_window(windat->file, SAVE_BOX_FILE);
+			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+			break;
+
+		case MAIN_MENU_FILE_EXPCSV:
+			fill_save_as_window(windat->file, SAVE_BOX_CSV);
+			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+			break;
+
+		case MAIN_MENU_FILE_EXPTSV:
+			fill_save_as_window(windat->file, SAVE_BOX_TSV);
+			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+			break;
+		}
+		break;
+	}
+}
 
 
+/**
+ * Process menu close events in the Transaction List window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ */
 
-
-
-
-
-
-
-
-
-
-
-
+static void transact_window_menu_close_handler(wimp_w w, wimp_menu *menu)
+{
+	transact_window_menu_line = -1;
+	analysis_template_menu_destroy();
+}
 
 
 /**

@@ -12,7 +12,6 @@
 
 /* Menu IDs */
 
-#define MENU_ID_MAIN       0
 #define MENU_ID_ACCOPEN    2
 #define MENU_ID_ACCOUNT    3
 #define MENU_ID_DATE       4
@@ -20,46 +19,6 @@
 
 #define REFDESC_MENU_REFERENCE   1
 #define REFDESC_MENU_DESCRIPTION 2
-
-/* Main Menu */
-
-#define MAIN_MENU_SUB_FILE 0
-#define MAIN_MENU_SUB_ACCOUNTS 1
-#define MAIN_MENU_SUB_HEADINGS 2
-#define MAIN_MENU_SUB_TRANS 3
-#define MAIN_MENU_SUB_UTILS 4
-
-#define MAIN_MENU_FILE_INFO 0
-#define MAIN_MENU_FILE_SAVE 1
-#define MAIN_MENU_FILE_EXPCSV 2
-#define MAIN_MENU_FILE_EXPTSV 3
-#define MAIN_MENU_FILE_CONTINUE 4
-#define MAIN_MENU_FILE_PRINT 5
-
-#define MAIN_MENU_ACCOUNTS_VIEW 0
-#define MAIN_MENU_ACCOUNTS_LIST 1
-#define MAIN_MENU_ACCOUNTS_NEW 2
-
-#define MAIN_MENU_HEADINGS_LISTIN 0
-#define MAIN_MENU_HEADINGS_LISTOUT 1
-#define MAIN_MENU_HEADINGS_NEW 2
-
-#define MAIN_MENU_TRANS_FIND 0
-#define MAIN_MENU_TRANS_GOTO 1
-#define MAIN_MENU_TRANS_SORT 2
-#define MAIN_MENU_TRANS_AUTOVIEW 3
-#define MAIN_MENU_TRANS_AUTONEW 4
-#define MAIN_MENU_TRANS_PRESET 5
-#define MAIN_MENU_TRANS_PRESETNEW 6
-#define MAIN_MENU_TRANS_RECONCILE 7
-
-#define MAIN_MENU_ANALYSIS_BUDGET 0
-#define MAIN_MENU_ANALYSIS_SAVEDREP 1
-#define MAIN_MENU_ANALYSIS_MONTHREP 2
-#define MAIN_MENU_ANALYSIS_UNREC 3
-#define MAIN_MENU_ANALYSIS_CASHFLOW 4
-#define MAIN_MENU_ANALYSIS_BALANCE 5
-#define MAIN_MENU_ANALYSIS_SOREP 6
 
 /* Date menu */
 
@@ -124,13 +83,8 @@ char *mainmenu_get_current_menu_name (char *buffer);
 
 /* Main menu */
 
-void set_main_menu (file_data *file);
-void open_main_menu (file_data *file, wimp_pointer *pointer);
 
 void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer);
-
-void main_menu_submenu_message (wimp_full_message_menu_warning *submenu);
-void main_menu_closed_message (void);
 
 /* Account open menu. */
 
@@ -140,6 +94,7 @@ void open_accopen_menu (file_data *file, wimp_pointer *pointer);
 void decode_accopen_menu (wimp_selection *selection, wimp_pointer *pointer);
 
 wimp_menu *build_accopen_menu (file_data *file);
+acct_t decode_accopen_menu_item(int selection);
 
 /* Account menu */
 

@@ -128,11 +128,7 @@ char *mainmenu_get_current_menu_name(char *buffer)
 
   *buffer = '\0';
 
-  if (menus.menu_id == MENU_ID_MAIN)
-  {
-    strcpy (buffer, "MainMenu");
-  }
-  else if (menus.menu_id == MENU_ID_ACCOPEN)
+  if (menus.menu_id == MENU_ID_ACCOPEN)
   {
     strcpy (buffer, "AccOpenMenu");
   }
@@ -159,254 +155,7 @@ char *mainmenu_get_current_menu_name(char *buffer)
   return (buffer);
 }
 
-/* ==================================================================================================================
- * Main Menu
- */
 
-/* Set and open the menu. */
-
-void set_main_menu (file_data *file)
-{
-  extern global_menus   menus;
-
-  menus_tick_entry (menus.transaction_sub, MAIN_MENU_TRANS_RECONCILE, file->auto_reconcile);
-  menus_shade_entry (menus.account_sub, MAIN_MENU_ACCOUNTS_VIEW, count_accounts_in_file (file, ACCOUNT_FULL) == 0);
-  menus_shade_entry (menus.analysis_sub, MAIN_MENU_ANALYSIS_SAVEDREP, file->saved_report_count == 0);
-  set_accopen_menu (file);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_main_menu (file_data *file, wimp_pointer *pointer)
-{
-  extern global_menus   menus;
-
-
-  build_accopen_menu (file);
-
-  menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = analysis_template_menu_build(file, FALSE);
-
-  /* If the submenus concerned are greyed out, give them a valid submenu pointer so that the arrow shows. */
-
-  if (file->account_count == 0)
-  {
-    menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
-  }
-  if (file->saved_report_count == 0)
-  {
-    menus.analysis_sub->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
-  }
-
-  initialise_save_boxes (file, 0, 0);
-  set_main_menu (file);
-
-  menus.menu_up = menus_create_standard_menu (menus.main, pointer);
-  menus.menu_id = MENU_ID_MAIN;
-  main_menu_file = file;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Decode the menu selections. */
-
-void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  /* File submenu */
-
-  if (selection->items[0] == MAIN_MENU_SUB_FILE)
-  {
-    if (selection->items[1] == MAIN_MENU_FILE_SAVE) /* Save */
-    {
-      start_direct_menu_save (main_menu_file);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_FILE_CONTINUE)
-    {
-      purge_open_window(main_menu_file, pointer, config_opt_read ("RememberValues"));
-    }
-
-    else if (selection->items[1] == MAIN_MENU_FILE_PRINT)
-    {
-      open_transact_print_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
-    }
-  }
-
-  /* Account submenu */
-
-  else if (selection->items[0] == MAIN_MENU_SUB_ACCOUNTS)
-  {
-    if (selection->items[1] == MAIN_MENU_ACCOUNTS_VIEW && selection->items[2] != -1) /* View */
-    {
-      accview_open_window (main_menu_file, account_link[selection->items[2]].account);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_ACCOUNTS_LIST) /* List */
-    {
-      account_open_window (main_menu_file, ACCOUNT_FULL);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_ACCOUNTS_NEW) /* New... */
-    {
-      open_account_edit_window (main_menu_file, -1, ACCOUNT_FULL, pointer);
-    }
-  }
-
-   /* Headings submenu */
-
-  else if (selection->items[0] == MAIN_MENU_SUB_HEADINGS)
-  {
-    if (selection->items[1] == MAIN_MENU_HEADINGS_LISTIN) /* Incoming */
-    {
-      account_open_window (main_menu_file, ACCOUNT_IN);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_HEADINGS_LISTOUT) /* Outgoing */
-    {
-      account_open_window (main_menu_file, ACCOUNT_OUT);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_HEADINGS_NEW) /* New... */
-    {
-      open_account_edit_window (main_menu_file, -1, ACCOUNT_IN, pointer);
-    }
-  }
-
-   /* Transactions submenu */
-
-  else if (selection->items[0] == MAIN_MENU_SUB_TRANS)
-  {
-    if (selection->items[1] == MAIN_MENU_TRANS_FIND)
-    {
-      find_open_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
-    }
-
-    else if (selection->items[1] == MAIN_MENU_TRANS_GOTO) /* Goto */
-    {
-      goto_open_window (main_menu_file, pointer, config_opt_read ("RememberValues"));
-    }
-
-    else if (selection->items[1] == MAIN_MENU_TRANS_SORT) /* Sort */
-    {
-      open_transaction_sort_window (main_menu_file, pointer);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_TRANS_AUTOVIEW) /* View SOs */
-    {
-      sorder_open_window (main_menu_file);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_TRANS_AUTONEW) /* Add SOs */
-    {
-      sorder_open_edit_window(main_menu_file, NULL_SORDER, pointer);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_TRANS_PRESET) /* View presets */
-    {
-      preset_open_window (main_menu_file);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_TRANS_PRESETNEW) /* Add presets */
-    {
-      preset_open_edit_window (main_menu_file, NULL_PRESET, pointer);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_TRANS_RECONCILE) /* Reconcile */
-    {
-      main_menu_file->auto_reconcile = !main_menu_file->auto_reconcile;
-      icons_set_selected (main_menu_file->transaction_window.transaction_pane, TRANSACT_PANE_RECONCILE,
-                         main_menu_file->auto_reconcile);
-    }
-  }
-
-  /* Utilities submenu */
-
-  else if (selection->items[0] == MAIN_MENU_SUB_UTILS)
-  {
-    if (selection->items[1] == MAIN_MENU_ANALYSIS_BUDGET)
-    {
-      budget_open_window(main_menu_file, pointer);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_ANALYSIS_SAVEDREP && selection->items[2] != -1)
-    {
-      analysis_open_template_from_menu (main_menu_file, pointer, selection->items[2]);
-    }
-
-    else if (selection->items[1] == MAIN_MENU_ANALYSIS_MONTHREP)
-    {
-      analysis_open_transaction_window(main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
-    }
-
-    else if (selection->items[1] == MAIN_MENU_ANALYSIS_UNREC)
-    {
-      analysis_open_unreconciled_window(main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
-    }
-
-    else if (selection->items[1] == MAIN_MENU_ANALYSIS_CASHFLOW)
-    {
-      analysis_open_cashflow_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
-    }
-
-    else if (selection->items[1] == MAIN_MENU_ANALYSIS_BALANCE)
-    {
-      analysis_open_balance_window (main_menu_file, pointer, NULL_TEMPLATE, config_opt_read ("RememberValues"));
-    }
-
-    else if (selection->items[1] == MAIN_MENU_ANALYSIS_SOREP)
-    {
-      sorder_full_report (main_menu_file);
-    }
-  }
-
-  set_main_menu (main_menu_file);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Handle submenu warnings. */
-
-void main_menu_submenu_message (wimp_full_message_menu_warning *submenu)
-{
-  #ifdef DEBUG
-  debug_reporter_text0 ("\\BReceived submenu warning message.");
-  #endif
-
-  switch (submenu->selection.items[0])
-  {
-    case MAIN_MENU_SUB_FILE: /* File submenu */
-      switch (submenu->selection.items[1])
-      {
-        case MAIN_MENU_FILE_INFO: /* File info window */
-          fill_file_info_window (main_menu_file);
-          wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-          break;
-
-        case MAIN_MENU_FILE_SAVE: /* File save window */
-          fill_save_as_window (main_menu_file, SAVE_BOX_FILE);
-          wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-          break;
-
-        case MAIN_MENU_FILE_EXPCSV: /* CSV save window */
-          fill_save_as_window (main_menu_file, SAVE_BOX_CSV);
-          wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-          break;
-
-        case MAIN_MENU_FILE_EXPTSV: /* TSV save window */
-          fill_save_as_window (main_menu_file, SAVE_BOX_TSV);
-          wimp_create_sub_menu (submenu->sub_menu, submenu->pos.x, submenu->pos.y);
-          break;
-      }
-      break;
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void main_menu_closed_message (void)
-{
-  	analysis_template_menu_destroy();
-
-}
 
 /* ==================================================================================================================
  * Account open menu. -- A list of accounts only, to select a view from.
@@ -461,7 +210,7 @@ void decode_accopen_menu (wimp_selection *selection, wimp_pointer *pointer)
 
   if (selection->items[0] != -1)
   {
-    accview_open_window (main_menu_file, account_link[selection->items[0]].account);
+    accview_open_window (main_menu_file, decode_accopen_menu_item(selection->items[0]));
   }
 
   set_accopen_menu (main_menu_file);
@@ -581,9 +330,15 @@ wimp_menu *build_accopen_menu (file_data *file)
     menus.accopen->gap = 0;
   }
 
-  menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = menus.accopen;
+  //menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = menus.accopen;
 
   return (menus.accopen);
+}
+
+acct_t decode_accopen_menu_item(int selection)
+{
+	// \TODO -- There's no check that this is in range!
+	return account_link[selection].account;
 }
 
 /* ==================================================================================================================

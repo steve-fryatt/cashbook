@@ -988,16 +988,9 @@ static void menu_selection_handler (wimp_selection *selection)
 
   wimp_get_pointer_info (&pointer);
 
-  /* Decode the main menu. */
-
-  if (menus.menu_id == MENU_ID_MAIN)
-  {
-    decode_main_menu (selection, &pointer);
-  }
-
   /* Decode the account open menu. */
 
-  else if (menus.menu_id == MENU_ID_ACCOPEN)
+  if (menus.menu_id == MENU_ID_ACCOPEN)
   {
     decode_accopen_menu (selection, &pointer);
   }
@@ -1028,10 +1021,6 @@ static void menu_selection_handler (wimp_selection *selection)
   if (pointer.buttons == wimp_CLICK_ADJUST)
   {
     wimp_create_menu (menus.menu_up, 0, 0);
-  }
-  else if (menus.menu_id == MENU_ID_MAIN)
-  {
-     main_menu_closed_message ();
   }
   else if (menus.menu_id == MENU_ID_DATE)
   {
@@ -1135,11 +1124,7 @@ static void user_message_handler (wimp_message *message)
       break;
 
     case message_MENUS_DELETED:
-      if (menus.menu_id == MENU_ID_MAIN)
-      {
-        main_menu_closed_message ();
-      }
-      else if (menus.menu_id == MENU_ID_ACCOUNT)
+      if (menus.menu_id == MENU_ID_ACCOUNT)
       {
         account_menu_closed_message ((wimp_full_message_menus_deleted *) message);
       }
@@ -1150,11 +1135,7 @@ static void user_message_handler (wimp_message *message)
       break;
 
     case message_MENU_WARNING:
-      if (menus.menu_id == MENU_ID_MAIN)
-      {
-        main_menu_submenu_message ((wimp_full_message_menu_warning *) message);
-      }
-      else if (menus.menu_id == MENU_ID_ACCOUNT)
+      if (menus.menu_id == MENU_ID_ACCOUNT)
       {
         account_menu_submenu_message ((wimp_full_message_menu_warning *) message);
       }

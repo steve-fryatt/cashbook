@@ -835,10 +835,10 @@ typedef struct
   wimp_menu   *menu_up;
   int         menu_id;
 
-  wimp_menu   *main;
-  wimp_menu   *account_sub;
-  wimp_menu   *transaction_sub;
-  wimp_menu   *analysis_sub;
+//  wimp_menu   *main;
+//  wimp_menu   *account_sub;
+//  wimp_menu   *transaction_sub;
+//  wimp_menu   *analysis_sub;
 
   wimp_menu   *accopen;
 

@@ -2007,6 +2007,7 @@ void sorder_force_windows_closed(file_data *file)
  *
  * \param *file			The file to own the dialogue.
  * \param *ptr			The current Wimp pointer position.
+ * \param restore		TRUE to restore the current settings; else FALSE.
  */
 
 static void sorder_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore)

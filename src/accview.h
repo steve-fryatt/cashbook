@@ -96,13 +96,22 @@ void accview_build_window_title(file_data *file, acct_t account);
 void accview_force_windows_closed(file_data *file);
 
 
+/**
+ * Sort the account view list in a given file based on that file's sort setting.
+ *
+ * \param *file			The file to sort.
+ * \param account		The account to sort.
+ */
+
+void accview_sort(file_data *file, int account);
 
 
 
 
 
-int find_accview_window_from_handle (file_data *file, wimp_w window);
-int find_accview_line_from_transaction (file_data *file, int account, int transaction);
+
+
+nt find_accview_line_from_transaction (file_data *file, int account, int transaction);
 
 /* Account view creation. */
 
@@ -118,18 +127,7 @@ void redraw_all_account_views (file_data *file);
 void recalculate_all_account_views (file_data *file);
 void rebuild_all_account_views (file_data *file);
 
-/* Sorting AccView Windows */
 
-void sort_accview_window (file_data *file, int account);
-void force_close_accview_sort_window (file_data *file);
-
-/* Printing account views via the GUI */
-
-void open_accview_print_window (file_data *file, int account, wimp_pointer *ptr, int clear);
-
-/* File and print output */
-
-void print_accview_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
 
 /* Account View window handling. */
 

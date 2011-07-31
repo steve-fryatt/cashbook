@@ -1313,9 +1313,9 @@ osbool process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
         sort_transaction_window (file);
         if (file->transaction_window.entry_line < file->trans_count)
         {
-          sort_accview_window (file,
+          accview_sort (file,
                 file->transactions[file->transactions[file->transaction_window.entry_line].sort_index].from);
-          sort_accview_window (file,
+          accview_sort (file,
                 file->transactions[file->transactions[file->transaction_window.entry_line].sort_index].to);
         }
       }
@@ -1653,9 +1653,9 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
           sort_transaction_window (file);
           if (file->transaction_window.entry_line < file->trans_count)
           {
-            sort_accview_window (file,
+            accview_sort (file,
                   file->transactions[file->transactions[file->transaction_window.entry_line].sort_index].from);
-            sort_accview_window (file,
+            accview_sort (file,
                   file->transactions[file->transactions[file->transaction_window.entry_line].sort_index].to);
           }
         }

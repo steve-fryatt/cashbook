@@ -149,6 +149,9 @@ static void			accview_refresh_sort_window(void);
 static void			accview_fill_sort_window(int sort_option);
 static osbool			accview_process_sort_window(void);
 
+static void			accview_open_print_window(file_data *file, acct_t account, wimp_pointer *ptr, osbool restore);
+static void			accview_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
+
 
 
 
@@ -311,7 +314,7 @@ void accview_open_window(file_data *file, acct_t account)
 
 	/* Sort the window contents. */
 
-	sort_accview_window(file, account);
+	accview_sort(file, account);
 
 	/* Open the window. */
 
@@ -520,7 +523,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCVIEW_PANE_PRINT:
-			open_accview_print_window(file, account, pointer, config_opt_read ("RememberValues"));
+			accview_open_print_window(file, account, pointer, config_opt_read ("RememberValues"));
 			break;
 
 		case ACCVIEW_PANE_EDIT:
@@ -538,11 +541,11 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 		switch (pointer->i) {
 		case ACCVIEW_PANE_PRINT:
-			open_accview_print_window(file, account, pointer, !config_opt_read ("RememberValues"));
+			accview_open_print_window(file, account, pointer, !config_opt_read ("RememberValues"));
 			break;
 
 		case ACCVIEW_PANE_SORT:
-			sort_accview_window(file, account);
+			accview_sort(file, account);
 			break;
 		}
 	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
@@ -598,7 +601,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 
 			accview_adjust_sort_icon(file, account);
 			windows_redraw(windat->accview_pane);
-			sort_accview_window(file, account);
+			accview_sort(file, account);
 
 			file->accview_sort_order = windat->sort_order;
 		}
@@ -711,7 +714,7 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCVIEW_MENU_PRINT:
-		open_accview_print_window(windat->file, windat->account, &pointer, config_opt_read("RememberValues"));
+		accview_open_print_window(windat->file, windat->account, &pointer, config_opt_read("RememberValues"));
 		break;
 	}
 }
@@ -1560,7 +1563,7 @@ static osbool accview_process_sort_window(void)
 
 	accview_adjust_sort_icon(accview_sort_file, accview_sort_account);
 	windows_redraw((accview_sort_file->accounts[accview_sort_account].account_view)->accview_pane);
-	sort_accview_window(accview_sort_file, accview_sort_account);
+	accview_sort(accview_sort_file, accview_sort_account);
 
 	accview_sort_file->accview_sort_order = (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order;
 
@@ -1582,24 +1585,295 @@ void accview_force_windows_closed(file_data *file)
 }
 
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+/**
+ * Open the Account List Print dialogue for a given account list window.
+ *
+ * \param *file			The file to own the dialogue.
+ * \param *ptr			The current Wimp pointer position.
+ * \param restore		TRUE to restore the current settings; else FALSE.
+ */
+
+static void accview_open_print_window(file_data *file, acct_t account, wimp_pointer *ptr, osbool restore)
+{
+	accview_print_file = file;
+	accview_print_account = account;
+
+	printing_open_advanced_window(file, ptr, restore, "PrintAccview", accview_print);
+}
 
 
+/**
+ * Send the contents of the Account List Window to the printer, via the reporting
+ * system.
+ *
+ * \param text			TRUE to print in text format; FALSE for graphics.
+ * \param format		TRUE to apply text formatting in text mode.
+ * \param scale			TRUE to scale width in graphics mode.
+ * \param rotate		TRUE to print landscape in grapics mode.
+ * \param pagenum		TRUE to include page numbers in graphics mode.
+ * \param from			The date to print from.
+ * \param to			The date to print to.
+ */
+
+static void accview_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
+{
+	report_data			*report;
+	int				i, transaction=0;
+	char				line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+	struct accview_window		*window;
+
+	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
+	msgs_lookup("PrintTitleAccview", buffer, sizeof(buffer));
+	report = report_open(accview_print_file, buffer, NULL);
+
+	if (report != NULL) {
+		error_msgs_report_error("PrintMemFail");
+		return;
+	}
+
+	hourglass_on();
+
+	window = accview_print_file->accounts[accview_print_account].account_view;
+
+	/* Output the page title. */
+
+	make_file_leafname(accview_print_file, numbuf1, sizeof(numbuf1));
+	msgs_param_lookup("AccviewTitle", buffer, sizeof(buffer),
+			accview_print_file->accounts[accview_print_account].name, numbuf1, NULL, NULL);
+	sprintf(line, "\\b\\u%s", buffer);
+	report_write_line(report, 0, line);
+	report_write_line(report, 0, "");
+
+	/* Output the headings line, taking the text from the window icons. */
+
+	*line = '\0';
+	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(window->accview_pane, 0, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->accview_pane, 1, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->accview_pane, 2, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, 3, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, 4, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, 5, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->accview_pane, 6, numbuf1));
+	strcat(line, buffer);
+
+	report_write_line(report, 0, line);
+
+	/* Output the transaction data as a set of delimited lines. */
+
+	for (i=0; i < window->display_lines; i++) {
+		transaction = (window->line_data)[(window->line_data)[i].sort_index].transaction;
+
+		if ((from == NULL_DATE || accview_print_file->transactions[transaction].date >= from) &&
+				(to == NULL_DATE || accview_print_file->transactions[transaction].date <= to)) {
+			*line = '\0';
+
+			convert_date_to_string(accview_print_file->transactions[transaction].date, numbuf1);
+			sprintf(buffer, "\\k%s\\t", numbuf1);
+			strcat(line, buffer);
+
+			if (accview_print_file->transactions[transaction].from == accview_print_account) {
+				sprintf(buffer, "%s\\t", find_account_ident(accview_print_file, accview_print_file->transactions[transaction].to));
+				strcat(line, buffer);
+
+				strcpy(numbuf1, (accview_print_file->transactions[transaction].flags & TRANS_REC_FROM) ? rec_char : "");
+				sprintf(buffer, "%s\\t", numbuf1);
+				strcat(line, buffer);
+
+				sprintf(buffer, "%s\\t", find_account_name(accview_print_file, accview_print_file->transactions[transaction].to));
+				strcat(line, buffer);
+			} else {
+				sprintf(buffer, "%s\\t", find_account_ident(accview_print_file, accview_print_file->transactions[transaction].from));
+				strcat(line, buffer);
+
+				strcpy(numbuf1, (accview_print_file->transactions[transaction].flags & TRANS_REC_TO) ? rec_char : "");
+				sprintf(buffer, "%s\\t", numbuf1);
+				strcat(line, buffer);
+
+				sprintf(buffer, "%s\\t", find_account_name(accview_print_file, accview_print_file->transactions[transaction].from));
+				strcat(line, buffer);
+			}
+
+			sprintf(buffer, "%s\\t", accview_print_file->transactions[transaction].reference);
+			strcat(line, buffer);
+
+			if (accview_print_file->transactions[transaction].from == accview_print_account) {
+				convert_money_to_string(accview_print_file->transactions[transaction].amount, numbuf1);
+				sprintf(buffer, "\\r%s\\t\\r\\t", numbuf1);
+			} else {
+				convert_money_to_string(accview_print_file->transactions[transaction].amount, numbuf1);
+				sprintf(buffer, "\\r\\t\\r%s\\t", numbuf1);
+			}
+			strcat(line, buffer);
+
+			convert_money_to_string(window->line_data[i].balance, numbuf1);
+			sprintf(buffer, "\\r%s\\t", numbuf1);
+			strcat(line, buffer);
+
+			sprintf(buffer, "%s\\t", accview_print_file->transactions[transaction].description);
+			strcat(line, buffer);
+
+			report_write_line(report, 0, line);
+		}
+	}
+
+	hourglass_off();
+
+	report_close_and_print(report, text, format, scale, rotate, pagenum);
+}
 
 
+/**
+ * Sort the account view list in a given file based on that file's sort setting.
+ *
+ * \param *file			The file to sort.
+ * \param account		The account to sort.
+ */
 
+void accview_sort(file_data *file, int account)
+{
+	int			gap, comb, temp, order;
+	osbool			sorted, reorder;
+	struct accview_window	*window;
 
+	#ifdef DEBUG
+	debug_printf("Sorting accview window");
+	#endif
 
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL)
+		return;
 
+	hourglass_on();
 
+	/* Find the address of the accview block now, to save indirecting to it every time. */
 
+	window = file->accounts[account].account_view;
 
+	/* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
+	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
+	 */
 
+	gap = window->display_lines - 1;
+	order = window->sort_order;
 
+	do {
+		gap = (gap > 1) ? (gap * 10 / 13) : 1;
+		if ((window->display_lines >= 12) && (gap == 9 || gap == 10))
+			gap = 11;
 
+		sorted = TRUE;
+		for (comb = 0; (comb + gap) < window->display_lines; comb++) {
+			switch (order) {
+			case SORT_DATE | SORT_ASCENDING:
+				reorder = (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].date <
+						file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].date);
+				break;
 
+			case SORT_DATE | SORT_DESCENDING:
+				reorder = (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].date >
+						file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].date);
+				break;
 
+			case SORT_FROMTO | SORT_ASCENDING:
+				reorder = (strcmp(find_account_name(file, (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
+						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].to) :
+						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from)),
+						find_account_name(file, (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
+						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].to) :
+						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from))) < 0);
+				break;
 
+			case SORT_FROMTO | SORT_DESCENDING:
+				reorder = (strcmp(find_account_name(file, (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
+						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].to) :
+						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from)),
+						find_account_name(file, (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
+						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].to) :
+						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from))) > 0);
+				break;
+
+			case SORT_REFERENCE | SORT_ASCENDING:
+				reorder = (strcmp(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].reference,
+						file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].reference) < 0);
+				break;
+
+			case SORT_REFERENCE | SORT_DESCENDING:
+				reorder = (strcmp(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].reference,
+						file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].reference) > 0);
+				break;
+
+			case SORT_PAYMENTS | SORT_ASCENDING:
+				reorder = (((file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
+						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].amount) : 0) <
+						((file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
+						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].amount) : 0));
+				break;
+
+			case SORT_PAYMENTS | SORT_DESCENDING:
+				reorder = (((file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
+						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].amount) : 0) >
+						((file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
+						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].amount) : 0));
+				break;
+
+			case SORT_RECEIPTS | SORT_ASCENDING:
+				reorder = (((file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
+						0 : (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].amount)) <
+						((file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
+						0 : (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].amount)));
+				break;
+
+			case SORT_RECEIPTS | SORT_DESCENDING:
+				reorder = (((file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
+						0 : (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].amount)) >
+						((file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
+						0 : (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].amount)));
+				break;
+
+			case SORT_BALANCE | SORT_ASCENDING:
+				reorder = (window->line_data[window->line_data[comb+gap].sort_index].balance <
+						window->line_data[window->line_data[comb].sort_index].balance);
+				break;
+
+			case SORT_BALANCE | SORT_DESCENDING:
+				reorder = (window->line_data[window->line_data[comb+gap].sort_index].balance >
+						window->line_data[window->line_data[comb].sort_index].balance);
+				break;
+
+			case SORT_DESCRIPTION | SORT_ASCENDING:
+				reorder = (strcmp(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].description,
+						file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].description) < 0);
+				break;
+
+			case SORT_DESCRIPTION | SORT_DESCENDING:
+				reorder = (strcmp(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].description,
+						file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].description) > 0);
+				break;
+
+			default:
+				reorder = FALSE;
+				break;
+			}
+
+			if (reorder) {
+				temp = window->line_data[comb+gap].sort_index;
+				window->line_data[comb+gap].sort_index = window->line_data[comb].sort_index;
+				window->line_data[comb].sort_index = temp;
+
+				sorted = FALSE;
+			}
+		}
+	} while (!sorted || gap != 1);
+
+	accview_force_window_redraw(file, account, 0, window->display_lines - 1);
+
+	hourglass_off();
+}
 
 
 
@@ -1644,27 +1918,6 @@ void accview_force_windows_closed(file_data *file)
 
 /* Return the account shown in the given window. */
 
-int find_accview_window_from_handle (file_data *file, wimp_w window)
-{
-  int i, account;
-
-
-  /* Find the window block. */
-
-  account = NULL_ACCOUNT;
-
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].account_view != NULL &&
-        ((file->accounts[i].account_view)->accview_window == window ||
-         (file->accounts[i].account_view)->accview_pane == window))
-    {
-      account = i;
-    }
-  }
-
-  return (account);
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -1823,7 +2076,7 @@ void rebuild_account_view (file_data *file, int account)
 
     build_account_view (file, account);
     accview_set_window_extent (file, account);
-    sort_accview_window (file, account);
+    accview_sort (file, account);
     windows_redraw ((file->accounts[account].account_view)->accview_window);
   }
 }
@@ -1939,318 +2192,10 @@ void rebuild_all_account_views (file_data *file)
     }
   }
 }
-/* ==================================================================================================================
- * Sorting AccView Windows
- */
-
-void sort_accview_window (file_data *file, int account)
-{
-  int				sorted, reorder, gap, comb, temp, order;
-  struct accview_window		*window;
-
-
-  #ifdef DEBUG
-  debug_printf("Sorting accview window");
-  #endif
-
-  if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL)
-  {
-    hourglass_on ();
-
-    /* Find the address of the accview block now, to save indirecting to it every time. */
-
-    window = file->accounts[account].account_view;
-
-    /* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
-     * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
-     */
-
-    gap = window->display_lines - 1;
-
-    order = window->sort_order;
-
-    do
-    {
-      gap = (gap > 1) ? (gap * 10 / 13) : 1;
-      if ((window->display_lines >= 12) && (gap == 9 || gap == 10))
-      {
-        gap = 11;
-      }
-
-      sorted = 1;
-      for (comb = 0; (comb + gap) < window->display_lines; comb++)
-      {
-        switch (order)
-        {
-          case SORT_DATE | SORT_ASCENDING:
-            reorder = (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].date <
-                       file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].date);
-            break;
-
-          case SORT_DATE | SORT_DESCENDING:
-            reorder = (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].date >
-                       file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].date);
-            break;
-
-          case SORT_FROMTO | SORT_ASCENDING:
-            reorder = (strcmp (
-             find_account_name (file,
-           (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
-              (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].to) :
-              (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from)),
-             find_account_name (file,
-             (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
-              (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].to) :
-              (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from))) < 0);
-            break;
-
-          case SORT_FROMTO | SORT_DESCENDING:
-            reorder = (strcmp (
-             find_account_name (file,
-           (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
-              (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].to) :
-              (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from)),
-             find_account_name (file,
-             (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
-              (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].to) :
-              (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from))) > 0);
-            break;
-
-          case SORT_REFERENCE | SORT_ASCENDING:
-            reorder = (strcmp(
-                  file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].reference,
-                  file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].reference) < 0);
-            break;
-
-          case SORT_REFERENCE | SORT_DESCENDING:
-            reorder = (strcmp(
-                  file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].reference,
-                  file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].reference) > 0);
-            break;
-
-          case SORT_PAYMENTS | SORT_ASCENDING:
-            reorder = (
-          ((file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
-               (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].amount) : 0) <
-              ((file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
-               (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].amount) : 0));
-            break;
-
-          case SORT_PAYMENTS | SORT_DESCENDING:
-            reorder = (
-          ((file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
-               (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].amount) : 0) >
-              ((file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
-               (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].amount) : 0));
-            break;
-
-          case SORT_RECEIPTS | SORT_ASCENDING:
-            reorder = (
-          ((file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
-               0 : (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].amount)) <
-              ((file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
-               0 : (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].amount)));
-            break;
-
-          case SORT_RECEIPTS | SORT_DESCENDING:
-            reorder = (
-          ((file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
-               0 : (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].amount)) >
-              ((file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
-               0 : (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].amount)));
-            break;
-
-          case SORT_BALANCE | SORT_ASCENDING:
-            reorder = (window->line_data[window->line_data[comb+gap].sort_index].balance <
-                       window->line_data[window->line_data[comb].sort_index].balance);
-           break;
-
-          case SORT_BALANCE | SORT_DESCENDING:
-            reorder = (window->line_data[window->line_data[comb+gap].sort_index].balance >
-                       window->line_data[window->line_data[comb].sort_index].balance);
-            break;
-
-          case SORT_DESCRIPTION | SORT_ASCENDING:
-            reorder = (strcmp(
-                file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].description,
-                file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].description) < 0);
-            break;
-
-          case SORT_DESCRIPTION | SORT_DESCENDING:
-            reorder = (strcmp(
-                file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].description,
-                file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].description) > 0);
-            break;
-
-          default:
-            reorder = 0;
-            break;
-        }
-
-        if (reorder)
-        {
-          temp = window->line_data[comb+gap].sort_index;
-          window->line_data[comb+gap].sort_index = window->line_data[comb].sort_index;
-          window->line_data[comb].sort_index = temp;
-
-          sorted = 0;
-        }
-      }
-    }
-    while (!sorted || gap != 1);
-
-    accview_force_window_redraw (file, account, 0, window->display_lines - 1);
-
-    hourglass_off ();
-  }
-}
 
 /* ================================================================================================================== */
 
 
-/* ==================================================================================================================
- * Printing account views via the GUI
- */
-
-void open_accview_print_window (file_data *file, int account, wimp_pointer *ptr, int clear)
-{
-  /* Set the pointers up so we can find this lot again and open the window. */
-
-  accview_print_file = file;
-  accview_print_account = account;
-
-  printing_open_advanced_window (file, ptr, clear, "PrintAccview", print_accview_window);
-}
-
-/* ==================================================================================================================
- * File and print output
- */
-
-void print_accview_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
-{
-  report_data			*report;
-  int				i, transaction=0;
-  char				line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
-  struct accview_window		*window;
-
-  msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
-  msgs_lookup ("PrintTitleAccview", buffer, sizeof (buffer));
-  report = report_open (accview_print_file, buffer, NULL);
-
-  if (report != NULL)
-  {
-    hourglass_on ();
-
-    window = accview_print_file->accounts[accview_print_account].account_view;
-
-    /* Output the page title. */
-
-    make_file_leafname (accview_print_file, numbuf1, sizeof (numbuf1));
-    msgs_param_lookup ("AccviewTitle", buffer, sizeof (buffer),
-                       accview_print_file->accounts[accview_print_account].name, numbuf1, NULL, NULL);
-    sprintf (line, "\\b\\u%s", buffer);
-    report_write_line (report, 0, line);
-    report_write_line (report, 0, "");
-
-    /* Output the headings line, taking the text from the window icons. */
-
-    *line = '\0';
-    sprintf (buffer, "\\k\\b\\u%s\\t", icons_copy_text (window->accview_pane, 0, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text (window->accview_pane, 1, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->accview_pane, 2, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->accview_pane, 3, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->accview_pane, 4, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u\\r%s\\t", icons_copy_text (window->accview_pane, 5, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (window->accview_pane, 6, numbuf1));
-    strcat (line, buffer);
-
-    report_write_line (report, 0, line);
-
-    /* Output the transaction data as a set of delimited lines. */
-
-    for (i=0; i < window->display_lines; i++)
-    {
-      transaction = (window->line_data)[(window->line_data)[i].sort_index].transaction;
-
-      if ((from == NULL_DATE || accview_print_file->transactions[transaction].date >= from) &&
-          (to == NULL_DATE || accview_print_file->transactions[transaction].date <= to))
-      {
-        *line = '\0';
-
-        convert_date_to_string (accview_print_file->transactions[transaction].date, numbuf1);
-        sprintf (buffer, "\\k%s\\t", numbuf1);
-        strcat (line, buffer);
-
-        if (accview_print_file->transactions[transaction].from == accview_print_account)
-        {
-          sprintf (buffer, "%s\\t",
-                   find_account_ident (accview_print_file, accview_print_file->transactions[transaction].to));
-          strcat (line, buffer);
-
-          strcpy (numbuf1, (accview_print_file->transactions[transaction].flags & TRANS_REC_FROM) ? rec_char : "");
-          sprintf (buffer, "%s\\t", numbuf1);
-          strcat (line, buffer);
-
-          sprintf (buffer, "%s\\t",
-                   find_account_name (accview_print_file, accview_print_file->transactions[transaction].to));
-          strcat (line, buffer);
-        }
-        else
-        {
-          sprintf (buffer, "%s\\t",
-                   find_account_ident (accview_print_file, accview_print_file->transactions[transaction].from));
-          strcat (line, buffer);
-
-          strcpy (numbuf1, (accview_print_file->transactions[transaction].flags & TRANS_REC_TO) ? rec_char : "");
-          sprintf (buffer, "%s\\t", numbuf1);
-          strcat (line, buffer);
-
-          sprintf (buffer, "%s\\t",
-                   find_account_name (accview_print_file, accview_print_file->transactions[transaction].from));
-          strcat (line, buffer);
-        }
-
-        sprintf (buffer, "%s\\t", accview_print_file->transactions[transaction].reference);
-        strcat (line, buffer);
-
-        if (accview_print_file->transactions[transaction].from == accview_print_account)
-        {
-          convert_money_to_string (accview_print_file->transactions[transaction].amount, numbuf1);
-          sprintf (buffer, "\\r%s\\t\\r\\t", numbuf1);
-        }
-        else
-        {
-          convert_money_to_string (accview_print_file->transactions[transaction].amount, numbuf1);
-          sprintf (buffer, "\\r\\t\\r%s\\t", numbuf1);
-        }
-        strcat (line, buffer);
-
-        convert_money_to_string (window->line_data[i].balance, numbuf1);
-        sprintf (buffer, "\\r%s\\t", numbuf1);
-        strcat (line, buffer);
-
-        sprintf (buffer, "%s\\t", accview_print_file->transactions[transaction].description);
-        strcat (line, buffer);
-
-        report_write_line (report, 0, line);
-      }
-    }
-
-    hourglass_off ();
-  }
-  else
-  {
-    error_msgs_report_error ("PrintMemFail");
-  }
-
-  report_close_and_print(report, text, format, scale, rotate, pagenum);
-}
 
 
 

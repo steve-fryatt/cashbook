@@ -134,7 +134,7 @@ static void			accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wim
 static void			accview_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			accview_window_scroll_handler(wimp_scroll *scroll);
 static void			accview_window_redraw_handler(wimp_draw *redraw);
-static void			accview_adjust_window_columns(file_data *file, int account, wimp_i group, int width);
+static void			accview_adjust_window_columns(void *data, wimp_i group, int width);
 
 
 /**
@@ -576,7 +576,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			file->accview_sort_order = windat->sort_order;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, file, account, windat->accview_window,
+		column_start_drag(pointer, windat, windat->accview_window,
 				ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), accview_adjust_window_columns);
 	}
 }
@@ -1064,19 +1064,27 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 /**
  * Callback handler for completing the drag of a column heading.
  *
- * \param *file			The file owning the dragged preset window.
- * \param account		The account whose view is to be updated.
+ * \param *data			The window block for the origin of the drag.
  * \param group			The column group which has been dragged.
  * \param width			The new width for the group.
  */
 
-static void accview_adjust_window_columns(file_data *file, int account, wimp_i group, int width)
+static void accview_adjust_window_columns(void *data, wimp_i group, int width)
 {
-  int              i, j, new_extent;
-  wimp_icon_state  icon;
-  wimp_window_info window;
+	struct accview_window	*windat = (struct accview_window *) data;
+	file_data		*file;
+	acct_t			account;
+	int			i, j, new_extent;
+	wimp_icon_state		icon;
+	wimp_window_info	window;
 
-        update_dragged_columns (ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), group, width,
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
+	account = windat->account;
+
+	update_dragged_columns (ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), group, width,
                               (file->accounts[account].account_view)->column_width,
                               (file->accounts[account].account_view)->column_position,
                                ACCVIEW_COLUMNS);
@@ -1131,6 +1139,8 @@ static void accview_adjust_window_columns(file_data *file, int account, wimp_i g
   wimp_set_extent (window.w, &(window.extent));
 
   windows_open (window.w);
+
+	set_file_data_integrity(file, TRUE);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

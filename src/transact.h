@@ -91,7 +91,7 @@ void redraw_transaction_window (wimp_draw *redraw, file_data *file);
 
 /* Window creation and deletion */
 
-void adjust_transaction_window_columns (file_data *file, int data, wimp_i icon, int width);
+void adjust_transaction_window_columns (void *data, wimp_i icon, int width);
 void adjust_transaction_window_sort_icon (file_data *file);
 void update_transaction_window_sort_icon (file_data *file, wimp_icon *icon);
 

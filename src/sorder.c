@@ -196,7 +196,7 @@ static void			sorder_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp
 static void			sorder_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			sorder_window_scroll_handler(wimp_scroll *scroll);
 static void			sorder_window_redraw_handler(wimp_draw *redraw);
-static void			sorder_adjust_window_columns(file_data *file, int data, wimp_i group, int width);
+static void			sorder_adjust_window_columns(void *data, wimp_i group, int width);
 static void			sorder_adjust_sort_icon(file_data *file);
 static void			sorder_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
 static void			sorder_set_window_extent(file_data *file);
@@ -584,7 +584,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 			sorder_sort(file);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, file, 0, windat->sorder_window,
+		column_start_drag(pointer, windat, windat->sorder_window,
 				SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), sorder_adjust_window_columns);
 	}
 }
@@ -993,18 +993,23 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 /**
  * Callback handler for completing the drag of a column heading.
  *
- * \param *file			The file owning the dragged preset window.
- * \param data			Unused data field.
+ * \param *data			The window block for the origin of the drag.
  * \param group			The column group which has been dragged.
  * \param width			The new width for the group.
  */
 
-static void sorder_adjust_window_columns(file_data *file, int data, wimp_i group, int width)
+static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
 {
+	struct sorder_window	*windat = (struct sorder_window *) data;
+	file_data		*file;
 	int			i, j, new_extent;
 	wimp_icon_state		icon;
 	wimp_window_info	window;
 
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
 
 	update_dragged_columns(SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), group, width,
 			file->sorder_window.column_width,
@@ -1051,6 +1056,8 @@ static void sorder_adjust_window_columns(file_data *file, int data, wimp_i group
 	wimp_set_extent(window.w, &(window.extent));
 
 	windows_open(window.w);
+
+	set_file_data_integrity(file, TRUE);
 }
 
 

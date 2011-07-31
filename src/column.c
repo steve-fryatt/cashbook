@@ -38,10 +38,9 @@
 #include "transact.h"
 
 
-static file_data	*column_drag_file;					/**< The file associated with the current drag.			*/
-static int		column_drag_data;					/**< Additional client-specific data for the drag.		*/
+static void		*column_drag_data;					/**< Client-specific data for the drag.				*/
 static wimp_i		column_drag_icon;					/**< The handle of the icon being dragged.			*/
-static void		(*column_drag_callback)(file_data *, int, wimp_i, int);	/**< The callback handler for the drag.				*/
+static void		(*column_drag_callback)(void *, wimp_i, int);		/**< The callback handler for the drag.				*/
 
 
 static void		column_terminate_drag(wimp_dragged *drag, void *data);
@@ -123,15 +122,14 @@ char *column_write_as_text(int width[], int columns, char *buffer)
  * Start a column width drag operation.
  *
  * \param *ptr			The Wimp pointer data starting the drag.
- * \param *file			The file owning the window being dragged.
- * \param data			Additional client-specific data.
+ * \param *data			Client-specific data pointer.
  * \param w			The parent window the dragged toolbar belongs to.
  * \param *mapping		The column group mapping for the window.
  * \param *widths		The minimum column width configuration string.
  * \param *callback		The function to be called at the end of the drag.
  */
 
-void column_start_drag(wimp_pointer *ptr, file_data *file, int data, wimp_w w, char *mapping, char *widths, void (*callback)(file_data *, int, wimp_i, int))
+void column_start_drag(wimp_pointer *ptr, void *data, wimp_w w, char *mapping, char *widths, void (*callback)(void *, wimp_i, int))
 {
 	wimp_window_state	window;
 	wimp_window_info	parent;
@@ -153,13 +151,12 @@ void column_start_drag(wimp_pointer *ptr, file_data *file, int data, wimp_w w, c
 	wimp_get_window_info_header_only(&parent);
 
 	column_drag_icon = ptr->i;
-	column_drag_file = file;
 	column_drag_data = data;
 	column_drag_callback = callback;
 
 	/* If the window exists and the hot-spot was hit, set up the drag parameters and start the drag. */
 
-	if (column_drag_file != NULL && ptr->pos.x >= (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
+	if (column_drag_data != NULL && ptr->pos.x >= (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
 		drag.w = ptr->w;
 		drag.type = wimp_DRAG_USER_RUBBER;
 
@@ -195,10 +192,8 @@ static void column_terminate_drag(wimp_dragged *drag, void *data)
 
 	width = drag->final.x1 - drag->final.x0;
 
-	if (column_drag_callback != NULL) {
-		column_drag_callback(column_drag_file, column_drag_data, column_drag_icon, width);
-		set_file_data_integrity(column_drag_file, TRUE);
-	}
+	if (column_drag_callback != NULL)
+		column_drag_callback(column_drag_data, column_drag_icon, width);
 }
 
 

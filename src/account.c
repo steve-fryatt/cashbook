@@ -462,7 +462,7 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 			break;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, windat->file, windat->entry, windat->account_window, ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), adjust_account_window_columns);
+		column_start_drag(pointer, windat, windat->account_window, ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), adjust_account_window_columns);
 	}
 }
 
@@ -1131,11 +1131,20 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void adjust_account_window_columns(file_data *file, int entry, wimp_i icon, int width)
+void adjust_account_window_columns(void *data, wimp_i icon, int width)
 {
-  int              i, j, new_extent;
-  wimp_icon_state  icon1, icon2;
-  wimp_window_info window;
+	struct account_window	*windat = (struct account_window *) data;
+	file_data		*file;
+	int			entry, i, j, new_extent;
+	wimp_icon_state		icon1, icon2;
+	wimp_window_info	window;
+
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
+	entry = windat->entry;
+
 
       update_dragged_columns (ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), icon, width,
                               file->account_windows[entry].column_width,
@@ -1200,6 +1209,8 @@ void adjust_account_window_columns(file_data *file, int entry, wimp_i icon, int 
   wimp_set_extent (window.w, &(window.extent));
 
   windows_open (window.w);
+
+	set_file_data_integrity(file, TRUE);
 }
 
 

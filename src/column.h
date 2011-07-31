@@ -40,15 +40,14 @@ char *column_write_as_text(int width[], int columns, char *buffer);
  * Start a column width drag operation.
  *
  * \param *ptr			The Wimp pointer data starting the drag.
- * \param *file			The file owning the window being dragged.
- * \param data			Additional client-specific data.
+ * \param *data			Client-specific data pointer.
  * \param w			The parent window the dragged toolbar belongs to.
  * \param *mapping		The column group mapping for the window.
  * \param *widths		The minimum column width configuration string.
  * \param *callback		The function to be called at the end of the drag.
  */
 
-void column_start_drag(wimp_pointer *ptr, file_data *file, int data, wimp_w w, char *mapping, char *widths, void (*callback)(file_data *, int, wimp_i, int));
+void column_start_drag(wimp_pointer *ptr, void *data, wimp_w w, char *mapping, char *widths, void (*callback)(void *, wimp_i, int));
 
 
 /**

@@ -728,7 +728,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 
   else if (pointer->buttons == wimp_DRAG_SELECT && pointer->i <= TRANSACT_PANE_DRAG_LIMIT)
   {
-    column_start_drag(pointer, file, 0, file->transaction_window.transaction_window, TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"),  adjust_transaction_window_columns);
+    column_start_drag(pointer, windat, file->transaction_window.transaction_window, TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"),  adjust_transaction_window_columns);
   }
 }
 
@@ -1568,12 +1568,21 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void adjust_transaction_window_columns (file_data *file, int data, wimp_i target, int width)
+void adjust_transaction_window_columns(void *data, wimp_i target, int width)
 {
-  int              i, j, new_extent;
-  wimp_icon_state  icon;
-  wimp_window_info window;
-  wimp_caret       caret;
+	struct transaction_window	*windat = (struct transaction_window *) data;
+	file_data			*file;
+	int				i, j, new_extent;
+	wimp_icon_state			icon;
+	wimp_window_info		window;
+	wimp_caret			caret;
+
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
+
+
 
   update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), target, width,
                               file->transaction_window.column_width,
@@ -1636,6 +1645,8 @@ void adjust_transaction_window_columns (file_data *file, int data, wimp_i target
   wimp_set_extent (window.w, &(window.extent));
 
   windows_open (window.w);
+
+	set_file_data_integrity(file, TRUE);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

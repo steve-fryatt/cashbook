@@ -1947,7 +1947,8 @@ static void sorder_fill_sort_window(int sort_option)
 
 
 /**
- * Take the contents of an updated Preset Sort window and process the data.
+ * Take the contents of an updated Standing Order Sort window and process
+ * the data.
  *
  * \return			TRUE if successful; else FALSE.
  */

@@ -590,7 +590,7 @@ void save_transaction_file (file_data *file, char *filename)
     }
     for (i=0; i<file->account_count; i++)
     {
-      build_accview_window_title (file, i);
+      accview_build_window_title(file, i);
     }
     sorder_build_window_title(file);
     preset_build_window_title(file);

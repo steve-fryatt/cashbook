@@ -75,12 +75,31 @@ void accview_open_window(file_data *file, acct_t account);
 void accview_delete_window(file_data *file, acct_t account);
 
 
+/**
+ * Recreate the title of the specified Account View window connected to the
+ * given file.
+ *
+ * \param *file			The file to rebuild the title for.
+ * \param account		The account to rebilld the window title for.
+ */
+
+void accview_build_window_title(file_data *file, acct_t account);
+
+
+/**
+ * Force the closure of the Account List sort window if the owning
+ * file disappears.
+ *
+ * \param *file			The file which has closed.
+ */
+
+void accview_force_windows_closed(file_data *file);
 
 
 
 
-void adjust_accview_window_sort_icon (file_data *file, int account);
-void update_accview_window_sort_icon (file_data *file, int account, wimp_icon *icon);
+
+
 
 int find_accview_window_from_handle (file_data *file, wimp_w window);
 int find_accview_line_from_transaction (file_data *file, int account, int transaction);
@@ -102,10 +121,6 @@ void rebuild_all_account_views (file_data *file);
 /* Sorting AccView Windows */
 
 void sort_accview_window (file_data *file, int account);
-void open_accview_sort_window (file_data *file, int account, wimp_pointer *ptr);
-void refresh_accview_sort_window (void);
-void fill_accview_sort_window (int sort_option);
-int process_accview_sort_window (void);
 void force_close_accview_sort_window (file_data *file);
 
 /* Printing account views via the GUI */
@@ -118,15 +133,11 @@ void print_accview_window(osbool text, osbool format, osbool scale, osbool rotat
 
 /* Account View window handling. */
 
-void set_accview_window_extent (file_data *file, int entry);
-void build_accview_window_title (file_data *file, int account);
-void force_accview_window_redraw (file_data *file, int account, int from, int to);
 
 int align_accview_with_transact_line (file_data *file, int account);
 int align_accview_with_transact_y_offset (file_data *file, int account);
 void align_accview_with_transact (file_data *file, int account);
 void find_accview_line (file_data *file, int account, int line);
-void decode_accview_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
 

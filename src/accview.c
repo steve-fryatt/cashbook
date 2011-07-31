@@ -104,6 +104,7 @@ struct accview_window {
 
 /* Account View Sort Window. */
 
+static wimp_w			accview_sort_window = NULL;			/**< The account listsort window handle.				*/
 static file_data		*accview_sort_file = NULL;			/**< The file currently owning the account view sort window.		*/
 static acct_t			accview_sort_account = NULL_ACCOUNT;		/**< The account currently owning the account view print window.	*/
 
@@ -135,6 +136,21 @@ static void			accview_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			accview_window_scroll_handler(wimp_scroll *scroll);
 static void			accview_window_redraw_handler(wimp_draw *redraw);
 static void			accview_adjust_window_columns(void *data, wimp_i group, int width);
+static void			accview_adjust_sort_icon(file_data *file, acct_t account);
+static void			accview_adjust_sort_icon_data(file_data *file, acct_t account, wimp_icon *icon);
+static void			accview_set_window_extent(file_data *file, acct_t account);
+static void			accview_force_window_redraw(file_data *file, acct_t account, int from, int to);
+static void			accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+
+static void			accview_open_sort_window(file_data *file, acct_t account, wimp_pointer *ptr);
+static void			accview_sort_click_handler(wimp_pointer *pointer);
+static osbool			accview_sort_keypress_handler(wimp_key *key);
+static void			accview_refresh_sort_window(void);
+static void			accview_fill_sort_window(int sort_option);
+static osbool			accview_process_sort_window(void);
+
+
+
 
 
 /**
@@ -145,8 +161,19 @@ static void			accview_adjust_window_columns(void *data, wimp_i group, int width)
 
 void accview_initialise(osspriteop_area *sprites)
 {
-
-
+	accview_sort_window = templates_create_window("SortAccView");
+	ihelp_add_window(accview_sort_window, "SortAccView", NULL);
+	event_add_window_mouse_event(accview_sort_window, accview_sort_click_handler);
+	event_add_window_key_event(accview_sort_window, accview_sort_keypress_handler);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_DATE, TRUE);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_FROMTO, TRUE);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_REFERENCE, TRUE);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_PAYMENTS, TRUE);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_RECEIPTS, TRUE);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_BALANCE, TRUE);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_DESCRIPTION, TRUE);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_ASCENDING, TRUE);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_DESCENDING, TRUE);
 
 	accview_window_def = templates_load_window("AccView");
 	accview_window_def->icon_count = 0;
@@ -270,7 +297,7 @@ void accview_open_window(file_data *file, acct_t account)
 	accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
 			accview_pane_def->sprite_area;
 
-	update_accview_window_sort_icon(file, account, &(accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON]));
+	accview_adjust_sort_icon_data(file, account, &(accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON]));
 
 	error = xwimp_create_window(accview_pane_def, &(new->accview_pane));
 	if (error != NULL) {
@@ -280,7 +307,7 @@ void accview_open_window(file_data *file, acct_t account)
 
 	/* Set the title */
 
-	build_accview_window_title(file, account);
+	accview_build_window_title(file, account);
 
 	/* Sort the window contents. */
 
@@ -289,10 +316,10 @@ void accview_open_window(file_data *file, acct_t account)
 	/* Open the window. */
 
 	if (file->accounts[account].type == ACCOUNT_FULL) {
-		ihelp_add_window(new->accview_window, "AccView", decode_accview_window_help);
+		ihelp_add_window(new->accview_window, "AccView", accview_decode_window_help);
 		ihelp_add_window(new->accview_pane, "AccViewTB", NULL);
 	} else {
-		ihelp_add_window(new->accview_window, "HeadView", decode_accview_window_help);
+		ihelp_add_window(new->accview_window, "HeadView", accview_decode_window_help);
 		ihelp_add_window(new->accview_pane, "HeadViewTB", NULL);
 	}
 
@@ -505,7 +532,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCVIEW_PANE_SORT:
-			open_accview_sort_window(file, account, pointer);
+			accview_open_sort_window(file, account, pointer);
 			break;
 		}
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
@@ -569,7 +596,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 					windat->sort_order |= SORT_DESCENDING;
 			}
 
-			adjust_accview_window_sort_icon(file, account);
+			accview_adjust_sort_icon(file, account);
 			windows_redraw(windat->accview_pane);
 			sort_accview_window(file, account);
 
@@ -676,7 +703,7 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCVIEW_MENU_SORT:
-		open_accview_sort_window(windat->file, windat->account, &pointer);
+		accview_open_sort_window(windat->file, windat->account, &pointer);
 		break;
 
 	case ACCVIEW_MENU_EDITACCT:
@@ -1084,155 +1111,534 @@ static void accview_adjust_window_columns(void *data, wimp_i group, int width)
 	file = windat->file;
 	account = windat->account;
 
-	update_dragged_columns (ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), group, width,
-                              (file->accounts[account].account_view)->column_width,
-                              (file->accounts[account].account_view)->column_position,
-                               ACCVIEW_COLUMNS);
+	update_dragged_columns(ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), group, width,
+			(file->accounts[account].account_view)->column_width,
+			(file->accounts[account].account_view)->column_position,
+			ACCVIEW_COLUMNS);
 
-      for (i=0; i<ACCVIEW_COLUMNS; i++)
-      {
-        file->accview_column_width[i] = (file->accounts[account].account_view)->column_width[i];
-        file->accview_column_position[i] = (file->accounts[account].account_view)->column_position[i];
-      }
+	for (i=0; i<ACCVIEW_COLUMNS; i++) {
+		file->accview_column_width[i] = (file->accounts[account].account_view)->column_width[i];
+		file->accview_column_position[i] = (file->accounts[account].account_view)->column_position[i];
+	}
 
+	/* Re-adjust the icons in the pane. */
 
+	for (i=0, j=0; j < ACCVIEW_COLUMNS; i++, j++) {
+		icon.w = (file->accounts[account].account_view)->accview_pane;
+		icon.i = i;
+		wimp_get_icon_state(&icon);
 
-  /* Re-adjust the icons in the pane. */
+		icon.icon.extent.x0 = (file->accounts[account].account_view)->column_position[j];
 
-  for (i=0, j=0; j < ACCVIEW_COLUMNS; i++, j++)
-  {
-    icon.w = (file->accounts[account].account_view)->accview_pane;
-    icon.i = i;
-    wimp_get_icon_state (&icon);
+		j = column_get_rightmost_in_group(ACCVIEW_PANE_COL_MAP, i);
 
-    icon.icon.extent.x0 = (file->accounts[account].account_view)->column_position[j];
+		icon.icon.extent.x1 = (file->accounts[account].account_view)->column_position[j] +
+				(file->accounts[account].account_view)->column_width[j] + COLUMN_HEADING_MARGIN;
 
-    j = column_get_rightmost_in_group (ACCVIEW_PANE_COL_MAP, i);
+		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+				icon.icon.extent.x1, icon.icon.extent.y1);
 
-    icon.icon.extent.x1 = (file->accounts[account].account_view)->column_position[j] +
-                          (file->accounts[account].account_view)->column_width[j] + COLUMN_HEADING_MARGIN;
+		new_extent = (file->accounts[account].account_view)->column_position[ACCVIEW_COLUMNS-1] +
+				(file->accounts[account].account_view)->column_width[ACCVIEW_COLUMNS-1];
+	}
 
-    wimp_resize_icon (icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-                                      icon.icon.extent.x1, icon.icon.extent.y1);
+	accview_adjust_sort_icon(file, account);
 
-    new_extent = (file->accounts[account].account_view)->column_position[ACCVIEW_COLUMNS-1] +
-                 (file->accounts[account].account_view)->column_width[ACCVIEW_COLUMNS-1];
-  }
+	/* Replace the edit line to force a redraw and redraw the rest of the window. */
 
-  adjust_accview_window_sort_icon (file, account);
+	windows_redraw((file->accounts[account].account_view)->accview_window);
+	windows_redraw((file->accounts[account].account_view)->accview_pane);
 
-  /* Replace the edit line to force a redraw and redraw the rest of the window. */
+	/* Set the horizontal extent of the window and pane. */
 
-  windows_redraw ((file->accounts[account].account_view)->accview_window);
-  windows_redraw ((file->accounts[account].account_view)->accview_pane);
+	window.w = (file->accounts[account].account_view)->accview_pane;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
 
-  /* Set the horizontal extent of the window and pane. */
+	window.w = (file->accounts[account].account_view)->accview_window;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
 
-  window.w = (file->accounts[account].account_view)->accview_pane;
-  wimp_get_window_info_header_only (&window);
-  window.extent.x1 = window.extent.x0 + new_extent;
-  wimp_set_extent (window.w, &(window.extent));
-
-  window.w = (file->accounts[account].account_view)->accview_window;
-  wimp_get_window_info_header_only (&window);
-  window.extent.x1 = window.extent.x0 + new_extent;
-  wimp_set_extent (window.w, &(window.extent));
-
-  windows_open (window.w);
+	windows_open(window.w);
 
 	set_file_data_integrity(file, TRUE);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void adjust_accview_window_sort_icon (file_data *file, int account)
+/**
+ * Adjust the sort icon in an Account View window, to reflect the current column
+ * heading positions.
+ *
+ * \param *file			The file to update the window for.
+ * \param account		The account to update the window for.
+ */
+
+static void accview_adjust_sort_icon(file_data *file, acct_t account)
 {
-  wimp_icon_state icon;
+	wimp_icon_state		icon;
 
-  icon.w = (file->accounts[account].account_view)->accview_pane;
-  icon.i = ACCVIEW_PANE_SORT_DIR_ICON;
-  wimp_get_icon_state (&icon);
+	icon.w = (file->accounts[account].account_view)->accview_pane;
+	icon.i = ACCVIEW_PANE_SORT_DIR_ICON;
+	wimp_get_icon_state(&icon);
 
-  update_accview_window_sort_icon (file, account, &(icon.icon));
+	accview_adjust_sort_icon_data(file, account, &(icon.icon));
 
-  wimp_resize_icon (icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-                                    icon.icon.extent.x1, icon.icon.extent.y1);
+	wimp_resize_icon (icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+			icon.icon.extent.x1, icon.icon.extent.y1);
 }
 
+
+/**
+ * Adjust an icon definition to match the current Account View sort settings.
+ *
+ * \param *file			The file to be updated.
+ * \param account		The account to be updated.
+ * \param *icon			The icon to be updated.
+ */
+
+static void accview_adjust_sort_icon_data(file_data *file, acct_t account, wimp_icon *icon)
+{
+	int		i = 0, width, anchor;
+
+	if ((file->accounts[account].account_view)->sort_order & SORT_ASCENDING)
+		strcpy((file->accounts[account].account_view)->sort_sprite, "sortarrd");
+	else if ((file->accounts[account].account_view)->sort_order & SORT_DESCENDING)
+		strcpy((file->accounts[account].account_view)->sort_sprite, "sortarru");
+
+	switch ((file->accounts[account].account_view)->sort_order & SORT_MASK) {
+	case SORT_DATE:
+		i = 0;
+		accview_substitute_sort_icon = ACCVIEW_PANE_DATE;
+		break;
+
+	case SORT_FROMTO:
+		i = 3;
+		accview_substitute_sort_icon = ACCVIEW_PANE_FROMTO;
+		break;
+
+	case SORT_REFERENCE:
+		i = 4;
+		accview_substitute_sort_icon = ACCVIEW_PANE_REFERENCE;
+		break;
+
+	case SORT_PAYMENTS:
+		i = 5;
+		accview_substitute_sort_icon = ACCVIEW_PANE_PAYMENTS;
+		break;
+
+	case SORT_RECEIPTS:
+		i = 6;
+		accview_substitute_sort_icon = ACCVIEW_PANE_RECEIPTS;
+		break;
+
+	case SORT_BALANCE:
+		i = 7;
+		accview_substitute_sort_icon = ACCVIEW_PANE_BALANCE;
+		break;
+
+	case SORT_DESCRIPTION:
+		i = 8;
+		accview_substitute_sort_icon = ACCVIEW_PANE_DESCRIPTION;
+		break;
+	}
+
+	width = icon->extent.x1 - icon->extent.x0;
+
+	if (((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_PAYMENTS ||
+			((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_RECEIPTS ||
+			((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_BALANCE) {
+		anchor = (file->accounts[account].account_view)->column_position[i] + COLUMN_HEADING_MARGIN;
+		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
+		icon->extent.x1 = icon->extent.x0 + width;
+	} else {
+		anchor = (file->accounts[account].account_view)->column_position[i] +
+				(file->accounts[account].account_view)->column_width[i] + COLUMN_HEADING_MARGIN;
+		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
+		icon->extent.x0 = icon->extent.x1 - width;
+	}
+}
+
+
+/**
+ * Set the extent of an account view window for the specified file.
+ *
+ * \param *file			The file to update.
+ * \param account		The account whose window is to be updated.
+ */
+
+static void accview_set_window_extent(file_data *file, acct_t account)
+{
+	wimp_window_state	state;
+	os_box			extent;
+	int			new_height, visible_extent, new_extent, new_scroll;
+
+	/* Set the extent. */
+
+	if (account != NULL_ACCOUNT &&
+			file->accounts[account].account_view != NULL && (file->accounts[account].account_view)->accview_window != NULL) {
+		/* Get the number of rows to show in the window, and work out the window extent from this. */
+
+		new_height = ((file->accounts[account].account_view)->display_lines > MIN_ACCVIEW_ENTRIES) ?
+				(file->accounts[account].account_view)->display_lines : MIN_ACCVIEW_ENTRIES;
+
+		new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_height) - ACCVIEW_TOOLBAR_HEIGHT;
+
+		/* Get the current window details, and find the extent of the bottom of the visible area. */
+
+		state.w = (file->accounts[account].account_view)->accview_window;
+		wimp_get_window_state(&state);
+
+		visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
+
+		/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
+
+		if (new_extent > visible_extent) {
+			/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
+			 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
+			 */
+
+			new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
+
+			if (new_scroll > 0) {
+				state.visible.y0 += new_scroll;
+				state.yscroll = 0;
+			} else {
+				state.yscroll = new_scroll;
+			}
+
+			wimp_open_window((wimp_open *) &state);
+		}
+
+		/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
+		 * exist.
+		 */
+
+		extent.x0 = 0;
+		extent.x1 = (file->accounts[account].account_view)->column_position[ACCVIEW_COLUMNS-1] +
+				(file->accounts[account].account_view)->column_width[ACCVIEW_COLUMNS-1];
+
+		extent.y0 = new_extent;
+		extent.y1 = 0;
+
+		wimp_set_extent((file->accounts[account].account_view)->accview_window, &extent);
+	}
+}
+
+
+/**
+ * Recreate the title of the specified Account View window connected to the
+ * given file.
+ *
+ * \param *file			The file to rebuild the title for.
+ * \param account		The account to rebilld the window title for.
+ */
+
+void accview_build_window_title(file_data *file, acct_t account)
+{
+	char	name[256];
+
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL)
+		return;
+
+	make_file_leafname(file, name, sizeof(name));
+
+	msgs_param_lookup("AccviewTitle", (file->accounts[account].account_view)->window_title,
+			sizeof((file->accounts[account].account_view)->window_title),
+			file->accounts[account].name, name, NULL, NULL);
+
+	wimp_force_redraw_title((file->accounts[account].account_view)->accview_window);
+}
+
+
+/**
+ * Force a redraw of the Standing Order list window, for the given range of
+ * lines.
+ *
+ * \param *file			The file owning the window.
+ * \param account		The account to be redrawn.
+ * \param from			The first line to redraw, inclusive.
+ * \param to			The last line to redraw, inclusive.
+ */
+
+static void accview_force_window_redraw(file_data *file, acct_t account, int from, int to)
+{
+	int			y0, y1;
+	wimp_window_info	window;
+
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL ||
+			(file->accounts[account].account_view)->accview_window == NULL)
+		return;
+
+	window.w = (file->accounts[account].account_view)->accview_window;
+	wimp_get_window_info_header_only(&window);
+
+	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - ACCVIEW_TOOLBAR_HEIGHT;
+	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - ACCVIEW_TOOLBAR_HEIGHT;
+
+	wimp_force_redraw((file->accounts[account].account_view)->accview_window,
+			window.extent.x0, y0, window.extent.x1, y1);
+}
+
+
+/**
+ * Turn a mouse position over an Account View window into an interactive
+ * help token.
+ *
+ * \param *buffer		A buffer to take the generated token.
+ * \param w			The window under the pointer.
+ * \param i			The icon under the pointer.
+ * \param pos			The current mouse position.
+ * \param buttons		The current mouse button state.
+ */
+
+static void accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
+{
+	int			column, xpos;
+	wimp_window_state	window;
+	struct accview_window	*windat;
+
+	*buffer = '\0';
+
+	windat = event_get_window_user_data(w);
+
+	if (windat == NULL)
+		return;
+
+	window.w = w;
+	wimp_get_window_state(&window);
+
+	xpos = (pos.x - window.visible.x0) + window.xscroll;
+
+	for (column = 0;
+			column < TRANSACT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
+			column++);
+
+	sprintf(buffer, "Col%d", column);
+}
+
+
+/**
+ * Open the Account List Sort dialogue for a given account list window.
+ *
+ * \param *file			The file to own the dialogue.
+ * \param account		The account whose window is to be sorted.
+ * \param *ptr			The current Wimp pointer position.
+ */
+
+static void accview_open_sort_window(file_data *file, acct_t account, wimp_pointer *ptr)
+{
+	if (windows_get_open(accview_sort_window))
+		wimp_close_window(accview_sort_window);
+
+	accview_fill_sort_window((file->accounts[account].account_view)->sort_order);
+
+	accview_sort_file = file;
+	accview_sort_account = account;
+
+	windows_open_centred_at_pointer(accview_sort_window, ptr);
+	place_dialogue_caret(accview_sort_window, wimp_ICON_WINDOW);
+}
+
+
+/**
+ * Process mouse clicks in the Account List Sort dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void accview_sort_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case ACCVIEW_SORT_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(accview_sort_window);
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			accview_refresh_sort_window();
+		break;
+
+	case ACCVIEW_SORT_OK:
+		if (accview_process_sort_window() && pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(accview_sort_window);
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Account List Sort window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool accview_sort_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (accview_process_sort_window())
+			close_dialogue_with_caret(accview_sort_window);
+		break;
+
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(accview_sort_window);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Refresh the contents of the Account View Sort window.
+ */
+
+static void accview_refresh_sort_window(void)
+{
+	accview_fill_sort_window((accview_sort_file->accounts[accview_sort_account].account_view)->sort_order);
+}
+
+
+/**
+ * Update the contents of the Account View Sort window to reflect the current
+ * settings of the given file.
+ *
+ * \param sort_option		The sort option currently in force.
+ */
+
+static void accview_fill_sort_window(int sort_option)
+{
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_FROMTO, (sort_option & SORT_MASK) == SORT_FROMTO);
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_PAYMENTS, (sort_option & SORT_MASK) == SORT_PAYMENTS);
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_RECEIPTS, (sort_option & SORT_MASK) == SORT_RECEIPTS);
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_BALANCE, (sort_option & SORT_MASK) == SORT_BALANCE);
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
+
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_ASCENDING, sort_option & SORT_ASCENDING);
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_DESCENDING, sort_option & SORT_DESCENDING);
+}
+
+
+/**
+ * Take the contents of an updated Account List window and process the data.
+ *
+ * \return			TRUE if successful; else FALSE.
+ */
+
+static osbool accview_process_sort_window(void)
+{
+	(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_NONE;
+
+	if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_DATE))
+		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_DATE;
+	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_FROMTO))
+		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_FROMTO;
+	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_REFERENCE))
+		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_REFERENCE;
+	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_PAYMENTS))
+		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_PAYMENTS;
+	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_RECEIPTS))
+		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_RECEIPTS;
+	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_BALANCE))
+		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_BALANCE;
+	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_DESCRIPTION))
+		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_DESCRIPTION;
+
+	if ((accview_sort_file->accounts[accview_sort_account].account_view)->sort_order != SORT_NONE) {
+		if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_ASCENDING))
+			(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order |= SORT_ASCENDING;
+		else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_DESCENDING))
+			(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order |= SORT_DESCENDING;
+	}
+
+	accview_adjust_sort_icon(accview_sort_file, accview_sort_account);
+	windows_redraw((accview_sort_file->accounts[accview_sort_account].account_view)->accview_pane);
+	sort_accview_window(accview_sort_file, accview_sort_account);
+
+	accview_sort_file->accview_sort_order = (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order;
+
+	return TRUE;
+}
+
+
+/**
+ * Force the closure of the Account List sort window if the owning
+ * file disappears.
+ *
+ * \param *file			The file which has closed.
+ */
+
+void accview_force_windows_closed(file_data *file)
+{
+	if (accview_sort_file == file && windows_get_open(accview_sort_window))
+		close_dialogue_with_caret(accview_sort_window);
+}
+
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void update_accview_window_sort_icon (file_data *file, int account, wimp_icon *icon)
-{
-  int              i, width, anchor;
 
 
-  i = 0;
 
-  if ((file->accounts[account].account_view)->sort_order & SORT_ASCENDING)
-  {
-    strcpy ((file->accounts[account].account_view)->sort_sprite, "sortarrd");
-  }
-  else if ((file->accounts[account].account_view)->sort_order & SORT_DESCENDING)
-  {
-    strcpy ((file->accounts[account].account_view)->sort_sprite, "sortarru");
-  }
 
-  switch ((file->accounts[account].account_view)->sort_order & SORT_MASK)
-  {
-    case SORT_DATE:
-      i = 0;
-      accview_substitute_sort_icon = ACCVIEW_PANE_DATE;
-      break;
 
-    case SORT_FROMTO:
-      i = 3;
-      accview_substitute_sort_icon = ACCVIEW_PANE_FROMTO;
-      break;
 
-    case SORT_REFERENCE:
-      i = 4;
-      accview_substitute_sort_icon = ACCVIEW_PANE_REFERENCE;
-      break;
 
-    case SORT_PAYMENTS:
-      i = 5;
-      accview_substitute_sort_icon = ACCVIEW_PANE_PAYMENTS;
-      break;
 
-    case SORT_RECEIPTS:
-      i = 6;
-      accview_substitute_sort_icon = ACCVIEW_PANE_RECEIPTS;
-      break;
 
-    case SORT_BALANCE:
-      i = 7;
-      accview_substitute_sort_icon = ACCVIEW_PANE_BALANCE;
-      break;
 
-    case SORT_DESCRIPTION:
-      i = 8;
-      accview_substitute_sort_icon = ACCVIEW_PANE_DESCRIPTION;
-      break;
-  }
 
-  width = icon->extent.x1 - icon->extent.x0;
 
-  if (((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_PAYMENTS ||
-      ((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_RECEIPTS ||
-      ((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_BALANCE)
-  {
-    anchor = (file->accounts[account].account_view)->column_position[i] + COLUMN_HEADING_MARGIN;
-    icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
-    icon->extent.x1 = icon->extent.x0 + width;
-  }
-  else
-  {
-    anchor = (file->accounts[account].account_view)->column_position[i] +
-             (file->accounts[account].account_view)->column_width[i] + COLUMN_HEADING_MARGIN;
-    icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
-    icon->extent.x0 = icon->extent.x1 - width;
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ================================================================================================================== */
 
@@ -1416,7 +1822,7 @@ void rebuild_account_view (file_data *file, int account)
     }
 
     build_account_view (file, account);
-    set_accview_window_extent (file, account);
+    accview_set_window_extent (file, account);
     sort_accview_window (file, account);
     windows_redraw ((file->accounts[account].account_view)->accview_window);
   }
@@ -1442,7 +1848,7 @@ void recalculate_account_view (file_data *file, int account, int transaction)
     }
 
     calculate_account_view (file, account);
-    force_accview_window_redraw (file, account,
+    accview_force_window_redraw (file, account,
                                  find_accview_line_from_transaction (file, account, transaction),
                                  (file->accounts[account].account_view)->display_lines-1);
   }
@@ -1458,7 +1864,7 @@ void refresh_account_view (file_data *file, int account, int transaction)
 
   if (line != -1)
   {
-    force_accview_window_redraw (file, account, line, line);
+    accview_force_window_redraw (file, account, line, line);
   }
 }
 
@@ -1693,7 +2099,7 @@ void sort_accview_window (file_data *file, int account)
     }
     while (!sorted || gap != 1);
 
-    force_accview_window_redraw (file, account, 0, window->display_lines - 1);
+    accview_force_window_redraw (file, account, 0, window->display_lines - 1);
 
     hourglass_off ();
   }
@@ -1701,125 +2107,6 @@ void sort_accview_window (file_data *file, int account)
 
 /* ================================================================================================================== */
 
-void open_accview_sort_window (file_data *file, int account, wimp_pointer *ptr)
-{
-  extern global_windows windows;
-
-  /* If the window is open elsewhere, close it first. */
-
-  if (windows_get_open (windows.sort_accview))
-  {
-    wimp_close_window (windows.sort_accview);
-  }
-
-  fill_accview_sort_window ((file->accounts[account].account_view)->sort_order);
-
-  accview_sort_file = file;
-  accview_sort_account = account;
-
-  windows_open_centred_at_pointer (windows.sort_accview, ptr);
-  place_dialogue_caret (windows.sort_accview, wimp_ICON_WINDOW);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void refresh_accview_sort_window (void)
-{
-  fill_accview_sort_window ((accview_sort_file->accounts[accview_sort_account].account_view)->sort_order);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void fill_accview_sort_window (int sort_option)
-{
-  extern global_windows windows;
-
-  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
-  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_FROMTO, (sort_option & SORT_MASK) == SORT_FROMTO);
-  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
-  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_PAYMENTS, (sort_option & SORT_MASK) == SORT_PAYMENTS);
-  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_RECEIPTS, (sort_option & SORT_MASK) == SORT_RECEIPTS);
-  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_BALANCE, (sort_option & SORT_MASK) == SORT_BALANCE);
-  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
-
-  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-  icons_set_selected (windows.sort_accview, ACCVIEW_SORT_DESCENDING, sort_option & SORT_DESCENDING);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-int process_accview_sort_window (void)
-{
-  extern global_windows windows;
-
-  (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_NONE;
-
-  if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_DATE))
-  {
-    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_DATE;
-  }
-  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_FROMTO))
-  {
-    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_FROMTO;
-  }
-  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_REFERENCE))
-  {
-    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_REFERENCE;
-  }
-  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_PAYMENTS))
-  {
-    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_PAYMENTS;
-  }
-  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_RECEIPTS))
-  {
-    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_RECEIPTS;
-  }
-  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_BALANCE))
-  {
-    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_BALANCE;
-  }
-  else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_DESCRIPTION))
-  {
-    (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_DESCRIPTION;
-  }
-
-  if ((accview_sort_file->accounts[accview_sort_account].account_view)->sort_order != SORT_NONE)
-  {
-    if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_ASCENDING))
-    {
-      (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order |= SORT_ASCENDING;
-    }
-    else if (icons_get_selected (windows.sort_accview, ACCVIEW_SORT_DESCENDING))
-    {
-      (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order |= SORT_DESCENDING;
-    }
-  }
-
-  adjust_accview_window_sort_icon (accview_sort_file, accview_sort_account);
-  windows_redraw ((accview_sort_file->
-                                accounts[accview_sort_account].account_view)->accview_pane);
-  sort_accview_window (accview_sort_file, accview_sort_account);
-
-  accview_sort_file->accview_sort_order =
-       (accview_sort_file->accounts[accview_sort_account].account_view)->sort_order;
-
-  return (0);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Force the closure of the find window if the file disappears. */
-
-void force_close_accview_sort_window (file_data *file)
-{
-  extern global_windows windows;
-
-
-  if (accview_sort_file == file && windows_get_open (windows.sort_accview))
-  {
-    close_dialogue_with_caret (windows.sort_accview);
-  }
-}
 
 /* ==================================================================================================================
  * Printing account views via the GUI
@@ -1965,120 +2252,6 @@ void print_accview_window(osbool text, osbool format, osbool scale, osbool rotat
   report_close_and_print(report, text, format, scale, rotate, pagenum);
 }
 
-/* ==================================================================================================================
- * Account View window handling
- */
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Set the extent of the account view window for the specified file. */
-
-void set_accview_window_extent (file_data *file, int account)
-{
-  wimp_window_state state;
-  os_box            extent;
-  int               new_height, visible_extent, new_extent, new_scroll;
-
-
-  /* Set the extent. */
-
-  if (account != NULL_ACCOUNT &&
-      file->accounts[account].account_view != NULL && (file->accounts[account].account_view)->accview_window != NULL)
-  {
-    /* Get the number of rows to show in the window, and work out the window extent from this. */
-
-    new_height =  ((file->accounts[account].account_view)->display_lines > MIN_ACCVIEW_ENTRIES) ?
-                   (file->accounts[account].account_view)->display_lines : MIN_ACCVIEW_ENTRIES;
-
-    new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_height) - ACCVIEW_TOOLBAR_HEIGHT;
-
-    /* Get the current window details, and find the extent of the bottom of the visible area. */
-
-    state.w = (file->accounts[account].account_view)->accview_window;
-    wimp_get_window_state (&state);
-
-    visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-    /* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-    if (new_extent > visible_extent)
-    {
-      /* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
-       * big and will need shrinking down.  Otherwise, just set the new scroll offset.
-       */
-
-      new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
-
-      if (new_scroll > 0)
-      {
-        state.visible.y0 += new_scroll;
-        state.yscroll = 0;
-      }
-      else
-      {
-        state.yscroll = new_scroll;
-      }
-
-      wimp_open_window ((wimp_open *) &state);
-    }
-
-    /* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-     * exist.
-     */
-
-    extent.x0 = 0;
-    extent.x1 = (file->accounts[account].account_view)->column_position[ACCVIEW_COLUMNS-1]
-                + (file->accounts[account].account_view)->column_width[ACCVIEW_COLUMNS-1];
-
-    extent.y0 = new_extent;
-    extent.y1 = 0;
-
-    wimp_set_extent ((file->accounts[account].account_view)->accview_window, &extent);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Called to recreate the title of the account view window connected to the data block. */
-
-void build_accview_window_title (file_data *file, int account)
-{
-  char name[256];
-
-
-  if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL)
-  {
-    make_file_leafname (file, name, sizeof (name));
-
-    msgs_param_lookup ("AccviewTitle", (file->accounts[account].account_view)->window_title,
-                        sizeof ((file->accounts[account].account_view)->window_title),
-                        file->accounts[account].name, name, NULL, NULL);
-
-    wimp_force_redraw_title ((file->accounts[account].account_view)->accview_window); /* Nested Wimp only! */
-  }
-}
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void force_accview_window_redraw (file_data *file, int account, int from, int to)
-{
-  int              y0, y1;
-  wimp_window_info window;
-
-
-  if (account != NULL_ACCOUNT &&
-      file->accounts[account].account_view != NULL && (file->accounts[account].account_view)->accview_window != NULL)
-  {
-    window.w = (file->accounts[account].account_view)->accview_window;
-    wimp_get_window_info_header_only (&window);
-
-    y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - ACCVIEW_TOOLBAR_HEIGHT;
-    y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - ACCVIEW_TOOLBAR_HEIGHT;
-
-    wimp_force_redraw ((file->accounts[account].account_view)->accview_window,
-                       window.extent.x0, y0, window.extent.x1, y1);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
 
 
 /* ==================================================================================================================
@@ -2171,30 +2344,6 @@ void find_accview_line (file_data *file, int account, int line)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void decode_accview_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
-{
-	int			column, xpos;
-	wimp_window_state	window;
-	struct accview_window	*windat;
-
-	*buffer = '\0';
-
-	windat = event_get_window_user_data(w);
-
-	if (windat == NULL)
-		return;
-
-	window.w = w;
-	wimp_get_window_state(&window);
-
-	xpos = (pos.x - window.visible.x0) + window.xscroll;
-
-	for (column = 0;
-			column < TRANSACT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
-			column++);
-
-	sprintf(buffer, "Col%d", column);
-}
 
 
 

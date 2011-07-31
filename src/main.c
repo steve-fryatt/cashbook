@@ -531,14 +531,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
     windows->sort_trans = templates_create_window("SortTrans");
     ihelp_add_window (windows->sort_trans, "SortTrans", NULL);
-
-  /* Sort AccView Window.
-   *
-   * Created now.
-   */
-
-     windows->sort_accview = templates_create_window("SortAccView");
-    ihelp_add_window (windows->sort_accview, "SortAccView", NULL);
 }
 
 
@@ -765,41 +757,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
       icons_set_selected (windows.sort_trans, pointer->i, 1);
     }
   }
-
-  /* AccView Sort Window */
-
-  else if (pointer->w == windows.sort_accview)
-  {
-    if (pointer->i == ACCVIEW_SORT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.sort_accview);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_accview_sort_window ();
-      }
-    }
-
-    else if (pointer->i == ACCVIEW_SORT_OK) /* 'OK' button */
-    {
-      if (!process_accview_sort_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.sort_accview);
-      }
-    }
-
-    else if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == ACCVIEW_SORT_DATE || pointer->i == ACCVIEW_SORT_FROMTO ||
-         pointer->i == ACCVIEW_SORT_REFERENCE || pointer->i == ACCVIEW_SORT_PAYMENTS ||
-         pointer->i == ACCVIEW_SORT_RECEIPTS || pointer->i == ACCVIEW_SORT_BALANCE ||
-         pointer->i == ACCVIEW_SORT_DESCRIPTION || pointer->i == ACCVIEW_SORT_ASCENDING ||
-         pointer->i == ACCVIEW_SORT_DESCENDING)) /* Radio icons */
-    {
-      icons_set_selected (windows.sort_accview, pointer->i, 1);
-    }
-  }
 }
 
 /* ==================================================================================================================
@@ -941,29 +898,6 @@ static void key_press_handler (wimp_key *key)
 
       case wimp_KEY_ESCAPE:
         close_dialogue_with_caret (windows.sort_trans);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
-
-  /* AccView Sort Window */
-
-  else if (key->w == windows.sort_accview)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_accview_sort_window ())
-        {
-          close_dialogue_with_caret (windows.sort_accview);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.sort_accview);
         break;
 
       default:

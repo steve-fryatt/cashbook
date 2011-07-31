@@ -1779,7 +1779,7 @@ int process_account_edit_window (void)
 
   sorder_trial(edit_account_file);
   perform_full_recalculation (edit_account_file);
-  recalculate_account_view (edit_account_file, edit_account_no, 0);
+  accview_recalculate (edit_account_file, edit_account_no, 0);
   force_transaction_window_redraw (edit_account_file, 0, edit_account_file->trans_count - 1);
   refresh_transaction_edit_line_icons (edit_account_file->transaction_window.transaction_window, -1, -1);
   redraw_all_account_views (edit_account_file);

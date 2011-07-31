@@ -152,7 +152,8 @@ static osbool			accview_process_sort_window(void);
 static void			accview_open_print_window(file_data *file, acct_t account, wimp_pointer *ptr, osbool restore);
 static void			accview_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
 
-
+static int			accview_build(file_data *file, acct_t account);
+static int			accview_calculate(file_data *file, acct_t account);
 
 
 
@@ -232,7 +233,7 @@ void accview_open_window(file_data *file, acct_t account)
 	debug_printf("\\BCreate Account View for %d", account);
 	#endif
 
-	build_account_view(file, account);
+	accview_build(file, account);
 
 	/* Set the main window extent and create it. */
 
@@ -1876,25 +1877,232 @@ void accview_sort(file_data *file, int account)
 }
 
 
+/**
+ * Build a redraw list for an account statement view window from scratch.
+ * Allocate a flex block big enough to take all the transactions in the file,
+ * fill it as required, then shrink it down again to the correct size.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to be built.
+ */
+
+static int accview_build(file_data *file, acct_t account)
+{
+	int	i, lines = 0;
+
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL)
+		return lines;
+
+
+	#ifdef DEBUG
+	debug_printf("\\BBuilding account statement view");
+	#endif
+
+	if (flex_alloc((flex_ptr)  &((file->accounts[account].account_view)->line_data), file->trans_count * sizeof(struct accview_redraw)) == 0) {
+		error_msgs_report_info("AccviewMemErr2");
+		return lines;
+	}
+
+	lines = accview_calculate(file, account);
+
+	flex_extend((flex_ptr) &((file->accounts[account].account_view)->line_data), lines * sizeof(struct accview_redraw));
+
+	for (i = 0; i < lines; i++)
+		(file->accounts[account].account_view)->line_data[i].sort_index = i;
+
+	return lines;
+}
+
+
+/**
+ * Rebuild a pre-existing account view from scratch, possibly becuase one of
+ * the account's From/To entries has been changed, so all bets are off...
+ * Delete the flex block and rebuild it, then resize the window and refresh the
+ * whole thing.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to be refreshed.
+ */
+
+void accview_rebuild(file_data *file, acct_t account)
+{
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL)
+		return;
+
+	#ifdef DEBUG
+	debug_printf("\\BRebuilding account statement view");
+	#endif
+
+	if (!(file->sort_valid))
+		sort_transactions(file);
+
+	if ((file->accounts[account].account_view)->line_data != NULL)
+		flex_free((flex_ptr) &((file->accounts[account].account_view)->line_data));
+
+	accview_build(file, account);
+	accview_set_window_extent(file, account);
+	accview_sort(file, account);
+	windows_redraw((file->accounts[account].account_view)->accview_window);
+}
+
+
+/* Calculate the contents of an account view redraw block: entering transaction references and calculating a running
+ * balance for the display.
+ *
+ * This relies on there being enough space in the block to take a line for every transaction.  If it is called for
+ * an existing view, it relies on the number of lines not having changed!
+ */
+
+static int accview_calculate(file_data *file, acct_t account)
+{
+	int	lines = 0, i, balance;
+
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL)
+		return lines;
+
+	hourglass_on();
+
+	balance = file->accounts[account].opening_balance;
+
+	for (i=0; i<file->trans_count; i++) {
+		if (file->transactions[i].from == account || file->transactions[i].to == account) {
+			((file->accounts[account].account_view)->line_data)[lines].transaction = i;
+
+			if (file->transactions[i].from == account)
+				balance -= file->transactions[i].amount;
+			else
+				balance += file->transactions[i].amount;
+
+			((file->accounts[account].account_view)->line_data)[lines].balance = balance;
+
+			lines++;
+		}
+	}
+
+	(file->accounts[account].account_view)->display_lines = lines;
+
+	hourglass_off();
+
+	return lines;
+}
+
+
+/**
+ * Recalculate the account view.  An amount entry or date has been changed, so
+ * the number of transactions will remain the same.  Just re-fill the existing
+ * flex block, then resize the window and refresh the whole thing.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to be recalculated.
+ * \param transaction		The transaction which has been changed.
+ */
+
+void accview_recalculate(file_data *file, acct_t account, int transaction)
+{
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL)
+		return;
+
+	#ifdef DEBUG
+	debug_printf("\\BRecalculating account statement view");
+	#endif
+
+	if (!(file->sort_valid))
+		sort_transactions(file);
+
+	accview_calculate(file, account);
+	accview_force_window_redraw(file, account, find_accview_line_from_transaction(file, account, transaction),
+			(file->accounts[account].account_view)->display_lines-1);
+}
 
 
 
 
 
+void refresh_account_view (file_data *file, int account, int transaction)
+{
+  int line;
+
+  line = find_accview_line_from_transaction (file, account, transaction);
+
+  if (line != -1)
+  {
+    accview_force_window_redraw (file, account, line, line);
+  }
+}
 
 
 
 
 
+/* Re-index the account views.  This can *only* be done after a sort_transactions() as it requires data set up
+ * by that call in the transaction block.
+ */
 
+void reindex_all_account_views (file_data *file)
+{
+  int i, j, t;
 
+  #ifdef DEBUG
+  debug_printf ("Reindexing account views...");
+  #endif
 
+  for (i=0; i<file->account_count; i++)
+  {
+    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->line_data != NULL)
+    {
+      for (j=0; j<(file->accounts[i].account_view)->display_lines; j++)
+      {
+        t = ((file->accounts[i].account_view)->line_data)[j].transaction;
+        ((file->accounts[i].account_view)->line_data)[j].transaction = file->transactions[t].sort_workspace;
+      }
+    }
+  }
+}
 
+/* ------------------------------------------------------------------------------------------------------------------ */
 
+void redraw_all_account_views (file_data *file)
+{
+  int i;
 
+  for (i=0; i<file->account_count; i++)
+  {
+    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
+    {
+      windows_redraw ((file->accounts[i].account_view)->accview_window);
+    }
+  }
+}
 
+/* ------------------------------------------------------------------------------------------------------------------ */
 
+void recalculate_all_account_views (file_data *file)
+{
+  int i;
 
+  for (i=0; i<file->account_count; i++)
+  {
+    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
+    {
+      accview_recalculate (file, i, 0);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+void rebuild_all_account_views (file_data *file)
+{
+  int i;
+
+  for (i=0; i<file->account_count; i++)
+  {
+    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
+    {
+      accview_rebuild (file, i);
+    }
+  }
+}
 
 
 
@@ -1958,240 +2166,18 @@ int find_accview_line_from_transaction (file_data *file, int account, int transa
   return (index);
 }
 
-/* ==================================================================================================================
- * Account View creation
- */
-
-/* Build a redraw list for an account statement view from scratch.  Allocate a flex block big enough to take all the
- * transactions, fill it as required, then shrink it down again.
- */
-
-int build_account_view (file_data *file, int account)
-{
-  int            i, lines;
-
-  lines = 0;
-
-  if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL)
-  {
-    #ifdef DEBUG
-    debug_printf ("\\BBuilding account statement view");
-    #endif
-
-    if (flex_alloc ((flex_ptr)  &((file->accounts[account].account_view)->line_data),
-                    file->trans_count * sizeof(struct accview_redraw)))
-    {
-      lines = calculate_account_view (file, account);
-
-      flex_extend ((flex_ptr) &((file->accounts[account].account_view)->line_data),
-                   lines * sizeof(struct accview_redraw));
-
-      for (i=0; i<lines; i++)
-      {
-        (file->accounts[account].account_view)->line_data[i].sort_index = i;
-      }
-    }
-    else
-    {
-      error_msgs_report_info ("AccviewMemErr2");
-    }
-  }
-
-  return (lines);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Calculate the contents of an account view redraw block: entering transaction references and calculating a running
- * balance for the display.
- *
- * This relies on there being enough space in the block to take a line for every transaction.  If it is called for
- * an existing view, it relies on the number of lines not having changed!
- */
-
-int calculate_account_view (file_data *file, int account)
-{
-  int lines, i, balance;
-
-  lines = 0;
-
-  if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL)
-  {
-    hourglass_on ();
-
-    balance = file->accounts[account].opening_balance;
-
-    for (i=0; i<file->trans_count; i++)
-    {
-      if (file->transactions[i].from == account || file->transactions[i].to == account)
-      {
-        ((file->accounts[account].account_view)->line_data)[lines].transaction = i;
-
-        if (file->transactions[i].from == account)
-        {
-          balance -= file->transactions[i].amount;
-        }
-        else
-        {
-          balance += file->transactions[i].amount;
-        }
-
-        ((file->accounts[account].account_view)->line_data)[lines].balance = balance;
-
-        lines++;
-      }
-    }
-
-    (file->accounts[account].account_view)->display_lines = lines;
-
-    hourglass_off ();
-  }
-
-  return (lines);
-}
 
 /* ================================================================================================================== */
 
-/* Rebuild the account view from scratch.  An account From/To entry has been changed, so all bets are off...
- * Delete the flex block and rebuild it, then resize the window and refresh the whole thing.
- */
-
-void rebuild_account_view (file_data *file, int account)
-{
-  if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL)
-  {
-    #ifdef DEBUG
-    debug_printf ("\\BRebuilding account statement view");
-    #endif
-
-    if (!(file->sort_valid))
-    {
-      sort_transactions (file);
-    }
-
-    if ((file->accounts[account].account_view)->line_data != NULL)
-    {
-      flex_free ((flex_ptr) &((file->accounts[account].account_view)->line_data));
-    }
-
-    build_account_view (file, account);
-    accview_set_window_extent (file, account);
-    accview_sort (file, account);
-    windows_redraw ((file->accounts[account].account_view)->accview_window);
-  }
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Recalculate the account view.  An amount entry or date has been changed, so the number of transactions will
- * remain the same.  Just re-fill the existing flex block, then resize the window and refresh the whole thing.
- */
-
-void recalculate_account_view (file_data *file, int account, int transaction)
-{
-  if (account != NULL_ACCOUNT && file->accounts[account].account_view != NULL)
-  {
-    #ifdef DEBUG
-    debug_printf ("\\BRecalculating account statement view");
-    #endif
-
-    if (!(file->sort_valid))
-    {
-      sort_transactions (file);
-    }
-
-    calculate_account_view (file, account);
-    accview_force_window_redraw (file, account,
-                                 find_accview_line_from_transaction (file, account, transaction),
-                                 (file->accounts[account].account_view)->display_lines-1);
-  }
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_account_view (file_data *file, int account, int transaction)
-{
-  int line;
-
-  line = find_accview_line_from_transaction (file, account, transaction);
-
-  if (line != -1)
-  {
-    accview_force_window_redraw (file, account, line, line);
-  }
-}
 
 /* ================================================================================================================== */
 
-/* Re-index the account views.  This can *only* be done after a sort_transactions() as it requires data set up
- * by that call in the transaction block.
- */
-
-void reindex_all_account_views (file_data *file)
-{
-  int i, j, t;
-
-  #ifdef DEBUG
-  debug_printf ("Reindexing account views...");
-  #endif
-
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->line_data != NULL)
-    {
-      for (j=0; j<(file->accounts[i].account_view)->display_lines; j++)
-      {
-        t = ((file->accounts[i].account_view)->line_data)[j].transaction;
-        ((file->accounts[i].account_view)->line_data)[j].transaction = file->transactions[t].sort_workspace;
-      }
-    }
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void redraw_all_account_views (file_data *file)
-{
-  int i;
-
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
-    {
-      windows_redraw ((file->accounts[i].account_view)->accview_window);
-    }
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void recalculate_all_account_views (file_data *file)
-{
-  int i;
-
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
-    {
-      recalculate_account_view (file, i, 0);
-    }
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void rebuild_all_account_views (file_data *file)
-{
-  int i;
-
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
-    {
-      rebuild_account_view (file, i);
-    }
-  }
-}
 
 /* ================================================================================================================== */
 

@@ -106,6 +106,32 @@ void accview_force_windows_closed(file_data *file);
 void accview_sort(file_data *file, int account);
 
 
+/**
+ * Rebuild a pre-existing account view from scratch, possibly becuase one of
+ * the account's From/To entries has been changed, so all bets are off...
+ * Delete the flex block and rebuild it, then resize the window and refresh the
+ * whole thing.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to be refreshed.
+ */
+
+void accview_rebuild(file_data *file, acct_t account);
+
+
+/**
+ * Recalculate the account view.  An amount entry or date has been changed, so
+ * the number of transactions will remain the same.  Just re-fill the existing
+ * flex block, then resize the window and refresh the whole thing.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to be recalculated.
+ * \param transaction		The transaction which has been changed.
+ */
+
+void accview_recalculate(file_data *file, acct_t account, int transaction);
+
+
 
 
 
@@ -115,11 +141,6 @@ int find_accview_line_from_transaction (file_data *file, int account, int transa
 
 /* Account view creation. */
 
-int build_account_view (file_data *file, int account);
-int calculate_account_view (file_data *file, int account);
-
-void rebuild_account_view (file_data *file, int account);
-void recalculate_account_view (file_data *file, int account, int transaction);
 void refresh_account_view (file_data *file, int account, int transaction);
 
 void reindex_all_account_views (file_data *file);

@@ -777,8 +777,8 @@ void edit_change_transaction_amount (file_data *file, int transaction, amt_t new
 
     if (changed)
     {
-      recalculate_account_view (file, file->transactions[transaction].from, transaction);
-      recalculate_account_view (file, file->transactions[transaction].to, transaction);
+      accview_recalculate (file, file->transactions[transaction].from, transaction);
+      accview_recalculate (file, file->transactions[transaction].to, transaction);
 
       /* If the line is the edit line, setting the shading uses wimp_set_icon_state () and the line will effectively
        * be redrawn for free.
@@ -965,14 +965,14 @@ void edit_change_transaction_account (file_data *file, int transaction, int chan
     {
       if (change_icon == EDIT_ICON_FROM)
       {
-        rebuild_account_view (file, old_acct);
-        rebuild_account_view (file, file->transactions[transaction].from);
+        accview_rebuild (file, old_acct);
+        accview_rebuild (file, file->transactions[transaction].from);
         refresh_account_view (file, file->transactions[transaction].to, transaction);
       }
       else if (change_icon == EDIT_ICON_TO)
       {
-        rebuild_account_view (file, old_acct);
-        rebuild_account_view (file, file->transactions[transaction].to);
+        accview_rebuild (file, old_acct);
+        accview_rebuild (file, file->transactions[transaction].to);
         refresh_account_view (file, file->transactions[transaction].from, transaction);
       }
 
@@ -1680,9 +1680,9 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
         /* Trust that any accuout views that are open must be based on a valid date order, and only rebuild those
          * that are directly affected.
          */
-        rebuild_account_view (file, old_acct);
+        accview_rebuild (file, old_acct);
         transaction = file->transactions[line].sort_index;
-        rebuild_account_view (file, file->transactions[transaction].from);
+        accview_rebuild (file, file->transactions[transaction].from);
         transaction = file->transactions[line].sort_index;
         refresh_account_view (file, file->transactions[transaction].to, transaction);
       }
@@ -1693,9 +1693,9 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
          * that are directly affected.
          */
 
-        rebuild_account_view (file, old_acct);
+        accview_rebuild (file, old_acct);
         transaction = file->transactions[line].sort_index;
-        rebuild_account_view (file, file->transactions[transaction].to);
+        accview_rebuild (file, file->transactions[transaction].to);
         transaction = file->transactions[line].sort_index;
         refresh_account_view (file, file->transactions[transaction].from, transaction);
       }
@@ -1708,8 +1708,8 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
 
       else if (key->i == EDIT_ICON_AMOUNT)
       {
-        recalculate_account_view (file, file->transactions[transaction].from, transaction);
-        recalculate_account_view (file, file->transactions[transaction].to, transaction);
+        accview_recalculate (file, file->transactions[transaction].from, transaction);
+        accview_recalculate (file, file->transactions[transaction].to, transaction);
       }
 
       else if (key->i == EDIT_ICON_DESCRIPT)

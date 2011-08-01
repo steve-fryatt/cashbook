@@ -645,11 +645,11 @@ void toggle_reconcile_flag (file_data *file, int transaction, int change_flag)
     {
       if (change_flag == TRANS_REC_FROM)
       {
-        refresh_account_view (file, file->transactions[transaction].from, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].from, transaction);
       }
       else
       {
-        refresh_account_view (file, file->transactions[transaction].to, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].to, transaction);
       }
 
       /* If the line is the edit line, setting the shading uses wimp_set_icon_state () and the line will effectively
@@ -710,14 +710,14 @@ void edit_change_transaction_date (file_data *file, int transaction, date_t new_
     {
       /* Ideally, we would want to recalculate just the affected two accounts.  However, because the date sort is
        * unclean, any rebuild will force a resort of the transactions, which will require a full rebuild of all the
-       * open account views.  Therefore, call recalculate_all_account_views () to force a full recalculation.  This
+       * open account views.  Therefore, call accview_recalculate_all () to force a full recalculation.  This
        * will in turn sort the data if required.
        *
        * The big assumption here is that, because no from or to entries have changed, none of the accounts will
        * change length and so a full rebuild is not required.
        */
 
-      recalculate_all_account_views (file);
+      accview_recalculate_all (file);
 
       /* If the line is the edit line, setting the shading uses wimp_set_icon_state () and the line will effectively
        * be redrawn for free.
@@ -850,8 +850,8 @@ void edit_change_transaction_refdesc (file_data *file, int transaction, int chan
     {
       /* Refresh any account views that may be affected. */
 
-      refresh_account_view (file, file->transactions[transaction].from, transaction);
-      refresh_account_view (file, file->transactions[transaction].to, transaction);
+      accview_redraw_transaction (file, file->transactions[transaction].from, transaction);
+      accview_redraw_transaction (file, file->transactions[transaction].to, transaction);
 
       /* If the line is the edit line, setting the shading uses wimp_set_icon_state () and the line will effectively
        * be redrawn for free.
@@ -967,13 +967,13 @@ void edit_change_transaction_account (file_data *file, int transaction, int chan
       {
         accview_rebuild (file, old_acct);
         accview_rebuild (file, file->transactions[transaction].from);
-        refresh_account_view (file, file->transactions[transaction].to, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].to, transaction);
       }
       else if (change_icon == EDIT_ICON_TO)
       {
         accview_rebuild (file, old_acct);
         accview_rebuild (file, file->transactions[transaction].to);
-        refresh_account_view (file, file->transactions[transaction].from, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].from, transaction);
       }
 
       /* If the line is the edit line, setting the shading uses wimp_set_icon_state () and the line will effectively
@@ -1025,7 +1025,7 @@ void insert_transaction_preset_full (file_data *file, int transaction, int prese
 
     if (changed)
     {
-      rebuild_all_account_views (file);
+      accview_rebuild_all (file);
 
       /* If the line is the edit line, setting the shading uses wimp_set_icon_state () and the line will effectively
        * be redrawn for free.
@@ -1159,7 +1159,7 @@ void delete_edit_line_transaction (file_data *file)
 
     file->sort_valid = 0;
 
-    rebuild_all_account_views (file);
+    accview_rebuild_all (file);
 
     refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
     set_transaction_edit_line_shading (file);
@@ -1623,7 +1623,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
          * Unlike all the other options, presets must refresh the line on screen too.
          */
 
-        rebuild_all_account_views (file);
+        accview_rebuild_all (file);
 
         refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
         set_transaction_edit_line_shading (file);
@@ -1665,14 +1665,14 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
       {
         /* Ideally, we would want to recalculate just the affected two accounts.  However, because the date sort is
          * unclean, any rebuild will force a resort of the transactions, which will require a full rebuild of all the
-         * open account views.  Therefore, call recalculate_all_account_views () to force a full recalculation.  This
+         * open account views.  Therefore, call accview_recalculate_all () to force a full recalculation.  This
          * will in turn sort the data if required.
          *
          * The big assumption here is that, because no from or to entries have changed, none of the accounts will
          * change length and so a full rebuild is not required.
          */
 
-        recalculate_all_account_views (file);
+        accview_recalculate_all (file);
       }
 
       else if (key->i == EDIT_ICON_FROM)
@@ -1684,7 +1684,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
         transaction = file->transactions[line].sort_index;
         accview_rebuild (file, file->transactions[transaction].from);
         transaction = file->transactions[line].sort_index;
-        refresh_account_view (file, file->transactions[transaction].to, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].to, transaction);
       }
 
       else if (key->i == EDIT_ICON_TO)
@@ -1697,13 +1697,13 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
         transaction = file->transactions[line].sort_index;
         accview_rebuild (file, file->transactions[transaction].to);
         transaction = file->transactions[line].sort_index;
-        refresh_account_view (file, file->transactions[transaction].from, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].from, transaction);
       }
 
       else if (key->i == EDIT_ICON_REF)
       {
-        refresh_account_view (file, file->transactions[transaction].from, transaction);
-        refresh_account_view (file, file->transactions[transaction].to, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].from, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].to, transaction);
       }
 
       else if (key->i == EDIT_ICON_AMOUNT)
@@ -1714,8 +1714,8 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
 
       else if (key->i == EDIT_ICON_DESCRIPT)
       {
-        refresh_account_view (file, file->transactions[transaction].from, transaction);
-        refresh_account_view (file, file->transactions[transaction].to, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].from, transaction);
+        accview_redraw_transaction (file, file->transactions[transaction].to, transaction);
       }
     }
 

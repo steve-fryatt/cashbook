@@ -684,7 +684,7 @@ void redraw_file_windows (file_data *file)
 
   /* Redraw the account view windows. */
 
-  redraw_all_account_views (file);
+  accview_redraw_all (file);
 
   /* Redraw the standing order window. */
 

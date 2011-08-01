@@ -51,6 +51,41 @@
 #include "transact.h"
 #include "window.h"
 
+
+/* Toolbar icons */
+
+#define ACCVIEW_PANE_DATE 0
+#define ACCVIEW_PANE_FROMTO 1
+#define ACCVIEW_PANE_REFERENCE 2
+#define ACCVIEW_PANE_PAYMENTS 3
+#define ACCVIEW_PANE_RECEIPTS 4
+#define ACCVIEW_PANE_BALANCE 5
+#define ACCVIEW_PANE_DESCRIPTION 6
+
+#define ACCVIEW_PANE_PARENT 7
+#define ACCVIEW_PANE_EDIT 8
+#define ACCVIEW_PANE_GOTOEDIT 9
+#define ACCVIEW_PANE_PRINT 10
+#define ACCVIEW_PANE_SORT 11
+
+#define ACCVIEW_PANE_SORT_DIR_ICON 12
+
+#define ACCVIEW_COLUMN_RECONCILE 2
+
+#define ACCVIEW_PANE_COL_MAP "0;1,2,3;4;5;6;7;8"
+
+#define ACCVIEW_SORT_OK 2
+#define ACCVIEW_SORT_CANCEL 3
+#define ACCVIEW_SORT_DATE 4
+#define ACCVIEW_SORT_FROMTO 5
+#define ACCVIEW_SORT_REFERENCE 6
+#define ACCVIEW_SORT_PAYMENTS 7
+#define ACCVIEW_SORT_RECEIPTS 8
+#define ACCVIEW_SORT_BALANCE 9
+#define ACCVIEW_SORT_DESCRIPTION 10
+#define ACCVIEW_SORT_ASCENDING 11
+#define ACCVIEW_SORT_DESCENDING 12
+
 /* AccView menu */
 
 #define ACCVIEW_MENU_FINDTRANS 0
@@ -123,9 +158,6 @@ static wimp_i			accview_substitute_sort_icon = ACCVIEW_PANE_DATE;/**< The icon c
 
 
 
-
-
-
 static void			accview_close_window_handler(wimp_close *close);
 static void			accview_window_click_handler(wimp_pointer *pointer);
 static void			accview_pane_click_handler(wimp_pointer *pointer);
@@ -155,6 +187,11 @@ static void			accview_print(osbool text, osbool format, osbool scale, osbool rot
 static int			accview_build(file_data *file, acct_t account);
 static int			accview_calculate(file_data *file, acct_t account);
 
+static int			accview_get_line_from_transaction(file_data *file, acct_t account, int transaction);
+static int			accview_get_line_from_transact_window(file_data *file, acct_t account);
+static int			accview_get_y_offset_from_transact_window(file_data *file, acct_t account);
+static void			accview_scroll_to_transact_window(file_data *file, acct_t account);
+static void			accview_scroll_to_line(file_data *file, acct_t account, int line);
 
 
 /**
@@ -269,7 +306,7 @@ void accview_open_window(file_data *file, acct_t account)
 
 	/* Set the scroll offset to show the contents of the transaction window */
 
-	accview_window_def->yscroll = align_accview_with_transact_y_offset (file, account);
+	accview_window_def->yscroll = accview_get_y_offset_from_transact_window(file, account);
 
 	error = xwimp_create_window(accview_window_def, &(new->accview_window));
 	if (error != NULL) {
@@ -532,7 +569,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCVIEW_PANE_GOTOEDIT:
-			align_accview_with_transact(file, account);
+			accview_scroll_to_transact_window(file, account);
 			break;
 
 		case ACCVIEW_PANE_SORT:
@@ -703,7 +740,7 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCVIEW_MENU_GOTOTRANS:
-		align_accview_with_transact(windat->file, windat->account);
+		accview_scroll_to_transact_window(windat->file, windat->account);
 		break;
 
 	case ACCVIEW_MENU_SORT:
@@ -2010,286 +2047,255 @@ void accview_recalculate(file_data *file, acct_t account, int transaction)
 		sort_transactions(file);
 
 	accview_calculate(file, account);
-	accview_force_window_redraw(file, account, find_accview_line_from_transaction(file, account, transaction),
+	accview_force_window_redraw(file, account, accview_get_line_from_transaction(file, account, transaction),
 			(file->accounts[account].account_view)->display_lines-1);
 }
 
 
-
-
-
-void refresh_account_view (file_data *file, int account, int transaction)
-{
-  int line;
-
-  line = find_accview_line_from_transaction (file, account, transaction);
-
-  if (line != -1)
-  {
-    accview_force_window_redraw (file, account, line, line);
-  }
-}
-
-
-
-
-
-/* Re-index the account views.  This can *only* be done after a sort_transactions() as it requires data set up
- * by that call in the transaction block.
+/**
+ * Redraw the line in an account view corresponding to the given transaction.
+ * If the transaction does not feature in the account, nothing is done.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to be redrawn.
+ * \param transaction		The transaction to be redrawn.
  */
 
-void reindex_all_account_views (file_data *file)
+void accview_redraw_transaction(file_data *file, acct_t account, int transaction)
 {
-  int i, j, t;
+	int	line;
 
-  #ifdef DEBUG
-  debug_printf ("Reindexing account views...");
-  #endif
+	if (file == NULL || account == NULL_ACCOUNT)
+		return;
 
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->line_data != NULL)
-    {
-      for (j=0; j<(file->accounts[i].account_view)->display_lines; j++)
-      {
-        t = ((file->accounts[i].account_view)->line_data)[j].transaction;
-        ((file->accounts[i].account_view)->line_data)[j].transaction = file->transactions[t].sort_workspace;
-      }
-    }
-  }
-}
+	line = accview_get_line_from_transaction(file, account, transaction);
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void redraw_all_account_views (file_data *file)
-{
-  int i;
-
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
-    {
-      windows_redraw ((file->accounts[i].account_view)->accview_window);
-    }
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void recalculate_all_account_views (file_data *file)
-{
-  int i;
-
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
-    {
-      accview_recalculate (file, i, 0);
-    }
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void rebuild_all_account_views (file_data *file)
-{
-  int i;
-
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
-    {
-      accview_rebuild (file, i);
-    }
-  }
+	if (line != -1)
+		accview_force_window_redraw(file, account, line, line);
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ================================================================================================================== */
-
-/* Return the account shown in the given window. */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Find the line in the given account view window that corresponds to the specified transaction. */
-
-int find_accview_line_from_transaction (file_data *file, int account, int transaction)
-{
-  int line, index, i;
-
-
-  line = -1;
-  index = -1;
-
-  if (account != NULL_ACCOUNT &&
-      file->accounts[account].account_view != NULL &&
-      (file->accounts[account].account_view)->line_data != NULL)
-  {
-    for (i = 0; i < (file->accounts[account].account_view)->display_lines && line == -1; i++)
-    {
-      if (((file->accounts[account].account_view)->line_data)[i].transaction == transaction)
-      {
-        line = i;
-      }
-    }
-
-    if (line != -1)
-    {
-      for (i = 0; i < (file->accounts[account].account_view)->display_lines && index == -1; i++)
-      {
-        if (((file->accounts[account].account_view)->line_data)[i].sort_index == line)
-        {
-          index = i;
-        }
-      }
-    }
-  }
-
-  return (index);
-}
-
-
-/* ================================================================================================================== */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
-/* ================================================================================================================== */
-
-
-/* ================================================================================================================== */
-
-
-
-
-
-/* ==================================================================================================================
- * Aligning Account View window with Transaction Window.
+/**
+ * Re-index the account views in a file.  This can *only* be done after
+ * sort_transactions() has been called, as it requires data set up
+ * in the transaction block by that call.
+ *
+ * \param *file			The file to reindex.
  */
 
-int align_accview_with_transact_line (file_data *file, int account)
+void accview_reindex_all(file_data *file)
 {
-  int				centre_transact, line = 0;
-  struct accview_window		*window;
+	acct_t		i;
+	int		j, t;
 
+	if (file == NULL)
+		return;
 
-  if (account != NULL_ACCOUNT)
-  {
-    window = file->accounts[account].account_view;
+	#ifdef DEBUG
+	debug_printf("Reindexing account views...");
+	#endif
 
-    if (window != NULL)
-    {
-      centre_transact = find_transaction_window_centre (file, account);
-      line = find_accview_line_from_transaction (file, account, centre_transact);
-
-      if (line == -1)
-      {
-        line = 0;
-      }
-    }
-  }
-
-  return (line);
+	for (i=0; i<file->account_count; i++) {
+		if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->line_data != NULL) {
+			for (j=0; j<(file->accounts[i].account_view)->display_lines; j++) {
+				t = ((file->accounts[i].account_view)->line_data)[j].transaction;
+				((file->accounts[i].account_view)->line_data)[j].transaction = file->transactions[t].sort_workspace;
+			}
+		}
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-int align_accview_with_transact_y_offset (file_data *file, int account)
+/**
+ * Fully redraw all of the open account views in a file.
+ *
+ * \param *file			The file to be redrawn.
+ */
+
+void accview_redraw_all(file_data *file)
 {
-  return (-align_accview_with_transact_line (file, account) * (ICON_HEIGHT + LINE_GUTTER));
+	acct_t		i;
+
+	if (file == NULL)
+		return;
+
+	for (i=0; i<file->account_count; i++)
+		if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
+			windows_redraw((file->accounts[i].account_view)->accview_window);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void align_accview_with_transact (file_data *file, int account)
+/**
+ * Fully recalculate all of the open account views in a file.
+ *
+ * \param *file			The file to be recalculated.
+ */
+
+void accview_recalculate_all(file_data *file)
 {
-  find_accview_line (file, account, align_accview_with_transact_line (file, account));
+	acct_t		i;
+
+	if (file == NULL)
+		return;
+
+	for (i=0; i<file->account_count; i++)
+		if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
+			accview_recalculate(file, i, 0);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Locate the given line in the account view window. */
+/**
+ * Fully rebuild all of the open account views in a file.
+ *
+ * \param *file			The file to be rebuilt.
+ */
 
-void find_accview_line (file_data *file, int account, int line)
+void accview_rebuild_all(file_data *file)
 {
-  wimp_window_state window;
-  int               height, top, bottom;
+	acct_t		i;
 
+	if (file == NULL)
+		return;
 
-  if (account != NULL_ACCOUNT &&
-      file->accounts[account].account_view != NULL && (file->accounts[account].account_view)->accview_window != NULL)
-  {
-    window.w = (file->accounts[account].account_view)->accview_window;
-    wimp_get_window_state (&window);
-
-    /* Calculate the height of the useful visible window, leaving out any OS units taken up by part lines.
-     * This will allow the edit line to be aligned with the top or bottom of the window.
-     */
-
-    height = window.visible.y1 - window.visible.y0 - ICON_HEIGHT - LINE_GUTTER - ACCVIEW_TOOLBAR_HEIGHT;
-
-    /* Calculate the top full line and bottom full line that are showing in the window.  Part lines don't
-     * count and are discarded.
-     */
-
-    top = (-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-    bottom = height / (ICON_HEIGHT+LINE_GUTTER) + top;
-
-    /* If the edit line is above or below the visible area, bring it into range. */
-
-    if (line < top)
-    {
-      window.yscroll = -(line * (ICON_HEIGHT+LINE_GUTTER));
-      wimp_open_window ((wimp_open *) &window);
-    }
-
-    if (line > bottom)
-    {
-      window.yscroll = -(line * (ICON_HEIGHT+LINE_GUTTER) - height);
-      wimp_open_window ((wimp_open *) &window);
-    }
-  }
+	for (i=0; i<file->account_count; i++)
+		if (file->accounts[i].account_view != NULL && (file->accounts[i].account_view)->accview_window != NULL)
+			accview_rebuild(file, i);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * Convert a transaction number into a line in a given account view.
+ *
+ * \param *file			The file to work on.
+ * \param account		The account to use the view for.
+ * \param transaction		The transaction to locate.
+ * \return			The corresponding account view line, or -1.
+ */
+
+static int accview_get_line_from_transaction(file_data *file, acct_t account, int transaction)
+{
+	int	line = -1, index = -1, i;
+
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL ||
+			(file->accounts[account].account_view)->line_data == NULL)
+		return index;
+
+	for (i = 0; i < (file->accounts[account].account_view)->display_lines && line == -1; i++)
+		if (((file->accounts[account].account_view)->line_data)[i].transaction == transaction)
+			line = i;
+
+	if (line != -1)
+		for (i = 0; i < (file->accounts[account].account_view)->display_lines && index == -1; i++)
+			if (((file->accounts[account].account_view)->line_data)[i].sort_index == line)
+				index = i;
+
+	return index;
+}
 
 
+/**
+ * Return the line in an account view which is most closely associated
+ * with the transaction at the centre of the transaction window for the
+ * parent file.
+ *
+ * \param *file			The file to use.
+ * \param account		The account to use.
+ * \return			The line in the account view, or 0.
+ */
+
+static int accview_get_line_from_transact_window(file_data *file, acct_t account)
+{
+	int			centre_transact, line = 0;
+
+	if (file == NULL || account == NULL_ACCOUNT ||
+			file->accounts[account].account_view == NULL)
+		return line;
+
+	centre_transact = find_transaction_window_centre(file, account);
+	line = accview_get_line_from_transaction(file, account, centre_transact);
+
+	if (line == -1)
+		line = 0;
+
+	return line;
+}
 
 
+/**
+ * Get a Y offset in OS units for an account view window based on the transaction
+ * which is at the centre of the transaction window.
+ *
+ * \param *file			The file to use.
+ * \param account		The account view to use.
+ * \return			The Y offset in OS units, or 0.
+ */
+
+static int accview_get_y_offset_from_transact_window(file_data *file, acct_t account)
+{
+	return -accview_get_line_from_transact_window(file, account) * (ICON_HEIGHT + LINE_GUTTER);
+}
 
 
+/**
+ * Scroll an account view window so that it displays lines close to the current
+ * transaction window scroll offset.
+ *
+ * \param *file			The file to work on.
+ * \param account		The account to work on.
+ */
+
+static void accview_scroll_to_transact_window(file_data *file, acct_t account)
+{
+	accview_scroll_to_line(file, account, accview_get_line_from_transact_window(file, account));
+}
 
 
+/**
+ * Scroll an account view window so that the specified line appears within
+ * the visible area.
+ *
+ * \param *file			The file to work on.
+ * \param account		The account to work on.
+ * \param line			The line to scroll in to view.
+ */
 
+static void accview_scroll_to_line(file_data *file, acct_t account, int line)
+{
+	wimp_window_state	window;
+	int	height, top, bottom;
 
+	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL ||
+			(file->accounts[account].account_view)->accview_window == NULL)
+		return;
 
+	window.w = (file->accounts[account].account_view)->accview_window;
+	wimp_get_window_state(&window);
 
+	/* Calculate the height of the useful visible window, leaving out any OS units taken up by part lines.
+	 * This will allow the edit line to be aligned with the top or bottom of the window.
+	 */
 
+	height = window.visible.y1 - window.visible.y0 - ICON_HEIGHT - LINE_GUTTER - ACCVIEW_TOOLBAR_HEIGHT;
 
+	/* Calculate the top full line and bottom full line that are showing in the window.  Part lines don't
+	 * count and are discarded.
+	 */
 
+	top = (-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+	bottom = height / (ICON_HEIGHT+LINE_GUTTER) + top;
 
+	/* If the edit line is above or below the visible area, bring it into range. */
+
+	if (line < top) {
+		window.yscroll = -(line * (ICON_HEIGHT+LINE_GUTTER));
+		wimp_open_window((wimp_open *) &window);
+	}
+
+	if (line > bottom) {
+		window.yscroll = -(line * (ICON_HEIGHT+LINE_GUTTER) - height);
+		wimp_open_window((wimp_open *) &window);
+	}
+}
 
 
 /**

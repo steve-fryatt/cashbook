@@ -796,7 +796,7 @@ void import_csv_file (file_data *file, char *filename)
     sort_transactions (file);
     sorder_trial(file);
     perform_full_recalculation (file);
-    rebuild_all_account_views (file);
+    accview_rebuild_all (file);
     set_file_data_integrity (file, TRUE);
 
     refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);

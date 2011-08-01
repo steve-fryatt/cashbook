@@ -2461,7 +2461,7 @@ void sorder_process(file_data *file)
 		if (config_opt_read("AutoSortSOrders"))
 			sorder_sort(file);
 
-		rebuild_all_account_views(file);
+		accview_rebuild_all(file);
 	}
 }
 

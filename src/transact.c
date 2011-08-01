@@ -1902,7 +1902,7 @@ void sort_transactions (file_data *file)
     file->transactions[file->transactions[i].sort_index].sort_workspace = i;
   }
 
-  reindex_all_account_views (file);
+  accview_reindex_all (file);
 
   for (i=0; i < file->trans_count; i++)
   {

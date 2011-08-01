@@ -8,42 +8,6 @@
 
 #include "filing.h"
 
-/* ==================================================================================================================
- * Static constants
- */
-/* Toolbar icons */
-
-#define ACCVIEW_PANE_DATE 0
-#define ACCVIEW_PANE_FROMTO 1
-#define ACCVIEW_PANE_REFERENCE 2
-#define ACCVIEW_PANE_PAYMENTS 3
-#define ACCVIEW_PANE_RECEIPTS 4
-#define ACCVIEW_PANE_BALANCE 5
-#define ACCVIEW_PANE_DESCRIPTION 6
-
-#define ACCVIEW_PANE_PARENT 7
-#define ACCVIEW_PANE_EDIT 8
-#define ACCVIEW_PANE_GOTOEDIT 9
-#define ACCVIEW_PANE_PRINT 10
-#define ACCVIEW_PANE_SORT 11
-
-#define ACCVIEW_PANE_SORT_DIR_ICON 12
-
-#define ACCVIEW_COLUMN_RECONCILE 2
-
-#define ACCVIEW_PANE_COL_MAP "0;1,2,3;4;5;6;7;8"
-
-#define ACCVIEW_SORT_OK 2
-#define ACCVIEW_SORT_CANCEL 3
-#define ACCVIEW_SORT_DATE 4
-#define ACCVIEW_SORT_FROMTO 5
-#define ACCVIEW_SORT_REFERENCE 6
-#define ACCVIEW_SORT_PAYMENTS 7
-#define ACCVIEW_SORT_RECEIPTS 8
-#define ACCVIEW_SORT_BALANCE 9
-#define ACCVIEW_SORT_DESCRIPTION 10
-#define ACCVIEW_SORT_ASCENDING 11
-#define ACCVIEW_SORT_DESCENDING 12
 
 /**
  * Initialise the account view system.
@@ -132,32 +96,54 @@ void accview_rebuild(file_data *file, acct_t account);
 void accview_recalculate(file_data *file, acct_t account, int transaction);
 
 
+/**
+ * Redraw the line in an account view corresponding to the given transaction.
+ * If the transaction does not feature in the account, nothing is done.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to be redrawn.
+ * \param transaction		The transaction to be redrawn.
+ */
+
+void accview_redraw_transaction(file_data *file, acct_t account, int transaction);
 
 
+/**
+ * Re-index the account views in a file.  This can *only* be done after
+ * sort_transactions() has been called, as it requires data set up
+ * in the transaction block by that call.
+ *
+ * \param *file			The file to reindex.
+ */
+
+void accview_reindex_all(file_data *file);
 
 
+/**
+ * Fully redraw all of the open account views in a file.
+ *
+ * \param *file			The file to be redrawn.
+ */
 
-int find_accview_line_from_transaction (file_data *file, int account, int transaction);
-
-/* Account view creation. */
-
-void refresh_account_view (file_data *file, int account, int transaction);
-
-void reindex_all_account_views (file_data *file);
-void redraw_all_account_views (file_data *file);
-void recalculate_all_account_views (file_data *file);
-void rebuild_all_account_views (file_data *file);
+void accview_redraw_all(file_data *file);
 
 
+/**
+ * Fully recalculate all of the open account views in a file.
+ *
+ * \param *file			The file to be recalculated.
+ */
 
-/* Account View window handling. */
+void accview_recalculate_all(file_data *file);
 
 
-int align_accview_with_transact_line (file_data *file, int account);
-int align_accview_with_transact_y_offset (file_data *file, int account);
-void align_accview_with_transact (file_data *file, int account);
-void find_accview_line (file_data *file, int account, int line);
+/**
+ * Fully rebuild all of the open account views in a file.
+ *
+ * \param *file			The file to be rebuilt.
+ */
 
+void accview_rebuild_all(file_data *file);
 
 
 /**

@@ -340,7 +340,7 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 
 	/* Recalculate the file and update the window. */
 
-	rebuild_all_account_views(file);
+	accview_rebuild_all(file);
 
 	/* perform_full_recalculation (file); */
 

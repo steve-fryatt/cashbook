@@ -44,19 +44,19 @@
  * Type definitions
  */
 
+typedef struct acclist_menu_link
+{
+	char		name[ACCOUNT_NAME_LEN];
+	acct_t		account;
+}
+acclist_menu_link;
+
 typedef struct date_menu_link
 {
   char name[PRESET_NAME_LEN];
   int  preset;
 }
 date_menu_link;
-
-typedef struct acclist_menu_link
-{
-  char   name[ACCOUNT_NAME_LEN];
-  acct_t account;
-}
-acclist_menu_link;
 
 typedef struct acclist_menu_group
 {
@@ -88,13 +88,9 @@ void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer);
 
 /* Account open menu. */
 
-void set_accopen_menu (file_data *file);
 void open_accopen_menu (file_data *file, wimp_pointer *pointer);
-
 void decode_accopen_menu (wimp_selection *selection, wimp_pointer *pointer);
-
-wimp_menu *build_accopen_menu (file_data *file);
-acct_t decode_accopen_menu_item(int selection);
+void accopen_menu_closed_message(void);
 
 /* Account menu */
 

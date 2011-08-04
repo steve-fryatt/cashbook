@@ -1066,6 +1066,10 @@ static void user_message_handler (wimp_message *message)
       {
         date_menu_closed_message();
       }
+      else if (menus.menu_id == MENU_ID_ACCOPEN)
+      {
+        accopen_menu_closed_message();
+      }
       break;
 
     case message_MENU_WARNING:

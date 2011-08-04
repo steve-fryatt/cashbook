@@ -101,6 +101,61 @@ void account_open_window(file_data *file, enum account_type type);
 
 
 
+
+
+
+
+
+
+/**
+ * Build an Account List menu for a file, and return the pointer.  This is a
+ * list of Full Accounts, used for opening a Account List view.
+ *
+ * \param *file			The file to build the menu for.
+ * \return			The created menu, or NULL for an error.
+ */
+
+
+wimp_menu *account_list_menu_build(file_data *file);
+
+
+/**
+ * Destroy any Account List menu which is currently open.
+ */
+
+void account_list_menu_destroy(void);
+
+
+/**
+ * Prepare the Account List menu for opening or reopening, by ticking those
+ * accounts which have Account List windows already open.
+ */
+
+void account_list_menu_prepare(void);
+
+
+/**
+ * Decode a selection from the Account List menu, converting to an account
+ * number.
+ *
+ * \param selection		The menu selection to decode.
+ * \return			The account numer, or NULL_ACCOUNT.
+ */
+
+acct_t account_list_menu_decode(int selection);
+
+
+
+
+
+
+
+
+
+
+
+
+
 void redraw_account_window (wimp_draw *redraw, file_data *file);
 
 /* Window creation and deletion */

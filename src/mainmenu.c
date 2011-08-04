@@ -64,6 +64,9 @@ static file_data *main_menu_file = NULL; /* Point to the file block connected to
 static int       main_menu_line = -1; /* Remember the line that a menu applies to. */
 static int       main_menu_column = -1; /* Remember the column that a menu applies to. */
 
+
+
+
 static wimp_w    account_menu_window = NULL;
 static wimp_i    account_menu_name_icon = 0;
 static wimp_i    account_menu_ident_icon = 0;
@@ -161,30 +164,6 @@ char *mainmenu_get_current_menu_name(char *buffer)
  * Account open menu. -- A list of accounts only, to select a view from.
  */
 
-void set_accopen_menu (file_data *file)
-{
-  int i;
-
-  extern global_menus menus;
-
-  if (menus.accopen != NULL)
-  {
-    i = 0;
-
-    do
-    {
-      if (file->accounts[account_link[i].account].account_view != NULL)
-      {
-        menus.accopen->entries[i].menu_flags |= wimp_MENU_TICKED;
-      }
-      else
-      {
-        menus.accopen->entries[i].menu_flags &= ~wimp_MENU_TICKED;
-      }
-    }
-    while ((menus.accopen->entries[i++].menu_flags & wimp_MENU_LAST) == 0);
-  }
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -192,8 +171,8 @@ void open_accopen_menu (file_data *file, wimp_pointer *pointer)
 {
   extern global_menus   menus;
 
-  build_accopen_menu (file);
-  set_accopen_menu (file);
+  menus.accopen = account_list_menu_build(file);
+  account_list_menu_prepare();
 
   menus.menu_up = menus_create_standard_menu (menus.accopen, pointer);
   menus.menu_id = MENU_ID_ACCOPEN;
@@ -210,136 +189,17 @@ void decode_accopen_menu (wimp_selection *selection, wimp_pointer *pointer)
 
   if (selection->items[0] != -1)
   {
-    accview_open_window (main_menu_file, decode_accopen_menu_item(selection->items[0]));
+    accview_open_window (main_menu_file, account_list_menu_decode(selection->items[0]));
   }
 
-  set_accopen_menu (main_menu_file);
+  account_list_menu_prepare();
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-wimp_menu *build_accopen_menu (file_data *file)
+void accopen_menu_closed_message(void)
 {
-  int                 i, line, accounts, entry, width;
-  void                *mem;
-
-  extern global_menus menus;
-
-
-  entry = find_accounts_window_entry_from_type (file, ACCOUNT_FULL);
-
-  /* Find out how many accounts there are. */
-
-  accounts = count_accounts_in_file (file, ACCOUNT_FULL);
-
-  #ifdef DEBUG
-  debug_printf ("\\GBuilding account menu for %d accounts", accounts);
-  #endif
-
-  /* Claim enough memory to build the menu in. */
-
-  menus.accopen = NULL;
-  account_link = NULL;
-
-  if (accounts > 0)
-  {
-    mem = claim_transient_shared_memory (28 + (24 * accounts) + (sizeof (acclist_menu_link) * accounts));
-
-    if (mem != NULL)
-    {
-      menus.accopen = mem;
-      mem += 28 + (24 * accounts);
-
-      account_link = mem;
-    }
-  }
-
-  /* Populate the menu. */
-
-  if (menus.accopen != NULL && account_link != NULL)
-  {
-    line = 0;
-    i = 0;
-    width = 0;
-
-    while (line < accounts && i < file->account_windows[entry].display_lines)
-    {
-      /* If the line is an account, add it to the manu... */
-
-      if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA)
-      {
-        /* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
-         * well move while the menu is open.  The account number is also stored, to allow the account to be found.
-         */
-
-        strcpy (account_link[line].name, file->accounts[file->account_windows[entry].line_data[i].account].name);
-        account_link[line].account = file->account_windows[entry].line_data[i].account;
-        if (strlen (account_link[line].name) > width)
-        {
-          width = strlen (account_link[line].name);
-        }
-
-        /* Set the menu and icon flags up. */
-
-        menus.accopen->entries[line].menu_flags = 0;
-
-        menus.accopen->entries[line].sub_menu = (wimp_menu *) -1;
-        menus.accopen->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-                                             wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-                                             wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-        /* Set the menu icon contents up. */
-
-        menus.accopen->entries[line].data.indirected_text.text = account_link[line].name;
-        menus.accopen->entries[line].data.indirected_text.validation = NULL;
-        menus.accopen->entries[line].data.indirected_text.size = ACCOUNT_NAME_LEN;
-
-        #ifdef DEBUG
-        debug_printf ("Line %d: '%s'", line, account_link[line].name);
-        #endif
-
-        line++;
-      }
-
-      /* If the line is a header, and the menu has an item in it, add a separator... */
-
-      else if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_HEADER && line > 0)
-      {
-        menus.accopen->entries[line-1].menu_flags |= wimp_MENU_SEPARATE;
-      }
-
-    i++;
-    }
-
-    menus.accopen->entries[line - 1].menu_flags |= wimp_MENU_LAST;
-
-    if (account_title_buffer == NULL)
-    {
-      account_title_buffer = (char *) malloc (ACCOUNT_MENU_TITLE_LEN);
-    }
-    msgs_lookup ("ViewaccMenuTitle", account_title_buffer, ACCOUNT_MENU_TITLE_LEN);
-    menus.accopen->title_data.indirected_text.text = account_title_buffer;
-    menus.accopen->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
-    menus.accopen->title_fg = wimp_COLOUR_BLACK;
-    menus.accopen->title_bg = wimp_COLOUR_LIGHT_GREY;
-    menus.accopen->work_fg = wimp_COLOUR_BLACK;
-    menus.accopen->work_bg = wimp_COLOUR_WHITE;
-
-    menus.accopen->width = (width + 1) * 16;
-    menus.accopen->height = 44;
-    menus.accopen->gap = 0;
-  }
-
-  //menus.account_sub->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = menus.accopen;
-
-  return (menus.accopen);
+	account_list_menu_destroy();
 }
 
-acct_t decode_accopen_menu_item(int selection)
-{
-	// \TODO -- There's no check that this is in range!
-	return account_link[selection].account;
-}
 
 /* ==================================================================================================================
  * Account menu -- List of accounts and headings to select from

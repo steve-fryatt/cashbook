@@ -908,7 +908,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 				transact_window_menu_line = line;
 		}
 
-		transact_window_menu_account->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = build_accopen_menu(windat->file);
+		transact_window_menu_account->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = account_list_menu_build(windat->file);
 		transact_window_menu_analysis->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = analysis_template_menu_build(windat->file, FALSE);
 
 		/* If the submenus concerned are greyed out, give them a valid submenu pointer so that the arrow shows. */
@@ -924,7 +924,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 	menus_tick_entry(transact_window_menu_transact, MAIN_MENU_TRANS_RECONCILE, windat->file->auto_reconcile);
 	menus_shade_entry(transact_window_menu_account, MAIN_MENU_ACCOUNTS_VIEW, count_accounts_in_file(windat->file, ACCOUNT_FULL) == 0);
 	menus_shade_entry(transact_window_menu_analysis, MAIN_MENU_ANALYSIS_SAVEDREP, windat->file->saved_report_count == 0);
-	set_accopen_menu(windat->file);
+	account_list_menu_prepare();
 }
 
 
@@ -971,7 +971,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 		switch (selection->items[1]) {
 		case MAIN_MENU_ACCOUNTS_VIEW:
 			if (selection->items[2] != -1)
-				accview_open_window(windat->file, decode_accopen_menu_item(selection->items[2]));
+				accview_open_window(windat->file, account_list_menu_decode(selection->items[2]));
 			break;
 
 		case MAIN_MENU_ACCOUNTS_LIST:

@@ -28,6 +28,7 @@
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
@@ -71,6 +72,10 @@
 #define ACCLIST_MENU_EXPTSV 6
 #define ACCLIST_MENU_PRINT 7
 
+struct account_list_link {
+	char		name[ACCOUNT_NAME_LEN];
+	acct_t		account;
+};
 
 /* Account List Print Window. */
 
@@ -84,6 +89,15 @@ static wimp_window		*account_pane_def[2] = {NULL, NULL};		/**< The definition fo
 static wimp_window		*account_foot_def = NULL;			/**< The definition for the Accounts List Footer pane.			*/
 static wimp_menu		*account_window_menu = NULL;			/**< The Accounts List Window menu handle.				*/
 static int			account_window_menu_line = -1;			/**< The line over which the Accounts List Window Menu was opened.	*/
+
+
+static wimp_menu		*account_list_menu = NULL;			/**< The account list menu block.					*/
+static struct account_list_link	*account_list_menu_link = NULL;			/**< Links for the account list menu.					*/
+static char			*account_list_menu_title = NULL;		/**< Account List menu title buffer.					*/
+static file_data		*account_list_menu_file = NULL;			/**< The file to which the Account List menu is currently attached.	*/
+
+static wimp_menu		*account_complete_menu = NULL;
+
 
 
 
@@ -1103,6 +1117,185 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 
 
+
+
+
+
+
+
+
+
+
+/**
+ * Build an Account List menu for a file, and return the pointer.  This is a
+ * list of Full Accounts, used for opening a Account List view.
+ *
+ * \param *file			The file to build the menu for.
+ * \return			The created menu, or NULL for an error.
+ */
+
+
+wimp_menu *account_list_menu_build(file_data *file)
+{
+	int	i, line, accounts, entry, width;
+
+	account_list_menu_destroy();
+
+	if (file == NULL)
+		return NULL;
+
+	entry = find_accounts_window_entry_from_type(file, ACCOUNT_FULL);
+
+	/* Find out how many accounts there are. */
+
+	accounts = count_accounts_in_file(file, ACCOUNT_FULL);
+
+	if (accounts == 0)
+		return NULL;
+
+	#ifdef DEBUG
+	debug_printf("\\GBuilding account menu for %d accounts", accounts);
+	#endif
+
+	/* Claim enough memory to build the menu in. */
+
+	account_list_menu = heap_alloc(28 + (24 * accounts));
+	account_list_menu_link = heap_alloc(sizeof(struct account_list_link) * accounts);
+	account_list_menu_title = heap_alloc(ACCOUNT_MENU_TITLE_LEN);
+
+	if (account_list_menu == NULL || account_list_menu_link == NULL || account_list_menu_title == NULL) {
+		account_list_menu_destroy();
+		return NULL;
+	}
+
+	account_list_menu_file = file;
+
+	/* Populate the menu. */
+
+	line = 0;
+	i = 0;
+	width = 0;
+
+	while (line < accounts && i < file->account_windows[entry].display_lines) {
+		/* If the line is an account, add it to the manu... */
+
+		if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
+			/* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
+			 * well move while the menu is open.  The account number is also stored, to allow the account to be found.
+			 */
+
+			strcpy(account_list_menu_link[line].name, file->accounts[file->account_windows[entry].line_data[i].account].name);
+			account_list_menu_link[line].account = file->account_windows[entry].line_data[i].account;
+			if (strlen(account_list_menu_link[line].name) > width)
+				width = strlen(account_list_menu_link[line].name);
+
+			/* Set the menu and icon flags up. */
+
+			account_list_menu->entries[line].menu_flags = 0;
+
+			account_list_menu->entries[line].sub_menu = (wimp_menu *) -1;
+			account_list_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
+					wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
+					wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
+
+			/* Set the menu icon contents up. */
+
+			account_list_menu->entries[line].data.indirected_text.text = account_list_menu_link[line].name;
+			account_list_menu->entries[line].data.indirected_text.validation = NULL;
+			account_list_menu->entries[line].data.indirected_text.size = ACCOUNT_NAME_LEN;
+
+			#ifdef DEBUG
+			debug_printf ("Line %d: '%s'", line, account_list_menu_link[line].name);
+			#endif
+
+			line++;
+		} else if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_HEADER && line > 0) {
+			/* If the line is a header, and the menu has an item in it, add a separator... */
+			account_list_menu->entries[line-1].menu_flags |= wimp_MENU_SEPARATE;
+		}
+
+		i++;
+	}
+
+	account_list_menu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
+
+	msgs_lookup("ViewaccMenuTitle", account_list_menu_title, ACCOUNT_MENU_TITLE_LEN);
+	account_list_menu->title_data.indirected_text.text = account_list_menu_title;
+	account_list_menu->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
+	account_list_menu->title_fg = wimp_COLOUR_BLACK;
+	account_list_menu->title_bg = wimp_COLOUR_LIGHT_GREY;
+	account_list_menu->work_fg = wimp_COLOUR_BLACK;
+	account_list_menu->work_bg = wimp_COLOUR_WHITE;
+
+	account_list_menu->width = (width + 1) * 16;
+	account_list_menu->height = 44;
+	account_list_menu->gap = 0;
+
+	return account_list_menu;
+}
+
+
+/**
+ * Destroy any Account List menu which is currently open.
+ */
+
+void account_list_menu_destroy(void)
+{
+	if (account_list_menu != NULL)
+		heap_free(account_list_menu);
+
+	if (account_list_menu_link != NULL)
+		heap_free(account_list_menu_link);
+
+	if (account_list_menu_title != NULL)
+		heap_free(account_list_menu_title);
+
+	account_list_menu = NULL;
+	account_list_menu_link = NULL;
+	account_list_menu_title = NULL;
+	account_list_menu_file = NULL;
+}
+
+
+/**
+ * Prepare the Account List menu for opening or reopening, by ticking those
+ * accounts which have Account List windows already open.
+ */
+
+void account_list_menu_prepare(void)
+{
+	int i;
+
+	if (account_list_menu == NULL || account_list_menu == NULL || account_list_menu_file == NULL)
+		return;
+
+	i = 0;
+
+	do {
+		if (account_list_menu_file->accounts[account_list_menu_link[i].account].account_view != NULL)
+			account_list_menu->entries[i].menu_flags |= wimp_MENU_TICKED;
+		else
+			account_list_menu->entries[i].menu_flags &= ~wimp_MENU_TICKED;
+	} while ((account_list_menu->entries[i++].menu_flags & wimp_MENU_LAST) == 0);
+}
+
+
+
+/**
+ * Decode a selection from the Account List menu, converting to an account
+ * number.
+ *
+ * \param selection		The menu selection to decode.
+ * \return			The account numer, or NULL_ACCOUNT.
+ */
+
+acct_t account_list_menu_decode(int selection)
+{
+	if (account_list_menu_link == NULL || selection == -1)
+		return NULL_ACCOUNT;
+
+	return account_list_menu_link[selection].account;
+}
 
 
 

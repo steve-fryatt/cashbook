@@ -1986,6 +1986,9 @@ wimp_menu *preset_complete_menu_build(file_data *file)
 
 	preset_complete_menu_destroy();
 
+	if (file == NULL)
+		return NULL;
+
 	preset_complete_menu = heap_alloc(28 + 24 * (file->preset_count + 1));
 	preset_complete_menu_link = heap_alloc(sizeof(struct preset_complete_link) * (file->preset_count + 1));
 	preset_complete_menu_title = heap_alloc(ACCOUNT_MENU_TITLE_LEN);

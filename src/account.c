@@ -1264,12 +1264,10 @@ void account_list_menu_destroy(void)
 
 void account_list_menu_prepare(void)
 {
-	int i;
+	int i = 0;
 
 	if (account_list_menu == NULL || account_list_menu == NULL || account_list_menu_file == NULL)
 		return;
-
-	i = 0;
 
 	do {
 		if (account_list_menu_file->accounts[account_list_menu_link[i].account].account_view != NULL)

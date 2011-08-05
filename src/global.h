@@ -114,7 +114,7 @@ enum account_type {
 
 /* Standing order_details */
 
-enum sorder_period {
+enum date_period {
 	PERIOD_NONE = 0,							/**< No period specified.				*/
 	PERIOD_DAYS,								/**< Period specified in days.				*/
 	PERIOD_MONTHS,								/**< Period specified in months.			*/

@@ -834,8 +834,6 @@ typedef struct
   wimp_menu   *menu_up;
   int         menu_id;
 
-  wimp_menu   *accopen;
-
   wimp_menu   *date;
   wimp_menu   *account;
   wimp_menu   *refdesc;

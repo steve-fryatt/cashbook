@@ -217,6 +217,8 @@ char *templates_get_current_menu_name(char *buffer)
 		strcpy(buffer, "FontMenu");
 	else if (menu_up == templates_menu_list[TEMPLATES_MENU_TEMPLATES])
 		strcpy(buffer, "RepListMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_ACCOPEN])
+		strcpy(buffer, "AccOpenMenu");
 	else if (*templates_menu_help_token != '\0')
 		strcpy(buffer, templates_menu_help_token);
 	else

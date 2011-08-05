@@ -131,11 +131,7 @@ char *mainmenu_get_current_menu_name(char *buffer)
 
   *buffer = '\0';
 
-  if (menus.menu_id == MENU_ID_ACCOPEN)
-  {
-    strcpy (buffer, "AccOpenMenu");
-  }
-  else if (menus.menu_id == MENU_ID_DATE)
+  if (menus.menu_id == MENU_ID_DATE)
   {
     strcpy (buffer, "DateMenu");
   }
@@ -156,48 +152,6 @@ char *mainmenu_get_current_menu_name(char *buffer)
   }
 
   return (buffer);
-}
-
-
-
-/* ==================================================================================================================
- * Account open menu. -- A list of accounts only, to select a view from.
- */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_accopen_menu (file_data *file, wimp_pointer *pointer)
-{
-  extern global_menus   menus;
-
-  menus.accopen = account_list_menu_build(file);
-  account_list_menu_prepare();
-
-  menus.menu_up = menus_create_standard_menu (menus.accopen, pointer);
-  menus.menu_id = MENU_ID_ACCOPEN;
-  main_menu_file = file;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Decode the menu selections. */
-
-void decode_accopen_menu (wimp_selection *selection, wimp_pointer *pointer)
-{
-  /* File submenu */
-
-  if (selection->items[0] != -1)
-  {
-    accview_open_window (main_menu_file, account_list_menu_decode(selection->items[0]));
-  }
-
-  account_list_menu_prepare();
-}
-
-void accopen_menu_closed_message(void)
-{
-	account_list_menu_destroy();
 }
 
 

@@ -132,6 +132,7 @@ static wimp_menu		*transact_window_menu_transact = NULL;		/**< The Transaction L
 static wimp_menu		*transact_window_menu_analysis = NULL;		/**< The Transaction List Window Analysis submenu handle.		*/
 static int			transact_window_menu_line = -1;			/**< The line over which the Transaction List Window Menu was opened.	*/
 
+static wimp_menu		*transact_account_list_menu = NULL;		/**< The toolbar's Account List popup menu handle.			*/
 
 
 static void			transact_close_window_handler(wimp_close *close);
@@ -283,6 +284,7 @@ void transact_open_window(file_data *file)
 	event_add_window_menu_selection(file->transaction_window.transaction_pane, transact_window_menu_selection_handler);
 	event_add_window_menu_warning(file->transaction_window.transaction_pane, transact_window_menu_warning_handler);
 	event_add_window_menu_close(file->transaction_window.transaction_pane, transact_window_menu_close_handler);
+	event_add_window_icon_popup(file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT, transact_account_list_menu, -1);
 
 	/* Put the caret into the first empty line. */
 
@@ -575,10 +577,6 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 
       case TRANSACT_PANE_ACCOUNTS:
         account_open_window (file, ACCOUNT_FULL);
-        break;
-
-      case TRANSACT_PANE_VIEWACCT:
-        open_accopen_menu (file, pointer);
         break;
 
       case TRANSACT_PANE_ADDACCT:
@@ -892,8 +890,26 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 	wimp_window_state		window;
 
 	windat = event_get_window_user_data(w);
-	if (windat == NULL)
+	if (windat == NULL || windat->file == NULL)
 		return;
+
+	/* If the menu isn't the standard window menu, it must be the account
+	 * open menu which needs special handling.
+	 */
+
+	if (menu != transact_window_menu) {
+		if (pointer != NULL) {
+			transact_account_list_menu = account_list_menu_build(windat->file);
+			event_set_menu_block(transact_account_list_menu);
+			templates_set_menu(TEMPLATES_MENU_ACCOPEN, transact_account_list_menu);
+		}
+
+		account_list_menu_prepare();
+		return;
+	}
+
+	/* Otherwsie, this is the standard window menu.
+	 */
 
 	if (pointer != NULL) {
 		transact_window_menu_line = -1;
@@ -947,6 +963,19 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 		return;
 
 	file = windat->file;
+
+	/* If the menu is the account open menu, then it needs special processing...
+	 */
+
+	if (menu == transact_account_list_menu) {
+		if (selection->items[0] != -1)
+			accview_open_window(file, account_list_menu_decode(selection->items[0]));
+
+		return;
+	}
+
+	/* ...otherwise, handle it as normal.
+	 */
 
 	wimp_get_pointer_info(&pointer);
 
@@ -1089,6 +1118,9 @@ static void transact_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp
 	if (windat == NULL)
 		return;
 
+	if (menu != transact_window_menu)
+		return;
+
 	switch (warning->selection.items[0]) {
 	case MAIN_MENU_SUB_FILE:
 		switch (warning->selection.items[1]) {
@@ -1126,8 +1158,13 @@ static void transact_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp
 
 static void transact_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
-	transact_window_menu_line = -1;
-	analysis_template_menu_destroy();
+	if (menu == transact_window_menu) {
+		transact_window_menu_line = -1;
+		analysis_template_menu_destroy();
+	} else if (menu == transact_account_list_menu) {
+		account_list_menu_destroy();
+		transact_account_list_menu = NULL;
+	}
 }
 
 

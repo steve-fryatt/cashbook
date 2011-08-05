@@ -385,7 +385,6 @@ static void main_initialise(void)
 	templates_link_menu_dialogue("file_info", windows.file_info);
 	templates_link_menu_dialogue("save_as", windows.save_as);
 
-	menus.accopen         = NULL;
 	menus.account         = NULL;
 
 	/* Initialise the file update mechanism: calling it now with no files loaded will force the date to be set up. */
@@ -922,16 +921,9 @@ static void menu_selection_handler (wimp_selection *selection)
 
   wimp_get_pointer_info (&pointer);
 
-  /* Decode the account open menu. */
-
-  if (menus.menu_id == MENU_ID_ACCOPEN)
-  {
-    decode_accopen_menu (selection, &pointer);
-  }
-
   /* Decode the account menu. */
 
-  else if (menus.menu_id == MENU_ID_ACCOUNT)
+  if (menus.menu_id == MENU_ID_ACCOUNT)
   {
     decode_account_menu (selection, &pointer);
   }
@@ -1065,10 +1057,6 @@ static void user_message_handler (wimp_message *message)
       else if (menus.menu_id == MENU_ID_DATE)
       {
         date_menu_closed_message();
-      }
-      else if (menus.menu_id == MENU_ID_ACCOPEN)
-      {
-        accopen_menu_closed_message();
       }
       break;
 

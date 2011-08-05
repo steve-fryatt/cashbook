@@ -12,7 +12,6 @@
 
 /* Menu IDs */
 
-#define MENU_ID_ACCOPEN    2
 #define MENU_ID_ACCOUNT    3
 #define MENU_ID_DATE       4
 #define MENU_ID_REFDESC    11
@@ -80,17 +79,6 @@ refdesc_menu_link;
 void *claim_transient_shared_memory (int amount);
 void *extend_transient_shared_memory (int increase);
 char *mainmenu_get_current_menu_name (char *buffer);
-
-/* Main menu */
-
-
-void decode_main_menu (wimp_selection *selection, wimp_pointer *pointer);
-
-/* Account open menu. */
-
-void open_accopen_menu (file_data *file, wimp_pointer *pointer);
-void decode_accopen_menu (wimp_selection *selection, wimp_pointer *pointer);
-void accopen_menu_closed_message(void);
 
 /* Account menu */
 

@@ -112,32 +112,23 @@ enum account_type {
 	ACCOUNT_OUT  = 0x0200							/**< Outgoing enabled analysis header.			*/
 };
 
-#define ACCOUNT_NULL 0x0000 /* Unset account type */
-
-#define ACCOUNT_FULL 0x0001 /* Bank account type */
-#define ACCOUNT_IN   0x0100 /* Income enabled analysis header */
-#define ACCOUNT_OUT  0x0200 /* Outgoing enabled analysis header */
-
 /* Standing order_details */
 
-#define PERIOD_NONE 0
-#define PERIOD_DAYS 1
-#define PERIOD_MONTHS 2
-#define PERIOD_YEARS 3
+enum sorder_period {
+	PERIOD_NONE = 0,							/**< No period specified.				*/
+	PERIOD_DAYS,								/**< Period specified in days.				*/
+	PERIOD_MONTHS,								/**< Period specified in months.			*/
+	PERIOD_YEARS								/**< Period specified in years.				*/
+};
 
 /* Account window line types */
 
 enum account_line_type {
-	ACCOUNT_LINE_BLANK = 0,
-	ACCOUNT_LINE_DATA,
-	ACCOUNT_LINE_HEADER,
-	ACCOUNT_LINE_FOOTER
+	ACCOUNT_LINE_BLANK = 0,							/**< Blank, unset line type.				*/
+	ACCOUNT_LINE_DATA,							/**< Data line type.					*/
+	ACCOUNT_LINE_HEADER,							/**< Section Heading line type.				*/
+	ACCOUNT_LINE_FOOTER							/**< Section Footer line type.				*/
 };
-
-#define ACCOUNT_LINE_BLANK 0
-#define ACCOUNT_LINE_DATA 1
-#define ACCOUNT_LINE_HEADER 2
-#define ACCOUNT_LINE_FOOTER 3
 
 /* Transaction flags (bitwiase allocation) */
 

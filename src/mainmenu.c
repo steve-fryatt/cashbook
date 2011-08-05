@@ -74,9 +74,6 @@ static wimp_i    account_menu_rec_icon = 0;
 
 static date_menu_link     *date_menu = NULL; /* links from the date menu to presets. */
 
-static acclist_menu_link  *account_link = NULL; /* Links from the menu to the accounts. */
-static acclist_menu_group *account_group = NULL; /* Links from the parent menu to the submenus. */
-static wimp_menu          *account_submenu = NULL; /* The account submenu block. */
 
 static refdesc_menu_link  *refdesc_link = NULL;  /* Links from the refdesc menu to the entries. */
 static int                refdesc_menu_type = 0; /* The type of reference or description menu open. */
@@ -165,49 +162,12 @@ void set_account_menu (file_data *file)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void open_account_menu (file_data *file, int type, int line,
+void open_account_menu (file_data *file, enum account_menu_type type, int line,
                         wimp_w window, wimp_i icon_i, wimp_i icon_n, wimp_i icon_r, wimp_pointer *pointer)
 {
-  unsigned include;
-  char     *title;
-
   extern global_menus menus;
 
-
-  switch (type)
-  {
-    case ACCOUNT_MENU_FROM:
-      include = ACCOUNT_FULL | ACCOUNT_IN;
-      title = "ViewAccMenuTitleFrom";
-      break;
-
-    case ACCOUNT_MENU_TO:
-      include = ACCOUNT_FULL | ACCOUNT_OUT;
-      title = "ViewAccMenuTitleTo";
-      break;
-
-    case ACCOUNT_MENU_ACCOUNTS:
-      include = ACCOUNT_FULL;
-      title = "ViewAccMenuTitleAcc";
-      break;
-
-    case ACCOUNT_MENU_INCOMING:
-      include = ACCOUNT_IN;
-      title = "ViewAccMenuTitleIn";
-      break;
-
-    case ACCOUNT_MENU_OUTGOING:
-      include = ACCOUNT_OUT;
-      title = "ViewAccMenuTitleOut";
-      break;
-
-    default:
-      include = 0;
-      title = "";
-      break;
-  }
-
-  build_account_menu (file, include, title);
+  menus.account = account_complete_menu_build(file, type);
   set_account_menu (file);
 
   menus.menu_up = menus_create_standard_menu (menus.account, pointer);
@@ -227,7 +187,6 @@ void open_account_menu (file_data *file, int type, int line,
 void decode_account_menu (wimp_selection *selection, wimp_pointer *pointer)
 {
   int i, column, account;
-
 
   if (account_menu_window == NULL)
   {
@@ -269,7 +228,7 @@ void decode_account_menu (wimp_selection *selection, wimp_pointer *pointer)
       }
 
       edit_change_transaction_account (main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, column,
-                                       account_link[selection->items[1]].account);
+                                       account_complete_menu_decode(selection));
 
       set_account_menu (main_menu_file);
     }
@@ -280,7 +239,7 @@ void decode_account_menu (wimp_selection *selection, wimp_pointer *pointer)
 
     if (selection->items[1] != -1)
     {
-      account = account_link[selection->items[1]].account;
+      account = account_complete_menu_decode(selection);
 
       fill_account_field (main_menu_file, account, !(main_menu_file->accounts[account].type & ACCOUNT_FULL),
                           account_menu_window, account_menu_ident_icon, account_menu_name_icon, account_menu_rec_icon);
@@ -307,8 +266,8 @@ void account_menu_submenu_message (wimp_full_message_menu_warning *submenu)
 
   if (submenu->selection.items[1] == -1)
   {
-    menu_block = build_account_submenu (main_menu_file, submenu);
-    wimp_create_sub_menu (menu_block, submenu->pos.x, submenu->pos.y);
+    menu_block = account_complete_submenu_build(submenu);
+    wimp_create_sub_menu(menu_block, submenu->pos.x, submenu->pos.y);
   }
 }
 
@@ -327,336 +286,6 @@ void account_menu_closed_message (wimp_full_message_menus_deleted *menu_del)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-wimp_menu *build_account_menu (file_data *file, unsigned include, char *title)
-{
-  int                 i, group, line, headers, entry, width, sublen, maxsublen, shade;
-  int                 groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
-  void                *mem;
-
-  extern global_menus menus;
-
-
-  /* Find out how many accounts there are, by counting entries in the groups. */
-
-  maxsublen = 0;
-  headers = 0;
-
-  /* for each group that will be included in the menu, count through the window definition. */
-
-  for (group = 0; group < groups; group++)
-  {
-    if (include & sequence[group])
-    {
-      i = 0;
-      sublen = 0;
-      entry = find_accounts_window_entry_from_type (file, sequence[group]);
-
-      while (i < file->account_windows[entry].display_lines)
-      {
-        /* If the line is a header, increment the header count, and start a new sub-menu. */
-
-        if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_HEADER)
-        {
-          if (sublen > maxsublen)
-          {
-            maxsublen = sublen;
-          }
-
-          sublen = 0;
-          headers++;
-        }
-
-        /* Else if the line is an account entry, increment the submenu length count.  If the line is the first in the
-         * group, it must fall outwith any headers and so will require its own submenu.
-         */
-
-        else if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA)
-        {
-          sublen++;
-
-          if (i == 0)
-          {
-            headers++;
-          }
-        }
-
-      i++;
-      }
-
-      if (sublen > maxsublen)
-      {
-        maxsublen = sublen;
-      }
-    }
-  }
-
-
-  #ifdef DEBUG
-  debug_printf ("\\GBuilding accounts menu for %d headers, maximum submenu of %d", headers, maxsublen);
-  #endif
-
-  /* Claim enough memory to build the menu in. */
-
-  menus.account = NULL;
-  account_group = NULL;
-  account_submenu = NULL;
-  account_link = NULL;
-
-  mem = claim_transient_shared_memory (56 + 24 * (headers + maxsublen) +
-                                       sizeof (acclist_menu_group) * headers +
-                                       sizeof (acclist_menu_link) * maxsublen);
-
-  if (mem != NULL)
-  {
-    if (headers > 0)
-    {
-      menus.account = (wimp_menu *) mem;
-      mem += 28 + 24 * headers;
-
-      account_group = (acclist_menu_group *) mem;
-      mem += sizeof (acclist_menu_group) * headers;
-    }
-
-    if (maxsublen > 0)
-    {
-      account_submenu = (wimp_menu *) mem;
-      mem += 28 + 24 * maxsublen;
-
-      account_link = (acclist_menu_link *) mem;
-    }
-  }
-
-  /* Populate the menu. */
-
-  if (menus.account != NULL && account_group != NULL)
-  {
-    line = 0;
-    width = 0;
-    shade = 1;
-
-    for (group = 0; group < groups; group++)
-    {
-      if (include & sequence[group])
-      {
-        i = 0;
-        entry = find_accounts_window_entry_from_type (file, sequence[group]);
-
-        /* Start the group with a separator if there are lines in the menu already. */
-
-        if (line > 0)
-        {
-          menus.account->entries[line-1].menu_flags |= wimp_MENU_SEPARATE;
-        }
-
-        while (i < file->account_windows[entry].display_lines)
-        {
-          /* If the line is a section header, add it to the manu... */
-
-          if (line < headers && file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_HEADER)
-          {
-            /* Test for i>0 because if this is the first line of a new entry, the last group of the last entry will
-             * already have been dealt with at the end of the main loop.  shade will be 0 if there have been any
-             * ACCOUNT_LINE_DATA since the last ACCOUNT_LINE_HEADER.
-             */
-            if (shade && line > 0 && i > 0)
-            {
-              menus.account->entries[line - 1].icon_flags |= wimp_ICON_SHADED;
-            }
-            shade = 1;
-
-            /* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
-             * well move while the menu is open.
-             */
-
-            strcpy (account_group[line].name, file->account_windows[entry].line_data[i].heading);
-            if (strlen (account_group[line].name) > width)
-            {
-              width = strlen (account_group[line].name);
-            }
-            account_group[line].entry = entry;
-            account_group[line].start_line = i+1;
-
-            /* Set the menu and icon flags up. */
-
-            menus.account->entries[line].menu_flags = wimp_MENU_GIVE_WARNING;
-
-            menus.account->entries[line].sub_menu = account_submenu;
-            menus.account->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-                                                      wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-                                                      wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-            /* Set the menu icon contents up. */
-
-            menus.account->entries[line].data.indirected_text.text = account_group[line].name;
-            menus.account->entries[line].data.indirected_text.validation = NULL;
-            menus.account->entries[line].data.indirected_text.size = ACCOUNT_SECTION_LEN;
-
-            line++;
-          }
-          else if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA)
-          {
-            shade = 0;
-
-            /* If this is the first line of the list, and it's a data line, there is no group header and a default
-             * group will be required.
-             */
-
-            if (i == 0 && line < headers)
-            {
-              switch (sequence[group])
-              {
-                case ACCOUNT_FULL:
-                  msgs_lookup ("ViewaccMenuAccs", account_group[line].name, ACCOUNT_SECTION_LEN);
-                  break;
-
-                case ACCOUNT_IN:
-                  msgs_lookup ("ViewaccMenuHIn", account_group[line].name, ACCOUNT_SECTION_LEN);
-                  break;
-
-                case ACCOUNT_OUT:
-                  msgs_lookup ("ViewaccMenuHOut", account_group[line].name, ACCOUNT_SECTION_LEN);
-                  break;
-              }
-              if (strlen (account_group[line].name) > width)
-              {
-                width = strlen (account_group[line].name);
-              }
-              account_group[line].entry = entry;
-              account_group[line].start_line = i;
-
-              /* Set the menu and icon flags up. */
-
-              menus.account->entries[line].menu_flags = wimp_MENU_GIVE_WARNING;
-
-              menus.account->entries[line].sub_menu = account_submenu;
-              menus.account->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-                                                        wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-                                                        wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-              /* Set the menu icon contents up. */
-
-              menus.account->entries[line].data.indirected_text.text = account_group[line].name;
-              menus.account->entries[line].data.indirected_text.validation = NULL;
-              menus.account->entries[line].data.indirected_text.size = ACCOUNT_SECTION_LEN;
-
-              line++;
-            }
-          }
-
-        i++;
-        }
-
-        /* Update the maximum submenu length count again. */
-
-        if (shade && line > 0)
-        {
-          menus.account->entries[line - 1].icon_flags |= wimp_ICON_SHADED;
-        }
-      }
-    }
-
-    /* Finish off the menu, marking the last entry and filling in the header. */
-
-    menus.account->entries[line - 1].menu_flags |= wimp_MENU_LAST;
-
-    if (account_title_buffer == NULL)
-    {
-      account_title_buffer = (char *) malloc (ACCOUNT_MENU_TITLE_LEN);
-    }
-    msgs_lookup (title, account_title_buffer, ACCOUNT_MENU_TITLE_LEN);
-    menus.account->title_data.indirected_text.text = account_title_buffer;
-    menus.account->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
-    menus.account->title_fg = wimp_COLOUR_BLACK;
-    menus.account->title_bg = wimp_COLOUR_LIGHT_GREY;
-    menus.account->work_fg = wimp_COLOUR_BLACK;
-    menus.account->work_bg = wimp_COLOUR_WHITE;
-
-    menus.account->width = (width + 1) * 16;
-    menus.account->height = 44;
-    menus.account->gap = 0;
-  }
-
-  return (menus.account);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Build a submenu for the account menu on the fly, using information and memory from build_account_menu().
- *
- * The memory to hold the menu has been allocated and is pointed to by account_submenu and account_link; if
- * either of these are NULL, the fucntion must refuse to run.
- */
-
-wimp_menu *build_account_submenu (file_data *file, wimp_full_message_menu_warning *submenu)
-{
-  int                 i, line, entry, width;
-
-  extern global_menus menus;
-
-
-  if (account_submenu != NULL && account_link != NULL)
-  {
-    line = 0;
-    width = 0;
-
-    entry = account_group[submenu->selection.items[0]].entry;
-    i = account_group[submenu->selection.items[0]].start_line;
-
-    while (i < file->account_windows[entry].display_lines &&
-           file->account_windows[entry].line_data[i].type != ACCOUNT_LINE_HEADER)
-    {
-      /* If the line is an account entry, add it to the manu... */
-
-      if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA)
-      {
-        /* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
-         * well move while the menu is open.
-         */
-
-        strcpy (account_link[line].name, file->accounts[file->account_windows[entry].line_data[i].account].name);
-        if (strlen (account_link[line].name) > width)
-        {
-          width = strlen (account_link[line].name);
-        }
-        account_link[line].account = file->account_windows[entry].line_data[i].account;
-
-        /* Set the menu and icon flags up. */
-
-        account_submenu->entries[line].menu_flags = 0;
-
-        account_submenu->entries[line].sub_menu = (wimp_menu *) -1;
-        account_submenu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-                                                    wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-                                                    wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-        /* Set the menu icon contents up. */
-
-        account_submenu->entries[line].data.indirected_text.text = account_link[line].name;
-        account_submenu->entries[line].data.indirected_text.validation = NULL;
-        account_submenu->entries[line].data.indirected_text.size = ACCOUNT_SECTION_LEN;
-
-        line++;
-      }
-
-    i++;
-    }
-
-    account_submenu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
-
-    account_submenu->title_data.indirected_text.text = account_group[submenu->selection.items[0]].name;
-    account_submenu->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
-    account_submenu->title_fg = wimp_COLOUR_BLACK;
-    account_submenu->title_bg = wimp_COLOUR_LIGHT_GREY;
-    account_submenu->work_fg = wimp_COLOUR_BLACK;
-    account_submenu->work_bg = wimp_COLOUR_WHITE;
-
-    account_submenu->width = (width + 1) * 16;
-    account_submenu->height = 44;
-    account_submenu->gap = 0;
-  }
-
-  return (account_submenu);
-}
 
 
 /* ==================================================================================================================
@@ -687,6 +316,9 @@ void decode_date_menu(wimp_selection *selection, wimp_pointer *pointer)
 
 	if (main_menu_file == NULL)
 		return;
+
+
+  debug_printf("Decoding date menu...");
 
 
   if (main_menu_file != NULL)

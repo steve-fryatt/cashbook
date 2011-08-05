@@ -6,6 +6,8 @@
 #ifndef CASHBOOK_MAINMENU
 #define CASHBOOK_MAINMENU
 
+#include "account.h"
+
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
  */
@@ -31,11 +33,6 @@
 
 #define ACCOUNT_MENU_TITLE_LEN 32
 
-#define ACCOUNT_MENU_FROM 1
-#define ACCOUNT_MENU_TO 2
-#define ACCOUNT_MENU_ACCOUNTS 3
-#define ACCOUNT_MENU_INCOMING 4
-#define ACCOUNT_MENU_OUTGOING 5
 
 #define REFDESC_MENU_BLOCKSIZE 50
 
@@ -43,12 +40,21 @@
  * Type definitions
  */
 
+/*
 typedef struct acclist_menu_link
 {
 	char		name[ACCOUNT_NAME_LEN];
 	acct_t		account;
 }
 acclist_menu_link;
+
+typedef struct acclist_menu_group
+{
+  char name[ACCOUNT_SECTION_LEN];
+  int  entry;
+  int  start_line;
+}
+acclist_menu_group;*/
 
 typedef struct date_menu_link
 {
@@ -57,13 +63,6 @@ typedef struct date_menu_link
 }
 date_menu_link;
 
-typedef struct acclist_menu_group
-{
-  char name[ACCOUNT_SECTION_LEN];
-  int  entry;
-  int  start_line;
-}
-acclist_menu_group;
 
 typedef struct refdesc_menu_link
 {
@@ -83,7 +82,7 @@ char *mainmenu_get_current_menu_name (char *buffer);
 /* Account menu */
 
 void set_account_menu (file_data *file);
-void open_account_menu (file_data *file, int type, int line,
+void open_account_menu (file_data *file, enum account_menu_type type, int line,
                         wimp_w window, wimp_i icon_i, wimp_i icon_n, wimp_i icon_r, wimp_pointer *pointer);
 
 void decode_account_menu (wimp_selection *selection, wimp_pointer *pointer);
@@ -91,8 +90,6 @@ void decode_account_menu (wimp_selection *selection, wimp_pointer *pointer);
 void account_menu_submenu_message (wimp_full_message_menu_warning *submenu);
 void account_menu_closed_message (wimp_full_message_menus_deleted *menu_del);
 
-wimp_menu *build_account_menu (file_data *file, unsigned include, char *title);
-wimp_menu *build_account_submenu (file_data *file, wimp_full_message_menu_warning *submenu);
 
 /* Date menu */
 

@@ -72,8 +72,6 @@ static wimp_i    account_menu_name_icon = 0;
 static wimp_i    account_menu_ident_icon = 0;
 static wimp_i    account_menu_rec_icon = 0;
 
-static date_menu_link     *date_menu = NULL; /* links from the date menu to presets. */
-
 
 static refdesc_menu_link  *refdesc_link = NULL;  /* Links from the refdesc menu to the entries. */
 static int                refdesc_menu_type = 0; /* The type of reference or description menu open. */
@@ -343,16 +341,16 @@ void decode_date_menu(wimp_selection *selection, wimp_pointer *pointer)
 
     if (main_menu_line < main_menu_file->trans_count && selection->items[0] != -1)
     {
-      if (selection->items[0] == DATE_MENU_TODAY)
+      if (preset_complete_menu_decode(selection) == NULL_PRESET)
       {
         edit_change_transaction_date (main_menu_file, main_menu_file->transactions[main_menu_line].sort_index,
                                       get_current_date ());
 
       }
-      else if (date_menu[selection->items[0]].preset != NULL_PRESET)
+      else
       {
         insert_transaction_preset_full (main_menu_file, main_menu_file->transactions[main_menu_line].sort_index,
-                                        date_menu[selection->items[0]].preset);
+                                        preset_complete_menu_decode(selection));
       }
     }
   }

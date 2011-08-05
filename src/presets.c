@@ -2103,7 +2103,7 @@ void preset_complete_menu_destroy(void)
 
 int preset_complete_menu_decode(wimp_selection *selection)
 {
-	if (preset_complete_menu_link == NULL || selection == NULL || selection->items[0] != -1)
+	if (preset_complete_menu_link == NULL || selection == NULL || selection->items[0] == -1)
 		return NULL_PRESET;
 
 	return preset_complete_menu_link[selection->items[0]].preset;

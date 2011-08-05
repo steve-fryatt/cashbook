@@ -40,29 +40,6 @@
  * Type definitions
  */
 
-/*
-typedef struct acclist_menu_link
-{
-	char		name[ACCOUNT_NAME_LEN];
-	acct_t		account;
-}
-acclist_menu_link;
-
-typedef struct acclist_menu_group
-{
-  char name[ACCOUNT_SECTION_LEN];
-  int  entry;
-  int  start_line;
-}
-acclist_menu_group;*/
-
-typedef struct date_menu_link
-{
-  char name[PRESET_NAME_LEN];
-  int  preset;
-}
-date_menu_link;
-
 
 typedef struct refdesc_menu_link
 {

@@ -1438,15 +1438,16 @@ wimp_menu *account_complete_menu_build(file_data *file, enum account_menu_type t
 				account_complete_menu->entries[line-1].menu_flags |= wimp_MENU_SEPARATE;
 
 			while (i < file->account_windows[entry].display_lines) {
-				/* If the line is a section header, add it to the manu... */
+				/* If the line is a section header, add it to the menu... */
 
 				if (line < headers && file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_HEADER) {
 					/* Test for i>0 because if this is the first line of a new entry, the last group of the last entry will
-					 * already have been dealt with at the end of the main loop.  shade will be 0 if there have been any
+					 * already have been dealt with at the end of the main loop.  shade will be FALSE if there have been any
 					 * ACCOUNT_LINE_DATA since the last ACCOUNT_LINE_HEADER.
 					 */
 					if (shade && line > 0 && i > 0)
 						account_complete_menu->entries[line - 1].icon_flags |= wimp_ICON_SHADED;
+
 					shade = TRUE;
 
 					/* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
@@ -1533,6 +1534,7 @@ wimp_menu *account_complete_menu_build(file_data *file, enum account_menu_type t
 	/* Finish off the menu, marking the last entry and filling in the header. */
 
 	account_complete_menu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
+	account_complete_menu->entries[line - 1].menu_flags &= ~wimp_MENU_SEPARATE;
 
 	msgs_lookup(title, account_complete_menu_title, ACCOUNT_MENU_TITLE_LEN);
 	account_complete_menu->title_data.indirected_text.text = account_complete_menu_title;

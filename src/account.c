@@ -1320,11 +1320,11 @@ acct_t account_list_menu_decode(int selection)
 
 wimp_menu *account_complete_menu_build(file_data *file, enum account_menu_type type)
 {
-	int			i, group, line, headers = 0, entry, width, sublen, maxsublen = 0;
-	int			groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	int			i, group, line, entry, width, sublen;
+	int			groups = 3, maxsublen = 0, headers = 0;
+	enum account_type	include, sequence[] = {ACCOUNT_FULL, ACCOUNT_IN, ACCOUNT_OUT};
 	osbool			shade;
 	char			*title;
-	enum account_type	include;
 
 	account_complete_menu_destroy();
 

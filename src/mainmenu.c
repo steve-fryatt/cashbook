@@ -316,9 +316,6 @@ void decode_date_menu(wimp_selection *selection, wimp_pointer *pointer)
 		return;
 
 
-  debug_printf("Decoding date menu...");
-
-
   if (main_menu_file != NULL)
   {
     /* Check that the line is in the range of transactions.  If not, add blank transactions to the file until it is.

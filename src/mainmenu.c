@@ -132,6 +132,8 @@ void amenu_open(wimp_menu *menu, wimp_pointer *pointer, void (*prepare)(void), v
 		amenu_callback_prepare();
 
 	amenu_menu = menus_create_standard_menu(menu, pointer);
+
+	templates_set_menu_handle(amenu_menu);
 }
 
 
@@ -215,6 +217,8 @@ static void amenu_close(void)
 	amenu_callback_warning = NULL;
 	amenu_callback_selection = NULL;
 	amenu_callback_close = NULL;
+
+	templates_set_menu_handle(NULL);
 }
 
 

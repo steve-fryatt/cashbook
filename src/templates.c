@@ -190,6 +190,18 @@ void templates_set_menu_token(char *token)
 
 
 /**
+ * Set details of the menu handle which is currently on screen.
+ *
+ * \param *menu		The menu handle currently on screen.
+ */
+
+void templates_set_menu_handle(wimp_menu *menu)
+{
+	menu_up = menu;
+}
+
+
+/**
  * Return a pointer to the name of the current menu.
  *
  * \param *buffer	Pointer to a buffer to hold the menu name.

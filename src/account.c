@@ -1496,6 +1496,9 @@ wimp_menu *account_complete_menu_build(file_data *file, enum account_menu_type t
 						case ACCOUNT_OUT:
 							msgs_lookup("ViewaccMenuHOut", account_complete_menu_group[line].name, ACCOUNT_SECTION_LEN);
 							break;
+
+						default:
+							break;
 						}
 						if (strlen(account_complete_menu_group[line].name) > width)
 							width = strlen(account_complete_menu_group[line].name);

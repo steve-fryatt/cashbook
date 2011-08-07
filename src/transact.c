@@ -66,6 +66,7 @@
 #include "report.h"
 #include "sorder.h"
 #include "templates.h"
+#include "transact.h"
 #include "window.h"
 
 
@@ -110,9 +111,10 @@
 #define MAIN_MENU_ANALYSIS_SOREP 6
 
 
-/* ==================================================================================================================
- * Global variables
- */
+struct transact_list_link {
+	char	name[DESCRIPT_FIELD_LEN]; /* This assumes that references are always shorter than descriptions...*/
+};
+
 
 static int    new_transaction_window_offset = 0;
 static wimp_i transaction_pane_sort_substitute_icon = TRANSACT_PANE_DATE;
@@ -124,15 +126,21 @@ static file_data     *sort_trans_window_file = NULL;
 
 /* Account List Window. */
 
-static wimp_window		*transact_window_def = NULL;			/**< The definition for the Transaction List Window.			*/
-static wimp_window		*transact_pane_def = NULL;			/**< The definition for the Transaction List Toolbar pane.		*/
-static wimp_menu		*transact_window_menu = NULL;			/**< The Transaction List Window menu handle.				*/
-static wimp_menu		*transact_window_menu_account = NULL;		/**< The Transaction List Window Account submenu handle.		*/
-static wimp_menu		*transact_window_menu_transact = NULL;		/**< The Transaction List Window Transaction submenu handle.		*/
-static wimp_menu		*transact_window_menu_analysis = NULL;		/**< The Transaction List Window Analysis submenu handle.		*/
-static int			transact_window_menu_line = -1;			/**< The line over which the Transaction List Window Menu was opened.	*/
+static wimp_window		*transact_window_def = NULL;			/**< The definition for the Transaction List Window.					*/
+static wimp_window		*transact_pane_def = NULL;			/**< The definition for the Transaction List Toolbar pane.				*/
+static wimp_menu		*transact_window_menu = NULL;			/**< The Transaction List Window menu handle.						*/
+static wimp_menu		*transact_window_menu_account = NULL;		/**< The Transaction List Window Account submenu handle.				*/
+static wimp_menu		*transact_window_menu_transact = NULL;		/**< The Transaction List Window Transaction submenu handle.				*/
+static wimp_menu		*transact_window_menu_analysis = NULL;		/**< The Transaction List Window Analysis submenu handle.				*/
+static int			transact_window_menu_line = -1;			/**< The line over which the Transaction List Window Menu was opened.			*/
 
-static wimp_menu		*transact_account_list_menu = NULL;		/**< The toolbar's Account List popup menu handle.			*/
+static wimp_menu		*transact_account_list_menu = NULL;		/**< The toolbar's Account List popup menu handle.					*/
+
+static wimp_menu			*transact_complete_menu = NULL;		/**< The Reference/Description List menu block.						*/
+static struct transact_list_link	*transact_complete_menu_link = NULL;	/**< Links for the Reference/Description List menu.					*/
+static char				*transact_complete_menu_title = NULL;	/**< Reference/Description List menu title buffer.					*/
+static file_data			*transact_complete_menu_file = NULL;	/**< The file to which the Reference/Description List menu is currently attached.	*/
+static enum transact_list_menu_type	transact_complete_menu_type = REFDESC_MENU_NONE;
 
 
 static void			transact_close_window_handler(wimp_close *close);
@@ -146,6 +154,8 @@ static void			transact_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			transact_window_scroll_handler(wimp_scroll *scroll);
 static void			transact_window_redraw_handler(wimp_draw *redraw);
 
+static void			transact_complete_menu_add_entry(struct transact_list_link **entries, int *count, int *max, char *new);
+static int			transact_complete_menu_compare(const void *va, const void *vb);
 
 
 
@@ -1558,6 +1568,364 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Build a Reference or Drescription Complete menu for a given file.
+ *
+ * \param *file			The file to build the menu for.
+ * \param type			The type of menu to build.
+ * \param start_line		The line of the window to start from.
+ * \return			The menu block, or NULL.
+ */
+
+wimp_menu *transact_complete_menu_build(file_data *file, enum transact_list_menu_type menu_type, int start_line)
+{
+	int		i, range, line, width, items, max_items, item_limit;
+	osbool		no_original;
+	char		*title_token;
+
+	hourglass_on();
+
+	account_complete_menu_destroy();
+
+	transact_complete_menu_type = menu_type;
+	transact_complete_menu_file = file;
+
+	/* Claim enough memory to build the menu in. */
+
+	max_items = REFDESC_MENU_BLOCKSIZE;
+	transact_complete_menu_link = heap_alloc((sizeof(struct transact_list_link) * max_items));
+
+	items = 0;
+	item_limit = config_int_read("MaxAutofillLen");
+
+	/* In the Reference menu, the first item needs to be the Cheque No. entry, so insert that manually. */
+
+	if (transact_complete_menu_link != NULL && menu_type == REFDESC_MENU_REFERENCE)
+		msgs_lookup("RefMenuChq", transact_complete_menu_link[items++].name, DESCRIPT_FIELD_LEN);
+
+	/* Bring the start line into range for the current file.  no_original is set true if the line fell off the end
+	 * of the file, as this needs to be a special case of "no text".  If not, lines off the end of the file will
+	 * be matched against the final transaction as a result of pulling start_line into range.
+	 */
+
+	if (start_line >= file->trans_count) {
+		start_line = file->trans_count - 1;
+		no_original = TRUE;
+	} else {
+		no_original = FALSE;
+	}
+
+	if (file->trans_count > 0 && transact_complete_menu_link != NULL) {
+		/* Find the largest range from the current line to one end of the transaction list. */
+
+		range = ((file->trans_count - start_line - 1) > start_line) ? (file->trans_count - start_line - 1) : start_line;
+
+		/* Work out from the line to the edges of the transaction window. For each transaction, check the entries
+		 * and add them into the list.
+		 */
+
+		if (menu_type == REFDESC_MENU_REFERENCE) {
+			for (i=1; i<=range && (item_limit == 0 || items <= item_limit); i++) {
+				if ((start_line+i < file->trans_count) && (no_original ||
+						(*(file->transactions[file->transactions[start_line].sort_index].reference) == '\0') ||
+						(string_nocase_strstr(file->transactions[file->transactions[start_line+i].sort_index].reference,
+						file->transactions[file->transactions[start_line].sort_index].reference) ==
+						file->transactions[file->transactions[start_line+i].sort_index].reference))) {
+					transact_complete_menu_add_entry(&transact_complete_menu_link, &items, &max_items,
+							file->transactions[file->transactions[start_line+i].sort_index].reference);
+				}
+				if ((start_line-i >= 0) && (no_original ||
+						(*(file->transactions[file->transactions[start_line].sort_index].reference) == '\0') ||
+						(string_nocase_strstr(file->transactions[file->transactions[start_line-i].sort_index].reference,
+						file->transactions[file->transactions[start_line].sort_index].reference) ==
+						file->transactions[file->transactions[start_line-i].sort_index].reference))) {
+					transact_complete_menu_add_entry(&transact_complete_menu_link, &items, &max_items,
+						file->transactions[file->transactions[start_line-i].sort_index].reference);
+				}
+			}
+		} else if (menu_type == REFDESC_MENU_DESCRIPTION) {
+			for (i=1; i<=range && (item_limit == 0 || items < item_limit); i++) {
+				if ((start_line+i < file->trans_count) && (no_original ||
+						(*(file->transactions[file->transactions[start_line].sort_index].description) == '\0') ||
+						(string_nocase_strstr(file->transactions[file->transactions[start_line+i].sort_index].description,
+						file->transactions[file->transactions[start_line].sort_index].description) ==
+						file->transactions[file->transactions[start_line+i].sort_index].description))) {
+					transact_complete_menu_add_entry(&transact_complete_menu_link, &items, &max_items,
+							file->transactions[file->transactions[start_line+i].sort_index].description);
+				}
+				if ((start_line-i >= 0) && (no_original ||
+						(*(file->transactions[file->transactions[start_line].sort_index].description) == '\0') ||
+						(string_nocase_strstr(file->transactions[file->transactions[start_line-i].sort_index].description,
+						file->transactions[file->transactions[start_line].sort_index].description) ==
+						file->transactions[file->transactions[start_line-i].sort_index].description))) {
+					transact_complete_menu_add_entry(&transact_complete_menu_link, &items, &max_items,
+						file->transactions[file->transactions[start_line-i].sort_index].description);
+				}
+			}
+		}
+	  }
+
+	/* If there are items in the menu, claim the extra memory required to build the Wimp menu structure and
+	 * set up the pointers.   If there are not, transact_complete_menu will remain NULL and the menu won't exist.
+	 *
+	 * transact_complete_menu_link may be NULL if memory allocation failed at any stage of the build process.
+	 */
+
+	if (transact_complete_menu_link == NULL || items == 0) {
+		transact_complete_menu_destroy();
+		hourglass_off();
+		return NULL;
+	}
+
+	transact_complete_menu = heap_alloc(28 + (24 * max_items));
+	transact_complete_menu_title = heap_alloc(ACCOUNT_MENU_TITLE_LEN);
+
+	if (transact_complete_menu == NULL || transact_complete_menu_title == NULL) {
+		transact_complete_menu_destroy();
+		hourglass_off();
+		return NULL;
+	}
+
+	/* Populate the menu. */
+
+	line = 0;
+	width = 0;
+
+	if (menu_type == REFDESC_MENU_REFERENCE)
+		qsort(transact_complete_menu_link + 1, items - 1, sizeof(struct transact_list_link), transact_complete_menu_compare);
+	else
+		qsort(transact_complete_menu_link, items, sizeof(struct transact_list_link), transact_complete_menu_compare);
+
+	if (items > 0) {
+		for (i=0; i < items; i++) {
+			if (strlen(transact_complete_menu_link[line].name) > width)
+				width = strlen(transact_complete_menu_link[line].name);
+
+			/* Set the menu and icon flags up. */
+
+			if (menu_type == REFDESC_MENU_REFERENCE && i == REFDESC_MENU_CHEQUE)
+				transact_complete_menu->entries[line].menu_flags = (items > 1) ? wimp_MENU_SEPARATE : 0;
+			else
+				transact_complete_menu->entries[line].menu_flags = 0;
+
+			transact_complete_menu->entries[line].sub_menu = (wimp_menu *) -1;
+			transact_complete_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
+					wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
+					wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
+
+			/* Set the menu icon contents up. */
+
+			transact_complete_menu->entries[line].data.indirected_text.text = transact_complete_menu_link[line].name;
+			transact_complete_menu->entries[line].data.indirected_text.validation = NULL;
+			transact_complete_menu->entries[line].data.indirected_text.size = DESCRIPT_FIELD_LEN;
+
+			line++;
+		}
+	}
+
+	/* Finish off the menu, marking the last entry and filling in the header. */
+
+	transact_complete_menu->entries[(line > 0) ? line-1 : 0].menu_flags |= wimp_MENU_LAST;
+
+	if (transact_complete_menu_title == NULL)
+		transact_complete_menu_title = (char *) malloc (ACCOUNT_MENU_TITLE_LEN);
+
+	switch (menu_type) {
+	case REFDESC_MENU_REFERENCE:
+		title_token = "RefMenuTitle";
+		break;
+
+	case REFDESC_MENU_DESCRIPTION:
+	default:
+		title_token = "DescMenuTitle";
+		break;
+	}
+
+	msgs_lookup(title_token, transact_complete_menu_title, ACCOUNT_MENU_TITLE_LEN);
+
+	transact_complete_menu->title_data.indirected_text.text = transact_complete_menu_title;
+	transact_complete_menu->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
+	transact_complete_menu->title_fg = wimp_COLOUR_BLACK;
+	transact_complete_menu->title_bg = wimp_COLOUR_LIGHT_GREY;
+	transact_complete_menu->work_fg = wimp_COLOUR_BLACK;
+	transact_complete_menu->work_bg = wimp_COLOUR_WHITE;
+
+	transact_complete_menu->width = (width + 1) * 16;
+	transact_complete_menu->height = 44;
+	transact_complete_menu->gap = 0;
+
+	hourglass_off();
+
+	return transact_complete_menu;
+}
+
+
+/**
+ * Destroy any Reference or Description Complete menu which is currently open.
+ */
+
+void transact_complete_menu_destroy(void)
+{
+	if (transact_complete_menu != NULL)
+		heap_free(transact_complete_menu);
+
+	if (transact_complete_menu_link != NULL)
+		heap_free(transact_complete_menu_link);
+
+	if (transact_complete_menu_title != NULL)
+		heap_free(transact_complete_menu_title);
+
+	transact_complete_menu = NULL;
+	transact_complete_menu_link = NULL;
+	transact_complete_menu_title = NULL;
+	transact_complete_menu_file = NULL;
+	transact_complete_menu_type = REFDESC_MENU_NONE;
+}
+
+
+/**
+ * Prepare the currently active Reference or Description menu for opening or
+ * reopening, by shading lines which shouldn't be selectable.
+ *
+ * \param line			The line that the menu is open over.
+ */
+
+void transact_complete_menu_prepare(int line)
+{
+	acct_t		account;
+
+	if (transact_complete_menu == NULL || transact_complete_menu_type != REFDESC_MENU_REFERENCE)
+		return;
+
+	if ((line < transact_complete_menu_file->trans_count) &&
+			((account = transact_complete_menu_file->transactions[transact_complete_menu_file->transactions[line].sort_index].from) != NULL_ACCOUNT) &&
+			(transact_complete_menu_file->accounts[account].cheque_num_width > 0))
+		transact_complete_menu->entries[0].icon_flags &= ~wimp_ICON_SHADED;
+	else
+		transact_complete_menu->entries[0].icon_flags |= wimp_ICON_SHADED;
+}
+
+
+/**
+ * Decode menu selections from the Reference or Description menu.
+ *
+ * \param *selection		The menu selection to be decoded.
+ * \return			Pointer to the selected text, or NULL if
+ *				the Cheque Number field was selected or there
+ *				was not valid menu open.
+ */
+
+char *transact_complete_menu_decode(wimp_selection *selection)
+{
+	if (transact_complete_menu == NULL || selection == NULL || selection->items[0] == -1)
+		return NULL;
+
+	if (transact_complete_menu_type == REFDESC_MENU_REFERENCE && selection->items[0] == REFDESC_MENU_CHEQUE)
+		return NULL;
+
+	if (transact_complete_menu_link == NULL)
+		return NULL;
+
+	return transact_complete_menu_link[selection->items[0]].name;
+}
+
+
+/**
+ * Add a reference or description text to the list menu.
+ *
+ * \param **entries		Pointer to the reference struct pointer, allowing
+ *				it to be updated if the memory needs to grow.
+ * \param *count		Pointer to the item count, for update.
+ * \param *max			Pointer to the max item count, for update.
+ * \param *new			The nex text item to be added.
+ */
+
+static void transact_complete_menu_add_entry(struct transact_list_link **entries, int *count, int *max, char *new)
+{
+	int		i;
+	osbool		found = FALSE;
+
+	if (*entries == NULL || new == NULL || *new == '\0')
+		return;
+
+	for (i = 0; (i < *count) && !found; i++)
+		if (string_nocase_strcmp((*entries)[i].name, new) == 0)
+			found = TRUE;
+
+	if (!found && *count < (*max))
+		strcpy((*entries)[(*count)++].name, new);
+
+	/* Extend the block *after* the copy, in anticipation of the next call, because this could easily move the
+	 * flex blocks around and that would invalidate the new pointer...
+	 */
+
+	if (*count >= (*max)) {
+		*entries = heap_extend(*entries, sizeof(struct transact_list_link) * (*max + REFDESC_MENU_BLOCKSIZE));
+		*max += REFDESC_MENU_BLOCKSIZE;
+	}
+}
+
+
+/**
+ * Compare two menu entries, for qsort().
+ *
+ * \param *va			The first entry to compare.
+ * \param *vb			The second entry to compare.
+ * \return			The comparison result.
+ */
+
+static int transact_complete_menu_compare(const void *va, const void *vb)
+{
+	struct transact_list_link *a = (struct transact_list_link *) va, *b = (struct transact_list_link *) vb;
+
+	return (string_nocase_strcmp(a->name, b->name));
+}
+
+
+
+
+
+
+
 
 
 

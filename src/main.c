@@ -948,10 +948,19 @@ static void menu_selection_handler (wimp_selection *selection)
   {
     wimp_create_menu (menus.menu_up, 0, 0);
   }
-  else if (menus.menu_id == MENU_ID_DATE)
-  {
-    date_menu_closed_message();
-  }
+  else if (menus.menu_id == MENU_ID_ACCOUNT)
+      {
+        account_menu_closed_message ();
+      }
+      else if (menus.menu_id == MENU_ID_DATE)
+      {
+        date_menu_closed_message();
+      }
+      else if (menus.menu_id == MENU_ID_REFDESC)
+      {
+        refdesc_menu_closed_message();
+      }
+
 }
 
 
@@ -1052,11 +1061,15 @@ static void user_message_handler (wimp_message *message)
     case message_MENUS_DELETED:
       if (menus.menu_id == MENU_ID_ACCOUNT)
       {
-        account_menu_closed_message ((wimp_full_message_menus_deleted *) message);
+        account_menu_closed_message();
       }
       else if (menus.menu_id == MENU_ID_DATE)
       {
         date_menu_closed_message();
+      }
+      else if (menus.menu_id == MENU_ID_REFDESC)
+      {
+        refdesc_menu_closed_message();
       }
       break;
 

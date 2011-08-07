@@ -85,7 +85,6 @@ static osbool		main_message_prequit(wimp_message *message);
 static void load_templates(global_windows *windows, osspriteop_area *sprites);
 static void mouse_click_handler (wimp_pointer *);
 static void key_press_handler (wimp_key *key);
-static void menu_selection_handler (wimp_selection *);
 static void user_message_handler (wimp_message *);
 static void bounced_message_handler (wimp_message *);
 
@@ -169,7 +168,7 @@ static void main_poll_loop(void)
 				break;
 
 			case wimp_MENU_SELECTION:
-				menu_selection_handler(&(blk.selection));
+				amenu_selection_handler(&(blk.selection));
 				break;
 
 			case wimp_USER_DRAG_BOX:
@@ -373,6 +372,7 @@ static void main_initialise(void)
 	sorder_initialise(sprites);
 	preset_initialise(sprites);
 
+	amenu_initialise();
 	ihelp_initialise();
 	url_initialise();
 	printing_initialise();
@@ -906,62 +906,6 @@ static void key_press_handler (wimp_key *key)
   }
 }
 
-/* ==================================================================================================================
- * Menu selection handler
- */
-
-static void menu_selection_handler (wimp_selection *selection)
-{
-  wimp_pointer          pointer;
-
-  extern global_menus   menus;
-
-
-  /* Store the mouse status before decoding the menu. */
-
-  wimp_get_pointer_info (&pointer);
-
-  /* Decode the account menu. */
-
-  if (menus.menu_id == MENU_ID_ACCOUNT)
-  {
-    decode_account_menu (selection, &pointer);
-  }
-
-  /* Decode the preset/date menu. */
-
-  else if (menus.menu_id == MENU_ID_DATE)
-  {
-    decode_date_menu (selection, &pointer);
-  }
-
-  /* Decode the reference/description menu. */
-
-  else if (menus.menu_id == MENU_ID_REFDESC)
-  {
-    decode_refdesc_menu (selection, &pointer);
-  }
-
-  /* If Adjust was used, reopen the menu. */
-
-  if (pointer.buttons == wimp_CLICK_ADJUST)
-  {
-    wimp_create_menu (menus.menu_up, 0, 0);
-  }
-  else if (menus.menu_id == MENU_ID_ACCOUNT)
-      {
-        account_menu_closed_message ();
-      }
-      else if (menus.menu_id == MENU_ID_DATE)
-      {
-        date_menu_closed_message();
-      }
-      else if (menus.menu_id == MENU_ID_REFDESC)
-      {
-        refdesc_menu_closed_message();
-      }
-
-}
 
 
 /* ==================================================================================================================
@@ -1056,28 +1000,6 @@ static void user_message_handler (wimp_message *message)
 
     case message_DATA_OPEN:
       start_data_open_load (message);
-      break;
-
-    case message_MENUS_DELETED:
-      if (menus.menu_id == MENU_ID_ACCOUNT)
-      {
-        account_menu_closed_message();
-      }
-      else if (menus.menu_id == MENU_ID_DATE)
-      {
-        date_menu_closed_message();
-      }
-      else if (menus.menu_id == MENU_ID_REFDESC)
-      {
-        refdesc_menu_closed_message();
-      }
-      break;
-
-    case message_MENU_WARNING:
-      if (menus.menu_id == MENU_ID_ACCOUNT)
-      {
-        account_menu_submenu_message ((wimp_full_message_menu_warning *) message);
-      }
       break;
   }
 }

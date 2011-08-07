@@ -1567,7 +1567,7 @@ wimp_menu *account_complete_menu_build(file_data *file, enum account_menu_type t
  * \return			Pointer to the submenu block, or NULL on failure.
  */
 
-wimp_menu *account_complete_submenu_build(wimp_full_message_menu_warning *submenu)
+wimp_menu *account_complete_submenu_build(wimp_message_menu_warning *submenu)
 {
 	int		i, line = 0, entry, width = 0;
 

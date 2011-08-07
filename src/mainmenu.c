@@ -19,6 +19,7 @@
 /* SF-Lib header files. */
 
 #include "sflib/menus.h"
+#include "sflib/event.h"
 #include "sflib/icons.h"
 #include "sflib/msgs.h"
 #include "sflib/debug.h"
@@ -52,6 +53,7 @@
 #include "purge.h"
 #include "report.h"
 #include "sorder.h"
+#include "templates.h"
 #include "transact.h"
 
 /* ==================================================================================================================
@@ -70,61 +72,180 @@ static wimp_i    account_menu_rec_icon = 0;
 
 static int                refdesc_menu_type = 0; /* The type of reference or description menu open. */
 
-/* ==================================================================================================================
- * General
+
+
+
+static wimp_menu	*amenu_menu = NULL;					/**< The menu handle being processed.			*/
+static void		(*amenu_callback_prepare)(void) = NULL;
+static void		(*amenu_callback_warning)(wimp_message_menu_warning *) = NULL;
+static void		(*amenu_callback_selection)(wimp_selection *) = NULL;
+static void		(*amenu_callback_close)(void) = NULL;
+
+
+
+static osbool		amenu_message_warning_handler(wimp_message *message);
+static osbool		amenu_message_deleted_handler(wimp_message *message);
+static void		amenu_close(void);
+
+static void decode_account_menu(wimp_selection *selection);
+static void account_menu_submenu_message(wimp_message_menu_warning *submenu);
+static void account_menu_closed_message (void);
+static void decode_date_menu(wimp_selection *selection);
+static void date_menu_closed_message(void);
+static void refdesc_menu_prepare(void);
+static void decode_refdesc_menu (wimp_selection *selection);
+static void refdesc_menu_closed_message(void);
+
+
+
+/**
+ * Initialise the Adjust-Click Menu system.
  */
 
-
-char *mainmenu_get_current_menu_name(char *buffer)
+void amenu_initialise(void)
 {
-  extern global_menus menus;
-
-
-  *buffer = '\0';
-
-  if (menus.menu_id == MENU_ID_DATE)
-  {
-    strcpy (buffer, "DateMenu");
-  }
-  else if (menus.menu_id == MENU_ID_ACCOUNT)
-  {
-    strcpy (buffer, "AccountMenu");
-  }
-  else if (menus.menu_id == MENU_ID_REFDESC)
-  {
-    if (refdesc_menu_type == REFDESC_MENU_REFERENCE)
-    {
-      strcpy (buffer, "RefMenu");
-    }
-    else if (refdesc_menu_type == REFDESC_MENU_DESCRIPTION)
-    {
-      strcpy (buffer, "DescMenu");
-    }
-  }
-
-  return (buffer);
+	event_add_message_handler(message_MENU_WARNING, EVENT_MESSAGE_INCOMING, amenu_message_warning_handler);
+	event_add_message_handler(message_MENUS_DELETED, EVENT_MESSAGE_INCOMING, amenu_message_deleted_handler);
 }
+
+
+/**
+ * Open an Adjust-Click Menu on screen, and set up the handlers to track its
+ * progress.
+ *
+ * \param *menu			The menu to be opened.
+ * \param *pointer		The details of the position to open it.
+ * \param *prepare		A handler to be called before (re-) opening.
+ * \param *warning		A handler to be called on submenu warnings.
+ * \param *selection		A handler to be called on selections.
+ * \param *close		A handler to be called when the menu closes.
+ */
+
+void amenu_open(wimp_menu *menu, wimp_pointer *pointer, void (*prepare)(void), void (*warning)(wimp_message_menu_warning *), void (*selection)(wimp_selection *), void (*close)(void))
+{
+	amenu_callback_prepare = prepare;
+	amenu_callback_warning = warning;
+	amenu_callback_selection = selection;
+	amenu_callback_close = close;
+
+	if (amenu_callback_prepare != NULL)
+		amenu_callback_prepare();
+
+	amenu_menu = menus_create_standard_menu(menu, pointer);
+}
+
+
+/**
+ * Handle menu selection events from the Wimp.  This must be placed in the
+ * Wimp_Poll loop, as EventLib doesn't provide a hook for menu selections.
+ *
+ * \param *selection		The menu selection block to be handled.
+ */
+
+void amenu_selection_handler(wimp_selection *selection)
+{
+	wimp_pointer		pointer;
+
+	if (amenu_menu == NULL)
+		return;
+
+	wimp_get_pointer_info(&pointer);
+
+	if (amenu_callback_selection != NULL)
+		amenu_callback_selection(selection);
+
+	if (pointer.buttons == wimp_CLICK_ADJUST) {
+		if (amenu_callback_prepare != NULL)
+			amenu_callback_prepare();
+		wimp_create_menu(amenu_menu, 0, 0);
+	} else {
+		amenu_close();
+	}
+}
+
+
+/**
+ * Message_MenuWarning handler.
+ *
+ * \param *message		The message data block.
+ * \return			FALSE to pass the message on.
+ */
+
+static osbool amenu_message_warning_handler(wimp_message *message)
+{
+	if (amenu_menu == NULL)
+		return FALSE;
+
+	if (amenu_callback_warning != NULL)
+		amenu_callback_warning((wimp_message_menu_warning *) &(message->data));
+
+	return FALSE;
+}
+
+
+/**
+ * Message_MenusDeleted handler.
+ *
+ * \param *message		The message data block.
+ * \return			FALSE to pass the message on.
+ */
+
+static osbool amenu_message_deleted_handler(wimp_message *message)
+{
+	if (amenu_menu == NULL)
+		return FALSE;
+
+	amenu_close();
+
+	return FALSE;
+}
+
+
+/**
+ * Handle closure of an Adjust-Click Menu.
+ */
+
+static void amenu_close(void)
+{
+	if (amenu_callback_close != NULL)
+		amenu_callback_close();
+
+	amenu_menu = NULL;
+	amenu_callback_prepare = NULL;
+	amenu_callback_warning = NULL;
+	amenu_callback_selection = NULL;
+	amenu_callback_close = NULL;
+}
+
+
+
+
+
+
 
 
 /* ==================================================================================================================
  * Account menu -- List of accounts and headings to select from
  */
 
-void set_account_menu (file_data *file)
-{
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 void open_account_menu (file_data *file, enum account_menu_type type, int line,
                         wimp_w window, wimp_i icon_i, wimp_i icon_n, wimp_i icon_r, wimp_pointer *pointer)
 {
-  extern global_menus menus;
+	wimp_menu		*menu;
+	extern global_menus	menus;
 
-  menus.account = account_complete_menu_build(file, type);
-  set_account_menu (file);
+	menu = account_complete_menu_build(file, type);
 
-  menus.menu_up = menus_create_standard_menu (menus.account, pointer);
+	if (menu == NULL)
+		return;
+
+	templates_set_menu_token("AccountMenu");
+
+	amenu_open(menu, pointer, NULL, account_menu_submenu_message, decode_account_menu, account_menu_closed_message);
+
   menus.menu_id = MENU_ID_ACCOUNT;
   main_menu_file = file;
   main_menu_line = line;
@@ -138,7 +259,7 @@ void open_account_menu (file_data *file, enum account_menu_type type, int line,
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void decode_account_menu (wimp_selection *selection, wimp_pointer *pointer)
+static void decode_account_menu(wimp_selection *selection)
 {
   int i, column, account;
 
@@ -183,8 +304,6 @@ void decode_account_menu (wimp_selection *selection, wimp_pointer *pointer)
 
       edit_change_transaction_account (main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, column,
                                        account_complete_menu_decode(selection));
-
-      set_account_menu (main_menu_file);
     }
   }
   else
@@ -205,16 +324,11 @@ void decode_account_menu (wimp_selection *selection, wimp_pointer *pointer)
       icons_replace_caret_in_window (account_menu_window);
     }
   }
-
-  if (pointer->buttons != wimp_CLICK_ADJUST)
-  {
-    close_account_lookup_account_menu ();
-  }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void account_menu_submenu_message (wimp_full_message_menu_warning *submenu)
+static void account_menu_submenu_message(wimp_message_menu_warning *submenu)
 {
   wimp_menu *menu_block;
 
@@ -227,9 +341,8 @@ void account_menu_submenu_message (wimp_full_message_menu_warning *submenu)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void account_menu_closed_message (void)
+static void account_menu_closed_message (void)
 {
-  extern global_menus menus;
   extern global_windows windows;
 
   if (account_menu_window == windows.enter_acc)
@@ -238,6 +351,8 @@ void account_menu_closed_message (void)
   }
 
   account_complete_menu_destroy();
+
+  templates_set_menu_token("");
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -251,14 +366,18 @@ void account_menu_closed_message (void)
 
 void open_date_menu(file_data *file, int line, wimp_pointer *pointer)
 {
-	extern global_menus menus;
+	extern		global_menus menus;
+	wimp_menu	*menu;
 
-	menus.date = preset_complete_menu_build(file);
+	menu = preset_complete_menu_build(file);
 
-	if (menus.date == NULL)
+	if (menu == NULL)
 		return;
 
-	menus.menu_up = menus_create_standard_menu(menus.date, pointer);
+	templates_set_menu_token("DateMenu");
+
+	amenu_open(menu, pointer, NULL, NULL, decode_date_menu, date_menu_closed_message);
+
 	menus.menu_id = MENU_ID_DATE;
 	main_menu_file = file;
 	main_menu_line = line;
@@ -266,7 +385,7 @@ void open_date_menu(file_data *file, int line, wimp_pointer *pointer)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void decode_date_menu(wimp_selection *selection, wimp_pointer *pointer)
+static void decode_date_menu(wimp_selection *selection)
 {
 	int i;
 
@@ -311,9 +430,10 @@ void decode_date_menu(wimp_selection *selection, wimp_pointer *pointer)
   }
 }
 
-void date_menu_closed_message(void)
+static void date_menu_closed_message(void)
 {
 	preset_complete_menu_destroy();
+	templates_set_menu_token("");
 }
 
 
@@ -326,22 +446,43 @@ void date_menu_closed_message(void)
 
 void open_refdesc_menu (file_data *file, int menu_type, int line, wimp_pointer *pointer)
 {
-  extern global_menus menus;
+	extern		global_menus menus;
+	wimp_menu	*menu;
 
+	menu = transact_complete_menu_build(file, menu_type, line);
 
-  menus.refdesc = transact_complete_menu_build(file, menu_type, line);
-  transact_complete_menu_prepare(line);
+	if (menu == NULL)
+		return;
 
-  menus.menu_up = menus_create_standard_menu (menus.refdesc, pointer);
+	switch (menu_type) {
+	case REFDESC_MENU_REFERENCE:
+		templates_set_menu_token("RefMenu");
+		break;
+
+	case REFDESC_MENU_DESCRIPTION:
+		templates_set_menu_token("DescMenu");
+		break;
+	}
+
   menus.menu_id = MENU_ID_REFDESC;
   main_menu_file = file;
   main_menu_line = line;
   refdesc_menu_type = menu_type;
+
+
+	amenu_open(menu, pointer, refdesc_menu_prepare, NULL, decode_refdesc_menu, refdesc_menu_closed_message);
+}
+
+
+
+static void refdesc_menu_prepare(void)
+{
+	transact_complete_menu_prepare(main_menu_line);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void decode_refdesc_menu (wimp_selection *selection, wimp_pointer *pointer)
+static void decode_refdesc_menu (wimp_selection *selection)
 {
   int  i;
   char *field, cheque_buffer[REF_FIELD_LEN];
@@ -398,8 +539,9 @@ void decode_refdesc_menu (wimp_selection *selection, wimp_pointer *pointer)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refdesc_menu_closed_message(void)
+static void refdesc_menu_closed_message(void)
 {
 	transact_complete_menu_destroy();
+	templates_set_menu_token("");
 }
 

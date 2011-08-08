@@ -816,19 +816,5 @@ typedef struct
 }
 global_windows;
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Menus */
-
-typedef struct
-{
-  wimp_menu   *menu_up;
-  int         menu_id;
-
-  wimp_menu   *date;
-  wimp_menu   *account;
-  wimp_menu   *refdesc;
-}
-global_menus;
-
 #endif
+

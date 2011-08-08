@@ -12,11 +12,6 @@
  * Static constants
  */
 
-/* Menu IDs */
-
-#define MENU_ID_ACCOUNT    3
-#define MENU_ID_DATE       4
-#define MENU_ID_REFDESC    11
 
 /* Date menu */
 

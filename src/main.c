@@ -95,7 +95,6 @@ static void bounced_message_handler (wimp_message *);
 /* Declare the global variables that are used. */
 
 global_windows          windows;
-global_menus            menus;
 int                     global_drag_type;
 
 /* Cross file global variables */
@@ -215,7 +214,6 @@ static void main_initialise(void)
 	wimp_version_no			wimp_version;
 
 	extern global_windows		windows;
-	extern global_menus		menus;
 
 	hourglass_on();
 
@@ -384,8 +382,6 @@ static void main_initialise(void)
 
 	templates_link_menu_dialogue("file_info", windows.file_info);
 	templates_link_menu_dialogue("save_as", windows.save_as);
-
-	menus.account         = NULL;
 
 	/* Initialise the file update mechanism: calling it now with no files loaded will force the date to be set up. */
 
@@ -914,9 +910,6 @@ static void key_press_handler (wimp_key *key)
 
 static void user_message_handler (wimp_message *message)
 {
-  extern int          main_quit_flag;
-  extern global_menus menus;
-
   static char         *clipboard_data;
   int                 clipboard_size;
 

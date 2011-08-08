@@ -239,7 +239,6 @@ void open_account_menu (file_data *file, enum account_menu_type type, int line,
                         wimp_w window, wimp_i icon_i, wimp_i icon_n, wimp_i icon_r, wimp_pointer *pointer)
 {
 	wimp_menu		*menu;
-	extern global_menus	menus;
 
 	menu = account_complete_menu_build(file, type);
 
@@ -250,7 +249,6 @@ void open_account_menu (file_data *file, enum account_menu_type type, int line,
 
 	amenu_open(menu, pointer, NULL, account_menu_submenu_message, decode_account_menu, account_menu_closed_message);
 
-  menus.menu_id = MENU_ID_ACCOUNT;
   main_menu_file = file;
   main_menu_line = line;
   main_menu_column = type;
@@ -370,7 +368,6 @@ static void account_menu_closed_message (void)
 
 void open_date_menu(file_data *file, int line, wimp_pointer *pointer)
 {
-	extern		global_menus menus;
 	wimp_menu	*menu;
 
 	menu = preset_complete_menu_build(file);
@@ -382,7 +379,6 @@ void open_date_menu(file_data *file, int line, wimp_pointer *pointer)
 
 	amenu_open(menu, pointer, NULL, NULL, decode_date_menu, date_menu_closed_message);
 
-	menus.menu_id = MENU_ID_DATE;
 	main_menu_file = file;
 	main_menu_line = line;
 }
@@ -450,7 +446,6 @@ static void date_menu_closed_message(void)
 
 void open_refdesc_menu (file_data *file, int menu_type, int line, wimp_pointer *pointer)
 {
-	extern		global_menus menus;
 	wimp_menu	*menu;
 
 	menu = transact_complete_menu_build(file, menu_type, line);
@@ -468,7 +463,6 @@ void open_refdesc_menu (file_data *file, int menu_type, int line, wimp_pointer *
 		break;
 	}
 
-  menus.menu_id = MENU_ID_REFDESC;
   main_menu_file = file;
   main_menu_line = line;
   refdesc_menu_type = menu_type;

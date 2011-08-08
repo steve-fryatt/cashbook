@@ -268,16 +268,16 @@ static void main_initialise(void)
 
 	config_initialise(task_name, "CashBook", "<CashBook$Dir>");
 
-	config_opt_init("IyonixKeys", (osbyte1(osbyte_IN_KEY, 0, 0xff) == 0xaa));	/**< Use RISC OS 5 Delete: default true only on an Iyonix.	*/
-	config_opt_init("GlobalClipboardSupport", TRUE);				/**< Support the global clipboard in the transaction window.	*/
+	config_opt_init("IyonixKeys", (osbyte1(osbyte_IN_KEY, 0, 0xff) == 0xaa));	/**< Use RISC OS 5 Delete: default true only on an Iyonix.		*/
+	config_opt_init("GlobalClipboardSupport", TRUE);				/**< Support the global clipboard in the transaction window.		*/
 
-	config_opt_init("RememberValues", TRUE);					/**< Remember previous values in dialogue boxes.		*/
+	config_opt_init("RememberValues", TRUE);					/**< Remember previous values in dialogue boxes.			*/
 
-	config_opt_init("AllowTransDelete", TRUE);					/**< Enable the use of Ctrl-F10 to delete whole transactions.	*/
+	config_opt_init("AllowTransDelete", TRUE);					/**< Enable the use of Ctrl-F10 to delete whole transactions.		*/
 
-	config_int_init("MaxAutofillLen", 0);
+	config_int_init("MaxAutofillLen", 0);						/**< Maximum entries in Ref or Descript Complete Menus (0 = no limit).	*/
 
-	config_opt_init("AutoSort", TRUE);
+	config_opt_init("AutoSort", TRUE);						/**< Automatically sort transaction list display on entry.		*/
 
 	config_opt_init("ShadeReconciled", FALSE);
 	config_int_init("ShadeReconciledColour", wimp_COLOUR_MID_LIGHT_GREY);
@@ -291,40 +291,40 @@ static void main_initialise(void)
 	config_opt_init("ShadeAccounts", FALSE);
 	config_int_init("ShadeAccountsColour", wimp_COLOUR_RED);
 
-	config_opt_init("TerritoryDates", TRUE);
-	config_str_init("DateSepIn", "-/\\.");
-	config_str_init("DateSepOut", "-");
+	config_opt_init("TerritoryDates", TRUE);					/**< Take date information from Territory module.			*/
+	config_str_init("DateSepIn", "-/\\.");						/**< List of characters to be accepted as input date separators.	*/
+	config_str_init("DateSepOut", "-");						/**< The character to use as output date separator.			*/
 
-	config_opt_init("TerritoryCurrency", TRUE);
-	config_opt_init("PrintZeros", FALSE);
-	config_opt_init("BracketNegatives", FALSE);
-	config_int_init("DecimalPlaces", 2);
-	config_str_init("DecimalPoint", ".");
+	config_opt_init("TerritoryCurrency", TRUE);					/**< Take currency information from the Territory module.		*/
+	config_opt_init("PrintZeros", FALSE);						/**< Print zero values, instead of leaving cells blank.			*/
+	config_opt_init("BracketNegatives", FALSE);					/**< Show negative values as "(1.00)" instead of "-1.00".		*/
+	config_int_init("DecimalPlaces", 2);						/**< The number of decimal places in the local currency.		*/
+	config_str_init("DecimalPoint", ".");						/**< The character to use for a decimal point.				*/
 
-	config_opt_init("SortAfterSOrders", TRUE);
-	config_opt_init("AutoSortSOrders", TRUE);
-	config_opt_init("TerritorySOrders", TRUE);
-	config_int_init("WeekendDays", 0x41);
+	config_opt_init("SortAfterSOrders", TRUE);					/**< Automatically sort transaction list view after adding SOs.		*/
+	config_opt_init("AutoSortSOrders", TRUE);					/**< Automatically sort SO list on entry.				*/
+	config_opt_init("TerritorySOrders", TRUE);					/**< Take weekend day info for SOs from Territory module.		*/
+	config_int_init("WeekendDays", 0x41);						/**< Manual set weekends for SOs (bit 0 = Sunday; bit 6 = Saturday).	*/
 
-	config_opt_init("AutoSortPresets", TRUE);
+	config_opt_init("AutoSortPresets", TRUE);					/**< Automatically sort presets on entry.				*/
 
-	config_str_init("ReportFontNormal", "Homerton.Medium");
-	config_str_init("ReportFontBold", "Homerton.Bold");
-	config_int_init("ReportFontSize", 12);
-	config_int_init("ReportFontLinespace", 130);
+	config_str_init("ReportFontNormal", "Homerton.Medium");				/**< Normal weight font name for reporting and printing.		*/
+	config_str_init("ReportFontBold", "Homerton.Bold");				/**< Bold weight font name for reporting and printing.			*/
+	config_int_init("ReportFontSize", 12);						/**< Report and print font size (points).				*/
+	config_int_init("ReportFontLinespace", 130);					/**< Report and print linespacing (percent of font size).		*/
 
-	config_opt_init("PrintFitWidth", TRUE);						/**< Fit printout to one page width when PrintText == FALSE.	*/
-	config_opt_init("PrintRotate", FALSE);						/**< Print Landscape when PrintText == FALSE.			*/
-	config_opt_init("PrintPageNumbers", TRUE);					/**< Include page numbers when PrintText == FALSE.		*/
-	config_opt_init("PrintText", FALSE);						/**< Print in legacy text mode instead of graphics.		*/
-	config_opt_init("PrintTextFormat", TRUE);					/**< Include Fancy Text formatting when PrintText == TRUE.	*/
+	config_opt_init("PrintFitWidth", TRUE);						/**< Fit printout to one page width when PrintText == FALSE.		*/
+	config_opt_init("PrintRotate", FALSE);						/**< Print Landscape when PrintText == FALSE.				*/
+	config_opt_init("PrintPageNumbers", TRUE);					/**< Include page numbers when PrintText == FALSE.			*/
+	config_opt_init("PrintText", FALSE);						/**< Print in legacy text mode instead of graphics.			*/
+	config_opt_init("PrintTextFormat", TRUE);					/**< Include Fancy Text formatting when PrintText == TRUE.		*/
 
-	config_int_init("PrintMarginTop", 0);						/**< Paper top margin (millipoints).				*/
-	config_int_init("PrintMarginLeft", 0);						/**< Paper left margin (millipoints).				*/
-	config_int_init("PrintMarginRight", 0);						/**< Paper right margin (millipoints).				*/
-	config_int_init("PrintMarginBottom", 0);					/**< Paper bottom margin (millipoints).				*/
-	config_int_init("PrintMarginInternal", 18000);					/**< Header/Footer margin (millipoints).			*/
-	config_int_init("PrintMarginUnits", 0);						/**< Page units used in Choices (0 = mm, 1 = cm, 2 = inch).	*/
+	config_int_init("PrintMarginTop", 0);						/**< Paper top margin (millipoints).					*/
+	config_int_init("PrintMarginLeft", 0);						/**< Paper left margin (millipoints).					*/
+	config_int_init("PrintMarginRight", 0);						/**< Paper right margin (millipoints).					*/
+	config_int_init("PrintMarginBottom", 0);					/**< Paper bottom margin (millipoints).					*/
+	config_int_init("PrintMarginInternal", 18000);					/**< Header/Footer margin (millipoints).				*/
+	config_int_init("PrintMarginUnits", 0);						/**< Page units used in Choices (0 = mm, 1 = cm, 2 = inch).		*/
 
 	config_str_init("TransactCols", "180,88,32,362,88,32,362,200,176,808");
 	config_str_init("LimTransactCols", "140,88,32,140,88,32,140,140,140,200");

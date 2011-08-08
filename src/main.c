@@ -46,6 +46,7 @@
 
 #include "account.h"
 #include "accview.h"
+#include "amenu.h"
 #include "analysis.h"
 #include "budget.h"
 #include "caret.h"

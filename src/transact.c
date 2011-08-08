@@ -143,7 +143,8 @@ static file_data			*transact_complete_menu_file = NULL;	/**< The file to which t
 static enum transact_list_menu_type	transact_complete_menu_type = REFDESC_MENU_NONE;
 
 
-static void			transact_close_window_handler(wimp_close *close);
+static void			transact_window_open_handler(wimp_open *open);
+static void			transact_window_close_handler(wimp_close *close);
 static void			transact_window_click_handler(wimp_pointer *pointer);
 static void			transact_pane_click_handler(wimp_pointer *pointer);
 static osbool			transact_window_keypress_handler(wimp_key *key);
@@ -277,7 +278,8 @@ void transact_open_window(file_data *file)
 
 	event_add_window_user_data(file->transaction_window.transaction_window, &(file->transaction_window));
 	event_add_window_menu(file->transaction_window.transaction_window, transact_window_menu);
-	event_add_window_close_event(file->transaction_window.transaction_window, transact_close_window_handler);
+	event_add_window_open_event(file->transaction_window.transaction_window, transact_window_open_handler);
+	event_add_window_close_event(file->transaction_window.transaction_window, transact_window_close_handler);
 	event_add_window_mouse_event(file->transaction_window.transaction_window, transact_window_click_handler);
 	event_add_window_key_event(file->transaction_window.transaction_window, transact_window_keypress_handler);
 	event_add_window_scroll_event(file->transaction_window.transaction_window, transact_window_scroll_handler);
@@ -337,12 +339,30 @@ void transact_delete_window(struct transaction_window *windat)
 
 
 /**
+ * Handle Open events on Transaction List windows, to adjust the extent.
+ *
+ * \param *open			The Wimp Open data block.
+ */
+
+static void transact_window_open_handler(wimp_open *open)
+{
+	struct transaction_window	*windat;
+
+	windat = event_get_window_user_data(open->w);
+	if (windat != NULL && windat->file != NULL)
+		minimise_transaction_window_extent(windat->file);
+
+	wimp_open_window(open);
+}
+
+
+/**
  * Handle Close events on Transaction List windows, deleting the window.
  *
  * \param *close		The Wimp Close data block.
  */
 
-static void transact_close_window_handler(wimp_close *close)
+static void transact_window_close_handler(wimp_close *close)
 {
 	struct transaction_window	*windat;
 	wimp_pointer			pointer;

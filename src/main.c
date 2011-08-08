@@ -127,7 +127,6 @@ int main(int argc, char *argv[])
 
 static void main_poll_loop(void)
 {
-	file_data	*file;
 	os_t		poll_time;
 	wimp_block	blk;
 	wimp_event_no	reason;
@@ -150,8 +149,6 @@ static void main_poll_loop(void)
 				break;
 
 			case wimp_OPEN_WINDOW_REQUEST:
-				if ((file = find_transaction_window_file_block(blk.redraw.w)) != NULL) /* \TODO -- This needs to go into its own handler. */
-					minimise_transaction_window_extent(file);
 				wimp_open_window(&(blk.open));
 				break;
 

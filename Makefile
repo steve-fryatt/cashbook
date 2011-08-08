@@ -95,10 +95,10 @@ MANSPR := ManSprite
 READMEHDR := Header
 MENUSRC := menudef
 
-OBJS = account.o accview.o analysis.o budget.o calculation.o caret.o choices.o clipboard.o \
-       column.o conversion.o dataxfer.o date.o edit.o file.o fileinfo.o filing.o find.o    \
-       fontlist.o goto.o iconbar.o ihelp.o main.o mainmenu.o presets.o printing.o purge.o  \
-       report.o sorder.o templates.o transact.o window.o
+OBJS = account.o accview.o amenu.o analysis.o budget.o calculation.o caret.o choices.o       \
+       clipboard.o column.o conversion.o dataxfer.o date.o edit.o file.o fileinfo.o filing.o \
+       find.o fontlist.o goto.o iconbar.o ihelp.o main.o mainmenu.o presets.o printing.o     \
+       purge.o report.o sorder.o templates.o transact.o window.o
 
 
 # Build everything, but don't package it for release.

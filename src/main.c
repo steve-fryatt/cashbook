@@ -515,15 +515,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
     windows->enter_acc = templates_create_window("AccEnter");
     ihelp_add_window (windows->enter_acc, "AccEnter", NULL);
-
-
-  /* Sort Transactions Window.
-   *
-   * Created now.
-   */
-
-    windows->sort_trans = templates_create_window("SortTrans");
-    ihelp_add_window (windows->sort_trans, "SortTrans", NULL);
 }
 
 
@@ -715,41 +706,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
       wimp_create_menu ((wimp_menu *) -1, 0, 0);
     }
   }
-
-
-  /* Transaction Sort Window */
-
-  else if (pointer->w == windows.sort_trans)
-  {
-    if (pointer->i == TRANS_SORT_CANCEL) /* 'Cancel' button */
-    {
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.sort_trans);
-      }
-      else if (pointer->buttons == wimp_CLICK_ADJUST)
-      {
-        refresh_transaction_sort_window ();
-      }
-    }
-
-    else if (pointer->i == TRANS_SORT_OK) /* 'OK' button */
-    {
-      if (!process_transaction_sort_window () && pointer->buttons == wimp_CLICK_SELECT)
-      {
-        close_dialogue_with_caret (windows.sort_trans);
-      }
-    }
-
-    else if (pointer->buttons == wimp_CLICK_ADJUST &&
-        (pointer->i == TRANS_SORT_DATE || pointer->i == TRANS_SORT_FROM || pointer->i == TRANS_SORT_TO ||
-         pointer->i == TRANS_SORT_REFERENCE || pointer->i == TRANS_SORT_AMOUNT ||
-         pointer->i == TRANS_SORT_DESCRIPTION || pointer->i == TRANS_SORT_ASCENDING ||
-         pointer->i == TRANS_SORT_DESCENDING)) /* Radio icons */
-    {
-      icons_set_selected (windows.sort_trans, pointer->i, 1);
-    }
-  }
 }
 
 /* ==================================================================================================================
@@ -871,31 +827,6 @@ static void key_press_handler (wimp_key *key)
     if (key->i == ACC_NAME_ENTRY_IDENT)
     {
       update_account_lookup_window (key);
-    }
-
-  }
-
-
-  /* Transaction Sort Window */
-
-  else if (key->w == windows.sort_trans)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_transaction_sort_window ())
-        {
-          close_dialogue_with_caret (windows.sort_trans);
-        }
-        break;
-
-      case wimp_KEY_ESCAPE:
-        close_dialogue_with_caret (windows.sort_trans);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
     }
   }
 }

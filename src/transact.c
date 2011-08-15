@@ -110,6 +110,18 @@
 #define MAIN_MENU_ANALYSIS_BALANCE 5
 #define MAIN_MENU_ANALYSIS_SOREP 6
 
+#define TRANS_SORT_OK 2
+#define TRANS_SORT_CANCEL 3
+#define TRANS_SORT_DATE 4
+#define TRANS_SORT_FROM 5
+#define TRANS_SORT_TO 6
+#define TRANS_SORT_REFERENCE 7
+#define TRANS_SORT_AMOUNT 8
+#define TRANS_SORT_DESCRIPTION 9
+#define TRANS_SORT_ASCENDING 10
+#define TRANS_SORT_DESCENDING 11
+
+
 
 struct transact_list_link {
 	char	name[DESCRIPT_FIELD_LEN]; /* This assumes that references are always shorter than descriptions...*/
@@ -119,12 +131,16 @@ struct transact_list_link {
 static int    new_transaction_window_offset = 0;
 static wimp_i transaction_pane_sort_substitute_icon = TRANSACT_PANE_DATE;
 
-static file_data     *transact_print_file = NULL;
-static file_data     *sort_trans_window_file = NULL;
+/* Transaction Sort Window. */
 
+static wimp_w			transact_sort_window = NULL;			/**< The handle of the transaction sort window.						*/
+static file_data		*transact_sort_file = NULL;			/**< The file currently owning the transaction sort window.				*/
 
+/* Transaction Print Window. */
 
-/* Account List Window. */
+static file_data		*transact_print_file = NULL;			/**< The file currently owning the transaction print window.				*/
+
+/* Transaction List Window. */
 
 static wimp_window		*transact_window_def = NULL;			/**< The definition for the Transaction List Window.					*/
 static wimp_window		*transact_pane_def = NULL;			/**< The definition for the Transaction List Toolbar pane.				*/
@@ -159,6 +175,14 @@ static void			transact_complete_menu_add_entry(struct transact_list_link **entri
 static int			transact_complete_menu_compare(const void *va, const void *vb);
 
 
+static void			transact_open_sort_window(file_data *file, wimp_pointer *ptr);
+static void			transact_sort_click_handler(wimp_pointer *pointer);
+static osbool			transact_sort_keypress_handler(wimp_key *key);
+static void			transact_refresh_sort_window(void);
+static void			transact_fill_sort_window(int sort_option);
+static osbool			transact_process_sort_window(void);
+
+
 
 /**
  * Initialise the transaction system.
@@ -168,6 +192,19 @@ static int			transact_complete_menu_compare(const void *va, const void *vb);
 
 void transact_initialise(osspriteop_area *sprites)
 {
+	transact_sort_window = templates_create_window("SortTrans");
+	ihelp_add_window(transact_sort_window, "SortTrans", NULL);
+	event_add_window_mouse_event(transact_sort_window, transact_sort_click_handler);
+	event_add_window_key_event(transact_sort_window, transact_sort_keypress_handler);
+	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_DATE, TRUE);
+	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_FROM, TRUE);
+	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_TO, TRUE);
+	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_REFERENCE, TRUE);
+	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_AMOUNT, TRUE);
+	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_DESCRIPTION, TRUE);
+	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_ASCENDING, TRUE);
+	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_DESCENDING, TRUE);
+
 	transact_window_def = templates_load_window("Transact");
 	transact_window_def->icon_count = 0;
 
@@ -634,7 +671,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_SORT:
-        open_transaction_sort_window (file, pointer);
+        transact_open_sort_window (file, pointer);
         break;
 
       case TRANSACT_PANE_RECONCILE:
@@ -850,7 +887,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
   else if (key->c == wimp_KEY_F6)
   {
     wimp_get_pointer_info (&pointer);
-    open_transaction_sort_window (file, &pointer);
+    transact_open_sort_window (file, &pointer);
   }
 
   else if (key->c == wimp_KEY_F9)
@@ -1070,7 +1107,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_TRANS_SORT:
-			open_transaction_sort_window(windat->file, &pointer);
+			transact_open_sort_window(windat->file, &pointer);
 			break;
 
 		case MAIN_MENU_TRANS_AUTOVIEW:
@@ -2475,117 +2512,175 @@ void sort_transaction_window (file_data *file)
   hourglass_off ();
 }
 
-/* ================================================================================================================== */
 
-void open_transaction_sort_window (file_data *file, wimp_pointer *ptr)
+
+
+
+
+
+
+
+
+/**
+ * Open the Transaction List Sort dialogue for a given transaction list window.
+ *
+ * \param *file			The file to own the dialogue.
+ * \param *ptr			The current Wimp pointer position.
+ */
+
+static void transact_open_sort_window(file_data *file, wimp_pointer *ptr)
 {
-  extern global_windows windows;
+	if (windows_get_open(transact_sort_window))
+		wimp_close_window(transact_sort_window);
 
-  /* If the window is open elsewhere, close it first. */
+	transact_fill_sort_window(file->transaction_window.sort_order);
 
-  if (windows_get_open (windows.sort_trans))
-  {
-    wimp_close_window (windows.sort_trans);
-  }
+	transact_sort_file = file;
 
-  fill_transaction_sort_window (file->transaction_window.sort_order);
-
-  sort_trans_window_file = file;
-
-  windows_open_centred_at_pointer (windows.sort_trans, ptr);
-  place_dialogue_caret (windows.sort_trans, wimp_ICON_WINDOW);
+	windows_open_centred_at_pointer(transact_sort_window, ptr);
+	place_dialogue_caret(transact_sort_window, wimp_ICON_WINDOW);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_transaction_sort_window (void)
+/**
+ * Process mouse clicks in the Transaction List Sort dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void transact_sort_click_handler(wimp_pointer *pointer)
 {
-  fill_transaction_sort_window (sort_trans_window_file->transaction_window.sort_order);
+	switch (pointer->i) {
+	case TRANS_SORT_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(transact_sort_window);
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			transact_refresh_sort_window();
+		break;
+
+	case TRANS_SORT_OK:
+		if (transact_process_sort_window() && pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(transact_sort_window);
+		break;
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void fill_transaction_sort_window (int sort_option)
+/**
+ * Process keypresses in the Transaction List Sort window.
+ *
+ * \param *key			The keypress event block to handle.
+ * \return			TRUE if the event was handled; else FALSE.
+ */
+
+static osbool transact_sort_keypress_handler(wimp_key *key)
 {
-  extern global_windows windows;
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (transact_process_sort_window())
+			close_dialogue_with_caret(transact_sort_window);
+		break;
 
-  icons_set_selected (windows.sort_trans, TRANS_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
-  icons_set_selected (windows.sort_trans, TRANS_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
-  icons_set_selected (windows.sort_trans, TRANS_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
-  icons_set_selected (windows.sort_trans, TRANS_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
-  icons_set_selected (windows.sort_trans, TRANS_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
-  icons_set_selected (windows.sort_trans, TRANS_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(transact_sort_window);
+		break;
 
-  icons_set_selected (windows.sort_trans, TRANS_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-  icons_set_selected (windows.sort_trans, TRANS_SORT_DESCENDING, sort_option & SORT_DESCENDING);
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-int process_transaction_sort_window (void)
+/**
+ * Refresh the contents of the Transaction List Sort window.
+ */
+
+static void transact_refresh_sort_window(void)
 {
-  extern global_windows windows;
-
-  sort_trans_window_file->transaction_window.sort_order = SORT_NONE;
-
-  if (icons_get_selected (windows.sort_trans, TRANS_SORT_DATE))
-  {
-    sort_trans_window_file->transaction_window.sort_order = SORT_DATE;
-  }
-  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_FROM))
-  {
-    sort_trans_window_file->transaction_window.sort_order = SORT_FROM;
-  }
-  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_TO))
-  {
-    sort_trans_window_file->transaction_window.sort_order = SORT_TO;
-  }
-  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_REFERENCE))
-  {
-    sort_trans_window_file->transaction_window.sort_order = SORT_REFERENCE;
-  }
-  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_AMOUNT))
-  {
-    sort_trans_window_file->transaction_window.sort_order = SORT_AMOUNT;
-  }
-  else if (icons_get_selected (windows.sort_trans, TRANS_SORT_DESCRIPTION))
-  {
-    sort_trans_window_file->transaction_window.sort_order = SORT_DESCRIPTION;
-  }
-
-  if (sort_trans_window_file->transaction_window.sort_order != SORT_NONE)
-  {
-    if (icons_get_selected (windows.sort_trans, TRANS_SORT_ASCENDING))
-    {
-      sort_trans_window_file->transaction_window.sort_order |= SORT_ASCENDING;
-    }
-    else if (icons_get_selected (windows.sort_trans, TRANS_SORT_DESCENDING))
-    {
-      sort_trans_window_file->transaction_window.sort_order |= SORT_DESCENDING;
-    }
-  }
-
-  adjust_transaction_window_sort_icon (sort_trans_window_file);
-  windows_redraw (sort_trans_window_file->transaction_window.transaction_pane);
-  sort_transaction_window (sort_trans_window_file);
-
-  return (0);
+	transact_fill_sort_window(transact_sort_file->transaction_window.sort_order);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Force the closure of the find window if the file disappears. */
+/**
+ * Update the contents of the Transaction List Sort window to reflect the
+ * current settings of the given file.
+ *
+ * \param sort_option		The sort option currently in force.
+ */
 
-void force_close_transaction_sort_window (file_data *file)
+static void transact_fill_sort_window(int sort_option)
 {
-  extern global_windows windows;
+	icons_set_selected(transact_sort_window, TRANS_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
+	icons_set_selected(transact_sort_window, TRANS_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
+	icons_set_selected(transact_sort_window, TRANS_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
+	icons_set_selected(transact_sort_window, TRANS_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
+	icons_set_selected(transact_sort_window, TRANS_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
+	icons_set_selected(transact_sort_window, TRANS_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
 
-
-  if (sort_trans_window_file == file && windows_get_open (windows.sort_trans))
-  {
-    close_dialogue_with_caret (windows.sort_trans);
-  }
+	icons_set_selected(transact_sort_window, TRANS_SORT_ASCENDING, sort_option & SORT_ASCENDING);
+	icons_set_selected(transact_sort_window, TRANS_SORT_DESCENDING, sort_option & SORT_DESCENDING);
 }
+
+
+/**
+ * Take the contents of an updated Transaction List Sort window and process
+ * the data.
+ *
+ * \return			TRUE if successful; else FALSE.
+ */
+
+static osbool transact_process_sort_window(void)
+{
+	transact_sort_file->transaction_window.sort_order = SORT_NONE;
+
+	if (icons_get_selected(transact_sort_window, TRANS_SORT_DATE))
+		transact_sort_file->transaction_window.sort_order = SORT_DATE;
+	else if (icons_get_selected(transact_sort_window, TRANS_SORT_FROM))
+		transact_sort_file->transaction_window.sort_order = SORT_FROM;
+	else if (icons_get_selected(transact_sort_window, TRANS_SORT_TO))
+		transact_sort_file->transaction_window.sort_order = SORT_TO;
+	else if (icons_get_selected(transact_sort_window, TRANS_SORT_REFERENCE))
+		transact_sort_file->transaction_window.sort_order = SORT_REFERENCE;
+	else if (icons_get_selected(transact_sort_window, TRANS_SORT_AMOUNT))
+		transact_sort_file->transaction_window.sort_order = SORT_AMOUNT;
+	else if (icons_get_selected(transact_sort_window, TRANS_SORT_DESCRIPTION))
+		transact_sort_file->transaction_window.sort_order = SORT_DESCRIPTION;
+
+	if (transact_sort_file->transaction_window.sort_order != SORT_NONE) {
+		if (icons_get_selected(transact_sort_window, TRANS_SORT_ASCENDING))
+			transact_sort_file->transaction_window.sort_order |= SORT_ASCENDING;
+		else if (icons_get_selected(transact_sort_window, TRANS_SORT_DESCENDING))
+			transact_sort_file->transaction_window.sort_order |= SORT_DESCENDING;
+	}
+
+	adjust_transaction_window_sort_icon(transact_sort_file);
+	windows_redraw(transact_sort_file->transaction_window.transaction_pane);
+	sort_transaction_window(transact_sort_file);
+
+	return TRUE;
+}
+
+
+/**
+ * Force the closure of the Transaction List sort and edit windows if the owning
+ * file disappears.
+ *
+ * \param *file			The file which has closed.
+ */
+
+void transact_force_windows_closed(file_data *file)
+{
+	if (transact_sort_file == file && windows_get_open(transact_sort_window))
+		close_dialogue_with_caret(transact_sort_window);
+}
+
+
+
+
+
 
 /* ==================================================================================================================
  * Finding transactions

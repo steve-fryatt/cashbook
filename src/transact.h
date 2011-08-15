@@ -52,16 +52,6 @@ enum transact_list_menu_type {
 
 #define TRANSACT_PANE_COL_MAP "0;1,2,3;4,5,6;7;8;9"
 
-#define TRANS_SORT_OK 2
-#define TRANS_SORT_CANCEL 3
-#define TRANS_SORT_DATE 4
-#define TRANS_SORT_FROM 5
-#define TRANS_SORT_TO 6
-#define TRANS_SORT_REFERENCE 7
-#define TRANS_SORT_AMOUNT 8
-#define TRANS_SORT_DESCRIPTION 9
-#define TRANS_SORT_ASCENDING 10
-#define TRANS_SORT_DESCENDING 11
 
 
 /**
@@ -172,11 +162,19 @@ void strip_blank_transactions (file_data *file);
 void sort_transactions (file_data *file);
 void sort_transaction_window (file_data *file);
 
-void open_transaction_sort_window (file_data *file, wimp_pointer *ptr);
-void refresh_transaction_sort_window (void);
-void fill_transaction_sort_window (int sort_option);
-int process_transaction_sort_window (void);
-void force_close_transaction_sort_window (file_data *file);
+
+
+/**
+ * Force the closure of the Transaction List sort and edit windows if the owning
+ * file disappears.
+ *
+ * \param *file			The file which has closed.
+ */
+
+void transact_force_windows_closed(file_data *file);
+
+
+
 
 /* Finding transactions */
 

@@ -647,7 +647,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_ADDACCT:
-        open_account_edit_window (file, -1, ACCOUNT_FULL, pointer);
+        account_open_edit_window (file, -1, ACCOUNT_FULL, pointer);
         break;
 
       case TRANSACT_PANE_IN:
@@ -659,7 +659,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_ADDHEAD:
-        open_account_edit_window (file, -1, ACCOUNT_IN, pointer);
+        account_open_edit_window (file, -1, ACCOUNT_IN, pointer);
         break;
 
       case TRANSACT_PANE_FIND:
@@ -1075,7 +1075,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_ACCOUNTS_NEW:
-			open_account_edit_window(windat->file, -1, ACCOUNT_FULL, &pointer);
+			account_open_edit_window(windat->file, -1, ACCOUNT_FULL, &pointer);
 			break;
 		}
 		break;
@@ -1091,7 +1091,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_HEADINGS_NEW:
-			open_account_edit_window(windat->file, -1, ACCOUNT_IN, &pointer);
+			account_open_edit_window(windat->file, -1, ACCOUNT_IN, &pointer);
 			break;
 		}
 		break;

@@ -84,6 +84,22 @@ struct account_list_group {
 	int		start_line;
 };
 
+/* Account Edit Window. */
+
+static wimp_w			account_acc_edit_window = NULL;
+
+/* Heading Edit Window. */
+
+static wimp_w			account_hdg_edit_window = NULL;
+static file_data		*edit_account_file = NULL;
+static acct_t			edit_account_no = NULL_ACCOUNT;
+
+/* Section Edit Window. */
+
+static wimp_w			account_section_window = NULL;			/**< The handle of the Section Edit window.				*/
+static file_data		*account_section_file = NULL;			/**< The file owning the Section Edit window.				*/
+static int			account_section_entry = -1;			/**< The entry owning the Section Edit window.				*/
+static int			account_section_line = -1;			/**< The line being edited by the Section Edit window.			*/
 
 /* Account List Print Window. */
 
@@ -119,14 +135,9 @@ static file_data			*account_complete_menu_file = NULL;	/**< The file to which th
 
 /* Account and heading editing constants. */
 
-static file_data *edit_account_file = NULL;
-static int       edit_account_no = -1;
 
 /* Section heading editing constants. */
 
-static file_data *edit_section_file = NULL;
-static int       edit_section_entry = -1;
-static int       edit_section_line = -1;
 
 /* Printing constants */
 
@@ -164,6 +175,21 @@ static void			account_window_redraw_handler(wimp_draw *redraw);
 
 
 
+static void			account_acc_edit_click_handler(wimp_pointer *pointer);
+static osbool			account_acc_edit_keypress_handler(wimp_key *key);
+static osbool			account_acc_edit_keypress_handler(wimp_key *key);
+static osbool			account_hdg_edit_keypress_handler(wimp_key *key);
+static void			account_refresh_act_edit_window(void);
+static void			account_refresh_hdg_edit_window(void);
+static void			account_fill_act_edit_window(file_data *file, acct_t account);
+static void			account_fill_hdg_edit_window(file_data *file, acct_t account, enum account_type type);
+static osbool			account_process_acc_edit_window(void);
+static osbool			account_process_hdg_edit_window(void);
+static osbool			delete_account_from_edit_window (void);
+static void			account_section_click_handler(wimp_pointer *pointer);
+static osbool			account_section_keypress_handler(wimp_key *key);
+
+
 
 /**
  * Initialise the account system.
@@ -173,8 +199,34 @@ static void			account_window_redraw_handler(wimp_draw *redraw);
 
 void account_initialise(osspriteop_area *sprites)
 {
+	account_acc_edit_window = templates_create_window("EditAccount");
+	ihelp_add_window(account_acc_edit_window, "EditAccount", NULL);
+	event_add_window_mouse_event(account_acc_edit_window, account_acc_edit_click_handler);
+	event_add_window_key_event(account_acc_edit_window, account_acc_edit_keypress_handler);
+
+	account_hdg_edit_window = templates_create_window("EditHeading");
+	ihelp_add_window(account_hdg_edit_window, "EditHeading", NULL);
+	event_add_window_mouse_event(account_hdr_edit_window, account_hdr_edit_click_handler);
+	event_add_window_key_event(account_hdr_edit_window, account_hdr_edit_keypress_handler);
+	event_add_window_icon_radio(account_hdr_edit_window, HEAD_EDIT_INCOMING, TRUE);
+	event_add_window_icon_radio(account_hdr_edit_window, HEAD_EDIT_OUTGOING, TRUE);
+
+	account_section_window = templates_create_window("EditAccSect");
+	ihelp_add_window(account_section_window, "EditAccSect", NULL);
+	event_add_window_mouse_event(account_section_window, account_section_click_handler);
+	event_add_window_key_event(account_section_window, account_section_keypress_handler);
+	event_add_window_icon_radio(account_section_window, SECTION_EDIT_INCOMING, TRUE);
+	event_add_window_icon_radio(account_section_window, SECTION_EDIT_OUTGOING, TRUE);
 
 
+
+
+
+    if (pointer->buttons == wimp_CLICK_ADJUST &&
+        (pointer->i == SECTION_EDIT_HEADER || pointer->i == SECTION_EDIT_FOOTER)) /* Radio icons */
+    {
+      icons_set_selected (account_section_window, pointer->i, 1);
+    }
 
 
 	account_window_def = templates_load_window("Account");
@@ -435,7 +487,7 @@ static void account_window_click_handler(wimp_pointer *pointer)
 	} else if (pointer->buttons == wimp_DOUBLE_ADJUST && line != -1) {
 		switch (windat->line_data[line].type) {
 		case ACCOUNT_LINE_DATA:
-			open_account_edit_window(windat->file, windat->line_data[line].account, ACCOUNT_NULL, pointer);
+			account_open_edit_window(windat->file, windat->line_data[line].account, ACCOUNT_NULL, pointer);
 			break;
 
 		case ACCOUNT_LINE_HEADER:
@@ -476,7 +528,7 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCOUNT_PANE_ADDACCT:
-			open_account_edit_window(windat->file, NULL_ACCOUNT, windat->type, pointer);
+			account_open_edit_window(windat->file, NULL_ACCOUNT, windat->type, pointer);
 			break;
 
 		case ACCOUNT_PANE_ADDSECT:
@@ -589,7 +641,7 @@ static void account_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCLIST_MENU_EDITACCT:
-		open_account_edit_window(windat->file, windat->line_data[account_window_menu_line].account, ACCOUNT_NULL, &pointer);
+		account_open_edit_window(windat->file, windat->line_data[account_window_menu_line].account, ACCOUNT_NULL, &pointer);
 		break;
 
 	case ACCLIST_MENU_EDITSECT:
@@ -597,7 +649,7 @@ static void account_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCLIST_MENU_NEWACCT:
-		open_account_edit_window(windat->file, -1, windat->type, &pointer);
+		account_open_edit_window(windat->file, -1, windat->type, &pointer);
 		break;
 
 	case ACCLIST_MENU_NEWHEADER:
@@ -1112,10 +1164,6 @@ static void account_window_redraw_handler(wimp_draw *redraw)
     }
 
 }
-
-
-
-
 
 
 
@@ -1971,7 +2019,7 @@ int add_display_line (file_data *file, int entry)
 
 /* ================================================================================================================== */
 
-int delete_account (file_data *file, int account)
+osbool delete_account (file_data *file, int account)
 {
   int i, j;
 
@@ -2031,249 +2079,411 @@ int delete_account (file_data *file, int account)
 
     set_file_data_integrity (file, 1);
 
-    return (0);
+    return TRUE;
   }
   else
   {
-    return (1);
+    return FALSE;
   }
 }
 
-/* ==================================================================================================================
- * Editing accounts and headings via GUI.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Open the Account Edit dialogue for a given account list window.
+ *
+ * If account == NULL_ACCOUNT, type determines the type of the new account
+ * to be created.  Otherwise, type is ignored and the type derived from the
+ * account data block.
+ *
+ * \param *file			The file to own the dialogue.
+ * \param account		The account to edit, or NULL_ACCOUNT for add new.
+ * \param type			The type of new account to create if account
+ *				is NULL_ACCOUNT.
+ * \param *ptr			The current Wimp pointer position.
  */
 
-/* Open the account edit window.
- * If account = NULL_ACCOUNT, type determines the type of the new account to be created.  Otherwise, type is ignored
- * and the type derived from the account data block.
+void account_open_edit_window(file_data *file, acct_t account, enum account_type type, wimp_pointer *ptr)
+{
+	wimp_w		win = NULL;
+
+	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
+	 * any unsaved data and just close the window.
+	 *
+	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
+	 */
+
+	if (windows_get_open(account_acc_edit_window))
+		wimp_close_window(account_acc_edit_window);
+
+	if (windows_get_open(account_hdg_edit_window))
+		wimp_close_window(account_hdg_edit_window);
+
+	if (windows_get_open(account_section_window))
+		wimp_close_window(account_section_window);
+
+	/* Select the window to use and set the contents up. */
+
+	if (account == NULL_ACCOUNT) {
+		if (type & ACCOUNT_FULL) {
+			account_fill_act_edit_window(file, account);
+			win = account_acc_edit_window;
+
+			msgs_lookup("NewAcct", windows_get_indirected_title_addr(win), 50);
+			icon_msgs_lookup(win, ACCT_EDIT_OK, "NewAcctAct");
+		} else if (type & ACCOUNT_IN || type & ACCOUNT_OUT) {
+			account_fill_hdg_edit_window(file, account, type);
+			win = account_hdg_edit_window;
+
+			msgs_lookup("NewHdr", windows_get_indirected_title_addr(win), 50);
+			icon_msgs_lookup(win, HEAD_EDIT_OK, "NewAcctAct");
+		}
+	} else {
+		if (file->accounts[account].type & ACCOUNT_FULL) {
+			account_fill_act_edit_window(file, account);
+			win = account_acc_edit_window;
+
+			msgs_lookup("EditAcct", windows_get_indirected_title_addrwin), 50);
+			icon_msgs_lookup(win, ACCT_EDIT_OK, "EditAcctAct");
+		} else if (file->accounts[account].type & ACCOUNT_IN || file->accounts[account].type & ACCOUNT_OUT) {
+			account_fill_hdg_edit_window(file, account, type);
+			win = account_hdg_edit_window;
+
+			msgs_lookup("EditHdr", windows_get_indirected_title_addr(win), 50);
+			icon_msgs_lookup(win, HEAD_EDIT_OK, "EditAcctAct");
+		}
+	}
+
+	/* Set the pointers up so we can find this lot again and open the window. */
+
+	if (win != NULL) {
+		edit_account_file = file;
+		edit_account_no = account;
+
+		windows_open_centred_at_pointer(win, ptr);
+		if (win == account_acc_edit_window)
+			place_dialogue_caret (win, ACCT_EDIT_NAME);
+		else
+			place_dialogue_caret (win, HEAD_EDIT_NAME);
+	}
+}
+
+
+/**
+ * Process mouse clicks in the Account Edit dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
  */
 
-void open_account_edit_window (file_data *file, int account, int type, wimp_pointer *ptr)
-{
-  wimp_w                win = 0;
+static void account_acc_edit_click_handler(wimp_pointer *pointer)
+	switch (pointer->i) {
+	case ACCT_EDIT_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(account_acc_edit_window);
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			account_refresh_acc_edit_window();
+		break;
 
-  extern global_windows windows;
+	case ACCT_EDIT_OK:
+		if (account_process_acc_edit_window() && pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(account_acc_edit_window);
+		break;
 
-
-  /* If the window is already open, another account is being edited or created.  Assume the user wants to lose
-   * any unsaved data and just close the window.
-   *
-   * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-   */
-
-  if (windows_get_open (windows.edit_acct))
-  {
-    wimp_close_window (windows.edit_acct);
-  }
-
-  if (windows_get_open (windows.edit_hdr))
-  {
-    wimp_close_window (windows.edit_hdr);
-  }
-
-  if (windows_get_open (windows.edit_sect))
-  {
-    wimp_close_window (windows.edit_sect);
-  }
-
-  /* Select the window to use and set the contents up. */
-
-  if (account == NULL_ACCOUNT)
-  {
-    if (type & ACCOUNT_FULL)
-    {
-      fill_account_edit_window (file, account);
-      win = windows.edit_acct;
-
-      msgs_lookup ("NewAcct", windows_get_indirected_title_addr (win), 50);
-      msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (win, ACCT_EDIT_OK), 12);
-    }
-    else if (type & ACCOUNT_IN || type & ACCOUNT_OUT)
-    {
-      fill_heading_edit_window (file, account, type);
-      win = windows.edit_hdr;
-
-      msgs_lookup ("NewHdr", windows_get_indirected_title_addr (win), 50);
-      msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (win, HEAD_EDIT_OK), 12);
-    }
-  }
-  else
-  {
-    if (file->accounts[account].type & ACCOUNT_FULL)
-    {
-      fill_account_edit_window (file, account);
-      win = windows.edit_acct;
-
-      msgs_lookup ("EditAcct", windows_get_indirected_title_addr (win), 50);
-      msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (win, ACCT_EDIT_OK), 12);
-    }
-    else if (file->accounts[account].type & ACCOUNT_IN || file->accounts[account].type & ACCOUNT_OUT)
-    {
-      fill_heading_edit_window (file, account, type);
-      win = windows.edit_hdr;
-
-      msgs_lookup ("EditHdr", windows_get_indirected_title_addr (win), 50);
-      msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (win, HEAD_EDIT_OK), 12);
-    }
-  }
-
-  /* Set the pointers up so we can find this lot again and open the window. */
-
-  if (win != 0)
-  {
-    edit_account_file = file;
-    edit_account_no = account;
-
-    windows_open_centred_at_pointer (win, ptr);
-    if (win == windows.edit_acct)
-    {
-      place_dialogue_caret (win, ACCT_EDIT_NAME);
-    }
-    else
-    {
-      place_dialogue_caret (win, HEAD_EDIT_NAME);
-    }
-  }
+	case ACCT_EDIT_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && delete_account_from_edit_window())
+			close_dialogue_with_caret(account_acc_edit_window);
+		break;
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_account_edit_window (void)
+/**
+ * Process keypresses in the Account Edit window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool account_acc_edit_keypress_handler(wimp_key *key)
 {
-  extern global_windows windows;
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (account_process_acc_edit_window())
+			close_dialogue_with_caret(account_acc_edit_window);
+		break;
 
-  fill_account_edit_window (edit_account_file, edit_account_no);
-  icons_redraw_group (windows.edit_acct, 10, ACCT_EDIT_NAME, ACCT_EDIT_IDENT, ACCT_EDIT_CREDIT, ACCT_EDIT_BALANCE,
-                          ACCT_EDIT_ACCNO, ACCT_EDIT_SRTCD,
-                          ACCT_EDIT_ADDR1, ACCT_EDIT_ADDR2, ACCT_EDIT_ADDR3, ACCT_EDIT_ADDR4);
-  icons_replace_caret_in_window (windows.edit_acct);
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(account_acc_edit_window);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_heading_edit_window (void)
-{
-  extern global_windows windows;
+/**
+ * Process mouse clicks in the Heading Edit dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
 
-  fill_heading_edit_window (edit_account_file, edit_account_no, ACCOUNT_NULL);
-  icons_redraw_group (windows.edit_hdr, 3, HEAD_EDIT_NAME, HEAD_EDIT_IDENT, HEAD_EDIT_BUDGET);
-  icons_replace_caret_in_window (windows.edit_hdr);
+static void account_hdg_edit_click_handler(wimp_pointer *pointer)
+	switch (pointer->i) {
+	case HEAD_EDIT_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(account_hdg_edit_window);
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			account_refresh_hdg_edit_window();
+		break;
+
+	case HEAD_EDIT_OK:
+		if (account_process_hdg_edit_window() && pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(account_hdg_edit_window);
+		break;
+
+	case HEAD_EDIT_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && delete_account_from_edit_window())
+			close_dialogue_with_caret(account_hdg_edit_window);
+		break;
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void fill_account_edit_window (file_data *file, int account)
+/**
+ * Process keypresses in the Heading Edit window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool account_hdg_edit_keypress_handler(wimp_key *key)
 {
-  int i;
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (account_process_hdg_edit_window())
+			close_dialogue_with_caret(account_hdg_edit_window);
+		break;
 
-  extern global_windows windows;
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(account_hdg_edit_window);
+		break;
 
+	default:
+		return FALSE;
+		break;
+	}
 
-  if (account == NULL_ACCOUNT)
-  {
-    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_NAME) = '\0';
-    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT) = '\0';
-
-    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CREDIT));
-    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_BALANCE));
-
-    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_PAYIN) = '\0';
-    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CHEQUE) = '\0';
-
-    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_ACCNO) = '\0';
-    *icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_SRTCD) = '\0';
-
-    for (i=ACCT_EDIT_ADDR1; i<(ACCT_EDIT_ADDR1+ACCOUNT_ADDR_LINES); i++)
-    {
-      *icons_get_indirected_text_addr (windows.edit_acct, i) = '\0';
-    }
-
-    icons_set_deleted (windows.edit_acct, ACCT_EDIT_DELETE, 1);
-  }
-  else
-  {
-    strcpy (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_NAME), file->accounts[account].name);
-    strcpy (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT), file->accounts[account].ident);
-
-    convert_money_to_string (file->accounts[account].credit_limit,
-                             icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CREDIT));
-    convert_money_to_string (file->accounts[account].opening_balance,
-                             icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_BALANCE));
-
-    get_next_cheque_number (file, NULL_ACCOUNT, account, 0, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_PAYIN));
-    get_next_cheque_number (file, account, NULL_ACCOUNT, 0, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CHEQUE));
-
-    strcpy (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_ACCNO), file->accounts[account].account_no);
-    strcpy (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_SRTCD), file->accounts[account].sort_code);
-
-    for (i=ACCT_EDIT_ADDR1; i<(ACCT_EDIT_ADDR1+ACCOUNT_ADDR_LINES); i++)
-    {
-      strcpy (icons_get_indirected_text_addr (windows.edit_acct, i), file->accounts[account].address[i-ACCT_EDIT_ADDR1]);
-    }
-
-    icons_set_deleted (windows.edit_acct, ACCT_EDIT_DELETE, 0);
-  }
+	return TRUE;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void fill_heading_edit_window (file_data *file, int account, int type)
+/**
+ * Refresh the contents of the Account Edit window.
+ */
+
+static void account_refresh_act_edit_window(void)
 {
-  extern global_windows windows;
-
-
-  if (account == NULL_ACCOUNT)
-  {
-    *icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_NAME) = '\0';
-    *icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT) = '\0';
-
-    convert_money_to_string (0, icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_BUDGET));
-
-    icons_set_shaded (windows.edit_hdr, HEAD_EDIT_INCOMING, 0);
-    icons_set_shaded (windows.edit_hdr, HEAD_EDIT_OUTGOING, 0);
-    icons_set_selected (windows.edit_hdr, HEAD_EDIT_INCOMING, (type & ACCOUNT_IN) || (type == ACCOUNT_NULL));
-    icons_set_selected (windows.edit_hdr, HEAD_EDIT_OUTGOING, (type & ACCOUNT_OUT));
-
-    icons_set_deleted (windows.edit_hdr, HEAD_EDIT_DELETE, 1);
-  }
-  else
-  {
-    strcpy (icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_NAME), file->accounts[account].name);
-    strcpy (icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT), file->accounts[account].ident);
-
-    convert_money_to_string (file->accounts[account].budget_amount, icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_BUDGET));
-
-    icons_set_shaded (windows.edit_hdr, HEAD_EDIT_INCOMING, 1);
-    icons_set_shaded (windows.edit_hdr, HEAD_EDIT_OUTGOING, 1);
-    icons_set_selected (windows.edit_hdr, HEAD_EDIT_INCOMING, (file->accounts[account].type & ACCOUNT_IN));
-    icons_set_selected (windows.edit_hdr, HEAD_EDIT_OUTGOING, (file->accounts[account].type & ACCOUNT_OUT));
-
-    icons_set_deleted (windows.edit_hdr, HEAD_EDIT_DELETE, 0);
-  }
+	account_fill_act_edit_window(edit_account_file, edit_account_no);
+	icons_redraw_group(account_acc_edit_window, 10, ACCT_EDIT_NAME, ACCT_EDIT_IDENT, ACCT_EDIT_CREDIT, ACCT_EDIT_BALANCE,
+			ACCT_EDIT_ACCNO, ACCT_EDIT_SRTCD,
+			ACCT_EDIT_ADDR1, ACCT_EDIT_ADDR2, ACCT_EDIT_ADDR3, ACCT_EDIT_ADDR4);
+	icons_replace_caret_in_window(account_acc_edit_window);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Take the contents of an updated edit account window and process the data. */
+/**
+ * Refresh the contents of the Heading Edit window.
+ */
 
-int process_account_edit_window (void)
+static void account_refresh_hdg_edit_window(void)
 {
-  int                   check_ident, i, len;
+	account_fill_hdg_edit_window(edit_account_file, edit_account_no, ACCOUNT_NULL);
+	icons_redraw_group(account_hdg_edit_window, 3, HEAD_EDIT_NAME, HEAD_EDIT_IDENT, HEAD_EDIT_BUDGET);
+	icons_replace_caret_in_window(account_hdg_edit_window);
+}
 
-  extern global_windows windows;
 
+/**
+ * Update the contents of the Account Edit window to reflect the current
+ * settings of the given file and account.
+ *
+ * \param *file			The file to use.
+ * \param account		The account to display, or NULL_ACCOUNT for none.
+ */
+
+static void account_fill_act_edit_window(file_data *file, acct_t account)
+{
+	int	i;
+
+	if (account == NULL_ACCOUNT) {
+		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_NAME) = '\0';
+		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_IDENT) = '\0';
+
+		convert_money_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT));
+		convert_money_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE));
+
+		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN) = '\0';
+		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CHEQUE) = '\0';
+
+		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_ACCNO) = '\0';
+		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_SRTCD) = '\0';
+
+		for (i = ACCT_EDIT_ADDR1; i < (ACCT_EDIT_ADDR1 + ACCOUNT_ADDR_LINES); i++)
+			 *icons_get_indirected_text_addr(account_acc_edit_window, i) = '\0';
+
+		icons_set_deleted(account_acc_edit_window, ACCT_EDIT_DELETE, 1);
+	} else {
+		icons_strncpy(account_acc_edit_window, ACCT_EDIT_NAME, file->accounts[account].name);
+		icons_strncpy(account_acc_edit_window, ACCT_EDIT_IDENT, file->accounts[account].ident);
+
+		convert_money_to_string(file->accounts[account].credit_limit, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT));
+		convert_money_to_string(file->accounts[account].opening_balance, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE));
+
+		get_next_cheque_number(file, NULL_ACCOUNT, account, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN));
+		get_next_cheque_number(file, account, NULL_ACCOUNT, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CHEQUE));
+
+		icons_strncpy(account_acc_edit_window, ACCT_EDIT_ACCNO, file->accounts[account].account_no);
+		icons_strncpy(account_acc_edit_window, ACCT_EDIT_SRTCD, file->accounts[account].sort_code);
+
+		for (i = ACCT_EDIT_ADDR1; i < (ACCT_EDIT_ADDR1 + ACCOUNT_ADDR_LINES); i++)
+			icons_strncpy(account_acc_edit_window, i, file->accounts[account].address[i-ACCT_EDIT_ADDR1]);
+
+		icons_set_deleted(account_acc_edit_window, ACCT_EDIT_DELETE, 0);
+	}
+}
+
+
+/**
+ * Update the contents of the Heading Edit window to reflect the current
+ * settings of the given file and account.
+ *
+ * \param *file			The file to use.
+ * \param account		The account to display, or NULL_ACCOUNT for none.
+ * \param type			The type of heading, if account is NULL_ACCOUNT.
+ */
+
+static void account_fill_hdg_edit_window(file_data *file, acct_t account, enum account_type type)
+{
+	if (account == NULL_ACCOUNT) {
+		*icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_NAME) = '\0';
+		*icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_IDENT) = '\0';
+
+		convert_money_to_string(0, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET));
+
+		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_INCOMING, 0);
+		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_OUTGOING, 0);
+		icons_set_selected(account_hdg_edit_window, HEAD_EDIT_INCOMING, (type & ACCOUNT_IN) || (type == ACCOUNT_NULL));
+		icons_set_selected(account_hdg_edit_window, HEAD_EDIT_OUTGOING, (type & ACCOUNT_OUT));
+
+		icons_set_deleted(account_hdg_edit_window, HEAD_EDIT_DELETE, 1);
+	} else {
+		icons_strncpy(account_hdg_edit_window, HEAD_EDIT_NAME, file->accounts[account].name);
+		icons_strncpy(account_hdg_edit_window, HEAD_EDIT_IDENT, file->accounts[account].ident);
+
+		convert_money_to_string(file->accounts[account].budget_amount, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET));
+
+		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_INCOMING, 1);
+		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_OUTGOING, 1);
+		icons_set_selected(account_hdg_edit_window, HEAD_EDIT_INCOMING, (file->accounts[account].type & ACCOUNT_IN));
+		icons_set_selected(account_hdg_edit_window, HEAD_EDIT_OUTGOING, (file->accounts[account].type & ACCOUNT_OUT));
+
+		icons_set_deleted(account_hdg_edit_window, HEAD_EDIT_DELETE, 0);
+	}
+}
+
+
+/**
+ * Take the contents of an updated Account Edit window and process the data.
+ *
+ * \return			TRUE if the data was valid; FALSE otherwise.
+ */
+
+static osbool account_process_acc_edit_window(void)
+{
+	int		check_ident, i, len;
 
   /* Check if the ident is valid.  It's an account, so check all the possibilities.   If it fails, exit with
    * an error.
    */
 
-  check_ident = find_account (edit_account_file, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT),
+  check_ident = find_account (edit_account_file, icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_IDENT),
                               ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT);
 
   if (check_ident != NULL_ACCOUNT && check_ident != edit_account_no)
   {
     error_msgs_report_error ("UsedAcctIdent");
-    return (1);
+    return FALSE;
   }
 
   /* If the account doesn't exsit, create it.  Otherwise, copy the standard fields back from the window into
@@ -2282,15 +2492,15 @@ int process_account_edit_window (void)
 
   if (edit_account_no == NULL_ACCOUNT)
   {
-    edit_account_no = add_account (edit_account_file, icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_NAME),
-                                   icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT), ACCOUNT_FULL);
+    edit_account_no = add_account (edit_account_file, icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_NAME),
+                                   icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_IDENT), ACCOUNT_FULL);
   }
   else
   {
     strcpy (edit_account_file->accounts[edit_account_no].name,
-            icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_NAME));
+            icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_NAME));
     strcpy (edit_account_file->accounts[edit_account_no].ident,
-            icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_IDENT));
+            icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_IDENT));
   }
 
   /* If the account was created OK, store the rest of the data. */
@@ -2298,17 +2508,17 @@ int process_account_edit_window (void)
   if (edit_account_no != NULL_ACCOUNT)
   {
     edit_account_file->accounts[edit_account_no].opening_balance
-          = convert_string_to_money (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_BALANCE));
+          = convert_string_to_money (icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_BALANCE));
 
     edit_account_file->accounts[edit_account_no].credit_limit
-          = convert_string_to_money (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CREDIT));
+          = convert_string_to_money (icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_CREDIT));
 
-    len = strlen (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_PAYIN));
+    len = strlen (icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_PAYIN));
     if (len > 0)
     {
       edit_account_file->accounts[edit_account_no].payin_num_width = len;
       edit_account_file->accounts[edit_account_no].next_payin_num
-          = atoi (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_PAYIN));
+          = atoi (icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_PAYIN));
     }
     else
     {
@@ -2316,12 +2526,12 @@ int process_account_edit_window (void)
       edit_account_file->accounts[edit_account_no].next_payin_num = 0;
     }
 
-    len = strlen (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CHEQUE));
+    len = strlen (icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_CHEQUE));
     if (len > 0)
     {
       edit_account_file->accounts[edit_account_no].cheque_num_width = len;
       edit_account_file->accounts[edit_account_no].next_cheque_num
-          = atoi (icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_CHEQUE));
+          = atoi (icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_CHEQUE));
     }
     else
     {
@@ -2330,19 +2540,19 @@ int process_account_edit_window (void)
     }
 
     strcpy (edit_account_file->accounts[edit_account_no].account_no,
-            icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_ACCNO));
+            icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_ACCNO));
     strcpy (edit_account_file->accounts[edit_account_no].sort_code,
-            icons_get_indirected_text_addr (windows.edit_acct, ACCT_EDIT_SRTCD));
+            icons_get_indirected_text_addr (account_acc_edit_window, ACCT_EDIT_SRTCD));
 
     for (i=ACCT_EDIT_ADDR1; i<(ACCT_EDIT_ADDR1+ACCOUNT_ADDR_LINES); i++)
     {
       strcpy (edit_account_file->accounts[edit_account_no].address[i-ACCT_EDIT_ADDR1],
-              icons_get_indirected_text_addr (windows.edit_acct, i));
+              icons_get_indirected_text_addr (account_acc_edit_window, i));
     }
   }
   else
   {
-    return (1);
+    return FALSE;
   }
 
   sorder_trial(edit_account_file);
@@ -2355,33 +2565,34 @@ int process_account_edit_window (void)
 
   /* Tidy up and redraw the windows */
 
-  return (0);
+  return TRUE
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Take the contents of an updated edit heading window and process the data. */
+/**
+ * Take the contents of an updated Heading Edit window and process the data.
+ *
+ * \return			TRUE if the data was valid; FALSE otherwise.
+ */
 
-int process_heading_edit_window (void)
+
+static osbool account_process_hdg_edit_window(void)
 {
-  int                   check_ident, type;
-
-  extern global_windows windows;
-
+	int		check_ident, type;
 
   /* Check if the ident is valid.  It's a header, so check all full accounts and those headings in the same
    * category.  If it fails, exit with an error.
    */
 
-  type = icons_get_selected (windows.edit_hdr, HEAD_EDIT_INCOMING) ? ACCOUNT_IN : ACCOUNT_OUT;
+  type = icons_get_selected (account_hdg_edit_window, HEAD_EDIT_INCOMING) ? ACCOUNT_IN : ACCOUNT_OUT;
 
-  check_ident = find_account (edit_account_file, icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT),
+  check_ident = find_account (edit_account_file, icons_get_indirected_text_addr (account_hdg_edit_window, HEAD_EDIT_IDENT),
                               ACCOUNT_FULL | type);
 
   if (check_ident != NULL_ACCOUNT && check_ident != edit_account_no)
   {
     error_msgs_report_error ("UsedAcctIdent");
-    return (1);
+    return FALSE;
   }
 
   /* If the heading doesn't exsit, create it.  Otherwise, copy the standard fields back from the window into
@@ -2390,15 +2601,15 @@ int process_heading_edit_window (void)
 
   if (edit_account_no == NULL_ACCOUNT)
   {
-    edit_account_no = add_account (edit_account_file, icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_NAME),
-                                   icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT), type);
+    edit_account_no = add_account (edit_account_file, icons_get_indirected_text_addr (account_hdg_edit_window, HEAD_EDIT_NAME),
+                                   icons_get_indirected_text_addr (account_hdg_edit_window, HEAD_EDIT_IDENT), type);
   }
   else
   {
     strcpy (edit_account_file->accounts[edit_account_no].name,
-            icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_NAME));
+            icons_get_indirected_text_addr (account_hdg_edit_window, HEAD_EDIT_NAME));
     strcpy (edit_account_file->accounts[edit_account_no].ident,
-            icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_IDENT));
+            icons_get_indirected_text_addr (account_hdg_edit_window, HEAD_EDIT_IDENT));
   }
 
   /* If the heading was created OK, store the rest of the data. */
@@ -2406,11 +2617,11 @@ int process_heading_edit_window (void)
   if (edit_account_no != NULL_ACCOUNT)
   {
     edit_account_file->accounts[edit_account_no].budget_amount
-          = convert_string_to_money (icons_get_indirected_text_addr (windows.edit_hdr, HEAD_EDIT_BUDGET));
+          = convert_string_to_money (icons_get_indirected_text_addr (account_hdg_edit_window, HEAD_EDIT_BUDGET));
   }
   else
   {
-    return (1);
+    return FALSE;
   }
 
   /* Tidy up and redraw the windows */
@@ -2421,49 +2632,24 @@ int process_heading_edit_window (void)
   accview_redraw_all (edit_account_file);
   set_file_data_integrity (edit_account_file, 1);
 
-  return (0);
+  return TRUE;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Force the closure of the account and heading edit windows if the file disappears. */
-
-void force_close_account_edit_window (file_data *file)
-{
-  extern global_windows windows;
-
-
-  if (edit_account_file == file)
-  {
-    if (windows_get_open (windows.edit_acct))
-    {
-      close_dialogue_with_caret (windows.edit_acct);
-    }
-
-    if (windows_get_open (windows.edit_hdr))
-    {
-      close_dialogue_with_caret (windows.edit_hdr);
-    }
-  }
-}
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Delete a section here and now. */
 
-int delete_account_from_edit_window (void)
+static osbool delete_account_from_edit_window (void)
 {
-  if (account_used_in_file (edit_account_file, edit_account_no))
-  {
-    error_msgs_report_info ("CantDelAcct");
-    return (1);
-  }
+	if (account_used_in_file(edit_account_file, edit_account_no)) {
+		error_msgs_report_info("CantDelAcct");
+		return FALSE;
+	}
 
-  if (error_msgs_report_question ("DeleteAcct", "DeleteAcctB") == 2)
-  {
-    return (1);
-  }
+	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 2)
+		return FALSE;
 
-  return (delete_account (edit_account_file, edit_account_no));
+	return delete_account(edit_account_file, edit_account_no);
 }
 
 
@@ -2482,92 +2668,152 @@ void open_section_edit_window (file_data *file, int entry, int line, wimp_pointe
    * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
    */
 
-  if (windows_get_open (windows.edit_acct))
+  if (windows_get_open (account_acc_edit_window))
   {
-    wimp_close_window (windows.edit_acct);
+    wimp_close_window (account_acc_edit_window);
   }
 
-  if (windows_get_open (windows.edit_hdr))
+  if (windows_get_open (account_hdg_edit_window))
   {
-    wimp_close_window (windows.edit_hdr);
+    wimp_close_window (account_hdg_edit_window);
   }
 
-  if (windows_get_open (windows.edit_sect))
+  if (windows_get_open (account_section_window))
   {
-    wimp_close_window (windows.edit_sect);
+    wimp_close_window (account_section_window);
   }
 
   /* Select the window to use and set the contents up. */
 
   if (line == -1)
   {
-    fill_section_edit_window (file, entry, line);
+    account_fill_section_window (file, entry, line);
 
-    msgs_lookup ("NewSect", windows_get_indirected_title_addr (windows.edit_sect), 50);
-    msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_OK), 12);
+    msgs_lookup ("NewSect", windows_get_indirected_title_addr (account_section_window), 50);
+    msgs_lookup ("NewAcctAct", icons_get_indirected_text_addr (account_section_window, SECTION_EDIT_OK), 12);
   }
   else
   {
-    fill_section_edit_window (file, entry, line);
+    account_fill_section_window (file, entry, line);
 
-    msgs_lookup ("EditSect", windows_get_indirected_title_addr (windows.edit_sect), 50);
-    msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_OK), 12);
+    msgs_lookup ("EditSect", windows_get_indirected_title_addr (account_section_window), 50);
+    msgs_lookup ("EditAcctAct", icons_get_indirected_text_addr (account_section_window, SECTION_EDIT_OK), 12);
   }
 
   /* Set the pointers up so we can find this lot again and open the window. */
 
-  edit_section_file = file;
-  edit_section_entry = entry;
-  edit_section_line = line;
+  account_section_file = file;
+  account_section_entry = entry;
+  account_section_line = line;
 
-  windows_open_centred_at_pointer (windows.edit_sect, ptr);
-  place_dialogue_caret (windows.edit_sect, SECTION_EDIT_TITLE);
+  windows_open_centred_at_pointer (account_section_window, ptr);
+  place_dialogue_caret (account_section_window, SECTION_EDIT_TITLE);
 }
+
+
+
+
+/**
+ * Process mouse clicks in the Section Edit dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void account_section_click_handler(wimp_pointer *pointer)
+	switch (pointer->i) {
+	case SECTION_EDIT_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(account_section_window);
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			account_refresh_section_window();
+		break;
+
+	case SECTION_EDIT_OK:
+		if (account_process_section_window() && pointer->buttons == wimp_CLICK_SELECT)
+			close_dialogue_with_caret(account_section_window);
+		break;
+
+	case SECTION_EDIT_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && delete_section_from_edit_window())
+			close_dialogue_with_caret(account_section_window);
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Section Edit window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool account_section_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (account_process_section_window())
+			close_dialogue_with_caret(account_section_window);
+		break;
+
+	case wimp_KEY_ESCAPE:
+		close_dialogue_with_caret(account_section_window);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void refresh_section_edit_window (void)
+static void account_refresh_section_window(void)
 {
   extern global_windows windows;
 
-  fill_section_edit_window (edit_section_file, edit_section_entry, edit_section_line);
-  icons_redraw_group (windows.edit_sect, 1, SECTION_EDIT_TITLE);
-  icons_replace_caret_in_window (windows.edit_sect);
+  account_fill_section_window (account_section_file, account_section_entry, account_section_line);
+  icons_redraw_group (account_section_window, 1, SECTION_EDIT_TITLE);
+  icons_replace_caret_in_window (account_section_window);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void fill_section_edit_window (file_data *file, int entry, int line)
+static void account_fill_section_window(file_data *file, int entry, int line)
 {
   extern global_windows windows;
 
 
   if (line == -1)
   {
-    *icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_TITLE) = '\0';
+    *icons_get_indirected_text_addr (account_section_window, SECTION_EDIT_TITLE) = '\0';
 
-    icons_set_selected (windows.edit_sect, SECTION_EDIT_HEADER, 1);
-    icons_set_selected (windows.edit_sect, SECTION_EDIT_FOOTER, 0);
+    icons_set_selected (account_section_window, SECTION_EDIT_HEADER, 1);
+    icons_set_selected (account_section_window, SECTION_EDIT_FOOTER, 0);
   }
   else
   {
-    strcpy (icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_TITLE),
+    strcpy (icons_get_indirected_text_addr (account_section_window, SECTION_EDIT_TITLE),
             file->account_windows[entry].line_data[line].heading);
 
-    icons_set_selected (windows.edit_sect, SECTION_EDIT_HEADER,
+    icons_set_selected (account_section_window, SECTION_EDIT_HEADER,
                        (file->account_windows[entry].line_data[line].type == ACCOUNT_LINE_HEADER));
-    icons_set_selected (windows.edit_sect, SECTION_EDIT_FOOTER,
+    icons_set_selected (account_section_window, SECTION_EDIT_FOOTER,
                        (file->account_windows[entry].line_data[line].type == ACCOUNT_LINE_FOOTER));
   }
 
-  icons_set_deleted (windows.edit_sect, SECTION_EDIT_DELETE, line == -1);
+  icons_set_deleted (account_section_window, SECTION_EDIT_DELETE, line == -1);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Take the contents of an updated edit heading window and process the data. */
 
-int process_section_edit_window (void)
+static osbool account_process_section_window (void)
 {
   extern global_windows windows;
 
@@ -2576,88 +2822,99 @@ int process_section_edit_window (void)
    * memory.
    */
 
-  if (edit_section_line == -1)
+  if (account_section_line == -1)
   {
-    edit_section_line = add_display_line (edit_section_file, edit_section_entry);
+    account_section_line = add_display_line (account_section_file, account_section_entry);
 
-    if (edit_section_line == -1)
+    if (account_section_line == -1)
     {
       error_msgs_report_error ("NoMemNewSect");
 
-      return (1);
+      return FALSE;
     }
   }
 
-  strcpy (edit_section_file->account_windows[edit_section_entry].line_data[edit_section_line].heading,
-          icons_get_indirected_text_addr (windows.edit_sect, SECTION_EDIT_TITLE));
+  strcpy (account_section_file->account_windows[account_section_entry].line_data[account_section_line].heading,
+          icons_get_indirected_text_addr (account_section_window, SECTION_EDIT_TITLE));
 
-  if (icons_get_selected (windows.edit_sect, SECTION_EDIT_HEADER))
+  if (icons_get_selected (account_section_window, SECTION_EDIT_HEADER))
   {
-    edit_section_file->account_windows[edit_section_entry].line_data[edit_section_line].type = ACCOUNT_LINE_HEADER;
+    account_section_file->account_windows[account_section_entry].line_data[account_section_line].type = ACCOUNT_LINE_HEADER;
   }
-  else if (icons_get_selected (windows.edit_sect, SECTION_EDIT_FOOTER))
+  else if (icons_get_selected (account_section_window, SECTION_EDIT_FOOTER))
   {
-    edit_section_file->account_windows[edit_section_entry].line_data[edit_section_line].type = ACCOUNT_LINE_FOOTER;
+    account_section_file->account_windows[account_section_entry].line_data[account_section_line].type = ACCOUNT_LINE_FOOTER;
   }
   else
   {
-    edit_section_file->account_windows[edit_section_entry].line_data[edit_section_line].type = ACCOUNT_LINE_BLANK;
+    account_section_file->account_windows[account_section_entry].line_data[account_section_line].type = ACCOUNT_LINE_BLANK;
   }
 
   /* Tidy up and redraw the windows */
 
-  perform_full_recalculation (edit_section_file);
-  set_accounts_window_extent (edit_section_file, edit_section_entry);
-  windows_open (edit_section_file->account_windows[edit_section_entry].account_window);
-  force_accounts_window_redraw (edit_section_file, edit_section_entry,
-                                0, edit_section_file->account_windows[edit_section_entry].display_lines);
-  set_file_data_integrity (edit_section_file, 1);
+  perform_full_recalculation (account_section_file);
+  set_accounts_window_extent (account_section_file, account_section_entry);
+  windows_open (account_section_file->account_windows[account_section_entry].account_window);
+  force_accounts_window_redraw (account_section_file, account_section_entry,
+                                0, account_section_file->account_windows[account_section_entry].display_lines);
+  set_file_data_integrity (account_section_file, 1);
 
-  return (0);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Force the closure of the section edit window if the file disappears. */
-
-void force_close_section_edit_window (file_data *file)
-{
-  extern global_windows windows;
-
-
-  if (edit_section_file == file && windows_get_open (windows.edit_sect))
-  {
-    close_dialogue_with_caret (windows.edit_sect);
-  }
+  return TRUE;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Delete a section here and now. */
 
-int delete_section_from_edit_window (void)
+static osbool delete_section_from_edit_window (void)
 {
-  if (error_msgs_report_question ("DeleteSection", "DeleteSectionB") == 2)
-  {
-    return (1);
-  }
+	if (error_msgs_report_question("DeleteSection", "DeleteSectionB") == 2)
+		return FALSE;
 
   /* Delete the heading */
 
-  flex_midextend ((flex_ptr) &(edit_section_file->account_windows[edit_section_entry].line_data),
-                  (edit_section_line + 1) * sizeof (account_redraw), -sizeof (account_redraw));
-  edit_section_file->account_windows[edit_section_entry].display_lines--;
+  flex_midextend ((flex_ptr) &(account_section_file->account_windows[account_section_entry].line_data),
+                  (account_section_line + 1) * sizeof (account_redraw), -sizeof (account_redraw));
+  account_section_file->account_windows[account_section_entry].display_lines--;
 
   /* Update the accounts display window. */
 
-  set_accounts_window_extent (edit_section_file, edit_section_entry);
-  windows_open (edit_section_file->account_windows[edit_section_entry].account_window);
-  force_accounts_window_redraw (edit_section_file, edit_section_entry,
-                                0, edit_section_file->account_windows[edit_section_entry].display_lines);
-  set_file_data_integrity (edit_section_file, 1);
+  set_accounts_window_extent (account_section_file, account_section_entry);
+  windows_open (account_section_file->account_windows[account_section_entry].account_window);
+  force_accounts_window_redraw (account_section_file, account_section_entry,
+                                0, account_section_file->account_windows[account_section_entry].display_lines);
+  set_file_data_integrity (account_section_file, 1);
 
-  return (0);
+  return TRUE;
 }
+
+
+
+
+
+/**
+ * Force the closure of the Account, Heading and Section Edit windows if the
+ * owning file disappears.
+ *
+ * \param *file			The file which has closed.
+ */
+
+void account_force_windows_closed(file_data *file)
+{
+	if (edit_account_file == file) {
+		if (windows_get_open(account_acc_edit_window))
+			close_dialogue_with_caret(account_acc_edit_window);
+
+		if (windows_get_open(account_hdg_edit_window))
+			close_dialogue_with_caret(account_hdg_edit_window);
+	}
+
+	if (account_section_file == file && windows_get_open(account_section_window))
+		close_dialogue_with_caret(account_section_window);
+}
+
+
+
 
 /* ==================================================================================================================
  * Printing accounts via the GUI
@@ -3472,7 +3729,7 @@ void start_account_drag (file_data *file, int entry, int line)
    * the data which won't like that data moving beneath them.
    */
 
-  if (!windows_get_open (windows.edit_acct) && !windows_get_open (windows.edit_hdr) && !windows_get_open (windows.edit_sect))
+  if (!windows_get_open (account_acc_edit_window) && !windows_get_open (account_hdg_edit_window) && !windows_get_open (account_section_window))
   {
     /* Get the basic information about the window. */
 

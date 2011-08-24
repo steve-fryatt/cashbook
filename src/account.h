@@ -228,33 +228,50 @@ int add_display_line (file_data *file, int entry);
 
 int delete_account (file_data *file, int account);
 
-/* Editing accounts and headings via GUI */
 
-void open_account_edit_window (file_data *file, int account, int type, wimp_pointer *ptr);
 
-void refresh_account_edit_window (void);
-void refresh_heading_edit_window (void);
 
-void fill_account_edit_window (file_data *file, int account);
-void fill_heading_edit_window (file_data *file, int account, int type);
 
-int process_account_edit_window (void);
-int process_heading_edit_window (void);
 
-void force_close_account_edit_window (file_data *file);
 
-int delete_account_from_edit_window (void);
+/**
+ * Open the Account Edit dialogue for a given account list window.
+ *
+ * If account == NULL_ACCOUNT, type determines the type of the new account
+ * to be created.  Otherwise, type is ignored and the type derived from the
+ * account data block.
+ *
+ * \param *file			The file to own the dialogue.
+ * \param account		The account to edit, or NULL_ACCOUNT for add new.
+ * \param type			The type of new account to create if account
+ *				is NULL_ACCOUNT.
+ * \param *ptr			The current Wimp pointer position.
+ */
+
+void account_open_edit_window(file_data *file, acct_t account, enum account_type type, wimp_pointer *ptr);
+
+
+
+
+
+
+
 
 /* Editing section headings via the GUI. */
 
 void open_section_edit_window (file_data *file, int entry, int line, wimp_pointer *ptr);
-void refresh_section_edit_window (void);
-void fill_section_edit_window (file_data *file, int entry, int line);
 
-int process_section_edit_window (void);
 
-void force_close_section_edit_window (file_data *file);
-int delete_section_from_edit_window (void);
+/**
+ * Force the closure of the Account, Heading and Section Edit windows if the
+ * owning file disappears.
+ *
+ * \param *file			The file which has closed.
+ */
+
+void account_force_windows_closed(file_data *file);
+
+
 
 /* Printing accounts via the GUI. */
 

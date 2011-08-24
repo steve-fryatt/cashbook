@@ -420,8 +420,7 @@ void delete_file (file_data *file)
 
   /* Do the same for any file-related dialogues that are open. */
 
-  force_close_account_edit_window (file);
-  force_close_section_edit_window (file);
+  account_force_windows_closed(file);
   goto_force_window_closed(file);
   find_force_windows_closed(file);
   budget_force_window_closed(file);

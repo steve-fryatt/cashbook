@@ -565,7 +565,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCVIEW_PANE_EDIT:
-			open_account_edit_window(file, account, -1, pointer);
+			account_open_edit_window(file, account, -1, pointer);
 			break;
 
 		case ACCVIEW_PANE_GOTOEDIT:
@@ -748,7 +748,7 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCVIEW_MENU_EDITACCT:
-		open_account_edit_window(windat->file, windat->account, -1, &pointer);
+		account_open_edit_window(windat->file, windat->account, -1, &pointer);
 		break;
 
 	case ACCVIEW_MENU_PRINT:

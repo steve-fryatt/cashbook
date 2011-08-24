@@ -809,9 +809,6 @@ typedef struct
   wimp_w      save_as;
   wimp_w      import_comp;
   wimp_w      enter_acc;
-  wimp_w      edit_acct;
-  wimp_w      edit_hdr;
-  wimp_w      edit_sect;
 }
 global_windows;
 

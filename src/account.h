@@ -251,17 +251,6 @@ int delete_account (file_data *file, int account);
 void account_open_edit_window(file_data *file, acct_t account, enum account_type type, wimp_pointer *ptr);
 
 
-
-
-
-
-
-
-/* Editing section headings via the GUI. */
-
-void open_section_edit_window (file_data *file, int entry, int line, wimp_pointer *ptr);
-
-
 /**
  * Force the closure of the Account, Heading and Section Edit windows if the
  * owning file disappears.
@@ -270,6 +259,10 @@ void open_section_edit_window (file_data *file, int entry, int line, wimp_pointe
  */
 
 void account_force_windows_closed(file_data *file);
+
+
+
+
 
 
 

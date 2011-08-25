@@ -266,9 +266,6 @@ void account_force_windows_closed(file_data *file);
 
 
 
-/* Printing accounts via the GUI. */
-
-void open_account_print_window (file_data *file, int type, wimp_pointer *ptr, int clear);
 
 /* Finding accounts */
 
@@ -294,10 +291,6 @@ int process_account_lookup_window (void);
 int account_used_in_file (file_data *file, int account);
 
 int count_accounts_in_file (file_data *file, unsigned int type);
-
-/* File and print output */
-
-void print_account_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 /* Account window handling */
 

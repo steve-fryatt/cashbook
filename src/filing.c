@@ -862,10 +862,13 @@ static void filing_import_complete_click_handler(wimp_pointer *pointer)
 }
 
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Close the import results dialogue, either opening or deleting the log report.  Once the window is closed, we no
- * longer need to track the report, so the pointer can be set to NULL.
+/**
+ * Close the import results dialogue, either opening or deleting the log report.
+ * Once the window is closed, we no longer need to track the report, so the
+ * pointer can be set to NULL.
+ *
+ * \param show_log		TRUE to open the import log; FALSE to dispose
+ *				of it.
  */
 
 static void close_import_complete_dialogue(osbool show_log)
@@ -879,18 +882,19 @@ static void close_import_complete_dialogue(osbool show_log)
 	import_window_file->import_report = NULL;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Force the closure of the windows if the file disappears. */
+/**
+ * Force the closure of the Import windows if the owning file disappears.
+ * There's no need to delete any associated report, because it will be handled
+ * via the Report module when the file disappears.
+ *
+ * \param *file			The file which has closed.
+ */
 
-void force_close_import_window (file_data *file)
+void force_close_import_window(file_data *file)
 {
-  if (import_window_file == file && windows_get_open (filing_import_window))
-  {
-    wimp_close_window (filing_import_window);
-
-    /* No need to delete any associated report, because it will disappear in the file close anyway. */
-  }
+	if (import_window_file == file && windows_get_open(filing_import_window))
+		wimp_close_window(filing_import_window);
 }
 
 /* ==================================================================================================================

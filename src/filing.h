@@ -72,7 +72,20 @@ void save_transaction_file (file_data *file, char *filename);
 
 void import_csv_file (file_data *file, char *filename);
 
-void force_close_import_window (file_data *file);
+
+
+/**
+ * Force the closure of the Import windows if the owning file disappears.
+ * There's no need to delete any associated report, because it will be handled
+ * via the Report module when the file disappears.
+ *
+ * \param *file			The file which has closed.
+ */
+
+void filing_force_windows_closed(file_data *file);
+
+
+
 
 /* Delimited file export */
 

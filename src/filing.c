@@ -64,7 +64,7 @@ static wimp_w			filing_import_window = NULL;
 
 
 static void		filing_import_complete_click_handler(wimp_pointer *pointer);
-static void 		close_import_complete_dialogue(osbool show_log);
+static void 		filing_close_import_complete(osbool show_log);
 
 
 /**
@@ -852,11 +852,11 @@ static void filing_import_complete_click_handler(wimp_pointer *pointer)
 {
 	switch (pointer->i) {
 	case ICOMP_ICON_CLOSE:
-		close_import_complete_dialogue(FALSE);
+		filing_close_import_complete(FALSE);
 		break;
 
 	case ICOMP_ICON_LOG:
-		close_import_complete_dialogue(TRUE);
+		filing_close_import_complete(TRUE);
 		break;
 	}
 }
@@ -871,7 +871,7 @@ static void filing_import_complete_click_handler(wimp_pointer *pointer)
  *				of it.
  */
 
-static void close_import_complete_dialogue(osbool show_log)
+static void filing_close_import_complete(osbool show_log)
 {
 	if (show_log)
 		report_close(import_window_file->import_report);
@@ -891,7 +891,7 @@ static void close_import_complete_dialogue(osbool show_log)
  * \param *file			The file which has closed.
  */
 
-void force_close_import_window(file_data *file)
+void filing_force_windows_closed(file_data *file)
 {
 	if (import_window_file == file && windows_get_open(filing_import_window))
 		wimp_close_window(filing_import_window);

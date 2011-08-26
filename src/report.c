@@ -1252,7 +1252,7 @@ static void report_process_format_window(void)
  * \param *file			The file data block of interest.
  */
 
-void report_force_format_windows_closed(file_data *file)
+void report_force_windows_closed(file_data *file)
 {
 	if (report_format_report != NULL && report_format_report->file == file && windows_get_open(report_format_window))
 		close_dialogue_with_caret(report_format_window);

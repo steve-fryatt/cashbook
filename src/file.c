@@ -424,7 +424,7 @@ void delete_file (file_data *file)
   goto_force_window_closed(file);
   find_force_windows_closed(file);
   budget_force_window_closed(file);
-  report_force_format_windows_closed(file);
+  report_force_windows_closed(file);
   printing_force_windows_closed(file);
   analysis_force_windows_closed(file);
   purge_force_window_closed(file);
@@ -432,7 +432,7 @@ void delete_file (file_data *file)
   accview_force_windows_closed(file);
   sorder_force_windows_closed(file);
   preset_force_windows_closed(file);
-  force_close_import_window (file);
+  filing_force_windows_closed(file);
 
   /* Delink the block and delete it. */
 

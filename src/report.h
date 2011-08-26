@@ -157,7 +157,7 @@ osbool report_get_pending_print_jobs(file_data *file);
  * \param *file			The file data block of interest.
  */
 
-void report_force_format_windows_closed(file_data *file);
+void report_force_windows_closed(file_data *file);
 
 
 

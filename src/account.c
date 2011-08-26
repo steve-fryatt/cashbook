@@ -1995,7 +1995,7 @@ int add_display_line (file_data *file, int entry)
   line = -1;
 
   if (flex_extend ((flex_ptr) &(file->account_windows[entry].line_data),
-                   sizeof (account_redraw) * ((file->account_windows[entry].display_lines)+1)) == 1)
+                   sizeof(struct account_redraw) * ((file->account_windows[entry].display_lines)+1)) == 1)
   {
     line = file->account_windows[entry].display_lines++;
 
@@ -2039,7 +2039,7 @@ osbool delete_account (file_data *file, int account)
           #endif
 
           flex_midextend ((flex_ptr) &(file->account_windows[i].line_data),
-                          (j + 1) * sizeof (account_redraw), -sizeof (account_redraw));
+                          (j + 1) * sizeof(struct account_redraw), -sizeof(struct account_redraw));
           file->account_windows[i].display_lines--;
           j--; /* Take into account that the array has just shortened. */
         }
@@ -2829,7 +2829,7 @@ static osbool account_delete_from_section_window(void)
 	/* Delete the heading */
 
 	flex_midextend((flex_ptr) &(account_section_file->account_windows[account_section_entry].line_data),
-			(account_section_line + 1) * sizeof(account_redraw), -sizeof(account_redraw));
+			(account_section_line + 1) * sizeof(struct account_redraw), -sizeof(struct account_redraw));
 	account_section_file->account_windows[account_section_entry].display_lines--;
 
 	/* Update the accounts display window. */
@@ -3746,7 +3746,7 @@ void terminate_account_drag (wimp_dragged *drag)
   wimp_pointer      pointer;
   wimp_window_state window;
   int               line;
-  account_redraw    block;
+  struct account_redraw    block;
 
 
   /* Terminate the drag and end the autoscroll. */
@@ -3788,7 +3788,7 @@ void terminate_account_drag (wimp_dragged *drag)
   {
     memmove (&(dragging_file->account_windows[dragging_entry].line_data[line+1]),
              &(dragging_file->account_windows[dragging_entry].line_data[line]),
-             (dragging_start_line - line) * sizeof (account_redraw));
+             (dragging_start_line - line) * sizeof(struct account_redraw));
 
     dragging_file->account_windows[dragging_entry].line_data[line] = block;
   }
@@ -3796,7 +3796,7 @@ void terminate_account_drag (wimp_dragged *drag)
   {
     memmove (&(dragging_file->account_windows[dragging_entry].line_data[dragging_start_line]),
              &(dragging_file->account_windows[dragging_entry].line_data[dragging_start_line+1]),
-             (line - dragging_start_line) * sizeof (account_redraw));
+             (line - dragging_start_line) * sizeof(struct account_redraw));
 
     dragging_file->account_windows[dragging_entry].line_data[line] = block;
   }
@@ -4048,7 +4048,7 @@ int account_read_list_file(file_data *file, FILE *in, char *section, char *token
 	type = strtoul(suffix, NULL, 16);
 	entry = find_accounts_window_entry_from_type(file, type);
 
-	block_size = flex_size((flex_ptr) &(file->account_windows[entry].line_data)) / sizeof(account_redraw);
+	block_size = flex_size((flex_ptr) &(file->account_windows[entry].line_data)) / sizeof(struct account_redraw);
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
@@ -4058,7 +4058,7 @@ int account_read_list_file(file_data *file, FILE *in, char *section, char *token
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
 				flex_extend((flex_ptr) &(file->account_windows[entry].line_data),
-						sizeof(account_redraw) * block_size);
+						sizeof(struct account_redraw) * block_size);
 			} else {
 				block_size = file->account_windows[entry].display_lines;
 			}
@@ -4074,7 +4074,7 @@ int account_read_list_file(file_data *file, FILE *in, char *section, char *token
 				debug_printf("Section block expand to %d", block_size);
 				#endif
 				flex_extend((flex_ptr) &(file->account_windows[entry].line_data),
-					sizeof(account_redraw) * block_size);
+					sizeof(struct account_redraw) * block_size);
 			}
 			i = file->account_windows[entry].display_lines-1;
 			*(file->account_windows[entry].line_data[i].heading) = '\0';
@@ -4089,7 +4089,7 @@ int account_read_list_file(file_data *file, FILE *in, char *section, char *token
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
 
-	block_size = flex_size((flex_ptr) &(file->account_windows[entry].line_data)) / sizeof(account_redraw);
+	block_size = flex_size((flex_ptr) &(file->account_windows[entry].line_data)) / sizeof(struct account_redraw);
 
 	#ifdef DEBUG
 	debug_printf("AccountList block %d size: %d, required: %d", entry, block_size,
@@ -4098,7 +4098,7 @@ int account_read_list_file(file_data *file, FILE *in, char *section, char *token
 
 	if (block_size > file->account_windows[entry].display_lines) {
 		block_size = file->account_windows[entry].display_lines;
-		flex_extend((flex_ptr) &(file->account_windows[entry].line_data), sizeof(account_redraw) * block_size);
+		flex_extend((flex_ptr) &(file->account_windows[entry].line_data), sizeof(struct account_redraw) * block_size);
 
 		#ifdef DEBUG
 		debug_printf("Block shrunk to %d", block_size);

@@ -242,6 +242,7 @@ struct sorder;
 struct preset;
 
 struct accview_window;
+struct account_redraw;
 
 typedef struct file_data file_data;
 
@@ -340,13 +341,13 @@ account;
 
 /* Account window line redraw data struct */
 
-typedef struct account_redraw {
+struct account_redraw {
 	enum account_line_type	type;						/* Type of line (account, header, footer, blank, etc) */
 
-	int			account;					/* Number of account. */
+	acct_t			account;					/* Number of account. */
 	int			total[ACCOUNT_COLUMNS-2];			/* Balance totals for section. */
 	char			heading[ACCOUNT_SECTION_LEN];			/* Heading for section. */
-} account_redraw;
+};
 
 /* ==================================================================================================================
  * Window data structures
@@ -376,7 +377,7 @@ struct account_window {
 	enum account_type	type;						/* Type of accounts contained within the window */
 
 	int			display_lines;					/* Count of the lines in the window */
-	account_redraw		*line_data;					/* Pointer to array of line data for the redraw */
+	struct account_redraw	*line_data;					/* Pointer to array of line data for the redraw */
 };
 
 /* ------------------------------------------------------------------------------------------------------------------ */

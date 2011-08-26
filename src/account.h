@@ -6,6 +6,8 @@
 #ifndef CASHBOOK_ACCOUNT
 #define CASHBOOK_ACCOUNT
 
+#include <stdio.h>
+
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
  */
@@ -311,4 +313,37 @@ void terminate_account_drag (wimp_dragged *drag);
 
 char *get_next_cheque_number (file_data *file, acct_t from_account, acct_t to_account, int increment, char *buffer);
 
+
+
+
+
+/**
+ * Read account details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+int account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+
+
+/**
+ * Read account list details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *suffix		A string containing the trailing end of the section name.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+int account_read_list_file(file_data *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data);
+
 #endif
+

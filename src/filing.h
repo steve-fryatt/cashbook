@@ -54,8 +54,6 @@ void filing_initialise(void);
 
 
 int filing_budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
-int filing_accounts_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
-int filing_acclist_read_file(file_data *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data);
 
 
 

@@ -26,6 +26,7 @@
 #include "sflib/debug.h"
 #include "sflib/config.h"
 #include "sflib/errors.h"
+#include "sflib/event.h"
 #include "sflib/icons.h"
 #include "sflib/msgs.h"
 #include "sflib/windows.h"
@@ -45,9 +46,11 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
+#include "ihelp.h"
 #include "presets.h"
 #include "report.h"
 #include "sorder.h"
+#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -55,7 +58,25 @@
  * Global Variables
  */
 
-static file_data *import_window_file = NULL;
+static file_data		*import_window_file = NULL;
+static wimp_w			filing_import_window = NULL;
+
+
+
+static void		filing_import_complete_click_handler(wimp_pointer *pointer);
+static void 		close_import_complete_dialogue(osbool show_log);
+
+
+/**
+ * Initialise the filing system.
+ */
+
+void filing_initialise(void)
+{
+	filing_import_window = templates_create_window("ImpComp");
+	ihelp_add_window(filing_import_window, "ImpComp", NULL);
+	event_add_window_mouse_event(filing_import_window, filing_import_complete_click_handler);
+}
 
 
 /* ==================================================================================================================
@@ -616,8 +637,6 @@ void import_csv_file (file_data *file, char *filename)
   wimp_pointer pointer;
   unsigned int type;
 
-  extern global_windows windows;
-
 
   import_window_file = file;
 
@@ -634,9 +653,9 @@ void import_csv_file (file_data *file, char *filename)
     file->import_report = NULL;
   }
 
-  if (windows_get_open (windows.import_comp))
+  if (windows_get_open (filing_import_window))
   {
-    wimp_close_window (windows.import_comp);
+    wimp_close_window (filing_import_window);
   }
 
   /* Open a log report for the process, and title it. */
@@ -812,14 +831,36 @@ void import_csv_file (file_data *file, char *filename)
   msgs_param_lookup ("IRTotals", log, sizeof (log), b1, b2, NULL, NULL);
   report_write_line (file->import_report, 0, log);
 
-  sprintf (icons_get_indirected_text_addr (windows.import_comp, ICOMP_ICON_IMPORTED), "%d", import_count);
-  sprintf (icons_get_indirected_text_addr (windows.import_comp, ICOMP_ICON_REJECTED), "%d", reject_count);
+  sprintf (icons_get_indirected_text_addr (filing_import_window, ICOMP_ICON_IMPORTED), "%d", import_count);
+  sprintf (icons_get_indirected_text_addr (filing_import_window, ICOMP_ICON_REJECTED), "%d", reject_count);
 
   wimp_get_pointer_info (&pointer);
-  windows_open_centred_at_pointer (windows.import_comp, &pointer);
+  windows_open_centred_at_pointer (filing_import_window, &pointer);
 
   hourglass_off ();
 }
+
+
+
+/**
+ * Process mouse clicks in the Import Complete dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void filing_import_complete_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case ICOMP_ICON_CLOSE:
+		close_import_complete_dialogue(FALSE);
+		break;
+
+	case ICOMP_ICON_LOG:
+		close_import_complete_dialogue(TRUE);
+		break;
+	}
+}
+
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -827,21 +868,15 @@ void import_csv_file (file_data *file, char *filename)
  * longer need to track the report, so the pointer can be set to NULL.
  */
 
-void close_import_complete_dialogue (int show_log)
+static void close_import_complete_dialogue(osbool show_log)
 {
-  extern global_windows windows;
+	if (show_log)
+		report_close(import_window_file->import_report);
+	else
+		report_delete(import_window_file->import_report);
 
-  if (show_log)
-  {
-    report_close(import_window_file->import_report);
-  }
-  else
-  {
-    report_delete(import_window_file->import_report);
-  }
-
-  wimp_close_window (windows.import_comp);
-  import_window_file->import_report = NULL;
+	wimp_close_window(filing_import_window);
+	import_window_file->import_report = NULL;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -850,11 +885,9 @@ void close_import_complete_dialogue (int show_log)
 
 void force_close_import_window (file_data *file)
 {
-  extern global_windows windows;
-
-  if (import_window_file == file && windows_get_open (windows.import_comp))
+  if (import_window_file == file && windows_get_open (filing_import_window))
   {
-    wimp_close_window (windows.import_comp);
+    wimp_close_window (filing_import_window);
 
     /* No need to delete any associated report, because it will disappear in the file close anyway. */
   }

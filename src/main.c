@@ -361,6 +361,7 @@ static void main_initialise(void)
 	find_initialise();
 	goto_initialise();
 	purge_initialise();
+	filing_initialise();
 
 	transact_initialise(sprites);
 	account_initialise(sprites);
@@ -468,14 +469,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
   windows->file_info = templates_create_window("FileInfo");
   ihelp_add_window (windows->file_info, "FileInfo", NULL);
 
-  /* Import Complete Window.
-   *
-   * Created now.
-   */
-
-  windows->import_comp = templates_create_window("ImpComp");
-  ihelp_add_window (windows->import_comp, "ImpComp", NULL);
-
   /* Save Window.
    *
    * Created now.
@@ -504,26 +497,9 @@ static void mouse_click_handler (wimp_pointer *pointer)
 {
   extern global_windows windows;
 
-
-  /* Import complete window. */
-
-  if (pointer->w == windows.import_comp)
-  {
-    switch ((int) pointer->i)
-    {
-       case ICOMP_ICON_CLOSE:
-         close_import_complete_dialogue (FALSE);
-         break;
-
-       case ICOMP_ICON_LOG:
-         close_import_complete_dialogue (TRUE);
-         break;
-    }
-  }
-
   /* Save window. */
 
-  else if (pointer->w == windows.save_as)
+  if (pointer->w == windows.save_as)
   {
     if (pointer->buttons == wimp_CLICK_SELECT && pointer->i == 0) /* 'Save' button */
     {

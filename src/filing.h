@@ -42,6 +42,17 @@ enum filing_delimit_flags {
  * Function prototypes.
  */
 
+
+
+/**
+ * Initialise the filing system.
+ */
+
+void filing_initialise(void);
+
+
+
+
 int filing_budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
 int filing_accounts_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
 int filing_acclist_read_file(file_data *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data);
@@ -61,7 +72,6 @@ void save_transaction_file (file_data *file, char *filename);
 
 void import_csv_file (file_data *file, char *filename);
 
-void close_import_complete_dialogue (int show_log);
 void force_close_import_window (file_data *file);
 
 /* Delimited file export */

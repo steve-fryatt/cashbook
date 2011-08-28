@@ -134,7 +134,9 @@ static osbool amenu_message_warning_handler(wimp_message *message)
 
 static osbool amenu_message_deleted_handler(wimp_message *message)
 {
-	if (amenu_menu == NULL)
+	wimp_full_message_menus_deleted *menus_deleted = (wimp_full_message_menus_deleted *) message;
+
+	if (amenu_menu == NULL || amenu_menu != menus_deleted->menu)
 		return FALSE;
 
 	amenu_close();

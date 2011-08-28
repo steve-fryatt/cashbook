@@ -2842,8 +2842,6 @@ static void analysis_lookup_click_handler(wimp_pointer *pointer)
 			break;
 		}
 
-		debug_printf("About to open menu of type 0x%x for file 0x%x and window 0x%x", type, analysis_lookup_file, analysis_lookup_window);
-
 		open_account_menu(analysis_lookup_file, type, 0,
 				analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC, pointer);
 		break;

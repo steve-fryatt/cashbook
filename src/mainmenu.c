@@ -216,8 +216,6 @@ static void account_menu_submenu_message(wimp_message_menu_warning *submenu)
 
 static void account_menu_closed_message(void)
 {
-	debug_printf("Menu closing...");
-
 	analysis_lookup_menu_closed();
 	account_complete_menu_destroy();
 	templates_set_menu_token("");

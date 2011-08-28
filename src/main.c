@@ -468,14 +468,6 @@ static void load_templates(global_windows *windows, osspriteop_area *sprites)
 
   windows->save_as = templates_create_window("SaveAs");
   ihelp_add_window (windows->save_as, "SaveAs", NULL);
-
-  /* Account Name Enter Window.
-   *
-   * Created now.
-   */
-
-    windows->enter_acc = templates_create_window("AccEnter");
-    ihelp_add_window (windows->enter_acc, "AccEnter", NULL);
 }
 
 
@@ -508,35 +500,6 @@ static void mouse_click_handler (wimp_pointer *pointer)
       start_save_window_drag ();
     }
   }
-
-  /* Account name enrty window. */
-
-  else if (pointer->w == windows.enter_acc)
-  {
-    if (pointer->i == ACC_NAME_ENTRY_OK)
-    {
-      process_account_lookup_window ();
-      if (pointer->buttons == wimp_CLICK_SELECT)
-      {
-        wimp_create_menu ((wimp_menu *) -1, 0, 0);
-      }
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST && pointer->i == ACC_NAME_ENTRY_NAME)
-    {
-      open_account_lookup_account_menu (pointer);
-    }
-
-    if (pointer->buttons == wimp_CLICK_ADJUST && pointer->i == ACC_NAME_ENTRY_REC)
-    {
-      toggle_account_lookup_reconcile_field (pointer);
-    }
-
-    if (pointer->i == ACC_NAME_ENTRY_CANCEL && pointer->buttons == wimp_CLICK_SELECT)
-    {
-      wimp_create_menu ((wimp_menu *) -1, 0, 0);
-    }
-  }
 }
 
 /* ==================================================================================================================
@@ -565,30 +528,6 @@ static void key_press_handler (wimp_key *key)
       default:
         wimp_process_key (key->c);
         break;
-    }
-  }
-
-  /* Enter account name window. */
-
-  else if (key->w == windows.enter_acc)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        if (!process_account_lookup_window ())
-        {
-          wimp_create_menu ((wimp_menu *) -1, 0, 0);
-        }
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-
-    if (key->i == ACC_NAME_ENTRY_IDENT)
-    {
-      update_account_lookup_window (key);
     }
   }
 }

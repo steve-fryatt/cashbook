@@ -24,6 +24,7 @@
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
+#include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
 #include "sflib/windows.h"
@@ -172,6 +173,11 @@
 #define ANALYSIS_SAVE_NAME 1
 #define ANALYSIS_SAVE_NAMEPOPUP 2
 
+#define ANALYSIS_LOOKUP_IDENT 0
+#define ANALYSIS_LOOKUP_REC 1
+#define ANALYSIS_LOOKUP_NAME 2
+#define ANALYSIS_LOOKUP_CANCEL 3
+#define ANALYSIS_LOOKUP_OK 4
 
 enum analysis_save_mode {
 	ANALYSIS_SAVE_MODE_NONE = 0,						/**< The Save/Rename dialogue isn't used.			*/
@@ -214,6 +220,14 @@ static int			analysis_balance_template = NULL_TEMPLATE;	/**< The template which 
 static saved_report		analysis_report_template;			/**< New report settings for passing to the Report module.	*/
 
 static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a pointer to this to set all accounts.		*/
+
+/* Account Lookup Window. */
+
+static wimp_w			analysis_lookup_window = NULL;			/**< The handle of the Account Lookup window.			*/
+static file_data		*analysis_lookup_file = NULL;			/**< The file currently owning the Account Lookup window.	*/
+static enum account_type	analysis_lookup_type = NULL_ACCOUNT;		/**< The type(s) of account to be looked up in the window.	*/
+static wimp_w			analysis_lookup_parent;				/**< The window currently owning the Account Lookup window.	*/
+static wimp_i			analysis_lookup_icon;				/**< The icon to which the lookup results should be inserted.	*/
 
 /* Date period management. */
 
@@ -271,6 +285,11 @@ static void		analysis_fill_balance_window(file_data *file, osbool restore);
 static osbool		analysis_process_balance_window(void);
 static osbool		analysis_delete_balance_window(void);
 static void		analysis_generate_balance_report(file_data *file);
+
+static void		analysis_open_account_lookup(file_data *file, wimp_w window, wimp_i icon, int account, enum account_type type);
+static void		analysis_lookup_click_handler(wimp_pointer *pointer);
+static osbool		analysis_lookup_keypress_handler(wimp_key *key);
+static osbool		analysis_process_lookup_window(void);
 
 static void		analysis_find_date_range(file_data *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget);
 static void		analysis_initialise_date_period(date_t start, date_t end, int period, int unit, osbool lock);
@@ -354,6 +373,11 @@ void analysis_initialise(void)
 	event_add_window_menu_selection(analysis_save_window, analysis_save_menu_selection_handler);
 	event_add_window_menu_close(analysis_save_window, analysis_save_menu_close_handler);
 	event_add_window_icon_popup(analysis_save_window, ANALYSIS_SAVE_NAMEPOPUP, NULL, -1);
+
+	analysis_lookup_window = templates_create_window("AccEnter");
+	ihelp_add_window(analysis_lookup_window, "AccEnter", NULL);
+	event_add_window_mouse_event(analysis_lookup_window, analysis_lookup_click_handler);
+	event_add_window_key_event(analysis_lookup_window, analysis_lookup_keypress_handler);
 }
 
 
@@ -471,13 +495,13 @@ static void analysis_transaction_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_TRANS_FROMSPECPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window(analysis_transaction_file, analysis_transaction_window,
+			analysis_open_account_lookup(analysis_transaction_file, analysis_transaction_window,
 					ANALYSIS_TRANS_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 		break;
 
 	case ANALYSIS_TRANS_TOSPECPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window(analysis_transaction_file, analysis_transaction_window,
+			analysis_open_account_lookup(analysis_transaction_file, analysis_transaction_window,
 					ANALYSIS_TRANS_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 		break;
 	}
@@ -508,10 +532,10 @@ static osbool analysis_transaction_keypress_handler(wimp_key *key)
 
 	case wimp_KEY_F1:
 		if (key->i == ANALYSIS_TRANS_FROMSPEC)
-			open_account_lookup_window(analysis_transaction_file, analysis_transaction_window,
+			analysis_open_account_lookup(analysis_transaction_file, analysis_transaction_window,
 					ANALYSIS_TRANS_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 		else if (key->i == ANALYSIS_TRANS_TOSPEC)
-			open_account_lookup_window(analysis_transaction_file, analysis_transaction_window,
+			analysis_open_account_lookup(analysis_transaction_file, analysis_transaction_window,
 					ANALYSIS_TRANS_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 		break;
 
@@ -1163,13 +1187,13 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_UNREC_FROMSPECPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window (analysis_unreconciled_file, analysis_unreconciled_window,
+			analysis_open_account_lookup(analysis_unreconciled_file, analysis_unreconciled_window,
 					ANALYSIS_UNREC_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 		break;
 
 	case ANALYSIS_UNREC_TOSPECPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window (analysis_unreconciled_file, analysis_unreconciled_window,
+			analysis_open_account_lookup(analysis_unreconciled_file, analysis_unreconciled_window,
 					ANALYSIS_UNREC_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 		break;
 	}
@@ -1200,10 +1224,10 @@ static osbool analysis_unreconciled_keypress_handler(wimp_key *key)
 
 	case wimp_KEY_F1:
 		if (key->i == ANALYSIS_UNREC_FROMSPEC)
-			open_account_lookup_window (analysis_unreconciled_file, analysis_unreconciled_window,
+			analysis_open_account_lookup(analysis_unreconciled_file, analysis_unreconciled_window,
 					ANALYSIS_UNREC_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 		else if (key->i == ANALYSIS_UNREC_TOSPEC)
-			open_account_lookup_window (analysis_unreconciled_file, analysis_unreconciled_window,
+			analysis_open_account_lookup(analysis_unreconciled_file, analysis_unreconciled_window,
 					ANALYSIS_UNREC_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 		break;
 
@@ -1719,19 +1743,19 @@ static void analysis_cashflow_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_CASHFLOW_ACCOUNTSPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window(analysis_cashflow_file, analysis_cashflow_window,
+			analysis_open_account_lookup(analysis_cashflow_file, analysis_cashflow_window,
 					ANALYSIS_CASHFLOW_ACCOUNTS, NULL_ACCOUNT, ACCOUNT_FULL);
 		break;
 
 	case ANALYSIS_CASHFLOW_INCOMINGPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window(analysis_cashflow_file, analysis_cashflow_window,
+			analysis_open_account_lookup(analysis_cashflow_file, analysis_cashflow_window,
 					ANALYSIS_CASHFLOW_INCOMING, NULL_ACCOUNT, ACCOUNT_IN);
 		break;
 
 	case ANALYSIS_CASHFLOW_OUTGOINGPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window(analysis_cashflow_file, analysis_cashflow_window,
+			analysis_open_account_lookup(analysis_cashflow_file, analysis_cashflow_window,
 					ANALYSIS_CASHFLOW_OUTGOING, NULL_ACCOUNT, ACCOUNT_OUT);
 		break;
 	}
@@ -1762,13 +1786,13 @@ static osbool analysis_cashflow_keypress_handler(wimp_key *key)
 
 	case wimp_KEY_F1:
 		if (key->i == ANALYSIS_CASHFLOW_ACCOUNTS)
-			open_account_lookup_window(analysis_cashflow_file, analysis_cashflow_window,
+			analysis_open_account_lookup(analysis_cashflow_file, analysis_cashflow_window,
 					ANALYSIS_CASHFLOW_ACCOUNTS, NULL_ACCOUNT, ACCOUNT_FULL);
 		else if (key->i == ANALYSIS_CASHFLOW_INCOMING)
-			open_account_lookup_window(analysis_cashflow_file, analysis_cashflow_window,
+			analysis_open_account_lookup(analysis_cashflow_file, analysis_cashflow_window,
 					ANALYSIS_CASHFLOW_INCOMING, NULL_ACCOUNT, ACCOUNT_IN);
 		else if (key->i == ANALYSIS_CASHFLOW_OUTGOING)
-			open_account_lookup_window(analysis_cashflow_file, analysis_cashflow_window,
+			analysis_open_account_lookup(analysis_cashflow_file, analysis_cashflow_window,
 					ANALYSIS_CASHFLOW_OUTGOING, NULL_ACCOUNT, ACCOUNT_OUT);
 		break;
 
@@ -2284,19 +2308,19 @@ static void analysis_balance_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_BALANCE_ACCOUNTSPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window(analysis_balance_file, analysis_balance_window,
+			analysis_open_account_lookup(analysis_balance_file, analysis_balance_window,
 					ANALYSIS_BALANCE_ACCOUNTS, NULL_ACCOUNT, ACCOUNT_FULL);
 		break;
 
 	case ANALYSIS_BALANCE_INCOMINGPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window(analysis_balance_file, analysis_balance_window,
+			analysis_open_account_lookup(analysis_balance_file, analysis_balance_window,
 					ANALYSIS_BALANCE_INCOMING, NULL_ACCOUNT, ACCOUNT_IN);
 		break;
 
 	case ANALYSIS_BALANCE_OUTGOINGPOPUP:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			open_account_lookup_window(analysis_balance_file, analysis_balance_window,
+			analysis_open_account_lookup(analysis_balance_file, analysis_balance_window,
 					ANALYSIS_BALANCE_OUTGOING, NULL_ACCOUNT, ACCOUNT_OUT);
 		break;
 	}
@@ -2327,13 +2351,13 @@ static osbool analysis_balance_keypress_handler(wimp_key *key)
 
 	case wimp_KEY_F1:
 		if (key->i == ANALYSIS_BALANCE_ACCOUNTS)
-			open_account_lookup_window(analysis_balance_file, analysis_balance_window,
+			analysis_open_account_lookup(analysis_balance_file, analysis_balance_window,
 					ANALYSIS_BALANCE_ACCOUNTS, NULL_ACCOUNT, ACCOUNT_FULL);
 		else if (key->i == ANALYSIS_BALANCE_INCOMING)
-			open_account_lookup_window(analysis_balance_file, analysis_balance_window,
+			analysis_open_account_lookup(analysis_balance_file, analysis_balance_window,
 					ANALYSIS_BALANCE_INCOMING, NULL_ACCOUNT, ACCOUNT_IN);
 		else if (key->i == ANALYSIS_BALANCE_OUTGOING)
-			open_account_lookup_window(analysis_balance_file, analysis_balance_window,
+			analysis_open_account_lookup(analysis_balance_file, analysis_balance_window,
 					ANALYSIS_BALANCE_OUTGOING, NULL_ACCOUNT, ACCOUNT_OUT);
 		break;
 
@@ -2722,6 +2746,229 @@ static void analysis_generate_balance_report(file_data *file)
 	report_close(report);
 
 	hourglass_off();
+}
+
+
+/**
+ * Open the account lookup window as a menu, allowing an account to be
+ * entered into an account list using a graphical interface.
+ *
+ * \param *file			The file to which the operation relates.
+ * \param window		The window to own the lookup dialogue.
+ * \param icon			The icon to own the lookup dialogue.
+ * \param account		An account to seed the window, or NULL_ACCOUNT.
+ * \param type			The types of account to be accepted.
+ */
+
+static void analysis_open_account_lookup(file_data *file, wimp_w window, wimp_i icon, int account, enum account_type type)
+{
+	wimp_pointer		pointer;
+
+	icons_strncpy(analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, find_account_ident(file, account));
+	icons_strncpy(analysis_lookup_window, ANALYSIS_LOOKUP_NAME, find_account_name(file, account));
+	*icons_get_indirected_text_addr(analysis_lookup_window, ANALYSIS_LOOKUP_REC) = '\0';
+
+	analysis_lookup_file = file;
+	analysis_lookup_type = type;
+	analysis_lookup_parent = window;
+	analysis_lookup_icon = icon;
+
+	/* Set the window position and open it on screen. */
+
+	pointer.w = window;
+	pointer.i = icon;
+	menus_create_popup_menu((wimp_menu *) analysis_lookup_window, &pointer);
+}
+
+
+/**
+ * Process mouse clicks in the Account Lookup dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void analysis_lookup_click_handler(wimp_pointer *pointer)
+{
+	enum account_menu_type	type;
+	wimp_window_state	window_state;
+
+	switch (pointer->i) {
+	case ANALYSIS_LOOKUP_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			wimp_create_menu((wimp_menu *) -1, 0, 0);
+		break;
+
+	case ANALYSIS_LOOKUP_OK:
+		if (analysis_process_lookup_window() && pointer->buttons == wimp_CLICK_SELECT)
+			wimp_create_menu((wimp_menu *) -1, 0, 0);
+		break;
+
+	case ANALYSIS_LOOKUP_NAME:
+		if (pointer->buttons != wimp_CLICK_ADJUST)
+			break;
+
+		/* Change the lookup window from a menu to a static window, so
+		 * that the lookup menu can be created.
+		 */
+
+		window_state.w = analysis_lookup_window;
+		wimp_get_window_state(&window_state);
+		wimp_create_menu((wimp_menu *) -1, 0, 0);
+		wimp_open_window((wimp_open *) &window_state);
+
+		switch (analysis_lookup_type) {
+		case ACCOUNT_FULL | ACCOUNT_IN:
+			type = ACCOUNT_MENU_FROM;
+			break;
+
+		case ACCOUNT_FULL | ACCOUNT_OUT:
+			type = ACCOUNT_MENU_TO;
+			break;
+
+		case ACCOUNT_FULL:
+			type = ACCOUNT_MENU_ACCOUNTS;
+			break;
+
+		case ACCOUNT_IN:
+			type = ACCOUNT_MENU_INCOMING;
+			break;
+
+		case ACCOUNT_OUT:
+			type = ACCOUNT_MENU_OUTGOING;
+			break;
+
+		default:
+			type = ACCOUNT_MENU_FROM;
+			break;
+		}
+
+		debug_printf("About to open menu of type 0x%x for file 0x%x and window 0x%x", type, analysis_lookup_file, analysis_lookup_window);
+
+		open_account_menu(analysis_lookup_file, type, 0,
+				analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC, pointer);
+		break;
+
+	case ANALYSIS_LOOKUP_REC:
+		if (pointer->buttons == wimp_CLICK_ADJUST)
+			toggle_account_reconcile_icon(analysis_lookup_window, ANALYSIS_LOOKUP_REC);
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Account Lookup window.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool analysis_lookup_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		if (analysis_process_lookup_window())
+			wimp_create_menu((wimp_menu *) -1, 0, 0);
+		break;
+
+	default:
+		if (key->i != ANALYSIS_LOOKUP_IDENT)
+			return FALSE;
+
+		if (key->i == ANALYSIS_LOOKUP_IDENT)
+			lookup_account_field(analysis_lookup_file, key->c, analysis_lookup_type, NULL_ACCOUNT, NULL,
+					analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC);
+ 		break;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * This function is called whenever the account list menu closes.  If the enter
+ * account window is open, it is converted back into a transient menu.
+ */
+
+void analysis_lookup_menu_closed(void)
+{
+	wimp_window_state	window_state;
+
+	if (!windows_get_open(analysis_lookup_window))
+		return;
+
+	window_state.w = analysis_lookup_window;
+	wimp_get_window_state (&window_state);
+	wimp_close_window(analysis_lookup_window);
+
+	if (!windows_get_open(analysis_lookup_parent))
+		return;
+
+	wimp_create_menu((wimp_menu *) -1, 0, 0);
+	wimp_create_menu((wimp_menu *) analysis_lookup_window, window_state.visible.x0, window_state.visible.y1);
+}
+
+
+/**
+ * Take the account from the account lookup window, and put the ident into the
+ * parent icon.
+ *
+ * \return			TRUE if the content was processed; FALSE otherwise.
+ */
+
+static osbool analysis_process_lookup_window(void)
+{
+	int		index, max_len;
+	acct_t		account;
+	char		ident[ACCOUNT_IDENT_LEN+1], *icon;
+	wimp_caret	caret;
+
+	/* Get the account number that was entered. */
+
+	account = find_account(analysis_lookup_file, icons_get_indirected_text_addr(analysis_lookup_window, ANALYSIS_LOOKUP_IDENT),
+			analysis_lookup_type);
+
+	if (account == NULL_ACCOUNT)
+		return TRUE;
+
+	/* Get the icon text, and the length of it. */
+
+	icon = icons_get_indirected_text_addr(analysis_lookup_parent, analysis_lookup_icon);
+	max_len = string_ctrl_strlen(icon);
+
+	/* Check the caret position.  If it is in the target icon, move the insertion until it falls before a comma;
+	 * if not, place the index at the end of the text.
+	 */
+
+	wimp_get_caret_position(&caret);
+	if (caret.w == analysis_lookup_parent && caret.i == analysis_lookup_icon) {
+		index = caret.index;
+		while (index < max_len && icon[index] != ',')
+			index++;
+	} else {
+		index = max_len;
+	}
+
+	/* If the icon text is empty, the ident is inserted on its own.
+	 *
+	 * If there is text there, a comma is placed at the start or end depending on where the index falls in the
+	 * string.  If it falls anywhere but the end, the index is assumed to be after a comma such that an extra
+	 * comma is added after the ident to be inserted.
+	 */
+
+	if (*icon == '\0') {
+		sprintf(ident, "%s", find_account_ident(analysis_lookup_file, account));
+	} else {
+		if (index < max_len)
+			sprintf(ident, "%s,", find_account_ident(analysis_lookup_file, account));
+		else
+			sprintf(ident, ",%s", find_account_ident(analysis_lookup_file, account));
+	}
+
+	icons_insert_text(analysis_lookup_parent, analysis_lookup_icon, index, ident, strlen(ident));
+	icons_replace_caret_in_window(analysis_lookup_parent);
+
+	return TRUE;
 }
 
 

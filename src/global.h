@@ -807,7 +807,6 @@ struct file_data
 typedef struct
 {
   wimp_w      save_as;
-  wimp_w      enter_acc;
 }
 global_windows;
 

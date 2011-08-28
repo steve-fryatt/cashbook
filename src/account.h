@@ -62,13 +62,6 @@
 #define SECTION_EDIT_HEADER 5
 #define SECTION_EDIT_FOOTER 6
 
-/* Account entry window. */
-
-#define ACC_NAME_ENTRY_IDENT 0
-#define ACC_NAME_ENTRY_REC 1
-#define ACC_NAME_ENTRY_NAME 2
-#define ACC_NAME_ENTRY_CANCEL 3
-#define ACC_NAME_ENTRY_OK 4
 
 enum account_menu_type{
 	ACCOUNT_MENU_FROM = 1,
@@ -282,13 +275,6 @@ int lookup_account_field (file_data *file, char key, int type, int account, int 
 void fill_account_field (file_data *file, acct_t account, int reconciled,
                          wimp_w window, wimp_i ident, wimp_i name, wimp_i rec_field);
 void toggle_account_reconcile_icon (wimp_w window, wimp_i icon);
-
-void open_account_lookup_window (file_data *file, wimp_w window, wimp_i icon, int account, unsigned flags);
-void update_account_lookup_window (wimp_key *key);
-void open_account_lookup_account_menu (wimp_pointer *ptr);
-void close_account_lookup_account_menu (void);
-void toggle_account_lookup_reconcile_field (wimp_pointer *ptr);
-int process_account_lookup_window (void);
 
 int account_used_in_file (file_data *file, int account);
 

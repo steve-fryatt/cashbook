@@ -46,7 +46,6 @@
 #include "edit.h"
 #include "find.h"
 #include "file.h"
-#include "fileinfo.h"
 #include "fontlist.h"
 #include "goto.h"
 #include "main.h"

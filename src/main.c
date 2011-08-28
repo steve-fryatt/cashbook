@@ -379,7 +379,6 @@ static void main_initialise(void)
 
 	/* Initialise the legacy menu system. */
 
-	templates_link_menu_dialogue("file_info", windows.file_info);
 	templates_link_menu_dialogue("save_as", windows.save_as);
 
 	/* Initialise the file update mechanism: calling it now with no files loaded will force the date to be set up. */
@@ -461,13 +460,6 @@ static osbool main_message_prequit(wimp_message *message)
 
 static void load_templates(global_windows *windows, osspriteop_area *sprites)
 {
-  /* File Info Window.
-   *
-   * Created now.
-   */
-
-  windows->file_info = templates_create_window("FileInfo");
-  ihelp_add_window (windows->file_info, "FileInfo", NULL);
 
   /* Save Window.
    *

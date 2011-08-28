@@ -22,6 +22,7 @@
 #include "oslib/osfile.h"
 #include "oslib/hourglass.h"
 #include "oslib/osspriteop.h"
+#include "oslib/territory.h"
 
 /* SF-Lib header files. */
 
@@ -54,7 +55,6 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
-#include "fileinfo.h"
 #include "filing.h"
 #include "find.h"
 #include "goto.h"
@@ -121,6 +121,14 @@
 #define TRANS_SORT_ASCENDING 10
 #define TRANS_SORT_DESCENDING 11
 
+#define FILEINFO_ICON_FILENAME 1
+#define FILEINFO_ICON_MODIFIED 3
+#define FILEINFO_ICON_DATE 5
+#define FILEINFO_ICON_ACCOUNTS 9
+#define FILEINFO_ICON_TRANSACT 11
+#define FILEINFO_ICON_HEADINGS 13
+#define FILEINFO_ICON_SORDERS 15
+#define FILEINFO_ICON_PRESETS 17
 
 
 struct transact_list_link {
@@ -139,6 +147,10 @@ static file_data		*transact_sort_file = NULL;			/**< The file currently owning t
 /* Transaction Print Window. */
 
 static file_data		*transact_print_file = NULL;			/**< The file currently owning the transaction print window.				*/
+
+/* File Info Window. */
+
+static wimp_w			transact_fileinfo_window = NULL;		/**< The handle of the file info window.						*/
 
 /* Transaction List Window. */
 
@@ -182,6 +194,7 @@ static void			transact_refresh_sort_window(void);
 static void			transact_fill_sort_window(int sort_option);
 static osbool			transact_process_sort_window(void);
 
+static void			transact_prepare_fileinfo(file_data *file);
 
 
 /**
@@ -204,6 +217,10 @@ void transact_initialise(osspriteop_area *sprites)
 	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_DESCRIPTION, TRUE);
 	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_ASCENDING, TRUE);
 	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_DESCENDING, TRUE);
+
+	transact_fileinfo_window = templates_create_window("FileInfo");
+	ihelp_add_window(transact_fileinfo_window, "FileInfo", NULL);
+	templates_link_menu_dialogue("file_info", transact_fileinfo_window);
 
 	transact_window_def = templates_load_window("Transact");
 	transact_window_def->icon_count = 0;
@@ -850,8 +867,8 @@ static osbool transact_window_keypress_handler(wimp_key *key)
   else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F1)
   {
     wimp_get_pointer_info (&pointer);
-    fill_file_info_window (file);
-    menus_create_standard_menu ((wimp_menu *) windows.file_info, &pointer);
+    transact_prepare_fileinfo(file);
+    menus_create_standard_menu ((wimp_menu *) transact_fileinfo_window, &pointer);
   }
 
   else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F2)
@@ -1192,7 +1209,7 @@ static void transact_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp
 	case MAIN_MENU_SUB_FILE:
 		switch (warning->selection.items[1]) {
 		case MAIN_MENU_FILE_INFO:
-			fill_file_info_window(windat->file);
+			transact_prepare_fileinfo(windat->file);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 
@@ -3409,5 +3426,34 @@ osbool transact_check_account(file_data *file, int account)
 			found = TRUE;
 
 	return found;
+}
+
+
+/**
+ * Calculate the details of a file, and fill the file info dialogue.
+ *
+ * \param *file			The file to display data for.
+ */
+
+static void transact_prepare_fileinfo(file_data *file)
+{
+	make_file_pathname(file, icons_get_indirected_text_addr	(transact_fileinfo_window, FILEINFO_ICON_FILENAME), 255);
+
+	if (check_for_filepath(file))
+		territory_convert_standard_date_and_time(territory_CURRENT, (os_date_and_time const *) file->datestamp,
+				icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_DATE), 30);
+	else
+		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_DATE, "UnSaved");
+
+	if (file->modified)
+		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_MODIFIED, "Yes");
+	else
+		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_MODIFIED, "No");
+
+	icons_printf(transact_fileinfo_window, FILEINFO_ICON_TRANSACT, "%d", file->trans_count);
+	icons_printf(transact_fileinfo_window, FILEINFO_ICON_SORDERS, "%d", file->sorder_count);
+	icons_printf(transact_fileinfo_window, FILEINFO_ICON_PRESETS, "%d", file->preset_count);
+	icons_printf(transact_fileinfo_window, FILEINFO_ICON_ACCOUNTS, "%d", count_accounts_in_file(file, ACCOUNT_FULL));
+	icons_printf(transact_fileinfo_window, FILEINFO_ICON_HEADINGS, "%d", count_accounts_in_file(file, ACCOUNT_IN | ACCOUNT_OUT));
 }
 

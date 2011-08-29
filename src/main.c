@@ -84,7 +84,6 @@ static osbool		main_message_prequit(wimp_message *message);
 
 
 static void user_message_handler (wimp_message *);
-static void bounced_message_handler (wimp_message *);
 
 
 
@@ -175,10 +174,6 @@ static void main_poll_loop(void)
 			case wimp_USER_MESSAGE:
 			case wimp_USER_MESSAGE_RECORDED:
 				user_message_handler(&(blk.message));
-				break;
-
-			case wimp_USER_MESSAGE_ACKNOWLEDGE:
-				bounced_message_handler(&(blk.message));
 				break;
 			}
 		}
@@ -387,6 +382,9 @@ static void main_parse_command_line(int argc, char *argv[])
 
 /**
  * Handle incoming Message_Quit.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
  */
 
 static osbool main_message_quit(wimp_message *message)
@@ -399,6 +397,9 @@ static osbool main_message_quit(wimp_message *message)
 
 /**
  * Handle incoming Message_PreQuit.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
  */
 
 static osbool main_message_prequit(wimp_message *message)
@@ -530,18 +531,3 @@ static void user_message_handler (wimp_message *message)
   }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-static void bounced_message_handler (wimp_message *message)
-{
-  switch (message->action)
-  {
-    case message_RAM_TRANSMIT:
-      error_msgs_report_error ("RAMXferFail");
-      break;
-
-    case message_RAM_FETCH:
-      transfer_load_bounced_ramfetch (message);
-      break;
-  }
-}

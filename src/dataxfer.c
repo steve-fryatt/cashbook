@@ -82,6 +82,9 @@ static wimp_w			dataxfer_saveas_window = NULL;			/**< The handle of the Save As 
 
 
 
+static osbool			dataxfer_bounced_message_ramtransfer(wimp_message *message);
+static osbool			dataxfer_bounced_message_ramfetch(wimp_message *message);
+
 
 static void			dataxfer_saveas_click_handler(wimp_pointer *pointer);
 static osbool			dataxfer_saveas_keypress_handler(wimp_key *key);
@@ -101,7 +104,42 @@ void dataxfer_initialise(void)
 	event_add_window_mouse_event(dataxfer_saveas_window, dataxfer_saveas_click_handler);
 	event_add_window_key_event(dataxfer_saveas_window, dataxfer_saveas_keypress_handler);
 	templates_link_menu_dialogue("save_as", dataxfer_saveas_window);
+
+	event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_bounced_message_ramtransfer);
+	event_add_message_handler(message_RAM_FETCH, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_bounced_message_ramfetch);
 }
+
+
+/**
+ * Handle bounced Message_RamTransmit.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+static osbool dataxfer_bounced_message_ramtransfer(wimp_message *message)
+{
+	error_msgs_report_error("RAMXferFail");
+
+	return TRUE;
+}
+
+
+/**
+ * Handle bounced Message_RamFetch.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+static osbool dataxfer_bounced_message_ramfetch(wimp_message *message)
+{
+	transfer_load_bounced_ramfetch(message);
+
+	return TRUE;
+}
+
+
 
 /* ==================================================================================================================
  * Initialise and prepare the save boxes.

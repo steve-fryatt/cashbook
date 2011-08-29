@@ -38,10 +38,6 @@
 static char *clipboard_data = NULL;
 static int  clipboard_length = 0;
 
-/* Cross file global variables */
-
-wimp_t                     task_handle;
-
 
 static osbool		clipboard_message_claimentity(wimp_message *message);
 static osbool		clipboard_message_datarequest(wimp_message *message);

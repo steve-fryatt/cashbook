@@ -73,7 +73,6 @@ int immediate_window_save (void);
 /* Prepare file loading */
 
 int initialise_data_load (wimp_message *message);
-int drag_end_load (char *filename);
 
 #endif
 

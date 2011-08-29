@@ -81,6 +81,10 @@ static int       delete_file_after;
 
 static wimp_w			dataxfer_saveas_window = NULL;			/**< The handle of the Save As window.			*/
 
+
+
+static osbool			dataxfer_message_datasave(wimp_message *message);
+static osbool			dataxfer_message_dataload(wimp_message *message);
 static osbool			dataxfer_message_datasaveack(wimp_message *message);
 static osbool			dataxfer_message_ramfetch(wimp_message *message);
 static osbool			dataxfer_bounced_message_ramtransfer(wimp_message *message);
@@ -94,6 +98,7 @@ static osbool			dataxfer_saveas_keypress_handler(wimp_key *key);
 
 static osbool			dataxfer_message_dataopen(wimp_message *message);
 
+static int			dataxfer_drag_end_load(char *filename);
 
 /**
  * Initialise the data transfer system.
@@ -109,12 +114,54 @@ void dataxfer_initialise(void)
 	event_add_window_key_event(dataxfer_saveas_window, dataxfer_saveas_keypress_handler);
 	templates_link_menu_dialogue("save_as", dataxfer_saveas_window);
 
+	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, dataxfer_message_datasave);
+	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, dataxfer_message_dataload);
 	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_datasaveack);
 	event_add_message_handler(message_RAM_FETCH, EVENT_MESSAGE_INCOMING, dataxfer_message_ramfetch);
 	event_add_message_handler(message_DATA_OPEN, EVENT_MESSAGE_INCOMING, dataxfer_message_dataopen);
 
 	event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_bounced_message_ramtransfer);
 	event_add_message_handler(message_RAM_FETCH, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_bounced_message_ramfetch);
+}
+
+
+/**
+ * Handle incoming Message_DataSave.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+static osbool dataxfer_message_datasave(wimp_message *message)
+{
+	if (message->your_ref != 0)
+		return FALSE;
+
+	if (initialise_data_load(message))
+		transfer_load_reply_datasave_callback(message, dataxfer_drag_end_load);
+
+	return TRUE;
+}
+
+
+/**
+ * Handle incoming Message_DataLoad.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+static osbool dataxfer_message_dataload(wimp_message *message)
+{
+	if (message->your_ref != 0)
+		return FALSE;
+
+	if (initialise_data_load(message)) {
+		transfer_load_start_direct_callback(message, dataxfer_drag_end_load);
+		transfer_load_reply_dataload(message, NULL);
+	}
+
+	return TRUE;
 }
 
 
@@ -176,6 +223,8 @@ static osbool dataxfer_bounced_message_ramfetch(wimp_message *message)
 
 	return TRUE;
 }
+
+
 
 
 
@@ -702,7 +751,7 @@ int initialise_data_load (wimp_message *message)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int drag_end_load (char *filename)
+static int dataxfer_drag_end_load(char *filename)
 {
   #ifdef DEBUG
   debug_printf ("\\DLoad at drag end");

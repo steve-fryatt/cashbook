@@ -35,13 +35,17 @@
 
 /* Declare the global variables that are used. */
 
-static char *clipboard_data = NULL;
-static int  clipboard_length = 0;
+static char		*clipboard_data = NULL;					/**< Clipboard data help by CashBook, or NULL for none.			*/
+static size_t		clipboard_length = 0;					/**< The length of the clipboard held by CashBook.			*/
+static char		*clipboard_xfer = NULL;					/**< Clipboard data being transferred in from another client.		*/
 
 
 static osbool		clipboard_message_claimentity(wimp_message *message);
 static osbool		clipboard_message_datarequest(wimp_message *message);
-
+static osbool		clipboard_message_datasave(wimp_message *message);
+static osbool		clipboard_message_ramtransmit(wimp_message *message);
+static osbool		clipboard_message_dataload(wimp_message *message);
+static void		clipboard_paste_text(char **data, size_t data_size);
 
 
 /**
@@ -52,7 +56,12 @@ void clipboard_initialise(void)
 {
 	event_add_message_handler(message_CLAIM_ENTITY, EVENT_MESSAGE_INCOMING, clipboard_message_claimentity);
 	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, clipboard_message_datarequest);
+	event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_INCOMING, clipboard_message_ramtransmit);
+	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, clipboard_message_dataload);
+	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, clipboard_message_datasave);
 }
+
+
 
 
 /* ================================================================================================================== */
@@ -250,23 +259,86 @@ static osbool clipboard_message_datarequest(wimp_message *message)
 }
 
 
+/**
+ * Handle incoming Message_DataSave.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
 
-
-
-
-
-/* ================================================================================================================== */
-
-int paste_received_clipboard (char **data, int data_size)
+static osbool clipboard_message_datasave(wimp_message *message)
 {
-  wimp_caret caret;
+	if (message->your_ref == 0)
+		return FALSE;
+
+	transfer_load_reply_datasave_block(message, &clipboard_xfer);
+
+	return TRUE;
+}
 
 
-  wimp_get_caret_position (&caret);
-  icons_insert_text (caret.w, caret.i, caret.index, *data, data_size);
+/**
+ * Handle incoming Message_RamTransmit.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
 
-  flex_free ((flex_ptr) data);
+static osbool clipboard_message_ramtransmit(wimp_message *message)
+{
+	int		size;
 
-  return 0;
+	size = transfer_load_reply_ramtransmit(message, NULL);
+	if (size > 0)
+		clipboard_paste_text (&clipboard_xfer, size);
+
+	return TRUE;
+}
+
+
+/**
+ * Handle incoming Message_DataLoad.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+static osbool clipboard_message_dataload(wimp_message *message)
+{
+	int		size;
+
+	if (message->your_ref == 0)
+		return FALSE;
+
+	/* If your_ref != 0, there was a Message_DataSave before this.  clipboard_size will only return >0 if
+	 * the data is loaded automatically: since only the clipboard uses this, the following code is safe.
+	 * All other loads (data files, TSV and CSV) will have supplied a function to handle the physical loading
+	 * and clipboard_size will return as 0.
+	 */
+
+	size = transfer_load_reply_dataload (message, NULL);
+	if (size > 0)
+		clipboard_paste_text(&clipboard_xfer, size);
+
+	return TRUE;
+}
+
+
+/**
+ * Paste a block of text, received into a flex block via the data transfer
+ * system, into an icon.
+ *
+ * \param **data		The flex block pointer for the data.
+ * \param data_size		The size of the data to paste.
+ */
+
+static void clipboard_paste_text(char **data, size_t data_size)
+{
+	wimp_caret	caret;
+
+	wimp_get_caret_position(&caret);
+	icons_insert_text (caret.w, caret.i, caret.index, *data, data_size);
+
+	flex_free ((flex_ptr) data);
 }
 

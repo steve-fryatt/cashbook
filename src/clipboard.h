@@ -20,7 +20,5 @@ int paste_clipboard_to_icon (wimp_key *key);
 
 int copy_text_to_clipboard (char *text, int len);
 
-int paste_received_clipboard (char **data, int data_size);
-
 #endif
 

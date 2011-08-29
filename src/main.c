@@ -72,21 +72,12 @@
 #include "transact.h"
 #include "window.h"
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
 static void		main_poll_loop(void);
 static void		main_initialise(void);
 static void		main_parse_command_line(int argc, char *argv[]);
 static osbool		main_message_quit(wimp_message *message);
 static osbool		main_message_prequit(wimp_message *message);
-
-
-
-
-static void user_message_handler (wimp_message *);
-
-
-
 
 
 /* Declare the global variables that are used. */
@@ -169,11 +160,6 @@ static void main_poll_loop(void)
 
 			case wimp_LOSE_CARET:
 				refresh_transaction_edit_line_icons(blk.caret.w, -1, -1);
-				break;
-
-			case wimp_USER_MESSAGE:
-			case wimp_USER_MESSAGE_RECORDED:
-				user_message_handler(&(blk.message));
 				break;
 			}
 		}
@@ -412,103 +398,5 @@ static osbool main_message_prequit(wimp_message *message)
 	wimp_send_message(wimp_USER_MESSAGE_ACKNOWLEDGE, message, message->sender);
 
 	return TRUE;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ==================================================================================================================
- * User message handlers
- */
-
-static void user_message_handler (wimp_message *message)
-{
-  static char         *clipboard_data;
-  int                 clipboard_size;
-
-
-  switch (message->action)
-  {
-    case message_DATA_SAVE:
-      if (message->your_ref != 0)
-      {
-        /* If your_ref != 0, we must have started the process so it must be the clipboard. */
-
-        transfer_load_reply_datasave_block (message, &clipboard_data);
-      }
-      else
-      {
-        /* Your_ref == 0, so this is a fresh approach and something wants us to load a file. */
-
-        #ifdef DEBUG
-        debug_reporter_text0 ("\\OLoading a file from another application");
-        #endif
-
-        if (initialise_data_load (message))
-        {
-          transfer_load_reply_datasave_callback (message, drag_end_load);
-        }
-      }
-      break;
-
-    case message_DATA_LOAD:
-       if (message->your_ref != 0)
-      {
-        /* If your_ref != 0, there was a Message_DataSave before this.  clipboard_size will only return >0 if
-         * the data is loaded automatically: since only the clipboard uses this, the following code is safe.
-         * All other loads (data files, TSV and CSV) will have supplied a function to handle the physical loading
-         * and clipboard_size will return as 0.
-         */
-
-        clipboard_size = transfer_load_reply_dataload (message, NULL);
-        if (clipboard_size > 0)
-        {
-          paste_received_clipboard (&clipboard_data, clipboard_size);
-        }
-      }
-      else
-      {
-        #ifdef DEBUG
-        debug_reporter_text0 ("\\OLoading a file from disc");
-        #endif
-
-        if (initialise_data_load (message))
-        {
-          transfer_load_start_direct_callback (message, drag_end_load);
-          transfer_load_reply_dataload (message, NULL);
-        }
-      }
-      break;
-
-    case message_RAM_TRANSMIT:
-      clipboard_size = transfer_load_reply_ramtransmit (message, NULL);
-      if (clipboard_size > 0)
-      {
-        paste_received_clipboard (&clipboard_data, clipboard_size);
-      }
-      break;
-  }
 }
 

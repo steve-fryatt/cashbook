@@ -16,6 +16,7 @@
 /* SF-Lib header files. */
 
 #include "sflib/errors.h"
+#include "sflib/event.h"
 #include "sflib/transfer.h"
 #include "sflib/icons.h"
 #include "sflib/config.h"
@@ -40,6 +41,23 @@ static int  clipboard_length = 0;
 /* Cross file global variables */
 
 wimp_t                     task_handle;
+
+
+static osbool		clipboard_message_claimentity(wimp_message *message);
+static osbool		clipboard_message_datarequest(wimp_message *message);
+
+
+
+/**
+ * Initialise the Clipboard module.
+ */
+
+void clipboard_initialise(void)
+{
+	event_add_message_handler(message_CLAIM_ENTITY, EVENT_MESSAGE_INCOMING, clipboard_message_claimentity);
+	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, clipboard_message_datarequest);
+}
+
 
 /* ================================================================================================================== */
 
@@ -179,47 +197,68 @@ int copy_text_to_clipboard (char *text, int len)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-int release_clipboard (wimp_message *message)
+
+
+
+
+
+/**
+ * Handle incoming Message_ClainEntity, by dropping the clipboard if we
+ * currently own it.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+static osbool clipboard_message_claimentity(wimp_message *message)
 {
-  wimp_full_message_claim_entity *claimblock = (wimp_full_message_claim_entity *) message;
+	wimp_full_message_claim_entity	*claimblock = (wimp_full_message_claim_entity *) message;
 
+	/* Unset the contents of the clipboard if the claim was for that. */
 
-  /* Unset the contents of the clipboard if the claim was for that. */
+	if ((clipboard_data != NULL) && (claimblock->sender != main_task_handle) && (claimblock->flags & wimp_CLAIM_CLIPBOARD)) {
+		flex_free((flex_ptr) &clipboard_data);
+		clipboard_length = 0;
+	}
 
-  if ((clipboard_data != NULL) && (claimblock->sender != main_task_handle) && (claimblock->flags & wimp_CLAIM_CLIPBOARD))
-  {
-    flex_free ((flex_ptr) &clipboard_data);
-    clipboard_length = 0;
-  }
-
-  return 0;
+	return TRUE;
 }
 
-/* ================================================================================================================== */
 
-int send_clipboard (wimp_message *message)
+/**
+ * Handle incoming Message_DataRequest, by sending the clipboard contents out
+ * if we currently own it.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+
+static osbool clipboard_message_datarequest(wimp_message *message)
 {
-  wimp_full_message_data_request *requestblock = (wimp_full_message_data_request *) message;
+	wimp_full_message_data_request	*requestblock = (wimp_full_message_data_request *) message;
 
-  /* Just return if we do not own the clipboard at present. */
+	/* Just return if we do not own the clipboard at present. */
 
-  if (clipboard_data == NULL)
-  {
-    return 0;
-  }
+	if (clipboard_data == NULL)
+		return FALSE;
 
-  /* Check that the message flags are correct. */
+	/* Check that the message flags are correct. */
 
-  if ((requestblock->flags & wimp_DATA_REQUEST_CLIPBOARD) == 0)
-  {
-    return 0;
-  }
+	if ((requestblock->flags & wimp_DATA_REQUEST_CLIPBOARD) == 0)
+		return FALSE;
 
-  transfer_save_start_block (requestblock->w, requestblock->i, requestblock->pos, requestblock->my_ref,
-                             &clipboard_data, clipboard_length, 0xfff, "CutText");
+	transfer_save_start_block(requestblock->w, requestblock->i, requestblock->pos, requestblock->my_ref,
+			&clipboard_data, clipboard_length, 0xfff, "CutText");
 
-  return 1;
+	return TRUE;
 }
+
+
+
+
+
+
 
 /* ================================================================================================================== */
 
@@ -235,3 +274,4 @@ int paste_received_clipboard (char **data, int data_size)
 
   return 0;
 }
+

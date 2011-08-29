@@ -347,6 +347,7 @@ static void main_initialise(void)
 	preset_initialise(sprites);
 	filing_initialise();
 	dataxfer_initialise();
+	clipboard_initialise();
 	amenu_initialise();
 	ihelp_initialise();
 	url_initialise();
@@ -450,14 +451,6 @@ static void user_message_handler (wimp_message *message)
 
   switch (message->action)
   {
-    case message_CLAIM_ENTITY:
-      release_clipboard (message);
-      break;
-
-    case message_DATA_REQUEST:
-      send_clipboard (message);
-      break;
-
     case message_DATA_SAVE:
       if (message->your_ref != 0)
       {

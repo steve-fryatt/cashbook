@@ -837,7 +837,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 
   if (key->c == 3) /* Ctrl- C */
   {
-    copy_icon_to_clipboard (key);
+    clipboard_copy_from_icon (key);
   }
   else if (key->c == 18) /* Ctrl-R */
   {
@@ -845,11 +845,11 @@ static osbool transact_window_keypress_handler(wimp_key *key)
   }
   else if (key->c == 22) /* Ctrl-V */
   {
-    paste_clipboard_to_icon (key);
+    clipboard_paste_to_icon (key);
   }
   else if (key->c == 24) /* Ctrl-X */
   {
-    cut_icon_to_clipboard (key);
+    clipboard_cut_from_icon (key);
   }
 
   /* Other keyboard shortcuts */

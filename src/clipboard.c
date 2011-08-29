@@ -1,4 +1,4 @@
-/* CashBoob - clipboard.c
+/* CashBook - clipboard.c
  *
  * (C) Stephen Fryatt, 2003-2011
  */

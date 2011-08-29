@@ -1,7 +1,6 @@
 /* CashBook - clipboard.h
- * (c) Stephen Fryatt, 2003-2011
  *
- *
+ * (C) Stephen Fryatt, 2003-2011
  *
  */
 

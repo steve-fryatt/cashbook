@@ -344,8 +344,6 @@ void delete_file (file_data *file)
   int                      i, button;
   wimp_pointer             pointer;
 
-  extern global_windows windows;
-
 
   /* First check that the file is saved and, if not, prompt for deletion. */
 
@@ -356,7 +354,7 @@ void delete_file (file_data *file)
       wimp_get_pointer_info (&pointer);
       initialise_save_boxes (file, 0, 1);
       fill_save_as_window (file, SAVE_BOX_FILE);
-      menus_create_standard_menu ((wimp_menu *) windows.save_as, &pointer);
+      dataxfer_open_saveas_window(&pointer);
     }
 
     return;

@@ -1,6 +1,6 @@
 /* CashBook - dataxfer.c
  *
- * (C) Stephen Fryatt, 2003
+ * (C) Stephen Fryatt, 2003-2011
  */
 
 /* ANSI C header files */
@@ -174,6 +174,21 @@ void start_direct_menu_save (file_data *file)
     menus_create_standard_menu ((wimp_menu *) windows.save_as, &pointer);
   }
 }
+
+
+/**
+ * Open the Save As dialogue at the pointer.
+ *
+ * \param *pointer		The pointer location to open the dialogue.
+ */
+
+void dataxfer_open_saveas_window(wimp_pointer *pointer)
+{
+	extern global_windows windows;
+
+	menus_create_standard_menu((wimp_menu *) windows.save_as, pointer);
+}
+
 
 /* ==================================================================================================================
  * Save box drag handling.

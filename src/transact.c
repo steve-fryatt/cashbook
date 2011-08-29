@@ -629,8 +629,6 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 	wimp_icon_state			icon;
 	int				ox;
 
-  extern global_windows windows;
-
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->file == NULL)
@@ -652,7 +650,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
       case TRANSACT_PANE_SAVE:
         initialise_save_boxes (file, 0, 0);
         fill_save_as_window (file, SAVE_BOX_FILE);
-        menus_create_standard_menu ((wimp_menu *) windows.save_as, pointer);
+        dataxfer_open_saveas_window(pointer);
         break;
 
       case TRANSACT_PANE_PRINT:
@@ -829,8 +827,6 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 	file_data			*file;
 	wimp_pointer			pointer;
 
-  extern global_windows windows;
-
 	windat = event_get_window_user_data(key->w);
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
@@ -881,7 +877,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
     wimp_get_pointer_info (&pointer);
     initialise_save_boxes (file, 0, 0);
     fill_save_as_window (file, SAVE_BOX_FILE);
-    menus_create_standard_menu ((wimp_menu *) windows.save_as, &pointer);
+    dataxfer_open_saveas_window(&pointer);
   }
 
   else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F3)

@@ -1,10 +1,10 @@
 /* CashBook - dataxfer.h
  *
- * (c) Stephen Fryatt, 2003
+ * (c) Stephen Fryatt, 2003-2011
  */
 
-#ifndef _ACCOUNTS_DATAXFER
-#define _ACCOUNTS_DATAXFER
+#ifndef CASHBOOK_DATAXFER
+#define CASHBOOK_DATAXFER
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
@@ -43,6 +43,17 @@
 void initialise_save_boxes (file_data *file, int object, int delete_after);
 void fill_save_as_window (file_data *file, int new_window);
 void start_direct_menu_save (file_data *file);
+
+
+
+/**
+ * Open the Save As dialogue at the pointer.
+ *
+ * \param *pointer		The pointer location to open the dialogue.
+ */
+
+void dataxfer_open_saveas_window(wimp_pointer *pointer);
+
 
 /* Save box drag handling. */
 

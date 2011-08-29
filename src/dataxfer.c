@@ -42,6 +42,7 @@
 #include "file.h"
 #include "filing.h"
 #include "ihelp.h"
+#include "main.h"
 #include "presets.h"
 #include "report.h"
 #include "sorder.h"
@@ -80,8 +81,8 @@ static int       delete_file_after;
 
 static wimp_w			dataxfer_saveas_window = NULL;			/**< The handle of the Save As window.			*/
 
-
-
+static osbool			dataxfer_message_datasaveack(wimp_message *message);
+static osbool			dataxfer_message_ramfetch(wimp_message *message);
 static osbool			dataxfer_bounced_message_ramtransfer(wimp_message *message);
 static osbool			dataxfer_bounced_message_ramfetch(wimp_message *message);
 
@@ -89,6 +90,9 @@ static osbool			dataxfer_bounced_message_ramfetch(wimp_message *message);
 static void			dataxfer_saveas_click_handler(wimp_pointer *pointer);
 static osbool			dataxfer_saveas_keypress_handler(wimp_key *key);
 
+
+
+static osbool			dataxfer_message_dataopen(wimp_message *message);
 
 
 /**
@@ -105,8 +109,42 @@ void dataxfer_initialise(void)
 	event_add_window_key_event(dataxfer_saveas_window, dataxfer_saveas_keypress_handler);
 	templates_link_menu_dialogue("save_as", dataxfer_saveas_window);
 
+	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_datasaveack);
+	event_add_message_handler(message_RAM_FETCH, EVENT_MESSAGE_INCOMING, dataxfer_message_ramfetch);
+	event_add_message_handler(message_DATA_OPEN, EVENT_MESSAGE_INCOMING, dataxfer_message_dataopen);
+
 	event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_bounced_message_ramtransfer);
 	event_add_message_handler(message_RAM_FETCH, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_bounced_message_ramfetch);
+}
+
+
+/**
+ * Handle Message_DataSaveAck.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+static osbool dataxfer_message_datasaveack(wimp_message *message)
+{
+	transfer_save_reply_datasaveack(message);
+
+	return TRUE;
+}
+
+
+/**
+ * Handle Message_RamFetch.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+static osbool dataxfer_message_ramfetch(wimp_message *message)
+{
+	transfer_save_reply_ramfetch(message, main_task_handle);
+
+	return TRUE;
 }
 
 
@@ -685,32 +723,33 @@ int drag_end_load (char *filename)
   return 0;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+/**
+ * Handle incoming Message_DataLoad.
+ *
+ * \param *message		The message data to be handled.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
 
-/* Handle the receipt of a Message_DataLoad */
-
-int start_data_open_load (wimp_message *message)
+static osbool dataxfer_message_dataopen(wimp_message *message)
 {
-  wimp_full_message_data_xfer *xfer = (wimp_full_message_data_xfer *) message;
-  os_error                    *error;
+	wimp_full_message_data_xfer	*xfer = (wimp_full_message_data_xfer *) message;
+	os_error			*error;
 
+	switch (xfer->file_type) {
+	case CASHBOOK_FILE_TYPE:
+		xfer->your_ref = xfer->my_ref;
+		xfer->action = message_DATA_LOAD_ACK;
 
-  switch (xfer->file_type)
-  {
-    case CASHBOOK_FILE_TYPE:
-      xfer->your_ref = xfer->my_ref;
-      xfer->action = message_DATA_LOAD_ACK;
+		error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) xfer, xfer->sender);
+		if (error != NULL) {
+			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+			return FALSE;
+		}
 
-      error = xwimp_send_message (wimp_USER_MESSAGE, (wimp_message *) xfer, xfer->sender);
-      if (error != NULL)
-      {
-        error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
-        return -1;
-      }
+		load_transaction_file(xfer->file_name);
+		return TRUE;
+		break;
+	}
 
-      load_transaction_file (xfer->file_name);
-      break;
-  }
-
-  return 0;
+	return FALSE;
 }

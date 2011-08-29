@@ -233,7 +233,6 @@ static osbool clipboard_message_claimentity(wimp_message *message)
  * \return			TRUE to claim the message; FALSE to pass it on.
  */
 
-
 static osbool clipboard_message_datarequest(wimp_message *message)
 {
 	wimp_full_message_data_request	*requestblock = (wimp_full_message_data_request *) message;

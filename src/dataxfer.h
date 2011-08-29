@@ -75,6 +75,5 @@ int immediate_window_save (void);
 int initialise_data_load (wimp_message *message);
 int drag_end_load (char *filename);
 
-int start_data_open_load (wimp_message *message);
-
 #endif
+

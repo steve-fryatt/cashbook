@@ -473,10 +473,6 @@ static void user_message_handler (wimp_message *message)
       }
       break;
 
-    case message_DATA_SAVE_ACK:
-      transfer_save_reply_datasaveack (message);
-      break;
-
     case message_DATA_LOAD:
        if (message->your_ref != 0)
       {
@@ -506,20 +502,12 @@ static void user_message_handler (wimp_message *message)
       }
       break;
 
-    case message_RAM_FETCH:
-      transfer_save_reply_ramfetch (message, main_task_handle);
-      break;
-
     case message_RAM_TRANSMIT:
       clipboard_size = transfer_load_reply_ramtransmit (message, NULL);
       if (clipboard_size > 0)
       {
         paste_received_clipboard (&clipboard_data, clipboard_size);
       }
-      break;
-
-    case message_DATA_OPEN:
-      start_data_open_load (message);
       break;
   }
 }

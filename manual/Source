@@ -15,7 +15,7 @@ Version $$version$$ ($$date$$) 
 #Below
 #Line
 #Align Centre
-{f/:CashBook} is {f*:Freeware}: please read the <License>.
+{f/:CashBook} is {f*:Freeware}: please read the <Licence>.
 
 #Indent 2
 #Table Columns 2
@@ -101,7 +101,7 @@ Version $$version$$ ($$date$$)</p>
 
 
 
-<chapter title="License" file="License">
+<chapter title="Licence" file="Licence">
 
 <cite>CashBook</cite> is <strong>Freeware</strong>.  Copyright is held by the author, Stephen Fryatt, 2003.
 

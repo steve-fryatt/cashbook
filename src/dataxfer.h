@@ -34,9 +34,16 @@
 #define TEXT_FILE_TYPE 0xfff
 #define FANCYTEXT_FILE_TYPE 0xaf8
 
-/* ------------------------------------------------------------------------------------------------------------------
- * Function prototypes.
+
+
+/**
+ * Initialise the data transfer system.
+ *
+ * \param *sprites		The application sprite area.
  */
+
+void dataxfer_initialise(void);
+
 
 /* Initialise and prepare the save boxes. */
 

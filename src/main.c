@@ -83,9 +83,6 @@ static osbool		main_message_prequit(wimp_message *message);
 
 
 
-static void load_templates(global_windows *windows, osspriteop_area *sprites);
-static void mouse_click_handler (wimp_pointer *);
-static void key_press_handler (wimp_key *key);
 static void user_message_handler (wimp_message *);
 static void bounced_message_handler (wimp_message *);
 
@@ -95,7 +92,6 @@ static void bounced_message_handler (wimp_message *);
 
 /* Declare the global variables that are used. */
 
-global_windows          windows;
 int                     global_drag_type;
 
 /* Cross file global variables */
@@ -156,14 +152,6 @@ static void main_poll_loop(void)
 				wimp_close_window(blk.close.w);
 				break;
 
-			case wimp_MOUSE_CLICK:
-				mouse_click_handler(&(blk.pointer));
-				break;
-
-			case wimp_KEY_PRESSED:
-				key_press_handler(&(blk.key));
-				break;
-
 			case wimp_MENU_SELECTION:
 				amenu_selection_handler(&(blk.selection));
 				break;
@@ -210,8 +198,6 @@ static void main_initialise(void)
 
 	wimp_MESSAGE_LIST(20)		message_list;
 	wimp_version_no			wimp_version;
-
-	extern global_windows		windows;
 
 	hourglass_on();
 
@@ -352,8 +338,6 @@ static void main_initialise(void)
 	snprintf(res_temp, sizeof(res_temp), "%s.Templates", resources);
 	templates_open(res_temp);
 
-	load_templates(&windows, sprites);
-
 	iconbar_initialise();
 	choices_initialise();
 	analysis_initialise();
@@ -361,14 +345,13 @@ static void main_initialise(void)
 	find_initialise();
 	goto_initialise();
 	purge_initialise();
-	filing_initialise();
-
 	transact_initialise(sprites);
 	account_initialise(sprites);
 	accview_initialise(sprites);
 	sorder_initialise(sprites);
 	preset_initialise(sprites);
-
+	filing_initialise();
+	dataxfer_initialise();
 	amenu_initialise();
 	ihelp_initialise();
 	url_initialise();
@@ -376,10 +359,6 @@ static void main_initialise(void)
 	report_initialise(sprites);
 
 	templates_close();
-
-	/* Initialise the legacy menu system. */
-
-	templates_link_menu_dialogue("save_as", windows.save_as);
 
 	/* Initialise the file update mechanism: calling it now with no files loaded will force the date to be set up. */
 
@@ -454,83 +433,7 @@ static osbool main_message_prequit(wimp_message *message)
 
 
 
-/* ================================================================================================================== */
 
-/* Load templates into memory and either create windows or store definitions. */
-
-static void load_templates(global_windows *windows, osspriteop_area *sprites)
-{
-
-  /* Save Window.
-   *
-   * Created now.
-   */
-
-  windows->save_as = templates_create_window("SaveAs");
-  ihelp_add_window (windows->save_as, "SaveAs", NULL);
-}
-
-
-
-
-/* ==================================================================================================================
- * Mouse click handler
- */
-
-static void mouse_click_handler (wimp_pointer *pointer)
-{
-  extern global_windows windows;
-
-  /* Save window. */
-
-  if (pointer->w == windows.save_as)
-  {
-    if (pointer->buttons == wimp_CLICK_SELECT && pointer->i == 0) /* 'Save' button */
-    {
-      immediate_window_save ();
-    }
-
-    if (pointer->buttons == wimp_CLICK_SELECT && pointer->i == 1) /* 'Cancel' button */
-    {
-      wimp_create_menu (NULL, 0, 0);
-    }
-
-    if (pointer->buttons == wimp_DRAG_SELECT && pointer->i == 3) /* File icon */
-    {
-      start_save_window_drag ();
-    }
-  }
-}
-
-/* ==================================================================================================================
- * Keypress handler
- */
-
-static void key_press_handler (wimp_key *key)
-{
-  extern global_windows windows;
-
-
-  /* Save window */
-
-  if (key->w == windows.save_as)
-  {
-    switch (key->c)
-    {
-      case wimp_KEY_RETURN:
-        immediate_window_save ();
-        break;
-
-      case wimp_KEY_ESCAPE:
-        wimp_create_menu (NULL, 0, 0);
-        break;
-
-      default:
-        wimp_process_key (key->c);
-        break;
-    }
-  }
-}
 
 
 

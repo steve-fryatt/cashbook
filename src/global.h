@@ -798,17 +798,5 @@ struct file_data
   struct file_data   *next;
 };
 
-/* ==================================================================================================================
- * Window and menu handle structures.
- */
-
-/* Windows */
-
-typedef struct
-{
-  wimp_w      save_as;
-}
-global_windows;
-
 #endif
 

@@ -22,13 +22,14 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/msgs.h"
-#include "sflib/errors.h"
-#include "sflib/icons.h"
 #include "sflib/debug.h"
-#include "sflib/transfer.h"
-#include "sflib/string.h"
+#include "sflib/errors.h"
+#include "sflib/event.h"
+#include "sflib/icons.h"
 #include "sflib/menus.h"
+#include "sflib/msgs.h"
+#include "sflib/string.h"
+#include "sflib/transfer.h"
 
 /* Application header files */
 
@@ -40,10 +41,19 @@
 #include "calculation.h"
 #include "file.h"
 #include "filing.h"
+#include "ihelp.h"
 #include "presets.h"
 #include "report.h"
 #include "sorder.h"
+#include "templates.h"
 #include "transact.h"
+
+
+#define DATAXFER_SAVEAS_OK 0
+#define DATAXFER_SAVEAS_CANCEL 1
+#define DATAXFER_SAVEAS_FILE 3
+
+
 
 /* ==================================================================================================================
  * Static global variables
@@ -63,6 +73,35 @@ static int       loading_filetype;
 static file_data *loading_target;
 
 static int       delete_file_after;
+
+
+
+/* Save As Window. */
+
+static wimp_w			dataxfer_saveas_window = NULL;			/**< The handle of the Save As window.			*/
+
+
+
+
+static void			dataxfer_saveas_click_handler(wimp_pointer *pointer);
+static osbool			dataxfer_saveas_keypress_handler(wimp_key *key);
+
+
+
+/**
+ * Initialise the data transfer system.
+ *
+ * \param *sprites		The application sprite area.
+ */
+
+void dataxfer_initialise(void)
+{
+	dataxfer_saveas_window = templates_create_window("SaveAs");
+	ihelp_add_window(dataxfer_saveas_window, "SaveAs", NULL);
+	event_add_window_mouse_event(dataxfer_saveas_window, dataxfer_saveas_click_handler);
+	event_add_window_key_event(dataxfer_saveas_window, dataxfer_saveas_keypress_handler);
+	templates_link_menu_dialogue("save_as", dataxfer_saveas_window);
+}
 
 /* ==================================================================================================================
  * Initialise and prepare the save boxes.
@@ -129,14 +168,11 @@ void initialise_save_boxes (file_data *file, int object, int delete_after)
 
 void fill_save_as_window (file_data *file, int new_window)
 {
-  extern global_windows windows;
-
-
-  /* If a window has been opened already, remember the filename that was entered. */
+ /* If a window has been opened already, remember the filename that was entered. */
 
   if (savebox_window != SAVE_BOX_NONE)
   {
-    strcpy (savebox_filename[savebox_window], icons_get_indirected_text_addr (windows.save_as, 2));
+    strcpy (savebox_filename[savebox_window], icons_get_indirected_text_addr (dataxfer_saveas_window, 2));
   }
 
   /* Set up the box for the new dialogue. */
@@ -146,8 +182,8 @@ void fill_save_as_window (file_data *file, int new_window)
   debug_printf ("Sprite: '%s'", savebox_sprites[new_window]);
   #endif
 
-  strcpy (icons_get_indirected_text_addr (windows.save_as, 2), savebox_filename[new_window]);
-  strcpy (icons_get_indirected_text_addr (windows.save_as, 3), savebox_sprites[new_window]);
+  strcpy (icons_get_indirected_text_addr (dataxfer_saveas_window, 2), savebox_filename[new_window]);
+  strcpy (icons_get_indirected_text_addr (dataxfer_saveas_window, 3), savebox_sprites[new_window]);
 
   savebox_window = new_window;
 }
@@ -160,8 +196,6 @@ void start_direct_menu_save (file_data *file)
 {
   wimp_pointer pointer;
 
-  extern global_windows windows;
-
 
   if (check_for_filepath (file))
   {
@@ -171,7 +205,7 @@ void start_direct_menu_save (file_data *file)
   {
     wimp_get_pointer_info (&pointer);
     fill_save_as_window (file, SAVE_BOX_FILE);
-    menus_create_standard_menu ((wimp_menu *) windows.save_as, &pointer);
+    menus_create_standard_menu ((wimp_menu *) dataxfer_saveas_window, &pointer);
   }
 }
 
@@ -184,10 +218,73 @@ void start_direct_menu_save (file_data *file)
 
 void dataxfer_open_saveas_window(wimp_pointer *pointer)
 {
-	extern global_windows windows;
-
-	menus_create_standard_menu((wimp_menu *) windows.save_as, pointer);
+	menus_create_standard_menu((wimp_menu *) dataxfer_saveas_window, pointer);
 }
+
+
+/**
+ * Process mouse clicks in the Save As dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void dataxfer_saveas_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case DATAXFER_SAVEAS_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			wimp_create_menu(NULL, 0, 0);
+		break;
+
+	case DATAXFER_SAVEAS_OK:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			immediate_window_save();
+		break;
+
+	case DATAXFER_SAVEAS_FILE:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			start_save_window_drag();
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Save As dialogue.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool dataxfer_saveas_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		immediate_window_save();
+		break;
+
+	case wimp_KEY_ESCAPE:
+		wimp_create_menu(NULL, 0, 0);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* ==================================================================================================================
@@ -203,26 +300,25 @@ void start_save_window_drag (void)
   wimp_drag             drag;
   int                   ox, oy;
 
-  extern global_windows windows;
   extern int global_drag_type;
 
 
   /* Get the basic information about the window and icon. */
 
-  window.w = windows.save_as;
+  window.w = dataxfer_saveas_window;
   wimp_get_window_state (&window);
 
   ox = window.visible.x0 - window.xscroll;
   oy = window.visible.y1 - window.yscroll;
 
-  icon.w = windows.save_as;
+  icon.w = dataxfer_saveas_window;
   icon.i = 3;
   wimp_get_icon_state (&icon);
 
 
   /* Set up the drag parameters. */
 
-  drag.w = windows.save_as;
+  drag.w = dataxfer_saveas_window;
   drag.type = wimp_DRAG_USER_FIXED;
 
   drag.initial.x0 = ox + icon.icon.extent.x0;
@@ -265,15 +361,13 @@ void terminate_user_drag (wimp_dragged *drag)
   char         *leafname;
   int          filetype = 0;
 
-  extern global_windows windows;
-
 
   if (dragging_sprite)
   {
     dragasprite_stop ();
   }
 
-  leafname = string_find_leafname (icons_get_indirected_text_addr (windows.save_as, 2));
+  leafname = string_find_leafname (icons_get_indirected_text_addr (dataxfer_saveas_window, 2));
 
   #ifdef DEBUG
   debug_printf ("\\DBegin data transfer");
@@ -407,14 +501,12 @@ int immediate_window_save (void)
 {
   char *filename;
 
-  extern global_windows windows;
-
 
   #ifdef DEBUG
   debug_printf ("\\DSave with mouse-click or RETURN");
   #endif
 
-  filename = icons_get_indirected_text_addr (windows.save_as, 2);
+  filename = icons_get_indirected_text_addr (dataxfer_saveas_window, 2);
 
   /* Test if the filename is valid or not.  Exit if not. */
 

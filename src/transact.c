@@ -1363,8 +1363,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
   char                  icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
   osbool                more;
 
-  extern global_windows windows;
-
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL)
 		return;

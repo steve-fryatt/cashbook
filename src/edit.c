@@ -490,31 +490,24 @@ void refresh_transaction_edit_line_icons (wimp_w w, wimp_i only, wimp_i avoid)
  * place_transaction_edit_line () functions.
  */
 
-void set_transaction_edit_line_shading (file_data *file)
+void set_transaction_edit_line_shading(file_data *file)
 {
-  int i, icon_fg_col, transaction;
+	int	icon_fg_col, transaction;
+	wimp_i	i;
 
+	if (entry_window != file || file->trans_count == 0 || file->transaction_window.entry_line >= file->trans_count)
+		return;
 
-  if (entry_window == file && file->trans_count > 0)
-  {
-    transaction = file->transactions[file->transaction_window.entry_line].sort_index;
+	transaction = file->transactions[file->transaction_window.entry_line].sort_index;
 
-    if (config_opt_read ("ShadeReconciled") && (file->transaction_window.entry_line < file->trans_count) &&
-        ((file->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
-    {
-      icon_fg_col = (config_int_read ("ShadeReconciledColour") << wimp_ICON_FG_COLOUR_SHIFT);
-    }
-    else
-    {
-      icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-    }
+	if (config_opt_read("ShadeReconciled") && (file->transaction_window.entry_line < file->trans_count) &&
+			((file->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
+		icon_fg_col = (config_int_read("ShadeReconciledColour") << wimp_ICON_FG_COLOUR_SHIFT);
+	else
+		icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-    for (i=0; i<TRANSACT_COLUMNS; i++)
-    {
-      wimp_set_icon_state (entry_window->transaction_window.transaction_window, (wimp_i) i,
-                           icon_fg_col, wimp_ICON_FG_COLOUR);
-    }
-  }
+	for (i = 0; i < TRANSACT_COLUMNS; i++)
+		wimp_set_icon_state(entry_window->transaction_window.transaction_window, i, icon_fg_col, wimp_ICON_FG_COLOUR);
 }
 
 /* ================================================================================================================== */

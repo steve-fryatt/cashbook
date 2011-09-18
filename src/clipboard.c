@@ -295,7 +295,7 @@ static osbool clipboard_message_ramtransmit(wimp_message *message)
 
 	size = transfer_load_reply_ramtransmit(message, NULL);
 	if (size > 0)
-		clipboard_paste_text (&clipboard_xfer, size);
+		clipboard_paste_text(&clipboard_xfer, size);
 
 	return TRUE;
 }
@@ -342,7 +342,7 @@ static void clipboard_paste_text(char **data, size_t data_size)
 	wimp_caret	caret;
 
 	wimp_get_caret_position(&caret);
-	icons_insert_text (caret.w, caret.i, caret.index, *data, data_size);
+	icons_insert_text(caret.w, caret.i, caret.index, *data, data_size);
 
 	flex_free ((flex_ptr) data);
 }

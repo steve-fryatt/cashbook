@@ -704,77 +704,66 @@ static void account_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void account_window_scroll_handler(wimp_scroll *scroll)
 {
-  int width, height, error;
+	int	width, height, error;
 
+	/* Add in the X scroll offset. */
 
-  /* Add in the X scroll offset. */
+	width = scroll->visible.x1 - scroll->visible.x0;
 
-  width = scroll->visible.x1 - scroll->visible.x0;
+	switch (scroll->xmin) {
+	case wimp_SCROLL_COLUMN_LEFT:
+		scroll->xscroll -= HORIZONTAL_SCROLL;
+		break;
 
-  switch (scroll->xmin)
-  {
-    case wimp_SCROLL_COLUMN_LEFT:
-      scroll->xscroll -= HORIZONTAL_SCROLL;
-      break;
+	case wimp_SCROLL_COLUMN_RIGHT:
+		scroll->xscroll += HORIZONTAL_SCROLL;
+		break;
 
-    case wimp_SCROLL_COLUMN_RIGHT:
-      scroll->xscroll += HORIZONTAL_SCROLL;
-      break;
+	case wimp_SCROLL_PAGE_LEFT:
+		scroll->xscroll -= width;
+		break;
 
-    case wimp_SCROLL_PAGE_LEFT:
-      scroll->xscroll -= width;
-      break;
+	case wimp_SCROLL_PAGE_RIGHT:
+		scroll->xscroll += width;
+		break;
+	}
 
-    case wimp_SCROLL_PAGE_RIGHT:
-      scroll->xscroll += width;
-      break;
-  }
+	/* Add in the Y scroll offset. */
 
-  /* Add in the Y scroll offset. */
+	height = (scroll->visible.y1 - scroll->visible.y0) - (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT);
 
-  height = (scroll->visible.y1 - scroll->visible.y0) - (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT);
+	switch (scroll->ymin) {
+	case wimp_SCROLL_LINE_UP:
+		scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
+		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		break;
 
-  switch (scroll->ymin)
-  {
-    case wimp_SCROLL_LINE_UP:
-      scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
+	case wimp_SCROLL_LINE_DOWN:
+		scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
+		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= error;
+		break;
 
-    case wimp_SCROLL_LINE_DOWN:
-      scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
+	case wimp_SCROLL_PAGE_UP:
+		scroll->yscroll += height;
+		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		break;
 
-    case wimp_SCROLL_PAGE_UP:
-      scroll->yscroll += height;
-      if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
-      }
-      break;
+	case wimp_SCROLL_PAGE_DOWN:
+		scroll->yscroll -= height;
+		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+			scroll->yscroll -= error;
+ 		break;
+	}
 
-    case wimp_SCROLL_PAGE_DOWN:
-      scroll->yscroll -= height;
-      if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
-      {
-        scroll->yscroll -= error;
-      }
-      break;
-  }
+	/* Re-open the window.
+	 *
+	 * It is assumed that the wimp will deal with out-of-bounds offsets for us.
+	 */
 
-  /* Re-open the window.
-   *
-   * It is assumed that the wimp will deal with out-of-bounds offsets for us.
-   */
-
-  wimp_open_window ((wimp_open *) scroll);
+	wimp_open_window((wimp_open *) scroll);
 }
 
 
@@ -799,382 +788,319 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 	file = windat->file;
 
+	shade_overdrawn = config_opt_read("ShadeAccounts");
+	shade_overdrawn_col = config_int_read("ShadeAccountsColour");
 
-    shade_overdrawn = config_opt_read ("ShadeAccounts");
-    shade_overdrawn_col = config_int_read ("ShadeAccountsColour");
+	more = wimp_redraw_window(redraw);
 
-    more = wimp_redraw_window (redraw);
+	ox = redraw->box.x0 - redraw->xscroll;
+	oy = redraw->box.y1 - redraw->yscroll;
 
-    ox = redraw->box.x0 - redraw->xscroll;
-    oy = redraw->box.y1 - redraw->yscroll;
+	/* Set the horizontal positions of the icons for the account lines. */
 
-    /* Set the horizontal positions of the icons for the account lines. */
+	for (i=0; i < ACCOUNT_COLUMNS; i++) {
+		account_window_def->icons[i].extent.x0 = windat->column_position[i];
+		account_window_def->icons[i].extent.x1 = windat->column_position[i] + windat->column_width[i];
+	}
 
-    for (i=0; i < ACCOUNT_COLUMNS; i++)
-    {
-      account_window_def->icons[i].extent.x0 = windat->column_position[i];
-      account_window_def->icons[i].extent.x1 = windat->column_position[i] + windat->column_width[i];
-    }
+	/* Set the positions for the heading lines. */
 
-    /* Set the positions for the heading lines. */
+	account_window_def->icons[6].extent.x0 = windat->column_position[0];
+	account_window_def->icons[6].extent.x1 = windat->column_position[ACCOUNT_COLUMNS-1] + windat->column_width[ACCOUNT_COLUMNS-1];
 
-    account_window_def->icons[6].extent.x0 = windat->column_position[0];
-    account_window_def->icons[6].extent.x1 = windat->column_position[ACCOUNT_COLUMNS-1] +
-                                                     windat->column_width[ACCOUNT_COLUMNS-1];
+	/* Set the positions for the footer lines. */
 
-    /* Set the positions for the footer lines. */
+	account_window_def->icons[7].extent.x0 = windat->column_position[0];
+	account_window_def->icons[7].extent.x1 = windat->column_position[1] + windat->column_width[1];
 
-    account_window_def->icons[7].extent.x0 = windat->column_position[0];
-    account_window_def->icons[7].extent.x1 = windat->column_position[1] +
-                                                     windat->column_width[1];
+	account_window_def->icons[8].extent.x0 = windat->column_position[2];
+	account_window_def->icons[8].extent.x1 = windat->column_position[2] + windat->column_width[2];
 
-    account_window_def->icons[8].extent.x0 = windat->column_position[2];
-    account_window_def->icons[8].extent.x1 = windat->column_position[2] +
-                                                     windat->column_width[2];
+	account_window_def->icons[9].extent.x0 = windat->column_position[3];
+	account_window_def->icons[9].extent.x1 = windat->column_position[3] + windat->column_width[3];
 
-    account_window_def->icons[9].extent.x0 = windat->column_position[3];
-    account_window_def->icons[9].extent.x1 = windat->column_position[3] +
-                                                     windat->column_width[3];
+	account_window_def->icons[10].extent.x0 = windat->column_position[4];
+	account_window_def->icons[10].extent.x1 = windat->column_position[4] + windat->column_width[4];
 
-    account_window_def->icons[10].extent.x0 = windat->column_position[4];
-    account_window_def->icons[10].extent.x1 = windat->column_position[4] +
-                                                     windat->column_width[4];
+	account_window_def->icons[11].extent.x0 = windat->column_position[5];
+	account_window_def->icons[11].extent.x1 = windat->column_position[ACCOUNT_COLUMNS-1] + windat->column_width[ACCOUNT_COLUMNS-1];
 
-    account_window_def->icons[11].extent.x0 = windat->column_position[5];
-    account_window_def->icons[11].extent.x1 = windat->column_position[ACCOUNT_COLUMNS-1] +
-                                                     windat->column_width[ACCOUNT_COLUMNS-1];
+	/* The three numerical columns keep their icon buffers for the whole time, so set them up now. */
 
-    /* The three numerical columns keep their icon buffers for the whole time, so set them up now. */
+	account_window_def->icons[2].data.indirected_text.text = icon_buffer1;
+	account_window_def->icons[3].data.indirected_text.text = icon_buffer2;
+	account_window_def->icons[4].data.indirected_text.text = icon_buffer3;
+	account_window_def->icons[5].data.indirected_text.text = icon_buffer4;
 
-    account_window_def->icons[2].data.indirected_text.text = icon_buffer1;
-    account_window_def->icons[3].data.indirected_text.text = icon_buffer2;
-    account_window_def->icons[4].data.indirected_text.text = icon_buffer3;
-    account_window_def->icons[5].data.indirected_text.text = icon_buffer4;
+	account_window_def->icons[8].data.indirected_text.text = icon_buffer1;
+	account_window_def->icons[9].data.indirected_text.text = icon_buffer2;
+	account_window_def->icons[10].data.indirected_text.text = icon_buffer3;
+	account_window_def->icons[11].data.indirected_text.text = icon_buffer4;
 
-    account_window_def->icons[8].data.indirected_text.text = icon_buffer1;
-    account_window_def->icons[9].data.indirected_text.text = icon_buffer2;
-    account_window_def->icons[10].data.indirected_text.text = icon_buffer3;
-    account_window_def->icons[11].data.indirected_text.text = icon_buffer4;
+	/* Reset all the icon colours. */
 
-    /* Reset all the icon colours. */
+	account_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
+	account_window_def->icons[2].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-    account_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
-    account_window_def->icons[2].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+	account_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
+	account_window_def->icons[3].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-    account_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
-    account_window_def->icons[3].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+	account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
+	account_window_def->icons[4].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-    account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
-    account_window_def->icons[4].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+	account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
+	account_window_def->icons[5].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-    account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
-    account_window_def->icons[5].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+	/* Perform the redraw. */
 
-    /* Perform the redraw. */
+	while (more) {
+		/* Calculate the rows to redraw. */
 
-    while (more)
-    {
-      /* Calculate the rows to redraw. */
-
-      top = (oy - redraw->clip.y1 - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-      if (top < 0)
-      {
-        top = 0;
-      }
-
-      base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2)
-             + oy - redraw->clip.y0 - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-
-
-      /* Redraw the data into the window. */
-
-      for (y = top; y <= base; y++)
-      {
-        /* Plot out the background with a filled white rectangle. */
-
-        wimp_set_colour (wimp_COLOUR_WHITE);
-        os_plot (os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT);
-        os_plot (os_PLOT_RECTANGLE + os_PLOT_TO,
-                 ox + windat->column_position[ACCOUNT_COLUMNS-1] + windat->column_width[ACCOUNT_COLUMNS-1],
-                 oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
-
-        if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_DATA)
-        {
-        /* Account field */
-
-          account_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[0].data.indirected_text.text =
-             file->accounts[windat->line_data[y].account].ident;
-          account_window_def->icons[1].data.indirected_text.text =
-             file->accounts[windat->line_data[y].account].name;
-
-          wimp_plot_icon (&(account_window_def->icons[0]));
-          wimp_plot_icon (&(account_window_def->icons[1]));
-
-          /* Place the four numerical columns. */
-
-          account_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          /* Set the column data depending on the window type. */
-
-          switch (windat->type)
-          {
-            case ACCOUNT_FULL:
-              convert_money_to_string (file->accounts[windat->line_data[y].account].statement_balance, icon_buffer1);
-              convert_money_to_string (file->accounts[windat->line_data[y].account].current_balance, icon_buffer2);
-              convert_money_to_string (file->accounts[windat->line_data[y].account].trial_balance, icon_buffer3);
-              convert_money_to_string (file->accounts[windat->line_data[y].account].budget_balance, icon_buffer4);
-
-              if (shade_overdrawn &&
-                  (file->accounts[windat->line_data[y].account].statement_balance <
-                   -file->accounts[windat->line_data[y].account].credit_limit))
-              {
-                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-              else
-              {
-                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-              account_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
-              account_window_def->icons[2].flags |= icon_fg_col;
-
-              if (shade_overdrawn &&
-                  (file->accounts[windat->line_data[y].account].current_balance <
-                   -file->accounts[windat->line_data[y].account].credit_limit))
-              {
-                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-              else
-              {
-                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-              account_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
-              account_window_def->icons[3].flags |= icon_fg_col;
-
-              if (shade_overdrawn &&
-                  (file->accounts[windat->line_data[y].account].trial_balance < 0))
-              {
-                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-              else
-              {
-                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-              account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
-              account_window_def->icons[4].flags |= icon_fg_col;
-              break;
-
-            case ACCOUNT_IN:
-              convert_money_to_string (-file->accounts[windat->line_data[y].account].future_balance, icon_buffer1);
-              convert_money_to_string (file->accounts[windat->line_data[y].account].budget_amount, icon_buffer2);
-              convert_money_to_string (-file->accounts[windat->line_data[y].account].budget_balance, icon_buffer3);
-              convert_money_to_string (file->accounts[windat->line_data[y].account].budget_result, icon_buffer4);
-
-              if (shade_overdrawn &&
-                  (-file->accounts[windat->line_data[y].account].budget_balance <
-                   file->accounts[windat->line_data[y].account].budget_amount))
-              {
-                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-              else
-              {
-                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-              account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
-              account_window_def->icons[4].flags |= icon_fg_col;
-              account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
-              account_window_def->icons[5].flags |= icon_fg_col;
-              break;
-
-            case ACCOUNT_OUT:
-              convert_money_to_string (file->accounts[windat->line_data[y].account].future_balance, icon_buffer1);
-              convert_money_to_string (file->accounts[windat->line_data[y].account].budget_amount, icon_buffer2);
-              convert_money_to_string (file->accounts[windat->line_data[y].account].budget_balance, icon_buffer3);
-              convert_money_to_string (file->accounts[windat->line_data[y].account].budget_result, icon_buffer4);
-
-              if (shade_overdrawn &&
-                  (file->accounts[windat->line_data[y].account].budget_balance >
-                   file->accounts[windat->line_data[y].account].budget_amount))
-              {
-                icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-              else
-              {
-                icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-              }
-
-              account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
-              account_window_def->icons[4].flags |= icon_fg_col;
-              account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
-              account_window_def->icons[5].flags |= icon_fg_col;
-              break;
-            default:
-              break;
-          }
-
-          /* Plot the three icons. */
-
-          wimp_plot_icon (&(account_window_def->icons[2]));
-          wimp_plot_icon (&(account_window_def->icons[3]));
-          wimp_plot_icon (&(account_window_def->icons[4]));
-          wimp_plot_icon (&(account_window_def->icons[5]));
-        }
-        else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_HEADER)
-        {
-          /* Block header line */
-
-          account_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[6].data.indirected_text.text = windat->line_data[y].heading;
-
-          wimp_plot_icon (&(account_window_def->icons[6]));
-        }
-        else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_FOOTER)
-        {
-          /* Block footer line */
-
-          account_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[10].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[10].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[11].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[11].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[7].data.indirected_text.text = windat->line_data[y].heading;
-          convert_money_to_string (windat->line_data[y].total[0], icon_buffer1);
-          convert_money_to_string (windat->line_data[y].total[1], icon_buffer2);
-          convert_money_to_string (windat->line_data[y].total[2], icon_buffer3);
-          convert_money_to_string (windat->line_data[y].total[3], icon_buffer4);
-
-          wimp_plot_icon (&(account_window_def->icons[7]));
-          wimp_plot_icon (&(account_window_def->icons[8]));
-          wimp_plot_icon (&(account_window_def->icons[9]));
-          wimp_plot_icon (&(account_window_def->icons[10]));
-          wimp_plot_icon (&(account_window_def->icons[11]));
-        }
-        else
-        {
-          /* Blank line */
-          account_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          account_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                           - ACCOUNT_TOOLBAR_HEIGHT;
-
-          account_window_def->icons[0].data.indirected_text.text = icon_buffer1;
-          account_window_def->icons[1].data.indirected_text.text = icon_buffer1;
-          *icon_buffer1 = '\0';
-          *icon_buffer2 = '\0';
-          *icon_buffer3 = '\0';
-          *icon_buffer4 = '\0';
-
-          wimp_plot_icon (&(account_window_def->icons[0]));
-          wimp_plot_icon (&(account_window_def->icons[1]));
-          wimp_plot_icon (&(account_window_def->icons[2]));
-          wimp_plot_icon (&(account_window_def->icons[3]));
-          wimp_plot_icon (&(account_window_def->icons[4]));
-          wimp_plot_icon (&(account_window_def->icons[5]));
-        }
-      }
-
-      more = wimp_get_rectangle (redraw);
-    }
+		top = (oy - redraw->clip.y1 - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		if (top < 0)
+			top = 0;
 
+		base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2) +
+				oy - redraw->clip.y0 - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+
+		/* Redraw the data into the window. */
+
+		for (y = top; y <= base; y++) {
+			/* Plot out the background with a filled white rectangle. */
+
+			wimp_set_colour(wimp_COLOUR_WHITE);
+			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT);
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
+					ox + windat->column_position[ACCOUNT_COLUMNS-1] + windat->column_width[ACCOUNT_COLUMNS-1],
+					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+
+			if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_DATA) {
+				/* Account field */
+
+				account_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[0].data.indirected_text.text =
+						file->accounts[windat->line_data[y].account].ident;
+				account_window_def->icons[1].data.indirected_text.text =
+						file->accounts[windat->line_data[y].account].name;
+
+				wimp_plot_icon(&(account_window_def->icons[0]));
+				wimp_plot_icon(&(account_window_def->icons[1]));
+
+				/* Place the four numerical columns. */
+
+				account_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				/* Set the column data depending on the window type. */
+
+				switch (windat->type) {
+				case ACCOUNT_FULL:
+					convert_money_to_string(file->accounts[windat->line_data[y].account].statement_balance, icon_buffer1);
+					convert_money_to_string(file->accounts[windat->line_data[y].account].current_balance, icon_buffer2);
+					convert_money_to_string(file->accounts[windat->line_data[y].account].trial_balance, icon_buffer3);
+					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_balance, icon_buffer4);
+
+					if (shade_overdrawn &&
+							(file->accounts[windat->line_data[y].account].statement_balance <
+							-file->accounts[windat->line_data[y].account].credit_limit))
+						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+					else
+						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+					account_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[2].flags |= icon_fg_col;
+
+					if (shade_overdrawn &&
+							(file->accounts[windat->line_data[y].account].current_balance <
+							-file->accounts[windat->line_data[y].account].credit_limit))
+						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+					else
+						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+					account_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[3].flags |= icon_fg_col;
+
+					if (shade_overdrawn &&
+							(file->accounts[windat->line_data[y].account].trial_balance < 0))
+						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+					else
+						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+					account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[4].flags |= icon_fg_col;
+					break;
+
+				case ACCOUNT_IN:
+					convert_money_to_string(-file->accounts[windat->line_data[y].account].future_balance, icon_buffer1);
+					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_amount, icon_buffer2);
+					convert_money_to_string(-file->accounts[windat->line_data[y].account].budget_balance, icon_buffer3);
+					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_result, icon_buffer4);
+
+					if (shade_overdrawn &&
+							(-file->accounts[windat->line_data[y].account].budget_balance <
+							file->accounts[windat->line_data[y].account].budget_amount))
+						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+					else
+						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+					account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[4].flags |= icon_fg_col;
+					account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[5].flags |= icon_fg_col;
+					break;
+
+				case ACCOUNT_OUT:
+					convert_money_to_string(file->accounts[windat->line_data[y].account].future_balance, icon_buffer1);
+					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_amount, icon_buffer2);
+					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_balance, icon_buffer3);
+					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_result, icon_buffer4);
+
+					if (shade_overdrawn &&
+							(file->accounts[windat->line_data[y].account].budget_balance >
+							file->accounts[windat->line_data[y].account].budget_amount))
+						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+					else
+						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+
+					account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[4].flags |= icon_fg_col;
+					account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[5].flags |= icon_fg_col;
+					break;
+
+				default:
+					break;
+				}
+
+				/* Plot the three icons. */
+
+				wimp_plot_icon(&(account_window_def->icons[2]));
+				wimp_plot_icon(&(account_window_def->icons[3]));
+				wimp_plot_icon(&(account_window_def->icons[4]));
+				wimp_plot_icon(&(account_window_def->icons[5]));
+			} else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_HEADER) {
+				/* Block header line */
+
+				account_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[6].data.indirected_text.text = windat->line_data[y].heading;
+
+				wimp_plot_icon(&(account_window_def->icons[6]));
+			} else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_FOOTER) {
+				/* Block footer line */
+
+				account_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[10].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[10].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[11].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[11].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[7].data.indirected_text.text = windat->line_data[y].heading;
+				convert_money_to_string(windat->line_data[y].total[0], icon_buffer1);
+				convert_money_to_string(windat->line_data[y].total[1], icon_buffer2);
+				convert_money_to_string(windat->line_data[y].total[2], icon_buffer3);
+				convert_money_to_string(windat->line_data[y].total[3], icon_buffer4);
+
+				wimp_plot_icon(&(account_window_def->icons[7]));
+				wimp_plot_icon(&(account_window_def->icons[8]));
+				wimp_plot_icon(&(account_window_def->icons[9]));
+				wimp_plot_icon(&(account_window_def->icons[10]));
+				wimp_plot_icon(&(account_window_def->icons[11]));
+			} else {
+				/* Blank line */
+				account_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+				account_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+						ACCOUNT_TOOLBAR_HEIGHT;
+
+				account_window_def->icons[0].data.indirected_text.text = icon_buffer1;
+				account_window_def->icons[1].data.indirected_text.text = icon_buffer1;
+				*icon_buffer1 = '\0';
+				*icon_buffer2 = '\0';
+				*icon_buffer3 = '\0';
+				*icon_buffer4 = '\0';
+
+				wimp_plot_icon(&(account_window_def->icons[0]));
+				wimp_plot_icon(&(account_window_def->icons[1]));
+				wimp_plot_icon(&(account_window_def->icons[2]));
+				wimp_plot_icon(&(account_window_def->icons[3]));
+				wimp_plot_icon(&(account_window_def->icons[4]));
+				wimp_plot_icon(&(account_window_def->icons[5]));
+			}
+		}
+
+		more = wimp_get_rectangle(redraw);
+	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**

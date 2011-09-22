@@ -676,7 +676,7 @@ void redraw_file_windows (file_data *file)
 
   for (i=0; i<ACCOUNT_WINDOWS; i++)
   {
-    force_accounts_window_redraw (file, i, 0, file->account_windows[i].display_lines);
+    account_force_window_redraw(file, i, 0, file->account_windows[i].display_lines);
   }
 
   /* Redraw the account view windows. */
@@ -685,7 +685,7 @@ void redraw_file_windows (file_data *file)
 
   /* Redraw the standing order window. */
 
-  sorder_force_window_redraw (file, 0, file->sorder_count);
+  sorder_force_window_redraw(file, 0, file->sorder_count);
 
   preset_force_window_redraw(file, 0, file->preset_count);
 

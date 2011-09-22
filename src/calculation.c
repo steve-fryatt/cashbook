@@ -120,7 +120,7 @@ void perform_full_recalculation (file_data *file)
 
   for (i=0; i<ACCOUNT_WINDOWS; i++)
   {
-    force_accounts_window_redraw (file, i, 0, file->account_windows[i].display_lines);
+    account_force_window_redraw (file, i, 0, file->account_windows[i].display_lines);
   }
 
   hourglass_off ();
@@ -431,6 +431,6 @@ void restore_transaction_to_totals (file_data *file, int transaction)
 
   for (i=0; i<ACCOUNT_WINDOWS; i++)
   {
-    force_accounts_window_redraw (file, i, 0, file->account_windows[i].display_lines);
+    account_force_window_redraw (file, i, 0, file->account_windows[i].display_lines);
   }
 }

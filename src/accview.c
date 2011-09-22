@@ -1394,7 +1394,7 @@ void accview_build_window_title(file_data *file, acct_t account)
 
 
 /**
- * Force a redraw of the Standing Order list window, for the given range of
+ * Force a redraw of the Account View window, for the given range of
  * lines.
  *
  * \param *file			The file owning the window.

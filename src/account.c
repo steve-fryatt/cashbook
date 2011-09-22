@@ -166,6 +166,12 @@ static void			account_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wim
 static void			account_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			account_window_scroll_handler(wimp_scroll *scroll);
 static void			account_window_redraw_handler(wimp_draw *redraw);
+static void			account_adjust_window_columns(void *data, wimp_i icon, int width);
+static void			account_set_window_extent(file_data *file, int entry);
+static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+
+
+
 
 
 
@@ -342,16 +348,16 @@ void account_open_window(file_data *file, enum account_type type)
 
 	/* Set the title */
 
-	build_account_window_title(file, entry);
+	account_build_window_title(file, entry);
 
 	/* Open the window. */
 
 	if (type == ACCOUNT_FULL) {
-		ihelp_add_window(window->account_window , "AccList", decode_account_window_help);
+		ihelp_add_window(window->account_window , "AccList", account_decode_window_help);
 		ihelp_add_window(window->account_pane , "AccListTB", NULL);
 		ihelp_add_window(window->account_footer , "AccListFB", NULL);
 	} else {
-		ihelp_add_window(window->account_window , "HeadList", decode_account_window_help);
+		ihelp_add_window(window->account_window , "HeadList", account_decode_window_help);
 		ihelp_add_window(window->account_pane , "HeadListTB", NULL);
 		ihelp_add_window(window->account_footer , "HeadListFB", NULL);
 	}
@@ -531,7 +537,7 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 			break;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, windat, windat->account_window, ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), adjust_account_window_columns);
+		column_start_drag(pointer, windat, windat->account_window, ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), account_adjust_window_columns);
 	}
 }
 
@@ -1104,6 +1110,293 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 
 /**
+ * Callback handler for completing the drag of a column heading.
+ *
+ * \param *data			The window block for the origin of the drag.
+ * \param group			The column group which has been dragged.
+ * \param width			The new width for the group.
+ */
+
+static void account_adjust_window_columns(void *data, wimp_i icon, int width)
+{
+	struct account_window	*windat = (struct account_window *) data;
+	file_data		*file;
+	int			entry, i, j, new_extent;
+	wimp_icon_state		icon1, icon2;
+	wimp_window_info	window;
+
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
+	entry = windat->entry;
+
+	update_dragged_columns(ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), icon, width,
+			file->account_windows[entry].column_width,
+			file->account_windows[entry].column_position, ACCOUNT_COLUMNS);
+
+	/* Re-adjust the icons in the pane. */
+
+	for (i = 0, j = 0; j < ACCOUNT_COLUMNS; i++, j++) {
+		icon1.w = file->account_windows[entry].account_pane;
+		icon1.i = i;
+		wimp_get_icon_state(&icon1);
+
+		icon2.w = file->account_windows[entry].account_footer;
+		icon2.i = i;
+		wimp_get_icon_state(&icon2);
+
+		icon1.icon.extent.x0 = file->account_windows[entry].column_position[j];
+
+		icon2.icon.extent.x0 = file->account_windows[entry].column_position[j];
+
+		j = column_get_rightmost_in_group(ACCOUNT_PANE_COL_MAP, i);
+
+		icon1.icon.extent.x1 = file->account_windows[entry].column_position[j] +
+				file->account_windows[entry].column_width[j] + COLUMN_HEADING_MARGIN;
+
+		icon2.icon.extent.x1 = file->account_windows[entry].column_position[j] +
+				file->account_windows[entry].column_width[j];
+
+		wimp_resize_icon(icon1.w, icon1.i, icon1.icon.extent.x0, icon1.icon.extent.y0,
+				icon1.icon.extent.x1, icon1.icon.extent.y1);
+
+		wimp_resize_icon(icon2.w, icon2.i, icon2.icon.extent.x0, icon2.icon.extent.y0,
+				icon2.icon.extent.x1, icon2.icon.extent.y1);
+
+		new_extent = file->account_windows[entry].column_position[ACCOUNT_COLUMNS-1] +
+				file->account_windows[entry].column_width[ACCOUNT_COLUMNS-1];
+	}
+
+	/* Replace the edit line to force a redraw and redraw the rest of the window. */
+
+	windows_redraw(file->account_windows[entry].account_window);
+	windows_redraw(file->account_windows[entry].account_pane);
+	windows_redraw(file->account_windows[entry].account_footer);
+
+	/* Set the horizontal extent of the window and pane. */
+
+	window.w = file->account_windows[entry].account_pane;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	window.w = file->account_windows[entry].account_footer;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	window.w = file->account_windows[entry].account_window;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	windows_open(window.w);
+
+	set_file_data_integrity(file, TRUE);
+}
+
+
+/**
+ * Set the extent of an account window for the specified file.
+ *
+ * \param *file			The file to update.
+ * \param entry			The entry of the window to to be updated.
+ */
+
+static void account_set_window_extent(file_data *file, int entry)
+{
+	wimp_window_state	state;
+	os_box			extent;
+	int			new_height, visible_extent, new_extent, new_scroll;
+
+	/* Set the extent. */
+
+	if (file == NULL || file->account_windows[entry].account_window == NULL)
+		return;
+
+	/* Get the number of rows to show in the window, and work out the window extent from this. */
+
+	new_height =  (file->account_windows[entry].display_lines > MIN_ACCOUNT_ENTRIES) ?
+			file->account_windows[entry].display_lines : MIN_ACCOUNT_ENTRIES;
+
+	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_height) - (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2);
+
+	/* Get the current window details, and find the extent of the bottom of the visible area. */
+
+	state.w = file->account_windows[entry].account_window;
+	wimp_get_window_state(&state);
+
+	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
+
+	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
+
+	if (new_extent > visible_extent) {
+		/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
+		 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
+		 */
+
+		new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
+
+		if (new_scroll > 0) {
+			state.visible.y0 += new_scroll;
+			state.yscroll = 0;
+		} else {
+			state.yscroll = new_scroll;
+		}
+
+		wimp_open_window((wimp_open *) &state);
+	}
+
+	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
+	 * exist.
+	 */
+
+	extent.x0 = 0;
+	extent.x1 = file->account_windows[entry].column_position[ACCOUNT_COLUMNS-1] +
+			file->account_windows[entry].column_width[ACCOUNT_COLUMNS-1];
+
+	extent.y0 = new_extent;
+	extent.y1 = 0;
+
+	wimp_set_extent(file->account_windows[entry].account_window, &extent);
+}
+
+
+/**
+ * Recreate the title of the specified Account window connected to the
+ * given file.
+ *
+ * \param *file			The file to rebuild the title for.
+ * \param entry			The entry of the window to to be updated.
+ */
+
+void account_build_window_title(file_data *file, int entry)
+{
+	char	name[256];
+
+	if (file == NULL || file->account_windows[entry].account_window == NULL)
+		return;
+
+	make_file_leafname(file, name, sizeof(name));
+
+	switch (file->account_windows[entry].type) {
+	case ACCOUNT_FULL:
+		msgs_param_lookup("AcclistTitleAcc", file->account_windows[entry].window_title,
+				sizeof(file->account_windows[entry].window_title),
+				name, NULL, NULL, NULL);
+		break;
+
+	case ACCOUNT_IN:
+		msgs_param_lookup("AcclistTitleHIn", file->account_windows[entry].window_title,
+				sizeof(file->account_windows[entry].window_title),
+				name, NULL, NULL, NULL);
+		break;
+
+	case ACCOUNT_OUT:
+		msgs_param_lookup("AcclistTitleHOut", file->account_windows[entry].window_title,
+				sizeof(file->account_windows[entry].window_title),
+				name, NULL, NULL, NULL);
+		break;
+
+	default:
+		break;
+	}
+
+	wimp_force_redraw_title(file->account_windows[entry].account_window);
+}
+
+
+/**
+ * Force a redraw of the Account List window, for the given range of
+ * lines.
+ *
+ * \param *file			The file owning the window.
+ * \param entry			The account list window to be redrawn.
+ * \param from			The first line to redraw, inclusive.
+ * \param to			The last line to redraw, inclusive.
+ */
+
+void account_force_window_redraw(file_data *file, int entry, int from, int to)
+{
+	int			y0, y1;
+	wimp_window_info	window;
+
+	if (file == NULL || file->account_windows[entry].account_window == NULL)
+		return;
+
+	window.w = file->account_windows[entry].account_window;
+	wimp_get_window_info_header_only(&window);
+
+	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - ACCOUNT_TOOLBAR_HEIGHT;
+	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - ACCOUNT_TOOLBAR_HEIGHT;
+
+	wimp_force_redraw(file->account_windows[entry].account_window, window.extent.x0, y0, window.extent.x1, y1);
+
+	/* Force a redraw of the three total icons in the footer. */
+
+	icons_redraw_group(file->account_windows[entry].account_footer, 4, 1, 2, 3, 4);
+}
+
+
+/**
+ * Turn a mouse position over an Account List window into an interactive
+ * help token.
+ *
+ * \param *buffer		A buffer to take the generated token.
+ * \param w			The window under the pointer.
+ * \param i			The icon under the pointer.
+ * \param pos			The current mouse position.
+ * \param buttons		The current mouse button state.
+ */
+
+static void account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
+{
+	int				column, xpos;
+	wimp_window_state		window;
+	struct account_window		*windat;
+
+	*buffer = '\0';
+
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
+		return;
+
+	window.w = w;
+	wimp_get_window_state(&window);
+
+	xpos = (pos.x - window.visible.x0) + window.xscroll;
+
+	for (column = 0;
+			column < ACCOUNT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
+			column++);
+
+	sprintf(buffer, "Col%d", column);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
  * Build an Account List menu for a file, and return the pointer.  This is a
  * list of Full Accounts, used for opening a Account List view.
  *
@@ -1660,89 +1953,8 @@ acct_t account_complete_menu_decode(wimp_selection *selection)
 
 
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void adjust_account_window_columns(void *data, wimp_i icon, int width)
-{
-	struct account_window	*windat = (struct account_window *) data;
-	file_data		*file;
-	int			entry, i, j, new_extent;
-	wimp_icon_state		icon1, icon2;
-	wimp_window_info	window;
-
-	if (windat == NULL || windat->file == NULL)
-		return;
-
-	file = windat->file;
-	entry = windat->entry;
 
 
-      update_dragged_columns (ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), icon, width,
-                              file->account_windows[entry].column_width,
-                              file->account_windows[entry].column_position, ACCOUNT_COLUMNS);
-
-
-  /* Re-adjust the icons in the pane. */
-
-  for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++)
-  {
-    icon1.w = file->account_windows[entry].account_pane;
-    icon1.i = i;
-    wimp_get_icon_state (&icon1);
-
-    icon2.w = file->account_windows[entry].account_footer;
-    icon2.i = i;
-    wimp_get_icon_state (&icon2);
-
-    icon1.icon.extent.x0 = file->account_windows[entry].column_position[j];
-
-    icon2.icon.extent.x0 = file->account_windows[entry].column_position[j];
-
-    j = column_get_rightmost_in_group (ACCOUNT_PANE_COL_MAP, i);
-
-    icon1.icon.extent.x1 = file->account_windows[entry].column_position[j] +
-                           file->account_windows[entry].column_width[j] + COLUMN_HEADING_MARGIN;
-
-    icon2.icon.extent.x1 = file->account_windows[entry].column_position[j] +
-                           file->account_windows[entry].column_width[j];
-
-    wimp_resize_icon (icon1.w, icon1.i, icon1.icon.extent.x0, icon1.icon.extent.y0,
-                                        icon1.icon.extent.x1, icon1.icon.extent.y1);
-
-    wimp_resize_icon (icon2.w, icon2.i, icon2.icon.extent.x0, icon2.icon.extent.y0,
-                                        icon2.icon.extent.x1, icon2.icon.extent.y1);
-
-    new_extent = file->account_windows[entry].column_position[ACCOUNT_COLUMNS-1] +
-                 file->account_windows[entry].column_width[ACCOUNT_COLUMNS-1];
-  }
-
-  /* Replace the edit line to force a redraw and redraw the rest of the window. */
-
-  windows_redraw (file->account_windows[entry].account_window);
-  windows_redraw (file->account_windows[entry].account_pane);
-  windows_redraw (file->account_windows[entry].account_footer);
-
-  /* Set the horizontal extent of the window and pane. */
-
-  window.w = file->account_windows[entry].account_pane;
-  wimp_get_window_info_header_only (&window);
-  window.extent.x1 = window.extent.x0 + new_extent;
-  wimp_set_extent (window.w, &(window.extent));
-
-  window.w = file->account_windows[entry].account_footer;
-  wimp_get_window_info_header_only (&window);
-  window.extent.x1 = window.extent.x0 + new_extent;
-  wimp_set_extent (window.w, &(window.extent));
-
-  window.w = file->account_windows[entry].account_window;
-  wimp_get_window_info_header_only (&window);
-  window.extent.x1 = window.extent.x0 + new_extent;
-  wimp_set_extent (window.w, &(window.extent));
-
-  windows_open (window.w);
-
-	set_file_data_integrity(file, TRUE);
-}
 
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -1871,7 +2083,7 @@ void add_account_to_lists (file_data *file, int account)
 
       /* If the target window is open, change the extent as necessary. */
 
-      set_accounts_window_extent (file, entry);
+      account_set_window_extent (file, entry);
     }
     else
     {
@@ -1942,11 +2154,11 @@ osbool delete_account (file_data *file, int account)
         }
       }
 
-      set_accounts_window_extent (file, i);
+      account_set_window_extent (file, i);
       if (file->account_windows[i].account_window != NULL)
       {
         windows_open (file->account_windows[i].account_window);
-        force_accounts_window_redraw (file, i, 0, file->account_windows[i].display_lines);
+        account_force_window_redraw (file, i, 0, file->account_windows[i].display_lines);
       }
     }
 
@@ -2701,9 +2913,9 @@ static osbool account_process_section_window(void)
 	/* Tidy up and redraw the windows */
 
 	perform_full_recalculation(account_section_file);
-	set_accounts_window_extent(account_section_file, account_section_entry);
+	account_set_window_extent(account_section_file, account_section_entry);
 	windows_open(account_section_file->account_windows[account_section_entry].account_window);
-	force_accounts_window_redraw(account_section_file, account_section_entry,
+	account_force_window_redraw(account_section_file, account_section_entry,
 			0, account_section_file->account_windows[account_section_entry].display_lines);
 	set_file_data_integrity(account_section_file, 1);
 
@@ -2731,9 +2943,9 @@ static osbool account_delete_from_section_window(void)
 
 	/* Update the accounts display window. */
 
-	set_accounts_window_extent(account_section_file, account_section_entry);
+	account_set_window_extent(account_section_file, account_section_entry);
 	windows_open(account_section_file->account_windows[account_section_entry].account_window);
-	force_accounts_window_redraw(account_section_file, account_section_entry,
+	account_force_window_redraw(account_section_file, account_section_entry,
 			0, account_section_file->account_windows[account_section_entry].display_lines);
 	set_file_data_integrity(account_section_file, 1);
 
@@ -3183,168 +3395,6 @@ int count_accounts_in_file (file_data *file, unsigned int type)
  */
 
 
-/* ==================================================================================================================
- * Account window handling
- */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Set the extent of the standing order window for the specified file. */
-
-void set_accounts_window_extent (file_data *file, int entry)
-{
-  wimp_window_state state;
-  os_box            extent;
-  int               new_height, visible_extent, new_extent, new_scroll;
-
-
-  /* Set the extent. */
-
-  if (file->account_windows[entry].account_window != NULL)
-  {
-    /* Get the number of rows to show in the window, and work out the window extent from this. */
-
-    new_height =  (file->account_windows[entry].display_lines > MIN_ACCOUNT_ENTRIES) ?
-                   file->account_windows[entry].display_lines : MIN_ACCOUNT_ENTRIES;
-
-    new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_height) - (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2);
-
-    /* Get the current window details, and find the extent of the bottom of the visible area. */
-
-    state.w = file->account_windows[entry].account_window;
-    wimp_get_window_state (&state);
-
-    visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-    /* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-    if (new_extent > visible_extent)
-    {
-      /* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
-       * big and will need shrinking down.  Otherwise, just set the new scroll offset.
-       */
-
-      new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
-
-      if (new_scroll > 0)
-      {
-        state.visible.y0 += new_scroll;
-        state.yscroll = 0;
-      }
-      else
-      {
-        state.yscroll = new_scroll;
-      }
-
-      wimp_open_window ((wimp_open *) &state);
-    }
-
-    /* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-     * exist.
-     */
-
-    extent.x0 = 0;
-    extent.x1 = file->account_windows[entry].column_position[ACCOUNT_COLUMNS-1]
-                + file->account_windows[entry].column_width[ACCOUNT_COLUMNS-1];
-
-    extent.y0 = new_extent;
-    extent.y1 = 0;
-
-    wimp_set_extent (file->account_windows[entry].account_window, &extent);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Called to recreate the title of the accounts window connected to the data block. */
-
-void build_account_window_title (file_data *file, int entry)
-{
-  char name[256];
-
-
-  if (file->account_windows[entry].account_window != NULL)
-  {
-    make_file_leafname (file, name, sizeof (name));
-
-    switch (file->account_windows[entry].type)
-    {
-      case ACCOUNT_FULL:
-        msgs_param_lookup ("AcclistTitleAcc", file->account_windows[entry].window_title,
-                           sizeof (file->account_windows[entry].window_title),
-                           name, NULL, NULL, NULL);
-        break;
-
-      case ACCOUNT_IN:
-        msgs_param_lookup ("AcclistTitleHIn", file->account_windows[entry].window_title,
-                           sizeof (file->account_windows[entry].window_title),
-                           name, NULL, NULL, NULL);
-        break;
-
-      case ACCOUNT_OUT:
-        msgs_param_lookup ("AcclistTitleHOut", file->account_windows[entry].window_title,
-                           sizeof (file->account_windows[entry].window_title),
-                           name, NULL, NULL, NULL);
-        break;
-
-      default:
-        break;
-    }
-
-    wimp_force_redraw_title (file->account_windows[entry].account_window); /* Nested Wimp only! */
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void force_accounts_window_redraw (file_data *file, int entry, int from, int to)
-{
-  int              y0, y1;
-  wimp_window_info window;
-
-
-  if (file->account_windows[entry].account_window != NULL)
-  {
-    window.w = file->account_windows[entry].account_window;
-    wimp_get_window_info_header_only (&window);
-
-    y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - ACCOUNT_TOOLBAR_HEIGHT;
-    y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - ACCOUNT_TOOLBAR_HEIGHT;
-
-    wimp_force_redraw (file->account_windows[entry].account_window, window.extent.x0, y0, window.extent.x1, y1);
-
-    /* Force a redraw of the three total icons in the footer. */
-
-    icons_redraw_group (file->account_windows[entry].account_footer, 4, 1, 2, 3, 4);
-  }
-}
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void decode_account_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
-{
-  int                 column, xpos;
-  wimp_window_state   window;
-	struct account_window		*windat;
-
-	*buffer = '\0';
-
-	windat = event_get_window_user_data(w);
-	if (windat == NULL)
-		return;
-
-	window.w = w;
-	wimp_get_window_state(&window);
-
-	xpos = (pos.x - window.visible.x0) + window.xscroll;
-
-	for (column = 0;
-			column < ACCOUNT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
-			column++);
-
-	sprintf(buffer, "Col%d", column);
-}
 
 /* ==================================================================================================================
  * Account window dragging
@@ -3497,7 +3547,7 @@ void terminate_account_drag (wimp_dragged *drag)
 
   perform_full_recalculation (dragging_file);
   set_file_data_integrity (dragging_file, 1);
-  force_accounts_window_redraw (dragging_file, dragging_entry,
+  account_force_window_redraw (dragging_file, dragging_entry,
                                 0, dragging_file->account_windows[dragging_entry].display_lines - 1);
 
   #ifdef DEBUG

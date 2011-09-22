@@ -374,7 +374,7 @@ void save_transaction_file (file_data *file, char *filename)
 
     for (i=0; i<ACCOUNT_WINDOWS; i++)
     {
-      build_account_window_title (file, i);
+      account_build_window_title(file, i);
     }
     for (i=0; i<file->account_count; i++)
     {

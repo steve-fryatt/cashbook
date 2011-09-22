@@ -90,6 +90,30 @@ void account_initialise(osspriteop_area *sprites);
 void account_open_window(file_data *file, enum account_type type);
 
 
+/**
+ * Recreate the title of the specified Account window connected to the
+ * given file.
+ *
+ * \param *file			The file to rebuild the title for.
+ * \param entry			The entry of the window to to be updated.
+ */
+
+void account_build_window_title(file_data *file, int entry);
+
+
+/**
+ * Force a redraw of the Account List window, for the given range of
+ * lines.
+ *
+ * \param *file			The file owning the window.
+ * \param entry			The account list window to be redrawn.
+ * \param from			The first line to redraw, inclusive.
+ * \param to			The last line to redraw, inclusive.
+ */
+
+void account_force_window_redraw(file_data *file, int entry, int from, int to);
+
+
 
 
 
@@ -206,11 +230,7 @@ acct_t account_complete_menu_decode(wimp_selection *selection);
 
 
 
-void redraw_account_window (wimp_draw *redraw, file_data *file);
 
-/* Window creation and deletion */
-
-void adjust_account_window_columns (void *data, wimp_i icon, int width);
 
 int find_accounts_window_entry_from_type (file_data *file, enum account_type type);
 
@@ -283,11 +303,6 @@ int count_accounts_in_file (file_data *file, unsigned int type);
 
 void account_window_click (file_data *file, wimp_pointer *pointer);
 void account_pane_click (file_data *file, wimp_pointer *pointer);
-void set_accounts_window_extent (file_data *file, int entry);
-void build_account_window_title (file_data *file, int entry);
-void force_accounts_window_redraw (file_data *file, int entry, int from, int to);
-void account_window_scroll_event (file_data *file, wimp_scroll *scroll);
-void decode_account_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 /* Account window dragging. */
 

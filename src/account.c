@@ -197,6 +197,9 @@ static void			account_open_print_window(file_data *file, enum account_type type,
 static void			account_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 
+static void			account_terminate_drag(wimp_dragged *drag, void *data);
+
+
 /**
  * Initialise the account system.
  *
@@ -3409,8 +3412,6 @@ void start_account_drag (file_data *file, int entry, int line)
   wimp_drag             drag;
   int                   ox, oy;
 
-  extern int global_drag_type;
-
   /* The drag is not started if any of the account window edit dialogues are open, as these will have pointers into
    * the data which won't like that data moving beneath them.
    */
@@ -3471,19 +3472,24 @@ void start_account_drag (file_data *file, int entry, int line)
       wimp_auto_scroll (wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
     }
 
-    global_drag_type = ACCOUNT_DRAG;
-
     dragging_file = file;
     dragging_start_line = line;
     dragging_entry = entry;
+
+    event_set_drag_handler(account_terminate_drag, NULL, NULL);
   }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Terminate an account window drag and re-order the data. */
 
-void terminate_account_drag (wimp_dragged *drag)
+/**
+ * Handle drag-end events relating to column dragging.
+ *
+ * \param *drag			The Wimp drag end data.
+ * \param *data			Unused client data sent via Event Lib.
+ */
+
+static void account_terminate_drag(wimp_dragged *drag, void *data)
 {
   wimp_pointer      pointer;
   wimp_window_state window;

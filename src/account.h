@@ -307,7 +307,6 @@ void account_pane_click (file_data *file, wimp_pointer *pointer);
 /* Account window dragging. */
 
 void start_account_drag (file_data *file, int entry, int line);
-void terminate_account_drag (wimp_dragged *drag);
 
 /* Cheque number printing */
 

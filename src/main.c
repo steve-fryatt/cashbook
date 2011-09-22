@@ -151,10 +151,6 @@ static void main_poll_loop(void)
 				case SAVE_DRAG:
 					terminate_user_drag(&(blk.dragged));
 					break;
-
-				case ACCOUNT_DRAG:
-					terminate_account_drag(&(blk.dragged));
-					break;
 				}
 				break;
 

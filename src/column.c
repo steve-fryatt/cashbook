@@ -185,7 +185,6 @@ void column_start_drag(wimp_pointer *ptr, void *data, wimp_w w, char *mapping, c
  * \param *data			Unused client data sent via Event Lib.
  */
 
-
 static void column_terminate_drag(wimp_dragged *drag, void *data)
 {
 	int		width;

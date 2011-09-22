@@ -82,7 +82,6 @@ static osbool		main_message_prequit(wimp_message *message);
 
 /* Declare the global variables that are used. */
 
-int                     global_drag_type;
 
 /* Cross file global variables */
 
@@ -144,14 +143,6 @@ static void main_poll_loop(void)
 
 			case wimp_MENU_SELECTION:
 				amenu_selection_handler(&(blk.selection));
-				break;
-
-			case wimp_USER_DRAG_BOX:
-				switch (global_drag_type) {
-				case SAVE_DRAG:
-					terminate_user_drag(&(blk.dragged));
-					break;
-				}
 				break;
 
 			case wimp_LOSE_CARET:

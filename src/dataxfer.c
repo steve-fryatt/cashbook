@@ -100,6 +100,8 @@ static osbool			dataxfer_message_dataopen(wimp_message *message);
 
 static int			dataxfer_drag_end_load(char *filename);
 
+static void			dataxfer_terminate_drag(wimp_dragged *drag, void *data);
+
 /**
  * Initialise the data transfer system.
  *
@@ -425,8 +427,6 @@ void start_save_window_drag (void)
   wimp_drag             drag;
   int                   ox, oy;
 
-  extern int global_drag_type;
-
 
   /* Get the basic information about the window and icon. */
 
@@ -473,14 +473,18 @@ void start_save_window_drag (void)
     wimp_drag_box (&drag);
   }
 
-  global_drag_type = SAVE_DRAG;
+  event_set_drag_handler(dataxfer_terminate_drag, NULL, NULL);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Called from Wimp_Poll when a save drag has terminated. */
+/**
+ * Handle drag-end events relating to save icon dragging.
+ *
+ * \param *drag			The Wimp drag end data.
+ * \param *data			Unused client data sent via Event Lib.
+ */
 
-void terminate_user_drag (wimp_dragged *drag)
+static void dataxfer_terminate_drag(wimp_dragged *drag, void *data)
 {
   wimp_pointer pointer;
   char         *leafname;

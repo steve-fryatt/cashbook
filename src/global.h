@@ -158,12 +158,6 @@ enum account_line_type {
 #define FIND_NEXT  5
 #define FIND_PREVIOUS 6
 
-/* Drag types. */
-
-#define SAVE_DRAG    1
-#define ACCOUNT_DRAG 2
-#define COLUMN_DRAG  3
-
 /* Report details. */
 
 #define REPORT_TAB_STOPS 20

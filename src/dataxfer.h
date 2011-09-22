@@ -65,7 +65,6 @@ void dataxfer_open_saveas_window(wimp_pointer *pointer);
 /* Save box drag handling. */
 
 void start_save_window_drag (void);
-void terminate_user_drag (wimp_dragged *drag);
 
 int drag_end_save (char *filename);
 int immediate_window_save (void);

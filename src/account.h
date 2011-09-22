@@ -213,7 +213,6 @@ void redraw_account_window (wimp_draw *redraw, file_data *file);
 void adjust_account_window_columns (void *data, wimp_i icon, int width);
 
 int find_accounts_window_entry_from_type (file_data *file, enum account_type type);
-int find_accounts_window_entry_from_handle (file_data *file, wimp_w window);
 
 /* Adding new accounts */
 

@@ -1769,29 +1769,6 @@ int find_accounts_window_entry_from_type (file_data *file, enum account_type typ
   return (entry);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Return the entry in the window list that corresponds to the given window handle. */
-
-int find_accounts_window_entry_from_handle (file_data *file, wimp_w window)
-{
-  int i, entry;
-
-
-  /* Find the window block to use. */
-
-  entry = -1;
-
-  for (i=0; i<ACCOUNT_WINDOWS; i++)
-  {
-    if (file->account_windows[i].account_window == window || file->account_windows[i].account_pane == window)
-    {
-      entry = i;
-    }
-  }
-
-  return (entry);
-}
 
 /* ==================================================================================================================
  * Adding new accounts

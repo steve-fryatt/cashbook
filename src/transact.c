@@ -174,6 +174,7 @@ static enum transact_list_menu_type	transact_complete_menu_type = REFDESC_MENU_N
 static void			transact_window_open_handler(wimp_open *open);
 static void			transact_window_close_handler(wimp_close *close);
 static void			transact_window_click_handler(wimp_pointer *pointer);
+static void			transact_window_lose_caret_handler(wimp_caret *caret);
 static void			transact_pane_click_handler(wimp_pointer *pointer);
 static osbool			transact_window_keypress_handler(wimp_key *key);
 static void			transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
@@ -334,6 +335,7 @@ void transact_open_window(file_data *file)
 	event_add_window_menu(file->transaction_window.transaction_window, transact_window_menu);
 	event_add_window_open_event(file->transaction_window.transaction_window, transact_window_open_handler);
 	event_add_window_close_event(file->transaction_window.transaction_window, transact_window_close_handler);
+	event_add_window_lose_caret_event(file->transaction_window.transaction_window, transact_window_lose_caret_handler);
 	event_add_window_mouse_event(file->transaction_window.transaction_window, transact_window_click_handler);
 	event_add_window_key_event(file->transaction_window.transaction_window, transact_window_keypress_handler);
 	event_add_window_scroll_event(file->transaction_window.transaction_window, transact_window_scroll_handler);
@@ -614,6 +616,17 @@ static void transact_window_click_handler(wimp_pointer *pointer)
   }
 }
 
+
+/**
+ * Process lose caret events for the Transaction List window.
+ *
+ * \param *caret		The caret event block to handle.
+ */
+
+static void transact_window_lose_caret_handler(wimp_caret *caret)
+{
+	refresh_transaction_edit_line_icons(caret->w, -1, -1);
+}
 
 /**
  * Process mouse clicks in the Transaction List pane.

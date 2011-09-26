@@ -144,10 +144,6 @@ static void main_poll_loop(void)
 			case wimp_MENU_SELECTION:
 				amenu_selection_handler(&(blk.selection));
 				break;
-
-			case wimp_LOSE_CARET:
-				refresh_transaction_edit_line_icons(blk.caret.w, -1, -1);
-				break;
 			}
 		}
 	}

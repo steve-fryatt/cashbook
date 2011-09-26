@@ -234,13 +234,51 @@ acct_t account_complete_menu_decode(wimp_selection *selection);
 
 int find_accounts_window_entry_from_type (file_data *file, enum account_type type);
 
-/* Adding new accounts */
 
-int add_account (file_data *file, char *name, char *ident, unsigned int type);
-void add_account_to_lists (file_data *file, int account);
-int add_display_line (file_data *file, int entry);
 
-int delete_account (file_data *file, int account);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Create a new account with null details.  Core details are set up, but some
+ * values are zeroed and left to be set up later.
+ *
+ * \param *file			The file to add the account to.
+ * \param *name			The name to give the account.
+ * \param *ident		The ident to give the account.
+ * \param type			The type of account to be created.
+ * \return			The new account index, or NULL_ACCOUNT.
+ */
+
+acct_t account_add(file_data *file, char *name, char *ident, enum account_type type);
+
+
+/**
+ * Delete an account from a file.
+ *
+ * \param *file			The file to act on.
+ * \param account		The account to be deleted.
+ * \return 			TRUE if successful; else FALSE.
+ */
+
+osbool account_delete(file_data *file, acct_t account);
 
 
 
@@ -295,9 +333,9 @@ void fill_account_field (file_data *file, acct_t account, int reconciled,
                          wimp_w window, wimp_i ident, wimp_i name, wimp_i rec_field);
 void toggle_account_reconcile_icon (wimp_w window, wimp_i icon);
 
-int account_used_in_file (file_data *file, int account);
+int account_used_in_file(file_data *file, acct_t account);
 
-int count_accounts_in_file (file_data *file, unsigned int type);
+int count_accounts_in_file (file_data *file, enum account_type type);
 
 /* Account window handling */
 

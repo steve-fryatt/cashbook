@@ -327,13 +327,13 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 
 	if (accounts || headings) {
 		for (i=0; i<file->account_count; i++) {
-			if (!account_used_in_file (file, i) &&
+			if (!account_used_in_file(file, i) &&
 					((accounts && ((file->accounts[i].type & ACCOUNT_FULL) != 0)) ||
 					(headings && ((file->accounts[i].type & (ACCOUNT_IN | ACCOUNT_OUT)) != 0)))) {
 				#ifdef DEBUG
-				debug_printf ("Deleting account %d, type %x", i, file->accounts[i].type);
+				debug_printf("Deleting account %d, type %x", i, file->accounts[i].type);
 				#endif
-				delete_account (file, i);
+				account_delete(file, i);
 			}
 		}
 	}

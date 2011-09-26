@@ -171,7 +171,8 @@ static void			account_set_window_extent(file_data *file, int entry);
 static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
-
+static void			account_add_to_lists(file_data *file, acct_t account);
+static int			account_add_list_display_line(file_data *file, int entry);
 
 
 
@@ -1985,282 +1986,230 @@ int find_accounts_window_entry_from_type (file_data *file, enum account_type typ
 }
 
 
-/* ==================================================================================================================
- * Adding new accounts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Create a new account with null details.  Core details are set up, but some
+ * values are zeroed and left to be set up later.
+ *
+ * \param *file			The file to add the account to.
+ * \param *name			The name to give the account.
+ * \param *ident		The ident to give the account.
+ * \param type			The type of account to be created.
+ * \return			The new account index, or NULL_ACCOUNT.
  */
 
-/* Create a new account with the core details.  Some values are zeroed and left to be set up later. */
-
-int add_account (file_data *file, char *name, char *ident, unsigned int type)
+acct_t account_add(file_data *file, char *name, char *ident, enum account_type type)
 {
-  int new, i;
+	acct_t		new;
+	int		i;
 
+	new = NULL_ACCOUNT;
 
-  new = -1;
+	if (strcmp(ident, "") == 0) {
+		error_msgs_report_error("BadAcctIdent");
+		return new;
+	}
 
-  if (strcmp (ident, "") == 0)
-  {
-    error_msgs_report_error ("BadAcctIdent");
-    return (new);
-  }
+	/* First, look for deleted accounts and re-use the first one found. */
 
-  /* First, look for deleted accounts and re-use the first one found. */
+	for (i = 0; i < file->account_count; i++) {
+		if (file->accounts[i].type == ACCOUNT_NULL) {
+			new = i;
+			#ifdef DEBUG
+			debug_printf("Found empty account: %d", new);
+			#endif
+			break;
+		}
+	}
 
-  for (i=0; i<file->account_count; i++)
-  {
-    if (file->accounts[i].type == ACCOUNT_NULL)
-    {
-      new = i;
-      #ifdef DEBUG
-      debug_printf ("Found empty account: %d", new);
-      #endif
-      break;
-    }
-  }
+	/* If that fails, create a new entry. */
 
-  /* If that fails, create a new entry. */
+	if (new == NULL_ACCOUNT) {
+		if (flex_extend((flex_ptr) &(file->accounts), sizeof(account) * (file->account_count+1)) == 1) {
+			new = file->account_count++;
+			#ifdef DEBUG
+			debug_printf("Created new account: %d", new);
+			#endif
+		}
+	}
 
-  if (new == -1)
-  {
-    if (flex_extend ((flex_ptr) &(file->accounts), sizeof (account) * (file->account_count+1)) == 1)
-    {
-      new = file->account_count++;
-      #ifdef DEBUG
-      debug_printf ("Created new account: %d", new);
-      #endif
-    }
-  }
+	/* If a new account was created, fill it. */
 
-  /* If a new account was created, fill it. */
+	if (new == NULL_ACCOUNT) {
+		error_msgs_report_error("NoMemNewAcct");
+		return new;
+	}
 
-  if (new != -1)
-  {
-    strcpy (file->accounts[new].name, name);
-    strcpy (file->accounts[new].ident, ident);
-    file->accounts[new].type = type;
-    file->accounts[new].opening_balance = 0;
-    file->accounts[new].credit_limit = 0;
-    file->accounts[new].budget_amount = 0;
-    file->accounts[new].next_payin_num = 0;
-    file->accounts[new].payin_num_width = 0;
-    file->accounts[new].next_cheque_num = 0;
-    file->accounts[new].cheque_num_width = 0;
+	strcpy(file->accounts[new].name, name);
+	strcpy(file->accounts[new].ident, ident);
+	file->accounts[new].type = type;
+	file->accounts[new].opening_balance = 0;
+	file->accounts[new].credit_limit = 0;
+	file->accounts[new].budget_amount = 0;
+	file->accounts[new].next_payin_num = 0;
+	file->accounts[new].payin_num_width = 0;
+	file->accounts[new].next_cheque_num = 0;
+	file->accounts[new].cheque_num_width = 0;
 
-    *file->accounts[new].account_no = '\0';
-    *file->accounts[new].sort_code = '\0';
-    for (i=0; i<ACCOUNT_ADDR_LINES; i++)
-    {
-      *file->accounts[new].address[i] = '\0';
-    }
+	*file->accounts[new].account_no = '\0';
+	*file->accounts[new].sort_code = '\0';
+	for (i=0; i<ACCOUNT_ADDR_LINES; i++)
+		*file->accounts[new].address[i] = '\0';
 
-    file->accounts[new].account_view = NULL;
+	file->accounts[new].account_view = NULL;
 
-    add_account_to_lists (file, new);
-    update_transaction_window_toolbar (file);
-  }
-  else
-  {
-    error_msgs_report_error ("NoMemNewAcct");
-  }
+	account_add_to_lists(file, new);
+	update_transaction_window_toolbar(file);
 
-  return (new);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void add_account_to_lists (file_data *file, int account)
-{
-  int entry, line;
-
-
-  entry = find_accounts_window_entry_from_type (file, file->accounts[account].type);
-
-  if (entry != -1)
-  {
-    line = add_display_line (file, entry);
-
-    if (line != -1)
-    {
-      file->account_windows[entry].line_data[line].type = ACCOUNT_LINE_DATA;
-      file->account_windows[entry].line_data[line].account = account;
-
-      /* If the target window is open, change the extent as necessary. */
-
-      account_set_window_extent (file, entry);
-    }
-    else
-    {
-      error_msgs_report_error ("NoMemLinkAcct");
-    }
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Create a new display line block at the end of the list, fill it with blank data and return the number. */
-
-int add_display_line (file_data *file, int entry)
-{
-  int line;
-
-
-  line = -1;
-
-  if (flex_extend ((flex_ptr) &(file->account_windows[entry].line_data),
-                   sizeof(struct account_redraw) * ((file->account_windows[entry].display_lines)+1)) == 1)
-  {
-    line = file->account_windows[entry].display_lines++;
-
-    #ifdef DEBUG
-    debug_printf ("Creating new display line %d", line);
-    #endif
-
-    file->account_windows[entry].line_data[line].type = ACCOUNT_LINE_BLANK;
-    file->account_windows[entry].line_data[line].account = NULL_ACCOUNT;
-
-    *file->account_windows[entry].line_data[line].heading = '\0';
-  }
-
-  return (line);
-}
-
-/* ================================================================================================================== */
-
-osbool delete_account (file_data *file, int account)
-{
-  int i, j;
-
-  /* Delete the entry from the listing windows. */
-
-  #ifdef DEBUG
-  debug_printf ("Trying to delete account %d", account);
-  #endif
-
-
-  if (!account_used_in_file (file, account))
-  {
-    for (i=0; i < ACCOUNT_WINDOWS; i++)
-    {
-      for (j=file->account_windows[i].display_lines-1; j >= 0; j--)
-      {
-        if (file->account_windows[i].line_data[j].type == ACCOUNT_LINE_DATA &&
-            file->account_windows[i].line_data[j].account == account)
-        {
-          #ifdef DEBUG
-          debug_printf ("Deleting entry type %x", file->account_windows[i].line_data[j].type);
-          #endif
-
-          flex_midextend ((flex_ptr) &(file->account_windows[i].line_data),
-                          (j + 1) * sizeof(struct account_redraw), -sizeof(struct account_redraw));
-          file->account_windows[i].display_lines--;
-          j--; /* Take into account that the array has just shortened. */
-        }
-      }
-
-      account_set_window_extent (file, i);
-      if (file->account_windows[i].account_window != NULL)
-      {
-        windows_open (file->account_windows[i].account_window);
-        account_force_window_redraw (file, i, 0, file->account_windows[i].display_lines);
-      }
-    }
-
-    /* Close the account view window. */
-
-    if (file->accounts[account].account_view != NULL)
-    {
-      accview_delete_window(file, account);
-    }
-
-    /* Remove the account from any report templates. */
-
-    analysis_remove_account_from_templates (file, account);
-
-    /* Blank out the account. */
-
-    file->accounts[account].type = ACCOUNT_NULL;
-
-    /* Update the transaction window toolbar. */
-
-    update_transaction_window_toolbar (file);
-
-    set_file_data_integrity (file, 1);
-
-    return TRUE;
-  }
-  else
-  {
-    return FALSE;
-  }
+	return new;
 }
 
 
+/**
+ * Add an account to the approprite account lists, if it isn't already
+ * in them.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to process.
+ */
+
+static void account_add_to_lists(file_data *file, acct_t account)
+{
+	int	entry, line;
 
+	entry = find_accounts_window_entry_from_type(file, file->accounts[account].type);
+
+	if (entry == -1)
+		return;
 
+	line = account_add_list_display_line(file, entry);
 
+	if (line == -1) {
+		error_msgs_report_error("NoMemLinkAcct");
+		return;
+	}
 
+	file->account_windows[entry].line_data[line].type = ACCOUNT_LINE_DATA;
+	file->account_windows[entry].line_data[line].account = account;
 
+	/* If the target window is open, change the extent as necessary. */
 
+	account_set_window_extent(file, entry);
+}
 
 
+/**
+ * Create a new display line block at the end of the given list, fill it with
+ * blank data and return the number.
+ *
+ * \param *file			The file containing the list.
+ * \param entry			The list to add an entry to.
+ * \return			The new line, or -1 on failure.
+ */
 
+static int account_add_list_display_line(file_data *file, int entry)
+{
+	int	line;
 
+	line = -1;
 
+	if (flex_extend((flex_ptr) &(file->account_windows[entry].line_data),
+			sizeof(struct account_redraw) * ((file->account_windows[entry].display_lines)+1)) == 1) {
+		line = file->account_windows[entry].display_lines++;
 
+		#ifdef DEBUG
+		debug_printf("Creating new display line %d", line);
+		#endif
 
+		file->account_windows[entry].line_data[line].type = ACCOUNT_LINE_BLANK;
+		file->account_windows[entry].line_data[line].account = NULL_ACCOUNT;
 
+		*file->account_windows[entry].line_data[line].heading = '\0';
+	}
 
+	return line;
+}
 
 
+/**
+ * Delete an account from a file.
+ *
+ * \param *file			The file to act on.
+ * \param account		The account to be deleted.
+ * \return 			TRUE if successful; else FALSE.
+ */
 
+osbool account_delete(file_data *file, acct_t account)
+{
+	int	i, j;
 
+	/* Delete the entry from the listing windows. */
 
+	#ifdef DEBUG
+	debug_printf("Trying to delete account %d", account);
+	#endif
 
+	if (account_used_in_file(file, account))
+		return FALSE;
 
+	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
+		for (j = file->account_windows[i].display_lines-1; j >= 0; j--) {
+			if (file->account_windows[i].line_data[j].type == ACCOUNT_LINE_DATA &&
+					file->account_windows[i].line_data[j].account == account) {
+				#ifdef DEBUG
+				debug_printf("Deleting entry type %x", file->account_windows[i].line_data[j].type);
+				#endif
 
+				flex_midextend((flex_ptr) &(file->account_windows[i].line_data),
+						(j + 1) * sizeof(struct account_redraw), -sizeof(struct account_redraw));
+				file->account_windows[i].display_lines--;
+				j--; /* Take into account that the array has just shortened. */
+			}
+		}
 
+		account_set_window_extent (file, i);
+		if (file->account_windows[i].account_window != NULL) {
+			windows_open(file->account_windows[i].account_window);
+			account_force_window_redraw(file, i, 0, file->account_windows[i].display_lines);
+		}
+	}
 
+	/* Close the account view window. */
 
+	if (file->accounts[account].account_view != NULL)
+		accview_delete_window(file, account);
 
+	/* Remove the account from any report templates. */
 
+	analysis_remove_account_from_templates(file, account);
 
+	/* Blank out the account. */
 
+	file->accounts[account].type = ACCOUNT_NULL;
 
+	/* Update the transaction window toolbar. */
 
+	update_transaction_window_toolbar(file);
+	set_file_data_integrity(file, TRUE);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	return TRUE;
+}
 
 
 /**
@@ -2599,7 +2548,7 @@ static osbool account_process_acc_edit_window(void)
 	 */
 
 	if (edit_account_no == NULL_ACCOUNT) {
-		edit_account_no = add_account(edit_account_file, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_NAME),
+		edit_account_no = account_add(edit_account_file, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_NAME),
 				icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_IDENT), ACCOUNT_FULL);
 	} else {
 		strcpy(edit_account_file->accounts[edit_account_no].name, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_NAME));
@@ -2682,7 +2631,7 @@ static osbool account_process_hdg_edit_window(void)
 	 */
 
 	if (edit_account_no == NULL_ACCOUNT) {
-		edit_account_no = add_account(edit_account_file, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_NAME),
+		edit_account_no = account_add(edit_account_file, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_NAME),
 				icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_IDENT), type);
 	} else {
 		strcpy(edit_account_file->accounts[edit_account_no].name, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_NAME));
@@ -2725,7 +2674,7 @@ static osbool account_delete_from_edit_window(void)
 	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 2)
 		return FALSE;
 
-	return delete_account(edit_account_file, edit_account_no);
+	return account_delete(edit_account_file, edit_account_no);
 }
 
 
@@ -2895,7 +2844,7 @@ static osbool account_process_section_window(void)
 	 */
 
 	if (account_section_line == -1) {
-		account_section_line = add_display_line(account_section_file, account_section_entry);
+		account_section_line = account_add_list_display_line(account_section_file, account_section_entry);
 
 		if (account_section_line == -1) {
 			error_msgs_report_error("NoMemNewSect");
@@ -3357,7 +3306,7 @@ void toggle_account_reconcile_icon (wimp_w window, wimp_i icon)
  * \return			TRUE if the account is found; else FALSE.
  */
 
-osbool account_used_in_file(file_data *file, int account)
+osbool account_used_in_file(file_data *file, acct_t account)
 {
 	osbool		found = FALSE;
 
@@ -3375,7 +3324,7 @@ osbool account_used_in_file(file_data *file, int account)
 
 /* ================================================================================================================== */
 
-int count_accounts_in_file (file_data *file, unsigned int type)
+int count_accounts_in_file (file_data *file, enum account_type type)
 {
   int i, accounts;
 

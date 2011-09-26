@@ -487,7 +487,7 @@ void import_csv_file (file_data *file, char *filename)
 
         if (from == -1)
         {
-          from = add_account (file, name, ident, type);
+          from = account_add (file, name, ident, type);
         }
       }
 
@@ -520,7 +520,7 @@ void import_csv_file (file_data *file, char *filename)
 
         if (to == -1)
         {
-          to = add_account (file, name, ident, type);
+          to = account_add (file, name, ident, type);
         }
       }
 

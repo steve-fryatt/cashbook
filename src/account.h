@@ -256,30 +256,6 @@ int find_accounts_window_entry_from_type (file_data *file, enum account_type typ
 
 
 
-/**
- * Create a new account with null details.  Core details are set up, but some
- * values are zeroed and left to be set up later.
- *
- * \param *file			The file to add the account to.
- * \param *name			The name to give the account.
- * \param *ident		The ident to give the account.
- * \param type			The type of account to be created.
- * \return			The new account index, or NULL_ACCOUNT.
- */
-
-acct_t account_add(file_data *file, char *name, char *ident, enum account_type type);
-
-
-/**
- * Delete an account from a file.
- *
- * \param *file			The file to act on.
- * \param account		The account to be deleted.
- * \return 			TRUE if successful; else FALSE.
- */
-
-osbool account_delete(file_data *file, acct_t account);
-
 
 
 
@@ -313,6 +289,29 @@ void account_open_edit_window(file_data *file, acct_t account, enum account_type
 void account_force_windows_closed(file_data *file);
 
 
+/**
+ * Create a new account with null details.  Core details are set up, but some
+ * values are zeroed and left to be set up later.
+ *
+ * \param *file			The file to add the account to.
+ * \param *name			The name to give the account.
+ * \param *ident		The ident to give the account.
+ * \param type			The type of account to be created.
+ * \return			The new account index, or NULL_ACCOUNT.
+ */
+
+acct_t account_add(file_data *file, char *name, char *ident, enum account_type type);
+
+
+/**
+ * Delete an account from a file.
+ *
+ * \param *file			The file to act on.
+ * \param account		The account to be deleted.
+ * \return 			TRUE if successful; else FALSE.
+ */
+
+osbool account_delete(file_data *file, acct_t account);
 
 
 

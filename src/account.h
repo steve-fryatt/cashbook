@@ -114,25 +114,6 @@ void account_build_window_title(file_data *file, int entry);
 void account_force_window_redraw(file_data *file, int entry, int from, int to);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * Build an Account List menu for a file, and return the pointer.  This is a
  * list of Full Accounts, used for opening a Account List view.
@@ -215,53 +196,6 @@ void account_complete_menu_destroy(void);
 acct_t account_complete_menu_decode(wimp_selection *selection);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int find_accounts_window_entry_from_type (file_data *file, enum account_type type);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * Open the Account Edit dialogue for a given account list window.
  *
@@ -318,6 +252,31 @@ osbool account_delete(file_data *file, acct_t account);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int find_accounts_window_entry_from_type (file_data *file, enum account_type type);
+
+
+
 /* Finding accounts */
 
 int find_account (file_data *file, char *ident, unsigned int type);
@@ -336,10 +295,6 @@ int account_used_in_file(file_data *file, acct_t account);
 
 int count_accounts_in_file (file_data *file, enum account_type type);
 
-/* Account window handling */
-
-void account_window_click (file_data *file, wimp_pointer *pointer);
-void account_pane_click (file_data *file, wimp_pointer *pointer);
 
 
 
@@ -362,9 +317,6 @@ void account_pane_click (file_data *file, wimp_pointer *pointer);
  */
 
 char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_t to_account, int increment, char *buffer, size_t size);
-
-
-
 
 
 /**

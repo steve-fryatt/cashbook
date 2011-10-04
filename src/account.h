@@ -345,9 +345,26 @@ void account_pane_click (file_data *file, wimp_pointer *pointer);
 
 void start_account_drag (file_data *file, int entry, int line);
 
-/* Cheque number printing */
 
-char *get_next_cheque_number (file_data *file, acct_t from_account, acct_t to_account, int increment, char *buffer);
+
+
+/**
+ * Get the next cheque or paying in book number for a given combination of from and
+ * to accounts, storing the value as a string in the buffer and incrementing the
+ * next value for the chosen account as specified.
+ *
+ * \param *file			The file containing the accounts.
+ * \param from_account		The account to transfer from.
+ * \param to_account		The account to transfer to.
+ * \param increment		The amount to increment the chosen number after
+ *				use (0 for no increment).
+ * \param *buffer		Pointer to the buffer to hold the number.
+ * \param size			The size of the buffer.
+ * \return			A pointer to the supplied buffer, containing the
+ *				next available number.
+ */
+
+char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_t to_account, int increment, char *buffer, size_t size);
 
 
 

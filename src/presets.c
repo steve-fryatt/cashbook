@@ -2428,7 +2428,7 @@ unsigned preset_apply(file_data *file, int preset, date_t *date, acct_t *from, a
 	/* Update the reference. */
 
 	if (file->presets[preset].flags & TRANS_TAKE_CHEQUE) {
-		get_next_cheque_number(file, *from, *to, 1, reference);
+		account_get_next_cheque_number(file, *from, *to, 1, reference, REF_FIELD_LEN);
 		changed |= (1 << EDIT_ICON_REF);
 	} else if (*(file->presets[preset].reference) != '\0' && strcmp(reference, file->presets[preset].reference) != 0) {
 		strcpy(reference, file->presets[preset].reference);

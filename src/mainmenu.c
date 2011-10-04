@@ -355,10 +355,10 @@ static void decode_refdesc_menu (wimp_selection *selection)
 		field = transact_complete_menu_decode(selection);
 
 		if (refdesc_menu_type == REFDESC_MENU_REFERENCE && field == NULL) {
-			get_next_cheque_number(main_menu_file,
+			account_get_next_cheque_number(main_menu_file,
 					main_menu_file->transactions[main_menu_file->transactions[main_menu_line].sort_index].from,
 					main_menu_file->transactions[main_menu_file->transactions[main_menu_line].sort_index].to,
-					1, cheque_buffer);
+					1, cheque_buffer, sizeof(cheque_buffer));
 			edit_change_transaction_refdesc(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, EDIT_ICON_REF, cheque_buffer);
 		} else if (refdesc_menu_type == REFDESC_MENU_REFERENCE && field != NULL) {
 			edit_change_transaction_refdesc(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, EDIT_ICON_REF, field);

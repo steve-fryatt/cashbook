@@ -1550,8 +1550,8 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
     {
       if (key->c == wimp_KEY_F1)
       {
-      get_next_cheque_number (file, file->transactions[transaction].from, file->transactions[transaction].to,
-                              1, buffer_reference);
+      account_get_next_cheque_number (file, file->transactions[transaction].from, file->transactions[transaction].to,
+                              1, buffer_reference, sizeof(buffer_reference));
         wimp_set_icon_state (key->w, EDIT_ICON_REF, 0, 0);
         icons_replace_caret_in_window (key->w);
       }

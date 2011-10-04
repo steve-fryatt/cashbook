@@ -2266,8 +2266,10 @@ static void account_fill_acc_edit_window(file_data *file, acct_t account)
 		convert_money_to_string(file->accounts[account].credit_limit, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT));
 		convert_money_to_string(file->accounts[account].opening_balance, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE));
 
-		get_next_cheque_number(file, NULL_ACCOUNT, account, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN));
-		get_next_cheque_number(file, account, NULL_ACCOUNT, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CHEQUE));
+		account_get_next_cheque_number(file, NULL_ACCOUNT, account, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN),
+				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_PAYIN));
+		account_get_next_cheque_number(file, account, NULL_ACCOUNT, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CHEQUE),
+				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_CHEQUE));
 
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_ACCNO, file->accounts[account].account_no);
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_SRTCD, file->accounts[account].sort_code);
@@ -3529,63 +3531,64 @@ static void account_terminate_drag(wimp_dragged *drag, void *data)
   #endif
 }
 
-/* ==================================================================================================================
- * Cheque number printing
+
+
+/**
+ * Get the next cheque or paying in book number for a given combination of from and
+ * to accounts, storing the value as a string in the buffer and incrementing the
+ * next value for the chosen account as specified.
+ *
+ * \param *file			The file containing the accounts.
+ * \param from_account		The account to transfer from.
+ * \param to_account		The account to transfer to.
+ * \param increment		The amount to increment the chosen number after
+ *				use (0 for no increment).
+ * \param *buffer		Pointer to the buffer to hold the number.
+ * \param size			The size of the buffer.
+ * \return			A pointer to the supplied buffer, containing the
+ *				next available number.
  */
 
-/* Find the next cheque number from one of the two accounts, and return it in the buffer.
- * At present, only the from account is handled -- this uses the cheque number.
- */
-
-char *get_next_cheque_number (file_data *file, acct_t from_account, acct_t to_account, int increment, char *buffer)
+char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_t to_account, int increment, char *buffer, size_t size)
 {
-  char   format[32], mbuf[1024], bbuf[128];
-  int    from_ok, to_ok;
+	char		format[32], mbuf[1024], bbuf[128];
+	osbool		from_ok, to_ok;
 
-  /* Test which of the two accounts have an auto-reference attached.  If both do, the user needs to be asked which one
-   * use in the transaction.
-   */
+	/* Test which of the two accounts have an auto-reference attached.  If
+	 * both do, the user needs to be asked which one to use in the transaction.
+	 */
 
-  from_ok = (from_account != NULL_ACCOUNT && file->accounts[from_account].cheque_num_width > 0);
-  to_ok = (to_account != NULL_ACCOUNT && file->accounts[to_account].payin_num_width > 0);
+	from_ok = (from_account != NULL_ACCOUNT && file->accounts[from_account].cheque_num_width > 0) ? TRUE: FALSE;
+	to_ok = (to_account != NULL_ACCOUNT && file->accounts[to_account].payin_num_width > 0) ? TRUE : FALSE;
 
-  if (from_ok && to_ok)
-  {
-    msgs_param_lookup ("ChqOrPayIn", mbuf, sizeof(mbuf),
-                       file->accounts[to_account].name, file->accounts[from_account].name, NULL, NULL);
-    msgs_lookup ("ChqOrPayInB", bbuf, sizeof(bbuf));
+	if (from_ok && to_ok) {
+		msgs_param_lookup("ChqOrPayIn", mbuf, sizeof(mbuf),
+				file->accounts[to_account].name, file->accounts[from_account].name, NULL, NULL);
+		msgs_lookup("ChqOrPayInB", bbuf, sizeof(bbuf));
 
-    if (error_report_question (mbuf, bbuf) == 1)
-    {
-      to_ok = 0;
-    }
-    else
-    {
-      from_ok = 0;
-    }
-  }
+		if (error_report_question(mbuf, bbuf) == 1)
+			to_ok = FALSE;
+		else
+			from_ok = FALSE;
+	}
 
-  /* Now process the reference. */
+	/* Now process the reference. */
 
-  if (from_ok)
-  {
-    sprintf (format, "%%0%dd", file->accounts[from_account].cheque_num_width);
-    sprintf (buffer, format, file->accounts[from_account].next_cheque_num);
-    file->accounts[from_account].next_cheque_num += increment;
-  }
-  else if (to_ok)
-  {
-    sprintf (format, "%%0%dd", file->accounts[to_account].payin_num_width);
-    sprintf (buffer, format, file->accounts[to_account].next_payin_num);
-    file->accounts[to_account].next_payin_num += increment;
-  }
-  else
-  {
-    *buffer = '\0';
-  }
+	if (from_ok) {
+		snprintf(format, sizeof(format), "%%0%dd", file->accounts[from_account].cheque_num_width);
+		snprintf(buffer, size, format, file->accounts[from_account].next_cheque_num);
+		file->accounts[from_account].next_cheque_num += increment;
+	} else if (to_ok) {
+		snprintf(format, sizeof(format), "%%0%dd", file->accounts[to_account].payin_num_width);
+		snprintf(buffer, size, format, file->accounts[to_account].next_payin_num);
+		file->accounts[to_account].next_payin_num += increment;
+	} else {
+		*buffer = '\0';
+	}
 
-  return (buffer);
+	return buffer;
 }
+
 
 
 

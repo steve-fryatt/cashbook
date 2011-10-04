@@ -341,9 +341,6 @@ int count_accounts_in_file (file_data *file, enum account_type type);
 void account_window_click (file_data *file, wimp_pointer *pointer);
 void account_pane_click (file_data *file, wimp_pointer *pointer);
 
-/* Account window dragging. */
-
-void start_account_drag (file_data *file, int entry, int line);
 
 
 

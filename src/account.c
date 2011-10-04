@@ -133,22 +133,13 @@ static file_data			*account_complete_menu_file = NULL;	/**< The file to which th
 
 /* \TODO -- These entries should probably become struct account_window * pointers? */
 
-/* Account and heading editing constants. */
 
+/* Account List Window drags. */
 
-/* Section heading editing constants. */
-
-
-/* Printing constants */
-
-
-
-/* Account drag constants. */
-
-static int       dragging_sprite;
-static file_data *dragging_file;
-static int       dragging_entry;
-static int       dragging_start_line;
+static osbool			account_dragging_sprite = FALSE;		/**< True if the account line drag is using a sprite.			*/
+static file_data		*account_dragging_file = NULL;			/**< The file owning the account list in which the drag occurs.		*/
+static int			account_dragging_entry = -1;			/**< The account list entry owning the current drag.			*/
+static int			account_dragging_start_line = -1;		/**< The line where an account entry drag was started.			*/
 
 
 
@@ -202,7 +193,7 @@ static int			account_add_list_display_line(file_data *file, int entry);
 
 
 
-
+static void			start_account_drag(file_data *file, int entry, int line);
 static void			account_terminate_drag(wimp_dragged *drag, void *data);
 
 
@@ -3363,91 +3354,93 @@ int count_accounts_in_file (file_data *file, enum account_type type)
   return (accounts);
 }
 
-/* ==================================================================================================================
- * File and print output
+
+
+
+
+
+/**
+ * Start an account window drag, to re-order the entries in the window.
+ *
+ * \param *file			The file owning the Account List being dragged.
+ * \param entry			The entry of the Account List being dragged.
+ * \param line			The line of the Account list being dragged.
  */
 
-
-
-/* ==================================================================================================================
- * Account window dragging
- */
-
-/* Start an account window drag, to re-order the entries in the window. */
-
-void start_account_drag (file_data *file, int entry, int line)
+static void start_account_drag(file_data *file, int entry, int line)
 {
-  wimp_window_state     window;
-  wimp_auto_scroll_info auto_scroll;
-  wimp_drag             drag;
-  int                   ox, oy;
+	wimp_window_state	window;
+	wimp_auto_scroll_info	auto_scroll;
+	wimp_drag		drag;
+	int			ox, oy;
 
-  /* The drag is not started if any of the account window edit dialogues are open, as these will have pointers into
-   * the data which won't like that data moving beneath them.
-   */
+	/* The drag is not started if any of the account window edit dialogues
+	 * are open, as these will have pointers into the data which won't like
+	 * the data moving beneath them.
+	 */
 
-  if (!windows_get_open (account_acc_edit_window) && !windows_get_open (account_hdg_edit_window) && !windows_get_open (account_section_window))
-  {
-    /* Get the basic information about the window. */
+	if (windows_get_open(account_acc_edit_window) || windows_get_open(account_hdg_edit_window) || windows_get_open (account_section_window))
+		return;
 
-    window.w = file->account_windows[entry].account_window;
-    wimp_get_window_state (&window);
+	/* Get the basic information about the window. */
 
-    ox = window.visible.x0 - window.xscroll;
-    oy = window.visible.y1 - window.yscroll;
+	window.w = file->account_windows[entry].account_window;
+	wimp_get_window_state(&window);
 
-    /* Set up the drag parameters. */
+	ox = window.visible.x0 - window.xscroll;
+	oy = window.visible.y1 - window.yscroll;
 
-    drag.w = file->account_windows[entry].account_window;
-    drag.type = wimp_DRAG_USER_FIXED;
+	/* Set up the drag parameters. */
 
-    drag.initial.x0 = ox;
-    drag.initial.y0 = oy + -(line * (ICON_HEIGHT+LINE_GUTTER) + ACCOUNT_TOOLBAR_HEIGHT + ICON_HEIGHT);
-    drag.initial.x1 = ox + (window.visible.x1 - window.visible.x0);
-    drag.initial.y1 = oy + -(line * (ICON_HEIGHT+LINE_GUTTER) + ACCOUNT_TOOLBAR_HEIGHT);
+	drag.w = file->account_windows[entry].account_window;
+	drag.type = wimp_DRAG_USER_FIXED;
 
-    drag.bbox.x0 = window.visible.x0;
-    drag.bbox.y0 = window.visible.y0;
-    drag.bbox.x1 = window.visible.x1;
-    drag.bbox.y1 = window.visible.y1;
+	drag.initial.x0 = ox;
+	drag.initial.y0 = oy + -(line * (ICON_HEIGHT+LINE_GUTTER) + ACCOUNT_TOOLBAR_HEIGHT + ICON_HEIGHT);
+	drag.initial.x1 = ox + (window.visible.x1 - window.visible.x0);
+	drag.initial.y1 = oy + -(line * (ICON_HEIGHT+LINE_GUTTER) + ACCOUNT_TOOLBAR_HEIGHT);
 
-    /* Read CMOS RAM to see if solid drags are required. */
+	drag.bbox.x0 = window.visible.x0;
+	drag.bbox.y0 = window.visible.y0;
+	drag.bbox.x1 = window.visible.x1;
+	drag.bbox.y1 = window.visible.y1;
 
-    dragging_sprite = ((osbyte2 (osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+	/* Read CMOS RAM to see if solid drags are required.
+	 *
+	 * \TODO -- Solid drags are never actually used, although they could be
+	 *          if a suitable sprite were to be created.
+	 */
+
+	account_dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
                        osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
 
-    if (0 && dragging_sprite) /* This is never used, though it could be... */
-    {
-      dragasprite_start (dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
-                         dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
-                         "", &(drag.initial), &(drag.bbox));
-    }
-    else
-    {
-      wimp_drag_box (&drag);
-    }
+	if (FALSE && account_dragging_sprite) {
+		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
+				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
+				"", &(drag.initial), &(drag.bbox));
+	} else {
+		wimp_drag_box(&drag);
+	}
 
-    /* Initialise the autoscroll. */
+	/* Initialise the autoscroll. */
 
-    if (xos_swi_number_from_string ("Wimp_AutoScroll", NULL) == NULL)
-    {
-      auto_scroll.w = file->account_windows[entry].account_window;
-      auto_scroll.pause_zone_sizes.x0 = AUTO_SCROLL_MARGIN;
-      auto_scroll.pause_zone_sizes.y0 = AUTO_SCROLL_MARGIN + ACCOUNT_FOOTER_HEIGHT;
-      auto_scroll.pause_zone_sizes.x1 = AUTO_SCROLL_MARGIN;
-      auto_scroll.pause_zone_sizes.y1 = AUTO_SCROLL_MARGIN + ACCOUNT_TOOLBAR_HEIGHT;
-      auto_scroll.pause_duration = 0;
-      auto_scroll.state_change = (void *) 1;
+	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL) {
+		auto_scroll.w = file->account_windows[entry].account_window;
+		auto_scroll.pause_zone_sizes.x0 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.y0 = AUTO_SCROLL_MARGIN + ACCOUNT_FOOTER_HEIGHT;
+		auto_scroll.pause_zone_sizes.x1 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.y1 = AUTO_SCROLL_MARGIN + ACCOUNT_TOOLBAR_HEIGHT;
+		auto_scroll.pause_duration = 0;
+		auto_scroll.state_change = (void *) 1;
 
-      wimp_auto_scroll (wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
-    }
+		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
+	}
 
-    dragging_file = file;
-    dragging_start_line = line;
-    dragging_entry = entry;
+	account_dragging_file = file;
+	account_dragging_start_line = line;
+	account_dragging_entry = entry;
 
-    event_set_drag_handler(account_terminate_drag, NULL, NULL);
-  }
+	event_set_drag_handler(account_terminate_drag, NULL, NULL);
 }
 
 
@@ -3461,76 +3454,64 @@ void start_account_drag (file_data *file, int entry, int line)
 
 static void account_terminate_drag(wimp_dragged *drag, void *data)
 {
-  wimp_pointer      pointer;
-  wimp_window_state window;
-  int               line;
-  struct account_redraw    block;
+	wimp_pointer			pointer;
+	wimp_window_state		window;
+	int				line;
+	struct account_redraw		block;
 
+	/* Terminate the drag and end the autoscroll. */
 
-  /* Terminate the drag and end the autoscroll. */
+	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
+		wimp_auto_scroll(0, NULL);
 
-  if (xos_swi_number_from_string ("Wimp_AutoScroll", NULL) == NULL)
-  {
-    wimp_auto_scroll (0, NULL);
-  }
+	if (account_dragging_sprite)
+		dragasprite_stop();
 
-  if (dragging_sprite)
-  {
-    dragasprite_stop ();
-  }
+	/* Get the line at which the drag ended. */
 
-  /* Get the line at which the drag ended. */
+	wimp_get_pointer_info(&pointer);
 
-  wimp_get_pointer_info (&pointer);
+	window.w = account_dragging_file->account_windows[account_dragging_entry].account_window;
+	wimp_get_window_state(&window);
 
-  window.w = dragging_file->account_windows[dragging_entry].account_window;
-  wimp_get_window_state (&window);
+	line = ((window.visible.y1 - pointer.pos.y) - window.yscroll - ACCOUNT_TOOLBAR_HEIGHT)
+			/ (ICON_HEIGHT+LINE_GUTTER);
 
-  line = ((window.visible.y1 - pointer.pos.y) - window.yscroll - ACCOUNT_TOOLBAR_HEIGHT)
-         / (ICON_HEIGHT+LINE_GUTTER);
+	if (line < 0)
+		line = 0;
 
-  if (line < 0)
-  {
-    line = 0;
-  }
-  if (line >= dragging_file->account_windows[dragging_entry].display_lines)
-  {
-    line = dragging_file->account_windows[dragging_entry].display_lines - 1;
-  }
+	if (line >= account_dragging_file->account_windows[account_dragging_entry].display_lines)
+		line = account_dragging_file->account_windows[account_dragging_entry].display_lines - 1;
 
-  /* Move the blocks around. */
+	/* Move the blocks around. */
 
-  block =  dragging_file->account_windows[dragging_entry].line_data[dragging_start_line];
+	block =  account_dragging_file->account_windows[account_dragging_entry].line_data[account_dragging_start_line];
 
-  if (line < dragging_start_line)
-  {
-    memmove (&(dragging_file->account_windows[dragging_entry].line_data[line+1]),
-             &(dragging_file->account_windows[dragging_entry].line_data[line]),
-             (dragging_start_line - line) * sizeof(struct account_redraw));
+	if (line < account_dragging_start_line) {
+		memmove(&(account_dragging_file->account_windows[account_dragging_entry].line_data[line+1]),
+				&(account_dragging_file->account_windows[account_dragging_entry].line_data[line]),
+				(account_dragging_start_line - line) * sizeof(struct account_redraw));
 
-    dragging_file->account_windows[dragging_entry].line_data[line] = block;
-  }
-  else if (line > dragging_start_line)
-  {
-    memmove (&(dragging_file->account_windows[dragging_entry].line_data[dragging_start_line]),
-             &(dragging_file->account_windows[dragging_entry].line_data[dragging_start_line+1]),
-             (line - dragging_start_line) * sizeof(struct account_redraw));
+		account_dragging_file->account_windows[account_dragging_entry].line_data[line] = block;
+	} else if (line > account_dragging_start_line) {
+		memmove(&(account_dragging_file->account_windows[account_dragging_entry].line_data[account_dragging_start_line]),
+				&(account_dragging_file->account_windows[account_dragging_entry].line_data[account_dragging_start_line+1]),
+				(line - account_dragging_start_line) * sizeof(struct account_redraw));
 
-    dragging_file->account_windows[dragging_entry].line_data[line] = block;
-  }
+		account_dragging_file->account_windows[account_dragging_entry].line_data[line] = block;
+	}
 
-  /* Tidy up and redraw the windows */
+	/* Tidy up and redraw the windows */
 
-  perform_full_recalculation (dragging_file);
-  set_file_data_integrity (dragging_file, 1);
-  account_force_window_redraw (dragging_file, dragging_entry,
-                                0, dragging_file->account_windows[dragging_entry].display_lines - 1);
+	perform_full_recalculation(account_dragging_file);
+	set_file_data_integrity(account_dragging_file, 1);
+	account_force_window_redraw(account_dragging_file, account_dragging_entry,
+			0, account_dragging_file->account_windows[account_dragging_entry].display_lines - 1);
 
-  #ifdef DEBUG
-  debug_printf ("Move account from line %d to line %d", dragging_start_line, line);
-  #endif
+	#ifdef DEBUG
+	debug_printf("Move account from line %d to line %d", account_dragging_start_line, line);
+	#endif
 }
-
 
 
 /**

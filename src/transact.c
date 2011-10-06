@@ -3391,10 +3391,10 @@ void transact_export_delimited(file_data *file, char *filename, enum filing_deli
 		convert_date_to_string(file->transactions[t].date, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
 
-		build_account_name_pair(file, file->transactions[t].from, buffer);
+		account_build_name_pair(file, file->transactions[t].from, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, 0);
 
-		build_account_name_pair(file, file->transactions[t].to, buffer);
+		account_build_name_pair(file, file->transactions[t].to, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, 0);
 
 		filing_output_delimited_field(out, file->transactions[t].reference, format, 0);

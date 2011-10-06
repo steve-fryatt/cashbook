@@ -282,7 +282,25 @@ int find_accounts_window_entry_from_type (file_data *file, enum account_type typ
 int find_account (file_data *file, char *ident, unsigned int type);
 char *find_account_ident (file_data *file, int account);
 char *find_account_name (file_data *file, int account);
-char *build_account_name_pair (file_data *file, int account, char *buffer);
+
+
+/**
+ * Build a textual "Ident:Account Name" pair for the given account, and
+ * insert it into the supplied buffer.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to give a name to.
+ * \param *buffer		The buffer to take the Ident:Name.
+ * \param size			The number of bytes in the buffer.
+ * \return			Pointer to the start of the ident.
+ */
+
+char *account_build_name_pair(file_data *file, acct_t account, char *buffer, size_t size);
+
+
+
+
+
 
 int lookup_account_field (file_data *file, char key, int type, int account, int *reconciled,
                           wimp_w window, wimp_i ident, wimp_i name, wimp_i rec);

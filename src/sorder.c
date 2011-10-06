@@ -2834,10 +2834,10 @@ void sorder_export_delimited(file_data *file, char *filename, enum filing_delimi
 	for (i=0; i < file->sorder_count; i++) {
 		t = file->sorders[i].sort_index;
 
-		build_account_name_pair(file, file->sorders[t].from, buffer);
+		account_build_name_pair(file, file->sorders[t].from, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, 0);
 
-		build_account_name_pair(file, file->sorders[t].to, buffer);
+		account_build_name_pair(file, file->sorders[t].to, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, 0);
 
 		convert_money_to_string(file->sorders[t].normal_amount, buffer);

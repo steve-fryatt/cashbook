@@ -2351,9 +2351,9 @@ void accview_export_delimited(file_data *file, acct_t account, char *filename, e
 			filing_output_delimited_field(out, buffer, format, 0);
 
 			if (file->transactions[transaction].from == account)
-				build_account_name_pair(file, file->transactions[transaction].to, buffer);
+				account_build_name_pair(file, file->transactions[transaction].to, buffer, sizeof(buffer));
 			else
-				build_account_name_pair(file, file->transactions[transaction].from, buffer);
+				account_build_name_pair(file, file->transactions[transaction].from, buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, 0);
 
 			filing_output_delimited_field(out, file->transactions[transaction].reference, format, 0);

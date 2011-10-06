@@ -1957,37 +1957,6 @@ acct_t account_complete_menu_decode(wimp_selection *selection)
 
 
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Return the entry in the window list that corresponds to the given account type. */
-
-int find_accounts_window_entry_from_type (file_data *file, enum account_type type)
-{
-  int i, entry;
-
-
-  /* Find the window block to use. */
-
-  entry = -1;
-
-  for (i=0; i<ACCOUNT_WINDOWS; i++)
-  {
-    if (file->account_windows[i].type == type)
-    {
-      entry = i;
-    }
-  }
-
-  return (entry);
-}
-
-
-
-
-
-
-
-
 
 
 
@@ -2839,7 +2808,7 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 		*line = '\0';
 
 		if (window->line_data[i].type == ACCOUNT_LINE_DATA) {
-			build_account_name_pair(account_print_file, window->line_data[i].account, buffer);
+			account_build_name_pair(account_print_file, window->line_data[i].account, buffer, sizeof(buffer));
 
 			switch (window->type) {
 			case ACCOUNT_FULL:
@@ -3128,6 +3097,42 @@ osbool account_delete(file_data *file, acct_t account)
 
 
 
+
+
+
+
+
+
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/* Return the entry in the window list that corresponds to the given account type. */
+
+int find_accounts_window_entry_from_type (file_data *file, enum account_type type)
+{
+  int i, entry;
+
+
+  /* Find the window block to use. */
+
+  entry = -1;
+
+  for (i=0; i<ACCOUNT_WINDOWS; i++)
+  {
+    if (file->account_windows[i].type == type)
+    {
+      entry = i;
+    }
+  }
+
+  return (entry);
+}
+
+
+
+
+
+
 /* ==================================================================================================================
  * Finding accounts
  */
@@ -3181,17 +3186,31 @@ char *find_account_name (file_data *file, int account)
 
 /* Build an account ident:name pair string. */
 
-char *build_account_name_pair (file_data *file, int account, char *buffer)
+
+/**
+ * Build a textual "Ident:Account Name" pair for the given account, and
+ * insert it into the supplied buffer.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to give a name to.
+ * \param *buffer		The buffer to take the Ident:Name.
+ * \param size			The number of bytes in the buffer.
+ * \return			Pointer to the start of the ident.
+ */
+
+char *account_build_name_pair(file_data *file, acct_t account, char *buffer, size_t size)
 {
-  *buffer = '\0';
+	*buffer = '\0';
 
-  if (account != NULL_ACCOUNT)
-  {
-    sprintf (buffer, "%s:%s", find_account_ident (file, account), find_account_name (file, account));
-  }
+	if (account != NULL_ACCOUNT)
+		snprintf(buffer, size, "%s:%s", find_account_ident(file, account), find_account_name(file, account));
 
-  return (buffer);
+	return buffer;
 }
+
+
+
+
 
 /* ================================================================================================================== */
 

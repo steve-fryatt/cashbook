@@ -2628,10 +2628,10 @@ void preset_export_delimited(file_data *file, char *filename, enum filing_delimi
 
 		filing_output_delimited_field(out, file->presets[t].name, format, 0);
 
-		build_account_name_pair(file, file->presets[t].from, buffer);
+		account_build_name_pair(file, file->presets[t].from, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, 0);
 
-		build_account_name_pair(file, file->presets[t].to, buffer);
+		account_build_name_pair(file, file->presets[t].to, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, 0);
 
 		convert_money_to_string(file->presets[t].amount, buffer);

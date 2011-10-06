@@ -705,8 +705,8 @@ void export_delimited_accounts_file (file_data *file, int entry, char *filename,
     {
       if (window->line_data[i].type == ACCOUNT_LINE_DATA)
       {
-        build_account_name_pair (file, window->line_data[i].account, buffer);
-        filing_output_delimited_field (out, buffer, format, 0);
+        account_build_name_pair(file, window->line_data[i].account, buffer, sizeof(buffer));
+        filing_output_delimited_field(out, buffer, format, 0);
 
         switch (window->type)
         {

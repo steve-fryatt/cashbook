@@ -145,8 +145,8 @@ void place_transaction_edit_line (file_data* file, int line)
       transaction = file->transactions[line].sort_index;
 
       convert_date_to_string (file->transactions[transaction].date, buffer_date);
-      strcpy (buffer_from_ident, find_account_ident (file, file->transactions[transaction].from));
-      strcpy (buffer_from_name, find_account_name (file, file->transactions[transaction].from));
+      strcpy (buffer_from_ident, account_get_ident (file, file->transactions[transaction].from));
+      strcpy (buffer_from_name, account_get_name (file, file->transactions[transaction].from));
       if (file->transactions[transaction].flags & TRANS_REC_FROM)
       {
         msgs_lookup ("RecChar", buffer_from_rec, REC_FIELD_LEN);
@@ -155,8 +155,8 @@ void place_transaction_edit_line (file_data* file, int line)
       {
         *buffer_from_rec = '\0';
       }
-      strcpy (buffer_to_ident, find_account_ident (file, file->transactions[transaction].to));
-      strcpy (buffer_to_name, find_account_name (file, file->transactions[transaction].to));
+      strcpy (buffer_to_ident, account_get_ident (file, file->transactions[transaction].to));
+      strcpy (buffer_to_name, account_get_name (file, file->transactions[transaction].to));
       if (file->transactions[transaction].flags & TRANS_REC_TO)
       {
         msgs_lookup ("RecChar", buffer_to_rec, REC_FIELD_LEN);
@@ -417,8 +417,8 @@ void refresh_transaction_edit_line_icons (wimp_w w, wimp_i only, wimp_i avoid)
       }
       else
       {
-        strcpy (buffer_from_ident, find_account_ident (entry_window, entry_window->transactions[transaction].from));
-        strcpy (buffer_from_name, find_account_name (entry_window, entry_window->transactions[transaction].from));
+        strcpy (buffer_from_ident, account_get_ident (entry_window, entry_window->transactions[transaction].from));
+        strcpy (buffer_from_name, account_get_name (entry_window, entry_window->transactions[transaction].from));
         if (entry_window->transactions[transaction].flags & TRANS_REC_FROM)
         {
           msgs_lookup ("RecChar", buffer_from_rec, REC_FIELD_LEN);
@@ -443,8 +443,8 @@ void refresh_transaction_edit_line_icons (wimp_w w, wimp_i only, wimp_i avoid)
       }
       else
       {
-        strcpy (buffer_to_ident, find_account_ident (entry_window, entry_window->transactions[transaction].to));
-        strcpy (buffer_to_name, find_account_name (entry_window, entry_window->transactions[transaction].to));
+        strcpy (buffer_to_ident, account_get_ident (entry_window, entry_window->transactions[transaction].to));
+        strcpy (buffer_to_name, account_get_name (entry_window, entry_window->transactions[transaction].to));
         if (entry_window->transactions[transaction].flags & TRANS_REC_TO)
         {
           msgs_lookup ("RecChar", buffer_to_rec, REC_FIELD_LEN);

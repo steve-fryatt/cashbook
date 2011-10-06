@@ -1716,24 +1716,24 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 			strcat(line, buffer);
 
 			if (accview_print_file->transactions[transaction].from == accview_print_account) {
-				sprintf(buffer, "%s\\t", find_account_ident(accview_print_file, accview_print_file->transactions[transaction].to));
+				sprintf(buffer, "%s\\t", account_get_ident(accview_print_file, accview_print_file->transactions[transaction].to));
 				strcat(line, buffer);
 
 				strcpy(numbuf1, (accview_print_file->transactions[transaction].flags & TRANS_REC_FROM) ? rec_char : "");
 				sprintf(buffer, "%s\\t", numbuf1);
 				strcat(line, buffer);
 
-				sprintf(buffer, "%s\\t", find_account_name(accview_print_file, accview_print_file->transactions[transaction].to));
+				sprintf(buffer, "%s\\t", account_get_name(accview_print_file, accview_print_file->transactions[transaction].to));
 				strcat(line, buffer);
 			} else {
-				sprintf(buffer, "%s\\t", find_account_ident(accview_print_file, accview_print_file->transactions[transaction].from));
+				sprintf(buffer, "%s\\t", account_get_ident(accview_print_file, accview_print_file->transactions[transaction].from));
 				strcat(line, buffer);
 
 				strcpy(numbuf1, (accview_print_file->transactions[transaction].flags & TRANS_REC_TO) ? rec_char : "");
 				sprintf(buffer, "%s\\t", numbuf1);
 				strcat(line, buffer);
 
-				sprintf(buffer, "%s\\t", find_account_name(accview_print_file, accview_print_file->transactions[transaction].from));
+				sprintf(buffer, "%s\\t", account_get_name(accview_print_file, accview_print_file->transactions[transaction].from));
 				strcat(line, buffer);
 			}
 
@@ -1818,19 +1818,19 @@ void accview_sort(file_data *file, int account)
 				break;
 
 			case SORT_FROMTO | SORT_ASCENDING:
-				reorder = (strcmp(find_account_name(file, (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
+				reorder = (strcmp(account_get_name(file, (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
 						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].to) :
 						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from)),
-						find_account_name(file, (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
+						account_get_name(file, (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
 						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].to) :
 						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from))) < 0);
 				break;
 
 			case SORT_FROMTO | SORT_DESCENDING:
-				reorder = (strcmp(find_account_name(file, (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
+				reorder = (strcmp(account_get_name(file, (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from == account) ?
 						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].to) :
 						(file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].from)),
-						find_account_name(file, (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
+						account_get_name(file, (file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from == account) ?
 						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].to) :
 						(file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].from))) > 0);
 				break;

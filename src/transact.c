@@ -2451,23 +2451,23 @@ void sort_transaction_window (file_data *file)
           break;
 
         case SORT_FROM | SORT_ASCENDING:
-          reorder = (strcmp(find_account_name(file, file->transactions[file->transactions[comb+gap].sort_index].from),
-                     find_account_name(file, file->transactions[file->transactions[comb].sort_index].from)) < 0);
+          reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].from),
+                     account_get_name(file, file->transactions[file->transactions[comb].sort_index].from)) < 0);
           break;
 
         case SORT_FROM | SORT_DESCENDING:
-          reorder = (strcmp(find_account_name(file, file->transactions[file->transactions[comb+gap].sort_index].from),
-                     find_account_name(file, file->transactions[file->transactions[comb].sort_index].from)) > 0);
+          reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].from),
+                     account_get_name(file, file->transactions[file->transactions[comb].sort_index].from)) > 0);
           break;
 
         case SORT_TO | SORT_ASCENDING:
-          reorder = (strcmp(find_account_name(file, file->transactions[file->transactions[comb+gap].sort_index].to),
-                     find_account_name(file, file->transactions[file->transactions[comb].sort_index].to)) < 0);
+          reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].to),
+                     account_get_name(file, file->transactions[file->transactions[comb].sort_index].to)) < 0);
           break;
 
         case SORT_TO | SORT_DESCENDING:
-          reorder = (strcmp(find_account_name(file, file->transactions[file->transactions[comb+gap].sort_index].to),
-                     find_account_name(file, file->transactions[file->transactions[comb].sort_index].to)) > 0);
+          reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].to),
+                     account_get_name(file, file->transactions[file->transactions[comb].sort_index].to)) > 0);
           break;
 
         case SORT_REFERENCE | SORT_ASCENDING:
@@ -2869,24 +2869,24 @@ void print_transact_window(osbool text, osbool format, osbool scale, osbool rota
         sprintf (buffer, "\\k%s\\t", numbuf1);
         strcat (line, buffer);
 
-        sprintf (buffer, "%s\\t", find_account_ident (transact_print_file, transact_print_file->transactions[t].from));
+        sprintf (buffer, "%s\\t", account_get_ident (transact_print_file, transact_print_file->transactions[t].from));
         strcat (line, buffer);
 
         strcpy (numbuf1, (transact_print_file->transactions[t].flags & TRANS_REC_FROM) ? rec_char : "");
         sprintf (buffer, "%s\\t", numbuf1);
         strcat (line, buffer);
 
-        sprintf (buffer, "%s\\t", find_account_name (transact_print_file, transact_print_file->transactions[t].from));
+        sprintf (buffer, "%s\\t", account_get_name (transact_print_file, transact_print_file->transactions[t].from));
         strcat (line, buffer);
 
-        sprintf (buffer, "%s\\t", find_account_ident (transact_print_file, transact_print_file->transactions[t].to));
+        sprintf (buffer, "%s\\t", account_get_ident (transact_print_file, transact_print_file->transactions[t].to));
         strcat (line, buffer);
 
         strcpy (numbuf1, (transact_print_file->transactions[t].flags & TRANS_REC_TO) ? rec_char : "");
         sprintf (buffer, "%s\\t", numbuf1);
         strcat (line, buffer);
 
-        sprintf (buffer, "%s\\t", find_account_name (transact_print_file, transact_print_file->transactions[t].to));
+        sprintf (buffer, "%s\\t", account_get_name (transact_print_file, transact_print_file->transactions[t].to));
         strcat (line, buffer);
 
         sprintf (buffer, "%s\\t", transact_print_file->transactions[t].reference);

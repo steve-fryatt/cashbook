@@ -903,8 +903,8 @@ static void analysis_generate_transaction_report(file_data *file)
 					convert_money_to_string(file->transactions[i].amount, b2);
 
 					sprintf(line, "\\k%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
-							find_account_name (file, file->transactions[i].from),
-							find_account_name (file, file->transactions[i].to),
+							account_get_name (file, file->transactions[i].from),
+							account_get_name (file, file->transactions[i].to),
 							file->transactions[i].reference, b2, file->transactions[i].description);
 
 					report_write_line(report, 1, line);
@@ -1520,7 +1520,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 								report_write_line(report, 0, "");
 
 								if (group == TRUE) {
-									sprintf(line, "\\u%s", find_account_name(file, acc));
+									sprintf(line, "\\u%s", account_get_name(file, acc));
 									report_write_line(report, 0, line);
 								}
 								msgs_lookup("URHeadings", line, sizeof(line));
@@ -1542,8 +1542,8 @@ static void analysis_generate_unreconciled_report(file_data *file)
 							convert_money_to_string(file->transactions[i].amount, b2);
 
 							sprintf(line, "\\k%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
-									r1, find_account_name(file, file->transactions[i].from),
-									r2, find_account_name(file, file->transactions[i].to),
+									r1, account_get_name(file, file->transactions[i].from),
+									r2, account_get_name(file, file->transactions[i].to),
 									file->transactions[i].reference, b2, file->transactions[i].description);
 
 							report_write_line(report, 1, line);
@@ -1612,8 +1612,8 @@ static void analysis_generate_unreconciled_report(file_data *file)
 					convert_money_to_string(file->transactions[i].amount, b2);
 
 					sprintf(line, "\\k%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
-							r1, find_account_name(file, file->transactions[i].from),
-							r2, find_account_name(file, file->transactions[i].to),
+							r1, account_get_name(file, file->transactions[i].from),
+							r2, account_get_name(file, file->transactions[i].to),
 							file->transactions[i].reference, b2, file->transactions[i].description);
 
 					report_write_line(report, 1, line);
@@ -2764,8 +2764,8 @@ static void analysis_open_account_lookup(file_data *file, wimp_w window, wimp_i 
 {
 	wimp_pointer		pointer;
 
-	icons_strncpy(analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, find_account_ident(file, account));
-	icons_strncpy(analysis_lookup_window, ANALYSIS_LOOKUP_NAME, find_account_name(file, account));
+	icons_strncpy(analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, account_get_ident(file, account));
+	icons_strncpy(analysis_lookup_window, ANALYSIS_LOOKUP_NAME, account_get_name(file, account));
 	*icons_get_indirected_text_addr(analysis_lookup_window, ANALYSIS_LOOKUP_REC) = '\0';
 
 	analysis_lookup_file = file;
@@ -2955,12 +2955,12 @@ static osbool analysis_process_lookup_window(void)
 	 */
 
 	if (*icon == '\0') {
-		sprintf(ident, "%s", find_account_ident(analysis_lookup_file, account));
+		sprintf(ident, "%s", account_get_ident(analysis_lookup_file, account));
 	} else {
 		if (index < max_len)
-			sprintf(ident, "%s,", find_account_ident(analysis_lookup_file, account));
+			sprintf(ident, "%s,", account_get_ident(analysis_lookup_file, account));
 		else
-			sprintf(ident, ",%s", find_account_ident(analysis_lookup_file, account));
+			sprintf(ident, ",%s", account_get_ident(analysis_lookup_file, account));
 	}
 
 	icons_insert_text(analysis_lookup_parent, analysis_lookup_icon, index, ident, strlen(ident));
@@ -3453,7 +3453,7 @@ static void analysis_account_list_to_idents(file_data *file, char *list, acct_t 
 		account = array[i];
 
 		if (account != NULL_ACCOUNT)
-			strcpy(buffer, find_account_ident(file, account));
+			strcpy(buffer, account_get_ident(file, account));
 		else
 			strcpy(buffer, "*");
 

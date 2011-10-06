@@ -2081,24 +2081,24 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 
 		*line = '\0';
 
-		sprintf(buffer, "\\k%s\\t", find_account_ident(sorder_print_file, sorder_print_file->sorders[t].from));
+		sprintf(buffer, "\\k%s\\t", account_get_ident(sorder_print_file, sorder_print_file->sorders[t].from));
 		strcat(line, buffer);
 
 		strcpy(numbuf1, (sorder_print_file->sorders[t].flags & TRANS_REC_FROM) ? rec_char : "");
 		sprintf(buffer, "%s\\t", numbuf1);
 		strcat(line, buffer);
 
-		sprintf(buffer, "%s\\t", find_account_name(sorder_print_file, sorder_print_file->sorders[t].from));
+		sprintf(buffer, "%s\\t", account_get_name(sorder_print_file, sorder_print_file->sorders[t].from));
 		strcat(line, buffer);
 
-		sprintf(buffer, "%s\\t", find_account_ident(sorder_print_file, sorder_print_file->sorders[t].to));
+		sprintf(buffer, "%s\\t", account_get_ident(sorder_print_file, sorder_print_file->sorders[t].to));
 		strcat(line, buffer);
 
 		strcpy(numbuf1, (sorder_print_file->sorders[t].flags & TRANS_REC_TO) ? rec_char : "");
 		sprintf(buffer, "%s\\t", numbuf1);
 		strcat(line, buffer);
 
-		sprintf(buffer, "%s\\t", find_account_name(sorder_print_file, sorder_print_file->sorders[t].to));
+		sprintf(buffer, "%s\\t", account_get_name(sorder_print_file, sorder_print_file->sorders[t].to));
 		strcat(line, buffer);
 
 		convert_money_to_string(sorder_print_file->sorders[t].normal_amount, numbuf1);
@@ -2161,23 +2161,23 @@ void sorder_sort(file_data *file)
 		for (comb = 0; (comb + gap) < file->sorder_count; comb++) {
 			switch (order) {
 			case SORT_FROM | SORT_ASCENDING:
-				reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
-						find_account_name(file, file->sorders[file->sorders[comb].sort_index].from)) < 0);
+				reorder = (strcmp(account_get_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
+						account_get_name(file, file->sorders[file->sorders[comb].sort_index].from)) < 0);
 				break;
 
 			case SORT_FROM | SORT_DESCENDING:
-				reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
-						find_account_name(file, file->sorders[file->sorders[comb].sort_index].from)) > 0);
+				reorder = (strcmp(account_get_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
+						account_get_name(file, file->sorders[file->sorders[comb].sort_index].from)) > 0);
 				break;
 
 			case SORT_TO | SORT_ASCENDING:
-				reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
-						find_account_name(file, file->sorders[file->sorders[comb].sort_index].to)) < 0);
+				reorder = (strcmp(account_get_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
+						account_get_name(file, file->sorders[file->sorders[comb].sort_index].to)) < 0);
 				break;
 
 			case SORT_TO | SORT_DESCENDING:
-				reorder = (strcmp(find_account_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
-						find_account_name(file, file->sorders[file->sorders[comb].sort_index].to)) > 0);
+				reorder = (strcmp(account_get_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
+						account_get_name(file, file->sorders[file->sorders[comb].sort_index].to)) > 0);
 				break;
 
 			case SORT_AMOUNT | SORT_ASCENDING:
@@ -2582,10 +2582,10 @@ void sorder_full_report(file_data *file)
 		msgs_param_lookup("SORNumber", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		msgs_param_lookup("SORFrom", line, sizeof(line), find_account_name(file, file->sorders[i].from), NULL, NULL, NULL);
+		msgs_param_lookup("SORFrom", line, sizeof(line), account_get_name(file, file->sorders[i].from), NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		msgs_param_lookup("SORTo", line, sizeof(line), find_account_name(file, file->sorders[i].to), NULL, NULL, NULL);
+		msgs_param_lookup("SORTo", line, sizeof(line), account_get_name(file, file->sorders[i].to), NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
 		msgs_param_lookup("SORRef", line, sizeof(line), file->sorders[i].reference, NULL, NULL, NULL);

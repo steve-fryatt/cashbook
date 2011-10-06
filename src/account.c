@@ -2836,8 +2836,8 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 				break;
 			}
 			snprintf(line, sizeof(line), "\\k%s\\t%s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s",
-					find_account_ident(account_print_file, window->line_data[i].account),
-			find_account_name(account_print_file, window->line_data[i].account),
+					account_get_ident(account_print_file, window->line_data[i].account),
+			account_get_name(account_print_file, window->line_data[i].account),
 					numbuf1, numbuf2, numbuf3, numbuf4);
 		} else if (window->line_data[i].type == ACCOUNT_LINE_HEADER) {
 			snprintf(line, sizeof(line), "\\k\\u%s", window->line_data[i].heading);
@@ -3158,33 +3158,44 @@ int find_account (file_data *file, char *ident, unsigned int type)
   return (account);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-char *find_account_ident (file_data *file, int account)
+
+
+
+/**
+ * Return a pointer to a string repesenting the ident of an account, or ""
+ * if the account is not valid.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to return an ident for.
+ * \return			Pointer to the ident string, or "".
+ */
+
+char *account_get_ident(file_data *file, acct_t account)
 {
-  char *ident;
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return "";
 
-
-  ident = (account != NULL_ACCOUNT) ? file->accounts[account].ident : "";
-
-  return (ident);
+	return file->accounts[account].ident;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-char *find_account_name (file_data *file, int account)
+/**
+ * Return a pointer to a string repesenting the name of an account, or ""
+ * if the account is not valid.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to return an name for.
+ * \return			Pointer to the name string, or "".
+ */
+
+char *account_get_name(file_data *file, acct_t account)
 {
-  char *name;
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return "";
 
-
-  name = (account != NULL_ACCOUNT) ? file->accounts[account].name : "";
-
-  return (name);
+	return file->accounts[account].name;
 }
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Build an account ident:name pair string. */
 
 
 /**
@@ -3202,8 +3213,8 @@ char *account_build_name_pair(file_data *file, acct_t account, char *buffer, siz
 {
 	*buffer = '\0';
 
-	if (account != NULL_ACCOUNT)
-		snprintf(buffer, size, "%s:%s", find_account_ident(file, account), find_account_name(file, account));
+	if (file != NULL && account != NULL_ACCOUNT && account < file->account_count && file->accounts[account].type != ACCOUNT_NULL)
+		snprintf(buffer, size, "%s:%s", account_get_ident(file, account), account_get_name(file, account));
 
 	return buffer;
 }
@@ -3237,7 +3248,7 @@ int lookup_account_field (file_data *file, char key, int type, int account, int 
 
     /* Copy the corresponding name into the name field. */
 
-    strcpy (name_ptr, find_account_name (file, account));
+    strcpy (name_ptr, account_get_name (file, account));
     wimp_set_icon_state (window, name, 0, 0);
 
     /* Do the auto-reconciliation. */
@@ -3293,7 +3304,7 @@ int lookup_account_field (file_data *file, char key, int type, int account, int 
 void fill_account_field (file_data *file, acct_t account, int reconciled,
                          wimp_w window, wimp_i ident, wimp_i name, wimp_i rec_field)
 {
-  strcpy (icons_get_indirected_text_addr (window, ident), find_account_ident (file, account));
+  strcpy (icons_get_indirected_text_addr (window, ident), account_get_ident (file, account));
 
   if (reconciled)
   {
@@ -3303,7 +3314,7 @@ void fill_account_field (file_data *file, acct_t account, int reconciled,
   {
     *icons_get_indirected_text_addr (window, rec_field) = '\0';
   }
-  strcpy (icons_get_indirected_text_addr (window, name), find_account_name (file, account));
+  strcpy (icons_get_indirected_text_addr (window, name), account_get_name (file, account));
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

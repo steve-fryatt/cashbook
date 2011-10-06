@@ -280,8 +280,32 @@ int find_accounts_window_entry_from_type (file_data *file, enum account_type typ
 /* Finding accounts */
 
 int find_account (file_data *file, char *ident, unsigned int type);
-char *find_account_ident (file_data *file, int account);
-char *find_account_name (file_data *file, int account);
+
+
+
+
+/**
+ * Return a pointer to a string repesenting the ident of an account, or ""
+ * if the account is not valid.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to return an ident for.
+ * \return			Pointer to the ident string, or "".
+ */
+
+char *account_get_ident(file_data *file, acct_t account);
+
+
+/**
+ * Return a pointer to a string repesenting the name of an account, or ""
+ * if the account is not valid.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to return an name for.
+ * \return			Pointer to the name string, or "".
+ */
+
+char *account_get_name(file_data *file, acct_t account);
 
 
 /**

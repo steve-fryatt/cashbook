@@ -1664,7 +1664,7 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 	msgs_lookup("PrintTitleAccview", buffer, sizeof(buffer));
 	report = report_open(accview_print_file, buffer, NULL);
 
-	if (report != NULL) {
+	if (report == NULL) {
 		error_msgs_report_error("PrintMemFail");
 		return;
 	}

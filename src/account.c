@@ -2295,7 +2295,7 @@ static osbool account_process_acc_edit_window(void)
 	 * an error.
 	 */
 
-	check_ident = find_account(edit_account_file, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_IDENT),
+	check_ident = account_find_by_ident(edit_account_file, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_IDENT),
 			ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT);
 
 	if (check_ident != NULL_ACCOUNT && check_ident != edit_account_no) {
@@ -2378,7 +2378,7 @@ static osbool account_process_hdg_edit_window(void)
 
 	type = icons_get_selected(account_hdg_edit_window, HEAD_EDIT_INCOMING) ? ACCOUNT_IN : ACCOUNT_OUT;
 
-	check_ident = find_account(edit_account_file, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_IDENT),
+	check_ident = account_find_by_ident(edit_account_file, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_IDENT),
 			ACCOUNT_FULL | type);
 
 	if (check_ident != NULL_ACCOUNT && check_ident != edit_account_no) {
@@ -3133,33 +3133,39 @@ int find_accounts_window_entry_from_type (file_data *file, enum account_type typ
 
 
 
-/* ==================================================================================================================
- * Finding accounts
+
+
+
+
+
+
+
+
+
+
+/**
+ * Find an account by looking up an ident string against accounts of a
+ * given type.
+ *
+ * \param *file			The file containing the account.
+ * \param *ident		The ident to look up.
+ * \param type			The type(s) of account to include.
+ * \return			The account number, or NULL_ACCOUNT if not found.
  */
 
-int find_account (file_data *file, char *ident, unsigned int type)
+acct_t account_find_by_ident(file_data *file, char *ident, enum account_type type)
 {
-  int account;
+	int account = 0;
 
+	while ((account < file->account_count) &&
+			((string_nocase_strcmp(ident, file->accounts[account].ident) != 0) || ((file->accounts[account].type & type) == 0)))
+		account++;
 
-  account = 0;
+	if (account == file->account_count)
+		account = NULL_ACCOUNT;
 
-  while ((account < file->account_count) &&
-         ((string_nocase_strcmp (ident, file->accounts[account].ident) != 0) || ((file->accounts[account].type & type) == 0)))
-  {
-    account++;
-  }
-
-  if (account == file->account_count)
-  {
-    account = NULL_ACCOUNT;
-  }
-
-  return (account);
+	return account;
 }
-
-
-
 
 
 /**
@@ -3244,7 +3250,7 @@ int lookup_account_field (file_data *file, char key, int type, int account, int 
   {
     /* Look up the account number based on the ident. */
 
-    account = find_account (file, ident_ptr, type);
+    account = account_find_by_ident (file, ident_ptr, type);
 
     /* Copy the corresponding name into the name field. */
 

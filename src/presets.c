@@ -1617,10 +1617,10 @@ static osbool preset_process_edit_window(void)
 	/* Get the from and to fields. */
 
 	preset_edit_file->presets[preset_edit_number].from =
-			find_account(preset_edit_file, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
+			account_find_by_ident(preset_edit_file, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
 
 	preset_edit_file->presets[preset_edit_number].to =
-			find_account(preset_edit_file, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
+			account_find_by_ident(preset_edit_file, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
 
 	if (*icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_FMREC) != '\0')
 		preset_edit_file->presets[preset_edit_number].flags |= TRANS_REC_FROM;

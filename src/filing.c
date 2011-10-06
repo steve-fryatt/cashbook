@@ -483,7 +483,7 @@ void import_csv_file (file_data *file, char *filename)
       else
       {
         type = isdigit (*ident) ? ACCOUNT_FULL : ACCOUNT_IN;
-        from = find_account (file, ident, type);
+        from = account_find_by_ident(file, ident, type);
 
         if (from == -1)
         {
@@ -516,7 +516,7 @@ void import_csv_file (file_data *file, char *filename)
       else
       {
         type = isdigit (*ident) ? ACCOUNT_FULL : ACCOUNT_OUT;
-        to = find_account (file, ident, type);
+        to = account_find_by_ident(file, ident, type);
 
         if (to == -1)
         {

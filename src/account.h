@@ -277,11 +277,34 @@ int find_accounts_window_entry_from_type (file_data *file, enum account_type typ
 
 
 
-/* Finding accounts */
-
-int find_account (file_data *file, char *ident, unsigned int type);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Find an account by looking up an ident string against accounts of a
+ * given type.
+ *
+ * \param *file			The file containing the account.
+ * \param *ident		The ident to look up.
+ * \param type			The type(s) of account to include.
+ * \return			The account number, or NULL_ACCOUNT if not found.
+ */
+
+acct_t account_find_by_ident(file_data *file, char *ident, enum account_type type);
 
 
 /**

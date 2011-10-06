@@ -2923,7 +2923,7 @@ static osbool analysis_process_lookup_window(void)
 
 	/* Get the account number that was entered. */
 
-	account = find_account(analysis_lookup_file, icons_get_indirected_text_addr(analysis_lookup_window, ANALYSIS_LOOKUP_IDENT),
+	account = account_find_by_ident(analysis_lookup_file, icons_get_indirected_text_addr(analysis_lookup_window, ANALYSIS_LOOKUP_IDENT),
 			analysis_lookup_type);
 
 	if (account == NULL_ACCOUNT)
@@ -3417,7 +3417,7 @@ static int analysis_account_idents_to_list(file_data *file, unsigned type, char 
 		if (strcmp(ident, "*") == 0) {
 			array[i++] = NULL_ACCOUNT;
 		} else {
-			account = find_account(file, ident, type);
+			account = account_find_by_ident(file, ident, type);
 
 			if (account != NULL_ACCOUNT)
 				array[i++] = account;

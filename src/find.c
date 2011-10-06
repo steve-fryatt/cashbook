@@ -385,10 +385,10 @@ static osbool find_process_window(void)
 	/* Get the window contents. */
 
 	find_window_file->find.date = convert_string_to_date(icons_get_indirected_text_addr(find_window, FIND_ICON_DATE), NULL_DATE, 0);
-	find_window_file->find.from = find_account(find_window_file, icons_get_indirected_text_addr(find_window, FIND_ICON_FMIDENT),
+	find_window_file->find.from = account_find_by_ident(find_window_file, icons_get_indirected_text_addr(find_window, FIND_ICON_FMIDENT),
 			ACCOUNT_FULL | ACCOUNT_IN);
 	find_window_file->find.from_rec = (*icons_get_indirected_text_addr(find_window, FIND_ICON_FMREC) == '\0') ? 0 : TRANS_REC_FROM;
-	find_window_file->find.to = find_account(find_window_file, icons_get_indirected_text_addr(find_window, FIND_ICON_TOIDENT),
+	find_window_file->find.to = account_find_by_ident(find_window_file, icons_get_indirected_text_addr(find_window, FIND_ICON_TOIDENT),
 			ACCOUNT_FULL | ACCOUNT_OUT);
 	find_window_file->find.to_rec = (*icons_get_indirected_text_addr(find_window, FIND_ICON_TOREC) == '\0') ? 0 : TRANS_REC_TO;
 	find_window_file->find.amount = convert_string_to_money(icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT));

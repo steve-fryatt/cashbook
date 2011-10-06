@@ -1740,10 +1740,10 @@ static osbool sorder_process_edit_window(void)
 
 	/* Get the from and to fields. */
 
-	sorder_edit_file->sorders[sorder_edit_number].from = find_account (sorder_edit_file,
+	sorder_edit_file->sorders[sorder_edit_number].from = account_find_by_ident(sorder_edit_file,
 			icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
 
-	sorder_edit_file->sorders[sorder_edit_number].to = find_account (sorder_edit_file,
+	sorder_edit_file->sorders[sorder_edit_number].to = account_find_by_ident(sorder_edit_file,
 			icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
 
 	if (*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FMREC) != '\0')

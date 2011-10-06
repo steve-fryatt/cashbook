@@ -1385,7 +1385,10 @@ osbool process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
   else
   {
     process_transaction_edit_line_entry_keys (file, key);
-    return FALSE;
+    return (key->c != wimp_KEY_F12 &&
+    		key->c != (wimp_KEY_SHIFT | wimp_KEY_F12) &&
+    		key->c != (wimp_KEY_CONTROL | wimp_KEY_F12) &&
+    		key->c != (wimp_KEY_SHIFT | wimp_KEY_CONTROL | wimp_KEY_F12)) ? TRUE : FALSE;
   }
 
   return TRUE;

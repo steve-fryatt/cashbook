@@ -248,50 +248,15 @@ acct_t account_add(file_data *file, char *name, char *ident, enum account_type t
 osbool account_delete(file_data *file, acct_t account);
 
 
+/**
+ * Find the account window entry index which corresponds to a given account type.
+ *
+ * \param *file			The file to use.
+ * \param type			The account type to find the entry for.
+ * \return			The corresponding index, or -1 if not found.
+ */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int find_accounts_window_entry_from_type (file_data *file, enum account_type type);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+int account_find_window_entry_from_type(file_data *file, enum account_type type);
 
 
 /**

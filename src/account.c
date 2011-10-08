@@ -255,7 +255,7 @@ void account_open_window(file_data *file, enum account_type type)
 
 	/* Find the window block to use. */
 
-	entry = find_accounts_window_entry_from_type(file, type);
+	entry = account_find_window_entry_from_type(file, type);
 
 	if (entry == -1)
 		return;
@@ -1414,7 +1414,7 @@ wimp_menu *account_list_menu_build(file_data *file)
 	if (file == NULL)
 		return NULL;
 
-	entry = find_accounts_window_entry_from_type(file, ACCOUNT_FULL);
+	entry = account_find_window_entry_from_type(file, ACCOUNT_FULL);
 
 	/* Find out how many accounts there are. */
 
@@ -1626,7 +1626,7 @@ wimp_menu *account_complete_menu_build(file_data *file, enum account_menu_type t
 		if (include & sequence[group]) {
 			i = 0;
 			sublen = 0;
-			entry = find_accounts_window_entry_from_type(file, sequence[group]);
+			entry = account_find_window_entry_from_type(file, sequence[group]);
 
 			while (i < file->account_windows[entry].display_lines) {
 				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_HEADER) {
@@ -1686,7 +1686,7 @@ wimp_menu *account_complete_menu_build(file_data *file, enum account_menu_type t
 	for (group = 0; group < groups; group++) {
 		if (include & sequence[group]) {
 			i = 0;
-			entry = find_accounts_window_entry_from_type(file, sequence[group]);
+			entry = account_find_window_entry_from_type(file, sequence[group]);
 
 			/* Start the group with a separator if there are lines in the menu already. */
 
@@ -2736,7 +2736,7 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 
 	hourglass_on();
 
-	entry = find_accounts_window_entry_from_type(account_print_file, account_print_type);
+	entry = account_find_window_entry_from_type(account_print_file, account_print_type);
 	window = &(account_print_file->account_windows[entry]);
 
 	/* Output the page title. */
@@ -2972,7 +2972,7 @@ static void account_add_to_lists(file_data *file, acct_t account)
 {
 	int	entry, line;
 
-	entry = find_accounts_window_entry_from_type(file, file->accounts[account].type);
+	entry = account_find_window_entry_from_type(file, file->accounts[account].type);
 
 	if (entry == -1)
 		return;
@@ -3091,56 +3091,32 @@ osbool account_delete(file_data *file, acct_t account)
 }
 
 
+/**
+ * Find the account window entry index which corresponds to a given account type.
+ *
+ * \TODO -- Depending upon how we set the array indicies up, this could probably
+ *          be replaced by a simple lookup?
+ *
+ * \param *file			The file to use.
+ * \param type			The account type to find the entry for.
+ * \return			The corresponding index, or -1 if not found.
+ */
 
-
-
-
-
-
-
-
-
-
-
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Return the entry in the window list that corresponds to the given account type. */
-
-int find_accounts_window_entry_from_type (file_data *file, enum account_type type)
+int account_find_window_entry_from_type(file_data *file, enum account_type type)
 {
-  int i, entry;
+	int	i, entry = -1;
 
+	if (file == NULL)
+		return entry;
 
-  /* Find the window block to use. */
+	/* Find the window block to use. */
 
-  entry = -1;
+	for (i = 0; i < ACCOUNT_WINDOWS; i++)
+		if (file->account_windows[i].type == type)
+			entry = i;
 
-  for (i=0; i<ACCOUNT_WINDOWS; i++)
-  {
-    if (file->account_windows[i].type == type)
-    {
-      entry = i;
-    }
-  }
-
-  return (entry);
+	return entry;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**
@@ -3782,7 +3758,7 @@ int account_read_list_file(file_data *file, FILE *in, char *section, char *token
 	int	result, block_size, i = -1, type, entry;
 
 	type = strtoul(suffix, NULL, 16);
-	entry = find_accounts_window_entry_from_type(file, type);
+	entry = account_find_window_entry_from_type(file, type);
 
 	block_size = flex_size((flex_ptr) &(file->account_windows[entry].line_data)) / sizeof(struct account_redraw);
 

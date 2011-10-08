@@ -137,7 +137,7 @@ void recalculate_account_windows (file_data *file)
 
   /* Calculate the full accounts details. */
 
-  entry = find_accounts_window_entry_from_type (file, ACCOUNT_FULL);
+  entry = account_find_window_entry_from_type (file, ACCOUNT_FULL);
 
   for (i=0; i<ACCOUNT_COLUMNS-2; i++)
   {
@@ -187,7 +187,7 @@ void recalculate_account_windows (file_data *file)
 
   /* Calculate the incoming account details. */
 
-  entry = find_accounts_window_entry_from_type (file, ACCOUNT_IN);
+  entry = account_find_window_entry_from_type (file, ACCOUNT_IN);
 
   for (i=0; i<ACCOUNT_COLUMNS-2; i++)
   {
@@ -249,7 +249,7 @@ void recalculate_account_windows (file_data *file)
 
   /* Calculate the outgoing account details. */
 
-  entry = find_accounts_window_entry_from_type (file, ACCOUNT_OUT);
+  entry = account_find_window_entry_from_type (file, ACCOUNT_OUT);
 
   for (i=0; i<ACCOUNT_COLUMNS-2; i++)
   {

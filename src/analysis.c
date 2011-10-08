@@ -925,7 +925,7 @@ static void analysis_generate_transaction_report(file_data *file)
 			sprintf(line, "\\i%s", b1);
 			report_write_line(report, 2, line);
 
-			entry = find_accounts_window_entry_from_type(file, ACCOUNT_FULL);
+			entry = account_find_window_entry_from_type(file, ACCOUNT_FULL);
 
 			for (i=0; i < file->account_windows[entry].display_lines; i++) {
 				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
@@ -963,7 +963,7 @@ static void analysis_generate_transaction_report(file_data *file)
 			}
 			report_write_line(report, 2, line);
 
-			entry = find_accounts_window_entry_from_type(file, ACCOUNT_OUT);
+			entry = account_find_window_entry_from_type(file, ACCOUNT_OUT);
 
 			for (i=0; i < file->account_windows[entry].display_lines; i++) {
 				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
@@ -1012,7 +1012,7 @@ static void analysis_generate_transaction_report(file_data *file)
 
 			report_write_line(report, 2, line);
 
-			entry = find_accounts_window_entry_from_type(file, ACCOUNT_IN);
+			entry = account_find_window_entry_from_type(file, ACCOUNT_IN);
 
 			for (i=0; i < file->account_windows[entry].display_lines; i++) {
 				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
@@ -1499,7 +1499,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 		 */
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
-			entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
+			entry = account_find_window_entry_from_type(file, sequence[acc_group]);
 
 			for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
 				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
@@ -2081,7 +2081,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 		sprintf(line, "\\k\\b%s", b1);
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
-			entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
+			entry = account_find_window_entry_from_type(file, sequence[acc_group]);
 
 			for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
 				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
@@ -2135,7 +2135,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 				total = 0;
 
 				for (acc_group = 0; acc_group < groups; acc_group++) {
-					entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
+					entry = account_find_window_entry_from_type(file, sequence[acc_group]);
 
 					for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
 						if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
@@ -2165,7 +2165,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 				total = 0;
 
 				for (acc_group = 0; acc_group < groups; acc_group++) {
-					entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
+					entry = account_find_window_entry_from_type(file, sequence[acc_group]);
 
 					for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
 						if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
@@ -2641,7 +2641,7 @@ static void analysis_generate_balance_report(file_data *file)
 		sprintf(line, "\\k\\b%s", b1);
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
-			entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
+			entry = account_find_window_entry_from_type(file, sequence[acc_group]);
 
 			for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
 				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
@@ -2692,7 +2692,7 @@ static void analysis_generate_balance_report(file_data *file)
 
 
 			for (acc_group = 0; acc_group < groups; acc_group++) {
-				entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
+				entry = account_find_window_entry_from_type(file, sequence[acc_group]);
 
 				for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
 					if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
@@ -2721,7 +2721,7 @@ static void analysis_generate_balance_report(file_data *file)
 			total = 0;
 
 			for (acc_group = 0; acc_group < groups; acc_group++) {
-				entry = find_accounts_window_entry_from_type(file, sequence[acc_group]);
+				entry = account_find_window_entry_from_type(file, sequence[acc_group]);
 
 				for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
 					if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {

@@ -700,6 +700,10 @@ static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 			msgs_lookup("AccviewMenuEditHead", menus_get_indirected_text_addr(accview_window_menu, ACCVIEW_MENU_EDITACCT), 20);
 			templates_set_menu_token("HeadViewMenu");
 			break;
+
+		case ACCOUNT_NULL:
+		default:
+			break;
 		}
 	}
 

@@ -3346,9 +3346,14 @@ osbool account_used_in_file(file_data *file, acct_t account)
 	return found;
 }
 
-/* ================================================================================================================== */
 
-
+/**
+ * Count the number of accounts of a given type in a file.
+ *
+ * \param *file			The account to use.
+ * \param type			The type of account to count.
+ * \return			The number of accounts found.
+ */
 
 int account_count_type_in_file(file_data *file, enum account_type type)
 {
@@ -3363,10 +3368,6 @@ int account_count_type_in_file(file_data *file, enum account_type type)
 
 	return accounts;
 }
-
-
-
-
 
 
 /**

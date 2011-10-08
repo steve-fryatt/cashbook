@@ -273,61 +273,59 @@ transaction;
 
 /* Account data struct. */
 
-typedef struct account
-{
-  char     name[ACCOUNT_NAME_LEN];
-  char     ident[ACCOUNT_IDENT_LEN];
+typedef struct account {
+	char			name[ACCOUNT_NAME_LEN];
+	char			ident[ACCOUNT_IDENT_LEN];
 
-  char     account_no[ACCOUNT_NO_LEN];
-  char     sort_code[ACCOUNT_SRTCD_LEN];
-  char     address[ACCOUNT_ADDR_LINES][ACCOUNT_ADDR_LEN];
+	char			account_no[ACCOUNT_NO_LEN];
+	char			sort_code[ACCOUNT_SRTCD_LEN];
+	char			address[ACCOUNT_ADDR_LINES][ACCOUNT_ADDR_LEN];
 
-  int      type;
-  unsigned category;
+	enum account_type	type;						/**< The type of account being defined.				*/
+	//unsigned category;
 
-  /* Pointer to account view window data. */
+	/* Pointer to account view window data. */
 
-  struct accview_window		*account_view;
+	struct accview_window	*account_view;
 
-  /* Cheque tracking data. */
+	/* Cheque tracking data. */
 
-  unsigned next_payin_num;
-  int      payin_num_width;
+	unsigned		next_payin_num;
+	int			payin_num_width;
 
-  unsigned next_cheque_num;
-  int      cheque_num_width;
+	unsigned		next_cheque_num;
+	int			cheque_num_width;
 
-  /* User-set values used for calculation. */
+	/* User-set values used for calculation. */
 
-  int opening_balance;     /* The opening balance for accounts, from which everything else is calculated. */
-  int credit_limit;        /* Credit limit for accounts. */
-  int budget_amount;       /* Budgeted amount for headings. */
+	int			opening_balance;				/* The opening balance for accounts, from which everything else is calculated. */
+	int			credit_limit;					/* Credit limit for accounts. */
+	int			budget_amount;					/* Budgeted amount for headings. */
 
-  /* Calculated values for both accounts and headings. */
+	/* Calculated values for both accounts and headings. */
 
-  int statement_balance;   /* Reconciled statement balance. */
-  int current_balance;     /* Balance up to today's date. */
-  int future_balance;      /* Balance including all transactions. */
-  int budget_balance;      /* Balance including all transactions betwen budget dates. */
+	int			statement_balance;				/* Reconciled statement balance. */
+	int			current_balance;				/* Balance up to today's date. */
+	int			future_balance;					/* Balance including all transactions. */
+	int			budget_balance;					/* Balance including all transactions betwen budget dates. */
 
-  int sorder_trial;        /* Difference applied to account from standing orders in trial period. */
+	int			sorder_trial;					/* Difference applied to account from standing orders in trial period. */
 
-  /* Subsequent calculated values for accounts. */
+	/* Subsequent calculated values for accounts. */
 
-  int trial_balance;       /* Balance including all transactions & standing order trial. */
-  int available_balance;   /* Balance available, taking into account credit limit. */
+	int			trial_balance;					/* Balance including all transactions & standing order trial. */
+	int			available_balance;				/* Balance available, taking into account credit limit. */
 
-  /* Subsequent calculated values for headings. */
+	/* Subsequent calculated values for headings. */
 
-  int budget_result;
+	int			budget_result;
 
-  /* Values used by reports. */
+	/* Values used by reports. */
 
-  int      report_total;
-  int      report_balance;
-  unsigned report_flags;
-}
-account;
+	int			report_total;
+	int			report_balance;
+	unsigned		report_flags;
+} account;
 
 /* ==================================================================================================================
  * Window redraw data structures

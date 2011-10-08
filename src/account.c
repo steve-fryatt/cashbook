@@ -1418,7 +1418,7 @@ wimp_menu *account_list_menu_build(file_data *file)
 
 	/* Find out how many accounts there are. */
 
-	accounts = count_accounts_in_file(file, ACCOUNT_FULL);
+	accounts = account_count_type_in_file(file, ACCOUNT_FULL);
 
 	if (accounts == 0)
 		return NULL;
@@ -3348,22 +3348,20 @@ osbool account_used_in_file(file_data *file, acct_t account)
 
 /* ================================================================================================================== */
 
-int count_accounts_in_file (file_data *file, enum account_type type)
+
+
+int account_count_type_in_file(file_data *file, enum account_type type)
 {
-  int i, accounts;
+	int	i, accounts = 0;
 
+	if (file == NULL)
+		return accounts;
 
-  accounts = 0;
+	for (i = 0; i < file->account_count; i++)
+		if ((file->accounts[i].type & type) != 0)
+			accounts++;
 
-  for (i=0; i<file->account_count; i++)
-  {
-    if ((file->accounts[i].type & type) != 0)
-    {
-      accounts++;
-    }
-  }
-
-  return (accounts);
+	return accounts;
 }
 
 

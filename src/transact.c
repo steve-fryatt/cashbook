@@ -1031,7 +1031,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 	}
 
 	menus_tick_entry(transact_window_menu_transact, MAIN_MENU_TRANS_RECONCILE, windat->file->auto_reconcile);
-	menus_shade_entry(transact_window_menu_account, MAIN_MENU_ACCOUNTS_VIEW, count_accounts_in_file(windat->file, ACCOUNT_FULL) == 0);
+	menus_shade_entry(transact_window_menu_account, MAIN_MENU_ACCOUNTS_VIEW, account_count_type_in_file(windat->file, ACCOUNT_FULL) == 0);
 	menus_shade_entry(transact_window_menu_analysis, MAIN_MENU_ANALYSIS_SAVEDREP, windat->file->saved_report_count == 0);
 	account_list_menu_prepare();
 }
@@ -3060,7 +3060,7 @@ void force_transaction_window_redraw (file_data *file, int from, int to)
 void update_transaction_window_toolbar (file_data *file)
 {
   icons_set_shaded (file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT,
-                    count_accounts_in_file (file, ACCOUNT_FULL) == 0);
+                    account_count_type_in_file (file, ACCOUNT_FULL) == 0);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -3460,7 +3460,7 @@ static void transact_prepare_fileinfo(file_data *file)
 	icons_printf(transact_fileinfo_window, FILEINFO_ICON_TRANSACT, "%d", file->trans_count);
 	icons_printf(transact_fileinfo_window, FILEINFO_ICON_SORDERS, "%d", file->sorder_count);
 	icons_printf(transact_fileinfo_window, FILEINFO_ICON_PRESETS, "%d", file->preset_count);
-	icons_printf(transact_fileinfo_window, FILEINFO_ICON_ACCOUNTS, "%d", count_accounts_in_file(file, ACCOUNT_FULL));
-	icons_printf(transact_fileinfo_window, FILEINFO_ICON_HEADINGS, "%d", count_accounts_in_file(file, ACCOUNT_IN | ACCOUNT_OUT));
+	icons_printf(transact_fileinfo_window, FILEINFO_ICON_ACCOUNTS, "%d", account_count_type_in_file(file, ACCOUNT_FULL));
+	icons_printf(transact_fileinfo_window, FILEINFO_ICON_HEADINGS, "%d", account_count_type_in_file(file, ACCOUNT_IN | ACCOUNT_OUT));
 }
 

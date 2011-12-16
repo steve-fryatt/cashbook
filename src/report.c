@@ -845,6 +845,8 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	if (report == NULL)
 		return;
 
+	initialise_save_boxes(report->file, (int) report, 0);
+
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template.type == REPORT_TYPE_NONE);
 }
 

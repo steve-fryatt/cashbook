@@ -335,6 +335,9 @@ static void main_initialise(void)
 
 /**
  * Take the command line and parse it for useful arguments.
+ *
+ * \param argc			The number of parameters passed.
+ * \param *argv[]		Pointer to the parameter array.
  */
 
 static void main_parse_command_line(int argc, char *argv[])

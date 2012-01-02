@@ -1536,7 +1536,7 @@ void account_list_menu_prepare(void)
 {
 	int i = 0;
 
-	if (account_list_menu == NULL || account_list_menu == NULL || account_list_menu_file == NULL)
+	if (account_list_menu == NULL || account_list_menu_link == NULL || account_list_menu_file == NULL)
 		return;
 
 	do {

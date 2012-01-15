@@ -36,6 +36,7 @@ BUZIPFILE := cashbook$(shell date "+%Y%m%d").zip
 
 CC := $(wildcard $(GCCSDK_INSTALL_CROSSBIN)/*gcc)
 
+MKDIR := mkdir
 RM := rm -rf
 CP := cp
 
@@ -115,9 +116,13 @@ application: $(OUTDIR)/$(APP)/$(RUNIMAGE) $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS)
 
 OBJS := $(addprefix $(OBJDIR)/, $(OBJS))
 
-$(OUTDIR)/$(APP)/$(RUNIMAGE): $(OBJS)
+$(OUTDIR)/$(APP)/$(RUNIMAGE): $(OBJS) $(OBJDIR)
 	$(CC) $(CCFLAGS) $(LINKS) -o $(OUTDIR)/$(APP)/$(RUNIMAGE) $(OBJS)
 
+# Create a folder to hold the object files.
+
+$(OBJDIR):
+	$(MKDIR) $(OBJDIR)
 
 # Build the object files, and identify their dependencies.
 

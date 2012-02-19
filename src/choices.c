@@ -232,7 +232,7 @@ void choices_initialise(void)
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_TRANSACT], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_TRANSACT], choices_keypress_handler);
 	event_add_window_menu_prepare(choices_panes[CHOICE_PANE_TRANSACT], choices_menu_prepare_handler);
-	event_add_window_icon_popup(choices_panes[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTMEN, (wimp_menu *) choices_colpick_window, -1);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTMEN, (wimp_menu *) choices_colpick_window, -1, NULL);
 
 	choices_panes[CHOICE_PANE_REPORT] = templates_create_window("Choices5");
 	ihelp_add_window (choices_panes[CHOICE_PANE_REPORT], "Choices5", NULL);
@@ -241,17 +241,17 @@ void choices_initialise(void)
 	event_add_window_menu_prepare(choices_panes[CHOICE_PANE_REPORT], choices_menu_prepare_handler);
 	event_add_window_menu_selection(choices_panes[CHOICE_PANE_REPORT], choices_menu_selection_handler);
 	event_add_window_menu_close(choices_panes[CHOICE_PANE_REPORT], choices_menu_close_handler);
-	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_NFONTMENU, choices_font_menu, -1);
-	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BFONTMENU, choices_font_menu, -1);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_NFONTMENU, choices_font_menu, -1, NULL);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BFONTMENU, choices_font_menu, -1, NULL);
 
 	choices_panes[CHOICE_PANE_ACCOUNT] = templates_create_window("Choices6");
 	ihelp_add_window (choices_panes[CHOICE_PANE_ACCOUNT], "Choices6", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_ACCOUNT], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_ACCOUNT], choices_keypress_handler);
 	event_add_window_menu_prepare(choices_panes[CHOICE_PANE_ACCOUNT], choices_menu_prepare_handler);
-	event_add_window_icon_popup(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTMEN, (wimp_menu *) choices_colpick_window, -1);
-	event_add_window_icon_popup(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTMEN, (wimp_menu *) choices_colpick_window, -1);
-	event_add_window_icon_popup(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTMEN, (wimp_menu *) choices_colpick_window, -1);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_AHILIGHTMEN, (wimp_menu *) choices_colpick_window, -1, NULL);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_SHILIGHTMEN, (wimp_menu *) choices_colpick_window, -1, NULL);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTMEN, (wimp_menu *) choices_colpick_window, -1, NULL);
 }
 
 

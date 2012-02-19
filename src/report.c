@@ -156,8 +156,8 @@ void report_initialise(osspriteop_area *sprites)
 	event_add_window_menu_prepare(report_format_window, report_format_menu_prepare_handler);
 	event_add_window_menu_selection(report_format_window, report_format_menu_selection_handler);
 	event_add_window_menu_close(report_format_window, report_format_menu_close_handler);
-	event_add_window_icon_popup(report_format_window, REPORT_FORMAT_NFONTMENU, report_format_font_menu, -1);
-	event_add_window_icon_popup(report_format_window, REPORT_FORMAT_BFONTMENU, report_format_font_menu, -1);
+	event_add_window_icon_popup(report_format_window, REPORT_FORMAT_NFONTMENU, report_format_font_menu, -1, NULL);
+	event_add_window_icon_popup(report_format_window, REPORT_FORMAT_BFONTMENU, report_format_font_menu, -1, NULL);
 
 	/* Report View Window. */
 

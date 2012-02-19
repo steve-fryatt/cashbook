@@ -372,7 +372,7 @@ void analysis_initialise(void)
 	event_add_window_menu_prepare(analysis_save_window, analysis_save_menu_prepare_handler);
 	event_add_window_menu_selection(analysis_save_window, analysis_save_menu_selection_handler);
 	event_add_window_menu_close(analysis_save_window, analysis_save_menu_close_handler);
-	event_add_window_icon_popup(analysis_save_window, ANALYSIS_SAVE_NAMEPOPUP, NULL, -1);
+	event_add_window_icon_popup(analysis_save_window, ANALYSIS_SAVE_NAMEPOPUP, NULL, -1, NULL);
 
 	analysis_lookup_window = templates_create_window("AccEnter");
 	ihelp_add_window(analysis_lookup_window, "AccEnter", NULL);

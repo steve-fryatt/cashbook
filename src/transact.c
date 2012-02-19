@@ -352,7 +352,7 @@ void transact_open_window(file_data *file)
 	event_add_window_menu_selection(file->transaction_window.transaction_pane, transact_window_menu_selection_handler);
 	event_add_window_menu_warning(file->transaction_window.transaction_pane, transact_window_menu_warning_handler);
 	event_add_window_menu_close(file->transaction_window.transaction_pane, transact_window_menu_close_handler);
-	event_add_window_icon_popup(file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT, transact_account_list_menu, -1);
+	event_add_window_icon_popup(file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT, transact_account_list_menu, -1, NULL);
 
 	/* Put the caret into the first empty line. */
 

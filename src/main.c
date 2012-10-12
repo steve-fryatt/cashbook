@@ -184,7 +184,6 @@ static void main_initialise(void)
 	char				resources[255], res_temp[255];
 	osspriteop_area			*sprites;
 
-	wimp_MESSAGE_LIST(20)		message_list;
 	wimp_version_no			wimp_version;
 
 	hourglass_on();
@@ -203,29 +202,8 @@ static void main_initialise(void)
 
 	/* Initialise with the Wimp. */
 
-	message_list.messages[0]=message_URI_RETURN_RESULT;
-	message_list.messages[1]=message_ANT_OPEN_URL;
-	message_list.messages[2]=message_CLAIM_ENTITY;
-	message_list.messages[3]=message_DATA_REQUEST;
-	message_list.messages[4]=message_DATA_SAVE;
-	message_list.messages[5]=message_DATA_SAVE_ACK;
-	message_list.messages[6]=message_DATA_LOAD;
-	message_list.messages[7]=message_RAM_FETCH;
-	message_list.messages[8]=message_RAM_TRANSMIT;
-	message_list.messages[9]=message_DATA_OPEN;
-	message_list.messages[10]=message_MENU_WARNING;
-	message_list.messages[11]=message_MENUS_DELETED;
-	message_list.messages[12]=message_PRE_QUIT;
-	message_list.messages[13]=message_PRINT_SAVE;
-	message_list.messages[14]=message_PRINT_ERROR;
-	message_list.messages[15]=message_PRINT_FILE;
-	message_list.messages[16]=message_PRINT_INIT;
-	message_list.messages[17]=message_SET_PRINTER;
-	message_list.messages[18]=message_HELP_REQUEST;
-	message_list.messages[19]=message_QUIT;
-
 	msgs_lookup("TaskName", task_name, sizeof(task_name));
-	main_task_handle = wimp_initialise(wimp_VERSION_RO38, task_name, (wimp_message_list *) &message_list, &wimp_version);
+	main_task_handle = wimp_initialise(wimp_VERSION_RO38, task_name, NULL, &wimp_version);
 
 	if (tasks_test_for_duplicate(task_name, main_task_handle, "DupTask", "DupTaskB"))
 		main_quit_flag = TRUE;

@@ -30,6 +30,7 @@ $(info Building with version $(VERSION) ($(RELEASE)) on date $(BUILD_DATE))
 # a standard version number suffix.
 
 ZIPFILE := cashbook$(RELEASE).zip
+SRCZIPFILE := cashbook$(RELEASE)src.zip
 BUZIPFILE := cashbook$(shell date "+%Y%m%d").zip
 
 # Build Tools
@@ -57,6 +58,7 @@ MENUGEN := $(SFBIN)/menugen
 
 CCFLAGS := -mlibscl -mhard-float -static -mthrowback -Wall -O2 -D'BUILD_VERSION="$(VERSION)"' -D'BUILD_DATE="$(BUILD_DATE)"' -fno-strict-aliasing -mpoke-function-name
 ZIPFLAGS := -x "*/.svn/*" -r -, -9
+SRCZIPFLAGS := -x "*/.svn/*" -r -9
 BUZIPFLAGS := -x "*/.svn/*" -r -9
 BINDHELPFLAGS := -f -r -v
 MENUGENFLAGS := -d
@@ -165,6 +167,8 @@ $(OUTDIR)/$(README): $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) $(MANUAL)/$(READMEHDR
 release: clean all
 	$(RM) ../$(ZIPFILE)
 	(cd $(OUTDIR) ; $(ZIP) $(ZIPFLAGS) ../../$(ZIPFILE) $(APP) $(README) $(LICENSE))
+	$(RM) ../$(SRCZIPFILE)
+	$(ZIP) $(SRCZIPFLAGS) ../$(SRCZIPFILE) $(OUTDIR) $(SRCDIR) $(MENUDIR) $(MANUAL) Makefile
 
 
 # Build a backup Zip file

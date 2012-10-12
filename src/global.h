@@ -22,7 +22,7 @@
  */
 
 /**
- * \file: global.c
+ * \file: global.h
  *
  * Legacy global datastructure support.
  */

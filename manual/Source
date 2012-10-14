@@ -1469,13 +1469,14 @@ Update to third stable release.
 </list>
 
 
-<subhead title="Test Build">
+<subhead title="1.30 (14 October 2012)">
 
-Alpha release, for feedback and comment.
+Fourth stable release.
 
 <list>
 <li>Extensive internal restructuring.
 <li>Support for page numbering and heading line repetition when printing.
+<li>Substring search within transaction list.
 </list>
 
 </chapter>

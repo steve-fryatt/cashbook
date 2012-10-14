@@ -1474,6 +1474,7 @@ Update to third stable release.
 Fourth stable release.
 
 <list>
+<li>Relicensed as Open Source.
 <li>Extensive internal restructuring.
 <li>Support for page numbering and heading line repetition when printing.
 <li>Substring search within transaction list.

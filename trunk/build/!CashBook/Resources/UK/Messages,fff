@@ -1,0 +1,991 @@
+# Copyright 2004-2012, Stephen Fryatt
+#
+# This file is part of CashBook:
+#
+#   http://www.stevefryatt.org.uk/software/
+#
+# Licensed under the EUPL, Version 1.1 only (the "Licence");
+# You may not use this work except in compliance with the
+# Licence.
+#
+# You may obtain a copy of the Licence at:
+#
+#   http://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in
+# writing, software distributed under the Licence is
+# distributed on an "AS IS" basis, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.
+#
+# See the Licence for the specific language governing
+# permissions and limitations under the Licence.
+
+# General application details
+
+TaskName:CashBook
+Version:%0 (%1)
+
+TaskSpr:!cashbook
+
+SupportURL:http://www.stevefryatt.org.uk/software/cashbook/
+
+# Misc items
+
+DefTitle:<Untitled %0>
+RecChar:*
+Yes:Yes
+No:No
+UnSaved:Not saved
+
+# Startup tests
+
+DupTask:A copy of %0 is already running. Do you want to continue loading a second copy?
+DupTaskB:Stop,Continue
+
+# File creation
+
+NoMemNewFile:There was not enough memory to create the new file.
+
+# Transaction window
+
+TransTitle:Transaction list: %0
+
+NoMemNewTrans:There was not enough memory to add a new transaction.
+
+# Cheque and Payin slip number insertion
+
+ChqOrPayIn:Do you wish to use the pay-in slip number for %0 or the cheque number for %1?
+ChqOrPayInB:Cheque,Pay-in
+
+# Account and heading list
+
+AcclistTitleAcc:Accounts list: %0
+AcclistTitleHIn:Incoming headings list: %0
+AcclistTitleHOut:Outgoing headings list: %0
+
+AcclistMenuTitleAcc:Accounts
+AcclistMenuTitleHead:Headings
+
+AcclistMenuViewAcc:View account
+AcclistMenuViewHead:View heading
+AcclistMenuEditAcc:Edit account...
+AcclistMenuEditHead:Edit heading...
+AcclistMenuNewAcc:New account...
+AcclistMenuNewHead:New heading...
+
+AcclistBudgetTitle:Budget period
+AcclistBudgetFrom: from %0
+AcclistBudgetTo: to %0
+
+# Account view
+
+AccviewTitle:%0 transactions: %1
+
+AccviewMemErr1:There was not enough memory to open the account statement window.
+AccviewMemErr2:There was not enough memory to create the account statement listing.
+
+AccviewMenuTitleAcc:Account
+AccviewMenuTitleHead:Heading
+
+AccviewMenuEditAcc:Edit account...
+AccviewMenuEditHead:Edit heading...
+
+# Date and preset menu
+
+DateMenuTitle:Date
+DateMenuToday:Today's date F1
+
+# Account list menus
+
+ViewaccMenuTitle:View account
+
+ViewAccMenuTitleFrom:From
+ViewAccMenuTitleTo:To
+ViewAccMenuTitleAcc:Accounts
+ViewAccMenuTitleIn:Incoming
+ViewAccMenuTitleOut:Outgoing
+
+ViewaccMenuAccs:Accounts
+ViewaccMenuHIn:Incoming headings
+ViewaccMenuHOut:Outgoing headings
+
+# Reference menu
+
+RefMenuTitle:Reference
+RefMenuChq:Pay-in or cheque F1
+
+# Description menu
+
+DescMenuTitle:Description
+
+# Saved Report List Menu
+
+RepListMenuT1:Saved reports
+RepListMenuT2:Report names
+
+# Report dialogues
+
+BalRepTitle:Balance report
+CflRepTitle:Cashflow report
+TrnRepTitle:Transaction report
+UrcRepTitle:Unreconciled transaction report
+GenRepTitle:%0 report
+
+SaveRepTitle:Save as template
+RenRepTitle:Rename template
+SaveRepSave:Save
+RenRepRen:Rename
+
+
+# Standing order list
+
+SOrderStopped:Stopped
+SOrderDays:Days
+SOrderMonths:Months
+SOrderYears:Years
+
+SOrderTitle:Standing orders list: %0
+
+# Preset list
+
+PresetTitle:Transaction preset list: %0
+
+# Account and heading editing
+
+NewAcct:Create new account
+EditAcct:Edit account details
+NewHdr:Create new heading
+EditHdr:Edit heading details
+NewSect:Create new section
+EditSect:Edit section details
+
+NoMemNewAcct:There was not enough memory to add a new account.
+NoMemLinkAcct:There was not enough memory to link the account into the display windows.
+NoMemNewSect:There was not enough memory to add a new section heading.
+BadAcctIdent:You need to supply an ident string for the account or heading.
+UsedAcctIdent:This ident string is in use for another account or heading.
+CantDelAcct:This account or heading is in use and can not be deleted.
+
+DeleteAcct:Do you want to delete this account or heading: this action can not be reversed?
+DeleteAcctB:Delete,Cancel
+DeleteSection:Do you want to delete this section: this action can not be reversed?
+DeleteSectionB:Delete,Cancel
+
+# Standing order creation and editing
+
+NewSO:Create new standing order
+EditSO:Edit standing order details
+
+NoMemNewSO:There was not enough memory to add a new standing order.
+BadSONumber:The new number of transactions is less than those already carried out.
+
+CheckSODate:You have not changed the start date for this standing order: do you want to update the order anyway?
+CheckSODateB:Update,Change Date
+StopSOrder:Do you want to stop this standing order: this action can not be reversed?
+StopSOrderB:Stop,Cancel
+DeleteSOrder:Do you want to delete this standing order: this action can not be reversed?
+DeleteSOrderB:Delete,Cancel
+
+# Preset creation and editing
+
+NewPreset:Create new preset
+EditPreset:Edit preset details
+
+NoMemNewPreset:There was not enough memory to add a new preset.
+NoPresetName:The preset must be given a name.
+BadPresetNo:This key is already in use for another preset.
+
+DeletePreset:Do you want to delete this preset: this action can not be reversed?
+DeletePresetB:Delete,Cancel
+
+# Report Template Editing
+
+NoMemNewTemp:There was not enough memory to create this report template.
+
+CheckTempOvr:A report template with this name already exists: do you want to overwrite it?
+CheckTempOvrB:Overwrite,Cancel
+
+TempExists:A report template with this name already exists.
+
+DeleteTemp:Do you want to delete this report template: this action can not be reversed?
+DeleteTempB:Delete,Cancel
+
+# Action buttons for account and sorder windows
+
+NewAcctAct:Create
+EditAcctAct:Update
+
+# Transaction search
+
+Found:%0 at transaction %1
+
+BadFind:A matching transaction could not be found.
+
+# Transaction goto
+
+BadGotoLine:The transaction number is out of range.
+
+# Loading, saving and data transfer
+
+FileSaveFail:The file could not be saved.
+FileLoadFail:The file could not be loaded.
+NoMemForLoad:There was not enough memory to load the file.
+UnknownFileData:The file contained tokens which this version of CashBook did not understand. These have been discarded, and saving the file will cause that information to be lost.
+DragSave:To save, enter a full pathname or drag the file to a directory viewer.
+URLFailed:Could not find an application to launch the given URL.
+RAMXferFail:The data was not received correctly by the other application.
+ClipAllocFail:Could not allocate memory to create the clipboard.
+NoRAMforXFer:There was not enough memory to paste the data.
+
+FileNotSaved:This file is not saved: do you wish to close it anyway?
+FileNotSavedB:Discard,Cancel,Save
+FilesNotSaved:There are unsaved accounts files: do you want to quit anyway?
+FilesNotSavedB:Discard,Cancel
+
+# File import
+
+IRWinT:File Import Log
+IRTitle:\b\uFile Import Log for %0
+IRImpFile:Imported file: %0
+IRHeadings:\bAction\t\bDate\t\bFrom\t\bTo\t\bReference\t\bAmount\t\bDescription
+IRTotals:Imported %0 transactions. Rejected %1 entries.
+
+Imported:Imported
+Rejected:Rejected
+
+# Continuation files
+
+ContFileNotSaved:This file is modified. If it is not saved first, the unsaved changes may be lost in the purge.
+ContFileNotSavedB:Purge,Cancel
+
+# Default filenames
+
+DefTransFile:Accounts
+DefCSVFile:CSVFile
+DefTSVFile:TSVFile
+DefRepFile:Report
+
+# Printing
+
+PrintReport:Print report (%0)
+PrintSOrder:Print standing orders (%0)
+PrintPreset:Print presets (%0)
+PrintAcclistAcc:Print accounts (%0)
+PrintAcclistHead:Print headings (%0)
+PrintTransact:Print transactions (%0)
+PrintAccview:Print account (%0)
+
+NoPDriverT:No Printer
+PJobTitle:Cashbook Report (%0)
+
+PrintTitleSOrder:Standing orders
+PrintTitlePreset:Presets
+PrintTitleAcclistAcc:Accounts
+PrintTitleAcclistHead:Headings
+PrintTitleTransact:Transactions
+PrintTitleAccview:Account
+
+PrintBusy:The printer is currently in use.
+NoPManager:The Printers application must be loaded for text mode printing.
+NoPDriver:A printer driver must be present for graphics mode printing.
+PrintMemFail:The print job failed due to a lack of free memory for assembling the pages.
+BadPrintMargins:Some of the print margins were outside the printable page, and have been adjusted.
+
+# Reporting
+
+NoMemReport:There was not enough memory to create the report.
+
+PendingPrints:This file contains reports which are queued for printing: do you wish to close it anyway?
+PendingPrintsB:Close,Cancel
+FPendingPrints:There are reports which are queued for printing: do you wish to quit anyway?
+FPendingPrintsB:Quit,Cancel
+
+# Page numbering
+
+Page1: Page %0 of %1
+Page2: Page %0, %1 of %2, %3
+
+# Report date periods
+
+PRPeriod:From %0 to %1
+PRDay:%0
+PRMonth:%0
+PRYear:%0
+
+# General reports
+
+GRTitle:\b\u%0 Report for %1
+
+# Transaction reports
+
+TRWinT:Transaction Report
+TRTitle:\b\uTransaction Report for %0
+TRHeader:Report for period between %0 and %1, generated on %2
+TRHeadings:\k\bDate\t\bFrom\t\bTo\t\bReference\t\b\rAmount\t\bDescription
+TRAccounts:\k\bAccounts\t\b\rTotal
+TROutgoings:\k\bOutgoings\t\b\rTotal
+TRIncomings:\k\bIncomings\t\b\rTotal
+TRSummExtra:\t\b\rBudgeted\t\b\rBalance\t\b\rRemaining
+TRTotal:Total
+
+# Unreconciled transaction reports
+
+URWinT:Unreconciled Transaction Report
+URTitle:\b\uUnreconciled Transaction Report for %0
+URHeader:Report for period between %0 and %1, generated on %2
+URHeadings:\k\bDate\t\bFrom\t\s\t\bTo\t\s\t\bReference\t\b\rAmount\t\bDescription
+URTotalIn:Unreconciled incoming
+URTotalOut:Unreconciled outgoing
+URTotal:Total unreconciled
+
+# Cashflow reports
+
+CRWinT:Cashflow Report
+CRTitle:\b\uCashflow report for %0
+CRHeader:Report for period between %0 and %1, generated on %2
+CRDate:Date
+CRTotal:Total
+
+# Balance reports
+
+BRWinT:Balance Report
+BRTitle:\b\uBalance report for %0
+BRHeader:Report for period between %0 and %1, generated on %2
+BRDate:Date
+BRTotal:Total
+
+# Standing order reports
+
+SORWinT:Standing Order Report
+SORTitle:\b\uStanding Order Report for %0
+SORHeader:Full report, generated on %0
+SORCount:File contains %0 standing orders
+SORNumber:\uStanding Order %0
+SORFrom:\iTransfer from:\t%0
+SORTo:\iTransfer to:\t%0
+SORRef:\iReference:\t%0
+SORAmount:\iAmount:\t\d%0
+SORFirst:\iFirst amount:\t\d%0
+SORLast:\iLast amount:\t\d%0
+SORDesc:\iDescription:\t%0
+SORCounts:\iNumber:\t%0 (%1 done, %2 due)
+SOREvery:\iEvery:\t%0 %1
+SORAvoidFwd:\iAvoid weekends by bringing transaction forward
+SORAvoidBack:\iAvoid weekends by putting transaction back
+SORStart:\iStart date:\t%0
+SORNext:\iNext due date:\t%0
+
+# Error messages
+
+BadTemplate:Failed to load template.
+
+# Interactive Help for windows and icons.
+#
+# Window icon data (particularly toolbar items) may be in menu data when duplicates exist.
+
+Help.IconBar:\TCashBook application.|M\Screate a new file and open its transaction \w.
+
+Help.Transact/Help.TransactTB:\Ttransaction \w.
+Help.Transact.Col0:\Tdate column, showing the date on which transactions occur.|M\Splace the caret.|M\Ainsert the current date or select a transaction preset from a list.
+Help.Transact.Col1:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.
+Help.Transact.Col2:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
+Help.Transact.Col3:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
+Help.Transact.Col4:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.
+Help.Transact.Col5:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
+Help.Transact.Col6:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
+Help.Transact.Col7:\Treference column, allowing a short reference to be included.|M\Splace the caret.|M\Ainsert a copy of an existing reference or the next cheque number.
+Help.Transact.Col8:\Tamount column, showing the amount of money transferred.|M\Splace the caret.
+Help.Transact.Col9:\Tdescription column, which allows any other information to be recorded.|M\Splace the caret.|M\Ainsert a copy of an existing description.
+
+Help.TransactTB.ColDate/Help.AccViewTB.ColDate/Help.HeadViewTB.ColDate:\Tdate column.|M\Ssort the entries in ascending order by date, or \a for descending.|M\Dchange the column width.
+Help.TransactTB.ColFrom/Help.SOrderTB.ColFrom/Help.PresetTB.ColFrom:\Tfrom column.|M\Ssort the entries in ascending order by from entry, or \a for descending.|M\Dchange the column width.
+Help.TransactTB.ColTo/Help.SOrderTB.ColTo/Help.PresetTB.ColTo:\Tto column.|M\Ssort the entries in ascending order by to entry, or \a for descending.|M\Dchange the column width.
+Help.TransactTB.ColRef/Help.AccViewTB.ColRef/Help.HeadViewTB.ColRef:\Treference column.|M\Ssort the entries in ascending order by reference, or \a for descending.|M\Dchange the column width.
+Help.TransactTB.ColAmt/Help.SOrderTB.ColAmt/Help.PresetTB.ColAmt:\Tamount column.|M\Ssort the entries in ascending order by amount, or \a for descending.|M\Dchange the column width.
+Help.TransactTB.ColDesc/Help.SOrderTB.ColDesc/Help.PresetTB.ColDesc/Help.AccViewTB.ColDesc/Help.HeadViewTB.ColDesc:\Tdescription column.|M\Ssort the entries in ascending order by description, or \a for descending.|M\Dchange the column width.
+Help.TransactTB.Save:\Ssave the file.|M\Asave the file to the same place as before.
+Help.TransactTB.ViewAcc:\Sopen a statement view of an account.
+Help.TransactTB.Find:\Sfind a transaction (\a will alter if the dialogue fields are cleared).
+Help.TransactTB.Goto:\Sgo to a numbered transaction (\a will alter if the dialogue fields are cleared).
+Help.TransactTB.Sort:\Sopen the transaction sort dialogue, to update or change the sort details.|M\Are-sort the transactions using the current settings.
+Help.TransactTB.Icon20/Help.AccViewTB.Icon12/Help.SOrderTB.Icon10/Help.PresetTB.Icon10:\Tsort indicator, showing which column the data is being sorted on.
+
+Help.AccList/Help.AccListTB/Help.AccListFB:\Taccount list \w.
+Help.AccList.Col0/Help.AccList.Col1:\Taccount name column.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+Help.AccList.Col2:\Tstatement balance column, showing the reconciled totals.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+Help.AccList.Col3:\Tcurrent balance column, showing the totals at this date.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+Help.AccList.Col4:\Tfinal balance column, showing the totals at a given date in the future.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+Help.AccList.Col5:\Tbudget variance column, showing the changes over the budget period.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+
+Help.AccListTB.Up/Help.HeadListTB.Up/Help.AccViewTB.Up/Help.HeadViewTB.Up/Help.SOrderTB.Up/Help.PresetTB.Up:\Sbring this file's transaction \w to the front.
+Help.AccListTB.ColName/Help.HeadListTB.ColName:\Tname column.|M\Dchange the column width.
+Help.AccListTB.ColStat:\Tstatement balance column.|M\Dchange the column width.
+Help.AccListTB.ColCurr:\Tcurrent balance column.|M\Dchange the column width.
+Help.AccListTB.ColFinal:\Tfinal balance column.|M\Dchange the column width.
+Help.AccListTB.ColBud:\Tbudget variance column.|M\Dchange the column width.
+
+Help.AccListFB.Tot1:\Ttotal of the statement balance column.
+Help.AccListFB.Tot2:\Ttotal of the current balance column.
+Help.AccListFB.Tot3:\Ttotal of the final balance column.
+Help.AccListFB.Tot4:\Ttotal of the budget variance column.
+
+Help.HeadList/Help.HeadListTB/Help.HeadListFB:\Tanalysis heading list \w.
+Help.HeadList.Col0/Help.HeadList.Col1:\Theading name column.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+Help.HeadList.Col2:\Ttotal column, showing the total amount associated with the heading.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+Help.HeadList.Col3:\Tbudget limit column, showing the amount budgeted for the heading.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+Help.HeadList.Col4:\Tbudget total column, showing the amount associated with the heading during the budget period.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+Help.HeadList.Col5:\Tbudget balance column of the analysis heading list \w, showing the amount outstanding to for the budget period.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+
+Help.HeadListTB.ColTot:\Ttotal column.|M\Dchange the column width.
+Help.HeadListTB.ColBud:\Tbudget limit column.|M\Dchange the column width.
+Help.HeadListTB.ColAct:\Tbudget total column.|M\Dchange the column width.
+Help.HeadListTB.ColBal:\Tbudget balance column.|M\Dchange the column width.
+
+Help.HeadListFB.Tot1:\Ttotal of the heading total column.
+Help.HeadListFB.Tot2:\Ttotal of the budget limit column.
+Help.HeadListFB.Tot3:\Ttotal of the budget total column.
+Help.HeadListFB.Tot4:\Ttotal of the budget balance column.
+
+Help.AccView/Help.AccViewTB:\Taccount statement view \w.
+Help.AccView.Col0/Help.HeadView.Col0:\Tdate column, showing the date on which transactions occur.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Col1/Help.AccView.Col3/Help.HeadView.Col1/Help.HeadView.Col3:\Tfrom/to column, showing the other account or analysis heading in the transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Col2:\Treconciled status for the transaction in this account.|MDouble-click \s to find this transaction in the transaction \w.|M\Atoggle the reconciled status.
+Help.AccView.Col4:\Treference column, allowing a short reference to be included.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Col5:\Tpayments column, showing payments out of this account.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Col6:\Treceipts column, showing payments in to this account.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Col7:\Taccount balance column, showing the balance of the account after this transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Col8/Help.HeadView.Col8:\Tdescription column, which allows any other information to be recorded.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+
+Help.AccViewTB.ColFmTo/Help.HeadViewTB.ColFmTo:\Tfrom/to column.|M\Ssort the entries in ascending order by from/to entry, or \a for descending.|M\Dchange the column width.
+Help.AccViewTB.ColPaymt/Help.HeadViewTB.ColPaymt:\Tpayment column.|M\Ssort the entries in ascending order by payment amount, or \a for descending.|M\Dchange the column width.
+Help.AccViewTB.ColRecpt/Help.HeadViewTB.ColRecpt:\Treceipt column.|M\Ssort the entries in ascending order by receipt amount, or \a for descending.|M\Dchange the column width.
+Help.AccViewTB.ColBal/Help.HeadViewTB.ColBal:\Tbalance column.|M\Ssort the entries in ascending order by balance, or \a for descending.|M\Dchange the column width.
+Help.AccViewTB.Sort:\Sopen the account entry sort dialogue, to update or change the sort details.|M\Are-sort the entries using the current settings.
+Help.HeadViewTB.Sort:\Sopen the analysis heading entry sort dialogue, to update or change the sort details.|M\Are-sort the entries using the current settings.
+
+Help.HeadView/Help.HeadViewTB:\Tanalysis heading statement view \w.
+Help.HeadView.Col2:\Treconciled status for the transaction in this analysis heading.|MDouble-click \s to find this transaction in the transaction \w.|M\Atoggle the reconciled status.
+Help.HeadView.Col4:\Treference column, allowing a short reference to be included.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.HeadView.Col5:\Tpayments column, showing payments from this analysis heading.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.HeadView.Col6:\Treceipts column, showing payments to this analysis heading.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.HeadView.Col7:\Theading balance column, showing the total associated with this analysis heading after this transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+
+Help.SOrder/Help.SOrderTB:\Tstanding order list \w.
+Help.SOrder.Col0/Help.SOrder.Col1/Help.SOrder.Col2:\Tfrom column, showing the account or analysis heading from which money will be transferred.|MDouble-click \s to edit the standing order.
+Help.SOrder.Col3/Help.SOrder.Col4/Help.SOrder.Col5:\Tto column, showing the account or analysis heading to which money will be transferred.|MDouble-click \s to edit the standing order.
+Help.SOrder.Col6:\Tamount column, showing the amount of money that will be transferred.|MDouble-click \s to edit the standing order.
+Help.SOrder.Col7:\Tdescription column, which allows other information about the standing orders to be recorded.|MDouble-click \s to edit the standing order.
+Help.SOrder.Col8:\Tnext date column, showing the date on which the next transaction will take place.|MDouble-click \s to edit the standing order.
+Help.SOrder.Col9:\Tremaining transactions column, showing the number of transactions still to take place.|MDouble-click \s to edit the standing order.
+
+Help.SOrderTB.ColNext:\Tnext date column.|M\Ssort the entries in ascending order by next date, or \a for descending.|M\Dchange the column width.
+Help.SOrderTB.ColLeft:\Tremaining transactions column.|M\Ssort the entries in ascending order by transactions left, or \a for descending.|M\Dchange the column width.
+Help.SOrderTB.Sort:\Sopen the standing order sort dialogue, to update or change the sort details.|M\Are-sort the standing orders using the current settings.
+
+Help.Preset/Help.PresetTB:\Tpreset list \w.
+Help.Preset.Col0:\Tkey column, showing the key used to insert the preset transaction.|MDouble-click \s to edit the preset.
+Help.Preset.Col1:\Tname column, showing the name of the preset transaction.|MDouble-click \s to edit the preset.
+Help.Preset.Col2/Help.Preset.Col3/Help.Preset.Col4:\Tfrom column, showing the account or analysis heading from which money will be transferred.|MDouble-click \s to edit the preset.
+Help.Preset.Col5/Help.Preset.Col6/Help.Preset.Col7:\Tto column, showing the account or analysis heading to which money will be transferred.|MDouble-click \s to edit the preset.
+Help.Preset.Col8:\Tamount column, showing the amount of money that will be transferred.|MDouble-click \s to edit the preset.
+Help.Preset.Col9:\Tdescription column, which allows other information about the presets to be recorded.|MDouble-click \s to edit the preset.
+
+Help.PresetTB.ColKey:\Tkey column.|M\Ssort the entries in ascending order by next date, or \a for descending.|M\Dchange the column width.
+Help.PresetTB.ColName:\Tname column.|M\Ssort the entries in ascending order by transactions left, or \a for descending.|M\Dchange the column width.
+Help.PresetTB.Sort:\Sopen the preset sort dialogue, to update or change the sort details.|M\Are-sort the presets using the current settings.
+
+Help.Report:\Wa CashBook report.|MThe contents can be printed or exported from the menu.
+
+Help.ProgInfo:\TCashBook information \w.
+Help.ProgInfo.Website:\Svisit the CashBook website, if you have Internet access.
+
+Help.FileInfo:\Tcashbook file information \w, which shows details about the current file.
+Help.FileInfo.Location:\Tfull pathname of the file's location on disc.
+Help.FileInfo.Mod:This shows whether the file has been changed since it was last saved.
+Help.FileInfo.Date:\Tdate when the file was last saved.
+Help.FileInfo.Acc:\Tnumber of accounts in the file.
+Help.FileInfo.Head:\Tnumber of analysis headings in the file.
+Help.FileInfo.Trans:\Tnumber of transactions in the file.
+Help.FileInfo.SO:\Tnumber of standing orders in the file.
+Help.FileInfo.Pre:\Tnumber of transaction presets in the file.
+
+Help.SaveAs:\Tfile save \w.
+Help.SaveAs.Icon3:Drag this icon to the directory display where the file is to be saved, or direct to another application.
+Help.SaveAs.Name:Enter a new filename, or full pathname, for the file here.
+Help.SaveAs.Save:\Ssave the file if there is a full pathname above.
+Help.SaveAs.Cancel:\Scancel the save.
+
+Help.ImpComp:\Tfile import results \w.
+Help.ImpComp.Imported:\Tnumber of transactions that were successfully imported.
+Help.ImpComp.Rejected:\Tnumber of entries in the file that were not imported.
+Help.ImpComp.Close:\Sclose this \w.
+Help.ImpComp.Log:\Sclose this \w and show the import log report.
+
+Help.EditAccount.Cancel/Help.EditHeading.Cancel/Help.Goto.Cancel/Help.EditAccSect.Cancel/Help.EditSOrder.Cancel/Help.EditPreset.Cancel/Help.Budget.Cancel/Help.RepFormat.Cancel/Help.Choices.Cancel/Help.TransRep.Cancel/Help.UnrecRep.Cancel/Help.CashFlwRep.Cancel/Help.SortTrans.Cancel/Help.SortAccView.Cancel/Help.SortSOrder.Cancel/Help.SortPreset.Cancel/Help.SaveRepTemp???.Cancel:\Scancel the changes.|M\Areset the window contents.
+
+Help.EditAccount:\Taccount edit \w.
+Help.EditAccount.Name:\Tname of the account.
+Help.EditAccount.Ident:\Tident for the account, used when entering data.
+Help.EditAccount.Limit:\Tcredit or overdraft limit for the account.
+Help.EditAccount.Open:\Topening balance used to calculate other balances from.
+Help.EditAccount.Cheque:\Tnumber of the next cheque, for use in the reference field.|MLeave blank if no number is required.
+Help.EditAccount.Payin:\Tnumber of the next paying in slip, for use in the reference field.|MLeave blank if no number is required.
+Help.EditAccount.AccNo:\Taccount number of the account.|MIt is only used for information.
+Help.EditAccount.Sort:\Tsort code of the account.|MIt is only used for information.
+Help.EditAccount.Addr?:\Taddress of the bank.|MIt is only used for information.
+Help.EditAccount.Update:\Sstore the account details (\a will leave the \w open).
+Help.EditAccount.Delete:\Sdelete the account, if it is not being used.
+
+Help.EditHeading:\Tanalysis heading edit \w.
+Help.EditHeading.Name:\Tname of the analysis heading.
+Help.EditHeading.Ident:\Tident for the analysis heading, used when entering data.
+Help.EditHeading.In:\Smake the heading an incoming analysis heading.
+Help.EditHeading.Out:\Smake the heading an outgoing analysis heading.
+Help.EditHeading.Limit:\Tbudget limit for this analysis heading.
+Help.EditHeading.Update:\Sstore the analysis heading details (\a will leave the \w open).
+Help.EditHeading.Delete:\Sdelete the analysis heading, if it is not being used.
+
+Help.EditSOrder:\Tstanding order edit \w.
+Help.EditSOrder.Start:\Tdate on which the first payment will be made.|MIf the period is monthly, the day can be set to beyond the last date of the given month.
+Help.EditSOrder.Num:\Tnumber of payments to be made.
+Help.EditSOrder.Period:\Tperiod at which the payments will be made.
+Help.EditSOrder.Days:\Sspecify the payment period in days.
+Help.EditSOrder.Months:\Sspecify the payment period in months.
+Help.EditSOrder.Years:\Sspecify the payment period in years.
+Help.EditSOrder.Avoid:\Stoggle whether transactions avoid weekend days.
+Help.EditSOrder.AForward:\Savoid weekend days by bringing the transaction forward to the day before.
+Help.EditSOrder.ABack:\Savoid weekend days by putting the transaction back to the day after.
+
+Help.EditSOrder.From/Help.EditPreset.From:\Tident of the account or analysis heading that the transaction will be from.
+Help.EditSOrder.FromRec/Help.EditPreset.FromRec:This indicates if the account or analysis heading in the from column should be reconciled.|M\Atoggle the reconciled state.
+Help.EditSOrder.FromName/Help.EditPreset.FromName:\Tname of an account or analysis heading that the transaction will be from.|M\Aselect an account or heading from a list.
+Help.EditSOrder.To/Help.EditPreset.To:\Tident of an account or analysis heading that the transaction will be to.
+Help.EditSOrder.ToRec/Help.EditPreset.ToRec:This indicates if the account or analysis heading in the to column should be reconciled.|M\Atoggle the reconciled state.
+Help.EditSOrder.ToName/Help.EditPreset.ToName:\Tname of an account or analysis heading that the transaction will be to.|M\Aselect an account or heading from a list.
+Help.EditSOrder.Ref/Help.EditPreset.Ref:\Treference for the transaction.
+Help.EditSOrder.Amount:\Tamount to be transferred.|MDifferent values can be specified below for the first and last transactions.
+Help.EditSOrder.First:\Sallow a different amount to be transferred in the first transaction.
+Help.EditSOrder.FirstAmt:\Tamount to be transferred in the first transaction.
+Help.EditSOrder.Last:\Sallow a different amount to be transferred in the last transaction.
+Help.EditSOrder.LastAmt:\Tamount to be transferred in the last transaction.
+Help.EditSOrder.Desc/Help.EditPreset.Desc:\Tdescription for the transaction.
+Help.EditSOrder.Delete:\Sdelete the standing order.
+Help.EditSOrder.Stop:\Sstop the standing order.
+Help.EditSOrder.Default:\Sstore the standing order details (\a will leave the \w open).
+
+Help.EditPreset:\Tpreset transaction edit \w.
+Help.EditPreset.Key:\Tkey used in the date column of the transaction \w to enter the preset.|MLeave blank to access the preset from the menu only.
+Help.EditPreset.Name:\Tname of the preset, which identifies it in the menu.
+Help.EditPreset.Date:\Tdate the transaction occurs on.
+Help.EditPreset.Amount:\Tamount to be transferred in the transaction.
+Help.EditPreset.Today:\Stoggle whether the preset always enters the current date into the date column.
+Help.EditPreset.Cheque:\Stoggle whether the preset always enters the next cheque number for the From account into the reference column.
+Help.EditPreset.CarDate:\Sleave the caret in the date column after entering the preset.
+Help.EditPreset.CarFrom:\Sleave the caret in the from column after entering the preset.
+Help.EditPreset.CarTo:\Sleave the caret in the to column after entering the preset.
+Help.EditPreset.CarRef:\Sleave the caret in the reference column after entering the preset.
+Help.EditPreset.CarAmt:\Sleave the caret in the amount column after entering the preset.
+Help.EditPreset.CarDesc:\Sleave the caret in the description column after entering the preset.
+Help.EditPreset.Delete:\Sdelete the preset transaction definition.
+Help.EditPreset.Default:\Sstore the preset transaction definition (\a will leave the \w open).
+
+Help.Goto:\Tgoto transaction \w.
+Help.Goto.Trans:\Tdate or number of the transaction to go to.
+Help.Goto.Num:\Sspecify the transaction in terms of line number.
+Help.Goto.Date:\Sspecify the transaction in terms of date.
+Help.Goto.Go:\Sgo to the transaction (\a will leave the \w open).
+
+Help.EditAccSect:\Tsection edit \w.
+Help.EditAccSect.Title:\Ttitle for the section, displayed in the name column.
+Help.EditAccSect.Head:\Smake the section a header line.
+Help.EditAccSect.Foot:\Smake the section a footer line.
+Help.EditAccSect.Delete:\Sdelete the section from the list.
+Help.EditAccSect.Update:\Sstore the section details (\a will leave the \w open).
+
+Help.Budget:\Tbudget details \w.
+Help.Budget.Start:\Tdate from which transactions will be included in budget calculations.
+Help.Budget.End:\Tdate up to which transactions will be included in budget calculations.
+Help.Budget.Trial:\Tnumber of days ahead that standing orders are included in the final totals.|MSet it to 0 to exclude standing orders completery.
+Help.Budget.ResTrans:\Stoggle whether transactions beyond the standing order trial limit are left out of the final totals.
+Help.Budget.Update:\Sset the new budget details.
+
+Help.Find:\Tfind \w.
+Help.Find.Date:This is a date to be matched.
+Help.Find.From:\Tident of an account or analysis heading to be matched in the from column.
+Help.Find.FromRec:This indicates if the account or analysis heading in the from column should be reconciled.|M\Atoggle the reconciled state.
+Help.Find.FromName:\Tname of an account or analysis heading to be matched in the from column.|M\Aselect an account or heading from a list.
+Help.Find.To:\Tident of an account or analysis heading to be matched in the to column.
+Help.Find.ToRec:This indicates if the account or analysis heading in the to column should be reconciled.|M\Atoggle the reconciled state.
+Help.Find.ToName:\Tname of an account or analysis heading to be matched in the to column.|M\Aselect an account or heading from a list.
+Help.Find.Ref:This is a reference to be matched.
+Help.Find.Amount:This is an amount to be matched.
+Help.Find.Desc:This is a description to be matched.
+Help.Find.Case:\Stoggle whether the case of letters is taken into account when matching references and descriptions.
+Help.Find.Whole:\Stoggle text must be an exact match, or simply occur somewhere within a reference or description.
+Help.Find.And:\Smatch transactions only when all the completed fields are correct.
+Help.Find.Or:\Smatch transactions when any one or more of the completed fields is correct.
+Help.Find.Start:\Sbegin the search at the first transaction and work down.
+Help.Find.End:\Sbegin the search at the last transaction and work up.
+Help.Find.Down:\Sbegin the search at the current transaction and work down.
+Help.Find.Up:\Sbegin the search at the current transaction and work up.
+Help.Find.Find:\Sstart the search for a matching transaction.
+Help.Find.Cancel:\Sabandon the search.|M\Areset the \w contents.
+
+Help.Found:\Tfound \w.
+Help.Found.Report:\Tline and field where the match was found.
+Help.Found.Prev:\Sfind the previous matching transaction in the current search direction.
+Help.Found.Next:\Sfind the next matching transaction in the current search direction.
+Help.Found.Cancel:\Send the search.
+Help.Found.New:\Sstart a new search based on the current one.
+
+Help.SortTrans:\Ttransaction sort \w.
+Help.SortTrans.Date:\Ssort the transactions based on date order.
+Help.SortTrans.From:\Ssort the transactions based on the account and analysis heading names in the from field.
+Help.SortTrans.To:\Ssort the transactions based on the account and analysis heading names in the to field.
+Help.SortTrans.Ref:\Ssort the transactions based on the references.
+Help.SortTrans.Amt:\Ssort the transactions based on the amounts.
+Help.SortTrans.Desc:\Ssort the transactions based on the descriptions.
+Help.SortTrans.Ascend:\Ssort the transactions into ascending order.
+Help.SortTrans.Descend:\Ssort the transactions into descending order.
+Help.SortTrans.Sort:\Supdate the settings and sort the transactions.
+
+Help.SortAccView:\Taccount entry sort \w.
+Help.SortAccView.Date:\Ssort the account entries based on date order.
+Help.SortAccView.FromTo:\Ssort the account entries based on the account and analysis heading names in the from/to field.
+Help.SortAccView.Ref:\Ssort the account entries based on the references.
+Help.SortAccView.Pay:\Ssort the account entries based on the payment amounts.
+Help.SortAccView.Rcpt:\Ssort the account entries based on the receipt amounts.
+Help.SortAccView.Bal:\Ssort the account entries based on the running balances.
+Help.SortAccView.Desc:\Ssort the account entries based on the descriptions.
+Help.SortAccView.Ascend:\Ssort the account entries into ascending order.
+Help.SortAccView.Descend:\Ssort the account entries into descending order.
+Help.SortAccView.Sort:\Supdate the settings and sort the account entries.
+
+Help.SortSOrder:\Tstanding order sort \w.
+Help.SortSOrder.From:\Ssort the standing orders based on the account and analysis heading names in the from field.
+Help.SortSOrder.To:\Ssort the standing orders based on the account and analysis heading names in the to field.
+Help.SortSOrder.Amt:\Ssort the standing orders based on the transaction amounts.
+Help.SortSOrder.Desc:\Ssort the standing orders based on the descriptions.
+Help.SortSOrder.Next:\Ssort the standing order entries based on date of the next transaction.
+Help.SortSOrder.Left:\Ssort the standing order entries based on the number of transactions remaining.
+Help.SortSOrder.Ascend:\Ssort the standing order entries into ascending order.
+Help.SortSOrder.Descend:\Ssort the standing order entries into descending order.
+Help.SortSOrder.Sort:\Supdate the settings and sort the standing orders.
+
+Help.SortPreset:\Tpreset list sort \w.
+Help.SortPreset.From:\Ssort the presets based on the account and analysis heading names in the from field.
+Help.SortPreset.To:\Ssort the presets based on the account and analysis heading names in the to field.
+Help.SortPreset.Amt:\Ssort the presets based on the transaction amounts.
+Help.SortPreset.Desc:\Ssort the presets based on the descriptions.
+Help.SortPreset.Key:\Ssort the presets based on the keys used to enter them.
+Help.SortPreset.Name:\Ssort the presets based on their names.
+Help.SortPreset.Ascend:\Ssort the presets into ascending order.
+Help.SortPreset.Descend:\Ssort the presets into descending order.
+Help.SortPreset.Sort:\Supdate the settings and sort the presets.
+
+Help.Choices/Help.Choices?:\Tchoices \w.
+Help.Choices.Apply:\Sapply the current settings (\a will leave the \w open).
+Help.Choices.Save:\Ssave and apply the current settings (\a will leave the \w open).
+Help.Choices.General:\Schange general options.
+Help.Choices.Currency:\Schange options affecting the currency in use.
+Help.Choices.Transact:\Schange options affecting transactions.
+Help.Choices.Accounts:\Schange options affecting accounts and analysis headings.
+Help.Choices.SOrder:\Schange options affecting standing orders.
+Help.Choices.Print:\Schange options affecting printing.
+Help.Choices.Fonts:\Schange options for fonts used in reports and printing.
+
+Help.Choices0.Remember:\Stoggle whether the contents of dialogue boxes is remembered after use.
+Help.Choices0.RO5Keys:\Stoggle whether the RISC OS 5 style of keyboard usage is adopted.
+Help.Choices0.Global:\Ssupport for the global clipboard on and off.
+Help.Choices0.DateIn:These are the separators which can be used when entering dates.
+Help.Choices0.DateOut:\Tseparator used when displaying dates.
+Help.Choices0.TCal:\Schoose between using the current territory's calendar details or the application's own defaults.
+
+Help.Choices1.Zeros:\Stoggle the display of zero values.
+Help.Choices1.TCurr:\Schoose between using the current territory's currency or the details entered below.
+Help.Choices1.DPlace:\Tnumber of decimal places in the currency.
+Help.Choices1.DPoint:\Tsymbol used for a decimal point in the currency.
+Help.Choices1.NMinus:\Sshow negative values preceded by a minus sign.
+Help.Choices1.NBrace:\Sshow negative values enclosed in braces.
+
+Help.Choices2.SortSO:\Stoggle the automatic sorting of transactions after standing orders have been added.
+Help.Choices2.AutoSO:\Stoggle the automatic sorting of standing orders after changes or updates.
+Help.Choices2.TSO:\Schoose between using the current territory's weekend days or the days selected below when avoiding weekends.
+Help.Choices2.SOMon:\Stoggle Monday as a weekend day.
+Help.Choices2.SOTue:\Stoggle Tuesday as a weekend day.
+Help.Choices2.SOWed:\Stoggle Wednesday as a weekend day.
+Help.Choices2.SOThu:\Stoggle Thursday as a weekend day.
+Help.Choices2.SOFri:\Stoggle Friday as a weekend day.
+Help.Choices2.SOSat:\Stoggle Saturday as a weekend day.
+Help.Choices2.SOSun:\Stoggle Sunday as a weekend day.
+
+Help.Choices3.MTop:\Tmargin at the top of the page.|MEnter 0 (zero) to use the default paper margins.
+Help.Choices3.MLeft:\Tmargin at the left-hand of the page.|MEnter 0 (zero) to use the default paper margins.
+Help.Choices3.MRight:\Tmargin at the right-hand of the page.|MEnter 0 (zero) to use the default paper margins.
+Help.Choices3.MBottom:\Tmargin at the bottom of the page.|MEnter 0 (zero) to use the default paper margins.
+Help.Choices3.Gutt:\Tspace between the page body and the header or footer.
+Help.Choices3.MInch:\Sdefine the page margins in inches.
+Help.Choices3.Mcm:\Sdefine the page margins in cm.
+Help.Choices3.Mmm:\Sdefine the page margins in mm.
+
+Help.Choices4.AutoSort:\Stoggle the automatic sorting of new transactions.
+Help.Choices4.TDel:\Stoggle the use of the transaction delete keypress (Ctrl-F10).
+Help.Choices4.HiRec:\Stoggle the highlighting of fully reconciled transactions in the transaction \w.
+Help.Choices4.HiRecCol1/Help.Choices4.HiRecCol2:\Tcolour that fully reconciled transactions are highlighted.
+Help.Choices4.HiRecMenu:\Schoose the colour to highlight fully reconciled transactions.
+Help.Choices4.Comp:\Tmaximum number of items that will be added to the Reference and Description completion menus.|MEnter 0 to indicate no limit.
+Help.Choices4.AutoSortPre:\Stoggle the automatic sorting of new presets.
+
+Help.Choices5.NFont:\Tfont used for normal text in reports and printing.
+Help.Choices5.NFontMenu:\Schange the font used for normal text in reports and printing.
+Help.Choices5.BFont:\Tfont used for bold text in reports and printing.
+Help.Choices5.BFontMenu:\Schange the font used for bold text in reports and printing.
+Help.Choices5.Size:\Tfont size for reports and printing, in points.
+Help.Choices5.Spacing:\Tline spacing for reports and printing, as a percentage of the font size.
+
+Help.Choices6.HiAcc:\Stoggle the highlighting of overdrawn accounts or analysis headings in the account and heading list \ws.
+Help.Choices6.HiAccCol1/Help.Choices6.HiAccCol2:\Tcolour that overdrawn accounts and analysis headings are highlighted.
+Help.Choices6.HiAccMenu:\Schoose the colour to highlight overdrawn accounts and analysis headings.
+Help.Choices6.HiBud:\Stoggle the highlighting of transactions outside the budget dates in the analysis heading statement \ws.
+Help.Choices6.HiBudCol1/Help.Choices6.HiBudCol2:\Tcolour that transactions outside the budget dates are highlighted.
+Help.Choices6.HiBudMenu:\Schoose the colour to highlight transactions outside the budget dates.
+Help.Choices6.HiOdn:\Stoggle the highlighting of overdrawn transactions in the account statement \ws.
+Help.Choices6.HiOdnCol1/Help.Choices6.HiOdnCol2:\Tcolour that overdrawn transactions are highlighted.
+Help.Choices6.HiOdnMenu:\Schoose the colour to highlight overdrawn transactions.
+
+Help.RepFormat:\Treport format \w.
+Help.RepFormat.NFont:\Tfont used for normal text in the report.
+Help.RepFormat.NFontMenu:\Schange the font used for normal text in the report.
+Help.RepFormat.BFont:\Tfont used for bold text in the report.
+Help.RepFormat.BFontMenu:\Schange the font used for bold text in the report.
+Help.RepFormat.Size:\Tfont size for the report, in points.
+Help.RepFormat.Spacing:\Tline spacing for the report, as a percentage of the font size.
+Help.RepFormat.Update:\Schange the font settings used in the report.
+
+Help.AccEnter:\Taccount ident entry window, which allows account idents to be typed into fields easily.
+Help.AccEnter.Ident:\Tident of an account or analysis heading to be entered.
+Help.AccEnter.Rec:This indicates if the account or analysis heading is reconciled.|M\Atoggle the reconciled state.
+Help.AccEnter.Name:\Tname of an account or analysis heading to be entered.|M\Aselect an account or heading from a list.
+Help.AccEnter.OK:\Senter the account's ident into the parent field.
+Help.AccEnter.Cancel:\Sclose the window without entering the account details.
+
+Help.TransRep:\Ttransaction report \w, allowing new reports to be created.
+Help.TransRep.FromDate:\Tdate of the first transaction to include in the report.
+Help.TransRep.ToDate:\Tdate of the last transaction to include in the report.
+Help.TransRep.Budget:\Stoggle whether the budget dates are used in preference to those entered above.
+Help.TransRep.Group:\Stoggle grouping the results.
+Help.TransRep.Period:\Tperiod by which the results will be grouped.
+Help.TransRep.Days:\Sspecify the grouping period in days.
+Help.TransRep.Months:\Sspecify the grouping period in months.
+Help.TransRep.Years:\Sspecify the grouping period in years.
+Help.TransRep.Lock:\Stoggle whether groups in months or years are locked on to calendar boundaries (ie. always whole months or years).
+Help.TransRep.FromAcc:\Tlist of accounts and incoming headings which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
+Help.TransRep.ToAcc:\Tlist of accounts and outgoing headings which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
+Help.TransRep.FromP/Help.TransRep.ToP:\Senter an account using the account entry \w.
+Help.TransRep.Ref:\Ttext to be matched in the reference field of included transactions.|M# and * are single and multiple character wildcards.
+Help.TransRep.AmtLo:\Tlower value limit for transactions included in the report.
+Help.TransRep.AmtHi:\Tupper value limit for transactions included in the report.
+Help.TransRep.Desc:\Ttext to be matched in the description field of included transactions.|M# and * are single and multiple character wildcards.
+Help.TransRep.OPTrans:\Stoggle whether transaction details are included in the report.
+Help.TransRep.OPSummA:\Stoggle whether account summaries are included in the report.
+Help.TransRep.OPSummH:\Stoggle whether analysis heading summaries are included in the report.
+Help.TransRep.OK:\Sgenerate a transaction report.
+Help.TransRep.Delete/Help.UnrecRep.Delete/Help.CashFlwRep.Delete/Help.BalanceRep.Delete:\Sdetele the template behind this report.
+Help.TransRep.Rename/Help.UnrecRep.Rename/Help.CashFlwRep.Rename/Help.BalanceRep.Rename:\Srename the template behind this report.
+
+Help.UnrecRep:\Tunreconciled transaction report \w, allowing new reports to be created.
+Help.UnrecRep.FromDate:\Tdate of the first transaction to include in the report.
+Help.UnrecRep.ToDate:\Tdate of the last transaction to include in the report.
+Help.UnrecRep.Budget:\Stoggle whether the budget dates are used in preference to those entered above.
+Help.UnrecRep.Group:\Stoggle grouping the transactions.
+Help.UnrecRep.GAcc:\Sgroup the transactions by account and heading.
+Help.UnrecRep.GDate:\Sgroup the transactions by date.
+Help.UnrecRep.Period:\Tperiod by which the transactions will be grouped.
+Help.UnrecRep.Days:\Sspecify the grouping period in days.
+Help.UnrecRep.Months:\Sspecify the grouping period in months.
+Help.UnrecRep.Years:\Sspecify the grouping period in years.
+Help.UnrecRep.Lock:\Stoggle whether groups in months or years are locked on to calendar boundaries (ie. always whole months or years).
+Help.UnrecRep.FromAcc:\Tlist of accounts and headings which will be searched for unreconciled from entries.|MThe list is separated by commas, and * indicates 'any'.
+Help.UnrecRep.ToAcc:\Tlist of accounts and headings which will be searched for unreconciled to entries.|MThe list is separated by commas, and * indicates 'any'.
+Help.UnrecRep.FromP/Help.UnrecRep.ToP:\Senter an account using the account entry \w.
+Help.UnrecRep.OK:\Sgenerate an unreconciled transaction report.
+
+Help.CashFlwRep:\Tcashflow report \w, allowing new reports to be created.
+Help.CashFlwRep.FromDate:\Tdate of the first transaction to include in the report.
+Help.CashFlwRep.ToDate:\Tdate of the last transaction to include in the report.
+Help.CashFlwRep.Budget:\Stoggle whether the budget dates are used in preference to those entered above.
+Help.CashFlwRep.Group:\Stoggle grouping the results.
+Help.CashFlwRep.Period:\Tperiod by which the results will be grouped.
+Help.CashFlwRep.Days:\Sspecify the grouping period in days.
+Help.CashFlwRep.Months:\Sspecify the grouping period in months.
+Help.CashFlwRep.Years:\Sspecify the grouping period in years.
+Help.CashFlwRep.Lock:\Stoggle whether groups in months or years are locked on to calendar boundaries (ie. always whole months or years).
+Help.CashFlwRep.IncAll:\Stoggle whether groups of results are included, even if no transactions occurred during that period.
+Help.CashFlwRep.AccLst:\Tlist of accounts which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
+Help.CashFlwRep.AccLstP:\Senter an account using the account entry \w.
+Help.CashFlwRep.InLst:\Tlist of incoming headings which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
+Help.CashFlwRep.InLstP:\Senter an incoming using the account entry \w.
+Help.CashFlwRep.OutLst:\Tlist of outgoing headings which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
+Help.CashFlwRep.OutLstP:\Senter an outgoing using the account entry \w.
+Help.CashFlwRep.Tabular:\Stoggle the display into a tabular format, useful for passing to a spreadsheet or graphing package.
+Help.CashFlwRep.OK:\Sgenerate a cashflow report.
+
+Help.BalanceRep:\Tbalance report \w, allowing new reports to be created.
+Help.BalanceRep.FromDate:\Tdate of the first transaction to include in the report.
+Help.BalanceRep.ToDate:\Tdate of the last transaction to include in the report.
+Help.BalanceRep.Budget:\Stoggle whether the budget dates are used in preference to those entered above.
+Help.BalanceRep.Group:\Stoggle grouping the results.
+Help.BalanceRep.Period:\Tperiod by which the results will be grouped.
+Help.BalanceRep.Days:\Sspecify the grouping period in days.
+Help.BalanceRep.Months:\Sspecify the grouping period in months.
+Help.BalanceRep.Years:\Sspecify the grouping period in years.
+Help.BalanceRep.Lock:\Stoggle whether groups in months or years are locked on to calendar boundaries (ie. always whole months or years).
+Help.BalanceRep.AccLst:\Tlist of accounts which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
+Help.BalanceRep.AccLstP:\Senter an account using the account entry \w.
+Help.BalanceRep.InLst:\Tlist of incoming headings which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
+Help.BalanceRep.InLstP:\Senter an incoming using the account entry \w.
+Help.BalanceRep.OutLst:\Tlist of outgoing headings which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
+Help.BalanceRep.OutLstP:\Senter an outgoing using the account entry \w.
+Help.BalanceRep.Tabular:\Stoggle the display into a tabular format, useful for passing to a spreadsheet or graphing package.
+Help.BalanceRep.OK:\Sgenerate a balance report.
+
+Help.SaveRepTempSav:\Tsave report template \w, allowing the settings for this report to be saved as a template for future use.
+Help.SaveRepTempSav.Name:\Tname that the report template will be saved under.
+Help.SaveRepTempSav.Popup:\Sselect a name from the names of the existing saved reports.
+Help.SaveRepTempSav.Save:\Ssave the report template.
+
+Help.SaveRepTempRen:\Trename report template \w, allowing the name of this report to be changed.
+Help.SaveRepTempRen.Name:\Tnew name that the report template will be given.
+Help.SaveRepTempRen.Popup:\Sselect a name from the existing names of the saved reports.
+Help.SaveRepTempRen.Save:\Sstore the new name for the report template.
+
+Help.SimplePrint/Help.DatePrint:\Tprint \w.
+Help.SimplePrint.Standard/Help.DatePrint.Standard/Help.Choices3.Standard:\Sprint using normal printing mode, with a choice of outline font and different size text.
+Help.SimplePrint.Portrait/Help.DatePrint.Portrait/Help.Choices3.Portrait:\Sprint text on the page in portrait orientation.
+Help.SimplePrint.Landscape/Help.DatePrint.Landscape/Help.Choices3.Landscape:\Sprint text on the page in landscape orientation.
+Help.SimplePrint.PNum/Help.DatePrint.PNum/Help.Choices3.PNum:\Stoggle the printing of page numbers.
+Help.SimplePrint.Scale/Help.DatePrint.Scale/Help.Choices3.Scale:\Stoggle scaling the font size to fit everything to one page width.
+Help.SimplePrint.FastText/Help.DatePrint.FastText/Help.Choices3.FastText:\Sprint using a printer's fast text mode instead of outline fonts.
+Help.SimplePrint.TextForm/Help.DatePrint.TextForm/Help.Choices3.TextForm:\Stoggle the use effects (bold and underline) with fast text printing.
+Help.SimplePrint.Print/Help.DatePrint.Print:\Sstart the print job.
+Help.SimplePrint.Cancel/Help.DatePrint.Cancel:\Scancel the print job.
+
+Help.DatePrint.From:\Tdate of the first transaction to include in the print job.
+Help.DatePrint.To:\Tdate of the last transaction to include in the print job.
+
+Help.Purge:\Tpurge \w, allowing old or unused information to be removed from the file.
+Help.Purge.Trans:\Stoggle the removal of reconciled transactions.
+Help.Purge.Date:\Tdate before which reconciled transactions will be removed.
+Help.Purge.Acc:\Stoggle the removal of unused accounts.
+Help.Purge.Head:\Stoggle the removal of unused analysis headings.
+Help.Purge.SOrder:\Stoggle the removal of completed standing orders.
+Help.Purge.Purge:\Sstart removing the selected items from the file.
+Help.Purge.Cancel:\Sabandon the purge.|M\Areset the \w contents.
+
+Help.Colours:\Tcolour selection \w. \Schoose a colour.
+
+# Interactive help for menus.
+#
+# Where duplicate menu entries exist, items may be grouped and numbering will not be contiguous.
+
+Help.MainMenu.00:\Rperform operations on the file.
+Help.MainMenu.0000:\Rsee information about the file.
+Help.MainMenu.0001:\Rsave the file.|M\Ssave the file to the same place as before.
+Help.MainMenu.0002:\Rexport the transaction data as a comma separated values file, for use in spreadsheets.
+Help.MainMenu.0003:\Rexport the transaction data as a tab separated values file, for use in wordprocessors.
+Help.MainMenu.0004:\Sremove redundant or old information from the file.
+Help.MainMenu.0005/Help.TransactTB.Print:\Sprint the transactions.
+Help.MainMenu.01:\Rperform operations on accounts.
+Help.MainMenu.0100:\Ropen a statement view of an account.
+Help.MainMenu.0100??/Help.AccOpenMenu.??:\Sopen a statement view of this account.
+Help.MainMenu.0101/Help.TransactTB.ListAcc:\Sopen the accounts list \w.
+Help.MainMenu.0102/Help.AccListMenu.03/Help.TransactTB.NewAcc/Help.AccListTB.NewAcc:\Screate a new account.
+Help.MainMenu.02:\Rperform operations on analysis headings.
+Help.MainMenu.0200/Help.TransactTB.ListIn:\Sopen the incoming analysis heading list \w.
+Help.MainMenu.0201/Help.TransactTB.ListOut:\Sopen the outgoing analysis heading list \w.
+Help.MainMenu.0202/Help.HeadListMenu.03/Help.TransactTB.NewHead/Help.HeadListTB.NewHead:\Screate a new analysis heading.
+Help.MainMenu.03:\Rperform operations on transactions.
+Help.MainMenu.0300:\Sfind a transaction.
+Help.MainMenu.0301:\Sgo to a numbered transaction.
+Help.MainMenu.0302:\Sopen the transaction sort dialogue, to update or change the sort details.
+Help.MainMenu.0303/Help.TransactTB.ListSO:\Sopen the standing order list \w.
+Help.MainMenu.0304/Help.SOrderMenu.02/Help.TransactTB.NewSO/Help.SOrderTB.NewSO:\Screate a new standing order.
+Help.MainMenu.0305/Help.TransactTB.Preset:\Sopen the preset transcation list \w.
+Help.MainMenu.0306/Help.PresetMenu.02/Help.TransactTB.NewPreset/Help.PresetTB.NewPreset:\Screate a new preset transaction.
+Help.MainMenu.0307/Help.TransactTB.Reconcile:\Stoggle reconcile mode on and off.
+Help.MainMenu.04:\Rset up and perform analysis on the information in the file.
+Help.MainMenu.0400:\Sset the budgeting information.
+Help.MainMenu.0401:\Ropen a saved report template.
+Help.MainMenu.0401??:\Sopen this saved report template.
+Help.MainMenu.0402:\Screate a transaction report.
+Help.MainMenu.0403:\Screate an unreconciled transaction report.
+Help.MainMenu.0404:\Screate a cashflow report.
+Help.MainMenu.0405:\Screate a balance report.
+Help.MainMenu.0406/Help.SOrderMenu.06:\Screate a full standing order report.
+
+Help.DateMenu.00:\Sinsert the current date into the trasnaction.
+Help.DateMenu.??:\Sinsert this preset into the transaction.
+
+Help.AccountMenu.??:\Rselect from a list of accounts or analysis headings.
+Help.AccountMenu.????:\Schoose this account or analysis heading.
+
+Help.RefMenu.00:\Sinsert the next cheque number into the transaction.
+Help.RefMenu.??:\Sinsert this reference into the transaction.
+
+Help.DescMenu.??:\Sinsert this description into the transaction.
+
+Help.IconBarMenu.00:\Rsee information about CashBook.
+Help.IconBarMenu.01:\Sread the online manual.
+Help.IconBarMenu.02:\Schange the CashBook options.
+Help.IconBarMenu.03:\Squit CashBook.
+
+Help.AccListMenu.00:\Sopen a statement view of the account under the menu.
+Help.AccListMenu.01:\Sedit the account under the menu.
+Help.AccListMenu.02/Help.HeadListMenu.02:\Sedit the section under the menu.
+Help.AccListMenu.04/Help.HeadListMenu.04/Help.AccListTB.NewSect/Help.HeadListTB.NewSect:\Screate a new section.
+Help.AccListMenu.05:\Rexport the account list as a comma separated values file, for use in spreadsheets.
+Help.AccListMenu.06:\Rexport the account list as a tab separated values file, for use in wordprocessors.
+Help.AccListMenu.07/Help.AccListTB.Print:\Sprint the account list.
+
+Help.HeadListMenu.00:\Sopen a statement view of the analysis heading under the menu.
+Help.HeadListMenu.01:\Sedit the analysis heading under the menu.
+Help.HeadListMenu.05:\Rexport the analysis heading list as a comma separated values file, for use in spreadsheets.
+Help.HeadListMenu.06:\Rexport the analysis heading list as a tab separated values file, for use in wordprocessors.
+Help.HeadListMenu.07/Help.HeadListTB.Print:\Sprint the analysis heading list.
+
+Help.AccViewMenu.00/Help.HeadViewMenu.00:\Sfind the transaction under the menu in the transaction \w.
+Help.AccViewMenu.01/Help.HeadViewMenu.01/Help.AccViewTB.Goto/Help.HeadViewTB.Goto:\Sfind in this \w the transaction with the caret in the transaction \w.
+Help.AccViewMenu.02:\Sopen the account entry sort dialogue, to update or change the sort details.
+Help.AccViewMenu.03/Help.AccViewTB.Edit:\Sedit the details of this account.
+Help.AccViewMenu.04:\Rexport the transactions in this account as a comma separated values file, for use in spreadsheets.
+Help.AccViewMenu.05:\Rexport the transactions in this account as a tab separated values file, for use in wordprocessors.
+Help.AccViewMenu.06/Help.AccViewTB.Print:\Sprint the transactions in this account.
+
+Help.HeadViewMenu.02:\Sopen the analysis heading entry sort dialogue, to update or change the sort details.
+Help.HeadViewMenu.03/Help.HeadViewTB.Edit:\Sedit the details of this analysis heading.
+Help.HeadViewMenu.04:\Rexport the transactions in this analysis heading as a comma separated values file, for use in spreadsheets.
+Help.HeadViewMenu.05:\Rexport the transactions in this analysis heading as a tab separated values file, for use in wordprocessors.
+Help.HeadViewMenu.06/Help.HeadViewTB.Print:\Sprint the transactions in this analysis heading.
+
+Help.SOrderMenu.00:\Sopen the standing order sort dialogue, to update or change the sort details.
+Help.SOrderMenu.01:\Sedit the standing order under the menu.
+Help.SOrderMenu.03:\Rexport the standing order list as a comma separated values file, for use in spreadsheets.
+Help.SOrderMenu.04:\Rexport the standing order list as a tab separated values file, for use in wordprocessors.
+Help.SOrderMenu.05/Help.SOrderTB.Print:\Sprint the standing order list.
+
+Help.PresetMenu.00:\Sopen the preset sort dialogue, to update or change the sort details.
+Help.PresetMenu.01:\Sedit the preset under the menu.
+Help.PresetMenu.03:\Rexport the preset list as a comma separated values file, for use in spreadsheets.
+Help.PresetMenu.04:\Rexport the preset list as a tab separated values file, for use in wordprocessors.
+Help.PresetMenu.05/Help.PresetTB.Print:\Sprint the preset list.
+
+Help.ReportMenu.00:\Schange the report font and formatting.
+Help.ReportMenu.01:\Rsave the report as spaced ASCII text.
+Help.ReportMenu.02:\Rexport the report as a comma separated values file, for use in spreadsheets.
+Help.ReportMenu.03:\Rexport the report as a tab separated values file, for use in wordprocessors.
+Help.ReportMenu.04:\Sprint the report.
+Help.ReportMenu.05:\Ssave this report definition as a template for future use.
+
+Help.RepListMenu.??:\Schoose this existing report name.
+
+Help.FontMenu.??/Help.FontMenu.????:\Schoose this font.

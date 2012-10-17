@@ -109,7 +109,7 @@ MENUS := Menus,ffd
 TEXTHELP := HelpText,fff
 SHHELP := CashBook,3d6
 README := ReadMe,fff
-LICENSE := License,fff
+LICENSE := Licence,fff
 
 
 # Set up the source files.

@@ -153,9 +153,9 @@ Many other operations that can be carried out on a cashbook file can be accessed
 
 <subhead title="Saving and loading files">
 
-<cite>CashBook</cite> files can be saved by following <menu>File - Save</menu> from the main menu. From this dialogue box, the file icon can be dragged to a filer window in the standard manner. If a full filename is already present in the <window>transaction</window> window's titlebar, clicking on the menu entry will save the file immediately.
+<cite>CashBook</cite> files can be saved by following <menu>File &msep; Save</menu> from the main menu. From this dialogue box, the file icon can be dragged to a filer window in the standard manner. If a full filename is already present in the <window>transaction</window> window's titlebar, clicking on the menu entry will save the file immediately.
 
-Information on the current file can be found by following <menu>File - Info</menu> from the main menu. This gives details of the file's location on disc (as shown in the <window>transaction</window> window's titlebar), the date the file was last saved and whether the file has been modified since then. If the file has been modified since the last save, an asterisk will also be shown at the end of the filename in the <window>transaction</window> window's titlebar. The file information window also shows details of the number of transactions, accounts, analysis headings, standing orders and transaction presets in the file.
+Information on the current file can be found by following <menu>File &msep; Info</menu> from the main menu. This gives details of the file's location on disc (as shown in the <window>transaction</window> window's titlebar), the date the file was last saved and whether the file has been modified since then. If the file has been modified since the last save, an asterisk will also be shown at the end of the filename in the <window>transaction</window> window's titlebar. The file information window also shows details of the number of transactions, accounts, analysis headings, standing orders and transaction presets in the file.
 
 If <cite>CashBook</cite> is loaded on the iconbar, or has at least been seen by the filer, double-clicking on a cashbook file will load it in the usual way. Alternatively, files can also be dragged to the application's iconbar icon.
 
@@ -223,7 +223,7 @@ Accounts and headings are identified by both a full name and an ident: the latte
 
 <subhead title="Adding accounts">
 
-To be able to keep track of our monthly expenditure, <cite>CashBook</cite> will need to know about our current account. To create the necessary account entry, select <menu>Accounts - New account...</menu> from the menu to open the <window>create new account</window> window.
+To be able to keep track of our monthly expenditure, <cite>CashBook</cite> will need to know about our current account. To create the necessary account entry, select <menu>Accounts &msep; New account...</menu> from the menu to open the <window>create new account</window> window.
 
 As noted above, each account requires a name and an ident. Since this is the current account, enter <entry>Current Account</entry> into the <icon>Name</icon> field. The name is for human use only, and can be as descriptive as required.
 
@@ -233,7 +233,7 @@ The account has an overdraft limit of £500, so enter <entry>500</entry> into the
 
 In the <icon>Bank details</icon> section, the account number, sort code and branch address can be recorded. This information is not used by <cite>CashBook</cite>, but provides a convenient place to store the details if required. Once the necessary information has been entered, click on <icon>Create</icon> to set up the account.
 
-At this point, it will not appear that much has changed. To see the new account we have created, select <menu>Accounts - List accounts</menu> from the main menu. The <window>accounts list</window> window will open, showing an entry for the current account: notice that the statement and current balances are shown as £250, reflecting the opening balance, while the final balance is £750, reflecting the opening balance plus the overdraft limit.
+At this point, it will not appear that much has changed. To see the new account we have created, select <menu>Accounts &msep; List accounts</menu> from the main menu. The <window>accounts list</window> window will open, showing an entry for the current account: notice that the statement and current balances are shown as £250, reflecting the opening balance, while the final balance is £750, reflecting the opening balance plus the overdraft limit.
 
 We also have a savings account, so click <mouse>menu</mouse> over the <window>accounts list</window> window and select <menu>New account...</menu>; this has the same effect as the entry in the main menu. Enter an account name of <entry>Savings Account</entry> and an ident of <entry>Sav</entry>.
 
@@ -242,15 +242,15 @@ There is no overdraft facility, cheque book or paying in book, so <icon>Credit l
 
 <subhead title="New analysis headings">
 
-In order to be able to acquire or spend money, some analysis headings will be needed in addition to the accounts. These are added in a similar way, so select <menu>Headings - New heading...</menu> from the main menu to open the <window>create new heading</window> window.
+In order to be able to acquire or spend money, some analysis headings will be needed in addition to the accounts. These are added in a similar way, so select <menu>Headings &msep; New heading...</menu> from the main menu to open the <window>create new heading</window> window.
 
 First we will require a heading to represent our salary, so enter <entry>Salary</entry> in the <icon>Name</icon> field and <entry>Sal</entry> in the <icon>Ident</icon> field. The salary is money coming in, so select <icon>Incoming</icon>. Unless we receive a pay rise, we expect to receive about £12,000 after tax this year, so enter <entry>12000</entry> into the <icon>Budget limit</icon>.  Click on <icon>Create</icon> to add the heading.
 
-As with the accounts, there will be no visible sign that anything has changed. Select <menu>Headings - List incoming</menu> from the main menu, and the <window>incoming headings list</window> window will be displayed. This contains an entry for our salary, showing a total of £0 received so far.
+As with the accounts, there will be no visible sign that anything has changed. Select <menu>Headings &msep; List incoming</menu> from the main menu, and the <window>incoming headings list</window> window will be displayed. This contains an entry for our salary, showing a total of £0 received so far.
 
-We will also need somewhere to spend our hard-earned cash, so go back to the main menu and select <menu>Headings - New heading...</menu> again. There is a supermarket receipt in our wallet, so we will need an entry for Food: enter <entry>Food</entry> as both the <icon>Name</icon> and <icon>Ident</icon>. As an expense, the <icon>Outgoing</icon> option should be selected. We reckon that we can afford to spend about £600 on food this year, so enter <entry>600</entry> into the <icon>Budget limit</icon> field.   Click on <icon>Create</icon> to add the heading.
+We will also need somewhere to spend our hard-earned cash, so go back to the main menu and select <menu>Headings &msep; New heading...</menu> again. There is a supermarket receipt in our wallet, so we will need an entry for Food: enter <entry>Food</entry> as both the <icon>Name</icon> and <icon>Ident</icon>. As an expense, the <icon>Outgoing</icon> option should be selected. We reckon that we can afford to spend about £600 on food this year, so enter <entry>600</entry> into the <icon>Budget limit</icon> field.   Click on <icon>Create</icon> to add the heading.
 
-As the food was an outgoing heading, it will not appear in the incoming headings list. From the main menu, select <menu>Headings - List outgoing</menu> and the <window>outgoing headings list</window> window should open; this looks very similar to the incoming list. The first line should be an entry for food.
+As the food was an outgoing heading, it will not appear in the incoming headings list. From the main menu, select <menu>Headings &msep; List outgoing</menu> and the <window>outgoing headings list</window> window should open; this looks very similar to the incoming list. The first line should be an entry for food.
 
 The council have just sent next year's council tax statement, so we will need another heading to cover this. Click <mouse>menu</mouse> over the <window>outgoing headings list</window> window and select <menu>New heading...</menu>; as with the accounts list, this has a similar effect to the main menu entry.
 
@@ -300,7 +300,7 @@ Now that we have seen that the food transaction has been recorded correctly, the
 
 When we opened that savings account, on 2 June 2005, we paid in £500 by cheque.  Enter the <icon>Date</icon> as <entry>2-6-2005</entry>, and the <entry>Cur</entry> account in the <icon>From</icon> column, pressing <key>return</key> to move from column to column. The money will be moving to the savings account, so <entry>Sav</entry> could be entered into the <icon>To</icon> column as we did before.
 
-However, there is another way to select accounts and analysis headings when the ident is hard to remember. Click <mouse>adjust</mouse> over the row with the caret, in the right-hand part of the <icon>To</icon> column, and a menu will appear listing the accounts and outgoing analysis headings that can be entered: select <menu>Accounts - Savings Account</menu>, and the account name will be entered as if the ident had been typed. Press <key>return</key> until the caret is in the <icon>Reference</icon> column, then press <key>f1</key> again to enter 100032 as the cheque number. Finally, enter <entry>500</entry> in the <icon>Amount</icon> column.
+However, there is another way to select accounts and analysis headings when the ident is hard to remember. Click <mouse>adjust</mouse> over the row with the caret, in the right-hand part of the <icon>To</icon> column, and a menu will appear listing the accounts and outgoing analysis headings that can be entered: select <menu>Accounts &msep; Savings Account</menu>, and the account name will be entered as if the ident had been typed. Press <key>return</key> until the caret is in the <icon>Reference</icon> column, then press <key>f1</key> again to enter 100032 as the cheque number. Finally, enter <entry>500</entry> in the <icon>Amount</icon> column.
 
 A quick check of the current account's balance in the <window>accounts list</window> will show that we are now overdrawn by £268.49. Since our overdraft limit is £500, the final balance still shows as £231.51. In fact, we were paid at the end of May, so this is not a problem at all.
 
@@ -313,7 +313,7 @@ On checking the details in the accounts list and incoming headings list, we shou
 
 The only thing left to deal with is the council tax bill. We pay this by direct debit, and the council have supplied a payment schedule which gives the dates that they will take money from our account. Although we could enter these dates by hand as they become due, it will be easier to set up a regular payment to handle it for us; this way, payments will show up on forecasted balances and should never be forgotten.
 
-Regular payments, whatever their nature, are referred to as 'standing orders' in <cite>CashBook</cite>. From the main menu, select <menu>Transactions - New Standing Order...</menu> and the <window>create new standing order</window> dialogue will open. There are two sections to this: the first deals with <em>when</em> the transaction will take place, while the second specifies <em>what</em> the transaction contains.
+Regular payments, whatever their nature, are referred to as 'standing orders' in <cite>CashBook</cite>. From the main menu, select <menu>Transactions &msep; New Standing Order...</menu> and the <window>create new standing order</window> dialogue will open. There are two sections to this: the first deals with <em>when</em> the transaction will take place, while the second specifies <em>what</em> the transaction contains.
 
 The council have informed us that we will make ten payments, on the last day of the month, starting on 30 April 2005 and finishing on 31 January 2006. The total bill is £512.40, so the first payment will be £53.40 and the remaining nine will each be £51.00.
 
@@ -333,7 +333,7 @@ The amount to be paid will depend on which payment we are on: most are £51.00, b
 
 Depending upon the date on which you follow this tutorial, a number of transactions will be added to the <window>transactions</window> window. The first will be for £53.40 on 2 May 2005, then there will be further transactions for £51 on 31 May, 30 June, 1 August and so on. If the current date is after 31 January 2006, all ten transactions will be added and the standing order will end up 'stopped'.
 
-Selecting <menu>Transactions - List standing orders</menu> from the main menu will open the <window>standing orders list</window> window. This should contain an entry for the council tax payments, showing the accounts and headings concerned, the standard amount to be transferred and the description. The <icon>Next date</icon> column shows the actual date of the next transaction, or "Stopped", and <icon>Left</icon> shows how many transactions are still to be carried out.
+Selecting <menu>Transactions &msep; List standing orders</menu> from the main menu will open the <window>standing orders list</window> window. This should contain an entry for the council tax payments, showing the accounts and headings concerned, the standard amount to be transferred and the description. The <icon>Next date</icon> column shows the actual date of the next transaction, or "Stopped", and <icon>Left</icon> shows how many transactions are still to be carried out.
 
 With hindsight, it would have been more appropriate to have entered our salary payments as a standing order as well: these should be fixed to the final day of each month. In general, any transactions which occur at regular intervals are best packaged as standing orders; details of the transaction, such as amounts of money, can always be edited either in the standing order definition or in the resulting transactions if necessary.
 
@@ -342,7 +342,7 @@ With hindsight, it would have been more appropriate to have entered our salary p
 
 Before moving on to look at the operation of <cite>CashBook</cite> in detail, it would be useful to see the transactions in our current account listed together in the form of a 'bank statement'. If nothing else, this would let us see how the balance varies over time.
 
-From the main menu, select <menu>Accounts - View account - Current account</menu> to open the <window>current account transactions</window> window. It contains all the transactions which reference the current account, but does so in the form of payments and receipts and including a running balance. The order in which transactions appear here is the order in which they are sorted: this may not correspond to the order your bank sees them in, and may result in variations between the balances at given points.
+From the main menu, select <menu>Accounts &msep; View account &msep; Current account</menu> to open the <window>current account transactions</window> window. It contains all the transactions which reference the current account, but does so in the form of payments and receipts and including a running balance. The order in which transactions appear here is the order in which they are sorted: this may not correspond to the order your bank sees them in, and may result in variations between the balances at given points.
 
 Double-clicking on a field in the <window>current account transactions</window> window will place the caret in the corresponding field in the <window>transactions</window> window; using <mouse>adjust</mouse> also brings the transactions window to the front.
 
@@ -365,7 +365,7 @@ Analysis headings are split into two groups to handle all income and expenditure
 
 <subhead title="Creating new accounts">
 
-New accounts can be created through the <window>create new account</window> dialogue, either by selecting <menu>Accounts - New account...</menu> from the main menu or by clicking on the <icon>new account</icon> button in the <window>transaction</window> window toolbar.
+New accounts can be created through the <window>create new account</window> dialogue, either by selecting <menu>Accounts &msep; New account...</menu> from the main menu or by clicking on the <icon>new account</icon> button in the <window>transaction</window> window toolbar.
 
 Every account must have a name and an ident associated with it. The name is used to identify the account on screen and in reports, and can be anything that identifies the account: for example, 'Current account', 'Savings account', 'Credit card' or 'Cash in hand'. <cite>CashBook</cite> never uses the name internally, so it can safely be changed at any point without affecting data stored, should this be necessary.
 
@@ -388,7 +388,7 @@ Clicking on <icon>Create</icon> will check the details and create an account; if
 
 <subhead title="Creating new analysis headings">
 
-In a similar way to accounts, new analysis headings are created through the <window>create new heading</window> dialogue, either by selecting <menu>Headings - New heading...</menu> from the main menu or by clicking on the <icon>new heading</icon> button in the <window>transaction</window> window toolbar.
+In a similar way to accounts, new analysis headings are created through the <window>create new heading</window> dialogue, either by selecting <menu>Headings &msep; New heading...</menu> from the main menu or by clicking on the <icon>new heading</icon> button in the <window>transaction</window> window toolbar.
 
 As with accounts, every heading must have a name and an ident associated with it. The name is used to identify the heading on screen and in reports, and can be anything that identifies the heading's purpose: for example, 'Salary', 'Bank interest', 'Food', or 'Car insurance'. <cite>CashBook</cite> never uses the name internally, so it can safely be changed at any point without affecting data stored, should this be necessary.
 
@@ -405,7 +405,7 @@ Clicking on <icon>Create</icon> will check the details and create a heading; if 
 
 All of the accounts and analysis headings in a cashbook file are shown in one of three windows. Accounts appear in the <window>accounts list</window> window, while analysis headings appear in either the <window>incoming headings list</window> window or <window>outgoing headings list</window> window.
 
-The <window>accounts list</window> window can be opened from the main menu with <menu>Accounts - List accounts</menu>, by clicking on the <icon>list accounts</icon> button in the transaction window toolbar or by pressing <key>f9</key>. Each account is displayed on its own line, with balance and cashflow figures.
+The <window>accounts list</window> window can be opened from the main menu with <menu>Accounts &msep; List accounts</menu>, by clicking on the <icon>list accounts</icon> button in the transaction window toolbar or by pressing <key>f9</key>. Each account is displayed on its own line, with balance and cashflow figures.
 
 The <icon>Statement</icon> balance is the <link ref="Reconcile">reconciled</link> balance of the account, taking into account only those transactions that have been reconciled with entries in account statements. If there are no errors, this should be the same as the final balance on the last statement received, helping to show up errors.
 
@@ -415,7 +415,7 @@ The <icon>Final</icon> balance is the balance of the account at some point in th
 
 Finally, the <icon>Budget</icon> column shows the overall change in the account balance during the current <link ref="budget">budget period</link>, including all transactions. This can give an indication of the trend in the account balance, but the condition of the account at the start of the period needs to be borne in mind.
 
-For analysis headings, the <window>incoming headings list</window> windows can be opened from the main menu with <menu>Headings - List incoming</menu>, by clicking on the <icon>list incoming headings</icon> button in the transaction window toolbar or by pressing <key>f10</key>. The <window>outgoing headings list</window> window can be opened from the main menu with <menu>Headings - List outgoing</menu>, by clicking on the <icon>list outgoing headings</icon> button in the transaction window toolbar or by pressing <key>f11</key>.
+For analysis headings, the <window>incoming headings list</window> windows can be opened from the main menu with <menu>Headings &msep; List incoming</menu>, by clicking on the <icon>list incoming headings</icon> button in the transaction window toolbar or by pressing <key>f10</key>. The <window>outgoing headings list</window> window can be opened from the main menu with <menu>Headings &msep; List outgoing</menu>, by clicking on the <icon>list outgoing headings</icon> button in the transaction window toolbar or by pressing <key>f11</key>.
 
 Each analysis heading has a <icon>Total</icon> shown, which is the total amount received or spent against that heading when taking into account all the transactions in the file. Because headings will not generally relate to external accounts, there is no distinction made between <link ref="Reconcile">reconciled</link> and unreconciled transactions when calculating this total.
 
@@ -463,7 +463,7 @@ The resulting edit dialogues allow the details of the account, analysis heading 
 
 A statement view brings together all the <link ref="Transact">transactions</link> associated with an account or analysis heading and presents them in the format of a bank statement. The details shown are transaction date, the other account or heading, reconciled status, reference, payment or receipt and the description.
 
-To open a statement view for an account or analysis heading, double-click <mouse>select</mouse> on the entry in the <window>accounts list</window> or <window>headings list</window> window. Clicking <mouse>menu</mouse> over the line and selecting <menu>View account...</menu> or <menu>View heading...</menu> has the same effect. For accounts, statement views can be opened from the main menu using <menu>Accounts - View account -</menu>; this menu is also available by clicking on the <icon>view account</icon> button in the transaction window toolbar.
+To open a statement view for an account or analysis heading, double-click <mouse>select</mouse> on the entry in the <window>accounts list</window> or <window>headings list</window> window. Clicking <mouse>menu</mouse> over the line and selecting <menu>View account...</menu> or <menu>View heading...</menu> has the same effect. For accounts, statement views can be opened from the main menu using <menu>Accounts &msep; View account &msep;</menu>; this menu is also available by clicking on the <icon>view account</icon> button in the transaction window toolbar.
 
 With a view open, the account or heading shown can be edited by selecting <menu>Edit account...</menu> or <menu>Edit heading...</menu> from the statement view menu, or by clicking on the <icon>edit</icon> button in the statement view toolbar.
 
@@ -513,13 +513,13 @@ The <window>transaction</window> window is central to a <cite>CashBook</cite> fi
 
 The transactions in the window are sorted according to the contents of one of the columns, as shown by the presence of the sort indicator arrow in the corresponding column heading. The sort order can be changed by clicking <mouse>select</mouse> or <mouse>adjust</mouse> in any of the headings, to sort that column into ascending or descending order respectively.
 
-Alternatively, the sorting options can be changed from the <window>sort transactions</window> dialogue, which can be opened by clicking <mouse>select</mouse> on the <icon>sort</icon> button in the <window>transaction</window> window toolbar, by selecting <menu>Transactions - Sort...</menu> from the menu, or by pressing <key>f5</key>. After the options have been changed, clicking on <icon>Sort</icon> will update the display.
+Alternatively, the sorting options can be changed from the <window>sort transactions</window> dialogue, which can be opened by clicking <mouse>select</mouse> on the <icon>sort</icon> button in the <window>transaction</window> window toolbar, by selecting <menu>Transactions &msep; Sort...</menu> from the menu, or by pressing <key>f5</key>. After the options have been changed, clicking on <icon>Sort</icon> will update the display.
 
 If the option to automatically sort the transactions is selected in the global choices, the window's contents will update if <key>Return</key> is pressed in the sorted column. At other times, an <mouse>adjust</mouse> click on the <icon>sort</icon> button in the toolbar will force a re-sort.
 
-Transactions can be exported as a CSV or TSV file, for importing into spreadsheets or wordprocessors, using the <menu>File - Export CSV</menu> and <menu>File - Export TSV</menu> options from the menu.
+Transactions can be exported as a CSV or TSV file, for importing into spreadsheets or wordprocessors, using the <menu>File &msep; Export CSV</menu> and <menu>File &msep; Export TSV</menu> options from the menu.
 
-The contents of the window can also be printed, by selecting <menu>File - Print...</menu> from the menu, clicking on the <icon>print</icon> button in the toolbar or pressing <key>Print</key>. A range of dates can be specified, to limit the transactions printed; leaving either field blank allows the transactions before or after a date to be included.
+The contents of the window can also be printed, by selecting <menu>File &msep; Print...</menu> from the menu, clicking on the <icon>print</icon> button in the toolbar or pressing <key>Print</key>. A range of dates can be specified, to limit the transactions printed; leaving either field blank allows the transactions before or after a date to be included.
 
 
 <subhead title="What is a transaction?">
@@ -585,7 +585,7 @@ Sometimes there will be transactions, or bits of transactions, which are used fr
 
 Presets are effectively transaction templates, where some or all of the fields are completed and stored for future use. While all of the columns in the <window>transaction</window> window can be specified in a preset, often some will be left blank to be filled in each time the preset is used.
 
-New presets are created using the <window>create new preset</window> dialogue, either by selecting <menu>Transactions - New preset...</menu> from the main menu, or by clicking on the <icon>new transaction preset</icon> button in the <window>transaction</window> window toolbar.
+New presets are created using the <window>create new preset</window> dialogue, either by selecting <menu>Transactions &msep; New preset...</menu> from the main menu, or by clicking on the <icon>new transaction preset</icon> button in the <window>transaction</window> window toolbar.
 
 Each preset must be given a unique <icon>Name</icon> to identify it, and it can also be allocated a <icon>Shortcut key</icon>. The key is a single letter (<key>A</key> to <key>Z</key>), which can be pressed while the caret is in the <icon>Date</icon> column of the <window>transaction</window> window to insert the contents of the preset into the current transaction; without a key, presets can be accessed from a menu.
 
@@ -595,7 +595,7 @@ The column of radio icons to the right of the dialogue allows the final destinat
 
 To insert a preset, either click <mouse>adjust</mouse> over the <icon>Date</icon> column of the <window>transaction</window> window and select its name from the list, or press its shortcut key while the caret is in the <icon>Date</icon> column. Pressing a shortcut key behaves as if <key>return</key> was pressed. If the <icon>Date</icon> field in the preset is left empty, this allows all of the auto-completion options to be used with dates when entering presets.
 
-The presets defined in a file can be seen in the <window>transaction preset list</window> window, which can be opened by selecting <menu>Transactions - List presets</menu> from the main menu or by clicking on the <icon>list transaction presets</icon> button in the <window>transaction</window> toolbar.
+The presets defined in a file can be seen in the <window>transaction preset list</window> window, which can be opened by selecting <menu>Transactions &msep; List presets</menu> from the main menu or by clicking on the <icon>list transaction presets</icon> button in the <window>transaction</window> toolbar.
 
 Each line in the window lists a preset. The <icon>Name</icon> and <icon>Key</icon> columns show their names and shortcut keys (where defined), while the <icon>From</icon>, <icon>To</icon>, <icon>Amount</icon> and <icon>Description</icon> columns show some of the details. Double-clicking on an entry will allow it to be viewed in full, edited, or deleted.
 
@@ -621,7 +621,7 @@ When the caret is in either the <icon>From</icon> or <icon>To</icon> column, the
 When reconciling the transactions contained in a statement, it is possible to simply find each entry in the <window>transaction</window> window and check it off.  However, there are two ways in which the process can be made easier.
 
 <list type="num" spacing=1>
-<li>If 'Reconcile Mode' is turned on, either by selecting <menu>Transactions - Reconcile</menu> from the main menu or by toggling the <icon>reconcile</icon> icon in the <window>transaction</window> window toolbar, pressing either <key>+</key> or <key>-</key> will update the status of the flag as normal. Having done this, the account at the caret is checked, and the caret moved on to the next unreconciled entry concerning it.
+<li>If 'Reconcile Mode' is turned on, either by selecting <menu>Transactions &msep; Reconcile</menu> from the main menu or by toggling the <icon>reconcile</icon> icon in the <window>transaction</window> window toolbar, pressing either <key>+</key> or <key>-</key> will update the status of the flag as normal. Having done this, the account at the caret is checked, and the caret moved on to the next unreconciled entry concerning it.
 
 Once the reconciliation is complete, the Reconcile Mode can be turned off again, by toggling the toolbar icon or un-ticking the menu entry.
 
@@ -634,7 +634,7 @@ When viewing the account details in the <window>accounts list</window> window, t
 
 Transactions where both the <icon>From</icon> and <icon>To</icon> fields are reconciled can be shown highlighted or shaded in the <window>transaction</window> window if required. This makes it easier to spot transactions which still need to be checked against a bank or card statement. The option can be set and the highlight colour changed from the <icon>Transactions</icon> section of the <window>choices</window> dialogue.
 
-An unreconciled transaction report can be generated by selecting <menu>Analysis - Unreconciled report...</menu> from the main menu: this will list unreconciled transactions meeting certain criteria. More details can be found in the Reporting and Analysis chapter.
+An unreconciled transaction report can be generated by selecting <menu>Analysis &msep; Unreconciled report...</menu> from the main menu: this will list unreconciled transactions meeting certain criteria. More details can be found in the Reporting and Analysis chapter.
 
 
 <subhead title="Deleting transactions">
@@ -660,7 +660,7 @@ Transactions entered automatically can have all of the same information attached
 
 <subhead title="Creating a new standing order">
 
-New standing orders can be created using the <window>create new standing order</window> dialogue, either by selecting <menu>Transactions - New standing order...</menu> from the main menu, or by clicking on the <icon>new standing order</icon> button in the <window>transaction</window> window toolbar.
+New standing orders can be created using the <window>create new standing order</window> dialogue, either by selecting <menu>Transactions &msep; New standing order...</menu> from the main menu, or by clicking on the <icon>new standing order</icon> button in the <window>transaction</window> window toolbar.
 
 The contents of the dialogue box can be split into two sections: at the top, information is entered to show when the transactions will occur, while at the bottom, the actual details of the transaction are given.
 
@@ -679,7 +679,7 @@ Clicking on <icon>Create</icon> will add the new standing order to the list.  If
 
 <subhead title="Viewing standing orders">
 
-A complete list of the standing orders that are defined in a file can be seen in the <window>standing orders list</window> window, which can be opened by selecting <menu>Transactions - List standing orders</menu> from the main menu or by clicking on the <icon>list standing orders</icon> button in the <window>transaction</window> window toolbar.
+A complete list of the standing orders that are defined in a file can be seen in the <window>standing orders list</window> window, which can be opened by selecting <menu>Transactions &msep; List standing orders</menu> from the main menu or by clicking on the <icon>list standing orders</icon> button in the <window>transaction</window> window toolbar.
 
 Each line in the window shows details of a single standing order. The <icon>From</icon>, <icon>To</icon>, <icon>Amount</icon> and <icon>Description</icon> columns show the transaction details as they will be entered into the accounts. The amount shown is always the standard amount, even if the next transaction will be the first or last in the sequence.
 
@@ -729,7 +729,7 @@ Budgeting allows targets to be set for income and expenditure over a period of t
 
 To set up a budget, two pieces of information need to be decided: the period over which the budget is to run, and the amount of money available to be spent in that period. Once these have been established, it is possible to allocate the available funds across the known areas of expenditure.
 
-By default, a <cite>CashBook</cite> budget will run for the duration of the whole file and include all of the transactions. This makes sense if a new file is started at the beginning of each financial period; if not, the budget period can be restricted to a given set of dates. Open the <window>budget details</window> dialogue by selecting <menu>Analysis - Budget...</menu> from the main menu, and enter the dates into the <icon>Budgeting dates</icon> section.
+By default, a <cite>CashBook</cite> budget will run for the duration of the whole file and include all of the transactions. This makes sense if a new file is started at the beginning of each financial period; if not, the budget period can be restricted to a given set of dates. Open the <window>budget details</window> dialogue by selecting <menu>Analysis &msep; Budget...</menu> from the main menu, and enter the dates into the <icon>Budgeting dates</icon> section.
 
 Allocating the expenditure is done through individual analysis headings. Each heading can have a budget limit set in the <window>edit heading details</window> dialogue, which shows up in the <icon>Budget</icon> column of the headings list window. If this value is non-zero, the field in the <icon>Actual</icon> column will show how much has been spent against that heading during the budget period (if there is no period set, this value will be the same as the one in <icon>Total</icon>). <icon>Balance</icon> indicates how much of the budget amount is left (ie. Balance = Budget - Actual).
 
@@ -751,7 +751,7 @@ While the account budget indication can be useful as a quick guide, for more det
 
 In addition to analysing income and expenditure, <cite>CashBook</cite> allows post-dated transactions to be monitored. The <icon>Final</icon> column in the <window>account list</window> window includes the effect of any post-dated transactions and pending standing orders for a specified period of time. This can provide prior warning when large amounts of money are due to leave an account.
 
-The <window>budget details</window> dialogue, accessed from the main menu at <menu>Analysis - Budget...</menu>, allows these options to be changed in the <icon>Post-dated transactions</icon> section. <icon>Trial standing orders for X days</icon> indicates how many days' worth of future standing orders are included in the <icon>Future</icon> value and can be set to <entry>0</entry> to disable the feature. If <icon>Restrict transactions</icon> is set, post-dated transactions entered into the <window>transaction</window> window are also limited to this period: any transactions which are further ahead do not appear anywhere in the calculated values.
+The <window>budget details</window> dialogue, accessed from the main menu at <menu>Analysis &msep; Budget...</menu>, allows these options to be changed in the <icon>Post-dated transactions</icon> section. <icon>Trial standing orders for X days</icon> indicates how many days' worth of future standing orders are included in the <icon>Future</icon> value and can be set to <entry>0</entry> to disable the feature. If <icon>Restrict transactions</icon> is set, post-dated transactions entered into the <window>transaction</window> window are also limited to this period: any transactions which are further ahead do not appear anywhere in the calculated values.
 
 </chapter>
 
@@ -821,7 +821,7 @@ A name can be entered into the <icon>Name</icon> field of the dialogue, which wi
 
 Reports generated from templates can themselves be saved as templates in exactly the same way. In this case, the name of the original template used to create the report will be offered by default in the <window>Save as template</window> dialogue. Leaving the name unchanged will update the original template definition; alternatively the name can be modified to create a new template from the report.
 
-Saved report templates can be accessed from the <menu>Analysis - Saved reports -</menu> sub-menu of the main menu. Selecting a template from this list will open a <window>report</window> dialogue for the report (as described in the following sections), with a couple of differences: the template name will be shown in the dialogue title, and there will be two additional buttons at the bottom of the window.
+Saved report templates can be accessed from the <menu>Analysis &msep; Saved reports &msep;</menu> sub-menu of the main menu. Selecting a template from this list will open a <window>report</window> dialogue for the report (as described in the following sections), with a couple of differences: the template name will be shown in the dialogue title, and there will be two additional buttons at the bottom of the window.
 
 Clicking on the <icon>Delete</icon> button will delete the report template from the file. The template can be renamed by clicking on <icon>Rename...</icon>, which will open the <window>Rename template</window> dialogue. This behaves in a similar way to the <window>Save as template</window> dialogue, except that it is not possible to rename the template to the same name as another in the file. Click on <icon>Rename</icon> to change the name.
 
@@ -840,7 +840,7 @@ Transaction reports are useful for breaking income and expenditure up into group
 
 If the report is created for the current budget period (by selecting the <icon>Use budget period</icon> option), the summaries contain additional information relating to the budget limits. Along with the <icon>total</icon> amount allocated to each heading, the <icon>budgeted</icon> amount is shown, calculated from the number of days in the grouped period and the number of days in the whole budget period. The <icon>balance</icon> for the grouped period is the difference between the amount budgeted and the amount actually spent in that period, while the <icon>remaining</icon> value shows the amount remaining from the whole budget period.
 
-Selecting <menu>Analysis - Transaction report...</menu> from the main menu will open the <window>Transaction report</window> dialogue.
+Selecting <menu>Analysis &msep; Transaction report...</menu> from the main menu will open the <window>Transaction report</window> dialogue.
 
 The date range over which the report will be compiled is set in the <icon>Period</icon> section. Lower and upper limits can be set by entering dates into the <icon>From</icon> and <icon>To</icon> fields; if either are left blank, the earliest and latest dates in the file are used respectively. If <icon>Use budget period</icon> is set, the current budgeting date range will be used instead of any entered values.
 
@@ -863,7 +863,7 @@ Once the options have been set, clicking on <icon>Generate</icon> will create th
 
 An unreconciled transaction report provides details of transactions in the cashbook file which have not been reconciled. This makes it possible to identify items which have not appeared on statements, which can potentially highlight errors.
 
-Selecting <menu>Analysis - Unreconciled report...</menu> from the main menu will open the <window>Unreconciled transaction report</window> dialogue.
+Selecting <menu>Analysis &msep; Unreconciled report...</menu> from the main menu will open the <window>Unreconciled transaction report</window> dialogue.
 
 The date range over which the report will be compiled is set in the <icon>Period</icon> section. Lower and upper limits can be set by entering dates into the <icon>From</icon> and <icon>To</icon> fields; if either are left blank, the earliest and latest dates in the file are used respectively. If <icon>Use budget period</icon> is set, the current budgeting date range will be used.
 
@@ -894,7 +894,7 @@ As noted above, producing a cashflow report including all the accounts and headi
 
 When working with analysis headings, it may be the case that a transaction report or the information in the headings list windows (which can of course be printed) proves to be of more use. In the case of the headings list windows, this will probably depend on the period over which the report is to be run.
 
-Selecting <menu>Analysis - Cashflow report...</menu> from the main menu will open the <window>Cashflow report</window> dialogue so that a report can be created.
+Selecting <menu>Analysis &msep; Cashflow report...</menu> from the main menu will open the <window>Cashflow report</window> dialogue so that a report can be created.
 
 The date range over which the report will be compiled is set in the <icon>Period</icon> section, and follows the standard format. Lower and upper limits can be set by entering dates into the <icon>From</icon> and <icon>To</icon> fields; if either are left blank, the earliest and latest dates in the file are used respectively. If <icon>Use budget period</icon> is set, the current budgeting date range will be used.
 
@@ -925,7 +925,7 @@ As a result, and as with cashflow reports, balance reports will usually be of mo
 
 Used with analysis headings, a balance report shows how the total income or expenditure of a heading increases over time. This is distinct from information returned from a transaction report (or cashflow report), which shows the income or expenditure totalled for each time period.
 
-Selecting <menu>Analysis - Balance report...</menu> from the main menu will open the <window>Balance report</window> dialogue.
+Selecting <menu>Analysis &msep; Balance report...</menu> from the main menu will open the <window>Balance report</window> dialogue.
 
 The date range over which the report will be compiled is set in the <icon>Period</icon> section, and follows the standard format. Lower and upper limits can be set by entering dates into the <icon>From</icon> and <icon>To</icon> fields; if either are left blank, the earliest and latest dates in the file are used respectively. If <icon>Use budget period</icon> is set, the current budgeting date range will be used.
 
@@ -942,7 +942,7 @@ Once the report parameters have been set, click on <icon>Generate</icon> to crea
 
 <subhead title="Standing Order Reports">
 
-A standing order report gives details of the orders currently defined in a cash book file.  Selecting <menu>Analysis - Standing order report</menu> from the main menu or <menu>Full report</menu> from the <window>standing orders list</window> menu will create the report.
+A standing order report gives details of the orders currently defined in a cash book file.  Selecting <menu>Analysis &msep; Standing order report</menu> from the main menu or <menu>Full report</menu> from the <window>standing orders list</window> menu will create the report.
 
 The report lists all the details of each standing order, including the accounts and headings concerned, amounts to be transferred, the number of transactions, dates and so on. No parameters can be set for the report.
 
@@ -958,7 +958,7 @@ The report lists all the details of each standing order, including the accounts 
 
 The contents of most <cite>CashBook</cite> windows can be printed, to provide a hard copy of the data they contain. For printing to work, a printer driver must have been loaded at some point during the current session. If your printer supports text-mode printing, <cite>CashBook</cite> can use this to produce a faster print job at the expense of flexibility.
 
-To print the contents of a window, select <menu>Print...</menu> from the window's menu or click on the <icon>print</icon> button in the toolbar. In the case of the <window>transaction</window> window, the menu option is <menu>File - Print...</menu> from the main menu, and the <key>print</key> key can also be used.
+To print the contents of a window, select <menu>Print...</menu> from the window's menu or click on the <icon>print</icon> button in the toolbar. In the case of the <window>transaction</window> window, the menu option is <menu>File &msep; Print...</menu> from the main menu, and the <key>print</key> key can also be used.
 
 When printing the <window>transaction</window> window or statement view contents, there is an option to restrict the printed dates to a given range: enter dates in the <icon>from</icon> and/or <icon>to</icon> fields as required. If either is left blank, the first and last dates in the file are used respectively. Clicking on <icon>Print</icon> will start the print job.
 
@@ -992,7 +992,7 @@ When printing in text mode, the <icon>Use text formatting</icon> option determin
 
 <chapter title="Saving and Loading" file="Files">
 
-Saving a cashbook file is done in the usual RISC OS way, by opening the <menu>File - Save</menu> dialogue from the main menu, clicking on the <icon>save file</icon> button in the <window>transaction</window> window toolbar or pressing <key>f3</key>.  Enter a name in the <window>save as</window> dialogue, and drag the file to a directory viewer; if a full path is present, clicking <icon>OK</icon> or pressing <key>return</key> will save to the same location.
+Saving a cashbook file is done in the usual RISC OS way, by opening the <menu>File &msep; Save</menu> dialogue from the main menu, clicking on the <icon>save file</icon> button in the <window>transaction</window> window toolbar or pressing <key>f3</key>.  Enter a name in the <window>save as</window> dialogue, and drag the file to a directory viewer; if a full path is present, clicking <icon>OK</icon> or pressing <key>return</key> will save to the same location.
 
 In addition to using the <window>save as</window> dialogue, a file which has already been saved (and hence has a full pathname showing in the titlebar of the <window>transaction</window> window) can be saved instantly with an <mouse>adjust</mouse> click on the <icon>save file</icon> button or by pressing <key>ctrl-f3</key>.
 
@@ -1010,7 +1010,7 @@ Going the other way, older versions of <cite>CashBook</cite> will just ignore an
 
 <subhead title="File information">
 
-Information about a cashbook file can be found by selecting <menu>File - Info</menu> from the main menu or by pressing <key>ctrl-f1</key>.
+Information about a cashbook file can be found by selecting <menu>File &msep; Info</menu> from the main menu or by pressing <key>ctrl-f1</key>.
 
 The <window>file information</window> dialogue shows the location of the file on disc, if it has been saved, along with the date it was saved and whether there are unsaved modifications in memory (also shown by an asterisk at the end of the <window>transaction</window> window title bar).
 
@@ -1097,14 +1097,14 @@ It is possible to locate transactions within a cashbook file in two ways. If the
 
 <subhead title="Going to a transaction">
 
-If you know the date or number of a transaction, it is possible to go direct to it using the <window>goto transaction</window> dialogue.  Open it by selecting <menu>Transactions - Goto...</menu> from the main menu, or by clicking on the <icon>goto transaction</icon> button in the transaction window toolbar.
+If you know the date or number of a transaction, it is possible to go direct to it using the <window>goto transaction</window> dialogue.  Open it by selecting <menu>Transactions &msep; Goto...</menu> from the main menu, or by clicking on the <icon>goto transaction</icon> button in the transaction window toolbar.
 
 Simply enter the date or transaction number into the <icon>Transaction</icon> field, selecting <icon>Date</icon> or <icon>Number</icon> as appropriate, and click on <icon>Go</icon>.  If the transaction exists, the caret will be placed in the date field; if not, a message will indicate this.
 
 
 <subhead title="Searching for transactions">
 
-If the date or transaction number is not known, or if several similar transactions need to be located, then the file can be searched based on the contents of a combination of any of the transaction fields.  The <window>find transaction</window> dialogue is opened by selecting <menu>Transactions - Find...</menu> from the main menu, or by clicking on the <icon>find transaction</icon> button in the transaction window toolbar.
+If the date or transaction number is not known, or if several similar transactions need to be located, then the file can be searched based on the contents of a combination of any of the transaction fields.  The <window>find transaction</window> dialogue is opened by selecting <menu>Transactions &msep; Find...</menu> from the main menu, or by clicking on the <icon>find transaction</icon> button in the transaction window toolbar.
 
 The top section of the dialogue allows the contents of some or all of the fields to be specified.  Any combination can be used, and it is possible to find transactions where all of the specified fields match or where any one or more match.  Values are entered as they would be in a transaction entry, with the same entry keys used for reconciliation of accounts and headings.
 
@@ -1134,7 +1134,7 @@ After a time, cashbook files will contain old data which is no longer needed.  W
 
 It is possible to carry out this process as part of a year-end routine, removing old transactions before saving the file under a new name.  This ensures that records are maintained, while also reducing the amount of 'clutter' in the working copy of the file.
 
-The process is carried out from the <window>purge file</window> dialogue, which can be opened by selecting <menu>File - Purge...</menu> from the main menu. Four options are available, allowing each type of item to be purged as required.
+The process is carried out from the <window>purge file</window> dialogue, which can be opened by selecting <menu>File &msep; Purge...</menu> from the main menu. Four options are available, allowing each type of item to be purged as required.
 
 If <icon>Remove reconciled transactions</icon> is selected, all transactions where both the <icon>From</icon> and <icon>To</icon> fields are reconciled will be removed. If a date is supplied in the <icon>Keep transactions from</icon> field, only transactions taking place before that date will be deleted. It is not possible to purge unreconciled transactions.
 
@@ -1562,6 +1562,8 @@ f22 = Corpus.Medium.Oblique   14   Bold 21  Italic 22  Both 23
 f23 = Corpus.Bold.Oblique     14   Bold 21  Italic 22  Both 23
 
 # Fonts 24 to 31 are reserved for the manuals themselves.
+
+f31 = Selwyn                  14
 
 # The styles..
 

@@ -4,3 +4,6 @@ CashBook Issues
 * Allow sorting on two (or more?) columns.
 
 * Show line number in transaction window.
+
+* Allow profiling across a budget period: show amount left by month, maybe as
+  a percentage of the total amount.

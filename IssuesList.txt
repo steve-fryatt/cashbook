@@ -1,0 +1,6 @@
+CashBook Issues
+---------------
+
+* Allow sorting on two (or more?) columns.
+
+* Show line number in transaction window.

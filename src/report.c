@@ -75,6 +75,7 @@
 #include "ihelp.h"
 #include "mainmenu.h"
 #include "printing.h"
+#include "saveas.h"
 #include "templates.h"
 #include "window.h"
 
@@ -112,24 +113,27 @@ struct report_print_pagination {
 	int		line_count;						/**< The total line count on the page, including a repeated header.				*/
 };
 
-report_data		*report_format_report = NULL;				/**< The report to which the currently open Report Format window belongs.			*/
-report_data		*report_print_report = NULL;				/**< The report to which the currently open Report Print dialogie belongs.			*/
+report_data			*report_format_report = NULL;			/**< The report to which the currently open Report Format window belongs.			*/
+report_data			*report_print_report = NULL;			/**< The report to which the currently open Report Print dialogie belongs.			*/
 
-static osbool		report_print_opt_text;					/**< TRUE if the current report is to be printed text format; FALSE to print graphically.	*/
-static osbool		report_print_opt_textformat;				/**< TRUE if text formatting should be applied to the current text format print; else FALSE.	*/
-static osbool		report_print_opt_fitwidth;				/**< TRUE if the graphics format print should be fitted to page width; else FALSE.		*/
-static osbool		report_print_opt_rotate;				/**< TRUE if the graphics format print should be rotated to Landscape; FALSE for Portrait.	*/
-static osbool		report_print_opt_pagenum;				/**< TRUE if the graphics format print should include page numbers; else FALSE.			*/
+static osbool			report_print_opt_text;				/**< TRUE if the current report is to be printed text format; FALSE to print graphically.	*/
+static osbool			report_print_opt_textformat;			/**< TRUE if text formatting should be applied to the current text format print; else FALSE.	*/
+static osbool			report_print_opt_fitwidth;			/**< TRUE if the graphics format print should be fitted to page width; else FALSE.		*/
+static osbool			report_print_opt_rotate;			/**< TRUE if the graphics format print should be rotated to Landscape; FALSE for Portrait.	*/
+static osbool			report_print_opt_pagenum;			/**< TRUE if the graphics format print should include page numbers; else FALSE.			*/
 
-wimp_window		*report_window_def = NULL;				/**< The definition for the Report View window.							*/
+wimp_window			*report_window_def = NULL;			/**< The definition for the Report View window.							*/
 
-static wimp_menu	*report_view_menu = NULL;				/**< The Report View window menu handle.							*/
+static wimp_menu		*report_view_menu = NULL;			/**< The Report View window menu handle.							*/
 
-static wimp_w		report_format_window = NULL;				/**< Window handle of the Report Format window.							*/
+static wimp_w			report_format_window = NULL;			/**< Window handle of the Report Format window.							*/
 
-static wimp_menu	*report_format_font_menu = NULL;			/**< The font menu handle.									*/
-static wimp_i		report_format_font_icon = -1;				/**< The pop-up icon which opened the font menu.						*/
+static wimp_menu		*report_format_font_menu = NULL;		/**< The font menu handle.									*/
+static wimp_i			report_format_font_icon = -1;			/**< The pop-up icon which opened the font menu.						*/
 
+static struct saveas_block	*report_save_text = NULL;			/**< The Save Text saveas data handle.								*/
+static struct saveas_block	*report_save_csv = NULL;			/**< The Save CSV saveas data habdle.								*/
+static struct saveas_block	*report_save_tsv = NULL;			/**< The Save TSV saveas data handle.								*/
 
 
 static int			report_reflow_content(report_data *report);
@@ -189,6 +193,12 @@ void report_initialise(osspriteop_area *sprites)
 	report_window_def->sprite_area = sprites;
 
 	report_view_menu = templates_get_menu(TEMPLATES_MENU_REPORT);
+
+	/* Save dialogue boxes. */
+
+	report_save_text = saveas_create_dialogue(FALSE, "file_fff", );
+	report_save_csv = saveas_create_dialogue(FALSE, "file_dfe", );
+	report_save_tsv = saveas_create_dialogue(FALSE, "file_fff", );
 }
 
 
@@ -869,7 +879,11 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	if (report == NULL)
 		return;
 
-	initialise_save_boxes(report->file, (int) report, 0);
+	saveas_initialise_dialogue(report_save_text, "DefRepFile", NULL, FALSE, FALSE, report);
+	saveas_initialise_dialogue(report_save_csv, "DefCSVFile", NULL, FALSE, FALSE, report);
+	saveas_initialise_dialogue(report_save_tsv, "DefTSVFile", NULL, FALSE, FALSE, report);
+
+	//initialise_save_boxes(report->file, (int) report, 0);
 
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template.type == REPORT_TYPE_NONE);
 }
@@ -934,16 +948,19 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 	switch (warning->selection.items[0]) {
 	case REPVIEW_MENU_SAVETEXT:
-		fill_save_as_window(report->file, SAVE_BOX_REPTEXT);
+		saveas_prepare_dialogue(report_save_text);
+		//fill_save_as_window(report->file, SAVE_BOX_REPTEXT);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case REPVIEW_MENU_EXPCSV:
-		fill_save_as_window(report->file, SAVE_BOX_REPCSV);
+		saveas_prepare_dialogue(report_save_csv);
+		//fill_save_as_window(report->file, SAVE_BOX_REPCSV);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case REPVIEW_MENU_EXPTSV:
+		saveas_prepare_dialogue(report_save_tsv);
 		fill_save_as_window(report->file, SAVE_BOX_REPTSV);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;

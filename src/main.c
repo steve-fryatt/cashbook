@@ -91,6 +91,7 @@
 #include "printing.h"
 #include "purge.h"
 #include "report.h"
+#include "saveas.h"
 #include "sorder.h"
 #include "templates.h"
 #include "transact.h"
@@ -304,6 +305,7 @@ static void main_initialise(void)
 	snprintf(res_temp, sizeof(res_temp), "%s.Templates", resources);
 	templates_open(res_temp);
 
+	saveas_initialise();
 	iconbar_initialise();
 	choices_initialise();
 	analysis_initialise();

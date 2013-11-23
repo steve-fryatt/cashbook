@@ -961,7 +961,7 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 	case REPVIEW_MENU_EXPTSV:
 		saveas_prepare_dialogue(report_save_tsv);
-		fill_save_as_window(report->file, SAVE_BOX_REPTSV);
+		//fill_save_as_window(report->file, SAVE_BOX_REPTSV);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}

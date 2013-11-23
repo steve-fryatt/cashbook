@@ -285,9 +285,9 @@ void initialise_save_boxes (file_data *file, int object, int delete_after)
   msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_SORDERTSV], sizeof (savebox_filename[SAVE_BOX_SORDERTSV]));
   msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_PRESETCSV], sizeof (savebox_filename[SAVE_BOX_PRESETCSV]));
   msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_PRESETTSV], sizeof (savebox_filename[SAVE_BOX_PRESETTSV]));
-  msgs_lookup ("DefRepFile", savebox_filename[SAVE_BOX_REPTEXT], sizeof (savebox_filename[SAVE_BOX_REPTEXT]));
-  msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_REPCSV], sizeof (savebox_filename[SAVE_BOX_REPCSV]));
-  msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_REPTSV], sizeof (savebox_filename[SAVE_BOX_REPTSV]));
+  //msgs_lookup ("DefRepFile", savebox_filename[SAVE_BOX_REPTEXT], sizeof (savebox_filename[SAVE_BOX_REPTEXT]));
+  //msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_REPCSV], sizeof (savebox_filename[SAVE_BOX_REPCSV]));
+  //msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_REPTSV], sizeof (savebox_filename[SAVE_BOX_REPTSV]));
 
   /* Set the default sprites up. */
 
@@ -302,9 +302,9 @@ void initialise_save_boxes (file_data *file, int object, int delete_after)
   strcpy (savebox_sprites[SAVE_BOX_SORDERTSV], "file_fff");
   strcpy (savebox_sprites[SAVE_BOX_PRESETCSV], "file_dfe");
   strcpy (savebox_sprites[SAVE_BOX_PRESETTSV], "file_fff");
-  strcpy (savebox_sprites[SAVE_BOX_REPTEXT], "file_fff");
-  strcpy (savebox_sprites[SAVE_BOX_REPCSV], "file_dfe");
-  strcpy (savebox_sprites[SAVE_BOX_REPTSV], "file_fff");
+  //strcpy (savebox_sprites[SAVE_BOX_REPTEXT], "file_fff");
+  //strcpy (savebox_sprites[SAVE_BOX_REPCSV], "file_dfe");
+  //strcpy (savebox_sprites[SAVE_BOX_REPTSV], "file_fff");
 
   savebox_window = SAVE_BOX_NONE;
   saving_file = file;

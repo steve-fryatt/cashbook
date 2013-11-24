@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -75,7 +75,6 @@
 #include "clipboard.h"
 #include "column.h"
 #include "conversion.h"
-#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
@@ -88,6 +87,7 @@
 #include "printing.h"
 #include "purge.h"
 #include "report.h"
+#include "saveas.h"
 #include "sorder.h"
 #include "templates.h"
 #include "transact.h"
@@ -194,6 +194,12 @@ static char				*transact_complete_menu_title = NULL;	/**< Reference/Description 
 static file_data			*transact_complete_menu_file = NULL;	/**< The file to which the Reference/Description List menu is currently attached.	*/
 static enum transact_list_menu_type	transact_complete_menu_type = REFDESC_MENU_NONE;
 
+/* SaveAs Dialogue Handles. */
+
+static struct saveas_block	*transact_saveas_file = NULL;			/**< The Save File saveas data handle.					*/
+static struct saveas_block	*transact_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
+static struct saveas_block	*transact_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
+
 
 static void			transact_window_open_handler(wimp_open *open);
 static void			transact_window_close_handler(wimp_close *close);
@@ -218,6 +224,11 @@ static osbool			transact_sort_keypress_handler(wimp_key *key);
 static void			transact_refresh_sort_window(void);
 static void			transact_fill_sort_window(int sort_option);
 static osbool			transact_process_sort_window(void);
+
+static osbool			transact_save_file(char *filename, osbool selection, void *data);
+static osbool			transact_save_csv(char *filename, osbool selection, void *data);
+static osbool			transact_save_tsv(char *filename, osbool selection, void *data);
+static void			transact_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
 
 static void			transact_prepare_fileinfo(file_data *file);
 
@@ -259,6 +270,10 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_window_menu_account = templates_get_menu(TEMPLATES_MENU_MAIN_ACCOUNTS);
 	transact_window_menu_transact = templates_get_menu(TEMPLATES_MENU_MAIN_TRANSACTIONS);
 	transact_window_menu_analysis = templates_get_menu(TEMPLATES_MENU_MAIN_ANALYSIS);
+
+	transact_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_save_file);
+	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_save_csv);
+	transact_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", transact_save_tsv);
 }
 
 
@@ -665,6 +680,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 	wimp_window_state		window;
 	wimp_icon_state			icon;
 	int				ox;
+	char				*filename;
 
 
 	windat = event_get_window_user_data(pointer->w);
@@ -673,22 +689,23 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 
 	file = windat->file;
 
-  /* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
+	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
-  if (pointer->i == TRANSACT_PANE_SORT_DIR_ICON)
-  {
-    pointer->i = transaction_pane_sort_substitute_icon;
-  }
+	if (pointer->i == TRANSACT_PANE_SORT_DIR_ICON)
+		pointer->i = transaction_pane_sort_substitute_icon;
 
-  if (pointer->buttons == wimp_CLICK_SELECT)
-  {
-    switch (pointer->i)
-    {
-      case TRANSACT_PANE_SAVE:
-        initialise_save_boxes (file, 0, 0);
-        fill_save_as_window (file, SAVE_BOX_FILE);
-        dataxfer_open_saveas_window(pointer);
-        break;
+	if (pointer->buttons == wimp_CLICK_SELECT) {
+		switch (pointer->i) {
+		case TRANSACT_PANE_SAVE:
+			if (check_for_filepath(windat->file))
+				filename = windat->file->filename;
+			else
+				filename = "DefTransFile";
+      
+			saveas_initialise_dialogue(transact_saveas_file, filename, NULL, FALSE, FALSE, windat);
+			saveas_prepare_dialogue(transact_saveas_file);
+			saveas_open_dialogue(transact_saveas_file, pointer);
+			break;
 
       case TRANSACT_PANE_PRINT:
         open_transact_print_window (file, pointer, config_opt_read ("RememberValues"));
@@ -863,6 +880,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 	struct transaction_window	*windat;
 	file_data			*file;
 	wimp_pointer			pointer;
+	char				*filename;
 
 	windat = event_get_window_user_data(key->w);
 	if (windat == NULL || windat->file == NULL)
@@ -870,125 +888,79 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 
 	file = windat->file;
 
-  /* The global clipboard keys. */
+	/* The global clipboard keys. */
 
-  if (key->c == 3) /* Ctrl- C */
-  {
-    clipboard_copy_from_icon (key);
-  }
-  else if (key->c == 18) /* Ctrl-R */
-  {
-    perform_full_recalculation (file);
-  }
-  else if (key->c == 22) /* Ctrl-V */
-  {
-    clipboard_paste_to_icon (key);
-  }
-  else if (key->c == 24) /* Ctrl-X */
-  {
-    clipboard_cut_from_icon (key);
-  }
+	if (key->c == 3) /* Ctrl- C */
+		clipboard_copy_from_icon(key);
+	else if (key->c == 18) /* Ctrl-R */
+		perform_full_recalculation(file);
+	else if (key->c == 22) /* Ctrl-V */
+		clipboard_paste_to_icon(key);
+	else if (key->c == 24) /* Ctrl-X */
+		clipboard_cut_from_icon(key);
 
-  /* Other keyboard shortcuts */
+	/* Other keyboard shortcuts */
 
-  else if (key->c == wimp_KEY_PRINT)
-  {
-    wimp_get_pointer_info (&pointer);
-    open_transact_print_window (file, &pointer, config_opt_read ("RememberValues"));
-  }
+	else if (key->c == wimp_KEY_PRINT) {
+		wimp_get_pointer_info(&pointer);
+		open_transact_print_window(file, &pointer, config_opt_read("RememberValues"));
+	} else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F1) {
+		wimp_get_pointer_info(&pointer);
+		transact_prepare_fileinfo(file);
+		menus_create_standard_menu((wimp_menu *) transact_fileinfo_window, &pointer);
+	} else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F2) {
+		delete_file(file);
+	} else if (key->c == wimp_KEY_F3) {
+		wimp_get_pointer_info(&pointer);
+    
+		if (check_for_filepath(windat->file))
+			filename = windat->file->filename;
+		else
+			filename = "DefTransFile";
+      
+		saveas_initialise_dialogue(transact_saveas_file, filename, NULL, FALSE, FALSE, windat);
+		saveas_prepare_dialogue(transact_saveas_file);
+		saveas_open_dialogue(transact_saveas_file, &pointer);
+	} else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F3) {
+		start_direct_menu_save(file);
+	} else if (key->c == wimp_KEY_F4) {
+		wimp_get_pointer_info(&pointer);
+		find_open_window(file, &pointer, config_opt_read("RememberValues"));
+	} else if (key->c == wimp_KEY_F5) {
+		wimp_get_pointer_info(&pointer);
+		goto_open_window(file, &pointer, config_opt_read("RememberValues"));
+	} else if (key->c == wimp_KEY_F6) {
+		wimp_get_pointer_info(&pointer);
+		transact_open_sort_window(file, &pointer);
+	} else if (key->c == wimp_KEY_F9) {
+		account_open_window(file, ACCOUNT_FULL);
+	} else if (key->c == wimp_KEY_F10) {
+		account_open_window(file, ACCOUNT_IN);
+	} else if (key->c == wimp_KEY_F11) {
+		account_open_window(file, ACCOUNT_OUT);
+	} else if (key->c == wimp_KEY_PAGE_UP || key->c == wimp_KEY_PAGE_DOWN) {
+		wimp_scroll scroll;
 
-  else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F1)
-  {
-    wimp_get_pointer_info (&pointer);
-    transact_prepare_fileinfo(file);
-    menus_create_standard_menu ((wimp_menu *) transact_fileinfo_window, &pointer);
-  }
+		/* Make up a Wimp_ScrollRequest block and pass it to the scroll request handler. */
 
-  else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F2)
-  {
-    delete_file (file);
-  }
+		scroll.w = file->transaction_window.transaction_window;
+		wimp_get_window_state((wimp_window_state *) &scroll);
 
-  else if (key->c == wimp_KEY_F3)
-  {
-    wimp_get_pointer_info (&pointer);
-    initialise_save_boxes (file, 0, 0);
-    fill_save_as_window (file, SAVE_BOX_FILE);
-    dataxfer_open_saveas_window(&pointer);
-  }
+		scroll.xmin = wimp_SCROLL_NONE;
+		scroll.ymin = (key->c == wimp_KEY_PAGE_UP) ? wimp_SCROLL_PAGE_UP : wimp_SCROLL_PAGE_DOWN;
 
-  else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F3)
-  {
-    start_direct_menu_save (file);
-  }
+		transact_window_scroll_handler(&scroll);
+	} else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_UP) || key->c == wimp_KEY_HOME) {
+		scroll_transaction_window_to_end(file, -1);
+	} else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_DOWN) ||
+			(key->c == wimp_KEY_COPY && config_opt_read ("IyonixKeys"))) {
+		scroll_transaction_window_to_end(file, +1);
+	} else {
+		/* Pass any keys that are left on to the edit line handler. */
+		return process_transaction_edit_line_keypress(file, key);
+	}
 
-  else if (key->c == wimp_KEY_F4)
-  {
-    wimp_get_pointer_info (&pointer);
-    find_open_window (file, &pointer, config_opt_read ("RememberValues"));
-  }
-
-  else if (key->c == wimp_KEY_F5)
-  {
-    wimp_get_pointer_info (&pointer);
-    goto_open_window (file, &pointer, config_opt_read ("RememberValues"));
-  }
-
-  else if (key->c == wimp_KEY_F6)
-  {
-    wimp_get_pointer_info (&pointer);
-    transact_open_sort_window (file, &pointer);
-  }
-
-  else if (key->c == wimp_KEY_F9)
-  {
-    account_open_window (file, ACCOUNT_FULL);
-  }
-
-  else if (key->c == wimp_KEY_F10)
-  {
-    account_open_window (file, ACCOUNT_IN);
-  }
-
-  else if (key->c == wimp_KEY_F11)
-  {
-    account_open_window (file, ACCOUNT_OUT);
-  }
-
-  else if (key->c == wimp_KEY_PAGE_UP || key->c == wimp_KEY_PAGE_DOWN)
-  {
-    wimp_scroll scroll;
-
-    /* Make up a Wimp_ScrollRequest block and pass it to the scroll request handler. */
-
-    scroll.w = file->transaction_window.transaction_window;
-    wimp_get_window_state ((wimp_window_state *) &scroll);
-
-    scroll.xmin = wimp_SCROLL_NONE;
-    scroll.ymin = (key->c == wimp_KEY_PAGE_UP) ? wimp_SCROLL_PAGE_UP : wimp_SCROLL_PAGE_DOWN;
-
-    transact_window_scroll_handler(&scroll);
-  }
-
-  else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_UP) || key->c == wimp_KEY_HOME)
-  {
-    scroll_transaction_window_to_end (file, -1);
-  }
-
-  else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_DOWN) ||
-           (key->c == wimp_KEY_COPY && config_opt_read ("IyonixKeys")))
-  {
-    scroll_transaction_window_to_end (file, +1);
-  }
-
-  /* Pass any keys that are left on to the edit line handler. */
-
-  else
-  {
-    return process_transaction_edit_line_keypress (file, key);
-  }
-
-  return TRUE;
+	return TRUE;
 }
 
 
@@ -1005,6 +977,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 	struct transaction_window	*windat;
 	int				line;
 	wimp_window_state		window;
+	char				*filename;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL || windat->file == NULL)
@@ -1051,7 +1024,14 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 		if (windat->file->saved_report_count == 0)
 			transact_window_menu_analysis->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
 
-		initialise_save_boxes(windat->file, 0, 0);
+		if (check_for_filepath(windat->file))
+			filename = windat->file->filename;
+		else
+			filename = "DefTransFile";
+ 
+		saveas_initialise_dialogue(transact_saveas_file, filename, NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(transact_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(transact_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
 	menus_tick_entry(transact_window_menu_transact, MAIN_MENU_TRANS_RECONCILE, windat->file->auto_reconcile);
@@ -1247,17 +1227,17 @@ static void transact_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp
 			break;
 
 		case MAIN_MENU_FILE_SAVE:
-			fill_save_as_window(windat->file, SAVE_BOX_FILE);
+			saveas_prepare_dialogue(transact_saveas_file);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 
 		case MAIN_MENU_FILE_EXPCSV:
-			fill_save_as_window(windat->file, SAVE_BOX_CSV);
+			saveas_prepare_dialogue(transact_saveas_csv);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 
 		case MAIN_MENU_FILE_EXPTSV:
-			fill_save_as_window(windat->file, SAVE_BOX_TSV);
+			saveas_prepare_dialogue(transact_saveas_tsv);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 		}
@@ -3369,6 +3349,69 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 
 
 /**
+ * Callback handler for saving a cashbook file.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool transact_save_file(char *filename, osbool selection, void *data)
+{
+	struct account_window *windat = data;
+
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	save_transaction_file(windat->file, filename);
+
+	return TRUE;
+}
+
+
+/**
+ * Callback handler for saving a CSV version of the transaction data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool transact_save_csv(char *filename, osbool selection, void *data)
+{
+	struct account_window *windat = data;
+
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	transact_export_delimited(windat->file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+
+	return TRUE;
+}
+
+
+/**
+ * Callback handler for saving a TSV version of the transaction data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool transact_save_tsv(char *filename, osbool selection, void *data)
+{
+	struct account_window *windat = data;
+
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	transact_export_delimited(windat->file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+
+	return TRUE;
+}
+
+
+/**
  * Export the transaction data from a file into CSV or TSV format.
  *
  * \param *file			The file to export from.
@@ -3377,7 +3420,7 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
  * \param filetype		The RISC OS filetype to save as.
  */
 
-void transact_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
+static void transact_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE	*out;
 	int	i, t;

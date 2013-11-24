@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -65,7 +65,6 @@
 #include "caret.h"
 #include "column.h"
 #include "conversion.h"
-#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
@@ -73,6 +72,7 @@
 #include "ihelp.h"
 #include "mainmenu.h"
 #include "printing.h"
+#include "saveas.h"
 #include "report.h"
 #include "templates.h"
 #include "window.h"
@@ -205,10 +205,14 @@ static wimp_i			preset_substitute_sort_icon = PRESET_PANE_FROM;	/**< The icon cu
 
 /* Preset Shortcut Menu. */
 
-static wimp_menu			*preset_complete_menu = NULL;		/**< The preset shortcut menu block.				*/
-static struct preset_complete_link	*preset_complete_menu_link = NULL;	/**< Links for the shortcut menu.				*/
-static char				*preset_complete_menu_title = NULL;	/**< The menu title buffer.					*/
+static wimp_menu			*preset_complete_menu = NULL;		/**< The preset shortcut menu block.					*/
+static struct preset_complete_link	*preset_complete_menu_link = NULL;	/**< Links for the shortcut menu.					*/
+static char				*preset_complete_menu_title = NULL;	/**< The menu title buffer.						*/
 
+/* SaveAs Dialogue Handles. */
+
+static struct saveas_block	*preset_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
+static struct saveas_block	*preset_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 static void		preset_close_window_handler(wimp_close *close);
 static void		preset_window_click_handler(wimp_pointer *pointer);
@@ -244,6 +248,11 @@ static void		preset_print(osbool text, osbool format, osbool scale, osbool rotat
 
 static int		preset_add(file_data *file);
 static osbool		preset_delete(file_data *file, int preset);
+
+static osbool		preset_save_csv(char *filename, osbool selection, void *data);
+static osbool		preset_save_tsv(char *filename, osbool selection, void *data);
+static void		preset_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
+
 
 
 /**
@@ -285,6 +294,10 @@ void preset_initialise(osspriteop_area *sprites)
 	preset_pane_def->sprite_area = sprites;
 
 	preset_window_menu = templates_get_menu(TEMPLATES_MENU_PRESET);
+
+	preset_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_save_csv);
+	preset_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_save_tsv);
+
 }
 
 
@@ -648,7 +661,8 @@ static void preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 				preset_window_menu_line = line;
 		}
 
-		initialise_save_boxes(windat->file, 0, 0);
+		saveas_initialise_dialogue(preset_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(preset_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
 	menus_shade_entry(preset_window_menu, PRESET_MENU_EDIT, preset_window_menu_line == -1);
@@ -713,12 +727,12 @@ static void preset_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_m
 
 	switch (warning->selection.items[0]) {
 	case PRESET_MENU_EXPCSV:
-		fill_save_as_window(windat->file, SAVE_BOX_PRESETCSV);
+		saveas_prepare_dialogue(preset_saveas_csv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case PRESET_MENU_EXPTSV:
-		fill_save_as_window(windat->file, SAVE_BOX_PRESETTSV);
+		saveas_prepare_dialogue(preset_saveas_tsv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -2601,6 +2615,48 @@ int preset_read_file(file_data *file, FILE *in, char *section, char *token, char
 
 
 /**
+ * Callback handler for saving a CSV version of the preset data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool preset_save_csv(char *filename, osbool selection, void *data)
+{
+	struct preset_window *windat = data;
+	
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	preset_export_delimited(windat->file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	
+	return TRUE;
+}
+
+
+/**
+ * Callback handler for saving a TSV version of the preset data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool preset_save_tsv(char *filename, osbool selection, void *data)
+{
+	struct preset_window *windat = data;
+	
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+		
+	preset_export_delimited(windat->file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	
+	return TRUE;
+}
+
+
+/**
  * Export the preset data from a file into CSV or TSV format.
  *
  * \param *file			The file to export from.
@@ -2609,7 +2665,7 @@ int preset_read_file(file_data *file, FILE *in, char *section, char *token, char
  * \param filetype		The RISC OS filetype to save as.
  */
 
-void preset_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
+static void preset_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	int			i, t;

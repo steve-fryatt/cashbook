@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -51,12 +51,6 @@
 #define SAVE_BOX_REPTSV 11
 #define SAVE_BOX_PRESETCSV 12
 #define SAVE_BOX_PRESETTSV 13
-
-#define CASHBOOK_FILE_TYPE 0x1ca
-#define CSV_FILE_TYPE 0xdfe
-#define TSV_FILE_TYPE 0xfff
-#define TEXT_FILE_TYPE 0xfff
-#define FANCYTEXT_FILE_TYPE 0xaf8
 
 
 

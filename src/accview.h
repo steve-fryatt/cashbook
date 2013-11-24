@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -168,18 +168,6 @@ void accview_recalculate_all(file_data *file);
  */
 
 void accview_rebuild_all(file_data *file);
-
-
-/**
- * Export the account view transaction data from a file into CSV or TSV format.
- *
- * \param *file			The file to export from.
- * \param *filename		The filename to export to.
- * \param format		The file format to be used.
- * \param filetype		The RISC OS filetype to save as.
- */
-
-void accview_export_delimited(file_data *file, acct_t account, char *filename, enum filing_delimit_type format, int filetype);
 
 #endif
 

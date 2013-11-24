@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -68,7 +68,6 @@
 #include "column.h"
 #include "conversion.h"
 #include "calculation.h"
-#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
@@ -76,6 +75,7 @@
 #include "ihelp.h"
 #include "mainmenu.h"
 #include "printing.h"
+#include "saveas.h"
 #include "report.h"
 #include "templates.h"
 #include "transact.h"
@@ -210,6 +210,11 @@ static wimp_menu		*sorder_window_menu = NULL;			/**< The Standing Order Window m
 static int			sorder_window_menu_line = -1;			/**< The line over which the Standing Order Window Menu was opened.	*/
 static wimp_i			sorder_substitute_sort_icon = SORDER_PANE_FROM;	/**< The icon currently obscured by the sort icon.			*/
 
+/* SaveAs Dialogue Handles. */
+
+static struct saveas_block	*sorder_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
+static struct saveas_block	*sorder_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
+
 
 static void			sorder_close_window_handler(wimp_close *close);
 static void			sorder_window_click_handler(wimp_pointer *pointer);
@@ -246,6 +251,10 @@ static void			sorder_print(osbool text, osbool format, osbool scale, osbool rota
 
 static int			sorder_add(file_data *file);
 static osbool			sorder_delete(file_data *file, int sorder);
+
+static osbool			sorder_save_csv(char *filename, osbool selection, void *data);
+static osbool			sorder_save_tsv(char *filename, osbool selection, void *data);
+static void			sorder_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
 
 
 /**
@@ -286,6 +295,9 @@ void sorder_initialise(osspriteop_area *sprites)
 	sorder_pane_def->sprite_area = sprites;
 
 	sorder_window_menu = templates_get_menu(TEMPLATES_MENU_SORDER);
+
+	sorder_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", sorder_save_csv);
+	sorder_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", sorder_save_tsv);
 }
 
 
@@ -646,7 +658,8 @@ static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 				sorder_window_menu_line = line;
 		}
 
-		initialise_save_boxes(windat->file, 0, 0);
+		saveas_initialise_dialogue(sorder_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(sorder_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
 	menus_shade_entry(sorder_window_menu, SORDER_MENU_EDIT, sorder_window_menu_line == -1);
@@ -718,12 +731,12 @@ static void sorder_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_m
 
 	switch (warning->selection.items[0]) {
 	case SORDER_MENU_EXPCSV:
-		fill_save_as_window(windat->file, SAVE_BOX_SORDERCSV);
+		saveas_prepare_dialogue(sorder_saveas_csv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case SORDER_MENU_EXPTSV:
-		fill_save_as_window(windat->file, SAVE_BOX_SORDERTSV);
+		saveas_prepare_dialogue(sorder_saveas_tsv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -2812,6 +2825,48 @@ int sorder_read_file(file_data *file, FILE *in, char *section, char *token, char
 
 
 /**
+ * Callback handler for saving a CSV version of the standing order data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool sorder_save_csv(char *filename, osbool selection, void *data)
+{
+	struct sorder_window *windat = data;
+	
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	sorder_export_delimited(windat->file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	
+	return TRUE;
+}
+
+
+/**
+ * Callback handler for saving a TSV version of the standing order data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool sorder_save_tsv(char *filename, osbool selection, void *data)
+{
+	struct sorder_window *windat = data;
+	
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+		
+	sorder_export_delimited(windat->file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	
+	return TRUE;
+}
+
+
+/**
  * Export the standing order data from a file into CSV or TSV format.
  *
  * \param *file			The file to export from.
@@ -2820,7 +2875,7 @@ int sorder_read_file(file_data *file, FILE *in, char *section, char *token, char
  * \param filetype		The RISC OS filetype to save as.
  */
 
-void sorder_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
+static void sorder_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	int			i, t;

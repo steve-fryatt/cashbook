@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -69,7 +69,6 @@
 
 #include "analysis.h"
 #include "caret.h"
-#include "dataxfer.h"
 #include "filing.h"
 #include "fontlist.h"
 #include "ihelp.h"
@@ -131,9 +130,9 @@ static wimp_w			report_format_window = NULL;			/**< Window handle of the Report 
 static wimp_menu		*report_format_font_menu = NULL;		/**< The font menu handle.									*/
 static wimp_i			report_format_font_icon = -1;			/**< The pop-up icon which opened the font menu.						*/
 
-static struct saveas_block	*report_save_text = NULL;			/**< The Save Text saveas data handle.								*/
-static struct saveas_block	*report_save_csv = NULL;			/**< The Save CSV saveas data habdle.								*/
-static struct saveas_block	*report_save_tsv = NULL;			/**< The Save TSV saveas data handle.								*/
+static struct saveas_block	*report_saveas_text = NULL;			/**< The Save Text saveas data handle.								*/
+static struct saveas_block	*report_saveas_csv = NULL;			/**< The Save CSV saveas data handle.								*/
+static struct saveas_block	*report_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.								*/
 
 
 static int			report_reflow_content(report_data *report);
@@ -158,6 +157,10 @@ static void			report_process_format_window(void);
 
 static void			report_open_print_window(report_data *report, wimp_pointer *ptr, osbool restore);
 static void			report_print_window_closed(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
+
+static osbool			report_save_text(char *filename, osbool selection, void *data);
+static osbool			report_save_csv(char *filename, osbool selection, void *data);
+static osbool			report_save_tsv(char *filename, osbool selection, void *data);
 
 static void			report_start_print_job(char *filename);
 static void			report_cancel_print_job(void);
@@ -196,9 +199,9 @@ void report_initialise(osspriteop_area *sprites)
 
 	/* Save dialogue boxes. */
 
-	report_save_text = saveas_create_dialogue(FALSE, "file_fff", );
-	report_save_csv = saveas_create_dialogue(FALSE, "file_dfe", );
-	report_save_tsv = saveas_create_dialogue(FALSE, "file_fff", );
+	report_saveas_text = saveas_create_dialogue(FALSE, "file_fff", report_save_text);
+	report_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", report_save_csv);
+	report_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", report_save_tsv);
 }
 
 
@@ -879,11 +882,9 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	if (report == NULL)
 		return;
 
-	saveas_initialise_dialogue(report_save_text, "DefRepFile", NULL, FALSE, FALSE, report);
-	saveas_initialise_dialogue(report_save_csv, "DefCSVFile", NULL, FALSE, FALSE, report);
-	saveas_initialise_dialogue(report_save_tsv, "DefTSVFile", NULL, FALSE, FALSE, report);
-
-	//initialise_save_boxes(report->file, (int) report, 0);
+	saveas_initialise_dialogue(report_saveas_text, "DefRepFile", NULL, FALSE, FALSE, report);
+	saveas_initialise_dialogue(report_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, report);
+	saveas_initialise_dialogue(report_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, report);
 
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template.type == REPORT_TYPE_NONE);
 }
@@ -948,20 +949,17 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 	switch (warning->selection.items[0]) {
 	case REPVIEW_MENU_SAVETEXT:
-		saveas_prepare_dialogue(report_save_text);
-		//fill_save_as_window(report->file, SAVE_BOX_REPTEXT);
+		saveas_prepare_dialogue(report_saveas_text);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case REPVIEW_MENU_EXPCSV:
-		saveas_prepare_dialogue(report_save_csv);
-		//fill_save_as_window(report->file, SAVE_BOX_REPCSV);
+		saveas_prepare_dialogue(report_saveas_csv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case REPVIEW_MENU_EXPTSV:
-		saveas_prepare_dialogue(report_save_tsv);
-		//fill_save_as_window(report->file, SAVE_BOX_REPTSV);
+		saveas_prepare_dialogue(report_saveas_tsv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -1360,9 +1358,80 @@ static void report_print_window_closed(osbool text, osbool format, osbool scale,
 
 
 
+
+
+
 /* ==================================================================================================================
  * Saving and export
  */
+
+
+/**
+ * Callback handler for saving a text version of a report.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the report block for the save target.
+ */
+
+static osbool report_save_text(char *filename, osbool selection, void *data)
+{
+	report_data *report = (report_data *) data;
+	
+	if (report == NULL || report->file == NULL)
+		return FALSE;
+
+	save_report_text(report->file, report, filename, FALSE);
+	
+	return TRUE;
+}
+
+
+/**
+ * Callback handler for saving a CSV version of a report.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the report block for the save target.
+ */
+
+static osbool report_save_csv(char *filename, osbool selection, void *data)
+{
+	report_data *report = (report_data *) data;
+	
+	if (report == NULL || report->file == NULL)
+		return FALSE;
+
+	export_delimited_report_file(report->file, report, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	
+	return TRUE;
+}
+
+
+/**
+ * Callback handler for saving a TSV version of a report.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the report block for the save target.
+ */
+
+static osbool report_save_tsv(char *filename, osbool selection, void *data)
+{
+	report_data *report = (report_data *) data;
+	
+	if (report == NULL || report->file == NULL)
+		return FALSE;
+		
+	export_delimited_report_file(report->file, report, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	
+	return TRUE;
+}
+
+
+
+
+
 
 void save_report_text (file_data *file, report_data *report, char *filename, int formatting)
 {

@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -210,18 +210,6 @@ void preset_write_file(file_data *file, FILE *out);
  */
 
 int preset_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
-
-
-/**
- * Export the preset data from a file into CSV or TSV format.
- *
- * \param *file			The file to export from.
- * \param *filename		The filename to export to.
- * \param format		The file format to be used.
- * \param filetype		The RISC OS filetype to save as.
- */
-
-void preset_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
 
 
 /**

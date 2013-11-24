@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -261,47 +261,47 @@ static osbool dataxfer_bounced_message_ramfetch(wimp_message *message)
 /* Called when the main menu is opened, to set up all the save boxes.  Can also be called before opening a save box
  * directly, say in response to F3.
  */
-
+#if 0
 void initialise_save_boxes (file_data *file, int object, int delete_after)
 {
   /* Set the initial filenames up. */
 
-  if (check_for_filepath (file))
-  {
-    strcpy (savebox_filename[SAVE_BOX_FILE], file->filename);
-  }
-  else
-  {
-    msgs_lookup ("DefTransFile", savebox_filename[SAVE_BOX_FILE], sizeof (savebox_filename[SAVE_BOX_FILE]));
-  }
+//  if (check_for_filepath (file))
+//  {
+//    strcpy (savebox_filename[SAVE_BOX_FILE], file->filename);
+//  }
+//  else
+//  {
+ //   msgs_lookup ("DefTransFile", savebox_filename[SAVE_BOX_FILE], sizeof (savebox_filename[SAVE_BOX_FILE]));
+//  }
 
-  msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_CSV], sizeof (savebox_filename[SAVE_BOX_CSV]));
-  msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_TSV], sizeof (savebox_filename[SAVE_BOX_TSV]));
-  msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_ACCCSV], sizeof (savebox_filename[SAVE_BOX_ACCCSV]));
-  msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_ACCTSV], sizeof (savebox_filename[SAVE_BOX_ACCTSV]));
-  msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_ACCVIEWCSV], sizeof (savebox_filename[SAVE_BOX_ACCVIEWCSV]));
-  msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_ACCVIEWTSV], sizeof (savebox_filename[SAVE_BOX_ACCVIEWTSV]));
-  msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_SORDERCSV], sizeof (savebox_filename[SAVE_BOX_SORDERCSV]));
-  msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_SORDERTSV], sizeof (savebox_filename[SAVE_BOX_SORDERTSV]));
-  msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_PRESETCSV], sizeof (savebox_filename[SAVE_BOX_PRESETCSV]));
-  msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_PRESETTSV], sizeof (savebox_filename[SAVE_BOX_PRESETTSV]));
+//  msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_CSV], sizeof (savebox_filename[SAVE_BOX_CSV]));
+//  msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_TSV], sizeof (savebox_filename[SAVE_BOX_TSV]));
+  //msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_ACCCSV], sizeof (savebox_filename[SAVE_BOX_ACCCSV]));
+  //msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_ACCTSV], sizeof (savebox_filename[SAVE_BOX_ACCTSV]));
+  //msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_ACCVIEWCSV], sizeof (savebox_filename[SAVE_BOX_ACCVIEWCSV]));
+  //msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_ACCVIEWTSV], sizeof (savebox_filename[SAVE_BOX_ACCVIEWTSV]));
+  //msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_SORDERCSV], sizeof (savebox_filename[SAVE_BOX_SORDERCSV]));
+  //msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_SORDERTSV], sizeof (savebox_filename[SAVE_BOX_SORDERTSV]));
+  //msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_PRESETCSV], sizeof (savebox_filename[SAVE_BOX_PRESETCSV]));
+  //msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_PRESETTSV], sizeof (savebox_filename[SAVE_BOX_PRESETTSV]));
   //msgs_lookup ("DefRepFile", savebox_filename[SAVE_BOX_REPTEXT], sizeof (savebox_filename[SAVE_BOX_REPTEXT]));
   //msgs_lookup ("DefCSVFile", savebox_filename[SAVE_BOX_REPCSV], sizeof (savebox_filename[SAVE_BOX_REPCSV]));
   //msgs_lookup ("DefTSVFile", savebox_filename[SAVE_BOX_REPTSV], sizeof (savebox_filename[SAVE_BOX_REPTSV]));
 
   /* Set the default sprites up. */
 
-  strcpy (savebox_sprites[SAVE_BOX_FILE], "file_1ca");
-  strcpy (savebox_sprites[SAVE_BOX_CSV], "file_dfe");
-  strcpy (savebox_sprites[SAVE_BOX_TSV], "file_fff");
-  strcpy (savebox_sprites[SAVE_BOX_ACCCSV], "file_dfe");
-  strcpy (savebox_sprites[SAVE_BOX_ACCTSV], "file_fff");
-  strcpy (savebox_sprites[SAVE_BOX_ACCVIEWCSV], "file_dfe");
-  strcpy (savebox_sprites[SAVE_BOX_ACCVIEWTSV], "file_fff");
-  strcpy (savebox_sprites[SAVE_BOX_SORDERCSV], "file_dfe");
-  strcpy (savebox_sprites[SAVE_BOX_SORDERTSV], "file_fff");
-  strcpy (savebox_sprites[SAVE_BOX_PRESETCSV], "file_dfe");
-  strcpy (savebox_sprites[SAVE_BOX_PRESETTSV], "file_fff");
+  //strcpy (savebox_sprites[SAVE_BOX_FILE], "file_1ca");
+  //strcpy (savebox_sprites[SAVE_BOX_CSV], "file_dfe");
+  //strcpy (savebox_sprites[SAVE_BOX_TSV], "file_fff");
+  //strcpy (savebox_sprites[SAVE_BOX_ACCCSV], "file_dfe");
+  //strcpy (savebox_sprites[SAVE_BOX_ACCTSV], "file_fff");
+  //strcpy (savebox_sprites[SAVE_BOX_ACCVIEWCSV], "file_dfe");
+  //strcpy (savebox_sprites[SAVE_BOX_ACCVIEWTSV], "file_fff");
+  //strcpy (savebox_sprites[SAVE_BOX_SORDERCSV], "file_dfe");
+  //strcpy (savebox_sprites[SAVE_BOX_SORDERTSV], "file_fff");
+  //strcpy (savebox_sprites[SAVE_BOX_PRESETCSV], "file_dfe");
+  //strcpy (savebox_sprites[SAVE_BOX_PRESETTSV], "file_fff");
   //strcpy (savebox_sprites[SAVE_BOX_REPTEXT], "file_fff");
   //strcpy (savebox_sprites[SAVE_BOX_REPCSV], "file_dfe");
   //strcpy (savebox_sprites[SAVE_BOX_REPTSV], "file_fff");
@@ -338,7 +338,7 @@ void fill_save_as_window (file_data *file, int new_window)
 
   savebox_window = new_window;
 }
-
+#endif
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Called to deal with File->Save in the menu being selected. */
@@ -360,7 +360,7 @@ void start_direct_menu_save (file_data *file)
   }
 }
 
-
+#if 0
 /**
  * Open the Save As dialogue at the pointer.
  *
@@ -430,7 +430,7 @@ static osbool dataxfer_saveas_keypress_handler(wimp_key *key)
 
 
 
-
+#endif
 
 
 
@@ -568,7 +568,7 @@ static void dataxfer_terminate_drag(wimp_dragged *drag, void *data)
  */
 
 /* Called by the SFLib Transfer library when a save location has been negotiated via the data transfer protocol. */
-
+#if 0
 int drag_end_save (char *filename)
 {
   #ifdef DEBUG
@@ -586,70 +586,72 @@ int drag_end_save (char *filename)
       }
       break;
 
-    case SAVE_BOX_CSV:
-      transact_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_CSV:
+//      transact_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_TSV:
-      transact_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_TSV:
+//      transact_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_ACCCSV:
-      export_delimited_accounts_file (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_ACCCSV:
+//      export_delimited_accounts_file (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_ACCTSV:
-      export_delimited_accounts_file (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_ACCTSV:
+//      export_delimited_accounts_file (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_ACCVIEWCSV:
-      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_ACCVIEWCSV:
+//      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_ACCVIEWTSV:
-      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_ACCVIEWTSV:
+//      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_SORDERCSV:
-      sorder_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_SORDERCSV:
+//      sorder_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_SORDERTSV:
-      sorder_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_SORDERTSV:
+//      sorder_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_PRESETCSV:
-      preset_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_PRESETCSV:
+//      preset_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_PRESETTSV:
-      preset_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_PRESETTSV:
+//      preset_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_REPTEXT:
-      save_report_text (saving_file, (report_data *) saving_object, filename, 0);
-      break;
+//    case SAVE_BOX_REPTEXT:
+//      save_report_text (saving_file, (report_data *) saving_object, filename, 0);
+//      break;
 
-    case SAVE_BOX_REPCSV:
-      export_delimited_report_file (saving_file, (report_data *) saving_object, filename,
-                                    DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_REPCSV:
+//      export_delimited_report_file (saving_file, (report_data *) saving_object, filename,
+//                                    DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_REPTSV:
-      export_delimited_report_file (saving_file, (report_data *) saving_object, filename,
-                                    DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_REPTSV:
+//      export_delimited_report_file (saving_file, (report_data *) saving_object, filename,
+//                                    DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
   }
 
   wimp_create_menu (NULL, 0, 0);
 
   return 0;
 }
+#endif
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Called when OK is clicked or Return pressed in the save dialogue. */
 
+#if 0
 int immediate_window_save (void)
 {
   char *filename;
@@ -679,64 +681,65 @@ int immediate_window_save (void)
       }
       break;
 
-    case SAVE_BOX_CSV:
-      transact_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_CSV:
+//      transact_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_TSV:
-      transact_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_TSV:
+//      transact_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_ACCCSV:
-      export_delimited_accounts_file (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_ACCCSV:
+//      export_delimited_accounts_file (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_ACCTSV:
-      export_delimited_accounts_file (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_ACCTSV:
+//      export_delimited_accounts_file (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_ACCVIEWCSV:
-      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_ACCVIEWCSV:
+//      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_ACCVIEWTSV:
-      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_ACCVIEWTSV:
+//      accview_export_delimited (saving_file, saving_object, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_SORDERCSV:
-      sorder_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_SORDERCSV:
+//      sorder_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_SORDERTSV:
-      sorder_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_SORDERTSV:
+//      sorder_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_PRESETCSV:
-      preset_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_PRESETCSV:
+//      preset_export_delimited (saving_file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_PRESETTSV:
-      preset_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_PRESETTSV:
+//      preset_export_delimited (saving_file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_REPTEXT:
-      save_report_text (saving_file, (report_data *) saving_object, filename, 0);
-      break;
+//    case SAVE_BOX_REPTEXT:
+//      save_report_text (saving_file, (report_data *) saving_object, filename, 0);
+//      break;
 
-    case SAVE_BOX_REPCSV:
-      export_delimited_report_file (saving_file, (report_data *) saving_object, filename,
-                                    DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_REPCSV:
+//      export_delimited_report_file (saving_file, (report_data *) saving_object, filename,
+//                                    DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+//      break;
 
-    case SAVE_BOX_REPTSV:
-      export_delimited_report_file (saving_file, (report_data *) saving_object, filename,
-                                    DELIMIT_TAB, TSV_FILE_TYPE);
-      break;
+//    case SAVE_BOX_REPTSV:
+//      export_delimited_report_file (saving_file, (report_data *) saving_object, filename,
+//                                    DELIMIT_TAB, TSV_FILE_TYPE);
+//      break;
   }
 
   wimp_create_menu (NULL, 0, 0);
   return 1;
 }
+#endif
 
 
 /* ==================================================================================================================

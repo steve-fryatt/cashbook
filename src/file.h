@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -35,6 +35,12 @@
  */
 
 
+#define CASHBOOK_FILE_TYPE 0x1ca
+#define CSV_FILE_TYPE 0xdfe
+#define TSV_FILE_TYPE 0xfff
+#define TEXT_FILE_TYPE 0xfff
+#define FANCYTEXT_FILE_TYPE 0xaf8
+
 /* ==================================================================================================================
  * Data structures
  */
@@ -42,6 +48,13 @@
 /* ==================================================================================================================
  * Function prototypes.
  */
+
+/**
+ * Initialise the overall file system.
+ */
+
+void file_initialise(void);
+
 
 /* File initialisation and deletion */
 
@@ -58,7 +71,7 @@ file_data *find_transaction_pane_file_block (wimp_w window);
 
 int  check_for_unsaved_files (void);
 void set_file_data_integrity(file_data *data, osbool unsafe);
-int check_for_filepath (file_data *file);
+osbool check_for_filepath (file_data *file);
 
 /* Default filenames. */
 

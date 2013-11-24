@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -70,7 +70,6 @@
 #include "conversion.h"
 #include "column.h"
 #include "caret.h"
-#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
@@ -79,6 +78,7 @@
 #include "presets.h"
 #include "printing.h"
 #include "report.h"
+#include "saveas.h"
 #include "sorder.h"
 #include "templates.h"
 #include "transact.h"
@@ -151,6 +151,10 @@ static struct account_list_link		*account_complete_submenu_link = NULL;	/**< Lin
 static char				*account_complete_menu_title = NULL;	/**< Account Complete menu title buffer.				*/
 static file_data			*account_complete_menu_file = NULL;	/**< The file to which the Account Complete menu is currently attached.	*/
 
+/* SaveAs Dialogue Handles. */
+
+static struct saveas_block	*account_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
+static struct saveas_block	*account_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 
 
@@ -220,6 +224,10 @@ static int			account_add_list_display_line(file_data *file, int entry);
 static void			start_account_drag(file_data *file, int entry, int line);
 static void			account_terminate_drag(wimp_dragged *drag, void *data);
 
+static osbool			account_save_csv(char *filename, osbool selection, void *data);
+static osbool			account_save_tsv(char *filename, osbool selection, void *data);
+
+
 
 /**
  * Initialise the account system.
@@ -260,6 +268,9 @@ void account_initialise(osspriteop_area *sprites)
 	account_foot_def = templates_load_window("AccountTot");
 
 	account_window_menu = templates_get_menu(TEMPLATES_MENU_ACCLIST);
+
+	account_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_save_csv);
+	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_save_tsv);
 }
 
 
@@ -600,7 +611,8 @@ static void account_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 
 		data = (account_window_menu_line == -1) ? ACCOUNT_LINE_BLANK : windat->line_data[account_window_menu_line].type;
 
-		initialise_save_boxes(windat->file, windat->entry, 0);
+		saveas_initialise_dialogue(account_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(account_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
 
 		switch (windat->type) {
 		case ACCOUNT_FULL:
@@ -700,12 +712,12 @@ static void account_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_
 
 	switch (warning->selection.items[0]) {
 	case ACCLIST_MENU_EXPCSV:
-		fill_save_as_window(windat->file, SAVE_BOX_ACCCSV);
+		saveas_prepare_dialogue(account_saveas_csv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case ACCLIST_MENU_EXPTSV:
-		fill_save_as_window(windat->file, SAVE_BOX_ACCTSV);
+		saveas_prepare_dialogue(account_saveas_tsv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -3842,4 +3854,47 @@ int account_read_list_file(file_data *file, FILE *in, char *section, char *token
 
 	return result;
 }
+
+
+/**
+ * Callback handler for saving a CSV version of the account data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool account_save_csv(char *filename, osbool selection, void *data)
+{
+	struct account_window *windat = data;
+
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	export_delimited_accounts_file(windat->file, windat->entry, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+
+	return TRUE;
+}
+
+
+/**
+ * Callback handler for saving a TSV version of the account data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool account_save_tsv(char *filename, osbool selection, void *data)
+{
+	struct account_window *windat = data;
+
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	export_delimited_accounts_file(windat->file, windat->entry, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+
+	return TRUE;
+}
+
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -67,7 +67,6 @@
 #include "calculation.h"
 #include "column.h"
 #include "conversion.h"
-#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "filing.h"
@@ -78,6 +77,7 @@
 #include "printing.h"
 #include "purge.h"
 #include "report.h"
+#include "saveas.h"
 #include "sorder.h"
 #include "transact.h"
 
@@ -87,15 +87,34 @@
 
 /* The head of the linked list of file data structures. */
 
-static file_data *file_list = NULL;
+static file_data		*file_list = NULL;
 
 /* A count which is incremented to allow <Untitled n> window titles */
 
-static int       untitled_count = 0;
+static int			untitled_count = 0;
 
 /* The last date on which all the files were updated. */
 
-static unsigned last_update_date = NULL_DATE;
+static unsigned			last_update_date = NULL_DATE;
+
+/* The handle of the SaveAs dialogue of last resort. */
+
+static struct saveas_block	*file_saveas_file = NULL;			/**< The Save File saveas data handle.			*/
+
+
+
+static osbool file_save_file(char *filename, osbool selection, void *data);
+
+
+/**
+ * Initialise the overall file system.
+ */
+
+void file_initialise(void)
+{
+	file_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", file_save_file);
+}
+
 
 /* ==================================================================================================================
  * File initialisation and deletion.
@@ -364,25 +383,30 @@ void create_new_file (void)
 
 void delete_file (file_data *file)
 {
-  file_data                **list;
-  int                      i, button;
-  wimp_pointer             pointer;
+	file_data	**list;
+	int		i, button;
+	wimp_pointer	pointer;
+	char		*filename;
 
 
-  /* First check that the file is saved and, if not, prompt for deletion. */
+	/* First check that the file is saved and, if not, prompt for deletion. */
 
-  if (file->modified == 1 && (button = error_msgs_report_question ("FileNotSaved", "FileNotSavedB")) >= 2)
-  {
-    if (button == 3)
-    {
-      wimp_get_pointer_info (&pointer);
-      initialise_save_boxes (file, 0, 1);
-      fill_save_as_window (file, SAVE_BOX_FILE);
-      dataxfer_open_saveas_window(&pointer);
-    }
+	if (file->modified == 1 && (button = error_msgs_report_question("FileNotSaved", "FileNotSavedB")) >= 2) {
+		if (button == 3) {
+			wimp_get_pointer_info(&pointer);
+      
+			if (check_for_filepath(file))
+				filename = file->filename;
+			else
+				filename = "DefTransFile";
+      
+			saveas_initialise_dialogue(file_saveas_file, filename, NULL, FALSE, FALSE, file);
+			saveas_prepare_dialogue(file_saveas_file);
+			saveas_open_dialogue(file_saveas_file, &pointer);
+		}
 
-    return;
-  }
+		return;
+	}
 
   /* If there are any reports in the file with pending print jobs, prompt for deletion. */
 
@@ -478,6 +502,31 @@ void delete_file (file_data *file)
 
   heap_free (file);
 }
+
+
+
+/**
+ * Callback handler for saving a cashbook file of last resort: after saving,
+ * the file should be deleted.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the block of the file to be saved.
+ */
+
+static osbool file_save_file(char *filename, osbool selection, void *data)
+{
+	file_data *file = data;
+
+	if (file == NULL)
+		return FALSE;
+
+	save_transaction_file(file, filename);
+	delete_file(file);
+
+	return TRUE;
+}
+
 
 /* ==================================================================================================================
  * Finding files.
@@ -601,9 +650,9 @@ void set_file_data_integrity(file_data *file, osbool unsafe)
 
 /* Return true if the file has a full save path (ie. it has been saved before, or loaded from disc). */
 
-int check_for_filepath (file_data *file)
+osbool check_for_filepath(file_data *file)
 {
-  return (*(file->filename) != '\0');
+	return (*(file->filename) != '\0') ? TRUE : FALSE;
 }
 
 /* ==================================================================================================================

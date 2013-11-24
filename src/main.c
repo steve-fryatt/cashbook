@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -305,6 +305,7 @@ static void main_initialise(void)
 	snprintf(res_temp, sizeof(res_temp), "%s.Templates", resources);
 	templates_open(res_temp);
 
+	file_initialise();
 	saveas_initialise();
 	iconbar_initialise();
 	choices_initialise();

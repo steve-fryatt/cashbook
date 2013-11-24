@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -63,7 +63,6 @@
 #include "conversion.h"
 #include "caret.h"
 #include "column.h"
-#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
@@ -71,6 +70,7 @@
 #include "mainmenu.h"
 #include "printing.h"
 #include "report.h"
+#include "saveas.h"
 #include "templates.h"
 #include "transact.h"
 #include "window.h"
@@ -180,6 +180,10 @@ static wimp_menu		*accview_window_menu = NULL;			/**< The Account View Window me
 static int			accview_window_menu_line = -1;			/**< The line over which the Account View Window Menu was opened.	*/
 static wimp_i			accview_substitute_sort_icon = ACCVIEW_PANE_DATE;/**< The icon currently obscured by the sort icon.			*/
 
+/* SaveAs Dialogue Handles. */
+
+static struct saveas_block	*accview_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
+static struct saveas_block	*accview_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 
 static void			accview_close_window_handler(wimp_close *close);
@@ -217,6 +221,10 @@ static int			accview_get_y_offset_from_transact_window(file_data *file, acct_t a
 static void			accview_scroll_to_transact_window(file_data *file, acct_t account);
 static void			accview_scroll_to_line(file_data *file, acct_t account, int line);
 
+static osbool			accview_save_csv(char *filename, osbool selection, void *data);
+static osbool			accview_save_tsv(char *filename, osbool selection, void *data);
+static void			accview_export_delimited(file_data *file, acct_t account, char *filename, enum filing_delimit_type format, int filetype);
+
 
 /**
  * Initialise the account view system.
@@ -248,6 +256,9 @@ void accview_initialise(osspriteop_area *sprites)
 	accview_pane_def->sprite_area = sprites;
 
 	accview_window_menu = templates_get_menu(TEMPLATES_MENU_ACCVIEW);
+
+	accview_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", accview_save_csv);
+	accview_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", accview_save_tsv);
 }
 
 
@@ -709,7 +720,8 @@ static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 				accview_window_menu_line = line;
 		}
 
-		initialise_save_boxes(windat->file, windat->account, 0);
+		saveas_initialise_dialogue(accview_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(accview_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
 
 		switch (windat->file->accounts[windat->account].type) {
 		case ACCOUNT_FULL:
@@ -804,12 +816,12 @@ static void accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_
 
 	switch (warning->selection.items[0]) {
 	case ACCVIEW_MENU_EXPCSV:
-		fill_save_as_window(windat->file, SAVE_BOX_ACCVIEWCSV);
+		saveas_prepare_dialogue(accview_saveas_csv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case ACCVIEW_MENU_EXPTSV:
-		fill_save_as_window(windat->file, SAVE_BOX_ACCVIEWTSV);
+		saveas_prepare_dialogue(accview_saveas_csv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -2327,6 +2339,48 @@ static void accview_scroll_to_line(file_data *file, acct_t account, int line)
 
 
 /**
+ * Callback handler for saving a CSV version of the account view transaction data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool accview_save_csv(char *filename, osbool selection, void *data)
+{
+	struct accview_window *windat = data;
+	
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	accview_export_delimited(windat->file, windat->account, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	
+	return TRUE;
+}
+
+
+/**
+ * Callback handler for saving a TSV version of the account view transaction data.
+ *
+ * \param *filename		Pointer to the filename to save to.
+ * \param selection		FALSE, as no selections are supported.
+ * \param *data			Pointer to the window block for the save target.
+ */
+
+static osbool accview_save_tsv(char *filename, osbool selection, void *data)
+{
+	struct accview_window *windat = data;
+	
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+		
+	accview_export_delimited(windat->file, windat->account, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	
+	return TRUE;
+}
+
+
+/**
  * Export the account view transaction data from a file into CSV or TSV format.
  *
  * \param *file			The file to export from.
@@ -2335,7 +2389,7 @@ static void accview_scroll_to_line(file_data *file, acct_t account, int line)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-void accview_export_delimited(file_data *file, acct_t account, char *filename, enum filing_delimit_type format, int filetype)
+static void accview_export_delimited(file_data *file, acct_t account, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE				*out;
 	int				i, transaction=0;

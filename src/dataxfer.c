@@ -482,10 +482,8 @@ static osbool dataxfer_message_data_save_ack(wimp_message *message)
 
 
 	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE);
-	if (descriptor == NULL) {
-		transfer_save_reply_datasaveack(message);
+	if (descriptor == NULL)
 		return FALSE;
-	}
 
 	/* We now know the message in question, so see if our client wants to
 	 * make use of the data.  If there's a callback, call it.  If it

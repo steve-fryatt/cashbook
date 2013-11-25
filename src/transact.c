@@ -225,6 +225,7 @@ static void			transact_refresh_sort_window(void);
 static void			transact_fill_sort_window(int sort_option);
 static osbool			transact_process_sort_window(void);
 
+static void			transact_start_direct_save(struct transaction_window *windat);
 static osbool			transact_save_file(char *filename, osbool selection, void *data);
 static osbool			transact_save_csv(char *filename, osbool selection, void *data);
 static osbool			transact_save_tsv(char *filename, osbool selection, void *data);
@@ -770,7 +771,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
     switch (pointer->i)
     {
       case TRANSACT_PANE_SAVE:
-        start_direct_menu_save (file);
+        transact_start_direct_save(windat);
         break;
 
       case TRANSACT_PANE_PRINT:
@@ -922,7 +923,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 		saveas_prepare_dialogue(transact_saveas_file);
 		saveas_open_dialogue(transact_saveas_file, &pointer);
 	} else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F3) {
-		start_direct_menu_save(file);
+		transact_start_direct_save(windat);
 	} else if (key->c == wimp_KEY_F4) {
 		wimp_get_pointer_info(&pointer);
 		find_open_window(file, &pointer, config_opt_read("RememberValues"));
@@ -1080,7 +1081,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 	case MAIN_MENU_SUB_FILE:
 		switch (selection->items[1]) {
 		case MAIN_MENU_FILE_SAVE:
-			start_direct_menu_save(windat->file);
+			transact_start_direct_save(windat);
 			break;
 
 		case MAIN_MENU_FILE_CONTINUE:
@@ -3345,6 +3346,29 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 	}
 
 	return result;
+}
+
+
+/**
+ * Save a file directly, if it already has a filename associated with it, or
+ * open a save dialogue.
+ *
+ * \param *windat		The window to save.
+ */
+
+static void transact_start_direct_save(struct transaction_window *windat)
+{
+	wimp_pointer	pointer;
+
+	if (check_for_filepath(windat->file)) {
+		save_transaction_file(windat->file, windat->file->filename);
+	} else {
+		wimp_get_pointer_info(&pointer);
+    
+		saveas_initialise_dialogue(transact_saveas_file, windat->file->filename, NULL, FALSE, FALSE, windat);
+		saveas_prepare_dialogue(transact_saveas_file);
+		saveas_open_dialogue(transact_saveas_file, &pointer);
+	}
 }
 
 

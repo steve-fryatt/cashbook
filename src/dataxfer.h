@@ -30,66 +30,99 @@
 #ifndef CASHBOOK_DATAXFER
 #define CASHBOOK_DATAXFER
 
-/* ------------------------------------------------------------------------------------------------------------------
+/* ==================================================================================================================
  * Static constants
  */
 
-#define SAVE_BOXES 14
-
-#define SAVE_BOX_NONE (-1) /* This has to be -1, as the others are used as array indices. */
-#define SAVE_BOX_FILE 0
-#define SAVE_BOX_CSV  1
-#define SAVE_BOX_TSV  2
-#define SAVE_BOX_ACCCSV 3
-#define SAVE_BOX_ACCTSV 4
-#define SAVE_BOX_ACCVIEWCSV 5
-#define SAVE_BOX_ACCVIEWTSV 6
-#define SAVE_BOX_SORDERCSV 7
-#define SAVE_BOX_SORDERTSV 8
-#define SAVE_BOX_REPTEXT 9
-#define SAVE_BOX_REPCSV 10
-#define SAVE_BOX_REPTSV 11
-#define SAVE_BOX_PRESETCSV 12
-#define SAVE_BOX_PRESETTSV 13
-
-
-
 /**
  * Initialise the data transfer system.
- *
- * \param *sprites		The application sprite area.
  */
 
 void dataxfer_initialise(void);
 
 
-/* Initialise and prepare the save boxes. */
+/**
+ * Start dragging from a window work area, creating a sprite to drag and starting
+ * a drag action.  When the action completes, a callback will be made to the
+ * supplied function.
+ *
+ * \param w		The window where the drag is starting.
+ * \param *pointer	The current pointer state.
+ * \param *extent	The extent of the drag box, relative to the window work area.
+ * \param *sprite	Pointer to the name of the sprite to use for the drag, or NULL.
+ * \param callback	A callback function
+ */
 
-void initialise_save_boxes (file_data *file, int object, int delete_after);
-void fill_save_as_window (file_data *file, int new_window);
-void start_direct_menu_save (file_data *file);
-
+void dataxfer_work_area_drag(wimp_w w, wimp_pointer *pointer, os_box *extent, char *sprite, void (* drag_end_callback)(wimp_pointer *pointer, void *data), void *drag_end_data);
 
 
 /**
- * Open the Save As dialogue at the pointer.
+ * Start dragging an icon from a dialogue, creating a sprite to drag and starting
+ * a drag action.  When the action completes, a callback will be made to the
+ * supplied function.
  *
- * \param *pointer		The pointer location to open the dialogue.
+ * \param w		The window where the drag is starting.
+ * \param i		The icon to be dragged.
+ * \param callback	A callback function
  */
 
-void dataxfer_open_saveas_window(wimp_pointer *pointer);
+void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wimp_pointer *pointer, void *data), void *drag_end_data);
 
 
-/* Save box drag handling. */
+/**
+ * Start a data save action by sending a message to another task.  The data
+ * transfer protocol will be started, and at an appropriate time a callback
+ * will be made to save the data.
+ *
+ * \param *pointer		The Wimp pointer details of the save target.
+ * \param *name			The proposed file leafname.
+ * \param size			The estimated file size.
+ * \param type			The proposed file type.
+ * \param your_ref		The "your ref" to use for the opening message, or 0.
+ * \param *save_callback	The function to be called with the full pathname
+ *				to save the file.
+ * \param *data			Data to be passed to the callback function.
+ * \return			TRUE on success; FALSE on failure.
+ */
 
-void start_save_window_drag (void);
+osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, int your_ref, osbool (*save_callback)(char *filename, void *data), void *data);
 
-int drag_end_save (char *filename);
-int immediate_window_save (void);
 
-/* Prepare file loading */
+/**
+ * Start a data load action for another task by sending it a message containing
+ * the name of the file that it should take.
+ *
+ * \param *pointer		The Wimp pointer details of the save target.
+ * \param *name			The full pathname of the file.
+ * \param size			The estimated file size.
+ * \param type			The proposed file type.
+ * \param your_ref		The "your ref" to use for the opening message, or 0.
+ * \return			TRUE on success; FALSE on failure.
+ */
 
-int initialise_data_load (wimp_message *message);
+osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits type, int your_ref);
+
+
+/**
+ * Specify a handler for files which are double-clicked or dragged into a window.
+ * Files which match on type, target window and target icon are passed to the
+ * appropriate handler for attention.
+ *
+ * To specify a generic handler for a type, set window to NULL and icon to -1.
+ * To specify a generic handler for all the icons in a window, set icon to -1.
+ *
+ * Double-clicked files (Message_DataOpen) will be passed to a generic type
+ * handler or a type handler for a window with the handle wimp_ICON_BAR.
+ *
+ * \param filetype		The filetype to register as a target.
+ * \param w			The target window, or NULL.
+ * \param i			The target icon, or -1.
+ * \param *callback		The load callback function.
+ * \param *data			Data to be passed to load functions, or NULL.
+ * \return			TRUE if successfully registered; else FALSE.
+ */
+
+osbool dataxfer_set_load_target(unsigned filetype, wimp_w w, wimp_i i, osbool (*callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data), void *data);
 
 #endif
 

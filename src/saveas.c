@@ -129,12 +129,14 @@ void saveas_initialise(void)
 	templates_link_menu_dialogue("save_as", saveas_window);
 	event_add_window_user_data(saveas_window, NULL);
 
+/*
 	saveas_sel_window = templates_create_window("SaveAsSel");
 	ihelp_add_window(saveas_sel_window, "SaveAs", NULL);
 	event_add_window_mouse_event(saveas_sel_window, saveas_click_handler);
 	event_add_window_key_event(saveas_sel_window, saveas_keypress_handler);
 	templates_link_menu_dialogue("save_as_sel", saveas_sel_window);
 	event_add_window_user_data(saveas_sel_window, NULL);
+*/
 }
 
 

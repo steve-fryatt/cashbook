@@ -69,6 +69,7 @@
 
 #include "analysis.h"
 #include "caret.h"
+#include "file.h"
 #include "filing.h"
 #include "fontlist.h"
 #include "ihelp.h"

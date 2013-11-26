@@ -75,6 +75,7 @@
 #include "clipboard.h"
 #include "column.h"
 #include "conversion.h"
+#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
@@ -230,6 +231,7 @@ static osbool			transact_save_file(char *filename, osbool selection, void *data)
 static osbool			transact_save_csv(char *filename, osbool selection, void *data);
 static osbool			transact_save_tsv(char *filename, osbool selection, void *data);
 static void			transact_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
+static osbool			transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 static void			transact_prepare_fileinfo(file_data *file);
 
@@ -394,6 +396,9 @@ void transact_open_window(file_data *file)
 	event_add_window_menu_close(file->transaction_window.transaction_pane, transact_window_menu_close_handler);
 	event_add_window_icon_popup(file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT, transact_account_list_menu, -1, NULL);
 
+	dataxfer_set_load_target(CSV_FILE_TYPE, file->transaction_window.transaction_window, -1, transact_load_csv, file);
+	dataxfer_set_load_target(CSV_FILE_TYPE, file->transaction_window.transaction_pane, -1, transact_load_csv, file);
+
 	/* Put the caret into the first empty line. */
 
 	place_transaction_edit_line(file, file->trans_count);
@@ -422,12 +427,14 @@ void transact_delete_window(struct transaction_window *windat)
 		ihelp_remove_window(windat->transaction_window);
 		event_delete_window(windat->transaction_window);
 		wimp_delete_window(windat->transaction_window);
+		dataxfer_delete_load_target(CSV_FILE_TYPE, windat->transaction_window, -1);
 		windat->transaction_window = NULL;
 	}
 
 	if (windat->transaction_pane != NULL) {
 		ihelp_remove_window(windat->transaction_pane);
 		event_delete_window(windat->transaction_pane);
+		dataxfer_delete_load_target(CSV_FILE_TYPE, windat->transaction_pane, -1);
 		wimp_delete_window(windat->transaction_pane);
 		windat->transaction_pane = NULL;
 	}
@@ -3502,6 +3509,30 @@ static void transact_export_delimited(file_data *file, char *filename, enum fili
 	osfile_set_type(filename, (bits) filetype);
 
 	hourglass_off();
+}
+
+
+/**
+ * Handle attempts to load CSV files to the window.
+ *
+ * \param w			The target window handle.
+ * \param i			The target icon handle.
+ * \param filetype		The filetype being loaded.
+ * \param *filename		The name of the file being loaded.
+ * \param *data			Unused NULL pointer.
+ * \return			TRUE on loading; FALSE on passing up.
+ */
+
+static osbool transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
+{
+	file_data	*file = data;
+
+	if (filetype != CSV_FILE_TYPE || file == NULL)
+		return FALSE;
+
+	import_csv_file(file, filename);
+
+	return TRUE;
 }
 
 

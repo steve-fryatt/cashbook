@@ -1,4 +1,4 @@
-/* Copyright 2005-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2005-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -55,7 +55,9 @@
 #include "iconbar.h"
 
 #include "choices.h"
+#include "dataxfer.h"
 #include "file.h"
+#include "filing.h"
 #include "ihelp.h"
 #include "main.h"
 #include "templates.h"
@@ -79,6 +81,7 @@
 static void	iconbar_click_handler(wimp_pointer *pointer);
 static void	iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static osbool	iconbar_proginfo_web_click(wimp_pointer *pointer);
+static osbool	iconbar_load_cashbook_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 
 static wimp_menu	*iconbar_menu = NULL;					/**< The iconbar menu handle.			*/
@@ -120,6 +123,8 @@ void iconbar_initialise(void)
 	event_add_window_mouse_event(wimp_ICON_BAR, iconbar_click_handler);
 	event_add_window_menu(wimp_ICON_BAR, iconbar_menu);
 	event_add_window_menu_selection(wimp_ICON_BAR, iconbar_menu_selection);
+	
+	dataxfer_set_load_target(CASHBOOK_FILE_TYPE, wimp_ICON_BAR, -1, iconbar_load_cashbook_file, NULL);
 }
 
 
@@ -192,6 +197,28 @@ static osbool iconbar_proginfo_web_click(wimp_pointer *pointer)
 
 	if (pointer->buttons == wimp_CLICK_SELECT)
 		wimp_create_menu((wimp_menu *) -1, 0, 0);
+
+	return TRUE;
+}
+
+
+/**
+ * Handle attempts to load CashBook files to the iconbar.
+ *
+ * \param w			The target window handle.
+ * \param i			The target icon handle.
+ * \param filetype		The filetype being loaded.
+ * \param *filename		The name of the file being loaded.
+ * \param *data			Unused NULL pointer.
+ * \return			TRUE on loading; FALSE on passing up.
+ */
+
+static osbool iconbar_load_cashbook_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
+{
+	if (filetype != CASHBOOK_FILE_TYPE)
+		return FALSE;
+
+	load_transaction_file(filename);
 
 	return TRUE;
 }

@@ -124,5 +124,19 @@ osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits typ
 
 osbool dataxfer_set_load_target(unsigned filetype, wimp_w w, wimp_i i, osbool (*callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data), void *data);
 
+
+/**
+ * Remove a handler for files which are double-clicked or dragged into a window.
+ *
+ * To specify the generic handler for a type, set window to NULL and icon to -1.
+ * To specify the generic handler for all the icons in a window, set icon to -1.
+ *
+ * \param filetype		The filetype to register as a target.
+ * \param w			The target window, or NULL.
+ * \param i			The target icon, or -1.
+ */
+
+void dataxfer_delete_load_target(unsigned filetype, wimp_w w, wimp_i i);
+
 #endif
 

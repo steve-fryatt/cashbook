@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_FILING
 #define CASHBOOK_FILING
 
+#include <stdio.h>
+
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
  */

@@ -664,6 +664,23 @@ osbool dataxfer_set_load_target(unsigned filetype, wimp_w w, wimp_i i, osbool (*
 
 
 /**
+ * Remove a handler for files which are double-clicked or dragged into a window.
+ *
+ * To specify the generic handler for a type, set window to NULL and icon to -1.
+ * To specify the generic handler for all the icons in a window, set icon to -1.
+ *
+ * \param filetype		The filetype to register as a target.
+ * \param w			The target window, or NULL.
+ * \param i			The target icon, or -1.
+ */
+
+void dataxfer_delete_load_target(unsigned filetype, wimp_w w, wimp_i i)
+{
+	
+}
+
+
+/**
  * Handle the receipt of a Message_DataSave due to another application trying
  * to transfer data in to us.
  *
@@ -1145,103 +1162,6 @@ static osbool dataxfer_bounced_message_ramfetch(wimp_message *message)
 	transfer_load_bounced_ramfetch(message);
 
 	return TRUE;
-}
-
-
-
-
-
-
-/* ==================================================================================================================
- * Prepare file loading
- */
-
-int initialise_data_load (wimp_message *message)
-{
-  wimp_full_message_data_xfer *xfer = (wimp_full_message_data_xfer *) message;
-  file_data                   *target;
-
-
-  loading_filetype = -1;
-
-  switch (xfer->file_type)
-  {
-    case CASHBOOK_FILE_TYPE:
-      if (xfer->w == wimp_ICON_BAR)
-      {
-        loading_filetype = CASHBOOK_FILE_TYPE;
-      }
-      break;
-
-    case CSV_FILE_TYPE:
-      if (((target = find_transaction_window_file_block (xfer->w)) != NULL) ||
-          ((target = find_transaction_pane_file_block (xfer->w)) != NULL))
-      {
-          loading_filetype = CSV_FILE_TYPE;
-          loading_target = target;
-      }
-      break;
-
-    case TSV_FILE_TYPE:
-      loading_filetype = TSV_FILE_TYPE;
-      break;
-  }
-
-  return (loading_filetype != -1);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-static int dataxfer_drag_end_load(char *filename)
-{
-  #ifdef DEBUG
-  debug_printf ("\\DLoad at drag end");
-  debug_printf ("Filename: %s, type: %03x", filename, loading_filetype);
-  #endif
-
-  switch (loading_filetype)
-  {
-    case CASHBOOK_FILE_TYPE:
-      load_transaction_file (filename);
-      break;
-
-    case CSV_FILE_TYPE:
-      import_csv_file (loading_target, filename);
-      break;
-  }
-
-  return 0;
-}
-
-/**
- * Handle incoming Message_DataLoad.
- *
- * \param *message		The message data to be handled.
- * \return			TRUE to claim the message; FALSE to pass it on.
- */
-
-static osbool dataxfer_message_dataopen(wimp_message *message)
-{
-	wimp_full_message_data_xfer	*xfer = (wimp_full_message_data_xfer *) message;
-	os_error			*error;
-
-	switch (xfer->file_type) {
-	case CASHBOOK_FILE_TYPE:
-		xfer->your_ref = xfer->my_ref;
-		xfer->action = message_DATA_LOAD_ACK;
-
-		error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) xfer, xfer->sender);
-		if (error != NULL) {
-			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-			return FALSE;
-		}
-
-		load_transaction_file(xfer->file_name);
-		return TRUE;
-		break;
-	}
-
-	return FALSE;
 }
 
 #endif

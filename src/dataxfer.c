@@ -676,7 +676,27 @@ osbool dataxfer_set_load_target(unsigned filetype, wimp_w w, wimp_i i, osbool (*
 
 void dataxfer_delete_load_target(unsigned filetype, wimp_w w, wimp_i i)
 {
-	
+	struct dataxfer_incoming_target		*type, *window, *icon;
+
+	/* Validate the input: if there's an icon, there must be a window. */
+
+	if (w == NULL && i != -1)
+		return;
+
+	/* Set up the top-level filetype target. */
+
+	type = dataxfer_incoming_targets;
+
+	while (type != NULL) {
+		debug_printf("Checking target 0x%3x", type->filetype);
+
+		if (filetype == -1 || type->filetype == filetype) {
+			debug_printf("Found match for type 0x%3x in block 0x%x", type->filetype, type);
+		}
+
+		type = type->next;
+	}
+
 }
 
 

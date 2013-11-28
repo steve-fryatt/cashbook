@@ -128,6 +128,7 @@ osbool dataxfer_set_load_target(unsigned filetype, wimp_w w, wimp_i i, osbool (*
 /**
  * Remove a handler for files which are double-clicked or dragged into a window.
  *
+ * To specify all of the handlers for a given window (and icon), set filetype to -1.
  * To specify the generic handler for a type, set window to NULL and icon to -1.
  * To specify the generic handler for all the icons in a window, set icon to -1.
  *

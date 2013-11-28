@@ -666,6 +666,7 @@ osbool dataxfer_set_load_target(unsigned filetype, wimp_w w, wimp_i i, osbool (*
 /**
  * Remove a handler for files which are double-clicked or dragged into a window.
  *
+ * To specify all of the handlers for a given window (and icon), set filetype to -1.
  * To specify the generic handler for a type, set window to NULL and icon to -1.
  * To specify the generic handler for all the icons in a window, set icon to -1.
  *
@@ -676,27 +677,92 @@ osbool dataxfer_set_load_target(unsigned filetype, wimp_w w, wimp_i i, osbool (*
 
 void dataxfer_delete_load_target(unsigned filetype, wimp_w w, wimp_i i)
 {
-	struct dataxfer_incoming_target		*type, *window, *icon;
+	struct dataxfer_incoming_target		*delete, *type, *window, *icon, *parent_type, *parent_window, *parent_icon;
 
 	/* Validate the input: if there's an icon, there must be a window. */
 
 	if (w == NULL && i != -1)
 		return;
 
-	/* Set up the top-level filetype target. */
+	/* Locate the top-level filetype targets. */
 
 	type = dataxfer_incoming_targets;
+	parent_type = NULL;
+	delete = NULL;
 
 	while (type != NULL) {
-		debug_printf("Checking target 0x%3x", type->filetype);
-
 		if (filetype == -1 || type->filetype == filetype) {
-			debug_printf("Found match for type 0x%3x in block 0x%x", type->filetype, type);
+			/* If the global type matches, clear it. */
+
+			if (w == NULL && i == -1) {
+				type->callback = NULL;
+				type->callback_data = NULL;
+			}
+
+			window = type->children;
+			parent_window = NULL;
+
+			while (window != NULL) {
+				if ((filetype == -1 || window->filetype == filetype) && (w == NULL || window->window == w)) {
+					/* If the global window matches, clear it. */
+
+					if (i == -1) {
+						window->callback = NULL;
+						window->callback_data = NULL;
+					}
+
+					icon = window->children;
+					parent_icon = NULL;
+
+					while (icon != NULL) {
+						if ((filetype == -1 || icon->filetype == filetype) && (w == NULL || icon->window == w) && (i == -1 || icon->icon == i)) {
+							icon->callback = NULL;
+							icon->callback_data = NULL;
+						}
+
+						if (icon->callback == NULL && icon->children == NULL) {
+							if (parent_icon == NULL)
+								window->children = icon->next;
+							else
+								parent_icon->next = icon->next;
+							delete = icon;
+							icon = icon->next;
+							free(delete);
+						} else {
+							parent_icon = icon;
+							icon = icon->next;
+						}
+					}
+				}
+
+				if (window->callback == NULL && window->children == NULL) {
+					if (parent_window == NULL)
+						type->children = window->next;
+					else
+						parent_window->next = window->next;
+					delete = window;
+					window = window->next;
+					free(delete);
+				} else {
+					parent_window = window;
+					window = window->next;
+				}
+			}
 		}
 
-		type = type->next;
+		if (type->callback == NULL && type->children == NULL) {
+			if (parent_type == NULL)
+				dataxfer_incoming_targets = type->next;
+			else
+				parent_type->next = type->next;
+			delete = type;
+			type = type->next;
+			free(delete);
+		} else {
+			parent_type = type;
+			type = type->next;
+		}
 	}
-
 }
 
 

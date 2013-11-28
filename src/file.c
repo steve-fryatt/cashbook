@@ -394,12 +394,12 @@ void delete_file (file_data *file)
 	if (file->modified == 1 && (button = error_msgs_report_question("FileNotSaved", "FileNotSavedB")) >= 2) {
 		if (button == 3) {
 			wimp_get_pointer_info(&pointer);
-      
+
 			if (check_for_filepath(file))
 				filename = file->filename;
 			else
 				filename = "DefTransFile";
-      
+
 			saveas_initialise_dialogue(file_saveas_file, filename, NULL, FALSE, FALSE, file);
 			saveas_prepare_dialogue(file_saveas_file);
 			saveas_open_dialogue(file_saveas_file, &pointer);
@@ -542,29 +542,6 @@ file_data *find_transaction_window_file_block (wimp_w window)
   list = file_list;
 
   while (list != NULL && list->transaction_window.transaction_window != window)
-  {
-    list = list->next;
-  }
-
-  /* If the window is not a transction window, this loop falls out with (list == NULL) ready to return the
-   * NULL (not found) value.
-   */
-
-  return (list);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Find the file block that corresponds to a given transaction pane handle. */
-
-file_data *find_transaction_pane_file_block (wimp_w window)
-{
-  file_data *list;
-
-
-  list = file_list;
-
-  while (list != NULL && list->transaction_window.transaction_pane != window)
   {
     list = list->next;
   }

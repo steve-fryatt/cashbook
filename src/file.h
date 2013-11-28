@@ -65,7 +65,6 @@ void delete_file (file_data *file);
 /* Finding files */
 
 file_data *find_transaction_window_file_block (wimp_w window);
-file_data *find_transaction_pane_file_block (wimp_w window);
 
 /* Saved files and data integrity */
 

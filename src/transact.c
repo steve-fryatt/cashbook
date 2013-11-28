@@ -709,7 +709,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 				filename = windat->file->filename;
 			else
 				filename = "DefTransFile";
-      
+
 			saveas_initialise_dialogue(transact_saveas_file, filename, NULL, FALSE, FALSE, windat);
 			saveas_prepare_dialogue(transact_saveas_file);
 			saveas_open_dialogue(transact_saveas_file, pointer);
@@ -920,12 +920,12 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 		delete_file(file);
 	} else if (key->c == wimp_KEY_F3) {
 		wimp_get_pointer_info(&pointer);
-    
+
 		if (check_for_filepath(windat->file))
 			filename = windat->file->filename;
 		else
 			filename = "DefTransFile";
-      
+
 		saveas_initialise_dialogue(transact_saveas_file, filename, NULL, FALSE, FALSE, windat);
 		saveas_prepare_dialogue(transact_saveas_file);
 		saveas_open_dialogue(transact_saveas_file, &pointer);
@@ -1036,7 +1036,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 			filename = windat->file->filename;
 		else
 			filename = "DefTransFile";
- 
+
 		saveas_initialise_dialogue(transact_saveas_file, filename, NULL, FALSE, FALSE, windat);
 		saveas_initialise_dialogue(transact_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
 		saveas_initialise_dialogue(transact_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
@@ -3371,7 +3371,7 @@ static void transact_start_direct_save(struct transaction_window *windat)
 		save_transaction_file(windat->file, windat->file->filename);
 	} else {
 		wimp_get_pointer_info(&pointer);
-    
+
 		saveas_initialise_dialogue(transact_saveas_file, windat->file->filename, NULL, FALSE, FALSE, windat);
 		saveas_prepare_dialogue(transact_saveas_file);
 		saveas_open_dialogue(transact_saveas_file, &pointer);

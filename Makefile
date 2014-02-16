@@ -74,6 +74,7 @@ MANTOOLS := $(SFBIN)/mantools
 BINDHELP := $(SFBIN)/bindhelp
 TEXTMERGE := $(SFBIN)/textmerge
 MENUGEN := $(SFBIN)/menugen
+TOKENIZE := $(SFBIN)/tokenize
 
 
 # Build Flags
@@ -107,6 +108,7 @@ APP := !CashBook
 UKRES := Resources/UK
 RUNIMAGE := !RunImage,ff8
 MENUS := Menus,ffd
+FINDHELP := !Help,ffb
 TEXTHELP := HelpText,fff
 SHHELP := CashBook,3d6
 HTMLHELP := manual.html
@@ -120,6 +122,7 @@ MANSRC := Source
 MANSPR := ManSprite
 READMEHDR := Header
 MENUSRC := menudef
+FINDHELPSRC := Help.bbt
 
 OBJS = account.o accview.o amenu.o analysis.o budget.o calculation.o caret.o choices.o    \
        clipboard.o column.o conversion.o dataxfer.o date.o edit.o file.o filing.o find.o  \
@@ -170,7 +173,10 @@ $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS): $(MENUDIR)/$(MENUSRC)
 
 # Build the documentation
 
-documentation: $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) $(OUTDIR)/$(APP)/$(UKRES)/$(SHHELP) $(OUTDIR)/$(README) $(OUTDIR)/$(HTMLHELP)
+documentation: $(OUTDIR)/$(APP)/$(FINDHELP) $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) $(OUTDIR)/$(APP)/$(UKRES)/$(SHHELP) $(OUTDIR)/$(README) $(OUTDIR)/$(HTMLHELP)
+
+$(OUTDIR)/$(APP)/$(FINDHELP): $(MANUAL)/$(FINDHELPSRC)
+	$(TOKENIZE) $(MANUAL)/$(FINDHELPSRC) -out $(OUTDIR)/$(APP)/$(FINDHELP)
 
 $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP): $(MANUAL)/$(MANSRC)
 	$(MANTOOLS) -MTEXT -I$(MANUAL)/$(MANSRC) -O$(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) -D'version=$(HELP_VERSION)' -D'date=$(HELP_DATE)'

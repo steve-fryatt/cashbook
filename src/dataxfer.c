@@ -73,50 +73,55 @@
  */
 
 enum dataxfer_message_type {
-	DATAXFER_MESSAGE_NONE = 0,							/**< An unset message block.						*/
-	DATAXFER_MESSAGE_SAVE = 1,							/**< A message block associated with a save operation.			*/
-	DATAXFER_MESSAGE_LOAD = 2							/**< A message block associated with a load operation.			*/
+	DATAXFER_MESSAGE_NONE = 0,									/**< An unset message block.						*/
+	DATAXFER_MESSAGE_SAVE = 1,									/**< A message block associated with a save operation.			*/
+	DATAXFER_MESSAGE_LOAD = 2,									/**< A message block associated with a load operation.			*/
+	DATAXFER_MESSAGE_REQUEST = 4,									/**< A message block associated with a datarequest operation.		*/
+	DATAXFER_MESSAGE_RAMRX = 8,									/**< A message block associated with a RAM receive operation.		*/
+	DATAXFER_MESSAGE_RAMTX = 16,									/**< A message block associated with a RAM send operation.		*/
+	DATAXFER_MESSAGE_ALL = 31									/**< All message blocks.						*/
 };
 
 struct dataxfer_descriptor {
-	enum dataxfer_message_type	type;						/**< The type of message that the block describes.			*/
+	enum dataxfer_message_type	type;								/**< The type of message that the block describes.			*/
 
-	int				my_ref;						/**< The MyRef of the sent message.					*/
-	wimp_t				task;						/**< The task handle of the recipient task.				*/
-	osbool				(*callback)(char *filename, void *data);	/**< The callback function to be used if a save is required.		*/
-	void				*callback_data;					/**< Data to be passed to the callback function.			*/
+	int				my_ref;								/**< The MyRef of the sent message.					*/
+	wimp_t				task;								/**< The task handle of the recipient task.				*/
+	osbool				(*save_callback)(char *filename, void *data);			/**< The callback function to be used if a save is required.		*/
+	osbool				(*receive_callback)(void *content, bits type, void *data)	/**< The callback function to be used if clipboard data is received.	*/
+	void				*callback_data;							/**< Data to be passed to the callback function.			*/
 
-	struct dataxfer_descriptor	*next;						/**< The next message block in the chain, or NULL.			*/
+	struct dataxfer_descriptor	*next;								/**< The next message block in the chain, or NULL.			*/
 };
 
-static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;			/**< List of currently active message operations.			*/
+static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;					/**< List of currently active message operations.			*/
 
 /**
  * Data associated with incoming transfer targets.
  */
 
 struct dataxfer_incoming_target {
-	unsigned			filetype;					/**< The target filetype.						*/
-	wimp_w				window;						/**< The target window (used in window and icon lists).			*/
-	wimp_i				icon;						/**< The target icon (used in icon lists).				*/
+	unsigned			filetype;							/**< The target filetype.						*/
+	wimp_w				window;								/**< The target window (used in window and icon lists).			*/
+	wimp_i				icon;								/**< The target icon (used in icon lists).				*/
 
 	osbool				(*callback)(wimp_w w, wimp_i i,
-			unsigned filetype, char *filename, void *data);			/**< The callback function to be used if a load is required.		*/
-	void				*callback_data;					/**< Data to be passed to the callback function.			*/
+			unsigned filetype, char *filename, void *data);					/**< The callback function to be used if a load is required.		*/
+	void				*callback_data;							/**< Data to be passed to the callback function.			*/
 
-	struct dataxfer_incoming_target	*children;					/**< Pointer to a list of child targets (window or icon lists).		*/
+	struct dataxfer_incoming_target	*children;							/**< Pointer to a list of child targets (window or icon lists).		*/
 
-	struct dataxfer_incoming_target	*next;						/**< The next target in the chain, or NULL.				*/
+	struct dataxfer_incoming_target	*next;								/**< The next target in the chain, or NULL.				*/
 };
 
-struct dataxfer_incoming_target		*dataxfer_incoming_targets = NULL;		/**< List of defined incoming targets.					*/
+struct dataxfer_incoming_target		*dataxfer_incoming_targets = NULL;				/**< List of defined incoming targets.					*/
 
 /**
  * Data asscoiated with drag box handling.
  */
 
-static osbool	dataxfer_dragging_sprite = FALSE;					/**< TRUE if we're dragging a sprite, FALSE if dragging a dotted-box.	*/
-static void	(*dataxfer_drag_end_callback)(wimp_pointer *, void *) = NULL;		/**< The callback function to be used by the icon drag code.		*/
+static osbool	dataxfer_dragging_sprite = FALSE;							/**< TRUE if we're dragging a sprite, FALSE if dragging a dotted-box.	*/
+static void	(*dataxfer_drag_end_callback)(wimp_pointer *, void *) = NULL;				/**< The callback function to be used by the icon drag code.		*/
 
 
 /**
@@ -155,6 +160,7 @@ void dataxfer_initialise(void)
 	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
+	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 }
 
 
@@ -340,6 +346,75 @@ static void dataxfer_terminate_user_drag(wimp_dragged *drag, void *data)
 
 
 /**
+ * Start a clipboard data request operation: the data transfer protocol will
+ * be started and, if data is received, the callback will be called with details
+ * of where it can be found.
+ *
+ * \param w			The window to which the data will be targetted.
+ * \param i			The icon to which the data will be targetted.
+ * \param pos			The position of the caret.
+ * \param types[]		A list of acceptable filetypes, terminated by -1.
+ * \param *receive_callback	The function to be called when the data has
+ *				been received.
+ * \param *data			Data to be passed to the callback function.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool dataxfer_request_clipboard(wimp_w w, wimp_i i, os_coord pos, bits types[], osbool (*receive_callback)(void *content, bits type, void *data), void *data)
+{
+	struct dataxfer_descriptor	*descriptor;
+	wimp_full_message_data_request	datarequest;
+	os_error			*error;
+	int				i;
+
+
+	if (receive_callback == NULL)
+		return FALSE;
+
+	/* Allocate a block to store details of the message. */
+
+	descriptor = dataxfer_new_descriptor();
+	if (descriptor == NULL)
+		return FALSE;
+
+	descriptor->save_callback = NULL;
+	descriptor->receive_callback = receive_callback;
+	descriptor->callback_data = data;
+
+	/* Set up and send the datasave message. If it fails, give an error
+	 * and delete the message details as we won't need them again.
+	 */
+
+	message.size = 48;
+	message.your_ref = 0;
+	message.action = message_DATA_REQUEST;
+
+	message.w = w;
+	message.i = i;
+	message.pos.x = pos.x;
+	message.pos.y = pos.y;
+	message.flags = wimp_DATA_REQUEST_CLIPBOARD;
+	for (i = 0; types[i] != -1; i++)
+		message.file_types[i] = types[i];
+	message.file_types[i] = -1;
+
+	error = xwimp_send_message(wimp_USER_MESSAGE_RECORDED, (wimp_message *) &message, wimp_BROADCAST);
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		dataxfer_delete_descriptor(descriptor);
+		return FALSE;
+	}
+
+	/* Complete the message descriptor information. */
+
+	descriptor->type = DATAXFER_MESSAGE_REQUEST;
+	descriptor->my_ref = message.my_ref;
+
+	return TRUE;
+}
+
+
+/**
  * Start a data save action by sending a message to another task.  The data
  * transfer protocol will be started, and at an appropriate time a callback
  * will be made to save the data.
@@ -371,7 +446,8 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
 	if (descriptor == NULL)
 		return FALSE;
 
-	descriptor->callback = save_callback;
+	descriptor->save_callback = save_callback;
+	descriptor->receive_callback = NULL;
 	descriptor->callback_data = data;
 
 	/* Set up and send the datasave message. If it fails, give an error
@@ -431,7 +507,8 @@ osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits typ
 	if (descriptor == NULL)
 		return FALSE;
 
-	descriptor->callback = NULL;
+	descriptor->save_callback = NULL;
+	descriptor->receive_callback = NULL;
 	descriptor->callback_data = NULL;
 
 	/* Set up and send the datasave message. If it fails, give an error
@@ -492,7 +569,7 @@ static osbool dataxfer_message_data_save_ack(wimp_message *message)
 	 * message as handled.
 	 */
 
-	if (descriptor->callback != NULL && !descriptor->callback(datasaveack->file_name, descriptor->callback_data)) {
+	if (descriptor->save_callback != NULL && !descriptor->save_callback(datasaveack->file_name, descriptor->callback_data)) {
 		dataxfer_delete_descriptor(descriptor);
 		return TRUE;
 	}
@@ -787,6 +864,20 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	if (message->sender == main_task_handle)
 		return TRUE;
 
+	/* Check to see if this message is a reply to one of our
+	 * Message_DataRequests.
+	 */
+
+	if (message->your_ref != 0) {
+		descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_REQUEST);
+		if (descriptor == NULL)
+			return FALSE;
+
+		// \TODO -- Something useful!
+
+		return TRUE;
+	}
+
 	/* See if the window is one of the registered targets. */
 
 	target = dataxfer_find_incoming_target(datasave->w, datasave->i, datasave->file_type);
@@ -800,7 +891,8 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	if (descriptor == NULL)
 		return FALSE;
 
-	descriptor->callback = NULL;
+	descriptor->save_callback = NULL;
+	descriptor->receive_callback = NULL;
 	descriptor->callback_data = target;
 
 	/* Update the message block and send an acknowledgement. */
@@ -1002,7 +1094,7 @@ static osbool dataxfer_message_bounced(wimp_message *message)
 
 	/* The message has bounced, so just clean up. */
 
-	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE | DATAXFER_MESSAGE_LOAD);
+	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_ALL);
 	if (descriptor != NULL) {
 		if (message->action == message_DATA_LOAD) {
 			wimp_full_message_data_xfer *dataload = (wimp_full_message_data_xfer *) message;

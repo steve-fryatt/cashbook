@@ -70,6 +70,24 @@ void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wi
 
 
 /**
+ * Start a clipboard data request operation: the data transfer protocol will
+ * be started and, if data is received, the callback will be called with details
+ * of where it can be found.
+ *
+ * \param w			The window to which the data will be targetted.
+ * \param i			The icon to which the data will be targetted.
+ * \param pos			The position of the caret.
+ * \param types[]		A list of acceptable filetypes, terminated by -1.
+ * \param *receive_callback	The function to be called when the data has
+ *				been received.
+ * \param *data			Data to be passed to the callback function.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool dataxfer_request_clipboard(wimp_w w, wimp_i i, os_coord pos, bits types[], osbool (*receive_callback)(void *content, bits type, void *data), void *data);
+
+
+/**
  * Start a data save action by sending a message to another task.  The data
  * transfer protocol will be started, and at an appropriate time a callback
  * will be made to save the data.

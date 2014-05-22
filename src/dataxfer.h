@@ -84,7 +84,7 @@ void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wi
  * \return			TRUE on success; FALSE on failure.
  */
 
-osbool dataxfer_request_clipboard(wimp_w w, wimp_i i, os_coord pos, bits types[], osbool (*receive_callback)(void *content, bits type, void *data), void *data);
+osbool dataxfer_request_clipboard(wimp_w w, wimp_i i, os_coord pos, bits types[], osbool (*receive_callback)(void *content, size_t size, bits type, void *data), void *data);
 
 
 /**

@@ -38,6 +38,7 @@
 
 #include "oslib/dragasprite.h"
 #include "oslib/osbyte.h"
+#include "oslib/osfile.h"
 #include "oslib/osfscontrol.h"
 #include "oslib/wimp.h"
 #include "oslib/wimpspriteop.h"
@@ -88,7 +89,7 @@ struct dataxfer_descriptor {
 	int				my_ref;								/**< The MyRef of the sent message.					*/
 	wimp_t				task;								/**< The task handle of the recipient task.				*/
 	osbool				(*save_callback)(char *filename, void *data);			/**< The callback function to be used if a save is required.		*/
-	osbool				(*receive_callback)(void *content, bits type, void *data)	/**< The callback function to be used if clipboard data is received.	*/
+	osbool				(*receive_callback)(void *content, size_t size, bits type, void *data);	/**< The callback function to be used if clipboard data is received.	*/
 	void				*callback_data;							/**< Data to be passed to the callback function.			*/
 
 	struct dataxfer_descriptor	*next;								/**< The next message block in the chain, or NULL.			*/
@@ -360,12 +361,12 @@ static void dataxfer_terminate_user_drag(wimp_dragged *drag, void *data)
  * \return			TRUE on success; FALSE on failure.
  */
 
-osbool dataxfer_request_clipboard(wimp_w w, wimp_i i, os_coord pos, bits types[], osbool (*receive_callback)(void *content, bits type, void *data), void *data)
+osbool dataxfer_request_clipboard(wimp_w w, wimp_i i, os_coord pos, bits types[], osbool (*receive_callback)(void *content, size_t size, bits type, void *data), void *data)
 {
 	struct dataxfer_descriptor	*descriptor;
 	wimp_full_message_data_request	datarequest;
 	os_error			*error;
-	int				i;
+	int				j;
 
 
 	if (receive_callback == NULL)
@@ -385,20 +386,20 @@ osbool dataxfer_request_clipboard(wimp_w w, wimp_i i, os_coord pos, bits types[]
 	 * and delete the message details as we won't need them again.
 	 */
 
-	message.size = 48;
-	message.your_ref = 0;
-	message.action = message_DATA_REQUEST;
+	datarequest.size = 48;
+	datarequest.your_ref = 0;
+	datarequest.action = message_DATA_REQUEST;
 
-	message.w = w;
-	message.i = i;
-	message.pos.x = pos.x;
-	message.pos.y = pos.y;
-	message.flags = wimp_DATA_REQUEST_CLIPBOARD;
-	for (i = 0; types[i] != -1; i++)
-		message.file_types[i] = types[i];
-	message.file_types[i] = -1;
+	datarequest.w = w;
+	datarequest.i = i;
+	datarequest.pos.x = pos.x;
+	datarequest.pos.y = pos.y;
+	datarequest.flags = wimp_DATA_REQUEST_CLIPBOARD;
+	for (j = 0; types[j] != -1; j++)
+		datarequest.file_types[j] = types[j];
+	datarequest.file_types[j] = -1;
 
-	error = xwimp_send_message(wimp_USER_MESSAGE_RECORDED, (wimp_message *) &message, wimp_BROADCAST);
+	error = xwimp_send_message(wimp_USER_MESSAGE_RECORDED, (wimp_message *) &datarequest, wimp_BROADCAST);
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		dataxfer_delete_descriptor(descriptor);
@@ -408,7 +409,7 @@ osbool dataxfer_request_clipboard(wimp_w w, wimp_i i, os_coord pos, bits types[]
 	/* Complete the message descriptor information. */
 
 	descriptor->type = DATAXFER_MESSAGE_REQUEST;
-	descriptor->my_ref = message.my_ref;
+	descriptor->my_ref = datarequest.my_ref;
 
 	return TRUE;
 }
@@ -869,33 +870,30 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	 */
 
 	if (message->your_ref != 0) {
+		/* See if this is a reply to a message we think we've sent. */
+	
 		descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_REQUEST);
 		if (descriptor == NULL)
 			return FALSE;
+	} else {
+		/* See if the window is one of the registered targets. */
 
-		// \TODO -- Something useful!
+		target = dataxfer_find_incoming_target(datasave->w, datasave->i, datasave->file_type);
+		if (target == NULL || target->callback == NULL)
+			return FALSE;
 
-		return TRUE;
+		/* If we've got a target, get a descriptor to track the message exchange. */
+
+		descriptor = dataxfer_new_descriptor();
+		if (descriptor == NULL)
+			return FALSE;
+
+		descriptor->save_callback = NULL;
+		descriptor->receive_callback = NULL;
+		descriptor->callback_data = target;
+
+		/* Update the message block and send an acknowledgement. */
 	}
-
-	/* See if the window is one of the registered targets. */
-
-	target = dataxfer_find_incoming_target(datasave->w, datasave->i, datasave->file_type);
-
-	if (target == NULL || target->callback == NULL)
-		return FALSE;
-
-	/* If we've got a target, get a descriptor to track the message exchange. */
-
-	descriptor = dataxfer_new_descriptor();
-	if (descriptor == NULL)
-		return FALSE;
-
-	descriptor->save_callback = NULL;
-	descriptor->receive_callback = NULL;
-	descriptor->callback_data = target;
-
-	/* Update the message block and send an acknowledgement. */
 
 	datasave->your_ref = datasave->my_ref;
 	datasave->action = message_DATA_SAVE_ACK;
@@ -931,7 +929,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 	wimp_full_message_data_xfer	*dataload = (wimp_full_message_data_xfer *) message;
 	struct dataxfer_descriptor	*descriptor = NULL;
 	os_error			*error;
-	struct dataxfer_incoming_target	*target;
+	struct dataxfer_incoming_target	*target = NULL;
 
 
 	/* We don't want to respond to our own save requests. */
@@ -952,25 +950,56 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 
 		if (target == NULL || target->callback == NULL)
 			return FALSE;
+	} else if (descriptor->receive_callback != NULL) {
+		/* This is the end of a clipboard data request, so we need to
+		 * load the file contents and present it to the client as a
+		 * block of memory.
+		 */
+
+		fileswitch_object_type	type;
+		int			size;
+		byte			*data;
+
+		error = xosfile_read_no_path(dataload->file_name, &type, NULL, NULL, &size, NULL);
+		if (error != NULL)
+			return FALSE;
+
+		data = malloc(size * sizeof(byte));
+		if (data == NULL)
+			return FALSE;
+
+		error = xosfile_load_stamped_no_path(dataload->file_name, data, NULL, NULL, NULL, NULL, NULL);
+		if (error == NULL)
+			descriptor->receive_callback(data, size, dataload->file_type, descriptor->callback_data);
+
+		xosfscontrol_wipe(dataload->file_name, NONE, 0, 0, 0, 0);
 	} else {
+		/* This is someone saving data to us. */
+
 		target = descriptor->callback_data;
 	}
 
-	/* If there's no load callback function, abandon the transfer here. */
+	/* If this wasn't a clipboard transfer, we just pass the filename to the
+	 * client and let them load it.
+	 */
 
-	if (target->callback == NULL)
-		return FALSE;
+	if (target != NULL) {
+		/* If there's no load callback function, abandon the transfer here. */
 
-	/* If the load failed, abandon the transfer here. */
+		if (target->callback == NULL)
+			return FALSE;
 
-	if (target->callback(dataload->w, dataload->i, dataload->file_type, dataload->file_name, target->callback_data) == FALSE)
-		return FALSE;
+		/* If the load failed, abandon the transfer here. */
 
-	/* If this was an inter-application transfer, tidy up. */
+		if (target->callback(dataload->w, dataload->i, dataload->file_type, dataload->file_name, target->callback_data) == FALSE)
+			return FALSE;
 
-	if (descriptor != NULL) {
-		xosfscontrol_wipe(dataload->file_name, NONE, 0, 0, 0, 0);
-		dataxfer_delete_descriptor(descriptor);
+		/* If this was an inter-application transfer, tidy up. */
+
+		if (descriptor != NULL) {
+			xosfscontrol_wipe(dataload->file_name, NONE, 0, 0, 0, 0);
+			dataxfer_delete_descriptor(descriptor);
+		}
 	}
 
 	/* Update the message block and send an acknowledgement. */

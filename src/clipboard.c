@@ -39,6 +39,7 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/transfer.h"
@@ -47,6 +48,7 @@
 
 /* Application header files */
 
+#include "dataxfer.h"
 #include "global.h"
 #include "main.h"
 #include "clipboard.h"
@@ -80,9 +82,9 @@ void clipboard_initialise(void)
 {
 	event_add_message_handler(message_CLAIM_ENTITY, EVENT_MESSAGE_INCOMING, clipboard_message_claimentity);
 	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, clipboard_message_datarequest);
-	event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_INCOMING, clipboard_message_ramtransmit);
-	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, clipboard_message_dataload);
-	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, clipboard_message_datasave);
+//	event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_INCOMING, clipboard_message_ramtransmit);
+//	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, clipboard_message_dataload);
+//	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, clipboard_message_datasave);
 }
 
 
@@ -139,6 +141,21 @@ osbool clipboard_cut_from_icon(wimp_key *key)
 }
 
 
+static osbool clipboard_receive_data(void *data, size_t data_size, bits type, void *context)
+{
+	wimp_caret	caret;
+
+	wimp_get_caret_position(&caret);
+	icons_insert_text(caret.w, caret.i, caret.index, data, data_size);
+
+	debug_printf("We have data!\n");
+
+	free(data);
+
+	return TRUE;
+}
+
+
 /**
  * Paste the contents of the global clipboard into an icon.  If we own the
  * clipboard, this is done immediately; otherwise the Wimp message dialogue
@@ -150,8 +167,7 @@ osbool clipboard_cut_from_icon(wimp_key *key)
 
 osbool clipboard_paste_to_icon(wimp_key *key)
 {
-	wimp_full_message_data_request	datarequest;
-	os_error			*error;
+	bits	types[] = {0xfff, -1};
 
 	/* Test to see if we own the clipboard ourselves.  If so, use it directly; if not, send out a
 	* Message_DataRequest.
@@ -163,22 +179,8 @@ osbool clipboard_paste_to_icon(wimp_key *key)
 	if (clipboard_data != NULL) {
 		icons_insert_text(key->w, key->i, key->index, clipboard_data, clipboard_length);
 	} else {
-		datarequest.size = 48;
-		datarequest.your_ref = 0;
-		datarequest.action = message_DATA_REQUEST;
-
-		datarequest.w = key->w;
-		datarequest.i = key->i;
-		datarequest.pos = key->pos;
-		datarequest.flags = wimp_DATA_REQUEST_CLIPBOARD;
-		datarequest.file_types[0] = 0xfff;
-		datarequest.file_types[1] = -1;
-
-		error = xwimp_send_message (wimp_USER_MESSAGE, (wimp_message *) &datarequest, wimp_BROADCAST);
-		if (error != NULL) {
-			error_report_os_error (error, wimp_ERROR_BOX_CANCEL_ICON);
+		if (!dataxfer_request_clipboard(key->w, key->i, key->pos, types, clipboard_receive_data, NULL))
 			return FALSE;
-		}
 	}
 
 	return TRUE;

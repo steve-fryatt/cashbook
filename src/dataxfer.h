@@ -35,10 +35,23 @@
  */
 
 /**
- * Initialise the data transfer system.
+ * Datatransfer memory handlers.
  */
 
-void dataxfer_initialise(void);
+struct dataxfer_memory {
+	void *(*alloc)(size_t size);			/**< eg. malloc().	*/
+	void *(*realloc)(void *ptr, size_t size);	/**< eg. realloc().	*/
+	void (*free)(void *ptr);			/**< eg. free().	*/
+};
+
+
+/**
+ * Initialise the data transfer system.
+ *
+ * Pointer to memory allocation functions, if RAM Transfers are to be used.
+ */
+
+void dataxfer_initialise(struct dataxfer_memory *handlers);
 
 
 /**

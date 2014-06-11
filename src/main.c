@@ -107,11 +107,12 @@ static osbool		main_message_prequit(wimp_message *message);
 
 /* Declare the global variables that are used. */
 
+static struct dataxfer_memory	main_memory_handlers;
 
 /* Cross file global variables */
 
-wimp_t			main_task_handle;
-osbool			main_quit_flag = FALSE;
+wimp_t				main_task_handle;
+osbool				main_quit_flag = FALSE;
 
 /**
  * Main code entry point.
@@ -295,6 +296,12 @@ static void main_initialise(void)
 	set_weekend_days();
 	set_up_money();
 
+	/* Set up the dataxfer module's memory handlers, to use SFHeap. */
+
+	main_memory_handlers.alloc = heap_alloc;
+	main_memory_handlers.realloc = heap_extend;
+	main_memory_handlers.free = heap_free;
+
 	/* Load the window templates. */
 
 	sprites = resources_load_user_sprite_area("<CashBook$Dir>.Sprites");
@@ -320,7 +327,7 @@ static void main_initialise(void)
 	sorder_initialise(sprites);
 	preset_initialise(sprites);
 	filing_initialise();
-	dataxfer_initialise();
+	dataxfer_initialise(&main_memory_handlers);
 	clipboard_initialise();
 	amenu_initialise();
 	ihelp_initialise();

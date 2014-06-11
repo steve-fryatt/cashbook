@@ -92,6 +92,14 @@ struct dataxfer_descriptor {
 	osbool				(*receive_callback)(void *content, size_t size, bits type, void *data);	/**< The callback function to be used if clipboard data is received.	*/
 	void				*callback_data;							/**< Data to be passed to the callback function.			*/
 
+	byte				*ram_data;							/**< The buffer for RAM transfers.					*/
+	size_t				ram_allocation;							/**< The amount of memory being allocated to the RAM buffer.		*/
+	size_t				ram_size;							/**< The size of the buffer for RAM transfers.				*/
+	size_t				ram_used;							/**< The amount of RAM buffer used.					*/
+
+	wimp_full_message_data_xfer	*saved_message;							/**< A saved data transfer message block.				*/
+
+
 	struct dataxfer_descriptor	*next;								/**< The next message block in the chain, or NULL.			*/
 };
 
@@ -124,6 +132,11 @@ struct dataxfer_incoming_target		*dataxfer_incoming_targets = NULL;				/**< List
 static osbool	dataxfer_dragging_sprite = FALSE;							/**< TRUE if we're dragging a sprite, FALSE if dragging a dotted-box.	*/
 static void	(*dataxfer_drag_end_callback)(wimp_pointer *, void *) = NULL;				/**< The callback function to be used by the icon drag code.		*/
 
+/**
+ * Memory allocation handlers.
+ */
+
+static struct dataxfer_memory		*dataxfer_memory_handlers = NULL;				/**< Pointer to client functions for handling memory.			*/
 
 /**
  * Function prototypes.
@@ -134,6 +147,8 @@ static osbool				dataxfer_message_data_save_ack(wimp_message *message);
 static osbool				dataxfer_message_data_load_ack(wimp_message *message);
 
 static osbool				dataxfer_message_data_save(wimp_message *message);
+static osbool				dataxfer_message_ram_fetch_bounced(wimp_message *message);
+static osbool				dataxfer_message_ram_transmit(wimp_message *message);
 static osbool				dataxfer_message_data_load(wimp_message *message);
 static osbool				dataxfer_message_data_open(wimp_message *message);
 
@@ -148,9 +163,11 @@ static void				dataxfer_delete_descriptor(struct dataxfer_descriptor *message);
 
 /**
  * Initialise the data transfer system.
+ *
+ * Pointer to memory allocation functions, if RAM Transfers are to be used.
  */
 
-void dataxfer_initialise(void)
+void dataxfer_initialise(struct dataxfer_memory *handlers)
 {
 	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save);
 	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save_ack);
@@ -162,6 +179,13 @@ void dataxfer_initialise(void)
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
+	
+	dataxfer_memory_handlers = handlers;
+
+	if (handlers != NULL) {
+		event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_INCOMING, dataxfer_message_ram_transmit);
+		event_add_message_handler(message_RAM_FETCH, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_ram_fetch_bounced);
+	}
 }
 
 
@@ -855,6 +879,7 @@ void dataxfer_delete_load_target(unsigned filetype, wimp_w w, wimp_i i)
 static osbool dataxfer_message_data_save(wimp_message *message)
 {
 	wimp_full_message_data_xfer	*datasave = (wimp_full_message_data_xfer *) message;
+	wimp_full_message_ram_xfer	ramfetch;
 	struct dataxfer_descriptor	*descriptor;
 	os_error			*error;
 	struct dataxfer_incoming_target	*target;
@@ -875,6 +900,43 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 		descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_REQUEST);
 		if (descriptor == NULL)
 			return FALSE;
+
+		if (dataxfer_memory_handlers != NULL) {
+			descriptor->ram_allocation = datasave->est_size + 1;
+			descriptor->ram_data = dataxfer_memory_handlers->alloc(descriptor->ram_allocation);
+			descriptor->saved_message = malloc(sizeof(wimp_full_message_data_xfer));
+
+			/* Both the above blocks are freed when the descriptor is deleted, so while
+			 * this is a short-term memory leak it isn't fatal.
+			 */
+
+			if (descriptor->ram_data != NULL && descriptor->saved_message != NULL) {
+				descriptor->ram_size = descriptor->ram_allocation;
+
+				memcpy(descriptor->saved_message, message, sizeof(wimp_full_message_data_xfer));
+
+				ramfetch.size = 28;
+				ramfetch.your_ref = datasave->my_ref;
+				ramfetch.action = message_RAM_FETCH;
+
+				ramfetch.addr = (byte *) descriptor->ram_data;
+				ramfetch.xfer_size = descriptor->ram_size;
+
+				error = xwimp_send_message(wimp_USER_MESSAGE_RECORDED, (wimp_message *) &ramfetch, datasave->sender);
+				if (error != NULL) {
+					error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+
+					dataxfer_memory_handlers->free(descriptor->ram_data);
+					dataxfer_delete_descriptor(descriptor);
+					return TRUE;
+				}
+
+				descriptor->type = DATAXFER_MESSAGE_RAMRX;
+				descriptor->my_ref = ramfetch.my_ref;
+
+				return TRUE;
+			}
+		}
 	} else {
 		/* See if the window is one of the registered targets. */
 
@@ -915,6 +977,121 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	return TRUE;
 }
 
+
+/**
+ * Handle bounces of Message_RAMFetch, which tells us that the application
+ * trying to send us data can't handle RAM transfers.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to show that the message was handled.
+ */
+
+static osbool				dataxfer_message_ram_fetch_bounced(wimp_message *message)
+{
+	wimp_full_message_ram_xfer	*ramfetch = (wimp_full_message_data_xfer *) message;
+	struct dataxfer_descriptor	*descriptor;
+	os_error			*error;
+
+
+	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_RAMRX);
+	if (descriptor == NULL)
+		return FALSE;
+
+	// \TODO -- Bounces of the non-first message should be handled differently.
+
+	/* Free any memory that's claimed for the transfer. */
+
+	if (descriptor->ram_data != NULL) {
+		dataxfer_memory_handlers->free(descriptor->ram_data);
+		descriptor->ram_data = NULL;
+		descriptor->ram_size = 0;
+		descriptor->ram_allocation = 0;
+	}
+
+	/* Send a Message_DataSaveAck to start a disc-based transfer. */
+
+	descriptor->saved_message->your_ref = descriptor->saved_message->my_ref;
+	descriptor->saved_message->action = message_DATA_SAVE_ACK;
+	descriptor->saved_message->est_size = -1;
+	strcpy(descriptor->saved_message->file_name, "<Wimp$Scrap>\r");
+	descriptor->saved_message->size = WORDALIGN(45 + strlen(descriptor->saved_message->file_name));
+
+	error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) descriptor->saved_message, descriptor->saved_message->sender);
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+
+		dataxfer_delete_descriptor(descriptor);
+		return TRUE;
+	}
+
+	descriptor->type = DATAXFER_MESSAGE_LOAD;
+	descriptor->my_ref = descriptor->saved_message->my_ref;
+
+	/* We don't need the saved message any more. */
+
+	free(descriptor->saved_message);
+	descriptor->saved_message = NULL;
+
+	return TRUE;
+}
+
+/**
+ * Handle the receipt of a Message_RAMTransmit due to ongoing RAM trenfer
+ * of data in to us.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to show that the message was handled.
+ */
+
+static osbool dataxfer_message_ram_transmit(wimp_message *message)
+{
+	wimp_full_message_ram_xfer	*ramtransmit = (wimp_full_message_ram_xfer *) message;
+//	wimp_full_message_ram_xfer	ramfetch;
+	struct dataxfer_descriptor	*descriptor;
+	os_error			*error;
+	byte				*block;
+
+
+	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_RAMRX);
+	if (descriptor == NULL)
+		return FALSE;
+
+	if (ramtransmit->xfer_size == descriptor->ram_allocation) {
+		block = dataxfer_memory_handlers->realloc(descriptor->ram_data, descriptor->ram_size + descriptor->ram_allocation);
+		if (block == NULL) {
+			error_msgs_report_error("NoRAMforXFer");
+			dataxfer_memory_handlers->free(descriptor->ram_data);
+			dataxfer_delete_descriptor(descriptor);
+			return TRUE;
+		}
+		descriptor->ram_data = block;
+		descriptor->ram_used = descriptor->ram_size;
+		descriptor->ram_size += descriptor->ram_allocation;
+
+		ramtransmit->your_ref = ramtransmit->my_ref;
+		ramtransmit->action = message_RAM_FETCH;
+		ramtransmit->addr = descriptor->ram_data + descriptor->ram_used;
+
+		error = xwimp_send_message(wimp_USER_MESSAGE_RECORDED, (wimp_message *) ramtransmit, ramtransmit->sender);
+		if (error != NULL) {
+			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+			dataxfer_memory_handlers->free(descriptor->ram_data);
+			dataxfer_delete_descriptor(descriptor);
+			return TRUE;
+		}
+
+		descriptor->my_ref = ramtransmit->my_ref;
+	} else {
+		/* That's it; so return the data to the client. */
+	
+		if (descriptor->receive_callback != NULL)
+			descriptor->receive_callback(descriptor->ram_data, descriptor->ram_used + ramtransmit->xfer_size, 0xfff, descriptor->callback_data);
+		
+		dataxfer_delete_descriptor(descriptor);
+	}
+
+	return TRUE;
+}
 
 /**
  * Handle the receipt of a Message_DataLoad due to a filer load or an ongoing
@@ -964,7 +1141,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 		if (error != NULL)
 			return FALSE;
 
-		data = malloc(size * sizeof(byte));
+		data = dataxfer_memory_handlers->alloc(size * sizeof(byte));
 		if (data == NULL)
 			return FALSE;
 
@@ -1154,6 +1331,11 @@ static struct dataxfer_descriptor *dataxfer_new_descriptor(void)
 	if (new != NULL) {
 		new->type = DATAXFER_MESSAGE_NONE;
 
+		new->ram_data = NULL;
+		new->ram_allocation = 0;
+		new->ram_size = 0;
+		new->ram_used = 0;
+
 		new->next = dataxfer_descriptors;
 		dataxfer_descriptors = new;
 	}
@@ -1194,11 +1376,25 @@ static void dataxfer_delete_descriptor(struct dataxfer_descriptor *message)
 	if (message == NULL)
 		return;
 
+	/* If there's a saved message block, free it. */
+
+	if (message->saved_message != NULL)
+		free(message->saved_message);
+
+	/* If there's any RAM transfer memory, free it. */
+
+	if (message->ram_data != NULL && dataxfer_memory_handlers != NULL)
+		dataxfer_memory_handlers->free(message->ram_data);
+
+	/* If the message is at the head of the list, delink and free it. */
+
 	if (dataxfer_descriptors == message) {
 		dataxfer_descriptors = message->next;
 		free(message);
 		return;
 	}
+
+	/* Otherwise, find the message in the list, delink and free it. */
 
 	while (list != NULL && list->next != message)
 		list = list->next;

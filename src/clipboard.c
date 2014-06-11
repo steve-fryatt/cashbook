@@ -39,12 +39,13 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/config.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
-#include "sflib/transfer.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
-#include "sflib/config.h"
+#include "sflib/transfer.h"
 
 /* Application header files */
 
@@ -150,7 +151,7 @@ static osbool clipboard_receive_data(void *data, size_t data_size, bits type, vo
 
 	debug_printf("We have data!\n");
 
-	free(data);
+	//heap_free(data);
 
 	return TRUE;
 }
@@ -203,13 +204,15 @@ static osbool clipboard_store_text(char *text, size_t len)
 	/* If we already have the clipboard, clear it first. */
 
 	if (clipboard_data != NULL) {
-		flex_free((flex_ptr) &clipboard_data);
+		heap_free(clipboard_data);
+		clipboard_data = NULL;
 		clipboard_length = 0;
 	}
 
 	/* Record the details of the text in our own variables. */
 
-	if (flex_alloc((flex_ptr) &clipboard_data, len) == 0) {
+	clipboard_data = heap_alloc(len);
+	if (clipboard_data == NULL) {
 		error_msgs_report_error("ClipAllocFail");
 		return FALSE;
 	}
@@ -228,7 +231,8 @@ static osbool clipboard_store_text(char *text, size_t len)
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 
-		flex_free((flex_ptr) &clipboard_data);
+		heap_free(clipboard_data);
+		clipboard_data = NULL;
 		clipboard_length = 0;
 
 		return FALSE;
@@ -253,7 +257,8 @@ static osbool clipboard_message_claimentity(wimp_message *message)
 	/* Unset the contents of the clipboard if the claim was for that. */
 
 	if ((clipboard_data != NULL) && (claimblock->sender != main_task_handle) && (claimblock->flags & wimp_CLAIM_CLIPBOARD)) {
-		flex_free((flex_ptr) &clipboard_data);
+		heap_free(clipboard_data);
+		clipboard_data = NULL;
 		clipboard_length = 0;
 	}
 
@@ -289,7 +294,7 @@ static osbool clipboard_message_datarequest(wimp_message *message)
 	return TRUE;
 }
 
-
+#if 0
 /**
  * Handle incoming Message_DataSave.
  *
@@ -354,7 +359,6 @@ static osbool clipboard_message_dataload(wimp_message *message)
 	return TRUE;
 }
 
-
 /**
  * Paste a block of text, received into a flex block via the data transfer
  * system, into an icon.
@@ -372,4 +376,5 @@ static void clipboard_paste_text(char **data, size_t data_size)
 
 	flex_free ((flex_ptr) data);
 }
+#endif
 

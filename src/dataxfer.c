@@ -888,7 +888,7 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	/* We don't want to respond to our own save requests. */
 
 	if (message->sender == main_task_handle)
-		return TRUE;
+		return FALSE;
 
 	/* Check to see if this message is a reply to one of our
 	 * Message_DataRequests.

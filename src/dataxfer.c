@@ -1083,10 +1083,16 @@ static osbool dataxfer_message_ram_transmit(wimp_message *message)
 		descriptor->my_ref = ramtransmit->my_ref;
 	} else {
 		/* That's it; so return the data to the client. */
-	
+
 		if (descriptor->receive_callback != NULL)
 			descriptor->receive_callback(descriptor->ram_data, descriptor->ram_used + ramtransmit->xfer_size, 0xfff, descriptor->callback_data);
-		
+
+		/* We don't want the descriptor deletion to free the data block,
+		 * as the client might want to keep it.
+		 */
+
+		descriptor->ram_data = NULL;
+
 		dataxfer_delete_descriptor(descriptor);
 	}
 

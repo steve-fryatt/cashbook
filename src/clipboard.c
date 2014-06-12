@@ -151,7 +151,7 @@ static osbool clipboard_receive_data(void *data, size_t data_size, bits type, vo
 
 	debug_printf("We have data!\n");
 
-	//heap_free(data);
+	heap_free(data);
 
 	return TRUE;
 }

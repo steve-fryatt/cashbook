@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -66,6 +66,7 @@ static char		*clipboard_data = NULL;					/**< Clipboard data help by CashBook, o
 static size_t		clipboard_length = 0;					/**< The length of the clipboard held by CashBook.			*/
 static char		*clipboard_xfer = NULL;					/**< Clipboard data being transferred in from another client.		*/
 
+static size_t		clipboard_send_data(void **data);
 static osbool		clipboard_store_text(char *text, size_t len);
 static osbool		clipboard_message_claimentity(wimp_message *message);
 static osbool		clipboard_message_datarequest(wimp_message *message);
@@ -82,7 +83,8 @@ static void		clipboard_paste_text(char **data, size_t data_size);
 void clipboard_initialise(void)
 {
 	event_add_message_handler(message_CLAIM_ENTITY, EVENT_MESSAGE_INCOMING, clipboard_message_claimentity);
-	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, clipboard_message_datarequest);
+	dataxfer_register_clipboard_provider(clipboard_send_data);
+//	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, clipboard_message_datarequest);
 //	event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_INCOMING, clipboard_message_ramtransmit);
 //	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, clipboard_message_dataload);
 //	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, clipboard_message_datasave);
@@ -139,6 +141,28 @@ osbool clipboard_cut_from_icon(wimp_key *key)
 	icons_put_caret_at_end(key->w, key->i);
 
 	return TRUE;
+}
+
+
+static size_t clipboard_send_data(void **data)
+{
+	/* If we don't own the clipboard, return no data. */
+
+	if (clipboard_data == NULL)
+		return 0;
+
+	/* Make a copy of the clipboard using the static heap known to
+	 * dataxfer, then return a pointer. This will be freed by dataxfer
+	 * once the transfer is complete.
+	 */
+
+	*data = heap_alloc(clipboard_length);
+	if (*data == NULL)
+		return 0;
+	
+	memcpy(*data, clipboard_data, clipboard_length);
+	
+	return clipboard_length;
 }
 
 

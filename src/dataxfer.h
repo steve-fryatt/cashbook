@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -132,6 +132,21 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
  */
 
 osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits type, int your_ref);
+
+
+/**
+ * Register a function to provide clipboard data on request. When called,
+ * if the clipboard is currently held by the client, the contents should
+ * be copied to a block in the provided heap and the details passed back
+ * (pointer to the data in the supplied pointer, and return the size of the
+ * data). If no data is available, it should leave the pointer as NULL and
+ * return a size of zero.
+ *
+ * \param callback		The clipboard data request callback, or NULL
+ *				to unset.
+ */
+
+void dataxfer_register_clipboard_provider(size_t callback(void **data));
 
 
 /**

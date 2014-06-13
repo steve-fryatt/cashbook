@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -139,12 +139,20 @@ static void	(*dataxfer_drag_end_callback)(wimp_pointer *, void *) = NULL;				/**
 static struct dataxfer_memory		*dataxfer_memory_handlers = NULL;				/**< Pointer to client functions for handling memory.			*/
 
 /**
+ * Clipboard content locator.
+ */
+
+static size_t	(*dataxfer_find_clipboard_content)(void **) = NULL;					/**< The callback function to ask the client for the clipboard contents	*/
+
+/**
  * Function prototypes.
  */
 
 static void				dataxfer_terminate_user_drag(wimp_dragged *drag, void *data);
 static osbool				dataxfer_message_data_save_ack(wimp_message *message);
 static osbool				dataxfer_message_data_load_ack(wimp_message *message);
+
+static osbool				dataxfer_message_datarequest(wimp_message *message);
 
 static osbool				dataxfer_message_data_save(wimp_message *message);
 static osbool				dataxfer_message_ram_fetch_bounced(wimp_message *message);
@@ -169,6 +177,7 @@ static void				dataxfer_delete_descriptor(struct dataxfer_descriptor *message);
 
 void dataxfer_initialise(struct dataxfer_memory *handlers)
 {
+	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, dataxfer_message_datarequest);
 	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save);
 	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save_ack);
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, dataxfer_message_data_load);
@@ -563,6 +572,61 @@ osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits typ
 
 	descriptor->type = DATAXFER_MESSAGE_SAVE;
 	descriptor->my_ref = message.my_ref;
+
+	return TRUE;
+}
+
+
+/**
+ * Register a function to provide clipboard data on request. When called,
+ * if the clipboard is currently held by the client, the contents should
+ * be copied to a block in the provided heap and the details passed back
+ * (pointer to the data in the supplied pointer, and return the size of the
+ * data). If no data is available, it should leave the pointer as NULL and
+ * return a size of zero.
+ *
+ * \param callback		The clipboard data request callback, or NULL
+ *				to unset.
+ */
+
+
+void dataxfer_register_clipboard_provider(size_t callback(void **data))
+{
+	dataxfer_find_clipboard_content = callback;
+}
+
+
+/**
+ * Handle the receipt of a Message_DataRequest, by finding out if the client
+ * owns the clipboard and starting a transfer if it does.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to claim the message; FALSE to pass it on.
+ */
+
+static osbool dataxfer_message_datarequest(wimp_message *message)
+{
+	wimp_full_message_data_request	*requestblock = (wimp_full_message_data_request *) message;
+	void				*clipboard_data = NULL;
+	size_t				clipboard_size = 0;
+
+	if (dataxfer_find_clipboard_content != NULL)
+		clipboard_size = dataxfer_find_clipboard_content(&clipboard_data);
+
+	/* Just return if the client does not own the clipboard at present. */
+
+	if (clipboard_data == NULL || clipboard_size == 0)
+		return FALSE;
+
+	/* Check that the message flags are correct. */
+
+	if ((requestblock->flags & wimp_DATA_REQUEST_CLIPBOARD) == 0)
+		return FALSE;
+
+	debug_printf("We're going to send the clipboard contents...");
+
+	//transfer_save_start_block(requestblock->w, requestblock->i, requestblock->pos, requestblock->my_ref,
+	//		&clipboard_data, clipboard_length, 0xfff, "CutText");
 
 	return TRUE;
 }
@@ -986,9 +1050,8 @@ static osbool dataxfer_message_data_save(wimp_message *message)
  * \return			TRUE to show that the message was handled.
  */
 
-static osbool				dataxfer_message_ram_fetch_bounced(wimp_message *message)
+static osbool dataxfer_message_ram_fetch_bounced(wimp_message *message)
 {
-	wimp_full_message_ram_xfer	*ramfetch = (wimp_full_message_data_xfer *) message;
 	struct dataxfer_descriptor	*descriptor;
 	os_error			*error;
 

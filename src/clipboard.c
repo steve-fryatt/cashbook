@@ -69,11 +69,13 @@ static char		*clipboard_xfer = NULL;					/**< Clipboard data being transferred i
 static size_t		clipboard_send_data(void **data);
 static osbool		clipboard_store_text(char *text, size_t len);
 static osbool		clipboard_message_claimentity(wimp_message *message);
+#if 0
 static osbool		clipboard_message_datarequest(wimp_message *message);
 static osbool		clipboard_message_datasave(wimp_message *message);
 static osbool		clipboard_message_ramtransmit(wimp_message *message);
 static osbool		clipboard_message_dataload(wimp_message *message);
 static void		clipboard_paste_text(char **data, size_t data_size);
+#endif
 
 
 /**
@@ -289,7 +291,7 @@ static osbool clipboard_message_claimentity(wimp_message *message)
 	return TRUE;
 }
 
-
+#if 0
 /**
  * Handle incoming Message_DataRequest, by sending the clipboard contents out
  * if we currently own it.
@@ -318,7 +320,7 @@ static osbool clipboard_message_datarequest(wimp_message *message)
 	return TRUE;
 }
 
-#if 0
+
 /**
  * Handle incoming Message_DataSave.
  *

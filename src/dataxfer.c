@@ -68,6 +68,19 @@
  * Global variables.
  */
 
+#define DATAXFER_CLIPBOARD_NAME "Clipboard"
+
+/**
+ * The purpose of a transfer.
+ */
+
+enum dataxfer_purpose {
+	DATAXFER_UNKNOWN = 0,										/**< The transfer has no defined purpose.				*/
+	DATAXFER_FILE_SAVE,										/**< The transfer is for saving a file.					*/
+	DATAXFER_FILE_LOAD,										/**< The transfer is for loading a file.				*/
+	DATAXFER_CLIPBOARD_SEND,									/**< The transfer is for sending the clipboard content.			*/
+	DATAXFER_CLIPBOARD_RECEIVE									/**< The transfer is for receiving the clipboard content.		*/
+};
 
 /**
  * Data associated with a message exchange.
@@ -85,6 +98,7 @@ enum dataxfer_message_type {
 
 struct dataxfer_descriptor {
 	enum dataxfer_message_type	type;								/**< The type of message that the block describes.			*/
+	enum dataxfer_purpose		purpose;							/**< The purpose of the described transfer.				*/
 
 	int				my_ref;								/**< The MyRef of the sent message.					*/
 	wimp_t				task;								/**< The task handle of the recipient task.				*/
@@ -411,6 +425,8 @@ osbool dataxfer_request_clipboard(wimp_w w, wimp_i i, os_coord pos, bits types[]
 	if (descriptor == NULL)
 		return FALSE;
 
+	descriptor->purpose = DATAXFER_CLIPBOARD_RECEIVE;
+	
 	descriptor->save_callback = NULL;
 	descriptor->receive_callback = receive_callback;
 	descriptor->callback_data = data;
@@ -480,6 +496,8 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
 	if (descriptor == NULL)
 		return FALSE;
 
+	descriptor->purpose = DATAXFER_FILE_SAVE;
+
 	descriptor->save_callback = save_callback;
 	descriptor->receive_callback = NULL;
 	descriptor->callback_data = data;
@@ -541,6 +559,8 @@ osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits typ
 	if (descriptor == NULL)
 		return FALSE;
 
+	descriptor->purpose = DATAXFER_FILE_LOAD;
+
 	descriptor->save_callback = NULL;
 	descriptor->receive_callback = NULL;
 	descriptor->callback_data = NULL;
@@ -565,7 +585,7 @@ osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits typ
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		dataxfer_delete_descriptor(descriptor);
-		return FALSE;
+		return TRUE;
 	}
 
 	/* Complete the message descriptor information. */
@@ -606,9 +626,12 @@ void dataxfer_register_clipboard_provider(size_t callback(void **data))
 
 static osbool dataxfer_message_datarequest(wimp_message *message)
 {
+	struct dataxfer_descriptor	*descriptor;
 	wimp_full_message_data_request	*requestblock = (wimp_full_message_data_request *) message;
+	wimp_full_message_data_xfer	*xferblock = (wimp_full_message_data_xfer *) message;
 	void				*clipboard_data = NULL;
 	size_t				clipboard_size = 0;
+	os_error			*error;
 
 	if (dataxfer_find_clipboard_content != NULL)
 		clipboard_size = dataxfer_find_clipboard_content(&clipboard_data);
@@ -623,10 +646,47 @@ static osbool dataxfer_message_datarequest(wimp_message *message)
 	if ((requestblock->flags & wimp_DATA_REQUEST_CLIPBOARD) == 0)
 		return FALSE;
 
-	debug_printf("We're going to send the clipboard contents...");
+	/* Allocate a block to store details of the message. */
 
-	//transfer_save_start_block(requestblock->w, requestblock->i, requestblock->pos, requestblock->my_ref,
-	//		&clipboard_data, clipboard_length, 0xfff, "CutText");
+	descriptor = dataxfer_new_descriptor();
+	if (descriptor == NULL)
+		return FALSE;
+
+	descriptor->purpose = DATAXFER_CLIPBOARD_SEND;
+
+	descriptor->save_callback = NULL;
+	descriptor->receive_callback = NULL;
+	descriptor->callback_data = NULL;
+
+	descriptor->ram_data = clipboard_data;
+	descriptor->ram_size = clipboard_size;
+	descriptor->ram_allocation = 0;
+	descriptor->ram_used = 0;
+
+	/* Set up and send the datasave message. If it fails, give an error
+	 * and delete the message details as we won't need them again.
+	 */
+
+	xferblock->size = WORDALIGN(45 + strlen(DATAXFER_CLIPBOARD_NAME));
+	xferblock->your_ref = requestblock->my_ref;
+	xferblock->action = message_DATA_SAVE;
+	xferblock->est_size = clipboard_size;
+	xferblock->file_type = osfile_TYPE_TEXT; /* \TODO -- This needs to come from the client. */
+
+	strncpy(xferblock->file_name, DATAXFER_CLIPBOARD_NAME, 212);
+	xferblock->file_name[211] = '\0';
+
+	error = xwimp_send_message_to_window(wimp_USER_MESSAGE_RECORDED, (wimp_message *) xferblock, xferblock->w, xferblock->i, &(descriptor->task));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		dataxfer_delete_descriptor(descriptor);
+		return TRUE;
+	}
+
+	/* Complete the message descriptor information. */
+
+	descriptor->type = DATAXFER_MESSAGE_SAVE;
+	descriptor->my_ref = xferblock->my_ref;
 
 	return TRUE;
 }
@@ -651,16 +711,38 @@ static osbool dataxfer_message_data_save_ack(wimp_message *message)
 	if (descriptor == NULL)
 		return FALSE;
 
-	/* We now know the message in question, so see if our client wants to
-	 * make use of the data.  If there's a callback, call it.  If it
-	 * returns FALSE then we don't want to send a Message_DataLoad so
-	 * free the information block and quit marking the incoming
-	 * message as handled.
+	/* We know the message in question, so try and do something with it. This
+	 * will depend on the purpose of the message.
 	 */
 
-	if (descriptor->save_callback != NULL && !descriptor->save_callback(datasaveack->file_name, descriptor->callback_data)) {
-		dataxfer_delete_descriptor(descriptor);
-		return TRUE;
+	switch (descriptor->purpose) {
+	case DATAXFER_FILE_SAVE:
+		/* If the client's supplied a callback, call it.  If it returns FALSE
+		 * then we don't want to send a Message_DataLoad so free the information
+		 * block and quit marking the incoming message as handled.
+		 */
+
+		if (descriptor->save_callback != NULL &&
+				!descriptor->save_callback(datasaveack->file_name, descriptor->callback_data)) {
+			dataxfer_delete_descriptor(descriptor);
+			return TRUE;
+		}
+		break;
+
+	case DATAXFER_CLIPBOARD_SEND:
+		/* We're transferring some clipboard data, so save the data to the supplied
+		 * file and return.
+		 */
+
+		error = xosfile_save_stamped(datasaveack->file_name, osfile_TYPE_TEXT, descriptor->ram_data, descriptor->ram_data + descriptor->ram_size);
+		if (error != NULL) {
+			dataxfer_delete_descriptor(descriptor);
+			return TRUE;
+		}
+		break;
+
+	default:
+		break;
 	}
 
 	/* The client saved something, so finish off the data transfer. */
@@ -1013,6 +1095,8 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 		descriptor = dataxfer_new_descriptor();
 		if (descriptor == NULL)
 			return FALSE;
+
+		descriptor->purpose = DATAXFER_FILE_LOAD;
 
 		descriptor->save_callback = NULL;
 		descriptor->receive_callback = NULL;
@@ -1399,6 +1483,7 @@ static struct dataxfer_descriptor *dataxfer_new_descriptor(void)
 	new = malloc(sizeof(struct dataxfer_descriptor));
 	if (new != NULL) {
 		new->type = DATAXFER_MESSAGE_NONE;
+		new->purpose = DATAXFER_UNKNOWN;
 
 		new->ram_data = NULL;
 		new->ram_allocation = 0;

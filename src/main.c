@@ -59,7 +59,6 @@
 #include "sflib/resources.h"
 #include "sflib/string.h"
 #include "sflib/tasks.h"
-#include "sflib/transfer.h"
 #include "sflib/url.h"
 #include "sflib/windows.h"
 

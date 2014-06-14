@@ -48,7 +48,6 @@
 #include "sflib/icons.h"
 #include "sflib/string.h"
 #include "sflib/windows.h"
-#include "sflib/transfer.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"

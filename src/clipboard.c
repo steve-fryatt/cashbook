@@ -46,7 +46,6 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
-#include "sflib/transfer.h"
 
 /* Application header files */
 

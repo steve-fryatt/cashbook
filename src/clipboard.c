@@ -65,18 +65,11 @@
 
 static char		*clipboard_data = NULL;					/**< Clipboard data help by CashBook, or NULL for none.			*/
 static size_t		clipboard_length = 0;					/**< The length of the clipboard held by CashBook.			*/
-static char		*clipboard_xfer = NULL;					/**< Clipboard data being transferred in from another client.		*/
 
-static size_t		clipboard_send_data(bits types[], bits *type, void **data);
+static osbool		clipboard_receive_data(void *data, size_t data_size, bits type, void *context);
 static osbool		clipboard_store_text(char *text, size_t len);
 static osbool		clipboard_message_claimentity(wimp_message *message);
-#if 0
-static osbool		clipboard_message_datarequest(wimp_message *message);
-static osbool		clipboard_message_datasave(wimp_message *message);
-static osbool		clipboard_message_ramtransmit(wimp_message *message);
-static osbool		clipboard_message_dataload(wimp_message *message);
-static void		clipboard_paste_text(char **data, size_t data_size);
-#endif
+static size_t		clipboard_send_data(bits types[], bits *type, void **data);
 
 
 /**
@@ -87,10 +80,6 @@ void clipboard_initialise(void)
 {
 	event_add_message_handler(message_CLAIM_ENTITY, EVENT_MESSAGE_INCOMING, clipboard_message_claimentity);
 	dataxfer_register_clipboard_provider(clipboard_send_data);
-//	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, clipboard_message_datarequest);
-//	event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_INCOMING, clipboard_message_ramtransmit);
-//	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, clipboard_message_dataload);
-//	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, clipboard_message_datasave);
 }
 
 
@@ -147,59 +136,6 @@ osbool clipboard_cut_from_icon(wimp_key *key)
 }
 
 
-static size_t clipboard_send_data(bits types[], bits *type, void **data)
-{
-	int	i = 0;
-
-	/* If we don't own the clipboard, return no data. */
-
-	if (clipboard_data == NULL || types == NULL || type == NULL || data == NULL)
-		return 0;
-
-	/* Check the list of acceptable types to see if there's one we
-	 * like.
-	 */
-
-	while (types[i] != -1) {
-		if (types[i] == osfile_TYPE_TEXT)
-			break;
-	}
-
-	if (types[i] == -1)
-		return 0;
-
-	*type = osfile_TYPE_TEXT;
-
-	/* Make a copy of the clipboard using the static heap known to
-	 * dataxfer, then return a pointer. This will be freed by dataxfer
-	 * once the transfer is complete.
-	 */
-
-	*data = heap_alloc(clipboard_length);
-	if (*data == NULL)
-		return 0;
-	
-	memcpy(*data, clipboard_data, clipboard_length);
-	
-	return clipboard_length;
-}
-
-
-static osbool clipboard_receive_data(void *data, size_t data_size, bits type, void *context)
-{
-	wimp_caret	caret;
-
-	wimp_get_caret_position(&caret);
-	icons_insert_text(caret.w, caret.i, caret.index, data, data_size);
-
-	debug_printf("We have data!\n");
-
-	heap_free(data);
-
-	return TRUE;
-}
-
-
 /**
  * Paste the contents of the global clipboard into an icon.  If we own the
  * clipboard, this is done immediately; otherwise the Wimp message dialogue
@@ -226,6 +162,27 @@ osbool clipboard_paste_to_icon(wimp_key *key)
 		if (!dataxfer_request_clipboard(key->w, key->i, key->pos, types, clipboard_receive_data, NULL))
 			return FALSE;
 	}
+
+	return TRUE;
+}
+
+
+/**
+ * Paste the contents of the global clipboard into an icon, having retrieved it
+ * from the current clipboard owner.
+ *
+ * \param **data		The flex block pointer for the data.
+ * \param data_size		The size of the data to paste.
+ */
+
+static osbool clipboard_receive_data(void *data, size_t data_size, bits type, void *context)
+{
+	wimp_caret	caret;
+
+	wimp_get_caret_position(&caret);
+	icons_insert_text(caret.w, caret.i, caret.index, data, data_size);
+
+	heap_free(data);
 
 	return TRUE;
 }
@@ -308,116 +265,53 @@ static osbool clipboard_message_claimentity(wimp_message *message)
 	return TRUE;
 }
 
-#if 0
-/**
- * Handle incoming Message_DataRequest, by sending the clipboard contents out
- * if we currently own it.
- *
- * \param *message		The message data to be handled.
- * \return			TRUE to claim the message; FALSE to pass it on.
- */
-
-static osbool clipboard_message_datarequest(wimp_message *message)
-{
-	wimp_full_message_data_request	*requestblock = (wimp_full_message_data_request *) message;
-
-	/* Just return if we do not own the clipboard at present. */
-
-	if (clipboard_data == NULL)
-		return FALSE;
-
-	/* Check that the message flags are correct. */
-
-	if ((requestblock->flags & wimp_DATA_REQUEST_CLIPBOARD) == 0)
-		return FALSE;
-
-	transfer_save_start_block(requestblock->w, requestblock->i, requestblock->pos, requestblock->my_ref,
-			&clipboard_data, clipboard_length, 0xfff, "CutText");
-
-	return TRUE;
-}
-
 
 /**
- * Handle incoming Message_DataSave.
+ * Handle requests from other tasks for the clipboard data by checking to see
+ * if we currently own it and whether any of the requested types are ones that
+ * we can support. If we can supply the data, copy it into a heap block and
+ * pass it to the dataxfer code to process.
  *
- * \param *message		The message data to be handled.
- * \return			TRUE to claim the message; FALSE to pass it on.
+ * \param types[]		A list of acceptable filetypes for the data.
+ * \param *type			Pointer to a variable to take the chosen type.
+ * \param **data		Pointer to a pointer to take the address of the data.
+ * \return			The number of bytes offered, or 0 if we can't help.
  */
 
-static osbool clipboard_message_datasave(wimp_message *message)
+static size_t clipboard_send_data(bits types[], bits *type, void **data)
 {
-	if (message->your_ref == 0)
-		return FALSE;
+	int	i = 0;
 
-	transfer_load_reply_datasave_block(message, &clipboard_xfer);
+	/* If we don't own the clipboard, return no data. */
 
-	return TRUE;
-}
+	if (clipboard_data == NULL || types == NULL || type == NULL || data == NULL)
+		return 0;
 
-
-/**
- * Handle incoming Message_RamTransmit.
- *
- * \param *message		The message data to be handled.
- * \return			TRUE to claim the message; FALSE to pass it on.
- */
-
-static osbool clipboard_message_ramtransmit(wimp_message *message)
-{
-	int		size;
-
-	size = transfer_load_reply_ramtransmit(message, NULL);
-	if (size > 0)
-		clipboard_paste_text(&clipboard_xfer, size);
-
-	return TRUE;
-}
-
-
-/**
- * Handle incoming Message_DataLoad.
- *
- * \param *message		The message data to be handled.
- * \return			TRUE to claim the message; FALSE to pass it on.
- */
-
-static osbool clipboard_message_dataload(wimp_message *message)
-{
-	int		size;
-
-	if (message->your_ref == 0)
-		return FALSE;
-
-	/* If your_ref != 0, there was a Message_DataSave before this.  clipboard_size will only return >0 if
-	 * the data is loaded automatically: since only the clipboard uses this, the following code is safe.
-	 * All other loads (data files, TSV and CSV) will have supplied a function to handle the physical loading
-	 * and clipboard_size will return as 0.
+	/* Check the list of acceptable types to see if there's one we
+	 * like.
 	 */
 
-	size = transfer_load_reply_dataload (message, NULL);
-	if (size > 0)
-		clipboard_paste_text(&clipboard_xfer, size);
+	while (types[i] != -1) {
+		if (types[i] == osfile_TYPE_TEXT)
+			break;
+	}
 
-	return TRUE;
+	if (types[i] == -1)
+		return 0;
+
+	*type = osfile_TYPE_TEXT;
+
+	/* Make a copy of the clipboard using the static heap known to
+	 * dataxfer, then return a pointer. This will be freed by dataxfer
+	 * once the transfer is complete.
+	 */
+
+	*data = heap_alloc(clipboard_length);
+	if (*data == NULL)
+		return 0;
+	
+	memcpy(*data, clipboard_data, clipboard_length);
+	
+	return clipboard_length;
 }
-
-/**
- * Paste a block of text, received into a flex block via the data transfer
- * system, into an icon.
- *
- * \param **data		The flex block pointer for the data.
- * \param data_size		The size of the data to paste.
- */
-
-static void clipboard_paste_text(char **data, size_t data_size)
-{
-	wimp_caret	caret;
-
-	wimp_get_caret_position(&caret);
-	icons_insert_text(caret.w, caret.i, caret.index, *data, data_size);
-
-	flex_free ((flex_ptr) data);
-}
-#endif
 

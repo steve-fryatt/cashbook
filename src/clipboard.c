@@ -33,6 +33,7 @@
 
 /* OSLib header files */
 
+#include "oslib/osfile.h"
 #include "oslib/wimp.h"
 
 /* OSLibSupport header files */
@@ -66,7 +67,7 @@ static char		*clipboard_data = NULL;					/**< Clipboard data help by CashBook, o
 static size_t		clipboard_length = 0;					/**< The length of the clipboard held by CashBook.			*/
 static char		*clipboard_xfer = NULL;					/**< Clipboard data being transferred in from another client.		*/
 
-static size_t		clipboard_send_data(void **data);
+static size_t		clipboard_send_data(bits types[], bits *type, void **data);
 static osbool		clipboard_store_text(char *text, size_t len);
 static osbool		clipboard_message_claimentity(wimp_message *message);
 #if 0
@@ -146,12 +147,28 @@ osbool clipboard_cut_from_icon(wimp_key *key)
 }
 
 
-static size_t clipboard_send_data(void **data)
+static size_t clipboard_send_data(bits types[], bits *type, void **data)
 {
+	int	i = 0;
+
 	/* If we don't own the clipboard, return no data. */
 
-	if (clipboard_data == NULL)
+	if (clipboard_data == NULL || types == NULL || type == NULL || data == NULL)
 		return 0;
+
+	/* Check the list of acceptable types to see if there's one we
+	 * like.
+	 */
+
+	while (types[i] != -1) {
+		if (types[i] == osfile_TYPE_TEXT)
+			break;
+	}
+
+	if (types[i] == -1)
+		return 0;
+
+	*type = osfile_TYPE_TEXT;
 
 	/* Make a copy of the clipboard using the static heap known to
 	 * dataxfer, then return a pointer. This will be freed by dataxfer

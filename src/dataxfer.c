@@ -156,7 +156,7 @@ static struct dataxfer_memory		*dataxfer_memory_handlers = NULL;				/**< Pointer
  * Clipboard content locator.
  */
 
-static size_t	(*dataxfer_find_clipboard_content)(void **) = NULL;					/**< The callback function to ask the client for the clipboard contents	*/
+static size_t	(*dataxfer_find_clipboard_content)(bits *, bits *, void **) = NULL;			/**< The callback function to ask the client for the clipboard contents	*/
 
 /**
  * Function prototypes.
@@ -599,9 +599,10 @@ osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits typ
 
 /**
  * Register a function to provide clipboard data on request. When called,
- * if the clipboard is currently held by the client, the contents should
- * be copied to a block in the provided heap and the details passed back
- * (pointer to the data in the supplied pointer, and return the size of the
+ * if the clipboard is currently held by the client and one of the types listed
+ * in types[] is an acceptable format, the contents should be copied to a block
+ * in the provided heap and the details passed back (pointer to the data in the
+ * supplied pointer, type updated to the chosen type, and return the size of the
  * data). If no data is available, it should leave the pointer as NULL and
  * return a size of zero.
  *
@@ -610,7 +611,7 @@ osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits typ
  */
 
 
-void dataxfer_register_clipboard_provider(size_t callback(void **data))
+void dataxfer_register_clipboard_provider(size_t callback(bits types[], bits *type, void **data))
 {
 	dataxfer_find_clipboard_content = callback;
 }
@@ -631,14 +632,15 @@ static osbool dataxfer_message_datarequest(wimp_message *message)
 	wimp_full_message_data_xfer	*xferblock = (wimp_full_message_data_xfer *) message;
 	void				*clipboard_data = NULL;
 	size_t				clipboard_size = 0;
+	bits				clipboard_type = -1;
 	os_error			*error;
 
 	if (dataxfer_find_clipboard_content != NULL)
-		clipboard_size = dataxfer_find_clipboard_content(&clipboard_data);
+		clipboard_size = dataxfer_find_clipboard_content(requestblock->file_types, &clipboard_type, &clipboard_data);
 
 	/* Just return if the client does not own the clipboard at present. */
 
-	if (clipboard_data == NULL || clipboard_size == 0)
+	if (clipboard_data == NULL || clipboard_size == 0 || clipboard_type == -1)
 		return FALSE;
 
 	/* Check that the message flags are correct. */
@@ -671,7 +673,7 @@ static osbool dataxfer_message_datarequest(wimp_message *message)
 	xferblock->your_ref = requestblock->my_ref;
 	xferblock->action = message_DATA_SAVE;
 	xferblock->est_size = clipboard_size;
-	xferblock->file_type = osfile_TYPE_TEXT; /* \TODO -- This needs to come from the client. */
+	xferblock->file_type = clipboard_type;
 
 	strncpy(xferblock->file_name, DATAXFER_CLIPBOARD_NAME, 212);
 	xferblock->file_name[211] = '\0';
@@ -734,7 +736,7 @@ static osbool dataxfer_message_data_save_ack(wimp_message *message)
 		 * file and return.
 		 */
 
-		error = xosfile_save_stamped(datasaveack->file_name, osfile_TYPE_TEXT, descriptor->ram_data, descriptor->ram_data + descriptor->ram_size);
+		error = xosfile_save_stamped(datasaveack->file_name, datasaveack->file_type, descriptor->ram_data, descriptor->ram_data + descriptor->ram_size);
 		if (error != NULL) {
 			dataxfer_delete_descriptor(descriptor);
 			return TRUE;

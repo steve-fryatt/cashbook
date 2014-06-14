@@ -136,9 +136,10 @@ osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits typ
 
 /**
  * Register a function to provide clipboard data on request. When called,
- * if the clipboard is currently held by the client, the contents should
- * be copied to a block in the provided heap and the details passed back
- * (pointer to the data in the supplied pointer, and return the size of the
+ * if the clipboard is currently held by the client and one of the types listed
+ * in types[] is an acceptable format, the contents should be copied to a block
+ * in the provided heap and the details passed back (pointer to the data in the
+ * supplied pointer, type updated to the chosen type, and return the size of the
  * data). If no data is available, it should leave the pointer as NULL and
  * return a size of zero.
  *
@@ -146,7 +147,7 @@ osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits typ
  *				to unset.
  */
 
-void dataxfer_register_clipboard_provider(size_t callback(void **data));
+void dataxfer_register_clipboard_provider(size_t callback(bits types[], bits *type, void **data));
 
 
 /**

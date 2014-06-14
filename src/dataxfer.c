@@ -1195,7 +1195,6 @@ static osbool dataxfer_message_ram_fetch_bounced(wimp_message *message)
 static osbool dataxfer_message_ram_transmit(wimp_message *message)
 {
 	wimp_full_message_ram_xfer	*ramtransmit = (wimp_full_message_ram_xfer *) message;
-//	wimp_full_message_ram_xfer	ramfetch;
 	struct dataxfer_descriptor	*descriptor;
 	os_error			*error;
 	byte				*block;

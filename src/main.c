@@ -327,7 +327,7 @@ static void main_initialise(void)
 	sorder_initialise(sprites);
 	preset_initialise(sprites);
 	filing_initialise();
-	dataxfer_initialise(&main_memory_handlers);
+	dataxfer_initialise(main_task_handle, &main_memory_handlers);
 	clipboard_initialise();
 	amenu_initialise();
 	ihelp_initialise();

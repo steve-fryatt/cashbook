@@ -48,10 +48,11 @@ struct dataxfer_memory {
 /**
  * Initialise the data transfer system.
  *
- * Pointer to memory allocation functions, if RAM Transfers are to be used.
+ * \param task_handle	The task handle of the client task.
+ * \param *handlers	Pointer to memory allocation functions, if RAM Transfers are to be used.
  */
 
-void dataxfer_initialise(struct dataxfer_memory *handlers);
+void dataxfer_initialise(wimp_t task_handle, struct dataxfer_memory *handlers);
 
 
 /**

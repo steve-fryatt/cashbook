@@ -159,6 +159,12 @@ static struct dataxfer_memory		*dataxfer_memory_handlers = NULL;				/**< Pointer
 static size_t	(*dataxfer_find_clipboard_content)(bits *, bits *, void **) = NULL;			/**< The callback function to ask the client for the clipboard contents	*/
 
 /**
+ * Task handle of the client.
+ */
+
+static wimp_t	dataxfer_task_handle;
+
+/**
  * Function prototypes.
  */
 
@@ -187,10 +193,11 @@ static void				dataxfer_delete_descriptor(struct dataxfer_descriptor *message);
 /**
  * Initialise the data transfer system.
  *
- * Pointer to memory allocation functions, if RAM Transfers are to be used.
+ * \param task_handle	The task handle of the client task.
+ * \param *handlers	Pointer to memory allocation functions, if RAM Transfers are to be used.
  */
 
-void dataxfer_initialise(struct dataxfer_memory *handlers)
+void dataxfer_initialise(wimp_t task_handle, struct dataxfer_memory *handlers)
 {
 	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, dataxfer_message_datarequest);
 	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save);
@@ -212,6 +219,8 @@ void dataxfer_initialise(struct dataxfer_memory *handlers)
 		event_add_message_handler(message_RAM_FETCH, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_ram_fetch_bounced);
 		event_add_message_handler(message_RAM_TRANSMIT, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 	}
+
+	dataxfer_task_handle = task_handle;
 }
 
 
@@ -729,7 +738,7 @@ static osbool dataxfer_message_ram_fetch(wimp_message *message)
 	bytes_to_send = descriptor->ram_size - descriptor->ram_used;
 	send_this_time = (bytes_to_send > ramfetch->xfer_size) ? ramfetch->xfer_size : bytes_to_send;
 
-	error = xwimp_transfer_block(main_task_handle, (byte *) descriptor->ram_data + descriptor->ram_used,
+	error = xwimp_transfer_block(dataxfer_task_handle, (byte *) descriptor->ram_data + descriptor->ram_used,
 			ramfetch->sender, ramfetch->addr, send_this_time);
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -1109,7 +1118,7 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 
 	/* We don't want to respond to our own save requests. */
 
-	if (message->sender == main_task_handle)
+	if (message->sender == dataxfer_task_handle)
 		return FALSE;
 
 	/* Check to see if this message is a reply to one of our
@@ -1335,7 +1344,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 
 	/* We don't want to respond to our own save requests. */
 
-	if (message->sender == main_task_handle)
+	if (message->sender == dataxfer_task_handle)
 		return TRUE;
 
 	/* See if we know about this transfer already.  If we do, this is the

@@ -1836,12 +1836,16 @@ static void report_print_as_graphic(report_data *report, osbool fit_width, osboo
 		}
 
 		if ((*(report->data + report->line_ptr[y] + REPORT_BAR_BYTES) & REPORT_FLAG_KEEPTOGETHER) &&
-				(*(report->data + report->line_ptr[y]) == bar)) {
+				((*(report->data + report->line_ptr[y]) == bar) || (header == -1))) {
 			if (header == -1)
 				header = y;
 		} else {
 			header = -1;
 		}
+
+		#ifdef DEBUG
+		debug_printf("Line %d has header %d", y, header);
+		#endif
 
 		bar = *(report->data + report->line_ptr[y]);
 

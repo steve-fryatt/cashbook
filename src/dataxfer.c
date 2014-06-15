@@ -1128,7 +1128,7 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 		/* See if this is a reply to a message we think we've sent. */
 	
 		descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_REQUEST);
-		if (descriptor == NULL)
+		if (descriptor == NULL || descriptor->purpose != DATAXFER_CLIPBOARD_RECEIVE)
 			return FALSE;
 
 		if (dataxfer_memory_handlers != NULL) {
@@ -1265,7 +1265,7 @@ static osbool dataxfer_message_ram_fetch_bounced(wimp_message *message)
 }
 
 /**
- * Handle the receipt of a Message_RAMTransmit due to ongoing RAM trenfer
+ * Handle the receipt of a Message_RAMTransmit due to ongoing RAM transfer
  * of data in to us.
  *
  * \param *message		The associated Wimp message block.
@@ -1281,7 +1281,7 @@ static osbool dataxfer_message_ram_transmit(wimp_message *message)
 
 
 	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_RAMRX);
-	if (descriptor == NULL)
+	if (descriptor == NULL || descriptor->purpose != DATAXFER_CLIPBOARD_RECEIVE)
 		return FALSE;
 
 	if (ramtransmit->xfer_size == descriptor->ram_allocation) {
@@ -1359,7 +1359,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 
 		if (target == NULL || target->callback == NULL)
 			return FALSE;
-	} else if (descriptor->receive_callback != NULL) {
+	} else if (descriptor->purpose == DATAXFER_CLIPBOARD_RECEIVE && descriptor->receive_callback != NULL) {
 		/* This is the end of a clipboard data request, so we need to
 		 * load the file contents and present it to the client as a
 		 * block of memory.
@@ -1392,7 +1392,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 	 * client and let them load it.
 	 */
 
-	if (target != NULL) {
+	if (target != NULL && descriptor != NULL && descriptor->purpose == DATAXFER_FILE_LOAD) {
 		/* If there's no load callback function, abandon the transfer here. */
 
 		if (target->callback == NULL)

@@ -794,7 +794,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
         break;
 
       case TRANSACT_PANE_SORT:
-        sort_transaction_window (file);
+        transact_sort (file);
         break;
 
       case TRANSACT_PANE_RECONCILE:
@@ -864,7 +864,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 
       adjust_transaction_window_sort_icon (file);
       windows_redraw (file->transaction_window.transaction_pane);
-      sort_transaction_window (file);
+      transact_sort (file);
     }
   }
 
@@ -2339,7 +2339,7 @@ void strip_blank_transactions (file_data *file)
  */
 
 /* Sorts the transactions in the underlying file by date and amount.  This does not affect the view in the
- * transaction window -- to sort this, use sort_transaction_window ().  As a result, we do not need to look after the
+ * transaction window -- to sort this, use transact_sort ().  As a result, we do not need to look after the
  * location of things like the edit line; it does need to keep track of transactions[].sort_index, however.
  */
 
@@ -2413,140 +2413,6 @@ void sort_transactions (file_data *file)
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-
-void sort_transaction_window (file_data *file)
-{
-  wimp_caret  caret;
-  int         sorted, reorder, gap, comb, temp, order, edit_transaction;
-
-
-  #ifdef DEBUG
-  debug_printf("Sorting transaction window");
-  #endif
-
-  hourglass_on ();
-
-  /* Find the caret position and edit line before sorting. */
-
-  wimp_get_caret_position (&caret);
-  edit_transaction = get_edit_line_transaction (file);
-
-  /* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
-   * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
-   */
-
-  gap = file->trans_count - 1;
-
-  order = file->transaction_window.sort_order;
-
-  do
-  {
-    gap = (gap > 1) ? (gap * 10 / 13) : 1;
-    if ((file->trans_count >= 12) && (gap == 9 || gap == 10))
-    {
-      gap = 11;
-    }
-
-    sorted = 1;
-    for (comb = 0; (comb + gap) < file->trans_count; comb++)
-    {
-      switch (order)
-      {
-        case SORT_DATE | SORT_ASCENDING:
-          reorder = (file->transactions[file->transactions[comb+gap].sort_index].date <
-                     file->transactions[file->transactions[comb].sort_index].date);
-          break;
-
-        case SORT_DATE | SORT_DESCENDING:
-          reorder = (file->transactions[file->transactions[comb+gap].sort_index].date >
-                     file->transactions[file->transactions[comb].sort_index].date);
-          break;
-
-        case SORT_FROM | SORT_ASCENDING:
-          reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].from),
-                     account_get_name(file, file->transactions[file->transactions[comb].sort_index].from)) < 0);
-          break;
-
-        case SORT_FROM | SORT_DESCENDING:
-          reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].from),
-                     account_get_name(file, file->transactions[file->transactions[comb].sort_index].from)) > 0);
-          break;
-
-        case SORT_TO | SORT_ASCENDING:
-          reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].to),
-                     account_get_name(file, file->transactions[file->transactions[comb].sort_index].to)) < 0);
-          break;
-
-        case SORT_TO | SORT_DESCENDING:
-          reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].to),
-                     account_get_name(file, file->transactions[file->transactions[comb].sort_index].to)) > 0);
-          break;
-
-        case SORT_REFERENCE | SORT_ASCENDING:
-          reorder = (strcmp(file->transactions[file->transactions[comb+gap].sort_index].reference,
-                     file->transactions[file->transactions[comb].sort_index].reference) < 0);
-          break;
-
-        case SORT_REFERENCE | SORT_DESCENDING:
-          reorder = (strcmp(file->transactions[file->transactions[comb+gap].sort_index].reference,
-                     file->transactions[file->transactions[comb].sort_index].reference) > 0);
-          break;
-
-        case SORT_AMOUNT | SORT_ASCENDING:
-          reorder = (file->transactions[file->transactions[comb+gap].sort_index].amount <
-                     file->transactions[file->transactions[comb].sort_index].amount);
-          break;
-
-        case SORT_AMOUNT | SORT_DESCENDING:
-          reorder = (file->transactions[file->transactions[comb+gap].sort_index].amount >
-                     file->transactions[file->transactions[comb].sort_index].amount);
-          break;
-
-        case SORT_DESCRIPTION | SORT_ASCENDING:
-          reorder = (strcmp(file->transactions[file->transactions[comb+gap].sort_index].description,
-                     file->transactions[file->transactions[comb].sort_index].description) < 0);
-          break;
-
-        case SORT_DESCRIPTION | SORT_DESCENDING:
-          reorder = (strcmp(file->transactions[file->transactions[comb+gap].sort_index].description,
-                     file->transactions[file->transactions[comb].sort_index].description) > 0);
-          break;
-
-        default:
-          reorder = 0;
-          break;
-      }
-
-      if (reorder)
-      {
-        temp = file->transactions[comb+gap].sort_index;
-        file->transactions[comb+gap].sort_index = file->transactions[comb].sort_index;
-        file->transactions[comb].sort_index = temp;
-
-        sorted = 0;
-      }
-    }
-  }
-  while (!sorted || gap != 1);
-
-  /* Replace the edit line where we found it prior to the sort. */
-
-  place_transaction_edit_line_transaction (file, edit_transaction);
-
-  if (file->transaction_window.transaction_window != NULL &&
-      file->transaction_window.transaction_window == caret.w)
-  {
-    /* If the caret's position was in the current transaction window, we need to replace it in the same position
-     * now, so that we don't lose input focus.
-     */
-
-    wimp_set_caret_position (caret.w, caret.i, 0, 0, -1, caret.index);
-  }
-
-  force_transaction_window_redraw (file, 0, file->trans_count - 1);
-
-  hourglass_off ();
-}
 
 
 
@@ -2694,7 +2560,7 @@ static osbool transact_process_sort_window(void)
 
 	adjust_transaction_window_sort_icon(transact_sort_file);
 	windows_redraw(transact_sort_file->transaction_window.transaction_pane);
-	sort_transaction_window(transact_sort_file);
+	transact_sort(transact_sort_file);
 
 	return TRUE;
 }
@@ -2712,6 +2578,146 @@ void transact_force_windows_closed(file_data *file)
 	if (transact_sort_file == file && windows_get_open(transact_sort_window))
 		close_dialogue_with_caret(transact_sort_window);
 }
+
+
+/**
+ * Sort the contents of the transaction window based on the file's sort setting.
+ *
+ * \param *file			The file to sort.
+ */
+
+void transact_sort(file_data *file)
+{
+	wimp_caret	caret;
+	int		gap, comb, temp, order, edit_transaction;
+	osbool		sorted, reorder;
+
+#ifdef DEBUG
+	debug_printf("Sorting transaction window");
+#endif
+
+	hourglass_on();
+
+	/* Find the caret position and edit line before sorting. */
+
+	wimp_get_caret_position(&caret);
+	edit_transaction = get_edit_line_transaction(file);
+
+	/* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
+	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
+	 */
+
+	gap = file->trans_count - 1;
+
+	order = file->transaction_window.sort_order;
+
+	do {
+		gap = (gap > 1) ? (gap * 10 / 13) : 1;
+		if ((file->trans_count >= 12) && (gap == 9 || gap == 10))
+			gap = 11;
+
+		sorted = TRUE;
+		for (comb = 0; (comb + gap) < file->trans_count; comb++) {
+			switch (order) {
+			case SORT_DATE | SORT_ASCENDING:
+				reorder = (file->transactions[file->transactions[comb+gap].sort_index].date <
+						file->transactions[file->transactions[comb].sort_index].date);
+				break;
+
+			case SORT_DATE | SORT_DESCENDING:
+				reorder = (file->transactions[file->transactions[comb+gap].sort_index].date >
+						file->transactions[file->transactions[comb].sort_index].date);
+				break;
+
+			case SORT_FROM | SORT_ASCENDING:
+				reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].from),
+						account_get_name(file, file->transactions[file->transactions[comb].sort_index].from)) < 0);
+				break;
+
+			case SORT_FROM | SORT_DESCENDING:
+				reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].from),
+						account_get_name(file, file->transactions[file->transactions[comb].sort_index].from)) > 0);
+				break;
+
+			case SORT_TO | SORT_ASCENDING:
+				reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].to),
+						account_get_name(file, file->transactions[file->transactions[comb].sort_index].to)) < 0);
+				break;
+
+			case SORT_TO | SORT_DESCENDING:
+				reorder = (strcmp(account_get_name(file, file->transactions[file->transactions[comb+gap].sort_index].to),
+						account_get_name(file, file->transactions[file->transactions[comb].sort_index].to)) > 0);
+				break;
+
+			case SORT_REFERENCE | SORT_ASCENDING:
+				reorder = (strcmp(file->transactions[file->transactions[comb+gap].sort_index].reference,
+						file->transactions[file->transactions[comb].sort_index].reference) < 0);
+				break;
+
+			case SORT_REFERENCE | SORT_DESCENDING:
+				reorder = (strcmp(file->transactions[file->transactions[comb+gap].sort_index].reference,
+						file->transactions[file->transactions[comb].sort_index].reference) > 0);
+				break;
+
+			case SORT_AMOUNT | SORT_ASCENDING:
+				reorder = (file->transactions[file->transactions[comb+gap].sort_index].amount <
+						file->transactions[file->transactions[comb].sort_index].amount);
+				break;
+
+			case SORT_AMOUNT | SORT_DESCENDING:
+				reorder = (file->transactions[file->transactions[comb+gap].sort_index].amount >
+						file->transactions[file->transactions[comb].sort_index].amount);
+				break;
+
+			case SORT_DESCRIPTION | SORT_ASCENDING:
+				reorder = (strcmp(file->transactions[file->transactions[comb+gap].sort_index].description,
+						file->transactions[file->transactions[comb].sort_index].description) < 0);
+				break;
+
+			case SORT_DESCRIPTION | SORT_DESCENDING:
+				reorder = (strcmp(file->transactions[file->transactions[comb+gap].sort_index].description,
+						file->transactions[file->transactions[comb].sort_index].description) > 0);
+				break;
+
+			default:
+				reorder = FALSE;
+				break;
+			}
+
+			if (reorder) {
+				temp = file->transactions[comb+gap].sort_index;
+				file->transactions[comb+gap].sort_index = file->transactions[comb].sort_index;
+				file->transactions[comb].sort_index = temp;
+
+				sorted = 0;
+			}
+		}
+	} while (!sorted || gap != 1);
+
+	/* Replace the edit line where we found it prior to the sort. */
+
+	place_transaction_edit_line_transaction(file, edit_transaction);
+
+	/* If the caret's position was in the current transaction window, we need to
+	 * replace it in the same position now, so that we don't lose input focus.
+	 */
+
+	if (file->transaction_window.transaction_window != NULL &&
+			file->transaction_window.transaction_window == caret.w)
+		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
+
+	force_transaction_window_redraw(file, 0, file->trans_count - 1);
+
+	hourglass_off();
+}
+
+
+
+
+
+
+
+
 
 
 

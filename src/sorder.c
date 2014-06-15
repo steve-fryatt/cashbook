@@ -2489,7 +2489,7 @@ void sorder_process(file_data *file)
 		file->sort_valid = 0;
 
 		if (config_opt_read("SortAfterSOrders")) {
-			sort_transaction_window(file);
+			transact_sort(file);
 		} else {
 			force_transaction_window_redraw(file, 0, file->trans_count - 1);
 			refresh_transaction_edit_line_icons(file->transaction_window.transaction_window, -1, -1);

@@ -1327,7 +1327,7 @@ osbool process_transaction_edit_line_keypress (file_data *file, wimp_key *key)
            (caret.i == EDIT_ICON_DESCRIPT && (file->transaction_window.sort_order & SORT_MASK) == SORT_DESCRIPTION)) &&
             config_opt_read ("AutoSort"))
       {
-        sort_transaction_window (file);
+        transact_sort (file);
         if (file->transaction_window.entry_line < file->trans_count)
         {
           accview_sort (file,
@@ -1670,7 +1670,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
                              && ((file->transaction_window.sort_order & SORT_MASK) == SORT_DESCRIPTION))) &&
             config_opt_read ("AutoSort"))
         {
-          sort_transaction_window (file);
+          transact_sort (file);
           if (file->transaction_window.entry_line < file->trans_count)
           {
             accview_sort (file,

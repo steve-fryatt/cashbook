@@ -184,7 +184,6 @@ void strip_blank_transactions (file_data *file);
 /* Sorting transactions */
 
 void sort_transactions (file_data *file);
-void sort_transaction_window (file_data *file);
 
 
 
@@ -196,6 +195,15 @@ void sort_transaction_window (file_data *file);
  */
 
 void transact_force_windows_closed(file_data *file);
+
+
+/**
+ * Sort the contents of the transaction window based on the file's sort setting.
+ *
+ * \param *file			The file to sort.
+ */
+
+void transact_sort(file_data *file);
 
 
 

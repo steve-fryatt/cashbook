@@ -182,7 +182,7 @@ void load_transaction_file(char *filename)
 	sorder_process(file);
 	sort_transactions(file);
 	perform_full_recalculation(file);
-	sort_transaction_window(file);
+	transact_sort(file);
 	sorder_sort(file);
 	preset_sort(file);
 	transact_open_window(file); /* The window extent is set in this action. */

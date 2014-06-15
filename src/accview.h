@@ -134,7 +134,7 @@ void accview_redraw_transaction(file_data *file, acct_t account, int transaction
 
 /**
  * Re-index the account views in a file.  This can *only* be done after
- * sort_transactions() has been called, as it requires data set up
+ * transact_sort_file_data() has been called, as it requires data set up
  * in the transaction block by that call.
  *
  * \param *file			The file to reindex.

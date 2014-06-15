@@ -337,7 +337,7 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 		}
 
 		if (file->sort_valid == 0)
-			sort_transactions(file);
+			transact_sort_file_data(file);
 
 		strip_blank_transactions(file);
 	}

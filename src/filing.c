@@ -180,7 +180,7 @@ void load_transaction_file(char *filename)
 
 	strcpy(file->filename, filename);
 	sorder_process(file);
-	sort_transactions(file);
+	transact_sort_file_data(file);
 	perform_full_recalculation(file);
 	transact_sort(file);
 	sorder_sort(file);
@@ -603,7 +603,7 @@ void import_csv_file (file_data *file, char *filename)
                                              file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
     set_transaction_window_extent (file);
 
-    sort_transactions (file);
+    transact_sort_file_data(file);
     sorder_trial(file);
     perform_full_recalculation (file);
     accview_rebuild_all (file);

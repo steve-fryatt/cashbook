@@ -2334,83 +2334,12 @@ void strip_blank_transactions (file_data *file)
   }
 }
 
-/* ==================================================================================================================
- * Sorting transactions
- */
 
-/* Sorts the transactions in the underlying file by date and amount.  This does not affect the view in the
- * transaction window -- to sort this, use transact_sort ().  As a result, we do not need to look after the
- * location of things like the edit line; it does need to keep track of transactions[].sort_index, however.
- */
 
-void sort_transactions (file_data *file)
-{
-  int         i, sorted, gap, comb;
-  transaction temp;
 
-  #ifdef DEBUG
-  debug_printf("Sorting transactions");
-  #endif
 
-  hourglass_on ();
 
-  /* Start by recording the order of the transactions on display in the main window, and also the order of
-   * the transactions themselves.
-   */
 
-  for (i=0; i < file->trans_count; i++)
-  {
-    file->transactions[file->transactions[i].sort_index].saved_sort = i; /* Record transaction window lines. */
-    file->transactions[i].sort_index = i;                                /* Record old transaction locations. */
-  }
-
-  /* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
-   * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
-   */
-
-  gap = file->trans_count - 1;
-
-  do
-  {
-    gap = (gap > 1) ? (gap * 10 / 13) : 1;
-    if ((file->trans_count >= 12) && (gap == 9 || gap == 10))
-    {
-      gap = 11;
-    }
-
-    sorted = 1;
-    for (comb = 0; (comb + gap) < file->trans_count; comb++)
-    {
-      if (file->transactions[comb+gap].date < file->transactions[comb].date)
-      {
-        temp = file->transactions[comb+gap];
-        file->transactions[comb+gap] = file->transactions[comb];
-        file->transactions[comb] = temp;
-
-        sorted = 0;
-      }
-    }
-  }
-  while (!sorted || gap != 1);
-
-  /* Finally, restore the order of the transactions on display in the main window.
-   */
-  for (i=0; i < file->trans_count; i++)
-  {
-    file->transactions[file->transactions[i].sort_index].sort_workspace = i;
-  }
-
-  accview_reindex_all (file);
-
-  for (i=0; i < file->trans_count; i++)
-  {
-    file->transactions[file->transactions[i].saved_sort].sort_index = i;
-  }
-
-  file->sort_valid = 1;
-
-  hourglass_off ();
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -2689,7 +2618,7 @@ void transact_sort(file_data *file)
 				file->transactions[comb+gap].sort_index = file->transactions[comb].sort_index;
 				file->transactions[comb].sort_index = temp;
 
-				sorted = 0;
+				sorted = FALSE;
 			}
 		}
 	} while (!sorted || gap != 1);
@@ -2711,6 +2640,78 @@ void transact_sort(file_data *file)
 	hourglass_off();
 }
 
+
+/**
+ * Sort the underlying transaction data within a file, to put them into date order.
+ * This does not affect the view in the transaction window -- to sort this, use
+ * transact_sort().  As a result, we do not need to look after the location of
+ * things like the edit line; it does need to keep track of transactions[].sort_index,
+ * however.
+ *
+ * \param *file			The file to be sorted.
+ */
+
+void transact_sort_file_data(file_data *file)
+{
+	int		i, gap, comb;
+	osbool		sorted;
+	transaction	temp;
+
+#ifdef DEBUG
+	debug_printf("Sorting transactions");
+#endif
+
+	hourglass_on();
+
+	/* Start by recording the order of the transactions on display in the
+	 * main window, and also the order of the transactions themselves.
+	 */
+
+	for (i=0; i < file->trans_count; i++) {
+		file->transactions[file->transactions[i].sort_index].saved_sort = i;	/* Record transaction window lines. */
+		file->transactions[i].sort_index = i;					/* Record old transaction locations. */
+	}
+
+	/* Sort the entries using a combsort.  This has the advantage over qsort()
+	 * that the order of entries is only affected if they are not equal and are
+	 * in descending order.  Otherwise, the status quo is left.
+	 */
+
+	gap = file->trans_count - 1;
+
+	do {
+		gap = (gap > 1) ? (gap * 10 / 13) : 1;
+		if ((file->trans_count >= 12) && (gap == 9 || gap == 10))
+			gap = 11;
+
+		sorted = TRUE;
+		for (comb = 0; (comb + gap) < file->trans_count; comb++) {
+			if (file->transactions[comb+gap].date < file->transactions[comb].date) {
+				temp = file->transactions[comb+gap];
+				file->transactions[comb+gap] = file->transactions[comb];
+				file->transactions[comb] = temp;
+
+				sorted = FALSE;
+			}
+		}
+	} while (!sorted || gap != 1);
+
+	/* Finally, restore the order of the transactions on display in the
+	 * main window.
+	 */
+
+	for (i=0; i < file->trans_count; i++)
+		file->transactions[file->transactions[i].sort_index].sort_workspace = i;
+
+	accview_reindex_all(file);
+
+	for (i=0; i < file->trans_count; i++)
+		file->transactions[file->transactions[i].saved_sort].sort_index = i;
+
+	file->sort_valid = TRUE;
+
+	hourglass_off();
+}
 
 
 

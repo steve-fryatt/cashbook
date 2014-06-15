@@ -181,9 +181,6 @@ void add_raw_transaction (file_data *file, unsigned date, int from, int to, unsi
 int is_transaction_blank (file_data *file, int line);
 void strip_blank_transactions (file_data *file);
 
-/* Sorting transactions */
-
-void sort_transactions (file_data *file);
 
 
 
@@ -205,6 +202,18 @@ void transact_force_windows_closed(file_data *file);
 
 void transact_sort(file_data *file);
 
+
+/**
+ * Sort the underlying transaction data within a file, to put them into date order.
+ * This does not affect the view in the transaction window -- to sort this, use
+ * transact_sort().  As a result, we do not need to look after the location of
+ * things like the edit line; it does need to keep track of transactions[].sort_index,
+ * however.
+ *
+ * \param *file			The file to be sorted.
+ */
+
+void transact_sort_file_data(file_data *file);
 
 
 

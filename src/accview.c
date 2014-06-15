@@ -284,7 +284,7 @@ void accview_open_window(file_data *file, acct_t account)
 	}
 
 	if (!(file->sort_valid))
-		sort_transactions(file);
+		transact_sort_file_data(file);
 
 	/* The block pointer is put into the new variable, as the file->accounts[account].account_view pointer may move
 	 * as a result of the flex heap shifting for heap_alloc ().
@@ -2011,7 +2011,7 @@ void accview_rebuild(file_data *file, acct_t account)
 	#endif
 
 	if (!(file->sort_valid))
-		sort_transactions(file);
+		transact_sort_file_data(file);
 
 	if ((file->accounts[account].account_view)->line_data != NULL)
 		flex_free((flex_ptr) &((file->accounts[account].account_view)->line_data));
@@ -2084,7 +2084,7 @@ void accview_recalculate(file_data *file, acct_t account, int transaction)
 	#endif
 
 	if (!(file->sort_valid))
-		sort_transactions(file);
+		transact_sort_file_data(file);
 
 	accview_calculate(file, account);
 	accview_force_window_redraw(file, account, accview_get_line_from_transaction(file, account, transaction),
@@ -2117,7 +2117,7 @@ void accview_redraw_transaction(file_data *file, acct_t account, int transaction
 
 /**
  * Re-index the account views in a file.  This can *only* be done after
- * sort_transactions() has been called, as it requires data set up
+ * transact_sort_file_data() has been called, as it requires data set up
  * in the transaction block by that call.
  *
  * \param *file			The file to reindex.

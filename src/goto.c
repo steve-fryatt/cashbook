@@ -248,7 +248,7 @@ static osbool goto_process_window(void)
 		/* Go to a given date, or the nearest transaction. */
 
 		if (goto_window_file->sort_valid == 0)
-			sort_transactions(goto_window_file);
+			transact_sort_file_data(goto_window_file);
 
 		target = convert_string_to_date(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD), NULL_DATE, 0);
 		goto_window_file->go_to.data = (unsigned) target;

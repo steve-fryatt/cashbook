@@ -439,7 +439,6 @@ static void account_delete_window(struct account_window *windat)
 
 	#ifdef DEBUG
 	debug_printf ("\\RDeleting accounts window");
-	debug_printf ("Entry: %d", entry);
 	#endif
 
 	/* Delete the window, if it exists. */

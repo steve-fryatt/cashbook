@@ -945,7 +945,7 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 		return;
 
 	#ifdef DEBUG
-	debug_reporter_text0("\\BReceived submenu warning message.");
+	debug_printf("\\BReceived submenu warning message.");
 	#endif
 
 	switch (warning->selection.items[0]) {

@@ -283,13 +283,8 @@ void find_transaction_edit_line (file_data *file)
     bottom = height / (ICON_HEIGHT+LINE_GUTTER) + top;
 
     #ifdef DEBUG
-    {
-      char s[256];
-
-      debug_reporter_text0 ("\\BFind transaction edit line");
-      sprintf (s, "Top: %d, Bottom: %d, Entry line: %d", top, bottom, file->transaction_window.entry_line);
-      debug_reporter_text0 (s);
-    }
+    debug_printf("\\BFind transaction edit line");
+    debug_printf("Top: %d, Bottom: %d, Entry line: %d", top, bottom, file->transaction_window.entry_line);
     #endif
 
     /* If the edit line is above or below the visible area, bring it into range. */

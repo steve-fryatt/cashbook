@@ -107,7 +107,7 @@
 
 /* Account View window details */
 
-#define ACCVIEW_COLUMNS 9
+#define ACCVIEW_COLUMNS 10
 #define ACCVIEW_TOOLBAR_HEIGHT 132
 #define MIN_ACCVIEW_ENTRIES 10
 

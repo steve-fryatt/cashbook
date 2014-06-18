@@ -262,49 +262,53 @@ char *next_plain_field (char *line, char sep)
  * Account file saving
  */
 
-void save_transaction_file (file_data *file, char *filename)
+void save_transaction_file(file_data *file, char *filename)
 {
-  FILE *out;
-  int  i, j;
-  char buffer[MAX_FILE_LINE_LEN];
-  bits load;
+	FILE	*out;
+	int	i, j;
+	char	buffer[MAX_FILE_LINE_LEN];
+	bits	load;
 
-  out = fopen (filename, "w");
 
-  if (out != NULL)
-  {
-    hourglass_on ();
+	out = fopen(filename, "w");
 
-    /* Strip unused blank lines from the end of the file. */
+	if (out == NULL {
+		error_msgs_report_error("FileSaveFail");
+		return;
+	}
 
-    strip_blank_transactions (file);
+	hourglass_on();
 
-    /* Output the file header. */
+	/* Strip unused blank lines from the end of the file. */
 
-    fprintf (out, "# CashBook file\n");
-    fprintf (out, "# Written by CashBook\n\n");
+	strip_blank_transactions(file);
 
-    fprintf (out, "Format: 1.00\n");
+	/* Output the file header. */
 
-    /* Output the budget data */
+	fprintf(out, "# CashBook file\n");
+	fprintf(out, "# Written by CashBook\n\n");
 
-    fprintf (out, "\n[Budget]\n");
+	fprintf(out, "Format: 1.00\n");
 
-    fprintf (out, "Start: %x\n", file->budget.start);
-    fprintf (out, "Finish: %x\n", file->budget.finish);
-    fprintf (out, "SOTrial: %x\n", file->budget.sorder_trial);
-    fprintf (out, "RestrictPost: %s\n", config_return_opt_string(file->budget.limit_postdate));
+	/* Output the budget data */
 
-    /* Output the account data */
+	fprintf(out, "\n[Budget]\n");
 
-    fprintf (out, "\n[Accounts]\n");
+	fprintf(out, "Start: %x\n", file->budget.start);
+	fprintf(out, "Finish: %x\n", file->budget.finish);
+	fprintf(out, "SOTrial: %x\n", file->budget.sorder_trial);
+	fprintf(out, "RestrictPost: %s\n", config_return_opt_string(file->budget.limit_postdate));
 
-    fprintf (out, "Entries: %x\n", file->account_count);
+	/* Output the account data */
 
-    column_write_as_text (file->accview_column_width, ACCVIEW_COLUMNS, buffer);
-    fprintf (out, "WinColumns: %s\n", buffer);
+	fprintf(out, "\n[Accounts]\n");
 
-    fprintf (out, "SortOrder: %x\n", file->accview_sort_order);
+	fprintf(out, "Entries: %x\n", file->account_count);
+
+	column_write_as_text(file->accview_column_width, ACCVIEW_COLUMNS, buffer);
+	fprintf(out, "WinColumns: %s\n", buffer);
+
+	fprintf(out, "SortOrder: %x\n", file->accview_sort_order);
 
     for (i=0; i < file->account_count; i++)
     {
@@ -408,11 +412,6 @@ void save_transaction_file (file_data *file, char *filename)
     preset_build_window_title(file);
 
     hourglass_off ();
-  }
-  else
-  {
-    error_msgs_report_error ("FileSaveFail");
-  }
 }
 
 /* ==================================================================================================================

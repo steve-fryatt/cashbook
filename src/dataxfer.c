@@ -1231,7 +1231,8 @@ static osbool dataxfer_message_ram_fetch_bounced(wimp_message *message)
 	/* Free any memory that's claimed for the transfer. */
 
 	if (descriptor->ram_data != NULL) {
-		dataxfer_memory_handlers->free(descriptor->ram_data);
+		if (dataxfer_memory_handlers != NULL)
+			dataxfer_memory_handlers->free(descriptor->ram_data);
 		descriptor->ram_data = NULL;
 		descriptor->ram_size = 0;
 		descriptor->ram_allocation = 0;
@@ -1568,6 +1569,8 @@ static struct dataxfer_descriptor *dataxfer_new_descriptor(void)
 		new->ram_allocation = 0;
 		new->ram_size = 0;
 		new->ram_used = 0;
+
+		new->saved_message = NULL;
 
 		new->next = dataxfer_descriptors;
 		dataxfer_descriptors = new;

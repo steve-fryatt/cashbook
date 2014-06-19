@@ -1021,64 +1021,64 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 			/* Row field */
 
-			accview_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_ROW].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_ROW].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[0].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[0].flags |= icon_fg_col;
+			accview_window_def->icons[ACCVIEW_ICON_ROW].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_ROW].flags |= icon_fg_col;
 
 			if (y < windat->display_lines)
 				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", transaction);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[0]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_ROW]));
 
 			/* Date field */
 
-			accview_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_DATE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_DATE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[1].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[1].flags |= icon_fg_col;
+			accview_window_def->icons[ACCVIEW_ICON_DATE].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_DATE].flags |= icon_fg_col;
 
 			if (y < windat->display_lines)
 				convert_date_to_string(file->transactions[transaction].date, icon_buffer);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[1]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_DATE]));
 
 			/* From / To field */
 
-			accview_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_IDENT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_IDENT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[2].flags |= icon_fg_col;
+			accview_window_def->icons[ACCVIEW_ICON_IDENT].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_IDENT].flags |= icon_fg_col;
 
-			accview_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[3].flags |= icon_fg_col;
+			accview_window_def->icons[ACCVIEW_ICON_REC].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_REC].flags |= icon_fg_col;
 
-			accview_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_FROMTO].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_FROMTO].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[4].flags |= icon_fg_col;
+			accview_window_def->icons[ACCVIEW_ICON_FROMTO].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_FROMTO].flags |= icon_fg_col;
 
 			if (y < windat->display_lines && file->transactions[transaction].from == account &&
 					file->transactions[transaction].to != NULL_ACCOUNT) {
-				accview_window_def->icons[2].data.indirected_text.text =
+				accview_window_def->icons[ACCVIEW_ICON_IDENT].data.indirected_text.text =
 						file->accounts[file->transactions[transaction].to].ident;
-				accview_window_def->icons[3].data.indirected_text.text = icon_buffer;
-				accview_window_def->icons[4].data.indirected_text.text =
+				accview_window_def->icons[ACCVIEW_ICON_REC].data.indirected_text.text = icon_buffer;
+				accview_window_def->icons[ACCVIEW_ICON_FROMTO].data.indirected_text.text =
 						file->accounts[file->transactions[transaction].to].name;
 
 				if (file->transactions[transaction].flags & TRANS_REC_FROM)
@@ -1087,10 +1087,10 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 					*icon_buffer = '\0';
 			} else if (y < windat->display_lines && file->transactions[transaction].to == account &&
 					file->transactions[transaction].from != NULL_ACCOUNT) {
-				accview_window_def->icons[2].data.indirected_text.text =
+				accview_window_def->icons[ACCVIEW_ICON_IDENT].data.indirected_text.text =
 						file->accounts[file->transactions[transaction].from].ident;
-				accview_window_def->icons[3].data.indirected_text.text = icon_buffer;
-				accview_window_def->icons[4].data.indirected_text.text =
+				accview_window_def->icons[ACCVIEW_ICON_REC].data.indirected_text.text = icon_buffer;
+				accview_window_def->icons[ACCVIEW_ICON_FROMTO].data.indirected_text.text =
 						file->accounts[file->transactions[transaction].from].name;
 
 				if (file->transactions[transaction].flags & TRANS_REC_TO)
@@ -1098,99 +1098,99 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 				else
 					*icon_buffer = '\0';
 			} else {
-				accview_window_def->icons[2].data.indirected_text.text = icon_buffer;
-				accview_window_def->icons[3].data.indirected_text.text = icon_buffer;
-				accview_window_def->icons[4].data.indirected_text.text = icon_buffer;
+				accview_window_def->icons[ACCVIEW_ICON_IDENT].data.indirected_text.text = icon_buffer;
+				accview_window_def->icons[ACCVIEW_ICON_REC].data.indirected_text.text = icon_buffer;
+				accview_window_def->icons[ACCVIEW_ICON_FROMTO].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
 
-			wimp_plot_icon(&(accview_window_def->icons[2]));
-			wimp_plot_icon(&(accview_window_def->icons[3]));
-			wimp_plot_icon(&(accview_window_def->icons[4]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_IDENT]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_REC]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_FROMTO]));
 
 			/* Reference field */
 
-			accview_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[5].flags |= icon_fg_col;
+			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].flags |= icon_fg_col;
 
 			if (y < windat->display_lines) {
-				accview_window_def->icons[5].data.indirected_text.text = file->transactions[transaction].reference;
+				accview_window_def->icons[ACCVIEW_ICON_REFERENCE].data.indirected_text.text = file->transactions[transaction].reference;
 			} else {
-				accview_window_def->icons[5].data.indirected_text.text = icon_buffer;
+				accview_window_def->icons[ACCVIEW_ICON_REFERENCE].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
-			wimp_plot_icon(&(accview_window_def->icons[5]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_REFERENCE]));
 
 			/* Payments field */
 
-			accview_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[6].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[6].flags |= icon_fg_col;
+			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].flags |= icon_fg_col;
 
 			if (y < windat->display_lines && file->transactions[transaction].from == account)
 				convert_money_to_string(file->transactions[transaction].amount, icon_buffer);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[6]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_PAYMENTS]));
 
 			/* Receipts field */
 
-			accview_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[7].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[7].flags |= icon_fg_col;
+			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].flags |= icon_fg_col;
 
 			if (y < windat->display_lines && file->transactions[transaction].to == account)
 				convert_money_to_string(file->transactions[transaction].amount, icon_buffer);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[7]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_RECEIPTS]));
 
 			/* Balance field */
 
-			accview_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_BALANCE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_BALANCE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[8].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[8].flags |= icon_fg_balance_col;
+			accview_window_def->icons[ACCVIEW_ICON_BALANCE].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_BALANCE].flags |= icon_fg_balance_col;
 
 			if (y < windat->display_lines)
 				convert_money_to_string((windat->line_data)[(windat->line_data)[y].sort_index].balance, icon_buffer);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[8]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_BALANCE]));
 
 			/* Comments field */
 
-			accview_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					ACCVIEW_TOOLBAR_HEIGHT;
 
-			accview_window_def->icons[9].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[9].flags |= icon_fg_col;
+			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].flags &= ~wimp_ICON_FG_COLOUR;
+			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].flags |= icon_fg_col;
 
 			if (y < windat->display_lines) {
-				accview_window_def->icons[9].data.indirected_text.text = file->transactions[transaction].description;
+				accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].data.indirected_text.text = file->transactions[transaction].description;
 			} else {
-				accview_window_def->icons[9].data.indirected_text.text = icon_buffer;
+				accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
-			wimp_plot_icon(&(accview_window_def->icons[9]));
+			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION]));
 		}
 		more = wimp_get_rectangle(redraw);
 	}

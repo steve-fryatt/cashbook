@@ -25,6 +25,13 @@
  * \file: filing.c
  *
  * Legacy file load and save routines.
+ *
+ * File Format 1.00
+ * - Original format.
+ *
+ * File Format 1.01
+ * - Add Row column to transaction and account view windows.
+ *
  */
 
 /* ANSI C header files */
@@ -174,10 +181,8 @@ void load_transaction_file(char *filename)
 						value[1] = value[2];
 						value[2] = value[3];
 						value[3] = '\0';
-						
+
 						file_format = atoi(value);
-						
-						debug_printf("Loading file format: %d", file_format);
 					} else {
 						unknown_data = TRUE;
 					}

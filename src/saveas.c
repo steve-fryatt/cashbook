@@ -349,7 +349,8 @@ static osbool saveas_keypress_handler(wimp_key *key)
 
 static void saveas_drag_end_handler(wimp_pointer *pointer, void *data)
 {
-	struct saveas_block		*handle = data;
+	struct saveas_block	*handle = data;
+	char			*leafname;
 
 	if (handle == NULL)
 		return;
@@ -362,8 +363,9 @@ static void saveas_drag_end_handler(wimp_pointer *pointer, void *data)
 		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
 	}
 
+	leafname = string_find_leafname((handle->selected) ? handle->selection_filename : handle->full_filename);
 
-	dataxfer_start_save(pointer, (handle->selected) ? handle->selection_filename : handle->full_filename, 0, 0xffffffffu, 0, saveas_save_handler, handle);
+	dataxfer_start_save(pointer, leafname, 0, 0xffffffffu, 0, saveas_save_handler, handle);
 }
 
 

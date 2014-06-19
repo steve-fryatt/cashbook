@@ -272,7 +272,7 @@ void save_transaction_file(file_data *file, char *filename)
 
 	out = fopen(filename, "w");
 
-	if (out == NULL {
+	if (out == NULL) {
 		error_msgs_report_error("FileSaveFail");
 		return;
 	}

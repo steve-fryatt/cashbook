@@ -76,7 +76,10 @@
 #include "window.h"
 
 
-/* Main Window Icons */
+/* Main Window Icons
+ *
+ * Note that these correspond to column numbers.
+ */
 
 #define ACCVIEW_ICON_ROW 0
 #define ACCVIEW_ICON_DATE 1
@@ -85,7 +88,7 @@
 #define ACCVIEW_ICON_FROMTO 4
 #define ACCVIEW_ICON_REFERENCE 5
 #define ACCVIEW_ICON_PAYMENTS 6
-#define ACCVIEW_ICON_RECEPTS 7
+#define ACCVIEW_ICON_RECEIPTS 7
 #define ACCVIEW_ICON_BALANCE 8
 #define ACCVIEW_ICON_DESCRIPTION 9
 
@@ -1318,37 +1321,37 @@ static void accview_adjust_sort_icon_data(file_data *file, acct_t account, wimp_
 
 	switch ((file->accounts[account].account_view)->sort_order & SORT_MASK) {
 	case SORT_DATE:
-		i = 1;
+		i = ACCVIEW_ICON_DATE;
 		accview_substitute_sort_icon = ACCVIEW_PANE_DATE;
 		break;
 
 	case SORT_FROMTO:
-		i = 4;
+		i = ACCVIEW_ICON_FROMTO;
 		accview_substitute_sort_icon = ACCVIEW_PANE_FROMTO;
 		break;
 
 	case SORT_REFERENCE:
-		i = 5;
+		i = ACCVIEW_ICON_REFERENCE;
 		accview_substitute_sort_icon = ACCVIEW_PANE_REFERENCE;
 		break;
 
 	case SORT_PAYMENTS:
-		i = 6;
+		i = ACCVIEW_ICON_PAYMENTS;
 		accview_substitute_sort_icon = ACCVIEW_PANE_PAYMENTS;
 		break;
 
 	case SORT_RECEIPTS:
-		i = 7;
+		i = ACCVIEW_ICON_RECEIPTS;
 		accview_substitute_sort_icon = ACCVIEW_PANE_RECEIPTS;
 		break;
 
 	case SORT_BALANCE:
-		i = 8;
+		i = ACCVIEW_ICON_BALANCE;
 		accview_substitute_sort_icon = ACCVIEW_PANE_BALANCE;
 		break;
 
 	case SORT_DESCRIPTION:
-		i = 9;
+		i = ACCVIEW_ICON_DESCRIPTION;
 		accview_substitute_sort_icon = ACCVIEW_PANE_DESCRIPTION;
 		break;
 	}
@@ -1645,25 +1648,25 @@ static osbool accview_process_sort_window(void)
 {
 	(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_NONE;
 
-	if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_DATE))
+	if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_DATE))
 		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_DATE;
-	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_FROMTO))
+	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_FROMTO))
 		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_FROMTO;
-	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_REFERENCE))
+	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_REFERENCE))
 		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_REFERENCE;
-	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_PAYMENTS))
+	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_PAYMENTS))
 		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_PAYMENTS;
-	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_RECEIPTS))
+	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_RECEIPTS))
 		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_RECEIPTS;
-	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_BALANCE))
+	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_BALANCE))
 		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_BALANCE;
-	else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_DESCRIPTION))
+	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_DESCRIPTION))
 		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_DESCRIPTION;
 
 	if ((accview_sort_file->accounts[accview_sort_account].account_view)->sort_order != SORT_NONE) {
-		if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_ASCENDING))
+		if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_ASCENDING))
 			(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order |= SORT_ASCENDING;
-		else if (icons_get_selected (accview_sort_window, ACCVIEW_SORT_DESCENDING))
+		else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_DESCENDING))
 			(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order |= SORT_DESCENDING;
 	}
 
@@ -1753,21 +1756,21 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 	/* Output the headings line, taking the text from the window icons. */
 
 	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, 0, numbuf1));
+	sprintf(buffer, "\\k\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, ACCVIEW_PANE_ROW, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->accview_pane, 1, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->accview_pane, ACCVIEW_PANE_DATE, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->accview_pane, 2, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->accview_pane, ACCVIEW_PANE_FROMTO, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->accview_pane, 3, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->accview_pane, ACCVIEW_PANE_REFERENCE, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, 4, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, ACCVIEW_PANE_PAYMENTS, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, 5, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, ACCVIEW_PANE_RECEIPTS, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, 6, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->accview_pane, ACCVIEW_PANE_BALANCE, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->accview_pane, 7, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->accview_pane, ACCVIEW_PANE_DESCRIPTION, numbuf1));
 	strcat(line, buffer);
 
 	report_write_line(report, 0, line);
@@ -2005,7 +2008,7 @@ static int accview_build(file_data *file, acct_t account)
 	debug_printf("\\BBuilding account statement view");
 	#endif
 
-	if (flex_alloc((flex_ptr)  &((file->accounts[account].account_view)->line_data), file->trans_count * sizeof(struct accview_redraw)) == 0) {
+	if (flex_alloc((flex_ptr) &((file->accounts[account].account_view)->line_data), file->trans_count * sizeof(struct accview_redraw)) == 0) {
 		error_msgs_report_info("AccviewMemErr2");
 		return lines;
 	}
@@ -2440,21 +2443,21 @@ static void accview_export_delimited(file_data *file, acct_t account, char *file
 
 		/* Output the headings line, taking the text from the window icons. */
 
-		icons_copy_text(windat->accview_pane, 0, buffer);
+		icons_copy_text(windat->accview_pane, ACCVIEW_PANE_ROW, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(windat->accview_pane, 1, buffer);
+		icons_copy_text(windat->accview_pane, ACCVIEW_PANE_DATE, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(windat->accview_pane, 2, buffer);
+		icons_copy_text(windat->accview_pane, ACCVIEW_PANE_FROMTO, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(windat->accview_pane, 3, buffer);
+		icons_copy_text(windat->accview_pane, ACCVIEW_PANE_REFERENCE, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(windat->accview_pane, 4, buffer);
+		icons_copy_text(windat->accview_pane, ACCVIEW_PANE_PAYMENTS, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(windat->accview_pane, 5, buffer);
+		icons_copy_text(windat->accview_pane, ACCVIEW_PANE_RECEIPTS, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(windat->accview_pane, 6, buffer);
+		icons_copy_text(windat->accview_pane, ACCVIEW_PANE_BALANCE, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);
-		icons_copy_text(windat->accview_pane, 6, buffer);
+		icons_copy_text(windat->accview_pane, ACCVIEW_PANE_DESCRIPTION, buffer);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 		/* Output the transaction data as a set of delimited lines. */

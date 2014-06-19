@@ -76,6 +76,19 @@
 #include "window.h"
 
 
+/* Main Window Icons */
+
+#define ACCVIEW_ICON_ROW 0
+#define ACCVIEW_ICON_DATE 1
+#define ACCVIEW_ICON_IDENT 2
+#define ACCVIEW_ICON_REC 3
+#define ACCVIEW_ICON_FROMTO 4
+#define ACCVIEW_ICON_REFERENCE 5
+#define ACCVIEW_ICON_PAYMENTS 6
+#define ACCVIEW_ICON_RECEPTS 7
+#define ACCVIEW_ICON_BALANCE 8
+#define ACCVIEW_ICON_DESCRIPTION 9
+
 /* Toolbar icons */
 
 #define ACCVIEW_PANE_ROW 0

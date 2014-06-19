@@ -2558,7 +2558,7 @@ int preset_read_file(file_data *file, FILE *in, char *section, char *token, char
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			column_init_window(file->preset_window.column_width,
 					file->preset_window.column_position,
-					PRESET_COLUMNS, value);
+					PRESET_COLUMNS, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
 			file->preset_window.sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp(token, "@") == 0) {

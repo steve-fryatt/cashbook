@@ -3310,7 +3310,7 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			column_init_window(file->transaction_window.column_width,
 				file->transaction_window.column_position,
-				TRANSACT_COLUMNS, value);
+				TRANSACT_COLUMNS, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0){
 			file->transaction_window.sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp(token, "@") == 0) {

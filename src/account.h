@@ -401,10 +401,11 @@ char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_
  * \param *section		A string buffer to hold file section names.
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
+ * \param format		The format number of the file.
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+int account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data);
 
 
 /**

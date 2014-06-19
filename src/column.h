@@ -37,16 +37,21 @@
 #define COLUMN_DRAG_MIN 140
 
 
+
+
 /**
- * Set a window's column data up, based on the supplied values.
+ * Set a window's column data up, based on the supplied values in a column
+ * width configuration string.
  *
  * \param width[]		Array to take column width details.
  * \param position[]		Array to take column position details.
  * \param columns		The number of columns to be processed.
+ * \param start			The first column to read in from the string.
+ * \param skip			TRUE to ignore missing entyries; FALSE to set to default.
  * \param *widths		The width configuration string to process.
  */
 
-void column_init_window(int width[], int position[], int columns, char *widths);
+void column_init_window(int width[], int position[], int columns, int start, osbool skip, char *widths);
 
 
 /**

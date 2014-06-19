@@ -3630,10 +3630,11 @@ char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_
  * \param *section		A string buffer to hold file section names.
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ * \param format		The format number of the file.
+  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+int account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data)
 {
 	int	result, block_size, i = -1, j;
 
@@ -3651,8 +3652,11 @@ int account_read_acct_file(file_data *file, FILE *in, char *section, char *token
 				block_size = file->account_count;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
+			/* For file format 1.00 or older, there's no row column at the
+			 * start of the line so skip on to colukn 1 (date).
+			 */
 			column_init_window(file->accview_column_width, file->accview_column_position,
-					ACCVIEW_COLUMNS, value);
+					ACCVIEW_COLUMNS, (format <= 100) ? 1 : 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
 			file->accview_sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
@@ -3811,7 +3815,7 @@ int account_read_list_file(file_data *file, FILE *in, char *section, char *token
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			column_init_window(file->account_windows[entry].column_width,
 					file->account_windows[entry].column_position,
-					ACCOUNT_COLUMNS, value);
+					ACCOUNT_COLUMNS, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
 			file->account_windows[entry].display_lines++;
 			if (file->account_windows[entry].display_lines > block_size) {

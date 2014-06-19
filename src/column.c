@@ -79,10 +79,12 @@ static int		column_get_minimum_width(char *widths, int column);
  * \param width[]		Array to take column width details.
  * \param position[]		Array to take column position details.
  * \param columns		The number of columns to be processed.
+ * \param start			The first column to read in from the string.
+ * \param skip			TRUE to ignore missing entyries; FALSE to set to default.
  * \param *widths		The width configuration string to process.
  */
 
-void column_init_window(int width[], int position[], int columns, char *widths)
+void column_init_window(int width[], int position[], int columns, int start, osbool skip, char *widths)
 {
 	int	i;
 	char	*copy, *str;
@@ -93,10 +95,10 @@ void column_init_window(int width[], int position[], int columns, char *widths)
 
 	str = strtok(copy, ",");
 
-	for (i=0; i < columns; i++) {
+	for (i = start; i < columns; i++) {
 		if (str != NULL)
-			width[i] = atoi (str);
-		else
+			width[i] = atoi(str);
+		else if (skip == FALSE)
 			width[i] = COLUMN_WIDTH_DEFAULT; /* Stick a default value in if the config data is missing. */
 
 		str = strtok(NULL, ",");

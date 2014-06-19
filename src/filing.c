@@ -110,6 +110,7 @@ void filing_initialise(void)
 void load_transaction_file(char *filename)
 {
 	int		result = sf_READ_CONFIG_EOF;
+	int		file_format = 0;
 	char		section[MAX_FILE_LINE_LEN], token[MAX_FILE_LINE_LEN], value[MAX_FILE_LINE_LEN], *suffix;
 	bits		load;
 	file_data	*file;
@@ -148,7 +149,7 @@ void load_transaction_file(char *filename)
 		if (string_nocase_strcmp(section, "Budget") == 0)
 			result = filing_budget_read_file(file, in, section, token, value, &unknown_data);
 		else if (string_nocase_strcmp(section, "Accounts") == 0)
-			result = account_read_acct_file(file, in, section, token, value, &unknown_data);
+			result = account_read_acct_file(file, in, section, token, value, file_format, &unknown_data);
 		else if (string_nocase_strcmp(section, "AccountList") == 0)
 			result = account_read_list_file(file, in, section, token, value, suffix, &unknown_data);
 		else if (string_nocase_strcmp(section, "Transactions") == 0)
@@ -163,6 +164,24 @@ void load_transaction_file(char *filename)
 			do {
 				if (*section != '\0')
 					unknown_data = TRUE;
+
+				/* Load in the file format, converting an n.nn number into an
+				 * integer value (eg. 1.00 would become 100).  Supports 0.00 to 9.99.
+				 */
+
+				if (string_nocase_strcmp(token, "Format") == 0) {
+					if (strlen(value) == 4 && isdigit(value[0]) && isdigit(value[2]) && isdigit(value[3]) && value[1] == '.') {
+						value[1] = value[2];
+						value[2] = value[3];
+						value[3] = '\0';
+						
+						file_format = atoi(value);
+						
+						debug_printf("Loading file format: %d", file_format);
+					} else {
+						unknown_data = TRUE;
+					}
+				}
 
 				result = config_read_token_pair(in, token, value, section);
 			} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
@@ -288,7 +307,7 @@ void save_transaction_file(file_data *file, char *filename)
 	fprintf(out, "# CashBook file\n");
 	fprintf(out, "# Written by CashBook\n\n");
 
-	fprintf(out, "Format: 1.00\n");
+	fprintf(out, "Format: 1.01\n");
 
 	/* Output the budget data */
 

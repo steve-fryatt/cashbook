@@ -83,7 +83,7 @@ void edit_change_transaction_amount (file_data *file, int transaction, amt_t new
 void edit_change_transaction_refdesc (file_data *file, int transaction, int change_icon, char *new_text);
 void edit_change_transaction_account (file_data *file, int transaction, int change_icon, acct_t new_account);
 void insert_transaction_preset_full (file_data *file, int transaction, int preset);
-int insert_transaction_preset (file_data *file, int transaction, int preset);
+unsigned insert_transaction_preset (file_data *file, int transaction, int preset);
 wimp_i edit_convert_preset_icon_number (int caret);
 void delete_edit_line_transaction (file_data *file);
 
@@ -91,9 +91,5 @@ void delete_edit_line_transaction (file_data *file);
 
 osbool process_transaction_edit_line_keypress (file_data *file, wimp_key *key);
 void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key);
-
-/* Descript completion. */
-
-char *find_complete_description (file_data *file, int line, char *buffer);
 
 #endif

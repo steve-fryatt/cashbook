@@ -59,7 +59,6 @@
 
 /* The Description field below must be longer than the Refererence.*/
 
-#define DATE_FIELD_LEN 11
 #define REC_FIELD_LEN 2
 #define REF_FIELD_LEN 13
 #define AMOUNT_FIELD_LEN 15

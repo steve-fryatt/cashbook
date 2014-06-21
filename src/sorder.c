@@ -508,7 +508,7 @@ static void sorder_window_click_handler(wimp_pointer *pointer)
 	if (line < 0 || line >= file->sorder_count)
 		line = -1;
 
-	/* Handle double-clicks, which will open an edit accout window. */
+	/* Handle double-clicks, which will open an edit standing order window. */
 
 	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
 		sorder_open_edit_window(file, file->sorders[line].sort_index, pointer);
@@ -1822,7 +1822,7 @@ static osbool sorder_process_edit_window(void)
 	set_file_data_integrity(sorder_edit_file, TRUE);
 	sorder_process(sorder_edit_file);
 	perform_full_recalculation(sorder_edit_file);
-	set_transaction_window_extent(sorder_edit_file);
+	transact_set_window_extent(sorder_edit_file);
 
 	return TRUE;
 }

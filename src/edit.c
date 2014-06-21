@@ -123,7 +123,7 @@ void place_transaction_edit_line (file_data* file, int line)
     if (line >= file->transaction_window.display_lines)
     {
       file->transaction_window.display_lines = line + 1;
-      set_transaction_window_extent (file);
+      transact_set_window_extent(file);
     }
 
     /* Create the icon block required for the icon definitions. */

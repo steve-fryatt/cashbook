@@ -624,7 +624,7 @@ void import_csv_file (file_data *file, char *filename)
 
     file->transaction_window.display_lines = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
                                              file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
-    set_transaction_window_extent (file);
+    transact_set_window_extent(file);
 
     transact_sort_file_data(file);
     sorder_trial(file);

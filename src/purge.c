@@ -376,7 +376,7 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 
 	scroll_transaction_window_to_end(file, -1);
 
-	set_transaction_window_extent(file);
+	transact_set_window_extent(file);
 
 	place_transaction_edit_line(file, file->trans_count);
 	icons_put_caret_at_end(file->transaction_window.transaction_window, EDIT_ICON_DATE);

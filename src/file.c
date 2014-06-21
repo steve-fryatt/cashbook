@@ -787,7 +787,7 @@ void update_files_for_new_date (void)
 
       sorder_process(file);
       perform_full_recalculation (file);
-      set_transaction_window_extent (file);
+      transact_set_window_extent(file);
 
       file = file->next;
     }

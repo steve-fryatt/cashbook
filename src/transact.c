@@ -260,6 +260,9 @@ static void			transact_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wi
 static void			transact_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			transact_window_scroll_handler(wimp_scroll *scroll);
 static void			transact_window_redraw_handler(wimp_draw *redraw);
+static void			transact_adjust_window_columns(void *data, wimp_i icon, int width);
+static void			transact_adjust_sort_icon(file_data *file);
+static void			transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
 
 static void			transact_complete_menu_add_entry(struct transact_list_link **entries, int *count, int *max, char *new);
 static int			transact_complete_menu_compare(const void *va, const void *vb);
@@ -385,7 +388,7 @@ void transact_open_window(file_data *file)
 	transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
 			transact_pane_def->sprite_area;
 
-	update_transaction_window_sort_icon(file, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
+	transact_adjust_sort_icon_data(file, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
 
 	error = xwimp_create_window(transact_pane_def, &(file->transaction_window.transaction_pane));
 	if (error != NULL) {
@@ -566,147 +569,102 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 
 	file = windat->file;
 
-  /* Force a refresh of the current edit line, if there is one.  We avoid refreshing the icon where the mouse
-   * was clicked.
-   */
+	/* Force a refresh of the current edit line, if there is one.  We avoid refreshing the icon where the mouse
+	 * was clicked.
+	 */
 
-  refresh_transaction_edit_line_icons (NULL, -1, pointer->i);
+	refresh_transaction_edit_line_icons(NULL, -1, pointer->i);
 
-  if (pointer->buttons == wimp_CLICK_SELECT)
-  {
-    if (pointer->i == wimp_ICON_WINDOW)
-    {
-      window.w = pointer->w;
-      wimp_get_window_state (&window);
+	if (pointer->buttons == wimp_CLICK_SELECT) {
+		if (pointer->i == wimp_ICON_WINDOW) {
+			window.w = pointer->w;
+			wimp_get_window_state(&window);
 
-      line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT)
-             / (ICON_HEIGHT+LINE_GUTTER);
+			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-      if (line >= 0)
-      {
-        place_transaction_edit_line (file, line);
+			if (line >= 0) {
+				place_transaction_edit_line(file, line);
 
-        /* Find the correct point for the caret and insert it. */
+				/* Find the correct point for the caret and insert it. */
 
-        wimp_get_pointer_info (&ptr);
-        window.w = ptr.w;
-        wimp_get_window_state (&window);
+				wimp_get_pointer_info(&ptr);
+				window.w = ptr.w;
+				wimp_get_window_state(&window);
 
-        if (ptr.i == TRANSACT_ICON_DATE || ptr.i == TRANSACT_ICON_FROM || ptr.i == TRANSACT_ICON_TO ||
-            ptr.i == TRANSACT_ICON_REFERENCE || ptr.i == TRANSACT_ICON_AMOUNT || ptr.i == TRANSACT_ICON_DESCRIPTION)
-        {
-          int xo, yo;
+				if (ptr.i == TRANSACT_ICON_DATE || ptr.i == TRANSACT_ICON_FROM || ptr.i == TRANSACT_ICON_TO ||
+						ptr.i == TRANSACT_ICON_REFERENCE || ptr.i == TRANSACT_ICON_AMOUNT || ptr.i == TRANSACT_ICON_DESCRIPTION) {
+					int xo, yo;
 
-          xo = ptr.pos.x - window.visible.x0 + window.xscroll - 4;
-          yo = ptr.pos.y - window.visible.y1 + window.yscroll - 4;
-          wimp_set_caret_position (ptr.w, ptr.i, xo, yo, -1, -1);
-        }
-        else if (ptr.i == TRANSACT_ICON_FROM_REC || ptr.i == TRANSACT_ICON_FROM_NAME)
-        {
-          icons_put_caret_at_end (ptr.w, TRANSACT_ICON_FROM);
-        }
-        else if (ptr.i == TRANSACT_ICON_TO_REC || ptr.i == TRANSACT_ICON_TO_NAME)
-        {
-          icons_put_caret_at_end (ptr.w, TRANSACT_ICON_TO);
-        }
-      }
-    }
-    else if (pointer->i == TRANSACT_ICON_FROM_REC || pointer->i == TRANSACT_ICON_FROM_NAME)
-    {
-      icons_put_caret_at_end (pointer->w, TRANSACT_ICON_FROM);
-    }
-    else if (pointer->i == TRANSACT_ICON_TO_REC || pointer->i == TRANSACT_ICON_TO_NAME)
-    {
-      icons_put_caret_at_end (pointer->w, TRANSACT_ICON_TO);
-    }
-  }
+					xo = ptr.pos.x - window.visible.x0 + window.xscroll - 4;
+					yo = ptr.pos.y - window.visible.y1 + window.yscroll - 4;
+					wimp_set_caret_position(ptr.w, ptr.i, xo, yo, -1, -1);
+				} else if (ptr.i == TRANSACT_ICON_FROM_REC || ptr.i == TRANSACT_ICON_FROM_NAME) {
+					icons_put_caret_at_end(ptr.w, TRANSACT_ICON_FROM);
+				} else if (ptr.i == TRANSACT_ICON_TO_REC || ptr.i == TRANSACT_ICON_TO_NAME) {
+					icons_put_caret_at_end(ptr.w, TRANSACT_ICON_TO);
+				}
+			}
+		} else if (pointer->i == TRANSACT_ICON_FROM_REC || pointer->i == TRANSACT_ICON_FROM_NAME) {
+			icons_put_caret_at_end (pointer->w, TRANSACT_ICON_FROM);
+		} else if (pointer->i == TRANSACT_ICON_TO_REC || pointer->i == TRANSACT_ICON_TO_NAME) {
+			icons_put_caret_at_end (pointer->w, TRANSACT_ICON_TO);
+		}
+	}
 
-  if (pointer->buttons == wimp_CLICK_ADJUST)
-  {
-    /* Adjust clicks don't care about icons, as we only need to know which line and column we're in. */
+	if (pointer->buttons == wimp_CLICK_ADJUST) {
+		/* Adjust clicks don't care about icons, as we only need to know which line and column we're in. */
 
-    window.w = pointer->w;
-    wimp_get_window_state (&window);
+		window.w = pointer->w;
+		wimp_get_window_state(&window);
 
-    line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT)
-           / (ICON_HEIGHT+LINE_GUTTER);
+		line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-    if (line >= 0)
-    {
-      /* If the line was in range, find the column that the click occurred in by scanning through the column
-       * positions.
-       */
+		/* If the line was in range, find the column that the click occurred in by scanning through the column
+		 * positions.
+		 */
 
-      xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
+		if (line >= 0) {
+			xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
 
-      for (column = 0;
-           column < TRANSACT_COLUMNS &&
-           xpos > (file->transaction_window.column_position[column] + file->transaction_window.column_width[column]);
-           column++);
+			for (column = 0; column < TRANSACT_COLUMNS &&
+					xpos > (file->transaction_window.column_position[column] + file->transaction_window.column_width[column]);
+					column++);
 
-      #ifdef DEBUG
-      debug_printf ("Adjust transaction window click (line %d, column %d, xpos %d)", line, column, xpos);
-      #endif
+#ifdef DEBUG
+			debug_printf("Adjust transaction window click (line %d, column %d, xpos %d)", line, column, xpos);
+#endif
 
-      /* The first options can take place on any line in the window... */
+			/* The first options can take place on any line in the window... */
 
-      /* If the column is Date, open the date menu. */
+			if (column == TRANSACT_ICON_DATE) {
+				/* If the column is Date, open the date menu. */
+				open_date_menu(file, line, pointer);
+			} else if (column == TRANSACT_ICON_FROM_NAME) {
+				/* If the column is the From name, open the from account menu. */
+				open_account_menu(file, ACCOUNT_MENU_FROM, line, NULL, 0, 0, 0, pointer);
+			} else if (column == TRANSACT_ICON_TO_NAME) {
+				/* If the column is the To name, open the to account menu. */
+				open_account_menu(file, ACCOUNT_MENU_TO, line, NULL, 0, 0, 0, pointer);
+			} else if (column == TRANSACT_ICON_REFERENCE) {
+				/* If the column is the Reference, open the to reference menu. */
+				open_refdesc_menu(file, REFDESC_MENU_REFERENCE, line, pointer);
+			} else if (column == TRANSACT_ICON_DESCRIPTION) {
+				/* If the column is the Description, open the to description menu. */
+				open_refdesc_menu(file, REFDESC_MENU_DESCRIPTION, line, pointer);
+			} else if (line < file->trans_count) {
+				/* ...while the rest have to occur over a transaction line. */
+				transaction = file->transactions[line].sort_index;
 
-      if (column == TRANSACT_ICON_DATE)
-      {
-        open_date_menu (file, line, pointer);
-      }
-
-      /* If the column is the From name, open the from account menu. */
-
-      else if (column == TRANSACT_ICON_FROM_NAME)
-      {
-        open_account_menu (file, ACCOUNT_MENU_FROM, line, NULL, 0, 0, 0, pointer);
-      }
-
-      /* If the column is the To name, open the to account menu. */
-
-      else if (column == TRANSACT_ICON_TO_NAME)
-      {
-        open_account_menu (file, ACCOUNT_MENU_TO, line, NULL, 0, 0, 0, pointer);
-      }
-
-      /* If the column is the Reference, open the to reference menu. */
-
-      else if (column == TRANSACT_ICON_REFERENCE)
-      {
-        open_refdesc_menu (file, REFDESC_MENU_REFERENCE, line, pointer);
-      }
-
-      /* If the column is the Description, open the to description menu. */
-
-      else if (column == TRANSACT_ICON_DESCRIPTION)
-      {
-        open_refdesc_menu (file, REFDESC_MENU_DESCRIPTION, line, pointer);
-      }
-
-      /* ...while the rest have to occur over a transaction line. */
-
-      else if (line < file->trans_count)
-      {
-        transaction = file->transactions[line].sort_index;
-
-        /* If the column is the from reconcile flag, toggle its status. */
-
-        if (column == TRANSACT_ICON_FROM_REC)
-        {
-          toggle_reconcile_flag (file, transaction, TRANS_REC_FROM);
-        }
-
-        /* If the column is the to reconcile flag, toggle its status. */
-
-        else if (column == TRANSACT_ICON_TO_REC)
-        {
-          toggle_reconcile_flag (file, transaction, TRANS_REC_TO);
-        }
-      }
-    }
-  }
+				if (column == TRANSACT_ICON_FROM_REC) {
+					/* If the column is the from reconcile flag, toggle its status. */
+					toggle_reconcile_flag (file, transaction, TRANS_REC_FROM);
+				} else if (column == TRANSACT_ICON_TO_REC) {
+					/* If the column is the to reconcile flag, toggle its status. */
+					toggle_reconcile_flag (file, transaction, TRANS_REC_TO);
+				}
+			}
+		}
+	}
 }
 
 
@@ -761,160 +719,147 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			saveas_open_dialogue(transact_saveas_file, pointer);
 			break;
 
-      case TRANSACT_PANE_PRINT:
-        open_transact_print_window (file, pointer, config_opt_read ("RememberValues"));
-        break;
+		case TRANSACT_PANE_PRINT:
+			open_transact_print_window(file, pointer, config_opt_read("RememberValues"));
+			break;
 
-      case TRANSACT_PANE_ACCOUNTS:
-        account_open_window (file, ACCOUNT_FULL);
-        break;
+		case TRANSACT_PANE_ACCOUNTS:
+			account_open_window(file, ACCOUNT_FULL);
+			break;
 
-      case TRANSACT_PANE_ADDACCT:
-        account_open_edit_window (file, -1, ACCOUNT_FULL, pointer);
-        break;
+		case TRANSACT_PANE_ADDACCT:
+			account_open_edit_window(file, -1, ACCOUNT_FULL, pointer);
+			break;
 
-      case TRANSACT_PANE_IN:
-        account_open_window (file, ACCOUNT_IN);
-        break;
+		case TRANSACT_PANE_IN:
+			account_open_window(file, ACCOUNT_IN);
+			break;
 
-      case TRANSACT_PANE_OUT:
-        account_open_window (file, ACCOUNT_OUT);
-        break;
+		case TRANSACT_PANE_OUT:
+			account_open_window(file, ACCOUNT_OUT);
+			break;
 
-      case TRANSACT_PANE_ADDHEAD:
-        account_open_edit_window (file, -1, ACCOUNT_IN, pointer);
-        break;
+		case TRANSACT_PANE_ADDHEAD:
+			account_open_edit_window(file, -1, ACCOUNT_IN, pointer);
+			break;
 
-      case TRANSACT_PANE_FIND:
-        find_open_window (file, pointer, config_opt_read ("RememberValues"));
-        break;
+		case TRANSACT_PANE_FIND:
+			find_open_window(file, pointer, config_opt_read("RememberValues"));
+			break;
 
-      case TRANSACT_PANE_GOTO:
-        goto_open_window (file, pointer, config_opt_read ("RememberValues"));
-        break;
+		case TRANSACT_PANE_GOTO:
+			goto_open_window(file, pointer, config_opt_read("RememberValues"));
+			break;
 
-      case TRANSACT_PANE_SORT:
-        transact_open_sort_window (file, pointer);
-        break;
+		case TRANSACT_PANE_SORT:
+			transact_open_sort_window(file, pointer);
+			break;
 
-      case TRANSACT_PANE_RECONCILE:
-        file->auto_reconcile = !file->auto_reconcile;
-        break;
+		case TRANSACT_PANE_RECONCILE:
+			file->auto_reconcile = !file->auto_reconcile;
+			break;
 
-      case TRANSACT_PANE_SORDER:
-        sorder_open_window (file);
-        break;
+		case TRANSACT_PANE_SORDER:
+			sorder_open_window(file);
+			break;
 
-      case TRANSACT_PANE_ADDSORDER:
-        sorder_open_edit_window(file, NULL_SORDER, pointer);
-        break;
+		case TRANSACT_PANE_ADDSORDER:
+			sorder_open_edit_window(file, NULL_SORDER, pointer);
+			break;
 
-      case TRANSACT_PANE_PRESET:
-        preset_open_window (file);
-        break;
+		case TRANSACT_PANE_PRESET:
+			preset_open_window(file);
+			break;
 
-      case TRANSACT_PANE_ADDPRESET:
-        preset_open_edit_window (file, NULL_PRESET, pointer);
-        break;
-    }
-  }
+		case TRANSACT_PANE_ADDPRESET:
+			preset_open_edit_window(file, NULL_PRESET, pointer);
+			break;
+		}
+	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+		switch (pointer->i) {
+		case TRANSACT_PANE_SAVE:
+			transact_start_direct_save(windat);
+			break;
 
-  else if (pointer->buttons == wimp_CLICK_ADJUST)
-  {
-    switch (pointer->i)
-    {
-      case TRANSACT_PANE_SAVE:
-        transact_start_direct_save(windat);
-        break;
+		case TRANSACT_PANE_PRINT:
+			open_transact_print_window(file, pointer, !config_opt_read("RememberValues"));
+			break;
 
-      case TRANSACT_PANE_PRINT:
-        open_transact_print_window (file, pointer, !config_opt_read ("RememberValues"));
-        break;
+		case TRANSACT_PANE_FIND:
+			find_open_window(file, pointer, !config_opt_read("RememberValues"));
+			break;
 
-      case TRANSACT_PANE_FIND:
-        find_open_window (file, pointer, !config_opt_read ("RememberValues"));
-        break;
+		case TRANSACT_PANE_GOTO:
+			goto_open_window(file, pointer, !config_opt_read("RememberValues"));
+			break;
 
-      case TRANSACT_PANE_GOTO:
-        goto_open_window (file, pointer, !config_opt_read ("RememberValues"));
-        break;
+		case TRANSACT_PANE_SORT:
+			transact_sort(file);
+			break;
 
-      case TRANSACT_PANE_SORT:
-        transact_sort (file);
-        break;
+		case TRANSACT_PANE_RECONCILE:
+			file->auto_reconcile = !file->auto_reconcile;
+			break;
+		}
+	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 ||
+			pointer->buttons == wimp_CLICK_ADJUST * 256) && pointer->i != wimp_ICON_WINDOW) {
 
-      case TRANSACT_PANE_RECONCILE:
-        file->auto_reconcile = !file->auto_reconcile;
-        break;
-    }
-  }
+		/* Process clicks on the column headings, for sorting the data.  This tests to see if the click was
+		 * outside of the column size drag hotspot before proceeding.
+		 */
 
-  /* Process clicks on the column headings, for sorting the data.  This tests to see if the click was
-   * outside of the column size drag hotspot before proceeding.
-   */
+		window.w = pointer->w;
+		wimp_get_window_state(&window);
 
-  else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
-            pointer->i != wimp_ICON_WINDOW)
-  {
-    window.w = pointer->w;
-    wimp_get_window_state (&window);
+		ox = window.visible.x0 - window.xscroll;
 
-    ox = window.visible.x0 - window.xscroll;
+		icon.w = pointer->w;
+		icon.i = pointer->i;
+		wimp_get_icon_state(&icon);
 
-    icon.w = pointer->w;
-    icon.i = pointer->i;
-    wimp_get_icon_state (&icon);
+		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
+			file->transaction_window.sort_order = SORT_NONE;
 
-    if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT))
-    {
-      file->transaction_window.sort_order = SORT_NONE;
+			switch (pointer->i) {
+			case TRANSACT_PANE_DATE:
+				file->transaction_window.sort_order = SORT_DATE;
+				break;
 
-      switch (pointer->i)
-      {
-        case TRANSACT_PANE_DATE:
-          file->transaction_window.sort_order = SORT_DATE;
-          break;
+			case TRANSACT_PANE_FROM:
+				file->transaction_window.sort_order = SORT_FROM;
+				break;
 
-        case TRANSACT_PANE_FROM:
-          file->transaction_window.sort_order = SORT_FROM;
-          break;
+			case TRANSACT_PANE_TO:
+				file->transaction_window.sort_order = SORT_TO;
+				break;
 
-        case TRANSACT_PANE_TO:
-          file->transaction_window.sort_order = SORT_TO;
-          break;
+			case TRANSACT_PANE_REFERENCE:
+				file->transaction_window.sort_order = SORT_REFERENCE;
+				break;
 
-        case TRANSACT_PANE_REFERENCE:
-          file->transaction_window.sort_order = SORT_REFERENCE;
-          break;
+			case TRANSACT_PANE_AMOUNT:
+				file->transaction_window.sort_order = SORT_AMOUNT;
+				break;
 
-        case TRANSACT_PANE_AMOUNT:
-          file->transaction_window.sort_order = SORT_AMOUNT;
-          break;
+			case TRANSACT_PANE_DESCRIPTION:
+				file->transaction_window.sort_order = SORT_DESCRIPTION;
+				break;
+			}
 
-        case TRANSACT_PANE_DESCRIPTION:
-          file->transaction_window.sort_order = SORT_DESCRIPTION;
-          break;
-      }
+			if (file->transaction_window.sort_order != SORT_NONE) {
+				if (pointer->buttons == wimp_CLICK_SELECT * 256)
+					file->transaction_window.sort_order |= SORT_ASCENDING;
+				else
+					file->transaction_window.sort_order |= SORT_DESCENDING;
+			}
 
-      if (file->transaction_window.sort_order != SORT_NONE)
-      {
-        if (pointer->buttons == wimp_CLICK_SELECT * 256)
-        {
-          file->transaction_window.sort_order |= SORT_ASCENDING;
-        }
-        else
-        {
-          file->transaction_window.sort_order |= SORT_DESCENDING;
-        }
-      }
-
-			adjust_transaction_window_sort_icon(file);
+			transact_adjust_sort_icon(file);
 			windows_redraw(file->transaction_window.transaction_pane);
 			transact_sort(file);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && pointer->i <= TRANSACT_PANE_DRAG_LIMIT) {
 		column_start_drag(pointer, windat, file->transaction_window.transaction_window, TRANSACT_PANE_COL_MAP,
-				config_str_read("LimTransactCols"),  adjust_transaction_window_columns);
+				config_str_read("LimTransactCols"),  transact_adjust_window_columns);
 	}
 }
 
@@ -1325,7 +1270,7 @@ static void transact_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void transact_window_scroll_handler(wimp_scroll *scroll)
 {
-  int width, height, line, error;
+	int				width, height, line, error;
 	struct transaction_window	*windat;
 	file_data			*file;
 
@@ -1379,7 +1324,7 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 		line = (-scroll->yscroll + height) / (ICON_HEIGHT+LINE_GUTTER);
 		if (line > file->transaction_window.display_lines) {
 			file->transaction_window.display_lines = line;
-			set_transaction_window_extent(file);
+			transact_set_window_extent(file);
 		}
 		break;
 
@@ -1416,9 +1361,9 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 {
 	struct transaction_window	*windat;
 	file_data			*file;
-  int                   ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col;
-  char                  icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
-  osbool                more;
+	int				ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col;
+	char				icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool				more;
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL)
@@ -1426,96 +1371,102 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 	file = windat->file;
 
-  /* Perform the redraw if a window was found. */
+	more = wimp_redraw_window(redraw);
 
-  if (file != NULL)
-  {
-    more = wimp_redraw_window(redraw);
+	ox = redraw->box.x0 - redraw->xscroll;
+	oy = redraw->box.y1 - redraw->yscroll;
 
-    ox = redraw->box.x0 - redraw->xscroll;
-    oy = redraw->box.y1 - redraw->yscroll;
+	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
+	shade_rec = config_opt_read("ShadeReconciled");
+	shade_rec_col = config_int_read("ShadeReconciledColour");
 
-    msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
-    shade_rec = config_opt_read("ShadeReconciled");
-    shade_rec_col = config_int_read("ShadeReconciledColour");
+	/* Set the horizontal positions of the icons. */
 
-    /* Set the horizontal positions of the icons. */
+	for (i=0; i < TRANSACT_COLUMNS; i++) {
+		transact_window_def->icons[i].extent.x0 = file->transaction_window.column_position[i];
+		transact_window_def->icons[i].extent.x1 = file->transaction_window.column_position[i] +
+				file->transaction_window.column_width[i];
+		transact_window_def->icons[i].data.indirected_text.text = icon_buffer;
+	}
 
-    for (i=0; i < TRANSACT_COLUMNS; i++)
-    {
-      transact_window_def->icons[i].extent.x0 = file->transaction_window.column_position[i];
-      transact_window_def->icons[i].extent.x1 = file->transaction_window.column_position[i] +
-                                                           file->transaction_window.column_width[i];
-      transact_window_def->icons[i].data.indirected_text.text = icon_buffer;
-    }
+	/* Perform the redraw. */
 
-    /* Perform the redraw. */
+	while (more) {
+		/* Calculate the rows to redraw. */
 
-    while (more)
-    {
-      /* Calculate the rows to redraw. */
+		top = (oy - redraw->clip.y1 - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		if (top < 0)
+			top = 0;
+ 
+		base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2)
+				+ oy - redraw->clip.y0 - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-      top = (oy - redraw->clip.y1 - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-      if (top < 0)
-      {
-        top = 0;
-      }
+		/* Redraw the data into the window. */
 
-      base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2)
-             + oy - redraw->clip.y0 - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		for (y = top; y <= base; y++) {
+			t = (y < file->trans_count) ? file->transactions[y].sort_index : 0;
 
-      /* Redraw the data into the window. */
+			/* Work out the foreground colour for the line, based on whether
+			 * the line is to be shaded or not.
+			 */
 
-      for (y = top; y <= base; y++)
-      {
-        /* Get the transaction number for the line. */
+			if (shade_rec && (y < file->trans_count) &&
+					((file->transactions[t].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
+				icon_fg_col = (shade_rec_col << wimp_ICON_FG_COLOUR_SHIFT);
+			else
+				icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-        t = (y < file->trans_count) ? file->transactions[y].sort_index : 0;
+			/* Plot out the background with a filled grey rectangle. */
 
-        /* work out the foreground colour for the line, based on whether the line is to be shaded or not. */
+			wimp_set_colour(wimp_COLOUR_VERY_LIGHT_GREY);
+			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT);
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
+					ox + file->transaction_window.column_position[TRANSACT_COLUMNS-1]
+					+ file->transaction_window.column_width[TRANSACT_COLUMNS-1],
+					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
 
-        if (shade_rec && (y < file->trans_count) &&
-            ((file->transactions[t].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
-        {
-          icon_fg_col = (shade_rec_col << wimp_ICON_FG_COLOUR_SHIFT);
-        }
-        else
-        {
-          icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-        }
+			/* We don't need to plot the current edit line, as that has real
+			 * icons in it.
+			 */
 
-        /* Plot out the background with a filled grey rectangle. */
+			if (y == file->transaction_window.entry_line)
+				continue;
 
-        wimp_set_colour (wimp_COLOUR_VERY_LIGHT_GREY);
-        os_plot (os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT);
-        os_plot (os_PLOT_RECTANGLE + os_PLOT_TO,
-                 ox + file->transaction_window.column_position[TRANSACT_COLUMNS-1]
-                  + file->transaction_window.column_width[TRANSACT_COLUMNS-1],
-                 oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+			/* Row field. */
 
-        if (y != file->transaction_window.entry_line)
-        {
-          /* Date field */
+			transact_window_def->icons[TRANSACT_ICON_ROW].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_ROW].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT;
 
-          transact_window_def->icons[TRANSACT_ICON_DATE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                               - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          transact_window_def->icons[TRANSACT_ICON_DATE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                               - TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_ROW].flags &= ~wimp_ICON_FG_COLOUR;
+			transact_window_def->icons[TRANSACT_ICON_ROW].flags |= icon_fg_col;
 
-          transact_window_def->icons[TRANSACT_ICON_DATE].flags &= ~wimp_ICON_FG_COLOUR;
-          transact_window_def->icons[TRANSACT_ICON_DATE].flags |= icon_fg_col;
+			if (y < file->trans_count)
+				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", t);
+			else
+				*icon_buffer = '\0';
 
-          if (y < file->trans_count)
-          {
-            convert_date_to_string(file->transactions[t].date, icon_buffer);
-          }
-          else
-          {
-            *icon_buffer = '\0';
-          }
-          wimp_plot_icon (&(transact_window_def->icons[TRANSACT_ICON_DATE]));
+			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_ROW]));
 
-          /* From field */
+			/* Date field */
+
+			transact_window_def->icons[TRANSACT_ICON_DATE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_DATE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT;
+
+			transact_window_def->icons[TRANSACT_ICON_DATE].flags &= ~wimp_ICON_FG_COLOUR;
+			transact_window_def->icons[TRANSACT_ICON_DATE].flags |= icon_fg_col;
+
+			if (y < file->trans_count)
+				convert_date_to_string(file->transactions[t].date, icon_buffer);
+			else
+				*icon_buffer = '\0';
+
+			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_DATE]));
+
+			/* From field */
 
           transact_window_def->icons[TRANSACT_ICON_FROM].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
                                                                - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
@@ -1570,7 +1521,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
           wimp_plot_icon (&(transact_window_def->icons[TRANSACT_ICON_FROM_REC]));
           wimp_plot_icon (&(transact_window_def->icons[TRANSACT_ICON_FROM_NAME]));
 
-          /* To field */
+			/* To field */
 
           transact_window_def->icons[TRANSACT_ICON_TO].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
                                                                - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
@@ -1625,74 +1576,567 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
           wimp_plot_icon (&(transact_window_def->icons[TRANSACT_ICON_TO_REC]));
           wimp_plot_icon (&(transact_window_def->icons[TRANSACT_ICON_TO_NAME]));
 
-          /* Reference field */
+			/* Reference field */
 
-          transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                               - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                               - TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT;
 
-          transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags &= ~wimp_ICON_FG_COLOUR;
-          transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags |= icon_fg_col;
+			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags &= ~wimp_ICON_FG_COLOUR;
+			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags |= icon_fg_col;
 
-          if (y < file->trans_count)
-          {
-            transact_window_def->icons[TRANSACT_ICON_REFERENCE].data.indirected_text.text = file->transactions[t].reference;
-          }
-          else
-          {
-            transact_window_def->icons[TRANSACT_ICON_REFERENCE].data.indirected_text.text = icon_buffer;
-            *icon_buffer = '\0';
-          }
-          wimp_plot_icon (&(transact_window_def->icons[TRANSACT_ICON_REFERENCE]));
+			if (y < file->trans_count) {
+				transact_window_def->icons[TRANSACT_ICON_REFERENCE].data.indirected_text.text = file->transactions[t].reference;
+			} else {
+				transact_window_def->icons[TRANSACT_ICON_REFERENCE].data.indirected_text.text = icon_buffer;
+				*icon_buffer = '\0';
+			}
 
-          /* Amount field */
+			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_REFERENCE]));
 
-          transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                               - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                               - TRANSACT_TOOLBAR_HEIGHT;
+			/* Amount field */
 
-          transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags &= ~wimp_ICON_FG_COLOUR;
-          transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags |= icon_fg_col;
+			transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT;
 
-          if (y < file->trans_count)
-          {
-            convert_money_to_string (file->transactions[t].amount, icon_buffer);
-          }
-          else
-          {
-            *icon_buffer = '\0';
-          }
-          wimp_plot_icon (&(transact_window_def->icons[TRANSACT_ICON_AMOUNT]));
+			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags &= ~wimp_ICON_FG_COLOUR;
+			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags |= icon_fg_col;
 
-          /* Comments field */
+			if (y < file->trans_count)
+				convert_money_to_string(file->transactions[t].amount, icon_buffer);
+			else
+				*icon_buffer = '\0';
 
-          transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                               - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-          transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-                                                               - TRANSACT_TOOLBAR_HEIGHT;
+			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_AMOUNT]));
 
-          transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags &= ~wimp_ICON_FG_COLOUR;
-          transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags |= icon_fg_col;
+			/* Description field */
 
-          if (y < file->trans_count)
-          {
-            transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].data.indirected_text.text = file->transactions[t].description;
-          }
-          else
-          {
-            transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
-            *icon_buffer = '\0';
-          }
-          wimp_plot_icon (&(transact_window_def->icons[TRANSACT_ICON_DESCRIPTION]));
-        }
-      }
+			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
+					- TRANSACT_TOOLBAR_HEIGHT;
 
-      more = wimp_get_rectangle (redraw);
-    }
+			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags &= ~wimp_ICON_FG_COLOUR;
+			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags |= icon_fg_col;
+
+			if (y < file->trans_count) {
+				transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].data.indirected_text.text = file->transactions[t].description;
+			} else {
+				transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
+				*icon_buffer = '\0';
+			}
+
+			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_DESCRIPTION]));
+		}
+
+		more = wimp_get_rectangle(redraw);
+	}
+}
+
+
+/**
+ * Callback handler for completing the drag of a column heading.
+ *
+ * \param *data			The window block for the origin of the drag.
+ * \param group			The column group which has been dragged.
+ * \param width			The new width for the group.
+ */
+
+static void transact_adjust_window_columns(void *data, wimp_i target, int width)
+{
+	struct transaction_window	*windat = (struct transaction_window *) data;
+	file_data			*file;
+	int				i, j, new_extent;
+	wimp_icon_state			icon;
+	wimp_window_info		window;
+	wimp_caret			caret;
+
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
+
+	update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), target, width,
+			file->transaction_window.column_width,
+			file->transaction_window.column_position, TRANSACT_COLUMNS);
+
+	/* Re-adjust the icons in the pane. */
+
+	for (i=0, j=0; j < TRANSACT_COLUMNS; i++, j++) {
+		icon.w = file->transaction_window.transaction_pane;
+		icon.i = i;
+		wimp_get_icon_state(&icon);
+
+		icon.icon.extent.x0 = file->transaction_window.column_position[j];
+
+		j = column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, i);
+
+		icon.icon.extent.x1 = file->transaction_window.column_position[j] +
+				file->transaction_window.column_width[j] + COLUMN_HEADING_MARGIN;
+
+		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+				icon.icon.extent.x1, icon.icon.extent.y1);
+
+		new_extent = file->transaction_window.column_position[TRANSACT_COLUMNS-1] +
+				file->transaction_window.column_width[TRANSACT_COLUMNS-1];
+	}
+
+	transact_adjust_sort_icon(file);
+
+	/* Replace the edit line to force a redraw and redraw the rest of the window. */
+
+	wimp_get_caret_position(&caret);
+
+	place_transaction_edit_line(file, file->transaction_window.entry_line);
+	windows_redraw(file->transaction_window.transaction_window);
+	windows_redraw(file->transaction_window.transaction_pane);
+
+	/* If the caret's position was in the current transaction window, we need to replace it in the same position
+	 * now, so that we don't lose input focus.
+	 */
+
+	if (file->transaction_window.transaction_window != NULL &&
+			file->transaction_window.transaction_window == caret.w)
+		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
+
+	/* Set the horizontal extent of the window and pane. */
+
+	window.w = file->transaction_window.transaction_pane;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	window.w = file->transaction_window.transaction_window;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	windows_open(window.w);
+
+	set_file_data_integrity(file, TRUE);
+}
+
+
+/**
+ * Adjust the sort icon in a transaction window, to reflect the current column
+ * heading positions.
+ *
+ * \param *file			The file to update the window for.
+ */
+
+static void transact_adjust_sort_icon(file_data *file)
+{
+	wimp_icon_state icon;
+
+	icon.w = file->transaction_window.transaction_pane;
+	icon.i = TRANSACT_PANE_SORT_DIR_ICON;
+	wimp_get_icon_state(&icon);
+
+	transact_adjust_sort_icon_data(file, &(icon.icon));
+
+	wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+			icon.icon.extent.x1, icon.icon.extent.y1);
+}
+
+
+/**
+ * Adjust an icon definition to match the current transaction sort settings.
+ *
+ * \param *file			The file to be updated.
+ * \param *icon			The icon to be updated.
+ */
+
+static void transact_adjust_sort_icon_data (file_data *file, wimp_icon *icon)
+{
+	int	i = 0, width, anchor;
+
+
+	if (file->transaction_window.sort_order & SORT_ASCENDING)
+		strcpy(file->transaction_window.sort_sprite, "sortarrd");
+	else if (file->transaction_window.sort_order & SORT_DESCENDING)
+		strcpy(file->transaction_window.sort_sprite, "sortarru");
+
+	switch (file->transaction_window.sort_order & SORT_MASK) {
+	case SORT_DATE:
+		i = TRANSACT_ICON_DATE;
+		transaction_pane_sort_substitute_icon = TRANSACT_PANE_DATE;
+		break;
+
+	case SORT_FROM:
+		i = TRANSACT_ICON_FROM_NAME;
+		transaction_pane_sort_substitute_icon = TRANSACT_PANE_FROM;
+		break;
+
+	case SORT_TO:
+		i = TRANSACT_ICON_TO_NAME;
+		transaction_pane_sort_substitute_icon = TRANSACT_PANE_TO;
+		break;
+
+	case SORT_REFERENCE:
+		i = TRANSACT_ICON_REFERENCE;
+		transaction_pane_sort_substitute_icon = TRANSACT_PANE_REFERENCE;
+		break;
+
+	case SORT_AMOUNT:
+		i = TRANSACT_PANE_AMOUNT;
+		transaction_pane_sort_substitute_icon = TRANSACT_PANE_AMOUNT;
+		break;
+
+	case SORT_DESCRIPTION:
+		i = TRANSACT_PANE_DESCRIPTION;
+		transaction_pane_sort_substitute_icon = TRANSACT_PANE_DESCRIPTION;
+		break;
+	}
+
+	width = icon->extent.x1 - icon->extent.x0;
+
+	if ((file->transaction_window.sort_order & SORT_MASK) == SORT_AMOUNT) {
+		anchor = file->transaction_window.column_position[i] + COLUMN_HEADING_MARGIN;
+		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
+		icon->extent.x1 = icon->extent.x0 + width;
+	} else {
+		anchor = file->transaction_window.column_position[i] +
+				file->transaction_window.column_width[i] + COLUMN_HEADING_MARGIN;
+		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
+		icon->extent.x0 = icon->extent.x1 - width;
+	}
+}
+
+
+/**
+ * Set the extent of the transaction window for the specified file.
+ *
+ * \param *file			The file to update.
+ */
+
+void transact_set_window_extent(file_data *file)
+{
+	wimp_window_state	state;
+	os_box			extent;
+	int			visible_extent, new_extent, new_scroll;
+
+
+	/* If the window display length is too small, extend it to one blank line after the data. */
+
+	if (file->transaction_window.display_lines <= file->trans_count)
+		file->transaction_window.display_lines = file->trans_count + 1;
+
+	/* Work out the new extent. */
+
+	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * file->transaction_window.display_lines) - TRANSACT_TOOLBAR_HEIGHT;
+
+	/* Get the current window details, and find the extent of the bottom of the visible area. */
+
+	state.w = file->transaction_window.transaction_window;
+	wimp_get_window_state(&state);
+
+	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
+
+	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
+
+	if (new_extent > visible_extent) {
+		/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
+		 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
+		 */
+
+		new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
+
+		if (new_scroll > 0) {
+			state.visible.y0 += new_scroll;
+			state.yscroll = 0;
+		} else {
+			state.yscroll = new_scroll;
+		}
+
+		wimp_open_window((wimp_open *) &state);
+	}
+
+	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
+	 * exist.
+	 */
+
+	extent.x0 = 0;
+	extent.y1 = 0;
+	extent.x1 = file->transaction_window.column_position[TRANSACT_COLUMNS-1] +
+			file->transaction_window.column_width[TRANSACT_COLUMNS-1];
+	extent.y0 = new_extent;
+
+	wimp_set_extent(file->transaction_window.transaction_window, &extent);
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/* Try to minimise the extent of the transaction window, by removing redundant blank lines as they are scrolled
+ * out of sight.
+ */
+
+void minimise_transaction_window_extent (file_data *file)
+{
+  int               height, last_visible_line, minimum_length;
+  wimp_window_state window;
+
+
+  window.w = file->transaction_window.transaction_window;
+  wimp_get_window_state (&window);
+
+  /* Calculate the height of the window and the last line that is visible. */
+
+  height = (window.visible.y1 - window.visible.y0) - TRANSACT_TOOLBAR_HEIGHT;
+  last_visible_line = (-window.yscroll + height) / (ICON_HEIGHT+LINE_GUTTER);
+
+  /* Work out what the minimum length of the window needs to be, taking into account minimum window size, entries
+   * and blank lines and the location of the edit line.
+   */
+
+  minimum_length = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
+                    file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
+
+  if (file->transaction_window.entry_line >= minimum_length)
+  {
+    minimum_length = file->transaction_window.entry_line + 1;
+  }
+
+  if (last_visible_line > minimum_length)
+  {
+    minimum_length = last_visible_line;
+  }
+
+  /* Shrink the window. */
+
+  if (file->transaction_window.display_lines > minimum_length)
+  {
+    file->transaction_window.display_lines = minimum_length;
+    transact_set_window_extent (file);
   }
 }
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+void build_transaction_window_title (file_data *file)
+{
+  make_file_pathname (file, file->transaction_window.window_title, sizeof (file->transaction_window.window_title));
+
+  if (file->modified)
+  {
+    strcat (file->transaction_window.window_title, " *");
+  }
+
+  xwimp_force_redraw_title (file->transaction_window.transaction_window); /* Nested Wimp only! */
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+void force_transaction_window_redraw (file_data *file, int from, int to)
+{
+  int              y0, y1;
+  wimp_window_info window;
+
+  window.w = file->transaction_window.transaction_window;
+  if (xwimp_get_window_info_header_only (&window) == NULL)
+  {
+    y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
+    y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
+
+    wimp_force_redraw (file->transaction_window.transaction_window, window.extent.x0, y0, window.extent.x1, y1);
+  }
+  /* **** NB This doesn't redraw the edit line -- the icons need to be refreshed **** */
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+void update_transaction_window_toolbar (file_data *file)
+{
+  icons_set_shaded (file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT,
+                    account_count_type_in_file (file, ACCOUNT_FULL) == 0);
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/* Scroll the transaction window to the top or the end. */
+
+void scroll_transaction_window_to_end (file_data *file, int dir)
+{
+  wimp_window_info window;
+
+
+  window.w = file->transaction_window.transaction_window;
+  wimp_get_window_info_header_only (&window);
+
+  if (dir > 0)
+  {
+    window.yscroll = window.extent.y0 - (window.extent.y1 - window.extent.y0);
+  }
+  else if (dir < 0)
+  {
+    window.yscroll = window.extent.y1;
+  }
+
+  minimise_transaction_window_extent (file);
+  wimp_open_window ((wimp_open *) &window);
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/* Return the transaction number of the transaction in the centre (or nearest the centre) of the transactions
+ * window which references the given account.
+ *
+ * First find the centre line, and see if that matches the account.  If so, return the transaction.  If not, search
+ * outwards from that point towards the ends of the window, looking for a match.
+ */
+
+int find_transaction_window_centre (file_data *file, int account)
+{
+  wimp_window_state window;
+  int               centre, height, result, i;
+
+
+  window.w = file->transaction_window.transaction_window;
+  wimp_get_window_state (&window);
+
+  /* Calculate the height of the useful visible window, leaving out any OS units taken up by part lines.
+   */
+
+  height = window.visible.y1 - window.visible.y0 - ICON_HEIGHT - LINE_GUTTER - TRANSACT_TOOLBAR_HEIGHT;
+
+  /* Calculate the centre line in the window.  If this is greater than the number of actual tracsactions in the window,
+   * reduce it accordingly.
+   */
+
+  centre = ((-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER)) + ((height / 2) / (ICON_HEIGHT+LINE_GUTTER));
+
+  if (centre >= file->trans_count)
+  {
+    centre = file->trans_count - 1;
+  }
+
+  if (centre > -1)
+  {
+    if (file->transactions[file->transactions[centre].sort_index].from == account ||
+        file->transactions[file->transactions[centre].sort_index].to == account)
+    {
+      result = file->transactions[centre].sort_index;
+    }
+    else
+    {
+      i = 1;
+
+      result = NULL_TRANSACTION;
+
+      while (centre+i < file->trans_count || centre-i >= 0)
+      {
+        if (centre+i < file->trans_count
+            && (file->transactions[file->transactions[centre+i].sort_index].from == account
+            || file->transactions[file->transactions[centre+i].sort_index].to == account))
+        {
+          result = file->transactions[centre+i].sort_index;
+          break;
+        }
+
+        if (centre-i >= 0
+            && (file->transactions[file->transactions[centre-i].sort_index].from == account
+            || file->transactions[file->transactions[centre-i].sort_index].to == account))
+        {
+          result = file->transactions[centre-i].sort_index;
+          break;
+        }
+
+        i++;
+      }
+    }
+  }
+  else
+  {
+    result = NULL_TRANSACTION;
+  }
+
+  return (result);
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+void decode_transact_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
+{
+  int                 column, xpos;
+  wimp_window_state   window;
+  file_data           *file;
+
+  *buffer = '\0';
+
+  file = find_transaction_window_file_block (w);
+
+  if (file != NULL)
+  {
+    window.w = w;
+    wimp_get_window_state (&window);
+
+    xpos = (pos.x - window.visible.x0) + window.xscroll;
+
+    for (column = 0;
+         column < TRANSACT_COLUMNS &&
+         xpos > (file->transaction_window.column_position[column] + file->transaction_window.column_width[column]);
+         column++);
+
+    sprintf (buffer, "Col%d", column);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/* Find and return the line in the transaction window that points to the specified transaction. */
+
+int locate_transaction_in_transact_window (file_data *file, int transaction)
+{
+  int        i, line;
+
+
+  line = -1;
+
+  for (i=0; i < file->trans_count; i++)
+  {
+    if (file->transactions[i].sort_index == transaction)
+    {
+      line = i;
+      break;
+    }
+  }
+
+  return (line);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2095,175 +2539,6 @@ static int transact_complete_menu_compare(const void *va, const void *vb)
 
 
 
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void adjust_transaction_window_columns(void *data, wimp_i target, int width)
-{
-	struct transaction_window	*windat = (struct transaction_window *) data;
-	file_data			*file;
-	int				i, j, new_extent;
-	wimp_icon_state			icon;
-	wimp_window_info		window;
-	wimp_caret			caret;
-
-	if (windat == NULL || windat->file == NULL)
-		return;
-
-	file = windat->file;
-
-
-
-  update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), target, width,
-                              file->transaction_window.column_width,
-                              file->transaction_window.column_position, TRANSACT_COLUMNS);
-
-
-
-  /* Re-adjust the icons in the pane. */
-
-  for (i=0, j=0; j < TRANSACT_COLUMNS; i++, j++)
-  {
-    icon.w = file->transaction_window.transaction_pane;
-    icon.i = i;
-    wimp_get_icon_state(&icon);
-
-    icon.icon.extent.x0 = file->transaction_window.column_position[j];
-
-    j = column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, i);
-
-    icon.icon.extent.x1 = file->transaction_window.column_position[j] +
-                          file->transaction_window.column_width[j] + COLUMN_HEADING_MARGIN;
-
-    wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-                                      icon.icon.extent.x1, icon.icon.extent.y1);
-
-    new_extent = file->transaction_window.column_position[TRANSACT_COLUMNS-1] +
-                 file->transaction_window.column_width[TRANSACT_COLUMNS-1];
-  }
-
-  adjust_transaction_window_sort_icon(file);
-
-  /* Replace the edit line to force a redraw and redraw the rest of the window. */
-
-  wimp_get_caret_position(&caret);
-
-  place_transaction_edit_line(file, file->transaction_window.entry_line);
-  windows_redraw(file->transaction_window.transaction_window);
-  windows_redraw(file->transaction_window.transaction_pane);
-
-  if (file->transaction_window.transaction_window != NULL &&
-      file->transaction_window.transaction_window == caret.w)
-  {
-    /* If the caret's position was in the current transaction window, we need to replace it in the same position
-     * now, so that we don't lose input focus.
-     */
-
-    wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
-  }
-
-  /* Set the horizontal extent of the window and pane. */
-
-  window.w = file->transaction_window.transaction_pane;
-  wimp_get_window_info_header_only(&window);
-  window.extent.x1 = window.extent.x0 + new_extent;
-  wimp_set_extent(window.w, &(window.extent));
-
-  window.w = file->transaction_window.transaction_window;
-  wimp_get_window_info_header_only(&window);
-  window.extent.x1 = window.extent.x0 + new_extent;
-  wimp_set_extent(window.w, &(window.extent));
-
-  windows_open(window.w);
-
-	set_file_data_integrity(file, TRUE);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void adjust_transaction_window_sort_icon(file_data *file)
-{
-  wimp_icon_state icon;
-
-  icon.w = file->transaction_window.transaction_pane;
-  icon.i = TRANSACT_PANE_SORT_DIR_ICON;
-  wimp_get_icon_state(&icon);
-
-  update_transaction_window_sort_icon(file, &(icon.icon));
-
-  wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-                                    icon.icon.extent.x1, icon.icon.extent.y1);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void update_transaction_window_sort_icon (file_data *file, wimp_icon *icon)
-{
-  int              i, width, anchor;
-
-
-  i = 0;
-
-  if (file->transaction_window.sort_order & SORT_ASCENDING)
-  {
-    strcpy (file->transaction_window.sort_sprite, "sortarrd");
-  }
-  else if (file->transaction_window.sort_order & SORT_DESCENDING)
-  {
-    strcpy (file->transaction_window.sort_sprite, "sortarru");
-  }
-
-  switch (file->transaction_window.sort_order & SORT_MASK)
-  {
-    case SORT_DATE:
-      i = TRANSACT_ICON_DATE;
-      transaction_pane_sort_substitute_icon = TRANSACT_PANE_DATE;
-      break;
-
-    case SORT_FROM:
-      i = TRANSACT_ICON_FROM_NAME;
-      transaction_pane_sort_substitute_icon = TRANSACT_PANE_FROM;
-      break;
-
-    case SORT_TO:
-      i = TRANSACT_ICON_TO_NAME;
-      transaction_pane_sort_substitute_icon = TRANSACT_PANE_TO;
-      break;
-
-    case SORT_REFERENCE:
-      i = TRANSACT_ICON_REFERENCE;
-      transaction_pane_sort_substitute_icon = TRANSACT_PANE_REFERENCE;
-      break;
-
-    case SORT_AMOUNT:
-      i = TRANSACT_PANE_AMOUNT;
-      transaction_pane_sort_substitute_icon = TRANSACT_PANE_AMOUNT;
-      break;
-
-    case SORT_DESCRIPTION:
-      i = TRANSACT_PANE_DESCRIPTION;
-      transaction_pane_sort_substitute_icon = TRANSACT_PANE_DESCRIPTION;
-      break;
-  }
-
-  width = icon->extent.x1 - icon->extent.x0;
-
-  if ((file->transaction_window.sort_order & SORT_MASK) == SORT_AMOUNT)
-  {
-    anchor = file->transaction_window.column_position[i] + COLUMN_HEADING_MARGIN;
-    icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
-    icon->extent.x1 = icon->extent.x0 + width;
-  }
-  else
-  {
-    anchor = file->transaction_window.column_position[i] +
-             file->transaction_window.column_width[i] + COLUMN_HEADING_MARGIN;
-    icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
-    icon->extent.x0 = icon->extent.x1 - width;
-  }
-
-}
-
 /* ==================================================================================================================
  * Transaction handling
  */
@@ -2519,7 +2794,7 @@ static osbool transact_process_sort_window(void)
 			transact_sort_file->transaction_window.sort_order |= SORT_DESCENDING;
 	}
 
-	adjust_transaction_window_sort_icon(transact_sort_file);
+	transact_adjust_sort_icon(transact_sort_file);
 	windows_redraw(transact_sort_file->transaction_window.transaction_pane);
 	transact_sort(transact_sort_file);
 
@@ -2964,311 +3239,6 @@ void print_transact_window(osbool text, osbool format, osbool scale, osbool rota
   report_close_and_print(report, text, format, scale, rotate, pagenum);
 }
 
-
-/* Set the extent of the transaction window to reflect the number of lines displayed. */
-
-void set_transaction_window_extent (file_data *file)
-{
-    wimp_window_state state;
-    os_box            extent;
-    int               visible_extent, new_extent, new_scroll;
-
-
-    /* If the window display length is too small, extend it to one blank line after the data. */
-
-    if (file->transaction_window.display_lines <= file->trans_count)
-    {
-      file->transaction_window.display_lines = file->trans_count + 1;
-    }
-
-    /* Work out the new extent. */
-
-    new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * file->transaction_window.display_lines) - TRANSACT_TOOLBAR_HEIGHT;
-
-    /* Get the current window details, and find the extent of the bottom of the visible area. */
-
-    state.w = file->transaction_window.transaction_window;
-    wimp_get_window_state (&state);
-
-    visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-    /* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-    if (new_extent > visible_extent)
-    {
-      /* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
-       * big and will need shrinking down.  Otherwise, just set the new scroll offset.
-       */
-
-      new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
-
-      if (new_scroll > 0)
-      {
-        state.visible.y0 += new_scroll;
-        state.yscroll = 0;
-      }
-      else
-      {
-        state.yscroll = new_scroll;
-      }
-
-      wimp_open_window ((wimp_open *) &state);
-    }
-
-    /* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-     * exist.
-     */
-
-    extent.x0 = 0;
-    extent.y1 = 0;
-    extent.x1 = file->transaction_window.column_position[TRANSACT_COLUMNS-1] +
-                file->transaction_window.column_width[TRANSACT_COLUMNS-1];
-    extent.y0 = new_extent;
-
-    wimp_set_extent (file->transaction_window.transaction_window, &extent);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Try to minimise the extent of the transaction window, by removing redundant blank lines as they are scrolled
- * out of sight.
- */
-
-void minimise_transaction_window_extent (file_data *file)
-{
-  int               height, last_visible_line, minimum_length;
-  wimp_window_state window;
-
-
-  window.w = file->transaction_window.transaction_window;
-  wimp_get_window_state (&window);
-
-  /* Calculate the height of the window and the last line that is visible. */
-
-  height = (window.visible.y1 - window.visible.y0) - TRANSACT_TOOLBAR_HEIGHT;
-  last_visible_line = (-window.yscroll + height) / (ICON_HEIGHT+LINE_GUTTER);
-
-  /* Work out what the minimum length of the window needs to be, taking into account minimum window size, entries
-   * and blank lines and the location of the edit line.
-   */
-
-  minimum_length = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-                    file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
-
-  if (file->transaction_window.entry_line >= minimum_length)
-  {
-    minimum_length = file->transaction_window.entry_line + 1;
-  }
-
-  if (last_visible_line > minimum_length)
-  {
-    minimum_length = last_visible_line;
-  }
-
-  /* Shrink the window. */
-
-  if (file->transaction_window.display_lines > minimum_length)
-  {
-    file->transaction_window.display_lines = minimum_length;
-    set_transaction_window_extent (file);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void build_transaction_window_title (file_data *file)
-{
-  make_file_pathname (file, file->transaction_window.window_title, sizeof (file->transaction_window.window_title));
-
-  if (file->modified)
-  {
-    strcat (file->transaction_window.window_title, " *");
-  }
-
-  xwimp_force_redraw_title (file->transaction_window.transaction_window); /* Nested Wimp only! */
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void force_transaction_window_redraw (file_data *file, int from, int to)
-{
-  int              y0, y1;
-  wimp_window_info window;
-
-  window.w = file->transaction_window.transaction_window;
-  if (xwimp_get_window_info_header_only (&window) == NULL)
-  {
-    y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
-    y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
-
-    wimp_force_redraw (file->transaction_window.transaction_window, window.extent.x0, y0, window.extent.x1, y1);
-  }
-  /* **** NB This doesn't redraw the edit line -- the icons need to be refreshed **** */
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void update_transaction_window_toolbar (file_data *file)
-{
-  icons_set_shaded (file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT,
-                    account_count_type_in_file (file, ACCOUNT_FULL) == 0);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Scroll the transaction window to the top or the end. */
-
-void scroll_transaction_window_to_end (file_data *file, int dir)
-{
-  wimp_window_info window;
-
-
-  window.w = file->transaction_window.transaction_window;
-  wimp_get_window_info_header_only (&window);
-
-  if (dir > 0)
-  {
-    window.yscroll = window.extent.y0 - (window.extent.y1 - window.extent.y0);
-  }
-  else if (dir < 0)
-  {
-    window.yscroll = window.extent.y1;
-  }
-
-  minimise_transaction_window_extent (file);
-  wimp_open_window ((wimp_open *) &window);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Return the transaction number of the transaction in the centre (or nearest the centre) of the transactions
- * window which references the given account.
- *
- * First find the centre line, and see if that matches the account.  If so, return the transaction.  If not, search
- * outwards from that point towards the ends of the window, looking for a match.
- */
-
-int find_transaction_window_centre (file_data *file, int account)
-{
-  wimp_window_state window;
-  int               centre, height, result, i;
-
-
-  window.w = file->transaction_window.transaction_window;
-  wimp_get_window_state (&window);
-
-  /* Calculate the height of the useful visible window, leaving out any OS units taken up by part lines.
-   */
-
-  height = window.visible.y1 - window.visible.y0 - ICON_HEIGHT - LINE_GUTTER - TRANSACT_TOOLBAR_HEIGHT;
-
-  /* Calculate the centre line in the window.  If this is greater than the number of actual tracsactions in the window,
-   * reduce it accordingly.
-   */
-
-  centre = ((-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER)) + ((height / 2) / (ICON_HEIGHT+LINE_GUTTER));
-
-  if (centre >= file->trans_count)
-  {
-    centre = file->trans_count - 1;
-  }
-
-  if (centre > -1)
-  {
-    if (file->transactions[file->transactions[centre].sort_index].from == account ||
-        file->transactions[file->transactions[centre].sort_index].to == account)
-    {
-      result = file->transactions[centre].sort_index;
-    }
-    else
-    {
-      i = 1;
-
-      result = NULL_TRANSACTION;
-
-      while (centre+i < file->trans_count || centre-i >= 0)
-      {
-        if (centre+i < file->trans_count
-            && (file->transactions[file->transactions[centre+i].sort_index].from == account
-            || file->transactions[file->transactions[centre+i].sort_index].to == account))
-        {
-          result = file->transactions[centre+i].sort_index;
-          break;
-        }
-
-        if (centre-i >= 0
-            && (file->transactions[file->transactions[centre-i].sort_index].from == account
-            || file->transactions[file->transactions[centre-i].sort_index].to == account))
-        {
-          result = file->transactions[centre-i].sort_index;
-          break;
-        }
-
-        i++;
-      }
-    }
-  }
-  else
-  {
-    result = NULL_TRANSACTION;
-  }
-
-  return (result);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void decode_transact_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
-{
-  int                 column, xpos;
-  wimp_window_state   window;
-  file_data           *file;
-
-  *buffer = '\0';
-
-  file = find_transaction_window_file_block (w);
-
-  if (file != NULL)
-  {
-    window.w = w;
-    wimp_get_window_state (&window);
-
-    xpos = (pos.x - window.visible.x0) + window.xscroll;
-
-    for (column = 0;
-         column < TRANSACT_COLUMNS &&
-         xpos > (file->transaction_window.column_position[column] + file->transaction_window.column_width[column]);
-         column++);
-
-    sprintf (buffer, "Col%d", column);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Find and return the line in the transaction window that points to the specified transaction. */
-
-int locate_transaction_in_transact_window (file_data *file, int transaction)
-{
-  int        i, line;
-
-
-  line = -1;
-
-  for (i=0; i < file->trans_count; i++)
-  {
-    if (file->transactions[i].sort_index == transaction)
-    {
-      line = i;
-      break;
-    }
-  }
-
-  return (line);
-}
 
 
 

@@ -34,16 +34,17 @@
  * Static constants
  */
 
-#define EDIT_ICON_DATE 0
-#define EDIT_ICON_FROM 1
-#define EDIT_ICON_FROM_REC 2
-#define EDIT_ICON_FROM_NAME 3
-#define EDIT_ICON_TO 4
-#define EDIT_ICON_TO_REC 5
-#define EDIT_ICON_TO_NAME 6
-#define EDIT_ICON_REF 7
-#define EDIT_ICON_AMOUNT 8
-#define EDIT_ICON_DESCRIPT 9
+#define EDIT_ICON_ROW 0
+#define EDIT_ICON_DATE 1
+#define EDIT_ICON_FROM 2
+#define EDIT_ICON_FROM_REC 3
+#define EDIT_ICON_FROM_NAME 4
+#define EDIT_ICON_TO 5
+#define EDIT_ICON_TO_REC 6
+#define EDIT_ICON_TO_NAME 7
+#define EDIT_ICON_REF 8
+#define EDIT_ICON_AMOUNT 9
+#define EDIT_ICON_DESCRIPT 10
 
 
 extern wimp_window *edit_transact_window_def;

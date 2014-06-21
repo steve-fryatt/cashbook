@@ -79,7 +79,7 @@
 
 /* Transaction window details */
 
-#define TRANSACT_COLUMNS 10
+#define TRANSACT_COLUMNS 11
 #define TRANSACT_TOOLBAR_HEIGHT 132
 
 #define MIN_TRANSACT_ENTRIES 10

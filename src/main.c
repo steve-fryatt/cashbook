@@ -279,8 +279,8 @@ static void main_initialise(void)
 	config_int_init("PrintMarginInternal", 18000);					/**< Header/Footer margin (millipoints).				*/
 	config_int_init("PrintMarginUnits", 0);						/**< Page units used in Choices (0 = mm, 1 = cm, 2 = inch).		*/
 
-	config_str_init("TransactCols", "180,88,32,362,88,32,362,200,176,808");
-	config_str_init("LimTransactCols", "140,88,32,140,88,32,140,140,140,200");
+	config_str_init("TransactCols", "100,180,88,32,362,88,32,362,200,176,808");
+	config_str_init("LimTransactCols", "32,140,88,32,140,88,32,140,140,140,200");
 	config_str_init("AccountCols", "88,362,176,176,176,176");
 	config_str_init("LimAccountCols", "88,140,140,140,140,140");
 	config_str_init("AccViewCols", "100,180,88,32,362,200,176,176,176,808");

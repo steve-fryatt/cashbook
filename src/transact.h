@@ -45,36 +45,7 @@ enum transact_list_menu_type {
  * Static constants
  */
 
-/* Toolbar icons */
-
-#define TRANSACT_PANE_DATE 0
-#define TRANSACT_PANE_FROM 1
-#define TRANSACT_PANE_TO 2
-#define TRANSACT_PANE_REFERENCE 3
-#define TRANSACT_PANE_AMOUNT 4
-#define TRANSACT_PANE_DESCRIPTION 5
-
-#define TRANSACT_PANE_SAVE 6
-#define TRANSACT_PANE_PRINT 7
-#define TRANSACT_PANE_ACCOUNTS 8
-#define TRANSACT_PANE_VIEWACCT 19
-#define TRANSACT_PANE_ADDACCT 9
-#define TRANSACT_PANE_IN 10
-#define TRANSACT_PANE_OUT 11
-#define TRANSACT_PANE_ADDHEAD 12
-#define TRANSACT_PANE_FIND 13
-#define TRANSACT_PANE_GOTO 14
-#define TRANSACT_PANE_SORT 15
-#define TRANSACT_PANE_RECONCILE 16
-#define TRANSACT_PANE_SORDER 17
-#define TRANSACT_PANE_ADDSORDER 18
-#define TRANSACT_PANE_PRESET 20
-#define TRANSACT_PANE_ADDPRESET 21
-
-#define TRANSACT_PANE_DRAG_LIMIT 5 /* The last icon to allow column drags on. */
-#define TRANSACT_PANE_SORT_DIR_ICON 22
-
-#define TRANSACT_PANE_COL_MAP "0;1,2,3;4,5,6;7;8;9"
+#define TRANSACT_PANE_COL_MAP "0;1;2,3,4;5,6,7;8;9;10"
 
 
 
@@ -268,10 +239,11 @@ void transact_write_file(file_data *file, FILE *out);
  * \param *section		A string buffer to hold file section names.
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
+ * \param format		The format number of the file.
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int transact_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+int transact_read_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data);
 
 
 /**

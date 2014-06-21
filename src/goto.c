@@ -271,7 +271,7 @@ static osbool goto_process_window(void)
 	}
 
 	place_transaction_edit_line(goto_window_file, line);
-	icons_put_caret_at_end(goto_window_file->transaction_window.transaction_window, 0);
+	icons_put_caret_at_end(goto_window_file->transaction_window.transaction_window, EDIT_ICON_DATE);
 	find_transaction_edit_line(goto_window_file);
 
 	return TRUE;

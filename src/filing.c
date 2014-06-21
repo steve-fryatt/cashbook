@@ -160,7 +160,7 @@ void load_transaction_file(char *filename)
 		else if (string_nocase_strcmp(section, "AccountList") == 0)
 			result = account_read_list_file(file, in, section, token, value, suffix, &unknown_data);
 		else if (string_nocase_strcmp(section, "Transactions") == 0)
-			result = transact_read_file(file, in, section, token, value, &unknown_data);
+			result = transact_read_file(file, in, section, token, value, file_format, &unknown_data);
 		else if (string_nocase_strcmp(section, "StandingOrders") == 0)
 			result = sorder_read_file(file, in, section, token, value, &unknown_data);
 		else if (string_nocase_strcmp(section, "Presets") == 0)

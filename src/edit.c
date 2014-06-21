@@ -132,35 +132,35 @@ void place_transaction_edit_line (file_data* file, int line)
 
     /* Set up the indirected buffers. */
 
-    edit_transact_window_def->icons[0].data.indirected_text.text = buffer_date;
-    edit_transact_window_def->icons[0].data.indirected_text.size = DATE_FIELD_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_DATE].data.indirected_text.text = buffer_date;
+    edit_transact_window_def->icons[EDIT_ICON_DATE].data.indirected_text.size = DATE_FIELD_LEN;
 
-    edit_transact_window_def->icons[1].data.indirected_text.text = buffer_from_ident;
-    edit_transact_window_def->icons[1].data.indirected_text.size = ACCOUNT_IDENT_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_FROM].data.indirected_text.text = buffer_from_ident;
+    edit_transact_window_def->icons[EDIT_ICON_FROM].data.indirected_text.size = ACCOUNT_IDENT_LEN;
 
-    edit_transact_window_def->icons[2].data.indirected_text.text = buffer_from_rec;
-    edit_transact_window_def->icons[2].data.indirected_text.size = REC_FIELD_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_FROM_REC].data.indirected_text.text = buffer_from_rec;
+    edit_transact_window_def->icons[EDIT_ICON_FROM_REC].data.indirected_text.size = REC_FIELD_LEN;
 
-    edit_transact_window_def->icons[3].data.indirected_text.text = buffer_from_name;
-    edit_transact_window_def->icons[3].data.indirected_text.size = ACCOUNT_NAME_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_FROM_NAME].data.indirected_text.text = buffer_from_name;
+    edit_transact_window_def->icons[EDIT_ICON_FROM_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
 
-    edit_transact_window_def->icons[4].data.indirected_text.text = buffer_to_ident;
-    edit_transact_window_def->icons[4].data.indirected_text.size = ACCOUNT_IDENT_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_TO].data.indirected_text.text = buffer_to_ident;
+    edit_transact_window_def->icons[EDIT_ICON_TO].data.indirected_text.size = ACCOUNT_IDENT_LEN;
 
-    edit_transact_window_def->icons[5].data.indirected_text.text = buffer_to_rec;
-    edit_transact_window_def->icons[5].data.indirected_text.size = REC_FIELD_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_TO_REC].data.indirected_text.text = buffer_to_rec;
+    edit_transact_window_def->icons[EDIT_ICON_TO_REC].data.indirected_text.size = REC_FIELD_LEN;
 
-    edit_transact_window_def->icons[6].data.indirected_text.text = buffer_to_name;
-    edit_transact_window_def->icons[6].data.indirected_text.size = ACCOUNT_NAME_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_TO_NAME].data.indirected_text.text = buffer_to_name;
+    edit_transact_window_def->icons[EDIT_ICON_TO_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
 
-    edit_transact_window_def->icons[7].data.indirected_text.text = buffer_reference;
-    edit_transact_window_def->icons[7].data.indirected_text.size = REF_FIELD_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_REF].data.indirected_text.text = buffer_reference;
+    edit_transact_window_def->icons[EDIT_ICON_REF].data.indirected_text.size = REF_FIELD_LEN;
 
-    edit_transact_window_def->icons[8].data.indirected_text.text = buffer_amount;
-    edit_transact_window_def->icons[8].data.indirected_text.size = AMOUNT_FIELD_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_AMOUNT].data.indirected_text.text = buffer_amount;
+    edit_transact_window_def->icons[EDIT_ICON_AMOUNT].data.indirected_text.size = AMOUNT_FIELD_LEN;
 
-    edit_transact_window_def->icons[9].data.indirected_text.text = buffer_description;
-    edit_transact_window_def->icons[9].data.indirected_text.size = DESCRIPT_FIELD_LEN;
+    edit_transact_window_def->icons[EDIT_ICON_DESCRIPT].data.indirected_text.text = buffer_description;
+    edit_transact_window_def->icons[EDIT_ICON_DESCRIPT].data.indirected_text.size = DESCRIPT_FIELD_LEN;
 
     /* Initialise the data. */
 
@@ -570,7 +570,7 @@ void place_transaction_edit_line_transaction (file_data *file, int transaction)
           wimp_get_caret_position (&caret);
           if (caret.w == file->transaction_window.transaction_window)
           {
-            icons_put_caret_at_end (file->transaction_window.transaction_window, 0);
+            icons_put_caret_at_end (file->transaction_window.transaction_window, EDIT_ICON_DATE);
           }
           find_transaction_edit_line (file);
 
@@ -584,7 +584,7 @@ void place_transaction_edit_line_transaction (file_data *file, int transaction)
       wimp_get_caret_position (&caret);
       if (caret.w == file->transaction_window.transaction_window)
       {
-        icons_put_caret_at_end (file->transaction_window.transaction_window, 0);
+        icons_put_caret_at_end (file->transaction_window.transaction_window, EDIT_ICON_DATE);
       }
       find_transaction_edit_line (file);
     }

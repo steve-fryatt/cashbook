@@ -511,7 +511,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 {
 	file_data		*file;
 	int			line, column, xpos, transaction, toggle_flag;
-	int			trans_col_from[] = {0,0,1,1,1,7,8,8,8,9}, trans_col_to[] = {0,0,4,4,4,7,8,8,8,9}, *trans_col;
+	int			trans_col_from[] = {0,1,2,2,2,8,9,9,9,10}, trans_col_to[] = {0,1,5,5,5,8,9,9,9,10}, *trans_col;
 	wimp_window_state	window;
 	struct accview_window	*windat;
 
@@ -792,7 +792,7 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 	case ACCVIEW_MENU_FINDTRANS:
 		place_transaction_edit_line(windat->file, locate_transaction_in_transact_window(windat->file,
 				windat->line_data[windat->line_data[accview_window_menu_line].sort_index].transaction));
-		icons_put_caret_at_end(windat->file->transaction_window.transaction_window, 0);
+		icons_put_caret_at_end(windat->file->transaction_window.transaction_window, EDIT_ICON_DATE);
 		find_transaction_edit_line(windat->file);
 		break;
 

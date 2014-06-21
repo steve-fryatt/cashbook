@@ -379,7 +379,7 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 	set_transaction_window_extent(file);
 
 	place_transaction_edit_line(file, file->trans_count);
-	icons_put_caret_at_end(file->transaction_window.transaction_window, 0);
+	icons_put_caret_at_end(file->transaction_window.transaction_window, EDIT_ICON_DATE);
 	find_transaction_edit_line(file);
 
 	hourglass_off();

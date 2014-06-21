@@ -1443,7 +1443,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_ROW].flags |= icon_fg_col;
 
 			if (y < file->trans_count)
-				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", t);
+				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", t + 1);
 			else
 				*icon_buffer = '\0';
 

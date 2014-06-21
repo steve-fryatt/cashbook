@@ -1031,7 +1031,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[ACCVIEW_ICON_ROW].flags |= icon_fg_col;
 
 			if (y < windat->display_lines)
-				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", transaction);
+				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", transaction + 1);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_ROW]));

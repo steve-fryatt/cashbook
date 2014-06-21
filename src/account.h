@@ -334,12 +334,31 @@ char *account_get_name(file_data *file, acct_t account);
 char *account_build_name_pair(file_data *file, acct_t account, char *buffer, size_t size);
 
 
+/**
+ * Take a keypress into an account ident field, and look it up against the
+ * accounts list. Update the associated name and reconciled icons, and return
+ * the matched account plus reconciled state.
+ *
+ * \param *file		The file containing the account.
+ * \param key		The keypress to process.
+ * \param type		The types of account that we're interested in.
+ * \param account	The account that is currently in the field.
+ * \param *reconciled	A pointer to a variable to take the new reconciled state
+ *			on exit, or NULL to return none.
+ * \param window	The window containing the icons.
+ * \param ident		The icon holding the ident.
+ * \param name		The icon holding the account name.
+ * \param rec		The icon holding the reconciled state.
+ * \return		The new account number.
+ */
+
+acct_t account_lookup_field(file_data *file, char key, enum account_type type, acct_t account,
+		osbool *reconciled, wimp_w window, wimp_i ident, wimp_i name, wimp_i rec);
 
 
 
 
-int lookup_account_field (file_data *file, char key, int type, int account, int *reconciled,
-                          wimp_w window, wimp_i ident, wimp_i name, wimp_i rec);
+
 
 void fill_account_field (file_data *file, acct_t account, int reconciled,
                          wimp_w window, wimp_i ident, wimp_i name, wimp_i rec_field);

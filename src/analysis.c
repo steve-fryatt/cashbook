@@ -249,7 +249,7 @@ static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a point
 
 static wimp_w			analysis_lookup_window = NULL;			/**< The handle of the Account Lookup window.			*/
 static file_data		*analysis_lookup_file = NULL;			/**< The file currently owning the Account Lookup window.	*/
-static enum account_type	analysis_lookup_type = NULL_ACCOUNT;		/**< The type(s) of account to be looked up in the window.	*/
+static enum account_type	analysis_lookup_type = ACCOUNT_NULL;		/**< The type(s) of account to be looked up in the window.	*/
 static wimp_w			analysis_lookup_parent;				/**< The window currently owning the Account Lookup window.	*/
 static wimp_i			analysis_lookup_icon;				/**< The icon to which the lookup results should be inserted.	*/
 
@@ -2898,7 +2898,7 @@ static osbool analysis_lookup_keypress_handler(wimp_key *key)
 			return FALSE;
 
 		if (key->i == ANALYSIS_LOOKUP_IDENT)
-			lookup_account_field(analysis_lookup_file, key->c, analysis_lookup_type, NULL_ACCOUNT, NULL,
+			account_lookup_field(analysis_lookup_file, key->c, analysis_lookup_type, NULL_ACCOUNT, NULL,
 					analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC);
  		break;
 	}

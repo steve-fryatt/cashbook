@@ -277,11 +277,11 @@ static osbool find_keypress_handler(wimp_key *key)
 			return FALSE;
 
 		if (key->i == FIND_ICON_FMIDENT)
-			lookup_account_field(find_window_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+			account_lookup_field(find_window_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
 					find_window, FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC);
 
 		else if (key->i == FIND_ICON_TOIDENT)
-			lookup_account_field(find_window_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+			account_lookup_field(find_window_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
 					find_window, FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC);
 		break;
 	}

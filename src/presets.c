@@ -1448,11 +1448,11 @@ static osbool preset_edit_keypress_handler(wimp_key *key)
 			return FALSE;
 
 		if (key->i == PRESET_EDIT_FMIDENT)
-			lookup_account_field(preset_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+			account_lookup_field(preset_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
 					preset_edit_window, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC);
 
 		else if (key->i == PRESET_EDIT_TOIDENT)
-			lookup_account_field(preset_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+			account_lookup_field(preset_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
 					preset_edit_window, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC);
 		break;
 	}

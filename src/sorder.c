@@ -1478,11 +1478,11 @@ static osbool sorder_edit_keypress_handler(wimp_key *key)
 			return FALSE;
 
 		if (key->i == SORDER_EDIT_FMIDENT)
-			lookup_account_field(sorder_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+			account_lookup_field(sorder_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
 					sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC);
 
 		else if (key->i == SORDER_EDIT_TOIDENT)
-			lookup_account_field(sorder_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+			account_lookup_field(sorder_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
 					sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC);
 		break;
 	}

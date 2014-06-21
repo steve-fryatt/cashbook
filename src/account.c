@@ -3237,81 +3237,81 @@ char *account_build_name_pair(file_data *file, acct_t account, char *buffer, siz
 }
 
 
+/**
+ * Take a keypress into an account ident field, and look it up against the
+ * accounts list. Update the associated name and reconciled icons, and return
+ * the matched account plus reconciled state.
+ *
+ * \param *file		The file containing the account.
+ * \param key		The keypress to process.
+ * \param type		The types of account that we're interested in.
+ * \param account	The account that is currently in the field.
+ * \param *reconciled	A pointer to a variable to take the new reconciled state
+ *			on exit, or NULL to return none.
+ * \param window	The window containing the icons.
+ * \param ident		The icon holding the ident.
+ * \param name		The icon holding the account name.
+ * \param rec		The icon holding the reconciled state.
+ * \return		The new account number.
+ */
 
-
-
-/* ================================================================================================================== */
-
-int lookup_account_field (file_data *file, char key, int type, int account, int *reconciled,
-                          wimp_w window, wimp_i ident, wimp_i name, wimp_i rec)
+acct_t account_lookup_field(file_data *file, char key, enum account_type type, acct_t account,
+		osbool *reconciled, wimp_w window, wimp_i ident, wimp_i name, wimp_i rec)
 {
-  int new_rec = 0;
-  char *ident_ptr, *name_ptr, *rec_ptr;
+	osbool	new_rec = FALSE;
 
+	if (file == NULL)
+		return NULL_ACCOUNT;
 
-  /* Look up the text fields for the icons. */
+	/* If the character is an alphanumeric or a delete, look up the ident as it stends. */
 
-  ident_ptr = icons_get_indirected_text_addr (window, ident);
-  name_ptr = icons_get_indirected_text_addr (window, name);
-  rec_ptr = icons_get_indirected_text_addr (window, rec);
+	if (isalnum(key) || iscntrl(key)) {
+		/* Look up the account number based on the ident. */
 
-  /* If the character is an alphanumeric or a delete, look up the ident as it stends. */
+		account = account_find_by_ident(file, icons_get_indirected_text_addr(window, ident), type);
 
-  if (isalnum (key) || iscntrl (key))
-  {
-    /* Look up the account number based on the ident. */
+		/* Copy the corresponding name into the name field. */
 
-    account = account_find_by_ident (file, ident_ptr, type);
+		icons_strncpy(window, name, account_get_name(file, account));
+		wimp_set_icon_state(window, name, 0, 0);
 
-    /* Copy the corresponding name into the name field. */
+		/* Do the auto-reconciliation. */
 
-    strcpy (name_ptr, account_get_name (file, account));
-    wimp_set_icon_state (window, name, 0, 0);
+		if (account != NULL_ACCOUNT && !(file->accounts[account].type & ACCOUNT_FULL)) {
+			/* If the account exists, and it is a heading (ie. it isn't a full account), reconcile it... */
 
-    /* Do the auto-reconciliation. */
+			new_rec = TRUE;
+			icons_msgs_lookup(window, rec, "RecChar");
+			wimp_set_icon_state(window, rec, 0, 0);
+		} else {
+			/* ...otherwise unreconcile it. */
 
-    if (account != NULL_ACCOUNT && !(file->accounts[account].type & ACCOUNT_FULL))
-    {
-      /* If the account exists, and it is a heading (ie. it isn't a full account), reconcile it... */
+			new_rec = FALSE;
+			*icons_get_indirected_text_addr(window, rec) = '\0';
+			wimp_set_icon_state(window, rec, 0, 0);
+		}
+	}
 
-      new_rec = 1;
-      msgs_lookup ("RecChar", rec_ptr, REC_FIELD_LEN);
-      wimp_set_icon_state (window, rec, 0, 0);
-    }
-    else
-    {
-      /* ...otherwise unreconcile it. */
+	/* If the key pressed was a reconcile one, set or clear the bit as required. */
 
-      new_rec = 0;
-      *rec_ptr = '\0';
-      wimp_set_icon_state (window, rec, 0, 0);
-    }
-  }
+	if (key == '+' || key == '=') {
+		new_rec = TRUE;
+		icons_msgs_lookup(window, rec, "RecChar");
+		wimp_set_icon_state(window, rec, 0, 0);
+	}
 
-  /* If the key pressed was a reconcile one, set or clear the bit as required. */
+	if (key == '-' || key == '_') {
+		new_rec = FALSE;
+		*icons_get_indirected_text_addr(window, rec) = '\0';
+		wimp_set_icon_state(window, rec, 0, 0);
+	}
 
-  if (key == '+' || key == '=')
-  {
-    new_rec = 1;
-    msgs_lookup ("RecChar", rec_ptr, REC_FIELD_LEN);
-    wimp_set_icon_state (window, rec, 0, 0);
-  }
+	/* Return the new reconciled state if applicable. */
 
-  if (key == '-' || key == '_')
-  {
-    new_rec = 0;
-    *rec_ptr = '\0';
-    wimp_set_icon_state (window, rec, 0, 0);
-  }
+	if (reconciled != NULL)
+		*reconciled = new_rec;
 
-  /* Return the new reconciled state if applicable. */
-
-  if (reconciled != NULL)
-  {
-    *reconciled = new_rec;
-  }
-
-  return (account);
+	return account;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

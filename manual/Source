@@ -1486,6 +1486,17 @@ Fourth stable release.
 <li>Substring search within transaction list.
 </list>
 
+
+<subhead title="Test Build">
+
+Alpha release for testing and feedback.
+
+<list>
+<li>Re-implemented Data Transfer support code into more more modern format.
+<li>Correctly carry column headings across from first page when printing reports (Bug&nbsp;#409).
+<li>Add transaction numbers to all transaction views.
+</list>
+
 </chapter>
 
 

@@ -1031,7 +1031,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[ACCVIEW_ICON_ROW].flags |= icon_fg_col;
 
 			if (y < windat->display_lines)
-				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", transaction + 1);
+				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_ROW]));
@@ -1785,7 +1785,7 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 			*line = '\0';
 
 			convert_date_to_string(accview_print_file->transactions[transaction].date, numbuf1);
-			sprintf(buffer, "\\k\\r%d\\t%s\\t", transaction + 1, numbuf1);
+			sprintf(buffer, "\\k\\r%d\\t%s\\t", transact_get_transaction_number(transaction), numbuf1);
 			strcat(line, buffer);
 
 			if (accview_print_file->transactions[transaction].from == accview_print_account) {
@@ -2464,7 +2464,7 @@ static void accview_export_delimited(file_data *file, acct_t account, char *file
 		for (i=0; i < windat->display_lines; i++) {
 			transaction = (windat->line_data)[(windat->line_data)[i].sort_index].transaction;
 
-			snprintf(buffer, 256, "%d", transaction + 1);
+			snprintf(buffer, 256, "%d", transact_get_transaction_number(transaction));
 			filing_output_delimited_field(out, buffer, format, 0);
 
 			convert_date_to_string(file->transactions[transaction].date, buffer);

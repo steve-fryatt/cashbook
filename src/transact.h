@@ -48,6 +48,19 @@ enum transact_list_menu_type {
 #define TRANSACT_PANE_COL_MAP "0;1;2,3,4;5,6,7;8;9;10"
 
 
+/**
+ * Convert an internal transaction number into a user-facing one.
+ */
+
+#define transact_get_transaction_number(x) ((x) + 1)
+
+
+/**
+ * Convert a user-facing transaction number into an internal one.
+ */
+
+#define transact_find_transaction_number(x) ((x) - 1)
+
 
 /**
  * Initialise the transaction system.

@@ -197,7 +197,7 @@ void edit_place_new_line(file_data *file, int line)
 	if (line < file->trans_count) {
 		transaction = file->transactions[line].sort_index;
 
-		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transaction + 1);
+		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
 		convert_date_to_string(file->transactions[transaction].date, buffer_date);
 		strncpy(buffer_from_ident, account_get_ident(file, file->transactions[transaction].from), ACCOUNT_IDENT_LEN);
 		strncpy(buffer_from_name, account_get_name(file, file->transactions[transaction].from), ACCOUNT_NAME_LEN);
@@ -470,7 +470,7 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 	if (only == EDIT_ICON_ROW || avoid != EDIT_ICON_ROW) {
 		/* Replace the row number. */
 
-		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transaction + 1);
+		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
 		wimp_set_icon_state(entry_window->transaction_window.transaction_window, EDIT_ICON_ROW, 0, 0);
 	}
 

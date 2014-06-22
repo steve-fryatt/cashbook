@@ -451,7 +451,7 @@ static void edit_find_icon_horizontally(file_data *file)
  *
  * \param w		If NULL, refresh any window; otherwise, only refresh if
  *			the parent transaction window handle matches w.
- * \param i		If -1, refresh all icons in the line; otherwise, only
+ * \param only		If -1, refresh all icons in the line; otherwise, only
  *			refresh if the icon handle matches i.
  * \param avoid		If -1, refresh all icons in the line; otherwise, only
  *			refresh if the icon handle does not match avoid.
@@ -467,21 +467,21 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 
 	transaction = entry_window->transactions[entry_window->transaction_window.entry_line].sort_index;
 
-	if (only == EDIT_ICON_ROW || avoid != EDIT_ICON_ROW) {
+	if ((only == -1 || only == EDIT_ICON_ROW) && avoid != EDIT_ICON_ROW) {
 		/* Replace the row number. */
 
 		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
 		wimp_set_icon_state(entry_window->transaction_window.transaction_window, EDIT_ICON_ROW, 0, 0);
 	}
 
-	if (only == EDIT_ICON_DATE || avoid != EDIT_ICON_DATE) {
+	if ((only == -1 || only == EDIT_ICON_DATE) && avoid != EDIT_ICON_DATE) {
 		/* Re-convert the date, so that it is displayed in standard format. */
 
 		convert_date_to_string(entry_window->transactions[transaction].date, buffer_date);
 		wimp_set_icon_state(entry_window->transaction_window.transaction_window, EDIT_ICON_DATE, 0, 0);
 	}
 
-	if (only == EDIT_ICON_FROM || avoid != EDIT_ICON_FROM) {
+	if ((only == -1 || only == EDIT_ICON_FROM) && avoid != EDIT_ICON_FROM) {
 		/* Remove the from ident if it didn't match an account. */
 
 		if (entry_window->transactions[transaction].from == NULL_ACCOUNT) {
@@ -499,7 +499,7 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 		}
 	}
 
-	if (only == EDIT_ICON_TO || avoid != EDIT_ICON_TO) {
+	if ((only == -1 || only == EDIT_ICON_TO) && avoid != EDIT_ICON_TO) {
 		/* Remove the to ident if it didn't match an account. */
 
 		if (entry_window->transactions[transaction].to == NULL_ACCOUNT) {
@@ -517,21 +517,21 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 		}
 	}
 
-	if (only == EDIT_ICON_REF || avoid != EDIT_ICON_REF) {
+	if ((only == -1 || only == EDIT_ICON_REF) && avoid != EDIT_ICON_REF) {
 		/* Copy the contents back into the icon. */
 
 		strcpy(buffer_reference, entry_window->transactions[transaction].reference);
 		wimp_set_icon_state(entry_window->transaction_window.transaction_window, EDIT_ICON_REF, 0, 0);
 	}
 
-	if (only == EDIT_ICON_AMOUNT || avoid != EDIT_ICON_AMOUNT) {
+	if ((only == -1 || only == EDIT_ICON_AMOUNT) && avoid != EDIT_ICON_AMOUNT) {
 		/* Re-convert the amount so that it is displayed in standard format. */
 
 		convert_money_to_string(entry_window->transactions[transaction].amount, buffer_amount);
 		wimp_set_icon_state(entry_window->transaction_window.transaction_window, EDIT_ICON_AMOUNT, 0, 0);
 	}
 
-	if (only == EDIT_ICON_DESCRIPT || avoid != EDIT_ICON_DESCRIPT) {
+	if ((only == -1 || only == EDIT_ICON_DESCRIPT) && avoid != EDIT_ICON_DESCRIPT) {
 		/* Copy the contents back into the icon. */
 
 		strcpy(buffer_description, entry_window->transactions[transaction].description);

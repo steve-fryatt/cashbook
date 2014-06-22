@@ -102,7 +102,7 @@ void edit_find_line_vertically(file_data *file);
  *
  * \param w		If NULL, refresh any window; otherwise, only refresh if
  *			the parent transaction window handle matches w.
- * \param i		If -1, refresh all icons in the line; otherwise, only
+ * \param only		If -1, refresh all icons in the line; otherwise, only
  *			refresh if the icon handle matches i.
  * \param avoid		If -1, refresh all icons in the line; otherwise, only
  *			refresh if the icon handle does not match avoid.

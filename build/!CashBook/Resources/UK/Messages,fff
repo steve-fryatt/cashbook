@@ -276,7 +276,7 @@ PrintTransact:Print transactions (%0)
 PrintAccview:Print account (%0)
 
 NoPDriverT:No Printer
-PJobTitle:Cashbook Report (%0)
+PJobTitle:Cashbook Report: %0
 
 PrintTitleSOrder:Standing orders
 PrintTitlePreset:Presets

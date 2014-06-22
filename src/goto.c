@@ -243,7 +243,7 @@ static osbool goto_process_window(void)
 			return FALSE;
 		}
 
-		line = goto_window_file->go_to.data - 1;
+		line = locate_transaction_in_transact_window(goto_window_file, goto_window_file->go_to.data - 1);
 	} else if (goto_window_file->go_to.data_type == GOTO_TYPE_DATE) {
 		/* Go to a given date, or the nearest transaction. */
 

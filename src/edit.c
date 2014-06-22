@@ -461,11 +461,18 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 {
 	int	transaction;
 
-	if (entry_window == NULL || (w == entry_window->transaction_window.transaction_window || w == NULL) ||
-			entry_window->transaction_window.entry_line < entry_window->trans_count)
+	if (entry_window == NULL || (w != entry_window->transaction_window.transaction_window && w != NULL) ||
+			entry_window->transaction_window.entry_line >= entry_window->trans_count)
 		return;
 
 	transaction = entry_window->transactions[entry_window->transaction_window.entry_line].sort_index;
+
+	if (only == EDIT_ICON_ROW || avoid != EDIT_ICON_ROW) {
+		/* Replace the row number. */
+
+		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transaction + 1);
+		wimp_set_icon_state(entry_window->transaction_window.transaction_window, EDIT_ICON_ROW, 0, 0);
+	}
 
 	if (only == EDIT_ICON_DATE || avoid != EDIT_ICON_DATE) {
 		/* Re-convert the date, so that it is displayed in standard format. */
@@ -1340,11 +1347,11 @@ osbool edit_process_keypress(file_data *file, wimp_key *key)
 					edit_place_new_line(file, find_first_blank_line(file));
 				else
 					edit_place_new_line(file, file->transaction_window.entry_line + 1);
-			}
 
-			icons_put_caret_at_end(entry_window->transaction_window.transaction_window, EDIT_ICON_DATE);
-			edit_find_icon_horizontally(file);
-			edit_find_line_vertically(file);
+				icons_put_caret_at_end(entry_window->transaction_window.transaction_window, EDIT_ICON_DATE);
+				edit_find_icon_horizontally(file);
+				edit_find_line_vertically(file);
+			}
 		}
 	} else if (key->c == (wimp_KEY_TAB + wimp_KEY_SHIFT)) {
 
@@ -1366,6 +1373,7 @@ osbool edit_process_keypress(file_data *file, wimp_key *key)
 
 				icons_put_caret_at_end(entry_window->transaction_window.transaction_window, icon);
 				edit_find_icon_horizontally(file);
+				edit_find_line_vertically(file);
 			} else {
 				if (file->transaction_window.entry_line > 0) {
 					edit_place_new_line(file, file->transaction_window.entry_line - 1);
@@ -1418,6 +1426,7 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
 	if (line >= file->trans_count) {
 		for (i=file->trans_count; i<=line; i++) {
 			add_raw_transaction(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, NULL_TRANS_FLAGS, NULL_CURRENCY, "", "");
+			edit_refresh_line_content(key->w, EDIT_ICON_ROW, -1);
 		}
 	}
 

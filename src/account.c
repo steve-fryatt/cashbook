@@ -2389,7 +2389,7 @@ static osbool account_process_acc_edit_window(void)
 	perform_full_recalculation(edit_account_file);
 	accview_recalculate(edit_account_file, edit_account_no, 0);
 	force_transaction_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
-	refresh_transaction_edit_line_icons(edit_account_file->transaction_window.transaction_window, -1, -1);
+	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
 	accview_redraw_all(edit_account_file);
 	set_file_data_integrity(edit_account_file, 1);
 
@@ -2444,7 +2444,7 @@ static osbool account_process_hdg_edit_window(void)
 
 	perform_full_recalculation(edit_account_file);
 	force_transaction_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
-	refresh_transaction_edit_line_icons(edit_account_file->transaction_window.transaction_window, -1, -1);
+	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
 	accview_redraw_all(edit_account_file);
 	set_file_data_integrity(edit_account_file, 1);
 

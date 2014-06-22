@@ -640,9 +640,9 @@ static int find_from_line(find *new_params, int new_dir, int start)
 
 	wimp_close_window(find_window);
 
-	place_transaction_edit_line(find_window_file, line);
+	edit_place_new_line(find_window_file, line);
 	icons_put_caret_at_end(find_window_file->transaction_window.transaction_window, icon);
-	find_transaction_edit_line(find_window_file);
+	edit_find_line_vertically(find_window_file);
 
 	icons_copy_text(find_window_file->transaction_window.transaction_pane, column_get_group(TRANSACT_PANE_COL_MAP, icon), buf1);
 	snprintf(buf2, sizeof(buf2), "%d", line);

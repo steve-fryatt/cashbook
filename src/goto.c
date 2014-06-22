@@ -270,9 +270,9 @@ static osbool goto_process_window(void)
 		line = locate_transaction_in_transact_window(goto_window_file, min);
 	}
 
-	place_transaction_edit_line(goto_window_file, line);
+	edit_place_new_line(goto_window_file, line);
 	icons_put_caret_at_end(goto_window_file->transaction_window.transaction_window, EDIT_ICON_DATE);
-	find_transaction_edit_line(goto_window_file);
+	edit_find_line_vertically(goto_window_file);
 
 	return TRUE;
 }

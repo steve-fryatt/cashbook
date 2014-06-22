@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -450,9 +450,9 @@ void transact_open_window(file_data *file)
 
 	/* Put the caret into the first empty line. */
 
-	place_transaction_edit_line(file, file->trans_count);
+	edit_place_new_line(file, file->trans_count);
 	icons_put_caret_at_end(file->transaction_window.transaction_window, EDIT_ICON_DATE);
-	find_transaction_edit_line(file);
+	edit_find_line_vertically(file);
 }
 
 
@@ -573,7 +573,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 	 * was clicked.
 	 */
 
-	refresh_transaction_edit_line_icons(NULL, -1, pointer->i);
+	edit_refresh_line_content(NULL, -1, pointer->i);
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		if (pointer->i == wimp_ICON_WINDOW) {
@@ -583,7 +583,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
 			if (line >= 0) {
-				place_transaction_edit_line(file, line);
+				edit_place_new_line(file, line);
 
 				/* Find the correct point for the caret and insert it. */
 
@@ -657,10 +657,10 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 
 				if (column == TRANSACT_ICON_FROM_REC) {
 					/* If the column is the from reconcile flag, toggle its status. */
-					toggle_reconcile_flag (file, transaction, TRANS_REC_FROM);
+					edit_toggle_reconcile_flag(file, transaction, TRANS_REC_FROM);
 				} else if (column == TRANSACT_ICON_TO_REC) {
 					/* If the column is the to reconcile flag, toggle its status. */
-					toggle_reconcile_flag (file, transaction, TRANS_REC_TO);
+					edit_toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
 				}
 			}
 		}
@@ -676,7 +676,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 
 static void transact_window_lose_caret_handler(wimp_caret *caret)
 {
-	refresh_transaction_edit_line_icons(caret->w, -1, -1);
+	edit_refresh_line_content(caret->w, -1, -1);
 }
 
 /**
@@ -1676,7 +1676,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 
 	wimp_get_caret_position(&caret);
 
-	place_transaction_edit_line(file, file->transaction_window.entry_line);
+	edit_place_new_line(file, file->transaction_window.entry_line);
 	windows_redraw(file->transaction_window.transaction_window);
 	windows_redraw(file->transaction_window.transaction_pane);
 
@@ -2823,7 +2823,7 @@ void transact_sort(file_data *file)
 	/* Find the caret position and edit line before sorting. */
 
 	wimp_get_caret_position(&caret);
-	edit_transaction = get_edit_line_transaction(file);
+	edit_transaction = edit_get_line_transaction(file);
 
 	/* Sort the entries using a combsort.  This has the advantage over qsort() that the order of entries is only
 	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
@@ -2918,7 +2918,7 @@ void transact_sort(file_data *file)
 
 	/* Replace the edit line where we found it prior to the sort. */
 
-	place_transaction_edit_line_transaction(file, edit_transaction);
+	edit_place_new_line_by_transaction(file, edit_transaction);
 
 	/* If the caret's position was in the current transaction window, we need to
 	 * replace it in the same position now, so that we don't lose input focus.
@@ -3071,9 +3071,9 @@ void find_next_reconcile_line (file_data *file, int set)
 
       if (found)
       {
-        place_transaction_edit_line (file, line);
-        icons_put_caret_at_end (file->transaction_window.transaction_window, found);
-        find_transaction_edit_line (file);
+        edit_place_new_line(file, line);
+        icons_put_caret_at_end(file->transaction_window.transaction_window, found);
+        edit_find_line_vertically(file);
       }
     }
   }

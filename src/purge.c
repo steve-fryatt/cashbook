@@ -378,9 +378,9 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 
 	transact_set_window_extent(file);
 
-	place_transaction_edit_line(file, file->trans_count);
+	edit_place_new_line(file, file->trans_count);
 	icons_put_caret_at_end(file->transaction_window.transaction_window, EDIT_ICON_DATE);
-	find_transaction_edit_line(file);
+	edit_find_line_vertically(file);
 
 	hourglass_off();
 }

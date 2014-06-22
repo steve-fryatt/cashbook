@@ -632,8 +632,8 @@ void import_csv_file (file_data *file, char *filename)
     accview_rebuild_all (file);
     set_file_data_integrity (file, TRUE);
 
-    refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
-    force_transaction_window_redraw (file, 0, file->trans_count - 1);
+    edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
+    force_transaction_window_redraw(file, 0, file->trans_count - 1);
  }
 
   /* Sort out the import results window. */

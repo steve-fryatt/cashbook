@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -558,9 +558,9 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 
 		trans_col = (file->transactions[transaction].from == windat->account) ? trans_col_to : trans_col_from;
 
-		place_transaction_edit_line(file, locate_transaction_in_transact_window (file, transaction));
+		edit_place_new_line(file, locate_transaction_in_transact_window (file, transaction));
 		icons_put_caret_at_end(file->transaction_window.transaction_window, trans_col[column]);
-		find_transaction_edit_line(file);
+		edit_find_line_vertically(file);
 
 		if (pointer->buttons == wimp_DOUBLE_ADJUST)
 			windows_open(file->transaction_window.transaction_window);
@@ -568,7 +568,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 		/* Handle adjust-clicks in the reconcile column, to toggle the status. */
 
 		toggle_flag = (file->transactions[transaction].from == windat->account) ? TRANS_REC_FROM : TRANS_REC_TO;
-		toggle_reconcile_flag(file, transaction, toggle_flag);
+		edit_toggle_reconcile_flag(file, transaction, toggle_flag);
 	}
 }
 
@@ -790,10 +790,10 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 
 	switch (selection->items[0]){
 	case ACCVIEW_MENU_FINDTRANS:
-		place_transaction_edit_line(windat->file, locate_transaction_in_transact_window(windat->file,
+		edit_place_new_line(windat->file, locate_transaction_in_transact_window(windat->file,
 				windat->line_data[windat->line_data[accview_window_menu_line].sort_index].transaction));
 		icons_put_caret_at_end(windat->file->transaction_window.transaction_window, EDIT_ICON_DATE);
-		find_transaction_edit_line(windat->file);
+		edit_find_line_vertically(windat->file);
 		break;
 
 	case ACCVIEW_MENU_GOTOTRANS:

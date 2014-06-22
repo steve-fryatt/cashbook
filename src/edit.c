@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -99,20 +99,31 @@ static char	buffer_description[DESCRIPT_FIELD_LEN];
 
 wimp_window *edit_transact_window_def = NULL;	/* \TODO -- Ick! */
 
+
+static void	edit_find_icon_horizontally(file_data *file);
+static void	edit_set_line_shading(file_data *file);
+static void	edit_change_transaction_amount(file_data *file, int transaction, amt_t new_amount);
+static unsigned	insert_transaction_preset(file_data *file, int transaction, int preset);
+static wimp_i	edit_convert_preset_icon_number(int caret);
+static void	delete_edit_line_transaction(file_data *file);
+static void	process_transaction_edit_line_entry_keys(file_data *file, wimp_key *key);
 static char	*find_complete_description(file_data *file, int line, char *buffer, size_t length);
 
-/* ==================================================================================================================
- * Edit line creation.
+
+
+/**
+ * Create an edit line at the specified point in the given file's transaction
+ * window. Any existing edit line is deleted first.
+ *
+ * The caret isn't placed in this routine.  That is left up to the caller, so
+ * that they can place it depending on their context.
+ *
+ * \param *file		The file to place the edit line in.
+ * \param line		The line to place the edit line at, in terms of
+ *			sorted display (not the raw transaction number).
  */
 
-/* Put the edit line at the specified point in the given file's transaction window.  Any existing edit line is
- * removed first.
- */
-
-  /* The caret isn't placed in this routine.  That is left up to the caller, depending on their context. */
-
-
-void place_transaction_edit_line (file_data* file, int line)
+void edit_place_new_line(file_data *file, int line)
 {
 	int			i, transaction;
 	wimp_icon_create	icon_block;
@@ -128,7 +139,7 @@ void place_transaction_edit_line (file_data* file, int line)
 		 * memory as soon as a key is pressed in any of the writable icons...
 		 */
 
-		for (i=0; i<TRANSACT_COLUMNS; i++)
+		for (i = 0; i < TRANSACT_COLUMNS; i++)
 			wimp_delete_icon(entry_window->transaction_window.transaction_window, (wimp_i) i);
 
 		entry_window->transaction_window.entry_line = -1;
@@ -238,31 +249,71 @@ void place_transaction_edit_line (file_data* file, int line)
 	file->transaction_window.entry_line = line;
 	entry_window = file;
 
-	set_transaction_edit_line_shading (file);
+	edit_set_line_shading(file);
 }
 
-/* ==================================================================================================================
- * Entry line deletion
+
+/**
+ * Place a new edit line by raw transaction number.
+ *
+ * \param *file		The file to place the line in.
+ * \param transaction	The transaction to place the line on.
  */
 
-/* Called if the file bock is to be deleted; removes reference to the edit line if it is within the associated
- * transaction window.  Note that it isn't possible to delete the edit line as such: it only goes if the owning window
- * is deleted.
+void edit_place_new_line_by_transaction(file_data *file, int transaction)
+{
+	int        i;
+	wimp_caret caret;
+
+	if (file == NULL || entry_window != file)
+		return;
+
+	if (transaction != NULL_TRANSACTION) {
+		for (i=0; i < file->trans_count; i++) {
+			if (file->transactions[i].sort_index == transaction) {
+				edit_place_new_line(file, i);
+				wimp_get_caret_position(&caret);
+				if (caret.w == file->transaction_window.transaction_window)
+					icons_put_caret_at_end(file->transaction_window.transaction_window, EDIT_ICON_DATE);
+				edit_find_line_vertically(file);
+
+				break;
+			}
+		}
+	} else {
+		edit_place_new_line(file, file->trans_count);
+		wimp_get_caret_position(&caret);
+		if (caret.w == file->transaction_window.transaction_window)
+			icons_put_caret_at_end(file->transaction_window.transaction_window, EDIT_ICON_DATE);
+		edit_find_line_vertically(file);
+	}
+}
+
+
+/**
+ * Inform the edit line code that a file has been deleted: this removes any
+ * references to the edit line if it is within that file's transaction window.
+ * 
+ * Note that it isn't possible to delete an edit line and its icons: it will
+ * only be completely destroyed if the parent window is deleted.
+ *
+ * \param *file		The file to be deleted.
  */
 
-void transaction_edit_line_block_deleted (file_data *file)
+void edit_file_deleted(file_data *file)
 {
 	if (entry_window == file)
 		entry_window = NULL;
 }
 
-/* ==================================================================================================================
- * Entry line operations
+
+/**
+ * Bring the edit line into view in the window in a vertical direction.
+ *
+ * \param *file		The file that we're interested in working on
  */
 
-/* Bring the edit line in to the window in a vertical direction. */
-
-void find_transaction_edit_line (file_data *file)
+void edit_find_line_vertically(file_data *file)
 {
 	wimp_window_state	window;
 	int			height, top, bottom;
@@ -307,11 +358,15 @@ void find_transaction_edit_line (file_data *file)
 	}
 }
 
-/* ----------------------------------------------------------------------------------------------------------------- */
 
-/* Bring the current edit line icon in to the window in a horizontal direction. */
+/**
+ * Bring the current edit line icon (the one containing the caret) into view in
+ * the window in a horizontal direction.
+ *
+ * \param *file		The file that we're interested in working on
+ */
 
-void find_transaction_edit_icon (file_data *file)
+static void edit_find_icon_horizontally(file_data *file)
 {
 	wimp_window_state	window;
 	wimp_icon_state		icon;
@@ -389,14 +444,20 @@ void find_transaction_edit_icon (file_data *file)
 	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Copy the content of the edit line memory back into the icons.  If w is specified, the refresh will only
- * occur if the edit line is in that window; if i is specified, only that icon will be refreshed.  If avoid
- * is specified, that icon will *not* be refreshed.
+/**
+ * Refresh the contents of the edit line icons, copying the contents of memory
+ * back into them.
+ *
+ * \param w		If NULL, refresh any window; otherwise, only refresh if
+ *			the parent transaction window handle matches w.
+ * \param i		If -1, refresh all icons in the line; otherwise, only
+ *			refresh if the icon handle matches i.
+ * \param avoid		If -1, refresh all icons in the line; otherwise, only
+ *			refresh if the icon handle does not match avoid.
  */
 
-void refresh_transaction_edit_line_icons (wimp_w w, wimp_i only, wimp_i avoid)
+void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 {
 	int	transaction;
 
@@ -471,15 +532,15 @@ void refresh_transaction_edit_line_icons (wimp_w w, wimp_i only, wimp_i avoid)
 	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Set the icon foreground colours to indicate a fully reconciled line.
+/**
+ * Set the shading of the transaction line to show the current reconcile status
+ * of the transactions.
  *
- * This is currently called from the toggle_reconcile_flag (), process_transaction_edit_line_entry_keys () and
- * place_transaction_edit_line () functions.
+ * \param *file		The file that should be processed.
  */
 
-void set_transaction_edit_line_shading(file_data *file)
+static void edit_set_line_shading(file_data *file)
 {
 	int	icon_fg_col, transaction;
 	wimp_i	i;
@@ -499,13 +560,17 @@ void set_transaction_edit_line_shading(file_data *file)
 		wimp_set_icon_state(entry_window->transaction_window.transaction_window, i, icon_fg_col, wimp_ICON_FG_COLOUR);
 }
 
-/* ================================================================================================================== */
 
-/* Return the transaction that is currently being edited, to allow the edit line to be replaced after the transaction
- * window's contents is sorted.
+/**
+ * Get the underlying transaction number relating to the current edit line
+ * position.
+ *
+ * \param *file		The file that we're interested in.
+ * \return		The transaction number, or NULL_TRANSACTION if the
+ *			line isn't in the specified file.
  */
 
-int get_edit_line_transaction(file_data *file)
+int edit_get_line_transaction(file_data *file)
 {
 	int	transaction;
 
@@ -517,46 +582,16 @@ int get_edit_line_transaction(file_data *file)
 	return (transaction);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Pick up the marker placed by mark_transcation_edit_line () and move the edit line icons appropriately. */
-
-void place_transaction_edit_line_transaction(file_data *file, int transaction)
-{
-	int        i;
-	wimp_caret caret;
-
-	if (file == NULL || entry_window != file)
-		return;
-
-	if (transaction != NULL_TRANSACTION) {
-		for (i=0; i < file->trans_count; i++) {
-			if (file->transactions[i].sort_index == transaction) {
-				place_transaction_edit_line(file, i);
-				wimp_get_caret_position(&caret);
-				if (caret.w == file->transaction_window.transaction_window)
-					icons_put_caret_at_end(file->transaction_window.transaction_window, EDIT_ICON_DATE);
-				find_transaction_edit_line(file);
-
-				break;
-			}
-		}
-	} else {
-		place_transaction_edit_line(file, file->trans_count);
-		wimp_get_caret_position(&caret);
-		if (caret.w == file->transaction_window.transaction_window)
-			icons_put_caret_at_end(file->transaction_window.transaction_window, EDIT_ICON_DATE);
-		find_transaction_edit_line(file);
-	}
-}
-
-/* ==================================================================================================================
- * Transaction operations
+/**
+ * Toggle the state of one of the reconciled flags for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param change_flag	Indicate which reconciled flags to change.
  */
 
-/* Toggle the specificed reconcile flag for the given transaction. */
-
-void toggle_reconcile_flag(file_data *file, int transaction, int change_flag)
+void edit_toggle_reconcile_flag(file_data *file, int transaction, int change_flag)
 {
 	int	change_icon, line;
 	osbool	changed = FALSE;
@@ -620,7 +655,7 @@ void toggle_reconcile_flag(file_data *file, int transaction, int change_flag)
 		 */
 
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
-			set_transaction_edit_line_shading(file);
+			edit_set_line_shading(file);
 		} else {
 			line = locate_transaction_in_transact_window(file, transaction);
 			force_transaction_window_redraw(file, line, line);
@@ -690,8 +725,8 @@ void edit_change_transaction_date(file_data *file, int transaction, date_t new_d
 		 */
 
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
-			refresh_transaction_edit_line_icons(file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
-			set_transaction_edit_line_shading(file);
+			edit_refresh_line_content(file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
+			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
 			line = locate_transaction_in_transact_window(file, transaction);
@@ -705,7 +740,7 @@ void edit_change_transaction_date(file_data *file, int transaction, date_t new_d
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void edit_change_transaction_amount(file_data *file, int transaction, amt_t new_amount)
+static void edit_change_transaction_amount(file_data *file, int transaction, amt_t new_amount)
 {
 	int	line;
 	osbool	changed = FALSE;
@@ -747,8 +782,8 @@ void edit_change_transaction_amount(file_data *file, int transaction, amt_t new_
 		 */
 
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
-			refresh_transaction_edit_line_icons(file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
-			set_transaction_edit_line_shading(file);
+			edit_refresh_line_content(file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
+			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
 			line = locate_transaction_in_transact_window(file, transaction);
@@ -811,8 +846,8 @@ void edit_change_transaction_refdesc(file_data *file, int transaction, int chang
 		 */
 
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
-			refresh_transaction_edit_line_icons(file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
-			set_transaction_edit_line_shading(file);
+			edit_refresh_line_content(file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
+			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
 			line = locate_transaction_in_transact_window(file, transaction);
@@ -910,8 +945,8 @@ void edit_change_transaction_account(file_data *file, int transaction, int chang
 		 */
 
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
-			refresh_transaction_edit_line_icons(file->transaction_window.transaction_window, change_icon, -1);
-			set_transaction_edit_line_shading(file);
+			edit_refresh_line_content(file->transaction_window.transaction_window, change_icon, -1);
+			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
 			line = locate_transaction_in_transact_window(file, transaction);
@@ -947,7 +982,7 @@ void insert_transaction_preset_full(file_data *file, int transaction, int preset
 	 * the transaction window line and mark the file as modified.
 	 */
 
-	place_transaction_edit_line_transaction(file, transaction);
+	edit_place_new_line_by_transaction(file, transaction);
 
 	icons_put_caret_at_end(file->transaction_window.transaction_window,
 			edit_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
@@ -961,8 +996,8 @@ void insert_transaction_preset_full(file_data *file, int transaction, int preset
 		 */
 
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
-			refresh_transaction_edit_line_icons(file->transaction_window.transaction_window, -1, -1);
-			set_transaction_edit_line_shading(file);
+			edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
+			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
 			line = locate_transaction_in_transact_window(file, transaction);
@@ -975,7 +1010,7 @@ void insert_transaction_preset_full(file_data *file, int transaction, int preset
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-unsigned insert_transaction_preset(file_data *file, int transaction, int preset)
+static unsigned insert_transaction_preset(file_data *file, int transaction, int preset)
 {
 	unsigned		changed = 0;
 
@@ -1007,7 +1042,7 @@ unsigned insert_transaction_preset(file_data *file, int transaction, int preset)
  * edit line.
  */
 
-wimp_i edit_convert_preset_icon_number(int caret)
+static wimp_i edit_convert_preset_icon_number(int caret)
 {
 	wimp_i	icon;
 
@@ -1046,13 +1081,14 @@ wimp_i edit_convert_preset_icon_number(int caret)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void delete_edit_line_transaction (file_data *file)
+static void delete_edit_line_transaction(file_data *file)
 {
 	unsigned transaction;
 
 
-  /* Only start if the delete line option is enabled, the file is the current entry window, and the line is in range.
-   */
+	/* Only start if the delete line option is enabled, the file is the
+	 * current entry window, and the line is in range.
+	 */
 
 	if (!config_opt_read("AllowTransDelete") || file == NULL ||
 			entry_window != file || file->transaction_window.entry_line >= file->trans_count)
@@ -1086,8 +1122,8 @@ void delete_edit_line_transaction (file_data *file)
 
 	accview_rebuild_all(file);
 
-	refresh_transaction_edit_line_icons(file->transaction_window.transaction_window, -1, -1);
-	set_transaction_edit_line_shading(file);
+	edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
+	edit_set_line_shading(file);
 
 	set_file_data_integrity(file, TRUE);
 }
@@ -1121,18 +1157,18 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 
 		if (entry_window == file && file->transaction_window.entry_line > 0) {
 			wimp_get_caret_position(&caret);
-			refresh_transaction_edit_line_icons(entry_window->transaction_window.transaction_window, caret.i, -1);
-			place_transaction_edit_line(file, file->transaction_window.entry_line - 1);
+			edit_refresh_line_content(entry_window->transaction_window.transaction_window, caret.i, -1);
+			edit_place_new_line(file, file->transaction_window.entry_line - 1);
 			wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y - (ICON_HEIGHT+LINE_GUTTER), -1, -1);
-			find_transaction_edit_line(file);
+			edit_find_line_vertically(file);
 		}
 	} else if (key->c == wimp_KEY_DOWN) {
 		if (entry_window == file) {
 			wimp_get_caret_position(&caret);
-			refresh_transaction_edit_line_icons(entry_window->transaction_window.transaction_window, caret.i, -1);
-			place_transaction_edit_line(file, file->transaction_window.entry_line + 1);
+			edit_refresh_line_content(entry_window->transaction_window.transaction_window, caret.i, -1);
+			edit_place_new_line(file, file->transaction_window.entry_line + 1);
 			wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y + (ICON_HEIGHT+LINE_GUTTER), -1, -1);
-			find_transaction_edit_line(file);
+			edit_find_line_vertically(file);
 		}
 	} else if (key->c == wimp_KEY_RETURN || key->c == wimp_KEY_TAB || key->c == wimp_KEY_TAB + wimp_KEY_CONTROL) {
 
@@ -1180,14 +1216,14 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 						edit_change_transaction_account(file, transaction, EDIT_ICON_FROM, file->transactions[previous].from);
 						if ((file->transactions[previous].flags & TRANS_REC_FROM) !=
 								(file->transactions[transaction].flags & TRANS_REC_FROM))
-						toggle_reconcile_flag(file, transaction, TRANS_REC_FROM);
+						edit_toggle_reconcile_flag(file, transaction, TRANS_REC_FROM);
 						break;
 
 					case EDIT_ICON_TO:
 						edit_change_transaction_account(file, transaction, EDIT_ICON_TO, file->transactions[previous].to);
 						if ((file->transactions[previous].flags & TRANS_REC_TO) !=
 								(file->transactions[transaction].flags & TRANS_REC_TO))
-						toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
+						edit_toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
 						break;
 
 					case EDIT_ICON_REF:
@@ -1211,7 +1247,7 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 				 * will already have done the work.
 				 */
 
-				refresh_transaction_edit_line_icons(entry_window->transaction_window.transaction_window, caret.i, -1);
+				edit_refresh_line_content(entry_window->transaction_window.transaction_window, caret.i, -1);
 			}
 
 			if (key->c == wimp_KEY_RETURN &&
@@ -1237,17 +1273,17 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 				if (icon == EDIT_ICON_TO_REC)
 					icon = EDIT_ICON_REF;
 				icons_put_caret_at_end(entry_window->transaction_window.transaction_window, icon);
-				find_transaction_edit_icon(file);
+				edit_find_icon_horizontally(file);
 			} else {
 				if (key->c == wimp_KEY_RETURN)
-					place_transaction_edit_line(file, find_first_blank_line(file));
+					edit_place_new_line(file, find_first_blank_line(file));
 				else
-					place_transaction_edit_line(file, file->transaction_window.entry_line + 1);
+					edit_place_new_line(file, file->transaction_window.entry_line + 1);
 			}
 
 			icons_put_caret_at_end(entry_window->transaction_window.transaction_window, EDIT_ICON_DATE);
-			find_transaction_edit_icon(file);
-			find_transaction_edit_line(file);
+			edit_find_icon_horizontally(file);
+			edit_find_line_vertically(file);
 		}
 	} else if (key->c == (wimp_KEY_TAB + wimp_KEY_SHIFT)) {
 
@@ -1258,7 +1294,7 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 
 		if (entry_window == file) {
 			wimp_get_caret_position(&caret);
-			refresh_transaction_edit_line_icons(entry_window->transaction_window.transaction_window, caret.i, -1);
+			edit_refresh_line_content(entry_window->transaction_window.transaction_window, caret.i, -1);
 
 			if (caret.i > EDIT_ICON_DATE) {
 				icon = caret.i - 1;
@@ -1268,12 +1304,12 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 					icon = EDIT_ICON_FROM;
 
 				icons_put_caret_at_end(entry_window->transaction_window.transaction_window, icon);
-				find_transaction_edit_icon(file);
+				edit_find_icon_horizontally(file);
 			} else {
 				if (file->transaction_window.entry_line > 0) {
-					place_transaction_edit_line(file, file->transaction_window.entry_line - 1);
+					edit_place_new_line(file, file->transaction_window.entry_line - 1);
 					icons_put_caret_at_end(entry_window->transaction_window.transaction_window, EDIT_ICON_DESCRIPT);
-					find_transaction_edit_icon(file);
+					edit_find_icon_horizontally(file);
 				}
 			}
 		}
@@ -1295,7 +1331,7 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 
 /* Handling any keys that are not recognised as general hotkeys or caret movement keys. */
 
-void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
+static void process_transaction_edit_line_entry_keys(file_data *file, wimp_key *key)
 {
 	int		line, transaction, i, preset;
 	unsigned	previous_date, date, amount, old_acct, old_flags, preset_changes = 0;
@@ -1382,7 +1418,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
 		else
 			file->transactions[transaction].flags &= ~TRANS_REC_FROM;
 
-		set_transaction_edit_line_shading(file);
+		edit_set_line_shading(file);
 
 		if (old_acct != file->transactions[transaction].from || old_flags != file->transactions[transaction].flags)
 			changed = TRUE;
@@ -1403,7 +1439,7 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
 		else
 			file->transactions[transaction].flags &= ~TRANS_REC_TO;
 
-		set_transaction_edit_line_shading(file);
+		edit_set_line_shading(file);
 
 		if (old_acct != file->transactions[transaction].to || old_flags != file->transactions[transaction].flags)
 			changed = TRUE;
@@ -1465,8 +1501,8 @@ void process_transaction_edit_line_entry_keys (file_data *file, wimp_key *key)
 
 			accview_rebuild_all(file);
 
-			refresh_transaction_edit_line_icons(file->transaction_window.transaction_window, -1, -1);
-			set_transaction_edit_line_shading(file);
+			edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
+			edit_set_line_shading(file);
 			icons_put_caret_at_end(file->transaction_window.transaction_window,
 			edit_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
 

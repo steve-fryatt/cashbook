@@ -417,7 +417,7 @@ void delete_file (file_data *file)
 
   /* Remove the edit line reference. */
 
-  transaction_edit_line_block_deleted (file);
+  edit_file_deleted(file);
 
   /* Delete the windows. */
 
@@ -711,7 +711,7 @@ void redraw_all_files (void)
 
 /* Redraw all the windows connected with a given file. */
 
-void redraw_file_windows (file_data *file)
+void redraw_file_windows(file_data *file)
 {
   int i;
   report_data *rep_list;
@@ -719,8 +719,8 @@ void redraw_file_windows (file_data *file)
 
   /* Redraw the transaction window. */
 
-  force_transaction_window_redraw (file, 0, file->trans_count);
-  refresh_transaction_edit_line_icons (file->transaction_window.transaction_window, -1, -1);
+  force_transaction_window_redraw(file, 0, file->trans_count);
+  edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
 
   /* Redraw the account list windows. */
 

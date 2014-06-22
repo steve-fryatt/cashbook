@@ -802,7 +802,7 @@ static void edit_change_transaction_amount(file_data *file, int transaction, amt
 		 */
 
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
-			edit_refresh_line_content(file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
+			edit_refresh_line_content(file->transaction_window.transaction_window, EDIT_ICON_AMOUNT, -1);
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
@@ -874,7 +874,7 @@ void edit_change_transaction_refdesc(file_data *file, int transaction, wimp_i ta
 		 */
 
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
-			edit_refresh_line_content(file->transaction_window.transaction_window, EDIT_ICON_DATE, -1);
+			edit_refresh_line_content(file->transaction_window.transaction_window, target, -1);
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {

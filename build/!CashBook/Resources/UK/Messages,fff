@@ -386,16 +386,17 @@ BadTemplate:Failed to load template.
 Help.IconBar:\TCashBook application.|M\Screate a new file and open its transaction \w.
 
 Help.Transact/Help.TransactTB:\Ttransaction \w.
-Help.Transact.Col0:\Tdate column, showing the date on which transactions occur.|M\Splace the caret.|M\Ainsert the current date or select a transaction preset from a list.
-Help.Transact.Col1:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.
-Help.Transact.Col2:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
-Help.Transact.Col3:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
-Help.Transact.Col4:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.
-Help.Transact.Col5:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
-Help.Transact.Col6:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
-Help.Transact.Col7:\Treference column, allowing a short reference to be included.|M\Splace the caret.|M\Ainsert a copy of an existing reference or the next cheque number.
-Help.Transact.Col8:\Tamount column, showing the amount of money transferred.|M\Splace the caret.
-Help.Transact.Col9:\Tdescription column, which allows any other information to be recorded.|M\Splace the caret.|M\Ainsert a copy of an existing description.
+Help.Transact.Col0/Help.AccView.Col0/Help.HeadView.Col0:\Ttransaction number column, showing the number of the transaction.
+Help.Transact.Col1:\Tdate column, showing the date on which transactions occur.|M\Splace the caret.|M\Ainsert the current date or select a transaction preset from a list.
+Help.Transact.Col2:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.
+Help.Transact.Col3:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
+Help.Transact.Col4:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
+Help.Transact.Col5:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.
+Help.Transact.Col6:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
+Help.Transact.Col7:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
+Help.Transact.Col8:\Treference column, allowing a short reference to be included.|M\Splace the caret.|M\Ainsert a copy of an existing reference or the next cheque number.
+Help.Transact.Col9:\Tamount column, showing the amount of money transferred.|M\Splace the caret.
+Help.Transact.Col10:\Tdescription column, which allows any other information to be recorded.|M\Splace the caret.|M\Ainsert a copy of an existing description.
 
 Help.TransactTB.ColNo/Help.AccViewTB.ColNo/Help.HeadViewTB.ColNo:\Ttransaction number column.|M\Dchange the column width.
 Help.TransactTB.ColDate/Help.AccViewTB.ColDate/Help.HeadViewTB.ColDate:\Tdate column.|M\Ssort the entries in ascending order by date, or \a for descending.|M\Dchange the column width.
@@ -448,7 +449,6 @@ Help.HeadListFB.Tot3:\Ttotal of the budget total column.
 Help.HeadListFB.Tot4:\Ttotal of the budget balance column.
 
 Help.AccView/Help.AccViewTB:\Taccount statement view \w.
-Help.AccView.Col0/Help.HeadView.Col0:\Ttransaction number column, showing the number of the transaction.
 Help.AccView.Col1/Help.HeadView.Col1:\Tdate column, showing the date on which transactions occur.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
 Help.AccView.Col2/Help.AccView.Col4/Help.HeadView.Col2/Help.HeadView.Col4:\Tfrom/to column, showing the other account or analysis heading in the transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
 Help.AccView.Col3:\Treconciled status for the transaction in this account.|MDouble-click \s to find this transaction in the transaction \w.|M\Atoggle the reconciled status.

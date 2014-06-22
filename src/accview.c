@@ -1281,7 +1281,7 @@ static void accview_adjust_window_columns(void *data, wimp_i group, int width)
 
 	windows_open(window.w);
 
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 }
 
 
@@ -1466,7 +1466,7 @@ void accview_build_window_title(file_data *file, acct_t account)
 	if (file == NULL || account == NULL_ACCOUNT || file->accounts[account].account_view == NULL)
 		return;
 
-	make_file_leafname(file, name, sizeof(name));
+	file_get_leafname(file, name, sizeof(name));
 
 	msgs_param_lookup("AccviewTitle", (file->accounts[account].account_view)->window_title,
 			sizeof((file->accounts[account].account_view)->window_title),
@@ -1761,7 +1761,7 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 
 	/* Output the page title. */
 
-	make_file_leafname(accview_print_file, numbuf1, sizeof(numbuf1));
+	file_get_leafname(accview_print_file, numbuf1, sizeof(numbuf1));
 	msgs_param_lookup("AccviewTitle", buffer, sizeof(buffer),
 			accview_print_file->accounts[accview_print_account].name, numbuf1, NULL, NULL);
 	sprintf(line, "\\b\\u%s", buffer);

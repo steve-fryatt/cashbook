@@ -537,7 +537,7 @@ static void transact_window_close_handler(wimp_close *close)
 
 	/* If Adjust was clicked, find the pathname and open the parent directory. */
 
-	if (pointer.buttons == wimp_CLICK_ADJUST && check_for_filepath(windat->file)) {
+	if (pointer.buttons == wimp_CLICK_ADJUST && file_check_for_filepath(windat->file)) {
 		pathcopy = strdup(windat->file->filename);
 		if (pathcopy != NULL) {
 			snprintf(buffer, sizeof(buffer), "%%Filer_OpenDir %s", string_find_pathname(pathcopy));
@@ -714,7 +714,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
 		case TRANSACT_PANE_SAVE:
-			if (check_for_filepath(windat->file))
+			if (file_check_for_filepath(windat->file))
 				filename = windat->file->filename;
 			else
 				filename = "DefTransFile";
@@ -919,7 +919,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 	} else if (key->c == wimp_KEY_F3) {
 		wimp_get_pointer_info(&pointer);
 
-		if (check_for_filepath(windat->file))
+		if (file_check_for_filepath(windat->file))
 			filename = windat->file->filename;
 		else
 			filename = "DefTransFile";
@@ -1030,7 +1030,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 		if (windat->file->saved_report_count == 0)
 			transact_window_menu_analysis->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
 
-		if (check_for_filepath(windat->file))
+		if (file_check_for_filepath(windat->file))
 			filename = windat->file->filename;
 		else
 			filename = "DefTransFile";
@@ -1711,7 +1711,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 
 	windows_open(window.w);
 
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 }
 
 
@@ -1918,7 +1918,7 @@ void minimise_transaction_window_extent (file_data *file)
 
 void build_transaction_window_title (file_data *file)
 {
-  make_file_pathname (file, file->transaction_window.window_title, sizeof (file->transaction_window.window_title));
+  file_get_pathname(file, file->transaction_window.window_title, sizeof (file->transaction_window.window_title));
 
   if (file->modified)
   {
@@ -2566,7 +2566,7 @@ void add_raw_transaction (file_data *file, unsigned date, int from, int to, unsi
 
     file->transactions[new].sort_index = new;
 
-    set_file_data_integrity (file, 1);
+    file_set_data_integrity(file, TRUE);
     if (date != NULL_DATE)
     {
       file->sort_valid = 0;
@@ -3187,7 +3187,7 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 
 	/* Output the page title. */
 
-	make_file_leafname(transact_print_file, numbuf1, sizeof(numbuf1));
+	file_get_leafname(transact_print_file, numbuf1, sizeof(numbuf1));
 	msgs_param_lookup("TransTitle", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
 	sprintf(line, "\\b\\u%s", buffer);
 	report_write_line(report, 1, line);
@@ -3408,7 +3408,7 @@ static void transact_start_direct_save(struct transaction_window *windat)
 {
 	wimp_pointer	pointer;
 
-	if (check_for_filepath(windat->file)) {
+	if (file_check_for_filepath(windat->file)) {
 		save_transaction_file(windat->file, windat->file->filename);
 	} else {
 		wimp_get_pointer_info(&pointer);
@@ -3612,9 +3612,9 @@ osbool transact_check_account(file_data *file, int account)
 
 static void transact_prepare_fileinfo(file_data *file)
 {
-	make_file_pathname(file, icons_get_indirected_text_addr	(transact_fileinfo_window, FILEINFO_ICON_FILENAME), 255);
+	file_get_pathname(file, icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_FILENAME), 255);
 
-	if (check_for_filepath(file))
+	if (file_check_for_filepath(file))
 		territory_convert_standard_date_and_time(territory_CURRENT, (os_date_and_time const *) file->datestamp,
 				icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_DATE), 30);
 	else

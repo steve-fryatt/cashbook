@@ -1086,7 +1086,7 @@ static void preset_adjust_window_columns(void *data, wimp_i group, int width)
 
 	windows_open(window.w);
 
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 }
 
 
@@ -1252,7 +1252,7 @@ void preset_build_window_title(file_data *file)
 	if (file == NULL || file->preset_window.preset_window == NULL)
 		return;
 
-	make_file_leafname(file, name, sizeof(name));
+	file_get_leafname(file, name, sizeof(name));
 
 	msgs_param_lookup("PresetTitle", file->preset_window.window_title,
 			sizeof(file->preset_window.window_title),
@@ -1703,7 +1703,7 @@ static osbool preset_process_edit_window(void)
 	else
 		preset_force_window_redraw(preset_edit_file, preset_edit_number, preset_edit_number);
 
-	set_file_data_integrity(preset_edit_file, TRUE);
+	file_set_data_integrity(preset_edit_file, TRUE);
 
 	return TRUE;
 }
@@ -1934,7 +1934,7 @@ static void preset_print(osbool text, osbool format, osbool scale, osbool rotate
 
 	/* Output the page title. */
 
-	make_file_leafname(preset_print_file, numbuf1, sizeof(numbuf1));
+	file_get_leafname(preset_print_file, numbuf1, sizeof(numbuf1));
 	msgs_param_lookup("PresetTitle", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
 	sprintf(line, "\\b\\u%s", buffer);
 	report_write_line(report, 0, line);
@@ -2359,7 +2359,7 @@ static osbool preset_delete(file_data *file, int preset)
 		}
 	}
 
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 
 	return TRUE;
 }

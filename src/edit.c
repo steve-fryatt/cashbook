@@ -668,7 +668,7 @@ void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, in
 			force_transaction_window_redraw(file, line, line);
 		}
 
-		set_file_data_integrity(file, TRUE);
+		file_set_data_integrity(file, TRUE);
 	}
 }
 
@@ -747,7 +747,7 @@ void edit_change_transaction_date(file_data *file, int transaction, date_t new_d
 			force_transaction_window_redraw(file, line, line);
 		}
 
-		set_file_data_integrity(file, TRUE);
+		file_set_data_integrity(file, TRUE);
 	}
 }
 
@@ -810,7 +810,7 @@ static void edit_change_transaction_amount(file_data *file, int transaction, amt
 			force_transaction_window_redraw(file, line, line);
 		}
 
-		set_file_data_integrity(file, TRUE);
+		file_set_data_integrity(file, TRUE);
 	}
 }
 
@@ -882,7 +882,7 @@ void edit_change_transaction_refdesc(file_data *file, int transaction, wimp_i ta
 			force_transaction_window_redraw(file, line, line);
 		}
 
-		set_file_data_integrity(file, TRUE);
+		file_set_data_integrity(file, TRUE);
 	}
 }
 
@@ -995,7 +995,7 @@ void edit_change_transaction_account(file_data *file, int transaction, wimp_i ta
 			force_transaction_window_redraw(file, line, line);
 		}
 
-		set_file_data_integrity(file, TRUE);
+		file_set_data_integrity(file, TRUE);
 	}
 }
 
@@ -1054,7 +1054,7 @@ void edit_insert_preset_into_transaction(file_data *file, int transaction, int p
 			force_transaction_window_redraw(file, line, line);
 		}
 
-		set_file_data_integrity(file, TRUE);
+		file_set_data_integrity(file, TRUE);
 	}
 }
 
@@ -1189,7 +1189,7 @@ static void edit_delete_line_transaction_content(file_data *file)
 	edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
 	edit_set_line_shading(file);
 
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 }
 
 
@@ -1562,7 +1562,7 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
 	 */
 
 	if (changed == TRUE) {
-		set_file_data_integrity(file, TRUE);
+		file_set_data_integrity(file, TRUE);
 
 		if (preset != NULL_PRESET) {
 			/* There is a special case for a preset, since although the caret

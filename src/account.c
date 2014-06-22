@@ -1228,7 +1228,7 @@ static void account_adjust_window_columns(void *data, wimp_i icon, int width)
 
 	windows_open(window.w);
 
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 }
 
 
@@ -1313,7 +1313,7 @@ void account_build_window_title(file_data *file, int entry)
 	if (file == NULL || file->account_windows[entry].account_window == NULL)
 		return;
 
-	make_file_leafname(file, name, sizeof(name));
+	file_get_leafname(file, name, sizeof(name));
 
 	switch (file->account_windows[entry].type) {
 	case ACCOUNT_FULL:
@@ -2391,7 +2391,7 @@ static osbool account_process_acc_edit_window(void)
 	force_transaction_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
 	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
 	accview_redraw_all(edit_account_file);
-	set_file_data_integrity(edit_account_file, 1);
+	file_set_data_integrity(edit_account_file, TRUE);
 
 	return TRUE;
 }
@@ -2446,7 +2446,7 @@ static osbool account_process_hdg_edit_window(void)
 	force_transaction_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
 	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
 	accview_redraw_all(edit_account_file);
-	set_file_data_integrity(edit_account_file, 1);
+	file_set_data_integrity(edit_account_file, TRUE);
 
 	return TRUE;
 }
@@ -2664,7 +2664,7 @@ static osbool account_process_section_window(void)
 	windows_open(account_section_file->account_windows[account_section_entry].account_window);
 	account_force_window_redraw(account_section_file, account_section_entry,
 			0, account_section_file->account_windows[account_section_entry].display_lines);
-	set_file_data_integrity(account_section_file, 1);
+	file_set_data_integrity(account_section_file, TRUE);
 
 	return TRUE;
 }
@@ -2694,7 +2694,7 @@ static osbool account_delete_from_section_window(void)
 	windows_open(account_section_file->account_windows[account_section_entry].account_window);
 	account_force_window_redraw(account_section_file, account_section_entry,
 			0, account_section_file->account_windows[account_section_entry].display_lines);
-	set_file_data_integrity(account_section_file, 1);
+	file_set_data_integrity(account_section_file, TRUE);
 
 	return TRUE;
 }
@@ -2776,7 +2776,7 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 
 	/* Output the page title. */
 
-	make_file_leafname(account_print_file, numbuf1, sizeof(numbuf1));
+	file_get_leafname(account_print_file, numbuf1, sizeof(numbuf1));
 	switch (window->type) {
 	case ACCOUNT_FULL:
 		msgs_param_lookup("AcclistTitleAcc", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
@@ -3120,7 +3120,7 @@ osbool account_delete(file_data *file, acct_t account)
 	/* Update the transaction window toolbar. */
 
 	update_transaction_window_toolbar(file);
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 
 	return TRUE;
 }
@@ -3550,7 +3550,7 @@ static void account_terminate_drag(wimp_dragged *drag, void *data)
 	/* Tidy up and redraw the windows */
 
 	perform_full_recalculation(account_dragging_file);
-	set_file_data_integrity(account_dragging_file, 1);
+	file_set_data_integrity(account_dragging_file, TRUE);
 	account_force_window_redraw(account_dragging_file, account_dragging_entry,
 			0, account_dragging_file->account_windows[account_dragging_entry].display_lines - 1);
 

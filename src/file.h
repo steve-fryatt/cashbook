@@ -69,14 +69,56 @@ file_data *find_transaction_window_file_block (wimp_w window);
 /* Saved files and data integrity */
 
 int  check_for_unsaved_files (void);
-void set_file_data_integrity(file_data *data, osbool unsafe);
-osbool check_for_filepath (file_data *file);
 
-/* Default filenames. */
 
-char *make_file_pathname (file_data *file, char *path, int len);
-char *make_file_leafname (file_data *file, char *leaf, int len);
-char *generate_default_title (file_data *file, char *name, int length);
+/**
+ * Set the 'unsaved' state of a file.
+ *
+ * \param *file		The file to update.
+ * \param unsafe	TRUE if the file has unsaved data; FALSE if not.
+ */
+
+void file_set_data_integrity(file_data *file, osbool unsafe);
+
+
+/**
+ * Check if the file has a full save path (ie. it has been saved before, or has
+ * been loaded from disc).
+ *
+ * \param *file		The file to test.
+ * \return		TRUE if there is a full filepath; FALSE if not.
+ */
+
+osbool file_check_for_filepath(file_data *file);
+
+
+/**
+ * Return a path-name string for the current file, using the <Untitled n>
+ * format if the file hasn't been saved.
+ *
+ * \param *file		The file to build a pathname for.
+ * \param *path		The buffer to return the pathname in.
+ * \param len		The length of the supplied buffer.
+ * \return		A pointer to the supplied buffer.
+ */
+
+char *file_get_pathname(file_data *file, char *path, int len);
+
+
+/**
+ * Return a leaf-name string for the current file, using the <Untitled n>
+ * format if the file hasn't been saved.
+ *
+ * \param *file		The file to build a leafname for.
+ * \param *leaf		The buffer to return the leafname in.
+ * \param len		The length of the supplied buffer.
+ * \return		A pointer to the supplied buffer.
+ */
+
+char *file_get_leafname(file_data *file, char *leaf, int len);
+
+
+
 
 /* General file redraw. */
 

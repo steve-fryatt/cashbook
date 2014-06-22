@@ -1094,7 +1094,7 @@ static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
 
 	windows_open(window.w);
 
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 }
 
 
@@ -1261,7 +1261,7 @@ void sorder_build_window_title(file_data *file)
 	if (file == NULL || file->sorder_window.sorder_window == NULL)
 		return;
 
-	make_file_leafname(file, name, sizeof(name));
+	file_get_leafname(file, name, sizeof(name));
 
 	msgs_param_lookup("SOrderTitle", file->sorder_window.window_title,
 			sizeof(file->sorder_window.window_title),
@@ -1819,7 +1819,7 @@ static osbool sorder_process_edit_window(void)
 	else
 		sorder_force_window_redraw(sorder_edit_file, sorder_edit_number, sorder_edit_number);
 
-	set_file_data_integrity(sorder_edit_file, TRUE);
+	file_set_data_integrity(sorder_edit_file, TRUE);
 	sorder_process(sorder_edit_file);
 	perform_full_recalculation(sorder_edit_file);
 	transact_set_window_extent(sorder_edit_file);
@@ -1873,7 +1873,7 @@ static osbool sorder_stop_from_edit_window(void)
 		sorder_sort(sorder_edit_file);
 	else
 		sorder_force_window_redraw(sorder_edit_file, sorder_edit_number, sorder_edit_number);
-	set_file_data_integrity(sorder_edit_file, TRUE);
+	file_set_data_integrity(sorder_edit_file, TRUE);
 
 	return TRUE;
 }
@@ -2087,7 +2087,7 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 
 	/* Output the page title. */
 
-	make_file_leafname(sorder_print_file, numbuf1, sizeof (numbuf1));
+	file_get_leafname(sorder_print_file, numbuf1, sizeof (numbuf1));
 	msgs_param_lookup("SOrderTitle", buffer, sizeof (buffer), numbuf1, NULL, NULL, NULL);
 	sprintf(line, "\\b\\u%s", buffer);
 	report_write_line(report, 0, line);
@@ -2379,7 +2379,7 @@ static osbool sorder_delete(file_data *file, int sorder)
 		}
 	}
 
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 
 	return TRUE;
 }
@@ -2485,7 +2485,7 @@ void sorder_process(file_data *file)
 	/* Refresh things if they have changed. */
 
 	if (changed) {
-		set_file_data_integrity(file, TRUE);
+		file_set_data_integrity(file, TRUE);
 		file->sort_valid = 0;
 
 		if (config_opt_read("SortAfterSOrders")) {
@@ -2598,7 +2598,7 @@ void sorder_full_report(file_data *file)
 
 	hourglass_on();
 
-	make_file_leafname(file, numbuf1, sizeof(numbuf1));
+	file_get_leafname(file, numbuf1, sizeof(numbuf1));
 	msgs_param_lookup("SORTitle", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 

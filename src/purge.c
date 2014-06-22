@@ -370,7 +370,7 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 
 	*(file->filename) = '\0';
 	build_transaction_window_title(file);
-	set_file_data_integrity(file, 1);
+	file_set_data_integrity(file, TRUE);
 
 	/* Put the caret into the first empty line. */
 

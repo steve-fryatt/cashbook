@@ -228,7 +228,7 @@ static osbool budget_process_window(void)
 
 	sorder_trial(budget_window_file);
 	perform_full_recalculation(budget_window_file);
-	set_file_data_integrity(budget_window_file, TRUE);
+	file_set_data_integrity(budget_window_file, TRUE);
 	redraw_file_windows(budget_window_file);
 
 	return TRUE;

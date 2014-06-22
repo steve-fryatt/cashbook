@@ -103,8 +103,9 @@ static struct saveas_block	*file_saveas_file = NULL;			/**< The Save File saveas
 
 
 
-static osbool file_save_file(char *filename, osbool selection, void *data);
+static osbool	file_save_file(char *filename, osbool selection, void *data);
 
+static char	*file_get_default_title(file_data *file, char *name, size_t len);
 
 /**
  * Initialise the overall file system.
@@ -395,7 +396,7 @@ void delete_file (file_data *file)
 		if (button == 3) {
 			wimp_get_pointer_info(&pointer);
 
-			if (check_for_filepath(file))
+			if (file_check_for_filepath(file))
 				filename = file->filename;
 			else
 				filename = "DefTransFile";
@@ -613,9 +614,15 @@ int check_for_unsaved_files (void)
   return (modified || pending);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void set_file_data_integrity(file_data *file, osbool unsafe)
+/**
+ * Set the 'unsaved' state of a file.
+ *
+ * \param *file		The file to update.
+ * \param unsafe	TRUE if the file has unsaved data; FALSE if not.
+ */
+
+void file_set_data_integrity(file_data *file, osbool unsafe)
 {
 	if (file != NULL && file->modified != unsafe) {
 		file->modified = unsafe;
@@ -623,70 +630,108 @@ void set_file_data_integrity(file_data *file, osbool unsafe)
 	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Return true if the file has a full save path (ie. it has been saved before, or loaded from disc). */
+/**
+ * Check if the file has a full save path (ie. it has been saved before, or has
+ * been loaded from disc).
+ *
+ * \param *file		The file to test.
+ * \return		TRUE if there is a full filepath; FALSE if not.
+ */
 
-osbool check_for_filepath(file_data *file)
+osbool file_check_for_filepath(file_data *file)
 {
+	if (file == NULL)
+		return FALSE;
+
 	return (*(file->filename) != '\0') ? TRUE : FALSE;
 }
 
-/* ==================================================================================================================
- * Default filenames
+
+
+
+/**
+ * Return a path-name string for the current file, using the <Untitled n>
+ * format if the file hasn't been saved.
+ *
+ * \param *file		The file to build a pathname for.
+ * \param *path		The buffer to return the pathname in.
+ * \param len		The length of the supplied buffer.
+ * \return		A pointer to the supplied buffer.
  */
 
-/* Return a path-name string for the current file, using the <Untitled n> format if the file hasn't been saved. */
-
-char *make_file_pathname (file_data *file, char *path, int len)
+char *file_get_pathname(file_data *file, char *path, int len)
 {
+	if (file == NULL) {
+		if (path != NULL && len > 0)
+			*path = '\0';
 
-  if (*(file->filename) != '\0')
-  {
-    strcpy (path, file->filename);
-  }
-  else
-  {
-    generate_default_title (file, path, len);
-  }
+		return path;
+	}
 
-  return (path);
+	if (*(file->filename) != '\0')
+		strncpy(path, file->filename, len);
+	else
+		file_get_default_title(file, path, len);
+
+	return path;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Return a leaf-name string for the current file, using the <Untitled n> format if the file hasn't been saved. */
+/**
+ * Return a leaf-name string for the current file, using the <Untitled n>
+ * format if the file hasn't been saved.
+ *
+ * \param *file		The file to build a leafname for.
+ * \param *leaf		The buffer to return the leafname in.
+ * \param len		The length of the supplied buffer.
+ * \return		A pointer to the supplied buffer.
+ */
 
-char *make_file_leafname (file_data *file, char *leaf, int len)
+char *file_get_leafname(file_data *file, char *leaf, int len)
 {
+	if (file == NULL) {
+		if (leaf != NULL && len > 0)
+			*leaf = '\0';
 
-  if (*(file->filename) != '\0')
-  {
-    strcpy (leaf, string_find_leafname(file->filename));
-  }
-  else
-  {
-    generate_default_title (file, leaf, len);
-  }
+		return leaf;
+	}
 
-  return (leaf);
+	if (*(file->filename) != '\0')
+		strncpy(leaf, string_find_leafname(file->filename), len);
+	else
+		file_get_default_title(file, leaf, len);
+
+	return leaf;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Build a title of the form <Untitled n> for the specified file block. */
+/**
+ * Build a title of the form <Untitled n> for the specified file block,
+ * returning it in the supplied buffer.
+ *
+ * \param *file		The file to build a title for.
+ * \param *name		The buffer to return the title in.
+ * \param len		The length of the supplied buffer.
+ * \return		A pointer to the supplied buffer.
+ */
 
-char *generate_default_title (file_data *file, char *name, int len)
+static char *file_get_default_title(file_data *file, char *name, size_t len)
 {
-  char number[256];
+	char	number[256];
 
+	if (name == NULL)
+		return name;
 
-  *name = '\0';
+	*name = '\0';
 
-  sprintf (number, "%d", file->untitled_count);
-  msgs_param_lookup ("DefTitle", name, len, number, NULL, NULL, NULL);
+	if (file == NULL)
+		return name;
 
-  return (name);
+	snprintf(number, len, "%d", file->untitled_count);
+	msgs_param_lookup("DefTitle", name, len, number, NULL, NULL, NULL);
+
+	return name;
 }
 
 /* ==================================================================================================================

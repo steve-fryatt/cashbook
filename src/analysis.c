@@ -852,7 +852,7 @@ static void analysis_generate_transaction_report(file_data *file)
 
 	/* Output report heading */
 
-	 make_file_leafname(file, b1, sizeof(b1));
+	file_get_leafname(file, b1, sizeof(b1));
 	if (*analysis_report_template.name != '\0')
 		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
 	else
@@ -1502,7 +1502,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 	/* Output report heading */
 
-	make_file_leafname(file, b1, sizeof(b1));
+	file_get_leafname(file, b1, sizeof(b1));
 	if (*analysis_report_template.name != '\0')
 		msgs_param_lookup("GRTitle", line, sizeof (line), analysis_report_template.name, b1, NULL, NULL);
 	else
@@ -2087,7 +2087,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	/* Output report heading */
 
-	make_file_leafname(file, b1, sizeof(b1));
+	file_get_leafname(file, b1, sizeof(b1));
 	if (*analysis_report_template.name != '\0')
 		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
 	else
@@ -2647,7 +2647,7 @@ static void analysis_generate_balance_report(file_data *file)
 
 	/* Output report heading */
 
-	make_file_leafname(file, b1, sizeof(b1));
+	file_get_leafname(file, b1, sizeof(b1));
 	if (*analysis_report_template.name != '\0')
 		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
 	else
@@ -3867,7 +3867,7 @@ static osbool analysis_process_save_window(void)
 
 			/* Mark the file has being modified. */
 
-			set_file_data_integrity(analysis_save_file, 1);
+			file_set_data_integrity(analysis_save_file, TRUE);
 		}
 		break;
 
@@ -4152,7 +4152,7 @@ static void analysis_store_template(file_data *file, saved_report *report, int t
 
 	if (template >= 0 && template < file->saved_report_count) {
 		analysis_copy_template(&(file->saved_reports[template]), report);
-		set_file_data_integrity(file, TRUE);
+		file_set_data_integrity(file, TRUE);
 	}
 }
 
@@ -4180,7 +4180,7 @@ static void analysis_delete_template(file_data *file, int template)
 
 	flex_midextend((flex_ptr) &(file->saved_reports), (template + 1) * sizeof(saved_report), -sizeof(saved_report));
 	file->saved_report_count--;
-	set_file_data_integrity(file, TRUE);
+	file_set_data_integrity(file, TRUE);
 
 	/* If the rename template window is open for this template, close it now before the pointer is lost. */
 

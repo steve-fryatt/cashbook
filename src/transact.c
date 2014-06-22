@@ -1738,7 +1738,7 @@ static void transact_adjust_sort_icon(file_data *file)
  * \param *icon			The icon to be updated.
  */
 
-static void transact_adjust_sort_icon_data (file_data *file, wimp_icon *icon)
+static void transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
 {
 	int	i = 0, width, anchor;
 
@@ -1770,12 +1770,12 @@ static void transact_adjust_sort_icon_data (file_data *file, wimp_icon *icon)
 		break;
 
 	case SORT_AMOUNT:
-		i = TRANSACT_PANE_AMOUNT;
+		i = TRANSACT_ICON_AMOUNT;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_AMOUNT;
 		break;
 
 	case SORT_DESCRIPTION:
-		i = TRANSACT_PANE_DESCRIPTION;
+		i = TRANSACT_ICON_DESCRIPTION;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_DESCRIPTION;
 		break;
 	}

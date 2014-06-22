@@ -1,6 +1,7 @@
 <document title="CashBook">
 <define name="version" value="">
 <define name="date" value="" length=30 align="right">
+<define name="sprites" value="Sprites">
 
 
 
@@ -278,9 +279,9 @@ Transactions have four main pieces of information associated with them, which ar
 
 </list>
 
-In addition to these items, each transaction can have a reference (such as a cheque or invoice number) and a descriptive text to help identify the purpose of the transaction.
+In addition to these items, each transaction has a number allocated to it by <cite>CashBook</cite> and can also have a reference (such as a cheque or invoice number) and a descriptive text to help identify the purpose of the transaction.
 
-Place the caret into the first line of the <icon>Date</icon> column, by clicking there with the mouse. The date on that food receipt is 27 May 2005, so enter <entry>27-05-2005</entry> and press <key>return</key> to move to the next column.
+Place the caret into the first line of the <icon>Date</icon> column, by clicking there with the mouse. The date on that food receipt is 27 May 2005, so enter <entry>27-05-2005</entry> and press <key>return</key> to move to the next column. As you start to type, <cite>CashBook</cite> will allocate a number to the transaction and place it in the <icon>No</icon> column to the left.
 
 The <icon>From</icon> column shows the account or heading from which the transaction takes money: since the food was paid for by cheque, this will be our current account. Enter the ident of the current account, which is <entry>Cur</entry>. As the third character is typed, the full account name should be filled in on the right of the column; if not, check that you entered it correctly both here and in the account definition. Press <key>Return</key> again, to move to the next column.
 
@@ -304,7 +305,7 @@ In the outgoing headings list, the total and actual balances for food have incre
 
 Now that we have seen that the food transaction has been recorded correctly, the other transactions need to be added. Return to the <window>transactions</window> window, and place the caret into the <icon>Date</icon> column of the first blank line; if the caret was still in the <icon>Description</icon> column from the food purchase, then pressing <key>return</key> will do this automatically.
 
-When we opened that savings account, on 2 June 2005, we paid in £500 by cheque.  Enter the <icon>Date</icon> as <entry>2-6-2005</entry>, and the <entry>Cur</entry> account in the <icon>From</icon> column, pressing <key>return</key> to move from column to column. The money will be moving to the savings account, so <entry>Sav</entry> could be entered into the <icon>To</icon> column as we did before.
+When we opened that savings account, on 2 June 2005, we paid in £500 by cheque.  Enter the <icon>Date</icon> as <entry>2-6-2005</entry>, and the <entry>Cur</entry> account in the <icon>From</icon> column, pressing <key>return</key> to move from column to column. Again, <cite>CashBook</cite> will allocate a transaction number for us. The money will be moving to the savings account, so <entry>Sav</entry> could be entered into the <icon>To</icon> column as we did before.
 
 However, there is another way to select accounts and analysis headings when the ident is hard to remember. Click <mouse>adjust</mouse> over the row with the caret, in the right-hand part of the <icon>To</icon> column, and a menu will appear listing the accounts and outgoing analysis headings that can be entered: select <menu>Accounts &msep; Savings Account</menu>, and the account name will be entered as if the ident had been typed. Press <key>return</key> until the caret is in the <icon>Reference</icon> column, then press <key>f1</key> again to enter 100032 as the cheque number. Finally, enter <entry>500</entry> in the <icon>Amount</icon> column.
 
@@ -467,7 +468,7 @@ The resulting edit dialogues allow the details of the account, analysis heading 
 
 <subhead title="Statement views">
 
-A statement view brings together all the <link ref="Transact">transactions</link> associated with an account or analysis heading and presents them in the format of a bank statement. The details shown are transaction date, the other account or heading, reconciled status, reference, payment or receipt and the description.
+A statement view brings together all the <link ref="Transact">transactions</link> associated with an account or analysis heading and presents them in the format of a bank statement. The details shown are transaction number, date, the other account or heading, reconciled status, reference, payment or receipt and the description.
 
 To open a statement view for an account or analysis heading, double-click <mouse>select</mouse> on the entry in the <window>accounts list</window> or <window>headings list</window> window. Clicking <mouse>menu</mouse> over the line and selecting <menu>View account...</menu> or <menu>View heading...</menu> has the same effect. For accounts, statement views can be opened from the main menu using <menu>Accounts &msep; View account &msep;</menu>; this menu is also available by clicking on the <icon>view account</icon> button in the transaction window toolbar.
 
@@ -533,6 +534,8 @@ The contents of the window can also be printed, by selecting <menu>File &msep; P
 A transaction consists of the information required to move money from one location to another. It can move money between accounts, from accounts to analysis headings or from analysis headings to accounts. Entries consist of up to six pieces of information, as follows:
 
 <list spacing=1>
+<li>The <icon>No</icon> column shows the number of the transaction as it is known to <cite>CashBook</cite>. These numbers are allocated sequentially from the start of the file, and appear in the <window>transaction</window> and <window>statement view</window> windows as well as, printed output, exported data and reports. Transaction numbers can not be changed by the user.
+
 <li>The <icon>Date</icon> shows when the transaction occurred, and may be any date from the year 100 to the year 9999. The date is used to sort transactions for analysis and budgeting, and allows post-dated entries (those with dates ahead of the current date from the computer&rsquo;s clock) to be identified.
 
 <li>The <icon>From</icon> field shows the account or heading from which the money will be taken.  If you are making a payment from an account, that account will go here; otherwise, a heading corresponding to the source of the money (such as &lsquo;Wages&rsquo; or &lsquo;Bank interest&rsquo;) or another account from which the money is being transferred will be entered.
@@ -547,6 +550,10 @@ A transaction consists of the information required to move money from one locati
 </list>
 
 The from and to fields both have a reconciled flag, which can be set to indicate that the entry has been checked against a bank, building society or credit card statement.  When the field refers to an account, the flag is initially unset; for analysis headings, the flag is always set and has no meaning.
+
+<box type="warning">
+Transaction numbers are allocated sequentially in date order. Although they usually remain constant, if a new transaction is entered with a date which places it before other transactions in the file then the numbers of those following transactions will each increase by one.
+</box>
 
 
 <subhead title="Entering transactions">
@@ -1491,10 +1498,15 @@ Fourth stable release.
 
 Alpha release for testing and feedback.
 
+<box type="warning">
+This test build changes the file format used by <cite>CashBook</cite>. Files from earlier versions of the software will load into these test builds without problem, but once saved they can not be used in version&nbsp;1.30 or earlier without some manual editing of their content. Take backups of your data before loading it into a test build.
+</box>
+
 <list>
 <li>Re-implemented Data Transfer support code into more more modern format.
-<li>Correctly carry column headings across from first page when printing reports (Bug&nbsp;#409).
-<li>Add transaction numbers to all transaction views.
+<li>Correctly carry column headings across from first page when printing reports (ticket&nbsp;#409).
+<li>Add transaction numbers to all transaction views and reports (tickets #430 and&nbsp;#494).
+<li>Remove escaped characters from print job titles (ticket&nbsp;#509).
 </list>
 
 </chapter>

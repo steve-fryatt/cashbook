@@ -126,6 +126,7 @@
 #define ACCVIEW_SORT_DESCRIPTION 10
 #define ACCVIEW_SORT_ASCENDING 11
 #define ACCVIEW_SORT_DESCENDING 12
+#define ACCVIEW_SORT_ROW 13
 
 /* AccView menu */
 
@@ -255,6 +256,7 @@ void accview_initialise(osspriteop_area *sprites)
 	ihelp_add_window(accview_sort_window, "SortAccView", NULL);
 	event_add_window_mouse_event(accview_sort_window, accview_sort_click_handler);
 	event_add_window_key_event(accview_sort_window, accview_sort_keypress_handler);
+	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_ROW, TRUE);
 	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_DATE, TRUE);
 	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_FROMTO, TRUE);
 	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_REFERENCE, TRUE);
@@ -653,6 +655,10 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			windat->sort_order = SORT_NONE;
 
 			switch (pointer->i) {
+			case ACCVIEW_PANE_ROW:
+				windat->sort_order = SORT_ROW;
+				break;
+
 			case ACCVIEW_PANE_DATE:
 				windat->sort_order = SORT_DATE;
 				break;
@@ -1320,6 +1326,11 @@ static void accview_adjust_sort_icon_data(file_data *file, acct_t account, wimp_
 		strcpy((file->accounts[account].account_view)->sort_sprite, "sortarru");
 
 	switch ((file->accounts[account].account_view)->sort_order & SORT_MASK) {
+	case SORT_ROW:
+		i = ACCVIEW_ICON_ROW;
+		accview_substitute_sort_icon = ACCVIEW_PANE_ROW;
+		break;
+
 	case SORT_DATE:
 		i = ACCVIEW_ICON_DATE;
 		accview_substitute_sort_icon = ACCVIEW_PANE_DATE;
@@ -1358,7 +1369,8 @@ static void accview_adjust_sort_icon_data(file_data *file, acct_t account, wimp_
 
 	width = icon->extent.x1 - icon->extent.x0;
 
-	if (((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_PAYMENTS ||
+	if (((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_ROW ||
+			((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_PAYMENTS ||
 			((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_RECEIPTS ||
 			((file->accounts[account].account_view)->sort_order & SORT_MASK) == SORT_BALANCE) {
 		anchor = (file->accounts[account].account_view)->column_position[i] + COLUMN_HEADING_MARGIN;
@@ -1625,6 +1637,7 @@ static void accview_refresh_sort_window(void)
 
 static void accview_fill_sort_window(int sort_option)
 {
+	icons_set_selected(accview_sort_window, ACCVIEW_SORT_ROW, (sort_option & SORT_MASK) == SORT_ROW);
 	icons_set_selected(accview_sort_window, ACCVIEW_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
 	icons_set_selected(accview_sort_window, ACCVIEW_SORT_FROMTO, (sort_option & SORT_MASK) == SORT_FROMTO);
 	icons_set_selected(accview_sort_window, ACCVIEW_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
@@ -1648,7 +1661,9 @@ static osbool accview_process_sort_window(void)
 {
 	(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_NONE;
 
-	if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_DATE))
+	if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_ROW))
+		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_ROW;
+	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_DATE))
 		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_DATE;
 	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_FROMTO))
 		(accview_sort_file->accounts[accview_sort_account].account_view)->sort_order = SORT_FROMTO;
@@ -1880,6 +1895,16 @@ void accview_sort(file_data *file, int account)
 		sorted = TRUE;
 		for (comb = 0; (comb + gap) < window->display_lines; comb++) {
 			switch (order) {
+			case SORT_ROW | SORT_ASCENDING:
+				reorder = (transact_get_transaction_number(window->line_data[window->line_data[comb+gap].sort_index].transaction) <
+						transact_get_transaction_number(window->line_data[window->line_data[comb].sort_index].transaction));
+				break;
+
+			case SORT_ROW | SORT_DESCENDING:
+				reorder = (transact_get_transaction_number(window->line_data[window->line_data[comb+gap].sort_index].transaction) >
+						transact_get_transaction_number(window->line_data[window->line_data[comb].sort_index].transaction));
+				break;
+
 			case SORT_DATE | SORT_ASCENDING:
 				reorder = (file->transactions[window->line_data[window->line_data[comb+gap].sort_index].transaction].date <
 						file->transactions[window->line_data[window->line_data[comb].sort_index].transaction].date);

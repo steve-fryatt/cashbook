@@ -191,6 +191,7 @@
 #define TRANS_SORT_DESCRIPTION 9
 #define TRANS_SORT_ASCENDING 10
 #define TRANS_SORT_DESCENDING 11
+#define TRANS_SORT_ROW 12
 
 #define FILEINFO_ICON_FILENAME 1
 #define FILEINFO_ICON_MODIFIED 3
@@ -300,6 +301,7 @@ void transact_initialise(osspriteop_area *sprites)
 	ihelp_add_window(transact_sort_window, "SortTrans", NULL);
 	event_add_window_mouse_event(transact_sort_window, transact_sort_click_handler);
 	event_add_window_key_event(transact_sort_window, transact_sort_keypress_handler);
+	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_ROW, TRUE);
 	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_DATE, TRUE);
 	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_FROM, TRUE);
 	event_add_window_icon_radio(transact_sort_window, TRANS_SORT_TO, TRUE);
@@ -824,6 +826,10 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			file->transaction_window.sort_order = SORT_NONE;
 
 			switch (pointer->i) {
+			case TRANSACT_PANE_ROW:
+				file->transaction_window.sort_order = SORT_ROW;
+				break;
+
 			case TRANSACT_PANE_DATE:
 				file->transaction_window.sort_order = SORT_DATE;
 				break;
@@ -1749,6 +1755,11 @@ static void transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
 		strcpy(file->transaction_window.sort_sprite, "sortarru");
 
 	switch (file->transaction_window.sort_order & SORT_MASK) {
+	case SORT_ROW:
+		i = TRANSACT_ICON_ROW;
+		transaction_pane_sort_substitute_icon = TRANSACT_PANE_ROW;
+		break;
+
 	case SORT_DATE:
 		i = TRANSACT_ICON_DATE;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_DATE;
@@ -1782,7 +1793,8 @@ static void transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
 
 	width = icon->extent.x1 - icon->extent.x0;
 
-	if ((file->transaction_window.sort_order & SORT_MASK) == SORT_AMOUNT) {
+	if ((file->transaction_window.sort_order & SORT_MASK) == SORT_ROW ||
+			(file->transaction_window.sort_order & SORT_MASK) == SORT_AMOUNT) {
 		anchor = file->transaction_window.column_position[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
 		icon->extent.x1 = icon->extent.x0 + width;
@@ -2740,6 +2752,7 @@ static void transact_refresh_sort_window(void)
 
 static void transact_fill_sort_window(int sort_option)
 {
+	icons_set_selected(transact_sort_window, TRANS_SORT_ROW, (sort_option & SORT_MASK) == SORT_ROW);
 	icons_set_selected(transact_sort_window, TRANS_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
 	icons_set_selected(transact_sort_window, TRANS_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
 	icons_set_selected(transact_sort_window, TRANS_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
@@ -2763,7 +2776,9 @@ static osbool transact_process_sort_window(void)
 {
 	transact_sort_file->transaction_window.sort_order = SORT_NONE;
 
-	if (icons_get_selected(transact_sort_window, TRANS_SORT_DATE))
+	if (icons_get_selected(transact_sort_window, TRANS_SORT_ROW))
+		transact_sort_file->transaction_window.sort_order = SORT_ROW;
+	else if (icons_get_selected(transact_sort_window, TRANS_SORT_DATE))
 		transact_sort_file->transaction_window.sort_order = SORT_DATE;
 	else if (icons_get_selected(transact_sort_window, TRANS_SORT_FROM))
 		transact_sort_file->transaction_window.sort_order = SORT_FROM;
@@ -2844,6 +2859,16 @@ void transact_sort(file_data *file)
 		sorted = TRUE;
 		for (comb = 0; (comb + gap) < file->trans_count; comb++) {
 			switch (order) {
+			case SORT_ROW | SORT_ASCENDING:
+				reorder = (transact_get_transaction_number(file->transactions[comb+gap].sort_index) <
+						transact_get_transaction_number(file->transactions[comb].sort_index));
+				break;
+
+			case SORT_ROW | SORT_DESCENDING:
+				reorder = (transact_get_transaction_number(file->transactions[comb+gap].sort_index) >
+						transact_get_transaction_number(file->transactions[comb].sort_index));
+				break;
+
 			case SORT_DATE | SORT_ASCENDING:
 				reorder = (file->transactions[file->transactions[comb+gap].sort_index].date <
 						file->transactions[file->transactions[comb].sort_index].date);

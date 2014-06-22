@@ -226,6 +226,7 @@ enum account_line_type {
 #define SORT_TO          0x00003
 #define SORT_REFERENCE   0x00004
 #define SORT_DESCRIPTION 0x00005
+#define SORT_ROW         0x00006
 
 #define SORT_AMOUNT      0x00010
 

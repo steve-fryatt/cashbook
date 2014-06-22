@@ -398,7 +398,7 @@ Help.Transact.Col8:\Treference column, allowing a short reference to be included
 Help.Transact.Col9:\Tamount column, showing the amount of money transferred.|M\Splace the caret.
 Help.Transact.Col10:\Tdescription column, which allows any other information to be recorded.|M\Splace the caret.|M\Ainsert a copy of an existing description.
 
-Help.TransactTB.ColNo/Help.AccViewTB.ColNo/Help.HeadViewTB.ColNo:\Ttransaction number column.|M\Dchange the column width.
+Help.TransactTB.ColNo/Help.AccViewTB.ColNo/Help.HeadViewTB.ColNo:\Ttransaction number column.|M\Ssort the entries in ascending order by transaction number, or \a for descending.|M\Dchange the column width.
 Help.TransactTB.ColDate/Help.AccViewTB.ColDate/Help.HeadViewTB.ColDate:\Tdate column.|M\Ssort the entries in ascending order by date, or \a for descending.|M\Dchange the column width.
 Help.TransactTB.ColFrom/Help.SOrderTB.ColFrom/Help.PresetTB.ColFrom:\Tfrom column.|M\Ssort the entries in ascending order by from entry, or \a for descending.|M\Dchange the column width.
 Help.TransactTB.ColTo/Help.SOrderTB.ColTo/Help.PresetTB.ColTo:\Tto column.|M\Ssort the entries in ascending order by to entry, or \a for descending.|M\Dchange the column width.
@@ -641,6 +641,7 @@ Help.Found.Cancel:\Send the search.
 Help.Found.New:\Sstart a new search based on the current one.
 
 Help.SortTrans:\Ttransaction sort \w.
+Help.SortTrans.Row:\Ssort the transactions based on transaction number.
 Help.SortTrans.Date:\Ssort the transactions based on date order.
 Help.SortTrans.From:\Ssort the transactions based on the account and analysis heading names in the from field.
 Help.SortTrans.To:\Ssort the transactions based on the account and analysis heading names in the to field.
@@ -652,6 +653,7 @@ Help.SortTrans.Descend:\Ssort the transactions into descending order.
 Help.SortTrans.Sort:\Supdate the settings and sort the transactions.
 
 Help.SortAccView:\Taccount entry sort \w.
+Help.SortAccView.Row:\Ssort the account entries based on transaction number.
 Help.SortAccView.Date:\Ssort the account entries based on date order.
 Help.SortAccView.FromTo:\Ssort the account entries based on the account and analysis heading names in the from/to field.
 Help.SortAccView.Ref:\Ssort the account entries based on the references.

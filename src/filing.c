@@ -89,6 +89,8 @@
  * Global Variables
  */
 
+#define FILING_CURRENT_FORMAT 101
+
 static file_data		*import_window_file = NULL;
 static wimp_w			filing_import_window = NULL;
 
@@ -122,7 +124,7 @@ void load_transaction_file(char *filename)
 	bits		load;
 	file_data	*file;
 	FILE		*in;
-	osbool		unknown_data = FALSE;
+	osbool		unknown_data = FALSE, unknown_format = FALSE;
 
 	#ifdef DEBUG
 	debug_printf("\\BLoading accounts file");
@@ -183,17 +185,29 @@ void load_transaction_file(char *filename)
 						value[3] = '\0';
 
 						file_format = atoi(value);
+
+						if (file_format > FILING_CURRENT_FORMAT)
+							unknown_format = TRUE;
 					} else {
 						unknown_data = TRUE;
 					}
 				}
 
 				result = config_read_token_pair(in, token, value, section);
-			} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+			} while (unknown_format == FALSE && result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
 		}
-	} while (result != sf_READ_CONFIG_EOF);
+	} while (unknown_format == FALSE && result != sf_READ_CONFIG_EOF);
 
 	fclose(in);
+
+	/* If the file format wasn't understood, get out now. */
+
+	if (unknown_format) {
+		delete_file(file);
+		hourglass_off();
+		error_msgs_report_error("UnknownFileFormat");
+		return;
+	}
 
 	/* Get the datestamp of the file. */
 
@@ -312,7 +326,7 @@ void save_transaction_file(file_data *file, char *filename)
 	fprintf(out, "# CashBook file\n");
 	fprintf(out, "# Written by CashBook\n\n");
 
-	fprintf(out, "Format: 1.01\n");
+	fprintf(out, "Format: %1.2f\n", ((double) FILING_CURRENT_FORMAT) / 100.0);
 
 	/* Output the budget data */
 

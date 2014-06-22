@@ -231,6 +231,7 @@ FileSaveFail:The file could not be saved.
 FileLoadFail:The file could not be loaded.
 NoMemForLoad:There was not enough memory to load the file.
 UnknownFileData:The file contained tokens which this version of CashBook did not understand. These have been discarded, and saving the file will cause that information to be lost.
+UnknownFileFormat:The file is in a format newer than that understood by this version of CashBook. Try loading it into a newer version of the application.
 DragSave:To save, enter a full pathname or drag the file to a directory viewer.
 URLFailed:Could not find an application to launch the given URL.
 RAMXferFail:The data was not received correctly by the other application.

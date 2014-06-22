@@ -926,7 +926,8 @@ static void analysis_generate_transaction_report(file_data *file)
 
 					convert_money_to_string(file->transactions[i].amount, b2);
 
-					sprintf(line, "\\k%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
+					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
+							transact_get_transaction_number(i), b1,
 							account_get_name (file, file->transactions[i].from),
 							account_get_name (file, file->transactions[i].to),
 							file->transactions[i].reference, b2, file->transactions[i].description);
@@ -1565,7 +1566,8 @@ static void analysis_generate_unreconciled_report(file_data *file)
 							convert_date_to_string(file->transactions[i].date, b1);
 							convert_money_to_string(file->transactions[i].amount, b2);
 
-							sprintf(line, "\\k%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
+							sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
+									transact_get_transaction_number(i), b1,
 									r1, account_get_name(file, file->transactions[i].from),
 									r2, account_get_name(file, file->transactions[i].to),
 									file->transactions[i].reference, b2, file->transactions[i].description);
@@ -1635,7 +1637,8 @@ static void analysis_generate_unreconciled_report(file_data *file)
 					convert_date_to_string(file->transactions[i].date, b1);
 					convert_money_to_string(file->transactions[i].amount, b2);
 
-					sprintf(line, "\\k%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s", b1,
+					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
+							 transact_get_transaction_number(i), b1,
 							r1, account_get_name(file, file->transactions[i].from),
 							r2, account_get_name(file, file->transactions[i].to),
 							file->transactions[i].reference, b2, file->transactions[i].description);

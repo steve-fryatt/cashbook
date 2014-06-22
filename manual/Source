@@ -1499,12 +1499,12 @@ Fourth stable release.
 Alpha release for testing and feedback.
 
 <box type="warning">
-This test build changes the file format used by <cite>CashBook</cite>. Files from earlier versions of the software will load into these test builds without problem, but once saved they can not be used in version&nbsp;1.30 or earlier without some manual editing of their content. Take backups of your data before loading it into a test build.
+This test build changes the file format used by <cite>CashBook</cite>. Files from earlier versions of the software will load into this test build without problem, but once saved they can not be used in version&nbsp;1.30 or earlier without some manual editing of their content. Take backups of your data before loading it into a test build.
 </box>
 
 <list>
-<li>Re-implemented Data Transfer support code into more more modern format.
-<li>Correctly carry column headings across from first page when printing reports (ticket&nbsp;#409).
+<li>Re-implemented Data Transfer support code into a more modern and maintainable format.
+<li>Correctly carry column headings across from the first page when printing reports (ticket&nbsp;#409).
 <li>Add transaction numbers to all transaction views and reports (tickets #430 and&nbsp;#494).
 <li>Remove escaped characters from print job titles (ticket&nbsp;#509).
 </list>

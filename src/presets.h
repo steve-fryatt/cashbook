@@ -34,12 +34,14 @@
 
 /* Caret end locations */
 
-#define PRESET_CARET_DATE 0
-#define PRESET_CARET_FROM 1
-#define PRESET_CARET_TO 2
-#define PRESET_CARET_REFERENCE 3
-#define PRESET_CARET_AMOUNT 4
-#define PRESET_CARET_DESCRIPTION 5
+enum preset_caret {
+	PRESET_CARET_DATE = 0,
+	PRESET_CARET_FROM = 1,
+	PRESET_CARET_TO = 2,
+	PRESET_CARET_REFERENCE = 3,
+	PRESET_CARET_AMOUNT = 4,
+	PRESET_CARET_DESCRIPTION = 5
+};
 
 /**
  * Initialise the preset system.
@@ -167,7 +169,7 @@ int preset_find_from_keypress(file_data *file, char key);
  * \return			The preset's caret target.
  */
 
-int preset_get_caret_destination(file_data *file, int preset);
+enum preset_caret preset_get_caret_destination(file_data *file, int preset);
 
 
 /**

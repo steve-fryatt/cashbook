@@ -568,7 +568,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 		/* Handle adjust-clicks in the reconcile column, to toggle the status. */
 
 		toggle_flag = (file->transactions[transaction].from == windat->account) ? TRANS_REC_FROM : TRANS_REC_TO;
-		edit_toggle_reconcile_flag(file, transaction, toggle_flag);
+		edit_toggle_transaction_reconcile_flag(file, transaction, toggle_flag);
 	}
 }
 

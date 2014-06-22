@@ -301,7 +301,7 @@ static void decode_date_menu(wimp_selection *selection)
 		if (preset_complete_menu_decode(selection) == NULL_PRESET)
 			edit_change_transaction_date(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, get_current_date());
 		else
-			insert_transaction_preset_full(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, preset_complete_menu_decode(selection));
+			edit_insert_preset_into_transaction(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, preset_complete_menu_decode(selection));
 	}
 }
 

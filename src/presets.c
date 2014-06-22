@@ -150,19 +150,19 @@
  */
 
 struct preset {
-	char		name[PRESET_NAME_LEN];					/**< The name of the preset. */
-	char		action_key;						/**< The key used to insert it. */
+	char			name[PRESET_NAME_LEN];					/**< The name of the preset. */
+	char			action_key;						/**< The key used to insert it. */
 
-	unsigned	flags;							/**< Preset flags (containing transaction flags, preset flags, etc). */
+	unsigned		flags;							/**< Preset flags (containing transaction flags, preset flags, etc). */
 
-	unsigned	caret_target;						/**< The target icon for the caret. */
+	enum preset_caret	caret_target;						/**< The target icon for the caret. */
 
-	date_t		date;							/**< Preset details. */
-	int		from;
-	int		to;
-	amt_t		amount;
-	char		reference[REF_FIELD_LEN];
-	char		description[DESCRIPT_FIELD_LEN];
+	date_t			date;							/**< Preset details. */
+	int			from;
+	int			to;
+	amt_t			amount;
+	char			reference[REF_FIELD_LEN];
+	char			description[DESCRIPT_FIELD_LEN];
 
 	/* Sort index entries.
 	 *
@@ -2402,7 +2402,7 @@ int preset_find_from_keypress(file_data *file, char key)
  * \return			The preset's caret target.
  */
 
-int preset_get_caret_destination(file_data *file, int preset)
+enum preset_caret preset_get_caret_destination(file_data *file, int preset)
 {
 	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_count)
 		return 0;

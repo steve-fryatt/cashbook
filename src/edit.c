@@ -103,10 +103,10 @@ wimp_window *edit_transact_window_def = NULL;	/* \TODO -- Ick! */
 static void	edit_find_icon_horizontally(file_data *file);
 static void	edit_set_line_shading(file_data *file);
 static void	edit_change_transaction_amount(file_data *file, int transaction, amt_t new_amount);
-static unsigned	insert_transaction_preset(file_data *file, int transaction, int preset);
-static wimp_i	edit_convert_preset_icon_number(int caret);
-static void	delete_edit_line_transaction(file_data *file);
-static void	process_transaction_edit_line_entry_keys(file_data *file, wimp_key *key);
+static unsigned	edit_raw_insert_preset_into_transaction(file_data *file, int transaction, int preset);
+static wimp_i	edit_convert_preset_icon_number(enum preset_caret caret);
+static void	edit_delete_line_transaction_content(file_data *file);
+static void	edit_process_content_keypress(file_data *file, wimp_key *key);
 static char	*find_complete_description(file_data *file, int line, char *buffer, size_t length);
 
 
@@ -591,7 +591,7 @@ int edit_get_line_transaction(file_data *file)
  * \param change_flag	Indicate which reconciled flags to change.
  */
 
-void edit_toggle_reconcile_flag(file_data *file, int transaction, int change_flag)
+void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, int change_flag)
 {
 	int	change_icon, line;
 	osbool	changed = FALSE;
@@ -665,7 +665,14 @@ void edit_toggle_reconcile_flag(file_data *file, int transaction, int change_fla
 	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * Change the date for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param new_date	The new date to set the transaction to.
+ */
 
 void edit_change_transaction_date(file_data *file, int transaction, date_t new_date)
 {
@@ -738,7 +745,13 @@ void edit_change_transaction_date(file_data *file, int transaction, date_t new_d
 }
 
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+/**
+ * Change the amount of money for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param new_amount	The new amount to set the transaction to.
+ */
 
 static void edit_change_transaction_amount(file_data *file, int transaction, amt_t new_amount)
 {
@@ -794,9 +807,17 @@ static void edit_change_transaction_amount(file_data *file, int transaction, amt
 	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void edit_change_transaction_refdesc(file_data *file, int transaction, int change_icon, char *new_text)
+/**
+ * Change the reference or description associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_text	The new text to set the field to.
+ */
+
+void edit_change_transaction_refdesc(file_data *file, int transaction, wimp_i target, char *new_text)
 {
 	int	line;
 	osbool	changed = FALSE;
@@ -810,7 +831,7 @@ void edit_change_transaction_refdesc(file_data *file, int transaction, int chang
 
 	/* Find the field that will be getting changed. */
 
-	switch (change_icon) {
+	switch (target) {
 	case EDIT_ICON_REF:
 		field = file->transactions[transaction].reference;
 		break;
@@ -858,9 +879,17 @@ void edit_change_transaction_refdesc(file_data *file, int transaction, int chang
 	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void edit_change_transaction_account(file_data *file, int transaction, int change_icon, acct_t new_account)
+/**
+ * Change the reference or description associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_account	The new account to set the field to.
+ */
+
+void edit_change_transaction_account(file_data *file, int transaction, wimp_i target, acct_t new_account)
 {
 	int		line;
 	osbool		changed = FALSE;
@@ -886,7 +915,8 @@ void edit_change_transaction_account(file_data *file, int transaction, int chang
 	 * account changes to an income heading; else it is cleared.
 	 */
 
-	if (change_icon == EDIT_ICON_FROM) {
+	switch (target) {
+	case EDIT_ICON_FROM:
 		old_acct = file->transactions[transaction].from;
 		old_flags = file->transactions[transaction].flags;
 
@@ -899,7 +929,8 @@ void edit_change_transaction_account(file_data *file, int transaction, int chang
 
 		if (old_acct != file->transactions[transaction].from || old_flags != file->transactions[transaction].flags)
 			changed = TRUE;
-	} else if (change_icon == EDIT_ICON_TO) {
+		break;
+	case EDIT_ICON_TO:
 		old_acct = file->transactions[transaction].to;
 		old_flags = file->transactions[transaction].flags;
 
@@ -912,6 +943,7 @@ void edit_change_transaction_account(file_data *file, int transaction, int chang
 
 		if (old_acct != file->transactions[transaction].to || old_flags != file->transactions[transaction].flags)
 			changed = TRUE;
+		break;
 	}
 
 	/* Return the line to the calculations. This will automatically update
@@ -929,14 +961,17 @@ void edit_change_transaction_account(file_data *file, int transaction, int chang
 	 */
 
 	if (changed == TRUE) {
-		if (change_icon == EDIT_ICON_FROM) {
+		switch (target) {
+		case EDIT_ICON_FROM:
 			accview_rebuild(file, old_acct);
 			accview_rebuild(file, file->transactions[transaction].from);
 			accview_redraw_transaction(file, file->transactions[transaction].to, transaction);
-		} else if (change_icon == EDIT_ICON_TO) {
+			break;
+		case EDIT_ICON_TO:
 			accview_rebuild(file, old_acct);
 			accview_rebuild(file, file->transactions[transaction].to);
 			accview_redraw_transaction(file, file->transactions[transaction].from, transaction);
+			break;
 		}
 
 		/* If the line is the edit line, setting the shading uses
@@ -945,7 +980,7 @@ void edit_change_transaction_account(file_data *file, int transaction, int chang
 		 */
 
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
-			edit_refresh_line_content(file->transaction_window.transaction_window, change_icon, -1);
+			edit_refresh_line_content(file->transaction_window.transaction_window, target, -1);
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
@@ -957,9 +992,17 @@ void edit_change_transaction_account(file_data *file, int transaction, int chang
 	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-void insert_transaction_preset_full(file_data *file, int transaction, int preset)
+/**
+ * Insert a preset into a pre-existing transaction, taking care of updating all
+ * the file data in a clean way.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to update.
+ * \param preset	The preset to insert into the transaction.
+ */
+
+void edit_insert_preset_into_transaction(file_data *file, int transaction, int preset)
 {
 	int		line;
 	unsigned	changed = 0;
@@ -970,7 +1013,7 @@ void insert_transaction_preset_full(file_data *file, int transaction, int preset
   
 	remove_transaction_from_totals(file, transaction);
 
-	changed = insert_transaction_preset(file, transaction, preset);
+	changed = edit_raw_insert_preset_into_transaction(file, transaction, preset);
 
 	/* Return the line to the calculations.  This will automatically update
 	 * all the account listings.
@@ -1008,21 +1051,25 @@ void insert_transaction_preset_full(file_data *file, int transaction, int preset
 	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-static unsigned insert_transaction_preset(file_data *file, int transaction, int preset)
+/**
+ * Insert the contents of a preset into a transaction, if that transaction already
+ * exists in the target file.
+ *
+ * This function is assumed to be called by code that takes care of updating the
+ * transaction record and all the associated totals. Normally, this would be done
+ * by wrapping the call up inside a pair of remove_transaction_from_totals() and
+ * restore_transaction_to_totals() calls.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to update.
+ * \param preset	The preset to insert into the transaction.
+ * \return		A bitfield showing which icons have been edited.
+ */
+
+static unsigned edit_raw_insert_preset_into_transaction(file_data *file, int transaction, int preset)
 {
-	unsigned		changed = 0;
-
-	/* Only do anything if the transaction is inside the limit of the file. */
-
-	/* This function is assumed to be called by code that takes care of updating the transaction record and
-	 * all the associated totals.  Normally, this would be done by wrapping the call up inside a pair of
-	 * remove_transaction_from_totals () and restore_transaction_to_totals (file, transaction).
-	 *
-	 * We call this direct from process_transaction_edit_line_entry_keys (); from elsewhere, we call it via
-	 * insert_transaction_preset_full (), which does all of the wrapping up.
-	 */
+	unsigned	changed = 0;
 
 	if (transaction < file->trans_count && preset != NULL_PRESET && preset < file->preset_count)
 		changed = preset_apply(file, preset, &(file->transactions[transaction].date),
@@ -1036,13 +1083,16 @@ static unsigned insert_transaction_preset(file_data *file, int transaction, int 
 	return changed;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Take an icon number as used in the preset blocks, and convert it to an icon number for the transaction
- * edit line.
+/**
+ * Take a preset caret destination as used in the preset blocks, and convert it
+ * into an icon number for the transaction edit line.
+ *
+ * \param caret		The preset caret destination to be converted.
+ * \return		The corresponding icon number.
  */
 
-static wimp_i edit_convert_preset_icon_number(int caret)
+static wimp_i edit_convert_preset_icon_number(enum preset_caret caret)
 {
 	wimp_i	icon;
 
@@ -1079,9 +1129,16 @@ static wimp_i edit_convert_preset_icon_number(int caret)
 	return icon;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-static void delete_edit_line_transaction(file_data *file)
+/**
+ * If transaction deletion is enabled, delete the contents of the transaction
+ * at the edit line from the file. The transaction will be left in place, but
+ * will be blank.
+ *
+ * \param *file		The file to operate on.
+ */
+
+static void edit_delete_line_transaction_content(file_data *file)
 {
 	unsigned transaction;
 
@@ -1118,7 +1175,7 @@ static void delete_edit_line_transaction(file_data *file)
 	 * the order of the transaction data.
 	 */
 
-	file->sort_valid = 0;
+	file->sort_valid = FALSE;
 
 	accview_rebuild_all(file);
 
@@ -1128,13 +1185,17 @@ static void delete_edit_line_transaction(file_data *file)
 	set_file_data_integrity(file, TRUE);
 }
 
-/* ==================================================================================================================
- * Keypress handling
+
+/**
+ * Handle keypresses in an edit line (and hence a transaction window). Process
+ * any function keys, then pass content keys on to the edit handler.
+ *
+ * \param *file		The file to pass they keys to.
+ * \param *key		The Wimp's key event block.
+ * \return		TRUE if the key was handled; FALSE if not.
  */
 
-/* Handle the specific keys in the edit line.  Any that are not recognised go on to the update handler below. */
-
-osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
+osbool edit_process_keypress(file_data *file, wimp_key *key)
 {
 	wimp_caret	caret;
 	wimp_i		icon;
@@ -1148,7 +1209,7 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 
 		/* Ctrl-F10 deletes the whole line. */
 
-		delete_edit_line_transaction(file);
+		edit_delete_line_transaction_content(file);
 	} else if (key->c == wimp_KEY_UP) {
 
 		/* Up and down cursor keys -- move the edit line up or down a row
@@ -1216,14 +1277,14 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 						edit_change_transaction_account(file, transaction, EDIT_ICON_FROM, file->transactions[previous].from);
 						if ((file->transactions[previous].flags & TRANS_REC_FROM) !=
 								(file->transactions[transaction].flags & TRANS_REC_FROM))
-						edit_toggle_reconcile_flag(file, transaction, TRANS_REC_FROM);
+						edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_FROM);
 						break;
 
 					case EDIT_ICON_TO:
 						edit_change_transaction_account(file, transaction, EDIT_ICON_TO, file->transactions[previous].to);
 						if ((file->transactions[previous].flags & TRANS_REC_TO) !=
 								(file->transactions[transaction].flags & TRANS_REC_TO))
-						edit_toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
+						edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_TO);
 						break;
 
 					case EDIT_ICON_REF:
@@ -1316,7 +1377,7 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 	} else {
 		/* Any unrecognised keys get passed on to the final stage. */
 
-		process_transaction_edit_line_entry_keys(file, key);
+		edit_process_content_keypress(file, key);
 
 		return (key->c != wimp_KEY_F12 &&
 				key->c != (wimp_KEY_SHIFT | wimp_KEY_F12) &&
@@ -1327,11 +1388,15 @@ osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key)
 	return TRUE;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Handling any keys that are not recognised as general hotkeys or caret movement keys. */
+/**
+ * Process content-editing keypresses in the edit line.
+ *
+ * \param *file		The file to operate on.
+ * \param *key		The Wimp's key event data block.
+ */
 
-static void process_transaction_edit_line_entry_keys(file_data *file, wimp_key *key)
+static void edit_process_content_keypress(file_data *file, wimp_key *key)
 {
 	int		line, transaction, i, preset;
 	unsigned	previous_date, date, amount, old_acct, old_flags, preset_changes = 0;
@@ -1379,7 +1444,7 @@ static void process_transaction_edit_line_entry_keys(file_data *file, wimp_key *
 		if (isalpha(key->c)) {
 			preset = preset_find_from_keypress(file, toupper(key->c));
 
-			if (preset != NULL_PRESET && (preset_changes = insert_transaction_preset(file, transaction, preset))) {
+			if (preset != NULL_PRESET && (preset_changes = edit_raw_insert_preset_into_transaction(file, transaction, preset))) {
 				changed = TRUE;
 
 				if (preset_changes & (1 << EDIT_ICON_DATE))

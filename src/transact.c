@@ -657,10 +657,10 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 
 				if (column == TRANSACT_ICON_FROM_REC) {
 					/* If the column is the from reconcile flag, toggle its status. */
-					edit_toggle_reconcile_flag(file, transaction, TRANS_REC_FROM);
+					edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_FROM);
 				} else if (column == TRANSACT_ICON_TO_REC) {
 					/* If the column is the to reconcile flag, toggle its status. */
-					edit_toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
+					edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_TO);
 				}
 			}
 		}
@@ -954,7 +954,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 		scroll_transaction_window_to_end(file, +1);
 	} else {
 		/* Pass any keys that are left on to the edit line handler. */
-		return process_transaction_edit_line_keypress(file, key);
+		return edit_process_keypress(file, key);
 	}
 
 	return TRUE;

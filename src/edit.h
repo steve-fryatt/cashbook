@@ -131,16 +131,66 @@ int edit_get_line_transaction(file_data *file);
  * \param change_flag	Indicate which reconciled flags to change.
  */
 
-void edit_toggle_reconcile_flag(file_data *file, int transaction, int change_flag);
+void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, int change_flag);
 
+
+/**
+ * Change the date for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param new_date	The new date to set the transaction to.
+ */
 
 void edit_change_transaction_date(file_data *file, int transaction, date_t new_date);
-void edit_change_transaction_refdesc(file_data *file, int transaction, int change_icon, char *new_text);
-void edit_change_transaction_account(file_data *file, int transaction, int change_icon, acct_t new_account);
-void insert_transaction_preset_full(file_data *file, int transaction, int preset);
 
-/* Keypress handling */
 
-osbool process_transaction_edit_line_keypress(file_data *file, wimp_key *key);
+/**
+ * Change the reference or description associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_text	The new text to set the field to.
+ */
+
+void edit_change_transaction_refdesc(file_data *file, int transaction, wimp_i target, char *new_text);
+
+
+/**
+ * Change the reference or description associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_account	The new account to set the field to.
+ */
+
+void edit_change_transaction_account(file_data *file, int transaction, wimp_i target, acct_t new_account);
+
+
+/**
+ * Insert a preset into a pre-existing transaction, taking care of updating all
+ * the file data in a clean way.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to update.
+ * \param preset	The preset to insert into the transaction.
+ */
+
+void edit_insert_preset_into_transaction(file_data *file, int transaction, int preset);
+
+
+/**
+ * Handle keypresses in an edit line (and hence a transaction window). Process
+ * any function keys, then pass content keys on to the edit handler.
+ *
+ * \param *file		The file to pass they keys to.
+ * \param *key		The Wimp's key event block.
+ * \return		TRUE if the key was handled; FALSE if not.
+ */
+
+osbool edit_process_keypress(file_data *file, wimp_key *key);
 
 #endif
+

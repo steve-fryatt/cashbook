@@ -222,15 +222,9 @@ void find_next_reconcile_line (file_data *file, int set);
 
 int find_first_blank_line (file_data *file);
 
-/* Printing transactions via the GUI */
 
-void open_transact_print_window (file_data *file, wimp_pointer *ptr, int clear);
 
-/* File and print output */
 
-void print_transact_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
-
-/* Transaction window handling */
 
 
 

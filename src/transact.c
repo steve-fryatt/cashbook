@@ -275,6 +275,9 @@ static void			transact_refresh_sort_window(void);
 static void			transact_fill_sort_window(int sort_option);
 static osbool			transact_process_sort_window(void);
 
+static void			transact_open_print_window(file_data *file, wimp_pointer *ptr, int clear);
+static void			transact_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
+
 static void			transact_start_direct_save(struct transaction_window *windat);
 static osbool			transact_save_file(char *filename, osbool selection, void *data);
 static osbool			transact_save_csv(char *filename, osbool selection, void *data);
@@ -720,7 +723,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_PRINT:
-			open_transact_print_window(file, pointer, config_opt_read("RememberValues"));
+			transact_open_print_window(file, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case TRANSACT_PANE_ACCOUNTS:
@@ -782,7 +785,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_PRINT:
-			open_transact_print_window(file, pointer, !config_opt_read("RememberValues"));
+			transact_open_print_window(file, pointer, !config_opt_read("RememberValues"));
 			break;
 
 		case TRANSACT_PANE_FIND:
@@ -900,7 +903,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 
 	else if (key->c == wimp_KEY_PRINT) {
 		wimp_get_pointer_info(&pointer);
-		open_transact_print_window(file, &pointer, config_opt_read("RememberValues"));
+		transact_open_print_window(file, &pointer, config_opt_read("RememberValues"));
 	} else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F1) {
 		wimp_get_pointer_info(&pointer);
 		transact_prepare_fileinfo(file);
@@ -1085,7 +1088,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_FILE_PRINT:
-			open_transact_print_window(windat->file, &pointer, config_opt_read("RememberValues"));
+			transact_open_print_window(windat->file, &pointer, config_opt_read("RememberValues"));
 			break;
 		}
 		break;
@@ -3106,124 +3109,138 @@ int find_first_blank_line (file_data *file)
   return (line);
 }
 
-/* ==================================================================================================================
- * Printing transactions via the GUI
+
+
+/**
+ * Open the Transaction Print dialogue for a given account list window.
+ *
+ * \param *file			The file to own the dialogue.
+ * \param *ptr			The current Wimp pointer position.
+ * \param restore		TRUE to restore the current settings; else FALSE.
  */
 
-void open_transact_print_window (file_data *file, wimp_pointer *ptr, int clear)
+static void transact_open_print_window(file_data *file, wimp_pointer *ptr, int clear)
 {
-  /* Set the pointers up so we can find this lot again and open the window. */
+	transact_print_file = file;
 
-  transact_print_file = file;
-
-  printing_open_advanced_window (file, ptr, clear, "PrintTransact", print_transact_window);
+	printing_open_advanced_window(file, ptr, clear, "PrintTransact", transact_print);
 }
 
-/* ==================================================================================================================
- * File and print output
+
+/**
+ * Send the contents of the Transaction Window to the printer, via the reporting
+ * system.
+ *
+ * \param text			TRUE to print in text format; FALSE for graphics.
+ * \param format		TRUE to apply text formatting in text mode.
+ * \param scale			TRUE to scale width in graphics mode.
+ * \param rotate		TRUE to print landscape in grapics mode.
+ * \param pagenum		TRUE to include page numbers in graphics mode.
+ * \param from			The date to print from.
+ * \param to			The date to print to.
  */
 
-void print_transact_window(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
+static void transact_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
 {
-  report_data *report;
-  int            i, t;
-  char           line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+	report_data			*report;
+	int				i, t;
+	char				line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+	struct transaction_window	*window;
 
-  msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
-  msgs_lookup ("PrintTitleTransact", buffer, sizeof (buffer));
-  report = report_open (transact_print_file, buffer, NULL);
+	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
+	msgs_lookup("PrintTitleTransact", buffer, sizeof(buffer));
+	report = report_open(transact_print_file, buffer, NULL);
 
-  if (report != NULL)
-  {
-    hourglass_on ();
+	if (report == NULL) {
+		error_msgs_report_error("PrintMemFail");
+		return;
+	}
 
-    /* Output the page title. */
+	hourglass_on();
 
-    make_file_leafname (transact_print_file, numbuf1, sizeof (numbuf1));
-    msgs_param_lookup ("TransTitle", buffer, sizeof (buffer), numbuf1, NULL, NULL, NULL);
-    sprintf (line, "\\b\\u%s", buffer);
-    report_write_line (report, 0, line);
-    report_write_line (report, 0, "");
+	window = &(transact_print_file->transaction_window);
 
-    /* Output the headings line, taking the text from the window icons. */
+	/* Output the page title. */
 
-    *line = '\0';
-    sprintf (buffer, "\\k\\b\\u%s\\t", icons_copy_text (transact_print_file->transaction_window.transaction_pane, TRANSACT_PANE_DATE, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t",
-             icons_copy_text (transact_print_file->transaction_window.transaction_pane, TRANSACT_PANE_FROM, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t\\s\\t\\s\\t",
-             icons_copy_text (transact_print_file->transaction_window.transaction_pane, TRANSACT_PANE_TO, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (transact_print_file->transaction_window.transaction_pane, TRANSACT_PANE_REFERENCE, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\r\\u%s\\t",
-             icons_copy_text (transact_print_file->transaction_window.transaction_pane, TRANSACT_PANE_AMOUNT, numbuf1));
-    strcat (line, buffer);
-    sprintf (buffer, "\\b\\u%s\\t", icons_copy_text (transact_print_file->transaction_window.transaction_pane, TRANSACT_PANE_DESCRIPTION, numbuf1));
-    strcat (line, buffer);
+	make_file_leafname(transact_print_file, numbuf1, sizeof(numbuf1));
+	msgs_param_lookup("TransTitle", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
+	sprintf(line, "\\b\\u%s", buffer);
+	report_write_line(report, 1, line);
+	report_write_line(report, 1, "");
 
-    report_write_line (report, 0, line);
+	/* Output the headings line, taking the text from the window icons. */
 
-    /* Output the transaction data as a set of delimited lines. */
+	*line = '\0';
+	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_ROW, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_DATE, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_FROM, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_TO, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_REFERENCE, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\r\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_AMOUNT, numbuf1));
+	strcat(line, buffer);
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_DESCRIPTION, numbuf1));
+	strcat(line, buffer);
 
-    for (i=0; i < transact_print_file->trans_count; i++)
-    {
-      if ((from == NULL_DATE || transact_print_file->transactions[i].date >= from) &&
-          (to == NULL_DATE || transact_print_file->transactions[i].date <= to))
-      {
-        *line = '\0';
+	report_write_line(report, 0, line);
 
-        t = transact_print_file->transactions[i].sort_index;
+	/* Output the transaction data as a set of delimited lines. */
 
-        convert_date_to_string (transact_print_file->transactions[t].date, numbuf1);
-        sprintf (buffer, "\\k%s\\t", numbuf1);
-        strcat (line, buffer);
+	for (i=0; i < transact_print_file->trans_count; i++) {
+		if ((from == NULL_DATE || transact_print_file->transactions[i].date >= from) &&
+				(to == NULL_DATE || transact_print_file->transactions[i].date <= to)) {
+			*line = '\0';
 
-        sprintf (buffer, "%s\\t", account_get_ident (transact_print_file, transact_print_file->transactions[t].from));
-        strcat (line, buffer);
+			t = transact_print_file->transactions[i].sort_index;
 
-        strcpy (numbuf1, (transact_print_file->transactions[t].flags & TRANS_REC_FROM) ? rec_char : "");
-        sprintf (buffer, "%s\\t", numbuf1);
-        strcat (line, buffer);
+			convert_date_to_string(transact_print_file->transactions[t].date, numbuf1);
+			sprintf(buffer, "\\k\\r%d\\t%s\\t", t + 1, numbuf1);
+			strcat(line, buffer);
 
-        sprintf (buffer, "%s\\t", account_get_name (transact_print_file, transact_print_file->transactions[t].from));
-        strcat (line, buffer);
+			sprintf(buffer, "%s\\t", account_get_ident(transact_print_file, transact_print_file->transactions[t].from));
+			strcat(line, buffer);
 
-        sprintf (buffer, "%s\\t", account_get_ident (transact_print_file, transact_print_file->transactions[t].to));
-        strcat (line, buffer);
+			strcpy(numbuf1, (transact_print_file->transactions[t].flags & TRANS_REC_FROM) ? rec_char : "");
+			sprintf(buffer, "%s\\t", numbuf1);
+			strcat(line, buffer);
 
-        strcpy (numbuf1, (transact_print_file->transactions[t].flags & TRANS_REC_TO) ? rec_char : "");
-        sprintf (buffer, "%s\\t", numbuf1);
-        strcat (line, buffer);
+			sprintf(buffer, "%s\\t", account_get_name(transact_print_file, transact_print_file->transactions[t].from));
+			strcat(line, buffer);
 
-        sprintf (buffer, "%s\\t", account_get_name (transact_print_file, transact_print_file->transactions[t].to));
-        strcat (line, buffer);
+			sprintf(buffer, "%s\\t", account_get_ident(transact_print_file, transact_print_file->transactions[t].to));
+			strcat(line, buffer);
 
-        sprintf (buffer, "%s\\t", transact_print_file->transactions[t].reference);
-        strcat (line, buffer);
+			strcpy(numbuf1, (transact_print_file->transactions[t].flags & TRANS_REC_TO) ? rec_char : "");
+			sprintf(buffer, "%s\\t", numbuf1);
+			strcat(line, buffer);
 
-        convert_money_to_string (transact_print_file->transactions[t].amount, numbuf1);
-        sprintf (buffer, "\\r%s\\t", numbuf1);
-        strcat (line, buffer);
+			sprintf(buffer, "%s\\t", account_get_name(transact_print_file, transact_print_file->transactions[t].to));
+			strcat(line, buffer);
 
-        sprintf (buffer, "%s\\t", transact_print_file->transactions[t].description);
-        strcat (line, buffer);
+			sprintf(buffer, "%s\\t", transact_print_file->transactions[t].reference);
+			strcat(line, buffer);
 
-        report_write_line (report, 0, line);
-      }
-    }
+			convert_money_to_string(transact_print_file->transactions[t].amount, numbuf1);
+			sprintf(buffer, "\\r%s\\t", numbuf1);
+			strcat(line, buffer);
 
-    hourglass_off ();
-  }
-  else
-  {
-    error_msgs_report_error ("PrintMemFail");
-  }
+			sprintf(buffer, "%s\\t", transact_print_file->transactions[t].description);
+			strcat(line, buffer);
 
-  report_close_and_print(report, text, format, scale, rotate, pagenum);
+			report_write_line(report, 0, line);
+		}
+	}
+
+	hourglass_off();
+
+	report_close_and_print(report, text, format, scale, rotate, pagenum);
 }
+
+
 
 
 
@@ -3467,6 +3484,8 @@ static void transact_export_delimited(file_data *file, char *filename, enum fili
 
 	/* Output the headings line, taking the text from the window icons. */
 
+	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_ROW, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
 	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_DATE, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
 	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_FROM, buffer);
@@ -3484,6 +3503,9 @@ static void transact_export_delimited(file_data *file, char *filename, enum fili
 
 	for (i=0; i < file->trans_count; i++) {
 		t = file->transactions[i].sort_index;
+
+		snprintf(buffer, 256, "%d", t + 1);
+		filing_output_delimited_field(out, buffer, format, 0);
 
 		convert_date_to_string(file->transactions[t].date, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);

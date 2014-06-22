@@ -399,9 +399,9 @@ void delete_file (file_data *file)
 			if (file_check_for_filepath(file))
 				filename = file->filename;
 			else
-				filename = "DefTransFile";
+				filename = NULL;
 
-			saveas_initialise_dialogue(file_saveas_file, filename, NULL, FALSE, FALSE, file);
+			saveas_initialise_dialogue(file_saveas_file, file->filename, "DefTransFile", NULL, FALSE, FALSE, file);
 			saveas_prepare_dialogue(file_saveas_file);
 			saveas_open_dialogue(file_saveas_file, &pointer);
 		}

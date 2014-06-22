@@ -743,8 +743,8 @@ static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 				accview_window_menu_line = line;
 		}
 
-		saveas_initialise_dialogue(accview_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
-		saveas_initialise_dialogue(accview_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(accview_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(accview_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 
 		switch (windat->file->accounts[windat->account].type) {
 		case ACCOUNT_FULL:

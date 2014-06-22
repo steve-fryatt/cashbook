@@ -610,8 +610,8 @@ static void account_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 
 		data = (account_window_menu_line == -1) ? ACCOUNT_LINE_BLANK : windat->line_data[account_window_menu_line].type;
 
-		saveas_initialise_dialogue(account_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
-		saveas_initialise_dialogue(account_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(account_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(account_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 
 		switch (windat->type) {
 		case ACCOUNT_FULL:

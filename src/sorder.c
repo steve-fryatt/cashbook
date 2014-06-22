@@ -658,8 +658,8 @@ static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 				sorder_window_menu_line = line;
 		}
 
-		saveas_initialise_dialogue(sorder_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
-		saveas_initialise_dialogue(sorder_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(sorder_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(sorder_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
 	menus_shade_entry(sorder_window_menu, SORDER_MENU_EDIT, sorder_window_menu_line == -1);

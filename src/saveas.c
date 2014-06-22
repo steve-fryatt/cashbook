@@ -176,6 +176,7 @@ struct saveas_block *saveas_create_dialogue(osbool selection, char *sprite, osbo
  * dialogue from a toolbar.
  *
  * \param *handle		The handle of the save dialogue to be initialised.
+ * \param *filename		Pointer to a filename to use for the full save; else NULL.
  * \param *fullname		Pointer to the filename token for a full save.
  * \param *selectname		Pointer to the filename token for a selection save.
  * \param selection		TRUE if the Selection option is enabled; else FALSE.
@@ -183,15 +184,19 @@ struct saveas_block *saveas_create_dialogue(osbool selection, char *sprite, osbo
  * \param *data			Data to pass to any save callbacks, or NULL.
  */
 
-void saveas_initialise_dialogue(struct saveas_block *handle, char *fullname, char *selectname, osbool selection, osbool selected, void *data)
+void saveas_initialise_dialogue(struct saveas_block *handle, char *filename, char *fullname, char *selectname, osbool selection, osbool selected, void *data)
 {
 	if (handle == NULL)
 		return;
 
-	if (fullname != NULL)
+	if (filename != NULL && *filename != '\0') {
+		strncpy(handle->full_filename, filename, SAVEAS_MAX_FILENAME);
+		handle->full_filename[SAVEAS_MAX_FILENAME - 1] = '\0';
+	} else if (fullname != NULL) {
 		msgs_lookup(fullname, handle->full_filename, SAVEAS_MAX_FILENAME);
-	else
+	} else {
 		handle->full_filename[0] = '\0';
+	}
 
 	if (selectname != NULL)
 		msgs_lookup(selectname, handle->selection_filename, SAVEAS_MAX_FILENAME);

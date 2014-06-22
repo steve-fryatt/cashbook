@@ -661,8 +661,8 @@ static void preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 				preset_window_menu_line = line;
 		}
 
-		saveas_initialise_dialogue(preset_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, windat);
-		saveas_initialise_dialogue(preset_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(preset_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(preset_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
 	menus_shade_entry(preset_window_menu, PRESET_MENU_EDIT, preset_window_menu_line == -1);

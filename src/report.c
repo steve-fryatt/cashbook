@@ -883,9 +883,9 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	if (report == NULL)
 		return;
 
-	saveas_initialise_dialogue(report_saveas_text, "DefRepFile", NULL, FALSE, FALSE, report);
-	saveas_initialise_dialogue(report_saveas_csv, "DefCSVFile", NULL, FALSE, FALSE, report);
-	saveas_initialise_dialogue(report_saveas_tsv, "DefTSVFile", NULL, FALSE, FALSE, report);
+	saveas_initialise_dialogue(report_saveas_text, NULL, "DefRepFile", NULL, FALSE, FALSE, report);
+	saveas_initialise_dialogue(report_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, report);
+	saveas_initialise_dialogue(report_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, report);
 
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template.type == REPORT_TYPE_NONE);
 }

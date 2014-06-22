@@ -3198,7 +3198,7 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 			t = transact_print_file->transactions[i].sort_index;
 
 			convert_date_to_string(transact_print_file->transactions[t].date, numbuf1);
-			sprintf(buffer, "\\k\\r%d\\t%s\\t", transact_get_transaction_number(t), numbuf1);
+			sprintf(buffer, "\\k\\d\\r%d\\t%s\\t", transact_get_transaction_number(t), numbuf1);
 			strcat(line, buffer);
 
 			sprintf(buffer, "%s\\t", account_get_ident(transact_print_file, transact_print_file->transactions[t].from));
@@ -3505,7 +3505,7 @@ static void transact_export_delimited(file_data *file, char *filename, enum fili
 		t = file->transactions[i].sort_index;
 
 		snprintf(buffer, 256, "%d", transact_get_transaction_number(t));
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		convert_date_to_string(file->transactions[t].date, buffer);
 		filing_output_delimited_field(out, buffer, format, 0);

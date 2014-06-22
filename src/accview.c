@@ -1785,7 +1785,7 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 			*line = '\0';
 
 			convert_date_to_string(accview_print_file->transactions[transaction].date, numbuf1);
-			sprintf(buffer, "\\k\\r%d\\t%s\\t", transact_get_transaction_number(transaction), numbuf1);
+			sprintf(buffer, "\\k\\d\\r%d\\t%s\\t", transact_get_transaction_number(transaction), numbuf1);
 			strcat(line, buffer);
 
 			if (accview_print_file->transactions[transaction].from == accview_print_account) {
@@ -2465,7 +2465,7 @@ static void accview_export_delimited(file_data *file, acct_t account, char *file
 			transaction = (windat->line_data)[(windat->line_data)[i].sort_index].transaction;
 
 			snprintf(buffer, 256, "%d", transact_get_transaction_number(transaction));
-			filing_output_delimited_field(out, buffer, format, 0);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 			convert_date_to_string(file->transactions[transaction].date, buffer);
 			filing_output_delimited_field(out, buffer, format, 0);

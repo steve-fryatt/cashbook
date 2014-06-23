@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -82,6 +82,21 @@
 #include "window.h"
 
 
+/* Main Window Icons
+ *
+ * Note that these correspond to column numbers.
+ */
+
+#define SORDER_ICON_FROM 0
+#define SORDER_ICON_FROM_REC 1
+#define SORDER_ICON_FROM_NAME 2
+#define SORDER_ICON_TO 3
+#define SORDER_ICON_TO_REC 4
+#define SORDER_ICON_TO_NAME 5
+#define SORDER_ICON_AMOUNT 6
+#define SORDER_ICON_DESCRIPTION 7
+#define SORDER_ICON_NEXTDATE 8
+#define SORDER_ICON_LEFT 9
 
 /* SOrder menu */
 
@@ -891,26 +906,26 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* From field */
 
-			sorder_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_FROM].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_FROM].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			sorder_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_FROM_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_FROM_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			sorder_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_FROM_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_FROM_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
 			if (y < file->sorder_count && file->sorders[t].from != NULL_ACCOUNT) {
-				sorder_window_def->icons[0].data.indirected_text.text =
+				sorder_window_def->icons[SORDER_ICON_FROM].data.indirected_text.text =
 						file->accounts[file->sorders[t].from].ident;
-				sorder_window_def->icons[1].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[2].data.indirected_text.text =
+				sorder_window_def->icons[SORDER_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[SORDER_ICON_FROM_NAME].data.indirected_text.text =
 						file->accounts[file->sorders[t].from].name;
 
 				if (file->sorders[t].flags & TRANS_REC_FROM)
@@ -918,38 +933,38 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 				else
 					*icon_buffer = '\0';
 			} else {
-				sorder_window_def->icons[0].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[1].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[2].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[SORDER_ICON_FROM].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[SORDER_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[SORDER_ICON_FROM_NAME].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
 
-			wimp_plot_icon(&(sorder_window_def->icons[0]));
-			wimp_plot_icon(&(sorder_window_def->icons[1]));
-			wimp_plot_icon(&(sorder_window_def->icons[2]));
+			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_FROM]));
+			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_FROM_REC]));
+			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_FROM_NAME]));
 
 			/* To field */
 
-			sorder_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_TO].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_TO].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			sorder_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_TO_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_TO_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			sorder_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_TO_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_TO_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
 			if (y < file->sorder_count && file->sorders[t].to != NULL_ACCOUNT) {
-				sorder_window_def->icons[3].data.indirected_text.text =
+				sorder_window_def->icons[SORDER_ICON_TO].data.indirected_text.text =
 						file->accounts[file->sorders[t].to].ident;
-				sorder_window_def->icons[4].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[5].data.indirected_text.text =
+				sorder_window_def->icons[SORDER_ICON_TO_REC].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[SORDER_ICON_TO_NAME].data.indirected_text.text =
 						file->accounts[file->sorders[t].to].name;
 
 				if (file->sorders[t].flags & TRANS_REC_TO)
@@ -957,47 +972,47 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 				else
 					*icon_buffer = '\0';
 			} else {
-				sorder_window_def->icons[3].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[4].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[5].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[SORDER_ICON_TO].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[SORDER_ICON_TO_REC].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[SORDER_ICON_TO_NAME].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
 
-			wimp_plot_icon(&(sorder_window_def->icons[3]));
-			wimp_plot_icon(&(sorder_window_def->icons[4]));
-			wimp_plot_icon(&(sorder_window_def->icons[5]));
+			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_TO]));
+			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_TO_REC]));
+			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_TO_NAME]));
 
 			/* Amount field */
 
-			sorder_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count)
 				convert_money_to_string(file->sorders[t].normal_amount, icon_buffer);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon(&(sorder_window_def->icons[6]));
+			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_AMOUNT]));
 
 			/* Comments field */
 
-			sorder_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_DESCRIPTION].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count){
-				sorder_window_def->icons[7].data.indirected_text.text = file->sorders[t].description;
+				sorder_window_def->icons[SORDER_ICON_DESCRIPTION].data.indirected_text.text = file->sorders[t].description;
 			} else {
-				sorder_window_def->icons[7].data.indirected_text.text = icon_buffer;
+				sorder_window_def->icons[SORDER_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
-			wimp_plot_icon(&(sorder_window_def->icons[7]));
+			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_DESCRIPTION]));
 
 			/* Next date field */
 
-			sorder_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_NEXTDATE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_NEXTDATE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count) {
 				if (file->sorders[t].adjusted_next_date != NULL_DATE)
@@ -1007,19 +1022,19 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			} else {
 				*icon_buffer = '\0';
 			}
-			wimp_plot_icon(&(sorder_window_def->icons[8]));
+			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_NEXTDATE]));
 
 			/* Left field */
 
-			sorder_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_LEFT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			sorder_window_def->icons[SORDER_ICON_LEFT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count)
 				sprintf (icon_buffer, "%d", file->sorders[t].left);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon (&(sorder_window_def->icons[9]));
+			wimp_plot_icon (&(sorder_window_def->icons[SORDER_ICON_LEFT]));
 			}
 
 		more = wimp_get_rectangle (redraw);
@@ -1138,32 +1153,32 @@ static void sorder_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
 
 	switch (file->sorder_window.sort_order & SORT_MASK) {
 	case SORT_FROM:
-		i = 2;
+		i = SORDER_ICON_FROM_NAME;
 		sorder_substitute_sort_icon = SORDER_PANE_FROM;
 		break;
 
 	case SORT_TO:
-		i = 5;
+		i = SORDER_ICON_TO_NAME;
 		sorder_substitute_sort_icon = SORDER_PANE_TO;
 		break;
 
 	case SORT_AMOUNT:
-		i = 6;
+		i = SORDER_ICON_AMOUNT;
 		sorder_substitute_sort_icon = SORDER_PANE_AMOUNT;
 		break;
 
 	case SORT_DESCRIPTION:
-		i = 7;
+		i = SORDER_ICON_DESCRIPTION;
 		sorder_substitute_sort_icon = SORDER_PANE_DESCRIPTION;
 		break;
 
 	case SORT_NEXTDATE:
-		i = 8;
+		i = SORDER_ICON_NEXTDATE;
 		sorder_substitute_sort_icon = SORDER_PANE_NEXTDATE;
 		break;
 
 	case SORT_LEFT:
-		i = 9;
+		i = SORDER_ICON_LEFT;
 		sorder_substitute_sort_icon = SORDER_PANE_LEFT;
 		break;
 	}
@@ -2096,17 +2111,17 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 	/* Output the headings line, taking the text from the window icons. */
 
 	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, 0, numbuf1));
+	sprintf(buffer, "\\k\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_FROM, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, 1, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_TO, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->sorder_pane, 2, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_AMOUNT, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, 3, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_DESCRIPTION, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, 4, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_NEXTDATE, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s", icons_copy_text(window->sorder_pane, 5, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s", icons_copy_text(window->sorder_pane, SORDER_PANE_LEFT, numbuf1));
 	strcat(line, buffer);
 
 	report_write_line(report, 0, line);
@@ -2895,17 +2910,17 @@ static void sorder_export_delimited(file_data *file, char *filename, enum filing
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(window->sorder_pane, 0, buffer);
+	icons_copy_text(window->sorder_pane, SORDER_PANE_FROM, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->sorder_pane, 1, buffer);
+	icons_copy_text(window->sorder_pane, SORDER_PANE_TO, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->sorder_pane, 2, buffer);
+	icons_copy_text(window->sorder_pane, SORDER_PANE_AMOUNT, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->sorder_pane, 3, buffer);
+	icons_copy_text(window->sorder_pane, SORDER_PANE_DESCRIPTION, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->sorder_pane, 4, buffer);
+	icons_copy_text(window->sorder_pane, SORDER_PANE_NEXTDATE, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->sorder_pane, 5, buffer);
+	icons_copy_text(window->sorder_pane, SORDER_PANE_LEFT, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the standing order data as a set of delimited lines. */

@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -77,6 +77,21 @@
 #include "templates.h"
 #include "window.h"
 
+/* Main Window Icons
+ *
+ * Note that these correspond to column numbers.
+ */
+
+#define PRESET_ICON_KEY 0
+#define PRESET_ICON_NAME 1
+#define PRESET_ICON_FROM 2
+#define PRESET_ICON_FROM_REC 3
+#define PRESET_ICON_FROM_NAME 4
+#define PRESET_ICON_TO 5
+#define PRESET_ICON_TO_REC 6
+#define PRESET_ICON_TO_NAME 7
+#define PRESET_ICON_AMOUNT 8
+#define PRESET_ICON_DESCRIPTION 9
 
 /* Preset menu */
 
@@ -887,130 +902,130 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* Key field */
 
-			preset_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_KEY].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_KEY].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 			if (y < file->preset_count)
 				sprintf(icon_buffer, "%c", file->presets[t].action_key);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon(&(preset_window_def->icons[0]));
+			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_KEY]));
 
 			/* Name field */
 
-			preset_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 			if (y < file->preset_count) {
-				preset_window_def->icons[1].data.indirected_text.text = file->presets[t].name;
+				preset_window_def->icons[PRESET_ICON_NAME].data.indirected_text.text = file->presets[t].name;
 			} else {
-				preset_window_def->icons[1].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_NAME].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
-			wimp_plot_icon (&(preset_window_def->icons[1]));
+			wimp_plot_icon (&(preset_window_def->icons[PRESET_ICON_NAME]));
 
 			/* From field */
 
-			preset_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_FROM].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_FROM].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 
-			preset_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_FROM_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_FROM_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 
-			preset_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_FROM_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_FROM_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 
 
 			if (y < file->preset_count && file->presets[t].from != NULL_ACCOUNT) {
-				preset_window_def->icons[2].data.indirected_text.text = file->accounts[file->presets[t].from].ident;
-				preset_window_def->icons[3].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[4].data.indirected_text.text = file->accounts[file->presets[t].from].name;
+				preset_window_def->icons[PRESET_ICON_FROM].data.indirected_text.text = file->accounts[file->presets[t].from].ident;
+				preset_window_def->icons[PRESET_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_FROM_NAME].data.indirected_text.text = file->accounts[file->presets[t].from].name;
 
 				if (file->presets[t].flags & TRANS_REC_FROM)
 					strcpy(icon_buffer, rec_char);
 				else
 					*icon_buffer = '\0';
 			} else {
-				preset_window_def->icons[2].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[3].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[4].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_FROM].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_FROM_NAME].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
 
-			wimp_plot_icon(&(preset_window_def->icons[2]));
-			wimp_plot_icon(&(preset_window_def->icons[3]));
-			wimp_plot_icon(&(preset_window_def->icons[4]));
+			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_FROM]));
+			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_FROM_REC]));
+			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_FROM_NAME]));
 
 			/* To field */
 
-			preset_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_TO].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_TO].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 
-			preset_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_TO_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_TO_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 
-			preset_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_TO_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_TO_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 
 			if (y < file->preset_count && file->presets[t].to != NULL_ACCOUNT) {
-				preset_window_def->icons[5].data.indirected_text.text = file->accounts[file->presets[t].to].ident;
-				preset_window_def->icons[6].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[7].data.indirected_text.text = file->accounts[file->presets[t].to].name;
+				preset_window_def->icons[PRESET_ICON_TO].data.indirected_text.text = file->accounts[file->presets[t].to].ident;
+				preset_window_def->icons[PRESET_ICON_TO_REC].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_TO_NAME].data.indirected_text.text = file->accounts[file->presets[t].to].name;
 
 				if (file->presets[t].flags & TRANS_REC_TO)
 					strcpy(icon_buffer, rec_char);
 				else
 					*icon_buffer = '\0';
 			} else {
-				preset_window_def->icons[5].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[6].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[7].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_TO].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_TO_REC].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_TO_NAME].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
 
-			wimp_plot_icon(&(preset_window_def->icons[5]));
-			wimp_plot_icon(&(preset_window_def->icons[6]));
-			wimp_plot_icon(&(preset_window_def->icons[7]));
+			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_TO]));
+			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_TO_REC]));
+			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_TO_NAME]));
 
 			/* Amount field */
 
-			preset_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 			if (y < file->preset_count)
 				convert_money_to_string(file->presets[t].amount, icon_buffer);
 			else
 				*icon_buffer = '\0';
-			wimp_plot_icon(&(preset_window_def->icons[8]));
+			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_AMOUNT]));
 
 			/* Comments field */
 
-			preset_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_DESCRIPTION].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
+			preset_window_def->icons[PRESET_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 			if (y < file->preset_count) {
-				preset_window_def->icons[9].data.indirected_text.text = file->presets[t].description;
+				preset_window_def->icons[PRESET_ICON_DESCRIPTION].data.indirected_text.text = file->presets[t].description;
 			} else {
-				preset_window_def->icons[9].data.indirected_text.text = icon_buffer;
+				preset_window_def->icons[PRESET_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
 			}
-			wimp_plot_icon(&(preset_window_def->icons[9]));
+			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_DESCRIPTION]));
 		}
 
 		more = wimp_get_rectangle(redraw);
@@ -1130,32 +1145,32 @@ static void preset_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
 
 	switch (file->preset_window.sort_order & SORT_MASK) {
 	case SORT_CHAR:
-		i = 0;
+		i = PRESET_ICON_KEY;
 		preset_substitute_sort_icon = PRESET_PANE_KEY;
 		break;
 
 	case SORT_NAME:
-		i = 1;
+		i = PRESET_ICON_NAME;
 		preset_substitute_sort_icon = PRESET_PANE_NAME;
 		break;
 
 	case SORT_FROM:
-		i = 4;
+		i = PRESET_ICON_FROM_NAME;
 		preset_substitute_sort_icon = PRESET_PANE_FROM;
 		break;
 
 	case SORT_TO:
-		i = 7;
+		i = PRESET_ICON_TO_NAME;
 		preset_substitute_sort_icon = PRESET_PANE_TO;
 		break;
 
 	case SORT_AMOUNT:
-		i = 8;
+		i = PRESET_ICON_AMOUNT;
 		preset_substitute_sort_icon = PRESET_PANE_AMOUNT;
 		break;
 
 	case SORT_DESCRIPTION:
-		i = 9;
+		i = PRESET_ICON_DESCRIPTION;
 		preset_substitute_sort_icon = PRESET_PANE_DESCRIPTION;
 		break;
 	}
@@ -1943,17 +1958,17 @@ static void preset_print(osbool text, osbool format, osbool scale, osbool rotate
 	/* Output the headings line, taking the text from the window icons. */
 
 	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(window->preset_pane, 0, numbuf1));
+	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_KEY, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, 1, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_NAME, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, 2, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_FROM, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, 3, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_TO, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->preset_pane, 4, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_AMOUNT, numbuf1));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, 5, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_DESCRIPTION, numbuf1));
 	strcat(line, buffer);
 
 	report_write_line(report, 0, line);
@@ -2685,17 +2700,17 @@ static void preset_export_delimited(file_data *file, char *filename, enum filing
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(window->preset_pane, 0, buffer);
+	icons_copy_text(window->preset_pane, PRESET_PANE_KEY, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->preset_pane, 1, buffer);
+	icons_copy_text(window->preset_pane, PRESET_PANE_NAME, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->preset_pane, 2, buffer);
+	icons_copy_text(window->preset_pane, PRESET_PANE_FROM, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->preset_pane, 3, buffer);
+	icons_copy_text(window->preset_pane, PRESET_PANE_TO, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->preset_pane, 4, buffer);
+	icons_copy_text(window->preset_pane, PRESET_PANE_AMOUNT, buffer);
 	filing_output_delimited_field(out, buffer, format, 0);
-	icons_copy_text(window->preset_pane, 5, buffer);
+	icons_copy_text(window->preset_pane, PRESET_PANE_DESCRIPTION, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the preset data as a set of delimited lines. */

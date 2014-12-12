@@ -2955,7 +2955,7 @@ acct_t account_add(file_data *file, char *name, char *ident, enum account_type t
 	/* If that fails, create a new entry. */
 
 	if (new == NULL_ACCOUNT) {
-		if (flex_extend((flex_ptr) &(file->accounts), sizeof(account) * (file->account_count+1)) == 1) {
+		if (flex_extend((flex_ptr) &(file->accounts), sizeof(struct account) * (file->account_count+1)) == 1) {
 			new = file->account_count++;
 			#ifdef DEBUG
 			debug_printf("Created new account: %d", new);
@@ -3638,7 +3638,7 @@ int account_read_acct_file(file_data *file, FILE *in, char *section, char *token
 {
 	int	result, block_size, i = -1, j;
 
-	block_size = flex_size((flex_ptr) &(file->accounts)) / sizeof(account);
+	block_size = flex_size((flex_ptr) &(file->accounts)) / sizeof(struct account);
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
@@ -3647,7 +3647,7 @@ int account_read_acct_file(file_data *file, FILE *in, char *section, char *token
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->accounts), sizeof(account) * block_size);
+				flex_extend((flex_ptr) &(file->accounts), sizeof(struct account) * block_size);
 			} else {
 				block_size = file->account_count;
 			}
@@ -3682,7 +3682,7 @@ int account_read_acct_file(file_data *file, FILE *in, char *section, char *token
 					#ifdef DEBUG
 					debug_printf("Section block expand to %d", block_size);
 					#endif
-					flex_extend((flex_ptr) &(file->accounts), sizeof(account) * block_size);
+					flex_extend((flex_ptr) &(file->accounts), sizeof(struct account) * block_size);
 				}
 
 				/* Blank all the intervening entries. */
@@ -3760,7 +3760,7 @@ int account_read_acct_file(file_data *file, FILE *in, char *section, char *token
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
 
-	block_size = flex_size((flex_ptr) &(file->accounts)) / sizeof(account);
+	block_size = flex_size((flex_ptr) &(file->accounts)) / sizeof(struct account);
 
 	#ifdef DEBUG
 	debug_printf("Account block size: %d, required: %d", block_size, file->account_count);
@@ -3768,7 +3768,7 @@ int account_read_acct_file(file_data *file, FILE *in, char *section, char *token
 
 	if (block_size > file->account_count) {
 		block_size = file->account_count;
-		flex_extend((flex_ptr) &(file->accounts), sizeof(account) * block_size);
+		flex_extend((flex_ptr) &(file->accounts), sizeof(struct account) * block_size);
 
 		#ifdef DEBUG
 		debug_printf("Block shrunk to %d", block_size);

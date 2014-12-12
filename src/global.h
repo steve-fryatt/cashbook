@@ -297,7 +297,7 @@ transaction;
 
 /* Account data struct. */
 
-typedef struct account {
+struct account {
 	char			name[ACCOUNT_NAME_LEN];
 	char			ident[ACCOUNT_IDENT_LEN];
 
@@ -349,7 +349,7 @@ typedef struct account {
 	int			report_total;
 	int			report_balance;
 	unsigned		report_flags;
-} account;
+};
 
 /* ==================================================================================================================
  * Window redraw data structures
@@ -768,7 +768,7 @@ struct file_data
 
   /* Account, transaction, standing order and preset data structures (pointers which become arrays). */
 
-  account            *accounts;
+  struct account     *accounts;
   transaction        *transactions;
   struct sorder      *sorders;
   struct preset      *presets;

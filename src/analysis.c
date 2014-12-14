@@ -234,28 +234,28 @@ struct analysis_data
 static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.		*/
 static file_data		*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.	*/
 static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.	*/
-static trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.	*/
+static struct trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.	*/
 static int			analysis_transaction_template = NULL_TEMPLATE;	/**< The template which applies to the Transaction dialogue.	*/
 
 static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.		*/
 static file_data		*analysis_unreconciled_file = NULL;		/**< The file currently owning the unreconciled dialogue.	*/
 static osbool			analysis_unreconciled_restore = FALSE;		/**< The restore setting for the current Unreconciled dialogue.	*/
-static unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.	*/
+static struct unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.	*/
 static int			analysis_unreconciled_template = NULL_TEMPLATE;	/**< The template which applies to the Unreconciled dialogue.	*/
 
 static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.			*/
 static file_data		*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.		*/
 static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.	*/
-static cashflow_rep		analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.		*/
+static struct cashflow_rep	analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.		*/
 static int			analysis_cashflow_template = NULL_TEMPLATE;	/**< The template which applies to the Cashflow dialogue.	*/
 
 static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.			*/
 static file_data		*analysis_balance_file = NULL;			/**< The file currently owning the balance dialogue.		*/
 static osbool			analysis_balance_restore = FALSE;		/**< The restore setting for the current Balance dialogue.	*/
-static balance_rep		analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.		*/
+static struct balance_rep	analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.		*/
 static int			analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.	*/
 
-static saved_report		analysis_report_template;			/**< New report settings for passing to the Report module.	*/
+static struct saved_report	analysis_report_template;			/**< New report settings for passing to the Report module.	*/
 
 static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a pointer to this to set all accounts.		*/
 
@@ -280,7 +280,7 @@ static osbool			analysis_period_first = TRUE;
 
 static wimp_w			analysis_save_window = NULL;			/**< The handle of the Save/Rename window.			*/
 static file_data		*analysis_save_file = NULL;			/**< The file currently owning the Save/Rename window.		*/
-static struct report_data	*analysis_save_report = NULL;			/**< The report currently owning the Save/Rename window.	*/
+static struct report		*analysis_save_report = NULL;			/**< The report currently owning the Save/Rename window.	*/
 static int			analysis_save_template = NULL_TEMPLATE;		/**< The template currently owning the Save/Rename window.	*/
 static enum analysis_save_mode	analysis_save_mode = ANALYSIS_SAVE_MODE_NONE;	/**< The current mode of the Save/Rename window.		*/
 
@@ -346,7 +346,7 @@ static void		analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 static void		analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void		analysis_save_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void		analysis_refresh_save_window(void);
-static void		analysis_fill_save_window(struct report_data *report);
+static void		analysis_fill_save_window(struct report *report);
 static void		analysis_fill_rename_window(file_data *file, int template);
 static osbool		analysis_process_save_window(void);
 
@@ -355,13 +355,13 @@ static int		analysis_template_menu_compare_entries(const void *va, const void *v
 static void		analysis_force_close_report_rename_window(wimp_w window);
 
 static int		analysis_get_template_from_name(file_data *file, char *name);
-static void		analysis_store_template(file_data *file, saved_report *report, int template);
+static void		analysis_store_template(file_data *file, struct saved_report *report, int template);
 static void		analysis_delete_template(file_data *file, int template);
 
-static void		analysis_copy_transaction_template(trans_rep *to, trans_rep *from);
-static void		analysis_copy_unreconciled_template(unrec_rep *to, unrec_rep *from);
-static void		analysis_copy_cashflow_template(cashflow_rep *to, cashflow_rep *from);
-static void		analysis_copy_balance_template(balance_rep *to, balance_rep *from);
+static void		analysis_copy_transaction_template(struct trans_rep *to, struct trans_rep *from);
+static void		analysis_copy_unreconciled_template(struct unrec_rep *to, struct unrec_rep *from);
+static void		analysis_copy_cashflow_template(struct cashflow_rep *to, struct cashflow_rep *from);
+static void		analysis_copy_balance_template(struct balance_rep *to, struct balance_rep *from);
 
 
 
@@ -792,7 +792,7 @@ static osbool analysis_delete_transaction_window(void)
 
 static void analysis_generate_transaction_report(file_data *file)
 {
-	struct report_data	*report;
+	struct report		*report;
 	struct analysis_data	*data;
 	int			i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
 				total_days, period_days, period_limit, entry, account;
@@ -1478,7 +1478,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
 				rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
 	date_t			start_date, end_date, next_start, next_end;
-	struct report_data	*report;
+	struct report		*report;
 	struct analysis_data	*data;
 	int			acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
@@ -2060,7 +2060,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 	int			i, acc, items, found, unit, period, group, lock, tabular, show_blank, total;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
-	struct report_data	*report;
+	struct report		*report;
 	struct analysis_data	*data;
 	int			entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
@@ -2634,7 +2634,7 @@ static void analysis_generate_balance_report(file_data *file)
 	int			i, acc, items, unit, period, group, lock, tabular, total;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
-	struct report_data	*report;
+	struct report		*report;
 	struct analysis_data	*data;
 	int			entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
@@ -3289,8 +3289,8 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 
 void analysis_remove_account_from_templates(file_data *file, acct_t account)
 {
-	int			i;
-	struct report_data	*report;
+	int		i;
+	struct report	*report;
 
 	/* Handle the dialogue boxes. */
 
@@ -3343,6 +3343,9 @@ void analysis_remove_account_from_templates(file_data *file, acct_t account)
 			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.balance.outgoing,
 					&(file->saved_reports[i].data.balance.outgoing_count));
 			break;
+
+		case REPORT_TYPE_NONE:
+			break;
 		}
 	}
 
@@ -3381,6 +3384,9 @@ void analysis_remove_account_from_templates(file_data *file, acct_t account)
 					&(report->template.data.balance.incoming_count));
 			analysis_remove_account_from_list(file, account, report->template.data.balance.outgoing,
 					&(report->template.data.balance.outgoing_count));
+			break;
+
+		case REPORT_TYPE_NONE:
 			break;
 		}
 
@@ -3633,7 +3639,7 @@ void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct
  * \param *ptr		The current Wimp Pointer details.
  */
 
-void analysis_open_save_window(struct report_data *report, wimp_pointer *ptr)
+void analysis_open_save_window(struct report *report, wimp_pointer *ptr)
 {
 	/* If the window is already open, another report is being saved.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
@@ -3853,7 +3859,7 @@ static void analysis_refresh_save_window(void)
  * \param: *report		The report to be saved.
  */
 
-static void analysis_fill_save_window(struct report_data *report)
+static void analysis_fill_save_window(struct report *report)
 {
 	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, report->template.name);
 }
@@ -4105,7 +4111,7 @@ void analysis_force_windows_closed(file_data *file)
  * \param *report			The report of interest.
  */
 
-void analysis_force_close_report_save_window(struct report_data *report)
+void analysis_force_close_report_save_window(struct report *report)
 {
 	if (analysis_save_mode == ANALYSIS_SAVE_MODE_SAVE &&
 			analysis_save_file == report->file && analysis_save_report == report &&
@@ -4176,6 +4182,9 @@ void analysis_open_template_from_menu(file_data *file, wimp_pointer *ptr, int se
 	case REPORT_TYPE_BALANCE:
 		analysis_open_balance_window(file, ptr, template, config_opt_read ("RememberValues"));
 		break;
+
+	case REPORT_TYPE_NONE:
+		break;
 	}
 }
 
@@ -4210,10 +4219,10 @@ static int analysis_get_template_from_name(file_data *file, char *name)
  *				NULL_TEMPLATE to add a new entry.
  */
 
-static void analysis_store_template(file_data *file, saved_report *report, int template)
+static void analysis_store_template(file_data *file, struct saved_report *report, int template)
 {
 	if (template == NULL_TEMPLATE) {
-		if (flex_extend((flex_ptr) &(file->saved_reports), sizeof(saved_report) * (file->saved_report_count+1)) == 1)
+		if (flex_extend((flex_ptr) &(file->saved_reports), sizeof(struct saved_report) * (file->saved_report_count+1)) == 1)
 			template = file->saved_report_count++;
 		else
 			error_msgs_report_error("NoMemNewTemp");
@@ -4236,7 +4245,7 @@ static void analysis_store_template(file_data *file, saved_report *report, int t
 
 static void analysis_delete_template(file_data *file, int template)
 {
-	int	type;
+	enum report_type	type;
 
 	/* delete the specified template. */
 
@@ -4247,7 +4256,7 @@ static void analysis_delete_template(file_data *file, int template)
 
 	/* first remove the template from the flex block. */
 
-	flex_midextend((flex_ptr) &(file->saved_reports), (template + 1) * sizeof(saved_report), -sizeof(saved_report));
+	flex_midextend((flex_ptr) &(file->saved_reports), (template + 1) * sizeof(struct saved_report), -sizeof(struct saved_report));
 	file->saved_report_count--;
 	file_set_data_integrity(file, TRUE);
 
@@ -4289,7 +4298,7 @@ static void analysis_delete_template(file_data *file, int template)
  * \param *from			The template to be copied.
  */
 
-void analysis_copy_template(saved_report *to, saved_report *from)
+void analysis_copy_template(struct saved_report *to, struct saved_report *from)
 {
 	if (from == NULL || to == NULL)
 		return;
@@ -4313,6 +4322,9 @@ void analysis_copy_template(saved_report *to, saved_report *from)
 	case REPORT_TYPE_BALANCE:
 		analysis_copy_balance_template(&(to->data.balance), &(from->data.balance));
 		break;
+
+	case REPORT_TYPE_NONE:
+		break;
 	}
 }
 
@@ -4324,7 +4336,7 @@ void analysis_copy_template(saved_report *to, saved_report *from)
  * \param *from			The template to be copied.
  */
 
-static void analysis_copy_transaction_template(trans_rep *to, trans_rep *from)
+static void analysis_copy_transaction_template(struct trans_rep *to, struct trans_rep *from)
 {
 	int	i;
 
@@ -4366,7 +4378,7 @@ static void analysis_copy_transaction_template(trans_rep *to, trans_rep *from)
  * \param *from			The template to be copied.
  */
 
-static void analysis_copy_unreconciled_template(unrec_rep *to, unrec_rep *from)
+static void analysis_copy_unreconciled_template(struct unrec_rep *to, struct unrec_rep *from)
 {
 	int	i;
 
@@ -4399,7 +4411,7 @@ static void analysis_copy_unreconciled_template(unrec_rep *to, unrec_rep *from)
  * \param *from			The template to be copied.
  */
 
-static void analysis_copy_cashflow_template(cashflow_rep *to, cashflow_rep *from)
+static void analysis_copy_cashflow_template(struct cashflow_rep *to, struct cashflow_rep *from)
 {
 	int	i;
 
@@ -4439,7 +4451,7 @@ static void analysis_copy_cashflow_template(cashflow_rep *to, cashflow_rep *from
  * \param *from			The template to be copied.
  */
 
-static void analysis_copy_balance_template(balance_rep *to, balance_rep *from)
+static void analysis_copy_balance_template(struct balance_rep *to, struct balance_rep *from)
 {
 	int	i;
 
@@ -4621,6 +4633,9 @@ void analysis_write_file(file_data *file, FILE *out)
 				config_write_token_pair(out, "Outgoing", buffer);
 			}
 			break;
+
+		case REPORT_TYPE_NONE:
+			break;
 		}
 	}
 }
@@ -4641,7 +4656,7 @@ int analysis_read_file(file_data *file, FILE *in, char *section, char *token, ch
 {
 	int	result, block_size, i = -1;
 
-	block_size = flex_size((flex_ptr) &(file->saved_reports)) / sizeof(saved_report);
+	block_size = flex_size((flex_ptr) &(file->saved_reports)) / sizeof(struct saved_report);
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
@@ -4650,7 +4665,7 @@ int analysis_read_file(file_data *file, FILE *in, char *section, char *token, ch
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->saved_reports), sizeof(saved_report) * block_size);
+				flex_extend((flex_ptr) &(file->saved_reports), sizeof(struct saved_report) * block_size);
 			} else {
 				block_size = file->saved_report_count;
 			}
@@ -4661,7 +4676,7 @@ int analysis_read_file(file_data *file, FILE *in, char *section, char *token, ch
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->saved_reports), sizeof(saved_report) * block_size);
+				flex_extend((flex_ptr) &(file->saved_reports), sizeof(struct saved_report) * block_size);
 			}
 			i = file->saved_report_count-1;
 			file->saved_reports[i].type = strtoul(next_field(value, ','), NULL, 16);
@@ -4725,6 +4740,9 @@ int analysis_read_file(file_data *file, FILE *in, char *section, char *token, ch
 				file->saved_reports[i].data.balance.incoming_count = 0;
 				file->saved_reports[i].data.balance.outgoing_count = 0;
 				break;
+
+			case REPORT_TYPE_NONE:
+				break;
 			}
 		} else if (i != -1 && string_nocase_strcmp(token, "Name") == 0) {
 			strcpy(file->saved_reports[i].name, value);
@@ -4785,7 +4803,7 @@ int analysis_read_file(file_data *file, FILE *in, char *section, char *token, ch
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
 
-	block_size = flex_size((flex_ptr) &(file->saved_reports)) / sizeof(saved_report);
+	block_size = flex_size((flex_ptr) &(file->saved_reports)) / sizeof(struct saved_report);
 
 	#ifdef DEBUG
 	debug_printf("Saved Report block size: %d, required: %d", block_size, file->saved_report_count);
@@ -4793,7 +4811,7 @@ int analysis_read_file(file_data *file, FILE *in, char *section, char *token, ch
 
 	if (block_size > file->saved_report_count) {
 		block_size = file->saved_report_count;
-		flex_extend((flex_ptr) &(file->saved_reports), sizeof(saved_report) * block_size);
+		flex_extend((flex_ptr) &(file->saved_reports), sizeof(struct saved_report) * block_size);
 
 		#ifdef DEBUG
 		debug_printf("Block shrunk to %d", block_size);

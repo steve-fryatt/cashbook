@@ -3166,7 +3166,7 @@ static void transact_open_print_window(file_data *file, wimp_pointer *ptr, int c
 
 static void transact_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
 {
-	struct report_data		*report;
+	struct report			*report;
 	int				i, t;
 	char				line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
 	struct transaction_window	*window;

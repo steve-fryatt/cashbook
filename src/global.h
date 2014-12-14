@@ -197,11 +197,13 @@ enum account_line_type {
 
 #define SAVED_REPORT_NAME_LEN 32
 
-#define REPORT_TYPE_NONE     0
-#define REPORT_TYPE_TRANS    1
-#define REPORT_TYPE_UNREC    2
-#define REPORT_TYPE_CASHFLOW 3
-#define REPORT_TYPE_BALANCE  4
+enum report_type {
+	REPORT_TYPE_NONE = 0,							/**< No report.						*/
+	REPORT_TYPE_TRANS = 1,							/**< Transaction report.				*/
+	REPORT_TYPE_UNREC = 2,							/**< Unreconciled transaction report.			*/
+	REPORT_TYPE_CASHFLOW = 3,						/**< Cashflow report.					*/
+	REPORT_TYPE_BALANCE = 4							/**< Balance report.					*/
+};
 
 /* Sort types. Types are shered between windows wherever possible.
  *
@@ -499,174 +501,174 @@ continuation;
 
 /* Transaction Report dialogue. */
 
-typedef struct trans_rep
-{
-  date_t       date_from;
-  date_t       date_to;
+struct trans_rep {
+	date_t		date_from;
+	date_t		date_to;
   int          budget;
 
   int          group;
-  int          period;
+	int          period;
   int          period_unit;
   int          lock;
 
-  int          from_count, to_count;
-  acct_t       from[REPORT_ACC_LIST_LEN];
-  acct_t       to[REPORT_ACC_LIST_LEN];
-  char         ref[REF_FIELD_LEN];
-  char         desc[DESCRIPT_FIELD_LEN];
-  amt_t        amount_min;
-  amt_t        amount_max;
+	int		from_count;
+	int		to_count;
+	acct_t		from[REPORT_ACC_LIST_LEN];
+	acct_t		to[REPORT_ACC_LIST_LEN];
+	char		ref[REF_FIELD_LEN];
+	char		desc[DESCRIPT_FIELD_LEN];
+	amt_t		amount_min;
+	amt_t		amount_max;
 
   int          output_trans;
   int          output_summary;
   int          output_accsummary;
-}
-trans_rep;
+};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Unreconciled Report dialogue. */
 
-typedef struct unrec_rep
-{
-  date_t       date_from;
-  date_t       date_to;
+struct unrec_rep {
+	date_t		date_from;
+	date_t		date_to;
   int          budget;
 
   int          group;
-  int          period;
+	int		period;
   int          period_unit;
   int          lock;
 
-  int          from_count, to_count;
-  acct_t       from[REPORT_ACC_LIST_LEN];
-  acct_t       to[REPORT_ACC_LIST_LEN];
-}
-unrec_rep;
+	int		from_count;
+	int		to_count;
+	acct_t		from[REPORT_ACC_LIST_LEN];
+	acct_t		to[REPORT_ACC_LIST_LEN];
+};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Cashflow Report dialogue. */
 
-typedef struct cashflow_rep
-{
-  date_t       date_from;
-  date_t       date_to;
+struct cashflow_rep {
+	date_t		date_from;
+	date_t		date_to;
   int          budget;
 
   int          group;
-  int          period;
+	int		period;
   int          period_unit;
   int          lock;
   int          empty;
 
-  int          accounts_count, incoming_count, outgoing_count;
-  acct_t       accounts[REPORT_ACC_LIST_LEN];
-  acct_t       incoming[REPORT_ACC_LIST_LEN];
-  acct_t       outgoing[REPORT_ACC_LIST_LEN];
+	int		accounts_count;
+	int		incoming_count;
+	int		outgoing_count;
+	acct_t		accounts[REPORT_ACC_LIST_LEN];
+	acct_t		incoming[REPORT_ACC_LIST_LEN];
+	acct_t		outgoing[REPORT_ACC_LIST_LEN];
 
   int          tabular;
-}
-cashflow_rep;
+};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Balance Report dialogue. */
 
-typedef struct balance_rep
-{
-  date_t       date_from;
-  date_t       date_to;
+struct balance_rep {
+	date_t		date_from;
+	date_t		date_to;
   int          budget;
 
   int          group;
-  int          period;
+	int		period;
   int          period_unit;
   int          lock;
 
-  int          accounts_count, incoming_count, outgoing_count;
-  acct_t       accounts[REPORT_ACC_LIST_LEN];
-  acct_t       incoming[REPORT_ACC_LIST_LEN];
-  acct_t       outgoing[REPORT_ACC_LIST_LEN];
+	int		accounts_count;
+	int		incoming_count;
+	int		outgoing_count;
+	acct_t		accounts[REPORT_ACC_LIST_LEN];
+	acct_t		incoming[REPORT_ACC_LIST_LEN];
+	acct_t		outgoing[REPORT_ACC_LIST_LEN];
 
   int          tabular;
-}
-balance_rep;
+};
 
 /* ==================================================================================================================
  * Saved Report structures
  */
 
-typedef union report_block
-{
-  trans_rep    transaction;
-  unrec_rep    unreconciled;
-  cashflow_rep cashflow;
-  balance_rep  balance;
-}
-report_block;
+union report_block {
+	struct trans_rep	transaction;
+	struct unrec_rep	unreconciled;
+	struct cashflow_rep	cashflow;
+	struct balance_rep	balance;
+};
 
 
-typedef struct saved_report
-{
-  char         name[SAVED_REPORT_NAME_LEN];
-  int          type;
+struct saved_report {
+	char			name[SAVED_REPORT_NAME_LEN];			/**< The name of the saved report template.		*/
+	enum report_type	type;						/**< The type of the template.				*/
 
-  report_block data;
-}
-saved_report;
+	union report_block	data;						/**< The template-type-specific data.			*/
+};
 
 /* ==================================================================================================================
  * Report data structures
  */
 
+/* Report status flags. */
 
-struct report_data
-{
-  file_data		*file;							/**< The file that the report belongs to.		*/
+enum report_status {
+	REPORT_STATUS_NONE = 0x00,						/**< No status flags set.				*/
+	REPORT_STATUS_MEMERR = 0x01,						/**< A memory allocation error has occurred, so stop allowing writes. */
+	REPORT_STATUS_CLOSED = 0x02						/**< The report has been closed to writing.		*/
+};
 
-  wimp_w             window;
-  char               window_title[256];
+struct report {
+	file_data		*file;						/**< The file that the report belongs to.		*/
 
-  /* Report status flags. */
+	wimp_w			window;
+	char			window_title[256];
 
-  int                flags;
-  int                print_pending;
+	/* Report status flags. */
 
-  /* Tab details */
+	enum report_status	flags;
+	int			print_pending;
 
-  int                font_width[REPORT_TAB_BARS][REPORT_TAB_STOPS]; /* Column widths in OS units for outline fonts. */
-  int                text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS]; /* Column widths in characters for ASCII text. */
+	/* Tab details */
 
-  int                font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS]; /* Tab stops in OS units for outline fonts. */
+	int			font_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in OS units for outline fonts.	*/
+	int			text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in characters for ASCII text.	*/
 
-  /* Font data */
+	int			font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Tab stops in OS units for outline fonts.		*/
 
-  char               font_normal[MAX_REP_FONT_NAME]; /* Name of 'normal' outline font. */
-  char               font_bold[MAX_REP_FONT_NAME];   /* Name of bold outline font. */
-  int                font_size;                      /* Font size in 1/16 points. */
-  int                line_spacing;                   /* Line spacing in percent. */
+	/* Font data */
 
-  /* Report content */
+	char			font_normal[MAX_REP_FONT_NAME];			/**< Name of 'normal' outline font.			*/
+	char			font_bold[MAX_REP_FONT_NAME];			/**< Name of bold outline font.				*/
+	int			font_size;					/**< Font size in 1/16 points.				*/
+	int			line_spacing;					/**< Line spacing in percent.				*/
 
-  int                lines;      /* The number of lines in the report. */
-  int                max_lines;  /* The size of the line pointer block. */
+	/* Report content */
 
-  int                width;      /* The displayed width of the report data. */
-  int                height;     /* The displayed height of the report data. */
+	int			lines;						/**< The number of lines in the report.			*/
+	int			max_lines;					/**< The size of the line pointer block.		*/
 
-  int                block_size; /* The size of the data block */
-  int                data_size;  /* The size of the data in the block. */
+	int			width;						/**< The displayed width of the report data.		*/
+	int			height;						/**< The displayed height of the report data.		*/
 
-  char               *data;      /* The data block itself (flex block). */
-  int                *line_ptr;  /* The line pointer block (flex block). */
+	int			block_size;					/**< The size of the data block.			*/
+	int			data_size;					/**< The size of the data in the block.			*/
 
-  /* Report template details. */
+	char			*data;						/**< The data block itself (flex block).		*/
+	int			*line_ptr;					/**< The line pointer block (flex block).		*/
 
-  saved_report       template;
+	/* Report template details. */
 
-  struct report_data *next;
+	struct saved_report	template;
+
+	struct report		*next;
 };
 
 /* ==================================================================================================================
@@ -727,14 +729,14 @@ struct file_data
 
   /* Report data structure */
 
-  struct report_data *reports;           /* Pointer to a linked list of report structures. */
+  struct report      *reports;           /* Pointer to a linked list of report structures. */
 
-  struct report_data *import_report;     /* The current import log report. */
+  struct report      *import_report;     /* The current import log report. */
 
   /* Report templates */
 
-  saved_report       *saved_reports;     /* A pointer to an array of saved report templates. */
-  int                saved_report_count; /* A count of how many reports are in the file. */
+  struct saved_report *saved_reports;     /* A pointer to an array of saved report templates. */
+  int                 saved_report_count; /* A count of how many reports are in the file. */
 
   /* Dialogue content. */
 
@@ -742,10 +744,10 @@ struct file_data
   find               find;
   print              print;
   continuation       continuation;
-  trans_rep          trans_rep;
-  unrec_rep          unrec_rep;
-  cashflow_rep       cashflow_rep;
-  balance_rep        balance_rep;
+  struct trans_rep          trans_rep;
+  struct unrec_rep          unrec_rep;
+  struct cashflow_rep       cashflow_rep;
+  struct balance_rep        balance_rep;
 
   struct file_data   *next;
 };

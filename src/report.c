@@ -113,8 +113,8 @@ struct report_print_pagination {
 	int		line_count;						/**< The total line count on the page, including a repeated header.				*/
 };
 
-struct report_data		*report_format_report = NULL;			/**< The report to which the currently open Report Format window belongs.			*/
-struct report_data		*report_print_report = NULL;			/**< The report to which the currently open Report Print dialogie belongs.			*/
+struct report			*report_format_report = NULL;			/**< The report to which the currently open Report Format window belongs.			*/
+struct report			*report_print_report = NULL;			/**< The report to which the currently open Report Print dialogie belongs.			*/
 
 static osbool			report_print_opt_text;				/**< TRUE if the current report is to be printed text format; FALSE to print graphically.	*/
 static osbool			report_print_opt_textformat;			/**< TRUE if text formatting should be applied to the current text format print; else FALSE.	*/
@@ -136,8 +136,8 @@ static struct saveas_block	*report_saveas_csv = NULL;			/**< The Save CSV saveas
 static struct saveas_block	*report_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.								*/
 
 
-static int			report_reflow_content(struct report_data *report);
-static osbool			report_find_fonts(struct report_data *report, font_f *normal, font_f *bold);
+static int			report_reflow_content(struct report *report);
+static osbool			report_find_fonts(struct report *report, font_f *normal, font_f *bold);
 
 static void			report_view_close_window_handler(wimp_close *close);
 static void			report_view_redraw_handler(wimp_draw *redraw);
@@ -146,17 +146,17 @@ static void			report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 static void			report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void			report_view_redraw_handler(wimp_draw *redraw);
 
-static void			report_open_format_window(struct report_data *report, wimp_pointer *ptr);
+static void			report_open_format_window(struct report *report, wimp_pointer *ptr);
 static void			report_format_click_handler(wimp_pointer *pointer);
 static osbool			report_format_keypress_handler(wimp_key *key);
 static void			report_format_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void			report_format_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void			report_format_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			report_refresh_format_window(void);
-static void			report_fill_format_window(struct report_data *report);
+static void			report_fill_format_window(struct report *report);
 static void			report_process_format_window(void);
 
-static void			report_open_print_window(struct report_data *report, wimp_pointer *ptr, osbool restore);
+static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
 static void			report_print_window_closed(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 static osbool			report_save_text(char *filename, osbool selection, void *data);
@@ -165,9 +165,9 @@ static osbool			report_save_tsv(char *filename, osbool selection, void *data);
 
 static void			report_start_print_job(char *filename);
 static void			report_cancel_print_job(void);
-static void			report_print_as_graphic(struct report_data *report, osbool fit_width, osbool rotate, osbool pagenum);
+static void			report_print_as_graphic(struct report *report, osbool fit_width, osbool rotate, osbool pagenum);
 static void			report_handle_print_error(os_error *error, os_fw file, font_f f1, font_f f2);
-static os_error			*report_plot_line(struct report_data *report, unsigned int line, int x, int y, font_f normal, font_f bold);
+static os_error			*report_plot_line(struct report *report, unsigned int line, int x, int y, font_f normal, font_f bold);
 static enum report_page_area	report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer, unsigned header_size, unsigned footer_size);
 
 
@@ -216,15 +216,15 @@ void report_initialise(osspriteop_area *sprites)
  * \return			Report handle, or NULL on failure.
  */
 
-struct report_data *report_open(file_data *file, char *title, saved_report *template)
+struct report *report_open(file_data *file, char *title, struct saved_report *template)
 {
-	struct report_data	*new;
+	struct report	*new;
 
 	#ifdef DEBUG
 	debug_printf("\\GOpening report");
 	#endif
 
-	new = heap_alloc(sizeof(struct report_data));
+	new = heap_alloc(sizeof(struct report));
 
 	if (new == NULL)
 		return NULL;
@@ -234,7 +234,7 @@ struct report_data *report_open(file_data *file, char *title, saved_report *temp
 
 	new->file = file;
 
-	new->flags = 0;
+	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
 
 	new->lines = 0;
@@ -275,7 +275,7 @@ struct report_data *report_open(file_data *file, char *title, saved_report *temp
  * \param *report		The report handle.
  */
 
-void report_close(struct report_data *report)
+void report_close(struct report *report)
 {
 	int			linespace;
 	wimp_window_state	parent;
@@ -363,7 +363,7 @@ void report_close(struct report_data *report)
  *				FALSE to print Portrait.
  */
 
-void report_close_and_print(struct report_data *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum)
+void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum)
 {
 	int		linespace;
 	file_data	*file;
@@ -427,10 +427,10 @@ void report_close_and_print(struct report_data *report, osbool text, osbool text
  * \param *report		The report to delete.
  */
 
-void report_delete(struct report_data *report)
+void report_delete(struct report *report)
 {
-	file_data		*file;
-	struct report_data	**rep;
+	file_data	*file;
+	struct report	**rep;
 
 	#ifdef DEBUG
 	debug_printf("\\RDeleting report");
@@ -488,7 +488,7 @@ void report_delete(struct report_data *report)
  * \param *text			The line of text to write.
  */
 
-void report_write_line(struct report_data *report, int bar, char *text)
+void report_write_line(struct report *report, int bar, char *text)
 {
 	int	len;
 	char	*c, *copy, *flag;
@@ -603,7 +603,7 @@ void report_write_line(struct report_data *report, int bar, char *text)
  *				to contain the report.
  */
 
-static int report_reflow_content(struct report_data *report)
+static int report_reflow_content(struct report *report)
 {
 	osbool		right[REPORT_TAB_BARS][REPORT_TAB_STOPS];
 	int		width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS],
@@ -786,7 +786,7 @@ static int report_reflow_content(struct report_data *report)
  * \return			TRUE if successful; else FALSE.
  */
 
-static osbool report_find_fonts(struct report_data *report, font_f *normal, font_f *bold)
+static osbool report_find_fonts(struct report *report, font_f *normal, font_f *bold)
 {
 	os_error	*error, *e1 = NULL, *e2 = NULL;
 
@@ -815,8 +815,8 @@ static osbool report_find_fonts(struct report_data *report, font_f *normal, font
 
 osbool report_get_pending_print_jobs(file_data *file)
 {
-	struct report_data	*list;
-	osbool			pending = FALSE;
+	struct report	*list;
+	osbool		pending = FALSE;
 
 	list = file->reports;
 
@@ -840,7 +840,7 @@ osbool report_get_pending_print_jobs(file_data *file)
 
 static void report_view_close_window_handler(wimp_close *close)
 {
-	struct report_data	*report;
+	struct report	*report;
 
 	#ifdef DEBUG
 	debug_printf ("\\RDeleting report window");
@@ -876,7 +876,7 @@ static void report_view_close_window_handler(wimp_close *close)
 
 static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	struct report_data	*report;
+	struct report	*report;
 
 	report = event_get_window_user_data(w);
 
@@ -901,8 +901,8 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 
 static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	struct report_data	*report;
-	wimp_pointer		pointer;
+	struct report	*report;
+	wimp_pointer	pointer;
 
 	report = event_get_window_user_data(w);
 
@@ -937,7 +937,7 @@ static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 
 static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-	struct report_data	*report;
+	struct report	*report;
 
 	report = event_get_window_user_data(w);
 
@@ -975,11 +975,11 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 static void report_view_redraw_handler(wimp_draw *redraw)
 {
-	int			ox, oy, top, base, y, linespace;
-	font_f			font_n, font_b;
-	struct report_data	*report;
-	osbool			more;
-	file_data		*file;
+	int		ox, oy, top, base, y, linespace;
+	font_f		font_n, font_b;
+	struct report	*report;
+	osbool		more;
+	file_data	*file;
 
 	report = event_get_window_user_data(redraw->w);
 
@@ -1028,7 +1028,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void report_open_format_window(struct report_data *report, wimp_pointer *ptr)
+static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 {
 	/* If the window is already open, another report format is being edited.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
@@ -1189,7 +1189,7 @@ static void report_refresh_format_window(void)
  * \param *report		The report to use.
  */
 
-static void report_fill_format_window(struct report_data *report)
+static void report_fill_format_window(struct report *report)
 {
 	if (report == NULL)
 		return;
@@ -1310,7 +1310,7 @@ void report_force_windows_closed(file_data *file)
  *				to use the application defaults.
  */
 
-static void report_open_print_window(struct report_data *report, wimp_pointer *ptr, osbool restore)
+static void report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore)
 {
 	if (report == NULL)
 		return;
@@ -1377,7 +1377,7 @@ static void report_print_window_closed(osbool text, osbool format, osbool scale,
 
 static osbool report_save_text(char *filename, osbool selection, void *data)
 {
-	struct report_data *report = (struct report_data *) data;
+	struct report *report = (struct report *) data;
 	
 	if (report == NULL || report->file == NULL)
 		return FALSE;
@@ -1398,7 +1398,7 @@ static osbool report_save_text(char *filename, osbool selection, void *data)
 
 static osbool report_save_csv(char *filename, osbool selection, void *data)
 {
-	struct report_data *report = (struct report_data *) data;
+	struct report *report = (struct report *) data;
 	
 	if (report == NULL || report->file == NULL)
 		return FALSE;
@@ -1419,7 +1419,7 @@ static osbool report_save_csv(char *filename, osbool selection, void *data)
 
 static osbool report_save_tsv(char *filename, osbool selection, void *data)
 {
-	struct report_data *report = (struct report_data *) data;
+	struct report *report = (struct report *) data;
 	
 	if (report == NULL || report->file == NULL)
 		return FALSE;
@@ -1434,7 +1434,7 @@ static osbool report_save_tsv(char *filename, osbool selection, void *data)
 
 
 
-void save_report_text (file_data *file, struct report_data *report, char *filename, int formatting)
+void save_report_text (file_data *file, struct report *report, char *filename, int formatting)
 {
   FILE           *out;
   int            i, j, bar, tab, indent, width, overrun, escape;
@@ -1562,7 +1562,7 @@ void save_report_text (file_data *file, struct report_data *report, char *filena
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void export_delimited_report_file (file_data *file, struct report_data *report, char *filename, int format, int filetype)
+void export_delimited_report_file (file_data *file, struct report *report, char *filename, int format, int filetype)
 {
   FILE           *out;
   int            i, tab, delimit;
@@ -1669,7 +1669,7 @@ static void report_cancel_print_job(void)
  * \param pagenum		TRUE to include page numbers.
  */
 
-static void report_print_as_graphic(struct report_data *report, osbool fit_width, osbool rotate, osbool pagenum)
+static void report_print_as_graphic(struct report *report, osbool fit_width, osbool rotate, osbool pagenum)
 {
 	os_error			*error;
 	os_fw				out = 0;
@@ -2112,7 +2112,7 @@ static void report_handle_print_error(os_error *error, os_fw file, font_f f1, fo
  * \return		Pointer to an error block, or NULL for success.
  */
 
-static os_error *report_plot_line(struct report_data *report, unsigned int line, int x, int y, font_f normal, font_f bold)
+static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y, font_f normal, font_f bold)
 {
 	os_error	*error;
 	font_f		font;

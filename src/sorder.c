@@ -67,7 +67,6 @@
 #include "caret.h"
 #include "column.h"
 #include "conversion.h"
-#include "calculation.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
@@ -923,10 +922,10 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			if (y < file->sorder_count && file->sorders[t].from != NULL_ACCOUNT) {
 				sorder_window_def->icons[SORDER_ICON_FROM].data.indirected_text.text =
-						file->accounts[file->sorders[t].from].ident;
+						account_get_ident(file, file->sorders[t].from);
 				sorder_window_def->icons[SORDER_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
 				sorder_window_def->icons[SORDER_ICON_FROM_NAME].data.indirected_text.text =
-						file->accounts[file->sorders[t].from].name;
+						account_get_name(file, file->sorders[t].from);
 
 				if (file->sorders[t].flags & TRANS_REC_FROM)
 					strcpy(icon_buffer, rec_char);
@@ -962,10 +961,10 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			if (y < file->sorder_count && file->sorders[t].to != NULL_ACCOUNT) {
 				sorder_window_def->icons[SORDER_ICON_TO].data.indirected_text.text =
-						file->accounts[file->sorders[t].to].ident;
+						account_get_ident(file, file->sorders[t].to);
 				sorder_window_def->icons[SORDER_ICON_TO_REC].data.indirected_text.text = icon_buffer;
 				sorder_window_def->icons[SORDER_ICON_TO_NAME].data.indirected_text.text =
-						file->accounts[file->sorders[t].to].name;
+						account_get_name(file, file->sorders[t].to);
 
 				if (file->sorders[t].flags & TRANS_REC_TO)
 					strcpy(icon_buffer, rec_char);
@@ -1836,7 +1835,7 @@ static osbool sorder_process_edit_window(void)
 
 	file_set_data_integrity(sorder_edit_file, TRUE);
 	sorder_process(sorder_edit_file);
-	perform_full_recalculation(sorder_edit_file);
+	account_recalculate_all(sorder_edit_file);
 	transact_set_window_extent(sorder_edit_file);
 
 	return TRUE;
@@ -2528,7 +2527,7 @@ void sorder_process(file_data *file)
 void sorder_trial(file_data *file)
 {
 	unsigned int	trial_date, raw_next_date, adjusted_next_date;
-	int		i, order, amount, left;
+	int		order, amount, left;
 
 	#ifdef DEBUG
 	debug_printf("\\YStanding Order trialling");
@@ -2540,8 +2539,7 @@ void sorder_trial(file_data *file)
 
 	/* Zero the order trial values. */
 
-	for (i=0; i<file->account_count; i++)
-		file->accounts[i].sorder_trial = 0;
+	account_zero_sorder_trial(file);
 
 	/* Process the standing orders. */
 
@@ -2571,10 +2569,10 @@ void sorder_trial(file_data *file)
 			#endif
 
 			if (file->sorders[order].from != NULL_ACCOUNT)
-				file->accounts[file->sorders[order].from].sorder_trial -= amount;
+				account_adjust_sorder_trial(file, file->sorders[order].from, -amount);
 
 			if (file->sorders[order].to != NULL_ACCOUNT)
-				file->accounts[file->sorders[order].to].sorder_trial += amount;
+				account_adjust_sorder_trial(file, file->sorders[order].to, +amount);
 
 			/* Decrement the outstanding orders. */
 

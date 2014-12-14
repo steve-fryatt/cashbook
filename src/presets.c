@@ -945,9 +945,9 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 
 			if (y < file->preset_count && file->presets[t].from != NULL_ACCOUNT) {
-				preset_window_def->icons[PRESET_ICON_FROM].data.indirected_text.text = file->accounts[file->presets[t].from].ident;
+				preset_window_def->icons[PRESET_ICON_FROM].data.indirected_text.text = account_get_ident(file, file->presets[t].from);
 				preset_window_def->icons[PRESET_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[PRESET_ICON_FROM_NAME].data.indirected_text.text = file->accounts[file->presets[t].from].name;
+				preset_window_def->icons[PRESET_ICON_FROM_NAME].data.indirected_text.text = account_get_name(file, file->presets[t].from);
 
 				if (file->presets[t].flags & TRANS_REC_FROM)
 					strcpy(icon_buffer, rec_char);
@@ -982,9 +982,9 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 					PRESET_TOOLBAR_HEIGHT;
 
 			if (y < file->preset_count && file->presets[t].to != NULL_ACCOUNT) {
-				preset_window_def->icons[PRESET_ICON_TO].data.indirected_text.text = file->accounts[file->presets[t].to].ident;
+				preset_window_def->icons[PRESET_ICON_TO].data.indirected_text.text = account_get_ident(file, file->presets[t].to);
 				preset_window_def->icons[PRESET_ICON_TO_REC].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[PRESET_ICON_TO_NAME].data.indirected_text.text = file->accounts[file->presets[t].to].name;
+				preset_window_def->icons[PRESET_ICON_TO_NAME].data.indirected_text.text = account_get_name(file, file->presets[t].to);
 
 				if (file->presets[t].flags & TRANS_REC_TO)
 					strcpy(icon_buffer, rec_char);
@@ -2507,7 +2507,7 @@ unsigned preset_apply(file_data *file, int preset, date_t *date, acct_t *from, a
 
 
 /**
- * Save the standing order details from a file to a CashBook file
+ * Save the preset details from a file to a CashBook file
  *
  * \param *file			The file to write.
  * \param *out			The file handle to write to.
@@ -2715,7 +2715,7 @@ static void preset_export_delimited(file_data *file, char *filename, enum filing
 
 	/* Output the preset data as a set of delimited lines. */
 
-	for (i=0; i < file->preset_count; i++) {
+	for (i = 0; i < file->preset_count; i++) {
 		t = file->presets[i].sort_index;
 
 		sprintf(buffer, "%c", file->presets[t].action_key);

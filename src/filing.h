@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -107,13 +107,6 @@ void import_csv_file (file_data *file, char *filename);
  */
 
 void filing_force_windows_closed(file_data *file);
-
-
-
-
-/* Delimited file export */
-
-void export_delimited_accounts_file (file_data *file, int entry, char *filename, int format, int filetype);
 
 
 /**

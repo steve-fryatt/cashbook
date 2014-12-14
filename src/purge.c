@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -55,7 +55,6 @@
 
 #include "account.h"
 #include "accview.h"
-#include "calculation.h"
 #include "caret.h"
 #include "date.h"
 #include "edit.h"
@@ -317,12 +316,12 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 				/* If the from and to accounts are full accounts, */
 
 				if (file->transactions[i].from != NULL_ACCOUNT &&
-						(file->accounts[file->transactions[i].from].type & ACCOUNT_FULL) != 0)
-					file->accounts[file->transactions[i].from].opening_balance -= file->transactions[i].amount;
+						(account_get_type(file, file->transactions[i].from) & ACCOUNT_FULL) != 0)
+					account_adjust_opening_balance(file, file->transactions[i].from, -file->transactions[i].amount);
 
 				if (file->transactions[i].to != NULL_ACCOUNT &&
-						(file->accounts[file->transactions[i].to].type & ACCOUNT_FULL) != 0)
-					file->accounts[file->transactions[i].to].opening_balance += file->transactions[i].amount;
+						(account_get_type(file, file->transactions[i].to) & ACCOUNT_FULL) != 0)
+					account_adjust_opening_balance(file, file->transactions[i].to, +file->transactions[i].amount);
 
 				file->transactions[i].date = NULL_DATE;
 				file->transactions[i].from = NULL_ACCOUNT;
@@ -352,8 +351,8 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 	if (accounts || headings) {
 		for (i=0; i<file->account_count; i++) {
 			if (!account_used_in_file(file, i) &&
-					((accounts && ((file->accounts[i].type & ACCOUNT_FULL) != 0)) ||
-					(headings && ((file->accounts[i].type & (ACCOUNT_IN | ACCOUNT_OUT)) != 0)))) {
+					((accounts && ((account_get_type(file, i) & ACCOUNT_FULL) != 0)) ||
+					(headings && ((account_get_type(file, i) & (ACCOUNT_IN | ACCOUNT_OUT)) != 0)))) {
 				#ifdef DEBUG
 				debug_printf("Deleting account %d, type %x", i, file->accounts[i].type);
 				#endif
@@ -366,7 +365,7 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 
 	accview_rebuild_all(file);
 
-	/* perform_full_recalculation (file); */
+	/* account_recalculate_all(file); */
 
 	*(file->filename) = '\0';
 	build_transaction_window_title(file);

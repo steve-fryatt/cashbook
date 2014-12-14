@@ -64,7 +64,6 @@
 #include "analysis.h"
 #include "budget.h"
 #include "clipboard.h"
-#include "calculation.h"
 #include "column.h"
 #include "conversion.h"
 #include "date.h"
@@ -409,99 +408,86 @@ void delete_file (file_data *file)
 		return;
 	}
 
-  /* If there are any reports in the file with pending print jobs, prompt for deletion. */
+	/* If there are any reports in the file with pending print jobs, prompt for deletion. */
 
-  if (report_get_pending_print_jobs (file) && error_msgs_report_question ("PendingPrints", "PendingPrintsB") == 2)
-  {
-    return;
-  }
+	if (report_get_pending_print_jobs (file) && error_msgs_report_question ("PendingPrints", "PendingPrintsB") == 2)
+		return;
 
-  /* Remove the edit line reference. */
+	/* Remove the edit line reference. */
 
-  edit_file_deleted(file);
+	edit_file_deleted(file);
 
-  /* Delete the windows. */
+	/* Delete the windows. */
 
-  transact_delete_window(&(file->transaction_window));
-  sorder_delete_window(&(file->sorder_window));
-  preset_delete_window(&(file->preset_window));
+	transact_delete_window(&(file->transaction_window));
+	sorder_delete_window(&(file->sorder_window));
+	preset_delete_window(&(file->preset_window));
 
-  for (i=0; i<ACCOUNT_WINDOWS; i++) /* Step through the account list windows. */
-  {
-    flex_free ((flex_ptr) &(file->account_windows[i].line_data));
+	/* Step through the account list windows. */
 
-    if (file->account_windows[i].account_window != NULL)
-    {
-      wimp_delete_window (file->account_windows[i].account_window);
-    }
+	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
+		flex_free((flex_ptr) &(file->account_windows[i].line_data));
 
-    if (file->account_windows[i].account_pane != NULL)
-    {
-      wimp_delete_window (file->account_windows[i].account_pane);
-    }
+		if (file->account_windows[i].account_window != NULL)
+			wimp_delete_window(file->account_windows[i].account_window);
 
-    if (file->account_windows[i].account_footer != NULL)
-    {
-      wimp_delete_window (file->account_windows[i].account_footer);
-    }
-  }
+		if (file->account_windows[i].account_pane != NULL)
+			wimp_delete_window(file->account_windows[i].account_pane);
 
-  for (i=0; i<file->account_count; i++) /* Step through the accounts and their account view windows. */
-  {
-    if (file->accounts[i].account_view != NULL)
-    {
-      #ifdef DEBUG
-      debug_printf ("Account %d has a view to delete.", i);
-      #endif
+		if (file->account_windows[i].account_footer != NULL)
+			wimp_delete_window(file->account_windows[i].account_footer);
+	}
 
-      accview_delete_window(file, i);
-    }
-  }
+	/* Step through the accounts and their account view windows. */
 
-  /* Delete any reports that are open. */
+	for (i = 0; i < file->account_count; i++) {
+		if (account_get_accview(file, i) != NULL) {
+#ifdef DEBUG
+			debug_printf("Account %d has a view to delete.", i);
+#endif
 
-  while (file->reports != NULL)
-  {
-    report_delete(file->reports);
-  }
+			accview_delete_window(file, i);
+		}
+	}
 
-  /* Do the same for any file-related dialogues that are open. */
+	/* Delete any reports that are open. */
 
-  account_force_windows_closed(file);
-  goto_force_window_closed(file);
-  find_force_windows_closed(file);
-  budget_force_window_closed(file);
-  report_force_windows_closed(file);
-  printing_force_windows_closed(file);
-  analysis_force_windows_closed(file);
-  purge_force_window_closed(file);
-  transact_force_windows_closed(file);
-  accview_force_windows_closed(file);
-  sorder_force_windows_closed(file);
-  preset_force_windows_closed(file);
-  filing_force_windows_closed(file);
+	while (file->reports != NULL)
+		report_delete(file->reports);
 
-  /* Delink the block and delete it. */
+	/* Do the same for any file-related dialogues that are open. */
 
-  list = &file_list;
+	account_force_windows_closed(file);
+	goto_force_window_closed(file);
+	find_force_windows_closed(file);
+	budget_force_window_closed(file);
+	report_force_windows_closed(file);
+	printing_force_windows_closed(file);
+	analysis_force_windows_closed(file);
+	purge_force_window_closed(file);
+	transact_force_windows_closed(file);
+	accview_force_windows_closed(file);
+	sorder_force_windows_closed(file);
+	preset_force_windows_closed(file);
+	filing_force_windows_closed(file);
 
-  while (*list != NULL && *list != file)
-  {
-    list = &((*list)->next);
-  }
+	/* Delink the block and delete it. */
 
-  if (*list != NULL)
-  {
-    *list = file->next;
-  }
+	list = &file_list;
 
-  flex_free ((flex_ptr) &(file->transactions));
-  flex_free ((flex_ptr) &(file->accounts));
-  flex_free ((flex_ptr) &(file->sorders));
-  flex_free ((flex_ptr) &(file->presets));
-  flex_free ((flex_ptr) &(file->saved_reports));
+	while (*list != NULL && *list != file)
+		list = &((*list)->next);
+	
+	if (*list != NULL)
+		*list = file->next;
 
-  heap_free (file);
+	flex_free((flex_ptr) &(file->transactions));
+	flex_free((flex_ptr) &(file->accounts));
+	flex_free((flex_ptr) &(file->sorders));
+	flex_free((flex_ptr) &(file->presets));
+	flex_free((flex_ptr) &(file->saved_reports));
+
+	heap_free(file);
 }
 
 
@@ -831,7 +817,7 @@ void update_files_for_new_date (void)
       #endif
 
       sorder_process(file);
-      perform_full_recalculation (file);
+      account_recalculate_all(file);
       transact_set_window_extent(file);
 
       file = file->next;

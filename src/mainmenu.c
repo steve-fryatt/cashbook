@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -62,7 +62,6 @@
 #include "amenu.h"
 #include "analysis.h"
 #include "budget.h"
-#include "calculation.h"
 #include "caret.h"
 #include "choices.h"
 #include "dataxfer.h"
@@ -211,7 +210,7 @@ static void decode_account_menu(wimp_selection *selection)
 		if (selection->items[1] != -1) {
 			account = account_complete_menu_decode(selection);
 
-			fill_account_field(main_menu_file, account, !(main_menu_file->accounts[account].type & ACCOUNT_FULL),
+			fill_account_field(main_menu_file, account, !(account_get_type(main_menu_file, account) & ACCOUNT_FULL),
 					account_menu_window, account_menu_ident_icon, account_menu_name_icon, account_menu_rec_icon);
 
 			wimp_set_icon_state(account_menu_window, account_menu_ident_icon, 0, 0);

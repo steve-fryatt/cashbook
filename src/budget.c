@@ -50,8 +50,8 @@
 #include "global.h"
 #include "budget.h"
 
+#include "account.h"
 #include "caret.h"
-#include "calculation.h"
 #include "date.h"
 #include "file.h"
 #include "ihelp.h"
@@ -227,7 +227,7 @@ static osbool budget_process_window(void)
 	/* Tidy up and redraw the windows */
 
 	sorder_trial(budget_window_file);
-	perform_full_recalculation(budget_window_file);
+	account_recalculate_all(budget_window_file);
 	file_set_data_integrity(budget_window_file, TRUE);
 	redraw_file_windows(budget_window_file);
 

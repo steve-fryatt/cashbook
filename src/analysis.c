@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -209,10 +209,24 @@ enum analysis_save_mode {
 	ANALYSIS_SAVE_MODE_RENAME						/**< The Save/Rename dialogue is in Rename mode.		*/
 };
 
+enum analysis_flags {
+	ANALYSIS_REPORT_NONE = 0,
+	ANALYSIS_REPORT_FROM = 0x0001,
+	ANALYSIS_REPORT_TO = 0x0002,
+	ANALYSIS_REPORT_INCLUDE = 0x0004
+};
+
 struct analysis_template_link
 {
 	char			name[SAVED_REPORT_NAME_LEN+3];			/**< The name as it appears in the menu (+3 for ellipsis...)	*/
 	int			template;					/**< Link to the associated report template.			*/
+};
+
+struct analysis_data
+{
+	int			report_total;
+	int			report_balance;
+	enum analysis_flags	report_flags;
 };
 
 /* Report windows. */
@@ -320,8 +334,8 @@ static void		analysis_initialise_date_period(date_t start, date_t end, int perio
 static osbool		analysis_get_next_date_period(date_t *next_start, date_t *next_end, char *date_text, size_t date_len);
 
 static int		analysis_remove_account_from_list(file_data *file, acct_t account, acct_t *array, int *count);
-static void		analysis_clear_account_report_flags(file_data *file);
-static void		analysis_set_account_report_flags_from_list(file_data *file, unsigned type, unsigned flags, acct_t *array, int count);
+static void		analysis_clear_account_report_flags(file_data *file, struct analysis_data *data);
+static void		analysis_set_account_report_flags_from_list(file_data *file, struct analysis_data *data, unsigned type, unsigned flags, acct_t *array, int count);
 static int		analysis_account_idents_to_list(file_data *file, unsigned type, char *list, acct_t *array);
 static void		analysis_account_list_to_idents(file_data *file, char *list, acct_t *array, int len);
 
@@ -778,13 +792,22 @@ static osbool analysis_delete_transaction_window(void)
 
 static void analysis_generate_transaction_report(file_data *file)
 {
-	report_data	*report;
-	int		i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
-			total_days, period_days, period_limit, entry, account;
-	date_t		start_date, end_date, next_start, next_end;
-	amt_t		min_amount, max_amount;
-	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
-	char		*match_ref, *match_desc;
+	report_data		*report;
+	struct analysis_data	*data;
+	int			i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
+				total_days, period_days, period_limit, entry, account;
+	date_t			start_date, end_date, next_start, next_end;
+	amt_t			min_amount, max_amount;
+	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
+	char			*match_ref, *match_desc;
+
+	if (file == NULL)
+		return;
+
+	if (flex_alloc((flex_ptr) &data, file->account_count * sizeof(struct analysis_data)) == 0) {
+		error_msgs_report_info("NoMemReport");
+		return;
+	}
 
 	hourglass_on();
 
@@ -807,17 +830,17 @@ static void analysis_generate_transaction_report(file_data *file)
 
 	/* Read the include list. */
 
-	analysis_clear_account_report_flags(file);
+	analysis_clear_account_report_flags(file, data);
 
 	if (file->trans_rep.from_count == 0 && file->trans_rep.to_count == 0) {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM,
 				&analysis_wildcard_account_list, 1);
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO,
 				&analysis_wildcard_account_list, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM,
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM,
 				file->trans_rep.from, file->trans_rep.from_count);
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO,
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO,
 				file->trans_rep.to, file->trans_rep.to_count);
 	}
 
@@ -870,10 +893,12 @@ static void analysis_generate_transaction_report(file_data *file)
 	/* Initialise the heading remainder values for the report. */
 
 	for (i=0; i < file->account_count; i++) {
-		if (file->accounts[i].type & ACCOUNT_OUT)
-			file->accounts[i].report_balance = file->accounts[i].budget_amount;
-		else if (file->accounts[i].type & ACCOUNT_IN)
-			file->accounts[i].report_balance = -file->accounts[i].budget_amount;
+		enum account_type type = account_get_type(file, i);
+	
+		if (type & ACCOUNT_OUT)
+			data[i].report_balance = account_get_budget_amount(file, i);
+		else if (type & ACCOUNT_IN)
+			data[i].report_balance = -account_get_budget_amount(file, i);
 	}
 
 	while (analysis_get_next_date_period(&next_start, &next_end, date_text, sizeof(date_text))) {
@@ -881,7 +906,7 @@ static void analysis_generate_transaction_report(file_data *file)
 		/* Zero the heading totals for the report. */
 
 		for (i=0; i < file->account_count; i++)
-			file->accounts[i].report_total = 0;
+			data[i].report_total = 0;
 
 		/* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
 
@@ -891,9 +916,9 @@ static void analysis_generate_transaction_report(file_data *file)
 			if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
 					(next_end == NULL_DATE || file->transactions[i].date <= next_end) &&
 					(((file->transactions[i].from != NULL_ACCOUNT) &&
-					((file->accounts[file->transactions[i].from].report_flags & REPORT_FROM) != 0)) ||
+					((data[file->transactions[i].from].report_flags & ANALYSIS_REPORT_FROM) != 0)) ||
 					((file->transactions[i].to != NULL_ACCOUNT) &&
-					((file->accounts[file->transactions[i].to].report_flags & REPORT_TO) != 0))) &&
+					((data[file->transactions[i].to].report_flags & ANALYSIS_REPORT_TO) != 0))) &&
 					((min_amount == NULL_CURRENCY) || (file->transactions[i].amount >= min_amount)) &&
 					((max_amount == NULL_CURRENCY) || (file->transactions[i].amount <= max_amount)) &&
 					((match_ref == NULL) || string_wildcard_compare(match_ref, file->transactions[i].reference, TRUE)) &&
@@ -916,10 +941,10 @@ static void analysis_generate_transaction_report(file_data *file)
 				/* Update the totals and output the transaction to the report file. */
 
 				if (file->transactions[i].from != NULL_ACCOUNT)
-					file->accounts[file->transactions[i].from].report_total -= file->transactions[i].amount;
+					data[file->transactions[i].from].report_total -= file->transactions[i].amount;
 
 				if (file->transactions[i].to != NULL_ACCOUNT)
-					file->accounts[file->transactions[i].to].report_total += file->transactions[i].amount;
+					data[file->transactions[i].to].report_total += file->transactions[i].amount;
 
 				if (output_trans) {
 					convert_date_to_string(file->transactions[i].date, b1);
@@ -956,10 +981,10 @@ static void analysis_generate_transaction_report(file_data *file)
 				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
 					account = file->account_windows[entry].line_data[i].account;
 
-					if (file->accounts[account].report_total != 0) {
-						total += file->accounts[account].report_total;
-						convert_money_to_string(file->accounts[account].report_total, b1);
-						sprintf(line, "\\k\\i%s\\t\\d\\r%s", file->accounts[account].name, b1);
+					if (data[account].report_total != 0) {
+						total += data[account].report_total;
+						convert_money_to_string(data[account].report_total, b1);
+						sprintf(line, "\\k\\i%s\\t\\d\\r%s", account_get_name(file, account), b1);
 						report_write_line(report, 2, line);
 					}
 				}
@@ -994,21 +1019,21 @@ static void analysis_generate_transaction_report(file_data *file)
 				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
 					account = file->account_windows[entry].line_data[i].account;
 
-					if (file->accounts[account].report_total != 0) {
-						total += file->accounts[account].report_total;
-						convert_money_to_string(file->accounts[account].report_total, b1);
-						sprintf(line, "\\i\\k%s\\t\\d\\r%s", file->accounts[account].name, b1);
+					if (data[account].report_total != 0) {
+						total += data[account].report_total;
+						convert_money_to_string(data[account].report_total, b1);
+						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
 						if (file->trans_rep.budget) {
 							period_days = count_days(next_start, next_end);
-							period_limit = file->accounts[account].budget_amount * period_days / total_days;
+							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
 							convert_money_to_string(period_limit, b1);
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							convert_money_to_string(period_limit - file->accounts[account].report_total, b1);
+							convert_money_to_string(period_limit - data[account].report_total, b1);
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							file->accounts[i].report_balance -= file->accounts[account].report_total;
-							convert_money_to_string(file->accounts[account].report_balance, b1);
+							data[i].report_balance -= data[account].report_total;
+							convert_money_to_string(data[account].report_balance, b1);
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 						}
@@ -1043,21 +1068,21 @@ static void analysis_generate_transaction_report(file_data *file)
 				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
 					account = file->account_windows[entry].line_data[i].account;
 
-					if (file->accounts[account].report_total != 0) {
-						total += file->accounts[account].report_total;
-						convert_money_to_string(-file->accounts[account].report_total, b1);
-						sprintf(line, "\\i\\k%s\\t\\d\\r%s", file->accounts[account].name, b1);
+					if (data[account].report_total != 0) {
+						total += data[account].report_total;
+						convert_money_to_string(-data[account].report_total, b1);
+						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
 						if (file->trans_rep.budget) {
 							period_days = count_days(next_start, next_end);
-							period_limit = file->accounts[account].budget_amount * period_days / total_days;
+							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
 							convert_money_to_string(period_limit, b1);
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							convert_money_to_string(period_limit - file->accounts[account].report_total, b1);
+							convert_money_to_string(period_limit - data[account].report_total, b1);
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							file->accounts[i].report_balance -= file->accounts[account].report_total;
-							convert_money_to_string(file->accounts[account].report_balance, b1);
+							data[i].report_balance -= data[account].report_total;
+							convert_money_to_string(data[account].report_balance, b1);
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 						}
@@ -1075,6 +1100,9 @@ static void analysis_generate_transaction_report(file_data *file)
 	}
 
 	report_close(report);
+
+	if (data != NULL)
+		flex_free((flex_ptr) &data);
 
 	hourglass_off();
 }
@@ -1451,7 +1479,16 @@ static void analysis_generate_unreconciled_report(file_data *file)
 			rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
 	date_t		start_date, end_date, next_start, next_end;
 	report_data	*report;
+	struct analysis_data	*data;
 	int		acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+
+	if (file == NULL)
+		return;
+
+	if (flex_alloc((flex_ptr) &data, file->account_count * sizeof(struct analysis_data)) == 0) {
+		error_msgs_report_info("NoMemReport");
+		return;
+	}
 
 	hourglass_on();
 
@@ -1471,14 +1508,14 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 	/* Read the include list. */
 
-	analysis_clear_account_report_flags(file);
+	analysis_clear_account_report_flags(file, data);
 
 	if (file->unrec_rep.from_count == 0 && file->unrec_rep.to_count == 0) {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, &analysis_wildcard_account_list, 1);
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, &analysis_wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM, &analysis_wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO, &analysis_wildcard_account_list, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN, REPORT_FROM, file->unrec_rep.from, file->unrec_rep.from_count);
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_OUT, REPORT_TO, file->unrec_rep.to, file->unrec_rep.to_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM, file->unrec_rep.from, file->unrec_rep.from_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO, file->unrec_rep.to, file->unrec_rep.to_count);
 	}
 
 	/* Start to output the report details. */
@@ -1537,9 +1574,9 @@ static void analysis_generate_unreconciled_report(file_data *file)
 					for (i=0; i < file->trans_count; i++) {
 						if ((start_date == NULL_DATE || file->transactions[i].date >= start_date) &&
 								(end_date == NULL_DATE || file->transactions[i].date <= end_date) &&
-								((file->transactions[i].from == acc && (file->accounts[acc].report_flags & REPORT_FROM) != 0 &&
+								((file->transactions[i].from == acc && (data[acc].report_flags & ANALYSIS_REPORT_FROM) != 0 &&
 								(file->transactions[i].flags & TRANS_REC_FROM) == 0) ||
-								(file->transactions[i].to == acc && (file->accounts[acc].report_flags & REPORT_TO) != 0 &&
+								(file->transactions[i].to == acc && (data[acc].report_flags & ANALYSIS_REPORT_TO) != 0 &&
 								(file->transactions[i].flags & TRANS_REC_TO) == 0))) {
 							if (found == 0) {
 								report_write_line(report, 0, "");
@@ -1613,10 +1650,10 @@ static void analysis_generate_unreconciled_report(file_data *file)
 						(next_end == NULL_DATE || file->transactions[i].date <= next_end) &&
 						(((file->transactions[i].flags & TRANS_REC_FROM) == 0 &&
 						(file->transactions[i].from != NULL_ACCOUNT) &&
-						(file->accounts[file->transactions[i].from].report_flags & REPORT_FROM) != 0) ||
+						(data[file->transactions[i].from].report_flags & ANALYSIS_REPORT_FROM) != 0) ||
 						((file->transactions[i].flags & TRANS_REC_TO) == 0 &&
 						(file->transactions[i].to != NULL_ACCOUNT) &&
-						(file->accounts[file->transactions[i].to].report_flags & REPORT_TO) != 0))) {
+						(data[file->transactions[i].to].report_flags & ANALYSIS_REPORT_TO) != 0))) {
 					if (found == 0) {
 						report_write_line(report, 0, "");
 
@@ -1650,6 +1687,9 @@ static void analysis_generate_unreconciled_report(file_data *file)
 	}
 
 	report_close(report);
+
+	if (data != NULL)
+		flex_free((flex_ptr) &data);
 
 	hourglass_off();
 }
@@ -2021,7 +2061,16 @@ static void analysis_generate_cashflow_report(file_data *file)
 	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	date_t		start_date, end_date, next_start, next_end;
 	report_data	*report;
+	struct analysis_data	*data;
 	int		entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+
+	if (file == NULL)
+		return;
+
+	if (flex_alloc((flex_ptr) &data, file->account_count * sizeof(struct analysis_data)) == 0) {
+		error_msgs_report_info("NoMemReport");
+		return;
+	}
 
 	hourglass_on();
 
@@ -2042,15 +2091,15 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	/* Read the include list. */
 
-	analysis_clear_account_report_flags(file);
+	analysis_clear_account_report_flags(file, data);
 
 	if (file->cashflow_rep.accounts_count == 0 && file->cashflow_rep.incoming_count == 0 &&
 			file->cashflow_rep.outgoing_count == 0) {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &analysis_wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, &analysis_wildcard_account_list, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL, REPORT_INCLUDE, file->cashflow_rep.accounts, file->cashflow_rep.accounts_count);
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_IN, REPORT_INCLUDE, file->cashflow_rep.incoming, file->cashflow_rep.incoming_count);
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_OUT, REPORT_INCLUDE, file->cashflow_rep.outgoing, file->cashflow_rep.outgoing_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep.accounts, file->cashflow_rep.accounts_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_IN, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep.incoming, file->cashflow_rep.incoming_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep.outgoing, file->cashflow_rep.outgoing_count);
 	}
 
 	tabular = file->cashflow_rep.tabular;
@@ -2062,7 +2111,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 	items = 0;
 
 	for (i=0; i < file->account_count; i++)
-		if ((file->accounts[i].report_flags & REPORT_INCLUDE) != 0)
+		if ((data[i].report_flags & ANALYSIS_REPORT_INCLUDE) != 0)
 			items++;
 
 	if ((items + 2) > REPORT_TAB_STOPS)
@@ -2114,8 +2163,8 @@ static void analysis_generate_cashflow_report(file_data *file)
 				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
 					acc = file->account_windows[entry].line_data[group_line].account;
 
-					if ((file->accounts[acc].report_flags & REPORT_INCLUDE) != 0) {
-						sprintf(b1, "\\t\\r\\b%s", file->accounts[acc].name);
+					if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
+						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
 						strcat(line, b1);
 					}
 				}
@@ -2134,7 +2183,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 		/* Zero the heading totals for the report. */
 
 		for (i=0; i < file->account_count; i++)
-			file->accounts[i].report_total = 0;
+			data[i].report_total = 0;
 
 		/* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
 
@@ -2144,10 +2193,10 @@ static void analysis_generate_cashflow_report(file_data *file)
 			if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
 					(next_end == NULL_DATE || file->transactions[i].date <= next_end)) {
 				if (file->transactions[i].from != NULL_ACCOUNT)
-					file->accounts[file->transactions[i].from].report_total -= file->transactions[i].amount;
+					data[file->transactions[i].from].report_total -= file->transactions[i].amount;
 
 				if (file->transactions[i].to != NULL_ACCOUNT)
-					file->accounts[file->transactions[i].to].report_total += file->transactions[i].amount;
+					data[file->transactions[i].to].report_total += file->transactions[i].amount;
 
 				found++;
 			}
@@ -2168,9 +2217,9 @@ static void analysis_generate_cashflow_report(file_data *file)
 						if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
 							acc = file->account_windows[entry].line_data[group_line].account;
 
-							if ((file->accounts[acc].report_flags & REPORT_INCLUDE) != 0) {
-								total += file->accounts[acc].report_total;
-								full_convert_money_to_string(file->accounts[acc].report_total, b1, TRUE);
+							if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
+								total += data[acc].report_total;
+								full_convert_money_to_string(data[acc].report_total, b1, TRUE);
 								sprintf(b2, "\\t\\d\\r%s", b1);
 								strcat(line, b2);
 							}
@@ -2198,10 +2247,10 @@ static void analysis_generate_cashflow_report(file_data *file)
 						if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
 							acc = file->account_windows[entry].line_data[group_line].account;
 
-							if (file->accounts[acc].report_total != 0 && (file->accounts[acc].report_flags & REPORT_INCLUDE) != 0) {
-								total += file->accounts[acc].report_total;
-								full_convert_money_to_string(file->accounts[acc].report_total, b1, TRUE);
-								sprintf(line, "\\i%s\\t\\d\\r%s", file->accounts[acc].name, b1);
+							if (data[acc].report_total != 0 && (data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
+								total += data[acc].report_total;
+								full_convert_money_to_string(data[acc].report_total, b1, TRUE);
+								sprintf(line, "\\i%s\\t\\d\\r%s", account_get_name(file, acc), b1);
 								report_write_line(report, 2, line);
 							}
 						}
@@ -2216,6 +2265,9 @@ static void analysis_generate_cashflow_report(file_data *file)
 	}
 
 	report_close(report);
+
+	if (data != NULL)
+		flex_free((flex_ptr) &data);
 
 	hourglass_off();
 }
@@ -2583,7 +2635,16 @@ static void analysis_generate_balance_report(file_data *file)
 	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	date_t		start_date, end_date, next_start, next_end;
 	report_data	*report;
+	struct analysis_data	*data;
 	int		entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+
+	if (file == NULL)
+		return;
+
+	if (flex_alloc((flex_ptr) &data, file->account_count * sizeof(struct analysis_data)) == 0) {
+		error_msgs_report_info("NoMemReport");
+		return;
+	}
 
 	hourglass_on();
 
@@ -2603,14 +2664,14 @@ static void analysis_generate_balance_report(file_data *file)
 
 	/* Read the include list. */
 
-	analysis_clear_account_report_flags(file);
+	analysis_clear_account_report_flags(file, data);
 
 	if (file->balance_rep.accounts_count == 0 && file->balance_rep.incoming_count == 0 && file->balance_rep.outgoing_count == 0) {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, REPORT_INCLUDE, &analysis_wildcard_account_list, 1);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, &analysis_wildcard_account_list, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_FULL, REPORT_INCLUDE, file->balance_rep.accounts, file->balance_rep.accounts_count);
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_IN, REPORT_INCLUDE, file->balance_rep.incoming, file->balance_rep.incoming_count);
-		analysis_set_account_report_flags_from_list(file, ACCOUNT_OUT, REPORT_INCLUDE, file->balance_rep.outgoing, file->balance_rep.outgoing_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL, ANALYSIS_REPORT_INCLUDE, file->balance_rep.accounts, file->balance_rep.accounts_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_IN, ANALYSIS_REPORT_INCLUDE, file->balance_rep.incoming, file->balance_rep.incoming_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, file->balance_rep.outgoing, file->balance_rep.outgoing_count);
 	}
 
 	tabular = file->balance_rep.tabular;
@@ -2622,7 +2683,7 @@ static void analysis_generate_balance_report(file_data *file)
 	items = 0;
 
 	for (i=0; i < file->account_count; i++)
-		if ((file->accounts[i].report_flags & REPORT_INCLUDE) != 0)
+		if ((data[i].report_flags & ANALYSIS_REPORT_INCLUDE) != 0)
 			items++;
 
 	if ((items + 2) > REPORT_TAB_STOPS)
@@ -2674,8 +2735,8 @@ static void analysis_generate_balance_report(file_data *file)
 				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
 					acc = file->account_windows[entry].line_data[group_line].account;
 
-					if ((file->accounts[acc].report_flags & REPORT_INCLUDE) != 0) {
-						sprintf(b1, "\\t\\r\\b%s", file->accounts[acc].name);
+					if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
+						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
 						strcat(line, b1);
 					}
 				}
@@ -2694,7 +2755,7 @@ static void analysis_generate_balance_report(file_data *file)
 		/* Zero the heading totals for the report. */
 
 		for (i=0; i < file->account_count; i++)
-			file->accounts[i].report_total = file->accounts[i].opening_balance;
+			data[i].report_total = account_get_opening_balance(file, i);
 
 		/* Scan through the transactions, adding the values up for those occurring before the end of the current
 		 * period and outputting them to the screen.
@@ -2703,10 +2764,10 @@ static void analysis_generate_balance_report(file_data *file)
 		for (i=0; i < file->trans_count; i++) {
 			if (next_end == NULL_DATE || file->transactions[i].date <= next_end) {
 				if (file->transactions[i].from != NULL_ACCOUNT)
-					file->accounts[file->transactions[i].from].report_total -= file->transactions[i].amount;
+					data[file->transactions[i].from].report_total -= file->transactions[i].amount;
 
 				if (file->transactions[i].to != NULL_ACCOUNT)
-					file->accounts[file->transactions[i].to].report_total += file->transactions[i].amount;
+					data[file->transactions[i].to].report_total += file->transactions[i].amount;
 			}
 		}
 
@@ -2725,9 +2786,9 @@ static void analysis_generate_balance_report(file_data *file)
 					if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
 						acc = file->account_windows[entry].line_data[group_line].account;
 
-						if ((file->accounts[acc].report_flags & REPORT_INCLUDE) != 0) {
-							total += file->accounts[acc].report_total;
-							full_convert_money_to_string(file->accounts[acc].report_total, b1, TRUE);
+						if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
+							total += data[acc].report_total;
+							full_convert_money_to_string(data[acc].report_total, b1, TRUE);
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 						}
@@ -2754,10 +2815,10 @@ static void analysis_generate_balance_report(file_data *file)
 					if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
 						acc = file->account_windows[entry].line_data[group_line].account;
 
-						if (file->accounts[acc].report_total != 0 && (file->accounts[acc].report_flags & REPORT_INCLUDE) != 0) {
-							total += file->accounts[acc].report_total;
-							full_convert_money_to_string(file->accounts[acc].report_total, b1, TRUE);
-							sprintf(line, "\\i%s\\t\\d\\r%s", file->accounts[acc].name, b1);
+						if (data[acc].report_total != 0 && (data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
+							total += data[acc].report_total;
+							full_convert_money_to_string(data[acc].report_total, b1, TRUE);
+							sprintf(line, "\\i%s\\t\\d\\r%s", account_get_name(file, acc), b1);
 							report_write_line(report, 2, line);
 						}
 					}
@@ -2771,6 +2832,9 @@ static void analysis_generate_balance_report(file_data *file)
 	}
 
 	report_close(report);
+
+	if (data != NULL)
+		flex_free((flex_ptr) &data);
 
 	hourglass_off();
 }
@@ -3367,15 +3431,19 @@ static int analysis_remove_account_from_list(file_data *file, acct_t account, ac
  * Clear all the account report flags in a file, to allow them to be re-set
  * for a new report.
  *
- * \param *file			The file to clear.
+ * \param *file			The file to which the data belongs.
+ * \param *data			The data to be cleared.
  */
 
-static void analysis_clear_account_report_flags(file_data *file)
+static void analysis_clear_account_report_flags(file_data *file, struct analysis_data *data)
 {
 	int	i;
 
-	for (i=0; i < file->account_count; i++)
-		file->accounts[i].report_flags = 0;
+	if (file == NULL || data == NULL)
+		return;
+
+	for (i = 0; i < file->account_count; i++)
+		data[i].report_flags = ANALYSIS_REPORT_NONE;
 }
 
 
@@ -3384,13 +3452,14 @@ static void analysis_clear_account_report_flags(file_data *file)
  * The account NULL_ACCOUNT will set all the acounts that match the given type.
  *
  * \param *file			The file to process.
+ * \param *data			The data to be set.
  * \param type			The type(s) of account to match for NULL_ACCOUNT.
  * \param flags			The report flags to set for matching accounts.
  * \param *array		The account list array to use.
  * \param count			The number of accounts in the account list.
  */
 
-static void analysis_set_account_report_flags_from_list(file_data *file, unsigned type, unsigned flags, acct_t *array, int count)
+static void analysis_set_account_report_flags_from_list(file_data *file, struct analysis_data *data, unsigned type, unsigned flags, acct_t *array, int count)
 {
 	int	account, i;
 
@@ -3402,14 +3471,14 @@ static void analysis_set_account_report_flags_from_list(file_data *file, unsigne
 			 * given account type.
 			 */
 
-			for (account=0; account < file->account_count; account++)
-				if ((file->accounts[account].type & type) != 0)
-					file->accounts[account].report_flags |= flags;
+			for (account = 0; account < file->account_count; account++)
+				if ((account_get_type(file, account) & type) != 0)
+					data[account].report_flags |= flags;
 		} else {
 			/* Set a specific account. */
 
 			if (account < file->account_count)
-				file->accounts[account].report_flags |= flags;
+				data[account].report_flags |= flags;
 		}
 	}
 }

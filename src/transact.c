@@ -70,7 +70,6 @@
 #include "accview.h"
 #include "analysis.h"
 #include "budget.h"
-#include "calculation.h"
 #include "caret.h"
 #include "clipboard.h"
 #include "column.h"
@@ -899,7 +898,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 	if (key->c == 3) /* Ctrl- C */
 		clipboard_copy_from_icon(key);
 	else if (key->c == 18) /* Ctrl-R */
-		perform_full_recalculation(file);
+		account_recalculate_all(file);
 	else if (key->c == 22) /* Ctrl-V */
 		clipboard_paste_to_icon(key);
 	else if (key->c == 24) /* Ctrl-X */
@@ -1503,10 +1502,10 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			if (y < file->trans_count && file->transactions[t].from != NULL_ACCOUNT) {
 				transact_window_def->icons[TRANSACT_ICON_FROM].data.indirected_text.text =
-						file->accounts[file->transactions[t].from].ident;
+						account_get_ident(file, file->transactions[t].from);
 				transact_window_def->icons[TRANSACT_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
 				transact_window_def->icons[TRANSACT_ICON_FROM_NAME].data.indirected_text.text =
-						file->accounts[file->transactions[t].from].name;
+						account_get_name(file, file->transactions[t].from);
 
 				if (file->transactions[t].flags & TRANS_REC_FROM)
 					strcpy(icon_buffer, rec_char);
@@ -1551,10 +1550,10 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			if (y < file->trans_count && file->transactions[t].to != NULL_ACCOUNT) {
 				transact_window_def->icons[TRANSACT_ICON_TO].data.indirected_text.text =
-						file->accounts[file->transactions[t].to].ident;
+						account_get_ident(file, file->transactions[t].to);
 				transact_window_def->icons[TRANSACT_ICON_TO_REC].data.indirected_text.text = icon_buffer;
 				transact_window_def->icons[TRANSACT_ICON_TO_NAME].data.indirected_text.text =
-						file->accounts[file->transactions[t].to].name;
+						account_get_name(file, file->transactions[t].to);
 
 				if (file->transactions[t].flags & TRANS_REC_TO)
 					strcpy(icon_buffer, rec_char);
@@ -2408,7 +2407,7 @@ void transact_complete_menu_prepare(int line)
 
 	if ((line < transact_complete_menu_file->trans_count) &&
 			((account = transact_complete_menu_file->transactions[transact_complete_menu_file->transactions[line].sort_index].from) != NULL_ACCOUNT) &&
-			(transact_complete_menu_file->accounts[account].cheque_num_width > 0))
+			account_cheque_number_available(transact_complete_menu_file, account))
 		transact_complete_menu->entries[0].icon_flags &= ~wimp_ICON_SHADED;
 	else
 		transact_complete_menu->entries[0].icon_flags |= wimp_ICON_SHADED;

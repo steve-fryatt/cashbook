@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -70,7 +70,6 @@
 #include "account.h"
 #include "accview.h"
 #include "analysis.h"
-#include "calculation.h"
 #include "column.h"
 #include "conversion.h"
 #include "dataxfer.h"
@@ -219,7 +218,7 @@ void load_transaction_file(char *filename)
 	strcpy(file->filename, filename);
 	sorder_process(file);
 	transact_sort_file_data(file);
-	perform_full_recalculation(file);
+	account_recalculate_all(file);
 	transact_sort(file);
 	sorder_sort(file);
 	preset_sort(file);
@@ -303,8 +302,7 @@ char *next_plain_field (char *line, char sep)
 void save_transaction_file(file_data *file, char *filename)
 {
 	FILE	*out;
-	int	i, j;
-	char	buffer[MAX_FILE_LINE_LEN];
+	int	i;
 	bits	load;
 
 
@@ -337,119 +335,39 @@ void save_transaction_file(file_data *file, char *filename)
 	fprintf(out, "SOTrial: %x\n", file->budget.sorder_trial);
 	fprintf(out, "RestrictPost: %s\n", config_return_opt_string(file->budget.limit_postdate));
 
-	/* Output the account data */
-
-	fprintf(out, "\n[Accounts]\n");
-
-	fprintf(out, "Entries: %x\n", file->account_count);
-
-	column_write_as_text(file->accview_column_width, ACCVIEW_COLUMNS, buffer);
-	fprintf(out, "WinColumns: %s\n", buffer);
-
-	fprintf(out, "SortOrder: %x\n", file->accview_sort_order);
-
-    for (i=0; i < file->account_count; i++)
-    {
-      if (file->accounts[i].type != ACCOUNT_NULL) /* Deleted accounts are skipped, as these can be filled in at load. */
-      {
-        fprintf (out, "@: %x,%s,%x,%x,%x,%x,%x,%x\n",
-                 i, file->accounts[i].ident, file->accounts[i].type,
-                 file->accounts[i].opening_balance, file->accounts[i].credit_limit, file->accounts[i].budget_amount,
-                 file->accounts[i].cheque_num_width, file->accounts[i].next_cheque_num);
-        if (*(file->accounts[i].name) != '\0')
-        {
-          config_write_token_pair (out, "Name", file->accounts[i].name);
-        }
-        if (*(file->accounts[i].account_no) != '\0')
-        {
-          config_write_token_pair (out, "AccNo", file->accounts[i].account_no);
-        }
-        if (*(file->accounts[i].sort_code) != '\0')
-        {
-          config_write_token_pair (out, "SortCode", file->accounts[i].sort_code);
-        }
-        if (*(file->accounts[i].address[0]) != '\0')
-        {
-          config_write_token_pair (out, "Addr0", file->accounts[i].address[0]);
-        }
-        if (*(file->accounts[i].address[1]) != '\0')
-        {
-          config_write_token_pair (out, "Addr1", file->accounts[i].address[1]);
-        }
-        if (*(file->accounts[i].address[2]) != '\0')
-        {
-          config_write_token_pair (out, "Addr2", file->accounts[i].address[2]);
-        }
-        if (*(file->accounts[i].address[3]) != '\0')
-        {
-          config_write_token_pair (out, "Addr3", file->accounts[i].address[3]);
-        }
-        if (file->accounts[i].payin_num_width != 0 || file->accounts[i].next_payin_num != 0)
-        {
-          fprintf (out, "PayIn: %x,%x\n", file->accounts[i].payin_num_width, file->accounts[i].next_payin_num);
-        }
-      }
-    }
-
-    /* Output the Accounts Windows data. */
-
-    for (j=0; j<ACCOUNT_WINDOWS; j++)
-    {
-      fprintf (out, "\n[AccountList:%x]\n", file->account_windows[j].type);
-
-      fprintf (out, "Entries: %x\n", file->account_windows[j].display_lines);
-
-      column_write_as_text (file->account_windows[j].column_width, ACCOUNT_COLUMNS, buffer);
-      fprintf (out, "WinColumns: %s\n", buffer);
-
-      for (i=0; i<file->account_windows[j].display_lines; i++)
-      {
-        fprintf (out, "@: %x,%x\n", file->account_windows[j].line_data[i].type,
-                                   file->account_windows[j].line_data[i].account);
-
-        if ((file->account_windows[j].line_data[i].type == ACCOUNT_LINE_HEADER ||
-            file->account_windows[j].line_data[i].type == ACCOUNT_LINE_FOOTER) &&
-            *(file->account_windows[j].line_data[i].heading) != '\0')
-        {
-          config_write_token_pair (out, "Heading", file->account_windows[j].line_data[i].heading);
-        }
-      }
-    }
-
+	account_write_file(file, out);
 	transact_write_file(file, out);
 	sorder_write_file(file, out);
 	preset_write_file(file, out);
 	analysis_write_file(file, out);
 
-    /* Close the file and set the type correctly. */
+	/* Close the file and set the type correctly. */
 
-    fclose (out);
-    osfile_set_type (filename, (bits) CASHBOOK_FILE_TYPE);
+	fclose(out);
+	osfile_set_type(filename, (bits) CASHBOOK_FILE_TYPE);
 
-    /* Get the datestamp of the file. */
+	/* Get the datestamp of the file. */
 
-    osfile_read_stamped (filename, &load, (bits *) file->datestamp, NULL, NULL, NULL);
-    file->datestamp[4] = load & 0xff;
+	osfile_read_stamped(filename, &load, (bits *) file->datestamp, NULL, NULL, NULL);
+	file->datestamp[4] = load & 0xff;
 
-    /* Update the modified flag and filename for the file block and refresh the window title. */
+	/* Update the modified flag and filename for the file block and refresh the window title. */
 
-    file->modified = 0;
-    strcpy (file->filename, filename);
+	file->modified = 0;
+	strcpy(file->filename, filename);
 
-    build_transaction_window_title (file);
+	build_transaction_window_title(file);
 
-    for (i=0; i<ACCOUNT_WINDOWS; i++)
-    {
-      account_build_window_title(file, i);
-    }
-    for (i=0; i<file->account_count; i++)
-    {
-      accview_build_window_title(file, i);
-    }
-    sorder_build_window_title(file);
-    preset_build_window_title(file);
+	for (i = 0; i < ACCOUNT_WINDOWS; i++)
+		account_build_window_title(file, i);
 
-    hourglass_off ();
+	for (i = 0; i < file->account_count; i++)
+		accview_build_window_title(file, i);
+
+	sorder_build_window_title(file);
+	preset_build_window_title(file);
+
+	hourglass_off();
 }
 
 /* ==================================================================================================================
@@ -642,7 +560,7 @@ void import_csv_file (file_data *file, char *filename)
 
     transact_sort_file_data(file);
     sorder_trial(file);
-    perform_full_recalculation(file);
+    account_recalculate_all(file);
     accview_rebuild_all(file);
     file_set_data_integrity(file, TRUE);
 
@@ -728,133 +646,6 @@ void filing_force_windows_closed(file_data *file)
 /* ==================================================================================================================
  * Delimited file export
  */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void export_delimited_accounts_file (file_data *file, int entry, char *filename, int format, int filetype)
-{
-  FILE           *out;
-  int            i;
-  char           buffer[256];
-  struct account_window *window;
-
-  out = fopen (filename, "w");
-
-  if (out != NULL)
-  {
-    hourglass_on ();
-
-    window = &(file->account_windows[entry]);
-
-    /* Output the headings line, taking the text from the window icons. */
-
-    icons_copy_text (window->account_pane, 0, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    icons_copy_text (window->account_pane, 1, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    icons_copy_text (window->account_pane, 2, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    icons_copy_text (window->account_pane, 3, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    icons_copy_text (window->account_pane, 4, buffer);
-    filing_output_delimited_field (out, buffer, format, DELIMIT_LAST);
-
-    /* Output the transaction data as a set of delimited lines. */
-
-    for (i=0; i < window->display_lines; i++)
-    {
-      if (window->line_data[i].type == ACCOUNT_LINE_DATA)
-      {
-        account_build_name_pair(file, window->line_data[i].account, buffer, sizeof(buffer));
-        filing_output_delimited_field(out, buffer, format, 0);
-
-        switch (window->type)
-        {
-          case ACCOUNT_FULL:
-            convert_money_to_string (file->accounts[window->line_data[i].account].statement_balance, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-            convert_money_to_string (file->accounts[window->line_data[i].account].current_balance, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-            convert_money_to_string (file->accounts[window->line_data[i].account].trial_balance, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-            convert_money_to_string (file->accounts[window->line_data[i].account].budget_balance, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
-            break;
-
-          case ACCOUNT_IN:
-            convert_money_to_string (-file->accounts[window->line_data[i].account].future_balance, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-            convert_money_to_string (file->accounts[window->line_data[i].account].budget_amount, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-            convert_money_to_string (-file->accounts[window->line_data[i].account].budget_balance, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-            convert_money_to_string (file->accounts[window->line_data[i].account].budget_result, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
-            break;
-
-          case ACCOUNT_OUT:
-            convert_money_to_string (file->accounts[window->line_data[i].account].future_balance, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-            convert_money_to_string (file->accounts[window->line_data[i].account].budget_amount, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-            convert_money_to_string (file->accounts[window->line_data[i].account].budget_balance, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-            convert_money_to_string (file->accounts[window->line_data[i].account].budget_result, buffer);
-            filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
-            break;
-
-          default:
-            break;
-        }
-      }
-      else if (window->line_data[i].type == ACCOUNT_LINE_HEADER)
-      {
-        filing_output_delimited_field (out, window->line_data[i].heading, format, 1);
-      }
-      else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER)
-      {
-        filing_output_delimited_field (out, window->line_data[i].heading, format, 0);
-
-        convert_money_to_string (window->line_data[i].total[0], buffer);
-        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-
-        convert_money_to_string (window->line_data[i].total[1], buffer);
-        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-
-        convert_money_to_string (window->line_data[i].total[2], buffer);
-        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM);
-
-        convert_money_to_string (window->line_data[i].total[3], buffer);
-        filing_output_delimited_field (out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
-      }
-    }
-
-    /* Output the grand total line, taking the text from the window icons. */
-
-    icons_copy_text (window->account_footer, 0, buffer);
-    filing_output_delimited_field (out, buffer, format, 0);
-    filing_output_delimited_field (out, window->footer_icon[0], format, DELIMIT_NUM);
-    filing_output_delimited_field (out, window->footer_icon[1], format, DELIMIT_NUM);
-    filing_output_delimited_field (out, window->footer_icon[2], format, DELIMIT_NUM);
-    filing_output_delimited_field (out, window->footer_icon[3], format, DELIMIT_NUM | DELIMIT_LAST);
-
-    /* Close the file and set the type correctly. */
-
-    fclose (out);
-    osfile_set_type (filename, (bits) filetype);
-
-    hourglass_off ();
-  }
-  else
-  {
-    error_msgs_report_error ("FileSaveFail");
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
 
 
 /**

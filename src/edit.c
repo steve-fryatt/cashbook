@@ -59,7 +59,6 @@
 
 #include "account.h"
 #include "accview.h"
-#include "calculation.h"
 #include "column.h"
 #include "conversion.h"
 #include "date.h"
@@ -613,7 +612,7 @@ void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, in
 
 	/* Only do anything if the transaction is inside the limit of the file. */
 
-	remove_transaction_from_totals(file, transaction);
+	account_remove_transaction(file, transaction);
 
 	/* Update the reconcile flag, either removing it, or adding it in.  If the
 	 * line is the edit line, the icon contents must be manually updated as well.
@@ -644,7 +643,7 @@ void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, in
 	 * all the account listings.
 	 */
 
-	restore_transaction_to_totals(file, transaction);
+	account_restore_transaction(file, transaction);
 
 	/* If any changes were made, refresh the relevant account listing, redraw
 	 * the transaction window line and mark the file as modified.
@@ -693,7 +692,7 @@ void edit_change_transaction_date(file_data *file, int transaction, date_t new_d
 	if (file == NULL || transaction >= file->trans_count)
 		return;
 
-	remove_transaction_from_totals(file, transaction);
+	account_remove_transaction(file, transaction);
 
 	/* Look up the existing date, change it and compare the two. If the field
 	 * has changed, flag this up.
@@ -712,7 +711,7 @@ void edit_change_transaction_date(file_data *file, int transaction, date_t new_d
 	 * all the account listings.
 	 */
 
-	restore_transaction_to_totals(file, transaction);
+	account_restore_transaction(file, transaction);
 
 	/* If any changes were made, refresh the relevant account listings, redraw
 	 * the transaction window line and mark the file as modified.
@@ -771,7 +770,7 @@ static void edit_change_transaction_amount(file_data *file, int transaction, amt
 	if (file == NULL || transaction >= file->trans_count)
 		return;
  
-	remove_transaction_from_totals(file, transaction);
+	account_remove_transaction(file, transaction);
 
 	/* Look up the existing date, change it and compare the two. If the field
 	 * has changed, flag this up.
@@ -786,7 +785,7 @@ static void edit_change_transaction_amount(file_data *file, int transaction, amt
 	 * the account listings.
 	  */
 
-	restore_transaction_to_totals(file, transaction);
+	account_restore_transaction(file, transaction);
 
 	/* If any changes were made, refresh the relevant account listings, redraw
 	 * the transaction window line and mark the file as modified.
@@ -909,7 +908,7 @@ void edit_change_transaction_account(file_data *file, int transaction, wimp_i ta
 	if (file == NULL || transaction >= file->trans_count)
 		return;
 
-	remove_transaction_from_totals(file, transaction);
+	account_remove_transaction(file, transaction);
 
 	/* Update the reconcile flag, either removing it, or adding it in. If the
 	 * line is the edit line, the icon contents must be manually updated as well.
@@ -929,7 +928,7 @@ void edit_change_transaction_account(file_data *file, int transaction, wimp_i ta
 
 		file->transactions[transaction].from = new_account;
 
-		if (file->accounts[new_account].type == ACCOUNT_FULL)
+		if (account_get_type(file, new_account) == ACCOUNT_FULL)
 			file->transactions[transaction].flags &= ~TRANS_REC_FROM;
 		else
 			file->transactions[transaction].flags |= TRANS_REC_FROM;
@@ -943,7 +942,7 @@ void edit_change_transaction_account(file_data *file, int transaction, wimp_i ta
 
 		file->transactions[transaction].to = new_account;
 
-		if (file->accounts[new_account].type == ACCOUNT_FULL)
+		if (account_get_type(file, new_account) == ACCOUNT_FULL)
 			file->transactions[transaction].flags &= ~TRANS_REC_TO;
 		else
 			file->transactions[transaction].flags |= TRANS_REC_TO;
@@ -957,7 +956,7 @@ void edit_change_transaction_account(file_data *file, int transaction, wimp_i ta
 	 * all the account listings.
 	 */
 
-	restore_transaction_to_totals(file, transaction);
+	account_restore_transaction(file, transaction);
 
 	/* Trust that any account views that are open must be based on a valid
 	 * date order, and only rebuild those that are directly affected.
@@ -1018,7 +1017,7 @@ void edit_insert_preset_into_transaction(file_data *file, int transaction, int p
 	if (file == NULL || transaction >= file->trans_count || preset == NULL_PRESET || preset >= file->preset_count)
 		return;  
   
-	remove_transaction_from_totals(file, transaction);
+	account_remove_transaction(file, transaction);
 
 	changed = edit_raw_insert_preset_into_transaction(file, transaction, preset);
 
@@ -1026,7 +1025,7 @@ void edit_insert_preset_into_transaction(file_data *file, int transaction, int p
 	 * all the account listings.
 	 */
 
-	restore_transaction_to_totals(file, transaction);
+	account_restore_transaction(file, transaction);
 
 	/* If any changes were made, refresh the relevant account listing, redraw
 	 * the transaction window line and mark the file as modified.
@@ -1065,8 +1064,8 @@ void edit_insert_preset_into_transaction(file_data *file, int transaction, int p
  *
  * This function is assumed to be called by code that takes care of updating the
  * transaction record and all the associated totals. Normally, this would be done
- * by wrapping the call up inside a pair of remove_transaction_from_totals() and
- * restore_transaction_to_totals() calls.
+ * by wrapping the call up inside a pair of account_remove_transaction() and
+ * account_restore_transaction() calls.
  *
  * \param *file		The file to edit.
  * \param transaction	The transaction to update.
@@ -1162,7 +1161,7 @@ static void edit_delete_line_transaction_content(file_data *file)
 
 	/* Take the transaction out of the fully calculated results. */
 
-	remove_transaction_from_totals(file, transaction);
+	account_remove_transaction(file, transaction);
 
 	/* Blank out all of the transaction. */
 
@@ -1176,7 +1175,7 @@ static void edit_delete_line_transaction_content(file_data *file)
 
 	/* Put the transaction back into the sorted totals. */
 
-	restore_transaction_to_totals(file, transaction);
+	account_restore_transaction(file, transaction);
 
 	/* Mark the data as unsafe and perform any post-change recalculations that may affect
 	 * the order of the transaction data.
@@ -1439,12 +1438,12 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
 	 */
 
 	if (key->i != EDIT_ICON_REF && key->i != EDIT_ICON_DESCRIPT)
-		remove_transaction_from_totals(file, transaction);
+		account_remove_transaction(file, transaction);
 
 	/* Process the keypress.
 	 *
 	 * Care needs to be taken that between here and the call to
-	 * restore_transaction_to_totals() that nothing is done which will affect
+	 * account_restore_transaction() that nothing is done which will affect
 	 * the sort order of the transaction data. If the order is changed, the
 	 * calculated totals will be incorrect until a full recalculation is performed.
 	 */
@@ -1555,7 +1554,7 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
 	 */
 
 	if (key->i != EDIT_ICON_REF && key->i != EDIT_ICON_DESCRIPT)
-		restore_transaction_to_totals(file, transaction);
+		account_restore_transaction(file, transaction);
 
 	/* Mark the data as unsafe and perform any post-change recalculations that
 	 * may affect the order of the transaction data.

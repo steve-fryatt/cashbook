@@ -91,7 +91,7 @@ void accview_force_windows_closed(file_data *file);
  * \param account		The account to sort.
  */
 
-void accview_sort(file_data *file, int account);
+void accview_sort(file_data *file, acct_t account);
 
 
 /**

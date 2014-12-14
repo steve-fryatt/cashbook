@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -370,6 +370,106 @@ void toggle_account_reconcile_icon (wimp_w window, wimp_i icon);
 
 
 
+/**
+ * Return the account view handle for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account to return.
+ * \return		The account's account view, or NULL.
+ */
+
+struct accview_window *account_get_accview(file_data *file, acct_t account);
+
+
+/**
+ * Set the account view handle for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account to set the view of.
+ * \param *view		The view handle, or NULL to clear.
+ */
+
+void account_set_accview(file_data *file, acct_t account, struct accview_window *view);
+
+
+/**
+ * Return the type of an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to return the type.
+ * \return		The account's type, or ACCOUNT_NULL.
+ */
+
+enum account_type account_get_type(file_data *file, acct_t account);
+
+
+/**
+ * Return the opening balance for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to return the opening balance.
+ * \return		The account's opening balance, or 0.
+ */
+
+int account_get_opening_balance(file_data *file, acct_t account);
+
+
+/**
+ * Adjust the opening balance for an account by adding or subtracting a
+ * specified amount.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to alter the opening balance.
+ * \param adjust	The amount to alter the opening balance by.
+ */
+
+void account_adjust_opening_balance(file_data *file, acct_t account, int adjust);
+
+
+/**
+ * Return the credit limit for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to return the opening balance.
+ * \return		The account's opening balance, or 0.
+ */
+
+int account_get_credit_limit(file_data *file, acct_t account);
+
+
+/**
+ * Return the budget amount for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to return the budget amount.
+ * \return		The account's budget amount, or 0.
+ */
+
+int account_get_budget_amount(file_data *file, acct_t account);
+
+
+/**
+ * Zero the standing order trial balances for all of the accounts in a file.
+ *
+ * \param *file		The file to zero.
+ */
+
+void account_zero_sorder_trial(file_data *file);
+
+
+/**
+ * Adjust the standing order trial balance for an account by adding or
+ * subtracting a specified amount.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to alter the standing order
+ *			trial balance.
+ * \param adjust	The amount to alter the standing order trial
+ *			balance by.
+ */
+
+void account_adjust_sorder_trial(file_data *file, acct_t account, int adjust);
+
 
 /**
  * Check if an account is used in anywhere in a file.
@@ -394,6 +494,17 @@ int account_count_type_in_file(file_data *file, enum account_type type);
 
 
 /**
+ * Test if an account supports insertion of cheque numbers.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to check.
+ * \return			TRUE if cheque numbers are available; else FALSE.
+ */
+
+osbool account_cheque_number_available(file_data *file, acct_t account);
+
+
+/**
  * Get the next cheque or paying in book number for a given combination of from and
  * to accounts, storing the value as a string in the buffer and incrementing the
  * next value for the chosen account as specified.
@@ -410,6 +521,51 @@ int account_count_type_in_file(file_data *file, enum account_type type);
  */
 
 char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_t to_account, int increment, char *buffer, size_t size);
+
+
+/**
+ * Fully recalculate all of the accounts in a file.
+ *
+ * \param *file		The file to recalculate.
+ */
+
+void account_recalculate_all(file_data *file);
+
+
+/**
+ * Remove a transaction from all the calculated accounts, so that limited
+ * changes can be made to its details. Once updated, it can be resored
+ * using account_restore_transaction(). The changes can not affect the sort
+ * order of the transactions in the file, or the restoration will be invalid.
+ *
+ * \param *file		The file containing the transaction.
+ * \param transasction	The transaction to remove.
+ */
+
+void account_remove_transaction(file_data *file, int transaction);
+
+
+/**
+ * Restore a transaction previously removed by account_remove_transaction()
+ * after changes have been made, recalculate the affected accounts and
+ * refresh any affected displays. The changes can not affect the sort
+ * order of the transactions in the file, or the restoration will be invalid.
+ *
+ * \param *file		The file containing the transaction.
+ * \param transasction	The transaction to restore.
+ */
+
+void account_restore_transaction(file_data *file, int transaction);
+
+
+/**
+ * Save the account and account list details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void account_write_file(file_data *file, FILE *out);
 
 
 /**

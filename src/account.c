@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -41,6 +41,7 @@
 
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
+#include "oslib/osfile.h"
 #include "oslib/wimp.h"
 #include "oslib/dragasprite.h"
 #include "oslib/wimpspriteop.h"
@@ -66,13 +67,13 @@
 
 #include "accview.h"
 #include "analysis.h"
-#include "calculation.h"
 #include "conversion.h"
 #include "column.h"
 #include "caret.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
+#include "filing.h"
 #include "ihelp.h"
 #include "mainmenu.h"
 #include "presets.h"
@@ -95,6 +96,58 @@
 #define ACCLIST_MENU_EXPCSV 5
 #define ACCLIST_MENU_EXPTSV 6
 #define ACCLIST_MENU_PRINT 7
+
+/**
+ * Account data structure -- implementation.
+ */
+
+struct account {
+	char			name[ACCOUNT_NAME_LEN];
+	char			ident[ACCOUNT_IDENT_LEN];
+
+	char			account_no[ACCOUNT_NO_LEN];
+	char			sort_code[ACCOUNT_SRTCD_LEN];
+	char			address[ACCOUNT_ADDR_LINES][ACCOUNT_ADDR_LEN];
+
+	enum account_type	type;						/**< The type of account being defined.				*/
+	//unsigned category;
+
+	/* Pointer to account view window data. */
+
+	struct accview_window	*account_view;
+
+	/* Cheque tracking data. */
+
+	unsigned		next_payin_num;
+	int			payin_num_width;
+
+	unsigned		next_cheque_num;
+	int			cheque_num_width;
+
+	/* User-set values used for calculation. */
+
+	int			opening_balance;				/* The opening balance for accounts, from which everything else is calculated. */
+	int			credit_limit;					/* Credit limit for accounts. */
+	int			budget_amount;					/* Budgeted amount for headings. */
+
+	/* Calculated values for both accounts and headings. */
+
+	int			statement_balance;				/* Reconciled statement balance. */
+	int			current_balance;				/* Balance up to today's date. */
+	int			future_balance;					/* Balance including all transactions. */
+	int			budget_balance;					/* Balance including all transactions betwen budget dates. */
+
+	int			sorder_trial;					/* Difference applied to account from standing orders in trial period. */
+
+	/* Subsequent calculated values for accounts. */
+
+	int			trial_balance;					/* Balance including all transactions & standing order trial. */
+	int			available_balance;				/* Balance available, taking into account credit limit. */
+
+	/* Subsequent calculated values for headings. */
+
+	int			budget_result;
+};
 
 
 struct account_list_link {
@@ -221,12 +274,14 @@ static int			account_add_list_display_line(file_data *file, int entry);
 
 
 
-static void			start_account_drag(file_data *file, int entry, int line);
+static void			account_start_drag(file_data *file, int entry, int line);
 static void			account_terminate_drag(wimp_dragged *drag, void *data);
+
+static void			account_recalculate_windows(file_data *file);
 
 static osbool			account_save_csv(char *filename, osbool selection, void *data);
 static osbool			account_save_tsv(char *filename, osbool selection, void *data);
-
+static void			account_export_delimited(file_data *file, int entry, char *filename, enum filing_delimit_type format, int filetype);
 
 
 /**
@@ -527,7 +582,7 @@ static void account_window_click_handler(wimp_pointer *pointer)
 			break;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && line != -1) {
-		start_account_drag(windat->file, windat->entry, line);
+		account_start_drag(windat->file, windat->entry, line);
 	}
 }
 
@@ -2386,7 +2441,7 @@ static osbool account_process_acc_edit_window(void)
 		strcpy(edit_account_file->accounts[edit_account_no].address[i-ACCT_EDIT_ADDR1], icons_get_indirected_text_addr(account_acc_edit_window, i));
 
 	sorder_trial(edit_account_file);
-	perform_full_recalculation(edit_account_file);
+	account_recalculate_all(edit_account_file);
 	accview_recalculate(edit_account_file, edit_account_no, 0);
 	force_transaction_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
 	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
@@ -2442,7 +2497,7 @@ static osbool account_process_hdg_edit_window(void)
 
 	/* Tidy up and redraw the windows */
 
-	perform_full_recalculation(edit_account_file);
+	account_recalculate_all(edit_account_file);
 	force_transaction_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
 	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
 	accview_redraw_all(edit_account_file);
@@ -2659,7 +2714,7 @@ static osbool account_process_section_window(void)
 
 	/* Tidy up and redraw the windows */
 
-	perform_full_recalculation(account_section_file);
+	account_recalculate_all(account_section_file);
 	account_set_window_extent(account_section_file, account_section_entry);
 	windows_open(account_section_file->account_windows[account_section_entry].account_window);
 	account_force_window_redraw(account_section_file, account_section_entry,
@@ -3355,7 +3410,161 @@ void toggle_account_reconcile_icon (wimp_w window, wimp_i icon)
 /* ================================================================================================================== */
 
 
-/* ================================================================================================================== */
+/**
+ * Return the account view handle for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account to return the view of.
+ * \return		The account's account view, or NULL.
+ */
+
+struct accview_window *account_get_accview(file_data *file, acct_t account)
+{
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return NULL;
+
+	return file->accounts[account].account_view;
+}
+
+
+/**
+ * Set the account view handle for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account to set the view of.
+ * \param *view		The view handle, or NULL to clear.
+ */
+
+void account_set_accview(file_data *file, acct_t account, struct accview_window *view)
+{
+	if (file != NULL && account != NULL_ACCOUNT && account < file->account_count && file->accounts[account].type != ACCOUNT_NULL)
+		file->accounts[account].account_view = view;
+}
+
+
+/**
+ * Return the type of an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to return the type.
+ * \return		The account's type, or ACCOUNT_NULL.
+ */
+
+enum account_type account_get_type(file_data *file, acct_t account)
+{
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return ACCOUNT_NULL;
+
+	return file->accounts[account].type;
+}
+
+
+/**
+ * Return the opening balance for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to return the opening balance.
+ * \return		The account's opening balance, or 0.
+ */
+
+int account_get_opening_balance(file_data *file, acct_t account)
+{
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return 0;
+
+	return file->accounts[account].opening_balance;
+}
+
+
+/**
+ * Adjust the opening balance for an account by adding or subtracting a
+ * specified amount.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to alter the opening balance.
+ * \param adjust	The amount to alter the opening balance by.
+ */
+
+void account_adjust_opening_balance(file_data *file, acct_t account, int adjust)
+{
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return;
+
+	file->accounts[account].opening_balance += adjust;
+}
+
+
+/**
+ * Zero the standing order trial balances for all of the accounts in a file.
+ *
+ * \param *file		The file to zero.
+ */
+
+void account_zero_sorder_trial(file_data *file)
+{
+	if (file == NULL)
+		return;
+
+	acct_t	account;
+
+	for (account = 0; account < file->account_count; account++)
+		file->accounts[account].sorder_trial = 0;
+}
+
+
+/**
+ * Adjust the standing order trial balance for an account by adding or
+ * subtracting a specified amount.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to alter the standing order
+ *			trial balance.
+ * \param adjust	The amount to alter the standing order trial
+ *			balance by.
+ */
+
+void account_adjust_sorder_trial(file_data *file, acct_t account, int adjust)
+{
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return;
+
+	file->accounts[account].sorder_trial += adjust;
+}
+
+
+/**
+ * Return the credit limit for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to return the opening balance.
+ * \return		The account's opening balance, or 0.
+ */
+
+int account_get_credit_limit(file_data *file, acct_t account)
+{
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return 0;
+
+	return file->accounts[account].credit_limit;
+}
+
+
+/**
+ * Return the budget amount for an account.
+ *
+ * \param *file		The file containing the account.
+ * \param account	The account for which to return the budget amount.
+ * \return		The account's budget amount, or 0.
+ */
+
+int account_get_budget_amount(file_data *file, acct_t account)
+{
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return 0;
+
+	return file->accounts[account].budget_amount;
+}
+
 
 /**
  * Check if an account is used in anywhere in a file.
@@ -3413,7 +3622,7 @@ int account_count_type_in_file(file_data *file, enum account_type type)
  * \param line			The line of the Account list being dragged.
  */
 
-static void start_account_drag(file_data *file, int entry, int line)
+static void account_start_drag(file_data *file, int entry, int line)
 {
 	wimp_window_state	window;
 	wimp_auto_scroll_info	auto_scroll;
@@ -3490,7 +3699,6 @@ static void start_account_drag(file_data *file, int entry, int line)
 }
 
 
-
 /**
  * Handle drag-end events relating to column dragging.
  *
@@ -3549,7 +3757,7 @@ static void account_terminate_drag(wimp_dragged *drag, void *data)
 
 	/* Tidy up and redraw the windows */
 
-	perform_full_recalculation(account_dragging_file);
+	account_recalculate_all(account_dragging_file);
 	file_set_data_integrity(account_dragging_file, TRUE);
 	account_force_window_redraw(account_dragging_file, account_dragging_entry,
 			0, account_dragging_file->account_windows[account_dragging_entry].display_lines - 1);
@@ -3559,6 +3767,22 @@ static void account_terminate_drag(wimp_dragged *drag, void *data)
 	#endif
 }
 
+
+/**
+ * Test if an account supports insertion of cheque numbers.
+ *
+ * \param *file			The file containing the account.
+ * \param account		The account to check.
+ * \return			TRUE if cheque numbers are available; else FALSE.
+ */
+
+osbool account_cheque_number_available(file_data *file, acct_t account)
+{
+	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
+		return FALSE;
+
+	return (file->accounts[account].cheque_num_width > 0) ? TRUE : FALSE;
+}
 
 /**
  * Get the next cheque or paying in book number for a given combination of from and
@@ -3580,6 +3804,13 @@ char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_
 {
 	char		format[32], mbuf[1024], bbuf[128];
 	osbool		from_ok, to_ok;
+
+	if (file == NULL || buffer == NULL) {
+		if (buffer != NULL)
+			*buffer = '\0';
+		
+		return buffer;
+	}
 
 	/* Test which of the two accounts have an auto-reference attached.  If
 	 * both do, the user needs to be asked which one to use in the transaction.
@@ -3617,9 +3848,424 @@ char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_
 }
 
 
+/**
+ * Fully recalculate all of the accounts in a file.
+ *
+ * \param *file		The file to recalculate.
+ */
+
+void account_recalculate_all(file_data *file)
+{
+	acct_t	account;
+	int	transaction, i;
+	date_t	date, post_date;
+
+	if (file == NULL)
+		return;
+
+	hourglass_on();
+
+	/* Initialise the accounts, based on the opening balances. */
+
+	for (account = 0; account < file->account_count; account++) {
+		file->accounts[account].statement_balance = file->accounts[account].opening_balance;
+		file->accounts[account].current_balance = file->accounts[account].opening_balance;
+		file->accounts[account].future_balance = file->accounts[account].opening_balance;
+		file->accounts[account].budget_balance = 0; /* was file->accounts[account].opening_balance; */
+	}
+
+	date = get_current_date();
+	post_date = add_to_date(date, PERIOD_DAYS, file->budget.sorder_trial);
+
+	/* Add in the effects of each transaction */
+
+	for (transaction = 0; transaction < file->trans_count; transaction++) {
+		if (file->transactions[transaction].from != NULL_ACCOUNT) {
+			if (file->transactions[transaction].flags & TRANS_REC_FROM)
+				file->accounts[file->transactions[transaction].from].statement_balance -= file->transactions[transaction].amount;
+
+			if (file->transactions[transaction].date <= date)
+				file->accounts[file->transactions[transaction].from].current_balance -= file->transactions[transaction].amount;
+
+			if ((file->budget.start == NULL_DATE || file->transactions[transaction].date >= file->budget.start) &&
+					(file->budget.finish == NULL_DATE || file->transactions[transaction].date <= file->budget.finish))
+				file->accounts[file->transactions[transaction].from].budget_balance -= file->transactions[transaction].amount;
+
+			if (!file->budget.limit_postdate || file->transactions[transaction].date <= post_date)
+				file->accounts[file->transactions[transaction].from].future_balance -= file->transactions[transaction].amount;
+		}
+
+		if (file->transactions[transaction].to != NULL_ACCOUNT) {
+			if (file->transactions[transaction].flags & TRANS_REC_TO)
+				file->accounts[file->transactions[transaction].to].statement_balance += file->transactions[transaction].amount;
+
+			if (file->transactions[transaction].date <= date)
+				file->accounts[file->transactions[transaction].to].current_balance += file->transactions[transaction].amount;
+
+			if ((file->budget.start == NULL_DATE || file->transactions[transaction].date >= file->budget.start) &&
+					(file->budget.finish == NULL_DATE || file->transactions[transaction].date <= file->budget.finish))
+				file->accounts[file->transactions[transaction].to].budget_balance += file->transactions[transaction].amount;
+
+			if (!file->budget.limit_postdate || file->transactions[transaction].date <= post_date)
+				file->accounts[file->transactions[transaction].to].future_balance += file->transactions[transaction].amount;
+		}
+	}
+
+	/* Calculate the outstanding data for each account. */
+
+	for (account = 0; account < file->account_count; account++) {
+		file->accounts[account].available_balance = file->accounts[account].future_balance + file->accounts[account].credit_limit;
+		file->accounts[account].trial_balance = file->accounts[account].available_balance + file->accounts[account].sorder_trial;
+	}
+
+	file->last_full_recalc = date;
+
+	/* Calculate the accounts windows data and force a redraw of the windows that are open. */
+
+	account_recalculate_windows(file);
+
+	for (i = 0; i < ACCOUNT_WINDOWS; i++)
+		account_force_window_redraw(file, i, 0, file->account_windows[i].display_lines);
+
+	hourglass_off();
+}
 
 
+/**
+ * Remove a transaction from all the calculated accounts, so that limited
+ * changes can be made to its details. Once updated, it can be resored
+ * using account_restore_transaction(). The changes can not affect the sort
+ * order of the transactions in the file, or the restoration will be invalid.
+ *
+ * \param *file		The file containing the transaction.
+ * \param transasction	The transaction to remove.
+ */
 
+void account_remove_transaction(file_data *file, int transaction)
+{
+	/* Remove the current transaction from the fully-caluculated records. */
+
+	if (file->transactions[transaction].from != NULL_ACCOUNT) {
+		if (file->transactions[transaction].flags & TRANS_REC_FROM)
+			file->accounts[file->transactions[transaction].from].statement_balance += file->transactions[transaction].amount;
+
+		if (file->transactions[transaction].date <= file->last_full_recalc)
+			file->accounts[file->transactions[transaction].from].current_balance += file->transactions[transaction].amount;
+
+		if ((file->budget.start == NULL_DATE ||file->transactions[transaction].date >= file->budget.start) &&
+				(file->budget.finish == NULL_DATE ||file->transactions[transaction].date <= file->budget.finish))
+			file->accounts[file->transactions[transaction].from].budget_balance += file->transactions[transaction].amount;
+
+		file->accounts[file->transactions[transaction].from].future_balance += file->transactions[transaction].amount;
+		file->accounts[file->transactions[transaction].from].trial_balance += file->transactions[transaction].amount;
+		file->accounts[file->transactions[transaction].from].available_balance += file->transactions[transaction].amount;
+	}
+
+	if (file->transactions[transaction].to != NULL_ACCOUNT) {
+		if (file->transactions[transaction].flags & TRANS_REC_TO)
+			file->accounts[file->transactions[transaction].to].statement_balance -= file->transactions[transaction].amount;
+
+		if (file->transactions[transaction].date <= file->last_full_recalc)
+			file->accounts[file->transactions[transaction].to].current_balance -= file->transactions[transaction].amount;
+
+		if ((file->budget.start == NULL_DATE ||file->transactions[transaction].date >= file->budget.start) &&
+				(file->budget.finish == NULL_DATE ||file->transactions[transaction].date <= file->budget.finish))
+			file->accounts[file->transactions[transaction].to].budget_balance -= file->transactions[transaction].amount;
+
+		file->accounts[file->transactions[transaction].to].future_balance -= file->transactions[transaction].amount;
+		file->accounts[file->transactions[transaction].to].trial_balance -= file->transactions[transaction].amount;
+		file->accounts[file->transactions[transaction].to].available_balance -= file->transactions[transaction].amount;
+	}
+}
+
+
+/**
+ * Restore a transaction previously removed by account_remove_transaction()
+ * after changes have been made, recalculate the affected accounts and
+ * refresh any affected displays. The changes can not affect the sort
+ * order of the transactions in the file, or the restoration will be invalid.
+ *
+ * \param *file		The file containing the transaction.
+ * \param transasction	The transaction to restore.
+ */
+
+void account_restore_transaction(file_data *file, int transaction)
+{
+	int	i;
+
+	/* Restore the current transaction back into the fully-caluculated records. */
+
+	if (file->transactions[transaction].from != NULL_ACCOUNT) {
+		if (file->transactions[transaction].flags & TRANS_REC_FROM)
+			file->accounts[file->transactions[transaction].from].statement_balance -= file->transactions[transaction].amount;
+
+		if (file->transactions[transaction].date <= file->last_full_recalc)
+			file->accounts[file->transactions[transaction].from].current_balance -= file->transactions[transaction].amount;
+
+		if ((file->budget.start == NULL_DATE ||file->transactions[transaction].date >= file->budget.start) &&
+				(file->budget.finish == NULL_DATE ||file->transactions[transaction].date <= file->budget.finish))
+			file->accounts[file->transactions[transaction].from].budget_balance -= file->transactions[transaction].amount;
+
+		file->accounts[file->transactions[transaction].from].future_balance -= file->transactions[transaction].amount;
+		file->accounts[file->transactions[transaction].from].trial_balance -= file->transactions[transaction].amount;
+		file->accounts[file->transactions[transaction].from].available_balance -= file->transactions[transaction].amount;
+	}
+
+	if (file->transactions[transaction].to != NULL_ACCOUNT) {
+		if (file->transactions[transaction].flags & TRANS_REC_TO)
+			file->accounts[file->transactions[transaction].to].statement_balance += file->transactions[transaction].amount;
+
+		if (file->transactions[transaction].date <= file->last_full_recalc)
+			file->accounts[file->transactions[transaction].to].current_balance += file->transactions[transaction].amount;
+
+		if ((file->budget.start == NULL_DATE ||file->transactions[transaction].date >= file->budget.start) &&
+				(file->budget.finish == NULL_DATE ||file->transactions[transaction].date <= file->budget.finish))
+			file->accounts[file->transactions[transaction].to].budget_balance += file->transactions[transaction].amount;
+
+		file->accounts[file->transactions[transaction].to].future_balance += file->transactions[transaction].amount;
+		file->accounts[file->transactions[transaction].to].trial_balance += file->transactions[transaction].amount;
+		file->accounts[file->transactions[transaction].to].available_balance += file->transactions[transaction].amount;
+	}
+
+	/* Calculate the accounts windows data and force a redraw of the windows that are open. */
+
+	account_recalculate_windows(file);
+
+	for (i = 0; i < ACCOUNT_WINDOWS; i++)
+		account_force_window_redraw(file, i, 0, file->account_windows[i].display_lines);
+}
+
+
+/**
+ * Recalculate the data in the account list windows (totals, sub-totals,
+ * budget totals, etc) and refresh the display.
+ *
+ * \param *file		The file to recalculate.
+ */
+
+static void account_recalculate_windows(file_data *file)
+{
+	int	entry, i, j, sub_total[ACCOUNT_COLUMNS-2], total[ACCOUNT_COLUMNS-2];
+
+	if (file == NULL)
+		return;
+
+	/* Calculate the full accounts details. */
+
+	entry = account_find_window_entry_from_type(file, ACCOUNT_FULL);
+
+	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++) {
+		sub_total[i] = 0;
+		total[i] = 0;
+	}
+
+	for (i = 0; i < file->account_windows[entry].display_lines; i++) {
+		switch (file->account_windows[entry].line_data[i].type) {
+		case ACCOUNT_LINE_DATA:
+			sub_total[0] += file->accounts[file->account_windows[entry].line_data[i].account].statement_balance;
+			sub_total[1] += file->accounts[file->account_windows[entry].line_data[i].account].current_balance;
+			sub_total[2] += file->accounts[file->account_windows[entry].line_data[i].account].trial_balance;
+			sub_total[3] += file->accounts[file->account_windows[entry].line_data[i].account].budget_balance;
+
+			total[0] += file->accounts[file->account_windows[entry].line_data[i].account].statement_balance;
+			total[1] += file->accounts[file->account_windows[entry].line_data[i].account].current_balance;
+			total[2] += file->accounts[file->account_windows[entry].line_data[i].account].trial_balance;
+			total[3] += file->accounts[file->account_windows[entry].line_data[i].account].budget_balance;
+			break;
+
+		case ACCOUNT_LINE_HEADER:
+			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+				sub_total[j] = 0;
+			break;
+
+		case ACCOUNT_LINE_FOOTER:
+			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+				file->account_windows[entry].line_data[i].total[j] = sub_total[j];
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++)
+		convert_money_to_string(total[i], file->account_windows[entry].footer_icon[i]);
+
+	/* Calculate the incoming account details. */
+
+	entry = account_find_window_entry_from_type(file, ACCOUNT_IN);
+
+	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++) {
+		sub_total[i] = 0;
+		total[i] = 0;
+	}
+
+	for (i = 0; i < file->account_windows[entry].display_lines; i++) {
+		switch (file->account_windows[entry].line_data[i].type) {
+		case ACCOUNT_LINE_DATA:
+			if (file->accounts[file->account_windows[entry].line_data[i].account].budget_amount != NULL_CURRENCY) {
+				file->accounts[file->account_windows[entry].line_data[i].account].budget_result =
+						-file->accounts[file->account_windows[entry].line_data[i].account].budget_amount -
+						file->accounts[file->account_windows[entry].line_data[i].account].budget_balance;
+			} else {
+				file->accounts[file->account_windows[entry].line_data[i].account].budget_result = NULL_CURRENCY;
+			}
+
+			sub_total[0] -= file->accounts[file->account_windows[entry].line_data[i].account].future_balance;
+			sub_total[1] += file->accounts[file->account_windows[entry].line_data[i].account].budget_amount;
+			sub_total[2] -= file->accounts[file->account_windows[entry].line_data[i].account].budget_balance;
+			sub_total[3] += file->accounts[file->account_windows[entry].line_data[i].account].budget_result;
+
+			total[0] -= file->accounts[file->account_windows[entry].line_data[i].account].future_balance;
+			total[1] += file->accounts[file->account_windows[entry].line_data[i].account].budget_amount;
+			total[2] -= file->accounts[file->account_windows[entry].line_data[i].account].budget_balance;
+			total[3] += file->accounts[file->account_windows[entry].line_data[i].account].budget_result;
+			break;
+
+		case ACCOUNT_LINE_HEADER:
+			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+				sub_total[j] = 0;
+			break;
+
+		case ACCOUNT_LINE_FOOTER:
+			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+				file->account_windows[entry].line_data[i].total[j] = sub_total[j];
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++)
+		convert_money_to_string(total[i], file->account_windows[entry].footer_icon[i]);
+
+	/* Calculate the outgoing account details. */
+
+	entry = account_find_window_entry_from_type(file, ACCOUNT_OUT);
+
+	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++) {
+		sub_total[i] = 0;
+		total[i] = 0;
+	}
+
+	for (i = 0; i < file->account_windows[entry].display_lines; i++) {
+		switch (file->account_windows[entry].line_data[i].type) {
+		case ACCOUNT_LINE_DATA:
+			if (file->accounts[file->account_windows[entry].line_data[i].account].budget_amount != NULL_CURRENCY) {
+				file->accounts[file->account_windows[entry].line_data[i].account].budget_result =
+						file->accounts[file->account_windows[entry].line_data[i].account].budget_amount -
+						file->accounts[file->account_windows[entry].line_data[i].account].budget_balance;
+			} else {
+				file->accounts[file->account_windows[entry].line_data[i].account].budget_result = NULL_CURRENCY;
+			}
+
+			sub_total[0] += file->accounts[file->account_windows[entry].line_data[i].account].future_balance;
+			sub_total[1] += file->accounts[file->account_windows[entry].line_data[i].account].budget_amount;
+			sub_total[2] += file->accounts[file->account_windows[entry].line_data[i].account].budget_balance;
+			sub_total[3] += file->accounts[file->account_windows[entry].line_data[i].account].budget_result;
+
+			total[0] += file->accounts[file->account_windows[entry].line_data[i].account].future_balance;
+			total[1] += file->accounts[file->account_windows[entry].line_data[i].account].budget_amount;
+			total[2] += file->accounts[file->account_windows[entry].line_data[i].account].budget_balance;
+			total[3] += file->accounts[file->account_windows[entry].line_data[i].account].budget_result;
+			break;
+
+		case ACCOUNT_LINE_HEADER:
+			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+				sub_total[j] = 0;
+			break;
+
+		case ACCOUNT_LINE_FOOTER:
+			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+				file->account_windows[entry].line_data[i].total[j] = sub_total[j];
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++)
+		convert_money_to_string(total[i], file->account_windows[entry].footer_icon[i]);
+}
+
+
+/**
+ * Save the account and account list details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void account_write_file(file_data *file, FILE *out)
+{
+	int	i, j;
+	char	buffer[MAX_FILE_LINE_LEN];
+
+	/* Output the account data. */
+
+	fprintf(out, "\n[Accounts]\n");
+
+	fprintf(out, "Entries: %x\n", file->account_count);
+
+	column_write_as_text(file->accview_column_width, ACCVIEW_COLUMNS, buffer);
+	fprintf(out, "WinColumns: %s\n", buffer);
+
+	/* \TODO -- This probably shouldn't be here, but in the accview module? */
+
+	fprintf(out, "SortOrder: %x\n", file->accview_sort_order);
+
+	for (i = 0; i < file->account_count; i++) {
+
+		/* Deleted accounts are skipped, as these can be filled in at load. */
+
+		if (file->accounts[i].type != ACCOUNT_NULL) {
+			fprintf(out, "@: %x,%s,%x,%x,%x,%x,%x,%x\n",
+					i, file->accounts[i].ident, file->accounts[i].type,
+					file->accounts[i].opening_balance, file->accounts[i].credit_limit,
+					file->accounts[i].budget_amount, file->accounts[i].cheque_num_width,
+					file->accounts[i].next_cheque_num);
+			if (*(file->accounts[i].name) != '\0')
+				config_write_token_pair(out, "Name", file->accounts[i].name);
+			if (*(file->accounts[i].account_no) != '\0')
+				config_write_token_pair(out, "AccNo", file->accounts[i].account_no);
+			if (*(file->accounts[i].sort_code) != '\0')
+				config_write_token_pair(out, "SortCode", file->accounts[i].sort_code);
+			if (*(file->accounts[i].address[0]) != '\0')
+				config_write_token_pair(out, "Addr0", file->accounts[i].address[0]);
+			if (*(file->accounts[i].address[1]) != '\0')
+				config_write_token_pair(out, "Addr1", file->accounts[i].address[1]);
+			if (*(file->accounts[i].address[2]) != '\0')
+				config_write_token_pair(out, "Addr2", file->accounts[i].address[2]);
+			if (*(file->accounts[i].address[3]) != '\0')
+				config_write_token_pair(out, "Addr3", file->accounts[i].address[3]);
+			if (file->accounts[i].payin_num_width != 0 || file->accounts[i].next_payin_num != 0)
+				fprintf(out, "PayIn: %x,%x\n", file->accounts[i].payin_num_width, file->accounts[i].next_payin_num);
+		}
+	}
+
+	/* Output the Accounts Windows data. */
+
+	for (j = 0; j < ACCOUNT_WINDOWS; j++) {
+		fprintf(out, "\n[AccountList:%x]\n", file->account_windows[j].type);
+
+		fprintf(out, "Entries: %x\n", file->account_windows[j].display_lines);
+
+		column_write_as_text(file->account_windows[j].column_width, ACCOUNT_COLUMNS, buffer);
+		fprintf(out, "WinColumns: %s\n", buffer);
+
+		for (i = 0; i < file->account_windows[j].display_lines; i++) {
+			fprintf(out, "@: %x,%x\n", file->account_windows[j].line_data[i].type,
+					file->account_windows[j].line_data[i].account);
+
+			if ((file->account_windows[j].line_data[i].type == ACCOUNT_LINE_HEADER ||
+					file->account_windows[j].line_data[i].type == ACCOUNT_LINE_FOOTER) &&
+					*(file->account_windows[j].line_data[i].heading) != '\0')
+				config_write_token_pair (out, "Heading", file->account_windows[j].line_data[i].heading);
+		}
+	}
+}
 
 
 /**
@@ -3874,7 +4520,7 @@ static osbool account_save_csv(char *filename, osbool selection, void *data)
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 
-	export_delimited_accounts_file(windat->file, windat->entry, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	account_export_delimited(windat->file, windat->entry, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
 
 	return TRUE;
 }
@@ -3895,9 +4541,130 @@ static osbool account_save_tsv(char *filename, osbool selection, void *data)
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 
-	export_delimited_accounts_file(windat->file, windat->entry, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	account_export_delimited(windat->file, windat->entry, filename, DELIMIT_TAB, TSV_FILE_TYPE);
 
 	return TRUE;
 }
 
+
+/**
+ * Export the preset data from a file into CSV or TSV format.
+ *
+ * \param *file			The file to export from.
+ * \param entry			The entry of the window to to be exported.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
+
+static void account_export_delimited(file_data *file, int entry, char *filename, enum filing_delimit_type format, int filetype)
+{
+	FILE			*out;
+	int			i;
+	char			buffer[256];
+	struct account_window	*window;
+
+	out = fopen(filename, "w");
+
+	if (out == NULL) {
+		error_msgs_report_error("FileSaveFail");
+		return;
+	}
+
+	hourglass_on();
+
+	window = &(file->account_windows[entry]);
+
+	/* Output the headings line, taking the text from the window icons. */
+
+	icons_copy_text(window->account_pane, 0, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->account_pane, 1, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->account_pane, 2, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->account_pane, 3, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	icons_copy_text(window->account_pane, 4, buffer);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
+
+	/* Output the transaction data as a set of delimited lines. */
+
+	for (i = 0; i < window->display_lines; i++) {
+		if (window->line_data[i].type == ACCOUNT_LINE_DATA) {
+			account_build_name_pair(file, window->line_data[i].account, buffer, sizeof(buffer));
+			filing_output_delimited_field(out, buffer, format, 0);
+
+			switch (window->type) {
+			case ACCOUNT_FULL:
+				convert_money_to_string(file->accounts[window->line_data[i].account].statement_balance, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				convert_money_to_string(file->accounts[window->line_data[i].account].current_balance, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				convert_money_to_string(file->accounts[window->line_data[i].account].trial_balance, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				convert_money_to_string(file->accounts[window->line_data[i].account].budget_balance, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+				break;
+
+			case ACCOUNT_IN:
+				convert_money_to_string(-file->accounts[window->line_data[i].account].future_balance, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				convert_money_to_string(file->accounts[window->line_data[i].account].budget_amount, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				convert_money_to_string(-file->accounts[window->line_data[i].account].budget_balance, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				convert_money_to_string(file->accounts[window->line_data[i].account].budget_result, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+				break;
+
+			case ACCOUNT_OUT:
+				convert_money_to_string(file->accounts[window->line_data[i].account].future_balance, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				convert_money_to_string(file->accounts[window->line_data[i].account].budget_amount, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				convert_money_to_string(file->accounts[window->line_data[i].account].budget_balance, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+				convert_money_to_string(file->accounts[window->line_data[i].account].budget_result, buffer);
+				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+				break;
+
+			default:
+				break;
+			}
+		} else if (window->line_data[i].type == ACCOUNT_LINE_HEADER) {
+			filing_output_delimited_field(out, window->line_data[i].heading, format, 1);
+		} else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER) {
+			filing_output_delimited_field(out, window->line_data[i].heading, format, 0);
+
+			convert_money_to_string(window->line_data[i].total[0], buffer);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+
+			convert_money_to_string(window->line_data[i].total[1], buffer);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+
+			convert_money_to_string(window->line_data[i].total[2], buffer);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+
+			convert_money_to_string(window->line_data[i].total[3], buffer);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
+		}
+	}
+
+	/* Output the grand total line, taking the text from the window icons. */
+
+	icons_copy_text(window->account_footer, 0, buffer);
+	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, window->footer_icon[0], format, DELIMIT_NUM);
+	filing_output_delimited_field(out, window->footer_icon[1], format, DELIMIT_NUM);
+	filing_output_delimited_field(out, window->footer_icon[2], format, DELIMIT_NUM);
+	filing_output_delimited_field(out, window->footer_icon[3], format, DELIMIT_NUM | DELIMIT_LAST);
+
+	/* Close the file and set the type correctly. */
+
+	fclose(out);
+	osfile_set_type(filename, (bits) filetype);
+
+	hourglass_off();
+}
 

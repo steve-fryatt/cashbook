@@ -411,7 +411,7 @@ enum account_type account_get_type(file_data *file, acct_t account);
  * \return		The account's opening balance, or 0.
  */
 
-int account_get_opening_balance(file_data *file, acct_t account);
+amt_t account_get_opening_balance(file_data *file, acct_t account);
 
 
 /**
@@ -423,7 +423,7 @@ int account_get_opening_balance(file_data *file, acct_t account);
  * \param adjust	The amount to alter the opening balance by.
  */
 
-void account_adjust_opening_balance(file_data *file, acct_t account, int adjust);
+void account_adjust_opening_balance(file_data *file, acct_t account, amt_t adjust);
 
 
 /**
@@ -434,7 +434,7 @@ void account_adjust_opening_balance(file_data *file, acct_t account, int adjust)
  * \return		The account's opening balance, or 0.
  */
 
-int account_get_credit_limit(file_data *file, acct_t account);
+amt_t account_get_credit_limit(file_data *file, acct_t account);
 
 
 /**
@@ -445,7 +445,7 @@ int account_get_credit_limit(file_data *file, acct_t account);
  * \return		The account's budget amount, or 0.
  */
 
-int account_get_budget_amount(file_data *file, acct_t account);
+amt_t account_get_budget_amount(file_data *file, acct_t account);
 
 
 /**
@@ -468,7 +468,7 @@ void account_zero_sorder_trial(file_data *file);
  *			balance by.
  */
 
-void account_adjust_sorder_trial(file_data *file, acct_t account, int adjust);
+void account_adjust_sorder_trial(file_data *file, acct_t account, amt_t adjust);
 
 
 /**

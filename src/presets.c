@@ -173,8 +173,8 @@ struct preset {
 	enum preset_caret	caret_target;						/**< The target icon for the caret. */
 
 	date_t			date;							/**< Preset details. */
-	int			from;
-	int			to;
+	acct_t			from;
+	acct_t			to;
 	amt_t			amount;
 	char			reference[REF_FIELD_LEN];
 	char			description[DESCRIPT_FIELD_LEN];

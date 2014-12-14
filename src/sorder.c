@@ -177,18 +177,18 @@ struct sorder
 	int		period;							/**< The period between orders. */
 	int		period_unit;						/**< The unit in which the period is measured. */
 
-	unsigned	raw_next_date;						/**< The uncorrected date for the next order, used for getting the next. */
-	unsigned	adjusted_next_date;					/**< The date of the next order, taking into account months, weekends etc. */
+	date_t		raw_next_date;						/**< The uncorrected date for the next order, used for getting the next. */
+	date_t		adjusted_next_date;					/**< The date of the next order, taking into account months, weekends etc. */
 
 	int		left;							/**< The number of orders remaining. */
 
 	unsigned	flags;							/**< Order flags (containing transaction flags, order flags, etc). */
 
-	int		from;							/**< Order details. */
-	int		to;
-	int		normal_amount;
-	int		first_amount;
-	int		last_amount;
+	acct_t		from;							/**< Order details. */
+	acct_t		to;
+	amt_t		normal_amount;
+	amt_t		first_amount;
+	amt_t		last_amount;
 	char		reference[REF_FIELD_LEN];
 	char		description[DESCRIPT_FIELD_LEN];
 

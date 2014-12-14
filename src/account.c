@@ -126,27 +126,27 @@ struct account {
 
 	/* User-set values used for calculation. */
 
-	int			opening_balance;				/* The opening balance for accounts, from which everything else is calculated. */
-	int			credit_limit;					/* Credit limit for accounts. */
-	int			budget_amount;					/* Budgeted amount for headings. */
+	amt_t			opening_balance;				/* The opening balance for accounts, from which everything else is calculated. */
+	amt_t			credit_limit;					/* Credit limit for accounts. */
+	amt_t			budget_amount;					/* Budgeted amount for headings. */
 
 	/* Calculated values for both accounts and headings. */
 
-	int			statement_balance;				/* Reconciled statement balance. */
-	int			current_balance;				/* Balance up to today's date. */
-	int			future_balance;					/* Balance including all transactions. */
-	int			budget_balance;					/* Balance including all transactions betwen budget dates. */
+	amt_t			statement_balance;				/* Reconciled statement balance. */
+	amt_t			current_balance;				/* Balance up to today's date. */
+	amt_t			future_balance;					/* Balance including all transactions. */
+	amt_t			budget_balance;					/* Balance including all transactions betwen budget dates. */
 
-	int			sorder_trial;					/* Difference applied to account from standing orders in trial period. */
+	amt_t			sorder_trial;					/* Difference applied to account from standing orders in trial period. */
 
 	/* Subsequent calculated values for accounts. */
 
-	int			trial_balance;					/* Balance including all transactions & standing order trial. */
-	int			available_balance;				/* Balance available, taking into account credit limit. */
+	amt_t			trial_balance;					/* Balance including all transactions & standing order trial. */
+	amt_t			available_balance;				/* Balance available, taking into account credit limit. */
 
 	/* Subsequent calculated values for headings. */
 
-	int			budget_result;
+	amt_t			budget_result;
 };
 
 
@@ -3467,7 +3467,7 @@ enum account_type account_get_type(file_data *file, acct_t account)
  * \return		The account's opening balance, or 0.
  */
 
-int account_get_opening_balance(file_data *file, acct_t account)
+amt_t account_get_opening_balance(file_data *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return 0;
@@ -3485,7 +3485,7 @@ int account_get_opening_balance(file_data *file, acct_t account)
  * \param adjust	The amount to alter the opening balance by.
  */
 
-void account_adjust_opening_balance(file_data *file, acct_t account, int adjust)
+void account_adjust_opening_balance(file_data *file, acct_t account, amt_t adjust)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return;
@@ -3523,7 +3523,7 @@ void account_zero_sorder_trial(file_data *file)
  *			balance by.
  */
 
-void account_adjust_sorder_trial(file_data *file, acct_t account, int adjust)
+void account_adjust_sorder_trial(file_data *file, acct_t account, amt_t adjust)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return;
@@ -3540,7 +3540,7 @@ void account_adjust_sorder_trial(file_data *file, acct_t account, int adjust)
  * \return		The account's opening balance, or 0.
  */
 
-int account_get_credit_limit(file_data *file, acct_t account)
+amt_t account_get_credit_limit(file_data *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return 0;
@@ -3557,7 +3557,7 @@ int account_get_credit_limit(file_data *file, acct_t account)
  * \return		The account's budget amount, or 0.
  */
 
-int account_get_budget_amount(file_data *file, acct_t account)
+amt_t account_get_budget_amount(file_data *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return 0;

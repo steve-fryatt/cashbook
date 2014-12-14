@@ -270,11 +270,11 @@ typedef struct file_data file_data;
 
 typedef struct transaction
 {
-  unsigned date;
-  unsigned flags;
-  int      from;
-  int      to;
-  int      amount;
+  unsigned date;				/* \TODO -- Should be date_t.		*/
+  unsigned flags;				/* \TODO -- Should be an enum.		*/
+  int      from;				/* \TODO -- Should be acct_t.		*/
+  int      to;					/* \TODO -- Should be acct_t.		*/
+  int      amount;				/* \TODO -- Should be amt_t.		*/
   char     reference[REF_FIELD_LEN];
   char     description[DESCRIPT_FIELD_LEN];
 
@@ -300,7 +300,7 @@ struct account_redraw {
 	enum account_line_type	type;						/* Type of line (account, header, footer, blank, etc) */
 
 	acct_t			account;					/* Number of account. */
-	int			total[ACCOUNT_COLUMNS-2];			/* Balance totals for section. */
+	amt_t			total[ACCOUNT_COLUMNS-2];			/* Balance totals for section. */
 	char			heading[ACCOUNT_SECTION_LEN];			/* Heading for section. */
 };
 

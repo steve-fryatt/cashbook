@@ -268,27 +268,25 @@ typedef struct file_data file_data;
 
 /* Transatcion data struct. */
 
-typedef struct transaction
-{
-  unsigned date;				/* \TODO -- Should be date_t.		*/
-  unsigned flags;				/* \TODO -- Should be an enum.		*/
-  int      from;				/* \TODO -- Should be acct_t.		*/
-  int      to;					/* \TODO -- Should be acct_t.		*/
-  int      amount;				/* \TODO -- Should be amt_t.		*/
-  char     reference[REF_FIELD_LEN];
-  char     description[DESCRIPT_FIELD_LEN];
+struct transaction {
+	date_t		date;
+	unsigned	flags;							/* \TODO -- Should be an enum.		*/
+	acct_t		from;
+	acct_t		to;
+	amt_t		amount;
+	char		reference[REF_FIELD_LEN];
+	char		description[DESCRIPT_FIELD_LEN];
 
-  /* Sort index entries.
-   *
-   * NB - These are unconnected to the rest of the transaction data, and are in effect a separate array that is used
-   * for handling entries in the transaction window.
-   */
+	/* Sort index entries.
+	 *
+	 * NB - These are unconnected to the rest of the transaction data, and are in effect a separate array that is used
+	 * for handling entries in the transaction window.
+	 */
 
-  int      sort_index;       /* Point to another transaction, to allow the transaction window to be sorted. */
-  int      saved_sort;       /* Preserve the transaction window sort order across transaction data sorts. */
-  int      sort_workspace;   /* Workspace used by the sorting code. */
-}
-transaction;
+	int		sort_index;		/**< Point to another transaction, to allow the transaction window to be sorted. */
+	int		saved_sort;		/**< Preserve the transaction window sort order across transaction data sorts. */
+	int		sort_workspace;		/**< Workspace used by the sorting code. */
+};
 
 /* ==================================================================================================================
  * Window redraw data structures
@@ -707,7 +705,7 @@ struct file_data
   /* Account, transaction, standing order and preset data structures (pointers which become arrays). */
 
   struct account     *accounts;
-  transaction        *transactions;
+  struct transaction *transactions;
   struct sorder      *sorders;
   struct preset      *presets;
 

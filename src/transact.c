@@ -2551,7 +2551,7 @@ void add_raw_transaction (file_data *file, unsigned date, int from, int to, unsi
   int new;
 
 
-  if (flex_extend ((flex_ptr) &(file->transactions), sizeof (transaction) * (file->trans_count+1)) == 1)
+  if (flex_extend ((flex_ptr) &(file->transactions), sizeof (struct transaction) * (file->trans_count+1)) == 1)
   {
     new = file->trans_count++;
 
@@ -2637,7 +2637,7 @@ void strip_blank_transactions (file_data *file)
   {
     file->trans_count = i+1;
 
-    flex_extend ((flex_ptr) &(file->transactions), sizeof (transaction) * file->trans_count);
+    flex_extend ((flex_ptr) &(file->transactions), sizeof (struct transaction) * file->trans_count);
   }
 }
 
@@ -2973,9 +2973,9 @@ void transact_sort(file_data *file)
 
 void transact_sort_file_data(file_data *file)
 {
-	int		i, gap, comb;
-	osbool		sorted;
-	transaction	temp;
+	int			i, gap, comb;
+	osbool			sorted;
+	struct transaction	temp;
 
 #ifdef DEBUG
 	debug_printf("Sorting transactions");
@@ -3324,7 +3324,7 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 {
 	int	result, block_size, i = -1;
 
-	block_size = flex_size((flex_ptr) &(file->transactions)) / sizeof(transaction);
+	block_size = flex_size((flex_ptr) &(file->transactions)) / sizeof(struct transaction);
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
@@ -3333,7 +3333,7 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->transactions), sizeof(transaction) * block_size);
+				flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * block_size);
 			} else {
 				block_size = file->trans_count;
 			}
@@ -3353,7 +3353,7 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->transactions), sizeof(transaction) * block_size);
+				flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * block_size);
 			}
 			i = file->trans_count-1;
 			file->transactions[i].date = strtoul(next_field (value, ','), NULL, 16);
@@ -3377,7 +3377,7 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
 
-	block_size = flex_size((flex_ptr) &(file->transactions)) / sizeof(transaction);
+	block_size = flex_size((flex_ptr) &(file->transactions)) / sizeof(struct transaction);
 
 	#ifdef DEBUG
 	debug_printf("Transaction block size: %d, required: %d", block_size, file->trans_count);
@@ -3385,7 +3385,7 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 
 	if (block_size > file->trans_count) {
 		block_size = file->trans_count;
-		flex_extend((flex_ptr) &(file->transactions), sizeof(transaction) * block_size);
+		flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * block_size);
 
 		#ifdef DEBUG
 		debug_printf("Block shrunk to %d", block_size);

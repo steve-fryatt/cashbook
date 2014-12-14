@@ -280,7 +280,7 @@ static osbool			analysis_period_first = TRUE;
 
 static wimp_w			analysis_save_window = NULL;			/**< The handle of the Save/Rename window.			*/
 static file_data		*analysis_save_file = NULL;			/**< The file currently owning the Save/Rename window.		*/
-static report_data		*analysis_save_report = NULL;			/**< The report currently owning the Save/Rename window.	*/
+static struct report_data	*analysis_save_report = NULL;			/**< The report currently owning the Save/Rename window.	*/
 static int			analysis_save_template = NULL_TEMPLATE;		/**< The template currently owning the Save/Rename window.	*/
 static enum analysis_save_mode	analysis_save_mode = ANALYSIS_SAVE_MODE_NONE;	/**< The current mode of the Save/Rename window.		*/
 
@@ -346,7 +346,7 @@ static void		analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 static void		analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void		analysis_save_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void		analysis_refresh_save_window(void);
-static void		analysis_fill_save_window(report_data *report);
+static void		analysis_fill_save_window(struct report_data *report);
 static void		analysis_fill_rename_window(file_data *file, int template);
 static osbool		analysis_process_save_window(void);
 
@@ -792,7 +792,7 @@ static osbool analysis_delete_transaction_window(void)
 
 static void analysis_generate_transaction_report(file_data *file)
 {
-	report_data		*report;
+	struct report_data	*report;
 	struct analysis_data	*data;
 	int			i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
 				total_days, period_days, period_limit, entry, account;
@@ -1474,13 +1474,13 @@ static osbool analysis_delete_unreconciled_window(void)
 
 static void analysis_generate_unreconciled_report(file_data *file)
 {
-	int		i, acc, found, unit, period, group, lock, tot_in, tot_out, entry;
-	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
-			rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
-	date_t		start_date, end_date, next_start, next_end;
-	report_data	*report;
+	int			i, acc, found, unit, period, group, lock, tot_in, tot_out, entry;
+	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
+				rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
+	date_t			start_date, end_date, next_start, next_end;
+	struct report_data	*report;
 	struct analysis_data	*data;
-	int		acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	int			acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (file == NULL)
 		return;
@@ -2057,12 +2057,12 @@ static osbool analysis_delete_cashflow_window(void)
 
 static void analysis_generate_cashflow_report(file_data *file)
 {
-	int		i, acc, items, found, unit, period, group, lock, tabular, show_blank, total;
-	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
-	date_t		start_date, end_date, next_start, next_end;
-	report_data	*report;
+	int			i, acc, items, found, unit, period, group, lock, tabular, show_blank, total;
+	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
+	date_t			start_date, end_date, next_start, next_end;
+	struct report_data	*report;
 	struct analysis_data	*data;
-	int		entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	int			entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (file == NULL)
 		return;
@@ -2631,12 +2631,12 @@ static osbool analysis_delete_balance_window(void)
 
 static void analysis_generate_balance_report(file_data *file)
 {
-	int		i, acc, items, unit, period, group, lock, tabular, total;
-	char		line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
-	date_t		start_date, end_date, next_start, next_end;
-	report_data	*report;
+	int			i, acc, items, unit, period, group, lock, tabular, total;
+	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
+	date_t			start_date, end_date, next_start, next_end;
+	struct report_data	*report;
 	struct analysis_data	*data;
-	int		entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	int			entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (file == NULL)
 		return;
@@ -3289,8 +3289,8 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 
 void analysis_remove_account_from_templates(file_data *file, acct_t account)
 {
-	int		i;
-	report_data	*report;
+	int			i;
+	struct report_data	*report;
 
 	/* Handle the dialogue boxes. */
 
@@ -3633,7 +3633,7 @@ void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct
  * \param *ptr		The current Wimp Pointer details.
  */
 
-void analysis_open_save_window(report_data *report, wimp_pointer *ptr)
+void analysis_open_save_window(struct report_data *report, wimp_pointer *ptr)
 {
 	/* If the window is already open, another report is being saved.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
@@ -3853,7 +3853,7 @@ static void analysis_refresh_save_window(void)
  * \param: *report		The report to be saved.
  */
 
-static void analysis_fill_save_window(report_data *report)
+static void analysis_fill_save_window(struct report_data *report)
 {
 	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, report->template.name);
 }
@@ -4105,7 +4105,7 @@ void analysis_force_windows_closed(file_data *file)
  * \param *report			The report of interest.
  */
 
-void analysis_force_close_report_save_window(report_data *report)
+void analysis_force_close_report_save_window(struct report_data *report)
 {
 	if (analysis_save_mode == ANALYSIS_SAVE_MODE_SAVE &&
 			analysis_save_file == report->file && analysis_save_report == report &&

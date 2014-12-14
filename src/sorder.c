@@ -2081,7 +2081,7 @@ static void sorder_open_print_window(file_data *file, wimp_pointer *ptr, osbool 
 
 static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
-	report_data		*report;
+	struct report_data	*report;
 	int			i, t;
 	char			line[1024], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
 	struct sorder_window	*window;
@@ -2599,9 +2599,9 @@ void sorder_trial(file_data *file)
 
 void sorder_full_report(file_data *file)
 {
-	report_data	*report;
-	int		i;
-	char		line[1024], buffer[256], numbuf1[256], numbuf2[32], numbuf3[32];
+	struct report_data	*report;
+	int			i;
+	char			line[1024], buffer[256], numbuf1[256], numbuf2[32], numbuf3[32];
 
 	msgs_lookup("SORWinT", buffer, sizeof(buffer));
 	report = report_open(file, buffer, NULL);

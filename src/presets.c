@@ -1929,7 +1929,7 @@ static void preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool 
 
 static void preset_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
-	report_data		*report;
+	struct report_data	*report;
 	int			i, t;
 	char			line[1024], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
 	struct preset_window	*window;

@@ -1751,7 +1751,7 @@ static void accview_open_print_window(struct accview_window *view, wimp_pointer 
 
 static void accview_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
 {
-	report_data			*report;
+	struct report_data		*report;
 	int				i, transaction=0;
 	char				line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
 

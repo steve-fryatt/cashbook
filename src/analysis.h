@@ -142,7 +142,7 @@ void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct
  * \param *ptr		The current Wimp Pointer details.
  */
 
-void analysis_open_save_window(report_data *report, wimp_pointer *ptr);
+void analysis_open_save_window(struct report_data *report, wimp_pointer *ptr);
 
 
 /**
@@ -181,7 +181,7 @@ void analysis_force_windows_closed(file_data *file);
  * \param *report			The report of interest.
  */
 
-void analysis_force_close_report_save_window(report_data *report);
+void analysis_force_close_report_save_window(struct report_data *report);
 
 
 /* Open a report from a saved template, following its selection from the

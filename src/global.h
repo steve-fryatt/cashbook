@@ -622,7 +622,7 @@ saved_report;
  */
 
 
-typedef struct report_data
+struct report_data
 {
   file_data		*file;							/**< The file that the report belongs to.		*/
 
@@ -667,8 +667,7 @@ typedef struct report_data
   saved_report       template;
 
   struct report_data *next;
-}
-report_data;
+};
 
 /* ==================================================================================================================
  * Main file data structure
@@ -728,9 +727,9 @@ struct file_data
 
   /* Report data structure */
 
-  report_data        *reports;           /* Pointer to a linked list of report structures. */
+  struct report_data *reports;           /* Pointer to a linked list of report structures. */
 
-  report_data        *import_report;     /* The current import log report. */
+  struct report_data *import_report;     /* The current import log report. */
 
   /* Report templates */
 

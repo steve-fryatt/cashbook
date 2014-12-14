@@ -745,7 +745,7 @@ void redraw_all_files (void)
 void redraw_file_windows(file_data *file)
 {
   int i;
-  report_data *rep_list;
+  struct report_data *rep_list;
 
 
   /* Redraw the transaction window. */

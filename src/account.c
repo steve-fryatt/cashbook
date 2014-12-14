@@ -2813,7 +2813,7 @@ static void account_open_print_window(file_data *file, enum account_type type, w
 
 static void account_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
-	report_data		*report;
+	struct report_data	*report;
 	int			i, entry;
 	char			line[4096], buffer[256], numbuf1[64], numbuf2[64], numbuf3[64], numbuf4[64];
 	struct account_window	*window;

@@ -105,7 +105,7 @@ void report_initialise(osspriteop_area *sprites);
  * \return			Report handle, or NULL on failure.
  */
 
-report_data *report_open(file_data *file, char *title, saved_report *template);
+struct report_data *report_open(file_data *file, char *title, saved_report *template);
 
 
 /**
@@ -115,7 +115,7 @@ report_data *report_open(file_data *file, char *title, saved_report *template);
  * \param *report		The report handle.
  */
 
-void report_close(report_data *report);
+void report_close(struct report_data *report);
 
 
 /**
@@ -131,7 +131,7 @@ void report_close(report_data *report);
  *				FALSE to print Portrait.
  */
 
-void report_close_and_print(report_data *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum);
+void report_close_and_print(struct report_data *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum);
 
 
 /**
@@ -141,7 +141,7 @@ void report_close_and_print(report_data *report, osbool text, osbool textformat,
  * \param *report		The report to delete.
  */
 
-void report_delete(report_data *report);
+void report_delete(struct report_data *report);
 
 
 /**
@@ -162,7 +162,7 @@ void report_delete(report_data *report);
  * \param *text			The line of text to write.
  */
 
-void report_write_line(report_data *report, int bar, char *text);
+void report_write_line(struct report_data *report, int bar, char *text);
 
 
 /**
@@ -189,8 +189,8 @@ void report_force_windows_closed(file_data *file);
 
 /* Saving and export */
 
-void save_report_text (file_data *file, report_data *report, char *filename, int formatting);
-void export_delimited_report_file (file_data *file, report_data *report, char *filename, int format, int filetype);
+void save_report_text (file_data *file, struct report_data *report, char *filename, int formatting);
+void export_delimited_report_file (file_data *file, struct report_data *report, char *filename, int format, int filetype);
 
 #endif
 

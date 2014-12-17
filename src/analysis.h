@@ -138,11 +138,11 @@ void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct
 /**
  * Open the Save Template dialogue box.
  *
- * \param *report	The report to be saved into the template.
+ * \param *template	The report template to be saved.
  * \param *ptr		The current Wimp Pointer details.
  */
 
-void analysis_open_save_window(struct report *report, wimp_pointer *ptr);
+void analysis_open_save_window(struct analysis_report *template, wimp_pointer *ptr);
 
 
 /**
@@ -176,12 +176,12 @@ void analysis_force_windows_closed(file_data *file);
 
 /**
  * Force the closure of the Save Template window if it is open to save the
- * given report.
+ * given template.
  *
- * \param *report			The report of interest.
+ * \param *template			The template of interest.
  */
 
-void analysis_force_close_report_save_window(struct report *report);
+void analysis_force_close_report_save_window(struct analysis_report *template);
 
 
 /* Open a report from a saved template, following its selection from the
@@ -202,7 +202,7 @@ void analysis_open_template_from_menu(file_data *file, wimp_pointer *ptr, int se
  * \param *from			The template to be copied.
  */
 
-void analysis_copy_template(struct saved_report *to, struct saved_report *from);
+void analysis_copy_template(struct analysis_report *to, struct analysis_report *from);
 
 
 /**

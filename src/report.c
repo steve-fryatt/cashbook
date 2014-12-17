@@ -216,7 +216,7 @@ void report_initialise(osspriteop_area *sprites)
  * \return			Report handle, or NULL on failure.
  */
 
-struct report *report_open(file_data *file, char *title, struct saved_report *template)
+struct report *report_open(file_data *file, char *title, struct analysis_report *template)
 {
 	struct report	*new;
 
@@ -259,10 +259,7 @@ struct report *report_open(file_data *file, char *title, struct saved_report *te
 	else
 		new->flags |= REPORT_STATUS_MEMERR;
 
-	if (template != NULL)
-		analysis_copy_template(&(new->template), template);
-	else
-		new->template.type = REPORT_TYPE_NONE;
+	new->template = template;
 
 	return (new);
 }
@@ -454,6 +451,9 @@ void report_delete(struct report *report)
 
 	if (report->line_ptr != NULL)
 		flex_free((flex_ptr) &(report->line_ptr));
+
+	if (report->template != NULL)
+		heap_free(report->template);
 
 	/* Delink the block and delete it. */
 
@@ -853,7 +853,7 @@ static void report_view_close_window_handler(wimp_close *close)
 	/* Close the window */
 
 	if (report->window != NULL) {
-		analysis_force_close_report_save_window(report);
+		analysis_force_close_report_save_window(report->template);
 
 		ihelp_remove_window(report->window);
 		event_delete_window(report->window);
@@ -887,7 +887,7 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	saveas_initialise_dialogue(report_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, report);
 	saveas_initialise_dialogue(report_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, report);
 
-	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template.type == REPORT_TYPE_NONE);
+	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template == NULL);
 }
 
 
@@ -921,7 +921,7 @@ static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 		break;
 
 	case REPVIEW_MENU_TEMPLATE:
-		analysis_open_save_window(report, &pointer);
+		analysis_open_save_window(report->template, &pointer);
 		break;
 	}
 }

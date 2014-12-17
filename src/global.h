@@ -604,7 +604,8 @@ union report_block {
 };
 
 
-struct saved_report {
+struct analysis_report {
+	file_data		*file;						/**< The file to which the template belongs.		*/
 	char			name[SAVED_REPORT_NAME_LEN];			/**< The name of the saved report template.		*/
 	enum report_type	type;						/**< The type of the template.				*/
 
@@ -664,7 +665,7 @@ struct report {
 
 	/* Report template details. */
 
-	struct saved_report	template;
+	struct analysis_report	*template;
 
 	struct report		*next;
 };
@@ -733,7 +734,7 @@ struct file_data
 
   /* Report templates */
 
-  struct saved_report *saved_reports;     /* A pointer to an array of saved report templates. */
+  struct analysis_report *saved_reports;     /* A pointer to an array of saved report templates. */
   int                 saved_report_count; /* A count of how many reports are in the file. */
 
   /* Dialogue content. */

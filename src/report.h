@@ -101,7 +101,7 @@ void report_initialise(osspriteop_area *sprites);
  * \return			Report handle, or NULL on failure.
  */
 
-struct report *report_open(file_data *file, char *title, struct saved_report *template);
+struct report *report_open(file_data *file, char *title, struct analysis_report *template);
 
 
 /**

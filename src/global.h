@@ -440,7 +440,7 @@ budget;
 typedef struct go_to
 {
   unsigned data;
-  int      data_type;
+  int      data_type;								/**< \TODO -- Should be an enum.	*/
 }
 go_to;
 
@@ -591,26 +591,6 @@ struct balance_rep {
 	acct_t		outgoing[REPORT_ACC_LIST_LEN];
 
   int          tabular;
-};
-
-/* ==================================================================================================================
- * Saved Report structures
- */
-
-union report_block {
-	struct trans_rep	transaction;
-	struct unrec_rep	unreconciled;
-	struct cashflow_rep	cashflow;
-	struct balance_rep	balance;
-};
-
-
-struct analysis_report {
-	file_data		*file;						/**< The file to which the template belongs.		*/
-	char			name[SAVED_REPORT_NAME_LEN];			/**< The name of the saved report template.		*/
-	enum report_type	type;						/**< The type of the template.				*/
-
-	union report_block	data;						/**< The template-type-specific data.			*/
 };
 
 /* ==================================================================================================================

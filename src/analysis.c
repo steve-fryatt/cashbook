@@ -216,6 +216,21 @@ enum analysis_flags {
 	ANALYSIS_REPORT_INCLUDE = 0x0004
 };
 
+union report_block {
+	struct trans_rep	transaction;
+	struct unrec_rep	unreconciled;
+	struct cashflow_rep	cashflow;
+	struct balance_rep	balance;
+};
+
+struct analysis_report {
+	file_data		*file;						/**< The file to which the template belongs.		*/
+	char			name[SAVED_REPORT_NAME_LEN];			/**< The name of the saved report template.		*/
+	enum report_type	type;						/**< The type of the template.				*/
+
+	union report_block	data;						/**< The template-type-specific data.			*/
+};
+
 struct analysis_report_link
 {
 	char			name[SAVED_REPORT_NAME_LEN+3];			/**< The name as it appears in the menu (+3 for ellipsis...)	*/

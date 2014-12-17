@@ -189,15 +189,6 @@ void report_redraw_all(file_data *file);
 void report_force_windows_closed(file_data *file);
 
 
-
-
-
-/* Saving and export */
-
-void save_report_text (file_data *file, struct report *report, char *filename, int formatting);
-void export_delimited_report_file (file_data *file, struct report *report, char *filename, int format, int filetype);
-
-
 /**
  * Call a callback function to process the template stored in every currently
  * open report.

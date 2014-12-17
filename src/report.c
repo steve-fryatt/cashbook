@@ -219,6 +219,8 @@ static void			report_print_window_closed(osbool text, osbool format, osbool scal
 static osbool			report_save_text(char *filename, osbool selection, void *data);
 static osbool			report_save_csv(char *filename, osbool selection, void *data);
 static osbool			report_save_tsv(char *filename, osbool selection, void *data);
+static void			report_export_text(struct report *report, char *filename, osbool formatting);
+static void			report_export_delimited(struct report *report, char *filename, enum filing_delimit_type format, int filetype);
 
 static void			report_start_print_job(char *filename);
 static void			report_cancel_print_job(void);
@@ -1463,7 +1465,7 @@ static osbool report_save_text(char *filename, osbool selection, void *data)
 	if (report == NULL || report->file == NULL)
 		return FALSE;
 
-	save_report_text(report->file, report, filename, FALSE);
+	report_export_text(report, filename, FALSE);
 	
 	return TRUE;
 }
@@ -1484,7 +1486,7 @@ static osbool report_save_csv(char *filename, osbool selection, void *data)
 	if (report == NULL || report->file == NULL)
 		return FALSE;
 
-	export_delimited_report_file(report->file, report, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	report_export_delimited(report, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
 	
 	return TRUE;
 }
@@ -1505,204 +1507,191 @@ static osbool report_save_tsv(char *filename, osbool selection, void *data)
 	if (report == NULL || report->file == NULL)
 		return FALSE;
 		
-	export_delimited_report_file(report->file, report, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	report_export_delimited(report, filename, DELIMIT_TAB, TSV_FILE_TYPE);
 	
 	return TRUE;
 }
 
 
+/**
+ * Export a report in plain ASCII text, optionally with fancy text formatting.
+ *
+ * \param *report		The report to export.
+ * \param *filename		The filename to export to.
+ * \param formatting		TRUE to include fancytext formmating; FALSE
+ *				for plain text.
+ */
 
-
-
-
-void save_report_text (file_data *file, struct report *report, char *filename, int formatting)
+static void report_export_text(struct report *report, char *filename, osbool formatting)
 {
-  FILE           *out;
-  int            i, j, bar, tab, indent, width, overrun, escape;
-  char           *column, *flags, buffer[256];
+	FILE	*out;
+	int	i, j, bar, tab, indent, width, overrun, escape;
+	char	*column, *flags, buffer[256];
 
-  out = fopen (filename, "w");
 
-  if (out != NULL)
-  {
-    hourglass_on ();
+	out = fopen(filename, "w");
 
-    for (i = 0; i < report->lines; i++)
-    {
-      tab = 0;
-      overrun = 0;
-      column = report->data + report->line_ptr[i];
-      bar = (int) *column;
-      column += REPORT_BAR_BYTES;
+	if (out == NULL) {
+		error_msgs_report_error("FileSaveFail");
+		return;
+	}
+
+	hourglass_on();
+
+	for (i = 0; i < report->lines; i++) {
+		tab = 0;
+		overrun = 0;
+		column = report->data + report->line_ptr[i];
+		bar = (int) *column;
+		column += REPORT_BAR_BYTES;
+
+		do {
+			flags = column;
+			column += REPORT_FLAG_BYTES;
+			string_ctrl_strcpy(buffer, column);
+
+			escape = (*flags & REPORT_FLAG_BOLD) ? 0x01 : 0x00;
+			if (*flags & REPORT_FLAG_UNDER)
+				escape |= 0x08;
+
+			indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_TEXT_COLUMN_INDENT : 0;
+			width = strlen(buffer);
+
+			if (*flags & REPORT_FLAG_RIGHT)
+				indent = report->text_width[bar][tab] - width;
+
+			/* Output the indent spaces. */
+
+			for (j = 0; j < indent; j++)
+				fputc(' ', out);
+
+			/* Output fancy text formatting codes (used when printing formatted text) */
+
+			if (formatting && escape != 0) {
+				fputc((char) 27, out);
+				fputc((char) (0x80 | escape), out);
+			}
+
+			/* Output the actual field data. */
+
+			fprintf(out, "%s", buffer);
+
+			/* Output fancy text formatting codes (used when printing formatted text) */
+
+			if (formatting && escape != 0) {
+				fputc((char) 27, out);
+				fputc((char) 0x80, out);
+			}
+
+			/* Find the next field. */
+
+			while (*column != '\0' && *column != '\n')
+				column++;
+
+			/* If there is another field, pad out with spaces. */
+
+			if (*column != '\0') {
+				/* Check the actual width against that allocated.  If it is more,
+				 * note the amount that spills into the next column, taking into
+				 * account the width of the inter column gap.
+				 */
+
+				if ((width+indent) > report->text_width[bar][tab])
+					overrun += (width+indent) - report->text_width[bar][tab] - REPORT_TEXT_COLUMN_SPACE;
+
+				/* Pad out the required number of spaces, taking into account any
+				 * overspill from earlier columns.
+				 */
+
+				for (j = 0; j < (report->text_width[bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
+					fputc(' ', out);
+
+				/* Reduce the overspill record by the amount of free space in this column. */
+
+				if ((width+indent) < report->text_width[bar][tab]) {
+					overrun -= report->text_width[bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
+					if (overrun < 0)
+						overrun = 0;
+				}
+			}
+
+			column++;
+			tab++;
+		} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+
+		fputc('\n', out);
+	}
+
+	/* Close the file and set the type correctly. */
+
+	fclose(out);
+	osfile_set_type(filename, (bits) (formatting) ? FANCYTEXT_FILE_TYPE : TEXT_FILE_TYPE);
+
+	hourglass_off();
+}
+
+
+/**
+ * Export a report in CSV or TSV format.
+ *
+ * \param *report		The report to export.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
+
+static void report_export_delimited(struct report *report, char *filename, enum filing_delimit_type format, int filetype)
+{
+	FILE	*out;
+	int	i, tab, delimit;
+	char	*column, *flags, buffer[256];
+
+	out = fopen(filename, "w");
+
+	if (out == NULL) {
+		error_msgs_report_error("FileSaveFail");
+		return;
+	}
+
+  
+	hourglass_on();
+
+	for (i = 0; i < report->lines; i++) {
+		tab = 0;
+		column = report->data + report->line_ptr[i] + REPORT_BAR_BYTES;
 
       do
       {
-        flags = column;
-        column += REPORT_FLAG_BYTES;
-        string_ctrl_strcpy (buffer, column);
+		flags = column;
+		column += REPORT_FLAG_BYTES;
+		string_ctrl_strcpy(buffer, column);
 
-        escape = (*flags & REPORT_FLAG_BOLD) ? 0x01 : 0x00;
-        if (*flags & REPORT_FLAG_UNDER)
-        {
-          escape |= 0x08;
-        }
+		/* Find the next field. */
 
-        indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_TEXT_COLUMN_INDENT : 0;
-        width = strlen (buffer);
+		while (*column != '\0' && *column != '\n')
+			column++;
 
-        if (*flags & REPORT_FLAG_RIGHT)
-        {
-          indent = report->text_width[bar][tab] - width;
-        }
+		/* Output the actual field data. */
 
-        /* Output the indent spaces. */
+		delimit = (*column == '\0') ? DELIMIT_LAST : 0;
 
-        for (j=0; j<indent; j++)
-        {
-          fputc (' ', out);
-        }
+		if (*flags & REPORT_FLAG_NUMERIC)
+			delimit |= DELIMIT_NUM;
 
-        /* Output fancy text formatting codes (used when printing formatted text) */
+		filing_output_delimited_field(out, buffer, format, delimit);
 
-        if (formatting && escape != 0)
-        {
-          fputc ((char) 27, out);
-          fputc ((char) (0x80 | escape), out);
-        }
+		column++;
+		tab++;
+		} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+	}
 
-        /* Output the actual field data. */
+	/* Close the file and set the type correctly. */
 
-        fprintf (out, "%s", buffer);
+	fclose(out);
+	osfile_set_type(filename, (bits) filetype);
 
-        /* Output fancy text formatting codes (used when printing formatted text) */
-
-        if (formatting && escape != 0)
-        {
-          fputc ((char) 27, out);
-          fputc ((char) 0x80, out);
-        }
-        /* Find the next field. */
-
-        while (*column != '\0' && *column != '\n')
-        {
-          column++;
-        }
-
-        /* If there is another field, pad out with spaces. */
-
-        if (*column != '\0')
-        {
-          /* Check the actual width against that allocated.  If it is more, note the amount that spills into the next
-           * column, taking into account the width of the inter column gap.
-           */
-
-          if ((width+indent) > report->text_width[bar][tab])
-          {
-            overrun += (width+indent) - report->text_width[bar][tab] - REPORT_TEXT_COLUMN_SPACE;
-          }
-
-          /* Pad out the required number of spaces, taking into account any overspill from earlier columns. */
-
-          for (j=0; j<(report->text_width[bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
-          {
-            fputc (' ', out);
-          }
-
-          /* Reduce the overspill record by the amount of free space in this column. */
-
-          if ((width+indent) < report->text_width[bar][tab])
-          {
-            overrun -= report->text_width[bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
-            if (overrun < 0)
-            {
-              overrun = 0;
-            }
-          }
-        }
-
-        column++;
-        tab++;
-      }
-      while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
-
-      fputc ('\n', out);
-    }
-
-    /* Close the file and set the type correctly. */
-
-    fclose (out);
-    osfile_set_type (filename, (bits) (formatting) ? FANCYTEXT_FILE_TYPE : TEXT_FILE_TYPE);
-
-    hourglass_off ();
-  }
-  else
-  {
-    error_msgs_report_error ("FileSaveFail");
-  }
+	hourglass_off();
 }
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void export_delimited_report_file (file_data *file, struct report *report, char *filename, int format, int filetype)
-{
-  FILE           *out;
-  int            i, tab, delimit;
-  char           *column, *flags, buffer[256];
-
-  out = fopen (filename, "w");
-
-  if (out != NULL)
-  {
-    hourglass_on ();
-
-    for (i = 0; i < report->lines; i++)
-    {
-      tab = 0;
-      column = report->data + report->line_ptr[i] + REPORT_BAR_BYTES;
-
-      do
-      {
-        flags = column;
-        column += REPORT_FLAG_BYTES;
-        string_ctrl_strcpy (buffer, column);
-
-        /* Find the next field. */
-
-        while (*column != '\0' && *column != '\n')
-        {
-          column++;
-        }
-
-        /* Output the actual field data. */
-
-        delimit = (*column == '\0') ? DELIMIT_LAST : 0;
-
-        if (*flags & REPORT_FLAG_NUMERIC)
-        {
-          delimit |= DELIMIT_NUM;
-        }
-
-        filing_output_delimited_field(out, buffer, format, delimit);
-
-        column++;
-        tab++;
-      }
-      while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
-    }
-
-    /* Close the file and set the type correctly. */
-
-    fclose (out);
-    osfile_set_type (filename, (bits) filetype);
-
-    hourglass_off ();
-  }
-  else
-  {
-    error_msgs_report_error ("FileSaveFail");
-  }
-}
-
 
 
 /**
@@ -1715,7 +1704,7 @@ void export_delimited_report_file (file_data *file, struct report *report, char 
 static void report_start_print_job(char *filename)
 {
 	if (report_print_opt_text)
-		save_report_text(report_print_report->file, report_print_report, filename, report_print_opt_textformat);
+		report_export_text(report_print_report, filename, report_print_opt_textformat);
 	else
 		report_print_as_graphic(report_print_report, report_print_opt_fitwidth, report_print_opt_rotate, report_print_opt_pagenum);
 

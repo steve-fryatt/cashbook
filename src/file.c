@@ -740,7 +740,11 @@ void redraw_all_files (void)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Redraw all the windows connected with a given file. */
+/**
+ * Redraw all the windows connected with a given file.
+ *
+ * \param *file		The file to redraw the windows for.
+ */
 
 void redraw_file_windows(file_data *file)
 {

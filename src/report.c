@@ -113,6 +113,62 @@ struct report_print_pagination {
 	int		line_count;						/**< The total line count on the page, including a repeated header.				*/
 };
 
+/* Report status flags. */
+
+enum report_status {
+	REPORT_STATUS_NONE = 0x00,						/**< No status flags set.				*/
+	REPORT_STATUS_MEMERR = 0x01,						/**< A memory allocation error has occurred, so stop allowing writes. */
+	REPORT_STATUS_CLOSED = 0x02						/**< The report has been closed to writing.		*/
+};
+
+struct report {
+	file_data		*file;						/**< The file that the report belongs to.		*/
+
+	wimp_w			window;
+	char			window_title[256];
+
+	/* Report status flags. */
+
+	enum report_status	flags;
+	int			print_pending;
+
+	/* Tab details */
+
+	int			font_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in OS units for outline fonts.	*/
+	int			text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in characters for ASCII text.	*/
+
+	int			font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Tab stops in OS units for outline fonts.		*/
+
+	/* Font data */
+
+	char			font_normal[MAX_REP_FONT_NAME];			/**< Name of 'normal' outline font.			*/
+	char			font_bold[MAX_REP_FONT_NAME];			/**< Name of bold outline font.				*/
+	int			font_size;					/**< Font size in 1/16 points.				*/
+	int			line_spacing;					/**< Line spacing in percent.				*/
+
+	/* Report content */
+
+	int			lines;						/**< The number of lines in the report.			*/
+	int			max_lines;					/**< The size of the line pointer block.		*/
+
+	int			width;						/**< The displayed width of the report data.		*/
+	int			height;						/**< The displayed height of the report data.		*/
+
+	int			block_size;					/**< The size of the data block.			*/
+	int			data_size;					/**< The size of the data in the block.			*/
+
+	char			*data;						/**< The data block itself (flex block).		*/
+	int			*line_ptr;					/**< The line pointer block (flex block).		*/
+
+	/* Report template details. */
+
+	struct analysis_report	*template;					/**< Pointer to an analysis report template.		*/
+
+	/* Pointer to the next report in the list. */
+
+	struct report		*next;
+};
+
 
 struct report			*report_format_report = NULL;			/**< The report to which the currently open Report Format window belongs.			*/
 struct report			*report_print_report = NULL;			/**< The report to which the currently open Report Print dialogie belongs.			*/
@@ -1285,6 +1341,30 @@ static void report_process_format_window(void)
 	wimp_set_extent(report_format_report->window, &extent);
 
 	windows_redraw(report_format_report->window);
+}
+
+
+/**
+ * Force the readraw of all the open reports associated with a file.
+ *
+ * \param *file			The file on which to force a redraw.
+ */
+
+void report_redraw_all(file_data *file)
+{
+	struct report *report;
+
+	if (file == NULL)
+		return;
+
+	report = file->reports;
+
+	while (report != NULL) {
+		if (report->window != NULL)
+			windows_redraw(report->window);
+
+		report = report->next;
+	}
 }
 
 

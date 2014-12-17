@@ -744,44 +744,34 @@ void redraw_all_files (void)
 
 void redraw_file_windows(file_data *file)
 {
-  int i;
-  struct report *rep_list;
+	int	i;
 
+	/* Redraw the transaction window. */
 
-  /* Redraw the transaction window. */
+	force_transaction_window_redraw(file, 0, file->trans_count);
+	edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
 
-  force_transaction_window_redraw(file, 0, file->trans_count);
-  edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
+	/* Redraw the account list windows. */
 
-  /* Redraw the account list windows. */
+	for (i = 0; i < ACCOUNT_WINDOWS; i++)
+		account_force_window_redraw(file, i, 0, file->account_windows[i].display_lines);
 
-  for (i=0; i<ACCOUNT_WINDOWS; i++)
-  {
-    account_force_window_redraw(file, i, 0, file->account_windows[i].display_lines);
-  }
+	/* Redraw the account view windows. */
 
-  /* Redraw the account view windows. */
+	accview_redraw_all(file);
 
-  accview_redraw_all (file);
+	/* Redraw the standing order window. */
 
-  /* Redraw the standing order window. */
+	sorder_force_window_redraw(file, 0, file->sorder_count);
 
-  sorder_force_window_redraw(file, 0, file->sorder_count);
+	/* Redraw the preset window. */
 
-  preset_force_window_redraw(file, 0, file->preset_count);
+	preset_force_window_redraw(file, 0, file->preset_count);
 
-  /* Redraw the report windows. */
+	/* Redraw the report windows. */
 
-  rep_list = file->reports;
+	report_redraw_all(file);
 
-  while (rep_list != NULL)
-  {
-    if (rep_list->window != NULL)
-    {
-        windows_redraw (rep_list->window);
-    }
-    rep_list = rep_list->next;
-  }
 }
 
 /* ==================================================================================================================

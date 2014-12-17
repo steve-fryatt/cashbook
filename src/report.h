@@ -171,6 +171,15 @@ void report_write_line(struct report *report, int bar, char *text);
 osbool report_get_pending_print_jobs(file_data *file);
 
 
+/**
+ * Force the readraw of all the open reports associated with a file.
+ *
+ * \param *file			The file on which to force a redraw.
+ */
+
+void report_redraw_all(file_data *file);
+
+
 /* Force the closure of any Report Format windows which are open and relate
  * to the given file.
  *

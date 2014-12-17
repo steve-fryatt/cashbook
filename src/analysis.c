@@ -333,7 +333,9 @@ static void		analysis_find_date_range(file_data *file, date_t *start_date, date_
 static void		analysis_initialise_date_period(date_t start, date_t end, int period, int unit, osbool lock);
 static osbool		analysis_get_next_date_period(date_t *next_start, date_t *next_end, char *date_text, size_t date_len);
 
-static int		analysis_remove_account_from_list(file_data *file, acct_t account, acct_t *array, int *count);
+static void		analysis_remove_account_from_report_template(struct analysis_report *template, void *data);
+static void		analysis_remove_account_from_template(struct analysis_report *template, acct_t account);
+static int		analysis_remove_account_from_list(acct_t account, acct_t *array, int *count);
 static void		analysis_clear_account_report_flags(file_data *file, struct analysis_data *data);
 static void		analysis_set_account_report_flags_from_list(file_data *file, struct analysis_data *data, unsigned type, unsigned flags, acct_t *array, int count);
 static int		analysis_account_idents_to_list(file_data *file, unsigned type, char *list, acct_t *array);
@@ -3339,107 +3341,101 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 void analysis_remove_account_from_templates(file_data *file, acct_t account)
 {
 	int		i;
-	struct report	*report;
 
 	/* Handle the dialogue boxes. */
 
-	analysis_remove_account_from_list(file, account, file->trans_rep.from, &(file->trans_rep.from_count));
-	analysis_remove_account_from_list(file, account, file->trans_rep.to, &(file->trans_rep.to_count));
+	analysis_remove_account_from_list(account, file->trans_rep.from, &(file->trans_rep.from_count));
+	analysis_remove_account_from_list(account, file->trans_rep.to, &(file->trans_rep.to_count));
 
-	analysis_remove_account_from_list(file, account, file->unrec_rep.from, &(file->unrec_rep.from_count));
-	analysis_remove_account_from_list(file, account, file->unrec_rep.to, &(file->unrec_rep.to_count));
+	analysis_remove_account_from_list(account, file->unrec_rep.from, &(file->unrec_rep.from_count));
+	analysis_remove_account_from_list(account, file->unrec_rep.to, &(file->unrec_rep.to_count));
 
-	analysis_remove_account_from_list(file, account, file->cashflow_rep.accounts, &(file->cashflow_rep.accounts_count));
-	analysis_remove_account_from_list(file, account, file->cashflow_rep.incoming, &(file->cashflow_rep.incoming_count));
-	analysis_remove_account_from_list(file, account, file->cashflow_rep.outgoing, &(file->cashflow_rep.outgoing_count));
+	analysis_remove_account_from_list(account, file->cashflow_rep.accounts, &(file->cashflow_rep.accounts_count));
+	analysis_remove_account_from_list(account, file->cashflow_rep.incoming, &(file->cashflow_rep.incoming_count));
+	analysis_remove_account_from_list(account, file->cashflow_rep.outgoing, &(file->cashflow_rep.outgoing_count));
 
-	analysis_remove_account_from_list(file, account, file->balance_rep.accounts, &(file->balance_rep.accounts_count));
-	analysis_remove_account_from_list(file, account, file->balance_rep.incoming, &(file->balance_rep.incoming_count));
-	analysis_remove_account_from_list(file, account, file->balance_rep.outgoing, &(file->balance_rep.outgoing_count));
+	analysis_remove_account_from_list(account, file->balance_rep.accounts, &(file->balance_rep.accounts_count));
+	analysis_remove_account_from_list(account, file->balance_rep.incoming, &(file->balance_rep.incoming_count));
+	analysis_remove_account_from_list(account, file->balance_rep.outgoing, &(file->balance_rep.outgoing_count));
 
 	/* Now process any saved templates. */
 
 	for (i=0; i<file->saved_report_count; i++) {
-		switch (file->saved_reports[i].type) {
-		case REPORT_TYPE_TRANS:
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.transaction.from,
-					&(file->saved_reports[i].data.transaction.from_count));
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.transaction.to,
-					&(file->saved_reports[i].data.transaction.to_count));
-			break;
-
-		case REPORT_TYPE_UNREC:
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.unreconciled.from,
-					&(file->saved_reports[i].data.unreconciled.from_count));
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.unreconciled.to,
-					&(file->saved_reports[i].data.unreconciled.to_count));
-			break;
-
-		case REPORT_TYPE_CASHFLOW:
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.cashflow.accounts,
-					&(file->saved_reports[i].data.cashflow.accounts_count));
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.cashflow.incoming,
-					&(file->saved_reports[i].data.cashflow.incoming_count));
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.cashflow.outgoing,
-					&(file->saved_reports[i].data.cashflow.outgoing_count));
-			break;
-
-		case REPORT_TYPE_BALANCE:
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.balance.accounts,
-					&(file->saved_reports[i].data.balance.accounts_count));
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.balance.incoming,
-					&(file->saved_reports[i].data.balance.incoming_count));
-			analysis_remove_account_from_list(file, account, file->saved_reports[i].data.balance.outgoing,
-					&(file->saved_reports[i].data.balance.outgoing_count));
-			break;
-
-		case REPORT_TYPE_NONE:
-			break;
-		}
+		analysis_remove_account_from_template(&(file->saved_reports[i]), account);
 	}
 
 	/* Finally, work through any reports in the file. */
 
-	report = file->reports;
+	report_process_all_templates(file, analysis_remove_account_from_report_template, &account);
+}
 
-	while (report != NULL) {
-		switch (report->template->type) {
-		case REPORT_TYPE_TRANS:
-			analysis_remove_account_from_list(file, account, report->template->data.transaction.from,
-					&(report->template->data.transaction.from_count));
-			analysis_remove_account_from_list(file, account, report->template->data.transaction.to,
-					&(report->template->data.transaction.to_count));
-			break;
 
-		case REPORT_TYPE_UNREC:
-			analysis_remove_account_from_list(file, account, report->template->data.unreconciled.from,
-					&(report->template->data.unreconciled.from_count));
-			analysis_remove_account_from_list(file, account, report->template->data.unreconciled.to,
-					&(report->template->data.unreconciled.to_count));
-			break;
+/**
+ * Callback function to accept analysis templates and account numbers from
+ * the report system, when removing an account from all open report templates.
+ *
+ * \param *template		The template to be processed.
+ * \param *data			Our supplied data (pointer to the number of
+ *				the account to be removed).
+ */
 
-		case REPORT_TYPE_CASHFLOW:
-			analysis_remove_account_from_list(file, account, report->template->data.cashflow.accounts,
-					&(report->template->data.cashflow.accounts_count));
-			analysis_remove_account_from_list(file, account, report->template->data.cashflow.incoming,
-					&(report->template->data.cashflow.incoming_count));
-			analysis_remove_account_from_list(file, account, report->template->data.cashflow.outgoing,
-					&(report->template->data.cashflow.outgoing_count));
-			break;
-		case REPORT_TYPE_BALANCE:
-			analysis_remove_account_from_list(file, account, report->template->data.balance.accounts,
-					&(report->template->data.balance.accounts_count));
-			analysis_remove_account_from_list(file, account, report->template->data.balance.incoming,
-					&(report->template->data.balance.incoming_count));
-			analysis_remove_account_from_list(file, account, report->template->data.balance.outgoing,
-					&(report->template->data.balance.outgoing_count));
-			break;
+static void analysis_remove_account_from_report_template(struct analysis_report *template, void *data)
+{
+	acct_t	*account = data;
 
-		case REPORT_TYPE_NONE:
-			break;
-		}
+	if (template == NULL || account == NULL)
+		return;
 
-		report = report->next;
+	analysis_remove_account_from_template(template, *account);
+}
+
+/**
+ * Remove any references to an account from an analysis template.
+ *
+ * \param *template		The template to process.
+ * \param account		The account to be removed.
+ */
+
+static void analysis_remove_account_from_template(struct analysis_report *template, acct_t account)
+{
+	if (template == NULL)
+		return;
+
+	switch (template->type) {
+	case REPORT_TYPE_TRANS:
+		analysis_remove_account_from_list(account, template->data.transaction.from,
+				&(template->data.transaction.from_count));
+		analysis_remove_account_from_list(account, template->data.transaction.to,
+				&(template->data.transaction.to_count));
+		break;
+
+	case REPORT_TYPE_UNREC:
+		analysis_remove_account_from_list(account, template->data.unreconciled.from,
+				&(template->data.unreconciled.from_count));
+		analysis_remove_account_from_list(account, template->data.unreconciled.to,
+				&(template->data.unreconciled.to_count));
+		break;
+
+	case REPORT_TYPE_CASHFLOW:
+		analysis_remove_account_from_list(account, template->data.cashflow.accounts,
+				&(template->data.cashflow.accounts_count));
+		analysis_remove_account_from_list(account, template->data.cashflow.incoming,
+				&(template->data.cashflow.incoming_count));
+		analysis_remove_account_from_list(account, template->data.cashflow.outgoing,
+				&(template->data.cashflow.outgoing_count));
+		break;
+
+	case REPORT_TYPE_BALANCE:
+		analysis_remove_account_from_list(account, template->data.balance.accounts,
+				&(template->data.balance.accounts_count));
+		analysis_remove_account_from_list(account, template->data.balance.incoming,
+				&(template->data.balance.incoming_count));
+		analysis_remove_account_from_list(account, template->data.balance.outgoing,
+				&(template->data.balance.outgoing_count));
+		break;
+
+	case REPORT_TYPE_NONE:
+		break;
 	}
 }
 
@@ -3447,7 +3443,6 @@ void analysis_remove_account_from_templates(file_data *file, acct_t account)
 /**
  * Remove any references to an account from an account list array.
  *
- * \param *file			The file to process.
  * \param account		The account to remove, if present.
  * \param *array		The account list array.
  * \param *count		Pointer to number of accounts in the array, which
@@ -3455,7 +3450,7 @@ void analysis_remove_account_from_templates(file_data *file, acct_t account)
  * \return			The new account count in the array.
  */
 
-static int analysis_remove_account_from_list(file_data *file, acct_t account, acct_t *array, int *count)
+static int analysis_remove_account_from_list(acct_t account, acct_t *array, int *count)
 {
 	int	i = 0, j = 0;
 
@@ -4380,6 +4375,10 @@ void analysis_copy_template(struct analysis_report *to, struct analysis_report *
 {
 	if (from == NULL || to == NULL)
 		return;
+
+#ifdef DEBUG
+	debug_printf("Copy template from 0x%x to 0x%x", from, to);
+#endif
 
 	strcpy(to->name, from->name);
 	to->type = from->type;

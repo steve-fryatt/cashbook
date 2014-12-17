@@ -113,6 +113,7 @@ struct report_print_pagination {
 	int		line_count;						/**< The total line count on the page, including a repeated header.				*/
 };
 
+
 struct report			*report_format_report = NULL;			/**< The report to which the currently open Report Format window belongs.			*/
 struct report			*report_print_report = NULL;			/**< The report to which the currently open Report Print dialogie belongs.			*/
 
@@ -2276,5 +2277,31 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 		error_msgs_report_error("BadPrintMargins");
 
 	return areas;
+}
+
+
+/**
+ * Call a callback function to process the template stored in every currently
+ * open report.
+ *
+ * \param *file			The file to process.
+ * \param *callback		The callback function to call.
+ * \param *data			Data to pass to the callback function.
+ */
+
+void report_process_all_templates(file_data *file, void (*callback)(struct analysis_report *template, void *data), void *data)
+{
+	struct report	*report;
+
+	if (file == NULL || callback == NULL)
+		return;
+
+	report = file->reports;
+
+	while (report != NULL) {
+		callback(report->template, data);
+
+		report = report->next;
+	}
 }
 

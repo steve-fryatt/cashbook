@@ -422,7 +422,6 @@ void report_close(struct report *report)
 void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum)
 {
 	int		linespace;
-	file_data	*file;
 
 	#ifdef DEBUG
 	debug_printf("\\GClosing report and starting printing");
@@ -433,8 +432,6 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 		report_delete(report);
 		return;
 	}
-
-	file = report->file;
 
 	/* Update the data block. */
 
@@ -1038,14 +1035,11 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	font_f		font_n, font_b;
 	struct report	*report;
 	osbool		more;
-	file_data	*file;
 
 	report = event_get_window_user_data(redraw->w);
 
 	if (report == NULL)
 		return;
-
-	file = report->file;
 
 	/* Find the required font, set it and calculate the font size from the linespacing in points. */
 

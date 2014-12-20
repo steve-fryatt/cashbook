@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -456,8 +456,7 @@ struct go_to{
 
 /* Find dialogue data. */
 
-typedef struct find
-{
+struct find {
   unsigned date;
   unsigned from;
   unsigned from_rec;
@@ -471,14 +470,13 @@ typedef struct find
   int      case_sensitive;
   int      whole_text;
   int      direction;
-}
-find;
+};
 
 /* ----------------------------------------------------------------------------------------------------------------- */
 
 /* Print dialogue. */
 
-typedef struct print {
+struct printing {
 	osbool		fit_width;						/**< TRUE to fit width in graphics mode; FALSE to print 100%.					*/
 	osbool		page_numbers;						/**< TRUE to print page numbers; FALSE to omit them.						*/
 	osbool		rotate;							/**< TRUE to rotate 90 degrees in graphics mode to print Landscape; FALSE to print Portrait.	*/
@@ -487,22 +485,20 @@ typedef struct print {
 
 	date_t		from;							/**< The date to print from in ranged prints (Advanced Print dialogue only).			*/
 	date_t		to;							/**< The date to print to in ranged prints (Advanced Print dialogue only).			*/
-} print;
+};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Continuation dialogue. */
 
-typedef struct continuation
-{
-  int          transactions;
-  int          accounts;
-  int          headings;
-  int          sorders;
+struct purge {
+	osbool		transactions;						/**< TRUE to remove reconciled transactions, subject to the before constraint; else FALSE.	*/
+	osbool		accounts;						/**< TRUE to remove unused accounts; else FALSE.						*/
+	osbool		headings;						/**< TRUE to remove unused headings; else FALSE.						*/
+	osbool		sorders;						/**< TRUE to remove completed standing orders; else FALSE.					*/
 
-  date_t       before;
-}
-continuation;
+	date_t		before;							/**< The date before which reconciled transactions should be removed; NULL_DATE for none.	*/
+};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -668,18 +664,20 @@ struct file_data
   struct analysis_report *saved_reports;     /* A pointer to an array of saved report templates. */
   int                 saved_report_count; /* A count of how many reports are in the file. */
 
-  /* Dialogue content. */
+	/* Dialogue content. */
 
-	struct go_to	go_to;
-  find               find;
-  print              print;
-  continuation       continuation;
+	struct go_to		go_to;						/**< Data relating to the goto module.				*/
+	struct find		find;						/**< Data relating to the find module.				*/
+	struct printing		print;						/**< Data relating to the print dialogues.			*/
+	struct purge		purge;						/**< Data relating to the purge module.				*/
   struct trans_rep          trans_rep;
   struct unrec_rep          unrec_rep;
   struct cashflow_rep       cashflow_rep;
   struct balance_rep        balance_rep;
 
-  struct file_data   *next;
+	/* Pointer to the next file in the list. */
+
+	struct file_data	*next;
 };
 
 #endif

@@ -85,7 +85,7 @@ static wimp_w		purge_window = NULL;					/**< The Purge window handle.				*/
 static void		purge_click_handler(wimp_pointer *pointer);
 static osbool		purge_keypress_handler(wimp_key *key);
 static void		purge_refresh_window(void);
-static void		purge_fill_window(continuation *cont_data, osbool restore);
+static void		purge_fill_window(struct purge *cont_data, osbool restore);
 static osbool		purge_process_window(void);
 static void		purge_file(file_data *file, osbool transactions, date_t date, osbool accounts, osbool headings, osbool sorders);
 
@@ -121,7 +121,7 @@ void purge_open_window(file_data *file, wimp_pointer *ptr, osbool restore)
 
 	/* Blank out the icon contents. */
 
-	purge_fill_window(&(file->continuation), restore);
+	purge_fill_window(&(file->purge), restore);
 
 	/* Set the pointer up to find the window again and open the window. */
 
@@ -197,7 +197,7 @@ static osbool purge_keypress_handler(wimp_key *key)
 
 static void purge_refresh_window(void)
 {
-	purge_fill_window(&(purge_window_file->continuation), purge_window_restore);
+	purge_fill_window(&(purge_window_file->purge), purge_window_restore);
 
 	icons_redraw_group(purge_window, 1, PURGE_ICON_DATE);
 	icons_replace_caret_in_window(purge_window);
@@ -212,7 +212,7 @@ static void purge_refresh_window(void)
  *				use system defaults.
  */
 
-static void purge_fill_window(continuation *cont_data, osbool restore)
+static void purge_fill_window(struct purge *cont_data, osbool restore)
 {
 	if (!restore) {
 		icons_set_selected(purge_window, PURGE_ICON_TRANSACT, TRUE);
@@ -245,22 +245,22 @@ static void purge_fill_window(continuation *cont_data, osbool restore)
 
 static osbool purge_process_window(void)
 {
-	purge_window_file->continuation.transactions = icons_get_selected(purge_window, PURGE_ICON_TRANSACT);
-	purge_window_file->continuation.accounts = icons_get_selected(purge_window, PURGE_ICON_ACCOUNTS);
-	purge_window_file->continuation.headings = icons_get_selected(purge_window, PURGE_ICON_HEADINGS);
-	purge_window_file->continuation.sorders = icons_get_selected(purge_window, PURGE_ICON_SORDERS);
+	purge_window_file->purge.transactions = icons_get_selected(purge_window, PURGE_ICON_TRANSACT);
+	purge_window_file->purge.accounts = icons_get_selected(purge_window, PURGE_ICON_ACCOUNTS);
+	purge_window_file->purge.headings = icons_get_selected(purge_window, PURGE_ICON_HEADINGS);
+	purge_window_file->purge.sorders = icons_get_selected(purge_window, PURGE_ICON_SORDERS);
 
-	purge_window_file->continuation.before =
+	purge_window_file->purge.before =
 			convert_string_to_date(icons_get_indirected_text_addr(purge_window, PURGE_ICON_DATE), NULL_DATE, 0);
 
 	if (purge_window_file->modified == 1 && error_msgs_report_question("ContFileNotSaved", "ContFileNotSavedB") == 2)
 		return FALSE;
 
-	purge_file(purge_window_file, purge_window_file->continuation.transactions,
-		purge_window_file->continuation.before,
-		purge_window_file->continuation.accounts,
-		purge_window_file->continuation.headings,
-		purge_window_file->continuation.sorders);
+	purge_file(purge_window_file, purge_window_file->purge.transactions,
+		purge_window_file->purge.before,
+		purge_window_file->purge.accounts,
+		purge_window_file->purge.headings,
+		purge_window_file->purge.sorders);
 
 	return TRUE;
 }

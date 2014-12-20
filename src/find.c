@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -104,7 +104,7 @@
 
 
 static file_data	*find_window_file = NULL;				/**< The file currently owning the Find dialogue.	*/
-static find		find_params;						/**< A copy of the settings for the current search.	*/
+static struct find	find_params;						/**< A copy of the settings for the current search.	*/
 static osbool		find_restore = FALSE;					/**< The restore setting for the current dialogue.	*/
 
 static wimp_w		find_window = NULL;					/**< The handle of the find window.			*/
@@ -116,9 +116,9 @@ static void		find_click_handler(wimp_pointer *pointer);
 static osbool		find_keypress_handler(wimp_key *key);
 static void		find_result_click_handler(wimp_pointer *pointer);
 static void		find_refresh_window(void);
-static void		find_fill_window(find *find_data, osbool restore);
+static void		find_fill_window(struct find *find_data, osbool restore);
 static osbool		find_process_window(void);
-static int		find_from_line(find *new_params, int new_dir, int start);
+static int		find_from_line(struct find *new_params, int new_dir, int start);
 
 
 /**
@@ -345,7 +345,7 @@ static void find_refresh_window(void)
  *				use system defaults.
  */
 
-static void find_fill_window(find *find_data, osbool restore)
+static void find_fill_window(struct find *find_data, osbool restore)
 {
 	if (!restore) {
 		*icons_get_indirected_text_addr(find_window, FIND_ICON_DATE) = '\0';
@@ -475,7 +475,7 @@ static osbool find_process_window(void)
  * \return			The resulting matching transaction.
  */
 
-static int find_from_line(find *new_params, int new_dir, int start)
+static int find_from_line(struct find *new_params, int new_dir, int start)
 {
 	int		icon, line, transaction, direction;
 	unsigned	test;

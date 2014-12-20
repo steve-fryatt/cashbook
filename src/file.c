@@ -284,11 +284,11 @@ file_data *build_new_file_block (void)
   new->print.from = NULL_DATE;
   new->print.to = NULL_DATE;
 
-  new->continuation.transactions = 1;
-  new->continuation.accounts = 0;
-  new->continuation.headings = 0;
-  new->continuation.sorders = 0;
-  new->continuation.before = NULL_DATE;
+  new->purge.transactions = 1;
+  new->purge.accounts = 0;
+  new->purge.headings = 0;
+  new->purge.sorders = 0;
+  new->purge.before = NULL_DATE;
 
   new->trans_rep.date_from = NULL_DATE;
   new->trans_rep.date_to = NULL_DATE;

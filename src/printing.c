@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -143,13 +143,13 @@ static osbool		printing_handle_message_set_printer(wimp_message *message);
 static void		printing_simple_click_handler(wimp_pointer *pointer);
 static osbool		printing_simple_keypress_handler(wimp_key *key);
 static void		printing_refresh_simple_window(void);
-static void		printing_fill_simple_window(print *print_data, osbool restore);
+static void		printing_fill_simple_window(struct printing *print_data, osbool restore);
 static void		printing_process_simple_window(void);
 
 static void		printing_advanced_click_handler(wimp_pointer *pointer);
 static osbool		printing_advanced_keypress_handler(wimp_key *key);
 static void		printing_refresh_advanced_window(void);
-static void		printing_fill_advanced_window(print *print_data, osbool restore);
+static void		printing_fill_advanced_window(struct printing *print_data, osbool restore);
 static void		printing_process_advanced_window(void);
 
 
@@ -528,7 +528,7 @@ static void printing_refresh_simple_window(void)
  *				use system defaults.
  */
 
-static void printing_fill_simple_window(print *print_data, osbool restore)
+static void printing_fill_simple_window(struct printing *print_data, osbool restore)
 {
 	char		*name, buffer[25];
 	os_error	*error;
@@ -730,7 +730,7 @@ static void printing_refresh_advanced_window(void)
  *				use system defaults.
  */
 
-static void printing_fill_advanced_window(print *print_data, osbool restore)
+static void printing_fill_advanced_window(struct printing *print_data, osbool restore)
 {
 	char		*name, buffer[25];
 	os_error	*error;

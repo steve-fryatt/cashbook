@@ -437,12 +437,20 @@ budget;
 
 /* Goto dialogue data. */
 
-typedef struct go_to
-{
-  unsigned data;
-  int      data_type;								/**< \TODO -- Should be an enum.	*/
-}
-go_to;
+union go_to_target {
+	int			line;						/**< The transaction number if the tratget is a line.		*/
+	date_t			date;						/**< The transaction date if the target is a date.		*/
+};
+
+enum go_to_type {
+	GOTO_TYPE_LINE = 0,							/**< The goto target is given as a line number.			*/
+	GOTO_TYPE_DATE = 1							/**< The goto target is given as a date.			*/
+};
+
+struct go_to{
+	union go_to_target	target;						/**< The current goto target.					*/
+	enum go_to_type		type;						/**< The type of target we're aiming for.			*/
+};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -662,7 +670,7 @@ struct file_data
 
   /* Dialogue content. */
 
-  go_to              go_to;
+	struct go_to	go_to;
   find               find;
   print              print;
   continuation       continuation;

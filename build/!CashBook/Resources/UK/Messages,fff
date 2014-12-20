@@ -224,6 +224,7 @@ BadFind:A matching transaction could not be found.
 # Transaction goto
 
 BadGotoLine:The transaction number is out of range.
+BadGotoDate:The date is invalid.
 
 # Loading, saving and data transfer
 

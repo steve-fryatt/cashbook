@@ -3592,6 +3592,48 @@ static osbool transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *fil
 
 
 /**
+ * Search the transactions, returning the entry from nearest the target date.
+ * The transactions will be sorted into order if they are not already.
+ *
+ * \param *file			The file to search in.
+ * \param target		The target date.
+ * \return			The transaction number for the date, or
+ *				NULL_TRANSACTION.
+ */
+
+int transact_find_date(file_data *file, date_t target)
+{
+	int		min, max, mid;
+
+	if (file == NULL || file->trans_count == 0 || target == NULL_DATE)
+		return NULL_TRANSACTION;
+
+	/* If the transactions are not already sorted, sort them into date
+	 * order.
+	 */
+
+	if (file->sort_valid == 0)
+		transact_sort_file_data(file);
+
+	/* Search through the sorted array using a binary search. */
+
+	min = 0;
+	max = file->trans_count - 1;
+
+	while (min < max) {
+		mid = (min + max)/2;
+
+		if (target <= file->transactions[mid].date)
+			max = mid;
+		else
+			min = mid + 1;
+	}
+
+	return min;
+}
+
+
+/**
  * Check the transactions in a file to see if the given account is used
  * in any of them.
  *

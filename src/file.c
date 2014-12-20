@@ -259,8 +259,8 @@ file_data *build_new_file_block (void)
 
   /* Set up the dialogue defaults. */
 
-  new->go_to.data = NULL_DATE;
-  new->go_to.data_type = GOTO_TYPE_DATE;
+  new->go_to.target.date = NULL_DATE;
+  new->go_to.type = GOTO_TYPE_DATE;
 
   new->find.date = NULL_DATE;
   new->find.from = NULL_ACCOUNT;

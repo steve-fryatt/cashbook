@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -29,9 +29,6 @@
 
 #ifndef CASHBOOK_GOTO
 #define CASHBOOK_GOTO
-
-#define GOTO_TYPE_LINE 0
-#define GOTO_TYPE_DATE 1
 
 /**
  * Initialise the Goto module.

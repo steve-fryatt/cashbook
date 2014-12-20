@@ -268,6 +268,19 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 
 
 /**
+ * Search the transactions, returning the entry from nearest the target date.
+ * The transactions will be sorted into order if they are not already.
+ *
+ * \param *file			The file to search in.
+ * \param target		The target date.
+ * \return			The transaction number for the date, or
+ *				NULL_TRANSACTION.
+ */
+
+int transact_find_date(file_data *file, date_t target);
+
+
+/**
  * Check the transactions in a file to see if the given account is used
  * in any of them.
  *

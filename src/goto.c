@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -75,7 +75,7 @@ static wimp_w		goto_window = NULL;					/**< The Goto dialogue handle.				*/
 static void		goto_click_handler(wimp_pointer *pointer);
 static osbool		goto_keypress_handler(wimp_key *key);
 static void		goto_refresh_window(void);
-static void		goto_fill_window(go_to *go_to_data, osbool restore);
+static void		goto_fill_window(struct go_to *go_to_data, osbool restore);
 static osbool		goto_process_window(void);
 
 
@@ -198,7 +198,7 @@ static void goto_refresh_window(void)
  *				use system defaults.
  */
 
-static void goto_fill_window(go_to *go_to_data, osbool restore)
+static void goto_fill_window(struct go_to *go_to_data, osbool restore)
 {
 	if (!restore) {
 		*icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD) = '\0';
@@ -206,13 +206,13 @@ static void goto_fill_window(go_to *go_to_data, osbool restore)
 		icons_set_selected(goto_window, GOTO_ICON_NUMBER, 0);
 		icons_set_selected(goto_window, GOTO_ICON_DATE, 1);
 	} else {
-		if (go_to_data->data_type == GOTO_TYPE_LINE)
-			icons_printf(goto_window, GOTO_ICON_NUMBER_FIELD, "%d", go_to_data->data);
-		else if (go_to_data->data_type == GOTO_TYPE_DATE)
-			convert_date_to_string((date_t) go_to_data->data, icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD));
+		if (go_to_data->type == GOTO_TYPE_LINE)
+			icons_printf(goto_window, GOTO_ICON_NUMBER_FIELD, "%d", go_to_data->target.line);
+		else if (go_to_data->type == GOTO_TYPE_DATE)
+			convert_date_to_string((date_t) go_to_data->target.date, icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD));
 
-		icons_set_selected(goto_window, GOTO_ICON_NUMBER, go_to_data->data_type == GOTO_TYPE_LINE);
-		icons_set_selected(goto_window, GOTO_ICON_DATE, go_to_data->data_type == GOTO_TYPE_DATE);
+		icons_set_selected(goto_window, GOTO_ICON_NUMBER, go_to_data->type == GOTO_TYPE_LINE);
+		icons_set_selected(goto_window, GOTO_ICON_DATE, go_to_data->type == GOTO_TYPE_DATE);
 	}
 }
 
@@ -227,47 +227,38 @@ static void goto_fill_window(go_to *go_to_data, osbool restore)
 
 static osbool goto_process_window(void)
 {
-	int		min, max, mid, line = 0;
-	date_t		target;
+	int		transaction, line = 0;
 
-	goto_window_file->go_to.data_type = (icons_get_selected(goto_window, GOTO_ICON_DATE)) ? GOTO_TYPE_DATE : GOTO_TYPE_LINE;
+	goto_window_file->go_to.type = (icons_get_selected(goto_window, GOTO_ICON_DATE)) ? GOTO_TYPE_DATE : GOTO_TYPE_LINE;
 
-	if (goto_window_file->go_to.data_type == GOTO_TYPE_LINE) {
+	if (goto_window_file->go_to.type == GOTO_TYPE_LINE) {
 		/* Go to a plain transaction line number. */
 
-		goto_window_file->go_to.data = atoi(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD));
+		goto_window_file->go_to.target.line = atoi(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD));
 
-		if (goto_window_file->go_to.data <= 0 || goto_window_file->go_to.data > goto_window_file->trans_count ||
+		if (goto_window_file->go_to.target.line <= 0 || goto_window_file->go_to.target.line > goto_window_file->trans_count ||
 				strlen(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD)) == 0) {
 			error_msgs_report_info("BadGotoLine");
 			return FALSE;
 		}
 
-		line = locate_transaction_in_transact_window(goto_window_file, transact_find_transaction_number(goto_window_file->go_to.data));
-	} else if (goto_window_file->go_to.data_type == GOTO_TYPE_DATE) {
+		line = locate_transaction_in_transact_window(goto_window_file, transact_find_transaction_number(goto_window_file->go_to.target.line));
+	} else if (goto_window_file->go_to.type == GOTO_TYPE_DATE) {
 		/* Go to a given date, or the nearest transaction. */
 
-		if (goto_window_file->sort_valid == 0)
-			transact_sort_file_data(goto_window_file);
+		goto_window_file->go_to.target.date = convert_string_to_date(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD), NULL_DATE, 0);
 
-		target = convert_string_to_date(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD), NULL_DATE, 0);
-		goto_window_file->go_to.data = (unsigned) target;
-
-		/* Search through the array using a binary search: assumes that transactions are stored in date order. */
-
-		min = 0;
-		max = goto_window_file->trans_count - 1;
-
-		while (min < max) {
-			mid = (min + max)/2;
-
-			if (target <= goto_window_file->transactions[mid].date)
-				max = mid;
-			else
-				min = mid + 1;
+		if (goto_window_file->go_to.target.date == NULL_DATE) {
+			error_msgs_report_info("BadGotoDate");
+			return FALSE;
 		}
 
-		line = locate_transaction_in_transact_window(goto_window_file, min);
+		transaction = transact_find_date(goto_window_file, goto_window_file->go_to.target.date);
+
+		if (transaction == NULL_TRANSACTION)
+			return FALSE;
+
+		line = locate_transaction_in_transact_window(goto_window_file, transaction);
 	}
 
 	edit_place_new_line(goto_window_file, line);

@@ -155,31 +155,23 @@ enum account_line_type {
 
 /* Transaction flags (bitwiase allocation) */
 
-#define TRANS_REC_FROM      0x0001 /* Reconciled from */
-#define TRANS_REC_TO        0x0002 /* Reconciled to */
+enum transact_flags {
+	TRANS_FLAGS_NONE = 0,
 
-                                   /* The following flags are used by standing orders. */
+	TRANS_REC_FROM = 0x0001,						/**< Reconciled from					*/
+	TRANS_REC_TO = 0x0002,							/**< Reconciled to					*/
 
-#define TRANS_SKIP_FORWARD  0x0100 /* Move forward to avoid illegal days. */
-#define TRANS_SKIP_BACKWARD 0x0200 /* Move backwards to avoid illegal days. */
+	/* The following flags are used by standing orders. */
 
-                                   /* The following flags are used by presets. */
+	TRANS_SKIP_FORWARD = 0x0100,						/**< Move forward to avoid illegal days.		*/
+	TRANS_SKIP_BACKWARD = 0x0200,						/**< Move backwards to avoid illegal days.		*/
 
-#define TRANS_TAKE_TODAY    0x1000 /* Always take today's date */
-#define TRANS_TAKE_CHEQUE   0x2000 /* Always take the next cheque number */
+	/* The following flags are used by presets. */
 
-/* Find dialogue settings. */
+	TRANS_TAKE_TODAY = 0x1000,						/**< Always take today's date				*/
+	TRANS_TAKE_CHEQUE = 0x2000						/**< Always take the next cheque number			*/
+};
 
-#define FIND_AND  1
-#define FIND_OR   2
-
-#define FIND_NODIR 0
-#define FIND_START 1
-#define FIND_END   2
-#define FIND_UP    3
-#define FIND_DOWN  4
-#define FIND_NEXT  5
-#define FIND_PREVIOUS 6
 
 /* Report details. */
 
@@ -270,13 +262,13 @@ typedef struct file_data file_data;
 /* Transatcion data struct. */
 
 struct transaction {
-	date_t		date;
-	unsigned	flags;							/* \TODO -- Should be an enum.		*/
-	acct_t		from;
-	acct_t		to;
-	amt_t		amount;
-	char		reference[REF_FIELD_LEN];
-	char		description[DESCRIPT_FIELD_LEN];
+	date_t			date;
+	enum transact_flags	flags;
+	acct_t			from;
+	acct_t			to;
+	amt_t			amount;
+	char			reference[REF_FIELD_LEN];
+	char			description[DESCRIPT_FIELD_LEN];
 
 	/* Sort index entries.
 	 *
@@ -284,9 +276,9 @@ struct transaction {
 	 * for handling entries in the transaction window.
 	 */
 
-	int		sort_index;		/**< Point to another transaction, to allow the transaction window to be sorted. */
-	int		saved_sort;		/**< Preserve the transaction window sort order across transaction data sorts. */
-	int		sort_workspace;		/**< Workspace used by the sorting code. */
+	int			sort_index;		/**< Point to another transaction, to allow the transaction window to be sorted. */
+	int			saved_sort;		/**< Preserve the transaction window sort order across transaction data sorts. */
+	int			sort_workspace;		/**< Workspace used by the sorting code. */
 };
 
 /* ==================================================================================================================
@@ -456,20 +448,35 @@ struct go_to{
 
 /* Find dialogue data. */
 
-struct find {
-  unsigned date;
-  unsigned from;
-  unsigned from_rec;
-  unsigned to;
-  unsigned to_rec;
-  unsigned amount;
-  char     ref[REF_FIELD_LEN];
-  char     desc[DESCRIPT_FIELD_LEN];
+enum find_logic {
+	FIND_AND = 1,
+	FIND_OR = 2
+};
 
-  int      logic;
-  int      case_sensitive;
-  int      whole_text;
-  int      direction;
+enum find_direction {
+	FIND_NODIR = 0,
+	FIND_START = 1,
+	FIND_END = 2,
+	FIND_UP = 3,
+	FIND_DOWN = 4,
+	FIND_NEXT = 5,
+	FIND_PREVIOUS = 6
+};
+
+struct find {
+	date_t			date;
+	acct_t			from;
+  unsigned from_rec;
+	acct_t			to;
+  unsigned to_rec;
+	amt_t			amount;
+	char			ref[REF_FIELD_LEN];
+	char			desc[DESCRIPT_FIELD_LEN];
+
+	enum find_logic		logic;
+	osbool			case_sensitive;
+	osbool			whole_text;
+	enum find_direction	direction;
 };
 
 /* ----------------------------------------------------------------------------------------------------------------- */
@@ -505,23 +512,23 @@ struct purge {
 /* Transaction Report dialogue. */
 
 struct trans_rep {
-	date_t		date_from;
-	date_t		date_to;
+	date_t			date_from;
+	date_t			date_to;
   int          budget;
 
   int          group;
 	int          period;
-  int          period_unit;
+	enum date_period	period_unit;
   int          lock;
 
-	int		from_count;
-	int		to_count;
-	acct_t		from[REPORT_ACC_LIST_LEN];
-	acct_t		to[REPORT_ACC_LIST_LEN];
-	char		ref[REF_FIELD_LEN];
-	char		desc[DESCRIPT_FIELD_LEN];
-	amt_t		amount_min;
-	amt_t		amount_max;
+	int			from_count;
+	int			to_count;
+	acct_t			from[REPORT_ACC_LIST_LEN];
+	acct_t			to[REPORT_ACC_LIST_LEN];
+	char			ref[REF_FIELD_LEN];
+	char			desc[DESCRIPT_FIELD_LEN];
+	amt_t			amount_min;
+	amt_t			amount_max;
 
   int          output_trans;
   int          output_summary;
@@ -533,19 +540,19 @@ struct trans_rep {
 /* Unreconciled Report dialogue. */
 
 struct unrec_rep {
-	date_t		date_from;
-	date_t		date_to;
+	date_t			date_from;
+	date_t			date_to;
   int          budget;
 
   int          group;
-	int		period;
-  int          period_unit;
+	int			period;
+	enum date_period	period_unit;
   int          lock;
 
-	int		from_count;
-	int		to_count;
-	acct_t		from[REPORT_ACC_LIST_LEN];
-	acct_t		to[REPORT_ACC_LIST_LEN];
+	int			from_count;
+	int			to_count;
+	acct_t			from[REPORT_ACC_LIST_LEN];
+	acct_t			to[REPORT_ACC_LIST_LEN];
 };
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -553,22 +560,22 @@ struct unrec_rep {
 /* Cashflow Report dialogue. */
 
 struct cashflow_rep {
-	date_t		date_from;
-	date_t		date_to;
+	date_t			date_from;
+	date_t			date_to;
   int          budget;
 
   int          group;
-	int		period;
-  int          period_unit;
+	int			period;
+	enum date_period	period_unit;
   int          lock;
   int          empty;
 
-	int		accounts_count;
-	int		incoming_count;
-	int		outgoing_count;
-	acct_t		accounts[REPORT_ACC_LIST_LEN];
-	acct_t		incoming[REPORT_ACC_LIST_LEN];
-	acct_t		outgoing[REPORT_ACC_LIST_LEN];
+	int			accounts_count;
+	int			incoming_count;
+	int			outgoing_count;
+	acct_t			accounts[REPORT_ACC_LIST_LEN];
+	acct_t			incoming[REPORT_ACC_LIST_LEN];
+	acct_t			outgoing[REPORT_ACC_LIST_LEN];
 
   int          tabular;
 };
@@ -578,21 +585,21 @@ struct cashflow_rep {
 /* Balance Report dialogue. */
 
 struct balance_rep {
-	date_t		date_from;
-	date_t		date_to;
+	date_t			date_from;
+	date_t			date_to;
   int          budget;
 
   int          group;
-	int		period;
-  int          period_unit;
+	int			period;
+	enum date_period	period_unit;
   int          lock;
 
-	int		accounts_count;
-	int		incoming_count;
-	int		outgoing_count;
-	acct_t		accounts[REPORT_ACC_LIST_LEN];
-	acct_t		incoming[REPORT_ACC_LIST_LEN];
-	acct_t		outgoing[REPORT_ACC_LIST_LEN];
+	int			accounts_count;
+	int			incoming_count;
+	int			outgoing_count;
+	acct_t			accounts[REPORT_ACC_LIST_LEN];
+	acct_t			incoming[REPORT_ACC_LIST_LEN];
+	acct_t			outgoing[REPORT_ACC_LIST_LEN];
 
   int          tabular;
 };

@@ -379,9 +379,10 @@ void import_csv_file (file_data *file, char *filename)
   FILE         *input;
   char         line[1024], log[1024], b1[64], b2[64],
                *date, *ref, *amount, *description, *dummy, *ident, *name, *raw_from, *raw_to;
-  int          from, to, rec_from, rec_to, import_count, reject_count, error;
+  int          from, to, import_count, reject_count, error;
   wimp_pointer pointer;
   unsigned int type;
+  enum transact_flags rec_from, rec_to;
 
 
   import_window_file = file;

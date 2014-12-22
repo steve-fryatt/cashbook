@@ -168,7 +168,7 @@ struct preset {
 	char			name[PRESET_NAME_LEN];					/**< The name of the preset. */
 	char			action_key;						/**< The key used to insert it. */
 
-	unsigned		flags;							/**< Preset flags (containing transaction flags, preset flags, etc). */
+	enum transact_flags	flags;							/**< Preset flags (containing transaction flags, preset flags, etc). */
 
 	enum preset_caret	caret_target;						/**< The target icon for the caret. */
 

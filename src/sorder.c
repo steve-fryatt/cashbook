@@ -170,27 +170,26 @@
  * Standing order data structure -- implementation.
  */
 
-struct sorder
-{
-	unsigned	start_date;						/**< The date on which the first order should be processed. */
-	int		number;							/**< The number of orders to be added. */
-	int		period;							/**< The period between orders. */
-	int		period_unit;						/**< The unit in which the period is measured. */
+struct sorder {
+	date_t			start_date;					/**< The date on which the first order should be processed. */
+	int			number;						/**< The number of orders to be added. */
+	int			period;						/**< The period between orders. */
+	enum date_period	period_unit;					/**< The unit in which the period is measured. */
 
-	date_t		raw_next_date;						/**< The uncorrected date for the next order, used for getting the next. */
-	date_t		adjusted_next_date;					/**< The date of the next order, taking into account months, weekends etc. */
+	date_t			raw_next_date;					/**< The uncorrected date for the next order, used for getting the next. */
+	date_t			adjusted_next_date;				/**< The date of the next order, taking into account months, weekends etc. */
 
-	int		left;							/**< The number of orders remaining. */
+	int			left;						/**< The number of orders remaining. */
 
-	unsigned	flags;							/**< Order flags (containing transaction flags, order flags, etc). */
+	enum transact_flags	flags;						/**< Order flags (containing transaction flags, order flags, etc). */
 
-	acct_t		from;							/**< Order details. */
-	acct_t		to;
-	amt_t		normal_amount;
-	amt_t		first_amount;
-	amt_t		last_amount;
-	char		reference[REF_FIELD_LEN];
-	char		description[DESCRIPT_FIELD_LEN];
+	acct_t			from;						/**< Order details. */
+	acct_t			to;
+	amt_t			normal_amount;
+	amt_t			first_amount;
+	amt_t			last_amount;
+	char			reference[REF_FIELD_LEN];
+	char			description[DESCRIPT_FIELD_LEN];
 
 	/* Sort index entries.
 	 *
@@ -198,7 +197,7 @@ struct sorder
 	 * for handling entries in the sorder window.
 	 */
 
-	int		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
+	int			sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
 };
 
 /* Standing Order Edit Window. */
@@ -2683,6 +2682,10 @@ void sorder_full_report(file_data *file)
 
 		case PERIOD_YEARS:
 			msgs_lookup("SOrderYears", numbuf2, sizeof(numbuf2));
+			break;
+		
+		default:
+			*numbuf2 = '\0';
 			break;
 		}
 		msgs_param_lookup("SOREvery", line, sizeof(line), numbuf1, numbuf2, NULL, NULL);

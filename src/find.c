@@ -95,13 +95,6 @@
 #define FOUND_ICON_NEW 3
 #define FOUND_ICON_INFO 4
 
-#define FIND_TEST_DATE   0x01
-#define FIND_TEST_FROM   0x02
-#define FIND_TEST_TO     0x04
-#define FIND_TEST_AMOUNT 0x08
-#define FIND_TEST_REF    0x10
-#define FIND_TEST_DESC   0x20
-
 
 static file_data	*find_window_file = NULL;				/**< The file currently owning the Find dialogue.	*/
 static struct find	find_params;						/**< A copy of the settings for the current search.	*/
@@ -477,11 +470,11 @@ static osbool find_process_window(void)
 
 static int find_from_line(struct find *new_params, int new_dir, int start)
 {
-	int		icon, line, transaction, direction;
-	unsigned	test;
-	osbool		match;
-	wimp_pointer	pointer;
-	char		buf1[64], buf2[64], ref[REF_FIELD_LEN+2], desc[DESCRIPT_FIELD_LEN+2];
+	int			icon, line;
+	enum find_direction	direction;
+	enum transact_field	result;
+	wimp_pointer		pointer;
+	char			buf1[64], buf2[64], ref[REF_FIELD_LEN+2], desc[DESCRIPT_FIELD_LEN+2];
 
 	/* If new parameters are being supplied, take copies. */
 
@@ -548,95 +541,28 @@ static int find_from_line(struct find *new_params, int new_dir, int start)
 		line = start;
 	}
 
-	match = FALSE;
-	icon = -1;
+	result = transact_search(find_window_file, &line, direction == FIND_UP, find_params.case_sensitive, find_params.logic == FIND_AND,
+			find_params.date, find_params.from, find_params.to, find_params.from_rec | find_params.to_rec, find_params.amount, ref, desc);
 
-	while (line < find_window_file->trans_count && line >= 0 && !match) {
-		/* Initialise the test result variable.  The tests all have a bit allocated.  For OR tests, these start unset and
-		 * are set if a test passes; a non-zero value at the end indicates a match.  For AND tests, all the required bits
-		 * are set at the start and cleared as tests match.  A zero value at the end indicates a match.
-		 */
-
-		test = 0;
-
-		if (find_params.logic == FIND_AND) {
-			if (find_params.date != NULL_DATE)
-				test |= FIND_TEST_DATE;
-
-			if (find_params.from != NULL_ACCOUNT)
-				test |= FIND_TEST_FROM;
-
-			if (find_params.to != NULL_ACCOUNT)
-				test |= FIND_TEST_TO;
-
-			if (find_params.amount != NULL_CURRENCY)
-				test |= FIND_TEST_AMOUNT;
-
-			if (*find_params.ref != '\0')
-				test |= FIND_TEST_REF;
-
-			if (*find_params.desc != '\0')
-				test |= FIND_TEST_DESC;
-		}
-
-		/* Perform the tests.  Tests are carried out in reverse order, with the icon being set in each, such that the
-		 * returned icon ends up in the left-most column.
-		 */
-
-		transaction = find_window_file->transactions[line].sort_index;
-
-		if (*desc != '\0' && string_wildcard_compare(desc, find_window_file->transactions[transaction].description, !find_params.case_sensitive)) {
-			test ^= FIND_TEST_DESC;
-			icon = EDIT_ICON_DESCRIPT;
-		}
-
-		if (find_params.amount != NULL_CURRENCY && find_params.amount == find_window_file->transactions[transaction].amount) {
-			test ^= FIND_TEST_AMOUNT;
-			icon = EDIT_ICON_AMOUNT;
-		}
-
-		if (*ref != '\0' && string_wildcard_compare(ref, find_window_file->transactions[transaction].reference, !find_params.case_sensitive)) {
-			test ^= FIND_TEST_REF;
-			icon = EDIT_ICON_REF;
-		}
-
-		/* The following two tests check that a) an account has been specified, b) it is the same as the transaction and
-		 * c) the two reconcile flags are set the same (if they are, the EOR operation cancels them out).
-		 */
-
-		if (find_params.to != NULL_ACCOUNT && find_params.to == find_window_file->transactions[transaction].to &&
-				((find_params.to_rec ^ find_window_file->transactions[transaction].flags) & TRANS_REC_TO) == 0) {
-			test ^= FIND_TEST_TO;
-			icon = EDIT_ICON_TO;
-		}
-
-		if (find_params.from != NULL_ACCOUNT && find_params.from == find_window_file->transactions[transaction].from &&
-				((find_params.from_rec ^ find_window_file->transactions[transaction].flags) & TRANS_REC_FROM) == 0) {
-			test ^= FIND_TEST_FROM;
-			icon = EDIT_ICON_FROM;
-		}
-
-		if (find_params.date != NULL_DATE && find_params.date == find_window_file->transactions[transaction].date) {
-			test ^= FIND_TEST_DATE;
-			icon = EDIT_ICON_DATE;
-		}
-
-		/* Check if the test passed or failed. */
-
-		if ((find_params.logic == FIND_OR && test) || (find_params.logic == FIND_AND && !test)) {
-			match = TRUE;
-		} else {
-			if (direction == FIND_UP)
-				line--;
-			else
-				line++;
-		}
-	}
-
-	if (!match) {
+	if (result == TRANSACT_FIELD_NONE) {
 		error_msgs_report_info ("BadFind");
 		return NULL_TRANSACTION;
 	}
+
+	if (result & TRANSACT_FIELD_DATE)
+		icon = EDIT_ICON_DATE;
+	else if (result & TRANSACT_FIELD_FROM)
+		icon = EDIT_ICON_FROM;
+	else if (result & TRANSACT_FIELD_TO)
+		icon = EDIT_ICON_TO;
+	else if (result & TRANSACT_FIELD_REF)
+		icon = EDIT_ICON_REF;
+	else if (result & TRANSACT_FIELD_AMOUNT)
+		icon = EDIT_ICON_AMOUNT;
+	else if (result & TRANSACT_FIELD_DESC)
+		icon = EDIT_ICON_DESCRIPT;
+	else
+		icon = EDIT_ICON_DATE;
 
 	wimp_close_window(find_window);
 

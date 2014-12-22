@@ -597,7 +597,7 @@ int edit_get_line_transaction(file_data *file)
  * \param change_flag	Indicate which reconciled flags to change.
  */
 
-void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, int change_flag)
+void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, enum transact_flags change_flag)
 {
 	int	change_icon, line;
 	osbool	changed = FALSE;

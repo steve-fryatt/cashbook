@@ -40,6 +40,16 @@ enum transact_list_menu_type {
 	REFDESC_MENU_DESCRIPTION
 };
 
+enum transact_field {
+	TRANSACT_FIELD_NONE = 0,
+	TRANSACT_FIELD_DATE = 0x01,
+	TRANSACT_FIELD_FROM = 0x02,
+	TRANSACT_FIELD_TO = 0x04,
+	TRANSACT_FIELD_AMOUNT = 0x08,
+	TRANSACT_FIELD_REF = 0x10,
+	TRANSACT_FIELD_DESC = 0x20
+};
+
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
@@ -188,7 +198,7 @@ char *transact_complete_menu_decode(wimp_selection *selection);
 
 /* Transaction handling */
 
-void add_raw_transaction (file_data *file, unsigned date, int from, int to, unsigned flags, int amount,
+void add_raw_transaction (file_data *file, unsigned date, int from, int to, enum transact_flags flags, int amount,
                           char *ref, char *description);
 int is_transaction_blank (file_data *file, int line);
 void strip_blank_transactions (file_data *file);
@@ -279,6 +289,33 @@ int transact_read_file(file_data *file, FILE *in, char *section, char *token, ch
 
 int transact_find_date(file_data *file, date_t target);
 
+
+/**
+ * Search the transaction list from a file for a set of matching entries.
+ *
+ * \param *file			The file to search in.
+ * \param *line			Pointer to the line (under current display sort
+ *				order) to search from. Updated on exit to show
+ *				the matched line.
+ * \param back			TRUE to search back up the file; FALSE to search
+ *				down.
+ * \param case_sensitive	TRUE to match case in strings; FALSE to ignore.
+ * \param logic_and		TRUE to combine the parameters in an AND logic;
+ *				FALSE to use an OR logic.
+ * \param date			A date to match, or NULL_DATE for none.
+ * \param from			A from account to match, or NULL_ACCOUNT for none.
+ * \param to			A to account to match, or NULL_ACCOUNT for none.
+ * \param flags			Reconcile flags for the from and to accounts, if
+ *				these have been specified.
+ * \param amount		An amount to match, or NULL_AMOUNT for none.
+ * \param *ref			A wildcarded reference to match; NULL or '\0' for none.
+ * \param *desc			A wildcarded description to match; NULL or '\0' for none.
+ * \return			Transaction field flags set for each matching field;
+ *				TRANSACT_FIELD_NONE if no match found.
+ */
+
+enum transact_field transact_search(file_data *file, int *line, osbool back, osbool case_sensitive, osbool logic_and,
+		date_t date, acct_t from, acct_t to, enum transact_flags flags, amt_t amount, char *ref, char *desc);
 
 /**
  * Check the transactions in a file to see if the given account is used

@@ -2545,7 +2545,7 @@ static int transact_complete_menu_compare(const void *va, const void *vb)
 
 /* Adds a new transaction to the end of the list. */
 
-void add_raw_transaction (file_data *file, unsigned date, int from, int to, unsigned flags, int amount,
+void add_raw_transaction (file_data *file, unsigned date, int from, int to, enum transact_flags flags, int amount,
                           char *ref, char *description)
 {
   int new;
@@ -3632,6 +3632,133 @@ int transact_find_date(file_data *file, date_t target)
 	return min;
 }
 
+
+/**
+ * Search the transaction list from a file for a set of matching entries.
+ *
+ * \param *file			The file to search in.
+ * \param *line			Pointer to the line (under current display sort
+ *				order) to search from. Updated on exit to show
+ *				the matched line.
+ * \param back			TRUE to search back up the file; FALSE to search
+ *				down.
+ * \param case_sensitive	TRUE to match case in strings; FALSE to ignore.
+ * \param logic_and		TRUE to combine the parameters in an AND logic;
+ *				FALSE to use an OR logic.
+ * \param date			A date to match, or NULL_DATE for none.
+ * \param from			A from account to match, or NULL_ACCOUNT for none.
+ * \param to			A to account to match, or NULL_ACCOUNT for none.
+ * \param flags			Reconcile flags for the from and to accounts, if
+ *				these have been specified.
+ * \param amount		An amount to match, or NULL_AMOUNT for none.
+ * \param *ref			A wildcarded reference to match; NULL or '\0' for none.
+ * \param *desc			A wildcarded description to match; NULL or '\0' for none.
+ * \return			Transaction field flags set for each matching field;
+ *				TRANSACT_FIELD_NONE if no match found.
+ */
+
+enum transact_field transact_search(file_data *file, int *line, osbool back, osbool case_sensitive, osbool logic_and,
+		date_t date, acct_t from, acct_t to, enum transact_flags flags, amt_t amount, char *ref, char *desc)
+{
+	enum transact_field	test = TRANSACT_FIELD_NONE, original = TRANSACT_FIELD_NONE;
+	osbool			match = FALSE;
+	enum transact_flags	from_rec, to_rec;
+	int			transaction;
+
+
+	if (file == NULL)
+		return TRANSACT_FIELD_NONE;
+
+	match = FALSE;
+
+	from_rec = flags & TRANS_REC_FROM;
+	to_rec = flags & TRANS_REC_TO;
+
+	while (*line < file->trans_count && *line >= 0 && !match) {
+		/* Initialise the test result variable.  The tests all have a bit allocated.  For OR tests, these start unset and
+		 * are set if a test passes; a non-zero value at the end indicates a match.  For AND tests, all the required bits
+		 * are set at the start and cleared as tests match.  A zero value at the end indicates a match.
+		 */
+
+		test = TRANSACT_FIELD_NONE;
+
+		if (logic_and) {
+			if (date != NULL_DATE)
+				test |= TRANSACT_FIELD_DATE;
+
+			if (from != NULL_ACCOUNT)
+				test |= TRANSACT_FIELD_FROM;
+
+			if (to != NULL_ACCOUNT)
+				test |= TRANSACT_FIELD_TO;
+
+			if (amount != NULL_CURRENCY)
+				test |= TRANSACT_FIELD_AMOUNT;
+
+			if (ref != NULL && *ref != '\0')
+				test |= TRANSACT_FIELD_REF;
+
+			if (desc != NULL && *desc != '\0')
+				test |= TRANSACT_FIELD_DESC;
+		}
+
+		original = test;
+
+		/* Perform the tests.
+		 *
+		 * \TODO -- The order of these tests could be optimised, to
+		 *          skip things that we don't need to bother matching.
+		 */
+
+		transaction = file->transactions[*line].sort_index;
+
+		if (desc != NULL && *desc != '\0' && string_wildcard_compare(desc, file->transactions[transaction].description, !case_sensitive)) {
+			test ^= TRANSACT_FIELD_DESC;
+		}
+
+		if (amount != NULL_CURRENCY && amount == file->transactions[transaction].amount) {
+			test ^= TRANSACT_FIELD_AMOUNT;
+		}
+
+		if (ref != NULL && *ref != '\0' && string_wildcard_compare(ref, file->transactions[transaction].reference, !case_sensitive)) {
+			test ^= TRANSACT_FIELD_REF;
+		}
+
+		/* The following two tests check that a) an account has been specified, b) it is the same as the transaction and
+		 * c) the two reconcile flags are set the same (if they are, the EOR operation cancels them out).
+		 */
+
+		if (to != NULL_ACCOUNT && to == file->transactions[transaction].to &&
+				((to_rec ^ file->transactions[transaction].flags) & TRANS_REC_TO) == 0) {
+			test ^= TRANSACT_FIELD_TO;
+		}
+
+		if (from != NULL_ACCOUNT && from == file->transactions[transaction].from &&
+				((from_rec ^ file->transactions[transaction].flags) & TRANS_REC_FROM) == 0) {
+			test ^= TRANSACT_FIELD_FROM;
+		}
+
+		if (date != NULL_DATE && date == file->transactions[transaction].date) {
+			test ^= TRANSACT_FIELD_DATE;
+		}
+
+		/* Check if the test passed or failed. */
+
+		if ((!logic_and && test) || (logic_and && !test)) {
+			match = TRUE;
+		} else {
+			if (back)
+				(*line)--;
+			else
+				(*line)++;
+		}
+	}
+
+	if (!match)
+		return TRANSACT_FIELD_NONE;
+
+	return (logic_and) ? original : test;
+}
 
 /**
  * Check the transactions in a file to see if the given account is used

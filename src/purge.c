@@ -283,6 +283,10 @@ void purge_force_window_closed(file_data *file)
 /**
  * Purge unused components from a file.
  *
+ * \TODO -- There might be an argument for moving a lot of the mechanics of this
+ *          function into the transact and account modules, in the same way that
+ *          standing orders are purged via sorder_purge()?
+ *
  * \param *file			The file to be purged.
  * \param transactions		TRUE to purge transactions; FALSE to ignore.
  * \param cutoff		The cutoff transaction date, or NULL_DATE for all.

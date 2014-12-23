@@ -70,6 +70,7 @@
 #include "account.h"
 #include "accview.h"
 #include "analysis.h"
+#include "budget.h"
 #include "column.h"
 #include "conversion.h"
 #include "dataxfer.h"

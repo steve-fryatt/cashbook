@@ -36,6 +36,8 @@
  * Templates and resources.
  */
 
+#define FILE_MAX_FILENAME 256
+
 #define IND_DATA_SIZE 8000
 #define MAX_LINE_LENGTH 1024
 
@@ -610,17 +612,17 @@ struct balance_rep {
 
 struct file_data
 {
-  /* File location */
+	/* File location */
 
-  char               filename[256];      /* The filename on disc; if null, it hasn't been saved before */
-  os_date_and_time   datestamp;          /* The datestamp of the file. */
+	char				filename[FILE_MAX_FILENAME];		/**< The filename on disc; if "", it hasn't been saved before.	*/
+	os_date_and_time		datestamp;				/**< The datestamp of when the file was last saved.		*/
 
-  /* Details of the attached windows. */
+	/* Details of the attached windows. */
 
-  struct transaction_window transaction_window; /* Structure holding transaction window information */
-  struct account_window     account_windows[ACCOUNT_WINDOWS]; /* Array holding account window information */
-  struct sorder_window      sorder_window;      /* Structure holding standing order window information. */
-  struct preset_window      preset_window;      /* Structure holding preset window information. */
+	struct transaction_window	transaction_window;			/**< Structure holding transaction window information.		*/
+	struct account_window		account_windows[ACCOUNT_WINDOWS];	/**< Array holding account window information.			*/
+	struct sorder_window		sorder_window;				/**< Structure holding standing order window information.	*/
+	struct preset_window		preset_window;				/**< Structure holding preset window information.		*/
 
   /* Default display details for the accview windows. */
 
@@ -644,11 +646,11 @@ struct file_data
 
   /* Recalculation data. */
 
-  unsigned           last_full_recalc;   /* The last time a full recalculation was done on the file. */
-                                         /* Not sure if this is actually used! */
-  /* Budget data. */
+	date_t				last_full_recalc;			/* The last time a full recalculation was done on the file.	*/
 
-	struct budget		budget;						/**< The file's budgeting details.				*/
+	/* Budget data. */
+
+	struct budget			budget;					/**< The file's budgeting details.				*/
 
   /* Data integrity. */
 
@@ -660,9 +662,11 @@ struct file_data
 
   /* Report data structure */
 
-  struct report      *reports;           /* Pointer to a linked list of report structures. */
+	struct report			*reports;				/**< Pointer to a linked list of report structures.		*/
 
-  struct report      *import_report;     /* The current import log report. */
+	/* Imports */
+
+	struct report			*import_report;				/**< The current import log report (\TODO -- Import struct?).	*/
 
   /* Report templates */
 
@@ -671,18 +675,18 @@ struct file_data
 
 	/* Dialogue content. */
 
-	struct go_to		go_to;						/**< Data relating to the goto module.				*/
-	struct find		find;						/**< Data relating to the find module.				*/
-	struct printing		print;						/**< Data relating to the print dialogues.			*/
-	struct purge		purge;						/**< Data relating to the purge module.				*/
-  struct trans_rep          trans_rep;
-  struct unrec_rep          unrec_rep;
-  struct cashflow_rep       cashflow_rep;
-  struct balance_rep        balance_rep;
+	struct go_to			go_to;					/**< Data relating to the goto module.				*/
+	struct find			find;					/**< Data relating to the find module.				*/
+	struct printing			print;					/**< Data relating to the print dialogues.			*/
+	struct purge			purge;					/**< Data relating to the purge module.				*/
+	struct trans_rep		trans_rep;
+	struct unrec_rep		unrec_rep;
+	struct cashflow_rep		cashflow_rep;
+	struct balance_rep		balance_rep;
 
 	/* Pointer to the next file in the list. */
 
-	struct file_data	*next;
+	struct file_data		*next;
 };
 
 #endif

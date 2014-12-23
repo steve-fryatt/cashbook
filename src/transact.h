@@ -186,22 +186,99 @@ void transact_complete_menu_prepare(int line);
 char *transact_complete_menu_decode(wimp_selection *selection);
 
 
+/**
+ * Adds a new transaction to the end of the list, using the details supplied.
+ *
+ * \param *file			The file to add the transaction to.
+ * \param date			The date of the transaction, or NULL_DATE.
+ * \param from			The account to transfer from, or NULL_ACCOUNT.
+ * \param to			The account to transfer to, or NULL_ACCOUNT.
+ * \param flags			The transaction flags.
+ * \param amount		The amount to transfer, or NULL_CURRENCY.
+ * \param *ref			Pointer to the transaction reference, or NULL.
+ * \param *description		Pointer to the transaction description, or NULL.
+ */
+
+void transact_add_raw_entry(file_data *file, date_t date, acct_t from, acct_t to, enum transact_flags flags,
+		amt_t amount, char *ref, char *description);
 
 
+/**
+ * Clear a transaction from a file, returning it to an empty state. Note that
+ * the transaction remains in-situ, and no memory is cleared.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to be cleared.
+ */
+
+void transact_clear_raw_entry(file_data *file, int transaction);
 
 
+/**
+ * Strip any blank transactions from the end of the file, releasing any memory
+ * associated with them. To be sure to remove all blank transactions, it is
+ * necessary to sort the transaction list before calling this function.
+ *
+ * \param *file			The file to be processed.
+ */
+
+void transact_strip_blanks_from_end(file_data *file);
 
 
+/**
+ * Return the date of a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the date for.
+ * \return			The date of the transaction, or NULL_DATE.
+ */
+
+date_t transact_get_date(file_data *file, int transaction);
 
 
+/**
+ * Return the from account of a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the from account for.
+ * \return			The from account of the transaction, or NULL_ACCOUNT.
+ */
+
+acct_t transact_get_from(file_data *file, int transaction);
 
 
-/* Transaction handling */
+/**
+ * Return the to account of a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the to account for.
+ * \return			The to account of the transaction, or NULL_ACCOUNT.
+ */
 
-void add_raw_transaction (file_data *file, unsigned date, int from, int to, enum transact_flags flags, int amount,
-                          char *ref, char *description);
-int is_transaction_blank (file_data *file, int line);
-void strip_blank_transactions (file_data *file);
+acct_t transact_get_to(file_data *file, int transaction);
+
+
+/**
+ * Return the transaction flags for a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the flags for.
+ * \return			The flags of the transaction, or TRANS_FLAGS_NONE.
+ */
+
+enum transact_flags transact_get_flags(file_data *file, int transaction);
+
+
+/**
+ * Return the amount of a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the amount of.
+ * \return			The amount of the transaction, or NULL_CURRENCY.
+ */
+
+amt_t transact_get_amount(file_data *file, int transaction);
+
 
 
 

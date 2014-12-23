@@ -255,10 +255,10 @@ IRTotals:Imported %0 transactions. Rejected %1 entries.
 Imported:Imported
 Rejected:Rejected
 
-# Continuation files
+# Purging files
 
-ContFileNotSaved:This file is modified. If it is not saved first, the unsaved changes may be lost in the purge.
-ContFileNotSavedB:Purge,Cancel
+PurgeFileNotSaved:This file is modified. If it is not saved first, the unsaved changes may be lost in the purge.
+PurgeFileNotSavedB:Purge,Cancel
 
 # Default filenames
 

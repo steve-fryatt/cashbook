@@ -317,7 +317,7 @@ void save_transaction_file(file_data *file, char *filename)
 
 	/* Strip unused blank lines from the end of the file. */
 
-	strip_blank_transactions(file);
+	transact_strip_blanks_from_end(file);
 
 	/* Output the file header. */
 
@@ -495,65 +495,65 @@ void import_csv_file (file_data *file, char *filename)
       }
       else
       {
-        type = isdigit (*ident) ? ACCOUNT_FULL : ACCOUNT_OUT;
+        type = isdigit(*ident) ? ACCOUNT_FULL : ACCOUNT_OUT;
         to = account_find_by_ident(file, ident, type);
 
         if (to == -1)
         {
-          to = account_add (file, name, ident, type);
+          to = account_add(file, name, ident, type);
         }
       }
 
       /* Ref */
 
-      ref = next_field (NULL, ',');
-      ref = unquote_string (ref);
+      ref = next_field(NULL, ',');
+      ref = unquote_string(ref);
 
       /* Amount */
 
-      amount = next_field (NULL, ',');
+      amount = next_field(NULL, ',');
 
       if (*amount == '\0')
       {
-        amount = next_field (NULL, ',');
+        amount = next_field(NULL, ',');
       }
       else
       {
-        dummy = next_field (NULL, ',');
+        dummy = next_field(NULL, ',');
       }
 
-      amount = unquote_string (amount);
+      amount = unquote_string(amount);
 
       /* Skip Balance */
 
-      dummy = next_field (NULL, ',');
+      dummy = next_field(NULL, ',');
 
       /* Description */
 
-      description = next_field (NULL, ',');
-      description = unquote_string (description);
+      description = next_field(NULL, ',');
+      description = unquote_string(description);
 
       /* Create a new transaction. */
 
       if (error == 1)
       {
-        msgs_lookup ("Rejected", b1, sizeof(b1));
+        msgs_lookup("Rejected", b1, sizeof(b1));
         reject_count++;
       }
       else
       {
-        add_raw_transaction (file, convert_string_to_date (date, NULL_DATE, 0), from, to, rec_from | rec_to,
+        transact_add_raw_entry(file, convert_string_to_date (date, NULL_DATE, 0), from, to, rec_from | rec_to,
                              convert_string_to_money (amount), ref, description);
-        msgs_lookup ("Imported", b1, sizeof(b1));
+        msgs_lookup("Imported", b1, sizeof(b1));
 
         import_count++;
       }
 
-      sprintf (log, "%s\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'",
+      sprintf(log, "%s\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'",
                b1, date, raw_from, raw_to, ref, amount, description);
-      report_write_line (file->import_report, 0, log);
+      report_write_line(file->import_report, 0, log);
     }
-    fclose (input);
+    fclose(input);
 
     file->transaction_window.display_lines = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
                                              file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;

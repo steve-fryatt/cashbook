@@ -179,7 +179,7 @@ static void decode_account_menu(wimp_selection *selection)
 
 		if (main_menu_line >= main_menu_file->trans_count && selection->items[0] != -1)
 			for (i=main_menu_file->trans_count; i<=main_menu_line; i++)
-				add_raw_transaction(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, NULL_TRANS_FLAGS, NULL_CURRENCY, "", "");
+				transact_add_raw_entry(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, NULL_TRANS_FLAGS, NULL_CURRENCY, "", "");
 
 		/* Again check that the transaction is in range.  If it isn't, the additions failed.
 		 *
@@ -289,7 +289,7 @@ static void decode_date_menu(wimp_selection *selection)
 
 	if (main_menu_line >= main_menu_file->trans_count && selection->items[0] != -1)
 		for (i=main_menu_file->trans_count; i<=main_menu_line; i++)
-			add_raw_transaction(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, NULL_TRANS_FLAGS, NULL_CURRENCY, "", "");
+			transact_add_raw_entry(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, NULL_TRANS_FLAGS, NULL_CURRENCY, "", "");
 
 	/* Again check that the transaction is in range.  If it isn't, the additions failed.
 	 *
@@ -367,7 +367,7 @@ static void decode_refdesc_menu (wimp_selection *selection)
 
 	if (main_menu_line >= main_menu_file->trans_count && selection->items[0] != -1)
 		for (i=main_menu_file->trans_count; i<=main_menu_line; i++)
-			add_raw_transaction(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, NULL_TRANS_FLAGS, NULL_CURRENCY, "", "");
+			transact_add_raw_entry(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, NULL_TRANS_FLAGS, NULL_CURRENCY, "", "");
 
 	/* Again check that the transaction is in range.  If it isn't, the additions failed.
 	 *

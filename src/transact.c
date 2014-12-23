@@ -267,6 +267,7 @@ static void			transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
 static void			transact_complete_menu_add_entry(struct transact_list_link **entries, int *count, int *max, char *new);
 static int			transact_complete_menu_compare(const void *va, const void *vb);
 
+static osbool			transact_is_blank(file_data *file, int transaction);
 
 static void			transact_open_sort_window(file_data *file, wimp_pointer *ptr);
 static void			transact_sort_click_handler(wimp_pointer *pointer);
@@ -2543,106 +2544,235 @@ static int transact_complete_menu_compare(const void *va, const void *vb)
  * Transaction handling
  */
 
-/* Adds a new transaction to the end of the list. */
-
-void add_raw_transaction (file_data *file, unsigned date, int from, int to, enum transact_flags flags, int amount,
-                          char *ref, char *description)
-{
-  int new;
-
-
-  if (flex_extend ((flex_ptr) &(file->transactions), sizeof (struct transaction) * (file->trans_count+1)) == 1)
-  {
-    new = file->trans_count++;
-
-    file->transactions[new].date = date;
-    file->transactions[new].amount = amount;
-    file->transactions[new].from = from;
-    file->transactions[new].to = to;
-    file->transactions[new].flags = flags;
-    strcpy (file->transactions[new].reference, ref);
-    strcpy (file->transactions[new].description, description);
-
-    file->transactions[new].sort_index = new;
-
-    file_set_data_integrity(file, TRUE);
-    if (date != NULL_DATE)
-    {
-      file->sort_valid = 0;
-    }
-  }
-  else
-  {
-    error_msgs_report_error ("NoMemNewTrans");
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Return true if the transaction specified is completely empty. */
-
-int is_transaction_blank (file_data *file, int transaction)
-{
-  return (file->transactions[transaction].date == NULL_DATE &&
-          file->transactions[transaction].from == NULL_ACCOUNT &&
-          file->transactions[transaction].to == NULL_ACCOUNT &&
-          file->transactions[transaction].amount == NULL_CURRENCY &&
-          *file->transactions[transaction].reference == '\0' &&
-          *file->transactions[transaction].description == '\0');
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
-/* Strip blank transactions from the file.  This relies on the blank transactions being at the end, which relies
- * on a transaction list sort having occurred just before the function is called.
+/**
+ * Adds a new transaction to the end of the list, using the details supplied.
+ *
+ * \param *file			The file to add the transaction to.
+ * \param date			The date of the transaction, or NULL_DATE.
+ * \param from			The account to transfer from, or NULL_ACCOUNT.
+ * \param to			The account to transfer to, or NULL_ACCOUNT.
+ * \param flags			The transaction flags.
+ * \param amount		The amount to transfer, or NULL_CURRENCY.
+ * \param *ref			Pointer to the transaction reference, or NULL.
+ * \param *description		Pointer to the transaction description, or NULL.
  */
 
-void strip_blank_transactions (file_data *file)
+void transact_add_raw_entry(file_data *file, date_t date, acct_t from, acct_t to, enum transact_flags flags,
+		amt_t amount, char *ref, char *description)
 {
-  int i, j, found;
+	int new;
 
+	if (file == NULL)
+		return;
 
-  i = file->trans_count - 1;
+	if (flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * (file->trans_count + 1)) != 1) {
+		error_msgs_report_error("NoMemNewTrans");
+		return;
+	}
 
-  while (is_transaction_blank (file, i))
-  {
-    /* Search the trasnaction sort index, looking for a line pointing to the blank.  If one is found, shuffle all
-     * the following indexes up to compensate.
-     */
+	new = file->trans_count++;
 
-    found = 0;
+	file->transactions[new].date = date;
+	file->transactions[new].amount = amount;
+	file->transactions[new].from = from;
+	file->transactions[new].to = to;
+	file->transactions[new].flags = flags;
+	strncpy(file->transactions[new].reference, (ref != NULL) ? ref : "", REF_FIELD_LEN);
+	file->transactions[new].reference[REF_FIELD_LEN - 1] = '\0';
+	strncpy(file->transactions[new].description, (description != NULL) ? description : "", DESCRIPT_FIELD_LEN);
+	file->transactions[new].description[DESCRIPT_FIELD_LEN - 1] = '\0';
+	file->transactions[new].sort_index = new;
 
-    for (j=0; j<i; j++)
-    {
-      if (file->transactions[j].sort_index == i)
-      {
-        found = 1;
-      }
-
-      if (found)
-      {
-        file->transactions[j].sort_index = file->transactions[j+1].sort_index;
-      }
-    }
-
-    /* Remove the transaction. */
-
-    i--;
-  }
-
-  /* Shuffle memory to reduce the transaction space. */
-
-  if (i < file->trans_count-1)
-  {
-    file->trans_count = i+1;
-
-    flex_extend ((flex_ptr) &(file->transactions), sizeof (struct transaction) * file->trans_count);
-  }
+	file_set_data_integrity(file, TRUE);
+	if (date != NULL_DATE)
+		file->sort_valid = FALSE;
 }
 
 
+/**
+ * Clear a transaction from a file, returning it to an empty state. Note that
+ * the transaction remains in-situ, and no memory is cleared. It will be
+ * necessary to subsequently call transact_strip_blanks() to free the memory.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to be cleared.
+ */
 
+void transact_clear_raw_entry(file_data *file, int transaction)
+{
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return;
+
+	file->transactions[transaction].date = NULL_DATE;
+	file->transactions[transaction].from = NULL_ACCOUNT;
+	file->transactions[transaction].to = NULL_ACCOUNT;
+	file->transactions[transaction].flags = TRANS_FLAGS_NONE;
+	file->transactions[transaction].amount = NULL_CURRENCY;
+	*file->transactions[transaction].reference = '\0';
+	*file->transactions[transaction].description = '\0';
+
+	file->sort_valid = FALSE;
+}
+
+
+/**
+ * Test to see if a transaction entry in a file is completely empty.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to be tested.
+ * \return			TRUE if the transaction is empty; FALSE if not.
+ */
+
+static osbool transact_is_blank(file_data *file, int transaction)
+{
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return FALSE;
+
+	return (file->transactions[transaction].date == NULL_DATE &&
+			file->transactions[transaction].from == NULL_ACCOUNT &&
+			file->transactions[transaction].to == NULL_ACCOUNT &&
+			file->transactions[transaction].amount == NULL_CURRENCY &&
+			*file->transactions[transaction].reference == '\0' &&
+			*file->transactions[transaction].description == '\0') ? TRUE : FALSE;
+}
+
+
+/**
+ * Strip any blank transactions from the end of the file, releasing any memory
+ * associated with them. To be sure to remove all blank transactions, it is
+ * necessary to sort the transaction list before calling this function.
+ *
+ * \param *file			The file to be processed.
+ */
+
+void transact_strip_blanks_from_end(file_data *file)
+{
+	int	i, j;
+	osbool	found;
+
+
+	if (file == NULL)
+		return;
+
+	i = file->trans_count - 1;
+
+	while (transact_is_blank(file, i)) {
+
+		/* Search the trasnaction sort index to find the line pointing
+		 * to the current blank. If one is found, shuffle all of the
+		 * following indexes up a space to compensate.
+		 */
+
+		found = FALSE;
+
+		for (j = 0; j < i; j++) {
+			if (file->transactions[j].sort_index == i)
+				found = TRUE;
+
+			if (found)
+				file->transactions[j].sort_index = file->transactions[j + 1].sort_index;
+		}
+
+		/* Remove the transaction. */
+
+		i--;
+	}
+
+	/* If any transactions were removed, free up the unneeded memory
+	 * from the end of the file.
+	 */
+
+	if (i < file->trans_count - 1) {
+		file->trans_count = i + 1;
+
+		flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * file->trans_count);
+	}
+}
+
+
+/**
+ * Return the date of a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the date for.
+ * \return			The date of the transaction, or NULL_DATE.
+ */
+
+date_t transact_get_date(file_data *file, int transaction)
+{
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return NULL_DATE;
+
+	return file->transactions[transaction].date;
+}
+
+
+/**
+ * Return the from account of a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the from account for.
+ * \return			The from account of the transaction, or NULL_ACCOUNT.
+ */
+
+acct_t transact_get_from(file_data *file, int transaction)
+{
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return NULL_ACCOUNT;
+
+	return file->transactions[transaction].from;
+}
+
+
+/**
+ * Return the to account of a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the to account for.
+ * \return			The to account of the transaction, or NULL_ACCOUNT.
+ */
+
+acct_t transact_get_to(file_data *file, int transaction)
+{
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return NULL_ACCOUNT;
+
+	return file->transactions[transaction].to;
+}
+
+
+/**
+ * Return the transaction flags for a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the flags for.
+ * \return			The flags of the transaction, or TRANS_FLAGS_NONE.
+ */
+
+enum transact_flags transact_get_flags(file_data *file, int transaction)
+{
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return TRANS_FLAGS_NONE;
+
+	return file->transactions[transaction].flags;
+}
+
+
+/**
+ * Return the amount of a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the amount of.
+ * \return			The amount of the transaction, or NULL_CURRENCY.
+ */
+
+amt_t transact_get_amount(file_data *file, int transaction)
+{
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return NULL_CURRENCY;
+
+	return file->transactions[transaction].amount;
+}
 
 
 
@@ -3121,7 +3251,7 @@ int find_first_blank_line (file_data *file)
 
   line = file->trans_count;
 
-  while (line > 0 && is_transaction_blank (file, file->transactions[line - 1].sort_index))
+  while (line > 0 && transact_is_blank(file, file->transactions[line - 1].sort_index))
   {
     line--;
 

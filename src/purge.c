@@ -37,8 +37,8 @@
 
 /* OSLib header files */
 
-#include "oslib/wimp.h"
 #include "oslib/hourglass.h"
+#include "oslib/wimp.h"
 
 /* SF-Lib header files. */
 
@@ -253,7 +253,7 @@ static osbool purge_process_window(void)
 	purge_window_file->purge.before =
 			convert_string_to_date(icons_get_indirected_text_addr(purge_window, PURGE_ICON_DATE), NULL_DATE, 0);
 
-	if (purge_window_file->modified == 1 && error_msgs_report_question("ContFileNotSaved", "ContFileNotSavedB") == 2)
+	if (purge_window_file->modified == 1 && error_msgs_report_question("PurgeFileNotSaved", "PurgeFileNotSavedB") == 2)
 		return FALSE;
 
 	purge_file(purge_window_file, purge_window_file->purge.transactions,
@@ -285,15 +285,19 @@ void purge_force_window_closed(file_data *file)
  *
  * \param *file			The file to be purged.
  * \param transactions		TRUE to purge transactions; FALSE to ignore.
- * \param date			The cutoff transaction date, or NULL_DATE for all.
+ * \param cutoff		The cutoff transaction date, or NULL_DATE for all.
  * \param accounts		TRUE to purge accounts; FALSE to ignore.
  * \param headings		TRUE to purge headings; FALSE to ignore.
  * \param sorders		TRUE to purge standing orders; FALSE to ignore.
  */
 
-static void purge_file(file_data *file, osbool transactions, date_t date, osbool accounts, osbool headings, osbool sorders)
+static void purge_file(file_data *file, osbool transactions, date_t cutoff, osbool accounts, osbool headings, osbool sorders)
 {
-	int	i;
+	int			i;
+	enum transact_flags	flags;
+	acct_t			from, to;
+	date_t			date;
+	amt_t			amount;
 
 	hourglass_on();
 
@@ -303,42 +307,39 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 
 	redraw_file_windows(file);
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\OPurging file");
-	#endif
+#endif
 
 	/* Purge unused transactions from the file. */
 
 	if (transactions) {
 		for (i=0; i<file->trans_count; i++) {
-			if ((file->transactions[i].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO) &&
-					(date == NULL_DATE || file->transactions[i].date < date)) {
+			date = transact_get_date(file, i);
+			flags = transact_get_flags(file, i);
+		
+			if ((flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO) &&
+					(cutoff == NULL_DATE || date < cutoff)) {
+				from = transact_get_from(file, i);
+				to = transact_get_to(file, i);
+				amount = transact_get_amount(file, i);
+
 				/* If the from and to accounts are full accounts, */
 
-				if (file->transactions[i].from != NULL_ACCOUNT &&
-						(account_get_type(file, file->transactions[i].from) & ACCOUNT_FULL) != 0)
-					account_adjust_opening_balance(file, file->transactions[i].from, -file->transactions[i].amount);
+				if (from != NULL_ACCOUNT && (account_get_type(file, from) & ACCOUNT_FULL) != 0)
+					account_adjust_opening_balance(file, from, -amount);
 
-				if (file->transactions[i].to != NULL_ACCOUNT &&
-						(account_get_type(file, file->transactions[i].to) & ACCOUNT_FULL) != 0)
-					account_adjust_opening_balance(file, file->transactions[i].to, +file->transactions[i].amount);
+				if (to != NULL_ACCOUNT && (account_get_type(file, to) & ACCOUNT_FULL) != 0)
+					account_adjust_opening_balance(file, to, +amount);
 
-				file->transactions[i].date = NULL_DATE;
-				file->transactions[i].from = NULL_ACCOUNT;
-				file->transactions[i].to = NULL_ACCOUNT;
-				file->transactions[i].flags = 0;
-				file->transactions[i].amount = NULL_CURRENCY;
-				*file->transactions[i].reference = '\0';
-				*file->transactions[i].description = '\0';
-
-				file->sort_valid = 0;
+				transact_clear_raw_entry(file, i);
 			}
 		}
 
 		if (file->sort_valid == 0)
 			transact_sort_file_data(file);
 
-		strip_blank_transactions(file);
+		transact_strip_blanks_from_end(file);
 	}
 
 	/* Purge any unused standing orders from the file. */
@@ -353,9 +354,9 @@ static void purge_file(file_data *file, osbool transactions, date_t date, osbool
 			if (!account_used_in_file(file, i) &&
 					((accounts && ((account_get_type(file, i) & ACCOUNT_FULL) != 0)) ||
 					(headings && ((account_get_type(file, i) & (ACCOUNT_IN | ACCOUNT_OUT)) != 0)))) {
-				#ifdef DEBUG
+#ifdef DEBUG
 				debug_printf("Deleting account %d, type %x", i, file->accounts[i].type);
-				#endif
+#endif
 				account_delete(file, i);
 			}
 		}

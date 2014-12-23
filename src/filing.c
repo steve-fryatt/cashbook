@@ -155,7 +155,7 @@ void load_transaction_file(char *filename)
 		suffix = next_field(NULL, ':');
 
 		if (string_nocase_strcmp(section, "Budget") == 0)
-			result = filing_budget_read_file(file, in, section, token, value, &unknown_data);
+			result = budget_read_file(file, in, section, token, value, &unknown_data);
 		else if (string_nocase_strcmp(section, "Accounts") == 0)
 			result = account_read_acct_file(file, in, section, token, value, file_format, &unknown_data);
 		else if (string_nocase_strcmp(section, "AccountList") == 0)
@@ -231,40 +231,6 @@ void load_transaction_file(char *filename)
 }
 
 
-/**
- * Read budget details from a CashBook file into a file block.
- *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
- */
-
-int filing_budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
-{
-	int	result;
-
-	do {
-		if (string_nocase_strcmp (token, "Start") == 0)
-			file->budget.start = strtoul (value, NULL, 16);
-		else if (string_nocase_strcmp (token, "Finish") == 0)
-			file->budget.finish = strtoul (value, NULL, 16);
-		else if (string_nocase_strcmp (token, "SOTrial") == 0)
-			file->budget.sorder_trial = strtoul (value, NULL, 16);
-		else if (string_nocase_strcmp (token, "RestrictPost") == 0)
-			file->budget.limit_postdate = (config_read_opt_string(value) == TRUE);
-		else
-			*unknown_data = TRUE;
-
-		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
-
-	return result;
-}
-
-
 
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -326,15 +292,7 @@ void save_transaction_file(file_data *file, char *filename)
 
 	fprintf(out, "Format: %1.2f\n", ((double) FILING_CURRENT_FORMAT) / 100.0);
 
-	/* Output the budget data */
-
-	fprintf(out, "\n[Budget]\n");
-
-	fprintf(out, "Start: %x\n", file->budget.start);
-	fprintf(out, "Finish: %x\n", file->budget.finish);
-	fprintf(out, "SOTrial: %x\n", file->budget.sorder_trial);
-	fprintf(out, "RestrictPost: %s\n", config_return_opt_string(file->budget.limit_postdate));
-
+	budget_write_file(file, out);
 	account_write_file(file, out);
 	transact_write_file(file, out);
 	sorder_write_file(file, out);

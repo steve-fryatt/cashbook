@@ -57,5 +57,65 @@ void budget_open_window(file_data *file, wimp_pointer *ptr);
 
 void budget_force_window_closed(file_data *file);
 
+
+/**
+ * Return the budget start and finish dates for a file.
+ *
+ * \param *file			The file to return dates for.
+ * \param *start		Pointer to location to store the start date,
+ *				or NULL to not return it.
+ * \param *finish		Pointer to location to store the finish date,
+ *				or NULL to not return it.
+ */
+
+void budget_get_dates(file_data *file, date_t *start, date_t *finish);
+
+
+/**
+ * Return the standing order trial period for a file.
+ *
+ * \param *file			The file to return the period for.
+ * \return			The trial period, in days (or 0 on error).
+ */
+
+int budget_get_sorder_trial(file_data *file);
+
+
+/**
+ * Return the postdated transaction limit option for a file (whether postdated
+ * transactions should be limited to the standing order trial period in
+ * reports and budgeting.
+ *
+ * \param *file			The file to return the postdated option for.
+ * \return			TRUE if transactions should be limited to the
+ *				standing order trial period; FALSE to include all.
+ */
+
+osbool budget_get_limit_postdated(file_data *file);
+
+
+/**
+ * Save the budget details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void budget_write_file(file_data *file, FILE *out);
+
+
+/**
+ * Read budget details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+int budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+
 #endif
 

@@ -409,19 +409,17 @@ struct preset_window {
 
 /* Budget control data. */
 
-typedef struct budget
-{
-  /* Budget date limits */
+struct budget {
+	/* Budget date limits */
 
-  unsigned start;
-  unsigned finish;
+	date_t		start;							/**< The start date of the budget.					*/
+	date_t		finish;							/**< The finish date of the budget.					*/
 
-  /* Standing order trail limits. */
+	/* Standing order trail limits. */
 
-  int sorder_trial;
-  int limit_postdate;
-}
-budget;
+	int		sorder_trial;						/**< The number of days ahead to trial standing orders.			*/
+	osbool		limit_postdate;						/**< TRUE to limit post-dated transactions to the SO trial period.	*/
+};
 
 /* ==================================================================================================================
  * Dialogue content data structures
@@ -650,7 +648,7 @@ struct file_data
                                          /* Not sure if this is actually used! */
   /* Budget data. */
 
-  budget             budget;
+	struct budget		budget;						/**< The file's budgeting details.				*/
 
   /* Data integrity. */
 

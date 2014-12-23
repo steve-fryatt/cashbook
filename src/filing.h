@@ -76,13 +76,6 @@ enum filing_delimit_flags {
 
 void filing_initialise(void);
 
-
-
-
-int filing_budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
-
-
-
 /* Loading accounts files */
 
 void load_transaction_file (char *filename);

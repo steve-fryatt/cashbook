@@ -255,7 +255,7 @@ file_data *build_new_file_block (void)
   new->budget.finish = NULL_DATE;
 
   new->budget.sorder_trial = 0;
-  new->budget.limit_postdate = 0;
+  new->budget.limit_postdate = FALSE;
 
   /* Set up the dialogue defaults. */
 
@@ -264,30 +264,30 @@ file_data *build_new_file_block (void)
 
   new->find.date = NULL_DATE;
   new->find.from = NULL_ACCOUNT;
-  new->find.from_rec = 0;
+  new->find.from_rec = TRANS_FLAGS_NONE;
   new->find.to = NULL_ACCOUNT;
-  new->find.to_rec = 0;
+  new->find.to_rec = TRANS_FLAGS_NONE;
   new->find.amount = NULL_CURRENCY;
   *(new->find.ref) = '\0';
   *(new->find.desc) = '\0';
 
   new->find.logic = FIND_OR;
-  new->find.case_sensitive = 0;
-  new->find.whole_text = 0;
+  new->find.case_sensitive = FALSE;
+  new->find.whole_text = FALSE;
   new->find.direction = FIND_START;
 
-  new->print.fit_width = config_opt_read ("PrintFitWidth");
-  new->print.page_numbers = config_opt_read ("PrintPageNumbers");
-  new->print.rotate = config_opt_read ("PrintRotate");
-  new->print.text = config_opt_read ("PrintText");
-  new->print.text_format = config_opt_read ("PrintTextFormat");
+  new->print.fit_width = config_opt_read("PrintFitWidth");
+  new->print.page_numbers = config_opt_read("PrintPageNumbers");
+  new->print.rotate = config_opt_read("PrintRotate");
+  new->print.text = config_opt_read("PrintText");
+  new->print.text_format = config_opt_read("PrintTextFormat");
   new->print.from = NULL_DATE;
   new->print.to = NULL_DATE;
 
-  new->purge.transactions = 1;
-  new->purge.accounts = 0;
-  new->purge.headings = 0;
-  new->purge.sorders = 0;
+  new->purge.transactions = TRUE;
+  new->purge.accounts = FALSE;
+  new->purge.headings = FALSE;
+  new->purge.sorders = FALSE;
   new->purge.before = NULL_DATE;
 
   new->trans_rep.date_from = NULL_DATE;

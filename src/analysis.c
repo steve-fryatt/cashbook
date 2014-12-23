@@ -61,6 +61,7 @@
 #include "analysis.h"
 
 #include "account.h"
+#include "budget.h"
 #include "caret.h"
 #include "conversion.h"
 #include "date.h"
@@ -3147,8 +3148,7 @@ static void analysis_find_date_range(file_data *file, date_t *start_date, date_t
 	if (budget) {
 		/* Get the start and end dates from the budget settings. */
 
-		*start_date = file->budget.start;
-		*end_date = file->budget.finish;
+		budget_get_dates(file, start_date, end_date);
 	} else {
 		/* Get the start and end dates from the icon text. */
 

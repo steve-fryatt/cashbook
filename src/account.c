@@ -67,6 +67,7 @@
 
 #include "accview.h"
 #include "analysis.h"
+#include "budget.h"
 #include "conversion.h"
 #include "column.h"
 #include "caret.h"
@@ -2817,6 +2818,7 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 	int			i, entry;
 	char			line[4096], buffer[256], numbuf1[64], numbuf2[64], numbuf3[64], numbuf4[64];
 	struct account_window	*window;
+	date_t			start, finish;
 
 	msgs_lookup((account_print_type & ACCOUNT_FULL) ? "PrintTitleAcclistAcc" : "PrintTitleAcclistHead", buffer, sizeof(buffer));
 	report = report_open(account_print_file, buffer, NULL);
@@ -2851,19 +2853,21 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 	snprintf(line, sizeof(line), "\\b\\u%s", buffer);
 	report_write_line(report, 0, line);
 
-	if (account_print_file->budget.start != NULL_DATE || account_print_file->budget.finish != NULL_DATE) {
+	budget_get_dates(account_print_file, &start, &finish);
+
+	if (start != NULL_DATE || finish != NULL_DATE) {
 		*line = '\0';
 		msgs_lookup("AcclistBudgetTitle", buffer, sizeof(buffer));
 		strcat(line, buffer);
 
-		if (account_print_file->budget.start != NULL_DATE) {
-			convert_date_to_string(account_print_file->budget.start, numbuf1);
+		if (start != NULL_DATE) {
+			convert_date_to_string(start, numbuf1);
 			msgs_param_lookup("AcclistBudgetFrom", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
 			strcat(line, buffer);
 		}
 
-		if (account_print_file->budget.finish != NULL_DATE) {
-			convert_date_to_string(account_print_file->budget.finish, numbuf1);
+		if (finish != NULL_DATE) {
+			convert_date_to_string(finish, numbuf1);
 			msgs_param_lookup("AcclistBudgetTo", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
 			strcat(line, buffer);
 		}
@@ -3857,6 +3861,7 @@ char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_
 void account_recalculate_all(file_data *file)
 {
 	acct_t	account;
+	date_t	budget_start, budget_finish;
 	int	transaction, i;
 	date_t	date, post_date;
 
@@ -3875,7 +3880,8 @@ void account_recalculate_all(file_data *file)
 	}
 
 	date = get_current_date();
-	post_date = add_to_date(date, PERIOD_DAYS, file->budget.sorder_trial);
+	post_date = add_to_date(date, PERIOD_DAYS, budget_get_sorder_trial(file));
+	budget_get_dates(file, &budget_start, &budget_finish);
 
 	/* Add in the effects of each transaction */
 
@@ -3887,11 +3893,11 @@ void account_recalculate_all(file_data *file)
 			if (file->transactions[transaction].date <= date)
 				file->accounts[file->transactions[transaction].from].current_balance -= file->transactions[transaction].amount;
 
-			if ((file->budget.start == NULL_DATE || file->transactions[transaction].date >= file->budget.start) &&
-					(file->budget.finish == NULL_DATE || file->transactions[transaction].date <= file->budget.finish))
+			if ((budget_start == NULL_DATE || file->transactions[transaction].date >= budget_start) &&
+					(budget_finish == NULL_DATE || file->transactions[transaction].date <= budget_finish))
 				file->accounts[file->transactions[transaction].from].budget_balance -= file->transactions[transaction].amount;
 
-			if (!file->budget.limit_postdate || file->transactions[transaction].date <= post_date)
+			if (!budget_limit_postdate || file->transactions[transaction].date <= post_date)
 				file->accounts[file->transactions[transaction].from].future_balance -= file->transactions[transaction].amount;
 		}
 
@@ -3902,11 +3908,11 @@ void account_recalculate_all(file_data *file)
 			if (file->transactions[transaction].date <= date)
 				file->accounts[file->transactions[transaction].to].current_balance += file->transactions[transaction].amount;
 
-			if ((file->budget.start == NULL_DATE || file->transactions[transaction].date >= file->budget.start) &&
-					(file->budget.finish == NULL_DATE || file->transactions[transaction].date <= file->budget.finish))
+			if ((budget_start == NULL_DATE || file->transactions[transaction].date >= budget_start) &&
+					(budget_finish == NULL_DATE || file->transactions[transaction].date <= budget_finish))
 				file->accounts[file->transactions[transaction].to].budget_balance += file->transactions[transaction].amount;
 
-			if (!file->budget.limit_postdate || file->transactions[transaction].date <= post_date)
+			if (!budget_limit_postdate || file->transactions[transaction].date <= post_date)
 				file->accounts[file->transactions[transaction].to].future_balance += file->transactions[transaction].amount;
 		}
 	}
@@ -3943,6 +3949,13 @@ void account_recalculate_all(file_data *file)
 
 void account_remove_transaction(file_data *file, int transaction)
 {
+	date_t	budget_start, budget_finish;
+
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return;
+
+	budget_get_dates(file, &budget_start, &budget_finish);
+
 	/* Remove the current transaction from the fully-caluculated records. */
 
 	if (file->transactions[transaction].from != NULL_ACCOUNT) {
@@ -3952,8 +3965,8 @@ void account_remove_transaction(file_data *file, int transaction)
 		if (file->transactions[transaction].date <= file->last_full_recalc)
 			file->accounts[file->transactions[transaction].from].current_balance += file->transactions[transaction].amount;
 
-		if ((file->budget.start == NULL_DATE ||file->transactions[transaction].date >= file->budget.start) &&
-				(file->budget.finish == NULL_DATE ||file->transactions[transaction].date <= file->budget.finish))
+		if ((budget_start == NULL_DATE || file->transactions[transaction].date >= budget_start) &&
+				(budget_finish == NULL_DATE || file->transactions[transaction].date <= budget_finish))
 			file->accounts[file->transactions[transaction].from].budget_balance += file->transactions[transaction].amount;
 
 		file->accounts[file->transactions[transaction].from].future_balance += file->transactions[transaction].amount;
@@ -3968,8 +3981,8 @@ void account_remove_transaction(file_data *file, int transaction)
 		if (file->transactions[transaction].date <= file->last_full_recalc)
 			file->accounts[file->transactions[transaction].to].current_balance -= file->transactions[transaction].amount;
 
-		if ((file->budget.start == NULL_DATE ||file->transactions[transaction].date >= file->budget.start) &&
-				(file->budget.finish == NULL_DATE ||file->transactions[transaction].date <= file->budget.finish))
+		if ((budget_start == NULL_DATE || file->transactions[transaction].date >= budget_start) &&
+				(budget_finish == NULL_DATE || file->transactions[transaction].date <= budget_finish))
 			file->accounts[file->transactions[transaction].to].budget_balance -= file->transactions[transaction].amount;
 
 		file->accounts[file->transactions[transaction].to].future_balance -= file->transactions[transaction].amount;
@@ -3992,6 +4005,12 @@ void account_remove_transaction(file_data *file, int transaction)
 void account_restore_transaction(file_data *file, int transaction)
 {
 	int	i;
+	date_t	budget_start, budget_finish;
+
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return;
+
+	budget_get_dates(file, &budget_start, &budget_finish);
 
 	/* Restore the current transaction back into the fully-caluculated records. */
 
@@ -4002,8 +4021,8 @@ void account_restore_transaction(file_data *file, int transaction)
 		if (file->transactions[transaction].date <= file->last_full_recalc)
 			file->accounts[file->transactions[transaction].from].current_balance -= file->transactions[transaction].amount;
 
-		if ((file->budget.start == NULL_DATE ||file->transactions[transaction].date >= file->budget.start) &&
-				(file->budget.finish == NULL_DATE ||file->transactions[transaction].date <= file->budget.finish))
+		if ((budget_start == NULL_DATE || file->transactions[transaction].date >= budget_start) &&
+				(budget_finish == NULL_DATE || file->transactions[transaction].date <= budget_finish))
 			file->accounts[file->transactions[transaction].from].budget_balance -= file->transactions[transaction].amount;
 
 		file->accounts[file->transactions[transaction].from].future_balance -= file->transactions[transaction].amount;
@@ -4018,8 +4037,8 @@ void account_restore_transaction(file_data *file, int transaction)
 		if (file->transactions[transaction].date <= file->last_full_recalc)
 			file->accounts[file->transactions[transaction].to].current_balance += file->transactions[transaction].amount;
 
-		if ((file->budget.start == NULL_DATE ||file->transactions[transaction].date >= file->budget.start) &&
-				(file->budget.finish == NULL_DATE ||file->transactions[transaction].date <= file->budget.finish))
+		if ((budget_start == NULL_DATE || file->transactions[transaction].date >= budget_start) &&
+				(budget_finish == NULL_DATE || file->transactions[transaction].date <= budget_finish))
 			file->accounts[file->transactions[transaction].to].budget_balance += file->transactions[transaction].amount;
 
 		file->accounts[file->transactions[transaction].to].future_balance += file->transactions[transaction].amount;

@@ -64,6 +64,7 @@
 
 #include "account.h"
 #include "accview.h"
+#include "budget.h"
 #include "caret.h"
 #include "column.h"
 #include "conversion.h"
@@ -2534,7 +2535,7 @@ void sorder_trial(file_data *file)
 
 	/* Find the cutoff date for the trial. */
 
-	trial_date = add_to_date(get_current_date(), PERIOD_DAYS, file->budget.sorder_trial);
+	trial_date = add_to_date(get_current_date(), PERIOD_DAYS, budget_get_sorder_trial(file));
 
 	/* Zero the order trial values. */
 

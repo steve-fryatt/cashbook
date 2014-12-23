@@ -60,6 +60,7 @@
 #include "accview.h"
 
 #include "account.h"
+#include "budget.h"
 #include "conversion.h"
 #include "caret.h"
 #include "column.h"
@@ -960,6 +961,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	int			ox, oy, top, base, y, i, transaction, credit_limit, shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
 	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more, shade_budget, shade_overdrawn;
+	date_t			budget_start, budget_finish;
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL)
@@ -973,8 +975,10 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	account_type = account_get_type(file, account);
 	credit_limit = account_get_credit_limit(file, account);
 
+	budget_get_dates(file, &budget_start, &budget_finish);
+
 	shade_budget = (account_type & (ACCOUNT_IN | ACCOUNT_OUT)) && config_opt_read ("ShadeBudgeted") &&
-			(file->budget.start != NULL_DATE || file->budget.finish != NULL_DATE);
+			(budget_start != NULL_DATE || budget_finish != NULL_DATE);
 	shade_budget_col = config_int_read ("ShadeBudgetedColour");
 
 	shade_overdrawn = (account_type & ACCOUNT_FULL) && config_opt_read ("ShadeOverdrawn");
@@ -1026,8 +1030,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			/* work out the foreground colour for the line, based on whether the line is to be shaded or not. */
 
 			if (shade_budget && (y < windat->display_lines) &&
-					((file->budget.start == NULL_DATE || file->transactions[transaction].date < file->budget.start) ||
-					(file->budget.finish == NULL_DATE || file->transactions[transaction].date > file->budget.finish))) {
+					((budget_start == NULL_DATE || file->transactions[transaction].date < budget_start) ||
+					(budget_finish == NULL_DATE || file->transactions[transaction].date > budget_finish))) {
 				icon_fg_col = (shade_budget_col << wimp_ICON_FG_COLOUR_SHIFT);
 				icon_fg_balance_col = (shade_budget_col << wimp_ICON_FG_COLOUR_SHIFT);
 			} else if (shade_overdrawn && (y < windat->display_lines) &&

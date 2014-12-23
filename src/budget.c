@@ -242,9 +242,121 @@ static osbool budget_process_window(void)
  * \param *file			The file data block of interest.
  */
 
-void budget_force_window_closed (file_data *file)
+void budget_force_window_closed(file_data *file)
 {
 	if (budget_window_file == file && windows_get_open(budget_window))
 		close_dialogue_with_caret(budget_window);
+}
+
+
+/**
+ * Return the budget start and finish dates for a file.
+ *
+ * \param *file			The file to return dates for.
+ * \param *start		Pointer to location to store the start date,
+ *				or NULL to not return it.
+ * \param *finish		Pointer to location to store the finish date,
+ *				or NULL to not return it.
+ */
+
+void budget_get_dates(file_data *file, date_t *start, date_t *finish)
+{
+	if (start != NULL)
+		*start = (file != NULL) ? file->budget.start : NULL_DATE;
+
+	if (finish != NULL)
+		*finish = (file != NULL) ? file->budget.finish : NULL_DATE;
+}
+
+
+/**
+ * Return the standing order trial period for a file.
+ *
+ * \param *file			The file to return the period for.
+ * \return			The trial period, in days (or 0 on error).
+ */
+
+int budget_get_sorder_trial(file_data *file)
+{
+	if (file == NULL)
+		return 0;
+
+	return file->budget.sorder_trial;
+}
+
+
+/**
+ * Return the postdated transaction limit option for a file (whether postdated
+ * transactions should be limited to the standing order trial period in
+ * reports and budgeting.
+ *
+ * \param *file			The file to return the postdated option for.
+ * \return			TRUE if transactions should be limited to the
+ *				standing order trial period; FALSE to include all.
+ */
+
+osbool budget_get_limit_postdated(file_data *file)
+{
+	if (file == NULL)
+		return FALSE;
+
+	return file->budget.limit_postdate;
+}
+
+
+/**
+ * Save the budget details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void budget_write_file(file_data *file, FILE *out)
+{
+	int	i, j;
+	char	buffer[MAX_FILE_LINE_LEN];
+
+	/* Output the budget data */
+
+	fprintf(out, "\n[Budget]\n");
+
+	fprintf(out, "Start: %x\n", file->budget.start);
+	fprintf(out, "Finish: %x\n", file->budget.finish);
+	fprintf(out, "SOTrial: %x\n", file->budget.sorder_trial);
+	fprintf(out, "RestrictPost: %s\n", config_return_opt_string(file->budget.limit_postdate));
+}
+
+
+/**
+ * Read budget details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+int budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+{
+	int	result;
+
+	do {
+		if (string_nocase_strcmp (token, "Start") == 0)
+			file->budget.start = strtoul (value, NULL, 16);
+		else if (string_nocase_strcmp (token, "Finish") == 0)
+			file->budget.finish = strtoul (value, NULL, 16);
+		else if (string_nocase_strcmp (token, "SOTrial") == 0)
+			file->budget.sorder_trial = strtoul (value, NULL, 16);
+		else if (string_nocase_strcmp (token, "RestrictPost") == 0)
+			file->budget.limit_postdate = (config_read_opt_string(value) == TRUE);
+		else
+			*unknown_data = TRUE;
+
+		result = config_read_token_pair(in, token, value, section);
+	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+
+	return result;
 }
 

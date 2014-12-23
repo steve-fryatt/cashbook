@@ -2762,7 +2762,7 @@ void sorder_write_file(file_data *file, FILE *out)
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int sorder_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+enum config_read_status sorder_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
 {
 	int	result, block_size, i = -1;
 
@@ -2820,7 +2820,7 @@ int sorder_read_file(file_data *file, FILE *in, char *section, char *token, char
 		}
 
 		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 
 	block_size = flex_size((flex_ptr) &(file->sorders)) / sizeof(struct sorder);
 

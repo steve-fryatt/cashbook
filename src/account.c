@@ -3864,6 +3864,7 @@ void account_recalculate_all(file_data *file)
 	date_t	budget_start, budget_finish;
 	int	transaction, i;
 	date_t	date, post_date;
+	osbool	limit_postdated;
 
 	if (file == NULL)
 		return;
@@ -3882,6 +3883,7 @@ void account_recalculate_all(file_data *file)
 	date = get_current_date();
 	post_date = add_to_date(date, PERIOD_DAYS, budget_get_sorder_trial(file));
 	budget_get_dates(file, &budget_start, &budget_finish);
+	limit_postdated = budget_get_limit_postdated(file);
 
 	/* Add in the effects of each transaction */
 
@@ -3897,7 +3899,7 @@ void account_recalculate_all(file_data *file)
 					(budget_finish == NULL_DATE || file->transactions[transaction].date <= budget_finish))
 				file->accounts[file->transactions[transaction].from].budget_balance -= file->transactions[transaction].amount;
 
-			if (!budget_limit_postdate || file->transactions[transaction].date <= post_date)
+			if (!limit_postdated || file->transactions[transaction].date <= post_date)
 				file->accounts[file->transactions[transaction].from].future_balance -= file->transactions[transaction].amount;
 		}
 
@@ -3912,7 +3914,7 @@ void account_recalculate_all(file_data *file)
 					(budget_finish == NULL_DATE || file->transactions[transaction].date <= budget_finish))
 				file->accounts[file->transactions[transaction].to].budget_balance += file->transactions[transaction].amount;
 
-			if (!budget_limit_postdate || file->transactions[transaction].date <= post_date)
+			if (!limit_postdated || file->transactions[transaction].date <= post_date)
 				file->accounts[file->transactions[transaction].to].future_balance += file->transactions[transaction].amount;
 		}
 	}
@@ -4299,7 +4301,7 @@ void account_write_file(file_data *file, FILE *out)
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data)
+enum config_read_status account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data)
 {
 	int	result, block_size, i = -1, j;
 
@@ -4423,7 +4425,7 @@ int account_read_acct_file(file_data *file, FILE *in, char *section, char *token
 		}
 
 		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 
 	block_size = flex_size((flex_ptr) &(file->accounts)) / sizeof(struct account);
 
@@ -4456,7 +4458,7 @@ int account_read_acct_file(file_data *file, FILE *in, char *section, char *token
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int account_read_list_file(file_data *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data)
+enum config_read_status account_read_list_file(file_data *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data)
 {
 	int	result, block_size, i = -1, type, entry;
 
@@ -4502,7 +4504,7 @@ int account_read_list_file(file_data *file, FILE *in, char *section, char *token
 		}
 
 		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 
 	block_size = flex_size((flex_ptr) &(file->account_windows[entry].line_data)) / sizeof(struct account_redraw);
 

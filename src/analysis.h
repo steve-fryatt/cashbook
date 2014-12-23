@@ -226,7 +226,7 @@ void analysis_write_file(file_data *file, FILE *out);
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int analysis_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+enum config_read_status analysis_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
 
 #endif
 

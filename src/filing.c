@@ -117,13 +117,13 @@ void filing_initialise(void)
 
 void load_transaction_file(char *filename)
 {
-	int		result = sf_READ_CONFIG_EOF;
-	int		file_format = 0;
-	char		section[MAX_FILE_LINE_LEN], token[MAX_FILE_LINE_LEN], value[MAX_FILE_LINE_LEN], *suffix;
-	bits		load;
-	file_data	*file;
-	FILE		*in;
-	osbool		unknown_data = FALSE, unknown_format = FALSE;
+	enum config_read_status	result = sf_CONFIG_READ_EOF;
+	int			file_format = 0;
+	char			section[MAX_FILE_LINE_LEN], token[MAX_FILE_LINE_LEN], value[MAX_FILE_LINE_LEN], *suffix;
+	bits			load;
+	file_data		*file;
+	FILE			*in;
+	osbool			unknown_data = FALSE, unknown_format = FALSE;
 
 	#ifdef DEBUG
 	debug_printf("\\BLoading accounts file");
@@ -193,9 +193,9 @@ void load_transaction_file(char *filename)
 				}
 
 				result = config_read_token_pair(in, token, value, section);
-			} while (unknown_format == FALSE && result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+			} while (unknown_format == FALSE && result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 		}
-	} while (unknown_format == FALSE && result != sf_READ_CONFIG_EOF);
+	} while (unknown_format == FALSE && result != sf_CONFIG_READ_EOF);
 
 	fclose(in);
 

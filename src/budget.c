@@ -41,8 +41,10 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/config.h"
 #include "sflib/event.h"
 #include "sflib/icons.h"
+#include "sflib/string.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -313,9 +315,6 @@ osbool budget_get_limit_postdated(file_data *file)
 
 void budget_write_file(file_data *file, FILE *out)
 {
-	int	i, j;
-	char	buffer[MAX_FILE_LINE_LEN];
-
 	/* Output the budget data */
 
 	fprintf(out, "\n[Budget]\n");
@@ -338,7 +337,7 @@ void budget_write_file(file_data *file, FILE *out)
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+enum config_read_status budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
 {
 	int	result;
 
@@ -355,7 +354,7 @@ int budget_read_file(file_data *file, FILE *in, char *section, char *token, char
 			*unknown_data = TRUE;
 
 		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_READ_CONFIG_EOF && result != sf_READ_CONFIG_NEW_SECTION);
+	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 
 	return result;
 }

@@ -580,7 +580,7 @@ void account_write_file(file_data *file, FILE *out);
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data);
+enum config_read_status account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data);
 
 
 /**
@@ -595,7 +595,7 @@ int account_read_acct_file(file_data *file, FILE *in, char *section, char *token
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-int account_read_list_file(file_data *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data);
+enum config_read_status account_read_list_file(file_data *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data);
 
 #endif
 

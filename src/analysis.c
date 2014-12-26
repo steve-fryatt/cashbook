@@ -986,7 +986,7 @@ static void analysis_generate_transaction_report(file_data *file)
 	struct analysis_data	*data;
 	struct analysis_report	*template;
 	int			i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
-				total_days, period_days, period_limit, entry, account;
+				total_days, period_days, period_limit, entries, account;
 	date_t			start_date, end_date, next_start, next_end;
 	amt_t			min_amount, max_amount;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
@@ -1180,12 +1180,10 @@ static void analysis_generate_transaction_report(file_data *file)
 			sprintf(line, "\\i%s", b1);
 			report_write_line(report, 2, line);
 
-			entry = account_find_window_entry_from_type(file, ACCOUNT_FULL);
+			entries = account_get_list_length(file, ACCOUNT_FULL);
 
-			for (i=0; i < file->account_windows[entry].display_lines; i++) {
-				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
-					account = file->account_windows[entry].line_data[i].account;
-
+			for (i = 0; i < entries; i++) {
+				if ((account = account_get_list_entry(file, ACCOUNT_FULL, i)) != NULL_ACCOUNT) {
 					if (data[account].report_total != 0) {
 						total += data[account].report_total;
 						convert_money_to_string(data[account].report_total, b1);
@@ -1218,12 +1216,10 @@ static void analysis_generate_transaction_report(file_data *file)
 			}
 			report_write_line(report, 2, line);
 
-			entry = account_find_window_entry_from_type(file, ACCOUNT_OUT);
+			entries = account_get_list_length(file, ACCOUNT_OUT);
 
-			for (i=0; i < file->account_windows[entry].display_lines; i++) {
-				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
-					account = file->account_windows[entry].line_data[i].account;
-
+			for (i = 0; i < entries; i++) {
+				if ((account = account_get_list_entry(file, ACCOUNT_OUT, i)) != NULL_ACCOUNT) {
 					if (data[account].report_total != 0) {
 						total += data[account].report_total;
 						convert_money_to_string(data[account].report_total, b1);
@@ -1267,12 +1263,10 @@ static void analysis_generate_transaction_report(file_data *file)
 
 			report_write_line(report, 2, line);
 
-			entry = account_find_window_entry_from_type(file, ACCOUNT_IN);
+			entries = account_get_list_length(file, ACCOUNT_IN);
 
-			for (i=0; i < file->account_windows[entry].display_lines; i++) {
-				if (file->account_windows[entry].line_data[i].type == ACCOUNT_LINE_DATA) {
-					account = file->account_windows[entry].line_data[i].account;
-
+			for (i = 0; i < entries; i++) {
+				if ((account = account_get_list_entry(file, ACCOUNT_IN, i)) != NULL_ACCOUNT) {
 					if (data[account].report_total != 0) {
 						total += data[account].report_total;
 						convert_money_to_string(-data[account].report_total, b1);
@@ -1723,7 +1717,7 @@ static osbool analysis_delete_unreconciled_window(void)
 
 static void analysis_generate_unreconciled_report(file_data *file)
 {
-	int			i, acc, found, unit, period, group, lock, tot_in, tot_out, entry;
+	int			i, acc, found, unit, period, group, lock, tot_in, tot_out, entries;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
 				rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
 	date_t			start_date, end_date, next_start, next_end;
@@ -1821,12 +1815,10 @@ static void analysis_generate_unreconciled_report(file_data *file)
 		 */
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
-			entry = account_find_window_entry_from_type(file, sequence[acc_group]);
+			entries = account_get_list_length(file, sequence[acc_group]);
 
-			for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
-				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
-					acc = file->account_windows[entry].line_data[group_line].account;
-
+			for (group_line = 0; group_line < entries; group_line++) {
+				if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					found = 0;
 					tot_in = 0;
 					tot_out = 0;
@@ -2369,7 +2361,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 	struct report		*report;
 	struct analysis_data	*data;
 	struct analysis_report	*template;
-	int			entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (file == NULL)
 		return;
@@ -2474,12 +2466,10 @@ static void analysis_generate_cashflow_report(file_data *file)
 		sprintf(line, "\\k\\b%s", b1);
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
-			entry = account_find_window_entry_from_type(file, sequence[acc_group]);
+			entries = account_get_list_length(file, sequence[acc_group]);
 
-			for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
-				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
-					acc = file->account_windows[entry].line_data[group_line].account;
-
+			for (group_line = 0; group_line < entries; group_line++) {
+				if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
 						strcat(line, b1);
@@ -2528,12 +2518,10 @@ static void analysis_generate_cashflow_report(file_data *file)
 				total = 0;
 
 				for (acc_group = 0; acc_group < groups; acc_group++) {
-					entry = account_find_window_entry_from_type(file, sequence[acc_group]);
+					entries = account_get_list_length(file, sequence[acc_group]);
 
-					for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
-						if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
-							acc = file->account_windows[entry].line_data[group_line].account;
-
+					for (group_line = 0; group_line < entries; group_line++) {
+						if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 							if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 								total += data[acc].report_total;
 								full_convert_money_to_string(data[acc].report_total, b1, TRUE);
@@ -2558,12 +2546,10 @@ static void analysis_generate_cashflow_report(file_data *file)
 				total = 0;
 
 				for (acc_group = 0; acc_group < groups; acc_group++) {
-					entry = account_find_window_entry_from_type(file, sequence[acc_group]);
+					entries = account_get_list_length(file, sequence[acc_group]);
 
-					for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
-						if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
-							acc = file->account_windows[entry].line_data[group_line].account;
-
+					for (group_line = 0; group_line < entries; group_line++) {
+						if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 							if (data[acc].report_total != 0 && (data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 								total += data[acc].report_total;
 								full_convert_money_to_string(data[acc].report_total, b1, TRUE);
@@ -2999,7 +2985,7 @@ static void analysis_generate_balance_report(file_data *file)
 	struct report		*report;
 	struct analysis_data	*data;
 	struct analysis_report	*template;
-	int			entry, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (file == NULL)
 		return;
@@ -3102,12 +3088,10 @@ static void analysis_generate_balance_report(file_data *file)
 		sprintf(line, "\\k\\b%s", b1);
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
-			entry = account_find_window_entry_from_type(file, sequence[acc_group]);
+			entries = account_get_list_length(file, sequence[acc_group]);
 
-			for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
-				if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
-					acc = file->account_windows[entry].line_data[group_line].account;
-
+			for (group_line = 0; group_line < entries; group_line++) {
+				if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
 						strcat(line, b1);
@@ -3153,12 +3137,10 @@ static void analysis_generate_balance_report(file_data *file)
 
 
 			for (acc_group = 0; acc_group < groups; acc_group++) {
-				entry = account_find_window_entry_from_type(file, sequence[acc_group]);
+				entries = account_get_list_length(file, sequence[acc_group]);
 
-				for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
-					if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
-						acc = file->account_windows[entry].line_data[group_line].account;
-
+				for (group_line = 0; group_line < entries; group_line++) {
+					if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 						if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 							total += data[acc].report_total;
 							full_convert_money_to_string(data[acc].report_total, b1, TRUE);
@@ -3182,12 +3164,10 @@ static void analysis_generate_balance_report(file_data *file)
 			total = 0;
 
 			for (acc_group = 0; acc_group < groups; acc_group++) {
-				entry = account_find_window_entry_from_type(file, sequence[acc_group]);
+				entries = account_get_list_length(file, sequence[acc_group]);
 
-				for (group_line = 0; group_line < file->account_windows[entry].display_lines; group_line++) {
-					if (file->account_windows[entry].line_data[group_line].type == ACCOUNT_LINE_DATA) {
-						acc = file->account_windows[entry].line_data[group_line].account;
-
+				for (group_line = 0; group_line < entries; group_line++) {
+					if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 						if (data[acc].report_total != 0 && (data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 							total += data[acc].report_total;
 							full_convert_money_to_string(data[acc].report_total, b1, TRUE);

@@ -98,6 +98,16 @@
 #define ACCLIST_MENU_EXPTSV 6
 #define ACCLIST_MENU_PRINT 7
 
+/* Account window line redraw data struct */
+
+struct account_redraw {
+	enum account_line_type	type;						/* Type of line (account, header, footer, blank, etc).		*/
+
+	acct_t			account;					/* Number of account.						*/
+	amt_t			total[ACCOUNT_COLUMNS - 2];			/* Balance totals for section.					*/
+	char			heading[ACCOUNT_SECTION_LEN];			/* Heading for section.						*/
+};
+
 /**
  * Account data structure -- implementation.
  */
@@ -272,6 +282,7 @@ static void			account_print(osbool text, osbool format, osbool scale, osbool rot
 
 static void			account_add_to_lists(file_data *file, acct_t account);
 static int			account_add_list_display_line(file_data *file, int entry);
+static int			account_find_window_entry_from_type(file_data *file, enum account_type type);
 
 
 
@@ -3196,7 +3207,7 @@ osbool account_delete(file_data *file, acct_t account)
  * \return			The corresponding index, or -1 if not found.
  */
 
-int account_find_window_entry_from_type(file_data *file, enum account_type type)
+static int account_find_window_entry_from_type(file_data *file, enum account_type type)
 {
 	int	i, entry = -1;
 
@@ -3210,6 +3221,57 @@ int account_find_window_entry_from_type(file_data *file, enum account_type type)
 			entry = i;
 
 	return entry;
+}
+
+
+/**
+ * Find the number of entries in the account window of a given account type.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \return			The number of entries, or 0.
+ */
+
+int account_get_list_length(file_data *file, enum account_type type)
+{
+	int	entry;
+
+	if (file == NULL)
+		return 0;
+
+	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1)
+		return 0;
+
+	return file->account_windows[entry].display_lines;
+}
+
+
+/**
+ * Return the account on a given line of an account list window.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \param line			The line to return the details for.
+ * \return			The account on that line, or NULL_ACCOUNT if the
+ *				line isn't an account.
+ */
+
+acct_t account_get_list_entry(file_data *file, enum account_type type, int line)
+{
+	int	entry;
+
+	if (file == NULL || line < 0)
+		return NULL_ACCOUNT;
+
+	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1 || line >= file->account_windows[entry].display_lines)
+		return NULL_ACCOUNT;
+
+	if (file->account_windows[entry].line_data[line].type != ACCOUNT_LINE_DATA)
+		return NULL_ACCOUNT;
+
+	return file->account_windows[entry].line_data[line].account;
 }
 
 

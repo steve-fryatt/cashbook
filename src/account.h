@@ -86,6 +86,17 @@
 #define SECTION_EDIT_HEADER 5
 #define SECTION_EDIT_FOOTER 6
 
+/**
+ * Account window line types
+ */
+
+enum account_line_type {
+	ACCOUNT_LINE_BLANK = 0,							/**< Blank, unset line type.				*/
+	ACCOUNT_LINE_DATA,							/**< Data line type.					*/
+	ACCOUNT_LINE_HEADER,							/**< Section Heading line type.				*/
+	ACCOUNT_LINE_FOOTER							/**< Section Footer line type.				*/
+};
+
 
 enum account_menu_type{
 	ACCOUNT_MENU_FROM = 1,
@@ -273,14 +284,27 @@ osbool account_delete(file_data *file, acct_t account);
 
 
 /**
- * Find the account window entry index which corresponds to a given account type.
+ * Find the number of entries in the account window of a given account type.
  *
  * \param *file			The file to use.
- * \param type			The account type to find the entry for.
- * \return			The corresponding index, or -1 if not found.
+ * \param type			The type of account window to query.
+ * \return			The number of entries, or 0.
  */
 
-int account_find_window_entry_from_type(file_data *file, enum account_type type);
+int account_get_list_length(file_data *file, enum account_type type);
+
+
+/**
+ * Return the account on a given line of an account list window.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \param line			The line to return the details for.
+ * \return			The account on that line, or NULL_ACCOUNT if the
+ *				line isn't an account.
+ */
+
+acct_t account_get_list_entry(file_data *file, enum account_type type, int line);
 
 
 /**

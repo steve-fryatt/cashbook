@@ -146,15 +146,6 @@ enum date_period {
 	PERIOD_YEARS								/**< Period specified in years.				*/
 };
 
-/* Account window line types */
-
-enum account_line_type {
-	ACCOUNT_LINE_BLANK = 0,							/**< Blank, unset line type.				*/
-	ACCOUNT_LINE_DATA,							/**< Data line type.					*/
-	ACCOUNT_LINE_HEADER,							/**< Section Heading line type.				*/
-	ACCOUNT_LINE_FOOTER							/**< Section Footer line type.				*/
-};
-
 /* Transaction flags (bitwiase allocation) */
 
 enum transact_flags {
@@ -300,19 +291,6 @@ struct transaction {
 	int			sort_workspace;		/**< Workspace used by the sorting code. */
 };
 
-/* ==================================================================================================================
- * Window redraw data structures
- */
-
-/* Account window line redraw data struct */
-
-struct account_redraw {
-	enum account_line_type	type;						/* Type of line (account, header, footer, blank, etc) */
-
-	acct_t			account;					/* Number of account. */
-	amt_t			total[ACCOUNT_COLUMNS-2];			/* Balance totals for section. */
-	char			heading[ACCOUNT_SECTION_LEN];			/* Heading for section. */
-};
 
 /* ==================================================================================================================
  * Window data structures

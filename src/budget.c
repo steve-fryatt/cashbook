@@ -111,8 +111,9 @@ void budget_initialise(void)
 
 
 /**
- * Construct new budget data for a new file. The block will be allocated with
- * heap_alloc(), and should be freed after use with heap_free().
+ * Construct new budget data block for a file, and return a pointer to the
+ * resulting block. The block will be allocated with heap_alloc(), and should
+ * be freed after use with heap_free().
  *
  * \return		Pointer to the new data block, or NULL on error.
  */

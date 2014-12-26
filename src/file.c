@@ -288,11 +288,11 @@ file_data *build_new_file_block(void)
   /* Set the filename and save status. */
 
   *(new->filename) = '\0';
-  new->modified = 0;
-  new->sort_valid = 1;
+  new->modified = FALSE;
+  new->sort_valid = TRUE;
   new->untitled_count = ++untitled_count;
   new->child_x_offset = 0;
-  new->auto_reconcile = 0;
+  new->auto_reconcile = FALSE;
 
   /* Set up the default initial values. */
 

@@ -269,6 +269,7 @@ struct report;
 struct budget;
 struct find;
 struct go_to;
+struct purge;
 
 struct accview_window;
 struct account_redraw;
@@ -446,19 +447,6 @@ struct printing {
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Continuation dialogue. */
-
-struct purge {
-	osbool		transactions;						/**< TRUE to remove reconciled transactions, subject to the before constraint; else FALSE.	*/
-	osbool		accounts;						/**< TRUE to remove unused accounts; else FALSE.						*/
-	osbool		headings;						/**< TRUE to remove unused headings; else FALSE.						*/
-	osbool		sorders;						/**< TRUE to remove completed standing orders; else FALSE.					*/
-
-	date_t		before;							/**< The date before which reconciled transactions should be removed; NULL_DATE for none.	*/
-};
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
 /* Transaction Report dialogue. */
 
 struct trans_rep {
@@ -628,7 +616,7 @@ struct file_data
 	struct go_to			*go_to;					/**< Data relating to the goto module.				*/
 	struct find			*find;					/**< Data relating to the find module.				*/
 	struct printing			print;					/**< Data relating to the print dialogues.			*/
-	struct purge			purge;					/**< Data relating to the purge module.				*/
+	struct purge			*purge;					/**< Data relating to the purge module.				*/
 	struct trans_rep		trans_rep;
 	struct unrec_rep		unrec_rep;
 	struct cashflow_rep		cashflow_rep;

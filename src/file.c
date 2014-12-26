@@ -148,6 +148,7 @@ file_data *build_new_file_block(void)
 	new->budget = NULL;
 	new->find = NULL;
 	new->go_to = NULL;
+	new->purge = NULL;
 	new->reports = NULL;
 	new->import_report = NULL;
 
@@ -173,6 +174,15 @@ file_data *build_new_file_block(void)
 
 	new->go_to = goto_create();
 	if (new->go_to == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+
+	/* Set up the purge data. */
+
+	new->purge = purge_create();
+	if (new->purge == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -295,12 +305,6 @@ file_data *build_new_file_block(void)
   new->print.text_format = config_opt_read("PrintTextFormat");
   new->print.from = NULL_DATE;
   new->print.to = NULL_DATE;
-
-  new->purge.transactions = TRUE;
-  new->purge.accounts = FALSE;
-  new->purge.headings = FALSE;
-  new->purge.sorders = FALSE;
-  new->purge.before = NULL_DATE;
 
   new->trans_rep.date_from = NULL_DATE;
   new->trans_rep.date_to = NULL_DATE;
@@ -507,6 +511,8 @@ void delete_file(file_data *file)
 		heap_free(file->find);
 	if (file->go_to != NULL)
 		heap_free(file->go_to);
+	if (file->purge != NULL)
+		heap_free(file->purge);
 
 	if (file->transactions != NULL)
 		flex_free((flex_ptr) &(file->transactions));

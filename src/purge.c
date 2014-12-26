@@ -45,8 +45,9 @@
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
-#include "sflib/windows.h"
+#include "sflib/windows.h"purge.
 
 /* Application header files */
 
@@ -77,9 +78,22 @@
 #define PURGE_ICON_DATETEXT 1
 
 
-static file_data	*purge_window_file = NULL;				/**< The file which currently owns the Purge window.	*/
-static osbool		purge_window_restore = 0;				/**< The current restore setting for the Purge window.	*/
-static wimp_w		purge_window = NULL;					/**< The Purge window handle.				*/
+/**
+ * Purge Dialogue data.
+ */
+
+struct purge {
+	osbool		transactions;						/**< TRUE to remove reconciled transactions, subject to the before constraint; else FALSE.	*/
+	osbool		accounts;						/**< TRUE to remove unused accounts; else FALSE.						*/
+	osbool		headings;						/**< TRUE to remove unused headings; else FALSE.						*/
+	osbool		sorders;						/**< TRUE to remove completed standing orders; else FALSE.					*/
+
+	date_t		before;							/**< The date before which reconciled transactions should be removed; NULL_DATE for none.	*/
+};
+
+static file_data	*purge_window_file = NULL;				/**< The file which currently owns the Purge window.						*/
+static osbool		purge_window_restore = 0;				/**< The current restore setting for the Purge window.						*/
+static wimp_w		purge_window = NULL;					/**< The Purge window handle.									*/
 
 
 static void		purge_click_handler(wimp_pointer *pointer);
@@ -104,6 +118,31 @@ void purge_initialise(void)
 
 
 /**
+ * Construct new purge data block for a file, and return a pointer to the
+ * resulting block. The block will be allocated with heap_alloc(), and should
+ * be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct purge *purge_create(void)
+{
+	struct purge	*new;
+
+	new = heap_alloc(sizeof(struct purge));
+	if (new == NULL)
+		return NULL;
+
+	new->transactions = TRUE;
+	new->accounts = FALSE;
+	new->headings = FALSE;
+	new->sorders = FALSE;
+	new->before = NULL_DATE;
+
+	return new;
+}
+
+/**
  * Open the Purge dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -121,7 +160,7 @@ void purge_open_window(file_data *file, wimp_pointer *ptr, osbool restore)
 
 	/* Blank out the icon contents. */
 
-	purge_fill_window(&(file->purge), restore);
+	purge_fill_window(file->purge, restore);
 
 	/* Set the pointer up to find the window again and open the window. */
 
@@ -197,7 +236,7 @@ static osbool purge_keypress_handler(wimp_key *key)
 
 static void purge_refresh_window(void)
 {
-	purge_fill_window(&(purge_window_file->purge), purge_window_restore);
+	purge_fill_window(purge_window_file->purge, purge_window_restore);
 
 	icons_redraw_group(purge_window, 1, PURGE_ICON_DATE);
 	icons_replace_caret_in_window(purge_window);
@@ -245,22 +284,22 @@ static void purge_fill_window(struct purge *cont_data, osbool restore)
 
 static osbool purge_process_window(void)
 {
-	purge_window_file->purge.transactions = icons_get_selected(purge_window, PURGE_ICON_TRANSACT);
-	purge_window_file->purge.accounts = icons_get_selected(purge_window, PURGE_ICON_ACCOUNTS);
-	purge_window_file->purge.headings = icons_get_selected(purge_window, PURGE_ICON_HEADINGS);
-	purge_window_file->purge.sorders = icons_get_selected(purge_window, PURGE_ICON_SORDERS);
+	purge_window_file->purge->transactions = icons_get_selected(purge_window, PURGE_ICON_TRANSACT);
+	purge_window_file->purge->accounts = icons_get_selected(purge_window, PURGE_ICON_ACCOUNTS);
+	purge_window_file->purge->headings = icons_get_selected(purge_window, PURGE_ICON_HEADINGS);
+	purge_window_file->purge->sorders = icons_get_selected(purge_window, PURGE_ICON_SORDERS);
 
-	purge_window_file->purge.before =
+	purge_window_file->purge->before =
 			convert_string_to_date(icons_get_indirected_text_addr(purge_window, PURGE_ICON_DATE), NULL_DATE, 0);
 
 	if (purge_window_file->modified == 1 && error_msgs_report_question("PurgeFileNotSaved", "PurgeFileNotSavedB") == 2)
 		return FALSE;
 
-	purge_file(purge_window_file, purge_window_file->purge.transactions,
-		purge_window_file->purge.before,
-		purge_window_file->purge.accounts,
-		purge_window_file->purge.headings,
-		purge_window_file->purge.sorders);
+	purge_file(purge_window_file, purge_window_file->purge->transactions,
+		purge_window_file->purge->before,
+		purge_window_file->purge->accounts,
+		purge_window_file->purge->headings,
+		purge_window_file->purge->sorders);
 
 	return TRUE;
 }

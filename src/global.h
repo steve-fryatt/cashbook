@@ -267,6 +267,7 @@ struct sorder;
 struct preset;
 struct report;
 struct budget;
+struct find;
 struct go_to;
 
 struct accview_window;
@@ -427,41 +428,6 @@ struct preset_window {
  * Dialogue content data structures
  */
 
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Find dialogue data. */
-
-enum find_logic {
-	FIND_AND = 1,
-	FIND_OR = 2
-};
-
-enum find_direction {
-	FIND_NODIR = 0,
-	FIND_START = 1,
-	FIND_END = 2,
-	FIND_UP = 3,
-	FIND_DOWN = 4,
-	FIND_NEXT = 5,
-	FIND_PREVIOUS = 6
-};
-
-struct find {
-	date_t			date;
-	acct_t			from;
-  unsigned from_rec;
-	acct_t			to;
-  unsigned to_rec;
-	amt_t			amount;
-	char			ref[REF_FIELD_LEN];
-	char			desc[DESCRIPT_FIELD_LEN];
-
-	enum find_logic		logic;
-	osbool			case_sensitive;
-	osbool			whole_text;
-	enum find_direction	direction;
-};
 
 /* ----------------------------------------------------------------------------------------------------------------- */
 
@@ -660,7 +626,7 @@ struct file_data
 	/* Dialogue content. */
 
 	struct go_to			*go_to;					/**< Data relating to the goto module.				*/
-	struct find			find;					/**< Data relating to the find module.				*/
+	struct find			*find;					/**< Data relating to the find module.				*/
 	struct printing			print;					/**< Data relating to the print dialogues.			*/
 	struct purge			purge;					/**< Data relating to the purge module.				*/
 	struct trans_rep		trans_rep;

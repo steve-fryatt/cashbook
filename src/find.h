@@ -38,6 +38,17 @@ void find_initialise(void);
 
 
 /**
+ * Construct new find data block for a file, and return a pointer to the
+ * resulting block. The block will be allocated with heap_alloc(), and should
+ * be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct find *find_create(void);
+
+
+/**
  * Open the Find dialogue box.
  *
  * \param *file		The file owning the dialogue.

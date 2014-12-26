@@ -43,6 +43,7 @@
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
@@ -95,13 +96,56 @@
 #define FOUND_ICON_NEW 3
 #define FOUND_ICON_INFO 4
 
+/**
+ * Search logic options.
+ */
 
-static file_data	*find_window_file = NULL;				/**< The file currently owning the Find dialogue.	*/
-static struct find	find_params;						/**< A copy of the settings for the current search.	*/
-static osbool		find_restore = FALSE;					/**< The restore setting for the current dialogue.	*/
+enum find_logic {
+	FIND_NOLOGIC = 0,							/**< No logic has been specified.					*/
+	FIND_AND = 1,								/**< Search using AND logic to combine the fields.			*/
+	FIND_OR = 2								/**< Search using OR logic to comnine the fields.			*/
+};
 
-static wimp_w		find_window = NULL;					/**< The handle of the find window.			*/
-static wimp_w		find_result_window = NULL;				/**< The handle of the 'found' window.			*/
+/**
+ * Search direction options.
+ */
+
+enum find_direction {
+	FIND_NODIR = 0,								/**< No direction has been specified.					*/
+	FIND_START = 1,								/**< Begin searching down from the start of the file.			*/
+	FIND_END = 2,								/**< Begin searching up from the end of the file.			*/
+	FIND_UP = 3,								/**< Continue searching up.						*/
+	FIND_DOWN = 4,								/**< Continue searching down.						*/
+	FIND_NEXT = 5,								/**< Find the next match in the current direction.			*/
+	FIND_PREVIOUS = 6							/**< Find the previous match in the current direction.			*/
+};
+
+/**
+ * Search data.
+ */
+
+struct find {
+	date_t			date;						/**< The date to match, or NULL_DATE for none.				*/
+	acct_t			from;						/**< The From account to match, or NULL_ACCOUNT for none.		*/
+	unsigned		from_rec;					/**< The From account's reconciled status.				*/
+	acct_t			to;						/**< The To account to match, or NULL_ACCOUNT for none.			*/
+	unsigned		to_rec;						/**< The To account's reconciled status. \TODO -- Merge with From?	*/
+	amt_t			amount;						/**< The Amount to match, or NULL_CURRENCY for "don't care".		*/
+	char			ref[REF_FIELD_LEN];				/**< The Reference to match; NULL or '\0' for "don't care".		*/
+	char			desc[DESCRIPT_FIELD_LEN];			/**< The Description to match; NULL or '\0' for "don't care".		*/
+
+	enum find_logic		logic;						/**< The logic to use to combine the fields specified above.		*/
+	osbool			case_sensitive;					/**< TRUE to match case of strings; FALSE to ignore.			*/
+	osbool			whole_text;					/**< TRUE to match strings exactly; FALSE to allow substrings.		*/
+	enum find_direction	direction;					/**< The direction to search in.					*/
+};
+
+static file_data	*find_window_file = NULL;				/**< The file currently owning the Find dialogue.			*/
+static struct find	find_params;						/**< A copy of the settings for the current search.			*/
+static osbool		find_restore = FALSE;					/**< The restore setting for the current dialogue.			*/
+
+static wimp_w		find_window = NULL;					/**< The handle of the find window.					*/
+static wimp_w		find_result_window = NULL;				/**< The handle of the 'found' window.					*/
 
 
 static void		find_reopen_window(wimp_pointer *ptr);
@@ -140,6 +184,39 @@ void find_initialise(void)
 
 
 /**
+ * Construct new find data block for a file, and return a pointer to the
+ * resulting block. The block will be allocated with heap_alloc(), and should
+ * be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct find *find_create(void)
+{
+	struct find	*new;
+
+	new = heap_alloc(sizeof(struct find));
+	if (new == NULL)
+		return NULL;
+
+	new->date = NULL_DATE;
+	new->from = NULL_ACCOUNT;
+	new->from_rec = TRANS_FLAGS_NONE;
+	new->to = NULL_ACCOUNT;
+	new->to_rec = TRANS_FLAGS_NONE;
+	new->amount = NULL_CURRENCY;
+	*(new->ref) = '\0';
+	*(new->desc) = '\0';
+
+	new->logic = FIND_OR;
+	new->case_sensitive = FALSE;
+	new->whole_text = FALSE;
+	new->direction = FIND_START;
+
+	return new;
+}
+
+/**
  * Open the Find dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -160,7 +237,7 @@ void find_open_window(file_data *file, wimp_pointer *ptr, osbool restore)
 
 	/* Blank out the icon contents. */
 
-	find_fill_window(&(file->find), restore);
+	find_fill_window(file->find, restore);
 
 	/* Set the pointer up to find the window again and open the window. */
 
@@ -321,7 +398,7 @@ static void find_result_click_handler(wimp_pointer *pointer)
 
 static void find_refresh_window(void)
 {
-	find_fill_window(&(find_window_file->find), find_restore);
+	find_fill_window(find_window_file->find, find_restore);
 	icons_redraw_group(find_window, 10, FIND_ICON_DATE,
 			FIND_ICON_FMIDENT, FIND_ICON_FMREC, FIND_ICON_FMNAME,
 			FIND_ICON_TOIDENT, FIND_ICON_TOREC, FIND_ICON_TONAME,
@@ -401,45 +478,45 @@ static osbool find_process_window(void)
 
 	/* Get the window contents. */
 
-	find_window_file->find.date = convert_string_to_date(icons_get_indirected_text_addr(find_window, FIND_ICON_DATE), NULL_DATE, 0);
-	find_window_file->find.from = account_find_by_ident(find_window_file, icons_get_indirected_text_addr(find_window, FIND_ICON_FMIDENT),
+	find_window_file->find->date = convert_string_to_date(icons_get_indirected_text_addr(find_window, FIND_ICON_DATE), NULL_DATE, 0);
+	find_window_file->find->from = account_find_by_ident(find_window_file, icons_get_indirected_text_addr(find_window, FIND_ICON_FMIDENT),
 			ACCOUNT_FULL | ACCOUNT_IN);
-	find_window_file->find.from_rec = (*icons_get_indirected_text_addr(find_window, FIND_ICON_FMREC) == '\0') ? 0 : TRANS_REC_FROM;
-	find_window_file->find.to = account_find_by_ident(find_window_file, icons_get_indirected_text_addr(find_window, FIND_ICON_TOIDENT),
+	find_window_file->find->from_rec = (*icons_get_indirected_text_addr(find_window, FIND_ICON_FMREC) == '\0') ? 0 : TRANS_REC_FROM;
+	find_window_file->find->to = account_find_by_ident(find_window_file, icons_get_indirected_text_addr(find_window, FIND_ICON_TOIDENT),
 			ACCOUNT_FULL | ACCOUNT_OUT);
-	find_window_file->find.to_rec = (*icons_get_indirected_text_addr(find_window, FIND_ICON_TOREC) == '\0') ? 0 : TRANS_REC_TO;
-	find_window_file->find.amount = convert_string_to_money(icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT));
-	strcpy(find_window_file->find.ref, icons_get_indirected_text_addr(find_window, FIND_ICON_REF));
-	strcpy(find_window_file->find.desc, icons_get_indirected_text_addr(find_window, FIND_ICON_DESC));
+	find_window_file->find->to_rec = (*icons_get_indirected_text_addr(find_window, FIND_ICON_TOREC) == '\0') ? 0 : TRANS_REC_TO;
+	find_window_file->find->amount = convert_string_to_money(icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT));
+	strcpy(find_window_file->find->ref, icons_get_indirected_text_addr(find_window, FIND_ICON_REF));
+	strcpy(find_window_file->find->desc, icons_get_indirected_text_addr(find_window, FIND_ICON_DESC));
 
 	/* Read find logic. */
 
 	if (icons_get_selected(find_window, FIND_ICON_AND))
-		find_window_file->find.logic = FIND_AND;
+		find_window_file->find->logic = FIND_AND;
 	else if (icons_get_selected(find_window, FIND_ICON_OR))
-		find_window_file->find.logic = FIND_OR;
+		find_window_file->find->logic = FIND_OR;
 
 	/* Read search direction. */
 
 	if (icons_get_selected(find_window, FIND_ICON_START))
-		find_window_file->find.direction = FIND_START;
+		find_window_file->find->direction = FIND_START;
 	else if (icons_get_selected(find_window, FIND_ICON_END))
-		find_window_file->find.direction = FIND_END;
+		find_window_file->find->direction = FIND_END;
 	else if (icons_get_selected(find_window, FIND_ICON_DOWN))
-		find_window_file->find.direction = FIND_DOWN;
+		find_window_file->find->direction = FIND_DOWN;
 	else if (icons_get_selected(find_window, FIND_ICON_UP))
-		find_window_file->find.direction = FIND_UP;
+		find_window_file->find->direction = FIND_UP;
 
-	find_window_file->find.case_sensitive = icons_get_selected(find_window, FIND_ICON_CASE);
-	find_window_file->find.whole_text = icons_get_selected(find_window, FIND_ICON_WHOLE);
+	find_window_file->find->case_sensitive = icons_get_selected(find_window, FIND_ICON_CASE);
+	find_window_file->find->whole_text = icons_get_selected(find_window, FIND_ICON_WHOLE);
 
 	/* Get the start line. */
 
-	if (find_window_file->find.direction == FIND_START)
+	if (find_window_file->find->direction == FIND_START)
 		line = 0;
-	else if (find_window_file->find.direction == FIND_END)
+	else if (find_window_file->find->direction == FIND_END)
 		line = find_window_file->trans_count-1;
-	else if (find_window_file->find.direction == FIND_DOWN) {
+	else if (find_window_file->find->direction == FIND_DOWN) {
 		line = find_window_file->transaction_window.entry_line+1;
 		if (line >= find_window_file->trans_count)
 			line = find_window_file->trans_count-1;
@@ -451,11 +528,10 @@ static osbool find_process_window(void)
 
 	/* Start the search. */
 
-	line = find_from_line(&(find_window_file->find), FIND_NODIR, line);
+	line = find_from_line(find_window_file->find, FIND_NODIR, line);
 
 	return (line != NULL_TRANSACTION) ? TRUE : FALSE;
 }
-
 
 
 /**

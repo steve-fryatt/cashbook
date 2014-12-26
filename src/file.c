@@ -146,6 +146,7 @@ file_data *build_new_file_block(void)
 	new->saved_reports = NULL;
 
 	new->budget = NULL;
+	new->find = NULL;
 	new->go_to = NULL;
 	new->reports = NULL;
 	new->import_report = NULL;
@@ -154,6 +155,15 @@ file_data *build_new_file_block(void)
 
 	new->budget = budget_create();
 	if (new->budget == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+
+	/* Set up the find data. */
+
+	new->find = find_create();
+	if (new->find == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -277,20 +287,6 @@ file_data *build_new_file_block(void)
 
 
   /* Set up the dialogue defaults. */
-
-  new->find.date = NULL_DATE;
-  new->find.from = NULL_ACCOUNT;
-  new->find.from_rec = TRANS_FLAGS_NONE;
-  new->find.to = NULL_ACCOUNT;
-  new->find.to_rec = TRANS_FLAGS_NONE;
-  new->find.amount = NULL_CURRENCY;
-  *(new->find.ref) = '\0';
-  *(new->find.desc) = '\0';
-
-  new->find.logic = FIND_OR;
-  new->find.case_sensitive = FALSE;
-  new->find.whole_text = FALSE;
-  new->find.direction = FIND_START;
 
   new->print.fit_width = config_opt_read("PrintFitWidth");
   new->print.page_numbers = config_opt_read("PrintPageNumbers");
@@ -507,6 +503,8 @@ void delete_file(file_data *file)
 
 	if (file->budget != NULL)
 		heap_free(file->budget);
+	if (file->find != NULL);
+		heap_free(file->find);
 	if (file->go_to != NULL)
 		heap_free(file->go_to);
 

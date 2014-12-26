@@ -232,6 +232,24 @@ struct trans_rep {
   int          output_accsummary;
 };
 
+/* Unreconciled Report dialogue. */
+
+struct unrec_rep {
+	date_t			date_from;
+	date_t			date_to;
+  int          budget;
+
+  int          group;
+	int			period;
+	enum date_period	period_unit;
+  int          lock;
+
+	int			from_count;
+	int			to_count;
+	acct_t			from[REPORT_ACC_LIST_LEN];
+	acct_t			to[REPORT_ACC_LIST_LEN];
+};
+
 
 enum analysis_save_mode {
 	ANALYSIS_SAVE_MODE_NONE = 0,						/**< The Save/Rename dialogue isn't used.			*/
@@ -1209,6 +1227,36 @@ static void analysis_generate_transaction_report(file_data *file)
 
 
 /**
+ * Construct new unreconciled report data block for a file, and return a pointer
+ * to the resulting block. The block will be allocated with heap_alloc(), and
+ * should be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct unrec_rep *analysis_create_unreconciled(void)
+{
+	struct unrec_rep	*new;
+
+	new = heap_alloc(sizeof(struct unrec_rep));
+	if (new == NULL)
+		return NULL;
+
+	new->date_from = NULL_DATE;
+	new->date_to = NULL_DATE;
+	new->budget = 0;
+	new->group = 0;
+	new->period = 1;
+	new->period_unit = PERIOD_MONTHS;
+	new->lock = 0;
+	new->from_count = 0;
+	new->to_count = 0;
+
+	return new;
+}
+
+
+/**
  * Open the Unreconciled Report dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -1246,7 +1294,7 @@ void analysis_open_unreconciled_window(file_data *file, wimp_pointer *ptr, int t
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_unreconciled_template(&(analysis_unreconciled_settings), &(file->unrec_rep));
+		analysis_copy_unreconciled_template(&(analysis_unreconciled_settings), file->unrec_rep);
 		analysis_unreconciled_template = NULL_TEMPLATE;
 
 		msgs_lookup("UrcRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window), 40);
@@ -1301,7 +1349,8 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 		break;
 
 	case ANALYSIS_UNREC_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_unreconciled_template >= 0 && analysis_unreconciled_template < analysis_unreconciled_file->saved_report_count)
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_unreconciled_template >= 0 &&
+				analysis_unreconciled_template < analysis_unreconciled_file->saved_report_count)
 			analysis_open_rename_window (analysis_unreconciled_file, analysis_unreconciled_template, pointer);
 		break;
 
@@ -1503,40 +1552,40 @@ static osbool analysis_process_unreconciled_window(void)
 {
 	/* Read the date settings. */
 
-	analysis_unreconciled_file->unrec_rep.date_from =
+	analysis_unreconciled_file->unrec_rep->date_from =
 			convert_string_to_date(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM), NULL_DATE, 0);
-	analysis_unreconciled_file->unrec_rep.date_to =
+	analysis_unreconciled_file->unrec_rep->date_to =
 			convert_string_to_date(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO), NULL_DATE, 0);
-	analysis_unreconciled_file->unrec_rep.budget = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET);
+	analysis_unreconciled_file->unrec_rep->budget = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET);
 
 	/* Read the grouping settings. */
 
-	analysis_unreconciled_file->unrec_rep.group = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP);
-	analysis_unreconciled_file->unrec_rep.period = atoi(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD));
+	analysis_unreconciled_file->unrec_rep->group = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP);
+	analysis_unreconciled_file->unrec_rep->period = atoi(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD));
 
 	if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC))
-		analysis_unreconciled_file->unrec_rep.period_unit = PERIOD_NONE;
+		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_NONE;
 	else if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS))
-		analysis_unreconciled_file->unrec_rep.period_unit = PERIOD_DAYS;
+		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_DAYS;
 	else if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS))
-		analysis_unreconciled_file->unrec_rep.period_unit = PERIOD_MONTHS;
+		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_MONTHS;
 	else if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS))
-		analysis_unreconciled_file->unrec_rep.period_unit = PERIOD_YEARS;
+		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_YEARS;
 	else
-		analysis_unreconciled_file->unrec_rep.period_unit = PERIOD_MONTHS;
+		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_MONTHS;
 
-	analysis_unreconciled_file->unrec_rep.lock = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_LOCK);
+	analysis_unreconciled_file->unrec_rep->lock = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_LOCK);
 
 	/* Read the account and heading settings. */
 
-	analysis_unreconciled_file->unrec_rep.from_count =
+	analysis_unreconciled_file->unrec_rep->from_count =
 			analysis_account_idents_to_list(analysis_unreconciled_file, ACCOUNT_FULL | ACCOUNT_IN,
 			icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC),
-			analysis_unreconciled_file->unrec_rep.from);
-	analysis_unreconciled_file->unrec_rep.to_count =
+			analysis_unreconciled_file->unrec_rep->from);
+	analysis_unreconciled_file->unrec_rep->to_count =
 			analysis_account_idents_to_list(analysis_unreconciled_file, ACCOUNT_FULL | ACCOUNT_OUT,
 			icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC),
-			analysis_unreconciled_file->unrec_rep.to);
+			analysis_unreconciled_file->unrec_rep->to);
 
 	/* Run the report. */
 
@@ -1598,32 +1647,32 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 	/* Read the date settings. */
 
-	analysis_find_date_range(file, &start_date, &end_date, file->unrec_rep.date_from, file->unrec_rep.date_to, file->unrec_rep.budget);
+	analysis_find_date_range(file, &start_date, &end_date, file->unrec_rep->date_from, file->unrec_rep->date_to, file->unrec_rep->budget);
 
 	/* Read the grouping settings. */
 
-	group = file->unrec_rep.group;
-	unit = file->unrec_rep.period_unit;
-	lock = file->unrec_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
-	period = (group) ? file->unrec_rep.period : 0;
+	group = file->unrec_rep->group;
+	unit = file->unrec_rep->period_unit;
+	lock = file->unrec_rep->lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	period = (group) ? file->unrec_rep->period : 0;
 
 	/* Read the include list. */
 
 	analysis_clear_account_report_flags(file, data);
 
-	if (file->unrec_rep.from_count == 0 && file->unrec_rep.to_count == 0) {
+	if (file->unrec_rep->from_count == 0 && file->unrec_rep->to_count == 0) {
 		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM, &analysis_wildcard_account_list, 1);
 		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO, &analysis_wildcard_account_list, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM, file->unrec_rep.from, file->unrec_rep.from_count);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO, file->unrec_rep.to, file->unrec_rep.to_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM, file->unrec_rep->from, file->unrec_rep->from_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO, file->unrec_rep->to, file->unrec_rep->to_count);
 	}
 
 	/* Start to output the report details. */
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 
-	analysis_copy_unreconciled_template(&(analysis_report_template.data.unreconciled), &(file->unrec_rep));
+	analysis_copy_unreconciled_template(&(analysis_report_template.data.unreconciled), file->unrec_rep);
 	if (analysis_unreconciled_template == NULL_TEMPLATE)
 		*(analysis_report_template.name) = '\0';
 	else
@@ -3428,8 +3477,8 @@ void analysis_remove_account_from_templates(file_data *file, acct_t account)
 	analysis_remove_account_from_list(account, file->trans_rep->from, &(file->trans_rep->from_count));
 	analysis_remove_account_from_list(account, file->trans_rep->to, &(file->trans_rep->to_count));
 
-	analysis_remove_account_from_list(account, file->unrec_rep.from, &(file->unrec_rep.from_count));
-	analysis_remove_account_from_list(account, file->unrec_rep.to, &(file->unrec_rep.to_count));
+	analysis_remove_account_from_list(account, file->unrec_rep->from, &(file->unrec_rep->from_count));
+	analysis_remove_account_from_list(account, file->unrec_rep->to, &(file->unrec_rep->to_count));
 
 	analysis_remove_account_from_list(account, file->cashflow_rep.accounts, &(file->cashflow_rep.accounts_count));
 	analysis_remove_account_from_list(account, file->cashflow_rep.incoming, &(file->cashflow_rep.incoming_count));

@@ -154,6 +154,8 @@ file_data *build_new_file_block(void)
 	new->print = NULL;
 	new->purge = NULL;
 	new->trans_rep = NULL;
+	new->unrec_rep = NULL;
+
 	new->reports = NULL;
 	new->import_report = NULL;
 
@@ -206,6 +208,15 @@ file_data *build_new_file_block(void)
 
 	new->trans_rep = analysis_create_transaction();
 	if (new->trans_rep == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+
+	/* Set up the unreconciled report data. */
+
+	new->unrec_rep = analysis_create_unreconciled();
+	if (new->unrec_rep == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -320,17 +331,6 @@ file_data *build_new_file_block(void)
 
 
   /* Set up the dialogue defaults. */
-
-
-  new->unrec_rep.date_from = NULL_DATE;
-  new->unrec_rep.date_to = NULL_DATE;
-  new->unrec_rep.budget = 0;
-  new->unrec_rep.group = 0;
-  new->unrec_rep.period = 1;
-  new->unrec_rep.period_unit = PERIOD_MONTHS;
-  new->unrec_rep.lock = 0;
-  new->unrec_rep.from_count = 0;
-  new->unrec_rep.to_count = 0;
 
   new->cashflow_rep.date_from = NULL_DATE;
   new->cashflow_rep.date_to = NULL_DATE;
@@ -514,6 +514,8 @@ void delete_file(file_data *file)
 		heap_free(file->purge);
 	if (file->trans_rep != NULL)
 		heap_free(file->trans_rep);
+	if (file->unrec_rep != NULL)
+		heap_free(file->unrec_rep);
 
 	if (file->transactions != NULL)
 		flex_free((flex_ptr) &(file->transactions));

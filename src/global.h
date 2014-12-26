@@ -269,6 +269,7 @@ struct report;
 struct budget;
 struct find;
 struct go_to;
+struct printing;
 struct purge;
 
 struct accview_window;
@@ -429,21 +430,6 @@ struct preset_window {
  * Dialogue content data structures
  */
 
-
-/* ----------------------------------------------------------------------------------------------------------------- */
-
-/* Print dialogue. */
-
-struct printing {
-	osbool		fit_width;						/**< TRUE to fit width in graphics mode; FALSE to print 100%.					*/
-	osbool		page_numbers;						/**< TRUE to print page numbers; FALSE to omit them.						*/
-	osbool		rotate;							/**< TRUE to rotate 90 degrees in graphics mode to print Landscape; FALSE to print Portrait.	*/
-	osbool		text;							/**< TRUE to print in text mode; FALSE to print in graphics mode.				*/
-	osbool		text_format;						/**< TRUE to print with styles in text mode; FALSE to print plain text.				*/
-
-	date_t		from;							/**< The date to print from in ranged prints (Advanced Print dialogue only).			*/
-	date_t		to;							/**< The date to print to in ranged prints (Advanced Print dialogue only).			*/
-};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -615,7 +601,7 @@ struct file_data
 
 	struct go_to			*go_to;					/**< Data relating to the goto module.				*/
 	struct find			*find;					/**< Data relating to the find module.				*/
-	struct printing			print;					/**< Data relating to the print dialogues.			*/
+	struct printing			*print;					/**< Data relating to the print dialogues.			*/
 	struct purge			*purge;					/**< Data relating to the purge module.				*/
 	struct trans_rep		trans_rep;
 	struct unrec_rep		unrec_rep;

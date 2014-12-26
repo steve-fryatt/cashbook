@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -36,6 +36,17 @@
  */
 
 void printing_initialise(void);
+
+
+/**
+ * Construct new printing data block for a file, and return a pointer to the
+ * resulting block. The block will be allocated with heap_alloc(), and should
+ * be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct printing *printing_create(void);
 
 
 /**

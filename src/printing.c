@@ -42,14 +42,15 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/general.h"
+#include "sflib/config.h"
+#include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
-#include "sflib/debug.h"
-#include "sflib/windows.h"
+#include "sflib/general.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/msgs.h"
-#include "sflib/config.h"
+#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -95,43 +96,58 @@
 #define DATE_PRINT_PNUM 12
 
 /**
+ * Print dialogue.
+ */
+
+struct printing {
+	osbool		fit_width;						/**< TRUE to fit width in graphics mode; FALSE to print 100%.					*/
+	osbool		page_numbers;						/**< TRUE to print page numbers; FALSE to omit them.						*/
+	osbool		rotate;							/**< TRUE to rotate 90 degrees in graphics mode to print Landscape; FALSE to print Portrait.	*/
+	osbool		text;							/**< TRUE to print in text mode; FALSE to print in graphics mode.				*/
+	osbool		text_format;						/**< TRUE to print with styles in text mode; FALSE to print plain text.				*/
+
+	date_t		from;							/**< The date to print from in ranged prints (Advanced Print dialogue only).			*/
+	date_t		to;							/**< The date to print to in ranged prints (Advanced Print dialogue only).			*/
+};
+
+/**
  * Allow us to track which of the print windows is being referenced.
  */
 
 enum printing_window {
-	PRINTING_WINDOW_NONE,							/**< No printing window is open.				*/
-	PRINTING_WINDOW_SIMPLE,							/**< The Simple Print window is open.				*/
-	PRINTING_WINDOW_ADVANCED						/**< The Advanced Print window is open.				*/
+	PRINTING_WINDOW_NONE,							/**< No printing window is open.								*/
+	PRINTING_WINDOW_SIMPLE,							/**< The Simple Print window is open.								*/
+	PRINTING_WINDOW_ADVANCED						/**< The Advanced Print window is open.								*/
 };
 
 /* Print protocol negotiations. */
 
-static void			(*printing_callback_start) (char *) = NULL;	/**< Callback to launch the print process.			*/
-static void			(*printing_callback_cancel) (void) = NULL;	/**< Callback to clean up if the process fails part-way.	*/
+static void			(*printing_callback_start) (char *) = NULL;	/**< Callback to launch the print process.							*/
+static void			(*printing_callback_cancel) (void) = NULL;	/**< Callback to clean up if the process fails part-way.					*/
 
-static osbool			printing_text_mode;				/**< TRUE if the current print job is in text mode.		*/
+static osbool			printing_text_mode;				/**< TRUE if the current print job is in text mode.						*/
 
 
-static wimp_w			printing_simple_window = NULL;			/**< The Simple Print window handle.				*/
-static wimp_w			printing_advanced_window = NULL;		/**< The Advanced Print window handle.				*/
+static wimp_w			printing_simple_window = NULL;			/**< The Simple Print window handle.								*/
+static wimp_w			printing_advanced_window = NULL;		/**< The Advanced Print window handle.								*/
 
-static enum printing_window	printing_window_open = PRINTING_WINDOW_NONE;	/**< Which of the two windows is open.				*/
+static enum printing_window	printing_window_open = PRINTING_WINDOW_NONE;	/**< Which of the two windows is open.								*/
 
 
 
 /* Simple print window handling. */
 
 static void			(*printing_simple_callback) (osbool, osbool, osbool, osbool, osbool);
-static char			printing_simple_title_token[64];		/**< The message token for the Simple Print window title.	*/
-static file_data		*printing_simple_file = NULL;			/**< The file currently owning the Simple Print window.		*/
-static osbool			printing_simple_restore;			/**< The current restore setting for the Simple Print window.	*/
+static char			printing_simple_title_token[64];		/**< The message token for the Simple Print window title.					*/
+static file_data		*printing_simple_file = NULL;			/**< The file currently owning the Simple Print window.						*/
+static osbool			printing_simple_restore;			/**< The current restore setting for the Simple Print window.					*/
 
 /* Date-range print window handling. */
 
 static void			(*printing_advanced_callback) (osbool, osbool, osbool, osbool, osbool, date_t, date_t);
-static char			printing_advanced_title_token[64];		/**< The message token for the Advanced Print window title.	*/
-static file_data		*printing_advanced_file = NULL;			/**< The file currently owning the Advanced Print window.	*/
-static osbool			printing_advanced_restore;			/**< The current restore setting for the Advanced Print window.	*/
+static char			printing_advanced_title_token[64];		/**< The message token for the Advanced Print window title.					*/
+static file_data		*printing_advanced_file = NULL;			/**< The file currently owning the Advanced Print window.					*/
+static osbool			printing_advanced_restore;			/**< The current restore setting for the Advanced Print window.					*/
 
 
 
@@ -184,6 +200,34 @@ void printing_initialise(void)
 	event_add_message_handler(message_PRINT_ERROR, EVENT_MESSAGE_INCOMING, printing_handle_message_print_error);
 	event_add_message_handler(message_PRINT_FILE, EVENT_MESSAGE_INCOMING, printing_handle_message_print_file);
 	event_add_message_handler(message_PRINT_SAVE, EVENT_MESSAGE_ACKNOWLEDGE, printing_handle_bounced_message_print_save);
+}
+
+
+/**
+ * Construct new printing data block for a file, and return a pointer to the
+ * resulting block. The block will be allocated with heap_alloc(), and should
+ * be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct printing *printing_create(void)
+{
+	struct printing		*new;
+
+	new = heap_alloc(sizeof(struct printing));
+	if (new == NULL)
+		return NULL;
+
+	new->fit_width = config_opt_read("PrintFitWidth");
+	new->page_numbers = config_opt_read("PrintPageNumbers");
+	new->rotate = config_opt_read("PrintRotate");
+	new->text = config_opt_read("PrintText");
+	new->text_format = config_opt_read("PrintTextFormat");
+	new->from = NULL_DATE;
+	new->to = NULL_DATE;
+
+	return new;
 }
 
 
@@ -430,7 +474,7 @@ void printing_open_simple_window(file_data *file, wimp_pointer *ptr, osbool rest
 	/* Set the window contents up. */
 
 	strcpy(printing_simple_title_token, title);
-	printing_fill_simple_window(&(file->print), restore);
+	printing_fill_simple_window(file->print, restore);
 
 	/* Open the window on screen. */
 
@@ -514,7 +558,7 @@ static osbool printing_simple_keypress_handler(wimp_key *key)
 
 static void printing_refresh_simple_window(void)
 {
-	printing_fill_simple_window(&(printing_simple_file->print), printing_simple_restore);
+	printing_fill_simple_window(printing_simple_file->print, printing_simple_restore);
 	icons_replace_caret_in_window(printing_simple_window);
 	xwimp_force_redraw_title(printing_simple_window);
 }
@@ -584,17 +628,17 @@ static void printing_process_simple_window(void)
 
 	/* Extract the information and call the originator's print start function. */
 
-	printing_simple_file->print.fit_width = icons_get_selected(printing_simple_window, SIMPLE_PRINT_SCALE);
-	printing_simple_file->print.rotate = icons_get_selected(printing_simple_window, SIMPLE_PRINT_LANDSCAPE);
-	printing_simple_file->print.text = icons_get_selected(printing_simple_window, SIMPLE_PRINT_FASTTEXT);
-	printing_simple_file->print.text_format = icons_get_selected(printing_simple_window, SIMPLE_PRINT_TEXTFORMAT);
-	printing_simple_file->print.page_numbers = icons_get_selected(printing_simple_window, SIMPLE_PRINT_PNUM);
+	printing_simple_file->print->fit_width = icons_get_selected(printing_simple_window, SIMPLE_PRINT_SCALE);
+	printing_simple_file->print->rotate = icons_get_selected(printing_simple_window, SIMPLE_PRINT_LANDSCAPE);
+	printing_simple_file->print->text = icons_get_selected(printing_simple_window, SIMPLE_PRINT_FASTTEXT);
+	printing_simple_file->print->text_format = icons_get_selected(printing_simple_window, SIMPLE_PRINT_TEXTFORMAT);
+	printing_simple_file->print->page_numbers = icons_get_selected(printing_simple_window, SIMPLE_PRINT_PNUM);
 
-	printing_simple_callback(printing_simple_file->print.text,
-			printing_simple_file->print.text_format,
-			printing_simple_file->print.fit_width,
-			printing_simple_file->print.rotate,
-			printing_simple_file->print.page_numbers);
+	printing_simple_callback(printing_simple_file->print->text,
+			printing_simple_file->print->text_format,
+			printing_simple_file->print->fit_width,
+			printing_simple_file->print->rotate,
+			printing_simple_file->print->page_numbers);
 }
 
 
@@ -632,7 +676,7 @@ void printing_open_advanced_window(file_data *file, wimp_pointer *ptr, osbool re
 	/* Set the window contents up. */
 
 	strcpy(printing_advanced_title_token, title);
-	printing_fill_advanced_window(&(file->print), restore);
+	printing_fill_advanced_window(file->print, restore);
 
 	/* Open the window on screen. */
 
@@ -716,7 +760,7 @@ static osbool printing_advanced_keypress_handler(wimp_key *key)
 
 static void printing_refresh_advanced_window(void)
 {
-	printing_fill_advanced_window(&(printing_advanced_file->print), printing_advanced_restore);
+	printing_fill_advanced_window(printing_advanced_file->print, printing_advanced_restore);
 	icons_replace_caret_in_window(printing_advanced_window);
 	xwimp_force_redraw_title(printing_advanced_window);
 }
@@ -792,23 +836,23 @@ static void printing_process_advanced_window(void)
 
 	/* Extract the information and call the originator's print start function. */
 
-	printing_advanced_file->print.fit_width = icons_get_selected(printing_advanced_window, DATE_PRINT_SCALE);
-	printing_advanced_file->print.rotate = icons_get_selected(printing_advanced_window, DATE_PRINT_LANDSCAPE);
-	printing_advanced_file->print.text = icons_get_selected(printing_advanced_window, DATE_PRINT_FASTTEXT);
-	printing_advanced_file->print.text_format = icons_get_selected(printing_advanced_window, DATE_PRINT_TEXTFORMAT);
-	printing_advanced_file->print.page_numbers = icons_get_selected(printing_advanced_window, DATE_PRINT_PNUM);
+	printing_advanced_file->print->fit_width = icons_get_selected(printing_advanced_window, DATE_PRINT_SCALE);
+	printing_advanced_file->print->rotate = icons_get_selected(printing_advanced_window, DATE_PRINT_LANDSCAPE);
+	printing_advanced_file->print->text = icons_get_selected(printing_advanced_window, DATE_PRINT_FASTTEXT);
+	printing_advanced_file->print->text_format = icons_get_selected(printing_advanced_window, DATE_PRINT_TEXTFORMAT);
+	printing_advanced_file->print->page_numbers = icons_get_selected(printing_advanced_window, DATE_PRINT_PNUM);
 
-	printing_advanced_file->print.from = convert_string_to_date(icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_FROM),
+	printing_advanced_file->print->from = convert_string_to_date(icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_FROM),
 			NULL_DATE, 0);
-	printing_advanced_file->print.to = convert_string_to_date(icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_TO),
+	printing_advanced_file->print->to = convert_string_to_date(icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_TO),
 			NULL_DATE, 0);
 
-	printing_advanced_callback(printing_advanced_file->print.text,
-			printing_advanced_file->print.text_format,
-			printing_advanced_file->print.fit_width,
-			printing_advanced_file->print.rotate,
-			printing_advanced_file->print.page_numbers,
-			printing_advanced_file->print.from,
-			printing_advanced_file->print.to);
+	printing_advanced_callback(printing_advanced_file->print->text,
+			printing_advanced_file->print->text_format,
+			printing_advanced_file->print->fit_width,
+			printing_advanced_file->print->rotate,
+			printing_advanced_file->print->page_numbers,
+			printing_advanced_file->print->from,
+			printing_advanced_file->print->to);
 }
 

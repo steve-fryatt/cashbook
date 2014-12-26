@@ -148,6 +148,7 @@ file_data *build_new_file_block(void)
 	new->budget = NULL;
 	new->find = NULL;
 	new->go_to = NULL;
+	new->print = NULL;
 	new->purge = NULL;
 	new->reports = NULL;
 	new->import_report = NULL;
@@ -174,6 +175,15 @@ file_data *build_new_file_block(void)
 
 	new->go_to = goto_create();
 	if (new->go_to == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+
+	/* Set up the print data. */
+
+	new->print = printing_create();
+	if (new->print == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -297,14 +307,6 @@ file_data *build_new_file_block(void)
 
 
   /* Set up the dialogue defaults. */
-
-  new->print.fit_width = config_opt_read("PrintFitWidth");
-  new->print.page_numbers = config_opt_read("PrintPageNumbers");
-  new->print.rotate = config_opt_read("PrintRotate");
-  new->print.text = config_opt_read("PrintText");
-  new->print.text_format = config_opt_read("PrintTextFormat");
-  new->print.from = NULL_DATE;
-  new->print.to = NULL_DATE;
 
   new->trans_rep.date_from = NULL_DATE;
   new->trans_rep.date_to = NULL_DATE;
@@ -511,6 +513,8 @@ void delete_file(file_data *file)
 		heap_free(file->find);
 	if (file->go_to != NULL)
 		heap_free(file->go_to);
+	if (file->print != NULL)
+		heap_free(file->print);
 	if (file->purge != NULL)
 		heap_free(file->purge);
 

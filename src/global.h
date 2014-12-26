@@ -267,6 +267,7 @@ struct sorder;
 struct preset;
 struct report;
 struct budget;
+struct go_to;
 
 struct accview_window;
 struct account_redraw;
@@ -426,22 +427,6 @@ struct preset_window {
  * Dialogue content data structures
  */
 
-/* Goto dialogue data. */
-
-union go_to_target {
-	int			line;						/**< The transaction number if the tratget is a line.		*/
-	date_t			date;						/**< The transaction date if the target is a date.		*/
-};
-
-enum go_to_type {
-	GOTO_TYPE_LINE = 0,							/**< The goto target is given as a line number.			*/
-	GOTO_TYPE_DATE = 1							/**< The goto target is given as a date.			*/
-};
-
-struct go_to{
-	union go_to_target	target;						/**< The current goto target.					*/
-	enum go_to_type		type;						/**< The type of target we're aiming for.			*/
-};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -674,7 +659,7 @@ struct file_data
 
 	/* Dialogue content. */
 
-	struct go_to			go_to;					/**< Data relating to the goto module.				*/
+	struct go_to			*go_to;					/**< Data relating to the goto module.				*/
 	struct find			find;					/**< Data relating to the find module.				*/
 	struct printing			print;					/**< Data relating to the print dialogues.			*/
 	struct purge			purge;					/**< Data relating to the purge module.				*/

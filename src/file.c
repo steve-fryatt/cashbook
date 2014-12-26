@@ -146,6 +146,7 @@ file_data *build_new_file_block(void)
 	new->saved_reports = NULL;
 
 	new->budget = NULL;
+	new->go_to = NULL;
 	new->reports = NULL;
 	new->import_report = NULL;
 
@@ -158,6 +159,14 @@ file_data *build_new_file_block(void)
 		return NULL;
 	}
 
+	/* Set up the goto data. */
+
+	new->go_to = goto_create();
+	if (new->go_to == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
 
   /* Initialise the transaction window. */
 
@@ -268,9 +277,6 @@ file_data *build_new_file_block(void)
 
 
   /* Set up the dialogue defaults. */
-
-  new->go_to.target.date = NULL_DATE;
-  new->go_to.type = GOTO_TYPE_DATE;
 
   new->find.date = NULL_DATE;
   new->find.from = NULL_ACCOUNT;
@@ -501,6 +507,8 @@ void delete_file(file_data *file)
 
 	if (file->budget != NULL)
 		heap_free(file->budget);
+	if (file->go_to != NULL)
+		heap_free(file->go_to);
 
 	if (file->transactions != NULL)
 		flex_free((flex_ptr) &(file->transactions));

@@ -47,7 +47,7 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
-#include "sflib/windows.h"purge.
+#include "sflib/windows.h"
 
 /* Application header files */
 

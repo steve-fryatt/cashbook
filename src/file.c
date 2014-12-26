@@ -139,6 +139,9 @@ file_data *build_new_file_block(void)
 	 * successfully claimed later on.
 	 */
 
+	for (i = 0; i < ACCOUNT_WINDOWS; i++)
+		new->account_windows[i].line_data = NULL;
+
 	new->transactions = NULL;
 	new->accounts = NULL;
 	new->sorders = NULL;
@@ -419,12 +422,9 @@ void delete_file(file_data *file)
 		if (button == 3) {
 			wimp_get_pointer_info(&pointer);
 
-			if (file_check_for_filepath(file))
-				filename = file->filename;
-			else
-				filename = NULL;
+			filename = (file_check_for_filepath(file)) ? file->filename : NULL;
 
-			saveas_initialise_dialogue(file_saveas_file, file->filename, "DefTransFile", NULL, FALSE, FALSE, file);
+			saveas_initialise_dialogue(file_saveas_file, filename, "DefTransFile", NULL, FALSE, FALSE, file);
 			saveas_prepare_dialogue(file_saveas_file);
 			saveas_open_dialogue(file_saveas_file, &pointer);
 		}
@@ -450,7 +450,8 @@ void delete_file(file_data *file)
 	/* Step through the account list windows. */
 
 	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
-		flex_free((flex_ptr) &(file->account_windows[i].line_data));
+		if (file->account_windows[i].line_data != NULL)
+			flex_free((flex_ptr) &(file->account_windows[i].line_data));
 
 		if (file->account_windows[i].account_window != NULL)
 			wimp_delete_window(file->account_windows[i].account_window);

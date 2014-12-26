@@ -491,12 +491,15 @@ struct file_data
   struct analysis_report *saved_reports;     /* A pointer to an array of saved report templates. */
   int                 saved_report_count; /* A count of how many reports are in the file. */
 
-	/* Dialogue content. */
+	/* Dialogue Content. */
 
 	struct go_to			*go_to;					/**< Data relating to the goto module.				*/
 	struct find			*find;					/**< Data relating to the find module.				*/
 	struct printing			*print;					/**< Data relating to the print dialogues.			*/
 	struct purge			*purge;					/**< Data relating to the purge module.				*/
+
+	/* Analysis Report Content. */
+
 	struct trans_rep		*trans_rep;				/**< Data relating to the transaction report dialogue.		*/
 	struct unrec_rep		*unrec_rep;				/**< Data relating to the unreconciled report dialogue.		*/
 	struct cashflow_rep		*cashflow_rep;				/**< Data relating to the cashflow report dialogue.		*/

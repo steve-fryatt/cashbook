@@ -273,6 +273,7 @@ struct printing;
 struct purge;
 struct trans_rep;
 struct unrec_rep;
+struct cashflow_rep;
 
 struct accview_window;
 struct account_redraw;
@@ -441,28 +442,6 @@ struct preset_window {
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Cashflow Report dialogue. */
-
-struct cashflow_rep {
-	date_t			date_from;
-	date_t			date_to;
-  int          budget;
-
-  int          group;
-	int			period;
-	enum date_period	period_unit;
-  int          lock;
-  int          empty;
-
-	int			accounts_count;
-	int			incoming_count;
-	int			outgoing_count;
-	acct_t			accounts[REPORT_ACC_LIST_LEN];
-	acct_t			incoming[REPORT_ACC_LIST_LEN];
-	acct_t			outgoing[REPORT_ACC_LIST_LEN];
-
-  int          tabular;
-};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -564,8 +543,8 @@ struct file_data
 	struct printing			*print;					/**< Data relating to the print dialogues.			*/
 	struct purge			*purge;					/**< Data relating to the purge module.				*/
 	struct trans_rep		*trans_rep;				/**< Data relating to the transaction report dialogue.		*/
-	struct unrec_rep		*unrec_rep;				/**< data relating to the unreconciled report dialogue.		*/
-	struct cashflow_rep		cashflow_rep;
+	struct unrec_rep		*unrec_rep;				/**< Data relating to the unreconciled report dialogue.		*/
+	struct cashflow_rep		*cashflow_rep;				/**< Data relating to the cashflow report dialogue.		*/
 	struct balance_rep		balance_rep;
 
 	/* Pointer to the next file in the list. */

@@ -250,6 +250,29 @@ struct unrec_rep {
 	acct_t			to[REPORT_ACC_LIST_LEN];
 };
 
+/* Cashflow Report dialogue. */
+
+struct cashflow_rep {
+	date_t			date_from;
+	date_t			date_to;
+  int          budget;
+
+  int          group;
+	int			period;
+	enum date_period	period_unit;
+  int          lock;
+  int          empty;
+
+	int			accounts_count;
+	int			incoming_count;
+	int			outgoing_count;
+	acct_t			accounts[REPORT_ACC_LIST_LEN];
+	acct_t			incoming[REPORT_ACC_LIST_LEN];
+	acct_t			outgoing[REPORT_ACC_LIST_LEN];
+
+  int          tabular;
+};
+
 
 enum analysis_save_mode {
 	ANALYSIS_SAVE_MODE_NONE = 0,						/**< The Save/Rename dialogue isn't used.			*/
@@ -1856,6 +1879,39 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 
 /**
+ * Construct new cashflow report data block for a file, and return a pointer
+ * to the resulting block. The block will be allocated with heap_alloc(), and
+ * should be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct cashflow_rep *analysis_create_cashflow(void)
+{
+	struct cashflow_rep	*new;
+
+	new = heap_alloc(sizeof(struct cashflow_rep));
+	if (new == NULL)
+		return NULL;
+
+	new->date_from = NULL_DATE;
+	new->date_to = NULL_DATE;
+	new->budget = 0;
+	new->group = 0;
+	new->period = 1;
+	new->period_unit = PERIOD_MONTHS;
+	new->lock = 0;
+	new->empty = 0;
+	new->accounts_count = 0;
+	new->incoming_count = 0;
+	new->outgoing_count = 0;
+	new->tabular = 0;
+
+	return new;
+}
+
+
+/**
  * Open the Cashflow Report dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -1893,7 +1949,7 @@ void analysis_open_cashflow_window(file_data *file, wimp_pointer *ptr, int templ
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_cashflow_template(&(analysis_cashflow_settings), &(file->cashflow_rep));
+		analysis_copy_cashflow_template(&(analysis_cashflow_settings), file->cashflow_rep);
 		analysis_cashflow_template = NULL_TEMPLATE;
 
 		msgs_lookup ("CflRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window), 40);
@@ -2141,45 +2197,45 @@ static osbool analysis_process_cashflow_window(void)
 {
 	/* Read the date settings. */
 
-	analysis_cashflow_file->cashflow_rep.date_from =
+	analysis_cashflow_file->cashflow_rep->date_from =
 			convert_string_to_date(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM), NULL_DATE, 0);
-	analysis_cashflow_file->cashflow_rep.date_to =
+	analysis_cashflow_file->cashflow_rep->date_to =
 			convert_string_to_date(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO), NULL_DATE, 0);
-	analysis_cashflow_file->cashflow_rep.budget = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET);
+	analysis_cashflow_file->cashflow_rep->budget = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET);
 
 	/* Read the grouping settings. */
 
-	analysis_cashflow_file->cashflow_rep.group = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP);
-	analysis_cashflow_file->cashflow_rep.period = atoi(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD));
+	analysis_cashflow_file->cashflow_rep->group = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP);
+	analysis_cashflow_file->cashflow_rep->period = atoi(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD));
 
 	if (icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS))
-		analysis_cashflow_file->cashflow_rep.period_unit = PERIOD_DAYS;
+		analysis_cashflow_file->cashflow_rep->period_unit = PERIOD_DAYS;
 	else if (icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS))
-		analysis_cashflow_file->cashflow_rep.period_unit = PERIOD_MONTHS;
+		analysis_cashflow_file->cashflow_rep->period_unit = PERIOD_MONTHS;
 	else if (icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS))
-		analysis_cashflow_file->cashflow_rep.period_unit = PERIOD_YEARS;
+		analysis_cashflow_file->cashflow_rep->period_unit = PERIOD_YEARS;
 	else
-		analysis_cashflow_file->cashflow_rep.period_unit = PERIOD_MONTHS;
+		analysis_cashflow_file->cashflow_rep->period_unit = PERIOD_MONTHS;
 
-	analysis_cashflow_file->cashflow_rep.lock = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK);
-	analysis_cashflow_file->cashflow_rep.empty = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY);
+	analysis_cashflow_file->cashflow_rep->lock = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK);
+	analysis_cashflow_file->cashflow_rep->empty = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY);
 
 	/* Read the account and heading settings. */
 
-	analysis_cashflow_file->cashflow_rep.accounts_count =
+	analysis_cashflow_file->cashflow_rep->accounts_count =
 			analysis_account_idents_to_list(analysis_cashflow_file, ACCOUNT_FULL,
 			icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS),
-			analysis_cashflow_file->cashflow_rep.accounts);
-	analysis_cashflow_file->cashflow_rep.incoming_count =
+			analysis_cashflow_file->cashflow_rep->accounts);
+	analysis_cashflow_file->cashflow_rep->incoming_count =
 			analysis_account_idents_to_list(analysis_cashflow_file, ACCOUNT_IN,
 			icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING),
-			analysis_cashflow_file->cashflow_rep.incoming);
-	analysis_cashflow_file->cashflow_rep.outgoing_count =
+			analysis_cashflow_file->cashflow_rep->incoming);
+	analysis_cashflow_file->cashflow_rep->outgoing_count =
 			analysis_account_idents_to_list(analysis_cashflow_file, ACCOUNT_OUT,
 			icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING),
-			analysis_cashflow_file->cashflow_rep.outgoing);
+			analysis_cashflow_file->cashflow_rep->outgoing);
 
-	analysis_cashflow_file->cashflow_rep.tabular = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR);
+	analysis_cashflow_file->cashflow_rep->tabular = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR);
 
 	/* Run the report. */
 
@@ -2240,30 +2296,30 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	/* Read the date settings. */
 
-	analysis_find_date_range(file, &start_date, &end_date, file->cashflow_rep.date_from, file->cashflow_rep.date_to, file->cashflow_rep.budget);
+	analysis_find_date_range(file, &start_date, &end_date, file->cashflow_rep->date_from, file->cashflow_rep->date_to, file->cashflow_rep->budget);
 
 	/* Read the grouping settings. */
 
-	group = file->cashflow_rep.group;
-	unit = file->cashflow_rep.period_unit;
-	lock = file->cashflow_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
-	period = (group) ? file->cashflow_rep.period : 0;
-	show_blank = file->cashflow_rep.empty;
+	group = file->cashflow_rep->group;
+	unit = file->cashflow_rep->period_unit;
+	lock = file->cashflow_rep->lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	period = (group) ? file->cashflow_rep->period : 0;
+	show_blank = file->cashflow_rep->empty;
 
 	/* Read the include list. */
 
 	analysis_clear_account_report_flags(file, data);
 
-	if (file->cashflow_rep.accounts_count == 0 && file->cashflow_rep.incoming_count == 0 &&
-			file->cashflow_rep.outgoing_count == 0) {
+	if (file->cashflow_rep->accounts_count == 0 && file->cashflow_rep->incoming_count == 0 &&
+			file->cashflow_rep->outgoing_count == 0) {
 		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, &analysis_wildcard_account_list, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep.accounts, file->cashflow_rep.accounts_count);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_IN, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep.incoming, file->cashflow_rep.incoming_count);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep.outgoing, file->cashflow_rep.outgoing_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep->accounts, file->cashflow_rep->accounts_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_IN, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep->incoming, file->cashflow_rep->incoming_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep->outgoing, file->cashflow_rep->outgoing_count);
 	}
 
-	tabular = file->cashflow_rep.tabular;
+	tabular = file->cashflow_rep->tabular;
 
 	/* Count the number of accounts and headings to be included.  If this comes to more than the number of tab
 	 * stops available (including 2 for account name and total), force the tabular format option off.
@@ -2280,7 +2336,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	/* Start to output the report details. */
 
-	analysis_copy_cashflow_template(&(analysis_report_template.data.cashflow), &(file->cashflow_rep));
+	analysis_copy_cashflow_template(&(analysis_report_template.data.cashflow), file->cashflow_rep);
 	if (analysis_cashflow_template == NULL_TEMPLATE)
 		*(analysis_report_template.name) = '\0';
 	else
@@ -3480,9 +3536,9 @@ void analysis_remove_account_from_templates(file_data *file, acct_t account)
 	analysis_remove_account_from_list(account, file->unrec_rep->from, &(file->unrec_rep->from_count));
 	analysis_remove_account_from_list(account, file->unrec_rep->to, &(file->unrec_rep->to_count));
 
-	analysis_remove_account_from_list(account, file->cashflow_rep.accounts, &(file->cashflow_rep.accounts_count));
-	analysis_remove_account_from_list(account, file->cashflow_rep.incoming, &(file->cashflow_rep.incoming_count));
-	analysis_remove_account_from_list(account, file->cashflow_rep.outgoing, &(file->cashflow_rep.outgoing_count));
+	analysis_remove_account_from_list(account, file->cashflow_rep->accounts, &(file->cashflow_rep->accounts_count));
+	analysis_remove_account_from_list(account, file->cashflow_rep->incoming, &(file->cashflow_rep->incoming_count));
+	analysis_remove_account_from_list(account, file->cashflow_rep->outgoing, &(file->cashflow_rep->outgoing_count));
 
 	analysis_remove_account_from_list(account, file->balance_rep.accounts, &(file->balance_rep.accounts_count));
 	analysis_remove_account_from_list(account, file->balance_rep.incoming, &(file->balance_rep.incoming_count));

@@ -153,6 +153,7 @@ file_data *build_new_file_block(void)
 	new->go_to = NULL;
 	new->print = NULL;
 	new->purge = NULL;
+	new->cashflow_rep = NULL;
 	new->trans_rep = NULL;
 	new->unrec_rep = NULL;
 
@@ -199,6 +200,15 @@ file_data *build_new_file_block(void)
 
 	new->purge = purge_create();
 	if (new->purge == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+
+	/* Set up the cashflow report data. */
+
+	new->cashflow_rep = analysis_create_cashflow();
+	if (new->cashflow_rep == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -331,19 +341,6 @@ file_data *build_new_file_block(void)
 
 
   /* Set up the dialogue defaults. */
-
-  new->cashflow_rep.date_from = NULL_DATE;
-  new->cashflow_rep.date_to = NULL_DATE;
-  new->cashflow_rep.budget = 0;
-  new->cashflow_rep.group = 0;
-  new->cashflow_rep.period = 1;
-  new->cashflow_rep.period_unit = PERIOD_MONTHS;
-  new->cashflow_rep.lock = 0;
-  new->cashflow_rep.empty = 0;
-  new->cashflow_rep.accounts_count = 0;
-  new->cashflow_rep.incoming_count = 0;
-  new->cashflow_rep.outgoing_count = 0;
-  new->cashflow_rep.tabular = 0;
 
   new->balance_rep.date_from = NULL_DATE;
   new->balance_rep.date_to = NULL_DATE;
@@ -512,6 +509,8 @@ void delete_file(file_data *file)
 		heap_free(file->print);
 	if (file->purge != NULL)
 		heap_free(file->purge);
+	if (file->cashflow_rep != NULL)
+		heap_free(file->cashflow_rep);
 	if (file->trans_rep != NULL)
 		heap_free(file->trans_rep);
 	if (file->unrec_rep != NULL)

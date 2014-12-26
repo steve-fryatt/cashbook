@@ -86,6 +86,17 @@ void analysis_open_unreconciled_window(file_data *file, wimp_pointer *ptr, int t
 
 
 /**
+ * Construct new cashflow report data block for a file, and return a pointer
+ * to the resulting block. The block will be allocated with heap_alloc(), and
+ * should be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct cashflow_rep *analysis_create_cashflow(void);
+
+
+/**
  * Open the Cashflow Report dialogue box.
  *
  * \param *file		The file owning the dialogue.

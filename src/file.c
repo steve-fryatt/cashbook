@@ -419,7 +419,7 @@ void delete_file(file_data *file)
 
 	/* If there are any reports in the file with pending print jobs, prompt for deletion. */
 
-	if (report_get_pending_print_jobs (file) && error_msgs_report_question ("PendingPrints", "PendingPrintsB") == 2)
+	if (report_get_pending_print_jobs(file) && error_msgs_report_question("PendingPrints", "PendingPrintsB") == 2)
 		return;
 
 	/* Remove the edit line reference. */

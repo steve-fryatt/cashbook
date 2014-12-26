@@ -122,20 +122,42 @@ void file_initialise(void)
 
 /* Allocate memory for a file, initialise it and create the transaction window. */
 
-file_data *build_new_file_block (void)
+file_data *build_new_file_block(void)
 {
-  file_data             *new;
-  int                   i;
+	file_data	*new;
+	int		i;
 
+	/* Claim the memory required for the file descriptor block. */
 
-  /* Claim the memory required for the file descriptor block. */
+	new = (file_data *) heap_alloc(sizeof(file_data));
+	if (new == NULL) {
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+ 
+	/* Zero any memory pointers, so that we know what memory has been
+	 * successfully claimed later on.
+	 */
 
-  new = (file_data *) heap_alloc (sizeof (file_data));
-  if (new == NULL)
-  {
-    error_msgs_report_error ("NoMemNewFile");
-    return (new);
-  }
+	new->transactions = NULL;
+	new->accounts = NULL;
+	new->sorders = NULL;
+	new->presets = NULL;
+	new->saved_reports = NULL;
+
+	new->budget = NULL;
+	new->reports = NULL;
+	new->import_report = NULL;
+
+	/* Set up the budget data. */
+
+	new->budget = budget_create();
+	if (new->budget == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+
 
   /* Initialise the transaction window. */
 
@@ -243,19 +265,7 @@ file_data *build_new_file_block (void)
 
   new->last_full_recalc = NULL_DATE;
 
-  /* Set up the report data. */
 
-  new->reports = NULL;
-
-  new->import_report = NULL;
-
-  /* Set up the budget details. */
-
-  new->budget.start = NULL_DATE;
-  new->budget.finish = NULL_DATE;
-
-  new->budget.sorder_trial = 0;
-  new->budget.limit_postdate = FALSE;
 
   /* Set up the dialogue defaults. */
 
@@ -342,20 +352,26 @@ file_data *build_new_file_block (void)
   new->balance_rep.outgoing_count = 0;
   new->balance_rep.tabular = 0;
 
-  /* Set up the memory blocks. */
+	/* Set up the flex memory blocks, using dummy amoungts of 4 bytes to
+	 * prevent flex getting upset.
+	 */
 
-  flex_alloc ((flex_ptr) &(new->transactions), 4); /* Set up to an initial dummy amount. */
-  flex_alloc ((flex_ptr) &(new->accounts), 4);     /* Set up to an initial dummy amount. */
-  flex_alloc ((flex_ptr) &(new->sorders), 4);      /* Set up to an initial dummy amount. */
-  flex_alloc ((flex_ptr) &(new->presets), 4);      /* Set up to an initial dummy amount. */
-  flex_alloc ((flex_ptr) &(new->saved_reports), 4);      /* Set up to an initial dummy amount. */
+	if (flex_alloc((flex_ptr) &(new->transactions), 4) == 0 ||
+			flex_alloc((flex_ptr) &(new->accounts), 4) == 0 ||
+			flex_alloc((flex_ptr) &(new->sorders), 4) == 0 ||
+			flex_alloc((flex_ptr) &(new->presets), 4) == 0 ||
+			flex_alloc((flex_ptr) &(new->saved_reports), 4) == 0) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
 
-  /* Link the file descriptor into the list. */
+	/* Link the file descriptor into the list. */
 
-  new->next = file_list;
-  file_list = new;
+	new->next = file_list;
+	file_list = new;
 
-  return (new);
+	return new;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -381,7 +397,7 @@ void create_new_file (void)
 
 /* Delete a transaction file block with its window. */
 
-void delete_file (file_data *file)
+void delete_file(file_data *file)
 {
 	file_data	**list;
 	int		i, button;
@@ -471,7 +487,7 @@ void delete_file (file_data *file)
 	preset_force_windows_closed(file);
 	filing_force_windows_closed(file);
 
-	/* Delink the block and delete it. */
+	/* Delink the block from the list of open files. */
 
 	list = &file_list;
 
@@ -481,11 +497,23 @@ void delete_file (file_data *file)
 	if (*list != NULL)
 		*list = file->next;
 
-	flex_free((flex_ptr) &(file->transactions));
-	flex_free((flex_ptr) &(file->accounts));
-	flex_free((flex_ptr) &(file->sorders));
-	flex_free((flex_ptr) &(file->presets));
-	flex_free((flex_ptr) &(file->saved_reports));
+	/* Deallocate any memory that's claimed for the block. */
+
+	if (file->budget != NULL)
+		heap_free(file->budget);
+
+	if (file->transactions != NULL)
+		flex_free((flex_ptr) &(file->transactions));
+	if (file->accounts != NULL)
+		flex_free((flex_ptr) &(file->accounts));
+	if (file->sorders != NULL)
+		flex_free((flex_ptr) &(file->sorders));
+	if (file->presets != NULL)
+		flex_free((flex_ptr) &(file->presets));
+	if (file->saved_reports != NULL)
+		flex_free((flex_ptr) &(file->saved_reports));
+
+	/* Deallocate the block itself. */
 
 	heap_free(file);
 }

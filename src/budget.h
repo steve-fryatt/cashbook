@@ -39,6 +39,16 @@ void budget_initialise(void);
 
 
 /**
+ * Construct new budget data for a new file. The block will be allocated with
+ * heap_alloc(), and should be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct budget *budget_create(void);
+
+
+/**
  * Open the Budget dialogue box.
  *
  * \param *file		The file owning the dialogue.

@@ -266,6 +266,7 @@ struct account;
 struct sorder;
 struct preset;
 struct report;
+struct budget;
 
 struct accview_window;
 struct account_redraw;
@@ -419,24 +420,6 @@ struct preset_window {
 	enum sort_type	sort_order;						/**< The order in which the window is sorted.			*/
 
 	char		sort_sprite[12];					/**< Space for the sort icon's indirected data.			*/
-};
-
-/* ==================================================================================================================
- * Budgeting data
- */
-
-/* Budget control data. */
-
-struct budget {
-	/* Budget date limits */
-
-	date_t		start;							/**< The start date of the budget.					*/
-	date_t		finish;							/**< The finish date of the budget.					*/
-
-	/* Standing order trail limits. */
-
-	int		sorder_trial;						/**< The number of days ahead to trial standing orders.			*/
-	osbool		limit_postdate;						/**< TRUE to limit post-dated transactions to the SO trial period.	*/
 };
 
 /* ==================================================================================================================
@@ -666,7 +649,7 @@ struct file_data
 
 	/* Budget data. */
 
-	struct budget			budget;					/**< The file's budgeting details.				*/
+	struct budget			*budget;					/**< The file's budgeting details.				*/
 
   /* Data integrity. */
 

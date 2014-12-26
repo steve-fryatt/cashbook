@@ -110,6 +110,17 @@ void analysis_open_cashflow_window(file_data *file, wimp_pointer *ptr, int templ
 
 
 /**
+ * Construct new balance report data block for a file, and return a pointer
+ * to the resulting block. The block will be allocated with heap_alloc(), and
+ * should be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct balance_rep *analysis_create_balance(void);
+
+
+/**
  * Open the Balance Report dialogue box.
  *
  * \param *file		The file owning the dialogue.

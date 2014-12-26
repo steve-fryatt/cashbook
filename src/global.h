@@ -274,6 +274,7 @@ struct purge;
 struct trans_rep;
 struct unrec_rep;
 struct cashflow_rep;
+struct balance_rep;
 
 struct accview_window;
 struct account_redraw;
@@ -430,44 +431,6 @@ struct preset_window {
 };
 
 /* ==================================================================================================================
- * Dialogue content data structures
- */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Balance Report dialogue. */
-
-struct balance_rep {
-	date_t			date_from;
-	date_t			date_to;
-  int          budget;
-
-  int          group;
-	int			period;
-	enum date_period	period_unit;
-  int          lock;
-
-	int			accounts_count;
-	int			incoming_count;
-	int			outgoing_count;
-	acct_t			accounts[REPORT_ACC_LIST_LEN];
-	acct_t			incoming[REPORT_ACC_LIST_LEN];
-	acct_t			outgoing[REPORT_ACC_LIST_LEN];
-
-  int          tabular;
-};
-
-/* ==================================================================================================================
  * Main file data structure
  */
 
@@ -545,7 +508,7 @@ struct file_data
 	struct trans_rep		*trans_rep;				/**< Data relating to the transaction report dialogue.		*/
 	struct unrec_rep		*unrec_rep;				/**< Data relating to the unreconciled report dialogue.		*/
 	struct cashflow_rep		*cashflow_rep;				/**< Data relating to the cashflow report dialogue.		*/
-	struct balance_rep		balance_rep;
+	struct balance_rep		*balance_rep;				/**< Data relating to the balance report dialogue.		*/
 
 	/* Pointer to the next file in the list. */
 

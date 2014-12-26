@@ -273,6 +273,28 @@ struct cashflow_rep {
   int          tabular;
 };
 
+/* Balance Report dialogue. */
+
+struct balance_rep {
+	date_t			date_from;
+	date_t			date_to;
+  int          budget;
+
+  int          group;
+	int			period;
+	enum date_period	period_unit;
+  int          lock;
+
+	int			accounts_count;
+	int			incoming_count;
+	int			outgoing_count;
+	acct_t			accounts[REPORT_ACC_LIST_LEN];
+	acct_t			incoming[REPORT_ACC_LIST_LEN];
+	acct_t			outgoing[REPORT_ACC_LIST_LEN];
+
+  int          tabular;
+};
+
 
 enum analysis_save_mode {
 	ANALYSIS_SAVE_MODE_NONE = 0,						/**< The Save/Rename dialogue isn't used.			*/
@@ -2501,6 +2523,38 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 
 /**
+ * Construct new balance report data block for a file, and return a pointer
+ * to the resulting block. The block will be allocated with heap_alloc(), and
+ * should be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct balance_rep *analysis_create_balance(void)
+{
+	struct balance_rep	*new;
+
+	new = heap_alloc(sizeof(struct balance_rep));
+	if (new == NULL)
+		return NULL;
+
+	new->date_from = NULL_DATE;
+	new->date_to = NULL_DATE;
+	new->budget = 0;
+	new->group = 0;
+	new->period = 1;
+	new->period_unit = PERIOD_MONTHS;
+	new->lock = 0;
+	new->accounts_count = 0;
+	new->incoming_count = 0;
+	new->outgoing_count = 0;
+	new->tabular = 0;
+
+	return new;
+}
+
+
+/**
  * Open the Balance Report dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -2538,7 +2592,7 @@ void analysis_open_balance_window(file_data *file, wimp_pointer *ptr, int templa
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_balance_template (&(analysis_balance_settings), &(file->balance_rep));
+		analysis_copy_balance_template (&(analysis_balance_settings), file->balance_rep);
 		analysis_balance_template = NULL_TEMPLATE;
 
 		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(analysis_balance_window), 40);
@@ -2783,44 +2837,44 @@ static osbool analysis_process_balance_window(void)
 {
 	/* Read the date settings. */
 
-	analysis_balance_file->balance_rep.date_from =
+	analysis_balance_file->balance_rep->date_from =
 			convert_string_to_date (icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM), NULL_DATE, 0);
-	analysis_balance_file->balance_rep.date_to =
+	analysis_balance_file->balance_rep->date_to =
 			convert_string_to_date (icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATETO), NULL_DATE, 0);
-	analysis_balance_file->balance_rep.budget = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_BUDGET);
+	analysis_balance_file->balance_rep->budget = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_BUDGET);
 
 	/* Read the grouping settings. */
 
-	analysis_balance_file->balance_rep.group = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_GROUP);
-	analysis_balance_file->balance_rep.period = atoi(icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_PERIOD));
+	analysis_balance_file->balance_rep->group = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_GROUP);
+	analysis_balance_file->balance_rep->period = atoi(icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_PERIOD));
 
 	if (icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_PDAYS))
-		analysis_balance_file->balance_rep.period_unit = PERIOD_DAYS;
+		analysis_balance_file->balance_rep->period_unit = PERIOD_DAYS;
 	else if (icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS))
-		analysis_balance_file->balance_rep.period_unit = PERIOD_MONTHS;
+		analysis_balance_file->balance_rep->period_unit = PERIOD_MONTHS;
 	else if (icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_PYEARS))
- 		 analysis_balance_file->balance_rep.period_unit = PERIOD_YEARS;
+ 		 analysis_balance_file->balance_rep->period_unit = PERIOD_YEARS;
 	else
-		analysis_balance_file->balance_rep.period_unit = PERIOD_MONTHS;
+		analysis_balance_file->balance_rep->period_unit = PERIOD_MONTHS;
 
-	analysis_balance_file->balance_rep.lock = icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_LOCK);
+	analysis_balance_file->balance_rep->lock = icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_LOCK);
 
 	/* Read the account and heading settings. */
 
-	analysis_balance_file->balance_rep.accounts_count =
+	analysis_balance_file->balance_rep->accounts_count =
 			analysis_account_idents_to_list(analysis_balance_file, ACCOUNT_FULL,
 			icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS),
-			analysis_balance_file->balance_rep.accounts);
-	analysis_balance_file->balance_rep.incoming_count =
+			analysis_balance_file->balance_rep->accounts);
+	analysis_balance_file->balance_rep->incoming_count =
 			analysis_account_idents_to_list(analysis_balance_file, ACCOUNT_IN,
 			icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_INCOMING),
-			analysis_balance_file->balance_rep.incoming);
-	analysis_balance_file->balance_rep.outgoing_count =
+			analysis_balance_file->balance_rep->incoming);
+	analysis_balance_file->balance_rep->outgoing_count =
 			analysis_account_idents_to_list(analysis_balance_file, ACCOUNT_OUT,
 			icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_OUTGOING),
-			analysis_balance_file->balance_rep.outgoing);
+			analysis_balance_file->balance_rep->outgoing);
 
-	analysis_balance_file->balance_rep.tabular = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_TABULAR);
+	analysis_balance_file->balance_rep->tabular = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_TABULAR);
 
 	/* Run the report. */
 
@@ -2881,28 +2935,28 @@ static void analysis_generate_balance_report(file_data *file)
 
 	/* Read the date settings. */
 
-	analysis_find_date_range(file, &start_date, &end_date, file->balance_rep.date_from, file->balance_rep.date_to, file->balance_rep.budget);
+	analysis_find_date_range(file, &start_date, &end_date, file->balance_rep->date_from, file->balance_rep->date_to, file->balance_rep->budget);
 
 	/* Read the grouping settings. */
 
-	group = file->balance_rep.group;
-	unit = file->balance_rep.period_unit;
-	lock = file->balance_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
-	period = (group) ? file->balance_rep.period : 0;
+	group = file->balance_rep->group;
+	unit = file->balance_rep->period_unit;
+	lock = file->balance_rep->lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	period = (group) ? file->balance_rep->period : 0;
 
 	/* Read the include list. */
 
 	analysis_clear_account_report_flags(file, data);
 
-	if (file->balance_rep.accounts_count == 0 && file->balance_rep.incoming_count == 0 && file->balance_rep.outgoing_count == 0) {
+	if (file->balance_rep->accounts_count == 0 && file->balance_rep->incoming_count == 0 && file->balance_rep->outgoing_count == 0) {
 		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, &analysis_wildcard_account_list, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL, ANALYSIS_REPORT_INCLUDE, file->balance_rep.accounts, file->balance_rep.accounts_count);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_IN, ANALYSIS_REPORT_INCLUDE, file->balance_rep.incoming, file->balance_rep.incoming_count);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, file->balance_rep.outgoing, file->balance_rep.outgoing_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL, ANALYSIS_REPORT_INCLUDE, file->balance_rep->accounts, file->balance_rep->accounts_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_IN, ANALYSIS_REPORT_INCLUDE, file->balance_rep->incoming, file->balance_rep->incoming_count);
+		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, file->balance_rep->outgoing, file->balance_rep->outgoing_count);
 	}
 
-	tabular = file->balance_rep.tabular;
+	tabular = file->balance_rep->tabular;
 
 	/* Count the number of accounts and headings to be included.  If this comes to more than the number of tab
 	 * stops available (including 2 for account name and total), force the tabular format option off.
@@ -2919,7 +2973,7 @@ static void analysis_generate_balance_report(file_data *file)
 
 	/* Start to output the report details. */
 
-	analysis_copy_balance_template(&(analysis_report_template.data.balance), &(file->balance_rep));
+	analysis_copy_balance_template(&(analysis_report_template.data.balance), file->balance_rep);
 	if (analysis_balance_template == NULL_TEMPLATE)
 		*(analysis_report_template.name) = '\0';
 	else
@@ -3540,9 +3594,9 @@ void analysis_remove_account_from_templates(file_data *file, acct_t account)
 	analysis_remove_account_from_list(account, file->cashflow_rep->incoming, &(file->cashflow_rep->incoming_count));
 	analysis_remove_account_from_list(account, file->cashflow_rep->outgoing, &(file->cashflow_rep->outgoing_count));
 
-	analysis_remove_account_from_list(account, file->balance_rep.accounts, &(file->balance_rep.accounts_count));
-	analysis_remove_account_from_list(account, file->balance_rep.incoming, &(file->balance_rep.incoming_count));
-	analysis_remove_account_from_list(account, file->balance_rep.outgoing, &(file->balance_rep.outgoing_count));
+	analysis_remove_account_from_list(account, file->balance_rep->accounts, &(file->balance_rep->accounts_count));
+	analysis_remove_account_from_list(account, file->balance_rep->incoming, &(file->balance_rep->incoming_count));
+	analysis_remove_account_from_list(account, file->balance_rep->outgoing, &(file->balance_rep->outgoing_count));
 
 	/* Now process any saved templates. */
 

@@ -137,6 +137,19 @@ struct budget *budget_create(void)
 
 
 /**
+ * Delete a budget data block.
+ *
+ * \param *budget	Pointer to the budget to delete.
+ */
+
+void budget_delete(struct budget *budget)
+{
+	if (budget != NULL)
+		heap_free(budget);
+}
+
+
+/**
  * Open the Budget dialogue box.
  *
  * \param *file		The file owning the dialogue.

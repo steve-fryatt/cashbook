@@ -49,6 +49,15 @@ struct find *find_create(void);
 
 
 /**
+ * Delete a find data block.
+ *
+ * \param *find		Pointer to the find window data to delete.
+ */
+
+void find_delete(struct find *find);
+
+
+/**
  * Open the Find dialogue box.
  *
  * \param *file		The file owning the dialogue.

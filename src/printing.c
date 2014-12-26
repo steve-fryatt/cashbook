@@ -232,6 +232,19 @@ struct printing *printing_create(void)
 
 
 /**
+ * Delete a printing data block.
+ *
+ * \param *print	Pointer to the printing window data to delete.
+ */
+
+void printing_delete(struct printing *print)
+{
+	if (print != NULL)
+		heap_free(print);
+}
+
+
+/**
  * Send a Message_PrintSave to start the printing process off with the
  * RISC OS printer driver.
  *

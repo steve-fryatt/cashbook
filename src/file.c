@@ -494,23 +494,23 @@ void delete_file(file_data *file)
 	/* Deallocate any memory that's claimed for the block. */
 
 	if (file->budget != NULL)
-		heap_free(file->budget);
+		budget_delete(file->budget);
 	if (file->find != NULL);
-		heap_free(file->find);
+		find_delete(file->find);
 	if (file->go_to != NULL)
-		heap_free(file->go_to);
+		goto_delete(file->go_to);
 	if (file->print != NULL)
-		heap_free(file->print);
+		printing_delete(file->print);
 	if (file->purge != NULL)
-		heap_free(file->purge);
+		purge_delete(file->purge);
 	if (file->balance_rep != NULL)
-		heap_free(file->balance_rep);
+		analysis_delete_balance(file->balance_rep);
 	if (file->cashflow_rep != NULL)
-		heap_free(file->cashflow_rep);
+		analysis_delete_cashflow(file->cashflow_rep);
 	if (file->trans_rep != NULL)
-		heap_free(file->trans_rep);
+		analysis_delete_transaction(file->trans_rep);
 	if (file->unrec_rep != NULL)
-		heap_free(file->unrec_rep);
+		analysis_delete_unreconciled(file->unrec_rep);
 
 	if (file->transactions != NULL)
 		flex_free((flex_ptr) &(file->transactions));

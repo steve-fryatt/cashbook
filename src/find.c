@@ -216,6 +216,20 @@ struct find *find_create(void)
 	return new;
 }
 
+
+/**
+ * Delete a find data block.
+ *
+ * \param *find		Pointer to the find window data to delete.
+ */
+
+void find_delete(struct find *find)
+{
+	if (find != NULL)
+		heap_free(find);
+}
+
+
 /**
  * Open the Find dialogue box.
  *

@@ -49,6 +49,15 @@ struct trans_rep *analysis_create_transaction(void);
 
 
 /**
+ * Delete a transaction report data block.
+ *
+ * \param *report	Pointer to the report to delete.
+ */
+
+void analysis_delete_transaction(struct trans_rep *report);
+
+
+/**
  * Open the Transaction Report dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -70,6 +79,15 @@ void analysis_open_transaction_window(file_data *file, wimp_pointer *ptr, int te
  */
 
 struct unrec_rep *analysis_create_unreconciled(void);
+
+
+/**
+ * Delete an unreconciled report data block.
+ *
+ * \param *report	Pointer to the report to delete.
+ */
+
+void analysis_delete_unreconciled(struct unrec_rep *report);
 
 
 /**
@@ -97,6 +115,15 @@ struct cashflow_rep *analysis_create_cashflow(void);
 
 
 /**
+ * Delete a cashflow report data block.
+ *
+ * \param *report	Pointer to the report to delete.
+ */
+
+void analysis_delete_cashflow(struct cashflow_rep *report);
+
+
+/**
  * Open the Cashflow Report dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -118,6 +145,15 @@ void analysis_open_cashflow_window(file_data *file, wimp_pointer *ptr, int templ
  */
 
 struct balance_rep *analysis_create_balance(void);
+
+
+/**
+ * Delete a balance report data block.
+ *
+ * \param *report	Pointer to the report to delete.
+ */
+
+void analysis_delete_balance(struct balance_rep *report);
 
 
 /**

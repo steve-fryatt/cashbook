@@ -49,6 +49,15 @@ struct go_to *goto_create(void);
 
 
 /**
+ * Delete a goto data block.
+ *
+ * \param *go_to	Pointer to the goto window data to delete.
+ */
+
+void goto_delete(struct go_to *go_to);
+
+
+/**
  * Open the Goto dialogue box.
  *
  * \param *file		The file owning the dialogue.

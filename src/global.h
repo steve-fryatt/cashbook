@@ -191,14 +191,6 @@ enum transact_flags {
 
 #define SAVED_REPORT_NAME_LEN 32
 
-enum report_type {
-	REPORT_TYPE_NONE = 0,							/**< No report.						*/
-	REPORT_TYPE_TRANS = 1,							/**< Transaction report.				*/
-	REPORT_TYPE_UNREC = 2,							/**< Unreconciled transaction report.			*/
-	REPORT_TYPE_CASHFLOW = 3,						/**< Cashflow report.					*/
-	REPORT_TYPE_BALANCE = 4							/**< Balance report.					*/
-};
-
 /**
  * Data sort types: values to indicate which field a window is sorted on. Types
  * are shared between windows wherever possible, to avoid duplicating field names.

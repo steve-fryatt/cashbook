@@ -209,23 +209,23 @@
  */
 
 struct trans_rep {
-	date_t			date_from;
-	date_t			date_to;
+	date_t				date_from;
+	date_t				date_to;
   int          budget;
 
   int          group;
 	int          period;
-	enum date_period	period_unit;
+	enum date_period		period_unit;
   int          lock;
 
-	int			from_count;
-	int			to_count;
-	acct_t			from[REPORT_ACC_LIST_LEN];
-	acct_t			to[REPORT_ACC_LIST_LEN];
-	char			ref[REF_FIELD_LEN];
-	char			desc[DESCRIPT_FIELD_LEN];
-	amt_t			amount_min;
-	amt_t			amount_max;
+	int				from_count;
+	int				to_count;
+	acct_t				from[REPORT_ACC_LIST_LEN];
+	acct_t				to[REPORT_ACC_LIST_LEN];
+	char				ref[REF_FIELD_LEN];
+	char				desc[DESCRIPT_FIELD_LEN];
+	amt_t				amount_min;
+	amt_t				amount_max;
 
   int          output_trans;
   int          output_summary;
@@ -235,40 +235,40 @@ struct trans_rep {
 /* Unreconciled Report dialogue. */
 
 struct unrec_rep {
-	date_t			date_from;
-	date_t			date_to;
+	date_t				date_from;
+	date_t				date_to;
   int          budget;
 
   int          group;
-	int			period;
-	enum date_period	period_unit;
+	int				period;
+	enum date_period		period_unit;
   int          lock;
 
-	int			from_count;
-	int			to_count;
-	acct_t			from[REPORT_ACC_LIST_LEN];
-	acct_t			to[REPORT_ACC_LIST_LEN];
+	int				from_count;
+	int				to_count;
+	acct_t				from[REPORT_ACC_LIST_LEN];
+	acct_t				to[REPORT_ACC_LIST_LEN];
 };
 
 /* Cashflow Report dialogue. */
 
 struct cashflow_rep {
-	date_t			date_from;
-	date_t			date_to;
+	date_t				date_from;
+	date_t				date_to;
   int          budget;
 
   int          group;
-	int			period;
-	enum date_period	period_unit;
+	int				period;
+	enum date_period		period_unit;
   int          lock;
   int          empty;
 
-	int			accounts_count;
-	int			incoming_count;
-	int			outgoing_count;
-	acct_t			accounts[REPORT_ACC_LIST_LEN];
-	acct_t			incoming[REPORT_ACC_LIST_LEN];
-	acct_t			outgoing[REPORT_ACC_LIST_LEN];
+	int				accounts_count;
+	int				incoming_count;
+	int				outgoing_count;
+	acct_t				accounts[REPORT_ACC_LIST_LEN];
+	acct_t				incoming[REPORT_ACC_LIST_LEN];
+	acct_t				outgoing[REPORT_ACC_LIST_LEN];
 
   int          tabular;
 };
@@ -276,30 +276,29 @@ struct cashflow_rep {
 /* Balance Report dialogue. */
 
 struct balance_rep {
-	date_t			date_from;
-	date_t			date_to;
+	date_t				date_from;
+	date_t				date_to;
   int          budget;
 
   int          group;
-	int			period;
-	enum date_period	period_unit;
+	int				period;
+	enum date_period		period_unit;
   int          lock;
 
-	int			accounts_count;
-	int			incoming_count;
-	int			outgoing_count;
-	acct_t			accounts[REPORT_ACC_LIST_LEN];
-	acct_t			incoming[REPORT_ACC_LIST_LEN];
-	acct_t			outgoing[REPORT_ACC_LIST_LEN];
+	int				accounts_count;
+	int				incoming_count;
+	int				outgoing_count;
+	acct_t				accounts[REPORT_ACC_LIST_LEN];
+	acct_t				incoming[REPORT_ACC_LIST_LEN];
+	acct_t				outgoing[REPORT_ACC_LIST_LEN];
 
   int          tabular;
 };
 
-
 enum analysis_save_mode {
-	ANALYSIS_SAVE_MODE_NONE = 0,						/**< The Save/Rename dialogue isn't used.			*/
-	ANALYSIS_SAVE_MODE_SAVE,						/**< The Save/Rename dialogue is in Save mode.			*/
-	ANALYSIS_SAVE_MODE_RENAME						/**< The Save/Rename dialogue is in Rename mode.		*/
+	ANALYSIS_SAVE_MODE_NONE = 0,						/**< The Save/Rename dialogue isn't used.					*/
+	ANALYSIS_SAVE_MODE_SAVE,						/**< The Save/Rename dialogue is in Save mode.					*/
+	ANALYSIS_SAVE_MODE_RENAME						/**< The Save/Rename dialogue is in Rename mode.				*/
 };
 
 enum analysis_flags {
@@ -309,76 +308,106 @@ enum analysis_flags {
 	ANALYSIS_REPORT_INCLUDE = 0x0004
 };
 
-union report_block {
-	struct trans_rep	transaction;
-	struct unrec_rep	unreconciled;
-	struct cashflow_rep	cashflow;
-	struct balance_rep	balance;
+/**
+ * Saved Report Types.
+ */
+
+enum analysis_report_type {
+	REPORT_TYPE_NONE = 0,							/**< No report.									*/
+	REPORT_TYPE_TRANS = 1,							/**< Transaction report.							*/
+	REPORT_TYPE_UNREC = 2,							/**< Unreconciled transaction report.						*/
+	REPORT_TYPE_CASHFLOW = 3,						/**< Cashflow report.								*/
+	REPORT_TYPE_BALANCE = 4							/**< Balance report.								*/
 };
+
+/**
+ * Saved Report Data Union.
+ */
+
+union analysis_report_block {
+	struct trans_rep		transaction;
+	struct unrec_rep		unreconciled;
+	struct cashflow_rep		cashflow;
+	struct balance_rep		balance;
+};
+
+/**
+ * Saved Report.
+ */
 
 struct analysis_report {
-	file_data		*file;						/**< The file to which the template belongs.		*/
-	char			name[SAVED_REPORT_NAME_LEN];			/**< The name of the saved report template.		*/
-	enum report_type	type;						/**< The type of the template.				*/
+	file_data			*file;					/**< The file to which the template belongs.					*/
+	char				name[SAVED_REPORT_NAME_LEN];		/**< The name of the saved report template.					*/
+	enum analysis_report_type	type;					/**< The type of the template.							*/
 
-	union report_block	data;						/**< The template-type-specific data.			*/
+	union analysis_report_block	data;					/**< The template-type-specific data.						*/
 };
+
+/**
+ * Template Menu Entries
+ */
 
 struct analysis_report_link
 {
-	char			name[SAVED_REPORT_NAME_LEN+3];			/**< The name as it appears in the menu (+3 for ellipsis...)	*/
-	int			template;					/**< Link to the associated report template.			*/
+	char				name[SAVED_REPORT_NAME_LEN + 3];	/**< The name as it appears in the menu (+3 for ellipsis...)			*/
+	int				template;				/**< Index link to the associated report template in the saved report array.	*/
 };
+
+/**
+ * Analysis Scratch Data
+ *
+ * Data associated with an individual account during report generation.
+ */
 
 struct analysis_data
 {
-	int			report_total;
-	int			report_balance;
-	enum analysis_flags	report_flags;
+	int				report_total;				/**< Running total for the account.						*/
+	int				report_balance;				/**< Balance for the account.							*/
+	enum analysis_flags		report_flags;				/**< Flags associated with the account.						*/
 };
 
 /* Report windows. */
 
-static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.		*/
-static file_data		*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.	*/
-static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.	*/
-static struct trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.	*/
-static int			analysis_transaction_template = NULL_TEMPLATE;	/**< The template which applies to the Transaction dialogue.	*/
+static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.				*/
+static file_data		*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.			*/
+static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.			*/
+static struct trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.			*/
+static int			analysis_transaction_template = NULL_TEMPLATE;	/**< The template which applies to the Transaction dialogue.			*/
 
-static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.		*/
-static file_data		*analysis_unreconciled_file = NULL;		/**< The file currently owning the unreconciled dialogue.	*/
-static osbool			analysis_unreconciled_restore = FALSE;		/**< The restore setting for the current Unreconciled dialogue.	*/
-static struct unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.	*/
-static int			analysis_unreconciled_template = NULL_TEMPLATE;	/**< The template which applies to the Unreconciled dialogue.	*/
+static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.				*/
+static file_data		*analysis_unreconciled_file = NULL;		/**< The file currently owning the unreconciled dialogue.			*/
+static osbool			analysis_unreconciled_restore = FALSE;		/**< The restore setting for the current Unreconciled dialogue.			*/
+static struct unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.			*/
+static int			analysis_unreconciled_template = NULL_TEMPLATE;	/**< The template which applies to the Unreconciled dialogue.			*/
 
-static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.			*/
-static file_data		*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.		*/
-static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.	*/
-static struct cashflow_rep	analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.		*/
-static int			analysis_cashflow_template = NULL_TEMPLATE;	/**< The template which applies to the Cashflow dialogue.	*/
+static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.					*/
+static file_data		*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.				*/
+static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.			*/
+static struct cashflow_rep	analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.				*/
+static int			analysis_cashflow_template = NULL_TEMPLATE;	/**< The template which applies to the Cashflow dialogue.			*/
 
-static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.			*/
-static file_data		*analysis_balance_file = NULL;			/**< The file currently owning the balance dialogue.		*/
-static osbool			analysis_balance_restore = FALSE;		/**< The restore setting for the current Balance dialogue.	*/
-static struct balance_rep	analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.		*/
-static int			analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.	*/
+static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.					*/
+static file_data		*analysis_balance_file = NULL;			/**< The file currently owning the balance dialogue.				*/
+static osbool			analysis_balance_restore = FALSE;		/**< The restore setting for the current Balance dialogue.			*/
+static struct balance_rep	analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.				*/
+static int			analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.			*/
 
-static struct analysis_report	analysis_report_template;			/**< New report settings for passing to the Report module.	*/
+static struct analysis_report	analysis_report_template;			/**< New report settings for passing to the Report module.			*/
 
-static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a pointer to this to set all accounts.		*/
+static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a pointer to this to set all accounts.				*/
 
 /* Account Lookup Window. */
 
-static wimp_w			analysis_lookup_window = NULL;			/**< The handle of the Account Lookup window.			*/
-static file_data		*analysis_lookup_file = NULL;			/**< The file currently owning the Account Lookup window.	*/
-static enum account_type	analysis_lookup_type = ACCOUNT_NULL;		/**< The type(s) of account to be looked up in the window.	*/
-static wimp_w			analysis_lookup_parent;				/**< The window currently owning the Account Lookup window.	*/
-static wimp_i			analysis_lookup_icon;				/**< The icon to which the lookup results should be inserted.	*/
+static wimp_w			analysis_lookup_window = NULL;			/**< The handle of the Account Lookup window.					*/
+static file_data		*analysis_lookup_file = NULL;			/**< The file currently owning the Account Lookup window.			*/
+static enum account_type	analysis_lookup_type = ACCOUNT_NULL;		/**< The type(s) of account to be looked up in the window.			*/
+static wimp_w			analysis_lookup_parent;				/**< The window currently owning the Account Lookup window.			*/
+static wimp_i			analysis_lookup_icon;				/**< The icon to which the lookup results should be inserted.			*/
 
 /* Date period management. */
 
-static date_t			analysis_period_start;				/**< The start of the current reporting period.			*/
-static date_t			analysis_period_end;				/**< The end of the current reporting period.			*/
+static date_t			analysis_period_start;				/**< The start of the current reporting period.					*/
+static date_t			analysis_period_end;				/**< The end of the current reporting period.					*/
 static int			analysis_period_length;
 static int			analysis_period_unit;
 static osbool			analysis_period_lock;
@@ -386,17 +415,17 @@ static osbool			analysis_period_first = TRUE;
 
 /* Save/Rename Reports. */
 
-static wimp_w			analysis_save_window = NULL;			/**< The handle of the Save/Rename window.			*/
-static file_data		*analysis_save_file = NULL;			/**< The file currently owning the Save/Rename window.		*/
-static struct analysis_report	*analysis_save_report = NULL;			/**< The report currently owning the Save/Rename window.	*/
-static int			analysis_save_template = NULL_TEMPLATE;		/**< The template currently owning the Save/Rename window.	*/
-static enum analysis_save_mode	analysis_save_mode = ANALYSIS_SAVE_MODE_NONE;	/**< The current mode of the Save/Rename window.		*/
+static wimp_w			analysis_save_window = NULL;			/**< The handle of the Save/Rename window.					*/
+static file_data		*analysis_save_file = NULL;			/**< The file currently owning the Save/Rename window.				*/
+static struct analysis_report	*analysis_save_report = NULL;			/**< The report currently owning the Save/Rename window.			*/
+static int			analysis_save_template = NULL_TEMPLATE;		/**< The template currently owning the Save/Rename window.			*/
+static enum analysis_save_mode	analysis_save_mode = ANALYSIS_SAVE_MODE_NONE;	/**< The current mode of the Save/Rename window.				*/
 
 /* Template List Menu. */
 
-static wimp_menu			*analysis_template_menu = NULL;		/**< The saved template menu block.				*/
-static struct analysis_report_link	*analysis_template_menu_link = NULL;	/**< Links for the template menu.				*/
-static char				*analysis_template_menu_title = NULL;	/**< The menu title buffer.					*/
+static wimp_menu			*analysis_template_menu = NULL;		/**< The saved template menu block.						*/
+static struct analysis_report_link	*analysis_template_menu_link = NULL;	/**< Links for the template menu.						*/
+static char				*analysis_template_menu_title = NULL;	/**< The menu title buffer.							*/
 
 
 
@@ -564,6 +593,19 @@ struct trans_rep *analysis_create_transaction(void)
 	new->output_accsummary = 1;
 
 	return new;
+}
+
+
+/**
+ * Delete a transaction report data block.
+ *
+ * \param *report	Pointer to the report to delete.
+ */
+
+void analysis_delete_transaction(struct trans_rep *report)
+{
+	if (report != NULL)
+		heap_free(report);
 }
 
 
@@ -1302,6 +1344,19 @@ struct unrec_rep *analysis_create_unreconciled(void)
 
 
 /**
+ * Delete an unreconciled report data block.
+ *
+ * \param *report	Pointer to the report to delete.
+ */
+
+void analysis_delete_unreconciled(struct unrec_rep *report)
+{
+	if (report != NULL)
+		heap_free(report);
+}
+
+
+/**
  * Open the Unreconciled Report dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -1934,6 +1989,19 @@ struct cashflow_rep *analysis_create_cashflow(void)
 
 
 /**
+ * Delete a cashflow report data block.
+ *
+ * \param *report	Pointer to the report to delete.
+ */
+
+void analysis_delete_cashflow(struct cashflow_rep *report)
+{
+	if (report != NULL)
+		heap_free(report);
+}
+
+
+/**
  * Open the Cashflow Report dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -2551,6 +2619,19 @@ struct balance_rep *analysis_create_balance(void)
 	new->tabular = 0;
 
 	return new;
+}
+
+
+/**
+ * Delete a balance report data block.
+ *
+ * \param *report	Pointer to the report to delete.
+ */
+
+void analysis_delete_balance(struct balance_rep *report)
+{
+	if (report != NULL)
+		heap_free(report);
 }
 
 
@@ -4529,7 +4610,7 @@ static void analysis_store_template(file_data *file, struct analysis_report *rep
 
 static void analysis_delete_template(file_data *file, int template)
 {
-	enum report_type	type;
+	enum analysis_report_type	type;
 
 	/* delete the specified template. */
 

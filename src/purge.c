@@ -142,6 +142,20 @@ struct purge *purge_create(void)
 	return new;
 }
 
+
+/**
+ * Delete a purge data block.
+ *
+ * \param *purge	Pointer to the purge window data to delete.
+ */
+
+void purge_delete(struct purge *purge)
+{
+	if (purge != NULL)
+		heap_free(purge);
+}
+
+
 /**
  * Open the Purge dialogue box.
  *

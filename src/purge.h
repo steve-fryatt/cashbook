@@ -50,6 +50,15 @@ struct purge *purge_create(void);
 
 
 /**
+ * Delete a purge data block.
+ *
+ * \param *purge	Pointer to the purge window data to delete.
+ */
+
+void purge_delete(struct purge *purge);
+
+
+/**
  * Open the Purge dialogue box.
  *
  * \param *file		The file owning the dialogue.

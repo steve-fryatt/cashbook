@@ -38,6 +38,17 @@ void analysis_initialise(void);
 
 
 /**
+ * Construct new transaction report data block for a file, and return a pointer
+ * to the resulting block. The block will be allocated with heap_alloc(), and
+ * should be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct trans_rep *analysis_create_transaction(void);
+
+
+/**
  * Open the Transaction Report dialogue box.
  *
  * \param *file		The file owning the dialogue.

@@ -204,6 +204,35 @@
 #define ANALYSIS_LOOKUP_CANCEL 3
 #define ANALYSIS_LOOKUP_OK 4
 
+/**
+ * Transaction Report dialogue.
+ */
+
+struct trans_rep {
+	date_t			date_from;
+	date_t			date_to;
+  int          budget;
+
+  int          group;
+	int          period;
+	enum date_period	period_unit;
+  int          lock;
+
+	int			from_count;
+	int			to_count;
+	acct_t			from[REPORT_ACC_LIST_LEN];
+	acct_t			to[REPORT_ACC_LIST_LEN];
+	char			ref[REF_FIELD_LEN];
+	char			desc[DESCRIPT_FIELD_LEN];
+	amt_t			amount_min;
+	amt_t			amount_max;
+
+  int          output_trans;
+  int          output_summary;
+  int          output_accsummary;
+};
+
+
 enum analysis_save_mode {
 	ANALYSIS_SAVE_MODE_NONE = 0,						/**< The Save/Rename dialogue isn't used.			*/
 	ANALYSIS_SAVE_MODE_SAVE,						/**< The Save/Rename dialogue is in Save mode.			*/
@@ -439,6 +468,43 @@ void analysis_initialise(void)
 
 
 /**
+ * Construct new transaction report data block for a file, and return a pointer
+ * to the resulting block. The block will be allocated with heap_alloc(), and
+ * should be freed after use with heap_free().
+ *
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct trans_rep *analysis_create_transaction(void)
+{
+	struct trans_rep	*new;
+
+	new = heap_alloc(sizeof(struct trans_rep));
+	if (new == NULL)
+		return NULL;
+
+	new->date_from = NULL_DATE;
+	new->date_to = NULL_DATE;
+	new->budget = 0;
+	new->group = 0;
+	new->period = 1;
+	new->period_unit = PERIOD_MONTHS;
+	new->lock = 0;
+	new->from_count = 0;
+	new->to_count = 0;
+	*(new->ref) = '\0';
+	*(new->desc) = '\0';
+	new->amount_min = NULL_CURRENCY;
+	new->amount_max = NULL_CURRENCY;
+	new->output_trans = 1;
+	new->output_summary = 1;
+	new->output_accsummary = 1;
+
+	return new;
+}
+
+
+/**
  * Open the Transaction Report dialogue box.
  *
  * \param *file		The file owning the dialogue.
@@ -476,7 +542,7 @@ void analysis_open_transaction_window(file_data *file, wimp_pointer *ptr, int te
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_transaction_template(&(analysis_transaction_settings), &(file->trans_rep));
+		analysis_copy_transaction_template(&(analysis_transaction_settings), file->trans_rep);
 		analysis_transaction_template = NULL_TEMPLATE;
 
 		msgs_lookup("TrnRepTitle", windows_get_indirected_title_addr(analysis_transaction_window), 40);
@@ -727,53 +793,53 @@ static osbool analysis_process_transaction_window(void)
 {
 	/* Read the date settings. */
 
-	analysis_transaction_file->trans_rep.date_from =
+	analysis_transaction_file->trans_rep->date_from =
 			convert_string_to_date (icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM), NULL_DATE, 0);
-	analysis_transaction_file->trans_rep.date_to =
+	analysis_transaction_file->trans_rep->date_to =
 			convert_string_to_date (icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATETO), NULL_DATE, 0);
-	analysis_transaction_file->trans_rep.budget = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_BUDGET);
+	analysis_transaction_file->trans_rep->budget = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_BUDGET);
 
 	/* Read the grouping settings. */
 
-	analysis_transaction_file->trans_rep.group = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_GROUP);
-	analysis_transaction_file->trans_rep.period = atoi(icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_PERIOD));
+	analysis_transaction_file->trans_rep->group = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_GROUP);
+	analysis_transaction_file->trans_rep->period = atoi(icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_PERIOD));
 
 	if (icons_get_selected	(analysis_transaction_window, ANALYSIS_TRANS_PDAYS))
-		analysis_transaction_file->trans_rep.period_unit = PERIOD_DAYS;
+		analysis_transaction_file->trans_rep->period_unit = PERIOD_DAYS;
 	else if (icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS))
-		analysis_transaction_file->trans_rep.period_unit = PERIOD_MONTHS;
+		analysis_transaction_file->trans_rep->period_unit = PERIOD_MONTHS;
 	else if (icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_PYEARS))
-		analysis_transaction_file->trans_rep.period_unit = PERIOD_YEARS;
+		analysis_transaction_file->trans_rep->period_unit = PERIOD_YEARS;
 	else
-		analysis_transaction_file->trans_rep.period_unit = PERIOD_MONTHS;
+		analysis_transaction_file->trans_rep->period_unit = PERIOD_MONTHS;
 
-	analysis_transaction_file->trans_rep.lock = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_LOCK);
+	analysis_transaction_file->trans_rep->lock = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_LOCK);
 
 	/* Read the account and heading settings. */
 
-	analysis_transaction_file->trans_rep.from_count =
+	analysis_transaction_file->trans_rep->from_count =
 			analysis_account_idents_to_list(analysis_transaction_file, ACCOUNT_FULL | ACCOUNT_IN,
 			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC),
-			analysis_transaction_file->trans_rep.from);
-	analysis_transaction_file->trans_rep.to_count =
+			analysis_transaction_file->trans_rep->from);
+	analysis_transaction_file->trans_rep->to_count =
 			analysis_account_idents_to_list(analysis_transaction_file, ACCOUNT_FULL | ACCOUNT_OUT,
 			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
-			analysis_transaction_file->trans_rep.to);
-	strcpy(analysis_transaction_file->trans_rep.ref,
+			analysis_transaction_file->trans_rep->to);
+	strcpy(analysis_transaction_file->trans_rep->ref,
 			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_REFSPEC));
-	strcpy(analysis_transaction_file->trans_rep.desc,
+	strcpy(analysis_transaction_file->trans_rep->desc,
 			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC));
-	analysis_transaction_file->trans_rep.amount_min = (*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC) == '\0') ?
+	analysis_transaction_file->trans_rep->amount_min = (*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC) == '\0') ?
 			NULL_CURRENCY : convert_string_to_money(icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC));
 
-	analysis_transaction_file->trans_rep.amount_max = (*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC) == '\0') ?
+	analysis_transaction_file->trans_rep->amount_max = (*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC) == '\0') ?
 			NULL_CURRENCY : convert_string_to_money(icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC));
 
 	/* Read the output options. */
 
-	analysis_transaction_file->trans_rep.output_trans = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_OPTRANS);
- 	analysis_transaction_file->trans_rep.output_summary = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY);
-	analysis_transaction_file->trans_rep.output_accsummary = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY);
+	analysis_transaction_file->trans_rep->output_trans = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_OPTRANS);
+ 	analysis_transaction_file->trans_rep->output_summary = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY);
+	analysis_transaction_file->trans_rep->output_accsummary = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY);
 
 	/* Run the report. */
 
@@ -837,48 +903,48 @@ static void analysis_generate_transaction_report(file_data *file)
 	/* Read the date settings. */
 
 	analysis_find_date_range(file, &start_date, &end_date,
-			file->trans_rep.date_from, file->trans_rep.date_to, file->trans_rep.budget);
+			file->trans_rep->date_from, file->trans_rep->date_to, file->trans_rep->budget);
 
 	total_days = count_days(start_date, end_date);
 
 	/* Read the grouping settings. */
 
-	group = file->trans_rep.group;
-	unit = file->trans_rep.period_unit;
-	lock = file->trans_rep.lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
-	period = (group) ? file->trans_rep.period : 0;
+	group = file->trans_rep->group;
+	unit = file->trans_rep->period_unit;
+	lock = file->trans_rep->lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	period = (group) ? file->trans_rep->period : 0;
 
 	/* Read the include list. */
 
 	analysis_clear_account_report_flags(file, data);
 
-	if (file->trans_rep.from_count == 0 && file->trans_rep.to_count == 0) {
+	if (file->trans_rep->from_count == 0 && file->trans_rep->to_count == 0) {
 		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM,
 				&analysis_wildcard_account_list, 1);
 		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO,
 				&analysis_wildcard_account_list, 1);
 	} else {
 		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM,
-				file->trans_rep.from, file->trans_rep.from_count);
+				file->trans_rep->from, file->trans_rep->from_count);
 		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO,
-				file->trans_rep.to, file->trans_rep.to_count);
+				file->trans_rep->to, file->trans_rep->to_count);
 	}
 
-	min_amount = file->trans_rep.amount_min;
-	max_amount = file->trans_rep.amount_max;
+	min_amount = file->trans_rep->amount_min;
+	max_amount = file->trans_rep->amount_max;
 
-	match_ref = (*(file->trans_rep.ref) == '\0') ? NULL : file->trans_rep.ref;
-	match_desc = (*(file->trans_rep.desc) == '\0') ? NULL : file->trans_rep.desc;
+	match_ref = (*(file->trans_rep->ref) == '\0') ? NULL : file->trans_rep->ref;
+	match_desc = (*(file->trans_rep->desc) == '\0') ? NULL : file->trans_rep->desc;
 
 	/* Read the output options. */
 
-	output_trans = file->trans_rep.output_trans;
-	output_summary = file->trans_rep.output_summary;
-	output_accsummary = file->trans_rep.output_accsummary;
+	output_trans = file->trans_rep->output_trans;
+	output_summary = file->trans_rep->output_summary;
+	output_accsummary = file->trans_rep->output_accsummary;
 
 	/* Open a new report for output. */
 
-	analysis_copy_transaction_template(&(analysis_report_template.data.transaction), &(file->trans_rep));
+	analysis_copy_transaction_template(&(analysis_report_template.data.transaction), file->trans_rep);
 	if (analysis_transaction_template == NULL_TEMPLATE)
 		*(analysis_report_template.name) = '\0';
 	else
@@ -1041,7 +1107,7 @@ static void analysis_generate_transaction_report(file_data *file)
 				report_write_line(report, 0, "");
 			msgs_lookup("TROutgoings", b1, sizeof(b1));
 			sprintf(line, "\\i%s", b1);
-			if (file->trans_rep.budget){
+			if (file->trans_rep->budget){
 				msgs_lookup("TRSummExtra", b1, sizeof(b1));
 				strcat(line, b1);
 			}
@@ -1057,7 +1123,7 @@ static void analysis_generate_transaction_report(file_data *file)
 						total += data[account].report_total;
 						convert_money_to_string(data[account].report_total, b1);
 						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
-						if (file->trans_rep.budget) {
+						if (file->trans_rep->budget) {
 							period_days = count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
 							convert_money_to_string(period_limit, b1);
@@ -1089,7 +1155,7 @@ static void analysis_generate_transaction_report(file_data *file)
 			report_write_line(report, 0, "");
 			msgs_lookup("TRIncomings", b1, sizeof(b1));
 			sprintf(line, "\\i%s", b1);
-			if (file->trans_rep.budget) {
+			if (file->trans_rep->budget) {
 				msgs_lookup("TRSummExtra", b1, sizeof(b1));
 				strcat(line, b1);
 			}
@@ -1106,7 +1172,7 @@ static void analysis_generate_transaction_report(file_data *file)
 						total += data[account].report_total;
 						convert_money_to_string(-data[account].report_total, b1);
 						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
-						if (file->trans_rep.budget) {
+						if (file->trans_rep->budget) {
 							period_days = count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
 							convert_money_to_string(period_limit, b1);
@@ -3359,8 +3425,8 @@ void analysis_remove_account_from_templates(file_data *file, acct_t account)
 
 	/* Handle the dialogue boxes. */
 
-	analysis_remove_account_from_list(account, file->trans_rep.from, &(file->trans_rep.from_count));
-	analysis_remove_account_from_list(account, file->trans_rep.to, &(file->trans_rep.to_count));
+	analysis_remove_account_from_list(account, file->trans_rep->from, &(file->trans_rep->from_count));
+	analysis_remove_account_from_list(account, file->trans_rep->to, &(file->trans_rep->to_count));
 
 	analysis_remove_account_from_list(account, file->unrec_rep.from, &(file->unrec_rep.from_count));
 	analysis_remove_account_from_list(account, file->unrec_rep.to, &(file->unrec_rep.to_count));

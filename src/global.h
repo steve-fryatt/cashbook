@@ -271,6 +271,7 @@ struct find;
 struct go_to;
 struct printing;
 struct purge;
+struct trans_rep;
 
 struct accview_window;
 struct account_redraw;
@@ -433,31 +434,6 @@ struct preset_window {
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Transaction Report dialogue. */
-
-struct trans_rep {
-	date_t			date_from;
-	date_t			date_to;
-  int          budget;
-
-  int          group;
-	int          period;
-	enum date_period	period_unit;
-  int          lock;
-
-	int			from_count;
-	int			to_count;
-	acct_t			from[REPORT_ACC_LIST_LEN];
-	acct_t			to[REPORT_ACC_LIST_LEN];
-	char			ref[REF_FIELD_LEN];
-	char			desc[DESCRIPT_FIELD_LEN];
-	amt_t			amount_min;
-	amt_t			amount_max;
-
-  int          output_trans;
-  int          output_summary;
-  int          output_accsummary;
-};
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -603,7 +579,7 @@ struct file_data
 	struct find			*find;					/**< Data relating to the find module.				*/
 	struct printing			*print;					/**< Data relating to the print dialogues.			*/
 	struct purge			*purge;					/**< Data relating to the purge module.				*/
-	struct trans_rep		trans_rep;
+	struct trans_rep		*trans_rep;				/**< Data relating to the transaction report dialogue.		*/
 	struct unrec_rep		unrec_rep;
 	struct cashflow_rep		cashflow_rep;
 	struct balance_rep		balance_rep;

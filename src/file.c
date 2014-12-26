@@ -153,6 +153,7 @@ file_data *build_new_file_block(void)
 	new->go_to = NULL;
 	new->print = NULL;
 	new->purge = NULL;
+	new->trans_rep = NULL;
 	new->reports = NULL;
 	new->import_report = NULL;
 
@@ -196,6 +197,15 @@ file_data *build_new_file_block(void)
 
 	new->purge = purge_create();
 	if (new->purge == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+
+	/* Set up the transaction report data. */
+
+	new->trans_rep = analysis_create_transaction();
+	if (new->trans_rep == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -311,22 +321,6 @@ file_data *build_new_file_block(void)
 
   /* Set up the dialogue defaults. */
 
-  new->trans_rep.date_from = NULL_DATE;
-  new->trans_rep.date_to = NULL_DATE;
-  new->trans_rep.budget = 0;
-  new->trans_rep.group = 0;
-  new->trans_rep.period = 1;
-  new->trans_rep.period_unit = PERIOD_MONTHS;
-  new->trans_rep.lock = 0;
-  new->trans_rep.from_count = 0;
-  new->trans_rep.to_count = 0;
-  *(new->trans_rep.ref) = '\0';
-  *(new->trans_rep.desc) = '\0';
-  new->trans_rep.amount_min = NULL_CURRENCY;
-  new->trans_rep.amount_max = NULL_CURRENCY;
-  new->trans_rep.output_trans = 1;
-  new->trans_rep.output_summary = 1;
-  new->trans_rep.output_accsummary = 1;
 
   new->unrec_rep.date_from = NULL_DATE;
   new->unrec_rep.date_to = NULL_DATE;
@@ -518,6 +512,8 @@ void delete_file(file_data *file)
 		heap_free(file->print);
 	if (file->purge != NULL)
 		heap_free(file->purge);
+	if (file->trans_rep != NULL)
+		heap_free(file->trans_rep);
 
 	if (file->transactions != NULL)
 		flex_free((flex_ptr) &(file->transactions));

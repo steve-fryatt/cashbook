@@ -199,37 +199,53 @@ enum report_type {
 	REPORT_TYPE_BALANCE = 4							/**< Balance report.					*/
 };
 
-/* Sort types. Types are shered between windows wherever possible.
- *
- * Ascending sorts contain 0x100000; descending 0x200000.
+/**
+ * Data sort types: values to indicate which field a window is sorted on. Types
+ * are shared between windows wherever possible, to avoid duplicating field names.
  */
 
-#define SORT_NONE        0
+enum sort_type {
+	SORT_NONE = 0,								/**< Apply no sort.						*/
 
-#define SORT_ASCENDING   0x10000
-#define SORT_DESCENDING  0x20000
+	/* Bitfield masks. */
 
-#define SORT_MASK        0x0ffff
+	SORT_MASK = 0x0ffff,							/**< Mask the sort type field from the value.			*/
 
-#define SORT_DATE        0x00001
-#define SORT_FROM        0x00002
-#define SORT_TO          0x00003
-#define SORT_REFERENCE   0x00004
-#define SORT_DESCRIPTION 0x00005
-#define SORT_ROW         0x00006
+	/* Sort directions. */
 
-#define SORT_AMOUNT      0x00010
+	SORT_ASCENDING = 0x10000,						/**< Sort in ascending order.					*/
+	SORT_DESCENDING = 0x20000,						/**< Sort in descending order.					*/
 
-#define SORT_FROMTO      0x00100
-#define SORT_PAYMENTS    0x00200
-#define SORT_RECEIPTS    0x00300
-#define SORT_BALANCE     0x00400
+	/* Sorts applying to different windows. */
 
-#define SORT_NEXTDATE    0x01000
-#define SORT_LEFT        0x02000
+	SORT_DATE = 0x00001,							/**< Sort on the Date column of a window.			*/
+	SORT_FROM = 0x00002,							/**< Sort on the From Account column of a window.		*/
+	SORT_TO = 0x00003,							/**< Sort on the To Account column of a window.			*/
+	SORT_REFERENCE = 0x00004,						/**< Sort on the Reference column of a window.			*/
+	SORT_DESCRIPTION = 0x00005,						/**< Sort on the Description column of a window.		*/
+	SORT_ROW = 0x00006,							/**< Sort on the Row column of a window.			*/
 
-#define SORT_CHAR        0x03000
-#define SORT_NAME        0x04000
+	/* Sorts applying to Transaction windows. */
+
+	SORT_AMOUNT = 0x00010,							/**< Sort on the Amount column of a window.			*/
+
+	/* Sorts applying to Account View windows. */
+
+	SORT_FROMTO = 0x00100,							/**< Sort on the From/To Account column of a window.		*/
+	SORT_PAYMENTS = 0x00200,						/**< Sort on the Payments column of a window.			*/
+	SORT_RECEIPTS = 0x00300,						/**< Sort on the Receipts column of a window.			*/
+	SORT_BALANCE = 0x00400,							/**< Sort on the Balance column of a window.			*/
+
+	/* Sorts applying to Standing Order windows. */
+
+	SORT_NEXTDATE = 0x01000,						/**< Sort on the Next Date column of window.			*/
+	SORT_LEFT = 0x02000,							/**< Sort on the Left column of a window.			*/
+
+	/* Sorts applying to Preset windows. */
+
+	SORT_CHAR = 0x03000,							/**< Sort on the Char column of a window.			*/
+	SORT_NAME = 0x04000							/**< Sort on the Name column of a window.			*/
+};
 
 /* ==================================================================================================================
  * Basic types
@@ -350,7 +366,7 @@ struct transaction_window {
 
 	int		display_lines;						/**< How many lines the current work area is formatted to display. */
 	int		entry_line;						/**< The line currently marked for data entry, in terms of window lines. */
-	int		sort_order;						/**< The order in which the window is sorted. */
+	enum sort_type	sort_order;						/**< The order in which the window is sorted. */
 
 	char		sort_sprite[12];					/**< Space for the sort icon's indirected data. */
 };
@@ -375,7 +391,7 @@ struct sorder_window {
 
 	/* Other window details. */
 
-	int		sort_order;						/**< The order in which the window is sorted.			*/
+	enum sort_type	sort_order;						/**< The order in which the window is sorted.			*/
 
 	char		sort_sprite[12];					/**< Space for the sort icon's indirected data.			*/
 };
@@ -400,7 +416,7 @@ struct preset_window {
 
 	/* Other window details. */
 
-	int		sort_order;						/**< The order in which the window is sorted.			*/
+	enum sort_type	sort_order;						/**< The order in which the window is sorted.			*/
 
 	char		sort_sprite[12];					/**< Space for the sort icon's indirected data.			*/
 };

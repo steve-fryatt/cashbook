@@ -172,7 +172,7 @@ struct accview_window {
 	int			display_lines;					/**< Count of the lines in the window.					*/
 	struct accview_redraw	*line_data;					/**< Pointer to array of line data for the redraw.			*/
 
-	int			sort_order;
+	enum sort_type		sort_order;					/**< The current sort details for the window.				*/
 
 	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.				*/
 };

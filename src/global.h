@@ -146,7 +146,7 @@ enum date_period {
 	PERIOD_YEARS								/**< Period specified in years.				*/
 };
 
-/* Transaction flags (bitwiase allocation) */
+/* Transaction flags (bitwise allocation) */
 
 enum transact_flags {
 	TRANS_FLAGS_NONE = 0,

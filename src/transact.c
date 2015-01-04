@@ -2087,30 +2087,52 @@ void decode_transact_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos
   }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Find and return the line in the transaction window that points to the specified transaction. */
 
-int locate_transaction_in_transact_window (file_data *file, int transaction)
+/**
+ * Find the display line in a transaction window which points to the
+ * specified transaction under the applied sort.
+ *
+ * \param *file			The file to use the transaction window in.
+ * \param transaction		The transaction to return the line for.
+ * \return			The appropriate line, or -1 if not found.
+ */
+
+int transact_get_line_from_transaction(file_data *file, int transaction)
 {
-  int        i, line;
+	int	i;
+	int	line = -1;
 
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return line;
 
-  line = -1;
+	for (i = 0; i < file->trans_count; i++) {
+		if (file->transactions[i].sort_index == transaction) {
+			line = i;
+			break;
+		}
+	}
 
-  for (i=0; i < file->trans_count; i++)
-  {
-    if (file->transactions[i].sort_index == transaction)
-    {
-      line = i;
-      break;
-    }
-  }
-
-  return (line);
+	return line;
 }
 
 
+/**
+ * Find the transaction which corresponds to a display line in a transaction
+ * window.
+ *
+ * \param *file			The file to use the transaction window in.
+ * \param line			The display line to return the transaction for.
+ * \return			The appropriate transaction, or NULL_TRANSACTION.
+ */
+
+int transact_get_transaction_from_line(file_data *file, int line)
+{
+	if (file == NULL || line < 0 || line >= file->trans_count)
+		return NULL_TRANSACTION;
+
+	return file->transactions[line].sort_index;
+}
 
 
 

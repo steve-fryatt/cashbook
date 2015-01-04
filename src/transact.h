@@ -122,7 +122,33 @@ int find_transaction_window_centre (file_data *file, int account);
 
 void decode_transact_window_help (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_mouse_state buttons);
 
-int locate_transaction_in_transact_window (file_data *file, int transaction);
+
+
+
+
+/**
+ * Find the display line in a transaction window which points to the
+ * specified transaction under the applied sort.
+ *
+ * \param *file			The file to use the transaction window in.
+ * \param transaction		The transaction to return the line for.
+ * \return			The appropriate line, or -1 if not found.
+ */
+
+int transact_get_line_from_transaction(file_data *file, int transaction);
+
+
+/**
+ * Find the transaction which corresponds to a display line in a transaction
+ * window.
+ *
+ * \param *file			The file to use the transaction window in.
+ * \param line			The display line to return the transaction for.
+ * \return			The appropriate transaction, or NULL_TRANSACTION.
+ */
+
+int transact_get_transaction_from_line(file_data *file, int line);
+
 
 
 

@@ -201,8 +201,8 @@ static void decode_account_menu(wimp_selection *selection)
 				break;
 			}
 
-			edit_change_transaction_account(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, column,
-					account_complete_menu_decode(selection));
+			edit_change_transaction_account(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					column, account_complete_menu_decode(selection));
 		}
 	} else {
 		/* If the window is not NULL, the menu was opened over a dialogue box. */
@@ -298,9 +298,11 @@ static void decode_date_menu(wimp_selection *selection)
 
 	if (main_menu_line < main_menu_file->trans_count && selection->items[0] != -1) {
 		if (preset_complete_menu_decode(selection) == NULL_PRESET)
-			edit_change_transaction_date(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, get_current_date());
+			edit_change_transaction_date(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					get_current_date());
 		else
-			edit_insert_preset_into_transaction(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, preset_complete_menu_decode(selection));
+			edit_insert_preset_into_transaction(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					preset_complete_menu_decode(selection));
 	}
 }
 
@@ -379,14 +381,17 @@ static void decode_refdesc_menu (wimp_selection *selection)
 
 		if (refdesc_menu_type == REFDESC_MENU_REFERENCE && field == NULL) {
 			account_get_next_cheque_number(main_menu_file,
-					main_menu_file->transactions[main_menu_file->transactions[main_menu_line].sort_index].from,
-					main_menu_file->transactions[main_menu_file->transactions[main_menu_line].sort_index].to,
+					transact_get_from(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line)),
+					transact_get_to(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line)),
 					1, cheque_buffer, sizeof(cheque_buffer));
-			edit_change_transaction_refdesc(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, EDIT_ICON_REF, cheque_buffer);
+			edit_change_transaction_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					EDIT_ICON_REF, cheque_buffer);
 		} else if (refdesc_menu_type == REFDESC_MENU_REFERENCE && field != NULL) {
-			edit_change_transaction_refdesc(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, EDIT_ICON_REF, field);
+			edit_change_transaction_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					EDIT_ICON_REF, field);
 		} else if (refdesc_menu_type == REFDESC_MENU_DESCRIPTION && field != NULL) {
-			edit_change_transaction_refdesc(main_menu_file, main_menu_file->transactions[main_menu_line].sort_index, EDIT_ICON_DESCRIPT, field);
+			edit_change_transaction_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					EDIT_ICON_DESCRIPT, field);
 		}
 	}
 }

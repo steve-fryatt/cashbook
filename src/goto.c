@@ -296,7 +296,7 @@ static osbool goto_process_window(void)
 			return FALSE;
 		}
 
-		line = locate_transaction_in_transact_window(goto_window_file, transact_find_transaction_number(goto_window_file->go_to->target.line));
+		line = transact_get_line_from_transaction(goto_window_file, transact_find_transaction_number(goto_window_file->go_to->target.line));
 	} else if (goto_window_file->go_to->type == GOTO_TYPE_DATE) {
 		/* Go to a given date, or the nearest transaction. */
 
@@ -312,7 +312,7 @@ static osbool goto_process_window(void)
 		if (transaction == NULL_TRANSACTION)
 			return FALSE;
 
-		line = locate_transaction_in_transact_window(goto_window_file, transaction);
+		line = transact_get_line_from_transaction(goto_window_file, transaction);
 	}
 
 	edit_place_new_line(goto_window_file, line);

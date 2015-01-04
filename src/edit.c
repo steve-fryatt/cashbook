@@ -663,7 +663,7 @@ void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, en
 		if (file->transactions[file->transaction_window.entry_line].sort_index == transaction) {
 			edit_set_line_shading(file);
 		} else {
-			line = locate_transaction_in_transact_window(file, transaction);
+			line = transact_get_line_from_transaction(file, transaction);
 			force_transaction_window_redraw(file, line, line);
 		}
 
@@ -742,7 +742,7 @@ void edit_change_transaction_date(file_data *file, int transaction, date_t new_d
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
-			line = locate_transaction_in_transact_window(file, transaction);
+			line = transact_get_line_from_transaction(file, transaction);
 			force_transaction_window_redraw(file, line, line);
 		}
 
@@ -805,7 +805,7 @@ static void edit_change_transaction_amount(file_data *file, int transaction, amt
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
-			line = locate_transaction_in_transact_window(file, transaction);
+			line = transact_get_line_from_transaction(file, transaction);
 			force_transaction_window_redraw(file, line, line);
 		}
 
@@ -877,7 +877,7 @@ void edit_change_transaction_refdesc(file_data *file, int transaction, wimp_i ta
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
-			line = locate_transaction_in_transact_window(file, transaction);
+			line = transact_get_line_from_transaction(file, transaction);
 			force_transaction_window_redraw(file, line, line);
 		}
 
@@ -990,7 +990,7 @@ void edit_change_transaction_account(file_data *file, int transaction, wimp_i ta
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
-			line = locate_transaction_in_transact_window(file, transaction);
+			line = transact_get_line_from_transaction(file, transaction);
 			force_transaction_window_redraw(file, line, line);
 		}
 
@@ -1049,7 +1049,7 @@ void edit_insert_preset_into_transaction(file_data *file, int transaction, int p
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transaction_window.transaction_window);
 		} else {
-			line = locate_transaction_in_transact_window(file, transaction);
+			line = transact_get_line_from_transaction(file, transaction);
 			force_transaction_window_redraw(file, line, line);
 		}
 

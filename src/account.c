@@ -4684,13 +4684,13 @@ static void account_export_delimited(file_data *file, int entry, char *filename,
 	/* Output the headings line, taking the text from the window icons. */
 
 	icons_copy_text(window->account_pane, 0, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->account_pane, 1, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->account_pane, 2, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->account_pane, 3, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->account_pane, 4, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
@@ -4699,7 +4699,7 @@ static void account_export_delimited(file_data *file, int entry, char *filename,
 	for (i = 0; i < window->display_lines; i++) {
 		if (window->line_data[i].type == ACCOUNT_LINE_DATA) {
 			account_build_name_pair(file, window->line_data[i].account, buffer, sizeof(buffer));
-			filing_output_delimited_field(out, buffer, format, 0);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 			switch (window->type) {
 			case ACCOUNT_FULL:
@@ -4739,9 +4739,9 @@ static void account_export_delimited(file_data *file, int entry, char *filename,
 				break;
 			}
 		} else if (window->line_data[i].type == ACCOUNT_LINE_HEADER) {
-			filing_output_delimited_field(out, window->line_data[i].heading, format, 1);
+			filing_output_delimited_field(out, window->line_data[i].heading, format, DELIMIT_LAST);
 		} else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER) {
-			filing_output_delimited_field(out, window->line_data[i].heading, format, 0);
+			filing_output_delimited_field(out, window->line_data[i].heading, format, DELIMIT_NONE);
 
 			convert_money_to_string(window->line_data[i].total[0], buffer);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
@@ -4760,7 +4760,7 @@ static void account_export_delimited(file_data *file, int entry, char *filename,
 	/* Output the grand total line, taking the text from the window icons. */
 
 	icons_copy_text(window->account_footer, 0, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	filing_output_delimited_field(out, window->footer_icon[0], format, DELIMIT_NUM);
 	filing_output_delimited_field(out, window->footer_icon[1], format, DELIMIT_NUM);
 	filing_output_delimited_field(out, window->footer_icon[2], format, DELIMIT_NUM);

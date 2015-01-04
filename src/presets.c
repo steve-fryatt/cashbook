@@ -2701,15 +2701,15 @@ static void preset_export_delimited(file_data *file, char *filename, enum filing
 	/* Output the headings line, taking the text from the window icons. */
 
 	icons_copy_text(window->preset_pane, PRESET_PANE_KEY, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->preset_pane, PRESET_PANE_NAME, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->preset_pane, PRESET_PANE_FROM, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->preset_pane, PRESET_PANE_TO, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->preset_pane, PRESET_PANE_AMOUNT, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->preset_pane, PRESET_PANE_DESCRIPTION, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
@@ -2719,15 +2719,15 @@ static void preset_export_delimited(file_data *file, char *filename, enum filing
 		t = file->presets[i].sort_index;
 
 		sprintf(buffer, "%c", file->presets[t].action_key);
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		filing_output_delimited_field(out, file->presets[t].name, format, 0);
+		filing_output_delimited_field(out, file->presets[t].name, format, DELIMIT_NONE);
 
 		account_build_name_pair(file, file->presets[t].from, buffer, sizeof(buffer));
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		account_build_name_pair(file, file->presets[t].to, buffer, sizeof(buffer));
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		convert_money_to_string(file->presets[t].amount, buffer);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);

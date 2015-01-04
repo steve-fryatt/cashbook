@@ -2913,15 +2913,15 @@ static void sorder_export_delimited(file_data *file, char *filename, enum filing
 	/* Output the headings line, taking the text from the window icons. */
 
 	icons_copy_text(window->sorder_pane, SORDER_PANE_FROM, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->sorder_pane, SORDER_PANE_TO, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->sorder_pane, SORDER_PANE_AMOUNT, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->sorder_pane, SORDER_PANE_DESCRIPTION, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->sorder_pane, SORDER_PANE_NEXTDATE, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(window->sorder_pane, SORDER_PANE_LEFT, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
@@ -2931,21 +2931,21 @@ static void sorder_export_delimited(file_data *file, char *filename, enum filing
 		t = file->sorders[i].sort_index;
 
 		account_build_name_pair(file, file->sorders[t].from, buffer, sizeof(buffer));
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		account_build_name_pair(file, file->sorders[t].to, buffer, sizeof(buffer));
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		convert_money_to_string(file->sorders[t].normal_amount, buffer);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-		filing_output_delimited_field(out, file->sorders[t].description, format, 0);
+		filing_output_delimited_field(out, file->sorders[t].description, format, DELIMIT_NONE);
 
 		if (file->sorders[t].adjusted_next_date != NULL_DATE)
 			convert_date_to_string(file->sorders[t].adjusted_next_date, buffer);
 		else
 			msgs_lookup("SOrderStopped", buffer, sizeof(buffer));
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		sprintf(buffer, "%d", file->sorders[t].left);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);

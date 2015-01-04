@@ -2843,6 +2843,23 @@ char *transact_get_description(file_data *file, int transaction, char *buffer, s
 }
 
 
+/**
+ * Return the sort workspace for a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the workspace of.
+ * \return			The sort workspace for the transaction, or 0.
+ */
+
+int transact_get_sort_workspace(file_data *file, int transaction)
+{
+	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+		return 0;
+
+	return file->transactions[transaction].sort_workspace;
+}
+
+
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -3715,17 +3732,17 @@ static void transact_export_delimited(file_data *file, char *filename, enum fili
 	/* Output the headings line, taking the text from the window icons. */
 
 	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_ROW, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_DATE, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_FROM, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_TO, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_REFERENCE, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_AMOUNT, buffer);
-	filing_output_delimited_field(out, buffer, format, 0);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	icons_copy_text(file->transaction_window.transaction_pane, TRANSACT_PANE_DESCRIPTION, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
@@ -3738,15 +3755,15 @@ static void transact_export_delimited(file_data *file, char *filename, enum fili
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		convert_date_to_string(file->transactions[t].date, buffer);
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		account_build_name_pair(file, file->transactions[t].from, buffer, sizeof(buffer));
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		account_build_name_pair(file, file->transactions[t].to, buffer, sizeof(buffer));
-		filing_output_delimited_field(out, buffer, format, 0);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		filing_output_delimited_field(out, file->transactions[t].reference, format, 0);
+		filing_output_delimited_field(out, file->transactions[t].reference, format, DELIMIT_NONE);
 
 		convert_money_to_string(file->transactions[t].amount, buffer);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);

@@ -325,6 +325,17 @@ char *transact_get_description(file_data *file, int transaction, char *buffer, s
 
 
 /**
+ * Return the sort workspace for a transaction.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the workspace of.
+ * \return			The sort workspace for the transaction, or 0.
+ */
+
+int transact_get_sort_workspace(file_data *file, int transaction);
+
+
+/**
  * Force the closure of the Transaction List sort and edit windows if the owning
  * file disappears.
  *

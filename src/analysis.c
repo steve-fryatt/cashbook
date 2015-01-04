@@ -987,8 +987,9 @@ static void analysis_generate_transaction_report(file_data *file)
 	struct analysis_report	*template;
 	int			i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
 				total_days, period_days, period_limit, entries, account;
-	date_t			start_date, end_date, next_start, next_end;
-	amt_t			min_amount, max_amount;
+	date_t			start_date, end_date, next_start, next_end, date;
+	acct_t			from, to;
+	amt_t			min_amount, max_amount, amount;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	char			*match_ref, *match_desc;
 
@@ -1117,17 +1118,22 @@ static void analysis_generate_transaction_report(file_data *file)
 
 		found = 0;
 
-		for (i=0; i < file->trans_count; i++) {
-			if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
-					(next_end == NULL_DATE || file->transactions[i].date <= next_end) &&
-					(((file->transactions[i].from != NULL_ACCOUNT) &&
-					((data[file->transactions[i].from].report_flags & ANALYSIS_REPORT_FROM) != 0)) ||
-					((file->transactions[i].to != NULL_ACCOUNT) &&
-					((data[file->transactions[i].to].report_flags & ANALYSIS_REPORT_TO) != 0))) &&
-					((min_amount == NULL_CURRENCY) || (file->transactions[i].amount >= min_amount)) &&
-					((max_amount == NULL_CURRENCY) || (file->transactions[i].amount <= max_amount)) &&
-					((match_ref == NULL) || string_wildcard_compare(match_ref, file->transactions[i].reference, TRUE)) &&
-					((match_desc == NULL) || string_wildcard_compare(match_desc, file->transactions[i].description, TRUE))) {
+		for (i = 0; i < file->trans_count; i++) {
+			date = transact_get_date(file, i);
+			from = transact_get_from(file, i);
+			to = transact_get_to(file, i);
+			amount = transact_get_amount(file, i);
+		
+			if ((next_start == NULL_DATE || date >= next_start) &&
+					(next_end == NULL_DATE || date <= next_end) &&
+					(((from != NULL_ACCOUNT) &&
+					((data[from].report_flags & ANALYSIS_REPORT_FROM) != 0)) ||
+					((to != NULL_ACCOUNT) &&
+					((data[to].report_flags & ANALYSIS_REPORT_TO) != 0))) &&
+					((min_amount == NULL_CURRENCY) || (amount >= min_amount)) &&
+					((max_amount == NULL_CURRENCY) || (amount <= max_amount)) &&
+					((match_ref == NULL) || string_wildcard_compare(match_ref, transact_get_reference(file, i, NULL, 0), TRUE)) &&
+					((match_desc == NULL) || string_wildcard_compare(match_desc, transact_get_description(file, i, NULL, 0), TRUE))) {
 				if (found == 0) {
 					report_write_line(report, 0, "");
 
@@ -1145,22 +1151,22 @@ static void analysis_generate_transaction_report(file_data *file)
 
 				/* Update the totals and output the transaction to the report file. */
 
-				if (file->transactions[i].from != NULL_ACCOUNT)
-					data[file->transactions[i].from].report_total -= file->transactions[i].amount;
+				if (from != NULL_ACCOUNT)
+					data[from].report_total -= amount;
 
-				if (file->transactions[i].to != NULL_ACCOUNT)
-					data[file->transactions[i].to].report_total += file->transactions[i].amount;
+				if (to != NULL_ACCOUNT)
+					data[to].report_total += amount;
 
 				if (output_trans) {
-					convert_date_to_string(file->transactions[i].date, b1);
-
-					convert_money_to_string(file->transactions[i].amount, b2);
+					convert_date_to_string(date, b1);
+					convert_money_to_string(amount, b2);
 
 					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
 							transact_get_transaction_number(i), b1,
-							account_get_name (file, file->transactions[i].from),
-							account_get_name (file, file->transactions[i].to),
-							file->transactions[i].reference, b2, file->transactions[i].description);
+							account_get_name(file, from),
+							account_get_name(file, to),
+							transact_get_reference(file, i, NULL, 0), b2,
+							transact_get_description(file, i, NULL, 0));
 
 					report_write_line(report, 1, line);
 				}
@@ -1720,7 +1726,10 @@ static void analysis_generate_unreconciled_report(file_data *file)
 	int			i, acc, found, unit, period, group, lock, tot_in, tot_out, entries;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
 				rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
-	date_t			start_date, end_date, next_start, next_end;
+	date_t			start_date, end_date, next_start, next_end, date;
+	acct_t			from, to;
+	enum transact_flags	flags;
+	amt_t			amount;
 	struct report		*report;
 	struct analysis_data	*data;
 	struct analysis_report	*template;
@@ -1823,13 +1832,19 @@ static void analysis_generate_unreconciled_report(file_data *file)
 					tot_in = 0;
 					tot_out = 0;
 
-					for (i=0; i < file->trans_count; i++) {
-						if ((start_date == NULL_DATE || file->transactions[i].date >= start_date) &&
-								(end_date == NULL_DATE || file->transactions[i].date <= end_date) &&
-								((file->transactions[i].from == acc && (data[acc].report_flags & ANALYSIS_REPORT_FROM) != 0 &&
-								(file->transactions[i].flags & TRANS_REC_FROM) == 0) ||
-								(file->transactions[i].to == acc && (data[acc].report_flags & ANALYSIS_REPORT_TO) != 0 &&
-								(file->transactions[i].flags & TRANS_REC_TO) == 0))) {
+					for (i = 0; i < file->trans_count; i++) {
+						date = transact_get_date(file, i);
+						from = transact_get_from(file, i);
+						to = transact_get_to(file, i);
+						flags = transact_get_flags(file, i);
+						amount = transact_get_amount(file, i);
+
+						if ((start_date == NULL_DATE || date >= start_date) &&
+								(end_date == NULL_DATE || date <= end_date) &&
+								((from == acc && (data[acc].report_flags & ANALYSIS_REPORT_FROM) != 0 &&
+								(flags & TRANS_REC_FROM) == 0) ||
+								(to == acc && (data[acc].report_flags & ANALYSIS_REPORT_TO) != 0 &&
+								(flags & TRANS_REC_TO) == 0))) {
 							if (found == 0) {
 								report_write_line(report, 0, "");
 
@@ -1843,23 +1858,24 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 							found++;
 
-							if (file->transactions[i].from == acc)
-								tot_out -= file->transactions[i].amount;
-							else if (file->transactions[i].to == acc)
-								tot_in += file->transactions[i].amount;
+							if (from == acc)
+								tot_out -= amount;
+							else if (to == acc)
+								tot_in += amount;
 
 							/* Output the transaction to the report. */
 
-							strcpy(r1, (file->transactions[i].flags & TRANS_REC_FROM) ? rec_char : "");
-							strcpy(r2, (file->transactions[i].flags & TRANS_REC_TO) ? rec_char : "");
-							convert_date_to_string(file->transactions[i].date, b1);
-							convert_money_to_string(file->transactions[i].amount, b2);
+							strcpy(r1, (flags & TRANS_REC_FROM) ? rec_char : "");
+							strcpy(r2, (flags & TRANS_REC_TO) ? rec_char : "");
+							convert_date_to_string(date, b1);
+							convert_money_to_string(amount, b2);
 
 							sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
 									transact_get_transaction_number(i), b1,
-									r1, account_get_name(file, file->transactions[i].from),
-									r2, account_get_name(file, file->transactions[i].to),
-									file->transactions[i].reference, b2, file->transactions[i].description);
+									r1, account_get_name(file, from),
+									r2, account_get_name(file, to),
+									transact_get_reference(file, i, NULL, 0), b2,
+									transact_get_description(file, i, NULL, 0));
 
 							report_write_line(report, 1, line);
 						}
@@ -1897,15 +1913,21 @@ static void analysis_generate_unreconciled_report(file_data *file)
 		while (analysis_get_next_date_period(&next_start, &next_end, date_text, sizeof(date_text))) {
 			found = 0;
 
-			for (i=0; i < file->trans_count; i++) {
-				if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
-						(next_end == NULL_DATE || file->transactions[i].date <= next_end) &&
-						(((file->transactions[i].flags & TRANS_REC_FROM) == 0 &&
-						(file->transactions[i].from != NULL_ACCOUNT) &&
-						(data[file->transactions[i].from].report_flags & ANALYSIS_REPORT_FROM) != 0) ||
-						((file->transactions[i].flags & TRANS_REC_TO) == 0 &&
-						(file->transactions[i].to != NULL_ACCOUNT) &&
-						(data[file->transactions[i].to].report_flags & ANALYSIS_REPORT_TO) != 0))) {
+			for (i = 0; i < file->trans_count; i++) {
+				date = transact_get_date(file, i);
+				from = transact_get_from(file, i);
+				to = transact_get_to(file, i);
+				flags = transact_get_flags(file, i);
+				amount = transact_get_amount(file, i);
+
+				if ((next_start == NULL_DATE || date >= next_start) &&
+						(next_end == NULL_DATE || date <= next_end) &&
+						(((flags & TRANS_REC_FROM) == 0 &&
+						(from != NULL_ACCOUNT) &&
+						(data[from].report_flags & ANALYSIS_REPORT_FROM) != 0) ||
+						((flags & TRANS_REC_TO) == 0 &&
+						(to != NULL_ACCOUNT) &&
+						(data[to].report_flags & ANALYSIS_REPORT_TO) != 0))) {
 					if (found == 0) {
 						report_write_line(report, 0, "");
 
@@ -1921,16 +1943,17 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 					/* Output the transaction to the report. */
 
-					strcpy(r1, (file->transactions[i].flags & TRANS_REC_FROM) ? rec_char : "");
-					strcpy(r2, (file->transactions[i].flags & TRANS_REC_TO) ? rec_char : "");
-					convert_date_to_string(file->transactions[i].date, b1);
-					convert_money_to_string(file->transactions[i].amount, b2);
+					strcpy(r1, (flags & TRANS_REC_FROM) ? rec_char : "");
+					strcpy(r2, (flags & TRANS_REC_TO) ? rec_char : "");
+					convert_date_to_string(date, b1);
+					convert_money_to_string(amount, b2);
 
 					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
 							 transact_get_transaction_number(i), b1,
-							r1, account_get_name(file, file->transactions[i].from),
-							r2, account_get_name(file, file->transactions[i].to),
-							file->transactions[i].reference, b2, file->transactions[i].description);
+							r1, account_get_name(file, from),
+							r2, account_get_name(file, to),
+							transact_get_reference(file, i, NULL, 0), b2,
+							transact_get_description(file, i, NULL, 0));
 
 					report_write_line(report, 1, line);
 				}
@@ -2357,7 +2380,9 @@ static void analysis_generate_cashflow_report(file_data *file)
 {
 	int			i, acc, items, found, unit, period, group, lock, tabular, show_blank, total;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
-	date_t			start_date, end_date, next_start, next_end;
+	date_t			start_date, end_date, next_start, next_end, date;
+	acct_t			from, to;
+	amt_t			amount;
 	struct report		*report;
 	struct analysis_data	*data;
 	struct analysis_report	*template;
@@ -2496,14 +2521,19 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 		found = 0;
 
-		for (i=0; i < file->trans_count; i++) {
-			if ((next_start == NULL_DATE || file->transactions[i].date >= next_start) &&
-					(next_end == NULL_DATE || file->transactions[i].date <= next_end)) {
-				if (file->transactions[i].from != NULL_ACCOUNT)
-					data[file->transactions[i].from].report_total -= file->transactions[i].amount;
+		for (i = 0; i < file->trans_count; i++) {
+			date = transact_get_date(file, i);
 
-				if (file->transactions[i].to != NULL_ACCOUNT)
-					data[file->transactions[i].to].report_total += file->transactions[i].amount;
+			if ((next_start == NULL_DATE || date >= next_start) && (next_end == NULL_DATE || date <= next_end)) {
+				from = transact_get_from(file, i);
+				to = transact_get_to(file, i);
+				amount = transact_get_amount(file, i);
+
+				if (from != NULL_ACCOUNT)
+					data[from].report_total -= amount;
+
+				if (to != NULL_ACCOUNT)
+					data[to].report_total += amount;
 
 				found++;
 			}
@@ -2982,6 +3012,8 @@ static void analysis_generate_balance_report(file_data *file)
 	int			i, acc, items, unit, period, group, lock, tabular, total;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
+	acct_t			from, to;
+	amt_t			amount;
 	struct report		*report;
 	struct analysis_data	*data;
 	struct analysis_report	*template;
@@ -3118,13 +3150,17 @@ static void analysis_generate_balance_report(file_data *file)
 		 * period and outputting them to the screen.
 		 */
 
-		for (i=0; i < file->trans_count; i++) {
-			if (next_end == NULL_DATE || file->transactions[i].date <= next_end) {
-				if (file->transactions[i].from != NULL_ACCOUNT)
-					data[file->transactions[i].from].report_total -= file->transactions[i].amount;
+		for (i = 0; i < file->trans_count; i++) {
+			if (next_end == NULL_DATE || transact_get_date(file, i) <= next_end) {
+				from = transact_get_from(file, i);
+				to = transact_get_to(file, i);
+				amount = transact_get_amount(file, i);
+			
+				if (from != NULL_ACCOUNT)
+					data[from].report_total -= amount;
 
-				if (file->transactions[i].to != NULL_ACCOUNT)
-					data[file->transactions[i].to].report_total += file->transactions[i].amount;
+				if (to != NULL_ACCOUNT)
+					data[to].report_total += amount;
 			}
 		}
 
@@ -3430,6 +3466,7 @@ static void analysis_find_date_range(file_data *file, date_t *start_date, date_t
 {
 	int		i;
 	osbool		find_start, find_end;
+	date_t		date;
 
 	if (budget) {
 		/* Get the start and end dates from the budget settings. */
@@ -3449,17 +3486,19 @@ static void analysis_find_date_range(file_data *file, date_t *start_date, date_t
 
 	if (find_start || find_end) {
 		if (find_start)
-			*start_date = (file->trans_count > 0) ? file->transactions[0].date : NULL_DATE;
+			*start_date = (file->trans_count > 0) ? transact_get_date(file, 0) : NULL_DATE;
 
 		if (find_end)
-			*end_date = (file->trans_count > 0) ? file->transactions[0].date : NULL_DATE;
+			*end_date = (file->trans_count > 0) ? transact_get_date(file, 0) : NULL_DATE;
 
 		for (i=0; i<file->trans_count; i++) {
-			if (find_start && file->transactions[i].date != NULL_DATE && file->transactions[i].date < *start_date)
-				*start_date = file->transactions[i].date;
+			date = transact_get_date(file, i);
 
-			if (find_end && file->transactions[i].date != NULL_DATE && file->transactions[i].date > *end_date)
-				*end_date = file->transactions[i].date;
+			if (find_start && date != NULL_DATE && date < *start_date)
+				*start_date = date;
+
+			if (find_end && date != NULL_DATE && date > *end_date)
+				*end_date = date;
 		}
 	}
 

@@ -280,7 +280,48 @@ enum transact_flags transact_get_flags(file_data *file, int transaction);
 amt_t transact_get_amount(file_data *file, int transaction);
 
 
+/**
+ * Return the reference for a transaction.
+ *
+ * If a buffer is supplied, the reference is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * reference in the transaction array is returned instead. In the latter
+ * case, this pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the reference of.
+ * \param *buffer		Pointer to a buffer to take the reference, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting reference string,
+ *				either the supplied buffer or the original.
+ */
 
+char *transact_get_reference(file_data *file, int transaction, char *buffer, size_t length);
+
+
+/**
+ * Return the description for a transaction.
+ *
+ * If a buffer is supplied, the description is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * description in the transaction array is returned instead. In the latter
+ * case, this pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to return the description of.
+ * \param *buffer		Pointer to a buffer to take the description, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting description string,
+ *				either the supplied buffer or the original.
+ */
+
+char *transact_get_description(file_data *file, int transaction, char *buffer, size_t length);
 
 
 /**

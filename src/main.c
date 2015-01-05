@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -75,7 +75,7 @@
 #include "caret.h"
 #include "choices.h"
 #include "clipboard.h"
-#include "conversion.h"
+#include "currency.h"
 #include "dataxfer.h"
 #include "date.h"
 #include "edit.h"

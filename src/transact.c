@@ -73,7 +73,7 @@
 #include "caret.h"
 #include "clipboard.h"
 #include "column.h"
-#include "conversion.h"
+#include "currency.h"
 #include "dataxfer.h"
 #include "date.h"
 #include "edit.h"

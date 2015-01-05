@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -22,7 +22,7 @@
  */
 
 /**
- * \file: conversion.c
+ * \file: currency.c
  *
  * String to data value conversions.
  */
@@ -47,7 +47,7 @@
 /* Application header files */
 
 #include "global.h"
-#include "conversion.h"
+#include "currency.h"
 
 /* ==================================================================================================================
  * Global variables

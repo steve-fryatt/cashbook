@@ -61,9 +61,9 @@
 
 #include "account.h"
 #include "budget.h"
-#include "conversion.h"
 #include "caret.h"
 #include "column.h"
+#include "currency.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"

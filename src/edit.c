@@ -60,7 +60,7 @@
 #include "account.h"
 #include "accview.h"
 #include "column.h"
-#include "conversion.h"
+#include "currency.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"

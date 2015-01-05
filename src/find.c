@@ -57,7 +57,7 @@
 #include "account.h"
 #include "caret.h"
 #include "column.h"
-#include "conversion.h"
+#include "currency.h"
 #include "date.h"
 #include "edit.h"
 #include "ihelp.h"

@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -22,13 +22,13 @@
  */
 
 /**
- * \file: conversion.h
+ * \file: currency.h
  *
  * String to data value conversions.
  */
 
-#ifndef CASHBOOK_CONVERSION
-#define CASHBOOK_CONVERSION
+#ifndef CASHBOOK_CURRENCY
+#define CASHBOOK_CURRENCY
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants

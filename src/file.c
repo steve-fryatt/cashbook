@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -65,7 +65,7 @@
 #include "budget.h"
 #include "clipboard.h"
 #include "column.h"
-#include "conversion.h"
+#include "currency.h"
 #include "date.h"
 #include "edit.h"
 #include "filing.h"

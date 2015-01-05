@@ -63,7 +63,7 @@
 #include "account.h"
 #include "budget.h"
 #include "caret.h"
-#include "conversion.h"
+#include "currency.h"
 #include "date.h"
 #include "file.h"
 #include "ihelp.h"

@@ -32,6 +32,7 @@
 
 #include "oslib/wimp.h"
 
+#include "currency.h"
 #include "filing.h"
 
 /* Transaction flags (bitwise allocation) */

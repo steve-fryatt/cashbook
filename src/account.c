@@ -2426,10 +2426,10 @@ static osbool account_process_acc_edit_window(void)
 	/* If the account was created OK, store the rest of the data. */
 
 	edit_account_file->accounts[edit_account_no].opening_balance =
-			convert_string_to_money(icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE));
+			currency_convert_from_string(icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE));
 
 	edit_account_file->accounts[edit_account_no].credit_limit =
-			convert_string_to_money(icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT));
+			currency_convert_from_string(icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT));
 
 	len = strlen(icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN));
 	if (len > 0) {
@@ -2508,7 +2508,8 @@ static osbool account_process_hdg_edit_window(void)
 
 	/* If the heading was created OK, store the rest of the data. */
 
-	edit_account_file->accounts[edit_account_no].budget_amount = convert_string_to_money(icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET));
+	edit_account_file->accounts[edit_account_no].budget_amount =
+			currency_convert_from_string(icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET));
 
 	/* Tidy up and redraw the windows */
 

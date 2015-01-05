@@ -30,6 +30,7 @@
 #ifndef CASHBOOK_PRESETS
 #define CASHBOOK_PRESETS
 
+#include "currency.h"
 #include "filing.h"
 
 /* Caret end locations */

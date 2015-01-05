@@ -30,22 +30,41 @@
 #ifndef CASHBOOK_CURRENCY
 #define CASHBOOK_CURRENCY
 
-/* ------------------------------------------------------------------------------------------------------------------
- * Static constants
+/**
+ * An amount of currency.
  */
 
-#define MAX_DIGITS 9
+typedef int		amt_t;
 
-/* ------------------------------------------------------------------------------------------------------------------
- * Function prototypes.
+
+/**
+ * Invalid or missing currency value.
  */
+
+#define NULL_CURRENCY ((amt_t) 0)
+
+
+/**
+ * Initialise, or re-initialise, the currency module.
+ */
+
+void currency_initialise(void);
+
 
 /* Money conversion. */
 
 void full_convert_money_to_string (amt_t value, char *string, int zeros);
 void convert_money_to_string (amt_t value, char *string);
-amt_t convert_string_to_money (char *string);
 
-void set_up_money (void);
+
+/**
+ * Convert a string into a currency amount by brute force, based on the
+ * configured settings.
+ *
+ * \param *string		The string to be converted into a currency amount.
+ * \return			The converted amount, or NULL_CURRENCY.
+ */
+
+amt_t currency_convert_from_string(char *string);
 
 #endif

@@ -501,8 +501,8 @@ void import_csv_file (file_data *file, char *filename)
       }
       else
       {
-        transact_add_raw_entry(file, convert_string_to_date (date, NULL_DATE, 0), from, to, rec_from | rec_to,
-                             convert_string_to_money (amount), ref, description);
+        transact_add_raw_entry(file, convert_string_to_date(date, NULL_DATE, 0), from, to, rec_from | rec_to,
+                             currency_convert_from_string(amount), ref, description);
         msgs_lookup("Imported", b1, sizeof(b1));
 
         import_count++;

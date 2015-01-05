@@ -293,7 +293,7 @@ static void main_initialise(void)
 	config_load();
 
 	set_weekend_days();
-	set_up_money();
+	currency_initialise();
 
 	/* Set up the dataxfer module's memory handlers, to use SFHeap. */
 

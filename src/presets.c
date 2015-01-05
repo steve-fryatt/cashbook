@@ -1684,7 +1684,7 @@ static osbool preset_process_edit_window(void)
 	/* Get the amounts. */
 
 	preset_edit_file->presets[preset_edit_number].amount =
-		convert_string_to_money(icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_AMOUNT));
+		currency_convert_from_string(icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_AMOUNT));
 
 	/* Store the reference. */
 

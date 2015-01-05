@@ -499,7 +499,7 @@ static osbool find_process_window(void)
 	find_window_file->find->to = account_find_by_ident(find_window_file, icons_get_indirected_text_addr(find_window, FIND_ICON_TOIDENT),
 			ACCOUNT_FULL | ACCOUNT_OUT);
 	find_window_file->find->to_rec = (*icons_get_indirected_text_addr(find_window, FIND_ICON_TOREC) == '\0') ? 0 : TRANS_REC_TO;
-	find_window_file->find->amount = convert_string_to_money(icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT));
+	find_window_file->find->amount = currency_convert_from_string(icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT));
 	strcpy(find_window_file->find->ref, icons_get_indirected_text_addr(find_window, FIND_ICON_REF));
 	strcpy(find_window_file->find->desc, icons_get_indirected_text_addr(find_window, FIND_ICON_DESC));
 

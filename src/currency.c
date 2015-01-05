@@ -49,15 +49,49 @@
 #include "global.h"
 #include "currency.h"
 
+/* ------------------------------------------------------------------------------------------------------------------
+ * Static constants
+ */
+
+#define CURRENCY_MAX_DIGITS 9
+
+/* The maximum string length that can be converted into an amount value. */
+
+#define CURRENCY_MAX_CONVERSION_LENGTH 256
+
 /* ==================================================================================================================
  * Global variables
  */
 
-int decimal_places = 0;
-char decimal_point = '.';
+static int	currency_decimal_places = 0;					/**< The number of decimal places used in currency representation.		*/
+static char	currency_decimal_point = '.';					/**< The symbol used to represent the decimal point.				*/
 
-int print_zeros = 0;
-int bracket_negatives = 0;
+static osbool	currency_print_zeros = FALSE;					/**< Should zero values be converted to digits or a blank space?		*/
+static osbool	currency_bracket_negatives = FALSE;				/**< Should negative values be represented (1.23) instead of -1.23?		*/
+
+
+/**
+ * Initialise, or re-initialise, the currency module.
+ *
+ * NB: This may be called multiple times, to re-initialise the currency module
+ * when the application choices are changed.
+ */
+
+void currency_initialise(void)
+{
+	currency_print_zeros = config_opt_read("PrintZeros");
+
+	if (config_opt_read("TerritoryCurrency")) {
+		currency_decimal_point = *territory_read_string_symbols(territory_CURRENT, territory_SYMBOL_CURRENCY_POINT);
+		currency_decimal_places = territory_read_integer_symbols(territory_CURRENT, territory_SYMBOL_CURRENCY_PRECISION);
+		currency_bracket_negatives = (territory_read_integer_symbols(territory_CURRENT, territory_SYMBOL_CURRENCY_NEGATIVE_FORMAT)
+				== territory_SYMBOL_PARENTHESISED);
+	} else {
+		currency_decimal_point = *config_str_read("DecimalPoint");
+		currency_decimal_places = config_int_read("DecimalPlaces");
+		currency_bracket_negatives = config_opt_read("BracketNegatives");
+	}
+}
 
 /* ==================================================================================================================
  * Money conversion.
@@ -67,12 +101,12 @@ void full_convert_money_to_string (amt_t value, char *string, int zeros)
 {
   int old_zero;
 
-  old_zero = print_zeros;
-  print_zeros = zeros;
+  old_zero = currency_print_zeros;
+  currency_print_zeros = zeros;
 
   convert_money_to_string (value, string);
 
-  print_zeros = old_zero;
+  currency_print_zeros = old_zero;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -82,13 +116,13 @@ void convert_money_to_string (amt_t value, char *string)
   int  i, places;
   char *end, conversion[20];
 
-  if (value != NULL_CURRENCY || print_zeros)
+  if (value != NULL_CURRENCY || currency_print_zeros)
   {
     /* Find the number of decimal places and set up a conversion string. Negative numbers need an additional place
      * in the format string, as the - sign takes up one of the 'digits'.
      */
 
-    places = decimal_places + 1;
+    places = currency_decimal_places + 1;
     sprintf (conversion, "%%0%1dd", places + ((value < 0) ? 1 : 0));
 
     /* Print the number to the buffer and find the end. */
@@ -106,12 +140,12 @@ void convert_money_to_string (amt_t value, char *string)
         end--;
       }
 
-      *(++end) = decimal_point;
+      *(++end) = currency_decimal_point;
     }
 
     /* If () is to be used for -ve numbers, replace the - */
 
-    if (bracket_negatives && *string == '-')
+    if (currency_bracket_negatives && *string == '-')
     {
       *string = '(';
       strcat (string, ")");
@@ -125,105 +159,97 @@ void convert_money_to_string (amt_t value, char *string)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Convert the string into an integer by brute force. */
-
-amt_t convert_string_to_money (char *string)
-{
-  int  result, pence, negative;
-  char copy[256], *next;
-
-
-  if (bracket_negatives)
-  {
-    negative = (*string == '(');
-  }
-  else
-  {
-    negative = (*string == '-');
-  }
-
-  /* Take a copy of the string, with a leading zero so that values like ".01" work OK.
-   * If the value is negative, then start one character in to skip the leading '-' or '('.
-   */
-
-  sprintf (copy, "0%s", (negative) ? string + 1 : string);
-
-  /* Get the part of the string before the decimal place. */
-
-  next = strtok (copy, ".");
-  if (next != NULL)
-  {
-    /* Take the value from before the DP and convert it to an integer. */
-
-    if ((strlen (next) + decimal_places) <= MAX_DIGITS + 1) /* Add 1 to cover leading 0 we added. */
-    {
-      result = atoi (next)*pow(10, decimal_places);
-    }
-    else
-    {
-      result = (1 * pow (10, MAX_DIGITS - decimal_places) - 1) * pow(10, decimal_places);
-    }
-
-    /* Now see if there were any digits after the DP.  If there were...*/
-
-    next = strtok (NULL, ".");
-    if (decimal_places > 0 && next != NULL)
-    {
-      /* If there were too many digits, truncate to the required number. */
-
-      if (strlen (next) > decimal_places)
-      {
-        next[decimal_places] = '\0';
-      }
-
-      /* Convert the remaining digits into an int. */
-
-      pence = atoi (next);
-
-      /* If there weren't enough digits, multiply by the required power of 10. */
-
-      if (strlen (next) < decimal_places)
-      {
-        pence *= pow (10, decimal_places - strlen (next));
-      }
-
-      /* Add the pence on to the result. */
-
-      result += pence;
-    }
-
-    if (negative)
-    {
-      result = -result;
-    }
-  }
-  else
-  {
-    result = NULL_CURRENCY;
-  }
-
-  return ((amt_t) result);
-}
-
-/* ==================================================================================================================
- * Set up date information
+/**
+ * Convert a string into a currency amount by brute force, based on the
+ * configured settings.
+ *
+ * \param *string		The string to be converted into a currency amount.
+ * \return			The converted amount, or NULL_CURRENCY.
  */
 
-void set_up_money (void)
+amt_t currency_convert_from_string(char *string)
 {
-  print_zeros = config_opt_read ("PrintZeros");
+	int	result, pence;
+	osbool	negative;
+	char	copy[CURRENCY_MAX_CONVERSION_LENGTH], *next;
 
-  if (config_opt_read ("TerritoryCurrency"))
-  {
-    decimal_point = *territory_read_string_symbols (territory_CURRENT, territory_SYMBOL_CURRENCY_POINT);
-    decimal_places = territory_read_integer_symbols (territory_CURRENT, territory_SYMBOL_CURRENCY_PRECISION);
-    bracket_negatives = (territory_read_integer_symbols (territory_CURRENT, territory_SYMBOL_CURRENCY_NEGATIVE_FORMAT)
-                         == territory_SYMBOL_PARENTHESISED);
-  }
-  else
-  {
-    decimal_point = *config_str_read ("DecimalPoint");
-    decimal_places = config_int_read ("DecimalPlaces");
-    bracket_negatives = config_opt_read ("BracketNegatives");
-  }
+	if (string == NULL || *string == '\0')
+		return NULL_CURRENCY;
+
+	/* Test for a negative value, by looking at the first character.
+	 *
+	 * \TODO -- Bracketed values should probably test the final
+	 *          character as well?
+	 */
+
+	if (currency_bracket_negatives)
+		negative = (*string == '(');
+	else
+		negative = (*string == '-');
+
+	/* Take a copy of the string, with a leading zero so that values like
+	 * .01 work OK. If the value is negative, then start one character in
+	 * to skip the leading '-' or '('.
+	 */
+
+	snprintf(copy, CURRENCY_MAX_CONVERSION_LENGTH, "0%s", (negative) ? string + 1 : string);
+	copy[CURRENCY_MAX_CONVERSION_LENGTH - 1] = '\0';
+
+	/* Get the part of the string before the decimal place. If there isn't
+	 * one, then return with an invalid amount.
+	 */
+
+	next = strtok(copy, ".");
+	if (next == NULL)
+		return NULL_CURRENCY;
+
+	/* Take the value from before the DP and convert it to an integer.
+	 *
+	 * Note that we add 1 to cover leading 0 we added.
+	 */
+
+	if ((strlen(next) + currency_decimal_places) <= CURRENCY_MAX_DIGITS + 1)
+		result = atoi(next) * pow(10, currency_decimal_places);
+	else
+		result = (1 * pow(10, CURRENCY_MAX_DIGITS - currency_decimal_places) - 1) * pow(10, currency_decimal_places);
+
+	/* Now see if there were any digits after the DP.  If there were,
+	 * these are now processed.
+	 */
+
+	next = strtok(NULL, ".");
+	if (currency_decimal_places > 0 && next != NULL) {
+			/* If there were too many digits, truncate to the required number. */
+
+		if (strlen(next) > currency_decimal_places)
+			next[currency_decimal_places] = '\0';
+
+		/* Convert the remaining digits into an int. */
+
+		pence = atoi(next);
+
+		/* If there weren't enough digits, multiply by the required
+		 * power of 10.
+		 */
+
+		if (strlen(next) < currency_decimal_places)
+			pence *= pow (10, currency_decimal_places - strlen(next));
+
+		/* Add the pence on to the result. */
+
+		result += pence;
+	}
+
+	/* If the original value was negative, turn the converted value
+	 * negative as well.
+	 */
+
+	if (negative)
+		result = -result;
+
+	/* Turn the converted value into an amount and return it. */
+
+	return (amt_t) result;
 }
+
+

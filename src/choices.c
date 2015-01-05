@@ -884,7 +884,7 @@ static void choices_read_window(void)
 	/* Update stored data. */
 
 	set_weekend_days();
-	set_up_money();
+	currency_initialise();
 
 	/* Redraw windows as required. */
 

@@ -1558,7 +1558,7 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
 			changed = TRUE;
 		}
 	} else if (key->i == EDIT_ICON_AMOUNT) {
-		amount = convert_string_to_money(buffer_amount);
+		amount = currency_convert_from_string(buffer_amount);
 		if (amount != file->transactions[transaction].amount) {
 			file->transactions[transaction].amount = amount;
 			changed = TRUE;

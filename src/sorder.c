@@ -1806,17 +1806,17 @@ static osbool sorder_process_edit_window(void)
 	/* Get the amounts. */
 
 	sorder_edit_file->sorders[sorder_edit_number].normal_amount =
-		convert_string_to_money(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT));
+		currency_convert_from_string(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT));
 
 	if (icons_get_selected(sorder_edit_window, SORDER_EDIT_FIRSTSW))
 		sorder_edit_file->sorders[sorder_edit_number].first_amount =
-				convert_string_to_money(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST));
+				currency_convert_from_string(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST));
 	else
 		sorder_edit_file->sorders[sorder_edit_number].first_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
 
 	if (icons_get_selected(sorder_edit_window, SORDER_EDIT_LASTSW))
 		sorder_edit_file->sorders[sorder_edit_number].last_amount =
-				convert_string_to_money(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST));
+				currency_convert_from_string(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST));
 	else
 		sorder_edit_file->sorders[sorder_edit_number].last_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
 

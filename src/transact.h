@@ -34,6 +34,25 @@
 
 #include "filing.h"
 
+/* Transaction flags (bitwise allocation) */
+
+enum transact_flags {
+	TRANS_FLAGS_NONE = 0,
+
+	TRANS_REC_FROM = 0x0001,						/**< Reconciled from					*/
+	TRANS_REC_TO = 0x0002,							/**< Reconciled to					*/
+
+	/* The following flags are used by standing orders. */
+
+	TRANS_SKIP_FORWARD = 0x0100,						/**< Move forward to avoid illegal days.		*/
+	TRANS_SKIP_BACKWARD = 0x0200,						/**< Move backwards to avoid illegal days.		*/
+
+	/* The following flags are used by presets. */
+
+	TRANS_TAKE_TODAY = 0x1000,						/**< Always take today's date				*/
+	TRANS_TAKE_CHEQUE = 0x2000						/**< Always take the next cheque number			*/
+};
+
 enum transact_list_menu_type {
 	REFDESC_MENU_NONE = 0,
 	REFDESC_MENU_REFERENCE,

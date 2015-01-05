@@ -146,24 +146,6 @@ enum date_period {
 	PERIOD_YEARS								/**< Period specified in years.				*/
 };
 
-/* Transaction flags (bitwise allocation) */
-
-enum transact_flags {
-	TRANS_FLAGS_NONE = 0,
-
-	TRANS_REC_FROM = 0x0001,						/**< Reconciled from					*/
-	TRANS_REC_TO = 0x0002,							/**< Reconciled to					*/
-
-	/* The following flags are used by standing orders. */
-
-	TRANS_SKIP_FORWARD = 0x0100,						/**< Move forward to avoid illegal days.		*/
-	TRANS_SKIP_BACKWARD = 0x0200,						/**< Move backwards to avoid illegal days.		*/
-
-	/* The following flags are used by presets. */
-
-	TRANS_TAKE_TODAY = 0x1000,						/**< Always take today's date				*/
-	TRANS_TAKE_CHEQUE = 0x2000						/**< Always take the next cheque number			*/
-};
 
 
 /* Report details. */
@@ -245,6 +227,7 @@ typedef int		acct_t;							/**< An account number.						*/
  *          of this mess out.
  */
 
+struct transact;
 struct account;
 struct sorder;
 struct preset;
@@ -263,34 +246,6 @@ struct accview_window;
 struct account_redraw;
 
 typedef struct file_data file_data;
-
-
-/* ==================================================================================================================
- * File data structures.
- */
-
-/* Transatcion data struct. */
-
-struct transaction {
-	date_t			date;
-	enum transact_flags	flags;
-	acct_t			from;
-	acct_t			to;
-	amt_t			amount;
-	char			reference[REF_FIELD_LEN];
-	char			description[DESCRIPT_FIELD_LEN];
-
-	/* Sort index entries.
-	 *
-	 * NB - These are unconnected to the rest of the transaction data, and are in effect a separate array that is used
-	 * for handling entries in the transaction window.
-	 */
-
-	int			sort_index;		/**< Point to another transaction, to allow the transaction window to be sorted. */
-	int			saved_sort;		/**< Preserve the transaction window sort order across transaction data sorts. */
-	int			sort_workspace;		/**< Workspace used by the sorting code. */
-};
-
 
 /* ==================================================================================================================
  * Window data structures

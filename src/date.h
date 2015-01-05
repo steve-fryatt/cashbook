@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_DATE
 #define CASHBOOK_DATE
 
+#include "transact.h"
+
 /* ==================================================================================================================
  * Static constants
  */
@@ -61,7 +63,7 @@ int full_year (date_t start, date_t end);
 int count_days (date_t start, date_t end);
 
 date_t get_valid_date (date_t date, int direction);
-date_t get_sorder_date (date_t date, int flags);
+date_t get_sorder_date (date_t date, enum transact_flags flags);
 
 void set_weekend_days (void);
 int read_weekend_days (void);

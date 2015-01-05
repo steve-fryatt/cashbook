@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_EDIT
 #define CASHBOOK_EDIT
 
+#include "transact.h"
+
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
  */

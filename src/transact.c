@@ -202,6 +202,33 @@
 #define FILEINFO_ICON_PRESETS 17
 
 
+/**
+ * Transatcion data structure
+ *
+ * \TODO -- Warning: at present this definition is duplicated in edit.c!
+ */
+
+struct transaction {
+	date_t			date;						/**< The date of the transaction.							*/
+	enum transact_flags	flags;						/**< The flags applying to the transaction.						*/
+	acct_t			from;						/**< The account from which money is being transferred.					*/
+	acct_t			to;						/**< The account to which money is being transferred.					*/
+	amt_t			amount;						/**< The amount of money transferred by the transaction.				*/
+	char			reference[REF_FIELD_LEN];			/**< The transaction reference text.							*/
+	char			description[DESCRIPT_FIELD_LEN];		/**< The transaction description text.							*/
+
+	/* Sort index entries.
+	 *
+	 * NB - These are unconnected to the rest of the transaction data, and are in effect a separate array that is used
+	 * for handling entries in the transaction window.
+	 */
+
+	int			sort_index;					/**< Point to another transaction, to allow the transaction window to be sorted.	*/
+	int			saved_sort;					/**< Preserve the transaction window sort order across transaction data sorts.		*/
+	int			sort_workspace;					/**< Workspace used by the sorting code.						*/
+};
+
+
 struct transact_list_link {
 	char	name[DESCRIPT_FIELD_LEN]; /* This assumes that references are always shorter than descriptions...*/
 };

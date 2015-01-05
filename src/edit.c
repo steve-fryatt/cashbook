@@ -74,6 +74,35 @@
 #define ROW_FIELD_LEN 10
 #define DATE_FIELD_LEN 11
 
+
+/**
+ * \TODO -- This is an exact duplicate of the struct definition in transact.c.
+ *          It needs to be removed once all references to transactions[] in
+ *          edit.c have been relocated into transact.c
+ *
+ * Transatcion data struct.
+ */
+
+struct transaction {
+	date_t			date;
+	enum transact_flags	flags;
+	acct_t			from;
+	acct_t			to;
+	amt_t			amount;
+	char			reference[REF_FIELD_LEN];
+	char			description[DESCRIPT_FIELD_LEN];
+
+	/* Sort index entries.
+	 *
+	 * NB - These are unconnected to the rest of the transaction data, and are in effect a separate array that is used
+	 * for handling entries in the transaction window.
+	 */
+
+	int			sort_index;		/**< Point to another transaction, to allow the transaction window to be sorted. */
+	int			saved_sort;		/**< Preserve the transaction window sort order across transaction data sorts. */
+	int			sort_workspace;		/**< Workspace used by the sorting code. */
+};
+
 /* ==================================================================================================================
  * Global variables.
  */

@@ -52,6 +52,8 @@
 #include "global.h"
 #include "date.h"
 
+#include "transact.h"
+
 /* ==================================================================================================================
  * Global variables.
  */
@@ -662,7 +664,7 @@ date_t get_valid_date (date_t date, int direction)
  * brought into range for the current month, then weekends are skipped if necessary.
  */
 
-date_t get_sorder_date (date_t date, int flags)
+date_t get_sorder_date(date_t date, enum transact_flags flags)
 {
   int    weekday, move, weekends, shift;
   date_t result;

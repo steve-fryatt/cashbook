@@ -42,6 +42,13 @@
  * Data structures
  */
 
+enum date_period {
+	PERIOD_NONE = 0,							/**< No period specified.				*/
+	PERIOD_DAYS,								/**< Period specified in days.				*/
+	PERIOD_MONTHS,								/**< Period specified in months.			*/
+	PERIOD_YEARS								/**< Period specified in years.				*/
+};
+
 /* ==================================================================================================================
  * Function prototypes.
  */

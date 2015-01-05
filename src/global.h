@@ -137,16 +137,6 @@ enum account_type {
 	ACCOUNT_OUT  = 0x0200							/**< Outgoing enabled analysis header.			*/
 };
 
-/* Standing order_details */
-
-enum date_period {
-	PERIOD_NONE = 0,							/**< No period specified.				*/
-	PERIOD_DAYS,								/**< Period specified in days.				*/
-	PERIOD_MONTHS,								/**< Period specified in months.			*/
-	PERIOD_YEARS								/**< Period specified in years.				*/
-};
-
-
 
 /* Report details. */
 

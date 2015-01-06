@@ -46,21 +46,27 @@
 
 /* Application header files */
 
-#include "global.h"
 #include "currency.h"
 
-/* ------------------------------------------------------------------------------------------------------------------
- * Static constants
+
+/**
+ * The maximum number of digits that can form a currency value. This includes
+ * decimal places, so 1.23 would be 3 digits. The value is determined by the
+ * size of the type used to hold an amt_t.
  */
 
 #define CURRENCY_MAX_DIGITS 9
 
-/* The maximum string length that can be converted into an amount value. */
+/**
+ * The maximum string length that can be converted into an amount value, which
+ * sets the size of the working buffer.
+ */
 
 #define CURRENCY_MAX_CONVERSION_LENGTH 256
 
-/* ==================================================================================================================
- * Global variables
+
+/**
+ * Global Variables
  */
 
 static int	currency_decimal_places = 0;					/**< The number of decimal places used in currency representation.		*/
@@ -161,7 +167,7 @@ void convert_money_to_string (amt_t value, char *string)
 
 /**
  * Convert a string into a currency amount by brute force, based on the
- * configured settings.
+ * configured settings, to ensure that accuracy is retained.
  *
  * \param *string		The string to be converted into a currency amount.
  * \return			The converted amount, or NULL_CURRENCY.
@@ -169,7 +175,7 @@ void convert_money_to_string (amt_t value, char *string)
 
 amt_t currency_convert_from_string(char *string)
 {
-	int	result, pence;
+	int	result, decimal;
 	osbool	negative;
 	char	copy[CURRENCY_MAX_CONVERSION_LENGTH], *next;
 
@@ -205,7 +211,13 @@ amt_t currency_convert_from_string(char *string)
 
 	/* Take the value from before the DP and convert it to an integer.
 	 *
-	 * Note that we add 1 to cover leading 0 we added.
+	 * If the number is small enough to fit into the available digits, then
+	 * the result is value * 10^decimal_places to shift the value up out
+	 * of the way of the decimal part. If it isn't, then we just set the
+	 * value to the maximum possible (10^decimal_places - 1).
+	 *
+	 * Note that we add 1 to the available digits, to cover leading 0 we
+	 * added when copying the value.
 	 */
 
 	if ((strlen(next) + currency_decimal_places) <= CURRENCY_MAX_DIGITS + 1)
@@ -219,25 +231,27 @@ amt_t currency_convert_from_string(char *string)
 
 	next = strtok(NULL, ".");
 	if (currency_decimal_places > 0 && next != NULL) {
-			/* If there were too many digits, truncate to the required number. */
+		/* If there were too many digits for the decimal part, truncate
+		 * to the required number and lose the precision. No rounding
+		 * is performed, so .119 would become .11 to 2dp. */
 
 		if (strlen(next) > currency_decimal_places)
 			next[currency_decimal_places] = '\0';
 
-		/* Convert the remaining digits into an int. */
+		/* Convert the required digits into an int. */
 
-		pence = atoi(next);
+		decimal = atoi(next);
 
 		/* If there weren't enough digits, multiply by the required
-		 * power of 10.
+		 * power of 10 to shift the value into the correct place.
 		 */
 
 		if (strlen(next) < currency_decimal_places)
-			pence *= pow (10, currency_decimal_places - strlen(next));
+			decimal *= pow (10, currency_decimal_places - strlen(next));
 
-		/* Add the pence on to the result. */
+		/* Add the decimal part on to the result. */
 
-		result += pence;
+		result += decimal;
 	}
 
 	/* If the original value was negative, turn the converted value
@@ -251,5 +265,4 @@ amt_t currency_convert_from_string(char *string)
 
 	return (amt_t) result;
 }
-
 

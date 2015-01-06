@@ -240,7 +240,7 @@ void edit_place_new_line(file_data *file, int line)
 		else
 			*buffer_to_rec = '\0';
 		strncpy(buffer_reference, file->transactions[transaction].reference, REF_FIELD_LEN);
-		convert_money_to_string(file->transactions[transaction].amount, buffer_amount);
+		currency_convert_to_string(file->transactions[transaction].amount, buffer_amount, AMOUNT_FIELD_LEN);
 		strncpy(buffer_description, file->transactions[transaction].description, DESCRIPT_FIELD_LEN);
 	} else {
 		*buffer_row = '\0';
@@ -555,7 +555,7 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 	if ((only == -1 || only == EDIT_ICON_AMOUNT) && avoid != EDIT_ICON_AMOUNT) {
 		/* Re-convert the amount so that it is displayed in standard format. */
 
-		convert_money_to_string(entry_window->transactions[transaction].amount, buffer_amount);
+		currency_convert_to_string(entry_window->transactions[transaction].amount, buffer_amount, AMOUNT_FIELD_LEN);
 		wimp_set_icon_state(entry_window->transaction_window.transaction_window, EDIT_ICON_AMOUNT, 0, 0);
 	}
 

@@ -988,7 +988,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count)
-				convert_money_to_string(file->sorders[t].normal_amount, icon_buffer);
+				currency_convert_to_string(file->sorders[t].normal_amount, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_AMOUNT]));
@@ -1576,13 +1576,16 @@ static void sorder_fill_edit_window(file_data *file, int sorder, osbool edit_mod
 
 		/* Fill in the amount fields. */
 
-		convert_money_to_string(0, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT));
+		currency_convert_to_string(0, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT),
+				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_AMOUNT));
 
-		convert_money_to_string(0, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST));
+		currency_convert_to_string(0, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST),
+				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_FIRST));
 		icons_set_shaded(sorder_edit_window, SORDER_EDIT_FIRST, TRUE);
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_FIRSTSW, FALSE);
 
-		convert_money_to_string(0, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST));
+		currency_convert_to_string(0, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST),
+				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_LAST));
 		icons_set_shaded(sorder_edit_window, SORDER_EDIT_LAST, TRUE);
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_LASTSW, FALSE);
 
@@ -1641,12 +1644,14 @@ static void sorder_fill_edit_window(file_data *file, int sorder, osbool edit_mod
 
 		/* Fill in the amount fields. */
 
-		convert_money_to_string(file->sorders[sorder].normal_amount,
-				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT));
+		currency_convert_to_string(file->sorders[sorder].normal_amount,
+				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT),
+				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_AMOUNT));
 
 
-		convert_money_to_string(file->sorders[sorder].first_amount,
-				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST));
+		currency_convert_to_string(file->sorders[sorder].first_amount,
+				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST),
+				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_FIRST));
 
 		icons_set_shaded(sorder_edit_window, SORDER_EDIT_FIRST,
 				(file->sorders[sorder].first_amount == file->sorders[sorder].normal_amount));
@@ -1654,8 +1659,9 @@ static void sorder_fill_edit_window(file_data *file, int sorder, osbool edit_mod
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_FIRSTSW,
 				(file->sorders[sorder].first_amount != file->sorders[sorder].normal_amount));
 
-		convert_money_to_string(file->sorders[sorder].last_amount,
-				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST));
+		currency_convert_to_string(file->sorders[sorder].last_amount,
+				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST),
+				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_LAST));
 
 		icons_set_shaded(sorder_edit_window, SORDER_EDIT_LAST,
 				(file->sorders[sorder].last_amount == file->sorders[sorder].normal_amount));
@@ -2152,7 +2158,7 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 		sprintf(buffer, "%s\\t", account_get_name(sorder_print_file, sorder_print_file->sorders[t].to));
 		strcat(line, buffer);
 
-		convert_money_to_string(sorder_print_file->sorders[t].normal_amount, numbuf1);
+		currency_convert_to_string(sorder_print_file->sorders[t].normal_amount, numbuf1, sizeof(numbuf1));
 		sprintf(buffer, "\\r%s\\t", numbuf1);
 		strcat(line, buffer);
 
@@ -2641,18 +2647,18 @@ void sorder_full_report(file_data *file)
 		msgs_param_lookup("SORRef", line, sizeof(line), file->sorders[i].reference, NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		convert_money_to_string(file->sorders[i].normal_amount, numbuf1);
+		currency_convert_to_string(file->sorders[i].normal_amount, numbuf1, sizeof(numbuf1));
 		msgs_param_lookup("SORAmount", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
 		if (file->sorders[i].normal_amount != file->sorders[i].first_amount) {
-			convert_money_to_string(file->sorders[i].first_amount, numbuf1);
+			currency_convert_to_string(file->sorders[i].first_amount, numbuf1, sizeof(numbuf1));
 			msgs_param_lookup("SORFirst", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 			report_write_line(report, 0, line);
 		}
 
 		if (file->sorders[i].normal_amount != file->sorders[i].last_amount) {
-			convert_money_to_string(file->sorders[i].last_amount, numbuf1);
+			currency_convert_to_string(file->sorders[i].last_amount, numbuf1, sizeof(numbuf1));
 			msgs_param_lookup("SORFirst", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 			report_write_line(report, 0, line);
 		}
@@ -2936,7 +2942,7 @@ static void sorder_export_delimited(file_data *file, char *filename, enum filing
 		account_build_name_pair(file, file->sorders[t].to, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		convert_money_to_string(file->sorders[t].normal_amount, buffer);
+		currency_convert_to_string(file->sorders[t].normal_amount, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		filing_output_delimited_field(out, file->sorders[t].description, format, DELIMIT_NONE);

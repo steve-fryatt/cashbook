@@ -1008,7 +1008,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 			if (y < file->preset_count)
-				convert_money_to_string(file->presets[t].amount, icon_buffer);
+				currency_convert_to_string(file->presets[t].amount, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_AMOUNT]));
@@ -1531,7 +1531,8 @@ static void preset_fill_edit_window(file_data *file, int preset)
 
 		/* Fill in the amount fields. */
 
-		convert_money_to_string(0, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_AMOUNT));
+		currency_convert_to_string(0, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_AMOUNT),
+				icons_get_indirected_text_length(preset_edit_window, PRESET_EDIT_AMOUNT));
 
 		/* Fill in the description field. */
 
@@ -1574,8 +1575,9 @@ static void preset_fill_edit_window(file_data *file, int preset)
 
 		/* Fill in the amount fields. */
 
-		convert_money_to_string(file->presets[preset].amount,
-				icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_AMOUNT));
+		currency_convert_to_string(file->presets[preset].amount,
+				icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_AMOUNT),
+				icons_get_indirected_text_length(preset_edit_window, PRESET_EDIT_AMOUNT));
 
 		/* Fill in the description field. */
 
@@ -2010,7 +2012,7 @@ static void preset_print(osbool text, osbool format, osbool scale, osbool rotate
 		sprintf(buffer, "%s\\t", account_get_name (preset_print_file, preset_print_file->presets[t].to));
 		strcat(line, buffer);
 
-		convert_money_to_string(preset_print_file->presets[t].amount, numbuf1);
+		currency_convert_to_string(preset_print_file->presets[t].amount, numbuf1, sizeof(numbuf1));
 		sprintf(buffer, "\\r%s\\t", numbuf1);
 		strcat(line, buffer);
 
@@ -2729,7 +2731,7 @@ static void preset_export_delimited(file_data *file, char *filename, enum filing
 		account_build_name_pair(file, file->presets[t].to, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		convert_money_to_string(file->presets[t].amount, buffer);
+		currency_convert_to_string(file->presets[t].amount, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		filing_output_delimited_field(out, file->presets[t].description, format, DELIMIT_LAST);

@@ -1182,7 +1182,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].flags |= icon_fg_col;
 
 			if (y < windat->display_lines && transaction_direction == ACCVIEW_DIRECTION_FROM)
-				convert_money_to_string(transact_get_amount(file, transaction), icon_buffer);
+				currency_convert_to_string(transact_get_amount(file, transaction), icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_PAYMENTS]));
@@ -1198,7 +1198,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].flags |= icon_fg_col;
 
 			if (y < windat->display_lines && transaction_direction == ACCVIEW_DIRECTION_TO)
-				convert_money_to_string(transact_get_amount(file, transaction), icon_buffer);
+				currency_convert_to_string(transact_get_amount(file, transaction), icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_RECEIPTS]));
@@ -1214,7 +1214,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[ACCVIEW_ICON_BALANCE].flags |= icon_fg_balance_col;
 
 			if (y < windat->display_lines)
-				convert_money_to_string((windat->line_data)[(windat->line_data)[y].sort_index].balance, icon_buffer);
+				currency_convert_to_string((windat->line_data)[(windat->line_data)[y].sort_index].balance, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_BALANCE]));
@@ -1868,15 +1868,15 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 			strcat(line, buffer);
 
 			if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
-				convert_money_to_string(transact_get_amount(accview_print_view->file, transaction), numbuf1);
+				currency_convert_to_string(transact_get_amount(accview_print_view->file, transaction), numbuf1, sizeof(numbuf1));
 				sprintf(buffer, "\\r%s\\t\\r\\t", numbuf1);
 			} else {
-				convert_money_to_string(transact_get_amount(accview_print_view->file, transaction), numbuf1);
+				currency_convert_to_string(transact_get_amount(accview_print_view->file, transaction), numbuf1, sizeof(numbuf1));
 				sprintf(buffer, "\\r\\t\\r%s\\t", numbuf1);
 			}
 			strcat(line, buffer);
 
-			convert_money_to_string(accview_print_view->line_data[i].balance, numbuf1);
+			currency_convert_to_string(accview_print_view->line_data[i].balance, numbuf1, sizeof(numbuf1));
 			sprintf(buffer, "\\r%s\\t", numbuf1);
 			strcat(line, buffer);
 
@@ -2609,16 +2609,16 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 					format, DELIMIT_NONE);
 
 			if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
-				convert_money_to_string(transact_get_amount(file, transaction), buffer);
+				currency_convert_to_string(transact_get_amount(file, transaction), buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 				filing_output_delimited_field(out, "", format, DELIMIT_NUM);
 			} else {
-				convert_money_to_string(transact_get_amount(file, transaction), buffer);
+				currency_convert_to_string(transact_get_amount(file, transaction), buffer, sizeof(buffer));
 				filing_output_delimited_field(out, "", format, DELIMIT_NUM);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 			}
 
-			convert_money_to_string(view->line_data[i].balance, buffer);
+			currency_convert_to_string(view->line_data[i].balance, buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 			filing_output_delimited_field(out, transact_get_description(file, transaction, buffer, sizeof(buffer)),

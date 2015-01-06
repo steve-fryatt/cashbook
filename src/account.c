@@ -1032,10 +1032,10 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 				switch (windat->type) {
 				case ACCOUNT_FULL:
-					convert_money_to_string(file->accounts[windat->line_data[y].account].statement_balance, icon_buffer1);
-					convert_money_to_string(file->accounts[windat->line_data[y].account].current_balance, icon_buffer2);
-					convert_money_to_string(file->accounts[windat->line_data[y].account].trial_balance, icon_buffer3);
-					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_balance, icon_buffer4);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].statement_balance, icon_buffer1, AMOUNT_FIELD_LEN);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].current_balance, icon_buffer2, AMOUNT_FIELD_LEN);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].trial_balance, icon_buffer3, AMOUNT_FIELD_LEN);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].budget_balance, icon_buffer4, AMOUNT_FIELD_LEN);
 
 					if (shade_overdrawn &&
 							(file->accounts[windat->line_data[y].account].statement_balance <
@@ -1065,10 +1065,10 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 					break;
 
 				case ACCOUNT_IN:
-					convert_money_to_string(-file->accounts[windat->line_data[y].account].future_balance, icon_buffer1);
-					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_amount, icon_buffer2);
-					convert_money_to_string(-file->accounts[windat->line_data[y].account].budget_balance, icon_buffer3);
-					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_result, icon_buffer4);
+					currency_convert_to_string(-file->accounts[windat->line_data[y].account].future_balance, icon_buffer1, AMOUNT_FIELD_LEN);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].budget_amount, icon_buffer2, AMOUNT_FIELD_LEN);
+					currency_convert_to_string(-file->accounts[windat->line_data[y].account].budget_balance, icon_buffer3, AMOUNT_FIELD_LEN);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].budget_result, icon_buffer4, AMOUNT_FIELD_LEN);
 
 					if (shade_overdrawn &&
 							(-file->accounts[windat->line_data[y].account].budget_balance <
@@ -1083,10 +1083,10 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 					break;
 
 				case ACCOUNT_OUT:
-					convert_money_to_string(file->accounts[windat->line_data[y].account].future_balance, icon_buffer1);
-					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_amount, icon_buffer2);
-					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_balance, icon_buffer3);
-					convert_money_to_string(file->accounts[windat->line_data[y].account].budget_result, icon_buffer4);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].future_balance, icon_buffer1, AMOUNT_FIELD_LEN);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].budget_amount, icon_buffer2, AMOUNT_FIELD_LEN);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].budget_balance, icon_buffer3, AMOUNT_FIELD_LEN);
+					currency_convert_to_string(file->accounts[windat->line_data[y].account].budget_result, icon_buffer4, AMOUNT_FIELD_LEN);
 
 					if (shade_overdrawn &&
 							(file->accounts[windat->line_data[y].account].budget_balance >
@@ -1151,10 +1151,10 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 						ACCOUNT_TOOLBAR_HEIGHT;
 
 				account_window_def->icons[7].data.indirected_text.text = windat->line_data[y].heading;
-				convert_money_to_string(windat->line_data[y].total[0], icon_buffer1);
-				convert_money_to_string(windat->line_data[y].total[1], icon_buffer2);
-				convert_money_to_string(windat->line_data[y].total[2], icon_buffer3);
-				convert_money_to_string(windat->line_data[y].total[3], icon_buffer4);
+				currency_convert_to_string(windat->line_data[y].total[0], icon_buffer1, AMOUNT_FIELD_LEN);
+				currency_convert_to_string(windat->line_data[y].total[1], icon_buffer2, AMOUNT_FIELD_LEN);
+				currency_convert_to_string(windat->line_data[y].total[2], icon_buffer3, AMOUNT_FIELD_LEN);
+				currency_convert_to_string(windat->line_data[y].total[3], icon_buffer4, AMOUNT_FIELD_LEN);
 
 				wimp_plot_icon(&(account_window_def->icons[7]));
 				wimp_plot_icon(&(account_window_def->icons[8]));
@@ -2311,8 +2311,10 @@ static void account_fill_acc_edit_window(file_data *file, acct_t account)
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_NAME) = '\0';
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_IDENT) = '\0';
 
-		convert_money_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT));
-		convert_money_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE));
+		currency_convert_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT),
+				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_CREDIT));
+		currency_convert_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE),
+				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_BALANCE));
 
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN) = '\0';
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CHEQUE) = '\0';
@@ -2328,8 +2330,10 @@ static void account_fill_acc_edit_window(file_data *file, acct_t account)
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_NAME, file->accounts[account].name);
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_IDENT, file->accounts[account].ident);
 
-		convert_money_to_string(file->accounts[account].credit_limit, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT));
-		convert_money_to_string(file->accounts[account].opening_balance, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE));
+		currency_convert_to_string(file->accounts[account].credit_limit, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT),
+				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_CREDIT));
+		currency_convert_to_string(file->accounts[account].opening_balance, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE),
+				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_BALANCE));
 
 		account_get_next_cheque_number(file, NULL_ACCOUNT, account, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN),
 				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_PAYIN));
@@ -2362,7 +2366,8 @@ static void account_fill_hdg_edit_window(file_data *file, acct_t account, enum a
 		*icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_NAME) = '\0';
 		*icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_IDENT) = '\0';
 
-		convert_money_to_string(0, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET));
+		currency_convert_to_string(0, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET),
+				icons_get_indirected_text_length(account_hdg_edit_window, HEAD_EDIT_BUDGET));
 
 		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_INCOMING, 0);
 		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_OUTGOING, 0);
@@ -2374,7 +2379,8 @@ static void account_fill_hdg_edit_window(file_data *file, acct_t account, enum a
 		icons_strncpy(account_hdg_edit_window, HEAD_EDIT_NAME, file->accounts[account].name);
 		icons_strncpy(account_hdg_edit_window, HEAD_EDIT_IDENT, file->accounts[account].ident);
 
-		convert_money_to_string(file->accounts[account].budget_amount, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET));
+		currency_convert_to_string(file->accounts[account].budget_amount, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET),
+				icons_get_indirected_text_length(account_hdg_edit_window, HEAD_EDIT_BUDGET));
 
 		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_INCOMING, 1);
 		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_OUTGOING, 1);
@@ -2921,24 +2927,24 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 
 			switch (window->type) {
 			case ACCOUNT_FULL:
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].statement_balance, numbuf1);
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].current_balance, numbuf2);
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].trial_balance, numbuf3);
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].budget_balance, numbuf4);
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].statement_balance, numbuf1, sizeof(numbuf1));
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].current_balance, numbuf2, sizeof(numbuf2));
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].trial_balance, numbuf3, sizeof(numbuf3));
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].budget_balance, numbuf4, sizeof(numbuf4));
 				break;
 
 			case ACCOUNT_IN:
-				convert_money_to_string(-account_print_file->accounts[window->line_data[i].account].future_balance, numbuf1);
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].budget_amount, numbuf2);
-				convert_money_to_string(-account_print_file->accounts[window->line_data[i].account].budget_balance, numbuf3);
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].budget_result, numbuf4);
+				currency_convert_to_string(-account_print_file->accounts[window->line_data[i].account].future_balance, numbuf1, sizeof(numbuf1));
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].budget_amount, numbuf2, sizeof(numbuf2));
+				currency_convert_to_string(-account_print_file->accounts[window->line_data[i].account].budget_balance, numbuf3, sizeof(numbuf3));
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].budget_result, numbuf4, sizeof(numbuf4));
 				break;
 
 			case ACCOUNT_OUT:
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].future_balance, numbuf1);
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].budget_amount, numbuf2);
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].budget_balance, numbuf3);
-				convert_money_to_string(account_print_file->accounts[window->line_data[i].account].budget_result, numbuf4);
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].future_balance, numbuf1, sizeof(numbuf1));
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].budget_amount, numbuf2, sizeof(numbuf2));
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].budget_balance, numbuf3, sizeof(numbuf3));
+				currency_convert_to_string(account_print_file->accounts[window->line_data[i].account].budget_result, numbuf4, sizeof(numbuf4));
 				break;
 
 			default:
@@ -2951,10 +2957,10 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 		} else if (window->line_data[i].type == ACCOUNT_LINE_HEADER) {
 			snprintf(line, sizeof(line), "\\k\\u%s", window->line_data[i].heading);
 		} else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER) {
-			convert_money_to_string(window->line_data[i].total[0], numbuf1);
-			convert_money_to_string(window->line_data[i].total[1], numbuf2);
-			convert_money_to_string(window->line_data[i].total[2], numbuf3);
-			convert_money_to_string(window->line_data[i].total[3], numbuf4);
+			currency_convert_to_string(window->line_data[i].total[0], numbuf1, sizeof(numbuf1));
+			currency_convert_to_string(window->line_data[i].total[1], numbuf2, sizeof(numbuf2));
+			currency_convert_to_string(window->line_data[i].total[2], numbuf3, sizeof(numbuf3));
+			currency_convert_to_string(window->line_data[i].total[3], numbuf4, sizeof(numbuf4));
 
 			snprintf(line, sizeof(line), "\\k%s\\t\\s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s",
 					window->line_data[i].heading, numbuf1, numbuf2, numbuf3, numbuf4);
@@ -4196,7 +4202,7 @@ static void account_recalculate_windows(file_data *file)
 	}
 
 	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++)
-		convert_money_to_string(total[i], file->account_windows[entry].footer_icon[i]);
+		currency_convert_to_string(total[i], file->account_windows[entry].footer_icon[i], AMOUNT_FIELD_LEN);
 
 	/* Calculate the incoming account details. */
 
@@ -4245,7 +4251,7 @@ static void account_recalculate_windows(file_data *file)
 	}
 
 	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++)
-		convert_money_to_string(total[i], file->account_windows[entry].footer_icon[i]);
+		currency_convert_to_string(total[i], file->account_windows[entry].footer_icon[i], AMOUNT_FIELD_LEN);
 
 	/* Calculate the outgoing account details. */
 
@@ -4294,7 +4300,7 @@ static void account_recalculate_windows(file_data *file)
 	}
 
 	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++)
-		convert_money_to_string(total[i], file->account_windows[entry].footer_icon[i]);
+		currency_convert_to_string(total[i], file->account_windows[entry].footer_icon[i], AMOUNT_FIELD_LEN);
 }
 
 
@@ -4704,35 +4710,35 @@ static void account_export_delimited(file_data *file, int entry, char *filename,
 
 			switch (window->type) {
 			case ACCOUNT_FULL:
-				convert_money_to_string(file->accounts[window->line_data[i].account].statement_balance, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].statement_balance, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				convert_money_to_string(file->accounts[window->line_data[i].account].current_balance, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].current_balance, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				convert_money_to_string(file->accounts[window->line_data[i].account].trial_balance, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].trial_balance, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				convert_money_to_string(file->accounts[window->line_data[i].account].budget_balance, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].budget_balance, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 				break;
 
 			case ACCOUNT_IN:
-				convert_money_to_string(-file->accounts[window->line_data[i].account].future_balance, buffer);
+				currency_convert_to_string(-file->accounts[window->line_data[i].account].future_balance, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				convert_money_to_string(file->accounts[window->line_data[i].account].budget_amount, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].budget_amount, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				convert_money_to_string(-file->accounts[window->line_data[i].account].budget_balance, buffer);
+				currency_convert_to_string(-file->accounts[window->line_data[i].account].budget_balance, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				convert_money_to_string(file->accounts[window->line_data[i].account].budget_result, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].budget_result, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 				break;
 
 			case ACCOUNT_OUT:
-				convert_money_to_string(file->accounts[window->line_data[i].account].future_balance, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].future_balance, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				convert_money_to_string(file->accounts[window->line_data[i].account].budget_amount, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].budget_amount, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				convert_money_to_string(file->accounts[window->line_data[i].account].budget_balance, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].budget_balance, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				convert_money_to_string(file->accounts[window->line_data[i].account].budget_result, buffer);
+				currency_convert_to_string(file->accounts[window->line_data[i].account].budget_result, buffer, sizeof(buffer));
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 				break;
 
@@ -4744,16 +4750,16 @@ static void account_export_delimited(file_data *file, int entry, char *filename,
 		} else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER) {
 			filing_output_delimited_field(out, window->line_data[i].heading, format, DELIMIT_NONE);
 
-			convert_money_to_string(window->line_data[i].total[0], buffer);
+			currency_convert_to_string(window->line_data[i].total[0], buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			convert_money_to_string(window->line_data[i].total[1], buffer);
+			currency_convert_to_string(window->line_data[i].total[1], buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			convert_money_to_string(window->line_data[i].total[2], buffer);
+			currency_convert_to_string(window->line_data[i].total[2], buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			convert_money_to_string(window->line_data[i].total[3], buffer);
+			currency_convert_to_string(window->line_data[i].total[3], buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 		}
 	}

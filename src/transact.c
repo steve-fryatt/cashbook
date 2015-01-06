@@ -1628,7 +1628,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags |= icon_fg_col;
 
 			if (y < file->trans_count)
-				convert_money_to_string(file->transactions[t].amount, icon_buffer);
+				currency_convert_to_string(file->transactions[t].amount, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 
@@ -3510,7 +3510,7 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 			sprintf(buffer, "%s\\t", transact_print_file->transactions[t].reference);
 			strcat(line, buffer);
 
-			convert_money_to_string(transact_print_file->transactions[t].amount, numbuf1);
+			currency_convert_to_string(transact_print_file->transactions[t].amount, numbuf1, sizeof(numbuf1));
 			sprintf(buffer, "\\r%s\\t", numbuf1);
 			strcat(line, buffer);
 
@@ -3814,7 +3814,7 @@ static void transact_export_delimited(file_data *file, char *filename, enum fili
 
 		filing_output_delimited_field(out, file->transactions[t].reference, format, DELIMIT_NONE);
 
-		convert_money_to_string(file->transactions[t].amount, buffer);
+		currency_convert_to_string(file->transactions[t].amount, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		filing_output_delimited_field(out, file->transactions[t].description, format, DELIMIT_LAST);

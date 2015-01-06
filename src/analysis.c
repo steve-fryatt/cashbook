@@ -862,10 +862,12 @@ static void analysis_fill_transaction_window(file_data *file, osbool restore)
 		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
 				analysis_transaction_settings.to, analysis_transaction_settings.to_count);
 		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_REFSPEC, analysis_transaction_settings.ref);
-		convert_money_to_string(analysis_transaction_settings.amount_min,
-				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC));
-		convert_money_to_string(analysis_transaction_settings.amount_max,
-				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC));
+		currency_convert_to_string(analysis_transaction_settings.amount_min,
+				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC),
+				icons_get_indirected_text_length(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC));
+		currency_convert_to_string(analysis_transaction_settings.amount_max,
+				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC),
+				icons_get_indirected_text_length(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC));
 		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC, analysis_transaction_settings.desc);
 
 		/* Set the output icons. */
@@ -1159,7 +1161,7 @@ static void analysis_generate_transaction_report(file_data *file)
 
 				if (output_trans) {
 					convert_date_to_string(date, b1);
-					convert_money_to_string(amount, b2);
+					currency_convert_to_string(amount, b2, sizeof(b2));
 
 					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
 							transact_get_transaction_number(i), b1,
@@ -1192,7 +1194,7 @@ static void analysis_generate_transaction_report(file_data *file)
 				if ((account = account_get_list_entry(file, ACCOUNT_FULL, i)) != NULL_ACCOUNT) {
 					if (data[account].report_total != 0) {
 						total += data[account].report_total;
-						convert_money_to_string(data[account].report_total, b1);
+						currency_convert_to_string(data[account].report_total, b1, sizeof(b1));
 						sprintf(line, "\\k\\i%s\\t\\d\\r%s", account_get_name(file, account), b1);
 						report_write_line(report, 2, line);
 					}
@@ -1200,7 +1202,7 @@ static void analysis_generate_transaction_report(file_data *file)
 			}
 
 			msgs_lookup("TRTotal", b1, sizeof (b1));
-			convert_money_to_string(total, b2);
+			currency_convert_to_string(total, b2, sizeof(b2));
 			sprintf(line, "\\i\\k\\b%s\\t\\d\\r\\b%s", b1, b2);
 			report_write_line(report, 2, line);
 		}
@@ -1228,19 +1230,19 @@ static void analysis_generate_transaction_report(file_data *file)
 				if ((account = account_get_list_entry(file, ACCOUNT_OUT, i)) != NULL_ACCOUNT) {
 					if (data[account].report_total != 0) {
 						total += data[account].report_total;
-						convert_money_to_string(data[account].report_total, b1);
+						currency_convert_to_string(data[account].report_total, b1, sizeof(b1));
 						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
 						if (file->trans_rep->budget) {
 							period_days = count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
-							convert_money_to_string(period_limit, b1);
+							currency_convert_to_string(period_limit, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							convert_money_to_string(period_limit - data[account].report_total, b1);
+							currency_convert_to_string(period_limit - data[account].report_total, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 							data[i].report_balance -= data[account].report_total;
-							convert_money_to_string(data[account].report_balance, b1);
+							currency_convert_to_string(data[account].report_balance, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 						}
@@ -1251,7 +1253,7 @@ static void analysis_generate_transaction_report(file_data *file)
 			}
 
 			msgs_lookup("TRTotal", b1, sizeof(b1));
-			convert_money_to_string(total, b2);
+			currency_convert_to_string(total, b2, sizeof(b2));
 			sprintf(line, "\\i\\k\\b%s\\t\\d\\r\\b%s", b1, b2);
 			report_write_line(report, 2, line);
 
@@ -1275,19 +1277,19 @@ static void analysis_generate_transaction_report(file_data *file)
 				if ((account = account_get_list_entry(file, ACCOUNT_IN, i)) != NULL_ACCOUNT) {
 					if (data[account].report_total != 0) {
 						total += data[account].report_total;
-						convert_money_to_string(-data[account].report_total, b1);
+						currency_convert_to_string(-data[account].report_total, b1, sizeof(b1));
 						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
 						if (file->trans_rep->budget) {
 							period_days = count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
-							convert_money_to_string(period_limit, b1);
+							currency_convert_to_string(period_limit, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							convert_money_to_string(period_limit - data[account].report_total, b1);
+							currency_convert_to_string(period_limit - data[account].report_total, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 							data[i].report_balance -= data[account].report_total;
-							convert_money_to_string(data[account].report_balance, b1);
+							currency_convert_to_string(data[account].report_balance, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 						}
@@ -1298,7 +1300,7 @@ static void analysis_generate_transaction_report(file_data *file)
 			}
 
 			msgs_lookup("TRTotal", b1, sizeof(b1));
-			convert_money_to_string(-total, b2);
+			currency_convert_to_string(-total, b2, sizeof(b2));
 			sprintf(line, "\\i\\k\\b%s\\t\\d\\r\\b%s", b1, b2);
 			report_write_line(report, 2, line);
 		}
@@ -1868,7 +1870,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 							strcpy(r1, (flags & TRANS_REC_FROM) ? rec_char : "");
 							strcpy(r2, (flags & TRANS_REC_TO) ? rec_char : "");
 							convert_date_to_string(date, b1);
-							convert_money_to_string(amount, b2);
+							currency_convert_to_string(amount, b2, sizeof(b2));
 
 							sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
 									transact_get_transaction_number(i), b1,
@@ -1885,17 +1887,17 @@ static void analysis_generate_unreconciled_report(file_data *file)
 						report_write_line(report, 2, "");
 
 						msgs_lookup("URTotalIn", b1, sizeof(b1));
-						full_convert_money_to_string(tot_in, b2, TRUE);
+						currency_flexible_convert_to_string(tot_in, b2, sizeof(b2), TRUE);
 						sprintf(line, "\\i%s\\t\\d\\r%s", b1, b2);
 						report_write_line(report, 2, line);
 
 						msgs_lookup("URTotalOut", b1, sizeof(b1));
-						full_convert_money_to_string(tot_out, b2, TRUE);
+						currency_flexible_convert_to_string(tot_out, b2, sizeof(b2), TRUE);
 						sprintf(line, "\\i%s\\t\\d\\r%s", b1, b2);
 						report_write_line(report, 2, line);
 
 						msgs_lookup("URTotal", b1, sizeof(b1));
-						full_convert_money_to_string(tot_in+tot_out, b2, TRUE);
+						currency_flexible_convert_to_string(tot_in+tot_out, b2, sizeof(b2), TRUE);
 						sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
 						report_write_line(report, 2, line);
 					}
@@ -1946,7 +1948,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 					strcpy(r1, (flags & TRANS_REC_FROM) ? rec_char : "");
 					strcpy(r2, (flags & TRANS_REC_TO) ? rec_char : "");
 					convert_date_to_string(date, b1);
-					convert_money_to_string(amount, b2);
+					currency_convert_to_string(amount, b2, sizeof(b2));
 
 					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
 							 transact_get_transaction_number(i), b1,
@@ -2554,7 +2556,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 						if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 							if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 								total += data[acc].report_total;
-								full_convert_money_to_string(data[acc].report_total, b1, TRUE);
+								currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
 								sprintf(b2, "\\t\\d\\r%s", b1);
 								strcat(line, b2);
 							}
@@ -2562,7 +2564,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 					}
 				}
 
-				full_convert_money_to_string(total, b1, TRUE);
+				currency_flexible_convert_to_string(total, b1, sizeof(b1), TRUE);
 				sprintf(b2, "\\t\\d\\r%s", b1);
 				strcat(line, b2);
 				report_write_line(report, 1, line);
@@ -2582,7 +2584,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 						if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 							if (data[acc].report_total != 0 && (data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 								total += data[acc].report_total;
-								full_convert_money_to_string(data[acc].report_total, b1, TRUE);
+								currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
 								sprintf(line, "\\i%s\\t\\d\\r%s", account_get_name(file, acc), b1);
 								report_write_line(report, 2, line);
 							}
@@ -2590,7 +2592,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 					}
 				}
 				msgs_lookup("CRTotal", b1, sizeof(b1));
-				full_convert_money_to_string(total, b2, TRUE);
+				currency_flexible_convert_to_string(total, b2, sizeof(b2), TRUE);
 				sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
 				report_write_line(report, 2, line);
 			}
@@ -3179,14 +3181,14 @@ static void analysis_generate_balance_report(file_data *file)
 					if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 						if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 							total += data[acc].report_total;
-							full_convert_money_to_string(data[acc].report_total, b1, TRUE);
+							currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 						}
 					}
 				}
 			}
-			full_convert_money_to_string(total, b1, TRUE);
+			currency_flexible_convert_to_string(total, b1, sizeof(b1), TRUE);
 			sprintf(b2, "\\t\\d\\r%s", b1);
 			strcat(line, b2);
 			report_write_line(report, 1, line);
@@ -3206,7 +3208,7 @@ static void analysis_generate_balance_report(file_data *file)
 					if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 						if (data[acc].report_total != 0 && (data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 							total += data[acc].report_total;
-							full_convert_money_to_string(data[acc].report_total, b1, TRUE);
+							currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
 							sprintf(line, "\\i%s\\t\\d\\r%s", account_get_name(file, acc), b1);
 							report_write_line(report, 2, line);
 						}
@@ -3214,7 +3216,7 @@ static void analysis_generate_balance_report(file_data *file)
 				}
 			}
 			msgs_lookup("BRTotal", b1, sizeof(b1));
-			full_convert_money_to_string(total, b2, TRUE);
+			currency_flexible_convert_to_string(total, b2, sizeof(b2), TRUE);
 			sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
 			report_write_line(report, 2, line);
 		}

@@ -51,10 +51,35 @@ typedef int		amt_t;
 void currency_initialise(void);
 
 
-/* Money conversion. */
+/**
+ * Convert a currency amount into a string, placing the result into a
+ * supplied buffer. The configured application setting for zero display
+ * will be used.
+ *
+ * \param value			The value to be converted.
+ * \param *buffer		Pointer to a buffer to take the conversion.
+ * \param length		The size of the supplied buffer, in bytes.
+ * \return			A pointer to the supplied buffer, or NULL if
+ *				the buffer's details were invalid.
+ */
 
-void full_convert_money_to_string (amt_t value, char *string, int zeros);
-void convert_money_to_string (amt_t value, char *string);
+char *currency_convert_to_string(amt_t value, char *buffer, size_t length);
+
+
+/**
+ * Convert a currency amount into a string, placing the result into a
+ * supplied buffer.
+ *
+ * \param value			The value to be converted.
+ * \param *buffer		Pointer to a buffer to take the conversion.
+ * \param length		The size of the supplied buffer, in bytes.
+ * \param print_zeros		TRUE to convert zero values as 0; FALSE to
+ *				return a blank string.
+ * \return			A pointer to the supplied buffer, or NULL if
+ *				the buffer's details were invalid.
+ */
+
+char *currency_flexible_convert_to_string(amt_t value, char *buffer, size_t length, osbool print_zeros);
 
 
 /**

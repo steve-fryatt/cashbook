@@ -461,7 +461,8 @@ static void find_fill_window(struct find *find_data, osbool restore)
 				find_window, FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC);
 
 		icons_strncpy(find_window, FIND_ICON_REF, find_data->ref);
-		convert_money_to_string(find_data->amount, icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT));
+		currency_convert_to_string(find_data->amount, icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT),
+				icons_get_indirected_text_length(find_window, FIND_ICON_AMOUNT));
 		icons_strncpy(find_window, FIND_ICON_DESC, find_data->desc);
 
 		icons_set_selected(find_window, FIND_ICON_AND, find_data->logic == FIND_AND);

@@ -108,13 +108,6 @@ enum date_os_day {
 #define DATE_LAST_OS_DAY 7
 
 /**
- * Convert an enum date_os_day into an enum date_days, so that the day
- * number is converted into the corresponding bit in the bitfield.
- */
-
-#define date_convert_day_to_days(day) (1 << ((day) - 1))
-
-/**
  * Details of the internal date implementation.
  */
 

@@ -575,7 +575,8 @@ static void choices_change_pane(int pane)
 
 static void choices_set_window(void)
 {
-	int i;
+	int		day;
+	enum date_days	ignore;
 
 	/* Set the general pane up. */
 
@@ -621,9 +622,11 @@ static void choices_set_window(void)
 	icons_set_selected(choices_panes[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO,
 			config_opt_read("TerritorySOrders"));
 
-	for (i=0; i<7; i++)
-		icons_set_selected(choices_panes[CHOICE_PANE_SORDER], CHOICE_ICON_SOSUN+i,
-				config_int_read("WeekendDays") & (1 << i));
+	ignore = (enum date_days) config_int_read("WeekendDays");
+
+	for (day = 0; day < 7; day++)
+		icons_set_selected(choices_panes[CHOICE_PANE_SORDER], CHOICE_ICON_SOSUN + day,
+				(ignore & date_convert_day_to_days(day + 1)) ? TRUE : FALSE);
 
 	icons_set_group_shaded_when_on(choices_panes[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO, 9,
 			CHOICE_ICON_WEEKENDFRAME, CHOICE_ICON_WEEKENDLABEL,
@@ -742,7 +745,8 @@ static void choices_set_window(void)
 
 static void choices_read_window(void)
 {
-	int		i, ignore;
+	int		day;
+	enum date_days	ignore;
 	float		top, left, right, bottom, internal;
 
 	/* Read the general pane. */
@@ -784,13 +788,13 @@ static void choices_read_window(void)
 	config_opt_set("TerritorySOrders",
 			icons_get_selected(choices_panes[CHOICE_PANE_SORDER], CHOICE_ICON_TERRITORYSO));
 
-	ignore = 0;
+	ignore = DATE_DAY_NONE;
 
-	for (i=0; i<7; i++)
-		if (icons_get_selected(choices_panes[CHOICE_PANE_SORDER], CHOICE_ICON_SOSUN+i))
-			ignore |= 1 << i;
+	for (day = 0; day < 7; day++)
+		if (icons_get_selected(choices_panes[CHOICE_PANE_SORDER], CHOICE_ICON_SOSUN + day))
+			ignore |= date_convert_day_to_days(day + 1);
 
-	config_int_set("WeekendDays", ignore);
+	config_int_set("WeekendDays", (int) ignore);
 
 	/* Read the printing pane. */
 

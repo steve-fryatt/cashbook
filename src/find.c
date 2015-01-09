@@ -452,7 +452,8 @@ static void find_fill_window(struct find *find_data, osbool restore)
 		icons_set_selected(find_window, FIND_ICON_END, 0);
 		icons_set_selected(find_window, FIND_ICON_CASE, 0);
 	} else {
-		convert_date_to_string(find_data->date, icons_get_indirected_text_addr(find_window, FIND_ICON_DATE));
+		date_convert_to_string(find_data->date, icons_get_indirected_text_addr(find_window, FIND_ICON_DATE),
+				icons_get_indirected_text_length(find_window, FIND_ICON_DATE));
 
 		fill_account_field(find_window_file, find_data->from, find_data->from_rec,
 				find_window, FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC);

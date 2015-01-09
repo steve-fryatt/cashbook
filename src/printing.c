@@ -823,8 +823,10 @@ static void printing_fill_advanced_window(struct printing *print_data, osbool re
 		icons_set_selected(printing_advanced_window, DATE_PRINT_FASTTEXT, print_data->text);
 		icons_set_selected(printing_advanced_window, DATE_PRINT_TEXTFORMAT, print_data->text_format);
 
-		convert_date_to_string(print_data->from, icons_get_indirected_text_addr (printing_advanced_window, DATE_PRINT_FROM));
-		convert_date_to_string(print_data->to, icons_get_indirected_text_addr (printing_advanced_window, DATE_PRINT_TO));
+		date_convert_to_string(print_data->from, icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_FROM),
+				icons_get_indirected_text_length(printing_advanced_window, DATE_PRINT_FROM));
+		date_convert_to_string(print_data->to, icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_TO),
+				icons_get_indirected_text_length(printing_advanced_window, DATE_PRINT_TO));
 	}
 
 	icons_set_group_shaded_when_off(printing_advanced_window, DATE_PRINT_STANDARD, 3,

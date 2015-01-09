@@ -226,7 +226,7 @@ void edit_place_new_line(file_data *file, int line)
 		transaction = file->transactions[line].sort_index;
 
 		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
-		convert_date_to_string(file->transactions[transaction].date, buffer_date);
+		date_convert_to_string(file->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
 		strncpy(buffer_from_ident, account_get_ident(file, file->transactions[transaction].from), ACCOUNT_IDENT_LEN);
 		strncpy(buffer_from_name, account_get_name(file, file->transactions[transaction].from), ACCOUNT_NAME_LEN);
 		if (file->transactions[transaction].flags & TRANS_REC_FROM)
@@ -505,7 +505,7 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 	if ((only == -1 || only == EDIT_ICON_DATE) && avoid != EDIT_ICON_DATE) {
 		/* Re-convert the date, so that it is displayed in standard format. */
 
-		convert_date_to_string(entry_window->transactions[transaction].date, buffer_date);
+		date_convert_to_string(entry_window->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
 		wimp_set_icon_state(entry_window->transaction_window.transaction_window, EDIT_ICON_DATE, 0, 0);
 	}
 
@@ -1489,7 +1489,7 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
 			}
 		} else {
 			if (key->c == wimp_KEY_F1) {
-				convert_date_to_string(get_current_date(), buffer_date);
+				date_convert_to_string(get_current_date(), buffer_date, DATE_FIELD_LEN);
 				wimp_set_icon_state(key->w, EDIT_ICON_DATE, 0, 0);
 				icons_replace_caret_in_window(key->w);
 			}

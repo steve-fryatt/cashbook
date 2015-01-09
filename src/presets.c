@@ -1554,8 +1554,9 @@ static void preset_fill_edit_window(file_data *file, int preset)
 
 		/* Set date. */
 
-		convert_date_to_string(file->presets[preset].date,
-				icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_DATE));
+		date_convert_to_string(file->presets[preset].date,
+				icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_DATE),
+				icons_get_indirected_text_length(preset_edit_window, PRESET_EDIT_DATE));
 		icons_set_selected(preset_edit_window, PRESET_EDIT_TODAY, file->presets[preset].flags & TRANS_TAKE_TODAY);
 		icons_set_shaded(preset_edit_window, PRESET_EDIT_DATE, file->presets[preset].flags & TRANS_TAKE_TODAY);
 

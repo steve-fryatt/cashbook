@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -25,6 +25,18 @@
  * \file: date.c
  *
  * Date implementation.
+ *
+ * This source file contains functions to handle the date system used by
+ * CashBook.  It allows a resolution of one day, stored in a single unsigned
+ * integer.  The format used is:
+ *
+ *  0xYYYYMMDD
+ *
+ * which allows dates to be sorted simply by numerical order and years from
+ * 0 to 65536 to be stored...
+ *
+ * A NULL_DATE is represented by 0xffffffff, causing empty entries to sort
+ * to the end of the file.
  */
 
 /* ANSI C header files */
@@ -49,49 +61,224 @@
 
 /* Application header files */
 
-#include "global.h"
 #include "date.h"
 
 #include "transact.h"
+
+
+/**
+ * The size of the input date separator list.
+ */
+
+#define DATE_SEP_LENGTH 11
+
+
+#define DATE_FIELD_DAY (0x000000ff)
+#define DATE_FIELD_MONTH (0x0000ff00)
+#define DATE_FIELD_YEAR (0xffff0000)
+
+#define DATE_SHIFT_DAY 0
+#define DATE_SHIFT_MONTH 8
+#define DATE_SHIFT_YEAR 16
+
+#define date_get_day_from_date(date) (int) ((date) & DATE_FIELD_DAY)
+#define date_get_month_from_date(date) (int) (((date) & DATE_FIELD_MONTH) >> DATE_SHIFT_MONTH)
+#define date_get_year_from_date(date) (int) (((date) & DATE_FIELD_YEAR) >> DATE_SHIFT_YEAR)
+#define date_combine_parts(day, month, year) (date_t) (((day) & DATE_FIELD_DAY) + (((month) << DATE_SHIFT_MONTH) & DATE_FIELD_MONTH) + (((year) << DATE_SHIFT_YEAR) & DATE_FIELD_YEAR))
+
 
 /* ==================================================================================================================
  * Global variables.
  */
 
-int weekend_days;
+static enum date_days		date_weekend_days;				/**< A bitmask containing the days that form the weeekend.			*/
+static char			date_sep_out;					/**< The character used to separate dates when displaying them.			*/
+static char			date_sep_in[DATE_SEP_LENGTH];			/**< A list of the characters usable as separators when entering dates.		*/
 
-char date_sep_out;
-char date_sep_in[DATE_SEP_LENGTH];
 
-/* ==================================================================================================================
- * Date conversion.
+
+static osbool		date_is_string_numeric(char *string);
+
+/**
+ * Initialise, or re-initialise, the date module.
  *
- * This source file contains functions to handle the date system used by Accounts.  It allows a resolution of one
- * day, stored in a single unsigned integer.  The format used is:
- *
- *  0xYYYYMMDD
- *
- * which allows dates to be sorted simply by numerical order.  This allows years from 0 to 65536 to be stored...
- * A 'null date' is represented by 0xffffffff, causing empty entries to sort to the end of the file.
+ * NB: This may be called multiple times, to re-initialise the date module
+ * when the application choices are changed.
  */
 
-void convert_date_to_string (date_t date, char *string)
+void date_initialise(void)
 {
-  int day, month, year;
+	int				i;
+	territory_calendar		calendar;
+	oswordreadclock_utc_block	clock;
 
 
-  if (date != NULL_DATE)
-  {
-    day   = (date & 0x000000ff);
-    month = (date & 0x0000ff00) >> 8;
-    year  = (date & 0xffff0000) >> 16;
+	clock.op = oswordreadclock_OP_UTC;
+	oswordreadclock_utc(&clock);
+	territory_read_calendar_information(territory_CURRENT, (const os_date_and_time *) &(clock.utc), &calendar);
 
-    sprintf (string, "%02d%c%02d%c%04d", day, date_sep_out, month, date_sep_out, year);
-  }
-  else
-  {
-    *string = '\0';
-  }
+	if (config_opt_read("TerritorySOrders")) {
+		/* Take the weekend days from the Territory system. */
+
+		date_weekend_days = DATE_DAY_NONE;
+
+#ifdef DEBUG
+	debug_printf("Working days %d to %d", calendar.first_working_day, calendar.last_working_day);
+#endif
+
+	for (i = 1; i < calendar.first_working_day; i++) {
+		date_weekend_days |= 1 << (i-1);
+#ifdef DEBUG
+		debug_printf("Adding weekend day %d", i);
+#endif
+	}
+
+	for (i = calendar.last_working_day + 1; i <= 7; i++) {
+		date_weekend_days |= 1 << (i - 1);
+#ifdef DEBUG
+		debug_printf("Adding weekend day %d", i);
+#endif
+	}
+
+#ifdef DEBUG
+		debug_printf("Resulting weekends 0x%x", date_weekend_days);
+#endif
+	} else {
+		/* Use the weekend days as set in the Choices window. */
+
+		date_weekend_days = (enum date_days) config_int_read("WeekendDays");
+	}
+
+	/* Set the date separators. */
+
+	date_sep_out = *config_str_read ("DateSepOut");
+
+	strncpy(date_sep_in, config_str_read("DateSepIn"), DATE_SEP_LENGTH);
+	date_sep_in[DATE_SEP_LENGTH - 1] = '\0';
+}
+
+
+/**
+ * Convert a date into a string in the format DD-MM-YYYY (where '-' is the
+ * configured divider), placing the result into the supplied buffer.
+ *
+ * \param date			The date to be converted.
+ * \param *buffer		Pointer to a buffer to take the conversion.
+ * \param length		The size of the supplied buffer, in bytes.
+ * \return			A pointer to the supplied buffer, or NULL if
+ *				the buffer's details were invalid.
+ */
+
+char *date_convert_to_string(date_t date, char *buffer, size_t length)
+{
+	int	day, month, year;
+
+	if (buffer == NULL || length <= 0)
+		return NULL;
+
+	/* If the value is NULL_DATE, blank the buffer and return. */
+
+	if (date == NULL_DATE) {
+		*buffer = '\0';
+		return buffer;
+	}
+
+	/* split the date up and convert it to text. */
+
+	day = date_get_day_from_date(date);
+	month = date_get_month_from_date(date);
+	year = date_get_year_from_date(date);
+
+	snprintf(buffer, length, "%02d%c%02d%c%04d", day, date_sep_out, month, date_sep_out, year);
+	buffer[length - 1] = '\0';
+
+	return buffer;
+}
+
+
+/**
+ * Convert a date into a month-and-year string in the format Month YYYY,
+ * placing the result into the supplied buffer.
+ *
+ * \param date			The date to be converted.
+ * \param *buffer		Pointer to a buffer to take the conversion.
+ * \param length		The size of the supplied buffer, in bytes.
+ * \return			A pointer to the supplied buffer, or NULL if
+ *				the buffer's details were invalid.
+ */
+
+char *date_convert_to_month_string(date_t date, char *buffer, size_t length)
+{
+	os_date_and_time	os_date;
+	territory_ordinals	ordinals;
+
+
+	if (buffer == NULL || length <= 0)
+		return NULL;
+
+	/* If the value is NULL_DATE, blank the buffer and return. */
+
+	if (date == NULL_DATE) {
+		*buffer = '\0';
+		return buffer;
+	}
+
+	ordinals.centisecond = 0;
+	ordinals.second = 0;
+	ordinals.minute = 0;
+	ordinals.hour = 12;
+	ordinals.date = date_get_day_from_date(date);
+	ordinals.month = date_get_month_from_date(date);
+	ordinals.year = date_get_year_from_date(date);
+
+	territory_convert_ordinals_to_time(territory_CURRENT, &os_date, &ordinals);
+
+	territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &os_date, buffer, length, "%MO %CE%YR");
+
+	return buffer;
+}
+
+
+/**
+ * Convert a date into a year string in the format YYYY, placing the result
+ * into the supplied buffer.
+ *
+ * \param date			The date to be converted.
+ * \param *buffer		Pointer to a buffer to take the conversion.
+ * \param length		The size of the supplied buffer, in bytes.
+ * \return			A pointer to the supplied buffer, or NULL if
+ *				the buffer's details were invalid.
+ */
+
+char *date_convert_to_year_string(date_t date, char *buffer, size_t length)
+{
+	os_date_and_time	os_date;
+	territory_ordinals	ordinals;
+
+
+	if (buffer == NULL || length <= 0)
+		return NULL;
+
+	/* If the value is NULL_DATE, blank the buffer and return. */
+
+	if (date == NULL_DATE) {
+		*buffer = '\0';
+		return buffer;
+	}
+
+	ordinals.centisecond = 0;
+	ordinals.second = 0;
+	ordinals.minute = 0;
+	ordinals.hour = 12;
+	ordinals.date = date_get_day_from_date(date);
+	ordinals.month = date_get_month_from_date(date);
+	ordinals.year = date_get_year_from_date(date);
+
+	territory_convert_ordinals_to_time(territory_CURRENT, &os_date, &ordinals);
+
+	territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &os_date, buffer, length, "%CE%YR");
+
+	return buffer;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -150,15 +337,15 @@ date_t convert_string_to_date (char *string, date_t previous_date, int month_day
   if (next != NULL)
   {
     day = atoi (next);
-    valid = is_numeric (next);
+    valid = date_is_string_numeric (next);
 
     next = strtok (NULL, date_sep_in);
     month = (next != NULL) ? atoi (next) : base_month;
-    valid = valid && (next == NULL || is_numeric (next));
+    valid = valid && (next == NULL || date_is_string_numeric (next));
 
     next = strtok (NULL, date_sep_in);
     year = (next != NULL) ? atoi (next) : base_year;
-    valid = valid && (next == NULL || is_numeric (next));
+    valid = valid && (next == NULL || date_is_string_numeric (next));
 
     if (valid)
     {
@@ -206,50 +393,6 @@ date_t convert_string_to_date (char *string, date_t previous_date, int month_day
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void convert_date_to_month_string (date_t date, char *string)
-{
-  os_date_and_time   os_date;
-  territory_ordinals ordinals;
-
-
-  ordinals.centisecond = 0;
-  ordinals.second = 0;
-  ordinals.minute = 0;
-  ordinals.hour = 12;
-  ordinals.date = (date & 0x000000ff);
-  ordinals.month = (date & 0x0000ff00) >> 8;
-  ordinals.year = (date & 0xffff0000) >> 16;
-
-  territory_convert_ordinals_to_time (territory_CURRENT, &os_date, &ordinals);
-
-  /* NB: assumes that buffer is 20 chars long... */
-  territory_convert_date_and_time (territory_CURRENT, (const os_date_and_time *) &os_date, string, 20, "%MO %CE%YR");
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void convert_date_to_year_string (date_t date, char *string)
-{
-  os_date_and_time   os_date;
-  territory_ordinals ordinals;
-
-
-  ordinals.centisecond = 0;
-  ordinals.second = 0;
-  ordinals.minute = 0;
-  ordinals.hour = 12;
-  ordinals.date = (date & 0x000000ff);
-  ordinals.month = (date & 0x0000ff00) >> 8;
-  ordinals.year = (date & 0xffff0000) >> 16;
-
-  territory_convert_ordinals_to_time (territory_CURRENT, &os_date, &ordinals);
-
-  /* NB: assumes that buffer is 20 chars long... */
-  territory_convert_date_and_time (territory_CURRENT, (const os_date_and_time *) &os_date, string, 20, "%CE%YR");
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
 /* Get today's date as an integer in internal format. */
 
 date_t get_current_date (void)
@@ -285,7 +428,7 @@ date_t add_to_date (date_t date, int unit, int add)
 
     /* Add or subtract whole years.  No other processing is required. */
 
-    if (unit == PERIOD_YEARS)
+    if (unit == DATE_PERIOD_YEARS)
     {
       year += add;
     }
@@ -294,7 +437,7 @@ date_t add_to_date (date_t date, int unit, int add)
      * into range again.
      */
 
-    else if (unit == PERIOD_MONTHS)
+    else if (unit == DATE_PERIOD_MONTHS)
     {
       month += add;
 
@@ -315,7 +458,7 @@ date_t add_to_date (date_t date, int unit, int add)
      * as required.  If this takes the months out of range, correct the years too.
      */
 
-    else if (unit == PERIOD_DAYS)
+    else if (unit == DATE_PERIOD_DAYS)
     {
       day += add;
 
@@ -536,269 +679,209 @@ int full_year (date_t start, date_t end)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Return the number of days between the given dates (inclusive). */
-
-int count_days (date_t start, date_t end)
-{
-  int    day1, month1, year1, day2, month2, year2, result;
-
-
-  result = 0;
-
-  if (start != NULL_DATE && end != NULL_DATE)
-  {
-    day1   = (start & 0x000000ff);
-    month1 = (start & 0x0000ff00) >> 8;
-    year1  = (start & 0xffff0000) >> 16;
-
-    day2   = (end & 0x000000ff);
-    month2 = (end & 0x0000ff00) >> 8;
-    year2  = (end & 0xffff0000) >> 16;
-
-    if (month1 == month2 && year1 == year2)
-    {
-      result = day2 - day1 + 1;
-    }
-    else
-    {
-      result = days_in_month (month1, year1) - day1 + 1;
-
-      month1++;
-
-      if (month1 > months_in_year (year1))
-      {
-        month1 = 1;
-        year1++;
-      }
-
-      while ((year1 < year2 && month1 <= months_in_year(year1)) || (year1 == year2 && month1 < month2))
-      {
-        result += days_in_month (month1, year1);
-
-        month1++;
-
-        if (month1 > months_in_year (year1))
-        {
-          month1 = 1;
-          year1++;
-        }
-      }
-
-      result += day2;
-    }
-  }
-
-  return (result);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Make the date valid, by adjusting the day so that it is valid for the month.  If direction is <0, the day is
- * pulled into range for the month and year; if it is >0, the date is moved on to the 1st of the next month.
+/**
+ * Count the number of days (inclusive) between two dates.
+ *
+ * \param start		The start date.
+ * \param end		The end date.
+ * \return		The number of days (inclusive) between the start
+ *			and end dates.
  */
 
-date_t get_valid_date (date_t date, int direction)
+int date_count_days(date_t start, date_t end)
 {
-  int    day, month, year;
-  date_t result;
+	int	day1, month1, year1, day2, month2, year2, days = 0;
 
 
-  if (date != NULL_DATE)
-  {
-    day   = (date & 0x000000ff);
-    month = (date & 0x0000ff00) >> 8;
-    year  = (date & 0xffff0000) >> 16;
+	if (start == NULL_DATE || end == NULL_DATE)
+		return 0;
 
-    /* Handle cases where the day is greater than those in the given month. */
+	day1 = date_get_day_from_date(start);
+	month1 = date_get_month_from_date(start);
+	year1 = date_get_year_from_date(start);
 
-    if (direction < 0 && day > days_in_month (month, year))
-    {
-      day = days_in_month (month, year);
-    }
+	day2 = date_get_day_from_date(end);
+	month2 = date_get_month_from_date(end);
+	year2 = date_get_year_from_date(end);
 
-    else if (direction > 0 && day > days_in_month (month, year))
-    {
-      day = 1;
-      month += 1;
+	if (month1 == month2 && year1 == year2) {
+		/* If both dates are in the same month and year, the
+		 * calculation is simple.
+		 */
 
-      if (month > months_in_year (year))
-      {
-        month = 1;
-        year += 1;
-      }
-    }
+		days = day2 - day1 + 1;
+	} else {
+		/* Otherwise, we need to count through the days a month
+		 * at a time.
+		 */
 
-    /* Handle cases where the day is less than 1. */
+		days = days_in_month(month1, year1) - day1 + 1;
 
-    else if (direction < 0 && day < 1)
-    {
-      month -= 1;
+		month1++;
 
-      if (month < 1)
-      {
-        year -= 1;
-        month = months_in_year (year);
-      }
+		if (month1 > months_in_year(year1)) {
+			month1 = 1;
+			year1++;
+		}
 
-      day = days_in_month (month, year);
-    }
+		while ((year1 < year2 && month1 <= months_in_year(year1)) || (year1 == year2 && month1 < month2)) {
+			days += days_in_month(month1, year1);
 
-    else if (direction > 0 && day < 1)
-    {
-      day = 1;
-    }
+			month1++;
 
-    result = (day & 0x00ff) + ((month & 0x00ff) << 8) + ((year & 0xffff) << 16);
-  }
-  else
-  {
-    result = NULL_DATE;
-  }
+			if (month1 > months_in_year(year1)) {
+				month1 = 1;
+				year1++;
+			}
+		}
 
-  return (result);
+		days += day2;
+	}
+
+	return days;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Take a raw standing order date and pull it in to a valid date for the order to be processed.  First the day is
- * brought into range for the current month, then weekends are skipped if necessary.
+/**
+ * Take a raw date (where the day can be in the range 1-31 regardless of the
+ * month), and make it valid by either moving it forwards to the last valid
+ * day in the month or pushing it back to the 1st of the following month.
+ *
+ * \param date		The raw date to be adjusted.
+ * \param direction	The direction to adjust the date in.
+ * \return		The adjusted date.
  */
 
-date_t get_sorder_date(date_t date, enum transact_flags flags)
+date_t date_find_valid_day(date_t date, enum date_adjust direction)
 {
-  int    weekday, move, weekends, shift;
-  date_t result;
+	int	day, month, year;
 
-  if (date != NULL_DATE)
-  {
-    /* Take the date and move it into a valid position in the current month. */
 
-    result = get_valid_date (date, -1);
+	if (date == NULL_DATE)
+		return NULL_DATE;
 
-    /* Correct for weekends, if necessary. */
+	/* Extract the component parts of the date. */
 
-    if (flags & TRANS_SKIP_FORWARD)
-    {
-      move = -1;
-    }
-    else if (flags & TRANS_SKIP_BACKWARD)
-    {
-      move = 1;
-    }
-    else
-    {
-      move = 0;
-    }
+	day = date_get_day_from_date(date);
+	month = date_get_month_from_date(date);
+	year = date_get_year_from_date(date);
 
-    if (move != 0)
-    {
-      shift = 0;
-      weekends = read_weekend_days ();
-      weekday = day_of_week (result);
+	/* Shuffle the dates around. */
 
-      /* While the weekend bit is set for the current weekday, move in the specified direction and try again. */
+	if (direction == DATE_ADJUST_FORWARD && day > days_in_month(month, year)) {
+		day = days_in_month(month, year);
+	} else if (direction == DATE_ADJUST_BACKWARD && day > days_in_month(month, year)) {
+		day = 1;
+		month += 1;
 
-      while ((1 << (weekday-1)) & weekends)
-      {
-        shift += move;
-        weekday += move;
+		if (month > months_in_year(year)) {
+			month = 1;
+			year += 1;
+		}
+	} else if (direction == DATE_ADJUST_FORWARD && day < 1) {
+		month -= 1;
 
-        if (weekday > 7)
-        {
-          weekday = 1;
-        }
-        if (weekday < 1)
-        {
-          weekday = 7;
-        }
-      }
+		if (month < 1) {
+			year -= 1;
+			month = months_in_year(year);
+		}
 
-      /* If a shift was required, add the necessary days on to the base date. */
+		day = days_in_month(month, year);
+	} else if (direction == DATE_ADJUST_BACKWARD && day < 1) {
+		day = 1;
+	}
 
-      if (shift)
-      {
-        result = add_to_date (result, PERIOD_DAYS, shift);
-      }
-    }
-  }
-  else
-  {
-    result = NULL_DATE;
-  }
-
-  return (result);
+	return date_combine_parts(day, month, year);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Set the weekend days option following a change in the configuration. */
+/**
+ * Take a raw date (where the day can be in the range 1-31 regardless of the
+ * month), and bring the day into a valid range for the current month. Then
+ * adjust the date forward or backwards to ensure that it does not fall on
+ * a weekend day.
+ *
+ * \param date		The raw date to be adjusted.
+ * \param direction	The direction to adjust the date, or none.
+ * \return		The adjusted date.
+ */ 
 
-void set_weekend_days (void)
+date_t date_find_working_day(date_t date, enum date_adjust direction)
 {
-  int                       i;
-  territory_calendar        calendar;
-  oswordreadclock_utc_block clock;
+	int		weekday, move, shift;
+	date_t		result;
 
-  clock.op = oswordreadclock_OP_UTC;
-  oswordreadclock_utc (&clock);
-  territory_read_calendar_information (territory_CURRENT, (const os_date_and_time *) &(clock.utc), &calendar);
 
-  if (config_opt_read ("TerritorySOrders"))
-  {
-    weekend_days = 0;
+	if (date == NULL_DATE)
+		return NULL_DATE;
+		
 
-    #ifdef DEBUG
-    debug_printf ("Working days %d to %d", calendar.first_working_day, calendar.last_working_day);
-    #endif
+	/* Take the date and move it into a valid position in the current month. */
 
-    for (i = 1; i < calendar.first_working_day; i++)
-    {
-      weekend_days |= 1 << (i-1);
-      #ifdef DEBUG
-      debug_printf ("Adding weekend day %d", i);
-      #endif
-    }
+	result = date_find_valid_day(date, DATE_ADJUST_FORWARD);
 
-    for (i = calendar.last_working_day + 1; i <= 7; i++)
-    {
-      weekend_days |= 1 << (i-1);
-      #ifdef DEBUG
-      debug_printf ("Adding weekend day %d", i);
-      #endif
-    }
+	/* Correct for weekends, if necessary. */
 
-    #ifdef DEBUG
-    debug_printf ("Resulting weekends 0x%x", weekend_days);
-    #endif
-  }
-  else
-  {
-    /* Use the value as set in the Choices window. */
+	switch (direction) {
+	case DATE_ADJUST_FORWARD:
+		move = -1;
+		break;
+	case DATE_ADJUST_BACKWARD:
+		move = 1;
+		break;
+	default:
+		move = 0;
+		break;
+	}
+	
 
-    weekend_days = config_int_read ("WeekendDays");
-  }
+	if (move == 0)
+		return result;
 
-  /* Set the other date info. */
+	shift = 0;
+	weekday = day_of_week(result);
 
-  date_sep_out = *config_str_read ("DateSepOut");
-  strcpy (date_sep_in, config_str_read ("DateSepIn"));
+	/* While the weekend bit is set for the current weekday, move the
+	 * date one day in the specified direction and try again.
+	 */
+
+	while ((1 << (weekday-1)) & date_weekend_days) {
+		shift += move;
+		weekday += move;
+
+		if (weekday > 7)
+			weekday = 1;
+
+		if (weekday < 1)
+			weekday = 7;
+	}
+
+	/* If a shift is required, add the necessary days on to the base
+	 * date.
+	 */
+
+	if (shift != 0)
+		result = add_to_date(result, DATE_PERIOD_DAYS, shift);
+
+	return result;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-int read_weekend_days (void)
+/**
+ * Test a string, to see if all its characters are numeric.
+ *
+ * \param *string	Pointer to the string to test.
+ * \return		TRUE if all the characters are numeric; FALSE if not.
+ */
+
+static osbool date_is_string_numeric(char *string)
 {
-  return (weekend_days);
+	if (string == NULL)
+		return FALSE;
+
+	while (*string != '\0' && isdigit(*string))
+		string++;
+
+	return (*string == '\0') ? TRUE : FALSE;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-int is_numeric (char *str)
-{
-  while (*str != '\0' && isdigit(*str))
-  {
-    str++;
-  }
-
-  return (*str == '\0');
-}

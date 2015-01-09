@@ -1086,7 +1086,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			accview_window_def->icons[ACCVIEW_ICON_DATE].flags |= icon_fg_col;
 
 			if (y < windat->display_lines)
-				convert_date_to_string(transaction_date, icon_buffer);
+				date_convert_to_string(transaction_date, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_DATE]));
@@ -1834,7 +1834,7 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 		if ((from == NULL_DATE || transaction_date >= from) && (to == NULL_DATE || transaction_date <= to)) {
 			*line = '\0';
 
-			convert_date_to_string(transaction_date, numbuf1);
+			date_convert_to_string(transaction_date, numbuf1, sizeof(numbuf1));
 			sprintf(buffer, "\\k\\d\\r%d\\t%s\\t", transact_get_transaction_number(transaction), numbuf1);
 			strcat(line, buffer);
 
@@ -2596,7 +2596,7 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 			snprintf(buffer, 256, "%d", transact_get_transaction_number(transaction));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			convert_date_to_string(transact_get_date(file, transaction), buffer);
+			date_convert_to_string(transact_get_date(file, transaction), buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 			if (transaction_direction == ACCVIEW_DIRECTION_FROM)

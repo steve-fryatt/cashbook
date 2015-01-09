@@ -1496,7 +1496,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_DATE].flags |= icon_fg_col;
 
 			if (y < file->trans_count)
-				convert_date_to_string(file->transactions[t].date, icon_buffer);
+				date_convert_to_string(file->transactions[t].date, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 
@@ -3483,7 +3483,7 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 
 			t = transact_print_file->transactions[i].sort_index;
 
-			convert_date_to_string(transact_print_file->transactions[t].date, numbuf1);
+			date_convert_to_string(transact_print_file->transactions[t].date, numbuf1, sizeof(numbuf1));
 			sprintf(buffer, "\\k\\d\\r%d\\t%s\\t", transact_get_transaction_number(t), numbuf1);
 			strcat(line, buffer);
 
@@ -3803,7 +3803,7 @@ static void transact_export_delimited(file_data *file, char *filename, enum fili
 		snprintf(buffer, 256, "%d", transact_get_transaction_number(t));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-		convert_date_to_string(file->transactions[t].date, buffer);
+		date_convert_to_string(file->transactions[t].date, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		account_build_name_pair(file, file->transactions[t].from, buffer, sizeof(buffer));

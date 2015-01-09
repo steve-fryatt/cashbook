@@ -580,7 +580,7 @@ struct trans_rep *analysis_create_transaction(void)
 	new->budget = 0;
 	new->group = 0;
 	new->period = 1;
-	new->period_unit = PERIOD_MONTHS;
+	new->period_unit = DATE_PERIOD_MONTHS;
 	new->lock = 0;
 	new->from_count = 0;
 	new->to_count = 0;
@@ -838,10 +838,12 @@ static void analysis_fill_transaction_window(file_data *file, osbool restore)
 	} else {
 		/* Set the period icons. */
 
-		convert_date_to_string(analysis_transaction_settings.date_from,
-				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM));
-		convert_date_to_string(analysis_transaction_settings.date_to,
-				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATETO));
+		date_convert_to_string(analysis_transaction_settings.date_from,
+				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM),
+				icons_get_indirected_text_length(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM));
+		date_convert_to_string(analysis_transaction_settings.date_to,
+				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATETO),
+				icons_get_indirected_text_length(analysis_transaction_window, ANALYSIS_TRANS_DATETO));
 
 		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_BUDGET, analysis_transaction_settings.budget);
 
@@ -850,9 +852,9 @@ static void analysis_fill_transaction_window(file_data *file, osbool restore)
 		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_GROUP, analysis_transaction_settings.group);
 
 		icons_printf(analysis_transaction_window, ANALYSIS_TRANS_PERIOD, "%d", analysis_transaction_settings.period);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, analysis_transaction_settings.period_unit == PERIOD_DAYS);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, analysis_transaction_settings.period_unit == PERIOD_MONTHS);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, analysis_transaction_settings.period_unit == PERIOD_YEARS);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, analysis_transaction_settings.period_unit == DATE_PERIOD_DAYS);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, analysis_transaction_settings.period_unit == DATE_PERIOD_MONTHS);
+		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, analysis_transaction_settings.period_unit == DATE_PERIOD_YEARS);
 		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_LOCK, analysis_transaction_settings.lock);
 
 		/* Set the include icons. */
@@ -912,13 +914,13 @@ static osbool analysis_process_transaction_window(void)
 	analysis_transaction_file->trans_rep->period = atoi(icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_PERIOD));
 
 	if (icons_get_selected	(analysis_transaction_window, ANALYSIS_TRANS_PDAYS))
-		analysis_transaction_file->trans_rep->period_unit = PERIOD_DAYS;
+		analysis_transaction_file->trans_rep->period_unit = DATE_PERIOD_DAYS;
 	else if (icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS))
-		analysis_transaction_file->trans_rep->period_unit = PERIOD_MONTHS;
+		analysis_transaction_file->trans_rep->period_unit = DATE_PERIOD_MONTHS;
 	else if (icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_PYEARS))
-		analysis_transaction_file->trans_rep->period_unit = PERIOD_YEARS;
+		analysis_transaction_file->trans_rep->period_unit = DATE_PERIOD_YEARS;
 	else
-		analysis_transaction_file->trans_rep->period_unit = PERIOD_MONTHS;
+		analysis_transaction_file->trans_rep->period_unit = DATE_PERIOD_MONTHS;
 
 	analysis_transaction_file->trans_rep->lock = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_LOCK);
 
@@ -1013,13 +1015,13 @@ static void analysis_generate_transaction_report(file_data *file)
 	analysis_find_date_range(file, &start_date, &end_date,
 			file->trans_rep->date_from, file->trans_rep->date_to, file->trans_rep->budget);
 
-	total_days = count_days(start_date, end_date);
+	total_days = date_count_days(start_date, end_date);
 
 	/* Read the grouping settings. */
 
 	group = file->trans_rep->group;
 	unit = file->trans_rep->period_unit;
-	lock = file->trans_rep->lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	lock = file->trans_rep->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
 	period = (group) ? file->trans_rep->period : 0;
 
 	/* Read the include list. */
@@ -1090,9 +1092,9 @@ static void analysis_generate_transaction_report(file_data *file)
 		msgs_param_lookup("TRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
-	convert_date_to_string(start_date, b1);
-	convert_date_to_string(end_date, b2);
-	convert_date_to_string(get_current_date(), b3);
+	date_convert_to_string(start_date, b1, sizeof(b1));
+	date_convert_to_string(end_date, b2, sizeof(b2));
+	date_convert_to_string(get_current_date(), b3, sizeof(b3));
 	msgs_param_lookup("TRHeader", line, sizeof(line), b1, b2, b3, NULL);
 	report_write_line(report, 0, line);
 
@@ -1160,7 +1162,7 @@ static void analysis_generate_transaction_report(file_data *file)
 					data[to].report_total += amount;
 
 				if (output_trans) {
-					convert_date_to_string(date, b1);
+					date_convert_to_string(date, b1, sizeof(b1));
 					currency_convert_to_string(amount, b2, sizeof(b2));
 
 					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
@@ -1233,7 +1235,7 @@ static void analysis_generate_transaction_report(file_data *file)
 						currency_convert_to_string(data[account].report_total, b1, sizeof(b1));
 						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
 						if (file->trans_rep->budget) {
-							period_days = count_days(next_start, next_end);
+							period_days = date_count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
 							currency_convert_to_string(period_limit, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
@@ -1280,7 +1282,7 @@ static void analysis_generate_transaction_report(file_data *file)
 						currency_convert_to_string(-data[account].report_total, b1, sizeof(b1));
 						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
 						if (file->trans_rep->budget) {
-							period_days = count_days(next_start, next_end);
+							period_days = date_count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
 							currency_convert_to_string(period_limit, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
@@ -1336,7 +1338,7 @@ struct unrec_rep *analysis_create_unreconciled(void)
 	new->budget = 0;
 	new->group = 0;
 	new->period = 1;
-	new->period_unit = PERIOD_MONTHS;
+	new->period_unit = DATE_PERIOD_MONTHS;
 	new->lock = 0;
 	new->from_count = 0;
 	new->to_count = 0;
@@ -1597,10 +1599,12 @@ static void analysis_fill_unreconciled_window(file_data *file, osbool restore)
 	} else {
 		/* Set the period icons. */
 
-		convert_date_to_string(analysis_unreconciled_settings.date_from,
-				icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM));
-		convert_date_to_string(analysis_unreconciled_settings.date_to,
-				icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO));
+		date_convert_to_string(analysis_unreconciled_settings.date_from,
+				icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM),
+				icons_get_indirected_text_length(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM));
+		date_convert_to_string(analysis_unreconciled_settings.date_to,
+				icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO),
+				icons_get_indirected_text_length(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO));
 
 		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, analysis_unreconciled_settings.budget);
 
@@ -1608,15 +1612,15 @@ static void analysis_fill_unreconciled_window(file_data *file, osbool restore)
 
 		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, analysis_unreconciled_settings.group);
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, analysis_unreconciled_settings.period_unit == PERIOD_NONE);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, analysis_unreconciled_settings.period_unit != PERIOD_NONE);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, analysis_unreconciled_settings.period_unit == DATE_PERIOD_NONE);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, analysis_unreconciled_settings.period_unit != DATE_PERIOD_NONE);
 
 		icons_printf(analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD, "%d", analysis_unreconciled_settings.period);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, analysis_unreconciled_settings.period_unit == PERIOD_DAYS);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, analysis_unreconciled_settings.period_unit == DATE_PERIOD_DAYS);
 		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS,
-				analysis_unreconciled_settings.period_unit == PERIOD_MONTHS ||
-				analysis_unreconciled_settings.period_unit == PERIOD_NONE);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, analysis_unreconciled_settings.period_unit == PERIOD_YEARS);
+				analysis_unreconciled_settings.period_unit == DATE_PERIOD_MONTHS ||
+				analysis_unreconciled_settings.period_unit == DATE_PERIOD_NONE);
+		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, analysis_unreconciled_settings.period_unit == DATE_PERIOD_YEARS);
 		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_LOCK, analysis_unreconciled_settings.lock);
 
 		/* Set the from and to spec fields. */
@@ -1666,15 +1670,15 @@ static osbool analysis_process_unreconciled_window(void)
 	analysis_unreconciled_file->unrec_rep->period = atoi(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD));
 
 	if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC))
-		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_NONE;
+		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_NONE;
 	else if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS))
-		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_DAYS;
+		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_DAYS;
 	else if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS))
-		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_MONTHS;
+		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_MONTHS;
 	else if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS))
-		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_YEARS;
+		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_YEARS;
 	else
-		analysis_unreconciled_file->unrec_rep->period_unit = PERIOD_MONTHS;
+		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_MONTHS;
 
 	analysis_unreconciled_file->unrec_rep->lock = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_LOCK);
 
@@ -1758,7 +1762,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 	group = file->unrec_rep->group;
 	unit = file->unrec_rep->period_unit;
-	lock = file->unrec_rep->lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	lock = file->unrec_rep->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
 	period = (group) ? file->unrec_rep->period : 0;
 
 	/* Read the include list. */
@@ -1811,13 +1815,13 @@ static void analysis_generate_unreconciled_report(file_data *file)
 		msgs_param_lookup("URTitle", line, sizeof (line), b1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
-	convert_date_to_string(start_date, b1);
-	convert_date_to_string(end_date, b2);
-	convert_date_to_string(get_current_date(), b3);
+	date_convert_to_string(start_date, b1, sizeof(b1));
+	date_convert_to_string(end_date, b2, sizeof(b2));
+	date_convert_to_string(get_current_date(), b3, sizeof(b3));
 	msgs_param_lookup("URHeader", line, sizeof(line), b1, b2, b3, NULL);
 	report_write_line(report, 0, line);
 
-	if (group && unit == PERIOD_NONE) {
+	if (group && unit == DATE_PERIOD_NONE) {
 		/* We are doing a grouped-by-account report.
 		 *
 		 * Step through the accounts in account list order, and run through all the transactions each time.  A
@@ -1869,7 +1873,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 							strcpy(r1, (flags & TRANS_REC_FROM) ? rec_char : "");
 							strcpy(r2, (flags & TRANS_REC_TO) ? rec_char : "");
-							convert_date_to_string(date, b1);
+							date_convert_to_string(date, b1, sizeof(b1));
 							currency_convert_to_string(amount, b2, sizeof(b2));
 
 							sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
@@ -1947,7 +1951,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 					strcpy(r1, (flags & TRANS_REC_FROM) ? rec_char : "");
 					strcpy(r2, (flags & TRANS_REC_TO) ? rec_char : "");
-					convert_date_to_string(date, b1);
+					date_convert_to_string(date, b1, sizeof(b1));
 					currency_convert_to_string(amount, b2, sizeof(b2));
 
 					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
@@ -1993,7 +1997,7 @@ struct cashflow_rep *analysis_create_cashflow(void)
 	new->budget = 0;
 	new->group = 0;
 	new->period = 1;
-	new->period_unit = PERIOD_MONTHS;
+	new->period_unit = DATE_PERIOD_MONTHS;
 	new->lock = 0;
 	new->empty = 0;
 	new->accounts_count = 0;
@@ -2249,10 +2253,12 @@ static void analysis_fill_cashflow_window(file_data *file, osbool restore)
 	} else {
 		/* Set the period icons. */
 
-		convert_date_to_string(analysis_cashflow_settings.date_from,
-				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM));
-		convert_date_to_string(analysis_cashflow_settings.date_to,
-				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO));
+		date_convert_to_string(analysis_cashflow_settings.date_from,
+				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM),
+				icons_get_indirected_text_length(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM));
+		date_convert_to_string(analysis_cashflow_settings.date_to,
+				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO),
+				icons_get_indirected_text_length(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO));
 		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, analysis_cashflow_settings.budget);
 
 		/* Set the grouping icons. */
@@ -2260,9 +2266,9 @@ static void analysis_fill_cashflow_window(file_data *file, osbool restore)
 		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, analysis_cashflow_settings.group);
 
 		icons_printf(analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD, "%d", analysis_cashflow_settings.period);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, analysis_cashflow_settings.period_unit == PERIOD_DAYS);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, analysis_cashflow_settings.period_unit == PERIOD_MONTHS);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, analysis_cashflow_settings.period_unit == PERIOD_YEARS);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, analysis_cashflow_settings.period_unit == DATE_PERIOD_DAYS);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, analysis_cashflow_settings.period_unit == DATE_PERIOD_MONTHS);
+		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, analysis_cashflow_settings.period_unit == DATE_PERIOD_YEARS);
 		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK, analysis_cashflow_settings.lock);
 		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY, analysis_cashflow_settings.empty);
 
@@ -2316,13 +2322,13 @@ static osbool analysis_process_cashflow_window(void)
 	analysis_cashflow_file->cashflow_rep->period = atoi(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD));
 
 	if (icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS))
-		analysis_cashflow_file->cashflow_rep->period_unit = PERIOD_DAYS;
+		analysis_cashflow_file->cashflow_rep->period_unit = DATE_PERIOD_DAYS;
 	else if (icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS))
-		analysis_cashflow_file->cashflow_rep->period_unit = PERIOD_MONTHS;
+		analysis_cashflow_file->cashflow_rep->period_unit = DATE_PERIOD_MONTHS;
 	else if (icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS))
-		analysis_cashflow_file->cashflow_rep->period_unit = PERIOD_YEARS;
+		analysis_cashflow_file->cashflow_rep->period_unit = DATE_PERIOD_YEARS;
 	else
-		analysis_cashflow_file->cashflow_rep->period_unit = PERIOD_MONTHS;
+		analysis_cashflow_file->cashflow_rep->period_unit = DATE_PERIOD_MONTHS;
 
 	analysis_cashflow_file->cashflow_rep->lock = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK);
 	analysis_cashflow_file->cashflow_rep->empty = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY);
@@ -2411,7 +2417,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	group = file->cashflow_rep->group;
 	unit = file->cashflow_rep->period_unit;
-	lock = file->cashflow_rep->lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	lock = file->cashflow_rep->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
 	period = (group) ? file->cashflow_rep->period : 0;
 	show_blank = file->cashflow_rep->empty;
 
@@ -2479,9 +2485,9 @@ static void analysis_generate_cashflow_report(file_data *file)
 		msgs_param_lookup("CRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
-	convert_date_to_string(start_date, b1);
-	convert_date_to_string(end_date, b2);
-	convert_date_to_string(get_current_date (), b3);
+	date_convert_to_string(start_date, b1, sizeof(b1));
+	date_convert_to_string(end_date, b2, sizeof(b2));
+	date_convert_to_string(get_current_date (), b3, sizeof(b3));
 	msgs_param_lookup("CRHeader", line, sizeof(line), b1, b2, b3, NULL);
 	report_write_line(report, 0, line);
 
@@ -2629,7 +2635,7 @@ struct balance_rep *analysis_create_balance(void)
 	new->budget = 0;
 	new->group = 0;
 	new->period = 1;
-	new->period_unit = PERIOD_MONTHS;
+	new->period_unit = DATE_PERIOD_MONTHS;
 	new->lock = 0;
 	new->accounts_count = 0;
 	new->incoming_count = 0;
@@ -2882,10 +2888,12 @@ static void analysis_fill_balance_window(file_data *file, osbool restore)
 	} else {
 		/* Set the period icons. */
 
-		convert_date_to_string(analysis_balance_settings.date_from,
-				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM));
-		convert_date_to_string(analysis_balance_settings.date_to,
-				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATETO));
+		date_convert_to_string(analysis_balance_settings.date_from,
+				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM),
+				icons_get_indirected_text_length(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM));
+		date_convert_to_string(analysis_balance_settings.date_to,
+				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATETO),
+				icons_get_indirected_text_length(analysis_balance_window, ANALYSIS_BALANCE_DATETO));
 		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_BUDGET, analysis_balance_settings.budget);
 
 		/* Set the grouping icons. */
@@ -2893,10 +2901,10 @@ static void analysis_fill_balance_window(file_data *file, osbool restore)
 		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_GROUP, analysis_balance_settings.group);
 
 		icons_printf(analysis_balance_window, ANALYSIS_BALANCE_PERIOD, "%d", analysis_balance_settings.period);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, analysis_balance_settings.period_unit == PERIOD_DAYS);
+		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, analysis_balance_settings.period_unit == DATE_PERIOD_DAYS);
 		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS,
-				analysis_balance_settings.period_unit == PERIOD_MONTHS);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, analysis_balance_settings.period_unit == PERIOD_YEARS);
+				analysis_balance_settings.period_unit == DATE_PERIOD_MONTHS);
+		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, analysis_balance_settings.period_unit == DATE_PERIOD_YEARS);
 		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_LOCK, analysis_balance_settings.lock);
 
 		/* Set the accounts and format details. */
@@ -2948,13 +2956,13 @@ static osbool analysis_process_balance_window(void)
 	analysis_balance_file->balance_rep->period = atoi(icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_PERIOD));
 
 	if (icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_PDAYS))
-		analysis_balance_file->balance_rep->period_unit = PERIOD_DAYS;
+		analysis_balance_file->balance_rep->period_unit = DATE_PERIOD_DAYS;
 	else if (icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS))
-		analysis_balance_file->balance_rep->period_unit = PERIOD_MONTHS;
+		analysis_balance_file->balance_rep->period_unit = DATE_PERIOD_MONTHS;
 	else if (icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_PYEARS))
- 		 analysis_balance_file->balance_rep->period_unit = PERIOD_YEARS;
+ 		 analysis_balance_file->balance_rep->period_unit = DATE_PERIOD_YEARS;
 	else
-		analysis_balance_file->balance_rep->period_unit = PERIOD_MONTHS;
+		analysis_balance_file->balance_rep->period_unit = DATE_PERIOD_MONTHS;
 
 	analysis_balance_file->balance_rep->lock = icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_LOCK);
 
@@ -3042,7 +3050,7 @@ static void analysis_generate_balance_report(file_data *file)
 
 	group = file->balance_rep->group;
 	unit = file->balance_rep->period_unit;
-	lock = file->balance_rep->lock && (unit == PERIOD_MONTHS || unit == PERIOD_YEARS);
+	lock = file->balance_rep->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
 	period = (group) ? file->balance_rep->period : 0;
 
 	/* Read the include list. */
@@ -3108,9 +3116,9 @@ static void analysis_generate_balance_report(file_data *file)
 		msgs_param_lookup("BRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
-	convert_date_to_string(start_date, b1);
-	convert_date_to_string(end_date, b2);
-	convert_date_to_string(get_current_date(), b3);
+	date_convert_to_string(start_date, b1, sizeof(b1));
+	date_convert_to_string(end_date, b2, sizeof(b2));
+	date_convert_to_string(get_current_date(), b3, sizeof(b3));
 	msgs_param_lookup("BRHeader", line, sizeof(line), b1, b2, b3, NULL);
 	report_write_line(report, 0, line);
 
@@ -3568,11 +3576,11 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 			*next_end = add_to_date(analysis_period_start, analysis_period_unit, analysis_period_length - 1);
 
 			switch (analysis_period_unit) {
-			case PERIOD_MONTHS:
+			case DATE_PERIOD_MONTHS:
 				*next_end = (*next_end & 0xffffff00) | 0x001f; /* Maximise the days, so end of month. */
 				break;
 
-			case PERIOD_YEARS:
+			case DATE_PERIOD_YEARS:
 				*next_end = (*next_end & 0xffff0000) | 0x0c1f; /* Maximise the days and months, so end of year. */
 				break;
 
@@ -3596,8 +3604,8 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 
 	/* Get the real start and end dates for the period. */
 
-	*next_start = get_valid_date(analysis_period_start, +1);
-	*next_end = get_valid_date(*next_end, -1);
+	*next_start = date_find_valid_day(analysis_period_start, DATE_ADJUST_BACKWARD);
+	*next_end = date_find_valid_day(*next_end, DATE_ADJUST_FORWARD);
 
 	if (analysis_period_length > 0) {
 		/* If the report is grouped, find the next start date by adding the period on to the current start date. */
@@ -3610,11 +3618,11 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 			 */
 
 			switch (analysis_period_unit) {
-			case PERIOD_MONTHS:
+			case DATE_PERIOD_MONTHS:
 				analysis_period_start = (analysis_period_start & 0xffffff00) | 0x0001; /* Set the days to one. */
 				break;
 
-			case PERIOD_YEARS:
+			case DATE_PERIOD_YEARS:
 				analysis_period_start = (analysis_period_start & 0xffff0000) | 0x0101; /* Set the days and months to one. */
 				break;
 			}
@@ -3635,35 +3643,35 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 
 	if (analysis_period_lock) {
 		switch (analysis_period_unit) {
-		case PERIOD_MONTHS:
-			convert_date_to_month_string(*next_start, b1);
+		case DATE_PERIOD_MONTHS:
+			date_convert_to_month_string(*next_start, b1, sizeof(b1));
 
 			if ((*next_start & 0xffffff00) == (*next_end & 0xffffff00)) {
 				msgs_param_lookup("PRMonth", date_text, date_len, b1, NULL, NULL, NULL);
 			} else {
-				convert_date_to_month_string (*next_end, b2);
+				date_convert_to_month_string(*next_end, b2, sizeof(b2));
 				msgs_param_lookup("PRPeriod", date_text, date_len, b1, b2, NULL, NULL);
 			}
 			break;
 
-		case PERIOD_YEARS:
-			convert_date_to_year_string(*next_start, b1);
+		case DATE_PERIOD_YEARS:
+			date_convert_to_year_string(*next_start, b1, sizeof(b1));
 
 			if ((*next_start & 0xffff0000) == (*next_end & 0xffff0000)) {
 				msgs_param_lookup("PRYear", date_text, date_len, b1, NULL, NULL, NULL);
 			} else {
-				convert_date_to_year_string(*next_end, b2);
+				date_convert_to_year_string(*next_end, b2, sizeof(b2));
 				msgs_param_lookup("PRPeriod", date_text, date_len, b1, b2, NULL, NULL);
 			}
 			break;
 		}
 	} else {
 		if (*next_start == *next_end) {
-			convert_date_to_string(*next_start, b1);
+			date_convert_to_string(*next_start, b1, sizeof(b1));
 			msgs_param_lookup("PRDay", date_text, date_len, b1, NULL, NULL, NULL);
 		} else {
-			convert_date_to_string(*next_start, b1);
-			convert_date_to_string(*next_end, b2);
+			date_convert_to_string(*next_start, b1, sizeof(b1));
+			date_convert_to_string(*next_end, b2, sizeof(b2));
 			msgs_param_lookup("PRPeriod", date_text, date_len, b1, b2, NULL, NULL);
 		}
 	}

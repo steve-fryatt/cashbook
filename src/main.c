@@ -257,7 +257,7 @@ static void main_initialise(void)
 	config_opt_init("SortAfterSOrders", TRUE);					/**< Automatically sort transaction list view after adding SOs.		*/
 	config_opt_init("AutoSortSOrders", TRUE);					/**< Automatically sort SO list on entry.				*/
 	config_opt_init("TerritorySOrders", TRUE);					/**< Take weekend day info for SOs from Territory module.		*/
-	config_int_init("WeekendDays", 0x41);						/**< Manual set weekends for SOs (bit 0 = Sunday; bit 6 = Saturday).	*/
+	config_int_init("WeekendDays", DATE_DAY_SATURDAY | DATE_DAY_SUNDAY);		/**< Manual set weekends for standing orders.				*/
 
 	config_opt_init("AutoSortPresets", TRUE);					/**< Automatically sort presets on entry.				*/
 
@@ -292,7 +292,7 @@ static void main_initialise(void)
 
 	config_load();
 
-	set_weekend_days();
+	date_initialise();
 	currency_initialise();
 
 	/* Set up the dataxfer module's memory handlers, to use SFHeap. */

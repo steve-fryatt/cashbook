@@ -32,6 +32,8 @@
 
 #include "oslib/wimp.h"
 
+#include "global.h"
+
 #include "currency.h"
 #include "filing.h"
 

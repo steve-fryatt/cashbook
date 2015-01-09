@@ -2882,13 +2882,13 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 		strcat(line, buffer);
 
 		if (start != NULL_DATE) {
-			convert_date_to_string(start, numbuf1);
+			date_convert_to_string(start, numbuf1, sizeof(numbuf1));
 			msgs_param_lookup("AcclistBudgetFrom", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
 			strcat(line, buffer);
 		}
 
 		if (finish != NULL_DATE) {
-			convert_date_to_string(finish, numbuf1);
+			date_convert_to_string(finish, numbuf1, sizeof(numbuf1));
 			msgs_param_lookup("AcclistBudgetTo", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
 			strcat(line, buffer);
 		}
@@ -3955,7 +3955,7 @@ void account_recalculate_all(file_data *file)
 	}
 
 	date = get_current_date();
-	post_date = add_to_date(date, PERIOD_DAYS, budget_get_sorder_trial(file));
+	post_date = add_to_date(date, DATE_PERIOD_DAYS, budget_get_sorder_trial(file));
 	budget_get_dates(file, &budget_start, &budget_finish);
 	limit_postdated = budget_get_limit_postdated(file);
 

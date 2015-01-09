@@ -32,6 +32,8 @@
 
 #include "oslib/wimp.h"
 
+#include "date.h"
+
 /* ==================================================================================================================
  * Templates and resources.
  */
@@ -68,7 +70,6 @@
 
 #define NULL_ACCOUNT (-1)
 #define NULL_TRANS_FLAGS 0
-#define NULL_DATE (date_t) 0xffffffff
 #define NULL_SORDER (-1)
 #define NULL_PRESET (-1)
 #define NULL_TRANSACTION (-1)
@@ -207,7 +208,6 @@ enum sort_type {
 
 /* None of these are fully used as yet... */
 
-typedef unsigned int	date_t;							/**< A date.							*/
 typedef int		acct_t;							/**< An account number.						*/
 
 

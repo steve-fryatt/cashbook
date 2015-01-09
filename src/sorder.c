@@ -270,6 +270,7 @@ static osbool			sorder_save_csv(char *filename, osbool selection, void *data);
 static osbool			sorder_save_tsv(char *filename, osbool selection, void *data);
 static void			sorder_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
 
+static enum date_adjust		sorder_get_date_adjustment(enum transact_flags flags);
 
 /**
  * Initialise the standing order system.
@@ -1015,7 +1016,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < file->sorder_count) {
 				if (file->sorders[t].adjusted_next_date != NULL_DATE)
-					convert_date_to_string(file->sorders[t].adjusted_next_date, icon_buffer);
+					date_convert_to_string(file->sorders[t].adjusted_next_date, icon_buffer, DESCRIPT_FIELD_LEN);
 				else
 					msgs_lookup("SOrderStopped", icon_buffer, sizeof (icon_buffer));
 			} else {
@@ -1595,8 +1596,9 @@ static void sorder_fill_edit_window(file_data *file, int sorder, osbool edit_mod
 	} else {
 		/* Set start date. */
 
-		convert_date_to_string(file->sorders[sorder].start_date,
-				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_START));
+		date_convert_to_string(file->sorders[sorder].start_date,
+				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_START),
+				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_START));
 
 		/* Set number. */
 
@@ -1607,11 +1609,11 @@ static void sorder_fill_edit_window(file_data *file, int sorder, osbool edit_mod
 		icons_printf(sorder_edit_window, SORDER_EDIT_PERIOD, "%d", file->sorders[sorder].period);
 
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERDAYS,
-				file->sorders[sorder].period_unit == PERIOD_DAYS);
+				file->sorders[sorder].period_unit == DATE_PERIOD_DAYS);
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERMONTHS,
-				file->sorders[sorder].period_unit == PERIOD_MONTHS);
+				file->sorders[sorder].period_unit == DATE_PERIOD_MONTHS);
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERYEARS,
-				file->sorders[sorder].period_unit == PERIOD_YEARS);
+				file->sorders[sorder].period_unit == DATE_PERIOD_YEARS);
 
 		/* Set the ignore weekends details. */
 
@@ -1710,20 +1712,20 @@ static osbool sorder_process_edit_window(void)
 	 */
 
 	if (icons_get_selected (sorder_edit_window, SORDER_EDIT_PERDAYS))
-		new_period_unit = PERIOD_DAYS;
+		new_period_unit = DATE_PERIOD_DAYS;
 	else if (icons_get_selected (sorder_edit_window, SORDER_EDIT_PERMONTHS))
-		new_period_unit = PERIOD_MONTHS;
+		new_period_unit = DATE_PERIOD_MONTHS;
 	else if (icons_get_selected (sorder_edit_window, SORDER_EDIT_PERYEARS))
-		new_period_unit = PERIOD_YEARS;
+		new_period_unit = DATE_PERIOD_YEARS;
 	else
-		new_period_unit = PERIOD_NONE;
+		new_period_unit = DATE_PERIOD_NONE;
 
 	/* If the period is months, 31 days are always allowed in the date conversion to allow for the longest months.
 	 * IF another period is used, the default of the number of days in the givem month is used.
 	 */
 
 	new_start_date = convert_string_to_date(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_START), NULL_DATE,
-			((new_period_unit == PERIOD_MONTHS) ? 31 : 0));
+			((new_period_unit == DATE_PERIOD_MONTHS) ? 31 : 0));
 
 	/* If the standing order doesn't exsit, create it.  If it does exist, validate any data that requires it. */
 
@@ -1775,8 +1777,8 @@ static osbool sorder_process_edit_window(void)
 				sorder_edit_file->sorders[sorder_edit_number].start_date;
 
 		sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date =
-				get_sorder_date(sorder_edit_file->sorders[sorder_edit_number].raw_next_date,
-				sorder_edit_file->sorders[sorder_edit_number].flags);
+				date_find_working_day(sorder_edit_file->sorders[sorder_edit_number].raw_next_date,
+				sorder_get_date_adjustment(sorder_edit_file->sorders[sorder_edit_number].flags));
 
 		sorder_edit_file->sorders[sorder_edit_number].period =
 				atoi(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_PERIOD));
@@ -2166,7 +2168,7 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 		strcat(line, buffer);
 
 		if (sorder_print_file->sorders[t].adjusted_next_date != NULL_DATE)
-			convert_date_to_string(sorder_print_file->sorders[t].adjusted_next_date, numbuf1);
+			date_convert_to_string(sorder_print_file->sorders[t].adjusted_next_date, numbuf1, sizeof(numbuf1));
 		else
 			msgs_lookup("SOrderStopped", numbuf1, sizeof(numbuf1));
 		sprintf(buffer, "%s\\t", numbuf1);
@@ -2488,8 +2490,8 @@ void sorder_process(file_data *file)
 				file->sorders[order].raw_next_date = add_to_date(file->sorders[order].raw_next_date,
 						file->sorders[order].period_unit, file->sorders[order].period);
 
-				file->sorders[order].adjusted_next_date = get_sorder_date(file->sorders[order].raw_next_date,
-						file->sorders[order].flags);
+				file->sorders[order].adjusted_next_date = date_find_working_day(file->sorders[order].raw_next_date,
+						sorder_get_date_adjustment(file->sorders[order].flags));
 			} else {
 				file->sorders[order].adjusted_next_date = NULL_DATE;
 			}
@@ -2541,7 +2543,7 @@ void sorder_trial(file_data *file)
 
 	/* Find the cutoff date for the trial. */
 
-	trial_date = add_to_date(get_current_date(), PERIOD_DAYS, budget_get_sorder_trial(file));
+	trial_date = add_to_date(get_current_date(), DATE_PERIOD_DAYS, budget_get_sorder_trial(file));
 
 	/* Zero the order trial values. */
 
@@ -2588,7 +2590,7 @@ void sorder_trial(file_data *file)
 
 			if (left > 0) {
 				raw_next_date = add_to_date(raw_next_date, file->sorders[order].period_unit, file->sorders[order].period);
-				adjusted_next_date = get_sorder_date(raw_next_date, file->sorders[order].flags);
+				adjusted_next_date = date_find_working_day(raw_next_date, sorder_get_date_adjustment(file->sorders[order].flags));
 			} else {
 				adjusted_next_date = NULL_DATE;
 			}
@@ -2621,7 +2623,7 @@ void sorder_full_report(file_data *file)
 	msgs_param_lookup("SORTitle", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
-	convert_date_to_string (get_current_date(), numbuf1);
+	date_convert_to_string(get_current_date(), numbuf1, sizeof(numbuf1));
 	msgs_param_lookup("SORHeader", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
@@ -2672,22 +2674,22 @@ void sorder_full_report(file_data *file)
 		msgs_param_lookup("SORCounts", line, sizeof(line), numbuf1, numbuf2, numbuf3, NULL);
 		report_write_line(report, 0, line);
 
-		convert_date_to_string(file->sorders[i].start_date, numbuf1);
+		date_convert_to_string(file->sorders[i].start_date, numbuf1, sizeof(numbuf1));
 		msgs_param_lookup("SORStart", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
 		snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorders[i].period);
 		*numbuf2 = '\0';
 		switch (file->sorders[i].period_unit) {
-		case PERIOD_DAYS:
+		case DATE_PERIOD_DAYS:
 			msgs_lookup("SOrderDays", numbuf2, sizeof(numbuf2));
 			break;
 
-		case PERIOD_MONTHS:
+		case DATE_PERIOD_MONTHS:
 			msgs_lookup("SOrderMonths", numbuf2, sizeof(numbuf2));
 			break;
 
-		case PERIOD_YEARS:
+		case DATE_PERIOD_YEARS:
 			msgs_lookup("SOrderYears", numbuf2, sizeof(numbuf2));
 			break;
 		
@@ -2707,7 +2709,7 @@ void sorder_full_report(file_data *file)
 		}
 
 		if (file->sorders[i].adjusted_next_date != NULL_DATE)
-			convert_date_to_string(file->sorders[i].adjusted_next_date, numbuf1);
+			date_convert_to_string(file->sorders[i].adjusted_next_date, numbuf1, sizeof(numbuf1));
 		else
 			msgs_lookup("SOrderStopped", numbuf1, sizeof(numbuf1));
 		msgs_param_lookup("SORNext", line, sizeof(line), numbuf1, NULL, NULL, NULL);
@@ -2948,7 +2950,7 @@ static void sorder_export_delimited(file_data *file, char *filename, enum filing
 		filing_output_delimited_field(out, file->sorders[t].description, format, DELIMIT_NONE);
 
 		if (file->sorders[t].adjusted_next_date != NULL_DATE)
-			convert_date_to_string(file->sorders[t].adjusted_next_date, buffer);
+			date_convert_to_string(file->sorders[t].adjusted_next_date, buffer, sizeof(buffer));
 		else
 			msgs_lookup("SOrderStopped", buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
@@ -2985,5 +2987,24 @@ osbool sorder_check_account(file_data *file, int account)
 			found = TRUE;
 
 	return found;
+}
+
+
+/**
+ * Return a standing order date adjustment value based on the standing order
+ * flags.
+ *
+ * \param flags			The flags to be converted.
+ * \return			The corresponding date adjustment;
+ */
+
+static enum date_adjust sorder_get_date_adjustment(enum transact_flags flags)
+{
+	if (flags & TRANS_SKIP_FORWARD)
+		return DATE_ADJUST_FORWARD;
+	else if (flags & TRANS_SKIP_BACKWARD)
+		return DATE_ADJUST_BACKWARD;
+	else
+		return DATE_ADJUST_NONE;
 }
 

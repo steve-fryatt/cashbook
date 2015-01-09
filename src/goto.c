@@ -263,7 +263,8 @@ static void goto_fill_window(struct go_to *go_to_data, osbool restore)
 		if (go_to_data->type == GOTO_TYPE_LINE)
 			icons_printf(goto_window, GOTO_ICON_NUMBER_FIELD, "%d", go_to_data->target.line);
 		else if (go_to_data->type == GOTO_TYPE_DATE)
-			convert_date_to_string((date_t) go_to_data->target.date, icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD));
+			date_convert_to_string((date_t) go_to_data->target.date, icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD),
+					icons_get_indirected_text_length(goto_window, GOTO_ICON_NUMBER_FIELD));
 
 		icons_set_selected(goto_window, GOTO_ICON_NUMBER, go_to_data->type == GOTO_TYPE_LINE);
 		icons_set_selected(goto_window, GOTO_ICON_DATE, go_to_data->type == GOTO_TYPE_DATE);

@@ -253,8 +253,10 @@ static void budget_refresh_window(void)
 
 static void budget_fill_window(file_data *file)
 {
-	convert_date_to_string(file->budget->start, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START));
-	convert_date_to_string(file->budget->finish, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_FINISH));
+	date_convert_to_string(file->budget->start, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START),
+			icons_get_indirected_text_length(budget_window, BUDGET_ICON_START));
+	date_convert_to_string(file->budget->finish, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_FINISH),
+			icons_get_indirected_text_length(budget_window, BUDGET_ICON_FINISH));
 
 	icons_printf(budget_window, BUDGET_ICON_TRIAL, "%d", file->budget->sorder_trial);
 

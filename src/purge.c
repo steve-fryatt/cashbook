@@ -280,7 +280,8 @@ static void purge_fill_window(struct purge *cont_data, osbool restore)
 		icons_set_selected(purge_window, PURGE_ICON_HEADINGS, cont_data->headings);
 		icons_set_selected(purge_window, PURGE_ICON_SORDERS, cont_data->sorders);
 
-		convert_date_to_string(cont_data->before, icons_get_indirected_text_addr(purge_window, PURGE_ICON_DATE));
+		date_convert_to_string(cont_data->before, icons_get_indirected_text_addr(purge_window, PURGE_ICON_DATE),
+				icons_get_indirected_text_length(purge_window, PURGE_ICON_DATE));
 	}
 
 	icons_set_group_shaded_when_off (purge_window, PURGE_ICON_TRANSACT, 2,

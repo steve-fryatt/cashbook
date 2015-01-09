@@ -1495,7 +1495,7 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
 			}
 
 			previous_date = (line > 0) ? file->transactions[file->transactions[line - 1].sort_index].date : NULL_DATE;
-			date = convert_string_to_date(buffer_date, previous_date, 0);
+			date = date_convert_from_string(buffer_date, previous_date, 0);
 			if (date != file->transactions[transaction].date) {
 				file->transactions[transaction].date = date;
 				changed = TRUE;

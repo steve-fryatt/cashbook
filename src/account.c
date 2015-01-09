@@ -3955,7 +3955,7 @@ void account_recalculate_all(file_data *file)
 	}
 
 	date = get_current_date();
-	post_date = add_to_date(date, DATE_PERIOD_DAYS, budget_get_sorder_trial(file));
+	post_date = date_add_period(date, DATE_PERIOD_DAYS, budget_get_sorder_trial(file));
 	budget_get_dates(file, &budget_start, &budget_finish);
 	limit_postdated = budget_get_limit_postdated(file);
 

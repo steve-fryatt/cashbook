@@ -1665,7 +1665,7 @@ static osbool preset_process_edit_window(void)
 	/* Get the date and today settings. */
 
 	preset_edit_file->presets[preset_edit_number].date =
-			convert_string_to_date(icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_DATE), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_DATE), NULL_DATE, 0);
 
 	if (icons_get_selected(preset_edit_window, PRESET_EDIT_TODAY))
 		preset_edit_file->presets[preset_edit_number].flags |= TRANS_TAKE_TODAY;

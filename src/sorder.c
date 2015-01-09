@@ -1724,7 +1724,7 @@ static osbool sorder_process_edit_window(void)
 	 * IF another period is used, the default of the number of days in the givem month is used.
 	 */
 
-	new_start_date = convert_string_to_date(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_START), NULL_DATE,
+	new_start_date = date_convert_from_string(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_START), NULL_DATE,
 			((new_period_unit == DATE_PERIOD_MONTHS) ? 31 : 0));
 
 	/* If the standing order doesn't exsit, create it.  If it does exist, validate any data that requires it. */
@@ -2487,7 +2487,7 @@ void sorder_process(file_data *file)
 			/* If there are outstanding orders to carry out, work out the next date and remember that. */
 
 			if (file->sorders[order].left > 0) {
-				file->sorders[order].raw_next_date = add_to_date(file->sorders[order].raw_next_date,
+				file->sorders[order].raw_next_date = date_add_period(file->sorders[order].raw_next_date,
 						file->sorders[order].period_unit, file->sorders[order].period);
 
 				file->sorders[order].adjusted_next_date = date_find_working_day(file->sorders[order].raw_next_date,
@@ -2543,7 +2543,7 @@ void sorder_trial(file_data *file)
 
 	/* Find the cutoff date for the trial. */
 
-	trial_date = add_to_date(get_current_date(), DATE_PERIOD_DAYS, budget_get_sorder_trial(file));
+	trial_date = date_add_period(get_current_date(), DATE_PERIOD_DAYS, budget_get_sorder_trial(file));
 
 	/* Zero the order trial values. */
 
@@ -2589,7 +2589,7 @@ void sorder_trial(file_data *file)
 			/* If there are outstanding orders to carry out, work out the next date and remember that. */
 
 			if (left > 0) {
-				raw_next_date = add_to_date(raw_next_date, file->sorders[order].period_unit, file->sorders[order].period);
+				raw_next_date = date_add_period(raw_next_date, file->sorders[order].period_unit, file->sorders[order].period);
 				adjusted_next_date = date_find_working_day(raw_next_date, sorder_get_date_adjustment(file->sorders[order].flags));
 			} else {
 				adjusted_next_date = NULL_DATE;

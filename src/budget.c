@@ -275,9 +275,9 @@ static void budget_fill_window(file_data *file)
 static osbool budget_process_window(void)
 {
 	budget_window_file->budget->start =
-			convert_string_to_date(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START), NULL_DATE, 0);
 	budget_window_file->budget->finish =
-			convert_string_to_date(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_FINISH), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_FINISH), NULL_DATE, 0);
 
 	budget_window_file->budget->sorder_trial = atoi(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_TRIAL));
 

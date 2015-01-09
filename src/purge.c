@@ -305,7 +305,7 @@ static osbool purge_process_window(void)
 	purge_window_file->purge->sorders = icons_get_selected(purge_window, PURGE_ICON_SORDERS);
 
 	purge_window_file->purge->before =
-			convert_string_to_date(icons_get_indirected_text_addr(purge_window, PURGE_ICON_DATE), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(purge_window, PURGE_ICON_DATE), NULL_DATE, 0);
 
 	if (purge_window_file->modified == 1 && error_msgs_report_question("PurgeFileNotSaved", "PurgeFileNotSavedB") == 2)
 		return FALSE;

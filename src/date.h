@@ -130,29 +130,43 @@ char *date_convert_to_month_string(date_t date, char *buffer, size_t length);
 char *date_convert_to_year_string(date_t date, char *buffer, size_t length);
 
 
-
-
-date_t convert_string_to_date (char *string, date_t previous_date, int month_days);
-
-date_t get_current_date (void);
-
-date_t add_to_date (date_t date, int unit, int add);
-int days_in_month (int month, int year);
-int months_in_year (int year);
-int day_of_week (unsigned int date);
-int full_month (date_t start, date_t end);
-int full_year (date_t start, date_t end);
-
 /**
- * Count the number of days (inclusive) between two dates.
+ * Convert a string into a date, where the string is in the format
+ * "DD", "DD-MM" or "DD-MM-YYYY" and "-" is any of the configured date
+ * separators. The missing fields are filled in from the base date, which
+ * if not specified is the current date. The number of days allowed in a
+ * month will normally be taken from the month and year found in the
+ * string, but can be overridden to allow different numbers of dates (eg.
+ * to allow dates with 31 days to be entered).
  *
- * \param start		The start date.
- * \param end		The end date.
- * \return		The number of days (inclusive) between the start
- *			and end dates.
+ * \param *string		Pointer to the string to be converted.
+ * \param base_date		The date to use as a base for any missing
+ *				fields; NULL_DATE to use current date.
+ * \param month_days		The number of days to allow in a the month;
+ *				0 to use the month and year found in the
+ *				string.
+ * \return			The converted date, or NULL_DATE on error.
  */
 
-int date_count_days(date_t start, date_t end);
+date_t date_convert_from_string(char *string, date_t base_date, int month_days);
+
+
+/**
+ * Add a specified period on to a date.
+ *
+ * When adding days or years, the resulting date will always be valid. When
+ * adding months, the day will be retained and may therefore fall outside
+ * the valid range for the end month; such dates should then be passed to
+ * date_find_valid_day() to bring them into range.
+ *
+ * \param date			The date to add to or subtract from.
+ * \param unit			The unit of the supplied period.
+ * \param period		The period to add (when +ve) or subtract
+ *				(when -ve) to the date.
+ * \return			The modified date, or NULL_DATE on error.
+ */
+
+date_t date_add_period(date_t date, enum date_period unit, int period);
 
 
 /**
@@ -180,5 +194,28 @@ date_t date_find_valid_day(date_t date, enum date_adjust direction);
  */ 
 
 date_t date_find_working_day(date_t date, enum date_adjust direction);
+
+
+
+
+
+date_t get_current_date (void);
+
+int days_in_month (int month, int year);
+int months_in_year (int year);
+int day_of_week (unsigned int date);
+int full_month (date_t start, date_t end);
+int full_year (date_t start, date_t end);
+
+/**
+ * Count the number of days (inclusive) between two dates.
+ *
+ * \param start		The start date.
+ * \param end		The end date.
+ * \return		The number of days (inclusive) between the start
+ *			and end dates.
+ */
+
+int date_count_days(date_t start, date_t end);
 
 #endif

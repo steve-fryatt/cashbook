@@ -301,7 +301,7 @@ static osbool goto_process_window(void)
 	} else if (goto_window_file->go_to->type == GOTO_TYPE_DATE) {
 		/* Go to a given date, or the nearest transaction. */
 
-		goto_window_file->go_to->target.date = convert_string_to_date(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD), NULL_DATE, 0);
+		goto_window_file->go_to->target.date = date_convert_from_string(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD), NULL_DATE, 0);
 
 		if (goto_window_file->go_to->target.date == NULL_DATE) {
 			error_msgs_report_info("BadGotoDate");

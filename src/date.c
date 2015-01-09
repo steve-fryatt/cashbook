@@ -73,6 +73,12 @@
 #define DATE_SEP_LENGTH 11
 
 
+/**
+ * The size of the date buffer used when converting from string.
+ */
+
+#define DATE_CONVERT_BUFFER_LEN 64
+
 #define DATE_FIELD_DAY (0x000000ff)
 #define DATE_FIELD_MONTH (0x0000ff00)
 #define DATE_FIELD_YEAR (0xffff0000)
@@ -281,115 +287,353 @@ char *date_convert_to_year_string(date_t date, char *buffer, size_t length)
 	return buffer;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Convert a string to a date in internal format (0xYYYYMMDD).  If previous_date is not NULL_DATE, base any
- * missing fields on this.  If month_days==0, days are limited to the specified month, otherwise days are limited
- * to month_days.
+/**
+ * Convert a string into a date, where the string is in the format
+ * "DD", "DD-MM" or "DD-MM-YYYY" and "-" is any of the configured date
+ * separators. The missing fields are filled in from the base date, which
+ * if not specified is the current date. The number of days allowed in a
+ * month will normally be taken from the month and year found in the
+ * string, but can be overridden to allow different numbers of dates (eg.
+ * to allow dates with 31 days to be entered).
+ *
+ * \param *string		Pointer to the string to be converted.
+ * \param base_date		The date to use as a base for any missing
+ *				fields; NULL_DATE to use current date.
+ * \param month_days		The number of days to allow in a the month;
+ *				0 to use the month and year found in the
+ *				string.
+ * \return			The converted date, or NULL_DATE on error.
  */
 
-date_t convert_string_to_date (char *string, date_t previous_date, int month_days)
+date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 {
-  int                       day, month, year, base_month, base_year, day_limit, month_limit, valid;
-  date_t                    result;
-  char                      *next, date[256];
-  oswordreadclock_utc_block time;
-  territory_ordinals        ordinals;
+	int				day, month, year, base_month, base_year, day_limit, month_limit;
+	char				*next, date[DATE_CONVERT_BUFFER_LEN];
+	oswordreadclock_utc_block	time;
+	territory_ordinals		ordinals;
 
 
-  #ifdef DEBUG
-  debug_printf ("\\GConverting date");
-  #endif
+	if (string == NULL)
+		return NULL_DATE;
 
-  /* Get the date to base an incomplete entry on.  If a previous date is supplied, use that, otherwise
-   * get the current date from the system.
-   */
+#ifdef DEBUG
+	debug_printf("\\GConverting date");
+#endif
 
-  if (previous_date != NULL_DATE)
-  {
-    base_month = (previous_date & 0x0000ff00) >> 8;
-    base_year  = (previous_date & 0xffff0000) >> 16;
+	/* Get the date to base an incomplete entry on.  If a previous date
+	 * is supplied, use that, otherwise get the current date from the
+	 * system.
+	 */
 
-    #ifdef DEBUG
-    debug_printf ("Base dates from given date (year: %d, month: %d)", base_year, base_month);
-    #endif
-  }
-  else
-  {
-    time.op = oswordreadclock_OP_UTC;
-    oswordreadclock_utc (&time);
-    territory_convert_time_to_ordinals (territory_CURRENT, (const os_date_and_time *) &(time.utc), &ordinals);
+	if (base_date != NULL_DATE) {
+		base_month = date_get_month_from_date(base_date);
+		base_year  = date_get_year_from_date(base_date);
 
-    base_year = ordinals.year;
-    base_month = ordinals.month;
+#ifdef DEBUG
+		debug_printf("Base dates from given date (year: %d, month: %d)", base_year, base_month);
+#endif
+	} else {
+		time.op = oswordreadclock_OP_UTC;
+		oswordreadclock_utc(&time);
+		territory_convert_time_to_ordinals(territory_CURRENT, (const os_date_and_time *) &(time.utc), &ordinals);
 
-    #ifdef DEBUG
-    debug_printf ("Base dates from RTC (year: %d, month: %d)", base_year, base_month);
-    #endif
-  }
+		base_year = ordinals.year;
+		base_month = ordinals.month;
 
-  /* Parse the string. */
+#ifdef DEBUG
+		debug_printf("Base dates from RTC (year: %d, month: %d)", base_year, base_month);
+#endif
+	}
 
-  strcpy (date, string);
+	/* Take a copy of the string, so that we can parse it with strtok(). */
 
-  next = strtok (date, date_sep_in);
+	strncpy(date, string, DATE_CONVERT_BUFFER_LEN);
+	date[DATE_CONVERT_BUFFER_LEN - 1] = '\0';
 
-  if (next != NULL)
-  {
-    day = atoi (next);
-    valid = date_is_string_numeric (next);
+	/* Get the day; if not present, or not numeric, the date is invalid. */
 
-    next = strtok (NULL, date_sep_in);
-    month = (next != NULL) ? atoi (next) : base_month;
-    valid = valid && (next == NULL || date_is_string_numeric (next));
+	next = strtok(date, date_sep_in);
+	if (next == NULL)
+		return NULL_DATE;
 
-    next = strtok (NULL, date_sep_in);
-    year = (next != NULL) ? atoi (next) : base_year;
-    valid = valid && (next == NULL || date_is_string_numeric (next));
+	day = atoi(next);
+	if (!date_is_string_numeric(next))
+		return NULL_DATE;
 
-    if (valid)
-    {
-      #ifdef DEBUG
-      debug_printf ("Read date as day %d, month %d, year %d", day, month, year);
-      #endif
+	/* Get the month. If not present, the base month is used; if not
+	 * numeric, the date is invalid.
+	 */
 
-      if (year >= 0 && year < 80)
-      {
-        year += 2000;
-      }
-      else if (year >=80 && year <= 99)
-      {
-        year += 1900;
-      }
+	next = strtok(NULL, date_sep_in);
+	month = (next != NULL) ? atoi(next) : base_month;
+	if (next != NULL && !date_is_string_numeric(next))
+		return NULL_DATE;
 
-      month_limit = months_in_year (year);
+	/* Get the year. If not present, the base year is used; if not
+	 * numeric, the date is invalid.
+	 */
 
-      if (month > month_limit)
-      {
-        month = month_limit;
-      }
+	next = strtok(NULL, date_sep_in);
+	year = (next != NULL) ? atoi(next) : base_year;
+	if (next != NULL && !date_is_string_numeric(next))
+		return NULL_DATE;
 
-      day_limit = (month_days == 0) ? days_in_month (month, year) : month_days;
+#ifdef DEBUG
+	debug_printf("Read date as day %d, month %d, year %d", day, month, year);
+#endif
 
-      if (day > day_limit)
-      {
-        day = day_limit;
-      }
+	/* Years from 00-79 are converted to 2000-2079; years from 80-99 are
+	 * converted to 1980-1999. ALl other years are left as they are
+	 * entered, allowing anything from 100ad to be entered.
+	 */
 
-      result = (day & 0x00ff) + ((month & 0x00ff) << 8) + ((year & 0xffff) << 16);
-    }
-    else
-    {
-      result = NULL_DATE;
-    }
-  }
-  else
-  {
-    result = NULL_DATE;
-  }
+	if (year >= 0 && year < 80)
+		year += 2000;
+	else if (year >=80 && year <= 99)
+		year += 1900;
 
-  return (result);
+	/* Check the month, and bring it into a valid range for the year
+	 * given.
+	 */
+
+	month_limit = months_in_year(year);
+
+	if (month > month_limit)
+		month = month_limit;
+
+	/* Check the day, and bring it into a valid range for the month and
+	 * year given.
+	 */
+
+	day_limit = (month_days == 0) ? days_in_month(month, year) : month_days;
+
+	if (day > day_limit)
+		day = day_limit;
+
+	return date_combine_parts(day, month, year);
 }
+
+
+/**
+ * Add a specified period on to a date.
+ *
+ * When adding days or years, the resulting date will always be valid. When
+ * adding months, the day will be retained and may therefore fall outside
+ * the valid range for the end month; such dates should then be passed to
+ * date_find_valid_day() to bring them into range.
+ *
+ * \param date			The date to add to or subtract from.
+ * \param unit			The unit of the supplied period.
+ * \param period		The period to add (when +ve) or subtract
+ *				(when -ve) to the date.
+ * \return			The modified date, or NULL_DATE on error.
+ */
+
+date_t date_add_period(date_t date, enum date_period unit, int period)
+{
+	int	day, month, year;
+
+	if (date == NULL_DATE)
+		return NULL_DATE;
+
+	day = date_get_day_from_date(date);
+	month = date_get_month_from_date(date);
+	year = date_get_year_from_date(date);
+
+	switch (unit) {
+	case DATE_PERIOD_YEARS:
+
+		/* Add or subtract whole years. No other processing is required. */
+
+		year += period;
+		break;
+
+	case DATE_PERIOD_MONTHS:
+
+		/* Add or subtract months. If the month ends up out of range,
+		 * add or subtract years until it comes back into range again.
+		 */
+
+		month += period;
+
+		while (month > months_in_year(year)) {
+			year++;
+			month -= months_in_year(year);
+		}
+
+		while (month <= 0) {
+			year--;
+			month += months_in_year(year);
+		}
+		break;
+
+	case DATE_PERIOD_DAYS:
+
+		/* Add or subtract days. If the days end up out of range
+		 * for the current month, adjust the days and months as
+		 * required. If this takes the months out of range, correct
+		 * the years too.
+		 */
+
+		day += period;
+
+		while (day > days_in_month(month, year)) {
+			day -= days_in_month(month, year);
+			month ++;
+
+			if (month > months_in_year(year)) {
+				year++;
+				month -= months_in_year(year);
+			}
+		}
+
+		while (day <= 0) {
+			month --;
+			day += days_in_month(month, year);
+
+			if (month <= 0) {
+				year--;
+				month += months_in_year(year);
+			}
+		}
+		break;
+
+	case DATE_PERIOD_NONE:
+		break;
+	}
+
+	/* Recompose the date from the component parts. */
+
+	return date_combine_parts(day, month, year);
+}
+
+
+/**
+ * Take a raw date (where the day can be in the range 1-31 regardless of the
+ * month), and make it valid by either moving it forwards to the last valid
+ * day in the month or pushing it back to the 1st of the following month.
+ *
+ * \param date		The raw date to be adjusted.
+ * \param direction	The direction to adjust the date in.
+ * \return		The adjusted date.
+ */
+
+date_t date_find_valid_day(date_t date, enum date_adjust direction)
+{
+	int	day, month, year;
+
+
+	if (date == NULL_DATE)
+		return NULL_DATE;
+
+	/* Extract the component parts of the date. */
+
+	day = date_get_day_from_date(date);
+	month = date_get_month_from_date(date);
+	year = date_get_year_from_date(date);
+
+	/* Shuffle the dates around. */
+
+	if (direction == DATE_ADJUST_FORWARD && day > days_in_month(month, year)) {
+		day = days_in_month(month, year);
+	} else if (direction == DATE_ADJUST_BACKWARD && day > days_in_month(month, year)) {
+		day = 1;
+		month += 1;
+
+		if (month > months_in_year(year)) {
+			month = 1;
+			year += 1;
+		}
+	} else if (direction == DATE_ADJUST_FORWARD && day < 1) {
+		month -= 1;
+
+		if (month < 1) {
+			year -= 1;
+			month = months_in_year(year);
+		}
+
+		day = days_in_month(month, year);
+	} else if (direction == DATE_ADJUST_BACKWARD && day < 1) {
+		day = 1;
+	}
+
+	return date_combine_parts(day, month, year);
+}
+
+
+/**
+ * Take a raw date (where the day can be in the range 1-31 regardless of the
+ * month), and bring the day into a valid range for the current month. Then
+ * adjust the date forward or backwards to ensure that it does not fall on
+ * a weekend day.
+ *
+ * \param date		The raw date to be adjusted.
+ * \param direction	The direction to adjust the date, or none.
+ * \return		The adjusted date.
+ */ 
+
+date_t date_find_working_day(date_t date, enum date_adjust direction)
+{
+	int		weekday, move, shift;
+	date_t		result;
+
+
+	if (date == NULL_DATE)
+		return NULL_DATE;
+		
+
+	/* Take the date and move it into a valid position in the current month. */
+
+	result = date_find_valid_day(date, DATE_ADJUST_FORWARD);
+
+	/* Correct for weekends, if necessary. */
+
+	switch (direction) {
+	case DATE_ADJUST_FORWARD:
+		move = -1;
+		break;
+	case DATE_ADJUST_BACKWARD:
+		move = 1;
+		break;
+	default:
+		move = 0;
+		break;
+	}
+	
+
+	if (move == 0)
+		return result;
+
+	shift = 0;
+	weekday = day_of_week(result);
+
+	/* While the weekend bit is set for the current weekday, move the
+	 * date one day in the specified direction and try again.
+	 */
+
+	while ((1 << (weekday-1)) & date_weekend_days) {
+		shift += move;
+		weekday += move;
+
+		if (weekday > 7)
+			weekday = 1;
+
+		if (weekday < 1)
+			weekday = 7;
+	}
+
+	/* If a shift is required, add the necessary days on to the base
+	 * date.
+	 */
+
+	if (shift != 0)
+		result = date_add_period(result, DATE_PERIOD_DAYS, shift);
+
+	return result;
+}
+
+
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -408,96 +652,7 @@ date_t get_current_date (void)
   return (ordinals.date & 0x00ff) + ((ordinals.month & 0x00ff) << 8) + ((ordinals.year & 0xffff) << 16);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Add a given period on to the specified date.  The date returned may not be valid, and will require further processing
- * to find a real date to enter a standing order on (applies to month period, where day may fall outside days in the
- * current month).
- */
-
-date_t add_to_date (date_t date, int unit, int add)
-{
-  int    day, month, year;
-  date_t result;
-
-  if (date != NULL_DATE)
-  {
-    day   = (date & 0x000000ff);
-    month = (date & 0x0000ff00) >> 8;
-    year  = (date & 0xffff0000) >> 16;
-
-    /* Add or subtract whole years.  No other processing is required. */
-
-    if (unit == DATE_PERIOD_YEARS)
-    {
-      year += add;
-    }
-
-    /* Add or subtract months.  If the month ends up out of range (1-12), add or subtract years until it comes back
-     * into range again.
-     */
-
-    else if (unit == DATE_PERIOD_MONTHS)
-    {
-      month += add;
-
-      while (month > months_in_year (year))
-      {
-        year++;
-        month -= months_in_year (year);
-      }
-
-      while (month <= 0)
-      {
-        year--;
-        month += months_in_year (year);
-      }
-    }
-
-    /* Add or subtract days.  If the days end up out of range for the current month, adjust the days and months
-     * as required.  If this takes the months out of range, correct the years too.
-     */
-
-    else if (unit == DATE_PERIOD_DAYS)
-    {
-      day += add;
-
-      while (day > days_in_month (month, year))
-      {
-        day -= days_in_month (month, year);
-        month ++;
-
-        if (month > months_in_year (year))
-        {
-          year++;
-          month -= months_in_year (year);
-        }
-      }
-
-      while (day <= 0)
-      {
-        month --;
-        day += days_in_month (month, year);
-
-        if (month <= 0)
-        {
-          year--;
-          month += months_in_year (year);
-        }
-      }
-    }
-
-    /* Recompose the date from the component parts. */
-
-    result = (day & 0x00ff) + ((month & 0x00ff) << 8) + ((year & 0xffff) << 16);
-  }
-  else
-  {
-    result = NULL_DATE;
-  }
-
-  return (result);
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -739,131 +894,6 @@ int date_count_days(date_t start, date_t end)
 	}
 
 	return days;
-}
-
-
-/**
- * Take a raw date (where the day can be in the range 1-31 regardless of the
- * month), and make it valid by either moving it forwards to the last valid
- * day in the month or pushing it back to the 1st of the following month.
- *
- * \param date		The raw date to be adjusted.
- * \param direction	The direction to adjust the date in.
- * \return		The adjusted date.
- */
-
-date_t date_find_valid_day(date_t date, enum date_adjust direction)
-{
-	int	day, month, year;
-
-
-	if (date == NULL_DATE)
-		return NULL_DATE;
-
-	/* Extract the component parts of the date. */
-
-	day = date_get_day_from_date(date);
-	month = date_get_month_from_date(date);
-	year = date_get_year_from_date(date);
-
-	/* Shuffle the dates around. */
-
-	if (direction == DATE_ADJUST_FORWARD && day > days_in_month(month, year)) {
-		day = days_in_month(month, year);
-	} else if (direction == DATE_ADJUST_BACKWARD && day > days_in_month(month, year)) {
-		day = 1;
-		month += 1;
-
-		if (month > months_in_year(year)) {
-			month = 1;
-			year += 1;
-		}
-	} else if (direction == DATE_ADJUST_FORWARD && day < 1) {
-		month -= 1;
-
-		if (month < 1) {
-			year -= 1;
-			month = months_in_year(year);
-		}
-
-		day = days_in_month(month, year);
-	} else if (direction == DATE_ADJUST_BACKWARD && day < 1) {
-		day = 1;
-	}
-
-	return date_combine_parts(day, month, year);
-}
-
-
-/**
- * Take a raw date (where the day can be in the range 1-31 regardless of the
- * month), and bring the day into a valid range for the current month. Then
- * adjust the date forward or backwards to ensure that it does not fall on
- * a weekend day.
- *
- * \param date		The raw date to be adjusted.
- * \param direction	The direction to adjust the date, or none.
- * \return		The adjusted date.
- */ 
-
-date_t date_find_working_day(date_t date, enum date_adjust direction)
-{
-	int		weekday, move, shift;
-	date_t		result;
-
-
-	if (date == NULL_DATE)
-		return NULL_DATE;
-		
-
-	/* Take the date and move it into a valid position in the current month. */
-
-	result = date_find_valid_day(date, DATE_ADJUST_FORWARD);
-
-	/* Correct for weekends, if necessary. */
-
-	switch (direction) {
-	case DATE_ADJUST_FORWARD:
-		move = -1;
-		break;
-	case DATE_ADJUST_BACKWARD:
-		move = 1;
-		break;
-	default:
-		move = 0;
-		break;
-	}
-	
-
-	if (move == 0)
-		return result;
-
-	shift = 0;
-	weekday = day_of_week(result);
-
-	/* While the weekend bit is set for the current weekday, move the
-	 * date one day in the specified direction and try again.
-	 */
-
-	while ((1 << (weekday-1)) & date_weekend_days) {
-		shift += move;
-		weekday += move;
-
-		if (weekday > 7)
-			weekday = 1;
-
-		if (weekday < 1)
-			weekday = 7;
-	}
-
-	/* If a shift is required, add the necessary days on to the base
-	 * date.
-	 */
-
-	if (shift != 0)
-		result = add_to_date(result, DATE_PERIOD_DAYS, shift);
-
-	return result;
 }
 
 

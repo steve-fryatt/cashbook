@@ -393,7 +393,7 @@ void import_csv_file (file_data *file, char *filename)
       date = next_field (line, ',');
       date = unquote_string (date);
 
-      if (convert_string_to_date (date, NULL_DATE, 0) == NULL_DATE)
+      if (date_convert_from_string(date, NULL_DATE, 0) == NULL_DATE)
       {
         error = 1;
       }
@@ -501,7 +501,7 @@ void import_csv_file (file_data *file, char *filename)
       }
       else
       {
-        transact_add_raw_entry(file, convert_string_to_date(date, NULL_DATE, 0), from, to, rec_from | rec_to,
+        transact_add_raw_entry(file, date_convert_from_string(date, NULL_DATE, 0), from, to, rec_from | rec_to,
                              currency_convert_from_string(amount), ref, description);
         msgs_lookup("Imported", b1, sizeof(b1));
 

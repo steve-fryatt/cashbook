@@ -857,9 +857,9 @@ static void printing_process_advanced_window(void)
 	printing_advanced_file->print->text_format = icons_get_selected(printing_advanced_window, DATE_PRINT_TEXTFORMAT);
 	printing_advanced_file->print->page_numbers = icons_get_selected(printing_advanced_window, DATE_PRINT_PNUM);
 
-	printing_advanced_file->print->from = convert_string_to_date(icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_FROM),
+	printing_advanced_file->print->from = date_convert_from_string(icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_FROM),
 			NULL_DATE, 0);
-	printing_advanced_file->print->to = convert_string_to_date(icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_TO),
+	printing_advanced_file->print->to = date_convert_from_string(icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_TO),
 			NULL_DATE, 0);
 
 	printing_advanced_callback(printing_advanced_file->print->text,

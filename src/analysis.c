@@ -409,7 +409,7 @@ static wimp_i			analysis_lookup_icon;				/**< The icon to which the lookup resul
 static date_t			analysis_period_start;				/**< The start of the current reporting period.					*/
 static date_t			analysis_period_end;				/**< The end of the current reporting period.					*/
 static int			analysis_period_length;
-static int			analysis_period_unit;
+static enum date_period		analysis_period_unit;
 static osbool			analysis_period_lock;
 static osbool			analysis_period_first = TRUE;
 
@@ -467,7 +467,7 @@ static osbool		analysis_lookup_keypress_handler(wimp_key *key);
 static osbool		analysis_process_lookup_window(void);
 
 static void		analysis_find_date_range(file_data *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget);
-static void		analysis_initialise_date_period(date_t start, date_t end, int period, int unit, osbool lock);
+static void		analysis_initialise_date_period(date_t start, date_t end, int period, enum date_period unit, osbool lock);
 static osbool		analysis_get_next_date_period(date_t *next_start, date_t *next_end, char *date_text, size_t date_len);
 
 static void		analysis_remove_account_from_report_template(struct analysis_report *template, void *data);
@@ -903,9 +903,9 @@ static osbool analysis_process_transaction_window(void)
 	/* Read the date settings. */
 
 	analysis_transaction_file->trans_rep->date_from =
-			convert_string_to_date (icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM), NULL_DATE, 0);
 	analysis_transaction_file->trans_rep->date_to =
-			convert_string_to_date (icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATETO), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATETO), NULL_DATE, 0);
 	analysis_transaction_file->trans_rep->budget = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_BUDGET);
 
 	/* Read the grouping settings. */
@@ -1659,9 +1659,9 @@ static osbool analysis_process_unreconciled_window(void)
 	/* Read the date settings. */
 
 	analysis_unreconciled_file->unrec_rep->date_from =
-			convert_string_to_date(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM), NULL_DATE, 0);
 	analysis_unreconciled_file->unrec_rep->date_to =
-			convert_string_to_date(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO), NULL_DATE, 0);
 	analysis_unreconciled_file->unrec_rep->budget = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET);
 
 	/* Read the grouping settings. */
@@ -2311,9 +2311,9 @@ static osbool analysis_process_cashflow_window(void)
 	/* Read the date settings. */
 
 	analysis_cashflow_file->cashflow_rep->date_from =
-			convert_string_to_date(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM), NULL_DATE, 0);
 	analysis_cashflow_file->cashflow_rep->date_to =
-			convert_string_to_date(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO), NULL_DATE, 0);
 	analysis_cashflow_file->cashflow_rep->budget = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET);
 
 	/* Read the grouping settings. */
@@ -2945,9 +2945,9 @@ static osbool analysis_process_balance_window(void)
 	/* Read the date settings. */
 
 	analysis_balance_file->balance_rep->date_from =
-			convert_string_to_date (icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM), NULL_DATE, 0);
 	analysis_balance_file->balance_rep->date_to =
-			convert_string_to_date (icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATETO), NULL_DATE, 0);
+			date_convert_from_string(icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATETO), NULL_DATE, 0);
 	analysis_balance_file->balance_rep->budget = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_BUDGET);
 
 	/* Read the grouping settings. */
@@ -3531,7 +3531,7 @@ static void analysis_find_date_range(file_data *file, date_t *start_date, date_t
  * \param lock			TRUE to apply calendar lock; otherwise FALSE.
  */
 
-static void analysis_initialise_date_period(date_t start, date_t end, int period, int unit, osbool lock)
+static void analysis_initialise_date_period(date_t start, date_t end, int period, enum date_period unit, osbool lock)
 {
 	analysis_period_start = start;
 	analysis_period_end = end;
@@ -3573,7 +3573,7 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 		 */
 
 		if (analysis_period_first) {
-			*next_end = add_to_date(analysis_period_start, analysis_period_unit, analysis_period_length - 1);
+			*next_end = date_add_period(analysis_period_start, analysis_period_unit, analysis_period_length - 1);
 
 			switch (analysis_period_unit) {
 			case DATE_PERIOD_MONTHS:
@@ -3585,11 +3585,11 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 				break;
 
 			default:
-				*next_end = add_to_date(analysis_period_start, analysis_period_unit, analysis_period_length) - 1;
+				*next_end = date_add_period(analysis_period_start, analysis_period_unit, analysis_period_length) - 1;
 				break;
 			}
 		} else {
-			*next_end = add_to_date(analysis_period_start, analysis_period_unit, analysis_period_length) - 1;
+			*next_end = date_add_period(analysis_period_start, analysis_period_unit, analysis_period_length) - 1;
 		}
 
 		/* Pull back into range isf we fall off the end. */
@@ -3610,7 +3610,7 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 	if (analysis_period_length > 0) {
 		/* If the report is grouped, find the next start date by adding the period on to the current start date. */
 
-		analysis_period_start = add_to_date(analysis_period_start, analysis_period_unit, analysis_period_length);
+		analysis_period_start = date_add_period(analysis_period_start, analysis_period_unit, analysis_period_length);
 
 		if (analysis_period_first) {
 			/* If the report is calendar locked, and this is the first iteration, reset the DAYS or DAYS+MONTHS
@@ -3624,6 +3624,9 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 
 			case DATE_PERIOD_YEARS:
 				analysis_period_start = (analysis_period_start & 0xffff0000) | 0x0101; /* Set the days and months to one. */
+				break;
+
+			default:
 				break;
 			}
 
@@ -3663,6 +3666,9 @@ static osbool analysis_get_next_date_period(date_t *next_start, date_t *next_end
 				date_convert_to_year_string(*next_end, b2, sizeof(b2));
 				msgs_param_lookup("PRPeriod", date_text, date_len, b1, b2, NULL, NULL);
 			}
+			break;
+
+		default:
 			break;
 		}
 	} else {

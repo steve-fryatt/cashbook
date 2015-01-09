@@ -145,8 +145,8 @@ enum date_os_day {
 #define date_combine_parts(day, month, year) (date_t) (((day) & DATE_FIELD_DAY) + (((month) << DATE_SHIFT_MONTH) & DATE_FIELD_MONTH) + (((year) << DATE_SHIFT_YEAR) & DATE_FIELD_YEAR))
 
 
-/* ==================================================================================================================
- * Global variables.
+/**
+ * Global Variables
  */
 
 static enum date_days		date_weekend_days;				/**< A bitmask containing the days that form the weeekend.			*/
@@ -154,10 +154,15 @@ static char			date_sep_out;					/**< The character used to separate dates when d
 static char			date_sep_in[DATE_SEP_LENGTH];			/**< A list of the characters usable as separators when entering dates.		*/
 
 
+/**
+ * Static Function Protypes
+ */
+
 static int			date_days_in_month(int month, int year);
 static int			date_months_in_year(int year);
 static enum date_os_day		date_day_of_week(date_t date);
 static osbool			date_is_string_numeric(char *string);
+
 
 /**
  * Initialise, or re-initialise, the date module.

@@ -63,8 +63,6 @@
 
 #include "date.h"
 
-#include "transact.h"
-
 
 /**
  * The size of the input date separator list.

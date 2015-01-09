@@ -807,6 +807,8 @@ static int date_months_in_year(int year)
 /**
  * Find the day of the week that a given date falls on, returning the day
  * in the form of an OS weekday value where 1 = Sunday -> 7 = Saturday.
+ * If the user has configured to use the Territory Manager, this information
+ * will be taken from the OS; otherwise it will be calculated directly.
  *
  * \param date			The date to find the weekday for.
  * \return			The weekday of the supplied date.
@@ -814,6 +816,8 @@ static int date_months_in_year(int year)
 
 static enum date_os_day date_day_of_week(date_t date)
 {
+	int			day, month, year;
+	int			table[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
 	territory_ordinals	ordinals;
 	os_date_and_time	time;
 
@@ -832,7 +836,15 @@ static enum date_os_day date_day_of_week(date_t date)
 		territory_convert_ordinals_to_time(territory_CURRENT, &time, (territory_ordinals const *) &ordinals);
 		territory_convert_time_to_ordinals(territory_CURRENT, (os_date_and_time const *) &time, &ordinals);
 	} else {
-		ordinals.weekday = 0; // \TODO -- This needs fixing!
+		day = date_get_day_from_date(date);
+		month = date_get_month_from_date(date);
+		year = date_get_year_from_date(date);
+
+		if (year < 1752 || month < 1 || month > 12)
+			return DATE_OS_DAY_NONE;
+
+		year -= month < 3;
+		ordinals.weekday = ((year + year/4 - year/100 + year/400 + table[month - 1] + day) % 7) + 1;
 	}
 
 	return (enum date_os_day) ordinals.weekday;

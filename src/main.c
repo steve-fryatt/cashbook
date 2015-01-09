@@ -154,7 +154,7 @@ static void main_poll_loop(void)
 		if (!event_process_event(reason, &blk, 0)) {
 			switch (reason) {
 			case wimp_NULL_REASON_CODE:
-				update_files_for_new_date();
+				file_process_date_change();
 				poll_time += 6000; /* Wait for a minute for the next Null poll */
 				break;
 
@@ -338,7 +338,7 @@ static void main_initialise(void)
 
 	/* Initialise the file update mechanism: calling it now with no files loaded will force the date to be set up. */
 
-	update_files_for_new_date();
+	file_process_date_change();
 
 	hourglass_off();
 }

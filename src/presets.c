@@ -2458,7 +2458,7 @@ unsigned preset_apply(file_data *file, int preset, date_t *date, acct_t *from, a
 	 */
 
 	if (file->presets[preset].flags & TRANS_TAKE_TODAY) {
-		*date = get_current_date();
+		*date = date_today();
 		changed |= (1 << EDIT_ICON_DATE);
 	} else if (file->presets[preset].date != NULL_DATE && *date != file->presets[preset].date) {
 		*date = file->presets[preset].date;

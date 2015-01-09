@@ -79,17 +79,71 @@
 
 #define DATE_CONVERT_BUFFER_LEN 64
 
+
+/**
+ * A set of days, as used by OS and Territory SWIs.
+ */
+
+enum date_os_day {
+	DATE_OS_DAY_NONE = 0,
+	DATE_OS_DAY_SUNDAY = 1,
+	DATE_OS_DAY_MONDAY = 2,
+	DATE_OS_DAY_TUESDAY = 3,
+	DATE_OS_DAY_WEDNESDAY = 4,
+	DATE_OS_DAY_THURSDAY = 5,
+	DATE_OS_DAY_FRIDAY = 6,
+	DATE_OS_DAY_SATURDAY = 7
+};
+
+
+/**
+ * The first day of the OS week.
+ */
+
+#define DATE_FIRST_OS_DAY 1
+
+
+/**
+ * The last day of the OS week.
+ */
+
+#define DATE_LAST_OS_DAY 7
+
+/**
+ * Convert an enum date_os_day into an enum date_days, so that the day
+ * number is converted into the corresponding bit in the bitfield.
+ */
+
+#define date_convert_day_to_days(day) (1 << ((day) - 1))
+
+/**
+ * Details of the internal date implementation.
+ */
+
+/* Bitmasks to locate the day, month and year in the date_t type. */
+
 #define DATE_FIELD_DAY (0x000000ff)
 #define DATE_FIELD_MONTH (0x0000ff00)
 #define DATE_FIELD_YEAR (0xffff0000)
+
+/* Shifts to move the day, month and year into their correct places as above. */
 
 #define DATE_SHIFT_DAY 0
 #define DATE_SHIFT_MONTH 8
 #define DATE_SHIFT_YEAR 16
 
+/**
+ * Extract int days, int months and int years from a date_t.
+ */
+
 #define date_get_day_from_date(date) (int) ((date) & DATE_FIELD_DAY)
 #define date_get_month_from_date(date) (int) (((date) & DATE_FIELD_MONTH) >> DATE_SHIFT_MONTH)
 #define date_get_year_from_date(date) (int) (((date) & DATE_FIELD_YEAR) >> DATE_SHIFT_YEAR)
+
+/**
+ * Convert an int day, int month and int year into a date_t.
+ */
+
 #define date_combine_parts(day, month, year) (date_t) (((day) & DATE_FIELD_DAY) + (((month) << DATE_SHIFT_MONTH) & DATE_FIELD_MONTH) + (((year) << DATE_SHIFT_YEAR) & DATE_FIELD_YEAR))
 
 
@@ -102,8 +156,10 @@ static char			date_sep_out;					/**< The character used to separate dates when d
 static char			date_sep_in[DATE_SEP_LENGTH];			/**< A list of the characters usable as separators when entering dates.		*/
 
 
-
-static osbool		date_is_string_numeric(char *string);
+static int			date_days_in_month(int month, int year);
+static int			date_months_in_year(int year);
+static enum date_os_day		date_day_of_week(date_t date);
+static osbool			date_is_string_numeric(char *string);
 
 /**
  * Initialise, or re-initialise, the date module.
@@ -114,7 +170,7 @@ static osbool		date_is_string_numeric(char *string);
 
 void date_initialise(void)
 {
-	int				i;
+	int				day;
 	territory_calendar		calendar;
 	oswordreadclock_utc_block	clock;
 
@@ -132,17 +188,17 @@ void date_initialise(void)
 	debug_printf("Working days %d to %d", calendar.first_working_day, calendar.last_working_day);
 #endif
 
-	for (i = 1; i < calendar.first_working_day; i++) {
-		date_weekend_days |= 1 << (i-1);
+	for (day = DATE_FIRST_OS_DAY; day < calendar.first_working_day; day++) {
+		date_weekend_days |= date_convert_day_to_days(day);
 #ifdef DEBUG
-		debug_printf("Adding weekend day %d", i);
+		debug_printf("Adding weekend day %d", day);
 #endif
 	}
 
-	for (i = calendar.last_working_day + 1; i <= 7; i++) {
-		date_weekend_days |= 1 << (i - 1);
+	for (day = calendar.last_working_day + 1; day <= DATE_LAST_OS_DAY; day++) {
+		date_weekend_days |= date_convert_day_to_days(day);
 #ifdef DEBUG
-		debug_printf("Adding weekend day %d", i);
+		debug_printf("Adding weekend day %d", day);
 #endif
 	}
 
@@ -157,7 +213,7 @@ void date_initialise(void)
 
 	/* Set the date separators. */
 
-	date_sep_out = *config_str_read ("DateSepOut");
+	date_sep_out = *config_str_read("DateSepOut");
 
 	strncpy(date_sep_in, config_str_read("DateSepIn"), DATE_SEP_LENGTH);
 	date_sep_in[DATE_SEP_LENGTH - 1] = '\0';
@@ -397,7 +453,7 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 	 * given.
 	 */
 
-	month_limit = months_in_year(year);
+	month_limit = date_months_in_year(year);
 
 	if (month > month_limit)
 		month = month_limit;
@@ -406,7 +462,7 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 	 * year given.
 	 */
 
-	day_limit = (month_days == 0) ? days_in_month(month, year) : month_days;
+	day_limit = (month_days == 0) ? date_days_in_month(month, year) : month_days;
 
 	if (day > day_limit)
 		day = day_limit;
@@ -457,14 +513,14 @@ date_t date_add_period(date_t date, enum date_period unit, int period)
 
 		month += period;
 
-		while (month > months_in_year(year)) {
+		while (month > date_months_in_year(year)) {
 			year++;
-			month -= months_in_year(year);
+			month -= date_months_in_year(year);
 		}
 
 		while (month <= 0) {
 			year--;
-			month += months_in_year(year);
+			month += date_months_in_year(year);
 		}
 		break;
 
@@ -478,23 +534,23 @@ date_t date_add_period(date_t date, enum date_period unit, int period)
 
 		day += period;
 
-		while (day > days_in_month(month, year)) {
-			day -= days_in_month(month, year);
+		while (day > date_days_in_month(month, year)) {
+			day -= date_days_in_month(month, year);
 			month ++;
 
-			if (month > months_in_year(year)) {
+			if (month > date_months_in_year(year)) {
 				year++;
-				month -= months_in_year(year);
+				month -= date_months_in_year(year);
 			}
 		}
 
 		while (day <= 0) {
 			month --;
-			day += days_in_month(month, year);
+			day += date_days_in_month(month, year);
 
 			if (month <= 0) {
 				year--;
-				month += months_in_year(year);
+				month += date_months_in_year(year);
 			}
 		}
 		break;
@@ -514,9 +570,9 @@ date_t date_add_period(date_t date, enum date_period unit, int period)
  * month), and make it valid by either moving it forwards to the last valid
  * day in the month or pushing it back to the 1st of the following month.
  *
- * \param date		The raw date to be adjusted.
- * \param direction	The direction to adjust the date in.
- * \return		The adjusted date.
+ * \param date			The raw date to be adjusted.
+ * \param direction		The direction to adjust the date in.
+ * \return			The adjusted date.
  */
 
 date_t date_find_valid_day(date_t date, enum date_adjust direction)
@@ -535,13 +591,13 @@ date_t date_find_valid_day(date_t date, enum date_adjust direction)
 
 	/* Shuffle the dates around. */
 
-	if (direction == DATE_ADJUST_FORWARD && day > days_in_month(month, year)) {
-		day = days_in_month(month, year);
-	} else if (direction == DATE_ADJUST_BACKWARD && day > days_in_month(month, year)) {
+	if (direction == DATE_ADJUST_FORWARD && day > date_days_in_month(month, year)) {
+		day = date_days_in_month(month, year);
+	} else if (direction == DATE_ADJUST_BACKWARD && day > date_days_in_month(month, year)) {
 		day = 1;
 		month += 1;
 
-		if (month > months_in_year(year)) {
+		if (month > date_months_in_year(year)) {
 			month = 1;
 			year += 1;
 		}
@@ -550,10 +606,10 @@ date_t date_find_valid_day(date_t date, enum date_adjust direction)
 
 		if (month < 1) {
 			year -= 1;
-			month = months_in_year(year);
+			month = date_months_in_year(year);
 		}
 
-		day = days_in_month(month, year);
+		day = date_days_in_month(month, year);
 	} else if (direction == DATE_ADJUST_BACKWARD && day < 1) {
 		day = 1;
 	}
@@ -568,9 +624,9 @@ date_t date_find_valid_day(date_t date, enum date_adjust direction)
  * adjust the date forward or backwards to ensure that it does not fall on
  * a weekend day.
  *
- * \param date		The raw date to be adjusted.
- * \param direction	The direction to adjust the date, or none.
- * \return		The adjusted date.
+ * \param date			The raw date to be adjusted.
+ * \param direction		The direction to adjust the date, or none.
+ * \return			The adjusted date.
  */ 
 
 date_t date_find_working_day(date_t date, enum date_adjust direction)
@@ -606,21 +662,21 @@ date_t date_find_working_day(date_t date, enum date_adjust direction)
 		return result;
 
 	shift = 0;
-	weekday = day_of_week(result);
+	weekday = date_day_of_week(result);
 
 	/* While the weekend bit is set for the current weekday, move the
 	 * date one day in the specified direction and try again.
 	 */
 
-	while ((1 << (weekday-1)) & date_weekend_days) {
+	while (date_convert_day_to_days(weekday) & date_weekend_days) {
 		shift += move;
 		weekday += move;
 
-		if (weekday > 7)
-			weekday = 1;
+		if (weekday > DATE_LAST_OS_DAY)
+			weekday = DATE_FIRST_OS_DAY;
 
-		if (weekday < 1)
-			weekday = 7;
+		if (weekday < DATE_FIRST_OS_DAY)
+			weekday = DATE_LAST_OS_DAY;
 	}
 
 	/* If a shift is required, add the necessary days on to the base
@@ -634,213 +690,223 @@ date_t date_find_working_day(date_t date, enum date_adjust direction)
 }
 
 
+/**
+ * Get the current system date.
+ *
+ * \return			The current system date.
+ */
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Get today's date as an integer in internal format. */
-
-date_t get_current_date (void)
+date_t date_today(void)
 {
-  oswordreadclock_utc_block time;
-  territory_ordinals        ordinals;
+	oswordreadclock_utc_block	time;
+	territory_ordinals		ordinals;
 
 
-  time.op = oswordreadclock_OP_UTC;
-  oswordreadclock_utc (&time);
-  territory_convert_time_to_ordinals (territory_CURRENT, (const os_date_and_time *) &(time.utc), &ordinals);
+	time.op = oswordreadclock_OP_UTC;
+	oswordreadclock_utc(&time);
+	territory_convert_time_to_ordinals(territory_CURRENT, (const os_date_and_time *) &(time.utc), &ordinals);
 
-  return (ordinals.date & 0x00ff) + ((ordinals.month & 0x00ff) << 8) + ((ordinals.year & 0xffff) << 16);
+	return date_combine_parts(ordinals.date, ordinals.month, ordinals.year);
 }
 
 
+/**
+ * Find the number of days in a month in a given year. If the user has
+ * configured to use the Territory Manager, this information will be taken
+ * from the OS; otherwise it will be calculated directly.
+ *
+ * \param month			The month to return the day count for.
+ * \param year			The year containing the month.
+ * \return			The number of days in the given month.
+ */
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Return the number of days in the given month. */
-
-int days_in_month (int month, int year)
+static int date_days_in_month(int month, int year)
 {
-  os_date_and_time   date;
-  territory_ordinals ordinals;
-  territory_calendar calendar;
+	os_date_and_time	date;
+	territory_ordinals	ordinals;
+	territory_calendar	calendar;
 
 
-  if (config_opt_read ("Territory_dates"))
-  {
-    ordinals.centisecond = 0;
-    ordinals.second = 0;
-    ordinals.minute = 0;
-    ordinals.hour = 12;
-    ordinals.date = 1;
-    ordinals.month = month;
-    ordinals.year = year;
+	if (config_opt_read("Territory_dates")) {
+		ordinals.centisecond = 0;
+		ordinals.second = 0;
+		ordinals.minute = 0;
+		ordinals.hour = 12;
+		ordinals.date = 1;
+		ordinals.month = month;
+		ordinals.year = year;
 
-    territory_convert_ordinals_to_time (territory_CURRENT, &date, &ordinals);
+		territory_convert_ordinals_to_time(territory_CURRENT, &date, &ordinals);
+		territory_read_calendar_information(territory_CURRENT, (const os_date_and_time *) &date, &calendar);
+	} else {
+		switch (month) {
+		case 2:
+			calendar.day_count = ((year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0))) ? 29 : 28;
+			break;
 
-    territory_read_calendar_information (territory_CURRENT, (const os_date_and_time *) &date, &calendar);
-  }
-  else
-  {
-    calendar.month_count = 12;
-    switch (month)
-    {
-      case 2:
-        calendar.day_count = ((year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0))) ? 29 : 28;
-        break;
+		case 4:
+		case 6:
+		case 9:
+		case 11:
+			calendar.day_count = 30;
+			break;
 
-      case 4:
-      case 6:
-      case 9:
-      case 11:
-        calendar.day_count = 30;
-        break;
+		default:
+			calendar.day_count = 31;
+			break;
+		}
+	}
 
-      default:
-        calendar.day_count = 31;
-        break;
-    }
-  }
+#ifdef DEBUG
+	debug_printf("%d days in month %d (year %d)", calendar.day_count, month, year);
+#endif
 
-  #ifdef DEBUG
-  debug_printf ("%d days in month %d (year %d)", calendar.day_count, month, year);
-  #endif
-
-  return (calendar.day_count);
+	return calendar.day_count;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Return the number of months in the given month. */
+/**
+ * Find the number of months in a given year. If the user has configured to
+ * use the Territory Manager, this information will be taken from the OS;
+ * otherwise it will be calculated directly.
+ *
+ * \param year			The year to return the month count for.
+ * \return			The number of months in the given year.
+ */
 
-int months_in_year (int year)
+static int date_months_in_year(int year)
 {
-  os_date_and_time   date;
-  territory_ordinals ordinals;
-  territory_calendar calendar;
+	os_date_and_time	date;
+	territory_ordinals	ordinals;
+	territory_calendar	calendar;
 
 
-  if (config_opt_read ("Territory_dates"))
-  {
-    ordinals.centisecond = 0;
-    ordinals.second = 0;
-    ordinals.minute = 0;
-    ordinals.hour = 12;
-    ordinals.date = 1;
-    ordinals.month = 1;
-    ordinals.year = year;
+	if (config_opt_read("Territory_dates")) {
+		ordinals.centisecond = 0;
+		ordinals.second = 0;
+		ordinals.minute = 0;
+		ordinals.hour = 12;
+		ordinals.date = 1;
+		ordinals.month = 1;
+		ordinals.year = year;
 
-    territory_convert_ordinals_to_time (territory_CURRENT, &date, &ordinals);
+		territory_convert_ordinals_to_time(territory_CURRENT, &date, &ordinals);
+		territory_read_calendar_information(territory_CURRENT, (const os_date_and_time *) &date, &calendar);
+	} else {
+		calendar.month_count = 12;
+	}
 
-    territory_read_calendar_information (territory_CURRENT, (const os_date_and_time *) &date, &calendar);
-  }
-  else
-  {
-    calendar.month_count = 12;
-  }
+#ifdef DEBUG
+	debug_printf("%d months in year %d", calendar.month_count, year);
+#endif
 
-  #ifdef DEBUG
-  debug_printf ("%d months in year %d", calendar.month_count, year);
-  #endif
-
-  return (calendar.month_count);
+	return calendar.month_count;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Use the Territory module to find the day number (1 == Sunday -> 7 == Saturday). */
+/**
+ * Find the day of the week that a given date falls on, returning the day
+ * in the form of an OS weekday value where 1 = Sunday -> 7 = Saturday.
+ *
+ * \param date			The date to find the weekday for.
+ * \return			The weekday of the supplied date.
+ */
 
-int day_of_week (unsigned int date)
+static enum date_os_day date_day_of_week(date_t date)
 {
-  int                result;
-  territory_ordinals ordinals;
-  os_date_and_time   time;
+	territory_ordinals	ordinals;
+	os_date_and_time	time;
 
-  if (date != NULL_DATE)
-  {
-    ordinals.centisecond = 0;
-    ordinals.second = 0;
-    ordinals.minute = 0;
-    ordinals.hour = 0;
-    ordinals.date = (date & 0x000000ff);
-    ordinals.month = (date & 0x0000ff00) >> 8;
-    ordinals.year = (date & 0xffff0000) >> 16;
-    territory_convert_ordinals_to_time (territory_CURRENT, &time, (territory_ordinals const *) &ordinals);
-    territory_convert_time_to_ordinals (territory_CURRENT, (os_date_and_time const *) &time, &ordinals);
+	if (date == NULL_DATE)
+		return DATE_OS_DAY_NONE;
 
-    result = ordinals.weekday;
-  }
-  else
-  {
-    result = 0;
-  }
+	if (config_opt_read("Territory_dates")) {
+		ordinals.centisecond = 0;
+		ordinals.second = 0;
+		ordinals.minute = 0;
+		ordinals.hour = 0;
+		ordinals.date = date_get_day_from_date(date);
+		ordinals.month = date_get_month_from_date(date);
+		ordinals.year = date_get_year_from_date(date);
+		
+		territory_convert_ordinals_to_time(territory_CURRENT, &time, (territory_ordinals const *) &ordinals);
+		territory_convert_time_to_ordinals(territory_CURRENT, (os_date_and_time const *) &time, &ordinals);
+	} else {
+		ordinals.weekday = 0; // \TODO -- This needs fixing!
+	}
 
-  return (result);
+	return (enum date_os_day) ordinals.weekday;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Return true if the given dates encompass a full month. */
+/**
+ * Test two dates to see if they encompass a full month.
+ *
+ * \param start			The start date.
+ * \param end			The end date.
+ * \return			TRUE if the dates are the first day and the
+ *				last day of the same month; FALSE if not.
+ */
 
-int full_month (date_t start, date_t end)
+osbool date_is_full_month(date_t start, date_t end)
 {
-  int    day1, month1, year1, day2, month2, year2, result;
+	int	day1, month1, year1, day2, month2, year2;
 
 
-  result = 0;
+	if (start == NULL_DATE || end == NULL_DATE)
+		return FALSE;
 
-  if (start != NULL_DATE && end != NULL_DATE)
-  {
-    day1   = (start & 0x000000ff);
-    month1 = (start & 0x0000ff00) >> 8;
-    year1  = (start & 0xffff0000) >> 16;
+	day1 = date_get_day_from_date(start);
+	month1 = date_get_month_from_date(start);
+	year1 = date_get_year_from_date(start);
 
-    day2   = (end & 0x000000ff);
-    month2 = (end & 0x0000ff00) >> 8;
-    year2  = (end & 0xffff0000) >> 16;
+	day2 = date_get_day_from_date(end);
+	month2 = date_get_month_from_date(end);
+	year2 = date_get_year_from_date(end);
 
-    result = (day1 == 1 && day2 == days_in_month (month2, year2) && month1 == month2 && year1 == year2);
-  }
-
-  return (result);
+	return (day1 == 1 && day2 == date_days_in_month(month2, year2) &&
+			month1 == month2 && year1 == year2) ? TRUE : FALSE;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Return true if the given dates encompass a full year. */
+/**
+ * Test two dates to see if they encompass a full year.
+ *
+ * \param start			The start date.
+ * \param end			The end date.
+ * \return			TRUE if the dates are the first day and the
+ *				last day of the same year; FALSE if not.
+ */
 
-int full_year (date_t start, date_t end)
+osbool date_is_full_year(date_t start, date_t end)
 {
-  int    day1, month1, year1, day2, month2, year2, result;
+	int	day1, month1, year1, day2, month2, year2;
 
 
-  result = 0;
+	if (start == NULL_DATE || end == NULL_DATE)
+		return FALSE;
 
-  if (start != NULL_DATE && end != NULL_DATE)
-  {
-    day1   = (start & 0x000000ff);
-    month1 = (start & 0x0000ff00) >> 8;
-    year1  = (start & 0xffff0000) >> 16;
+	day1 = date_get_day_from_date(start);
+	month1 = date_get_month_from_date(start);
+	year1 = date_get_year_from_date(start);
 
-    day2   = (end & 0x000000ff);
-    month2 = (end & 0x0000ff00) >> 8;
-    year2  = (end & 0xffff0000) >> 16;
+	day2 = date_get_day_from_date(end);
+	month2 = date_get_month_from_date(end);
+	year2 = date_get_year_from_date(end);
 
-    result = (day1 == 1 && day2 == days_in_month (month2, year2) &&
-              month1 == 1 && month2 == months_in_year (year2) && year1 == year2);
-  }
-
-  return (result);
+	return (day1 == 1 && day2 == date_days_in_month(month2, year2) &&
+			month1 == 1 && month2 == date_months_in_year(year2) &&
+			year1 == year2) ? TRUE : FALSE;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
  * Count the number of days (inclusive) between two dates.
  *
- * \param start		The start date.
- * \param end		The end date.
- * \return		The number of days (inclusive) between the start
- *			and end dates.
+ * \param start			The start date.
+ * \param end			The end date.
+ * \return			The number of days (inclusive) between the
+ *				start and end dates.
  */
 
 int date_count_days(date_t start, date_t end)
@@ -870,21 +936,21 @@ int date_count_days(date_t start, date_t end)
 		 * at a time.
 		 */
 
-		days = days_in_month(month1, year1) - day1 + 1;
+		days = date_days_in_month(month1, year1) - day1 + 1;
 
 		month1++;
 
-		if (month1 > months_in_year(year1)) {
+		if (month1 > date_months_in_year(year1)) {
 			month1 = 1;
 			year1++;
 		}
 
-		while ((year1 < year2 && month1 <= months_in_year(year1)) || (year1 == year2 && month1 < month2)) {
-			days += days_in_month(month1, year1);
+		while ((year1 < year2 && month1 <= date_months_in_year(year1)) || (year1 == year2 && month1 < month2)) {
+			days += date_days_in_month(month1, year1);
 
 			month1++;
 
-			if (month1 > months_in_year(year1)) {
+			if (month1 > date_months_in_year(year1)) {
 				month1 = 1;
 				year1++;
 			}
@@ -900,8 +966,9 @@ int date_count_days(date_t start, date_t end)
 /**
  * Test a string, to see if all its characters are numeric.
  *
- * \param *string	Pointer to the string to test.
- * \return		TRUE if all the characters are numeric; FALSE if not.
+ * \param *string		Pointer to the string to test.
+ * \return			TRUE if all the characters are numeric;
+ *				FALSE if not.
  */
 
 static osbool date_is_string_numeric(char *string)

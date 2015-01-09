@@ -1489,7 +1489,7 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
 			}
 		} else {
 			if (key->c == wimp_KEY_F1) {
-				date_convert_to_string(get_current_date(), buffer_date, DATE_FIELD_LEN);
+				date_convert_to_string(date_today(), buffer_date, DATE_FIELD_LEN);
 				wimp_set_icon_state(key->w, EDIT_ICON_DATE, 0, 0);
 				icons_replace_caret_in_window(key->w);
 			}

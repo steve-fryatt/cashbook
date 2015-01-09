@@ -299,7 +299,7 @@ static void decode_date_menu(wimp_selection *selection)
 	if (main_menu_line < main_menu_file->trans_count && selection->items[0] != -1) {
 		if (preset_complete_menu_decode(selection) == NULL_PRESET)
 			edit_change_transaction_date(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-					get_current_date());
+					date_today());
 		else
 			edit_insert_preset_into_transaction(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
 					preset_complete_menu_decode(selection));

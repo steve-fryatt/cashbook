@@ -90,11 +90,11 @@ static file_data		*file_list = NULL;
 
 /* A count which is incremented to allow <Untitled n> window titles */
 
-static int			untitled_count = 0;
+static int			file_untitled_count = 0;
 
 /* The last date on which all the files were updated. */
 
-static unsigned			last_update_date = NULL_DATE;
+static date_t			file_last_update_date = NULL_DATE;
 
 /* The handle of the SaveAs dialogue of last resort. */
 
@@ -334,7 +334,7 @@ file_data *build_new_file_block(void)
   *(new->filename) = '\0';
   new->modified = FALSE;
   new->sort_valid = TRUE;
-  new->untitled_count = ++untitled_count;
+  new->untitled_count = ++file_untitled_count;
   new->child_x_offset = 0;
   new->auto_reconcile = FALSE;
 
@@ -816,51 +816,55 @@ void redraw_file_windows(file_data *file)
 
 }
 
-/* ==================================================================================================================
- * A change of date.
+
+/**
+ * Process any open files on a change of date: adding any new standing
+ * orders and recalculate all the files on a change of day.
  */
 
-/* Add standing orders and recalculate all the files on a change of day. */
-
-void update_files_for_new_date (void)
+void file_process_date_change(void)
 {
-  unsigned  today;
-  file_data *file;
+	date_t		today;
+	file_data	*file;
 
 
-  #ifdef DEBUG
-  debug_printf ("\\YChecking for daily update");
-  #endif
+#ifdef DEBUG
+	debug_printf("\\YChecking for daily update");
+#endif
 
-  /* Get today's date and check if the last update happened today. */
+	/* Get today's date and check if an update has already happened
+	 * today. If one has, there's nothing more to do.
+	 */
 
-  today = get_current_date ();
+	today = date_today();
 
-  if (today != last_update_date)
-  {
-    hourglass_on ();
+	if (today == file_last_update_date)
+		return;
 
-    file = file_list;
+	hourglass_on();
 
-    while (file != NULL)
-    {
-      #ifdef DEBUG
-      debug_printf ("Updateing file...");
-      #endif
+	/* Iterate through the open files, running the date-dependent
+	 * updates on each.
+	 */
 
-      sorder_process(file);
-      account_recalculate_all(file);
-      transact_set_window_extent(file);
+	file = file_list;
 
-      file = file->next;
-    }
+	while (file != NULL) {
+#ifdef DEBUG
+		debug_printf("Updating file...");
+#endif
 
-    /* Remember today so this doesn't happen again until tomorrow. */
+		sorder_process(file);
+		account_recalculate_all(file);
+		transact_set_window_extent(file);
 
-    last_update_date = today;
+		file = file->next;
+	}
 
-    hourglass_off ();
-  }
+	/* Record the date of this update. */
+
+	file_last_update_date = today;
+
+	hourglass_off();
 }
-
 

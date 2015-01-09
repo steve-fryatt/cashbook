@@ -42,16 +42,11 @@ typedef unsigned int	date_t;
 
 #define NULL_DATE ((date_t) 0xffffffff)
 
-
-
-
-/* ==================================================================================================================
- * Static constants
- */
-
-
-/* ==================================================================================================================
- * Data structures
+/**
+ * Days of the week in the form of a bitfield, which can be added together
+ * to represent groups of days.
+ *
+ * The bitfield values need to correspond to the entries in enum date_os_day.
  */
 
 enum date_days {
@@ -65,12 +60,22 @@ enum date_days {
 	DATE_DAY_SATURDAY = 0x40
 };
 
+/**
+ * Represent the units of numerical date periods.
+ */
+
 enum date_period {
 	DATE_PERIOD_NONE = 0,							/**< No period specified.					*/
 	DATE_PERIOD_DAYS,							/**< Period specified in days.					*/
 	DATE_PERIOD_MONTHS,							/**< Period specified in months.				*/
 	DATE_PERIOD_YEARS							/**< Period specified in years.					*/
 };
+
+/**
+ * Represent the direction of date adjustments. These are given in the sense
+ * of "moving a date forward" to make it occur sooner, and "putting a date
+ * back" to make it happen later.
+ */
 
 enum date_adjust {
 	DATE_ADJUST_NONE = 0,							/**< Make no adjustment to the date.				*/
@@ -196,16 +201,38 @@ date_t date_find_valid_day(date_t date, enum date_adjust direction);
 date_t date_find_working_day(date_t date, enum date_adjust direction);
 
 
+/**
+ * Get the current system date.
+ *
+ * \return			The current system date.
+ */
+
+date_t date_today(void);
 
 
+/**
+ * Test two dates to see if they encompass a full month.
+ *
+ * \param start			The start date.
+ * \param end			The end date.
+ * \return			TRUE if the dates are the first day and the
+ *				last day of the same month; FALSE if not.
+ */
 
-date_t get_current_date (void);
+osbool date_is_full_month(date_t start, date_t end);
 
-int days_in_month (int month, int year);
-int months_in_year (int year);
-int day_of_week (unsigned int date);
-int full_month (date_t start, date_t end);
-int full_year (date_t start, date_t end);
+
+/**
+ * Test two dates to see if they encompass a full year.
+ *
+ * \param start			The start date.
+ * \param end			The end date.
+ * \return			TRUE if the dates are the first day and the
+ *				last day of the same year; FALSE if not.
+ */
+
+osbool date_is_full_year(date_t start, date_t end);
+
 
 /**
  * Count the number of days (inclusive) between two dates.

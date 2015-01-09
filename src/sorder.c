@@ -2442,7 +2442,7 @@ void sorder_process(file_data *file)
 	debug_printf("\\YStanding Order processing");
 	#endif
 
-	today = get_current_date();
+	today = date_today();
 	changed = FALSE;
 
 	for (order=0; order<file->sorder_count; order++) {
@@ -2543,7 +2543,7 @@ void sorder_trial(file_data *file)
 
 	/* Find the cutoff date for the trial. */
 
-	trial_date = date_add_period(get_current_date(), DATE_PERIOD_DAYS, budget_get_sorder_trial(file));
+	trial_date = date_add_period(date_today(), DATE_PERIOD_DAYS, budget_get_sorder_trial(file));
 
 	/* Zero the order trial values. */
 
@@ -2623,7 +2623,7 @@ void sorder_full_report(file_data *file)
 	msgs_param_lookup("SORTitle", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
-	date_convert_to_string(get_current_date(), numbuf1, sizeof(numbuf1));
+	date_convert_to_string(date_today(), numbuf1, sizeof(numbuf1));
 	msgs_param_lookup("SORHeader", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 

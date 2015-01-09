@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -125,8 +125,12 @@ char *file_get_leafname(file_data *file, char *leaf, int len);
 void redraw_all_files (void);
 void redraw_file_windows (file_data *file);
 
-/* A change of date. */
 
-void update_files_for_new_date (void);
+/**
+ * Process any open files on a change of date: adding any new standing
+ * orders and recalculate all the files on a change of day.
+ */
+
+void file_process_date_change(void);
 
 #endif

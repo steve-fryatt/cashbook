@@ -3954,7 +3954,7 @@ void account_recalculate_all(file_data *file)
 		file->accounts[account].budget_balance = 0; /* was file->accounts[account].opening_balance; */
 	}
 
-	date = get_current_date();
+	date = date_today();
 	post_date = date_add_period(date, DATE_PERIOD_DAYS, budget_get_sorder_trial(file));
 	budget_get_dates(file, &budget_start, &budget_finish);
 	limit_postdated = budget_get_limit_postdated(file);

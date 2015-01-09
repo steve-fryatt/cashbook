@@ -1094,7 +1094,7 @@ static void analysis_generate_transaction_report(file_data *file)
 
 	date_convert_to_string(start_date, b1, sizeof(b1));
 	date_convert_to_string(end_date, b2, sizeof(b2));
-	date_convert_to_string(get_current_date(), b3, sizeof(b3));
+	date_convert_to_string(date_today(), b3, sizeof(b3));
 	msgs_param_lookup("TRHeader", line, sizeof(line), b1, b2, b3, NULL);
 	report_write_line(report, 0, line);
 
@@ -1817,7 +1817,7 @@ static void analysis_generate_unreconciled_report(file_data *file)
 
 	date_convert_to_string(start_date, b1, sizeof(b1));
 	date_convert_to_string(end_date, b2, sizeof(b2));
-	date_convert_to_string(get_current_date(), b3, sizeof(b3));
+	date_convert_to_string(date_today(), b3, sizeof(b3));
 	msgs_param_lookup("URHeader", line, sizeof(line), b1, b2, b3, NULL);
 	report_write_line(report, 0, line);
 
@@ -2487,7 +2487,7 @@ static void analysis_generate_cashflow_report(file_data *file)
 
 	date_convert_to_string(start_date, b1, sizeof(b1));
 	date_convert_to_string(end_date, b2, sizeof(b2));
-	date_convert_to_string(get_current_date (), b3, sizeof(b3));
+	date_convert_to_string(date_today (), b3, sizeof(b3));
 	msgs_param_lookup("CRHeader", line, sizeof(line), b1, b2, b3, NULL);
 	report_write_line(report, 0, line);
 
@@ -3118,7 +3118,7 @@ static void analysis_generate_balance_report(file_data *file)
 
 	date_convert_to_string(start_date, b1, sizeof(b1));
 	date_convert_to_string(end_date, b2, sizeof(b2));
-	date_convert_to_string(get_current_date(), b3, sizeof(b3));
+	date_convert_to_string(date_today(), b3, sizeof(b3));
 	msgs_param_lookup("BRHeader", line, sizeof(line), b1, b2, b3, NULL);
 	report_write_line(report, 0, line);
 

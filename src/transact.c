@@ -291,6 +291,8 @@ static void			transact_adjust_window_columns(void *data, wimp_i icon, int width)
 static void			transact_adjust_sort_icon(file_data *file);
 static void			transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
 
+static void			transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+
 static void			transact_complete_menu_add_entry(struct transact_list_link **entries, int *count, int *max, char *new);
 static int			transact_complete_menu_compare(const void *va, const void *vb);
 
@@ -448,7 +450,7 @@ void transact_open_window(file_data *file)
 			file->transaction_window.transaction_window,
 			TRANSACT_TOOLBAR_HEIGHT-4);
 
-	ihelp_add_window(file->transaction_window.transaction_window , "Transact", decode_transact_window_help);
+	ihelp_add_window(file->transaction_window.transaction_window , "Transact", transact_decode_window_help);
 	ihelp_add_window(file->transaction_window.transaction_pane , "TransactTB", NULL);
 
 	/* Register event handlers for the two windows. */
@@ -2088,32 +2090,41 @@ int find_transaction_window_centre (file_data *file, int account)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void decode_transact_window_help (char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
+
+/**
+ * Turn a mouse position over a Transaction window into an interactive
+ * help token.
+ *
+ * \param *buffer		A buffer to take the generated token.
+ * \param w			The window under the pointer.
+ * \param i			The icon under the pointer.
+ * \param pos			The current mouse position.
+ * \param buttons		The current mouse button state.
+ */
+
+static void transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
-  int                 column, xpos;
-  wimp_window_state   window;
-  file_data           *file;
+	int				column, xpos;
+	wimp_window_state		window;
+	struct transaction_window	*windat;
 
-  *buffer = '\0';
+	*buffer = '\0';
 
-  file = find_transaction_window_file_block (w);
+	windat = event_get_window_user_data(close->w);
+	if (windat == NULL)
+		return;
 
-  if (file != NULL)
-  {
-    window.w = w;
-    wimp_get_window_state (&window);
+	window.w = w;
+	wimp_get_window_state(&window);
 
-    xpos = (pos.x - window.visible.x0) + window.xscroll;
+	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
-    for (column = 0;
-         column < TRANSACT_COLUMNS &&
-         xpos > (file->transaction_window.column_position[column] + file->transaction_window.column_width[column]);
-         column++);
+	for (column = 0;
+		column < TRANSACT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
+		column++);
 
-    sprintf (buffer, "Col%d", column);
-  }
+	sprintf(buffer, "Col%d", column);
 }
-
 
 
 /**

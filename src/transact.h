@@ -142,8 +142,6 @@ void scroll_transaction_window_to_end (file_data *file, int dir);
 
 int find_transaction_window_centre (file_data *file, int account);
 
-void decode_transact_window_help (char *buffer, wimp_w window, wimp_i icon, os_coord pos, wimp_mouse_state buttons);
-
 
 
 

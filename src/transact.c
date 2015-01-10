@@ -2110,7 +2110,7 @@ static void transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
 
 	*buffer = '\0';
 
-	windat = event_get_window_user_data(close->w);
+	windat = event_get_window_user_data(w);
 	if (windat == NULL)
 		return;
 

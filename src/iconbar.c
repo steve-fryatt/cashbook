@@ -174,7 +174,7 @@ static void iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		break;
 
 	case ICONBAR_MENU_QUIT:
-		if (!check_for_unsaved_files())
+		if (!file_check_for_unsaved_data())
 			main_quit_flag = TRUE;
 		break;
 	}

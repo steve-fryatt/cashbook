@@ -363,7 +363,7 @@ static void purge_file(file_data *file, osbool transactions, date_t cutoff, osbo
 	 * is included in the redraw.
 	 */
 
-	redraw_file_windows(file);
+	file_redraw_windows(file);
 
 #ifdef DEBUG
 	debug_printf("\\OPurging file");

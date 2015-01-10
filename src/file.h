@@ -66,9 +66,16 @@ void delete_file (file_data *file);
 
 file_data *find_transaction_window_file_block (wimp_w window);
 
-/* Saved files and data integrity */
 
-int  check_for_unsaved_files (void);
+/**
+ * Check for unsaved files and for any pending print jobs which are
+ * currently attached to open files, and warn the user if any are found.
+ *
+ * \return		TRUE if there is something that isn't saved; FALSE
+ *			if there's nothing worth saving.
+ */
+
+osbool file_check_for_unsaved_data(void);
 
 
 /**
@@ -118,12 +125,20 @@ char *file_get_pathname(file_data *file, char *path, int len);
 char *file_get_leafname(file_data *file, char *leaf, int len);
 
 
+/**
+ * Redraw the windows associated with all open files.
+ */
+
+void file_redraw_all(void);
 
 
-/* General file redraw. */
+/**
+ * Redraw all the windows connected with a given file.
+ *
+ * \param *file		The file to redraw the windows for.
+ */
 
-void redraw_all_files (void);
-void redraw_file_windows (file_data *file);
+void file_redraw_windows(file_data *file);
 
 
 /**

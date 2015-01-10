@@ -388,7 +388,7 @@ static osbool main_message_quit(wimp_message *message)
 
 static osbool main_message_prequit(wimp_message *message)
 {
-	if (!check_for_unsaved_files())
+	if (!file_check_for_unsaved_data())
 		return TRUE;
 
 	message->your_ref = message->my_ref;

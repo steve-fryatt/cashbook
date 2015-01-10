@@ -579,63 +579,50 @@ file_data *find_transaction_window_file_block (wimp_w window)
 }
 
 
-/* ==================================================================================================================
- * Saved files and data integrity
+/**
+ * Check for unsaved files and for any pending print jobs which are
+ * currently attached to open files, and warn the user if any are found.
+ *
+ * \return		TRUE if there is something that isn't saved; FALSE
+ *			if there's nothing worth saving.
  */
 
-/* Check for unsaved files and for any pending print jobs. */
-
-int check_for_unsaved_files (void)
+osbool file_check_for_unsaved_data(void)
 {
-  file_data *list = file_list;
-  int       modified, pending;
+	file_data	*list = file_list;
+	osbool		modified = FALSE, pending = FALSE;
 
 
-  /* Search through all the loaded files to see if any are modified or any have pending print jobs attached. */
+	/* Search through all the loaded files to see if any are modified or
+	 * have any pending print jobs attached.
+	 */
 
-  modified = 0;
-  pending = 0;
+	while (list != NULL) {
+		if (list->modified)
+			modified = TRUE;
 
-  while (list != NULL)
-  {
-    if (list->modified)
-    {
-      modified = 1;
-    }
+		if (report_get_pending_print_jobs(list))
+			pending = TRUE;
 
-    if (report_get_pending_print_jobs (list))
-    {
-      pending = 1;
-    }
+		list = list->next;
+	}
 
-    list = list->next;
-  }
+	/* If any files were modified, allow the user to discard them. */
 
-  /* If any were modified, allow the user to discard them. */
+	if (modified && (error_msgs_report_question("FilesNotSaved", "FilesNotSavedB") == 1))
+		modified = FALSE;
 
-  if (modified)
-  {
-    if (error_msgs_report_question ("FilesNotSaved", "FilesNotSavedB") == 1)
-    {
-      modified = 0;
-    }
-  }
+	/* If there were no unsaved files (or the use chose to discard them),
+	 * warn of any pending print jobs. This isn't done if the process is
+	 * aborted due to modified files to save 'dialogue box overload'.
+	 */
 
-  /* If there were no unsaved files (or the use chose to discard them), warn of any pending print jobs.  This isn't
-   * done if the process is aborted due to modified files to save 'dialogue box overload'. :-)
-   */
+	if (!modified && pending && (error_msgs_report_question("FPendingPrints", "FPendingPrintsB") == 1))
+		pending = FALSE;
 
-  if (!modified && pending)
-  {
-    if (error_msgs_report_question ("FPendingPrints", "FPendingPrintsB") == 1)
-    {
-      pending = 0;
-    }
-  }
+	/* Return true if anything needs rescuing. */
 
-  /* Return true if anything needs rescuing. */
-
-  return (modified || pending);
+	return (modified || pending);
 }
 
 
@@ -670,8 +657,6 @@ osbool file_check_for_filepath(file_data *file)
 
 	return (*(file->filename) != '\0') ? TRUE : FALSE;
 }
-
-
 
 
 /**
@@ -758,25 +743,24 @@ static char *file_get_default_title(file_data *file, char *name, size_t len)
 	return name;
 }
 
-/* ==================================================================================================================
- * General file redraw.
+
+/**
+ * Redraw the windows associated with all open files.
  */
 
-void redraw_all_files (void)
+void file_redraw_all(void)
 {
-  file_data *list = file_list;
+	file_data	*list = file_list;
 
-  /* Work through all the loaded files and force redraws of each one. */
+	/* Work through all the loaded files and force redraws of each one. */
 
-  while (list != NULL)
-  {
-    redraw_file_windows (list);
+	while (list != NULL) {
+		file_redraw_windows(list);
 
-    list = list->next;
-  }
+		list = list->next;
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
  * Redraw all the windows connected with a given file.
@@ -784,7 +768,7 @@ void redraw_all_files (void)
  * \param *file		The file to redraw the windows for.
  */
 
-void redraw_file_windows(file_data *file)
+void file_redraw_windows(file_data *file)
 {
 	int	i;
 

@@ -70,10 +70,10 @@
 
 #define NULL_ACCOUNT (-1)
 #define NULL_TRANS_FLAGS 0
-#define NULL_SORDER (-1)
-#define NULL_PRESET (-1)
-#define NULL_TRANSACTION (-1)
-#define NULL_TEMPLATE (-1)
+#define NULL_SORDER ((int) (-1))
+#define NULL_PRESET ((int) (-1))
+#define NULL_TRANSACTION ((int) (-1))
+#define NULL_TEMPLATE ((int) (-1))
 
 #define MIN_DATE 0x00640101
 #define MAX_DATE 0x270f0c1f
@@ -209,7 +209,7 @@ enum sort_type {
 /* None of these are fully used as yet... */
 
 typedef int		acct_t;							/**< An account number.						*/
-
+typedef int		tran_t;							/**< A transaction number.					*/
 
 /* \TODO -- These need to move into their modules once we've sorted the rest
  *          of this mess out.

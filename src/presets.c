@@ -1293,7 +1293,7 @@ void preset_force_window_redraw(file_data *file, int from, int to)
 	if (file == NULL || file->preset_window.preset_window == NULL)
 		return;
 
-	 window.w = file->preset_window.preset_window;
+	window.w = file->preset_window.preset_window;
 	wimp_get_window_info_header_only(&window);
 
 	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;

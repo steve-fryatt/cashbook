@@ -427,12 +427,12 @@ static void purge_file(file_data *file, osbool transactions, date_t cutoff, osbo
 	/* account_recalculate_all(file); */
 
 	*(file->filename) = '\0';
-	build_transaction_window_title(file);
+	transact_build_window_title(file);
 	file_set_data_integrity(file, TRUE);
 
 	/* Put the caret into the first empty line. */
 
-	scroll_transaction_window_to_end(file, -1);
+	transact_scroll_window_to_end(file, TRANSACT_SCROLL_HOME);
 
 	transact_set_window_extent(file);
 

@@ -2409,7 +2409,7 @@ static int accview_get_line_from_transact_window(struct accview_window *view)
 	if (view == NULL || view->file == NULL || view->account == NULL_ACCOUNT)
 		return line;
 
-	centre_transact = find_transaction_window_centre(view->file, view->account);
+	centre_transact = transact_find_nearest_window_centre(view->file, view->account);
 	line = accview_get_line_from_transaction(view, centre_transact);
 
 	if (line == -1)

@@ -2464,7 +2464,7 @@ static osbool account_process_acc_edit_window(void)
 	sorder_trial(edit_account_file);
 	account_recalculate_all(edit_account_file);
 	accview_recalculate(edit_account_file, edit_account_no, 0);
-	force_transaction_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
+	transact_force_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
 	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
 	accview_redraw_all(edit_account_file);
 	file_set_data_integrity(edit_account_file, TRUE);
@@ -2520,7 +2520,7 @@ static osbool account_process_hdg_edit_window(void)
 	/* Tidy up and redraw the windows */
 
 	account_recalculate_all(edit_account_file);
-	force_transaction_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
+	transact_force_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
 	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
 	accview_redraw_all(edit_account_file);
 	file_set_data_integrity(edit_account_file, TRUE);
@@ -3069,7 +3069,7 @@ acct_t account_add(file_data *file, char *name, char *ident, enum account_type t
 	file->accounts[new].account_view = NULL;
 
 	account_add_to_lists(file, new);
-	update_transaction_window_toolbar(file);
+	transact_update_toolbar(file);
 
 	return new;
 }
@@ -3199,7 +3199,7 @@ osbool account_delete(file_data *file, acct_t account)
 
 	/* Update the transaction window toolbar. */
 
-	update_transaction_window_toolbar(file);
+	transact_update_toolbar(file);
 	file_set_data_integrity(file, TRUE);
 
 	return TRUE;

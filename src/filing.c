@@ -315,7 +315,7 @@ void save_transaction_file(file_data *file, char *filename)
 	file->modified = 0;
 	strcpy(file->filename, filename);
 
-	build_transaction_window_title(file);
+	transact_build_window_title(file);
 
 	for (i = 0; i < ACCOUNT_WINDOWS; i++)
 		account_build_window_title(file, i);
@@ -525,7 +525,7 @@ void import_csv_file (file_data *file, char *filename)
     file_set_data_integrity(file, TRUE);
 
     edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
-    force_transaction_window_redraw(file, 0, file->trans_count - 1);
+    transact_force_window_redraw(file, 0, file->trans_count - 1);
  }
 
   /* Sort out the import results window. */

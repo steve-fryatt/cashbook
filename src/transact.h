@@ -72,6 +72,12 @@ enum transact_field {
 	TRANSACT_FIELD_DESC = 0x20
 };
 
+enum transact_scroll_direction {
+	TRANSACT_SCROLL_NONE = 0,
+	TRANSACT_SCROLL_HOME,
+	TRANSACT_SCROLL_END
+};
+
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
@@ -127,23 +133,75 @@ void transact_delete_window(struct transaction_window *windat);
  *
  * \TODO -- Should this be non-static?
  *
- * \param *file			The file to update.
+ * \param *file			The file containing the window to update.
  */
 
 void transact_set_window_extent(file_data *file);
 
 
-void minimise_transaction_window_extent (file_data *file);
-void build_transaction_window_title (file_data *file);
-void force_transaction_window_redraw (file_data *file, int from, int to);
-void update_transaction_window_toolbar (file_data *file);
+/**
+ * Minimise the extent of the transaction window, by removing unnecessary
+ * blank lines as they are scrolled out of sight.
+ *
+ * \param *file			The file containing the window to update.
+ */
 
-void scroll_transaction_window_to_end (file_data *file, int dir);
-
-int find_transaction_window_centre (file_data *file, int account);
+void transact_minimise_window_extent(file_data *file);
 
 
+/**
+ * Recreate the title of the Transaction window connected to the given file.
+ *
+ * \param *file			The file to rebuild the title for.
+ */
 
+void transact_build_window_title(file_data *file);
+
+
+/**
+ * Force a redraw of the Transaction window, for the given range of lines.
+ *
+ * NB: This doesn't redraw the edit line, as the icons in that need to be
+ * refreshed.
+ *
+ * \param *file			The file owning the window.
+ * \param from			The first line to redraw, inclusive.
+ * \param to			The last line to redraw, inclusive.
+ */
+
+void transact_force_window_redraw(file_data *file, int from, int to);
+
+
+/**
+ * Update the state of the buttons in a transaction window toolbar.
+ *
+ * \param *file			The file owning the window to update.
+ */
+
+void transact_update_toolbar(file_data *file);
+
+
+/**
+ * Scroll a transaction window to either the top (home) or the end.
+ *
+ * \param *file			The file owning the window to be scrolled.
+ * \param direction		The direction to scroll the window in.
+ */
+
+void transact_scroll_window_to_end(file_data *file, enum transact_scroll_direction direction);
+
+
+/**
+ * Return the transaction number of the transaction nearest to the centre of
+ * the visible area of the transaction window which references a given
+ * account.
+ *
+ * \param *file			The file owning the window to be searched.
+ * \param account		The account to search for.
+ * \return			The transaction found, or NULL_TRANSACTION.
+ */
+
+int transact_find_nearest_window_centre(file_data *file, acct_t account);
 
 
 /**

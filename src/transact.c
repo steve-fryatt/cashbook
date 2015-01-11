@@ -432,11 +432,11 @@ void transact_open_window(file_data *file)
 
 	/* Set the title */
 
-	build_transaction_window_title(file);
+	transact_build_window_title(file);
 
 	/* Update the toolbar */
 
-	update_transaction_window_toolbar(file);
+	transact_update_toolbar(file);
 
 	/* Set the default values */
 
@@ -536,7 +536,7 @@ static void transact_window_open_handler(wimp_open *open)
 
 	windat = event_get_window_user_data(open->w);
 	if (windat != NULL && windat->file != NULL)
-		minimise_transaction_window_extent(windat->file);
+		transact_minimise_window_extent(windat->file);
 
 	wimp_open_window(open);
 }
@@ -986,10 +986,10 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 
 		transact_window_scroll_handler(&scroll);
 	} else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_UP) || key->c == wimp_KEY_HOME) {
-		scroll_transaction_window_to_end(file, -1);
+		transact_scroll_window_to_end(file, TRANSACT_SCROLL_HOME);
 	} else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_DOWN) ||
 			(key->c == wimp_KEY_COPY && config_opt_read ("IyonixKeys"))) {
-		scroll_transaction_window_to_end(file, +1);
+		transact_scroll_window_to_end(file, TRANSACT_SCROLL_END);
 	} else {
 		/* Pass any keys that are left on to the edit line handler. */
 		return edit_process_keypress(file, key);
@@ -1385,7 +1385,7 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 	 */
 
 	wimp_open_window((wimp_open *) scroll);
-	minimise_transaction_window_extent(file);
+	transact_minimise_window_extent(file);
 }
 
 
@@ -1839,7 +1839,7 @@ static void transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
 /**
  * Set the extent of the transaction window for the specified file.
  *
- * \param *file			The file to update.
+ * \param *file			The file containing the window to update.
  */
 
 void transact_set_window_extent(file_data *file)
@@ -1897,198 +1897,231 @@ void transact_set_window_extent(file_data *file)
 	wimp_set_extent(file->transaction_window.transaction_window, &extent);
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Try to minimise the extent of the transaction window, by removing redundant blank lines as they are scrolled
- * out of sight.
- */
-
-void minimise_transaction_window_extent (file_data *file)
-{
-  int               height, last_visible_line, minimum_length;
-  wimp_window_state window;
-
-
-  window.w = file->transaction_window.transaction_window;
-  wimp_get_window_state (&window);
-
-  /* Calculate the height of the window and the last line that is visible. */
-
-  height = (window.visible.y1 - window.visible.y0) - TRANSACT_TOOLBAR_HEIGHT;
-  last_visible_line = (-window.yscroll + height) / (ICON_HEIGHT+LINE_GUTTER);
-
-  /* Work out what the minimum length of the window needs to be, taking into account minimum window size, entries
-   * and blank lines and the location of the edit line.
-   */
-
-  minimum_length = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-                    file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
-
-  if (file->transaction_window.entry_line >= minimum_length)
-  {
-    minimum_length = file->transaction_window.entry_line + 1;
-  }
-
-  if (last_visible_line > minimum_length)
-  {
-    minimum_length = last_visible_line;
-  }
-
-  /* Shrink the window. */
-
-  if (file->transaction_window.display_lines > minimum_length)
-  {
-    file->transaction_window.display_lines = minimum_length;
-    transact_set_window_extent (file);
-  }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void build_transaction_window_title (file_data *file)
-{
-  file_get_pathname(file, file->transaction_window.window_title, sizeof (file->transaction_window.window_title));
-
-  if (file->modified)
-  {
-    strcat (file->transaction_window.window_title, " *");
-  }
-
-  xwimp_force_redraw_title (file->transaction_window.transaction_window); /* Nested Wimp only! */
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void force_transaction_window_redraw (file_data *file, int from, int to)
-{
-  int              y0, y1;
-  wimp_window_info window;
-
-  window.w = file->transaction_window.transaction_window;
-  if (xwimp_get_window_info_header_only (&window) == NULL)
-  {
-    y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
-    y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
-
-    wimp_force_redraw (file->transaction_window.transaction_window, window.extent.x0, y0, window.extent.x1, y1);
-  }
-  /* **** NB This doesn't redraw the edit line -- the icons need to be refreshed **** */
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void update_transaction_window_toolbar (file_data *file)
-{
-  icons_set_shaded (file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT,
-                    account_count_type_in_file (file, ACCOUNT_FULL) == 0);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Scroll the transaction window to the top or the end. */
-
-void scroll_transaction_window_to_end (file_data *file, int dir)
-{
-  wimp_window_info window;
-
-
-  window.w = file->transaction_window.transaction_window;
-  wimp_get_window_info_header_only (&window);
-
-  if (dir > 0)
-  {
-    window.yscroll = window.extent.y0 - (window.extent.y1 - window.extent.y0);
-  }
-  else if (dir < 0)
-  {
-    window.yscroll = window.extent.y1;
-  }
-
-  minimise_transaction_window_extent (file);
-  wimp_open_window ((wimp_open *) &window);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Return the transaction number of the transaction in the centre (or nearest the centre) of the transactions
- * window which references the given account.
+/**
+ * Minimise the extent of the transaction window, by removing unnecessary
+ * blank lines as they are scrolled out of sight.
  *
- * First find the centre line, and see if that matches the account.  If so, return the transaction.  If not, search
- * outwards from that point towards the ends of the window, looking for a match.
+ * \param *file			The file containing the window to update.
  */
 
-int find_transaction_window_centre (file_data *file, int account)
+void transact_minimise_window_extent(file_data *file)
 {
-  wimp_window_state window;
-  int               centre, height, result, i;
+	int			height, last_visible_line, minimum_length;
+	wimp_window_state	window;
 
 
-  window.w = file->transaction_window.transaction_window;
-  wimp_get_window_state (&window);
+	window.w = file->transaction_window.transaction_window;
+	wimp_get_window_state(&window);
 
-  /* Calculate the height of the useful visible window, leaving out any OS units taken up by part lines.
-   */
+	/* Calculate the height of the window and the last line that
+	 * is on display in the visible area.
+	 */
 
-  height = window.visible.y1 - window.visible.y0 - ICON_HEIGHT - LINE_GUTTER - TRANSACT_TOOLBAR_HEIGHT;
+	height = (window.visible.y1 - window.visible.y0) - TRANSACT_TOOLBAR_HEIGHT;
+	last_visible_line = (-window.yscroll + height) / (ICON_HEIGHT+LINE_GUTTER);
 
-  /* Calculate the centre line in the window.  If this is greater than the number of actual tracsactions in the window,
-   * reduce it accordingly.
-   */
+	/* Work out what the minimum length of the window needs to be,
+	 * taking into account minimum window size, entries and blank lines
+	 * and the location of the edit line.
+	 */
 
-  centre = ((-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER)) + ((height / 2) / (ICON_HEIGHT+LINE_GUTTER));
+	minimum_length = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
+			file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 
-  if (centre >= file->trans_count)
-  {
-    centre = file->trans_count - 1;
-  }
+	if (file->transaction_window.entry_line >= minimum_length)
+		minimum_length = file->transaction_window.entry_line + 1;
 
-  if (centre > -1)
-  {
-    if (file->transactions[file->transactions[centre].sort_index].from == account ||
-        file->transactions[file->transactions[centre].sort_index].to == account)
-    {
-      result = file->transactions[centre].sort_index;
-    }
-    else
-    {
-      i = 1;
+	if (last_visible_line > minimum_length)
+		minimum_length = last_visible_line;
 
-      result = NULL_TRANSACTION;
+	/* Shrink the window. */
 
-      while (centre+i < file->trans_count || centre-i >= 0)
-      {
-        if (centre+i < file->trans_count
-            && (file->transactions[file->transactions[centre+i].sort_index].from == account
-            || file->transactions[file->transactions[centre+i].sort_index].to == account))
-        {
-          result = file->transactions[centre+i].sort_index;
-          break;
-        }
-
-        if (centre-i >= 0
-            && (file->transactions[file->transactions[centre-i].sort_index].from == account
-            || file->transactions[file->transactions[centre-i].sort_index].to == account))
-        {
-          result = file->transactions[centre-i].sort_index;
-          break;
-        }
-
-        i++;
-      }
-    }
-  }
-  else
-  {
-    result = NULL_TRANSACTION;
-  }
-
-  return (result);
+	if (file->transaction_window.display_lines > minimum_length) {
+		file->transaction_window.display_lines = minimum_length;
+		transact_set_window_extent(file);
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * Recreate the title of the Transaction window connected to the given file.
+ *
+ * \param *file			The file to rebuild the title for.
+ */
+
+void transact_build_window_title(file_data *file)
+{
+	file_get_pathname(file, file->transaction_window.window_title,
+			sizeof(file->transaction_window.window_title));
+
+	if (file->modified)
+		strcat(file->transaction_window.window_title, " *");
+
+	wimp_force_redraw_title(file->transaction_window.transaction_window);
+}
+
+
+/**
+ * Force a redraw of the Transaction window, for the given range of lines.
+ *
+ * NB: This doesn't redraw the edit line, as the icons in that need to be
+ * refreshed.
+ *
+ * \param *file			The file owning the window.
+ * \param from			The first line to redraw, inclusive.
+ * \param to			The last line to redraw, inclusive.
+ */
+
+void transact_force_window_redraw(file_data *file, int from, int to)
+{
+	int			y0, y1;
+	wimp_window_info	window;
+  
+	if (file == NULL || file->transaction_window.transaction_window == NULL)
+		return;
+
+	window.w = file->transaction_window.transaction_window;
+	if (xwimp_get_window_info_header_only(&window) != NULL)
+		return;
+
+	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
+	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
+
+	wimp_force_redraw(file->transaction_window.transaction_window, window.extent.x0, y0, window.extent.x1, y1);
+}
+
+
+/**
+ * Update the state of the buttons in a transaction window toolbar.
+ *
+ * \param *file			The file owning the window to update.
+ */
+
+void transact_update_toolbar(file_data *file)
+{
+	if (file == NULL || file->transaction_window.transaction_pane == NULL)
+		return;
+
+	icons_set_shaded(file->transaction_window.transaction_pane, TRANSACT_PANE_VIEWACCT,
+			account_count_type_in_file(file, ACCOUNT_FULL) == 0);
+}
+
+
+/**
+ * Scroll a transaction window to either the top (home) or the end.
+ *
+ * \param *file			The file owning the window to be scrolled.
+ * \param direction		The direction to scroll the window in.
+ */
+
+void transact_scroll_window_to_end(file_data *file, enum transact_scroll_direction direction)
+{
+	wimp_window_info	window;
+
+
+	if (file == NULL || file->transaction_window.transaction_window == NULL ||
+			direction == TRANSACT_SCROLL_NONE)
+		return;
+
+	window.w = file->transaction_window.transaction_window;
+	wimp_get_window_info_header_only(&window);
+
+	switch (direction) {
+	case TRANSACT_SCROLL_HOME:
+		window.yscroll = window.extent.y1;
+		break;
+
+	case TRANSACT_SCROLL_END:
+		window.yscroll = window.extent.y0 - (window.extent.y1 - window.extent.y0);
+		break;
+
+	case TRANSACT_SCROLL_NONE:
+		break;
+	}
+ 
+ 	transact_minimise_window_extent(file);
+ 	wimp_open_window((wimp_open *) &window);
+}
+
+
+/**
+ * Return the transaction number of the transaction nearest to the centre of
+ * the visible area of the transaction window which references a given
+ * account.
+ *
+ * \param *file			The file owning the window to be searched.
+ * \param account		The account to search for.
+ * \return			The transaction found, or NULL_TRANSACTION.
+ */
+
+int transact_find_nearest_window_centre(file_data *file, acct_t account)
+{
+	wimp_window_state	window;
+	int			height, i, centre, result;
+
+
+	if (file == NULL || file->transaction_window.transaction_window == NULL ||
+			account == NULL_ACCOUNT)
+		return NULL_TRANSACTION;
+
+	window.w = file->transaction_window.transaction_window;
+	wimp_get_window_state(&window);
+
+	/* Calculate the height of the useful visible window, leaving out
+	 * any OS units taken up by part lines.
+	 */
+
+	height = window.visible.y1 - window.visible.y0 - ICON_HEIGHT - LINE_GUTTER - TRANSACT_TOOLBAR_HEIGHT;
+
+	/* Calculate the centre line in the window. If this is greater than
+	 * the number of actual tracsactions in the window, reduce it
+	 * accordingly.
+	 */
+
+	centre = ((-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER)) + ((height / 2) / (ICON_HEIGHT+LINE_GUTTER));
+
+	if (centre >= file->trans_count)
+		centre = file->trans_count - 1;
+
+	/* If there are no transactions, we can't return one. */
+
+	if (centre < 0)
+		return NULL_TRANSACTION;
+
+	/* If the centre transaction is a match, return it. */
+
+	if (file->transactions[file->transactions[centre].sort_index].from == account ||
+			file->transactions[file->transactions[centre].sort_index].to == account)
+		return file->transactions[centre].sort_index;
+
+	/* Start searching out from the centre until we find a match or hit
+	 * both the start and end of the file.
+	 */
+
+	result = NULL_TRANSACTION;
+	i = 1;
+
+	while (centre + i < file->trans_count || centre - i >= 0) {
+		if (centre + i < file->trans_count &&
+				(file->transactions[file->transactions[centre + i].sort_index].from == account ||
+				file->transactions[file->transactions[centre + i].sort_index].to == account)) {
+			result = file->transactions[centre + i].sort_index;
+			break;
+		}
+
+		if (centre - i >= 0 &&
+				(file->transactions[file->transactions[centre - i].sort_index].from == account ||
+				file->transactions[file->transactions[centre - i].sort_index].to == account)) {
+			result = file->transactions[centre - i].sort_index;
+			break;
+		}
+
+		i++;
+	}
+ 
+	return result;
+}
 
 
 /**
@@ -3228,7 +3261,7 @@ void transact_sort(file_data *file)
 			file->transaction_window.transaction_window == caret.w)
 		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
 
-	force_transaction_window_redraw(file, 0, file->trans_count - 1);
+	transact_force_window_redraw(file, 0, file->trans_count - 1);
 
 	hourglass_off();
 }

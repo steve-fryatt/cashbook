@@ -2513,7 +2513,7 @@ void sorder_process(file_data *file)
 		if (config_opt_read("SortAfterSOrders")) {
 			transact_sort(file);
 		} else {
-			force_transaction_window_redraw(file, 0, file->trans_count - 1);
+			transact_force_window_redraw(file, 0, file->trans_count - 1);
 			edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
 		}
 

@@ -637,7 +637,7 @@ void file_set_data_integrity(file_data *file, osbool unsafe)
 {
 	if (file != NULL && file->modified != unsafe) {
 		file->modified = unsafe;
-		build_transaction_window_title(file);
+		transact_build_window_title(file);
 	}
 }
 
@@ -774,7 +774,7 @@ void file_redraw_windows(file_data *file)
 
 	/* Redraw the transaction window. */
 
-	force_transaction_window_redraw(file, 0, file->trans_count);
+	transact_force_window_redraw(file, 0, file->trans_count);
 	edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
 
 	/* Redraw the account list windows. */

@@ -3513,10 +3513,10 @@ static void analysis_find_date_range(file_data *file, date_t *start_date, date_t
 	}
 
 	if (*start_date == NULL_DATE)
-		*start_date = MIN_DATE;
+		*start_date = DATE_MIN;
 
 	if (*end_date == NULL_DATE)
-		*end_date = MAX_DATE;
+		*end_date = DATE_MAX;
 }
 
 

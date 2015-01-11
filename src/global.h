@@ -74,9 +74,6 @@
 #define NULL_TRANSACTION ((int) (-1))
 #define NULL_TEMPLATE ((int) (-1))
 
-#define MIN_DATE 0x00640101
-#define MAX_DATE 0x270f0c1f
-
 /* Transaction window details */
 
 #define TRANSACT_COLUMNS 11

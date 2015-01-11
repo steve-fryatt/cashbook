@@ -43,6 +43,18 @@ typedef unsigned int	date_t;
 #define NULL_DATE ((date_t) 0xffffffff)
 
 /**
+ * The minimum valid date.
+ */
+
+#define DATE_MIN ((date_t) 0x00640101)
+
+/**
+ * The maximum valid date.
+ */
+
+#define DATE_MAX ((date_t) 0x270f0c1f)
+
+/**
  * Days of the week in the form of a bitfield, which can be added together
  * to represent groups of days.
  *

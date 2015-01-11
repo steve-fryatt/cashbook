@@ -69,7 +69,6 @@
 #define DESCRIPT_FIELD_LEN 101
 
 #define NULL_ACCOUNT (-1)
-#define NULL_TRANS_FLAGS 0
 #define NULL_SORDER ((int) (-1))
 #define NULL_PRESET ((int) (-1))
 #define NULL_TRANSACTION ((int) (-1))

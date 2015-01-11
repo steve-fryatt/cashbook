@@ -1197,7 +1197,7 @@ static void edit_delete_line_transaction_content(file_data *file)
 	file->transactions[transaction].date = NULL_DATE;
 	file->transactions[transaction].from = NULL_ACCOUNT;
 	file->transactions[transaction].to = NULL_ACCOUNT;
-	file->transactions[transaction].flags = NULL_TRANS_FLAGS;
+	file->transactions[transaction].flags = TRANS_FLAGS_NONE;
 	file->transactions[transaction].amount = NULL_CURRENCY;
 	*(file->transactions[transaction].reference) = '\0';
 	*(file->transactions[transaction].description) = '\0';
@@ -1290,7 +1290,7 @@ osbool edit_process_keypress(file_data *file, wimp_key *key)
 
 				if (file->transaction_window.entry_line <= file->trans_count) {
 					if (file->transaction_window.entry_line == file->trans_count)
-						transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, NULL_TRANS_FLAGS, NULL_CURRENCY, "", "");
+						transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 					transaction = file->transactions[file->transaction_window.entry_line].sort_index;
 					previous = file->transactions[file->transaction_window.entry_line-1].sort_index;
 				} else {
@@ -1453,7 +1453,7 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
 
 	if (line >= file->trans_count) {
 		for (i=file->trans_count; i<=line; i++) {
-			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, NULL_TRANS_FLAGS, NULL_CURRENCY, "", "");
+			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 			edit_refresh_line_content(key->w, EDIT_ICON_ROW, -1);
 		}
 	}

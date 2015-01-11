@@ -405,7 +405,7 @@ void import_csv_file (file_data *file, char *filename)
 
       raw_from = ident;
 
-      rec_from = (strchr (ident, '#') > 0) ? TRANS_REC_FROM : NULL_TRANS_FLAGS;
+      rec_from = (strchr (ident, '#') > 0) ? TRANS_REC_FROM : TRANS_FLAGS_NONE;
 
       name = ident + strcspn (ident, "#:è");
       *name++ = '\0';
@@ -437,7 +437,7 @@ void import_csv_file (file_data *file, char *filename)
 
       raw_to = ident;
 
-      rec_to = (strchr (ident, '#') > 0) ? TRANS_REC_TO : NULL_TRANS_FLAGS;
+      rec_to = (strchr (ident, '#') > 0) ? TRANS_REC_TO : TRANS_FLAGS_NONE;
 
       name = ident + strcspn (ident, "#:è");
       *name++ = '\0';

@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -22,7 +22,7 @@
  */
 
 
-/* ==================================================================================================================
+/**
  * Icon bar menu.
  */
 
@@ -36,320 +36,254 @@ menu(iconbar_menu, "CashBook")
 	item("Quit");
 }
 
-/* ==================================================================================================================
+/**
  * Main menu.
  */
 
-menu (main_menu, "CashBook")
+menu(main_menu, "CashBook")
 {
-  item ("File")
-  {
-    submenu (file_menu);
-  }
-  item ("Accounts")
-  {
-    submenu (accounts_menu);
-  }
-  item ("Headings")
-  {
-    submenu (headings_menu);
-  }
-  item ("Transactions")
-  {
-    submenu (transactions_menu);
-  }
-  item ("Analysis")
-  {
-    submenu (analysis_menu);
-  }
+	item("File") {
+		submenu(file_menu);
+	}
+	item("Accounts") {
+		submenu(accounts_menu);
+	}
+	item("Headings") {
+		submenu(headings_menu);
+	}
+	item("Transactions") {
+		submenu(transactions_menu);
+	}
+	item("Analysis") {
+		submenu(analysis_menu);
+	}
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-menu (file_menu, "File")
+menu(file_menu, "File")
 {
-  item ("Info ^F1")
-  {
-    d_box (file_info)
-    {
-      warning;
-    }
-    dotted;
-  }
-  item ("Save F3")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Export CSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Export TSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Purge...")
-  {
-    dotted;
-  }
-  item ("Print... Print");
+	item("Info ^F1") {
+		d_box(file_info) {
+			warning;
+		}
+		dotted;
+	}
+	item("Save F3") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Export CSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Purge...") {
+		dotted;
+	}
+	item("Print... Print");
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-menu (accounts_menu, "Accounts")
+menu(accounts_menu, "Accounts")
 {
-  item ("View account");
-  item ("List accounts F9")
-  {
-    dotted;
-  }
-  item ("New account...");
+	item("View account");
+	item("List accounts F9") {
+		dotted;
+	}
+	item("New account...");
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-menu (headings_menu, "Headings")
+menu(headings_menu, "Headings")
 {
-  item ("List incoming F10");
-  item ("List outgoing F11")
-  {
-    dotted;
-  }
-  item ("New heading...");
+	item("List incoming F10");
+	item("List outgoing F11") {
+		dotted;
+	}
+	item("New heading...");
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-menu (transactions_menu, "Transactions")
+menu(transactions_menu, "Transactions")
 {
-  item ("Find... F4");
-  item ("Goto... F5");
-  item ("Sort... F6")
-  {
-    dotted;
-  }
-  item ("List standing orders");
-  item ("New standing order...")
-  {
-    dotted;
-  }
-  item ("List presets");
-  item ("New preset...")
-  {
-    dotted;
-  }
-  item ("Reconcile");
+	item("Find... F4");
+	item("Goto... F5");
+	item("Sort... F6") {
+		dotted;
+	}
+	item("List standing orders");
+	item("New standing order...") {
+		dotted;
+	}
+	item("List presets");
+	item("New preset...") {
+		dotted;
+	}
+	item("Reconcile");
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-menu (analysis_menu, "Analysis")
+menu(analysis_menu, "Analysis")
 {
-  item ("Budget...")
-  {
-    dotted;
-  }
-  item ("Saved reports");
-  item ("Transaction report...");
-  item ("Unreconciled report...");
-  item ("Cashflow report...");
-  item ("Balance report...")
-  {
-    dotted;
-  }
-  item ("Standing order report");
+	item("Budget...") {
+		dotted;
+	}
+	item("Saved reports");
+	item("Transaction report...");
+	item("Unreconciled report...");
+	item("Cashflow report...");
+	item("Balance report...") {
+		dotted;
+	}
+	item("Standing order report");
 }
 
-/* ==================================================================================================================
+/**
  * Accounts List menu
  */
 
-menu (acclist_menu, "Accounts")
+menu(acclist_menu, "Accounts")
 {
-  item ("View account")
-  {
-    indirected (20);
-  }
-  item ("Edit account...")
-  {
-    indirected (20);
-  }
-  item ("Edit section...")
-  {
-    dotted;
-  }
-  item ("New account...")
-  {
-    indirected (20);
-  }
-  item ("New section...")
-  {
-    dotted;
-  }
-  item ("Export CSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Export TSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Print...");
+	item("View account") {
+		indirected(20);
+	}
+	item("Edit account...") {
+		indirected(20);
+	}
+	item("Edit section...") {
+		dotted;
+	}
+	item("New account...") {
+		indirected(20);
+	}
+	item("New section...") {
+		dotted;
+	}
+	item("Export CSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Print...");
 }
 
-/* ==================================================================================================================
+/**
  * Account View menu
  */
 
-menu (accview_menu, "Account")
+menu(accview_menu, "Account")
 {
-  item ("Find transaction");
-  item ("Goto transaction");
-  item ("Sort entries...")
-  {
-    dotted;
-  }
-  item ("Edit account...")
-  {
-    indirected (20);
-    dotted;
-  }
-  item ("Export CSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Export TSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Print...");
+	item("Find transaction");
+	item("Goto transaction");
+	item("Sort entries...") {
+		dotted;
+	}
+	item("Edit account...") {
+		indirected(20);
+		dotted;
+	}
+	item("Export CSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Print...");
 }
 
-/* ==================================================================================================================
+/**
  * Standing Order List menu
  */
 
-menu (sorder_menu, "Standing Order")
+menu(sorder_menu, "Standing Order")
 {
-  item ("Sort entries...")
-  {
-    dotted;
-  }
-  item ("Edit standing order...");
-  item ("New standing order...")
-  {
-    dotted;
-  }
-  item ("Export CSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Export TSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Print...")
-  {
-    dotted;
-  }
-  item ("Full report");
+	item("Sort entries...") {
+		dotted;
+	}
+	item("Edit standing order...");
+	item("New standing order...") {
+		dotted;
+	}
+	item("Export CSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Print...") {
+		dotted;
+	}
+	item("Full report");
 }
 
-/* ==================================================================================================================
+/**
  * Preset List menu
  */
 
-menu (sorder_menu, "Preset")
+menu(sorder_menu, "Preset")
 {
-  item ("Sort entries...")
-  {
-    dotted;
-  }
-  item ("Edit preset...");
-  item ("New preset...")
-  {
-    dotted;
-  }
-  item ("Export CSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Export TSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Print...");
+	item("Sort entries...") {
+		dotted;
+	}
+	item("Edit preset...");
+	item("New preset...") {
+		dotted;
+	}
+	item("Export CSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Print...");
 }
 
-/* ==================================================================================================================
+/**
  * Report view menu
  */
 
-menu (reportview_menu, "Report")
+menu(reportview_menu, "Report")
 {
-  item ("Format...")
-  {
-    dotted;
-  }
-  item ("Save text")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Export CSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-  }
-  item ("Export TSV")
-  {
-    d_box (save_as)
-    {
-      warning;
-    }
-    dotted;
-  }
-  item ("Print...")
-  {
-    dotted;
-  }
-  item ("Save template...");
+	item("Format...") {
+		dotted;
+	}
+	item("Save text") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Export CSV") {
+		d_box(save_as) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(save_as) {
+			warning;
+		}
+		dotted;
+	}
+	item("Print...") {
+		dotted;
+	}
+	item("Save template...");
 }
+

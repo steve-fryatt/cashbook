@@ -1131,7 +1131,6 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 					*icon_buffer = '\0';
 			} else if (y < windat->display_lines && transaction_direction == ACCVIEW_DIRECTION_TO &&
 					(transaction_account = transact_get_from(file, transaction)) != NULL_ACCOUNT) {
-				transaction_account = transact_get_to(file, transaction);
 				accview_window_def->icons[ACCVIEW_ICON_IDENT].data.indirected_text.text =
 						account_get_ident(file, transaction_account);
 				accview_window_def->icons[ACCVIEW_ICON_REC].data.indirected_text.text = icon_buffer;

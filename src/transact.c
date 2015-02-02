@@ -1953,12 +1953,13 @@ void transact_minimise_window_extent(file_data *file)
 void transact_build_window_title(file_data *file)
 {
 	file_get_pathname(file, file->transaction_window.window_title,
-			sizeof(file->transaction_window.window_title));
+			sizeof(file->transaction_window.window_title) - 2);
 
 	if (file->modified)
 		strcat(file->transaction_window.window_title, " *");
 
-	wimp_force_redraw_title(file->transaction_window.transaction_window);
+	if (file->transaction_window.transaction_window != NULL)
+		wimp_force_redraw_title(file->transaction_window.transaction_window);
 }
 
 

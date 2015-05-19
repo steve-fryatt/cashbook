@@ -234,7 +234,7 @@ menu(sorder_menu, "Standing Order")
  * Preset List menu
  */
 
-menu(sorder_menu, "Preset")
+menu(preset_menu, "Preset")
 {
 	item("Sort entries...") {
 		dotted;

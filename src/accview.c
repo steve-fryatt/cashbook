@@ -867,7 +867,7 @@ static void accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_
 		break;
 
 	case ACCVIEW_MENU_EXPTSV:
-		saveas_prepare_dialogue(accview_saveas_csv);
+		saveas_prepare_dialogue(accview_saveas_tsv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}

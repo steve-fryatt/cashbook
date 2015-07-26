@@ -1507,6 +1507,7 @@ This test build changes the file format used by <cite>CashBook</cite>. Files fro
 <li>Correctly carry column headings across from the first page when printing reports (ticket&nbsp;#409).
 <li>Add transaction numbers to all transaction views and reports (tickets #430 and&nbsp;#494).
 <li>Remove escaped characters from print job titles (ticket&nbsp;#509).
+<li>Fix ZeroPain when closing files, and tidy up file closure code to prevent accidental dereferencing of stale pointers (ticket&nbsp;#556).
 </list>
 
 </chapter>

@@ -33,6 +33,7 @@
 #include "oslib/wimp.h"
 
 #include "date.h"
+#include "sort.h"
 
 /* ==================================================================================================================
  * Templates and resources.
@@ -150,53 +151,6 @@ enum account_type {
 
 #define SAVED_REPORT_NAME_LEN 32
 
-/**
- * Data sort types: values to indicate which field a window is sorted on. Types
- * are shared between windows wherever possible, to avoid duplicating field names.
- */
-
-enum sort_type {
-	SORT_NONE = 0,								/**< Apply no sort.						*/
-
-	/* Bitfield masks. */
-
-	SORT_MASK = 0x0ffff,							/**< Mask the sort type field from the value.			*/
-
-	/* Sort directions. */
-
-	SORT_ASCENDING = 0x10000,						/**< Sort in ascending order.					*/
-	SORT_DESCENDING = 0x20000,						/**< Sort in descending order.					*/
-
-	/* Sorts applying to different windows. */
-
-	SORT_DATE = 0x00001,							/**< Sort on the Date column of a window.			*/
-	SORT_FROM = 0x00002,							/**< Sort on the From Account column of a window.		*/
-	SORT_TO = 0x00003,							/**< Sort on the To Account column of a window.			*/
-	SORT_REFERENCE = 0x00004,						/**< Sort on the Reference column of a window.			*/
-	SORT_DESCRIPTION = 0x00005,						/**< Sort on the Description column of a window.		*/
-	SORT_ROW = 0x00006,							/**< Sort on the Row column of a window.			*/
-
-	/* Sorts applying to Transaction windows. */
-
-	SORT_AMOUNT = 0x00010,							/**< Sort on the Amount column of a window.			*/
-
-	/* Sorts applying to Account View windows. */
-
-	SORT_FROMTO = 0x00100,							/**< Sort on the From/To Account column of a window.		*/
-	SORT_PAYMENTS = 0x00200,						/**< Sort on the Payments column of a window.			*/
-	SORT_RECEIPTS = 0x00300,						/**< Sort on the Receipts column of a window.			*/
-	SORT_BALANCE = 0x00400,							/**< Sort on the Balance column of a window.			*/
-
-	/* Sorts applying to Standing Order windows. */
-
-	SORT_NEXTDATE = 0x01000,						/**< Sort on the Next Date column of window.			*/
-	SORT_LEFT = 0x02000,							/**< Sort on the Left column of a window.			*/
-
-	/* Sorts applying to Preset windows. */
-
-	SORT_CHAR = 0x03000,							/**< Sort on the Char column of a window.			*/
-	SORT_NAME = 0x04000							/**< Sort on the Name column of a window.			*/
-};
 
 /* ==================================================================================================================
  * Basic types

@@ -403,7 +403,7 @@ void delete_file(file_data *file)
 
 	/* First check that the file is saved and, if not, prompt for deletion. */
 
-	if (file->modified == 1 && (button = error_msgs_report_question("FileNotSaved", "FileNotSavedB")) >= 2) {
+	if (file->modified == TRUE && (button = error_msgs_report_question("FileNotSaved", "FileNotSavedB")) >= 2) {
 		if (button == 3) {
 			wimp_get_pointer_info(&pointer);
 
@@ -475,10 +475,6 @@ void delete_file(file_data *file)
 	printing_force_windows_closed(file);
 	analysis_force_windows_closed(file);
 	purge_force_window_closed(file);
-	transact_force_windows_closed(file);
-	accview_force_windows_closed(file);
-	sorder_force_windows_closed(file);
-	preset_force_windows_closed(file);
 	filing_force_windows_closed(file);
 
 	/* Delink the block from the list of open files. */

@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -73,6 +73,7 @@
 #include "mainmenu.h"
 #include "printing.h"
 #include "saveas.h"
+#include "sort.h"
 #include "report.h"
 #include "templates.h"
 #include "window.h"
@@ -203,8 +204,23 @@ static int			preset_edit_number = -1;			/**< The preset currently being edited.	
 
 /* Preset Sort Window. */
 
-static wimp_w			preset_sort_window = NULL;			/**< The handle of the preset sort window.				*/
-static file_data		*preset_sort_file = NULL;			/**< The file currently owning the preset sort window.			*/
+static struct sort_block	*preset_sort_dialogue = NULL;			/**< The preset window sort dialogue box.			*/
+
+static struct sort_icon preset_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
+	{PRESET_SORT_FROM, SORT_FROM},
+	{PRESET_SORT_TO, SORT_TO},
+	{PRESET_SORT_AMOUNT, SORT_AMOUNT},
+	{PRESET_SORT_DESCRIPTION, SORT_DESCRIPTION},
+	{PRESET_SORT_KEY, SORT_CHAR},
+	{PRESET_SORT_NAME, SORT_LEFT},
+	{0, SORT_NONE}
+};
+
+static struct sort_icon preset_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
+	{PRESET_SORT_ASCENDING, SORT_ASCENDING},
+	{PRESET_SORT_DESCENDING, SORT_DESCENDING},
+	{0, SORT_NONE}
+};
 
 /* Preset Print Window. */
 
@@ -251,12 +267,8 @@ static void		preset_fill_edit_window(file_data *file, int preset);
 static osbool		preset_process_edit_window(void);
 static osbool		preset_delete_from_edit_window(void);
 
-static void		preset_open_sort_window(file_data *file, wimp_pointer *ptr);
-static void		preset_sort_click_handler(wimp_pointer *pointer);
-static osbool		preset_sort_keypress_handler(wimp_key *key);
-static void		preset_refresh_sort_window(void);
-static void		preset_fill_sort_window(int sort_option);
-static osbool		preset_process_sort_window(void);
+static void		preset_open_sort_window(struct preset_window *windat, wimp_pointer *ptr);
+static osbool		preset_process_sort_window(enum sort_type order, void *data);
 
 static void		preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore);
 static void		preset_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
@@ -278,6 +290,8 @@ static void		preset_export_delimited(file_data *file, char *filename, enum filin
 
 void preset_initialise(osspriteop_area *sprites)
 {
+	wimp_w	sort_window;
+
 	preset_edit_window = templates_create_window("EditPreset");
 	ihelp_add_window(preset_edit_window, "EditPreset", NULL);
 	event_add_window_mouse_event(preset_edit_window, preset_edit_click_handler);
@@ -289,18 +303,10 @@ void preset_initialise(osspriteop_area *sprites)
 	event_add_window_icon_radio(preset_edit_window, PRESET_EDIT_CARETAMOUNT, TRUE);
 	event_add_window_icon_radio(preset_edit_window, PRESET_EDIT_CARETDESC, TRUE);
 
-	preset_sort_window = templates_create_window("SortPreset");
-	ihelp_add_window(preset_sort_window, "SortPreset", NULL);
-	event_add_window_mouse_event(preset_sort_window, preset_sort_click_handler);
-	event_add_window_key_event(preset_sort_window, preset_sort_keypress_handler);
-	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_FROM, TRUE);
-	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_TO, TRUE);
-	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_AMOUNT, TRUE);
-	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_DESCRIPTION, TRUE);
-	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_KEY, TRUE);
-	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_NAME, TRUE);
-	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_ASCENDING, TRUE);
-	event_add_window_icon_radio(preset_sort_window, PRESET_SORT_DESCENDING, TRUE);
+	sort_window = templates_create_window("SortPreset");
+	ihelp_add_window(sort_window, "SortPreset", NULL);
+	preset_sort_dialogue = sort_create_dialogue(sort_window, preset_sort_columns, preset_sort_directions,
+			PRESET_SORT_OK, PRESET_SORT_CANCEL, preset_process_sort_window);
 
 	preset_window_def = templates_load_window("Preset");
 	preset_window_def->icon_count = 0;
@@ -455,6 +461,11 @@ void preset_delete_window(struct preset_window *windat)
 	if (windat == NULL)
 		return;
 
+	sort_close_dialogue(preset_sort_dialogue, windat);
+
+	if (preset_edit_file == windat->file && windows_get_open(preset_edit_window))
+		close_dialogue_with_caret(preset_edit_window);
+
 	if (windat->preset_window != NULL) {
 		ihelp_remove_window(windat->preset_window);
 		event_delete_window(windat->preset_window);
@@ -573,7 +584,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case PRESET_PANE_SORT:
-			preset_open_sort_window(file, pointer);
+			preset_open_sort_window(windat, pointer);
 			break;
 		}
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
@@ -705,7 +716,7 @@ static void preset_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 
 	switch (selection->items[0]){
 	case PRESET_MENU_SORT:
-		preset_open_sort_window(windat->file, &pointer);
+		preset_open_sort_window(windat, &pointer);
 		break;
 
 	case PRESET_MENU_EDIT:
@@ -1745,161 +1756,42 @@ static osbool preset_delete_from_edit_window(void)
 /**
  * Open the Preset Sort dialogue for a given preset list window.
  *
- * \param *file			The file to own the dialogue.
+ * \param *file			The preset window to own the dialogue.
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void preset_open_sort_window(file_data *file, wimp_pointer *ptr)
+static void preset_open_sort_window(struct preset_window *windat, wimp_pointer *ptr)
 {
-	/* If the window is open elsewhere, close it first. */
+	if (windat == NULL || ptr == NULL)
+		return;
 
-	if (windows_get_open(preset_sort_window))
-		wimp_close_window(preset_sort_window);
-
-	preset_fill_sort_window(file->preset_window.sort_order);
-
-	preset_sort_file = file;
-
-	windows_open_centred_at_pointer(preset_sort_window, ptr);
-	place_dialogue_caret(preset_sort_window, wimp_ICON_WINDOW);
+	sort_open_dialogue(preset_sort_dialogue, ptr, windat->sort_order, windat);
 }
 
 
 /**
- * Process mouse clicks in the Preset Sort dialogue.
+ * Take the contents of an updated Preset Sort window and process
+ * the data.
  *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void preset_sort_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case PRESET_SORT_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(preset_sort_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			preset_refresh_sort_window();
-		break;
-
-	case PRESET_SORT_OK:
-		if (preset_process_sort_window() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(preset_sort_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Preset Sort window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool preset_sort_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (preset_process_sort_window())
-			close_dialogue_with_caret(preset_sort_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(preset_sort_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the Preset Sort window.
- */
-
-static void preset_refresh_sort_window(void)
-{
-	preset_fill_sort_window(preset_sort_file->preset_window.sort_order);
-}
-
-
-/**
- * Update the contents of the Preset Sort window to reflect the current
- * settings of the given file.
- *
- * \param sort_option		The sort option currently in force.
- */
-
-static void preset_fill_sort_window(int sort_option)
-{
-	icons_set_selected(preset_sort_window, PRESET_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
-	icons_set_selected(preset_sort_window, PRESET_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
-	icons_set_selected(preset_sort_window, PRESET_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
-	icons_set_selected(preset_sort_window, PRESET_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
-	icons_set_selected(preset_sort_window, PRESET_SORT_KEY, (sort_option & SORT_MASK) == SORT_CHAR);
-	icons_set_selected(preset_sort_window, PRESET_SORT_NAME, (sort_option & SORT_MASK) == SORT_NAME);
-
-	icons_set_selected(preset_sort_window, PRESET_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-	icons_set_selected(preset_sort_window, PRESET_SORT_DESCENDING, sort_option & SORT_DESCENDING);
-}
-
-
-/**
- * Take the contents of an updated Preset Sort window and process the data.
- *
+ * \param order			The new sort order selected by the user.
+ * \param *data			The preset window associated with the Sort dialogue.
  * \return			TRUE if successful; else FALSE.
  */
 
-static osbool preset_process_sort_window(void)
+static osbool preset_process_sort_window(enum sort_type order, void *data)
 {
-	preset_sort_file->preset_window.sort_order = SORT_NONE;
+	struct preset_window	*windat = (struct preset_window *) data;
 
-	if (icons_get_selected(preset_sort_window, PRESET_SORT_FROM))
-		preset_sort_file->preset_window.sort_order = SORT_FROM;
-	else if (icons_get_selected(preset_sort_window, PRESET_SORT_TO))
-		preset_sort_file->preset_window.sort_order = SORT_TO;
-	else if (icons_get_selected(preset_sort_window, PRESET_SORT_AMOUNT))
-		preset_sort_file->preset_window.sort_order = SORT_AMOUNT;
-	else if (icons_get_selected(preset_sort_window, PRESET_SORT_DESCRIPTION))
-		preset_sort_file->preset_window.sort_order = SORT_DESCRIPTION;
-	else if (icons_get_selected(preset_sort_window, PRESET_SORT_KEY))
-		preset_sort_file->preset_window.sort_order = SORT_CHAR;
-	else if (icons_get_selected(preset_sort_window, PRESET_SORT_NAME))
-		preset_sort_file->preset_window.sort_order = SORT_NAME;
+	if (windat == NULL)
+		return FALSE;
 
-	if (preset_sort_file->preset_window.sort_order != SORT_NONE) {
-		if (icons_get_selected(preset_sort_window, PRESET_SORT_ASCENDING))
-			preset_sort_file->preset_window.sort_order |= SORT_ASCENDING;
-		else if (icons_get_selected(preset_sort_window, PRESET_SORT_DESCENDING))
-			preset_sort_file->preset_window.sort_order |= SORT_DESCENDING;
-	}
+	windat->sort_order = order;
 
-	preset_adjust_sort_icon(preset_sort_file);
-	windows_redraw(preset_sort_file->preset_window.preset_pane);
-	preset_sort(preset_sort_file);
+	preset_adjust_sort_icon(windat->file);
+	windows_redraw(windat->preset_pane);
+	preset_sort(windat->file);
 
 	return TRUE;
-}
-
-
-/**
- * Force the closure of the Preset sort and edit windows if the owning
- * file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void preset_force_windows_closed(file_data *file)
-{
-	if (preset_sort_file == file && windows_get_open(preset_sort_window))
-		close_dialogue_with_caret(preset_sort_window);
-
-	if (preset_edit_file == file && windows_get_open(preset_edit_window))
-		close_dialogue_with_caret(preset_edit_window);
 }
 
 

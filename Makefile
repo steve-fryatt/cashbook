@@ -122,7 +122,7 @@ FINDHELPSRC := Help.bbt
 OBJS = account.o accview.o amenu.o analysis.o budget.o caret.o choices.o clipboard.o    \
        column.o currency.o dataxfer.o date.o edit.o file.o filing.o find.o fontlist.o   \
        goto.o iconbar.o ihelp.o main.o mainmenu.o presets.o printing.o purge.o report.o \
-       saveas.o sorder.o templates.o transact.o window.o
+       saveas.o sorder.o sort.o templates.o transact.o window.o
 
 
 # Build everything, but don't package it for release.

@@ -440,16 +440,6 @@ int transact_get_sort_workspace(file_data *file, int transaction);
 
 
 /**
- * Force the closure of the Transaction List sort and edit windows if the owning
- * file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void transact_force_windows_closed(file_data *file);
-
-
-/**
  * Sort the contents of the transaction window based on the file's sort setting.
  *
  * \param *file			The file to sort.

@@ -95,16 +95,6 @@ void sorder_open_edit_window(file_data *file, int sorder, wimp_pointer *ptr);
 
 
 /**
- * Force the closure of the Standing Order sort and edit windows if the owning
- * file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void sorder_force_windows_closed(file_data *file);
-
-
-/**
  * Sort the standing orders in a given file based on that file's sort setting.
  *
  * \param *file			The file to sort.

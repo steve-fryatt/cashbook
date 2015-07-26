@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -72,6 +72,7 @@
 #include "printing.h"
 #include "report.h"
 #include "saveas.h"
+#include "sort.h"
 #include "templates.h"
 #include "transact.h"
 #include "window.h"
@@ -193,8 +194,26 @@ struct accview_window {
 
 /* Account View Sort Window. */
 
-static wimp_w			accview_sort_window = NULL;			/**< The account listsort window handle.				*/
-static struct accview_window	*accview_sort_view = NULL;			/**< The view currently owning the account view sort window.		*/
+static struct sort_block	*accview_sort_dialogue = NULL;			/**< The preset window sort dialogue box.			*/
+
+static struct sort_icon accview_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
+	{ACCVIEW_SORT_ROW, SORT_ROW},
+	{ACCVIEW_SORT_DATE, SORT_DATE},
+	{ACCVIEW_SORT_FROMTO, SORT_FROMTO},
+	{ACCVIEW_SORT_REFERENCE, SORT_REFERENCE},
+	{ACCVIEW_SORT_PAYMENTS, SORT_PAYMENTS},
+	{ACCVIEW_SORT_RECEIPTS, SORT_RECEIPTS},
+	{ACCVIEW_SORT_BALANCE, SORT_BALANCE},
+	{ACCVIEW_SORT_DESCRIPTION, SORT_DESCRIPTION},
+	{0, SORT_NONE}
+};
+
+static struct sort_icon accview_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
+	{ACCVIEW_SORT_ASCENDING, SORT_ASCENDING},
+	{ACCVIEW_SORT_DESCENDING, SORT_DESCENDING},
+	{0, SORT_NONE}
+};
+
 
 /* Account View Print Window. */
 
@@ -231,11 +250,7 @@ static void			accview_force_window_redraw(struct accview_window *view, int from,
 static void			accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void			accview_open_sort_window(struct accview_window *view, wimp_pointer *ptr);
-static void			accview_sort_click_handler(wimp_pointer *pointer);
-static osbool			accview_sort_keypress_handler(wimp_key *key);
-static void			accview_refresh_sort_window(void);
-static void			accview_fill_sort_window(int sort_option);
-static osbool			accview_process_sort_window(void);
+static osbool			accview_process_sort_window(enum sort_type order, void *data);
 
 static void			accview_open_print_window(struct accview_window *view, wimp_pointer *ptr, osbool restore);
 static void			accview_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
@@ -263,20 +278,12 @@ static void			accview_export_delimited(struct accview_window *view, char *filena
 
 void accview_initialise(osspriteop_area *sprites)
 {
-	accview_sort_window = templates_create_window("SortAccView");
-	ihelp_add_window(accview_sort_window, "SortAccView", NULL);
-	event_add_window_mouse_event(accview_sort_window, accview_sort_click_handler);
-	event_add_window_key_event(accview_sort_window, accview_sort_keypress_handler);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_ROW, TRUE);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_DATE, TRUE);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_FROMTO, TRUE);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_REFERENCE, TRUE);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_PAYMENTS, TRUE);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_RECEIPTS, TRUE);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_BALANCE, TRUE);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_DESCRIPTION, TRUE);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_ASCENDING, TRUE);
-	event_add_window_icon_radio(accview_sort_window, ACCVIEW_SORT_DESCENDING, TRUE);
+	wimp_w	sort_window;
+
+	sort_window = templates_create_window("SortAccView");
+	ihelp_add_window(sort_window, "SortAccView", NULL);
+	accview_sort_dialogue = sort_create_dialogue(sort_window, accview_sort_columns, accview_sort_directions,
+			ACCVIEW_SORT_OK, ACCVIEW_SORT_CANCEL, accview_process_sort_window);
 
 	accview_window_def = templates_load_window("AccView");
 	accview_window_def->icon_count = 0;
@@ -485,6 +492,8 @@ void accview_delete_window(file_data *file, acct_t account)
 	view = account_get_accview(file, account);
 	if (view == NULL)
 		return;
+
+	sort_close_dialogue(accview_sort_dialogue, view);
 
 	if (view->accview_window != NULL) {
 		ihelp_remove_window(view->accview_window);
@@ -1581,161 +1590,38 @@ static void accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 
 static void accview_open_sort_window(struct accview_window *view, wimp_pointer *ptr)
 {
-	if (view == NULL)
+	if (view == NULL || ptr == NULL)
 		return;
 
-	if (windows_get_open(accview_sort_window))
-		wimp_close_window(accview_sort_window);
-
-	accview_fill_sort_window(view->sort_order);
-
-	accview_sort_view = view;
-
-	windows_open_centred_at_pointer(accview_sort_window, ptr);
-	place_dialogue_caret(accview_sort_window, wimp_ICON_WINDOW);
+	sort_open_dialogue(accview_sort_dialogue, ptr, view->sort_order, view);
 }
 
 
 /**
- * Process mouse clicks in the Account List Sort dialogue.
+ * Take the contents of an updated Account List Sort window and process
+ * the data.
  *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void accview_sort_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case ACCVIEW_SORT_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(accview_sort_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			accview_refresh_sort_window();
-		break;
-
-	case ACCVIEW_SORT_OK:
-		if (accview_process_sort_window() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(accview_sort_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Account List Sort window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool accview_sort_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (accview_process_sort_window())
-			close_dialogue_with_caret(accview_sort_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(accview_sort_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the Account View Sort window.
- */
-
-static void accview_refresh_sort_window(void)
-{
-	accview_fill_sort_window(accview_sort_view->sort_order);
-}
-
-
-/**
- * Update the contents of the Account View Sort window to reflect the current
- * settings of the given file.
- *
- * \param sort_option		The sort option currently in force.
- */
-
-static void accview_fill_sort_window(int sort_option)
-{
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_ROW, (sort_option & SORT_MASK) == SORT_ROW);
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_DATE, (sort_option & SORT_MASK) == SORT_DATE);
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_FROMTO, (sort_option & SORT_MASK) == SORT_FROMTO);
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_REFERENCE, (sort_option & SORT_MASK) == SORT_REFERENCE);
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_PAYMENTS, (sort_option & SORT_MASK) == SORT_PAYMENTS);
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_RECEIPTS, (sort_option & SORT_MASK) == SORT_RECEIPTS);
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_BALANCE, (sort_option & SORT_MASK) == SORT_BALANCE);
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
-
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-	icons_set_selected(accview_sort_window, ACCVIEW_SORT_DESCENDING, sort_option & SORT_DESCENDING);
-}
-
-
-/**
- * Take the contents of an updated Account List window and process the data.
- *
+ * \param order			The new sort order selected by the user.
+ * \param *data			The account list window associated with the Sort dialogue.
  * \return			TRUE if successful; else FALSE.
  */
 
-static osbool accview_process_sort_window(void)
+static osbool accview_process_sort_window(enum sort_type order, void *data)
 {
-	accview_sort_view->sort_order = SORT_NONE;
+	struct accview_window	*windat = (struct accview_window *) data;
 
-	if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_ROW))
-		accview_sort_view->sort_order = SORT_ROW;
-	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_DATE))
-		accview_sort_view->sort_order = SORT_DATE;
-	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_FROMTO))
-		accview_sort_view->sort_order = SORT_FROMTO;
-	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_REFERENCE))
-		accview_sort_view->sort_order = SORT_REFERENCE;
-	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_PAYMENTS))
-		accview_sort_view->sort_order = SORT_PAYMENTS;
-	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_RECEIPTS))
-		accview_sort_view->sort_order = SORT_RECEIPTS;
-	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_BALANCE))
-		accview_sort_view->sort_order = SORT_BALANCE;
-	else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_DESCRIPTION))
-		accview_sort_view->sort_order = SORT_DESCRIPTION;
+	if (windat == NULL)
+		return FALSE;
 
-	if (accview_sort_view->sort_order != SORT_NONE) {
-		if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_ASCENDING))
-			accview_sort_view->sort_order |= SORT_ASCENDING;
-		else if (icons_get_selected(accview_sort_window, ACCVIEW_SORT_DESCENDING))
-			accview_sort_view->sort_order |= SORT_DESCENDING;
-	}
+	windat->sort_order = order;
 
-	accview_adjust_sort_icon(accview_sort_view);
-	windows_redraw(accview_sort_view->accview_pane);
-	accview_sort(accview_sort_view->file, accview_sort_view->account);
+	accview_adjust_sort_icon(windat);
+	windows_redraw(windat->accview_pane);
+	accview_sort(windat->file, windat->account);
 
-	accview_sort_view->file->accview_sort_order = accview_sort_view->sort_order;
+	windat->file->accview_sort_order = windat->sort_order;
 
 	return TRUE;
-}
-
-
-/**
- * Force the closure of the Account List sort window if the owning
- * file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void accview_force_windows_closed(file_data *file)
-{
-	if (accview_sort_view->file == file && windows_get_open(accview_sort_window))
-		close_dialogue_with_caret(accview_sort_window);
 }
 
 

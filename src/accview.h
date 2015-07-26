@@ -75,16 +75,6 @@ void accview_build_window_title(file_data *file, acct_t account);
 
 
 /**
- * Force the closure of the Account List sort window if the owning
- * file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void accview_force_windows_closed(file_data *file);
-
-
-/**
  * Sort the account view list in a given file based on that file's sort setting.
  *
  * \param *file			The file to sort.

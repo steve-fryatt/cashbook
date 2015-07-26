@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -76,6 +76,7 @@
 #include "mainmenu.h"
 #include "printing.h"
 #include "saveas.h"
+#include "sort.h"
 #include "report.h"
 #include "templates.h"
 #include "transact.h"
@@ -209,8 +210,23 @@ static int			sorder_edit_number = -1;			/**< The standing order currently being 
 
 /* Standing Order Sort Window. */
 
-static wimp_w			sorder_sort_window = NULL;			/**< The handle of the standing order sort window.			*/
-static file_data		*sorder_sort_file = NULL;			/**< The file currently owning the standing order sort window.		*/
+static struct sort_block	*sorder_sort_dialogue = NULL;			/**< The standing order window sort dialogue box.			*/
+
+static struct sort_icon sorder_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
+	{SORDER_SORT_FROM, SORT_FROM},
+	{SORDER_SORT_TO, SORT_TO},
+	{SORDER_SORT_AMOUNT, SORT_AMOUNT},
+	{SORDER_SORT_DESCRIPTION, SORT_DESCRIPTION},
+	{SORDER_SORT_NEXTDATE, SORT_NEXTDATE},
+	{SORDER_SORT_LEFT, SORT_LEFT},
+	{0, SORT_NONE}
+};
+
+static struct sort_icon sorder_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
+	{SORDER_SORT_ASCENDING, SORT_ASCENDING},
+	{SORDER_SORT_DESCENDING, SORT_DESCENDING},
+	{0, SORT_NONE}
+};
 
 /* Standing Order Print Window. */
 
@@ -253,12 +269,8 @@ static osbool			sorder_process_edit_window(void);
 static osbool			sorder_delete_from_edit_window(void);
 static osbool			sorder_stop_from_edit_window(void);
 
-static void			sorder_open_sort_window(file_data *file, wimp_pointer *ptr);
-static void			sorder_sort_click_handler(wimp_pointer *pointer);
-static osbool			sorder_sort_keypress_handler(wimp_key *key);
-static void			sorder_refresh_sort_window(void);
-static void			sorder_fill_sort_window(int sort_option);
-static osbool			sorder_process_sort_window(void);
+static void			sorder_open_sort_window(struct sorder_window *windat, wimp_pointer *ptr);
+static osbool			sorder_process_sort_window(enum sort_type order, void *data);
 
 static void			sorder_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore);
 static void			sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
@@ -280,6 +292,8 @@ static enum date_adjust		sorder_get_date_adjustment(enum transact_flags flags);
 
 void sorder_initialise(osspriteop_area *sprites)
 {
+	wimp_w	sort_window;
+
 	sorder_edit_window = templates_create_window("EditSOrder");
 	ihelp_add_window(sorder_edit_window, "EditSOrder", NULL);
 	event_add_window_mouse_event(sorder_edit_window, sorder_edit_click_handler);
@@ -290,18 +304,10 @@ void sorder_initialise(osspriteop_area *sprites)
 	event_add_window_icon_radio(sorder_edit_window, SORDER_EDIT_SKIPFWD, TRUE);
 	event_add_window_icon_radio(sorder_edit_window, SORDER_EDIT_SKIPBACK, TRUE);
 
-	sorder_sort_window = templates_create_window("SortSOrder");
-	ihelp_add_window(sorder_sort_window, "SortSOrder", NULL);
-	event_add_window_mouse_event(sorder_sort_window, sorder_sort_click_handler);
-	event_add_window_key_event(sorder_sort_window, sorder_sort_keypress_handler);
-	event_add_window_icon_radio(sorder_sort_window, SORDER_SORT_FROM, TRUE);
-	event_add_window_icon_radio(sorder_sort_window, SORDER_SORT_TO, TRUE);
-	event_add_window_icon_radio(sorder_sort_window, SORDER_SORT_AMOUNT, TRUE);
-	event_add_window_icon_radio(sorder_sort_window, SORDER_SORT_DESCRIPTION, TRUE);
-	event_add_window_icon_radio(sorder_sort_window, SORDER_SORT_NEXTDATE, TRUE);
-	event_add_window_icon_radio(sorder_sort_window, SORDER_SORT_LEFT, TRUE);
-	event_add_window_icon_radio(sorder_sort_window, SORDER_SORT_ASCENDING, TRUE);
-	event_add_window_icon_radio(sorder_sort_window, SORDER_SORT_DESCENDING, TRUE);
+	sort_window = templates_create_window("SortSOrder");
+	ihelp_add_window(sort_window, "SortSOrder", NULL);
+	sorder_sort_dialogue = sort_create_dialogue(sort_window, sorder_sort_columns, sorder_sort_directions,
+			SORDER_SORT_OK, SORDER_SORT_CANCEL, sorder_process_sort_window);
 
 	sorder_window_def = templates_load_window("SOrder");
 	sorder_window_def->icon_count = 0;
@@ -454,6 +460,11 @@ void sorder_delete_window(struct sorder_window *windat)
 	if (windat == NULL)
 		return;
 
+	sort_close_dialogue(sorder_sort_dialogue, windat);
+
+	if (sorder_edit_file == windat->file && windows_get_open(sorder_edit_window))
+		close_dialogue_with_caret(sorder_edit_window);
+
 	if (windat->sorder_window != NULL) {
 		ihelp_remove_window (windat->sorder_window);
 		event_delete_window(windat->sorder_window);
@@ -570,7 +581,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case SORDER_PANE_SORT:
-			sorder_open_sort_window(file, pointer);
+			sorder_open_sort_window(windat, pointer);
 			break;
 		}
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
@@ -692,37 +703,34 @@ static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 static void sorder_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
 	struct sorder_window	*windat;
-	file_data		*file;
 	wimp_pointer		pointer;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	file = windat->file;
-
 	wimp_get_pointer_info(&pointer);
 
 	switch (selection->items[0]){
 	case SORDER_MENU_SORT:
-		sorder_open_sort_window(file, &pointer);
+		sorder_open_sort_window(windat, &pointer);
 		break;
 
 	case SORDER_MENU_EDIT:
 		if (sorder_window_menu_line != -1)
-			sorder_open_edit_window(file, file->sorders[sorder_window_menu_line].sort_index, &pointer);
+			sorder_open_edit_window(windat->file, windat->file->sorders[sorder_window_menu_line].sort_index, &pointer);
 		break;
 
 	case SORDER_MENU_NEWSORDER:
-		sorder_open_edit_window(file, NULL_PRESET, &pointer);
+		sorder_open_edit_window(windat->file, NULL_PRESET, &pointer);
 		break;
 
 	case SORDER_MENU_PRINT:
-		sorder_open_print_window(file, &pointer, config_opt_read("RememberValues"));
+		sorder_open_print_window(windat->file, &pointer, config_opt_read("RememberValues"));
 		break;
 
 	case SORDER_MENU_FULLREP:
-		sorder_full_report(file);
+		sorder_full_report(windat->file);
 		break;
 	}
 }
@@ -1904,104 +1912,16 @@ static osbool sorder_stop_from_edit_window(void)
 /**
  * Open the Standing Order Sort dialogue for a given standing order list window.
  *
- * \param *file			The file to own the dialogue.
+ * \param *windat		The standing order window to own the dialogue.
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void sorder_open_sort_window(file_data *file, wimp_pointer *ptr)
+static void sorder_open_sort_window(struct sorder_window *windat, wimp_pointer *ptr)
 {
-	if (windows_get_open(sorder_sort_window))
-		wimp_close_window(sorder_sort_window);
+	if (windat == NULL || ptr == NULL)
+		return;
 
-	sorder_fill_sort_window(file->sorder_window.sort_order);
-
-	sorder_sort_file = file;
-
-	windows_open_centred_at_pointer(sorder_sort_window, ptr);
-	place_dialogue_caret(sorder_sort_window, wimp_ICON_WINDOW);
-}
-
-
-/**
- * Process mouse clicks in the Standing Order Sort dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void sorder_sort_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case SORDER_SORT_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(sorder_sort_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			sorder_refresh_sort_window();
-		break;
-
-	case SORDER_SORT_OK:
-		if (sorder_process_sort_window() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(sorder_sort_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Standing Order Sort window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool sorder_sort_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (sorder_process_sort_window())
-			close_dialogue_with_caret(sorder_sort_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(sorder_sort_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the Standing Order Sort window.
- */
-
-static void sorder_refresh_sort_window(void)
-{
-	sorder_fill_sort_window(sorder_sort_file->sorder_window.sort_order);
-}
-
-
-/**
- * Update the contents of the Standing Order Sort window to reflect the current
- * settings of the given file.
- *
- * \param sort_option		The sort option currently in force.
- */
-
-static void sorder_fill_sort_window(int sort_option)
-{
-	icons_set_selected(sorder_sort_window, SORDER_SORT_FROM, (sort_option & SORT_MASK) == SORT_FROM);
-	icons_set_selected(sorder_sort_window, SORDER_SORT_TO, (sort_option & SORT_MASK) == SORT_TO);
-	icons_set_selected(sorder_sort_window, SORDER_SORT_AMOUNT, (sort_option & SORT_MASK) == SORT_AMOUNT);
-	icons_set_selected(sorder_sort_window, SORDER_SORT_DESCRIPTION, (sort_option & SORT_MASK) == SORT_DESCRIPTION);
-	icons_set_selected(sorder_sort_window, SORDER_SORT_NEXTDATE, (sort_option & SORT_MASK) == SORT_NEXTDATE);
-	icons_set_selected(sorder_sort_window, SORDER_SORT_LEFT, (sort_option & SORT_MASK) == SORT_LEFT);
-
-	icons_set_selected(sorder_sort_window, SORDER_SORT_ASCENDING, sort_option & SORT_ASCENDING);
-	icons_set_selected(sorder_sort_window, SORDER_SORT_DESCENDING, sort_option & SORT_DESCENDING);
+	sort_open_dialogue(sorder_sort_dialogue, ptr, windat->sort_order, windat);
 }
 
 
@@ -2009,55 +1929,25 @@ static void sorder_fill_sort_window(int sort_option)
  * Take the contents of an updated Standing Order Sort window and process
  * the data.
  *
+ * \param order			The new sort order selected by the user.
+ * \param *data			The standing order window associated with the Sort dialogue.
  * \return			TRUE if successful; else FALSE.
  */
 
-static osbool sorder_process_sort_window(void)
+static osbool sorder_process_sort_window(enum sort_type order, void *data)
 {
-	sorder_sort_file->sorder_window.sort_order = SORT_NONE;
+	struct sorder_window	*windat = (struct sorder_window *) data;
 
-	if (icons_get_selected(sorder_sort_window, SORDER_SORT_FROM))
-		sorder_sort_file->sorder_window.sort_order = SORT_FROM;
-	else if (icons_get_selected(sorder_sort_window, SORDER_SORT_TO))
-		sorder_sort_file->sorder_window.sort_order = SORT_TO;
-	else if (icons_get_selected(sorder_sort_window, SORDER_SORT_AMOUNT))
-		sorder_sort_file->sorder_window.sort_order = SORT_AMOUNT;
-	else if (icons_get_selected(sorder_sort_window, SORDER_SORT_DESCRIPTION))
-		sorder_sort_file->sorder_window.sort_order = SORT_DESCRIPTION;
-	else if (icons_get_selected(sorder_sort_window, SORDER_SORT_NEXTDATE))
-		sorder_sort_file->sorder_window.sort_order = SORT_NEXTDATE;
-	else if (icons_get_selected(sorder_sort_window, SORDER_SORT_LEFT))
-		sorder_sort_file->sorder_window.sort_order = SORT_LEFT;
+	if (windat == NULL)
+		return FALSE;
 
-	if (sorder_sort_file->sorder_window.sort_order != SORT_NONE) {
-		if (icons_get_selected(sorder_sort_window, SORDER_SORT_ASCENDING))
-			sorder_sort_file->sorder_window.sort_order |= SORT_ASCENDING;
-		else if (icons_get_selected(sorder_sort_window, SORDER_SORT_DESCENDING))
-			sorder_sort_file->sorder_window.sort_order |= SORT_DESCENDING;
-	}
+	windat->sort_order = order;
 
-	sorder_adjust_sort_icon(sorder_sort_file);
-	windows_redraw(sorder_sort_file->sorder_window.sorder_pane);
-	sorder_sort(sorder_sort_file);
+	sorder_adjust_sort_icon(windat->file);
+	windows_redraw(windat->sorder_pane);
+	sorder_sort(windat->file);
 
 	return TRUE;
-}
-
-
-/**
- * Force the closure of the Standing Order sort and edit windows if the owning
- * file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void sorder_force_windows_closed(file_data *file)
-{
-	if (sorder_sort_file == file && windows_get_open(sorder_sort_window))
-		close_dialogue_with_caret(sorder_sort_window);
-
-	if (sorder_edit_file == file && windows_get_open(sorder_edit_window))
-		close_dialogue_with_caret(sorder_edit_window);
 }
 
 

@@ -104,16 +104,6 @@ void preset_open_edit_window(file_data *file, int preset, wimp_pointer *ptr);
 
 
 /**
- * Force the closure of the Preset sort and edit windows if the owning
- * file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void preset_force_windows_closed(file_data *file);
-
-
-/**
  * Build a Preset Complete menu and return the pointer.
  *
  * \param *file			The file to build the menu for.

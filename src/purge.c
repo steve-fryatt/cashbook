@@ -181,8 +181,8 @@ void purge_open_window(file_data *file, wimp_pointer *ptr, osbool restore)
 	purge_window_file = file;
 	purge_window_restore = restore;
 
-	windows_open_centred_at_pointer (purge_window, ptr);
-	place_dialogue_caret_fallback (purge_window, 1, PURGE_ICON_DATE);
+	windows_open_centred_at_pointer(purge_window, ptr);
+	place_dialogue_caret_fallback(purge_window, 1, PURGE_ICON_DATE);
 }
 
 

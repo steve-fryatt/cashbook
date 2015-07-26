@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *

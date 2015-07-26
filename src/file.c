@@ -181,7 +181,7 @@ file_data *build_new_file_block(void)
 
 	/* Set up the goto data. */
 
-	new->go_to = goto_create();
+	new->go_to = goto_create(new);
 	if (new->go_to == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
@@ -468,7 +468,6 @@ void delete_file(file_data *file)
 	/* Do the same for any file-related dialogues that are open. */
 
 	account_force_windows_closed(file);
-	goto_force_window_closed(file);
 	find_force_windows_closed(file);
 	budget_force_window_closed(file);
 	report_force_windows_closed(file);

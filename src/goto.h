@@ -42,41 +42,32 @@ void goto_initialise(void);
  * resulting block. The block will be allocated with heap_alloc(), and should
  * be freed after use with heap_free().
  *
+ * \param *file		The file to which this instance belongs.
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct go_to *goto_create(void);
+struct goto_block *goto_create(file_data *file);
 
 
 /**
  * Delete a goto data block.
  *
- * \param *go_to	Pointer to the goto window data to delete.
+ * \param *windat	Pointer to the goto window data to delete.
  */
 
-void goto_delete(struct go_to *go_to);
+void goto_delete(struct goto_block *windat);
 
 
 /**
  * Open the Goto dialogue box.
  *
- * \param *file		The file owning the dialogue.
+ * \param *windat	The Goto instance to own the dialogue.
  * \param *ptr		The current Wimp Pointer details.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  */
 
-void goto_open_window(file_data *file, wimp_pointer *ptr, osbool restore);
-
-
-/**
- * Force the closure of the Goto window if it is open and relates
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void goto_force_window_closed(file_data *file);
+void goto_open_window(struct goto_block *windat, wimp_pointer *ptr, osbool restore);
 
 #endif
 

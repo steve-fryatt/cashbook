@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -79,21 +79,22 @@ enum go_to_type {
 	GOTO_TYPE_DATE = 1							/**< The goto target is given as a date.			*/
 };
 
-struct go_to {
+struct goto_block {
+	file_data		*file;						/**< The file owning the goto dialogue.				*/
 	union go_to_target	target;						/**< The current goto target.					*/
 	enum go_to_type		type;						/**< The type of target we're aiming for.			*/
 };
 
 
-static file_data	*goto_window_file = NULL;				/**< The file whoch currently owns the Goto dialogue.	*/
-static osbool		goto_restore = FALSE;					/**< The restore setting for the current dialogue.	*/
-static wimp_w		goto_window = NULL;					/**< The Goto dialogue handle.				*/
+static struct goto_block	*goto_window_owner = NULL;			/**< The file whoch currently owns the Goto dialogue.	*/
+static osbool			goto_restore = FALSE;				/**< The restore setting for the current dialogue.	*/
+static wimp_w			goto_window = NULL;				/**< The Goto dialogue handle.				*/
 
 
 static void		goto_click_handler(wimp_pointer *pointer);
 static osbool		goto_keypress_handler(wimp_key *key);
 static void		goto_refresh_window(void);
-static void		goto_fill_window(struct go_to *go_to_data, osbool restore);
+static void		goto_fill_window(struct goto_block *go_to_data, osbool restore);
 static osbool		goto_process_window(void);
 
 
@@ -118,17 +119,19 @@ void goto_initialise(void)
  * resulting block. The block will be allocated with heap_alloc(), and should
  * be freed after use with heap_free().
  *
+ * \param *file		The file to which this instance belongs.
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct go_to *goto_create(void)
+struct goto_block *goto_create(file_data *file)
 {
-	struct go_to	*new;
+	struct goto_block	*new;
 
-	new = heap_alloc(sizeof(struct go_to));
+	new = heap_alloc(sizeof(struct goto_block));
 	if (new == NULL)
 		return NULL;
 
+	new->file = file;
 	new->target.date = NULL_DATE;
 	new->type = GOTO_TYPE_DATE;
 
@@ -139,27 +142,34 @@ struct go_to *goto_create(void)
 /**
  * Delete a goto data block.
  *
- * \param *go_to	Pointer to the goto window data to delete.
+ * \param *windat	Pointer to the goto window data to delete.
  */
 
-void goto_delete(struct go_to *go_to)
+void goto_delete(struct goto_block *windat)
 {
-	if (go_to != NULL)
-		heap_free(go_to);
+	if (goto_window_owner == windat && windows_get_open(goto_window))
+		close_dialogue_with_caret(goto_window);
+
+
+	if (windat != NULL)
+		heap_free(windat);
 }
 
 
 /**
  * Open the Goto dialogue box.
  *
- * \param *file		The file owning the dialogue.
+ * \param *windat	The Goto instance to own the dialogue.
  * \param *ptr		The current Wimp Pointer details.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  */
 
-void goto_open_window(file_data *file, wimp_pointer *ptr, osbool restore)
+void goto_open_window(struct goto_block *windat, wimp_pointer *ptr, osbool restore)
 {
+	if (windat == NULL || ptr == NULL)
+		return;
+
 	/* If the window is already open, close it to start with. */
 
 	if (windows_get_open(goto_window))
@@ -167,11 +177,11 @@ void goto_open_window(file_data *file, wimp_pointer *ptr, osbool restore)
 
 	/* Blank out the icon contents. */
 
-	goto_fill_window(file->go_to, restore);
+	goto_fill_window(windat, restore);
 
 	/* Set the pointer up to find the window again and open the window. */
 
-	goto_window_file = file;
+	goto_window_owner = windat;
 	goto_restore = restore;
 
 	windows_open_centred_at_pointer(goto_window, ptr);
@@ -237,7 +247,7 @@ static osbool goto_keypress_handler(wimp_key *key)
 
 static void goto_refresh_window(void)
 {
-	goto_fill_window(goto_window_file->go_to, goto_restore);
+	goto_fill_window(goto_window_owner, goto_restore);
 
 	icons_redraw_group(goto_window, 1, GOTO_ICON_NUMBER_FIELD);
 	icons_replace_caret_in_window(goto_window);
@@ -252,7 +262,7 @@ static void goto_refresh_window(void)
  *				use system defaults.
  */
 
-static void goto_fill_window(struct go_to *go_to_data, osbool restore)
+static void goto_fill_window(struct goto_block *go_to_data, osbool restore)
 {
 	if (!restore) {
 		*icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD) = '\0';
@@ -284,56 +294,42 @@ static osbool goto_process_window(void)
 {
 	int		transaction, line = 0;
 
-	goto_window_file->go_to->type = (icons_get_selected(goto_window, GOTO_ICON_DATE)) ? GOTO_TYPE_DATE : GOTO_TYPE_LINE;
+	goto_window_owner->type = (icons_get_selected(goto_window, GOTO_ICON_DATE)) ? GOTO_TYPE_DATE : GOTO_TYPE_LINE;
 
-	if (goto_window_file->go_to->type == GOTO_TYPE_LINE) {
+	if (goto_window_owner->type == GOTO_TYPE_LINE) {
 		/* Go to a plain transaction line number. */
 
-		goto_window_file->go_to->target.line = atoi(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD));
+		goto_window_owner->target.line = atoi(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD));
 
-		if (goto_window_file->go_to->target.line <= 0 || goto_window_file->go_to->target.line > goto_window_file->trans_count ||
+		if (goto_window_owner->target.line <= 0 || goto_window_owner->target.line > goto_window_owner->file->trans_count ||
 				strlen(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD)) == 0) {
 			error_msgs_report_info("BadGotoLine");
 			return FALSE;
 		}
 
-		line = transact_get_line_from_transaction(goto_window_file, transact_find_transaction_number(goto_window_file->go_to->target.line));
-	} else if (goto_window_file->go_to->type == GOTO_TYPE_DATE) {
+		line = transact_get_line_from_transaction(goto_window_owner->file, transact_find_transaction_number(goto_window_owner->target.line));
+	} else if (goto_window_owner->type == GOTO_TYPE_DATE) {
 		/* Go to a given date, or the nearest transaction. */
 
-		goto_window_file->go_to->target.date = date_convert_from_string(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD), NULL_DATE, 0);
+		goto_window_owner->target.date = date_convert_from_string(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD), NULL_DATE, 0);
 
-		if (goto_window_file->go_to->target.date == NULL_DATE) {
+		if (goto_window_owner->target.date == NULL_DATE) {
 			error_msgs_report_info("BadGotoDate");
 			return FALSE;
 		}
 
-		transaction = transact_find_date(goto_window_file, goto_window_file->go_to->target.date);
+		transaction = transact_find_date(goto_window_owner->file, goto_window_owner->target.date);
 
 		if (transaction == NULL_TRANSACTION)
 			return FALSE;
 
-		line = transact_get_line_from_transaction(goto_window_file, transaction);
+		line = transact_get_line_from_transaction(goto_window_owner->file, transaction);
 	}
 
-	edit_place_new_line(goto_window_file, line);
-	icons_put_caret_at_end(goto_window_file->transaction_window.transaction_window, EDIT_ICON_DATE);
-	edit_find_line_vertically(goto_window_file);
+	edit_place_new_line(goto_window_owner->file, line);
+	icons_put_caret_at_end(goto_window_owner->file->transaction_window.transaction_window, EDIT_ICON_DATE);
+	edit_find_line_vertically(goto_window_owner->file);
 
 	return TRUE;
-}
-
-
-/**
- * Force the closure of the Goto window if it is open and relates
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void goto_force_window_closed(file_data *file)
-{
-	if (goto_window_file == file && windows_get_open(goto_window))
-		close_dialogue_with_caret(goto_window);
 }
 

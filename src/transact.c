@@ -791,7 +791,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_GOTO:
-			goto_open_window(file, pointer, config_opt_read("RememberValues"));
+			goto_open_window(file->go_to, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case TRANSACT_PANE_SORT:
@@ -833,7 +833,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_GOTO:
-			goto_open_window(file, pointer, !config_opt_read("RememberValues"));
+			goto_open_window(file->go_to, pointer, !config_opt_read("RememberValues"));
 			break;
 
 		case TRANSACT_PANE_SORT:
@@ -972,7 +972,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 		find_open_window(file, &pointer, config_opt_read("RememberValues"));
 	} else if (key->c == wimp_KEY_F5) {
 		wimp_get_pointer_info(&pointer);
-		goto_open_window(file, &pointer, config_opt_read("RememberValues"));
+		goto_open_window(file->go_to, &pointer, config_opt_read("RememberValues"));
 	} else if (key->c == wimp_KEY_F6) {
 		wimp_get_pointer_info(&pointer);
 		transact_open_sort_window(windat, &pointer);
@@ -1177,7 +1177,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_TRANS_GOTO:
-			goto_open_window(windat->file, &pointer, config_opt_read("RememberValues"));
+			goto_open_window(windat->file->go_to, &pointer, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_TRANS_SORT:

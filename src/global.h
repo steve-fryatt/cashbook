@@ -172,7 +172,7 @@ struct preset;
 struct report;
 struct budget;
 struct find;
-struct go_to;
+struct goto_block;
 struct printing;
 struct purge;
 struct trans_rep;
@@ -364,7 +364,7 @@ struct file_data
 
 	/* Dialogue Content. */
 
-	struct go_to			*go_to;					/**< Data relating to the goto module.				*/
+	struct goto_block		*go_to;					/**< Data relating to the goto module.				*/
 	struct find			*find;					/**< Data relating to the find module.				*/
 	struct printing			*print;					/**< Data relating to the print dialogues.			*/
 	struct purge			*purge;					/**< Data relating to the purge module.				*/

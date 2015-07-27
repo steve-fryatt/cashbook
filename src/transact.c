@@ -2216,6 +2216,17 @@ int transact_get_transaction_from_line(struct file_block *file, int line)
 }
 
 
+/**
+ * Find the number of transactions in a file.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The number of transactions in the file.
+ */
+
+int transact_get_count(struct file_block *file)
+{
+	return (file != NULL) ? file->trans_count : 0;
+}
 
 
 
@@ -3820,6 +3831,27 @@ int transact_find_date(struct file_block *file, date_t target)
 
 
 /**
+ * Place the caret in a given line in a transaction window, and scroll
+ * the line into view.
+ *
+ * \param *file			The file to operate on.
+ * \param line			The line (under the current display sort order)
+ *				to place the caret in.
+ * \param icon			The icon to place the caret in.
+ */
+
+void transact_place_caret(struct file_block *file, int line, wimp_i icon)
+{
+	if (file == NULL)
+		return;
+
+	edit_place_new_line(file, file->trans_count);
+	icons_put_caret_at_end(file->transaction_window.transaction_window, icon);
+	edit_find_line_vertically(file);
+}
+
+
+/**
  * Search the transaction list from a file for a set of matching entries.
  *
  * \param *file			The file to search in.
@@ -3945,6 +3977,7 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
 
 	return (logic_and) ? original : test;
 }
+
 
 /**
  * Check the transactions in a file to see if the given account is used

@@ -50,15 +50,15 @@
 
 /* Application header files */
 
-#include "global.h"
-#include "goto.h"
-
 #include "caret.h"
 #include "date.h"
 #include "edit.h"
+#include "file.h"
 #include "ihelp.h"
 #include "templates.h"
 #include "transact.h"
+
+#include "goto.h"
 
 
 #define GOTO_ICON_OK 0
@@ -301,7 +301,7 @@ static osbool goto_process_window(void)
 
 		goto_window_owner->target.line = atoi(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD));
 
-		if (goto_window_owner->target.line <= 0 || goto_window_owner->target.line > goto_window_owner->file->trans_count ||
+		if (goto_window_owner->target.line <= 0 || goto_window_owner->target.line > transact_get_count(goto_window_owner->file) ||
 				strlen(icons_get_indirected_text_addr(goto_window, GOTO_ICON_NUMBER_FIELD)) == 0) {
 			error_msgs_report_info("BadGotoLine");
 			return FALSE;
@@ -326,9 +326,7 @@ static osbool goto_process_window(void)
 		line = transact_get_line_from_transaction(goto_window_owner->file, transaction);
 	}
 
-	edit_place_new_line(goto_window_owner->file, line);
-	icons_put_caret_at_end(goto_window_owner->file->transaction_window.transaction_window, EDIT_ICON_DATE);
-	edit_find_line_vertically(goto_window_owner->file);
+	transact_place_caret(goto_window_owner->file, line, EDIT_ICON_DATE);
 
 	return TRUE;
 }

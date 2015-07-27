@@ -228,6 +228,16 @@ int transact_get_line_from_transaction(struct file_block *file, int transaction)
 int transact_get_transaction_from_line(struct file_block *file, int line);
 
 
+/**
+ * Find the number of transactions in a file.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The number of transactions in the file.
+ */
+
+int transact_get_count(struct file_block *file);
+
+
 
 
 
@@ -511,6 +521,19 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
  */
 
 int transact_find_date(struct file_block *file, date_t target);
+
+
+/**
+ * Place the caret in a given line in a transaction window, and scroll
+ * the line into view.
+ *
+ * \param *file			The file to operate on.
+ * \param line			The line (under the current display sort order)
+ *				to place the caret in.
+ * \param icon			The icon to place the caret in.
+ */
+
+void transact_place_caret(struct file_block *file, int line, wimp_i icon);
 
 
 /**

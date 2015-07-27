@@ -592,9 +592,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 
 		trans_col = (transact_get_from(file, transaction) == windat->account) ? trans_col_to : trans_col_from;
 
-		edit_place_new_line(file, transact_get_line_from_transaction(file, transaction));
-		icons_put_caret_at_end(file->transaction_window.transaction_window, trans_col[column]);
-		edit_find_line_vertically(file);
+		transact_place_caret(file, transact_get_line_from_transaction(file, transaction), trans_col[column]);
 
 		if (pointer->buttons == wimp_DOUBLE_ADJUST)
 			windows_open(file->transaction_window.transaction_window);
@@ -828,10 +826,9 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 
 	switch (selection->items[0]){
 	case ACCVIEW_MENU_FINDTRANS:
-		edit_place_new_line(windat->file, transact_get_line_from_transaction(windat->file,
-				windat->line_data[windat->line_data[accview_window_menu_line].sort_index].transaction));
-		icons_put_caret_at_end(windat->file->transaction_window.transaction_window, EDIT_ICON_DATE);
-		edit_find_line_vertically(windat->file);
+		transact_place_caret(windat->file, transact_get_line_from_transaction(windat->file,
+				windat->line_data[windat->line_data[accview_window_menu_line].sort_index].transaction),
+				EDIT_ICON_DATE);
 		break;
 
 	case ACCVIEW_MENU_GOTOTRANS:

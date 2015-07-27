@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -81,7 +81,7 @@ osbool printing_send_start_print_save(void (*callback_print) (char *), void (*ca
  * \param *file			The file data block of interest.
  */
 
-void printing_force_windows_closed(file_data *file);
+void printing_force_windows_closed(struct file_block *file);
 
 
 /**
@@ -96,7 +96,7 @@ void printing_force_windows_closed(file_data *file);
  *			in the affermative.
  */
 
-void printing_open_simple_window(file_data *file, wimp_pointer *ptr, osbool restore, char *title,
+void printing_open_simple_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
 		void (callback) (osbool, osbool, osbool, osbool, osbool));
 
 
@@ -112,7 +112,7 @@ void printing_open_simple_window(file_data *file, wimp_pointer *ptr, osbool rest
  *			in the affermative.
  */
 
-void printing_open_advanced_window(file_data *file, wimp_pointer *ptr, osbool restore, char *title,
+void printing_open_advanced_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
 		void (callback) (osbool, osbool, osbool, osbool, osbool, date_t, date_t));
 
 #endif

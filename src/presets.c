@@ -199,7 +199,7 @@ struct preset_complete_link
 /* Preset Edit Window. */
 
 static wimp_w			preset_edit_window = NULL;			/**< The handle of the preset edit window.				*/
-static file_data		*preset_edit_file = NULL;			/**< The file currently owning the preset edit window.			*/
+static struct file_block	*preset_edit_file = NULL;			/**< The file currently owning the preset edit window.			*/
 static int			preset_edit_number = -1;			/**< The preset currently being edited.					*/
 
 /* Preset Sort Window. */
@@ -224,7 +224,7 @@ static struct sort_icon preset_sort_directions[] = {				/**< Details of the sort
 
 /* Preset Print Window. */
 
-static file_data		*preset_print_file = NULL;			/**< The file currently owning the preset print window.			*/
+static struct file_block	*preset_print_file = NULL;			/**< The file currently owning the preset print window.			*/
 
 /* Preset List Window. */
 
@@ -255,30 +255,30 @@ static void		preset_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void		preset_window_scroll_handler(wimp_scroll *scroll);
 static void		preset_window_redraw_handler(wimp_draw *redraw);
 static void		preset_adjust_window_columns(void *data, wimp_i icon, int width);
-static void		preset_adjust_sort_icon(file_data *file);
-static void		preset_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
-static void		preset_set_window_extent(file_data *file);
+static void		preset_adjust_sort_icon(struct file_block *file);
+static void		preset_adjust_sort_icon_data(struct file_block *file, wimp_icon *icon);
+static void		preset_set_window_extent(struct file_block *file);
 static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void		preset_edit_click_handler(wimp_pointer *pointer);
 static osbool		preset_edit_keypress_handler(wimp_key *key);
 static void		preset_refresh_edit_window(void);
-static void		preset_fill_edit_window(file_data *file, int preset);
+static void		preset_fill_edit_window(struct file_block *file, int preset);
 static osbool		preset_process_edit_window(void);
 static osbool		preset_delete_from_edit_window(void);
 
 static void		preset_open_sort_window(struct preset_window *windat, wimp_pointer *ptr);
 static osbool		preset_process_sort_window(enum sort_type order, void *data);
 
-static void		preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore);
+static void		preset_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
 static void		preset_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
-static int		preset_add(file_data *file);
-static osbool		preset_delete(file_data *file, int preset);
+static int		preset_add(struct file_block *file);
+static osbool		preset_delete(struct file_block *file, int preset);
 
 static osbool		preset_save_csv(char *filename, osbool selection, void *data);
 static osbool		preset_save_tsv(char *filename, osbool selection, void *data);
-static void		preset_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
+static void		preset_export_delimited(struct file_block *file, char *filename, enum filing_delimit_type format, int filetype);
 
 
 
@@ -328,7 +328,7 @@ void preset_initialise(osspriteop_area *sprites)
  * \param *file			The file to open a window for.
  */
 
-void preset_open_window(file_data *file)
+void preset_open_window(struct file_block *file)
 {
 	int			i, j, height;
 	wimp_window_state	parent;
@@ -515,7 +515,7 @@ static void preset_close_window_handler(wimp_close *close)
 static void preset_window_click_handler(wimp_pointer *pointer)
 {
 	struct preset_window	*windat;
-	file_data		*file;
+	struct file_block	*file;
 	int			line;
 	wimp_window_state	window;
 
@@ -551,7 +551,7 @@ static void preset_window_click_handler(wimp_pointer *pointer)
 static void preset_pane_click_handler(wimp_pointer *pointer)
 {
 	struct preset_window	*windat;
-	file_data		*file;
+	struct file_block	*file;
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
@@ -858,7 +858,7 @@ static void preset_window_scroll_handler(wimp_scroll *scroll)
 static void preset_window_redraw_handler(wimp_draw *redraw)
 {
 	struct preset_window	*windat;
-	file_data		*file;
+	struct file_block	*file;
 	int			ox, oy, top, base, y, i, t;
 	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
@@ -1056,7 +1056,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 static void preset_adjust_window_columns(void *data, wimp_i group, int width)
 {
 	struct preset_window	*windat = (struct preset_window *) data;
-	file_data		*file;
+	struct file_block	*file;
 	int			i, j, new_extent;
 	wimp_icon_state		icon;
 	wimp_window_info	window;
@@ -1123,7 +1123,7 @@ static void preset_adjust_window_columns(void *data, wimp_i group, int width)
  * \param *file			The file to update the window for.
  */
 
-static void preset_adjust_sort_icon(file_data *file)
+static void preset_adjust_sort_icon(struct file_block *file)
 {
 	wimp_icon_state		icon;
 
@@ -1145,7 +1145,7 @@ static void preset_adjust_sort_icon(file_data *file)
  * \param *icon			The icon to be updated.
  */
 
-static void preset_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
+static void preset_adjust_sort_icon_data(struct file_block *file, wimp_icon *icon)
 {
 	int	i = 0, width, anchor;
 
@@ -1207,7 +1207,7 @@ static void preset_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
  * \param *file			The file to update.
  */
 
-static void preset_set_window_extent(file_data *file)
+static void preset_set_window_extent(struct file_block *file)
 {
 	wimp_window_state	state;
 	os_box			extent;
@@ -1271,7 +1271,7 @@ static void preset_set_window_extent(file_data *file)
  * \param *file			The file to rebuild the title for.
  */
 
-void preset_build_window_title(file_data *file)
+void preset_build_window_title(struct file_block *file)
 {
 	char	name[256];
 
@@ -1296,7 +1296,7 @@ void preset_build_window_title(file_data *file)
  * \param to			The last line to redraw, inclusive.
  */
 
-void preset_force_window_redraw(file_data *file, int from, int to)
+void preset_force_window_redraw(struct file_block *file, int from, int to)
 {
 	int			y0, y1;
 	wimp_window_info	window;
@@ -1358,7 +1358,7 @@ static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
  * \param *ptr			The current Wimp pointer position.
  */
 
-void preset_open_edit_window(file_data *file, int preset, wimp_pointer *ptr)
+void preset_open_edit_window(struct file_block *file, int preset, wimp_pointer *ptr)
 {
 	/* If the window is already open, another preset is being edited or created.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
@@ -1510,7 +1510,7 @@ static void preset_refresh_edit_window(void)
  * \param preset		The preset to display, or NULL_PRESET for none.
  */
 
-static void preset_fill_edit_window(file_data *file, int preset)
+static void preset_fill_edit_window(struct file_block *file, int preset)
 {
 	if (preset == NULL_PRESET) {
 		/* Set name and key. */
@@ -1804,7 +1804,7 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
  *				return to defaults.
  */
 
-static void preset_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore)
+static void preset_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore)
 {
 	preset_print_file = file;
 	printing_open_simple_window(file, ptr, restore, "PrintPreset", preset_print);
@@ -1928,7 +1928,7 @@ static void preset_print(osbool text, osbool format, osbool scale, osbool rotate
  * \return			The created menu, or NULL for an error.
  */
 
-wimp_menu *preset_complete_menu_build(file_data *file)
+wimp_menu *preset_complete_menu_build(struct file_block *file)
 {
 	int	line, width, i, p;
 
@@ -2066,7 +2066,7 @@ int preset_complete_menu_decode(wimp_selection *selection)
  * \param *file			The file to sort.
  */
 
-void preset_sort(file_data *file)
+void preset_sort(struct file_block *file)
 {
 	int		gap, comb, temp, order;
 	osbool		sorted, reorder;
@@ -2181,7 +2181,7 @@ void preset_sort(file_data *file)
  * \return			The new preset index, or NULL_PRESET.
  */
 
-static int preset_add(file_data *file)
+static int preset_add(struct file_block *file)
 {
 	int	new;
 
@@ -2222,7 +2222,7 @@ static int preset_add(file_data *file)
  * \return 			TRUE if successful; else FALSE.
  */
 
-static osbool preset_delete(file_data *file, int preset)
+static osbool preset_delete(struct file_block *file, int preset)
 {
 	int	i, index;
 
@@ -2284,7 +2284,7 @@ static osbool preset_delete(file_data *file, int preset)
  * \return			The matching preset index, or NULL_PRESET.
  */
 
-int preset_find_from_keypress(file_data *file, char key)
+int preset_find_from_keypress(struct file_block *file, char key)
 {
 	int	preset = NULL_PRESET;
 
@@ -2312,7 +2312,7 @@ int preset_find_from_keypress(file_data *file, char key)
  * \return			The preset's caret target.
  */
 
-enum preset_caret preset_get_caret_destination(file_data *file, int preset)
+enum preset_caret preset_get_caret_destination(struct file_block *file, int preset)
 {
 	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_count)
 		return 0;
@@ -2337,7 +2337,7 @@ enum preset_caret preset_get_caret_destination(file_data *file, int preset)
  * \return			Bitfield indicating which fields have changed.
  */
 
-unsigned preset_apply(file_data *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description)
+unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description)
 {
 	unsigned	changed = 0;
 
@@ -2408,7 +2408,7 @@ unsigned preset_apply(file_data *file, int preset, date_t *date, acct_t *from, a
  * \param *out			The file handle to write to.
  */
 
-void preset_write_file(file_data *file, FILE *out)
+void preset_write_file(struct file_block *file, FILE *out)
 {
 	int	i;
 	char	buffer[MAX_FILE_LINE_LEN];
@@ -2448,7 +2448,7 @@ void preset_write_file(file_data *file, FILE *out)
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status preset_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+enum config_read_status preset_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
 {
 	int	result, block_size, i = -1;
 
@@ -2575,7 +2575,7 @@ static osbool preset_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void preset_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
+static void preset_export_delimited(struct file_block *file, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	int			i, t;
@@ -2648,7 +2648,7 @@ static void preset_export_delimited(file_data *file, char *filename, enum filing
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-osbool preset_check_account(file_data *file, int account)
+osbool preset_check_account(struct file_block *file, int account)
 {
 	int		i;
 	osbool		found = FALSE;

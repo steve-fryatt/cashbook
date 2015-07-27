@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -83,14 +83,14 @@
  * Static global variables
  */
 
-static file_data *main_menu_file = NULL; /* Point to the file block connected to the main menu. */
-static int       main_menu_line = -1; /* Remember the line that a menu applies to. */
-static int       main_menu_column = -1; /* Remember the column that a menu applies to. */
+static struct file_block	*main_menu_file = NULL;				/* Point to the file block connected to the main menu.	*/
+static int			main_menu_line = -1;				/* Remember the line that a menu applies to.		*/
+static int			main_menu_column = -1;				/* Remember the column that a menu applies to.		*/
 
-static wimp_w    account_menu_window = NULL;
-static wimp_i    account_menu_name_icon = 0;
-static wimp_i    account_menu_ident_icon = 0;
-static wimp_i    account_menu_rec_icon = 0;
+static wimp_w			account_menu_window = NULL;
+static wimp_i			account_menu_name_icon = 0;
+static wimp_i			account_menu_ident_icon = 0;
+static wimp_i			account_menu_rec_icon = 0;
 
 
 static int                refdesc_menu_type = 0; /* The type of reference or description menu open. */
@@ -140,7 +140,7 @@ static void refdesc_menu_closed_message(void);
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void open_account_menu(file_data *file, enum account_menu_type type, int line,
+void open_account_menu(struct file_block *file, enum account_menu_type type, int line,
 		wimp_w window, wimp_i icon_i, wimp_i icon_n, wimp_i icon_r, wimp_pointer *pointer)
 {
 	wimp_menu		*menu;
@@ -253,7 +253,7 @@ static void account_menu_closed_message(void)
  */
 
 
-void open_date_menu(file_data *file, int line, wimp_pointer *pointer)
+void open_date_menu(struct file_block *file, int line, wimp_pointer *pointer)
 {
 	wimp_menu	*menu;
 
@@ -320,7 +320,7 @@ static void date_menu_closed_message(void)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-void open_refdesc_menu (file_data *file, int menu_type, int line, wimp_pointer *pointer)
+void open_refdesc_menu (struct file_block *file, int menu_type, int line, wimp_pointer *pointer)
 {
 	wimp_menu	*menu;
 

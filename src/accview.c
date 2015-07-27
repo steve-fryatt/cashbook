@@ -165,7 +165,7 @@ struct accview_redraw {
 };
 
 struct accview_window {
-	file_data		*file;						/**< The handle of the parent file.					*/
+	struct file_block	*file;						/**< The handle of the parent file.					*/
 	acct_t			account;					/**< The account number of the parent account.				*/
 
 	/* Account window handle and title details. */
@@ -306,7 +306,7 @@ void accview_initialise(osspriteop_area *sprites)
  * \param account		The account to open a window for.
  */
 
-void accview_open_window(file_data *file, acct_t account)
+void accview_open_window(struct file_block *file, acct_t account)
 {
 	int			i, j, height;
 	os_error		*error;
@@ -477,7 +477,7 @@ void accview_open_window(file_data *file, acct_t account)
  * \param account		The account to close the window for.
  */
 
-void accview_delete_window(file_data *file, acct_t account)
+void accview_delete_window(struct file_block *file, acct_t account)
 {
 	struct accview_window	*view;
 
@@ -542,7 +542,7 @@ static void accview_close_window_handler(wimp_close *close)
 
 static void accview_window_click_handler(wimp_pointer *pointer)
 {
-	file_data		*file;
+	struct file_block	*file;
 	int			line, column, xpos, transaction;
 	int			trans_col_from[] = {0,1,2,2,2,8,9,9,9,10}, trans_col_to[] = {0,1,5,5,5,8,9,9,9,10}, *trans_col;
 	wimp_window_state	window;
@@ -616,7 +616,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 static void accview_pane_click_handler(wimp_pointer *pointer)
 {
 	struct accview_window	*windat;
-	file_data		*file;
+	struct file_block	*file;
 	acct_t			account;
 	wimp_window_state	window;
 	wimp_icon_state		icon;
@@ -977,7 +977,7 @@ static void accview_window_scroll_handler(wimp_scroll *scroll)
 static void accview_window_redraw_handler(wimp_draw *redraw)
 {
 	struct accview_window	*windat;
-	file_data		*file;
+	struct file_block	*file;
 	enum accview_direction	transaction_direction;
 	acct_t			account, transaction_account;
 	date_t			transaction_date;
@@ -1261,7 +1261,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 static void accview_adjust_window_columns(void *data, wimp_i group, int width)
 {
 	struct accview_window	*windat = (struct accview_window *) data;
-	file_data		*file;
+	struct file_block	*file;
 	int			i, j, new_extent;
 	wimp_icon_state		icon;
 	wimp_window_info	window;
@@ -1496,7 +1496,7 @@ static void accview_set_window_extent(struct accview_window *view)
  * \param account		The account to rebilld the window title for.
  */
 
-void accview_build_window_title(file_data *file, acct_t account)
+void accview_build_window_title(struct file_block *file, acct_t account)
 {
 	struct accview_window	*view;
 	char			name[256];
@@ -1785,7 +1785,7 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
  * \param account		The account to sort the view for.
  */
 
-void accview_sort(file_data *file, acct_t account)
+void accview_sort(struct file_block *file, acct_t account)
 {
 	int			gap, comb, temp, order;
 	osbool			sorted, reorder;
@@ -1986,7 +1986,7 @@ static int accview_build(struct accview_window *view)
  * \param account		The account to be refreshed.
  */
 
-void accview_rebuild(file_data *file, acct_t account)
+void accview_rebuild(struct file_block *file, acct_t account)
 {
 	struct accview_window	*view;
 
@@ -2027,7 +2027,7 @@ static int accview_calculate(struct accview_window *view)
 {
 	int			lines = 0, i, balance;
 	enum accview_direction	direction;
-	file_data		*file;
+	struct file_block	*file;
 
 	if (view == NULL || view->file == NULL || view->account == NULL_ACCOUNT)
 		return lines;
@@ -2073,7 +2073,7 @@ static int accview_calculate(struct accview_window *view)
  * \param transaction		The transaction which has been changed.
  */
 
-void accview_recalculate(file_data *file, acct_t account, int transaction)
+void accview_recalculate(struct file_block *file, acct_t account, int transaction)
 {
 	struct accview_window	*view;
 
@@ -2106,7 +2106,7 @@ void accview_recalculate(file_data *file, acct_t account, int transaction)
  * \param transaction		The transaction to be redrawn.
  */
 
-void accview_redraw_transaction(file_data *file, acct_t account, int transaction)
+void accview_redraw_transaction(struct file_block *file, acct_t account, int transaction)
 {
 	struct accview_window	*view;
 	int			line;
@@ -2133,7 +2133,7 @@ void accview_redraw_transaction(file_data *file, acct_t account, int transaction
  * \param *file			The file to reindex.
  */
 
-void accview_reindex_all(file_data *file)
+void accview_reindex_all(struct file_block *file)
 {
 	acct_t			account;
 	int			line, transaction;
@@ -2165,7 +2165,7 @@ void accview_reindex_all(file_data *file)
  * \param *file			The file to be redrawn.
  */
 
-void accview_redraw_all(file_data *file)
+void accview_redraw_all(struct file_block *file)
 {
 	acct_t			account;
 	struct accview_window	*view;
@@ -2188,7 +2188,7 @@ void accview_redraw_all(file_data *file)
  * \param *file			The file to be recalculated.
  */
 
-void accview_recalculate_all(file_data *file)
+void accview_recalculate_all(struct file_block *file)
 {
 	acct_t			account;
 	struct accview_window	*view;
@@ -2211,7 +2211,7 @@ void accview_recalculate_all(file_data *file)
  * \param *file			The file to be rebuilt.
  */
 
-void accview_rebuild_all(file_data *file)
+void accview_rebuild_all(struct file_block *file)
 {
 	acct_t			account;
 	struct accview_window	*view;
@@ -2440,7 +2440,7 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 	enum accview_direction		transaction_direction;
 	int				i, transaction = 0;
 	char				buffer[256];
-	file_data			*file;
+	struct file_block		*file;
 
 	out = fopen(filename, "w");
 

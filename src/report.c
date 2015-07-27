@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -122,7 +122,7 @@ enum report_status {
 };
 
 struct report {
-	file_data		*file;						/**< The file that the report belongs to.		*/
+	struct file_block	*file;						/**< The file that the report belongs to.		*/
 
 	wimp_w			window;
 	char			window_title[256];
@@ -275,7 +275,7 @@ void report_initialise(osspriteop_area *sprites)
  * \return			Report handle, or NULL on failure.
  */
 
-struct report *report_open(file_data *file, char *title, struct analysis_report *template)
+struct report *report_open(struct file_block *file, char *title, struct analysis_report *template)
 {
 	struct report	*new;
 
@@ -335,7 +335,7 @@ void report_close(struct report *report)
 {
 	int			linespace;
 	wimp_window_state	parent;
-	file_data		*file;
+	struct file_block	*file;
 
 	#ifdef DEBUG
 	debug_printf("\\GClosing report");
@@ -482,8 +482,8 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 
 void report_delete(struct report *report)
 {
-	file_data	*file;
-	struct report	**rep;
+	struct file_block	*file;
+	struct report		**rep;
 
 	#ifdef DEBUG
 	debug_printf("\\RDeleting report");
@@ -869,7 +869,7 @@ static osbool report_find_fonts(struct report *report, font_f *normal, font_f *b
  * \return			TRUE if there are pending jobs; FALSE if not.
  */
 
-osbool report_get_pending_print_jobs(file_data *file)
+osbool report_get_pending_print_jobs(struct file_block *file)
 {
 	struct report	*list;
 	osbool		pending = FALSE;
@@ -1346,7 +1346,7 @@ static void report_process_format_window(void)
  * \param *file			The file on which to force a redraw.
  */
 
-void report_redraw_all(file_data *file)
+void report_redraw_all(struct file_block *file)
 {
 	struct report *report;
 
@@ -1371,7 +1371,7 @@ void report_redraw_all(file_data *file)
  * \param *file			The file data block of interest.
  */
 
-void report_force_windows_closed(file_data *file)
+void report_force_windows_closed(struct file_block *file)
 {
 	if (report_format_report != NULL && report_format_report->file == file && windows_get_open(report_format_window))
 		close_dialogue_with_caret(report_format_window);
@@ -2352,7 +2352,7 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
  * \param *data			Data to pass to the callback function.
  */
 
-void report_process_all_templates(file_data *file, void (*callback)(struct analysis_report *template, void *data), void *data)
+void report_process_all_templates(struct file_block *file, void (*callback)(struct analysis_report *template, void *data), void *data)
 {
 	struct report	*report;
 

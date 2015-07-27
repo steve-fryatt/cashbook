@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -77,23 +77,23 @@
 struct budget {
 	/* Budget date limits */
 
-	date_t		start;							/**< The start date of the budget.					*/
-	date_t		finish;							/**< The finish date of the budget.					*/
+	date_t			start;						/**< The start date of the budget.					*/
+	date_t			finish;						/**< The finish date of the budget.					*/
 
 	/* Standing order trail limits. */
 
-	int		sorder_trial;						/**< The number of days ahead to trial standing orders.			*/
-	osbool		limit_postdate;						/**< TRUE to limit post-dated transactions to the SO trial period.	*/
+	int			sorder_trial;					/**< The number of days ahead to trial standing orders.			*/
+	osbool			limit_postdate;					/**< TRUE to limit post-dated transactions to the SO trial period.	*/
 };
 
-static file_data	*budget_window_file = NULL;				/**< The file currently owning the Budget window.	*/
-static wimp_w		budget_window = NULL;					/**< The Budget window handle.				*/
+static struct file_block	*budget_window_file = NULL;			/**< The file currently owning the Budget window.	*/
+static wimp_w			budget_window = NULL;				/**< The Budget window handle.				*/
 
 
 static void		budget_click_handler(wimp_pointer *pointer);
 static osbool		budget_keypress_handler(wimp_key *key);
 static void		budget_refresh_window(void);
-static void		budget_fill_window(file_data *file);
+static void		budget_fill_window(struct file_block *file);
 static osbool		budget_process_window(void);
 
 
@@ -156,7 +156,7 @@ void budget_delete(struct budget *budget)
  * \param *ptr		The current Wimp Pointer details.
  */
 
-void budget_open_window(file_data *file, wimp_pointer *ptr)
+void budget_open_window(struct file_block *file, wimp_pointer *ptr)
 {
 	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
@@ -251,7 +251,7 @@ static void budget_refresh_window(void)
  *				use system defaults.
  */
 
-static void budget_fill_window(file_data *file)
+static void budget_fill_window(struct file_block *file)
 {
 	date_convert_to_string(file->budget->start, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START),
 			icons_get_indirected_text_length(budget_window, BUDGET_ICON_START));
@@ -301,7 +301,7 @@ static osbool budget_process_window(void)
  * \param *file			The file data block of interest.
  */
 
-void budget_force_window_closed(file_data *file)
+void budget_force_window_closed(struct file_block *file)
 {
 	if (budget_window_file == file && windows_get_open(budget_window))
 		close_dialogue_with_caret(budget_window);
@@ -318,7 +318,7 @@ void budget_force_window_closed(file_data *file)
  *				or NULL to not return it.
  */
 
-void budget_get_dates(file_data *file, date_t *start, date_t *finish)
+void budget_get_dates(struct file_block *file, date_t *start, date_t *finish)
 {
 	if (start != NULL)
 		*start = (file != NULL && file->budget != NULL) ? file->budget->start : NULL_DATE;
@@ -335,7 +335,7 @@ void budget_get_dates(file_data *file, date_t *start, date_t *finish)
  * \return			The trial period, in days (or 0 on error).
  */
 
-int budget_get_sorder_trial(file_data *file)
+int budget_get_sorder_trial(struct file_block *file)
 {
 	if (file == NULL || file->budget == NULL)
 		return 0;
@@ -354,7 +354,7 @@ int budget_get_sorder_trial(file_data *file)
  *				standing order trial period; FALSE to include all.
  */
 
-osbool budget_get_limit_postdated(file_data *file)
+osbool budget_get_limit_postdated(struct file_block *file)
 {
 	if (file == NULL || file->budget == NULL)
 		return FALSE;
@@ -370,7 +370,7 @@ osbool budget_get_limit_postdated(file_data *file)
  * \param *out			The file handle to write to.
  */
 
-void budget_write_file(file_data *file, FILE *out)
+void budget_write_file(struct file_block *file, FILE *out)
 {
 	/* Output the budget data */
 
@@ -394,7 +394,7 @@ void budget_write_file(file_data *file, FILE *out)
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+enum config_read_status budget_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
 {
 	int	result;
 

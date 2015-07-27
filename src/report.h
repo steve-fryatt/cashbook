@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -101,7 +101,7 @@ void report_initialise(osspriteop_area *sprites);
  * \return			Report handle, or NULL on failure.
  */
 
-struct report *report_open(file_data *file, char *title, struct analysis_report *template);
+struct report *report_open(struct file_block *file, char *title, struct analysis_report *template);
 
 
 /**
@@ -168,7 +168,7 @@ void report_write_line(struct report *report, int bar, char *text);
  * \return			TRUE if there are pending jobs; FALSE if not.
  */
 
-osbool report_get_pending_print_jobs(file_data *file);
+osbool report_get_pending_print_jobs(struct file_block *file);
 
 
 /**
@@ -177,7 +177,7 @@ osbool report_get_pending_print_jobs(file_data *file);
  * \param *file			The file on which to force a redraw.
  */
 
-void report_redraw_all(file_data *file);
+void report_redraw_all(struct file_block *file);
 
 
 /* Force the closure of any Report Format windows which are open and relate
@@ -186,7 +186,7 @@ void report_redraw_all(file_data *file);
  * \param *file			The file data block of interest.
  */
 
-void report_force_windows_closed(file_data *file);
+void report_force_windows_closed(struct file_block *file);
 
 
 /**
@@ -198,7 +198,7 @@ void report_force_windows_closed(file_data *file);
  * \param *data			Data to pass to the callback function.
  */
 
-void report_process_all_templates(file_data *file, void (*callback)(struct analysis_report *template, void *data), void *data);
+void report_process_all_templates(struct file_block *file, void (*callback)(struct analysis_report *template, void *data), void *data);
 
 #endif
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -49,7 +49,7 @@ void accview_initialise(osspriteop_area *sprites);
  * \param account		The account to open a window for.
  */
 
-void accview_open_window(file_data *file, acct_t account);
+void accview_open_window(struct file_block *file, acct_t account);
 
 
 /**
@@ -60,7 +60,7 @@ void accview_open_window(file_data *file, acct_t account);
  * \param account		The account to close the window for.
  */
 
-void accview_delete_window(file_data *file, acct_t account);
+void accview_delete_window(struct file_block *file, acct_t account);
 
 
 /**
@@ -71,7 +71,7 @@ void accview_delete_window(file_data *file, acct_t account);
  * \param account		The account to rebilld the window title for.
  */
 
-void accview_build_window_title(file_data *file, acct_t account);
+void accview_build_window_title(struct file_block *file, acct_t account);
 
 
 /**
@@ -81,7 +81,7 @@ void accview_build_window_title(file_data *file, acct_t account);
  * \param account		The account to sort.
  */
 
-void accview_sort(file_data *file, acct_t account);
+void accview_sort(struct file_block *file, acct_t account);
 
 
 /**
@@ -94,7 +94,7 @@ void accview_sort(file_data *file, acct_t account);
  * \param account		The account to be refreshed.
  */
 
-void accview_rebuild(file_data *file, acct_t account);
+void accview_rebuild(struct file_block *file, acct_t account);
 
 
 /**
@@ -107,7 +107,7 @@ void accview_rebuild(file_data *file, acct_t account);
  * \param transaction		The transaction which has been changed.
  */
 
-void accview_recalculate(file_data *file, acct_t account, int transaction);
+void accview_recalculate(struct file_block *file, acct_t account, int transaction);
 
 
 /**
@@ -119,7 +119,7 @@ void accview_recalculate(file_data *file, acct_t account, int transaction);
  * \param transaction		The transaction to be redrawn.
  */
 
-void accview_redraw_transaction(file_data *file, acct_t account, int transaction);
+void accview_redraw_transaction(struct file_block *file, acct_t account, int transaction);
 
 
 /**
@@ -130,7 +130,7 @@ void accview_redraw_transaction(file_data *file, acct_t account, int transaction
  * \param *file			The file to reindex.
  */
 
-void accview_reindex_all(file_data *file);
+void accview_reindex_all(struct file_block *file);
 
 
 /**
@@ -139,7 +139,7 @@ void accview_reindex_all(file_data *file);
  * \param *file			The file to be redrawn.
  */
 
-void accview_redraw_all(file_data *file);
+void accview_redraw_all(struct file_block *file);
 
 
 /**
@@ -148,7 +148,7 @@ void accview_redraw_all(file_data *file);
  * \param *file			The file to be recalculated.
  */
 
-void accview_recalculate_all(file_data *file);
+void accview_recalculate_all(struct file_block *file);
 
 
 /**
@@ -157,7 +157,7 @@ void accview_recalculate_all(file_data *file);
  * \param *file			The file to be rebuilt.
  */
 
-void accview_rebuild_all(file_data *file);
+void accview_rebuild_all(struct file_block *file);
 
 #endif
 

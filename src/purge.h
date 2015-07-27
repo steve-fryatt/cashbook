@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -67,7 +67,7 @@ void purge_delete(struct purge *purge);
  *			use the application defaults.
  */
 
-void purge_open_window(file_data *file, wimp_pointer *ptr, osbool restore);
+void purge_open_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
 
 
 /**
@@ -77,7 +77,7 @@ void purge_open_window(file_data *file, wimp_pointer *ptr, osbool restore);
  * \param *file			The file data block of interest.
  */
 
-void purge_force_window_closed(file_data *file);
+void purge_force_window_closed(struct file_block *file);
 
 #endif
 

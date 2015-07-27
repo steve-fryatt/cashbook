@@ -80,7 +80,7 @@ enum go_to_type {
 };
 
 struct goto_block {
-	file_data		*file;						/**< The file owning the goto dialogue.				*/
+	struct file_block	*file;						/**< The file owning the goto dialogue.				*/
 	union go_to_target	target;						/**< The current goto target.					*/
 	enum go_to_type		type;						/**< The type of target we're aiming for.			*/
 };
@@ -123,7 +123,7 @@ void goto_initialise(void)
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct goto_block *goto_create(file_data *file)
+struct goto_block *goto_create(struct file_block *file)
 {
 	struct goto_block	*new;
 

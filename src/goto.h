@@ -46,7 +46,7 @@ void goto_initialise(void);
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct goto_block *goto_create(file_data *file);
+struct goto_block *goto_create(struct file_block *file);
 
 
 /**

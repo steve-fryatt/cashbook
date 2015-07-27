@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -91,7 +91,7 @@
 
 #define FILING_CURRENT_FORMAT 101
 
-static file_data		*import_window_file = NULL;
+static struct file_block	*import_window_file = NULL;
 static wimp_w			filing_import_window = NULL;
 
 
@@ -122,7 +122,7 @@ void load_transaction_file(char *filename)
 	int			file_format = 0;
 	char			section[MAX_FILE_LINE_LEN], token[MAX_FILE_LINE_LEN], value[MAX_FILE_LINE_LEN], *suffix;
 	bits			load;
-	file_data		*file;
+	struct file_block	*file;
 	FILE			*in;
 	osbool			unknown_data = FALSE, unknown_format = FALSE;
 
@@ -266,7 +266,7 @@ char *next_plain_field (char *line, char sep)
  * Account file saving
  */
 
-void save_transaction_file(file_data *file, char *filename)
+void save_transaction_file(struct file_block *file, char *filename)
 {
 	FILE	*out;
 	int	i;
@@ -333,7 +333,7 @@ void save_transaction_file(file_data *file, char *filename)
  * Delimited file import
  */
 
-void import_csv_file (file_data *file, char *filename)
+void import_csv_file (struct file_block *file, char *filename)
 {
   FILE         *input;
   char         line[1024], log[1024], b1[64], b2[64],
@@ -597,7 +597,7 @@ static void filing_close_import_complete(osbool show_log)
  * \param *file			The file which has closed.
  */
 
-void filing_force_windows_closed(file_data *file)
+void filing_force_windows_closed(struct file_block *file)
 {
 	if (import_window_file == file && windows_get_open(filing_import_window))
 		wimp_close_window(filing_import_window);

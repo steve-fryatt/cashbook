@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -66,7 +66,7 @@ void find_delete(struct find *find);
  *			use the application defaults.
  */
 
-void find_open_window(file_data *file, wimp_pointer *ptr, osbool restore);
+void find_open_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
 
 
 /**
@@ -76,7 +76,7 @@ void find_open_window(file_data *file, wimp_pointer *ptr, osbool restore);
  * \param *file			The file data block of interest.
  */
 
-void find_force_windows_closed(file_data *file);
+void find_force_windows_closed(struct file_block *file);
 
 #endif
 

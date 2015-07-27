@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -58,13 +58,13 @@ void file_initialise(void);
 
 /* File initialisation and deletion */
 
-file_data *build_new_file_block (void);
+struct file_block *build_new_file_block (void);
 void create_new_file (void);
-void delete_file (file_data *file);
+void delete_file (struct file_block *file);
 
 /* Finding files */
 
-file_data *find_transaction_window_file_block (wimp_w window);
+struct file_block *find_transaction_window_file_block (wimp_w window);
 
 
 /**
@@ -85,7 +85,7 @@ osbool file_check_for_unsaved_data(void);
  * \param unsafe	TRUE if the file has unsaved data; FALSE if not.
  */
 
-void file_set_data_integrity(file_data *file, osbool unsafe);
+void file_set_data_integrity(struct file_block *file, osbool unsafe);
 
 
 /**
@@ -96,7 +96,7 @@ void file_set_data_integrity(file_data *file, osbool unsafe);
  * \return		TRUE if there is a full filepath; FALSE if not.
  */
 
-osbool file_check_for_filepath(file_data *file);
+osbool file_check_for_filepath(struct file_block *file);
 
 
 /**
@@ -109,7 +109,7 @@ osbool file_check_for_filepath(file_data *file);
  * \return		A pointer to the supplied buffer.
  */
 
-char *file_get_pathname(file_data *file, char *path, int len);
+char *file_get_pathname(struct file_block *file, char *path, int len);
 
 
 /**
@@ -122,7 +122,7 @@ char *file_get_pathname(file_data *file, char *path, int len);
  * \return		A pointer to the supplied buffer.
  */
 
-char *file_get_leafname(file_data *file, char *leaf, int len);
+char *file_get_leafname(struct file_block *file, char *leaf, int len);
 
 
 /**
@@ -138,7 +138,7 @@ void file_redraw_all(void);
  * \param *file		The file to redraw the windows for.
  */
 
-void file_redraw_windows(file_data *file);
+void file_redraw_windows(struct file_block *file);
 
 
 /**

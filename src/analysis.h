@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -67,7 +67,7 @@ void analysis_delete_transaction(struct trans_rep *report);
  *			use the application defaults.
  */
 
-void analysis_open_transaction_window(file_data *file, wimp_pointer *ptr, int template, osbool restore);
+void analysis_open_transaction_window(struct file_block *file, wimp_pointer *ptr, int template, osbool restore);
 
 
 /**
@@ -100,7 +100,7 @@ void analysis_delete_unreconciled(struct unrec_rep *report);
  *			use the application defaults.
  */
 
-void analysis_open_unreconciled_window(file_data *file, wimp_pointer *ptr, int template, osbool restore);
+void analysis_open_unreconciled_window(struct file_block *file, wimp_pointer *ptr, int template, osbool restore);
 
 
 /**
@@ -133,7 +133,7 @@ void analysis_delete_cashflow(struct cashflow_rep *report);
  *			use the application defaults.
  */
 
-void analysis_open_cashflow_window(file_data *file, wimp_pointer *ptr, int template, osbool restore);
+void analysis_open_cashflow_window(struct file_block *file, wimp_pointer *ptr, int template, osbool restore);
 
 
 /**
@@ -166,7 +166,7 @@ void analysis_delete_balance(struct balance_rep *report);
  *			use the application defaults.
  */
 
-void analysis_open_balance_window(file_data *file, wimp_pointer *ptr, int template, osbool restore);
+void analysis_open_balance_window(struct file_block *file, wimp_pointer *ptr, int template, osbool restore);
 
 
 /**
@@ -185,7 +185,7 @@ void analysis_lookup_menu_closed(void);
  * \param account		The account to remove.
  */
 
-void analysis_remove_account_from_templates(file_data *file, acct_t account);
+void analysis_remove_account_from_templates(struct file_block *file, acct_t account);
 
 
 /**
@@ -199,7 +199,7 @@ void analysis_remove_account_from_templates(file_data *file, acct_t account);
  * \return			The number of entries added to the list.
  */
 
-int analysis_account_hex_to_list(file_data *file, char *list, acct_t *array);
+int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *array);
 
 
 /* Convert a numeric account list array into a textual list of comma-separated
@@ -212,7 +212,7 @@ int analysis_account_hex_to_list(file_data *file, char *list, acct_t *array);
  * \param len			The number of accounts in the list.
  */
 
-void analysis_account_list_to_hex(file_data *file, char *list, size_t size, acct_t *array, int len);
+void analysis_account_list_to_hex(struct file_block *file, char *list, size_t size, acct_t *array, int len);
 
 
 /**
@@ -234,7 +234,7 @@ void analysis_open_save_window(struct analysis_report *template, wimp_pointer *p
  * \return			The created menu, or NULL for an error.
  */
 
-wimp_menu *analysis_template_menu_build(file_data *file, osbool standalone);
+wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalone);
 
 
 /**
@@ -251,7 +251,7 @@ void analysis_template_menu_destroy(void);
  * \param *file			The file data block of interest.
  */
 
-void analysis_force_windows_closed(file_data *file);
+void analysis_force_windows_closed(struct file_block *file);
 
 
 /**
@@ -272,7 +272,7 @@ void analysis_force_close_report_save_window(struct analysis_report *template);
  * \param selection		The menu selection entry.
  */
 
-void analysis_open_template_from_menu(file_data *file, wimp_pointer *ptr, int selection);
+void analysis_open_template_from_menu(struct file_block *file, wimp_pointer *ptr, int selection);
 
 
 /**
@@ -292,7 +292,7 @@ void analysis_copy_template(struct analysis_report *to, struct analysis_report *
  * \param *out			The file handle to write to.
  */
 
-void analysis_write_file(file_data *file, FILE *out);
+void analysis_write_file(struct file_block *file, FILE *out);
 
 
 /**
@@ -306,7 +306,7 @@ void analysis_write_file(file_data *file, FILE *out);
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status analysis_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+enum config_read_status analysis_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
 
 #endif
 

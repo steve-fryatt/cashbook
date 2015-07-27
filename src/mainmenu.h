@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -60,16 +60,16 @@
 
 /* Account menu */
 
-void open_account_menu (file_data *file, enum account_menu_type type, int line,
+void open_account_menu (struct file_block *file, enum account_menu_type type, int line,
                         wimp_w window, wimp_i icon_i, wimp_i icon_n, wimp_i icon_r, wimp_pointer *pointer);
 
 /* Date menu */
 
-void open_date_menu(file_data *file, int line, wimp_pointer *pointer);
+void open_date_menu(struct file_block *file, int line, wimp_pointer *pointer);
 
 /* RefDesc Menu */
 
-void open_refdesc_menu (file_data *file, int menu_type, int line, wimp_pointer *pointer);
+void open_refdesc_menu (struct file_block *file, int menu_type, int line, wimp_pointer *pointer);
 
 #endif
 

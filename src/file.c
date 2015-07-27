@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -86,7 +86,7 @@
 
 /* The head of the linked list of file data structures. */
 
-static file_data		*file_list = NULL;
+static struct file_block	*file_list = NULL;
 
 /* A count which is incremented to allow <Untitled n> window titles */
 
@@ -104,7 +104,7 @@ static struct saveas_block	*file_saveas_file = NULL;			/**< The Save File saveas
 
 static osbool	file_save_file(char *filename, osbool selection, void *data);
 
-static char	*file_get_default_title(file_data *file, char *name, size_t len);
+static char	*file_get_default_title(struct file_block *file, char *name, size_t len);
 
 /**
  * Initialise the overall file system.
@@ -122,14 +122,14 @@ void file_initialise(void)
 
 /* Allocate memory for a file, initialise it and create the transaction window. */
 
-file_data *build_new_file_block(void)
+struct file_block *build_new_file_block(void)
 {
-	file_data	*new;
-	int		i;
+	struct file_block	*new;
+	int			i;
 
 	/* Claim the memory required for the file descriptor block. */
 
-	new = (file_data *) heap_alloc(sizeof(file_data));
+	new = (struct file_block *) heap_alloc(sizeof(struct file_block));
 	if (new == NULL) {
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -374,31 +374,28 @@ file_data *build_new_file_block(void)
 
 /* Create a new transaction file with window and open it. */
 
-void create_new_file (void)
+void create_new_file(void)
 {
-  file_data *file;
+	struct file_block	*file;
 
+	/* Build a new file block. */
 
-  /* Build a new file block. */
+	file = build_new_file_block();
 
-  file = build_new_file_block ();
-
-  if (file != NULL)
-  {
-    transact_open_window (file);
-  }
+	if (file != NULL)
+		transact_open_window(file);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Delete a transaction file block with its window. */
 
-void delete_file(file_data *file)
+void delete_file(struct file_block *file)
 {
-	file_data	**list;
-	int		i, button;
-	wimp_pointer	pointer;
-	char		*filename;
+	struct file_block	**list;
+	int			i, button;
+	wimp_pointer		pointer;
+	char			*filename;
 
 
 	/* First check that the file is saved and, if not, prompt for deletion. */
@@ -536,7 +533,7 @@ void delete_file(file_data *file)
 
 static osbool file_save_file(char *filename, osbool selection, void *data)
 {
-	file_data *file = data;
+	struct file_block	*file = data;
 
 	if (file == NULL)
 		return FALSE;
@@ -554,23 +551,20 @@ static osbool file_save_file(char *filename, osbool selection, void *data)
 
 /* Find the file block that corresponds to a given transaction window handle. */
 
-file_data *find_transaction_window_file_block (wimp_w window)
+struct file_block *find_transaction_window_file_block(wimp_w window)
 {
-  file_data *list;
+	struct file_block	*list;
 
+	list = file_list;
 
-  list = file_list;
+	while (list != NULL && list->transaction_window.transaction_window != window)
+		list = list->next;
 
-  while (list != NULL && list->transaction_window.transaction_window != window)
-  {
-    list = list->next;
-  }
+	/* If the window is not a transction window, this loop falls out with (list == NULL)
+	 * ready to return the NULL (not found) value.
+	 */
 
-  /* If the window is not a transction window, this loop falls out with (list == NULL) ready to return the
-   * NULL (not found) value.
-   */
-
-  return (list);
+	return list;
 }
 
 
@@ -584,8 +578,8 @@ file_data *find_transaction_window_file_block (wimp_w window)
 
 osbool file_check_for_unsaved_data(void)
 {
-	file_data	*list = file_list;
-	osbool		modified = FALSE, pending = FALSE;
+	struct file_block	*list = file_list;
+	osbool			modified = FALSE, pending = FALSE;
 
 
 	/* Search through all the loaded files to see if any are modified or
@@ -628,7 +622,7 @@ osbool file_check_for_unsaved_data(void)
  * \param unsafe	TRUE if the file has unsaved data; FALSE if not.
  */
 
-void file_set_data_integrity(file_data *file, osbool unsafe)
+void file_set_data_integrity(struct file_block *file, osbool unsafe)
 {
 	if (file != NULL && file->modified != unsafe) {
 		file->modified = unsafe;
@@ -645,7 +639,7 @@ void file_set_data_integrity(file_data *file, osbool unsafe)
  * \return		TRUE if there is a full filepath; FALSE if not.
  */
 
-osbool file_check_for_filepath(file_data *file)
+osbool file_check_for_filepath(struct file_block *file)
 {
 	if (file == NULL)
 		return FALSE;
@@ -664,7 +658,7 @@ osbool file_check_for_filepath(file_data *file)
  * \return		A pointer to the supplied buffer.
  */
 
-char *file_get_pathname(file_data *file, char *path, int len)
+char *file_get_pathname(struct file_block *file, char *path, int len)
 {
 	if (file == NULL) {
 		if (path != NULL && len > 0)
@@ -692,7 +686,7 @@ char *file_get_pathname(file_data *file, char *path, int len)
  * \return		A pointer to the supplied buffer.
  */
 
-char *file_get_leafname(file_data *file, char *leaf, int len)
+char *file_get_leafname(struct file_block *file, char *leaf, int len)
 {
 	if (file == NULL) {
 		if (leaf != NULL && len > 0)
@@ -720,7 +714,7 @@ char *file_get_leafname(file_data *file, char *leaf, int len)
  * \return		A pointer to the supplied buffer.
  */
 
-static char *file_get_default_title(file_data *file, char *name, size_t len)
+static char *file_get_default_title(struct file_block *file, char *name, size_t len)
 {
 	char	number[256];
 
@@ -745,7 +739,7 @@ static char *file_get_default_title(file_data *file, char *name, size_t len)
 
 void file_redraw_all(void)
 {
-	file_data	*list = file_list;
+	struct file_block	*list = file_list;
 
 	/* Work through all the loaded files and force redraws of each one. */
 
@@ -763,7 +757,7 @@ void file_redraw_all(void)
  * \param *file		The file to redraw the windows for.
  */
 
-void file_redraw_windows(file_data *file)
+void file_redraw_windows(struct file_block *file)
 {
 	int	i;
 
@@ -803,8 +797,8 @@ void file_redraw_windows(file_data *file)
 
 void file_process_date_change(void)
 {
-	date_t		today;
-	file_data	*file;
+	date_t			today;
+	struct file_block	*file;
 
 
 #ifdef DEBUG

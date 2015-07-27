@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -179,19 +179,19 @@ static wimp_w			account_acc_edit_window = NULL;
 /* Heading Edit Window. */
 
 static wimp_w			account_hdg_edit_window = NULL;
-static file_data		*edit_account_file = NULL;
+static struct file_block	*edit_account_file = NULL;
 static acct_t			edit_account_no = NULL_ACCOUNT;
 
 /* Section Edit Window. */
 
 static wimp_w			account_section_window = NULL;			/**< The handle of the Section Edit window.				*/
-static file_data		*account_section_file = NULL;			/**< The file owning the Section Edit window.				*/
+static struct file_block	*account_section_file = NULL;			/**< The file owning the Section Edit window.				*/
 static int			account_section_entry = -1;			/**< The entry owning the Section Edit window.				*/
 static int			account_section_line = -1;			/**< The line being edited by the Section Edit window.			*/
 
 /* Account List Print Window. */
 
-static file_data		*account_print_file = NULL;			/**< The file owning the Account List Print window.			*/
+static struct file_block	*account_print_file = NULL;			/**< The file owning the Account List Print window.			*/
 static enum account_type	account_print_type = ACCOUNT_NULL;		/**< The type of account owning the Account List Print window.		*/
 
 /* Account List Window. */
@@ -206,14 +206,14 @@ static int			account_window_menu_line = -1;			/**< The line over which the Accou
 static wimp_menu			*account_list_menu = NULL;		/**< The Account List menu block.					*/
 static struct account_list_link		*account_list_menu_link = NULL;		/**< Links for the Account List menu.					*/
 static char				*account_list_menu_title = NULL;	/**< Account List menu title buffer.					*/
-static file_data			*account_list_menu_file = NULL;		/**< The file to which the Account List menu is currently attached.	*/
+static struct file_block		*account_list_menu_file = NULL;		/**< The file to which the Account List menu is currently attached.	*/
 
 static wimp_menu			*account_complete_menu = NULL;		/**< The Account Complete menu block.					*/
 static struct account_list_group	*account_complete_menu_group = NULL;	/**< Groups for the Account Complete menu.				*/
 static wimp_menu			*account_complete_submenu = NULL;	/**< The Account Complete menu block.					*/
 static struct account_list_link		*account_complete_submenu_link = NULL;	/**< Links for the Account Complete menu.				*/
 static char				*account_complete_menu_title = NULL;	/**< Account Complete menu title buffer.				*/
-static file_data			*account_complete_menu_file = NULL;	/**< The file to which the Account Complete menu is currently attached.	*/
+static struct file_block		*account_complete_menu_file = NULL;	/**< The file to which the Account Complete menu is currently attached.	*/
 
 /* SaveAs Dialogue Handles. */
 
@@ -229,7 +229,7 @@ static struct saveas_block	*account_saveas_tsv = NULL;			/**< The Save TSV savea
 /* Account List Window drags. */
 
 static osbool			account_dragging_sprite = FALSE;		/**< True if the account line drag is using a sprite.			*/
-static file_data		*account_dragging_file = NULL;			/**< The file owning the account list in which the drag occurs.		*/
+static struct file_block	*account_dragging_file = NULL;			/**< The file owning the account list in which the drag occurs.		*/
 static int			account_dragging_entry = -1;			/**< The account list entry owning the current drag.			*/
 static int			account_dragging_start_line = -1;		/**< The line where an account entry drag was started.			*/
 
@@ -250,7 +250,7 @@ static void			account_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			account_window_scroll_handler(wimp_scroll *scroll);
 static void			account_window_redraw_handler(wimp_draw *redraw);
 static void			account_adjust_window_columns(void *data, wimp_i icon, int width);
-static void			account_set_window_extent(file_data *file, int entry);
+static void			account_set_window_extent(struct file_block *file, int entry);
 static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
@@ -263,37 +263,37 @@ static osbool			account_acc_edit_keypress_handler(wimp_key *key);
 static osbool			account_hdg_edit_keypress_handler(wimp_key *key);
 static void			account_refresh_acc_edit_window(void);
 static void			account_refresh_hdg_edit_window(void);
-static void			account_fill_acc_edit_window(file_data *file, acct_t account);
-static void			account_fill_hdg_edit_window(file_data *file, acct_t account, enum account_type type);
+static void			account_fill_acc_edit_window(struct file_block *file, acct_t account);
+static void			account_fill_hdg_edit_window(struct file_block *file, acct_t account, enum account_type type);
 static osbool			account_process_acc_edit_window(void);
 static osbool			account_process_hdg_edit_window(void);
 static osbool			account_delete_from_edit_window (void);
-static void			account_open_section_window(file_data *file, int entry, int line, wimp_pointer *ptr);
+static void			account_open_section_window(struct file_block *file, int entry, int line, wimp_pointer *ptr);
 static void			account_section_click_handler(wimp_pointer *pointer);
 static osbool			account_section_keypress_handler(wimp_key *key);
 static void			account_refresh_section_window(void);
-static void			account_fill_section_window(file_data *file, int entry, int line);
+static void			account_fill_section_window(struct file_block *file, int entry, int line);
 static osbool			account_process_section_window(void);
 static osbool			account_delete_from_section_window(void);
-static void			account_open_print_window(file_data *file, enum account_type type, wimp_pointer *ptr, osbool restore);
+static void			account_open_print_window(struct file_block *file, enum account_type type, wimp_pointer *ptr, osbool restore);
 static void			account_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 
 
-static void			account_add_to_lists(file_data *file, acct_t account);
-static int			account_add_list_display_line(file_data *file, int entry);
-static int			account_find_window_entry_from_type(file_data *file, enum account_type type);
+static void			account_add_to_lists(struct file_block *file, acct_t account);
+static int			account_add_list_display_line(struct file_block *file, int entry);
+static int			account_find_window_entry_from_type(struct file_block *file, enum account_type type);
 
 
 
-static void			account_start_drag(file_data *file, int entry, int line);
+static void			account_start_drag(struct file_block *file, int entry, int line);
 static void			account_terminate_drag(wimp_dragged *drag, void *data);
 
-static void			account_recalculate_windows(file_data *file);
+static void			account_recalculate_windows(struct file_block *file);
 
 static osbool			account_save_csv(char *filename, osbool selection, void *data);
 static osbool			account_save_tsv(char *filename, osbool selection, void *data);
-static void			account_export_delimited(file_data *file, int entry, char *filename, enum filing_delimit_type format, int filetype);
+static void			account_export_delimited(struct file_block *file, int entry, char *filename, enum filing_delimit_type format, int filetype);
 
 
 /**
@@ -348,7 +348,7 @@ void account_initialise(osspriteop_area *sprites)
  * \param type			The type of account to open a window for.
  */
 
-void account_open_window(file_data *file, enum account_type type)
+void account_open_window(struct file_block *file, enum account_type type)
 {
 	int			entry, i, j, tb_type, height;
 	os_error		*error;
@@ -891,7 +891,7 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 				icon_buffer4[AMOUNT_FIELD_LEN];
 	osbool			more, shade_overdrawn;
 	struct account_window	*windat;
-	file_data		*file;
+	struct file_block	*file;
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL)
@@ -1225,7 +1225,7 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 static void account_adjust_window_columns(void *data, wimp_i icon, int width)
 {
 	struct account_window	*windat = (struct account_window *) data;
-	file_data		*file;
+	struct file_block	*file;
 	int			entry, i, j, new_extent;
 	wimp_icon_state		icon1, icon2;
 	wimp_window_info	window;
@@ -1309,7 +1309,7 @@ static void account_adjust_window_columns(void *data, wimp_i icon, int width)
  * \param entry			The entry of the window to to be updated.
  */
 
-static void account_set_window_extent(file_data *file, int entry)
+static void account_set_window_extent(struct file_block *file, int entry)
 {
 	wimp_window_state	state;
 	os_box			extent;
@@ -1376,7 +1376,7 @@ static void account_set_window_extent(file_data *file, int entry)
  * \param entry			The entry of the window to to be updated.
  */
 
-void account_build_window_title(file_data *file, int entry)
+void account_build_window_title(struct file_block *file, int entry)
 {
 	char	name[256];
 
@@ -1422,7 +1422,7 @@ void account_build_window_title(file_data *file, int entry)
  * \param to			The last line to redraw, inclusive.
  */
 
-void account_force_window_redraw(file_data *file, int entry, int from, int to)
+void account_force_window_redraw(struct file_block *file, int entry, int from, int to)
 {
 	int			y0, y1;
 	wimp_window_info	window;
@@ -1510,7 +1510,7 @@ static void account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
  */
 
 
-wimp_menu *account_list_menu_build(file_data *file)
+wimp_menu *account_list_menu_build(struct file_block *file)
 {
 	int	i, line, accounts, entry, width;
 
@@ -1679,7 +1679,7 @@ acct_t account_list_menu_decode(int selection)
  * \return			The menu block, or NULL.
  */
 
-wimp_menu *account_complete_menu_build(file_data *file, enum account_menu_type type)
+wimp_menu *account_complete_menu_build(struct file_block *file, enum account_menu_type type)
 {
 	int			i, group, line, entry, width, sublen;
 	int			groups = 3, maxsublen = 0, headers = 0;
@@ -2089,7 +2089,7 @@ acct_t account_complete_menu_decode(wimp_selection *selection)
  * \param *ptr			The current Wimp pointer position.
  */
 
-void account_open_edit_window(file_data *file, acct_t account, enum account_type type, wimp_pointer *ptr)
+void account_open_edit_window(struct file_block *file, acct_t account, enum account_type type, wimp_pointer *ptr)
 {
 	wimp_w		win = NULL;
 
@@ -2303,7 +2303,7 @@ static void account_refresh_hdg_edit_window(void)
  * \param account		The account to display, or NULL_ACCOUNT for none.
  */
 
-static void account_fill_acc_edit_window(file_data *file, acct_t account)
+static void account_fill_acc_edit_window(struct file_block *file, acct_t account)
 {
 	int	i;
 
@@ -2360,7 +2360,7 @@ static void account_fill_acc_edit_window(file_data *file, acct_t account)
  * \param type			The type of heading, if account is NULL_ACCOUNT.
  */
 
-static void account_fill_hdg_edit_window(file_data *file, acct_t account, enum account_type type)
+static void account_fill_hdg_edit_window(struct file_block *file, acct_t account, enum account_type type)
 {
 	if (account == NULL_ACCOUNT) {
 		*icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_NAME) = '\0';
@@ -2563,7 +2563,7 @@ static osbool account_delete_from_edit_window(void)
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void account_open_section_window(file_data *file, int entry, int line, wimp_pointer *ptr)
+static void account_open_section_window(struct file_block *file, int entry, int line, wimp_pointer *ptr)
 {
 	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
@@ -2683,7 +2683,7 @@ static void account_refresh_section_window(void)
  * \param line			The line to be displayed, or -1 for none.
  */
 
-static void account_fill_section_window(file_data *file, int entry, int line)
+static void account_fill_section_window(struct file_block *file, int entry, int line)
 {
 	if (line == -1) {
 		*icons_get_indirected_text_addr(account_section_window, SECTION_EDIT_TITLE) = '\0';
@@ -2784,7 +2784,7 @@ static osbool account_delete_from_section_window(void)
  * \param *file			The file which has closed.
  */
 
-void account_force_windows_closed(file_data *file)
+void account_force_windows_closed(struct file_block *file)
 {
 	if (edit_account_file == file) {
 		if (windows_get_open(account_acc_edit_window))
@@ -2808,7 +2808,7 @@ void account_force_windows_closed(file_data *file)
  *				return to defaults.
  */
 
-static void account_open_print_window(file_data *file, enum account_type type, wimp_pointer *ptr, osbool restore)
+static void account_open_print_window(struct file_block *file, enum account_type type, wimp_pointer *ptr, osbool restore)
 {
 	/* Set the pointers up so we can find this lot again and open the window. */
 
@@ -3008,7 +3008,7 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
  * \return			The new account index, or NULL_ACCOUNT.
  */
 
-acct_t account_add(file_data *file, char *name, char *ident, enum account_type type)
+acct_t account_add(struct file_block *file, char *name, char *ident, enum account_type type)
 {
 	acct_t		new;
 	int		i;
@@ -3083,7 +3083,7 @@ acct_t account_add(file_data *file, char *name, char *ident, enum account_type t
  * \param account		The account to process.
  */
 
-static void account_add_to_lists(file_data *file, acct_t account)
+static void account_add_to_lists(struct file_block *file, acct_t account)
 {
 	int	entry, line;
 
@@ -3117,7 +3117,7 @@ static void account_add_to_lists(file_data *file, acct_t account)
  * \return			The new line, or -1 on failure.
  */
 
-static int account_add_list_display_line(file_data *file, int entry)
+static int account_add_list_display_line(struct file_block *file, int entry)
 {
 	int	line;
 
@@ -3149,7 +3149,7 @@ static int account_add_list_display_line(file_data *file, int entry)
  * \return 			TRUE if successful; else FALSE.
  */
 
-osbool account_delete(file_data *file, acct_t account)
+osbool account_delete(struct file_block *file, acct_t account)
 {
 	int	i, j;
 
@@ -3217,7 +3217,7 @@ osbool account_delete(file_data *file, acct_t account)
  * \return			The corresponding index, or -1 if not found.
  */
 
-static int account_find_window_entry_from_type(file_data *file, enum account_type type)
+static int account_find_window_entry_from_type(struct file_block *file, enum account_type type)
 {
 	int	i, entry = -1;
 
@@ -3242,7 +3242,7 @@ static int account_find_window_entry_from_type(file_data *file, enum account_typ
  * \return			The number of entries, or 0.
  */
 
-int account_get_list_length(file_data *file, enum account_type type)
+int account_get_list_length(struct file_block *file, enum account_type type)
 {
 	int	entry;
 
@@ -3267,7 +3267,7 @@ int account_get_list_length(file_data *file, enum account_type type)
  *				line isn't an account.
  */
 
-acct_t account_get_list_entry(file_data *file, enum account_type type, int line)
+acct_t account_get_list_entry(struct file_block *file, enum account_type type, int line)
 {
 	int	entry;
 
@@ -3295,7 +3295,7 @@ acct_t account_get_list_entry(file_data *file, enum account_type type, int line)
  * \return			The account number, or NULL_ACCOUNT if not found.
  */
 
-acct_t account_find_by_ident(file_data *file, char *ident, enum account_type type)
+acct_t account_find_by_ident(struct file_block *file, char *ident, enum account_type type)
 {
 	int account = 0;
 
@@ -3319,7 +3319,7 @@ acct_t account_find_by_ident(file_data *file, char *ident, enum account_type typ
  * \return			Pointer to the ident string, or "".
  */
 
-char *account_get_ident(file_data *file, acct_t account)
+char *account_get_ident(struct file_block *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return "";
@@ -3337,7 +3337,7 @@ char *account_get_ident(file_data *file, acct_t account)
  * \return			Pointer to the name string, or "".
  */
 
-char *account_get_name(file_data *file, acct_t account)
+char *account_get_name(struct file_block *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return "";
@@ -3357,7 +3357,7 @@ char *account_get_name(file_data *file, acct_t account)
  * \return			Pointer to the start of the ident.
  */
 
-char *account_build_name_pair(file_data *file, acct_t account, char *buffer, size_t size)
+char *account_build_name_pair(struct file_block *file, acct_t account, char *buffer, size_t size)
 {
 	*buffer = '\0';
 
@@ -3386,7 +3386,7 @@ char *account_build_name_pair(file_data *file, acct_t account, char *buffer, siz
  * \return		The new account number.
  */
 
-acct_t account_lookup_field(file_data *file, char key, enum account_type type, acct_t account,
+acct_t account_lookup_field(struct file_block *file, char key, enum account_type type, acct_t account,
 		osbool *reconciled, wimp_w window, wimp_i ident, wimp_i name, wimp_i rec)
 {
 	osbool	new_rec = FALSE;
@@ -3449,7 +3449,7 @@ acct_t account_lookup_field(file_data *file, char key, enum account_type type, a
 
 /* Fill three icons with account name, ident and reconciled status. */
 
-void fill_account_field (file_data *file, acct_t account, int reconciled,
+void fill_account_field (struct file_block *file, acct_t account, int reconciled,
                          wimp_w window, wimp_i ident, wimp_i name, wimp_i rec_field)
 {
   strcpy (icons_get_indirected_text_addr (window, ident), account_get_ident (file, account));
@@ -3494,7 +3494,7 @@ void toggle_account_reconcile_icon (wimp_w window, wimp_i icon)
  * \return		The account's account view, or NULL.
  */
 
-struct accview_window *account_get_accview(file_data *file, acct_t account)
+struct accview_window *account_get_accview(struct file_block *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return NULL;
@@ -3511,7 +3511,7 @@ struct accview_window *account_get_accview(file_data *file, acct_t account)
  * \param *view		The view handle, or NULL to clear.
  */
 
-void account_set_accview(file_data *file, acct_t account, struct accview_window *view)
+void account_set_accview(struct file_block *file, acct_t account, struct accview_window *view)
 {
 	if (file != NULL && account != NULL_ACCOUNT && account < file->account_count && file->accounts[account].type != ACCOUNT_NULL)
 		file->accounts[account].account_view = view;
@@ -3526,7 +3526,7 @@ void account_set_accview(file_data *file, acct_t account, struct accview_window 
  * \return		The account's type, or ACCOUNT_NULL.
  */
 
-enum account_type account_get_type(file_data *file, acct_t account)
+enum account_type account_get_type(struct file_block *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return ACCOUNT_NULL;
@@ -3543,7 +3543,7 @@ enum account_type account_get_type(file_data *file, acct_t account)
  * \return		The account's opening balance, or 0.
  */
 
-amt_t account_get_opening_balance(file_data *file, acct_t account)
+amt_t account_get_opening_balance(struct file_block *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return 0;
@@ -3561,7 +3561,7 @@ amt_t account_get_opening_balance(file_data *file, acct_t account)
  * \param adjust	The amount to alter the opening balance by.
  */
 
-void account_adjust_opening_balance(file_data *file, acct_t account, amt_t adjust)
+void account_adjust_opening_balance(struct file_block *file, acct_t account, amt_t adjust)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return;
@@ -3576,7 +3576,7 @@ void account_adjust_opening_balance(file_data *file, acct_t account, amt_t adjus
  * \param *file		The file to zero.
  */
 
-void account_zero_sorder_trial(file_data *file)
+void account_zero_sorder_trial(struct file_block *file)
 {
 	if (file == NULL)
 		return;
@@ -3599,7 +3599,7 @@ void account_zero_sorder_trial(file_data *file)
  *			balance by.
  */
 
-void account_adjust_sorder_trial(file_data *file, acct_t account, amt_t adjust)
+void account_adjust_sorder_trial(struct file_block *file, acct_t account, amt_t adjust)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return;
@@ -3616,7 +3616,7 @@ void account_adjust_sorder_trial(file_data *file, acct_t account, amt_t adjust)
  * \return		The account's opening balance, or 0.
  */
 
-amt_t account_get_credit_limit(file_data *file, acct_t account)
+amt_t account_get_credit_limit(struct file_block *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return 0;
@@ -3633,7 +3633,7 @@ amt_t account_get_credit_limit(file_data *file, acct_t account)
  * \return		The account's budget amount, or 0.
  */
 
-amt_t account_get_budget_amount(file_data *file, acct_t account)
+amt_t account_get_budget_amount(struct file_block *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return 0;
@@ -3650,7 +3650,7 @@ amt_t account_get_budget_amount(file_data *file, acct_t account)
  * \return			TRUE if the account is found; else FALSE.
  */
 
-osbool account_used_in_file(file_data *file, acct_t account)
+osbool account_used_in_file(struct file_block *file, acct_t account)
 {
 	osbool		found = FALSE;
 
@@ -3675,7 +3675,7 @@ osbool account_used_in_file(file_data *file, acct_t account)
  * \return			The number of accounts found.
  */
 
-int account_count_type_in_file(file_data *file, enum account_type type)
+int account_count_type_in_file(struct file_block *file, enum account_type type)
 {
 	int	i, accounts = 0;
 
@@ -3698,7 +3698,7 @@ int account_count_type_in_file(file_data *file, enum account_type type)
  * \param line			The line of the Account list being dragged.
  */
 
-static void account_start_drag(file_data *file, int entry, int line)
+static void account_start_drag(struct file_block *file, int entry, int line)
 {
 	wimp_window_state	window;
 	wimp_auto_scroll_info	auto_scroll;
@@ -3852,7 +3852,7 @@ static void account_terminate_drag(wimp_dragged *drag, void *data)
  * \return			TRUE if cheque numbers are available; else FALSE.
  */
 
-osbool account_cheque_number_available(file_data *file, acct_t account)
+osbool account_cheque_number_available(struct file_block *file, acct_t account)
 {
 	if (file == NULL || account == NULL_ACCOUNT || account >= file->account_count || file->accounts[account].type == ACCOUNT_NULL)
 		return FALSE;
@@ -3876,7 +3876,7 @@ osbool account_cheque_number_available(file_data *file, acct_t account)
  *				next available number.
  */
 
-char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_t to_account, int increment, char *buffer, size_t size)
+char *account_get_next_cheque_number(struct file_block *file, acct_t from_account, acct_t to_account, int increment, char *buffer, size_t size)
 {
 	char		format[32], mbuf[1024], bbuf[128];
 	osbool		from_ok, to_ok;
@@ -3930,7 +3930,7 @@ char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_
  * \param *file		The file to recalculate.
  */
 
-void account_recalculate_all(file_data *file)
+void account_recalculate_all(struct file_block *file)
 {
 	acct_t			account, transaction_account;
 	date_t			budget_start, budget_finish;
@@ -4027,7 +4027,7 @@ void account_recalculate_all(file_data *file)
  * \param transasction	The transaction to remove.
  */
 
-void account_remove_transaction(file_data *file, int transaction)
+void account_remove_transaction(struct file_block *file, int transaction)
 {
 	date_t			budget_start, budget_finish, transaction_date;
 	acct_t			transaction_account;
@@ -4089,7 +4089,7 @@ void account_remove_transaction(file_data *file, int transaction)
  * \param transasction	The transaction to restore.
  */
 
-void account_restore_transaction(file_data *file, int transaction)
+void account_restore_transaction(struct file_block *file, int transaction)
 {
 	int			i;
 	date_t			budget_start, budget_finish, transaction_date;
@@ -4156,7 +4156,7 @@ void account_restore_transaction(file_data *file, int transaction)
  * \param *file		The file to recalculate.
  */
 
-static void account_recalculate_windows(file_data *file)
+static void account_recalculate_windows(struct file_block *file)
 {
 	int	entry, i, j, sub_total[ACCOUNT_COLUMNS-2], total[ACCOUNT_COLUMNS-2];
 
@@ -4311,7 +4311,7 @@ static void account_recalculate_windows(file_data *file)
  * \param *out			The file handle to write to.
  */
 
-void account_write_file(file_data *file, FILE *out)
+void account_write_file(struct file_block *file, FILE *out)
 {
 	int	i, j;
 	char	buffer[MAX_FILE_LINE_LEN];
@@ -4393,7 +4393,7 @@ void account_write_file(file_data *file, FILE *out)
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data)
+enum config_read_status account_read_acct_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data)
 {
 	int	result, block_size, i = -1, j;
 
@@ -4550,7 +4550,7 @@ enum config_read_status account_read_acct_file(file_data *file, FILE *in, char *
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status account_read_list_file(file_data *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data)
+enum config_read_status account_read_list_file(struct file_block *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data)
 {
 	int	result, block_size, i = -1, type, entry;
 
@@ -4670,7 +4670,7 @@ static osbool account_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void account_export_delimited(file_data *file, int entry, char *filename, enum filing_delimit_type format, int filetype)
+static void account_export_delimited(struct file_block *file, int entry, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	int			i;

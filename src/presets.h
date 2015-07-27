@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -59,7 +59,7 @@ void preset_initialise(osspriteop_area *sprites);
  * \param *file			The file to open a window for.
  */
 
-void preset_open_window(file_data *file);
+void preset_open_window(struct file_block *file);
 
 
 /**
@@ -78,7 +78,7 @@ void preset_delete_window(struct preset_window *windat);
  * \param *file			The file to rebuild the title for.
  */
 
-void preset_build_window_title(file_data *file);
+void preset_build_window_title(struct file_block *file);
 
 
 /**
@@ -89,7 +89,7 @@ void preset_build_window_title(file_data *file);
  * \param to			The last line to redraw, inclusive.
  */
 
-void preset_force_window_redraw(file_data *file, int from, int to);
+void preset_force_window_redraw(struct file_block *file, int from, int to);
 
 
 /**
@@ -100,7 +100,7 @@ void preset_force_window_redraw(file_data *file, int from, int to);
  * \param *ptr			The current Wimp pointer position.
  */
 
-void preset_open_edit_window(file_data *file, int preset, wimp_pointer *ptr);
+void preset_open_edit_window(struct file_block *file, int preset, wimp_pointer *ptr);
 
 
 /**
@@ -110,7 +110,7 @@ void preset_open_edit_window(file_data *file, int preset, wimp_pointer *ptr);
  * \return			The created menu, or NULL for an error.
  */
 
-wimp_menu *preset_complete_menu_build(file_data *file);
+wimp_menu *preset_complete_menu_build(struct file_block *file);
 
 
 /**
@@ -137,7 +137,7 @@ int preset_complete_menu_decode(wimp_selection *selection);
  * \param *file			The file to sort.
  */
 
-void preset_sort(file_data *file);
+void preset_sort(struct file_block *file);
 
 
 /**
@@ -149,7 +149,7 @@ void preset_sort(file_data *file);
  * \return			The matching preset index, or NULL_PRESET.
  */
 
-int preset_find_from_keypress(file_data *file, char key);
+int preset_find_from_keypress(struct file_block *file, char key);
 
 
 /**
@@ -160,7 +160,7 @@ int preset_find_from_keypress(file_data *file, char key);
  * \return			The preset's caret target.
  */
 
-enum preset_caret preset_get_caret_destination(file_data *file, int preset);
+enum preset_caret preset_get_caret_destination(struct file_block *file, int preset);
 
 
 /**
@@ -178,7 +178,7 @@ enum preset_caret preset_get_caret_destination(file_data *file, int preset);
  * \return			Bitfield indicating which fields have changed.
  */
 
-unsigned preset_apply(file_data *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description);
+unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description);
 
 
 /**
@@ -188,7 +188,7 @@ unsigned preset_apply(file_data *file, int preset, date_t *date, acct_t *from, a
  * \param *out			The file handle to write to.
  */
 
-void preset_write_file(file_data *file, FILE *out);
+void preset_write_file(struct file_block *file, FILE *out);
 
 
 /**
@@ -202,7 +202,7 @@ void preset_write_file(file_data *file, FILE *out);
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status preset_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+enum config_read_status preset_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
 
 
 /**
@@ -214,7 +214,7 @@ enum config_read_status preset_read_file(file_data *file, FILE *in, char *sectio
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-osbool preset_check_account(file_data *file, int account);
+osbool preset_check_account(struct file_block *file, int account);
 
 #endif
 

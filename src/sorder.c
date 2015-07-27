@@ -205,7 +205,7 @@ struct sorder {
 /* Standing Order Edit Window. */
 
 static wimp_w			sorder_edit_window = NULL;			/**< The handle of the standing order edit window.			*/
-static file_data		*sorder_edit_file = NULL;			/**< The file currently owning the standing order edit window.		*/
+static struct file_block	*sorder_edit_file = NULL;			/**< The file currently owning the standing order edit window.		*/
 static int			sorder_edit_number = -1;			/**< The standing order currently being edited.				*/
 
 /* Standing Order Sort Window. */
@@ -230,7 +230,7 @@ static struct sort_icon sorder_sort_directions[] = {				/**< Details of the sort
 
 /* Standing Order Print Window. */
 
-static file_data		*sorder_print_file = NULL;			/**< The file currently owning the standing order print window.		*/
+static struct file_block	*sorder_print_file = NULL;			/**< The file currently owning the standing order print window.		*/
 
 /* Standing Order List Window. */
 
@@ -256,15 +256,15 @@ static void			sorder_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			sorder_window_scroll_handler(wimp_scroll *scroll);
 static void			sorder_window_redraw_handler(wimp_draw *redraw);
 static void			sorder_adjust_window_columns(void *data, wimp_i group, int width);
-static void			sorder_adjust_sort_icon(file_data *file);
-static void			sorder_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
-static void			sorder_set_window_extent(file_data *file);
+static void			sorder_adjust_sort_icon(struct file_block *file);
+static void			sorder_adjust_sort_icon_data(struct file_block *file, wimp_icon *icon);
+static void			sorder_set_window_extent(struct file_block *file);
 static void			sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void			sorder_edit_click_handler(wimp_pointer *pointer);
 static osbool			sorder_edit_keypress_handler(wimp_key *key);
 static void			sorder_refresh_edit_window(void);
-static void			sorder_fill_edit_window(file_data *file, int sorder, osbool edit_mode);
+static void			sorder_fill_edit_window(struct file_block *file, int sorder, osbool edit_mode);
 static osbool			sorder_process_edit_window(void);
 static osbool			sorder_delete_from_edit_window(void);
 static osbool			sorder_stop_from_edit_window(void);
@@ -272,15 +272,15 @@ static osbool			sorder_stop_from_edit_window(void);
 static void			sorder_open_sort_window(struct sorder_window *windat, wimp_pointer *ptr);
 static osbool			sorder_process_sort_window(enum sort_type order, void *data);
 
-static void			sorder_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore);
+static void			sorder_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
 static void			sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
-static int			sorder_add(file_data *file);
-static osbool			sorder_delete(file_data *file, int sorder);
+static int			sorder_add(struct file_block *file);
+static osbool			sorder_delete(struct file_block *file, int sorder);
 
 static osbool			sorder_save_csv(char *filename, osbool selection, void *data);
 static osbool			sorder_save_tsv(char *filename, osbool selection, void *data);
-static void			sorder_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
+static void			sorder_export_delimited(struct file_block *file, char *filename, enum filing_delimit_type format, int filetype);
 
 static enum date_adjust		sorder_get_date_adjustment(enum transact_flags flags);
 
@@ -328,7 +328,7 @@ void sorder_initialise(osspriteop_area *sprites)
  * \param *file			The file to open a window for.
  */
 
-void sorder_open_window(file_data *file)
+void sorder_open_window(struct file_block *file)
 {
 	int			i, j, height;
 	wimp_window_state	parent;
@@ -514,7 +514,7 @@ static void sorder_close_window_handler(wimp_close *close)
 static void sorder_window_click_handler(wimp_pointer *pointer)
 {
 	struct sorder_window	*windat;
-	file_data		*file;
+	struct file_block	*file;
 	int			line;
 	wimp_window_state	window;
 
@@ -550,7 +550,7 @@ static void sorder_window_click_handler(wimp_pointer *pointer)
 static void sorder_pane_click_handler(wimp_pointer *pointer)
 {
 	struct sorder_window	*windat;
-	file_data		*file;
+	struct file_block	*file;
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
@@ -859,7 +859,7 @@ static void sorder_window_scroll_handler(wimp_scroll *scroll)
 static void sorder_window_redraw_handler(wimp_draw *redraw)
 {
 	struct sorder_window	*windat;
-	file_data		*file;
+	struct file_block	*file;
 	int			ox, oy, top, base, y, i, t;
 	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
@@ -1061,7 +1061,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
 {
 	struct sorder_window	*windat = (struct sorder_window *) data;
-	file_data		*file;
+	struct file_block	*file;
 	int			i, j, new_extent;
 	wimp_icon_state		icon;
 	wimp_window_info	window;
@@ -1128,7 +1128,7 @@ static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
  * \param *file			The file to update the window for.
  */
 
-static void sorder_adjust_sort_icon(file_data *file)
+static void sorder_adjust_sort_icon(struct file_block *file)
 {
 	wimp_icon_state		icon;
 
@@ -1150,7 +1150,7 @@ static void sorder_adjust_sort_icon(file_data *file)
  * \param *icon			The icon to be updated.
  */
 
-static void sorder_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
+static void sorder_adjust_sort_icon_data(struct file_block *file, wimp_icon *icon)
 {
 	int	i = 0, width, anchor;
 
@@ -1213,7 +1213,7 @@ static void sorder_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
  * \param *file			The file to update.
  */
 
-static void sorder_set_window_extent(file_data *file)
+static void sorder_set_window_extent(struct file_block *file)
 {
 	wimp_window_state	state;
 	os_box			extent;
@@ -1277,7 +1277,7 @@ static void sorder_set_window_extent(file_data *file)
  * \param *file			The file to rebuild the title for.
  */
 
-void sorder_build_window_title(file_data *file)
+void sorder_build_window_title(struct file_block *file)
 {
 	char	name[256];
 
@@ -1303,7 +1303,7 @@ void sorder_build_window_title(file_data *file)
  * \param to			The last line to redraw, inclusive.
  */
 
-void sorder_force_window_redraw(file_data *file, int from, int to)
+void sorder_force_window_redraw(struct file_block *file, int from, int to)
 {
 	int			y0, y1;
 	wimp_window_info	window;
@@ -1365,7 +1365,7 @@ static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
  * \param *ptr			The current Wimp pointer position.
  */
 
-void sorder_open_edit_window(file_data *file, int sorder, wimp_pointer *ptr)
+void sorder_open_edit_window(struct file_block *file, int sorder, wimp_pointer *ptr)
 {
 	osbool		edit_mode;
 
@@ -1540,7 +1540,7 @@ static void sorder_refresh_edit_window(void)
  * \param preset		The preset to display, or NULL_PRESET for none.
  */
 
-static void sorder_fill_edit_window(file_data *file, int sorder, osbool edit_mode)
+static void sorder_fill_edit_window(struct file_block *file, int sorder, osbool edit_mode)
 {
 	if (sorder == NULL_SORDER) {
 		/* Set start date. */
@@ -1959,7 +1959,7 @@ static osbool sorder_process_sort_window(enum sort_type order, void *data)
  * \param restore		TRUE to restore the current settings; else FALSE.
  */
 
-static void sorder_open_print_window(file_data *file, wimp_pointer *ptr, osbool restore)
+static void sorder_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore)
 {
 	sorder_print_file = file;
 	printing_open_simple_window(file, ptr, restore, "PrintSOrder", sorder_print);
@@ -2082,7 +2082,7 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
  * \param *file			The file to sort.
  */
 
-void sorder_sort(file_data *file)
+void sorder_sort(struct file_block *file)
 {
 	int		gap, comb, temp, order;
 	osbool		sorted, reorder;
@@ -2198,7 +2198,7 @@ void sorder_sort(file_data *file)
  * \return			The new standing order index, or NULL_SORDER.
  */
 
-static int sorder_add(file_data *file)
+static int sorder_add(struct file_block *file)
 {
 	int	new;
 
@@ -2245,7 +2245,7 @@ static int sorder_add(file_data *file)
  * \return 			TRUE if successful; else FALSE.
  */
 
-static osbool sorder_delete(file_data *file, int sorder)
+static osbool sorder_delete(struct file_block *file, int sorder)
 {
 	int	i, index;
 
@@ -2303,7 +2303,7 @@ static osbool sorder_delete(file_data *file, int sorder)
  * \param *file			The file to purge.
  */
 
-void sorder_purge(file_data *file)
+void sorder_purge(struct file_block *file)
 {
 	int	i;
 
@@ -2321,7 +2321,7 @@ void sorder_purge(file_data *file)
  * \param *file			The file to process.
  */
 
-void sorder_process(file_data *file)
+void sorder_process(struct file_block *file)
 {
 	unsigned int	today;
 	int		order, amount;
@@ -2422,7 +2422,7 @@ void sorder_process(file_data *file)
  * \param *file			The file to scan.
  */
 
-void sorder_trial(file_data *file)
+void sorder_trial(struct file_block *file)
 {
 	unsigned int	trial_date, raw_next_date, adjusted_next_date;
 	int		order, amount, left;
@@ -2495,7 +2495,7 @@ void sorder_trial(file_data *file)
  * \param *file			The file to report on.
  */
 
-void sorder_full_report(file_data *file)
+void sorder_full_report(struct file_block *file)
 {
 	struct report	*report;
 	int			i;
@@ -2621,7 +2621,7 @@ void sorder_full_report(file_data *file)
  * \param *out			The file handle to write to.
  */
 
-void sorder_write_file(file_data *file, FILE *out)
+void sorder_write_file(struct file_block *file, FILE *out)
 {
 	int	i;
 	char	buffer[MAX_FILE_LINE_LEN];
@@ -2660,7 +2660,7 @@ void sorder_write_file(file_data *file, FILE *out)
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status sorder_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
 {
 	int	result, block_size, i = -1;
 
@@ -2790,7 +2790,7 @@ static osbool sorder_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void sorder_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
+static void sorder_export_delimited(struct file_block *file, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	int			i, t;
@@ -2867,7 +2867,7 @@ static void sorder_export_delimited(file_data *file, char *filename, enum filing
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-osbool sorder_check_account(file_data *file, int account)
+osbool sorder_check_account(struct file_block *file, int account)
 {
 	int		i;
 	osbool		found = FALSE;

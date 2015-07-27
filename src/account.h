@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -124,7 +124,7 @@ void account_initialise(osspriteop_area *sprites);
  * \param type			The type of account to open a window for.
  */
 
-void account_open_window(file_data *file, enum account_type type);
+void account_open_window(struct file_block *file, enum account_type type);
 
 
 /**
@@ -135,7 +135,7 @@ void account_open_window(file_data *file, enum account_type type);
  * \param entry			The entry of the window to to be updated.
  */
 
-void account_build_window_title(file_data *file, int entry);
+void account_build_window_title(struct file_block *file, int entry);
 
 
 /**
@@ -148,7 +148,7 @@ void account_build_window_title(file_data *file, int entry);
  * \param to			The last line to redraw, inclusive.
  */
 
-void account_force_window_redraw(file_data *file, int entry, int from, int to);
+void account_force_window_redraw(struct file_block *file, int entry, int from, int to);
 
 
 /**
@@ -160,7 +160,7 @@ void account_force_window_redraw(file_data *file, int entry, int from, int to);
  */
 
 
-wimp_menu *account_list_menu_build(file_data *file);
+wimp_menu *account_list_menu_build(struct file_block *file);
 
 
 /**
@@ -197,7 +197,7 @@ acct_t account_list_menu_decode(int selection);
  * \return			The menu block, or NULL.
  */
 
-wimp_menu *account_complete_menu_build(file_data *file, enum account_menu_type type);
+wimp_menu *account_complete_menu_build(struct file_block *file, enum account_menu_type type);
 
 
 /**
@@ -247,7 +247,7 @@ acct_t account_complete_menu_decode(wimp_selection *selection);
  * \param *ptr			The current Wimp pointer position.
  */
 
-void account_open_edit_window(file_data *file, acct_t account, enum account_type type, wimp_pointer *ptr);
+void account_open_edit_window(struct file_block *file, acct_t account, enum account_type type, wimp_pointer *ptr);
 
 
 /**
@@ -257,7 +257,7 @@ void account_open_edit_window(file_data *file, acct_t account, enum account_type
  * \param *file			The file which has closed.
  */
 
-void account_force_windows_closed(file_data *file);
+void account_force_windows_closed(struct file_block *file);
 
 
 /**
@@ -271,7 +271,7 @@ void account_force_windows_closed(file_data *file);
  * \return			The new account index, or NULL_ACCOUNT.
  */
 
-acct_t account_add(file_data *file, char *name, char *ident, enum account_type type);
+acct_t account_add(struct file_block *file, char *name, char *ident, enum account_type type);
 
 
 /**
@@ -282,7 +282,7 @@ acct_t account_add(file_data *file, char *name, char *ident, enum account_type t
  * \return 			TRUE if successful; else FALSE.
  */
 
-osbool account_delete(file_data *file, acct_t account);
+osbool account_delete(struct file_block *file, acct_t account);
 
 
 /**
@@ -293,7 +293,7 @@ osbool account_delete(file_data *file, acct_t account);
  * \return			The number of entries, or 0.
  */
 
-int account_get_list_length(file_data *file, enum account_type type);
+int account_get_list_length(struct file_block *file, enum account_type type);
 
 
 /**
@@ -306,7 +306,7 @@ int account_get_list_length(file_data *file, enum account_type type);
  *				line isn't an account.
  */
 
-acct_t account_get_list_entry(file_data *file, enum account_type type, int line);
+acct_t account_get_list_entry(struct file_block *file, enum account_type type, int line);
 
 
 /**
@@ -319,7 +319,7 @@ acct_t account_get_list_entry(file_data *file, enum account_type type, int line)
  * \return			The account number, or NULL_ACCOUNT if not found.
  */
 
-acct_t account_find_by_ident(file_data *file, char *ident, enum account_type type);
+acct_t account_find_by_ident(struct file_block *file, char *ident, enum account_type type);
 
 
 /**
@@ -331,7 +331,7 @@ acct_t account_find_by_ident(file_data *file, char *ident, enum account_type typ
  * \return			Pointer to the ident string, or "".
  */
 
-char *account_get_ident(file_data *file, acct_t account);
+char *account_get_ident(struct file_block *file, acct_t account);
 
 
 /**
@@ -343,7 +343,7 @@ char *account_get_ident(file_data *file, acct_t account);
  * \return			Pointer to the name string, or "".
  */
 
-char *account_get_name(file_data *file, acct_t account);
+char *account_get_name(struct file_block *file, acct_t account);
 
 
 /**
@@ -357,7 +357,7 @@ char *account_get_name(file_data *file, acct_t account);
  * \return			Pointer to the start of the ident.
  */
 
-char *account_build_name_pair(file_data *file, acct_t account, char *buffer, size_t size);
+char *account_build_name_pair(struct file_block *file, acct_t account, char *buffer, size_t size);
 
 
 /**
@@ -378,7 +378,7 @@ char *account_build_name_pair(file_data *file, acct_t account, char *buffer, siz
  * \return		The new account number.
  */
 
-acct_t account_lookup_field(file_data *file, char key, enum account_type type, acct_t account,
+acct_t account_lookup_field(struct file_block *file, char key, enum account_type type, acct_t account,
 		osbool *reconciled, wimp_w window, wimp_i ident, wimp_i name, wimp_i rec);
 
 
@@ -386,7 +386,7 @@ acct_t account_lookup_field(file_data *file, char key, enum account_type type, a
 
 
 
-void fill_account_field (file_data *file, acct_t account, int reconciled,
+void fill_account_field (struct file_block *file, acct_t account, int reconciled,
                          wimp_w window, wimp_i ident, wimp_i name, wimp_i rec_field);
 void toggle_account_reconcile_icon (wimp_w window, wimp_i icon);
 
@@ -404,7 +404,7 @@ void toggle_account_reconcile_icon (wimp_w window, wimp_i icon);
  * \return		The account's account view, or NULL.
  */
 
-struct accview_window *account_get_accview(file_data *file, acct_t account);
+struct accview_window *account_get_accview(struct file_block *file, acct_t account);
 
 
 /**
@@ -415,7 +415,7 @@ struct accview_window *account_get_accview(file_data *file, acct_t account);
  * \param *view		The view handle, or NULL to clear.
  */
 
-void account_set_accview(file_data *file, acct_t account, struct accview_window *view);
+void account_set_accview(struct file_block *file, acct_t account, struct accview_window *view);
 
 
 /**
@@ -426,7 +426,7 @@ void account_set_accview(file_data *file, acct_t account, struct accview_window 
  * \return		The account's type, or ACCOUNT_NULL.
  */
 
-enum account_type account_get_type(file_data *file, acct_t account);
+enum account_type account_get_type(struct file_block *file, acct_t account);
 
 
 /**
@@ -437,7 +437,7 @@ enum account_type account_get_type(file_data *file, acct_t account);
  * \return		The account's opening balance, or 0.
  */
 
-amt_t account_get_opening_balance(file_data *file, acct_t account);
+amt_t account_get_opening_balance(struct file_block *file, acct_t account);
 
 
 /**
@@ -449,7 +449,7 @@ amt_t account_get_opening_balance(file_data *file, acct_t account);
  * \param adjust	The amount to alter the opening balance by.
  */
 
-void account_adjust_opening_balance(file_data *file, acct_t account, amt_t adjust);
+void account_adjust_opening_balance(struct file_block *file, acct_t account, amt_t adjust);
 
 
 /**
@@ -460,7 +460,7 @@ void account_adjust_opening_balance(file_data *file, acct_t account, amt_t adjus
  * \return		The account's opening balance, or 0.
  */
 
-amt_t account_get_credit_limit(file_data *file, acct_t account);
+amt_t account_get_credit_limit(struct file_block *file, acct_t account);
 
 
 /**
@@ -471,7 +471,7 @@ amt_t account_get_credit_limit(file_data *file, acct_t account);
  * \return		The account's budget amount, or 0.
  */
 
-amt_t account_get_budget_amount(file_data *file, acct_t account);
+amt_t account_get_budget_amount(struct file_block *file, acct_t account);
 
 
 /**
@@ -480,7 +480,7 @@ amt_t account_get_budget_amount(file_data *file, acct_t account);
  * \param *file		The file to zero.
  */
 
-void account_zero_sorder_trial(file_data *file);
+void account_zero_sorder_trial(struct file_block *file);
 
 
 /**
@@ -494,7 +494,7 @@ void account_zero_sorder_trial(file_data *file);
  *			balance by.
  */
 
-void account_adjust_sorder_trial(file_data *file, acct_t account, amt_t adjust);
+void account_adjust_sorder_trial(struct file_block *file, acct_t account, amt_t adjust);
 
 
 /**
@@ -505,7 +505,7 @@ void account_adjust_sorder_trial(file_data *file, acct_t account, amt_t adjust);
  * \return			TRUE if the account is found; else FALSE.
  */
 
-int account_used_in_file(file_data *file, acct_t account);
+int account_used_in_file(struct file_block *file, acct_t account);
 
 
 /**
@@ -516,7 +516,7 @@ int account_used_in_file(file_data *file, acct_t account);
  * \return			The number of accounts found.
  */
 
-int account_count_type_in_file(file_data *file, enum account_type type);
+int account_count_type_in_file(struct file_block *file, enum account_type type);
 
 
 /**
@@ -527,7 +527,7 @@ int account_count_type_in_file(file_data *file, enum account_type type);
  * \return			TRUE if cheque numbers are available; else FALSE.
  */
 
-osbool account_cheque_number_available(file_data *file, acct_t account);
+osbool account_cheque_number_available(struct file_block *file, acct_t account);
 
 
 /**
@@ -546,7 +546,7 @@ osbool account_cheque_number_available(file_data *file, acct_t account);
  *				next available number.
  */
 
-char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_t to_account, int increment, char *buffer, size_t size);
+char *account_get_next_cheque_number(struct file_block *file, acct_t from_account, acct_t to_account, int increment, char *buffer, size_t size);
 
 
 /**
@@ -555,7 +555,7 @@ char *account_get_next_cheque_number(file_data *file, acct_t from_account, acct_
  * \param *file		The file to recalculate.
  */
 
-void account_recalculate_all(file_data *file);
+void account_recalculate_all(struct file_block *file);
 
 
 /**
@@ -568,7 +568,7 @@ void account_recalculate_all(file_data *file);
  * \param transasction	The transaction to remove.
  */
 
-void account_remove_transaction(file_data *file, int transaction);
+void account_remove_transaction(struct file_block *file, int transaction);
 
 
 /**
@@ -581,7 +581,7 @@ void account_remove_transaction(file_data *file, int transaction);
  * \param transasction	The transaction to restore.
  */
 
-void account_restore_transaction(file_data *file, int transaction);
+void account_restore_transaction(struct file_block *file, int transaction);
 
 
 /**
@@ -591,7 +591,7 @@ void account_restore_transaction(file_data *file, int transaction);
  * \param *out			The file handle to write to.
  */
 
-void account_write_file(file_data *file, FILE *out);
+void account_write_file(struct file_block *file, FILE *out);
 
 
 /**
@@ -606,7 +606,7 @@ void account_write_file(file_data *file, FILE *out);
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status account_read_acct_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data);
+enum config_read_status account_read_acct_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data);
 
 
 /**
@@ -621,7 +621,7 @@ enum config_read_status account_read_acct_file(file_data *file, FILE *in, char *
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status account_read_list_file(file_data *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data);
+enum config_read_status account_read_list_file(struct file_block *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data);
 
 #endif
 

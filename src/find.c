@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -140,12 +140,12 @@ struct find {
 	enum find_direction	direction;					/**< The direction to search in.					*/
 };
 
-static file_data	*find_window_file = NULL;				/**< The file currently owning the Find dialogue.			*/
-static struct find	find_params;						/**< A copy of the settings for the current search.			*/
-static osbool		find_restore = FALSE;					/**< The restore setting for the current dialogue.			*/
+static struct file_block	*find_window_file = NULL;			/**< The file currently owning the Find dialogue.			*/
+static struct find		find_params;					/**< A copy of the settings for the current search.			*/
+static osbool			find_restore = FALSE;				/**< The restore setting for the current dialogue.			*/
 
-static wimp_w		find_window = NULL;					/**< The handle of the find window.					*/
-static wimp_w		find_result_window = NULL;				/**< The handle of the 'found' window.					*/
+static wimp_w			find_window = NULL;				/**< The handle of the find window.					*/
+static wimp_w			find_result_window = NULL;			/**< The handle of the 'found' window.					*/
 
 
 static void		find_reopen_window(wimp_pointer *ptr);
@@ -239,7 +239,7 @@ void find_delete(struct find *find)
  *			use the application defaults.
  */
 
-void find_open_window(file_data *file, wimp_pointer *ptr, osbool restore)
+void find_open_window(struct file_block *file, wimp_pointer *ptr, osbool restore)
 {
 	/* If either of the find/found windows are already open, close them to start with. */
 
@@ -685,7 +685,7 @@ static int find_from_line(struct find *new_params, int new_dir, int start)
  * \param *file			The file data block of interest.
  */
 
-void find_force_windows_closed(file_data *file)
+void find_force_windows_closed(struct file_block *file)
 {
 	if (find_window_file == file && windows_get_open(find_window))
 		close_dialogue_with_caret(find_window);

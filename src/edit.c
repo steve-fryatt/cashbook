@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -110,7 +110,7 @@ struct transaction {
 
 /* A pointer to the file block belomging to the window currently holding the edit line. */
 
-static file_data *entry_window = NULL;
+static struct file_block *entry_window = NULL;
 
 /* The following are the buffers used by the edit line in the transaction window. */
 
@@ -129,14 +129,14 @@ static char	buffer_description[DESCRIPT_FIELD_LEN];
 wimp_window *edit_transact_window_def = NULL;	/* \TODO -- Ick! */
 
 
-static void	edit_find_icon_horizontally(file_data *file);
-static void	edit_set_line_shading(file_data *file);
-static void	edit_change_transaction_amount(file_data *file, int transaction, amt_t new_amount);
-static unsigned	edit_raw_insert_preset_into_transaction(file_data *file, int transaction, int preset);
+static void	edit_find_icon_horizontally(struct file_block *file);
+static void	edit_set_line_shading(struct file_block *file);
+static void	edit_change_transaction_amount(struct file_block *file, int transaction, amt_t new_amount);
+static unsigned	edit_raw_insert_preset_into_transaction(struct file_block *file, int transaction, int preset);
 static wimp_i	edit_convert_preset_icon_number(enum preset_caret caret);
-static void	edit_delete_line_transaction_content(file_data *file);
-static void	edit_process_content_keypress(file_data *file, wimp_key *key);
-static char	*find_complete_description(file_data *file, int line, char *buffer, size_t length);
+static void	edit_delete_line_transaction_content(struct file_block *file);
+static void	edit_process_content_keypress(struct file_block *file, wimp_key *key);
+static char	*find_complete_description(struct file_block *file, int line, char *buffer, size_t length);
 
 
 
@@ -152,7 +152,7 @@ static char	*find_complete_description(file_data *file, int line, char *buffer, 
  *			sorted display (not the raw transaction number).
  */
 
-void edit_place_new_line(file_data *file, int line)
+void edit_place_new_line(struct file_block *file, int line)
 {
 	int			i, transaction;
 	wimp_icon_create	icon_block;
@@ -289,7 +289,7 @@ void edit_place_new_line(file_data *file, int line)
  * \param transaction	The transaction to place the line on.
  */
 
-void edit_place_new_line_by_transaction(file_data *file, int transaction)
+void edit_place_new_line_by_transaction(struct file_block *file, int transaction)
 {
 	int        i;
 	wimp_caret caret;
@@ -329,7 +329,7 @@ void edit_place_new_line_by_transaction(file_data *file, int transaction)
  * \param *file		The file to be deleted.
  */
 
-void edit_file_deleted(file_data *file)
+void edit_file_deleted(struct file_block *file)
 {
 	if (entry_window == file)
 		entry_window = NULL;
@@ -342,7 +342,7 @@ void edit_file_deleted(file_data *file)
  * \param *file		The file that we're interested in working on
  */
 
-void edit_find_line_vertically(file_data *file)
+void edit_find_line_vertically(struct file_block *file)
 {
 	wimp_window_state	window;
 	int			height, top, bottom;
@@ -395,7 +395,7 @@ void edit_find_line_vertically(file_data *file)
  * \param *file		The file that we're interested in working on
  */
 
-static void edit_find_icon_horizontally(file_data *file)
+static void edit_find_icon_horizontally(struct file_block *file)
 {
 	wimp_window_state	window;
 	wimp_icon_state		icon;
@@ -576,7 +576,7 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
  * \param *file		The file that should be processed.
  */
 
-static void edit_set_line_shading(file_data *file)
+static void edit_set_line_shading(struct file_block *file)
 {
 	int	icon_fg_col, transaction;
 	wimp_i	i;
@@ -606,7 +606,7 @@ static void edit_set_line_shading(file_data *file)
  *			line isn't in the specified file.
  */
 
-int edit_get_line_transaction(file_data *file)
+int edit_get_line_transaction(struct file_block *file)
 {
 	int	transaction;
 
@@ -627,7 +627,7 @@ int edit_get_line_transaction(file_data *file)
  * \param change_flag	Indicate which reconciled flags to change.
  */
 
-void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, enum transact_flags change_flag)
+void edit_toggle_transaction_reconcile_flag(struct file_block *file, int transaction, enum transact_flags change_flag)
 {
 	int	change_icon, line;
 	osbool	changed = FALSE;
@@ -710,7 +710,7 @@ void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, en
  * \param new_date	The new date to set the transaction to.
  */
 
-void edit_change_transaction_date(file_data *file, int transaction, date_t new_date)
+void edit_change_transaction_date(struct file_block *file, int transaction, date_t new_date)
 {
 	int	line;
 	osbool	changed = FALSE;
@@ -789,7 +789,7 @@ void edit_change_transaction_date(file_data *file, int transaction, date_t new_d
  * \param new_amount	The new amount to set the transaction to.
  */
 
-static void edit_change_transaction_amount(file_data *file, int transaction, amt_t new_amount)
+static void edit_change_transaction_amount(struct file_block *file, int transaction, amt_t new_amount)
 {
 	int	line;
 	osbool	changed = FALSE;
@@ -853,7 +853,7 @@ static void edit_change_transaction_amount(file_data *file, int transaction, amt
  * \param new_text	The new text to set the field to.
  */
 
-void edit_change_transaction_refdesc(file_data *file, int transaction, wimp_i target, char *new_text)
+void edit_change_transaction_refdesc(struct file_block *file, int transaction, wimp_i target, char *new_text)
 {
 	int	line;
 	osbool	changed = FALSE;
@@ -925,7 +925,7 @@ void edit_change_transaction_refdesc(file_data *file, int transaction, wimp_i ta
  * \param new_account	The new account to set the field to.
  */
 
-void edit_change_transaction_account(file_data *file, int transaction, wimp_i target, acct_t new_account)
+void edit_change_transaction_account(struct file_block *file, int transaction, wimp_i target, acct_t new_account)
 {
 	int		line;
 	osbool		changed = FALSE;
@@ -1038,7 +1038,7 @@ void edit_change_transaction_account(file_data *file, int transaction, wimp_i ta
  * \param preset	The preset to insert into the transaction.
  */
 
-void edit_insert_preset_into_transaction(file_data *file, int transaction, int preset)
+void edit_insert_preset_into_transaction(struct file_block *file, int transaction, int preset)
 {
 	int		line;
 	unsigned	changed = 0;
@@ -1103,7 +1103,7 @@ void edit_insert_preset_into_transaction(file_data *file, int transaction, int p
  * \return		A bitfield showing which icons have been edited.
  */
 
-static unsigned edit_raw_insert_preset_into_transaction(file_data *file, int transaction, int preset)
+static unsigned edit_raw_insert_preset_into_transaction(struct file_block *file, int transaction, int preset)
 {
 	unsigned	changed = 0;
 
@@ -1174,7 +1174,7 @@ static wimp_i edit_convert_preset_icon_number(enum preset_caret caret)
  * \param *file		The file to operate on.
  */
 
-static void edit_delete_line_transaction_content(file_data *file)
+static void edit_delete_line_transaction_content(struct file_block *file)
 {
 	unsigned transaction;
 
@@ -1231,7 +1231,7 @@ static void edit_delete_line_transaction_content(file_data *file)
  * \return		TRUE if the key was handled; FALSE if not.
  */
 
-osbool edit_process_keypress(file_data *file, wimp_key *key)
+osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 {
 	wimp_caret	caret;
 	wimp_i		icon;
@@ -1433,7 +1433,7 @@ osbool edit_process_keypress(file_data *file, wimp_key *key)
  * \param *key		The Wimp's key event data block.
  */
 
-static void edit_process_content_keypress(file_data *file, wimp_key *key)
+static void edit_process_content_keypress(struct file_block *file, wimp_key *key)
 {
 	int		line, transaction, i, preset;
 	unsigned	previous_date, date, amount, old_acct, old_flags, preset_changes = 0;
@@ -1706,7 +1706,7 @@ static void edit_process_content_keypress(file_data *file, wimp_key *key)
  * \return		Pointer to the completed buffer.
  */
 
-static char *find_complete_description(file_data *file, int line, char *buffer, size_t length)
+static char *find_complete_description(struct file_block *file, int line, char *buffer, size_t length)
 {
 	int i, t;
 

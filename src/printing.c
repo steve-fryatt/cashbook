@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -139,14 +139,14 @@ static enum printing_window	printing_window_open = PRINTING_WINDOW_NONE;	/**< Wh
 
 static void			(*printing_simple_callback) (osbool, osbool, osbool, osbool, osbool);
 static char			printing_simple_title_token[64];		/**< The message token for the Simple Print window title.					*/
-static file_data		*printing_simple_file = NULL;			/**< The file currently owning the Simple Print window.						*/
+static struct file_block	*printing_simple_file = NULL;			/**< The file currently owning the Simple Print window.						*/
 static osbool			printing_simple_restore;			/**< The current restore setting for the Simple Print window.					*/
 
 /* Date-range print window handling. */
 
 static void			(*printing_advanced_callback) (osbool, osbool, osbool, osbool, osbool, date_t, date_t);
 static char			printing_advanced_title_token[64];		/**< The message token for the Advanced Print window title.					*/
-static file_data		*printing_advanced_file = NULL;			/**< The file currently owning the Advanced Print window.					*/
+static struct file_block	*printing_advanced_file = NULL;			/**< The file currently owning the Advanced Print window.					*/
 static osbool			printing_advanced_restore;			/**< The current restore setting for the Advanced Print window.					*/
 
 
@@ -439,7 +439,7 @@ static osbool printing_handle_message_set_printer(wimp_message *message)
  * \param *file			The file data block of interest.
  */
 
-void printing_force_windows_closed(file_data *file)
+void printing_force_windows_closed(struct file_block *file)
 {
 	if (printing_simple_file == file && windows_get_open(printing_simple_window)) {
 		close_dialogue_with_caret(printing_simple_window);
@@ -465,7 +465,7 @@ void printing_force_windows_closed(file_data *file)
  *			in the affermative.
  */
 
-void printing_open_simple_window(file_data *file, wimp_pointer *ptr, osbool restore, char *title,
+void printing_open_simple_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
 		void (callback) (osbool, osbool, osbool, osbool, osbool))
 {
 	/* If the window is already open, another print job is being set up.  Assume the user wants to lose
@@ -667,7 +667,7 @@ static void printing_process_simple_window(void)
  *			in the affermative.
  */
 
-void printing_open_advanced_window(file_data *file, wimp_pointer *ptr, osbool restore, char *title,
+void printing_open_advanced_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
 		void (callback) (osbool, osbool, osbool, osbool, osbool, date_t, date_t))
 {
 	/* If the window is already open, another print job is being set up.  Assume the user wants to lose

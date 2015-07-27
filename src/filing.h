@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -83,11 +83,11 @@ char *next_plain_field (char *line, char sep);
 
 /* Saving accounts files */
 
-void save_transaction_file (file_data *file, char *filename);
+void save_transaction_file (struct file_block *file, char *filename);
 
 /* Delimited file import */
 
-void import_csv_file (file_data *file, char *filename);
+void import_csv_file (struct file_block *file, char *filename);
 
 
 
@@ -99,7 +99,7 @@ void import_csv_file (file_data *file, char *filename);
  * \param *file			The file which has closed.
  */
 
-void filing_force_windows_closed(file_data *file);
+void filing_force_windows_closed(struct file_block *file);
 
 
 /**

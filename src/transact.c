@@ -262,7 +262,7 @@ static struct sort_icon transact_sort_directions[] = {				/**< Details of the so
 
 /* Transaction Print Window. */
 
-static file_data		*transact_print_file = NULL;			/**< The file currently owning the transaction print window.				*/
+static struct file_block	*transact_print_file = NULL;			/**< The file currently owning the transaction print window.				*/
 
 /* File Info Window. */
 
@@ -283,7 +283,7 @@ static wimp_menu		*transact_account_list_menu = NULL;		/**< The toolbar's Accoun
 static wimp_menu			*transact_complete_menu = NULL;		/**< The Reference/Description List menu block.						*/
 static struct transact_list_link	*transact_complete_menu_link = NULL;	/**< Links for the Reference/Description List menu.					*/
 static char				*transact_complete_menu_title = NULL;	/**< Reference/Description List menu title buffer.					*/
-static file_data			*transact_complete_menu_file = NULL;	/**< The file to which the Reference/Description List menu is currently attached.	*/
+static struct file_block		*transact_complete_menu_file = NULL;	/**< The file to which the Reference/Description List menu is currently attached.	*/
 static enum transact_list_menu_type	transact_complete_menu_type = REFDESC_MENU_NONE;
 
 /* SaveAs Dialogue Handles. */
@@ -306,30 +306,30 @@ static void			transact_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			transact_window_scroll_handler(wimp_scroll *scroll);
 static void			transact_window_redraw_handler(wimp_draw *redraw);
 static void			transact_adjust_window_columns(void *data, wimp_i icon, int width);
-static void			transact_adjust_sort_icon(file_data *file);
-static void			transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon);
+static void			transact_adjust_sort_icon(struct file_block *file);
+static void			transact_adjust_sort_icon_data(struct file_block *file, wimp_icon *icon);
 
 static void			transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void			transact_complete_menu_add_entry(struct transact_list_link **entries, int *count, int *max, char *new);
 static int			transact_complete_menu_compare(const void *va, const void *vb);
 
-static osbool			transact_is_blank(file_data *file, int transaction);
+static osbool			transact_is_blank(struct file_block *file, int transaction);
 
 static void			transact_open_sort_window(struct transaction_window *windat, wimp_pointer *ptr);
 static osbool			transact_process_sort_window(enum sort_type order, void *data);
 
-static void			transact_open_print_window(file_data *file, wimp_pointer *ptr, int clear);
+static void			transact_open_print_window(struct file_block *file, wimp_pointer *ptr, int clear);
 static void			transact_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
 
 static void			transact_start_direct_save(struct transaction_window *windat);
 static osbool			transact_save_file(char *filename, osbool selection, void *data);
 static osbool			transact_save_csv(char *filename, osbool selection, void *data);
 static osbool			transact_save_tsv(char *filename, osbool selection, void *data);
-static void			transact_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype);
+static void			transact_export_delimited(struct file_block *file, char *filename, enum filing_delimit_type format, int filetype);
 static osbool			transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
-static void			transact_prepare_fileinfo(file_data *file);
+static void			transact_prepare_fileinfo(struct file_block *file);
 
 
 /**
@@ -376,7 +376,7 @@ void transact_initialise(osspriteop_area *sprites)
  * \param *file			The file to open a window for.
  */
 
-void transact_open_window(file_data *file)
+void transact_open_window(struct file_block *file)
 {
 	int		i, j, height;
 	os_error	*error;
@@ -601,7 +601,7 @@ static void transact_window_close_handler(wimp_close *close)
 static void transact_window_click_handler(wimp_pointer *pointer)
 {
 	struct transaction_window	*windat;
-	file_data			*file;
+	struct file_block		*file;
 	int				line, transaction, xpos, column;
 	wimp_window_state		window;
 	wimp_pointer			ptr;
@@ -731,7 +731,7 @@ static void transact_window_lose_caret_handler(wimp_caret *caret)
 static void transact_pane_click_handler(wimp_pointer *pointer)
 {
 	struct transaction_window	*windat;
-	file_data			*file;
+	struct file_block		*file;
 	wimp_window_state		window;
 	wimp_icon_state			icon;
 	int				ox;
@@ -922,7 +922,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 static osbool transact_window_keypress_handler(wimp_key *key)
 {
 	struct transaction_window	*windat;
-	file_data			*file;
+	struct file_block		*file;
 	wimp_pointer			pointer;
 	char				*filename;
 
@@ -1096,7 +1096,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
 	struct transaction_window	*windat;
-	file_data			*file;
+	struct file_block		*file;
 	wimp_pointer			pointer;
 
 	windat = event_get_window_user_data(w);
@@ -1319,7 +1319,7 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 {
 	int				width, height, line, error;
 	struct transaction_window	*windat;
-	file_data			*file;
+	struct file_block		*file;
 
 	windat = event_get_window_user_data(scroll->w);
 	if (windat == NULL || windat->file == NULL)
@@ -1407,7 +1407,7 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 static void transact_window_redraw_handler(wimp_draw *redraw)
 {
 	struct transaction_window	*windat;
-	file_data			*file;
+	struct file_block		*file;
 	int				ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col;
 	char				icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool				more;
@@ -1681,7 +1681,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 {
 	struct transaction_window	*windat = (struct transaction_window *) data;
-	file_data			*file;
+	struct file_block		*file;
 	int				i, j, new_extent;
 	wimp_icon_state			icon;
 	wimp_window_info		window;
@@ -1760,7 +1760,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
  * \param *file			The file to update the window for.
  */
 
-static void transact_adjust_sort_icon(file_data *file)
+static void transact_adjust_sort_icon(struct file_block *file)
 {
 	wimp_icon_state icon;
 
@@ -1782,7 +1782,7 @@ static void transact_adjust_sort_icon(file_data *file)
  * \param *icon			The icon to be updated.
  */
 
-static void transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
+static void transact_adjust_sort_icon_data(struct file_block *file, wimp_icon *icon)
 {
 	int	i = 0, width, anchor;
 
@@ -1851,7 +1851,7 @@ static void transact_adjust_sort_icon_data(file_data *file, wimp_icon *icon)
  * \param *file			The file containing the window to update.
  */
 
-void transact_set_window_extent(file_data *file)
+void transact_set_window_extent(struct file_block *file)
 {
 	wimp_window_state	state;
 	os_box			extent;
@@ -1914,7 +1914,7 @@ void transact_set_window_extent(file_data *file)
  * \param *file			The file containing the window to update.
  */
 
-void transact_minimise_window_extent(file_data *file)
+void transact_minimise_window_extent(struct file_block *file)
 {
 	int			height, last_visible_line, minimum_length;
 	wimp_window_state	window;
@@ -1959,7 +1959,7 @@ void transact_minimise_window_extent(file_data *file)
  * \param *file			The file to rebuild the title for.
  */
 
-void transact_build_window_title(file_data *file)
+void transact_build_window_title(struct file_block *file)
 {
 	file_get_pathname(file, file->transaction_window.window_title,
 			sizeof(file->transaction_window.window_title) - 2);
@@ -1983,7 +1983,7 @@ void transact_build_window_title(file_data *file)
  * \param to			The last line to redraw, inclusive.
  */
 
-void transact_force_window_redraw(file_data *file, int from, int to)
+void transact_force_window_redraw(struct file_block *file, int from, int to)
 {
 	int			y0, y1;
 	wimp_window_info	window;
@@ -2008,7 +2008,7 @@ void transact_force_window_redraw(file_data *file, int from, int to)
  * \param *file			The file owning the window to update.
  */
 
-void transact_update_toolbar(file_data *file)
+void transact_update_toolbar(struct file_block *file)
 {
 	if (file == NULL || file->transaction_window.transaction_pane == NULL)
 		return;
@@ -2025,7 +2025,7 @@ void transact_update_toolbar(file_data *file)
  * \param direction		The direction to scroll the window in.
  */
 
-void transact_scroll_window_to_end(file_data *file, enum transact_scroll_direction direction)
+void transact_scroll_window_to_end(struct file_block *file, enum transact_scroll_direction direction)
 {
 	wimp_window_info	window;
 
@@ -2065,7 +2065,7 @@ void transact_scroll_window_to_end(file_data *file, enum transact_scroll_directi
  * \return			The transaction found, or NULL_TRANSACTION.
  */
 
-int transact_find_nearest_window_centre(file_data *file, acct_t account)
+int transact_find_nearest_window_centre(struct file_block *file, acct_t account)
 {
 	wimp_window_state	window;
 	int			height, i, centre, result;
@@ -2179,7 +2179,7 @@ static void transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
  * \return			The appropriate line, or -1 if not found.
  */
 
-int transact_get_line_from_transaction(file_data *file, int transaction)
+int transact_get_line_from_transaction(struct file_block *file, int transaction)
 {
 	int	i;
 	int	line = -1;
@@ -2207,7 +2207,7 @@ int transact_get_line_from_transaction(file_data *file, int transaction)
  * \return			The appropriate transaction, or NULL_TRANSACTION.
  */
 
-int transact_get_transaction_from_line(file_data *file, int line)
+int transact_get_transaction_from_line(struct file_block *file, int line)
 {
 	if (file == NULL || line < 0 || line >= file->trans_count)
 		return NULL_TRANSACTION;
@@ -2289,7 +2289,7 @@ int transact_get_transaction_from_line(file_data *file, int line)
  * \return			The menu block, or NULL.
  */
 
-wimp_menu *transact_complete_menu_build(file_data *file, enum transact_list_menu_type menu_type, int start_line)
+wimp_menu *transact_complete_menu_build(struct file_block *file, enum transact_list_menu_type menu_type, int start_line)
 {
 	int		i, range, line, width, items, max_items, item_limit;
 	osbool		no_original;
@@ -2660,7 +2660,7 @@ static int transact_complete_menu_compare(const void *va, const void *vb)
  * \param *description		Pointer to the transaction description, or NULL.
  */
 
-void transact_add_raw_entry(file_data *file, date_t date, acct_t from, acct_t to, enum transact_flags flags,
+void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, acct_t to, enum transact_flags flags,
 		amt_t amount, char *ref, char *description)
 {
 	int new;
@@ -2701,7 +2701,7 @@ void transact_add_raw_entry(file_data *file, date_t date, acct_t from, acct_t to
  * \param transaction		The transaction to be cleared.
  */
 
-void transact_clear_raw_entry(file_data *file, int transaction)
+void transact_clear_raw_entry(struct file_block *file, int transaction)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return;
@@ -2726,7 +2726,7 @@ void transact_clear_raw_entry(file_data *file, int transaction)
  * \return			TRUE if the transaction is empty; FALSE if not.
  */
 
-static osbool transact_is_blank(file_data *file, int transaction)
+static osbool transact_is_blank(struct file_block *file, int transaction)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return FALSE;
@@ -2748,7 +2748,7 @@ static osbool transact_is_blank(file_data *file, int transaction)
  * \param *file			The file to be processed.
  */
 
-void transact_strip_blanks_from_end(file_data *file)
+void transact_strip_blanks_from_end(struct file_block *file)
 {
 	int	i, j;
 	osbool	found;
@@ -2801,7 +2801,7 @@ void transact_strip_blanks_from_end(file_data *file)
  * \return			The date of the transaction, or NULL_DATE.
  */
 
-date_t transact_get_date(file_data *file, int transaction)
+date_t transact_get_date(struct file_block *file, int transaction)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return NULL_DATE;
@@ -2818,7 +2818,7 @@ date_t transact_get_date(file_data *file, int transaction)
  * \return			The from account of the transaction, or NULL_ACCOUNT.
  */
 
-acct_t transact_get_from(file_data *file, int transaction)
+acct_t transact_get_from(struct file_block *file, int transaction)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return NULL_ACCOUNT;
@@ -2835,7 +2835,7 @@ acct_t transact_get_from(file_data *file, int transaction)
  * \return			The to account of the transaction, or NULL_ACCOUNT.
  */
 
-acct_t transact_get_to(file_data *file, int transaction)
+acct_t transact_get_to(struct file_block *file, int transaction)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return NULL_ACCOUNT;
@@ -2852,7 +2852,7 @@ acct_t transact_get_to(file_data *file, int transaction)
  * \return			The flags of the transaction, or TRANS_FLAGS_NONE.
  */
 
-enum transact_flags transact_get_flags(file_data *file, int transaction)
+enum transact_flags transact_get_flags(struct file_block *file, int transaction)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return TRANS_FLAGS_NONE;
@@ -2869,7 +2869,7 @@ enum transact_flags transact_get_flags(file_data *file, int transaction)
  * \return			The amount of the transaction, or NULL_CURRENCY.
  */
 
-amt_t transact_get_amount(file_data *file, int transaction)
+amt_t transact_get_amount(struct file_block *file, int transaction)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return NULL_CURRENCY;
@@ -2897,7 +2897,7 @@ amt_t transact_get_amount(file_data *file, int transaction)
  *				either the supplied buffer or the original.
  */
 
-char *transact_get_reference(file_data *file, int transaction, char *buffer, size_t length)
+char *transact_get_reference(struct file_block *file, int transaction, char *buffer, size_t length)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return NULL;
@@ -2931,7 +2931,7 @@ char *transact_get_reference(file_data *file, int transaction, char *buffer, siz
  *				either the supplied buffer or the original.
  */
 
-char *transact_get_description(file_data *file, int transaction, char *buffer, size_t length)
+char *transact_get_description(struct file_block *file, int transaction, char *buffer, size_t length)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return NULL;
@@ -2954,7 +2954,7 @@ char *transact_get_description(file_data *file, int transaction, char *buffer, s
  * \return			The sort workspace for the transaction, or 0.
  */
 
-int transact_get_sort_workspace(file_data *file, int transaction)
+int transact_get_sort_workspace(struct file_block *file, int transaction)
 {
 	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
 		return 0;
@@ -3011,7 +3011,7 @@ static osbool transact_process_sort_window(enum sort_type order, void *data)
  * \param *file			The file to sort.
  */
 
-void transact_sort(file_data *file)
+void transact_sort(struct file_block *file)
 {
 	wimp_caret	caret;
 	int		gap, comb, temp, order, edit_transaction;
@@ -3157,7 +3157,7 @@ void transact_sort(file_data *file)
  * \param *file			The file to be sorted.
  */
 
-void transact_sort_file_data(file_data *file)
+void transact_sort_file_data(struct file_block *file)
 {
 	int			i, gap, comb;
 	osbool			sorted;
@@ -3235,7 +3235,7 @@ void transact_sort_file_data(file_data *file)
  * Finding transactions
  */
 
-void find_next_reconcile_line (file_data *file, int set)
+void find_next_reconcile_line (struct file_block *file, int set)
 {
   int        line, found, account;
   wimp_caret caret;
@@ -3296,7 +3296,7 @@ void find_next_reconcile_line (file_data *file, int set)
 
 /* Find the first blank line at the end of the transaction window */
 
-int find_first_blank_line (file_data *file)
+int find_first_blank_line (struct file_block *file)
 {
   int line;
 
@@ -3329,7 +3329,7 @@ int find_first_blank_line (file_data *file)
  * \param restore		TRUE to restore the current settings; else FALSE.
  */
 
-static void transact_open_print_window(file_data *file, wimp_pointer *ptr, int clear)
+static void transact_open_print_window(struct file_block *file, wimp_pointer *ptr, int clear)
 {
 	transact_print_file = file;
 
@@ -3468,7 +3468,7 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
  * \param *out			The file handle to write to.
  */
 
-void transact_write_file(file_data *file, FILE *out)
+void transact_write_file(struct file_block *file, FILE *out)
 {
 	int	i;
 	char	buffer[MAX_FILE_LINE_LEN];
@@ -3506,7 +3506,7 @@ void transact_write_file(file_data *file, FILE *out)
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status transact_read_file(file_data *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data)
+enum config_read_status transact_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data)
 {
 	int	result, block_size, i = -1;
 
@@ -3687,7 +3687,7 @@ static osbool transact_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void transact_export_delimited(file_data *file, char *filename, enum filing_delimit_type format, int filetype)
+static void transact_export_delimited(struct file_block *file, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE	*out;
 	int	i, t;
@@ -3766,7 +3766,7 @@ static void transact_export_delimited(file_data *file, char *filename, enum fili
 
 static osbool transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
 {
-	file_data	*file = data;
+	struct file_block	*file = data;
 
 	if (filetype != CSV_FILE_TYPE || file == NULL)
 		return FALSE;
@@ -3787,7 +3787,7 @@ static osbool transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *fil
  *				NULL_TRANSACTION.
  */
 
-int transact_find_date(file_data *file, date_t target)
+int transact_find_date(struct file_block *file, date_t target)
 {
 	int		min, max, mid;
 
@@ -3843,7 +3843,7 @@ int transact_find_date(file_data *file, date_t target)
  *				TRANSACT_FIELD_NONE if no match found.
  */
 
-enum transact_field transact_search(file_data *file, int *line, osbool back, osbool case_sensitive, osbool logic_and,
+enum transact_field transact_search(struct file_block *file, int *line, osbool back, osbool case_sensitive, osbool logic_and,
 		date_t date, acct_t from, acct_t to, enum transact_flags flags, amt_t amount, char *ref, char *desc)
 {
 	enum transact_field	test = TRANSACT_FIELD_NONE, original = TRANSACT_FIELD_NONE;
@@ -3955,7 +3955,7 @@ enum transact_field transact_search(file_data *file, int *line, osbool back, osb
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-osbool transact_check_account(file_data *file, int account)
+osbool transact_check_account(struct file_block *file, int account)
 {
 	int		i;
 	osbool		found = FALSE;
@@ -3974,7 +3974,7 @@ osbool transact_check_account(file_data *file, int account)
  * \param *file			The file to display data for.
  */
 
-static void transact_prepare_fileinfo(file_data *file)
+static void transact_prepare_fileinfo(struct file_block *file)
 {
 	file_get_pathname(file, icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_FILENAME), 255);
 

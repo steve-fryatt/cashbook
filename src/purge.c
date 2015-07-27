@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -83,17 +83,16 @@
  */
 
 struct purge {
-	osbool		transactions;						/**< TRUE to remove reconciled transactions, subject to the before constraint; else FALSE.	*/
-	osbool		accounts;						/**< TRUE to remove unused accounts; else FALSE.						*/
-	osbool		headings;						/**< TRUE to remove unused headings; else FALSE.						*/
-	osbool		sorders;						/**< TRUE to remove completed standing orders; else FALSE.					*/
-
-	date_t		before;							/**< The date before which reconciled transactions should be removed; NULL_DATE for none.	*/
+	osbool			transactions;					/**< TRUE to remove reconciled transactions, subject to the before constraint; else FALSE.	*/
+	osbool			accounts;					/**< TRUE to remove unused accounts; else FALSE.						*/
+	osbool			headings;					/**< TRUE to remove unused headings; else FALSE.						*/
+	osbool			sorders;					/**< TRUE to remove completed standing orders; else FALSE.					*/
+	date_t			before;						/**< The date before which reconciled transactions should be removed; NULL_DATE for none.	*/
 };
 
-static file_data	*purge_window_file = NULL;				/**< The file which currently owns the Purge window.						*/
-static osbool		purge_window_restore = 0;				/**< The current restore setting for the Purge window.						*/
-static wimp_w		purge_window = NULL;					/**< The Purge window handle.									*/
+static struct file_block	*purge_window_file = NULL;			/**< The file which currently owns the Purge window.						*/
+static osbool			purge_window_restore = 0;			/**< The current restore setting for the Purge window.						*/
+static wimp_w			purge_window = NULL;				/**< The Purge window handle.									*/
 
 
 static void		purge_click_handler(wimp_pointer *pointer);
@@ -101,7 +100,7 @@ static osbool		purge_keypress_handler(wimp_key *key);
 static void		purge_refresh_window(void);
 static void		purge_fill_window(struct purge *cont_data, osbool restore);
 static osbool		purge_process_window(void);
-static void		purge_file(file_data *file, osbool transactions, date_t date, osbool accounts, osbool headings, osbool sorders);
+static void		purge_file(struct file_block *file, osbool transactions, date_t date, osbool accounts, osbool headings, osbool sorders);
 
 
 /**
@@ -165,7 +164,7 @@ void purge_delete(struct purge *purge)
  *			use the application defaults.
  */
 
-void purge_open_window(file_data *file, wimp_pointer *ptr, osbool restore)
+void purge_open_window(struct file_block *file, wimp_pointer *ptr, osbool restore)
 {
 	/* If the window is already open, close it to start with. */
 
@@ -327,7 +326,7 @@ static osbool purge_process_window(void)
  * \param *file			The file data block of interest.
  */
 
-void purge_force_window_closed(file_data *file)
+void purge_force_window_closed(struct file_block *file)
 {
 	if (purge_window_file == file && windows_get_open(purge_window))
 		close_dialogue_with_caret(purge_window);
@@ -349,7 +348,7 @@ void purge_force_window_closed(file_data *file)
  * \param sorders		TRUE to purge standing orders; FALSE to ignore.
  */
 
-static void purge_file(file_data *file, osbool transactions, date_t cutoff, osbool accounts, osbool headings, osbool sorders)
+static void purge_file(struct file_block *file, osbool transactions, date_t cutoff, osbool accounts, osbool headings, osbool sorders)
 {
 	int			i;
 	enum transact_flags	flags;

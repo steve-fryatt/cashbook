@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -183,8 +183,6 @@ struct balance_rep;
 struct accview_window;
 struct account_redraw;
 
-typedef struct file_data file_data;
-
 /* ==================================================================================================================
  * Window data structures
  */
@@ -192,7 +190,7 @@ typedef struct file_data file_data;
 /* Account window data struct */
 
 struct account_window {
-	file_data		*file;						/**< The file owning the block (for reverse lookup).		*/
+	struct file_block	*file;						/**< The file owning the block (for reverse lookup).		*/
 	int			entry;						/**< The array index of the block (for reverse lookup).		*/
 
 	/* Account window handle and title details. */
@@ -221,26 +219,26 @@ struct account_window {
 /* Transaction window data struct */
 
 struct transaction_window {
-	file_data	*file;							/**< The file to which the window belongs.			*/
+	struct file_block	*file;						/**< The file to which the window belongs.			*/
 
 	/* Transactcion window handle and title details. */
 
-	wimp_w		transaction_window;					/**< Window handle of the transaction window */
-	char		window_title[256];
-	wimp_w		transaction_pane;					/**< Window handle of the transaction window toolbar pane */
+	wimp_w			transaction_window;				/**< Window handle of the transaction window */
+	char			window_title[256];
+	wimp_w			transaction_pane;				/**< Window handle of the transaction window toolbar pane */
 
 	/* Display column details. */
 
-	int		column_width[TRANSACT_COLUMNS];				/**< Array holding the column widths in the transaction window. */
-	int		column_position[TRANSACT_COLUMNS];			/**< Array holding the column X-offsets in the transact window. */
+	int			column_width[TRANSACT_COLUMNS];			/**< Array holding the column widths in the transaction window. */
+	int			column_position[TRANSACT_COLUMNS];		/**< Array holding the column X-offsets in the transact window. */
 
 	/* Other window information. */
 
-	int		display_lines;						/**< How many lines the current work area is formatted to display. */
-	int		entry_line;						/**< The line currently marked for data entry, in terms of window lines. */
-	enum sort_type	sort_order;						/**< The order in which the window is sorted. */
+	int			display_lines;					/**< How many lines the current work area is formatted to display. */
+	int			entry_line;					/**< The line currently marked for data entry, in terms of window lines. */
+	enum sort_type		sort_order;					/**< The order in which the window is sorted. */
 
-	char		sort_sprite[12];					/**< Space for the sort icon's indirected data. */
+	char			sort_sprite[12];				/**< Space for the sort icon's indirected data. */
 };
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -248,24 +246,24 @@ struct transaction_window {
 /* Standing order window data struct */
 
 struct sorder_window {
-	file_data	*file;							/**< The file to which the window belongs.			*/
+	struct file_block	*file;						/**< The file to which the window belongs.			*/
 
 	/* Transactcion window handle and title details. */
 
-	wimp_w		sorder_window;						/**< Window handle of the standing order window.		*/
-	char		window_title[256];
-	wimp_w		sorder_pane;						/**< Window handle of the standing order window toolbar pane.	*/
+	wimp_w			sorder_window;					/**< Window handle of the standing order window.		*/
+	char			window_title[256];
+	wimp_w			sorder_pane;					/**< Window handle of the standing order window toolbar pane.	*/
 
 	/* Display column details. */
 
-	int		column_width[SORDER_COLUMNS];				/**< Array holding the column widths in the transaction window.	*/
-	int		column_position[SORDER_COLUMNS];			/**< Array holding the column X-offsets in the transact window.	*/
+	int			column_width[SORDER_COLUMNS];			/**< Array holding the column widths in the transaction window.	*/
+	int			column_position[SORDER_COLUMNS];		/**< Array holding the column X-offsets in the transact window.	*/
 
 	/* Other window details. */
 
-	enum sort_type	sort_order;						/**< The order in which the window is sorted.			*/
+	enum sort_type		sort_order;					/**< The order in which the window is sorted.			*/
 
-	char		sort_sprite[12];					/**< Space for the sort icon's indirected data.			*/
+	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.			*/
 };
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -273,24 +271,24 @@ struct sorder_window {
 /* Preset window data struct */
 
 struct preset_window {
-	file_data	*file;							/**< The file to which the window belongs.			*/
+	struct file_block	*file;						/**< The file to which the window belongs.			*/
 
 	/* Preset window handle and title details. */
 
-	wimp_w		preset_window;						/**< Window handle of the preset window.			*/
-	char		window_title[256];
-	wimp_w		preset_pane;						/**< Window handle of the preset window toolbar pane.		*/
+	wimp_w			preset_window;					/**< Window handle of the preset window.			*/
+	char			window_title[256];
+	wimp_w			preset_pane;					/**< Window handle of the preset window toolbar pane.		*/
 
 	/* Display column details. */
 
-	int		column_width[PRESET_COLUMNS];				/**< Array holding the column widths in the transaction window.	*/
-	int		column_position[PRESET_COLUMNS];			/**< Array holding the column X-offsets in the transact window.	*/
+	int			column_width[PRESET_COLUMNS];			/**< Array holding the column widths in the transaction window.	*/
+	int			column_position[PRESET_COLUMNS];		/**< Array holding the column X-offsets in the transact window.	*/
 
 	/* Other window details. */
 
-	enum sort_type	sort_order;						/**< The order in which the window is sorted.			*/
+	enum sort_type		sort_order;					/**< The order in which the window is sorted.			*/
 
-	char		sort_sprite[12];					/**< Space for the sort icon's indirected data.			*/
+	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.			*/
 };
 
 /* ==================================================================================================================
@@ -299,7 +297,7 @@ struct preset_window {
 
 /* File data struct. */
 
-struct file_data
+struct file_block
 {
 	/* File location */
 
@@ -378,7 +376,7 @@ struct file_data
 
 	/* Pointer to the next file in the list. */
 
-	struct file_data		*next;
+	struct file_block		*next;
 };
 
 #endif

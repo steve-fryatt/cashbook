@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -63,7 +63,7 @@ extern wimp_window *edit_transact_window_def;
  * \param line		The line to place the edit line at.
  */
 
-void edit_place_new_line(file_data *file, int line);
+void edit_place_new_line(struct file_block *file, int line);
 
 
 /**
@@ -73,7 +73,7 @@ void edit_place_new_line(file_data *file, int line);
  * \param transaction	The transaction to place the line on.
  */
 
-void edit_place_new_line_by_transaction(file_data *file, int transaction);
+void edit_place_new_line_by_transaction(struct file_block *file, int transaction);
 
 
 /**
@@ -86,7 +86,7 @@ void edit_place_new_line_by_transaction(file_data *file, int transaction);
  * \param *file		The file to be deleted.
  */
 
-void edit_file_deleted(file_data *file);
+void edit_file_deleted(struct file_block *file);
 
 
 /**
@@ -95,7 +95,7 @@ void edit_file_deleted(file_data *file);
  * \param *file		The file that we're interested in working on
  */
 
-void edit_find_line_vertically(file_data *file);
+void edit_find_line_vertically(struct file_block *file);
 
 
 /**
@@ -122,7 +122,7 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid);
  *			line isn't in the specified file.
  */
 
-int edit_get_line_transaction(file_data *file);
+int edit_get_line_transaction(struct file_block *file);
 
 
 /**
@@ -133,7 +133,7 @@ int edit_get_line_transaction(file_data *file);
  * \param change_flag	Indicate which reconciled flags to change.
  */
 
-void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, enum transact_flags change_flag);
+void edit_toggle_transaction_reconcile_flag(struct file_block *file, int transaction, enum transact_flags change_flag);
 
 
 /**
@@ -144,7 +144,7 @@ void edit_toggle_transaction_reconcile_flag(file_data *file, int transaction, en
  * \param new_date	The new date to set the transaction to.
  */
 
-void edit_change_transaction_date(file_data *file, int transaction, date_t new_date);
+void edit_change_transaction_date(struct file_block *file, int transaction, date_t new_date);
 
 
 /**
@@ -156,7 +156,7 @@ void edit_change_transaction_date(file_data *file, int transaction, date_t new_d
  * \param new_text	The new text to set the field to.
  */
 
-void edit_change_transaction_refdesc(file_data *file, int transaction, wimp_i target, char *new_text);
+void edit_change_transaction_refdesc(struct file_block *file, int transaction, wimp_i target, char *new_text);
 
 
 /**
@@ -168,7 +168,7 @@ void edit_change_transaction_refdesc(file_data *file, int transaction, wimp_i ta
  * \param new_account	The new account to set the field to.
  */
 
-void edit_change_transaction_account(file_data *file, int transaction, wimp_i target, acct_t new_account);
+void edit_change_transaction_account(struct file_block *file, int transaction, wimp_i target, acct_t new_account);
 
 
 /**
@@ -180,7 +180,7 @@ void edit_change_transaction_account(file_data *file, int transaction, wimp_i ta
  * \param preset	The preset to insert into the transaction.
  */
 
-void edit_insert_preset_into_transaction(file_data *file, int transaction, int preset);
+void edit_insert_preset_into_transaction(struct file_block *file, int transaction, int preset);
 
 
 /**
@@ -192,7 +192,7 @@ void edit_insert_preset_into_transaction(file_data *file, int transaction, int p
  * \return		TRUE if the key was handled; FALSE if not.
  */
 
-osbool edit_process_keypress(file_data *file, wimp_key *key);
+osbool edit_process_keypress(struct file_block *file, wimp_key *key);
 
 #endif
 

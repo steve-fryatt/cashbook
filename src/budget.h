@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -65,7 +65,7 @@ void budget_delete(struct budget *budget);
  * \param *ptr		The current Wimp Pointer details.
  */
 
-void budget_open_window(file_data *file, wimp_pointer *ptr);
+void budget_open_window(struct file_block *file, wimp_pointer *ptr);
 
 
 /**
@@ -75,7 +75,7 @@ void budget_open_window(file_data *file, wimp_pointer *ptr);
  * \param *file			The file data block of interest.
  */
 
-void budget_force_window_closed(file_data *file);
+void budget_force_window_closed(struct file_block *file);
 
 
 /**
@@ -88,7 +88,7 @@ void budget_force_window_closed(file_data *file);
  *				or NULL to not return it.
  */
 
-void budget_get_dates(file_data *file, date_t *start, date_t *finish);
+void budget_get_dates(struct file_block *file, date_t *start, date_t *finish);
 
 
 /**
@@ -98,7 +98,7 @@ void budget_get_dates(file_data *file, date_t *start, date_t *finish);
  * \return			The trial period, in days (or 0 on error).
  */
 
-int budget_get_sorder_trial(file_data *file);
+int budget_get_sorder_trial(struct file_block *file);
 
 
 /**
@@ -111,7 +111,7 @@ int budget_get_sorder_trial(file_data *file);
  *				standing order trial period; FALSE to include all.
  */
 
-osbool budget_get_limit_postdated(file_data *file);
+osbool budget_get_limit_postdated(struct file_block *file);
 
 
 /**
@@ -121,7 +121,7 @@ osbool budget_get_limit_postdated(file_data *file);
  * \param *out			The file handle to write to.
  */
 
-void budget_write_file(file_data *file, FILE *out);
+void budget_write_file(struct file_block *file, FILE *out);
 
 
 /**
@@ -135,7 +135,7 @@ void budget_write_file(file_data *file, FILE *out);
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status budget_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+enum config_read_status budget_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
 
 #endif
 

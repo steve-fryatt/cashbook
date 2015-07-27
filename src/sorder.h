@@ -1,4 +1,4 @@
-/* Copyright 2003-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -48,7 +48,7 @@ void sorder_initialise(osspriteop_area *sprites);
  * \param *file			The file to open a window for.
  */
 
-void sorder_open_window(file_data *file);
+void sorder_open_window(struct file_block *file);
 
 
 /**
@@ -68,7 +68,7 @@ void sorder_delete_window(struct sorder_window *windat);
  * \param *file			The file to rebuild the title for.
  */
 
-void sorder_build_window_title(file_data *file);
+void sorder_build_window_title(struct file_block *file);
 
 
 /**
@@ -80,7 +80,7 @@ void sorder_build_window_title(file_data *file);
  * \param to			The last line to redraw, inclusive.
  */
 
-void sorder_force_window_redraw(file_data *file, int from, int to);
+void sorder_force_window_redraw(struct file_block *file, int from, int to);
 
 
 /**
@@ -91,7 +91,7 @@ void sorder_force_window_redraw(file_data *file, int from, int to);
  * \param *ptr			The current Wimp pointer position.
  */
 
-void sorder_open_edit_window(file_data *file, int sorder, wimp_pointer *ptr);
+void sorder_open_edit_window(struct file_block *file, int sorder, wimp_pointer *ptr);
 
 
 /**
@@ -100,7 +100,7 @@ void sorder_open_edit_window(file_data *file, int sorder, wimp_pointer *ptr);
  * \param *file			The file to sort.
  */
 
-void sorder_sort(file_data *file);
+void sorder_sort(struct file_block *file);
 
 
 /**
@@ -109,7 +109,7 @@ void sorder_sort(file_data *file);
  * \param *file			The file to purge.
  */
 
-void sorder_purge(file_data *file);
+void sorder_purge(struct file_block *file);
 
 
 /**
@@ -119,7 +119,7 @@ void sorder_purge(file_data *file);
  * \param *file			The file to process.
  */
 
-void sorder_process(file_data *file);
+void sorder_process(struct file_block *file);
 
 
 /**
@@ -129,7 +129,7 @@ void sorder_process(file_data *file);
  * \param *file			The file to scan.
  */
 
-void sorder_trial(file_data *file);
+void sorder_trial(struct file_block *file);
 
 
 /**
@@ -138,7 +138,7 @@ void sorder_trial(file_data *file);
  * \param *file			The file to report on.
  */
 
-void sorder_full_report(file_data *file);
+void sorder_full_report(struct file_block *file);
 
 
 /**
@@ -148,7 +148,7 @@ void sorder_full_report(file_data *file);
  * \param *f			The file handle to write to.
  */
 
-void sorder_write_file(file_data *file, FILE *f);
+void sorder_write_file(struct file_block *file, FILE *f);
 
 
 /**
@@ -162,7 +162,7 @@ void sorder_write_file(file_data *file, FILE *f);
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status sorder_read_file(file_data *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
 
 
 /**
@@ -174,7 +174,7 @@ enum config_read_status sorder_read_file(file_data *file, FILE *in, char *sectio
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-osbool sorder_check_account(file_data *file, int account);
+osbool sorder_check_account(struct file_block *file, int account);
 
 #endif
 

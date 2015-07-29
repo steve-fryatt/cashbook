@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_GOTO
 #define CASHBOOK_GOTO
 
+#include "file.h"
+
 /**
  * Initialise the Goto module.
  */

@@ -50,6 +50,8 @@
 
 /* Application header files */
 
+#include "goto.h"
+
 #include "caret.h"
 #include "date.h"
 #include "edit.h"
@@ -57,8 +59,6 @@
 #include "ihelp.h"
 #include "templates.h"
 #include "transact.h"
-
-#include "goto.h"
 
 
 #define GOTO_ICON_OK 0
@@ -91,6 +91,7 @@ static osbool			goto_restore = FALSE;				/**< The restore setting for the curren
 static wimp_w			goto_window = NULL;				/**< The Goto dialogue handle.				*/
 
 
+static void		goto_close_window(void);
 static void		goto_click_handler(wimp_pointer *pointer);
 static osbool		goto_keypress_handler(wimp_key *key);
 static void		goto_refresh_window(void);
@@ -148,7 +149,7 @@ struct goto_block *goto_create(struct file_block *file)
 void goto_delete(struct goto_block *windat)
 {
 	if (goto_window_owner == windat && windows_get_open(goto_window))
-		close_dialogue_with_caret(goto_window);
+		goto_close_window();
 
 
 	if (windat != NULL)
@@ -190,6 +191,16 @@ void goto_open_window(struct goto_block *windat, wimp_pointer *ptr, osbool resto
 
 
 /**
+ * Close the Goto dialogue, and deregister it from its client.
+ */
+
+static void goto_close_window(void)
+{
+	close_dialogue_with_caret(goto_window);
+	goto_window_owner = NULL;
+}
+
+/**
  * Process mouse clicks in the Goto dialogue.
  *
  * \param *pointer		The mouse event block to handle.
@@ -200,14 +211,14 @@ static void goto_click_handler(wimp_pointer *pointer)
 	switch (pointer->i) {
 	case GOTO_ICON_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(goto_window);
+			goto_close_window();
 		else if (pointer->buttons == wimp_CLICK_ADJUST)
 			goto_refresh_window();
 		break;
 
 	case GOTO_ICON_OK:
 		if (goto_process_window() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(goto_window);
+			goto_close_window();
 		break;
 	}
 }
@@ -225,11 +236,11 @@ static osbool goto_keypress_handler(wimp_key *key)
 	switch (key->c) {
 	case wimp_KEY_RETURN:
 		if (goto_process_window())
-			close_dialogue_with_caret(goto_window);
+			goto_close_window();
 		break;
 
 	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(goto_window);
+		goto_close_window();
 		break;
 
 	default:

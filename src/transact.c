@@ -787,7 +787,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_FIND:
-			find_open_window(file, pointer, config_opt_read("RememberValues"));
+			find_open_window(file->find, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case TRANSACT_PANE_GOTO:
@@ -829,7 +829,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_FIND:
-			find_open_window(file, pointer, !config_opt_read("RememberValues"));
+			find_open_window(file->find, pointer, !config_opt_read("RememberValues"));
 			break;
 
 		case TRANSACT_PANE_GOTO:
@@ -969,7 +969,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 		transact_start_direct_save(windat);
 	} else if (key->c == wimp_KEY_F4) {
 		wimp_get_pointer_info(&pointer);
-		find_open_window(file, &pointer, config_opt_read("RememberValues"));
+		find_open_window(file->find, &pointer, config_opt_read("RememberValues"));
 	} else if (key->c == wimp_KEY_F5) {
 		wimp_get_pointer_info(&pointer);
 		goto_open_window(file->go_to, &pointer, config_opt_read("RememberValues"));
@@ -1173,7 +1173,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 	case MAIN_MENU_SUB_TRANS:
 		switch (selection->items[1]) {
 		case MAIN_MENU_TRANS_FIND:
-			find_open_window(windat->file, &pointer, config_opt_read("RememberValues"));
+			find_open_window(windat->file->find, &pointer, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_TRANS_GOTO:
@@ -2229,6 +2229,17 @@ int transact_get_count(struct file_block *file)
 }
 
 
+/**
+ * Find the display line number of the current transaction entry line.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The display line number of the line with the caret.
+ */
+
+int transact_get_caret_line(struct file_block *file)
+{
+	return (file != NULL) ? file->transaction_window.entry_line : 0;
+}
 
 
 

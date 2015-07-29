@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_FIND
 #define CASHBOOK_FIND
 
+#include "file.h"
+
 /**
  * Initialise the Find module.
  */
@@ -42,10 +44,11 @@ void find_initialise(void);
  * resulting block. The block will be allocated with heap_alloc(), and should
  * be freed after use with heap_free().
  *
+ * \param *file		The file to which this instance belongs.
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct find *find_create(void);
+struct find_block *find_create(struct file_block *file);
 
 
 /**
@@ -54,29 +57,19 @@ struct find *find_create(void);
  * \param *find		Pointer to the find window data to delete.
  */
 
-void find_delete(struct find *find);
+void find_delete(struct find_block *find);
 
 
 /**
  * Open the Find dialogue box.
  *
- * \param *file		The file owning the dialogue.
+ * \param *windat	The Find instance to own the dialogue.
  * \param *ptr		The current Wimp Pointer details.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  */
 
-void find_open_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
-
-
-/**
- * Force the closure of the Find and Results windows if it is open and relates
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void find_force_windows_closed(struct file_block *file);
+void find_open_window(struct find_block *windat, wimp_pointer *ptr, osbool restore);
 
 #endif
 

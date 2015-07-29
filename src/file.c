@@ -172,7 +172,7 @@ struct file_block *build_new_file_block(void)
 
 	/* Set up the find data. */
 
-	new->find = find_create();
+	new->find = find_create(new);
 	if (new->find == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
@@ -465,7 +465,6 @@ void delete_file(struct file_block *file)
 	/* Do the same for any file-related dialogues that are open. */
 
 	account_force_windows_closed(file);
-	find_force_windows_closed(file);
 	budget_force_window_closed(file);
 	report_force_windows_closed(file);
 	printing_force_windows_closed(file);

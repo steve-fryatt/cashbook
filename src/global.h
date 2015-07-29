@@ -171,7 +171,7 @@ struct sorder;
 struct preset;
 struct report;
 struct budget;
-struct find;
+struct find_block;
 struct goto_block;
 struct printing;
 struct purge;
@@ -363,7 +363,7 @@ struct file_block
 	/* Dialogue Content. */
 
 	struct goto_block		*go_to;					/**< Data relating to the goto module.				*/
-	struct find			*find;					/**< Data relating to the find module.				*/
+	struct find_block		*find;					/**< Data relating to the find module.				*/
 	struct printing			*print;					/**< Data relating to the print dialogues.			*/
 	struct purge			*purge;					/**< Data relating to the purge module.				*/
 

@@ -238,6 +238,16 @@ int transact_get_transaction_from_line(struct file_block *file, int line);
 int transact_get_count(struct file_block *file);
 
 
+/**
+ * Find the display line number of the current transaction entry line.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The display line number of the line with the caret.
+ */
+
+int transact_get_caret_line(struct file_block *file);
+
+
 
 
 

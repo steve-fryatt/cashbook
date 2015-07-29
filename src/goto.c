@@ -151,7 +151,6 @@ void goto_delete(struct goto_block *windat)
 	if (goto_window_owner == windat && windows_get_open(goto_window))
 		goto_close_window();
 
-
 	if (windat != NULL)
 		heap_free(windat);
 }

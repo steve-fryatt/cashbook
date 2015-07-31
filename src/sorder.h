@@ -43,22 +43,31 @@ void sorder_initialise(osspriteop_area *sprites);
 
 
 /**
+ * Create a new Standing Order window instance.
+ *
+ * \param *file			The file to attach the instance to.
+ * \return			The instance handle, or NULL on failure.
+ */
+
+struct sorder_window *sorder_create_instance(struct file_block *file);
+
+
+/**
+ * Delete a Standing Order instance, and all of its data.
+ *
+ * \param *windat		The instance to be deleted.
+ */
+
+void sorder_delete_instance(struct sorder_window *windat);
+
+
+/**
  * Create and open a Standing Order List window for the given file.
  *
  * \param *file			The file to open a window for.
  */
 
 void sorder_open_window(struct file_block *file);
-
-
-/**
- * Close and delete the Standing order List Window associated with the given
- * file block.
- *
- * \param *windat		The window to delete.
- */
-
-void sorder_delete_window(struct sorder_window *windat);
 
 
 /**

@@ -148,6 +148,9 @@ struct file_block *build_new_file_block(void)
 	new->presets = NULL;
 	new->saved_reports = NULL;
 
+	new->sorder_window = NULL;
+	new->preset_window = NULL;
+
 	new->budget = NULL;
 	new->find = NULL;
 	new->go_to = NULL;
@@ -305,19 +308,14 @@ struct file_block *build_new_file_block(void)
 
   new->accview_sort_order = SORT_DATE | SORT_ASCENDING;
 
-  /* Initialise the standing order window. */
+	/* Set up the standing order window. */
 
-  new->sorder_window.file = new;
-
-  new->sorder_window.sorder_window = NULL;
-  new->sorder_window.sorder_pane = NULL;
-
-	column_init_window(new->sorder_window.column_width, new->sorder_window.column_position,
-			SORDER_COLUMNS, 0, FALSE, config_str_read("SOrderCols"));
-
-  new->sorder_window.sort_order = SORT_NEXTDATE | SORT_DESCENDING;
-
-
+	new->sorder_window = sorder_create_instance(new);
+	if (new->sorder_window == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
 
 	/* Set up the preset window. */
 
@@ -425,7 +423,9 @@ void delete_file(struct file_block *file)
 	/* Delete the windows. */
 
 	transact_delete_window(&(file->transaction_window));
-	sorder_delete_window(&(file->sorder_window));
+
+	if (file->sorder_window != NULL)
+		sorder_delete_instance(file->sorder_window);
 
 	if (file->preset_window != NULL)
 		preset_delete_instance(file->preset_window);

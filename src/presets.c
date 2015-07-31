@@ -160,6 +160,13 @@
 #define PRESET_PANE_COL_MAP "0;1;2,3,4;5,6,7;8;9"
 #define PRESET_PANE_SORT_DIR_ICON 10
 
+/* Preset window details. */
+
+#define PRESET_COLUMNS 10
+#define PRESET_TOOLBAR_HEIGHT 132
+#define MIN_PRESET_ENTRIES 10
+#define PRESET_NAME_LEN 32
+
 
 /**
  * Preset Entry data structure -- implementation.
@@ -589,15 +596,12 @@ static void preset_close_window_handler(wimp_close *close)
 static void preset_window_click_handler(wimp_pointer *pointer)
 {
 	struct preset_window	*windat;
-	struct file_block	*file;
 	int			line;
 	wimp_window_state	window;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->file == NULL)
 		return;
-
-	file = windat->file;
 
 	/* Find the window type and get the line clicked on. */
 
@@ -606,13 +610,13 @@ static void preset_window_click_handler(wimp_pointer *pointer)
 
 	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-	if (line < 0 || line >= file->preset_count)
+	if (line < 0 || line >= windat->file->preset_count)
 		line = -1;
 
 	/* Handle double-clicks, which will open an edit preset window. */
 
 	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
-		preset_open_edit_window(file, file->presets[line].sort_index, pointer);
+		preset_open_edit_window(windat->file, windat->file->presets[line].sort_index, pointer);
 }
 
 

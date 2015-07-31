@@ -60,8 +60,6 @@
 
 #define ACCOUNT_ADDR_LINES 4
 
-#define PRESET_NAME_LEN 32
-
 /* The Description field below must be longer than the Refererence.*/
 
 #define REC_FIELD_LEN 2
@@ -109,21 +107,6 @@
 #define ACCVIEW_TOOLBAR_HEIGHT 132
 #define MIN_ACCVIEW_ENTRIES 10
 
-/* Standing order window details. */
-
-#define SORDER_COLUMNS 10
-
-#define SORDER_TOOLBAR_HEIGHT 132
-
-#define MIN_SORDER_ENTRIES 10
-
-/* Preset window details. */
-
-#define PRESET_COLUMNS 10
-
-#define PRESET_TOOLBAR_HEIGHT 132
-
-#define MIN_PRESET_ENTRIES 10
 
 /* Account types (bitwise allocation, to allow oring of values) */
 
@@ -168,6 +151,7 @@ typedef int		tran_t;							/**< A transaction number.					*/
 struct transact;
 struct account;
 struct sorder;
+struct sorder_window;
 struct preset;
 struct preset_window;
 struct report;
@@ -242,30 +226,6 @@ struct transaction_window {
 	char			sort_sprite[12];				/**< Space for the sort icon's indirected data. */
 };
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Standing order window data struct */
-
-struct sorder_window {
-	struct file_block	*file;						/**< The file to which the window belongs.			*/
-
-	/* Transactcion window handle and title details. */
-
-	wimp_w			sorder_window;					/**< Window handle of the standing order window.		*/
-	char			window_title[256];
-	wimp_w			sorder_pane;					/**< Window handle of the standing order window toolbar pane.	*/
-
-	/* Display column details. */
-
-	int			column_width[SORDER_COLUMNS];			/**< Array holding the column widths in the transaction window.	*/
-	int			column_position[SORDER_COLUMNS];		/**< Array holding the column X-offsets in the transact window.	*/
-
-	/* Other window details. */
-
-	enum sort_type		sort_order;					/**< The order in which the window is sorted.			*/
-
-	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.			*/
-};
 
 
 /* ==================================================================================================================
@@ -285,8 +245,8 @@ struct file_block
 
 	struct transaction_window	transaction_window;			/**< Structure holding transaction window information.		*/
 	struct account_window		account_windows[ACCOUNT_WINDOWS];	/**< Array holding account window information.			*/
-	struct sorder_window		sorder_window;				/**< Structure holding standing order window information.	*/
-	struct preset_window		*preset_window;				/**< Structure holding preset window information.		*/
+	struct sorder_window		*sorder_window;				/**< Data relating to the standing order module.		*/
+	struct preset_window		*preset_window;				/**< Data relating to the preset module.			*/
 
   /* Default display details for the accview windows. */
 

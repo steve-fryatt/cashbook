@@ -317,17 +317,16 @@ struct file_block *build_new_file_block(void)
 
   new->sorder_window.sort_order = SORT_NEXTDATE | SORT_DESCENDING;
 
-  /* Initialise the preset window. */
 
-  new->preset_window.file = new;
 
-  new->preset_window.preset_window = NULL;
-  new->preset_window.preset_pane = NULL;
+	/* Set up the preset window. */
 
-	column_init_window(new->preset_window.column_width, new->preset_window.column_position,
-			PRESET_COLUMNS, 0, FALSE, config_str_read("PresetCols"));
-
-  new->preset_window.sort_order = SORT_CHAR | SORT_ASCENDING;
+	new->preset_window = preset_create_instance(new);
+	if (new->preset_window == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
 
   /* Set the filename and save status. */
 
@@ -427,7 +426,9 @@ void delete_file(struct file_block *file)
 
 	transact_delete_window(&(file->transaction_window));
 	sorder_delete_window(&(file->sorder_window));
-	preset_delete_window(&(file->preset_window));
+
+	if (file->preset_window != NULL)
+		preset_delete_instance(file->preset_window);
 
 	/* Step through the account list windows. */
 

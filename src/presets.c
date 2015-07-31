@@ -162,7 +162,7 @@
 
 
 /**
- * Preset data structure -- implementation.
+ * Preset Entry data structure -- implementation.
  */
 
 struct preset {
@@ -187,6 +187,31 @@ struct preset {
 	 */
 
 	int		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
+};
+
+/**
+ * Preset Instance data structure -- implementation.
+ */
+
+struct preset_window {
+	struct file_block	*file;						/**< The file to which the window belongs.			*/
+
+	/* Preset window handle and title details. */
+
+	wimp_w			preset_window;					/**< Window handle of the preset window.			*/
+	char			window_title[256];
+	wimp_w			preset_pane;					/**< Window handle of the preset window toolbar pane.		*/
+
+	/* Display column details. */
+
+	int			column_width[PRESET_COLUMNS];			/**< Array holding the column widths in the transaction window.	*/
+	int			column_position[PRESET_COLUMNS];		/**< Array holding the column X-offsets in the transact window.	*/
+
+	/* Other window details. */
+
+	enum sort_type		sort_order;					/**< The order in which the window is sorted.			*/
+
+	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.			*/
 };
 
 struct preset_complete_link
@@ -245,6 +270,7 @@ static char				*preset_complete_menu_title = NULL;	/**< The menu title buffer.		
 static struct saveas_block	*preset_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
 static struct saveas_block	*preset_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
+static void		preset_delete_window(struct preset_window *windat);
 static void		preset_close_window_handler(wimp_close *close);
 static void		preset_window_click_handler(wimp_pointer *pointer);
 static void		preset_pane_click_handler(wimp_pointer *pointer);
@@ -256,8 +282,8 @@ static void		preset_window_scroll_handler(wimp_scroll *scroll);
 static void		preset_window_redraw_handler(wimp_draw *redraw);
 static void		preset_adjust_window_columns(void *data, wimp_i icon, int width);
 static void		preset_adjust_sort_icon(struct file_block *file);
-static void		preset_adjust_sort_icon_data(struct file_block *file, wimp_icon *icon);
-static void		preset_set_window_extent(struct file_block *file);
+static void		preset_adjust_sort_icon_data(struct preset_window *windat, wimp_icon *icon);
+static void		preset_set_window_extent(struct preset_window *windat);
 static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void		preset_edit_click_handler(wimp_pointer *pointer);
@@ -278,7 +304,7 @@ static osbool		preset_delete(struct file_block *file, int preset);
 
 static osbool		preset_save_csv(char *filename, osbool selection, void *data);
 static osbool		preset_save_tsv(char *filename, osbool selection, void *data);
-static void		preset_export_delimited(struct file_block *file, char *filename, enum filing_delimit_type format, int filetype);
+static void		preset_export_delimited(struct preset_window *windat, char *filename, enum filing_delimit_type format, int filetype);
 
 
 
@@ -323,6 +349,54 @@ void preset_initialise(osspriteop_area *sprites)
 
 
 /**
+ * Create a new Preset window instance.
+ *
+ * \param *file			The file to attach the instance to.
+ * \return			The instance handle, or NULL on failure.
+ */
+
+struct preset_window *preset_create_instance(struct file_block *file)
+{
+	struct preset_window	*new;
+
+	new = heap_alloc(sizeof(struct preset_window));
+	if (new == NULL)
+		return NULL;
+
+	/* Initialise the preset window. */
+
+	new->file = file;
+
+	new->preset_window = NULL;
+	new->preset_pane = NULL;
+
+	column_init_window(new->column_width, new->column_position, PRESET_COLUMNS, 0, FALSE,
+			config_str_read("PresetCols"));
+
+	new->sort_order = SORT_CHAR | SORT_ASCENDING;
+
+	return new;
+}
+
+
+/**
+ * Delete a preset instance, and all of its data.
+ *
+ * \param *windat		The instance to be deleted.
+ */
+
+void preset_delete_instance(struct preset_window *windat)
+{
+	if (windat == NULL)
+		return;
+
+	preset_delete_window(windat);
+
+	heap_free(windat);
+}
+
+
+/**
  * Create and open a Preset List window for the given file.
  *
  * \param *file			The file to open a window for.
@@ -336,10 +410,10 @@ void preset_open_window(struct file_block *file)
 
 	/* Create or re-open the window. */
 
-	if (file->preset_window.preset_window != NULL) {
+	if (file->preset_window->preset_window != NULL) {
 		/* The window is open, so just bring it forward. */
 
-		windows_open(file->preset_window.preset_window);
+		windows_open(file->preset_window->preset_window);
 		return;
 	}
 
@@ -349,8 +423,8 @@ void preset_open_window(struct file_block *file)
 
 	/* Create the new window data and build the window. */
 
-	*(file->preset_window.window_title) = '\0';
-	preset_window_def->title_data.indirected_text.text = file->preset_window.window_title;
+	*(file->preset_window->window_title) = '\0';
+	preset_window_def->title_data.indirected_text.text = file->preset_window->window_title;
 
 	height = (file->preset_count > MIN_PRESET_ENTRIES) ? file->preset_count : MIN_PRESET_ENTRIES;
 
@@ -358,8 +432,8 @@ void preset_open_window(struct file_block *file)
 	wimp_get_window_state(&parent);
 
 	set_initial_window_area(preset_window_def,
-			file->preset_window.column_position[PRESET_COLUMNS-1] +
-			file->preset_window.column_width[PRESET_COLUMNS-1],
+			file->preset_window->column_position[PRESET_COLUMNS-1] +
+			file->preset_window->column_width[PRESET_COLUMNS-1],
 			((ICON_HEIGHT+LINE_GUTTER) * height) + PRESET_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
@@ -368,7 +442,7 @@ void preset_open_window(struct file_block *file)
 	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
 		file->child_x_offset = 0;
 
-	error = xwimp_create_window(preset_window_def, &(file->preset_window.preset_window));
+	error = xwimp_create_window(preset_window_def, &(file->preset_window->preset_window));
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
@@ -383,27 +457,27 @@ void preset_open_window(struct file_block *file)
 	#endif
 
 	for (i=0, j=0; j < PRESET_COLUMNS; i++, j++) {
-		preset_pane_def->icons[i].extent.x0 = file->preset_window.column_position[j];
+		preset_pane_def->icons[i].extent.x0 = file->preset_window->column_position[j];
 
 		j = column_get_rightmost_in_group(PRESET_PANE_COL_MAP, i);
 
-		preset_pane_def->icons[i].extent.x1 = file->preset_window.column_position[j] +
-				file->preset_window.column_width[j] +
+		preset_pane_def->icons[i].extent.x1 = file->preset_window->column_position[j] +
+				file->preset_window->column_width[j] +
 				COLUMN_HEADING_MARGIN;
 	}
 
 	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
-			(osspriteop_id) file->preset_window.sort_sprite;
+			(osspriteop_id) file->preset_window->sort_sprite;
 	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
 			preset_pane_def->sprite_area;
 
-	preset_adjust_sort_icon_data(file, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
+	preset_adjust_sort_icon_data(file->preset_window, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
 
 	#ifdef DEBUG
 	debug_printf ("Toolbar icons adjusted...");
 	#endif
 
-	error = xwimp_create_window(preset_pane_def, &(file->preset_window.preset_pane));
+	error = xwimp_create_window(preset_pane_def, &(file->preset_window->preset_pane));
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
@@ -415,33 +489,33 @@ void preset_open_window(struct file_block *file)
 
 	/* Open the window. */
 
-	ihelp_add_window(file->preset_window.preset_window , "Preset", preset_decode_window_help);
-	ihelp_add_window(file->preset_window.preset_pane , "PresetTB", NULL);
+	ihelp_add_window(file->preset_window->preset_window , "Preset", preset_decode_window_help);
+	ihelp_add_window(file->preset_window->preset_pane , "PresetTB", NULL);
 
-	windows_open(file->preset_window.preset_window);
-	windows_open_nested_as_toolbar(file->preset_window.preset_pane,
-			file->preset_window.preset_window, PRESET_TOOLBAR_HEIGHT-4);
+	windows_open(file->preset_window->preset_window);
+	windows_open_nested_as_toolbar(file->preset_window->preset_pane,
+			file->preset_window->preset_window, PRESET_TOOLBAR_HEIGHT-4);
 
 	/* Register event handlers for the two windows. */
 
-	event_add_window_user_data(file->preset_window.preset_window, &(file->preset_window));
-	event_add_window_menu(file->preset_window.preset_window, preset_window_menu);
-	event_add_window_close_event(file->preset_window.preset_window, preset_close_window_handler);
-	event_add_window_mouse_event(file->preset_window.preset_window, preset_window_click_handler);
-	event_add_window_scroll_event(file->preset_window.preset_window, preset_window_scroll_handler);
-	event_add_window_redraw_event(file->preset_window.preset_window, preset_window_redraw_handler);
-	event_add_window_menu_prepare(file->preset_window.preset_window, preset_window_menu_prepare_handler);
-	event_add_window_menu_selection(file->preset_window.preset_window, preset_window_menu_selection_handler);
-	event_add_window_menu_warning(file->preset_window.preset_window, preset_window_menu_warning_handler);
-	event_add_window_menu_close(file->preset_window.preset_window, preset_window_menu_close_handler);
+	event_add_window_user_data(file->preset_window->preset_window, &(file->preset_window));
+	event_add_window_menu(file->preset_window->preset_window, preset_window_menu);
+	event_add_window_close_event(file->preset_window->preset_window, preset_close_window_handler);
+	event_add_window_mouse_event(file->preset_window->preset_window, preset_window_click_handler);
+	event_add_window_scroll_event(file->preset_window->preset_window, preset_window_scroll_handler);
+	event_add_window_redraw_event(file->preset_window->preset_window, preset_window_redraw_handler);
+	event_add_window_menu_prepare(file->preset_window->preset_window, preset_window_menu_prepare_handler);
+	event_add_window_menu_selection(file->preset_window->preset_window, preset_window_menu_selection_handler);
+	event_add_window_menu_warning(file->preset_window->preset_window, preset_window_menu_warning_handler);
+	event_add_window_menu_close(file->preset_window->preset_window, preset_window_menu_close_handler);
 
-	event_add_window_user_data(file->preset_window.preset_pane, &(file->preset_window));
-	event_add_window_menu(file->preset_window.preset_pane, preset_window_menu);
-	event_add_window_mouse_event(file->preset_window.preset_pane, preset_pane_click_handler);
-	event_add_window_menu_prepare(file->preset_window.preset_pane, preset_window_menu_prepare_handler);
-	event_add_window_menu_selection(file->preset_window.preset_pane, preset_window_menu_selection_handler);
-	event_add_window_menu_warning(file->preset_window.preset_pane, preset_window_menu_warning_handler);
-	event_add_window_menu_close(file->preset_window.preset_pane, preset_window_menu_close_handler);
+	event_add_window_user_data(file->preset_window->preset_pane, &(file->preset_window));
+	event_add_window_menu(file->preset_window->preset_pane, preset_window_menu);
+	event_add_window_mouse_event(file->preset_window->preset_pane, preset_pane_click_handler);
+	event_add_window_menu_prepare(file->preset_window->preset_pane, preset_window_menu_prepare_handler);
+	event_add_window_menu_selection(file->preset_window->preset_pane, preset_window_menu_selection_handler);
+	event_add_window_menu_warning(file->preset_window->preset_pane, preset_window_menu_warning_handler);
+	event_add_window_menu_close(file->preset_window->preset_pane, preset_window_menu_close_handler);
 }
 
 
@@ -452,7 +526,7 @@ void preset_open_window(struct file_block *file)
  * \param *windat			The window to delete.
  */
 
-void preset_delete_window(struct preset_window *windat)
+static void preset_delete_window(struct preset_window *windat)
 {
 	#ifdef DEBUG
 	debug_printf ("\\RDeleting preset window");
@@ -1056,7 +1130,6 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 static void preset_adjust_window_columns(void *data, wimp_i group, int width)
 {
 	struct preset_window	*windat = (struct preset_window *) data;
-	struct file_block	*file;
 	int			i, j, new_extent;
 	wimp_icon_state		icon;
 	wimp_window_info	window;
@@ -1064,55 +1137,52 @@ static void preset_adjust_window_columns(void *data, wimp_i group, int width)
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	file = windat->file;
-
 	update_dragged_columns(PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), group, width,
-			file->preset_window.column_width,
-			file->preset_window.column_position, PRESET_COLUMNS);
+			windat->column_width, windat->column_position, PRESET_COLUMNS);
 
 	/* Re-adjust the icons in the pane. */
 
 	for (i=0, j=0; j < PRESET_COLUMNS; i++, j++) {
-		icon.w = file->preset_window.preset_pane;
+		icon.w = windat->preset_pane;
 		icon.i = i;
 		wimp_get_icon_state(&icon);
 
-		icon.icon.extent.x0 = file->preset_window.column_position[j];
+		icon.icon.extent.x0 = windat->column_position[j];
 
 		j = column_get_rightmost_in_group(PRESET_PANE_COL_MAP, i);
 
-		icon.icon.extent.x1 = file->preset_window.column_position[j] +
-				file->preset_window.column_width[j] + COLUMN_HEADING_MARGIN;
+		icon.icon.extent.x1 = windat->column_position[j] +
+				windat->column_width[j] + COLUMN_HEADING_MARGIN;
 
 		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
 				icon.icon.extent.x1, icon.icon.extent.y1);
 
-		new_extent = file->preset_window.column_position[PRESET_COLUMNS-1] +
-				file->preset_window.column_width[PRESET_COLUMNS-1];
+		new_extent = windat->column_position[PRESET_COLUMNS-1] +
+				windat->column_width[PRESET_COLUMNS-1];
 	}
 
-	preset_adjust_sort_icon(file);
+	preset_adjust_sort_icon(windat->file);
 
 	/* Replace the edit line to force a redraw and redraw the rest of the window. */
 
-	windows_redraw(file->preset_window.preset_window);
-	windows_redraw(file->preset_window.preset_pane);
+	windows_redraw(windat->preset_window);
+	windows_redraw(windat->preset_pane);
 
 	/* Set the horizontal extent of the window and pane. */
 
-	window.w = file->preset_window.preset_pane;
+	window.w = windat->preset_pane;
 	wimp_get_window_info_header_only(&window);
 	window.extent.x1 = window.extent.x0 + new_extent;
 	wimp_set_extent(window.w, &(window.extent));
 
-	window.w = file->preset_window.preset_window;
+	window.w = windat->preset_window;
 	wimp_get_window_info_header_only(&window);
 	window.extent.x1 = window.extent.x0 + new_extent;
 	wimp_set_extent(window.w, &(window.extent));
 
 	windows_open(window.w);
 
-	file_set_data_integrity(file, TRUE);
+	file_set_data_integrity(windat->file, TRUE);
 }
 
 
@@ -1127,11 +1197,11 @@ static void preset_adjust_sort_icon(struct file_block *file)
 {
 	wimp_icon_state		icon;
 
-	icon.w = file->preset_window.preset_pane;
+	icon.w = file->preset_window->preset_pane;
 	icon.i = PRESET_PANE_SORT_DIR_ICON;
 	wimp_get_icon_state(&icon);
 
-	preset_adjust_sort_icon_data(file, &(icon.icon));
+	preset_adjust_sort_icon_data(file->preset_window, &(icon.icon));
 
 	wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
 			icon.icon.extent.x1, icon.icon.extent.y1);
@@ -1141,20 +1211,23 @@ static void preset_adjust_sort_icon(struct file_block *file)
 /**
  * Adjust an icon definition to match the current preset sort settings.
  *
- * \param *file			The file to be updated.
+ * \param *file			The preset window to be updated.
  * \param *icon			The icon to be updated.
  */
 
-static void preset_adjust_sort_icon_data(struct file_block *file, wimp_icon *icon)
+static void preset_adjust_sort_icon_data(struct preset_window *windat, wimp_icon *icon)
 {
 	int	i = 0, width, anchor;
 
-	if (file->preset_window.sort_order & SORT_ASCENDING)
-		strcpy(file->preset_window.sort_sprite, "sortarrd");
-	else if (file->preset_window.sort_order & SORT_DESCENDING)
-		strcpy(file->preset_window.sort_sprite, "sortarru");
+	if (windat == NULL)
+		return;
 
-	switch (file->preset_window.sort_order & SORT_MASK) {
+	if (windat->sort_order & SORT_ASCENDING)
+		strcpy(windat->sort_sprite, "sortarrd");
+	else if (windat->sort_order & SORT_DESCENDING)
+		strcpy(windat->sort_sprite, "sortarru");
+
+	switch (windat->sort_order & SORT_MASK) {
 	case SORT_CHAR:
 		i = PRESET_ICON_KEY;
 		preset_substitute_sort_icon = PRESET_PANE_KEY;
@@ -1188,13 +1261,12 @@ static void preset_adjust_sort_icon_data(struct file_block *file, wimp_icon *ico
 
 	width = icon->extent.x1 - icon->extent.x0;
 
-	if ((file->preset_window.sort_order & SORT_MASK) == SORT_AMOUNT) {
-		anchor = file->preset_window.column_position[i] + COLUMN_HEADING_MARGIN;
+	if ((windat->sort_order & SORT_MASK) == SORT_AMOUNT) {
+		anchor = windat->column_position[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
 		icon->extent.x1 = icon->extent.x0 + width;
 	} else {
-		anchor = file->preset_window.column_position[i] +
-				file->preset_window.column_width[i] + COLUMN_HEADING_MARGIN;
+		anchor = windat->column_position[i] + windat->column_width[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
 		icon->extent.x0 = icon->extent.x1 - width;
 	}
@@ -1204,10 +1276,10 @@ static void preset_adjust_sort_icon_data(struct file_block *file, wimp_icon *ico
 /**
  * Set the extent of the preset window for the specified file.
  *
- * \param *file			The file to update.
+ * \param *windat		The preset window to update.
  */
 
-static void preset_set_window_extent(struct file_block *file)
+static void preset_set_window_extent(struct preset_window *windat)
 {
 	wimp_window_state	state;
 	os_box			extent;
@@ -1216,18 +1288,18 @@ static void preset_set_window_extent(struct file_block *file)
 
 	/* Set the extent. */
 
-	if (file == NULL || file->preset_window.preset_window == NULL)
+	if (windat == NULL || windat->file == NULL || windat->preset_window == NULL)
 		return;
 
 	/* Get the number of rows to show in the window, and work out the window extent from this. */
 
-	new_lines = (file->preset_count > MIN_PRESET_ENTRIES) ? file->preset_count : MIN_PRESET_ENTRIES;
+	new_lines = (windat->file->preset_count > MIN_PRESET_ENTRIES) ? windat->file->preset_count : MIN_PRESET_ENTRIES;
 
 	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_lines) - PRESET_TOOLBAR_HEIGHT;
 
 	/* Get the current window details, and find the extent of the bottom of the visible area. */
 
-	state.w = file->preset_window.preset_window;
+	state.w = windat->file->preset_window->preset_window;
 	wimp_get_window_state(&state);
 
 	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
@@ -1257,11 +1329,11 @@ static void preset_set_window_extent(struct file_block *file)
 
 	extent.x0 = 0;
 	extent.y1 = 0;
-	extent.x1 = file->preset_window.column_position[PRESET_COLUMNS-1] +
-			file->preset_window.column_width[PRESET_COLUMNS-1] + COLUMN_GUTTER;
+	extent.x1 = windat->column_position[PRESET_COLUMNS-1] +
+			windat->column_width[PRESET_COLUMNS-1] + COLUMN_GUTTER;
 	extent.y0 = new_extent;
 
-	wimp_set_extent(file->preset_window.preset_window, &extent);
+	wimp_set_extent(windat->preset_window, &extent);
 }
 
 
@@ -1275,16 +1347,16 @@ void preset_build_window_title(struct file_block *file)
 {
 	char	name[256];
 
-	if (file == NULL || file->preset_window.preset_window == NULL)
+	if (file == NULL || file->preset_window == NULL || file->preset_window->preset_window == NULL)
 		return;
 
 	file_get_leafname(file, name, sizeof(name));
 
-	msgs_param_lookup("PresetTitle", file->preset_window.window_title,
-			sizeof(file->preset_window.window_title),
+	msgs_param_lookup("PresetTitle", file->preset_window->window_title,
+			sizeof(file->preset_window->window_title),
 			name, NULL, NULL, NULL);
 
-	wimp_force_redraw_title(file->preset_window.preset_window);
+	wimp_force_redraw_title(file->preset_window->preset_window);
 }
 
 
@@ -1301,16 +1373,16 @@ void preset_force_window_redraw(struct file_block *file, int from, int to)
 	int			y0, y1;
 	wimp_window_info	window;
 
-	if (file == NULL || file->preset_window.preset_window == NULL)
+	if (file == NULL || file->preset_window == NULL || file->preset_window->preset_window == NULL)
 		return;
 
-	window.w = file->preset_window.preset_window;
+	window.w = file->preset_window->preset_window;
 	wimp_get_window_info_header_only(&window);
 
 	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
 	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
 
-	wimp_force_redraw(file->preset_window.preset_window, window.extent.x0, y0, window.extent.x1, y1);
+	wimp_force_redraw(file->preset_window->preset_window, window.extent.x0, y0, window.extent.x1, y1);
 }
 
 
@@ -1840,7 +1912,7 @@ static void preset_print(osbool text, osbool format, osbool scale, osbool rotate
 
 	hourglass_on();
 
-	window = &(preset_print_file->preset_window);
+	window = preset_print_file->preset_window;
 
 	/* Output the page title. */
 
@@ -2071,8 +2143,11 @@ void preset_sort(struct file_block *file)
 	int		gap, comb, temp, order;
 	osbool		sorted, reorder;
 
+	if (file == NULL || file->preset_window == NULL)
+		return;
+
 	#ifdef DEBUG
-	debug_printf("Sorting standing order window");
+	debug_printf("Sorting preset window");
 	#endif
 
 	hourglass_on();
@@ -2083,7 +2158,7 @@ void preset_sort(struct file_block *file)
 
 	gap = file->preset_count - 1;
 
-	order = file->preset_window.sort_order;
+	order = file->preset_window->sort_order;
 
 	do {
 		gap = (gap > 1) ? (gap * 10 / 13) : 1;
@@ -2208,7 +2283,7 @@ static int preset_add(struct file_block *file)
 
 	file->presets[new].sort_index = new;
 
-	preset_set_window_extent(file);
+	preset_set_window_extent(file->preset_window);
 
 	return new;
 }
@@ -2225,6 +2300,9 @@ static int preset_add(struct file_block *file)
 static osbool preset_delete(struct file_block *file, int preset)
 {
 	int	i, index;
+
+	if (file == NULL || file->preset_window == NULL)
+		return FALSE;
 
 	/* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along
 	 * so that they remain in the correct places. */
@@ -2257,10 +2335,10 @@ static osbool preset_delete(struct file_block *file, int preset)
 
 	/* Update the main preset display window. */
 
-	preset_set_window_extent(file);
+	preset_set_window_extent(file->preset_window);
 
-	if (file->preset_window.preset_window != NULL) {
-		windows_open(file->preset_window.preset_window);
+	if (file->preset_window->preset_window != NULL) {
+		windows_open(file->preset_window->preset_window);
 		if (config_opt_read("AutoSortPresets")) {
 			preset_sort(file);
 			preset_force_window_redraw(file, file->preset_count, file->preset_count);
@@ -2413,14 +2491,17 @@ void preset_write_file(struct file_block *file, FILE *out)
 	int	i;
 	char	buffer[MAX_FILE_LINE_LEN];
 
+	if (file == NULL || file->preset_window == NULL)
+		return;
+
 	fprintf(out, "\n[Presets]\n");
 
 	fprintf(out, "Entries: %x\n", file->preset_count);
 
-	column_write_as_text(file->preset_window.column_width, PRESET_COLUMNS, buffer);
+	column_write_as_text(file->preset_window->column_width, PRESET_COLUMNS, buffer);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
-	fprintf(out, "SortOrder: %x\n", file->preset_window.sort_order);
+	fprintf(out, "SortOrder: %x\n", file->preset_window->sort_order);
 
 	for (i = 0; i < file->preset_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x\n",
@@ -2466,11 +2547,11 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 				block_size = file->preset_count;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
-			column_init_window(file->preset_window.column_width,
-					file->preset_window.column_position,
+			column_init_window(file->preset_window->column_width,
+					file->preset_window->column_position,
 					PRESET_COLUMNS, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
-			file->preset_window.sort_order = strtoul(value, NULL, 16);
+			file->preset_window->sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
 			file->preset_count++;
 			if (file->preset_count > block_size) {
@@ -2539,7 +2620,7 @@ static osbool preset_save_csv(char *filename, osbool selection, void *data)
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 
-	preset_export_delimited(windat->file, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	preset_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
 	
 	return TRUE;
 }
@@ -2560,7 +2641,7 @@ static osbool preset_save_tsv(char *filename, osbool selection, void *data)
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 		
-	preset_export_delimited(windat->file, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	preset_export_delimited(windat, filename, DELIMIT_TAB, TSV_FILE_TYPE);
 	
 	return TRUE;
 }
@@ -2569,18 +2650,17 @@ static osbool preset_save_tsv(char *filename, osbool selection, void *data)
 /**
  * Export the preset data from a file into CSV or TSV format.
  *
- * \param *file			The file to export from.
+ * \param *windat		The preset window to export from.
  * \param *filename		The filename to export to.
  * \param format		The file format to be used.
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void preset_export_delimited(struct file_block *file, char *filename, enum filing_delimit_type format, int filetype)
+static void preset_export_delimited(struct preset_window *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	int			i, t;
 	char			buffer[256];
-	struct preset_window	*window;
 
 	out = fopen(filename, "w");
 
@@ -2591,43 +2671,41 @@ static void preset_export_delimited(struct file_block *file, char *filename, enu
 
 	hourglass_on();
 
-	window = &(file->preset_window);
-
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(window->preset_pane, PRESET_PANE_KEY, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_KEY, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(window->preset_pane, PRESET_PANE_NAME, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_NAME, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(window->preset_pane, PRESET_PANE_FROM, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_FROM, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(window->preset_pane, PRESET_PANE_TO, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_TO, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(window->preset_pane, PRESET_PANE_AMOUNT, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_AMOUNT, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(window->preset_pane, PRESET_PANE_DESCRIPTION, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_DESCRIPTION, buffer);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the preset data as a set of delimited lines. */
 
-	for (i = 0; i < file->preset_count; i++) {
-		t = file->presets[i].sort_index;
+	for (i = 0; i < windat->file->preset_count; i++) {
+		t = windat->file->presets[i].sort_index;
 
-		sprintf(buffer, "%c", file->presets[t].action_key);
+		sprintf(buffer, "%c", windat->file->presets[t].action_key);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		filing_output_delimited_field(out, file->presets[t].name, format, DELIMIT_NONE);
+		filing_output_delimited_field(out, windat->file->presets[t].name, format, DELIMIT_NONE);
 
-		account_build_name_pair(file, file->presets[t].from, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->file->presets[t].from, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		account_build_name_pair(file, file->presets[t].to, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->file->presets[t].to, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(file->presets[t].amount, buffer, sizeof(buffer));
+		currency_convert_to_string(windat->file->presets[t].amount, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-		filing_output_delimited_field(out, file->presets[t].description, format, DELIMIT_LAST);
+		filing_output_delimited_field(out, windat->file->presets[t].description, format, DELIMIT_LAST);
 	}
 
 	/* Close the file and set the type correctly. */

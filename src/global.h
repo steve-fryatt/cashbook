@@ -169,6 +169,7 @@ struct transact;
 struct account;
 struct sorder;
 struct preset;
+struct preset_window;
 struct report;
 struct budget_block;
 struct find_block;
@@ -266,30 +267,6 @@ struct sorder_window {
 	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.			*/
 };
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Preset window data struct */
-
-struct preset_window {
-	struct file_block	*file;						/**< The file to which the window belongs.			*/
-
-	/* Preset window handle and title details. */
-
-	wimp_w			preset_window;					/**< Window handle of the preset window.			*/
-	char			window_title[256];
-	wimp_w			preset_pane;					/**< Window handle of the preset window toolbar pane.		*/
-
-	/* Display column details. */
-
-	int			column_width[PRESET_COLUMNS];			/**< Array holding the column widths in the transaction window.	*/
-	int			column_position[PRESET_COLUMNS];		/**< Array holding the column X-offsets in the transact window.	*/
-
-	/* Other window details. */
-
-	enum sort_type		sort_order;					/**< The order in which the window is sorted.			*/
-
-	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.			*/
-};
 
 /* ==================================================================================================================
  * Main file data structure
@@ -309,7 +286,7 @@ struct file_block
 	struct transaction_window	transaction_window;			/**< Structure holding transaction window information.		*/
 	struct account_window		account_windows[ACCOUNT_WINDOWS];	/**< Array holding account window information.			*/
 	struct sorder_window		sorder_window;				/**< Structure holding standing order window information.	*/
-	struct preset_window		preset_window;				/**< Structure holding preset window information.		*/
+	struct preset_window		*preset_window;				/**< Structure holding preset window information.		*/
 
   /* Default display details for the accview windows. */
 

@@ -54,22 +54,31 @@ void preset_initialise(osspriteop_area *sprites);
 
 
 /**
+ * Create a new Preset window instance.
+ *
+ * \param *file			The file to attach the instance to.
+ * \return			The instance handle, or NULL on failure.
+ */
+
+struct preset_window *preset_create_instance(struct file_block *file);
+
+
+/**
+ * Delete a preset instance, and all of its data.
+ *
+ * \param *windat		The instance to be deleted.
+ */
+
+void preset_delete_instance(struct preset_window *windat);
+
+
+/**
  * Create and open a Preset List window for the given file.
  *
  * \param *file			The file to open a window for.
  */
 
 void preset_open_window(struct file_block *file);
-
-
-/**
- * Close and delete the Preset List Window associated with the given
- * file block.
- *
- * \param *windat		The window to delete.
- */
-
-void preset_delete_window(struct preset_window *windat);
 
 
 /**

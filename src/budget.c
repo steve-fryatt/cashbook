@@ -50,7 +50,6 @@
 
 /* Application header files */
 
-#include "global.h"
 #include "budget.h"
 
 #include "account.h"
@@ -74,7 +73,9 @@
  * Budget data structure
  */
 
-struct budget {
+struct budget_block {
+	struct file_block	*file;						/**< The file owning the budget dialogue.				*/
+
 	/* Budget date limits */
 
 	date_t			start;						/**< The start date of the budget.					*/
@@ -86,14 +87,14 @@ struct budget {
 	osbool			limit_postdate;					/**< TRUE to limit post-dated transactions to the SO trial period.	*/
 };
 
-static struct file_block	*budget_window_file = NULL;			/**< The file currently owning the Budget window.	*/
-static wimp_w			budget_window = NULL;				/**< The Budget window handle.				*/
+static struct budget_block	*budget_window_owner = NULL;			/**< The file currently owning the Budget window.			*/
+static wimp_w			budget_window = NULL;				/**< The Budget window handle.						*/
 
 
 static void		budget_click_handler(wimp_pointer *pointer);
 static osbool		budget_keypress_handler(wimp_key *key);
 static void		budget_refresh_window(void);
-static void		budget_fill_window(struct file_block *file);
+static void		budget_fill_window(struct budget_block *windat);
 static osbool		budget_process_window(void);
 
 
@@ -115,16 +116,19 @@ void budget_initialise(void)
  * resulting block. The block will be allocated with heap_alloc(), and should
  * be freed after use with heap_free().
  *
+ * \param *file		The file to which this instance belongs.
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct budget *budget_create(void)
+struct budget_block *budget_create(struct file_block *file)
 {
-	struct budget	*new;
+	struct budget_block	*new;
 
-	new = heap_alloc(sizeof(struct budget));
+	new = heap_alloc(sizeof(struct budget_block));
 	if (new == NULL)
 		return NULL;
+
+	new->file = file;
 
 	new->start = NULL_DATE;
 	new->finish = NULL_DATE;
@@ -139,24 +143,27 @@ struct budget *budget_create(void)
 /**
  * Delete a budget data block.
  *
- * \param *budget	Pointer to the budget to delete.
+ * \param *windat	Pointer to the budget to delete.
  */
 
-void budget_delete(struct budget *budget)
+void budget_delete(struct budget_block *windat)
 {
-	if (budget != NULL)
-		heap_free(budget);
+	if (budget_window_owner == windat && windows_get_open(budget_window))
+		close_dialogue_with_caret(budget_window);
+
+	if (windat != NULL)
+		heap_free(windat);
 }
 
 
 /**
  * Open the Budget dialogue box.
  *
- * \param *file		The file owning the dialogue.
+ * \param *windat	The budget instance to the dialogue.
  * \param *ptr		The current Wimp Pointer details.
  */
 
-void budget_open_window(struct file_block *file, wimp_pointer *ptr)
+void budget_open_window(struct budget_block *windat, wimp_pointer *ptr)
 {
 	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
@@ -167,11 +174,11 @@ void budget_open_window(struct file_block *file, wimp_pointer *ptr)
 
 	/* Set the window contents up. */
 
-	budget_fill_window(file);
+	budget_fill_window(windat);
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
-	budget_window_file = file;
+	budget_window_owner = windat;
 
 	windows_open_centred_at_pointer(budget_window, ptr);
 	place_dialogue_caret(budget_window, BUDGET_ICON_START);
@@ -236,7 +243,7 @@ static osbool budget_keypress_handler(wimp_key *key)
 
 static void budget_refresh_window(void)
 {
-	budget_fill_window(budget_window_file);
+	budget_fill_window(budget_window_owner);
 	icons_redraw_group(budget_window, 3, BUDGET_ICON_START, BUDGET_ICON_FINISH, BUDGET_ICON_TRIAL);
 	icons_replace_caret_in_window(budget_window);
 }
@@ -246,21 +253,22 @@ static void budget_refresh_window(void)
 /**
  * Fill the Budget window with values from the file.
  *
- * \param: *goto_data		Saved settings to use if restore == FALSE.
- * \param: restore		TRUE to keep the supplied settings; FALSE to
- *				use system defaults.
+ * \param: *windat		The data to use to fill the window.
  */
 
-static void budget_fill_window(struct file_block *file)
+static void budget_fill_window(struct budget_block *windat)
 {
-	date_convert_to_string(file->budget->start, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START),
+	if (windat == NULL)
+		return;
+
+	date_convert_to_string(windat->start, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START),
 			icons_get_indirected_text_length(budget_window, BUDGET_ICON_START));
-	date_convert_to_string(file->budget->finish, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_FINISH),
+	date_convert_to_string(windat->finish, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_FINISH),
 			icons_get_indirected_text_length(budget_window, BUDGET_ICON_FINISH));
 
-	icons_printf(budget_window, BUDGET_ICON_TRIAL, "%d", file->budget->sorder_trial);
+	icons_printf(budget_window, BUDGET_ICON_TRIAL, "%d", windat->sorder_trial);
 
-	icons_set_selected(budget_window, BUDGET_ICON_RESTRICT, file->budget->limit_postdate);
+	icons_set_selected(budget_window, BUDGET_ICON_RESTRICT, windat->limit_postdate);
 }
 
 
@@ -274,37 +282,23 @@ static void budget_fill_window(struct file_block *file)
 
 static osbool budget_process_window(void)
 {
-	budget_window_file->budget->start =
+	budget_window_owner->start =
 			date_convert_from_string(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START), NULL_DATE, 0);
-	budget_window_file->budget->finish =
+	budget_window_owner->finish =
 			date_convert_from_string(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_FINISH), NULL_DATE, 0);
 
-	budget_window_file->budget->sorder_trial = atoi(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_TRIAL));
+	budget_window_owner->sorder_trial = atoi(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_TRIAL));
 
-	budget_window_file->budget->limit_postdate = icons_get_selected(budget_window, BUDGET_ICON_RESTRICT);
+	budget_window_owner->limit_postdate = icons_get_selected(budget_window, BUDGET_ICON_RESTRICT);
 
 	/* Tidy up and redraw the windows */
 
-	sorder_trial(budget_window_file);
-	account_recalculate_all(budget_window_file);
-	file_set_data_integrity(budget_window_file, TRUE);
-	file_redraw_windows(budget_window_file);
+	sorder_trial(budget_window_owner->file);
+	account_recalculate_all(budget_window_owner->file);
+	file_set_data_integrity(budget_window_owner->file, TRUE);
+	file_redraw_windows(budget_window_owner->file);
 
 	return TRUE;
-}
-
-
-/**
- * Force the closure of the Budget window if it is open and relates
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void budget_force_window_closed(struct file_block *file)
-{
-	if (budget_window_file == file && windows_get_open(budget_window))
-		close_dialogue_with_caret(budget_window);
 }
 
 

@@ -312,7 +312,7 @@ void save_transaction_file(struct file_block *file, char *filename)
 
 	/* Update the modified flag and filename for the file block and refresh the window title. */
 
-	file->modified = 0;
+	file_set_data_integrity(file, FALSE);
 	strcpy(file->filename, filename);
 
 	transact_build_window_title(file);

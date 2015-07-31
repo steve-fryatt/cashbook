@@ -82,7 +82,8 @@
  * Purge Dialogue data.
  */
 
-struct purge {
+struct purge_block {
+	struct file_block	*file;						/**< The file to which this instance of the dialogue belongs.					*/
 	osbool			transactions;					/**< TRUE to remove reconciled transactions, subject to the before constraint; else FALSE.	*/
 	osbool			accounts;					/**< TRUE to remove unused accounts; else FALSE.						*/
 	osbool			headings;					/**< TRUE to remove unused headings; else FALSE.						*/
@@ -90,7 +91,7 @@ struct purge {
 	date_t			before;						/**< The date before which reconciled transactions should be removed; NULL_DATE for none.	*/
 };
 
-static struct file_block	*purge_window_file = NULL;			/**< The file which currently owns the Purge window.						*/
+static struct purge_block	*purge_window_owner = NULL;			/**< The file which currently owns the Purge window.						*/
 static osbool			purge_window_restore = 0;			/**< The current restore setting for the Purge window.						*/
 static wimp_w			purge_window = NULL;				/**< The Purge window handle.									*/
 
@@ -98,7 +99,7 @@ static wimp_w			purge_window = NULL;				/**< The Purge window handle.									*/
 static void		purge_click_handler(wimp_pointer *pointer);
 static osbool		purge_keypress_handler(wimp_key *key);
 static void		purge_refresh_window(void);
-static void		purge_fill_window(struct purge *cont_data, osbool restore);
+static void		purge_fill_window(struct purge_block *cont_data, osbool restore);
 static osbool		purge_process_window(void);
 static void		purge_file(struct file_block *file, osbool transactions, date_t date, osbool accounts, osbool headings, osbool sorders);
 
@@ -121,17 +122,19 @@ void purge_initialise(void)
  * resulting block. The block will be allocated with heap_alloc(), and should
  * be freed after use with heap_free().
  *
+ * \param *file		The file to which this instance belongs.
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct purge *purge_create(void)
+struct purge_block *purge_create(struct file_block *file)
 {
-	struct purge	*new;
+	struct purge_block	*new;
 
-	new = heap_alloc(sizeof(struct purge));
+	new = heap_alloc(sizeof(struct purge_block));
 	if (new == NULL)
 		return NULL;
 
+	new->file = file;
 	new->transactions = TRUE;
 	new->accounts = FALSE;
 	new->headings = FALSE;
@@ -148,8 +151,11 @@ struct purge *purge_create(void)
  * \param *purge	Pointer to the purge window data to delete.
  */
 
-void purge_delete(struct purge *purge)
+void purge_delete(struct purge_block *purge)
 {
+	if (purge_window_owner == purge && windows_get_open(purge_window))
+		close_dialogue_with_caret(purge_window);
+
 	if (purge != NULL)
 		heap_free(purge);
 }
@@ -158,13 +164,13 @@ void purge_delete(struct purge *purge)
 /**
  * Open the Purge dialogue box.
  *
- * \param *file		The file owning the dialogue.
+ * \param *purge	The purge instance owning the dialogue.
  * \param *ptr		The current Wimp Pointer details.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  */
 
-void purge_open_window(struct file_block *file, wimp_pointer *ptr, osbool restore)
+void purge_open_window(struct purge_block *purge, wimp_pointer *ptr, osbool restore)
 {
 	/* If the window is already open, close it to start with. */
 
@@ -173,11 +179,11 @@ void purge_open_window(struct file_block *file, wimp_pointer *ptr, osbool restor
 
 	/* Blank out the icon contents. */
 
-	purge_fill_window(file->purge, restore);
+	purge_fill_window(purge, restore);
 
 	/* Set the pointer up to find the window again and open the window. */
 
-	purge_window_file = file;
+	purge_window_owner = purge;
 	purge_window_restore = restore;
 
 	windows_open_centred_at_pointer(purge_window, ptr);
@@ -249,7 +255,7 @@ static osbool purge_keypress_handler(wimp_key *key)
 
 static void purge_refresh_window(void)
 {
-	purge_fill_window(purge_window_file->purge, purge_window_restore);
+	purge_fill_window(purge_window_owner, purge_window_restore);
 
 	icons_redraw_group(purge_window, 1, PURGE_ICON_DATE);
 	icons_replace_caret_in_window(purge_window);
@@ -264,7 +270,7 @@ static void purge_refresh_window(void)
  *				use system defaults.
  */
 
-static void purge_fill_window(struct purge *cont_data, osbool restore)
+static void purge_fill_window(struct purge_block *cont_data, osbool restore)
 {
 	if (!restore) {
 		icons_set_selected(purge_window, PURGE_ICON_TRANSACT, TRUE);
@@ -298,38 +304,25 @@ static void purge_fill_window(struct purge *cont_data, osbool restore)
 
 static osbool purge_process_window(void)
 {
-	purge_window_file->purge->transactions = icons_get_selected(purge_window, PURGE_ICON_TRANSACT);
-	purge_window_file->purge->accounts = icons_get_selected(purge_window, PURGE_ICON_ACCOUNTS);
-	purge_window_file->purge->headings = icons_get_selected(purge_window, PURGE_ICON_HEADINGS);
-	purge_window_file->purge->sorders = icons_get_selected(purge_window, PURGE_ICON_SORDERS);
+	purge_window_owner->transactions = icons_get_selected(purge_window, PURGE_ICON_TRANSACT);
+	purge_window_owner->accounts = icons_get_selected(purge_window, PURGE_ICON_ACCOUNTS);
+	purge_window_owner->headings = icons_get_selected(purge_window, PURGE_ICON_HEADINGS);
+	purge_window_owner->sorders = icons_get_selected(purge_window, PURGE_ICON_SORDERS);
 
-	purge_window_file->purge->before =
+	purge_window_owner->before =
 			date_convert_from_string(icons_get_indirected_text_addr(purge_window, PURGE_ICON_DATE), NULL_DATE, 0);
 
-	if (purge_window_file->modified == 1 && error_msgs_report_question("PurgeFileNotSaved", "PurgeFileNotSavedB") == 2)
+	if (file_get_data_integrity(purge_window_owner->file) == TRUE &&
+			error_msgs_report_question("PurgeFileNotSaved", "PurgeFileNotSavedB") == 2)
 		return FALSE;
 
-	purge_file(purge_window_file, purge_window_file->purge->transactions,
-		purge_window_file->purge->before,
-		purge_window_file->purge->accounts,
-		purge_window_file->purge->headings,
-		purge_window_file->purge->sorders);
+	purge_file(purge_window_owner->file, purge_window_owner->transactions,
+		purge_window_owner->before,
+		purge_window_owner->accounts,
+		purge_window_owner->headings,
+		purge_window_owner->sorders);
 
 	return TRUE;
-}
-
-
-/**
- * Force the closure of the Purge window if it is open and relates
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void purge_force_window_closed(struct file_block *file)
-{
-	if (purge_window_file == file && windows_get_open(purge_window))
-		close_dialogue_with_caret(purge_window);
 }
 
 

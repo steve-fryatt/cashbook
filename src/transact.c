@@ -1128,7 +1128,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_FILE_CONTINUE:
-			purge_open_window(windat->file, &pointer, config_opt_read("RememberValues"));
+			purge_open_window(windat->file->purge, &pointer, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_FILE_PRINT:
@@ -1210,7 +1210,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 	case MAIN_MENU_SUB_UTILS:
 		switch (selection->items[1]) {
 		case MAIN_MENU_ANALYSIS_BUDGET:
-			budget_open_window(windat->file, &pointer);
+			budget_open_window(windat->file->budget, &pointer);
 			break;
 
 		case MAIN_MENU_ANALYSIS_SAVEDREP:
@@ -1964,7 +1964,7 @@ void transact_build_window_title(struct file_block *file)
 	file_get_pathname(file, file->transaction_window.window_title,
 			sizeof(file->transaction_window.window_title) - 2);
 
-	if (file->modified)
+	if (file_get_data_integrity(file))
 		strcat(file->transaction_window.window_title, " *");
 
 	if (file->transaction_window.transaction_window != NULL)
@@ -4028,7 +4028,7 @@ static void transact_prepare_fileinfo(struct file_block *file)
 	else
 		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_DATE, "UnSaved");
 
-	if (file->modified)
+	if (file_get_data_integrity(file))
 		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_MODIFIED, "Yes");
 	else
 		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_MODIFIED, "No");

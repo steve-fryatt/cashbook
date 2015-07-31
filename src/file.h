@@ -91,6 +91,16 @@ void file_set_data_integrity(struct file_block *file, osbool unsafe);
 
 
 /**
+ * Read the 'unsaved' state of a file.
+ *
+ * \param *file		The file to read.
+ * \return		TRUE if the file has unsaved data; FALSE if not.
+ */
+
+osbool file_get_data_integrity(struct file_block *file);
+
+
+/**
  * Check if the file has a full save path (ie. it has been saved before, or has
  * been loaded from disc).
  *

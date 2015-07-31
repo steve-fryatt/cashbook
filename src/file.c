@@ -163,7 +163,7 @@ struct file_block *build_new_file_block(void)
 
 	/* Set up the budget data. */
 
-	new->budget = budget_create();
+	new->budget = budget_create(new);
 	if (new->budget == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
@@ -199,7 +199,7 @@ struct file_block *build_new_file_block(void)
 
 	/* Set up the purge data. */
 
-	new->purge = purge_create();
+	new->purge = purge_create(new);
 	if (new->purge == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
@@ -465,11 +465,9 @@ void delete_file(struct file_block *file)
 	/* Do the same for any file-related dialogues that are open. */
 
 	account_force_windows_closed(file);
-	budget_force_window_closed(file);
 	report_force_windows_closed(file);
 	printing_force_windows_closed(file);
 	analysis_force_windows_closed(file);
-	purge_force_window_closed(file);
 	filing_force_windows_closed(file);
 
 	/* Delink the block from the list of open files. */
@@ -627,6 +625,19 @@ void file_set_data_integrity(struct file_block *file, osbool unsafe)
 		file->modified = unsafe;
 		transact_build_window_title(file);
 	}
+}
+
+
+/**
+ * Read the 'unsaved' state of a file.
+ *
+ * \param *file		The file to read.
+ * \return		TRUE if the file has unsaved data; FALSE if not.
+ */
+
+osbool file_get_data_integrity(struct file_block *file)
+{
+	return (file == NULL) ? FALSE : file->modified;
 }
 
 

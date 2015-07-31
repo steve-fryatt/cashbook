@@ -43,10 +43,11 @@ void purge_initialise(void);
  * resulting block. The block will be allocated with heap_alloc(), and should
  * be freed after use with heap_free().
  *
+ * \param *file		The file to which this instance belongs.
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct purge *purge_create(void);
+struct purge_block *purge_create(struct file_block *file);
 
 
 /**
@@ -55,29 +56,19 @@ struct purge *purge_create(void);
  * \param *purge	Pointer to the purge window data to delete.
  */
 
-void purge_delete(struct purge *purge);
+void purge_delete(struct purge_block *purge);
 
 
 /**
  * Open the Purge dialogue box.
  *
- * \param *file		The file owning the dialogue.
+ * \param *purge	The purge instance owning the dialogue.
  * \param *ptr		The current Wimp Pointer details.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  */
 
-void purge_open_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
-
-
-/**
- * Force the closure of the Purge window if it is open and relates
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void purge_force_window_closed(struct file_block *file);
+void purge_open_window(struct purge_block *purge, wimp_pointer *ptr, osbool restore);
 
 #endif
 

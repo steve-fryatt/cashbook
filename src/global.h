@@ -170,11 +170,11 @@ struct account;
 struct sorder;
 struct preset;
 struct report;
-struct budget;
+struct budget_block;
 struct find_block;
 struct goto_block;
 struct printing;
-struct purge;
+struct purge_block;
 struct trans_rep;
 struct unrec_rep;
 struct cashflow_rep;
@@ -337,7 +337,7 @@ struct file_block
 
 	/* Budget data. */
 
-	struct budget			*budget;					/**< The file's budgeting details.				*/
+	struct budget_block		*budget;				/**< The file's budgeting details.				*/
 
   /* Data integrity. */
 
@@ -365,7 +365,7 @@ struct file_block
 	struct goto_block		*go_to;					/**< Data relating to the goto module.				*/
 	struct find_block		*find;					/**< Data relating to the find module.				*/
 	struct printing			*print;					/**< Data relating to the print dialogues.			*/
-	struct purge			*purge;					/**< Data relating to the purge module.				*/
+	struct purge_block		*purge;					/**< Data relating to the purge module.				*/
 
 	/* Analysis Report Content. */
 

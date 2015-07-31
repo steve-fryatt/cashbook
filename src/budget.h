@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_BUDGET
 #define CASHBOOK_BUDGET
 
+#include "date.h"
+#include "file.h"
 
 /**
  * Initialise the Budget module.
@@ -43,39 +45,30 @@ void budget_initialise(void);
  * resulting block. The block will be allocated with heap_alloc(), and should
  * be freed after use with heap_free().
  *
+ * \param *file		The file to which this instance belongs.
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct budget *budget_create(void);
+struct budget_block *budget_create(struct file_block *file);
 
 
 /**
  * Delete a budget data block.
  *
- * \param *budget	Pointer to the budget to delete.
+ * \param *windat	Pointer to the budget to delete.
  */
 
-void budget_delete(struct budget *budget);
+void budget_delete(struct budget_block *windat);
 
 
 /**
  * Open the Budget dialogue box.
  *
- * \param *file		The file owning the dialogue.
+ * \param *windat	The budget instance to the dialogue.
  * \param *ptr		The current Wimp Pointer details.
  */
 
-void budget_open_window(struct file_block *file, wimp_pointer *ptr);
-
-
-/**
- * Force the closure of the Budget window if it is open and relates
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void budget_force_window_closed(struct file_block *file);
+void budget_open_window(struct budget_block *windat, wimp_pointer *ptr);
 
 
 /**

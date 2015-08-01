@@ -64,9 +64,6 @@ struct file_block *build_new_file_block (void);
 void create_new_file (void);
 void delete_file (struct file_block *file);
 
-/* Finding files */
-
-struct file_block *find_transaction_window_file_block (wimp_w window);
 
 
 /**
@@ -161,3 +158,4 @@ void file_redraw_windows(struct file_block *file);
 void file_process_date_change(void);
 
 #endif
+

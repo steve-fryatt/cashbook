@@ -380,8 +380,7 @@ void account_open_window(struct file_block *file, enum account_type type)
 
 	/* Find the position to open the window at. */
 
-	parent.w = file->transaction_window.transaction_pane;
-	wimp_get_window_state(&parent);
+	transact_get_window_state(file, &parent);
 
 	set_initial_window_area(account_window_def,
 			window->column_position[ACCOUNT_COLUMNS-1] +
@@ -616,7 +615,7 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
 		case ACCOUNT_PANE_PARENT:
-			windows_open(windat->file->transaction_window.transaction_window);
+			transact_bring_window_to_top(windat->file);
 			break;
 
 		case ACCOUNT_PANE_PRINT:
@@ -2465,7 +2464,6 @@ static osbool account_process_acc_edit_window(void)
 	account_recalculate_all(edit_account_file);
 	accview_recalculate(edit_account_file, edit_account_no, 0);
 	transact_force_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
-	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
 	accview_redraw_all(edit_account_file);
 	file_set_data_integrity(edit_account_file, TRUE);
 
@@ -2521,7 +2519,6 @@ static osbool account_process_hdg_edit_window(void)
 
 	account_recalculate_all(edit_account_file);
 	transact_force_window_redraw(edit_account_file, 0, edit_account_file->trans_count - 1);
-	edit_refresh_line_content(edit_account_file->transaction_window.transaction_window, -1, -1);
 	accview_redraw_all(edit_account_file);
 	file_set_data_integrity(edit_account_file, TRUE);
 

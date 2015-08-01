@@ -514,17 +514,13 @@ void import_csv_file (struct file_block *file, char *filename)
     }
     fclose(input);
 
-    file->transaction_window.display_lines = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-                                             file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
     transact_set_window_extent(file);
-
     transact_sort_file_data(file);
     sorder_trial(file);
     account_recalculate_all(file);
     accview_rebuild_all(file);
     file_set_data_integrity(file, TRUE);
 
-    edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
     transact_force_window_redraw(file, 0, file->trans_count - 1);
  }
 

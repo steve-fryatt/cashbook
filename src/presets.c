@@ -288,7 +288,7 @@ static void		preset_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void		preset_window_scroll_handler(wimp_scroll *scroll);
 static void		preset_window_redraw_handler(wimp_draw *redraw);
 static void		preset_adjust_window_columns(void *data, wimp_i icon, int width);
-static void		preset_adjust_sort_icon(struct file_block *file);
+static void		preset_adjust_sort_icon(struct preset_window *windat);
 static void		preset_adjust_sort_icon_data(struct preset_window *windat, wimp_icon *icon);
 static void		preset_set_window_extent(struct preset_window *windat);
 static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
@@ -435,8 +435,7 @@ void preset_open_window(struct file_block *file)
 
 	height = (file->preset_count > MIN_PRESET_ENTRIES) ? file->preset_count : MIN_PRESET_ENTRIES;
 
-	parent.w = file->transaction_window.transaction_pane;
-	wimp_get_window_state(&parent);
+	transact_get_window_state(file, &parent);
 
 	set_initial_window_area(preset_window_def,
 			file->preset_window->column_position[PRESET_COLUMNS-1] +
@@ -650,7 +649,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
 		case PRESET_PANE_PARENT:
-			windows_open(file->transaction_window.transaction_window);
+			transact_bring_window_to_top(windat->file);
 			break;
 
 		case PRESET_PANE_PRINT:
@@ -722,7 +721,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 					windat->sort_order |= SORT_DESCENDING;
 			}
 
-			preset_adjust_sort_icon(file);
+			preset_adjust_sort_icon(windat);
 			windows_redraw(windat->preset_pane);
 			preset_sort(file);
 		}
@@ -1165,7 +1164,7 @@ static void preset_adjust_window_columns(void *data, wimp_i group, int width)
 				windat->column_width[PRESET_COLUMNS-1];
 	}
 
-	preset_adjust_sort_icon(windat->file);
+	preset_adjust_sort_icon(windat);
 
 	/* Replace the edit line to force a redraw and redraw the rest of the window. */
 
@@ -1194,18 +1193,21 @@ static void preset_adjust_window_columns(void *data, wimp_i group, int width)
  * Adjust the sort icon in a preset window, to reflect the current column
  * heading positions.
  *
- * \param *file			The file to update the window for.
+ * \param *windat		The window to be updated.
  */
 
-static void preset_adjust_sort_icon(struct file_block *file)
+static void preset_adjust_sort_icon(struct preset_window *windat)
 {
 	wimp_icon_state		icon;
 
-	icon.w = file->preset_window->preset_pane;
+	if (windat == NULL)
+		return;
+
+	icon.w = windat->preset_pane;
 	icon.i = PRESET_PANE_SORT_DIR_ICON;
 	wimp_get_icon_state(&icon);
 
-	preset_adjust_sort_icon_data(file->preset_window, &(icon.icon));
+	preset_adjust_sort_icon_data(windat, &(icon.icon));
 
 	wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
 			icon.icon.extent.x1, icon.icon.extent.y1);
@@ -1863,7 +1865,7 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
 
 	windat->sort_order = order;
 
-	preset_adjust_sort_icon(windat->file);
+	preset_adjust_sort_icon(windat);
 	windows_redraw(windat->preset_pane);
 	preset_sort(windat->file);
 
@@ -2621,7 +2623,7 @@ static osbool preset_save_csv(char *filename, osbool selection, void *data)
 {
 	struct preset_window *windat = data;
 	
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL)
 		return FALSE;
 
 	preset_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
@@ -2642,7 +2644,7 @@ static osbool preset_save_tsv(char *filename, osbool selection, void *data)
 {
 	struct preset_window *windat = data;
 	
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL)
 		return FALSE;
 		
 	preset_export_delimited(windat, filename, DELIMIT_TAB, TSV_FILE_TYPE);

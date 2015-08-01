@@ -148,6 +148,7 @@ struct file_block *build_new_file_block(void)
 	new->presets = NULL;
 	new->saved_reports = NULL;
 
+	new->transaction_window = NULL;
 	new->sorder_window = NULL;
 	new->preset_window = NULL;
 
@@ -245,17 +246,14 @@ struct file_block *build_new_file_block(void)
 		return NULL;
 	}
 
-  /* Initialise the transaction window. */
+	/* Set up the transaction window. */
 
-  new->transaction_window.file = new;
-
-  new->transaction_window.transaction_window = NULL;
-  new->transaction_window.transaction_pane = NULL;
-
-	column_init_window(new->transaction_window.column_width, new->transaction_window.column_position,
-			TRANSACT_COLUMNS, 0, FALSE, config_str_read("TransactCols"));
-
-  new->transaction_window.sort_order = SORT_DATE | SORT_ASCENDING;
+	new->transaction_window = transact_create_instance(new);
+	if (new->transaction_window == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
 
   /* Initialise the account and heading windows. */
 
@@ -422,7 +420,8 @@ void delete_file(struct file_block *file)
 
 	/* Delete the windows. */
 
-	transact_delete_window(&(file->transaction_window));
+	if (file->transaction_window != NULL)
+		transact_delete_instance(file->transaction_window);
 
 	if (file->sorder_window != NULL)
 		sorder_delete_instance(file->sorder_window);
@@ -543,27 +542,6 @@ static osbool file_save_file(char *filename, osbool selection, void *data)
 }
 
 
-/* ==================================================================================================================
- * Finding files.
- */
-
-/* Find the file block that corresponds to a given transaction window handle. */
-
-struct file_block *find_transaction_window_file_block(wimp_w window)
-{
-	struct file_block	*list;
-
-	list = file_list;
-
-	while (list != NULL && list->transaction_window.transaction_window != window)
-		list = list->next;
-
-	/* If the window is not a transction window, this loop falls out with (list == NULL)
-	 * ready to return the NULL (not found) value.
-	 */
-
-	return list;
-}
 
 
 /**
@@ -775,7 +753,6 @@ void file_redraw_windows(struct file_block *file)
 	/* Redraw the transaction window. */
 
 	transact_force_window_redraw(file, 0, file->trans_count);
-	edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
 
 	/* Redraw the account list windows. */
 

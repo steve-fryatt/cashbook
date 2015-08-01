@@ -110,6 +110,25 @@ void transact_initialise(osspriteop_area *sprites);
 
 
 /**
+ * Create a new transaction window instance.
+ *
+ * \param *file			The file to attach the instance to.
+ * \return			The instance handle, or NULL on failure.
+ */
+
+struct transact_window *transact_create_instance(struct file_block *file);
+
+
+/**
+ * Delete a transaction window instance, and all of its data.
+ *
+ * \param *windat		The instance to be deleted.
+ */
+
+void transact_delete_instance(struct transact_window *windat);
+
+
+/**
  * Create and open a Transaction List window for the given file.
  *
  * \param *file			The file to open a window for.
@@ -119,13 +138,16 @@ void transact_open_window(struct file_block *file);
 
 
 /**
- * Close and delete a Transaction List Window associated with the given
- * transaction window block.
+ * Return the name of a transaction window column.
  *
- * \param *windat		The window to delete.
+ * \param *file			The file containing the transaction window.
+ * \param icon			The icon representing the required column.
+ * \param *buffer		Pointer to a buffer to take the name.
+ * \param len			The length of the supplied buffer.
+ * \return			Pointer to the supplied buffer, or NULL.
  */
 
-void transact_delete_window(struct transaction_window *windat);
+char *transact_get_column_name(struct file_block *file, wimp_i icon, char *buffer, size_t len);
 
 
 /**
@@ -150,6 +172,18 @@ void transact_minimise_window_extent(struct file_block *file);
 
 
 /**
+ * Get the window state of the transaction window belonging to
+ * the specified file.
+ *
+ * \param *file			The file containing the window.
+ * \param *state		The structure to hold the window state.
+ * \return			Pointer to an error block, or NULL on success.
+ */
+
+os_error *transact_get_window_state(struct file_block *file, wimp_window_state *state);
+
+
+/**
  * Recreate the title of the Transaction window connected to the given file.
  *
  * \param *file			The file to rebuild the title for.
@@ -160,9 +194,6 @@ void transact_build_window_title(struct file_block *file);
 
 /**
  * Force a redraw of the Transaction window, for the given range of lines.
- *
- * NB: This doesn't redraw the edit line, as the icons in that need to be
- * refreshed.
  *
  * \param *file			The file owning the window.
  * \param from			The first line to redraw, inclusive.
@@ -179,6 +210,15 @@ void transact_force_window_redraw(struct file_block *file, int from, int to);
  */
 
 void transact_update_toolbar(struct file_block *file);
+
+
+/**
+ * Bring a transaction window to the top of the window stack.
+ *
+ * \param *file			The file owning the window to bring up.
+ */
+
+void transact_bring_window_to_top(struct file_block *file);
 
 
 /**
@@ -481,18 +521,26 @@ void transact_sort(struct file_block *file);
 void transact_sort_file_data(struct file_block *file);
 
 
+/**
+ * Find the next line of an account, based on its reconcoled status, and place
+ * the caret into the unreconciled account field.
+ *
+ * \param *file			The file to search in.
+ * \param set			TRUE to match reconciled lines; FALSE to match unreconciled ones.
+ */
 
-/* Finding transactions */
-
-void find_next_reconcile_line (struct file_block *file, int set);
-
-int find_first_blank_line (struct file_block *file);
+void transact_find_next_reconcile_line(struct file_block *file, osbool set);
 
 
+/**
+ * Find and return the line number of the first blank line in a file, based on
+ * display order.
+ *
+ * \param *file			The file to search.
+ * \return			The first blank display line.
+ */
 
-
-
-
+int transact_find_first_blank_line(struct file_block *file);
 
 
 /**

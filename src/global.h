@@ -78,9 +78,6 @@
 #define TRANSACT_COLUMNS 11
 #define TRANSACT_TOOLBAR_HEIGHT 132
 
-#define MIN_TRANSACT_ENTRIES 10
-#define MIN_TRANSACT_BLANK_LINES 1
-
 #define TRANSACTION_WINDOW_OPEN_OFFSET 48
 #define TRANSACTION_WINDOW_OFFSET_LIMIT 8
 
@@ -149,6 +146,7 @@ typedef int		tran_t;							/**< A transaction number.					*/
  */
 
 struct transact;
+struct transact_window;
 struct account;
 struct sorder;
 struct sorder_window;
@@ -199,32 +197,6 @@ struct account_window {
 	struct account_redraw	*line_data;					/* Pointer to array of line data for the redraw */
 };
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Transaction window data struct */
-
-struct transaction_window {
-	struct file_block	*file;						/**< The file to which the window belongs.			*/
-
-	/* Transactcion window handle and title details. */
-
-	wimp_w			transaction_window;				/**< Window handle of the transaction window */
-	char			window_title[256];
-	wimp_w			transaction_pane;				/**< Window handle of the transaction window toolbar pane */
-
-	/* Display column details. */
-
-	int			column_width[TRANSACT_COLUMNS];			/**< Array holding the column widths in the transaction window. */
-	int			column_position[TRANSACT_COLUMNS];		/**< Array holding the column X-offsets in the transact window. */
-
-	/* Other window information. */
-
-	int			display_lines;					/**< How many lines the current work area is formatted to display. */
-	int			entry_line;					/**< The line currently marked for data entry, in terms of window lines. */
-	enum sort_type		sort_order;					/**< The order in which the window is sorted. */
-
-	char			sort_sprite[12];				/**< Space for the sort icon's indirected data. */
-};
 
 
 
@@ -243,7 +215,7 @@ struct file_block
 
 	/* Details of the attached windows. */
 
-	struct transaction_window	transaction_window;			/**< Structure holding transaction window information.		*/
+	struct transact_window		*transaction_window;			/**< Structure holding transaction window information.		*/
 	struct account_window		account_windows[ACCOUNT_WINDOWS];	/**< Array holding account window information.			*/
 	struct sorder_window		*sorder_window;				/**< Data relating to the standing order module.		*/
 	struct preset_window		*preset_window;				/**< Data relating to the preset module.			*/

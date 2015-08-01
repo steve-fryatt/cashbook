@@ -367,8 +367,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	/* Find the position to open the window at. */
 
-	parent.w = file->transaction_window.transaction_pane;
-	wimp_get_window_state(&parent);
+	transact_get_window_state(file, &parent);
 
 	set_initial_window_area(accview_window_def,
 			view->column_position[ACCVIEW_COLUMNS-1] +
@@ -595,7 +594,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 		transact_place_caret(file, transact_get_line_from_transaction(file, transaction), trans_col[column]);
 
 		if (pointer->buttons == wimp_DOUBLE_ADJUST)
-			windows_open(file->transaction_window.transaction_window);
+			transact_bring_window_to_top(file);
 	} else if (column == ACCVIEW_COLUMN_RECONCILE && pointer->buttons == wimp_SINGLE_ADJUST) {
 		/* Handle adjust-clicks in the reconcile column, to toggle the status. */
 
@@ -641,7 +640,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
 		case ACCVIEW_PANE_PARENT:
-			windows_open(file->transaction_window.transaction_window);
+			transact_bring_window_to_top(windat->file);
 			break;
 
 		case ACCVIEW_PANE_PRINT:

@@ -435,8 +435,7 @@ void sorder_open_window(struct file_block *file)
 
 	height =  (file->sorder_count > MIN_SORDER_ENTRIES) ? file->sorder_count : MIN_SORDER_ENTRIES;
 
-	parent.w = file->transaction_window.transaction_pane;
-	wimp_get_window_state(&parent);
+	transact_get_window_state(file, &parent);
 
 	set_initial_window_area (sorder_window_def,
 			file->sorder_window->column_position[SORDER_COLUMNS-1] +
@@ -652,7 +651,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
 		case SORDER_PANE_PARENT:
-			windows_open(file->transaction_window.transaction_window);
+			transact_bring_window_to_top(windat->file);
 			break;
 
 		case SORDER_PANE_PRINT:
@@ -1211,6 +1210,9 @@ static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
 static void sorder_adjust_sort_icon(struct sorder_window *windat)
 {
 	wimp_icon_state		icon;
+
+	if (windat == NULL)
+		return;
 
 	icon.w = windat->sorder_pane;
 	icon.i = SORDER_PANE_SORT_DIR_ICON;
@@ -2487,7 +2489,6 @@ void sorder_process(struct file_block *file)
 			transact_sort(file);
 		} else {
 			transact_force_window_redraw(file, 0, file->trans_count - 1);
-			edit_refresh_line_content(file->transaction_window.transaction_window, -1, -1);
 		}
 
 		if (config_opt_read("AutoSortSOrders"))
@@ -2837,7 +2838,7 @@ static osbool sorder_save_csv(char *filename, osbool selection, void *data)
 {
 	struct sorder_window *windat = data;
 	
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL)
 		return FALSE;
 
 	sorder_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
@@ -2858,7 +2859,7 @@ static osbool sorder_save_tsv(char *filename, osbool selection, void *data)
 {
 	struct sorder_window *windat = data;
 	
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL)
 		return FALSE;
 		
 	sorder_export_delimited(windat, filename, DELIMIT_TAB, TSV_FILE_TYPE);

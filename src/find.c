@@ -701,9 +701,7 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 
 	transact_place_caret(find_window_owner->file, line, icon);
 
-	// \TODO -- There needs to be a proper interface to get the column heading name!
-
-	icons_copy_text(find_window_owner->file->transaction_window.transaction_pane, column_get_group(TRANSACT_PANE_COL_MAP, icon), buf1);
+	transact_get_column_name(find_window_owner->file, icon, buf1, sizeof(buf1));
 	snprintf(buf2, sizeof(buf2), "%d", line);
 
 	msgs_param_lookup("Found", icons_get_indirected_text_addr(find_result_window, FOUND_ICON_INFO), 64, buf1, buf2, NULL, NULL);

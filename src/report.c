@@ -77,6 +77,7 @@
 #include "printing.h"
 #include "saveas.h"
 #include "templates.h"
+#include "transact.h"
 #include "window.h"
 
 
@@ -378,8 +379,7 @@ void report_close(struct report *report)
 
 	/* Position the window and open it. */
 
-	parent.w = file->transaction_window.transaction_pane;
-	wimp_get_window_state(&parent);
+	transact_get_window_state(file, &parent);
 
 	report->height = report->lines * linespace + REPORT_BOTTOM_MARGIN;
 

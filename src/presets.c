@@ -1708,7 +1708,8 @@ static osbool preset_process_edit_window(void)
 
 	/* Test that the preset has been given a name, and reject the data if not. */
 
-	string_ctrl_strcpy(copyname,icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_NAME));
+	string_ctrl_strncpy(copyname, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_NAME), PRESET_NAME_LEN);
+	copyname[PRESET_NAME_LEN - 1] = '\0';
 
 	if (*string_strip_surrounding_whitespace(copyname) == '\0') {
 		error_msgs_report_error("NoPresetName");
@@ -1931,17 +1932,17 @@ static void preset_print(osbool text, osbool format, osbool scale, osbool rotate
 	/* Output the headings line, taking the text from the window icons. */
 
 	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_KEY, numbuf1));
+	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_KEY, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_NAME, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_NAME, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_FROM, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_FROM, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_TO, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_TO, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_AMOUNT, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_AMOUNT, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_DESCRIPTION, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->preset_pane, PRESET_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
 
 	report_write_line(report, 0, line);
@@ -2679,17 +2680,17 @@ static void preset_export_delimited(struct preset_window *windat, char *filename
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(windat->preset_pane, PRESET_PANE_KEY, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_KEY, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_NAME, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_NAME, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_FROM, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_FROM, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_TO, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_TO, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_AMOUNT, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_AMOUNT, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_DESCRIPTION, buffer);
+	icons_copy_text(windat->preset_pane, PRESET_PANE_DESCRIPTION, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the preset data as a set of delimited lines. */

@@ -2900,15 +2900,15 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 	/* Output the headings line, taking the text from the window icons. */
 
 	*line = '\0';
-	snprintf(buffer, sizeof(buffer), "\\k\\b\\u%s\\t\\s\\t", icons_copy_text(window->account_pane, 0, numbuf1));
+	snprintf(buffer, sizeof(buffer), "\\k\\b\\u%s\\t\\s\\t", icons_copy_text(window->account_pane, 0, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s\\t", icons_copy_text(window->account_pane, 1, numbuf1));
+	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s\\t", icons_copy_text(window->account_pane, 1, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s\\t", icons_copy_text(window->account_pane, 2, numbuf1));
+	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s\\t", icons_copy_text(window->account_pane, 2, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s\\t", icons_copy_text(window->account_pane, 3, numbuf1));
+	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s\\t", icons_copy_text(window->account_pane, 3, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s", icons_copy_text(window->account_pane, 4, numbuf1));
+	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s", icons_copy_text(window->account_pane, 4, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
 
 	report_write_line(report, 0, line);
@@ -2968,7 +2968,7 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 
 	/* Output the grand total line, taking the text from the window icons. */
 
-	icons_copy_text(window->account_footer, 0, buffer);
+	icons_copy_text(window->account_footer, 0, buffer, sizeof(buffer));
 	snprintf(line, sizeof(line), "\\k\\u%s\\t\\s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s", buffer,
 			window->footer_icon[0], window->footer_icon[1], window->footer_icon[2], window->footer_icon[3]);
 	report_write_line(report, 0, line);
@@ -4687,15 +4687,15 @@ static void account_export_delimited(struct file_block *file, int entry, char *f
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(window->account_pane, 0, buffer);
+	icons_copy_text(window->account_pane, 0, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(window->account_pane, 1, buffer);
+	icons_copy_text(window->account_pane, 1, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(window->account_pane, 2, buffer);
+	icons_copy_text(window->account_pane, 2, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(window->account_pane, 3, buffer);
+	icons_copy_text(window->account_pane, 3, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(window->account_pane, 4, buffer);
+	icons_copy_text(window->account_pane, 4, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the transaction data as a set of delimited lines. */
@@ -4763,7 +4763,7 @@ static void account_export_delimited(struct file_block *file, int entry, char *f
 
 	/* Output the grand total line, taking the text from the window icons. */
 
-	icons_copy_text(window->account_footer, 0, buffer);
+	icons_copy_text(window->account_footer, 0, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	filing_output_delimited_field(out, window->footer_icon[0], format, DELIMIT_NUM);
 	filing_output_delimited_field(out, window->footer_icon[1], format, DELIMIT_NUM);

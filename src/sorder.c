@@ -2090,17 +2090,17 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 	/* Output the headings line, taking the text from the window icons. */
 
 	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_FROM, numbuf1));
+	sprintf(buffer, "\\k\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_FROM, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_TO, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_TO, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_AMOUNT, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_AMOUNT, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_DESCRIPTION, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_NEXTDATE, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_NEXTDATE, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s", icons_copy_text(window->sorder_pane, SORDER_PANE_LEFT, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s", icons_copy_text(window->sorder_pane, SORDER_PANE_LEFT, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
 
 	report_write_line(report, 0, line);
@@ -2894,17 +2894,17 @@ static void sorder_export_delimited(struct sorder_window *windat, char *filename
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_FROM, buffer);
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_FROM, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_TO, buffer);
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_TO, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_AMOUNT, buffer);
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_AMOUNT, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_DESCRIPTION, buffer);
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_DESCRIPTION, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_NEXTDATE, buffer);
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_NEXTDATE, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_LEFT, buffer);
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_LEFT, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the standing order data as a set of delimited lines. */

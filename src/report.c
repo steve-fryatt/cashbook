@@ -101,6 +101,10 @@
 #define REPVIEW_MENU_PRINT 4
 #define REPVIEW_MENU_TEMPLATE 5
 
+/* Report export details */
+
+#define REPORT_EXPORT_LINE_LENGTH 256
+
 enum report_page_area {
 	REPORT_PAGE_NONE   = 0,
 	REPORT_PAGE_BODY   = 1,
@@ -727,7 +731,7 @@ static int report_reflow_content(struct report *report)
 
 			/* ASCII text column width. */
 
-			t_width[tab] = string_ctrl_strlen (column);
+			t_width[tab] = string_ctrl_strlen(column);
 
 			/* If the column is indented, add the indent to the column widths. */
 
@@ -1520,7 +1524,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 {
 	FILE	*out;
 	int	i, j, bar, tab, indent, width, overrun, escape;
-	char	*column, *flags, buffer[256];
+	char	*column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
 
 
 	out = fopen(filename, "w");
@@ -1542,7 +1546,8 @@ static void report_export_text(struct report *report, char *filename, osbool for
 		do {
 			flags = column;
 			column += REPORT_FLAG_BYTES;
-			string_ctrl_strcpy(buffer, column);
+			string_ctrl_strncpy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
+			buffer[REPORT_EXPORT_LINE_LENGTH - 1] = '\0';
 
 			escape = (*flags & REPORT_FLAG_BOLD) ? 0x01 : 0x00;
 			if (*flags & REPORT_FLAG_UNDER)
@@ -1638,7 +1643,7 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 {
 	FILE	*out;
 	int	i, tab, delimit;
-	char	*column, *flags, buffer[256];
+	char	*column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
 
 	out = fopen(filename, "w");
 
@@ -1658,7 +1663,8 @@ static void report_export_delimited(struct report *report, char *filename, enum 
       {
 		flags = column;
 		column += REPORT_FLAG_BYTES;
-		string_ctrl_strcpy(buffer, column);
+		string_ctrl_strncpy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
+		buffer[REPORT_EXPORT_LINE_LENGTH - 1] = '\0';
 
 		/* Find the next field. */
 

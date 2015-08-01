@@ -1841,7 +1841,7 @@ char *transact_get_column_name(struct file_block *file, wimp_i icon, char *buffe
 		return buffer;
 	}
 
-	icons_copy_text(file->transaction_window->transaction_pane, column_get_group(TRANSACT_PANE_COL_MAP, icon), buffer);
+	icons_copy_text(file->transaction_window->transaction_pane, column_get_group(TRANSACT_PANE_COL_MAP, icon), buffer, len);
 
 	return buffer;
 }
@@ -3532,19 +3532,19 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 	/* Output the headings line, taking the text from the window icons. */
 
 	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_ROW, numbuf1));
+	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_ROW, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_DATE, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_DATE, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_FROM, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_FROM, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_TO, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_TO, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_REFERENCE, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_REFERENCE, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\r\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_AMOUNT, numbuf1));
+	sprintf(buffer, "\\b\\r\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_AMOUNT, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_DESCRIPTION, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->transaction_pane, TRANSACT_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
 
 	report_write_line(report, 0, line);
@@ -3861,19 +3861,19 @@ static void transact_export_delimited(struct transact_window *windat, char *file
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_ROW, buffer);
+	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_ROW, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_DATE, buffer);
+	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_DATE, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_FROM, buffer);
+	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_FROM, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_TO, buffer);
+	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_TO, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_REFERENCE, buffer);
+	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_REFERENCE, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_AMOUNT, buffer);
+	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_AMOUNT, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_DESCRIPTION, buffer);
+	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_DESCRIPTION, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the transaction data as a set of delimited lines. */
@@ -3881,7 +3881,7 @@ static void transact_export_delimited(struct transact_window *windat, char *file
 	for (i=0; i < windat->file->trans_count; i++) {
 		t = windat->file->transactions[i].sort_index;
 
-		snprintf(buffer, 256, "%d", transact_get_transaction_number(t));
+		snprintf(buffer, sizeof(buffer), "%d", transact_get_transaction_number(t));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		date_convert_to_string(windat->file->transactions[t].date, buffer, sizeof(buffer));

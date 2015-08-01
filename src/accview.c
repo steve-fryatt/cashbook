@@ -1685,21 +1685,21 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 	/* Output the headings line, taking the text from the window icons. */
 
 	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_ROW, numbuf1));
+	sprintf(buffer, "\\k\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_ROW, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_DATE, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_DATE, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_FROMTO, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_FROMTO, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_REFERENCE, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_REFERENCE, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_PAYMENTS, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_PAYMENTS, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_RECEIPTS, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_RECEIPTS, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_BALANCE, numbuf1));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_BALANCE, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_DESCRIPTION, numbuf1));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
 
 	report_write_line(report, 0, line);
@@ -2452,21 +2452,21 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 
 		/* Output the headings line, taking the text from the window icons. */
 
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_ROW, buffer);
+		icons_copy_text(view->accview_pane, ACCVIEW_PANE_ROW, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_DATE, buffer);
+		icons_copy_text(view->accview_pane, ACCVIEW_PANE_DATE, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_FROMTO, buffer);
+		icons_copy_text(view->accview_pane, ACCVIEW_PANE_FROMTO, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_REFERENCE, buffer);
+		icons_copy_text(view->accview_pane, ACCVIEW_PANE_REFERENCE, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_PAYMENTS, buffer);
+		icons_copy_text(view->accview_pane, ACCVIEW_PANE_PAYMENTS, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_RECEIPTS, buffer);
+		icons_copy_text(view->accview_pane, ACCVIEW_PANE_RECEIPTS, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_BALANCE, buffer);
+		icons_copy_text(view->accview_pane, ACCVIEW_PANE_BALANCE, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_DESCRIPTION, buffer);
+		icons_copy_text(view->accview_pane, ACCVIEW_PANE_DESCRIPTION, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 		/* Output the transaction data as a set of delimited lines. */

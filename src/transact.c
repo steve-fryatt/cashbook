@@ -3779,7 +3779,7 @@ static void transact_start_direct_save(struct transact_window *windat)
 
 static osbool transact_save_file(char *filename, osbool selection, void *data)
 {
-	struct account_window *windat = data;
+	struct transact_window *windat = data;
 
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;

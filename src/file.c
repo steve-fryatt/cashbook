@@ -125,7 +125,6 @@ void file_initialise(void)
 struct file_block *build_new_file_block(void)
 {
 	struct file_block	*new;
-	int			i;
 
 	/* Claim the memory required for the file descriptor block. */
 
@@ -139,9 +138,6 @@ struct file_block *build_new_file_block(void)
 	 * successfully claimed later on.
 	 */
 
-	for (i = 0; i < ACCOUNT_WINDOWS; i++)
-		new->account_windows[i].line_data = NULL;
-
 	new->transactions = NULL;
 	new->accounts = NULL;
 	new->sorders = NULL;
@@ -149,6 +145,7 @@ struct file_block *build_new_file_block(void)
 	new->saved_reports = NULL;
 
 	new->transaction_window = NULL;
+	new->accountz = NULL;
 	new->sorder_window = NULL;
 	new->preset_window = NULL;
 
@@ -255,49 +252,15 @@ struct file_block *build_new_file_block(void)
 		return NULL;
 	}
 
-  /* Initialise the account and heading windows. */
+	/* Set up the accounts window. */
 
-  for (i=0; i<ACCOUNT_WINDOWS; i++)
-  {
-    new->account_windows[i].file = new;
-    new->account_windows[i].entry = i;
+	new->accountz = account_create_instance(new);
+	if (new->accountz == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
 
-    new->account_windows[i].account_window = NULL;
-    new->account_windows[i].account_pane = NULL;
-    new->account_windows[i].account_footer = NULL;
-
-	column_init_window(new->account_windows[i].column_width, new->account_windows[i].column_position,
-			ACCOUNT_COLUMNS, 0, FALSE, config_str_read("AccountCols"));
-
-    /* Blank out the footer icons. */
-
-    *new->account_windows[i].footer_icon[0] = '\0';
-    *new->account_windows[i].footer_icon[1] = '\0';
-    *new->account_windows[i].footer_icon[2] = '\0';
-    *new->account_windows[i].footer_icon[3] = '\0';
-
-    /* Set the individual windows to the type of account they will hold. */
-
-    switch (i)
-    {
-      case 0:
-        new->account_windows[i].type = ACCOUNT_FULL;
-        break;
-
-      case 1:
-        new->account_windows[i].type = ACCOUNT_IN;
-        break;
-
-      case 2:
-        new->account_windows[i].type = ACCOUNT_OUT;
-        break;
-    }
-
-    /* Set the initial lines up */
-
-    new->account_windows[i].display_lines = 0;
-    flex_alloc ((flex_ptr) &(new->account_windows[i].line_data), 4); /* Set up to an initial dummy amount. */
-  }
 
   /* Initialise the account view window. */
 
@@ -423,39 +386,14 @@ void delete_file(struct file_block *file)
 	if (file->transaction_window != NULL)
 		transact_delete_instance(file->transaction_window);
 
+	if (file->accountz != NULL)
+		account_delete_instance(file->accountz);
+
 	if (file->sorder_window != NULL)
 		sorder_delete_instance(file->sorder_window);
 
 	if (file->preset_window != NULL)
 		preset_delete_instance(file->preset_window);
-
-	/* Step through the account list windows. */
-
-	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
-		if (file->account_windows[i].line_data != NULL)
-			flex_free((flex_ptr) &(file->account_windows[i].line_data));
-
-		if (file->account_windows[i].account_window != NULL)
-			wimp_delete_window(file->account_windows[i].account_window);
-
-		if (file->account_windows[i].account_pane != NULL)
-			wimp_delete_window(file->account_windows[i].account_pane);
-
-		if (file->account_windows[i].account_footer != NULL)
-			wimp_delete_window(file->account_windows[i].account_footer);
-	}
-
-	/* Step through the accounts and their account view windows. */
-
-	for (i = 0; i < file->account_count; i++) {
-		if (account_get_accview(file, i) != NULL) {
-#ifdef DEBUG
-			debug_printf("Account %d has a view to delete.", i);
-#endif
-
-			accview_delete_window(file, i);
-		}
-	}
 
 	/* Delete any reports that are open. */
 
@@ -464,7 +402,6 @@ void delete_file(struct file_block *file)
 
 	/* Do the same for any file-related dialogues that are open. */
 
-	account_force_windows_closed(file);
 	report_force_windows_closed(file);
 	printing_force_windows_closed(file);
 	analysis_force_windows_closed(file);
@@ -500,6 +437,20 @@ void delete_file(struct file_block *file)
 		analysis_delete_transaction(file->trans_rep);
 	if (file->unrec_rep != NULL)
 		analysis_delete_unreconciled(file->unrec_rep);
+
+
+	/* Step through the accounts and their account view windows. */
+
+	for (i = 0; i < file->account_count; i++) {
+		if (account_get_accview(file, i) != NULL) {
+#ifdef DEBUG
+			debug_printf("Account %d has a view to delete.", i);
+#endif
+
+			accview_delete_window(file, i);
+		}
+	}
+
 
 	if (file->transactions != NULL)
 		flex_free((flex_ptr) &(file->transactions));
@@ -748,16 +699,13 @@ void file_redraw_all(void)
 
 void file_redraw_windows(struct file_block *file)
 {
-	int	i;
-
 	/* Redraw the transaction window. */
 
 	transact_force_window_redraw(file, 0, file->trans_count);
 
 	/* Redraw the account list windows. */
 
-	for (i = 0; i < ACCOUNT_WINDOWS; i++)
-		account_force_window_redraw(file, i, 0, file->account_windows[i].display_lines);
+	account_redraw_all(file);
 
 	/* Redraw the account view windows. */
 

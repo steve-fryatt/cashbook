@@ -90,6 +90,19 @@
 #define SECTION_EDIT_FOOTER 6
 
 /**
+ * Account types
+ *
+ * (bitwise allocation, to allow oring of values)
+ */
+
+enum account_type {
+	ACCOUNT_NULL = 0x0000,							/**< Unset account type.				*/
+	ACCOUNT_FULL = 0x0001,							/**< Bank account type.					*/
+	ACCOUNT_IN   = 0x0100,							/**< Income enabled analysis header.			*/
+	ACCOUNT_OUT  = 0x0200							/**< Outgoing enabled analysis header.			*/
+};
+
+/**
  * Account window line types
  */
 
@@ -119,6 +132,25 @@ void account_initialise(osspriteop_area *sprites);
 
 
 /**
+ * Create a new Account window instance.
+ *
+ * \param *file			The file to attach the instance to.
+ * \return			The instance handle, or NULL on failure.
+ */
+
+struct account_block *account_create_instance(struct file_block *file);
+
+
+/**
+ * Delete an Account window instance, and all of its data.
+ *
+ * \param *block		The instance to be deleted.
+ */
+
+void account_delete_instance(struct account_block *block);
+
+
+/**
  * Create and open an Accounts window for the given file and account type.
  *
  * \param *file			The file to open a window for.
@@ -137,6 +169,15 @@ void account_open_window(struct file_block *file, enum account_type type);
  */
 
 void account_build_window_title(struct file_block *file, int entry);
+
+
+/**
+ * Force the complete redraw of all the account windows.
+ *
+ * \param *file			The file owning the windows to redraw.
+ */
+
+void account_redraw_all(struct file_block *file);
 
 
 /**
@@ -249,16 +290,6 @@ acct_t account_complete_menu_decode(wimp_selection *selection);
  */
 
 void account_open_edit_window(struct file_block *file, acct_t account, enum account_type type, wimp_pointer *ptr);
-
-
-/**
- * Force the closure of the Account, Heading and Section Edit windows if the
- * owning file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void account_force_windows_closed(struct file_block *file);
 
 
 /**

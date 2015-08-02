@@ -104,17 +104,6 @@
 #define ACCVIEW_TOOLBAR_HEIGHT 132
 #define MIN_ACCVIEW_ENTRIES 10
 
-
-/* Account types (bitwise allocation, to allow oring of values) */
-
-enum account_type {
-	ACCOUNT_NULL = 0x0000,							/**< Unset account type.				*/
-	ACCOUNT_FULL = 0x0001,							/**< Bank account type.					*/
-	ACCOUNT_IN   = 0x0100,							/**< Income enabled analysis header.			*/
-	ACCOUNT_OUT  = 0x0200							/**< Outgoing enabled analysis header.			*/
-};
-
-
 /* Report details. */
 
 #define REPORT_TAB_STOPS 20
@@ -148,6 +137,7 @@ typedef int		tran_t;							/**< A transaction number.					*/
 struct transact;
 struct transact_window;
 struct account;
+struct account_block;
 struct sorder;
 struct sorder_window;
 struct preset;
@@ -166,38 +156,6 @@ struct balance_rep;
 struct accview_window;
 struct account_redraw;
 
-/* ==================================================================================================================
- * Window data structures
- */
-
-/* Account window data struct */
-
-struct account_window {
-	struct file_block	*file;						/**< The file owning the block (for reverse lookup).		*/
-	int			entry;						/**< The array index of the block (for reverse lookup).		*/
-
-	/* Account window handle and title details. */
-
-	wimp_w			account_window;					/* Window handle of the account window */
-	char			window_title[256];
-	wimp_w			account_pane;					/* Window handle of the account window toolbar pane */
-	wimp_w			account_footer;					/* Window handle of the account window footer pane */
-	char			footer_icon[ACCOUNT_COLUMNS-2][AMOUNT_FIELD_LEN]; /* Indirected blocks for footer icons. */
-
-	/* Display column details. */
-
-	int			column_width[ACCOUNT_COLUMNS];			/* Array holding the column widths in the account window. */
-	int			column_position[ACCOUNT_COLUMNS];		/* Array holding the column X-offsets in the acct window */
-
-	/* Data parameters */
-
-	enum account_type	type;						/* Type of accounts contained within the window */
-
-	int			display_lines;					/* Count of the lines in the window */
-	struct account_redraw	*line_data;					/* Pointer to array of line data for the redraw */
-};
-
-
 
 
 /* ==================================================================================================================
@@ -215,10 +173,12 @@ struct file_block
 
 	/* Details of the attached windows. */
 
-	struct transact_window		*transaction_window;			/**< Structure holding transaction window information.		*/
-	struct account_window		account_windows[ACCOUNT_WINDOWS];	/**< Array holding account window information.			*/
+	struct transact_window		*transaction_window;			/**< Data relating to the transaction module.			*/
+	struct account_block		*accountz;				/**< Data relating to the account module.			*/
 	struct sorder_window		*sorder_window;				/**< Data relating to the standing order module.		*/
 	struct preset_window		*preset_window;				/**< Data relating to the preset module.			*/
+
+	// \TODO -- accountz can be renamed accounts once the struct account block is insize accountz itself.
 
   /* Default display details for the accview windows. */
 

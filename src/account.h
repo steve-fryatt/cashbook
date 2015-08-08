@@ -181,19 +181,6 @@ void account_redraw_all(struct file_block *file);
 
 
 /**
- * Force a redraw of the Account List window, for the given range of
- * lines.
- *
- * \param *file			The file owning the window.
- * \param entry			The account list window to be redrawn.
- * \param from			The first line to redraw, inclusive.
- * \param to			The last line to redraw, inclusive.
- */
-
-void account_force_window_redraw(struct file_block *file, int entry, int from, int to);
-
-
-/**
  * Build an Account List menu for a file, and return the pointer.  This is a
  * list of Full Accounts, used for opening a Account List view.
  *

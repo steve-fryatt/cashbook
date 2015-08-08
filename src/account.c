@@ -287,6 +287,7 @@ static void			account_window_scroll_handler(wimp_scroll *scroll);
 static void			account_window_redraw_handler(wimp_draw *redraw);
 static void			account_adjust_window_columns(void *data, wimp_i icon, int width);
 static void			account_set_window_extent(struct file_block *file, int entry);
+static void			account_force_window_redraw(struct file_block *file, int entry, int from, int to);
 static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
@@ -1576,7 +1577,7 @@ void account_redraw_all(struct file_block *file)
  * \param to			The last line to redraw, inclusive.
  */
 
-void account_force_window_redraw(struct file_block *file, int entry, int from, int to)
+static void account_force_window_redraw(struct file_block *file, int entry, int from, int to)
 {
 	int			y0, y1;
 	wimp_window_info	window;

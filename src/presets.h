@@ -33,6 +33,10 @@
 #include "currency.h"
 #include "filing.h"
 
+/* A preset number. */
+
+typedef int preset_t;
+
 /* Caret end locations */
 
 enum preset_caret {
@@ -91,14 +95,12 @@ void preset_build_window_title(struct file_block *file);
 
 
 /**
- * Force a redraw of the Preset list window, for the given range of lines.
+ * Force the complete redraw of the Preset list window.
  *
- * \param *file			The file owning the window.
- * \param from			The first line to redraw, inclusive.
- * \param to			The last line to redraw, inclusive.
+ * \param *file			The file owning the window to redraw.
  */
 
-void preset_force_window_redraw(struct file_block *file, int from, int to);
+void preset_redraw_all(struct file_block *file);
 
 
 /**
@@ -170,6 +172,16 @@ int preset_find_from_keypress(struct file_block *file, char key);
  */
 
 enum preset_caret preset_get_caret_destination(struct file_block *file, int preset);
+
+
+/**
+ * Find the number of presets in a file.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The number of presets in the file.
+ */
+
+int preset_get_count(struct file_block *file);
 
 
 /**

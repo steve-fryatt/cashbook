@@ -191,7 +191,6 @@ struct file_block
   int                account_count;      /* The number of accounts defined in the file. */
   int                trans_count;        /* The number of transactions defined in the file. */
   int                sorder_count;       /* The number of standing orders defined in the file. */
-  int                preset_count;       /* The number of presets defined in the file. */
 
   /* Account, transaction, standing order and preset data structures (pointers which become arrays). */
 

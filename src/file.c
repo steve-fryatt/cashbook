@@ -301,7 +301,6 @@ struct file_block *build_new_file_block(void)
   new->trans_count = 0;
   new->account_count = 0;
   new->sorder_count = 0;
-  new->preset_count = 0;
   new->saved_report_count = 0;
 
   new->last_full_recalc = NULL_DATE;
@@ -717,7 +716,7 @@ void file_redraw_windows(struct file_block *file)
 
 	/* Redraw the preset window. */
 
-	preset_force_window_redraw(file, 0, file->preset_count);
+	preset_redraw_all(file);
 
 	/* Redraw the report windows. */
 

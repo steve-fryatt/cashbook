@@ -1072,13 +1072,13 @@ void edit_change_transaction_account(struct file_block *file, int transaction, w
  * \param preset	The preset to insert into the transaction.
  */
 
-void edit_insert_preset_into_transaction(struct file_block *file, int transaction, int preset)
+void edit_insert_preset_into_transaction(struct file_block *file, tran_t transaction, preset_t preset)
 {
 	int		line;
 	unsigned	changed = 0;
 
 
-	if (file == NULL || file->transaction_window == NULL || transaction >= file->trans_count || preset == NULL_PRESET || preset >= file->preset_count)
+	if (file == NULL || file->transaction_window == NULL || transaction >= file->trans_count || preset == NULL_PRESET || preset >= preset_get_count(file))
 		return;  
   
 	account_remove_transaction(file, transaction);
@@ -1137,11 +1137,11 @@ void edit_insert_preset_into_transaction(struct file_block *file, int transactio
  * \return		A bitfield showing which icons have been edited.
  */
 
-static unsigned edit_raw_insert_preset_into_transaction(struct file_block *file, int transaction, int preset)
+static unsigned edit_raw_insert_preset_into_transaction(struct file_block *file, tran_t transaction, preset_t preset)
 {
 	unsigned	changed = 0;
 
-	if (transaction < file->trans_count && preset != NULL_PRESET && preset < file->preset_count)
+	if (transaction < file->trans_count && preset != NULL_PRESET && preset < preset_get_count(file))
 		changed = preset_apply(file, preset, &(file->transactions[transaction].date),
 				&(file->transactions[transaction].from),
 				&(file->transactions[transaction].to),

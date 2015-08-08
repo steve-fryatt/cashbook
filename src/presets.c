@@ -201,24 +201,28 @@ struct preset {
  */
 
 struct preset_window {
-	struct file_block	*file;						/**< The file to which the window belongs.			*/
+	struct file_block	*file;						/**< The file to which the window belongs.				*/
 
 	/* Preset window handle and title details. */
 
-	wimp_w			preset_window;					/**< Window handle of the preset window.			*/
+	wimp_w			preset_window;					/**< Window handle of the preset window.				*/
 	char			window_title[256];
-	wimp_w			preset_pane;					/**< Window handle of the preset window toolbar pane.		*/
+	wimp_w			preset_pane;					/**< Window handle of the preset window toolbar pane.			*/
 
 	/* Display column details. */
 
-	int			column_width[PRESET_COLUMNS];			/**< Array holding the column widths in the transaction window.	*/
-	int			column_position[PRESET_COLUMNS];		/**< Array holding the column X-offsets in the transact window.	*/
+	int			column_width[PRESET_COLUMNS];			/**< Array holding the column widths in the transaction window.		*/
+	int			column_position[PRESET_COLUMNS];		/**< Array holding the column X-offsets in the transact window.		*/
 
 	/* Other window details. */
 
-	enum sort_type		sort_order;					/**< The order in which the window is sorted.			*/
+	enum sort_type		sort_order;					/**< The order in which the window is sorted.				*/
 
-	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.			*/
+	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.				*/
+
+	/* Preset Ddta. */
+
+	int			preset_count;					/**< The number of presets defined in the file.				*/
 };
 
 struct preset_complete_link
@@ -236,7 +240,7 @@ static int			preset_edit_number = -1;			/**< The preset currently being edited.	
 
 /* Preset Sort Window. */
 
-static struct sort_block	*preset_sort_dialogue = NULL;			/**< The preset window sort dialogue box.			*/
+static struct sort_block	*preset_sort_dialogue = NULL;			/**< The preset window sort dialogue box.				*/
 
 static struct sort_icon preset_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
 	{PRESET_SORT_FROM, SORT_FROM},
@@ -291,6 +295,7 @@ static void		preset_adjust_window_columns(void *data, wimp_i icon, int width);
 static void		preset_adjust_sort_icon(struct preset_window *windat);
 static void		preset_adjust_sort_icon_data(struct preset_window *windat, wimp_icon *icon);
 static void		preset_set_window_extent(struct preset_window *windat);
+static void		preset_force_window_redraw(struct file_block *file, int from, int to);
 static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void		preset_edit_click_handler(wimp_pointer *pointer);
@@ -382,6 +387,8 @@ struct preset_window *preset_create_instance(struct file_block *file)
 
 	new->sort_order = SORT_CHAR | SORT_ASCENDING;
 
+	new->preset_count = 0;
+
 	return new;
 }
 
@@ -415,6 +422,9 @@ void preset_open_window(struct file_block *file)
 	wimp_window_state	parent;
 	os_error		*error;
 
+	if (file == NULL || file->preset_window == NULL)
+		return;
+
 	/* Create or re-open the window. */
 
 	if (file->preset_window->preset_window != NULL) {
@@ -433,7 +443,7 @@ void preset_open_window(struct file_block *file)
 	*(file->preset_window->window_title) = '\0';
 	preset_window_def->title_data.indirected_text.text = file->preset_window->window_title;
 
-	height = (file->preset_count > MIN_PRESET_ENTRIES) ? file->preset_count : MIN_PRESET_ENTRIES;
+	height = (file->preset_window->preset_count > MIN_PRESET_ENTRIES) ? file->preset_window->preset_count : MIN_PRESET_ENTRIES;
 
 	transact_get_window_state(file, &parent);
 
@@ -609,7 +619,7 @@ static void preset_window_click_handler(wimp_pointer *pointer)
 
 	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-	if (line < 0 || line >= windat->file->preset_count)
+	if (line < 0 || line >= windat->preset_count)
 		line = -1;
 
 	/* Handle double-clicks, which will open an edit preset window. */
@@ -760,7 +770,7 @@ static void preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 
 			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-			if (line >= 0 && line < windat->file->preset_count)
+			if (line >= 0 && line < windat->preset_count)
 				preset_window_menu_line = line;
 		}
 
@@ -977,7 +987,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
-			t = (y < file->preset_count) ? file->presets[y].sort_index : 0;
+			t = (y < windat->preset_count) ? file->presets[y].sort_index : 0;
 
 			/* Plot out the background with a filled white rectangle. */
 
@@ -994,7 +1004,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
 			preset_window_def->icons[PRESET_ICON_KEY].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
-			if (y < file->preset_count)
+			if (y < windat->preset_count)
 				sprintf(icon_buffer, "%c", file->presets[t].action_key);
 			else
 				*icon_buffer = '\0';
@@ -1006,7 +1016,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
 			preset_window_def->icons[PRESET_ICON_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
-			if (y < file->preset_count) {
+			if (y < windat->preset_count) {
 				preset_window_def->icons[PRESET_ICON_NAME].data.indirected_text.text = file->presets[t].name;
 			} else {
 				preset_window_def->icons[PRESET_ICON_NAME].data.indirected_text.text = icon_buffer;
@@ -1032,7 +1042,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 					PRESET_TOOLBAR_HEIGHT;
 
 
-			if (y < file->preset_count && file->presets[t].from != NULL_ACCOUNT) {
+			if (y < windat->preset_count && file->presets[t].from != NULL_ACCOUNT) {
 				preset_window_def->icons[PRESET_ICON_FROM].data.indirected_text.text = account_get_ident(file, file->presets[t].from);
 				preset_window_def->icons[PRESET_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
 				preset_window_def->icons[PRESET_ICON_FROM_NAME].data.indirected_text.text = account_get_name(file, file->presets[t].from);
@@ -1069,7 +1079,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 			preset_window_def->icons[PRESET_ICON_TO_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 
-			if (y < file->preset_count && file->presets[t].to != NULL_ACCOUNT) {
+			if (y < windat->preset_count && file->presets[t].to != NULL_ACCOUNT) {
 				preset_window_def->icons[PRESET_ICON_TO].data.indirected_text.text = account_get_ident(file, file->presets[t].to);
 				preset_window_def->icons[PRESET_ICON_TO_REC].data.indirected_text.text = icon_buffer;
 				preset_window_def->icons[PRESET_ICON_TO_NAME].data.indirected_text.text = account_get_name(file, file->presets[t].to);
@@ -1095,7 +1105,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
 			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
-			if (y < file->preset_count)
+			if (y < windat->preset_count)
 				currency_convert_to_string(file->presets[t].amount, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
@@ -1107,7 +1117,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
 			preset_window_def->icons[PRESET_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
-			if (y < file->preset_count) {
+			if (y < windat->preset_count) {
 				preset_window_def->icons[PRESET_ICON_DESCRIPTION].data.indirected_text.text = file->presets[t].description;
 			} else {
 				preset_window_def->icons[PRESET_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
@@ -1299,7 +1309,7 @@ static void preset_set_window_extent(struct preset_window *windat)
 
 	/* Get the number of rows to show in the window, and work out the window extent from this. */
 
-	new_lines = (windat->file->preset_count > MIN_PRESET_ENTRIES) ? windat->file->preset_count : MIN_PRESET_ENTRIES;
+	new_lines = (windat->preset_count > MIN_PRESET_ENTRIES) ? windat->preset_count : MIN_PRESET_ENTRIES;
 
 	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_lines) - PRESET_TOOLBAR_HEIGHT;
 
@@ -1367,6 +1377,21 @@ void preset_build_window_title(struct file_block *file)
 
 
 /**
+ * Force the complete redraw of the Preset list window.
+ *
+ * \param *file			The file owning the window to redraw.
+ */
+
+void preset_redraw_all(struct file_block *file)
+{
+	if (file == NULL || file->preset_window == NULL)
+		return;
+
+	preset_force_window_redraw(file, 0, file->preset_window->preset_count - 1);
+}
+
+
+/**
  * Force a redraw of the Preset list window, for the given range of lines.
  *
  * \param *file			The file owning the window.
@@ -1374,7 +1399,7 @@ void preset_build_window_title(struct file_block *file)
  * \param to			The last line to redraw, inclusive.
  */
 
-void preset_force_window_redraw(struct file_block *file, int from, int to)
+static void preset_force_window_redraw(struct file_block *file, int from, int to)
 {
 	int			y0, y1;
 	wimp_window_info	window;
@@ -1949,7 +1974,7 @@ static void preset_print(osbool text, osbool format, osbool scale, osbool rotate
 
 	/* Output the standing order data as a set of delimited lines. */
 
-	for (i=0; i < preset_print_file->preset_count; i++) {
+	for (i=0; i < window->preset_count; i++) {
 		t = preset_print_file->presets[i].sort_index;
 
 		*line = '\0';
@@ -2015,11 +2040,11 @@ wimp_menu *preset_complete_menu_build(struct file_block *file)
 
 	preset_complete_menu_destroy();
 
-	if (file == NULL)
+	if (file == NULL || file->preset_window == NULL)
 		return NULL;
 
-	preset_complete_menu = heap_alloc(28 + 24 * (file->preset_count + 1));
-	preset_complete_menu_link = heap_alloc(sizeof(struct preset_complete_link) * (file->preset_count + 1));
+	preset_complete_menu = heap_alloc(28 + 24 * (file->preset_window->preset_count + 1));
+	preset_complete_menu_link = heap_alloc(sizeof(struct preset_complete_link) * (file->preset_window->preset_count + 1));
 	preset_complete_menu_title = heap_alloc(ACCOUNT_MENU_TITLE_LEN);
 
 	if (preset_complete_menu == NULL || preset_complete_menu_link == NULL || preset_complete_menu_title == NULL) {
@@ -2040,7 +2065,7 @@ wimp_menu *preset_complete_menu_build(struct file_block *file)
 
 	/* Set the menu and icon flags up. */
 
-	preset_complete_menu->entries[line].menu_flags = (file->preset_count > 0) ? wimp_MENU_SEPARATE : 0;
+	preset_complete_menu->entries[line].menu_flags = (file->preset_window->preset_count > 0) ? wimp_MENU_SEPARATE : 0;
 	preset_complete_menu->entries[line].sub_menu = (wimp_menu *) -1;
 	preset_complete_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
 			wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
@@ -2052,8 +2077,8 @@ wimp_menu *preset_complete_menu_build(struct file_block *file)
 	preset_complete_menu->entries[line].data.indirected_text.validation = NULL;
 	preset_complete_menu->entries[line].data.indirected_text.size = PRESET_NAME_LEN;
 
-	if (file->preset_count > 0) {
-		for (i=0; i<file->preset_count; i++) {
+	if (file->preset_window->preset_count > 0) {
+		for (i=0; i<file->preset_window->preset_count; i++) {
 			line++;
 
 			p = file->presets[i].sort_index;
@@ -2163,17 +2188,17 @@ void preset_sort(struct file_block *file)
 	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
 	 */
 
-	gap = file->preset_count - 1;
+	gap = file->preset_window->preset_count - 1;
 
 	order = file->preset_window->sort_order;
 
 	do {
 		gap = (gap > 1) ? (gap * 10 / 13) : 1;
-		if ((file->preset_count >= 12) && (gap == 9 || gap == 10))
+		if ((file->preset_window->preset_count >= 12) && (gap == 9 || gap == 10))
 			gap = 11;
 
 		sorted = TRUE;
-		for (comb = 0; (comb + gap) < file->preset_count; comb++) {
+		for (comb = 0; (comb + gap) < file->preset_window->preset_count; comb++) {
 			switch (order) {
 			case SORT_CHAR | SORT_ASCENDING:
 				reorder = (file->presets[file->presets[comb+gap].sort_index].action_key <
@@ -2250,7 +2275,7 @@ void preset_sort(struct file_block *file)
 		}
 	} while (!sorted || gap != 1);
 
-	preset_force_window_redraw(file, 0, file->preset_count - 1);
+	preset_force_window_redraw(file, 0, file->preset_window->preset_count - 1);
 
 	hourglass_off();
 }
@@ -2267,13 +2292,15 @@ static int preset_add(struct file_block *file)
 {
 	int	new;
 
+	if (file == NULL || file->preset_window == NULL)
+		return NULL_PRESET;
 
-	if (flex_extend((flex_ptr) &(file->presets), sizeof(struct preset) * (file->preset_count+1)) != 1) {
+	if (flex_extend((flex_ptr) &(file->presets), sizeof(struct preset) * (file->preset_window->preset_count+1)) != 1) {
 		error_msgs_report_error("NoMemNewPreset");
 		return NULL_PRESET;
- 	}
+	}
 
-	new = file->preset_count++;
+	new = file->preset_window->preset_count++;
 
 	*file->presets[new].name = '\0';
 	file->presets[new].action_key = 0;
@@ -2314,7 +2341,7 @@ static osbool preset_delete(struct file_block *file, int preset)
 	/* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along
 	 * so that they remain in the correct places. */
 
-	for (i=0; i<file->preset_count && file->presets[i].sort_index != preset; i++);
+	for (i = 0; i < file->preset_window->preset_count && file->presets[i].sort_index != preset; i++);
 
 	if (file->presets[i].sort_index == preset && i != preset) {
 		index = i;
@@ -2330,13 +2357,13 @@ static osbool preset_delete(struct file_block *file, int preset)
 	/* Delete the preset */
 
 	flex_midextend((flex_ptr) &(file->presets), (preset + 1) * sizeof(struct preset), -sizeof(struct preset));
-	file->preset_count--;
+	file->preset_window->preset_count--;
 
 	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
 	 * greater than the deleted entry by one.
 	 */
 
-	for (i=0; i<file->preset_count; i++)
+	for (i = 0; i < file->preset_window->preset_count; i++)
 		if (file->presets[i].sort_index > preset)
 			file->presets[i].sort_index = file->presets[i].sort_index - 1;
 
@@ -2348,9 +2375,9 @@ static osbool preset_delete(struct file_block *file, int preset)
 		windows_open(file->preset_window->preset_window);
 		if (config_opt_read("AutoSortPresets")) {
 			preset_sort(file);
-			preset_force_window_redraw(file, file->preset_count, file->preset_count);
+			preset_force_window_redraw(file, file->preset_window->preset_count, file->preset_window->preset_count);
 		} else {
-			preset_force_window_redraw(file, 0, file->preset_count);
+			preset_force_window_redraw(file, 0, file->preset_window->preset_count);
 		}
 	}
 
@@ -2374,15 +2401,15 @@ int preset_find_from_keypress(struct file_block *file, char key)
 	int	preset = NULL_PRESET;
 
 
-	if (key == '\0')
+	if (file == NULL || file->preset_window == NULL || key == '\0')
 		return preset;
 
 	preset = 0;
 
-	while ((preset < file->preset_count) && (file->presets[preset].action_key != key))
+	while ((preset < file->preset_window->preset_count) && (file->presets[preset].action_key != key))
 		preset++;
 
-	if (preset == file->preset_count)
+	if (preset == file->preset_window->preset_count)
 		preset = NULL_PRESET;
 
 	return preset;
@@ -2399,11 +2426,24 @@ int preset_find_from_keypress(struct file_block *file, char key)
 
 enum preset_caret preset_get_caret_destination(struct file_block *file, int preset)
 {
-	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_count)
+	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_window->preset_count)
 		return 0;
 
 	return file->presets[preset].caret_target;
 
+}
+
+
+/**
+ * Find the number of presets in a file.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The number of presets in the file.
+ */
+
+int preset_get_count(struct file_block *file)
+{
+	return (file != NULL && file->preset_window != NULL) ? file->preset_window->preset_count : 0;
 }
 
 
@@ -2426,7 +2466,7 @@ unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t 
 {
 	unsigned	changed = 0;
 
-	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_count)
+	if (file == NULL || file->preset_window == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_window->preset_count)
 		return changed;
 
 	/* Update the transaction, piece by piece.
@@ -2503,14 +2543,14 @@ void preset_write_file(struct file_block *file, FILE *out)
 
 	fprintf(out, "\n[Presets]\n");
 
-	fprintf(out, "Entries: %x\n", file->preset_count);
+	fprintf(out, "Entries: %x\n", file->preset_window->preset_count);
 
 	column_write_as_text(file->preset_window->column_width, PRESET_COLUMNS, buffer);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
 	fprintf(out, "SortOrder: %x\n", file->preset_window->sort_order);
 
-	for (i = 0; i < file->preset_count; i++) {
+	for (i = 0; i < file->preset_window->preset_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x\n",
 				file->presets[i].action_key, file->presets[i].caret_target,
 				file->presets[i].date, file->presets[i].flags,
@@ -2545,13 +2585,13 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
 			block_size = strtoul (value, NULL, 16);
-			if (block_size > file->preset_count) {
+			if (block_size > file->preset_window->preset_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
 				flex_extend((flex_ptr) &(file->presets), sizeof(struct preset) * block_size);
 			} else {
-				block_size = file->preset_count;
+				block_size = file->preset_window->preset_count;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			column_init_window(file->preset_window->column_width,
@@ -2560,15 +2600,15 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
 			file->preset_window->sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
-			file->preset_count++;
-			if (file->preset_count > block_size) {
-				block_size = file->preset_count;
+			file->preset_window->preset_count++;
+			if (file->preset_window->preset_count > block_size) {
+				block_size = file->preset_window->preset_count;
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
 				flex_extend((flex_ptr) &(file->presets), sizeof(struct preset) * block_size);
 			}
-			i = file->preset_count-1;
+			i = file->preset_window->preset_count - 1;
 			file->presets[i].action_key = strtoul(next_field (value, ','), NULL, 16);
 			file->presets[i].caret_target = strtoul(next_field (NULL, ','), NULL, 16);
 			file->presets[i].date = strtoul(next_field (NULL, ','), NULL, 16);
@@ -2596,11 +2636,11 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 	block_size = flex_size((flex_ptr) &(file->presets)) / sizeof(struct preset);
 
 	#ifdef DEBUG
-	debug_printf("Preset block size: %d, required: %d", block_size, file->preset_count);
+	debug_printf("Preset block size: %d, required: %d", block_size, file->preset_window->preset_count);
 	#endif
 
-	if (block_size > file->preset_count) {
-		block_size = file->preset_count;
+	if (block_size > file->preset_window->preset_count) {
+		block_size = file->preset_window->preset_count;
 		flex_extend((flex_ptr) &(file->presets), sizeof(struct preset) * block_size);
 
 		#ifdef DEBUG
@@ -2695,7 +2735,7 @@ static void preset_export_delimited(struct preset_window *windat, char *filename
 
 	/* Output the preset data as a set of delimited lines. */
 
-	for (i = 0; i < windat->file->preset_count; i++) {
+	for (i = 0; i < windat->preset_count; i++) {
 		t = windat->file->presets[i].sort_index;
 
 		sprintf(buffer, "%c", windat->file->presets[t].action_key);
@@ -2738,7 +2778,10 @@ osbool preset_check_account(struct file_block *file, int account)
 	int		i;
 	osbool		found = FALSE;
 
-	for (i = 0; i < file->preset_count && !found; i++)
+	if (file == NULL || file->preset_window == NULL)
+		return FALSE;
+
+	for (i = 0; i < file->preset_window->preset_count && !found; i++)
 		if (file->presets[i].from == account || file->presets[i].to == account)
 			found = TRUE;
 

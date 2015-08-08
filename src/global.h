@@ -69,7 +69,6 @@
 
 #define NULL_ACCOUNT (-1)
 #define NULL_SORDER ((int) (-1))
-#define NULL_PRESET ((int) (-1))
 #define NULL_TRANSACTION ((int) (-1))
 #define NULL_TEMPLATE ((int) (-1))
 
@@ -140,8 +139,6 @@ struct account;
 struct account_block;
 struct sorder;
 struct sorder_window;
-struct preset;
-struct preset_window;
 struct report;
 struct budget_block;
 struct find_block;
@@ -176,7 +173,7 @@ struct file_block
 	struct transact_window		*transaction_window;			/**< Data relating to the transaction module.			*/
 	struct account_block		*accountz;				/**< Data relating to the account module.			*/
 	struct sorder_window		*sorder_window;				/**< Data relating to the standing order module.		*/
-	struct preset_window		*preset_window;				/**< Data relating to the preset module.			*/
+	struct preset_block		*preset_window;				/**< Data relating to the preset module.			*/
 
 	// \TODO -- accountz can be renamed accounts once the struct account block is insize accountz itself.
 
@@ -197,7 +194,6 @@ struct file_block
   struct account     *accounts;
   struct transaction *transactions;
   struct sorder      *sorders;
-  struct preset      *presets;
 
   /* Recalculation data. */
 

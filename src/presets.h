@@ -37,6 +37,10 @@
 
 typedef int preset_t;
 
+struct preset_block;
+
+#define NULL_PRESET ((preset_t) (-1))
+
 /* Caret end locations */
 
 enum preset_caret {
@@ -64,7 +68,7 @@ void preset_initialise(osspriteop_area *sprites);
  * \return			The instance handle, or NULL on failure.
  */
 
-struct preset_window *preset_create_instance(struct file_block *file);
+struct preset_block *preset_create_instance(struct file_block *file);
 
 
 /**
@@ -73,7 +77,7 @@ struct preset_window *preset_create_instance(struct file_block *file);
  * \param *windat		The instance to be deleted.
  */
 
-void preset_delete_instance(struct preset_window *windat);
+void preset_delete_instance(struct preset_block *windat);
 
 
 /**
@@ -143,12 +147,12 @@ int preset_complete_menu_decode(wimp_selection *selection);
 
 
 /**
- * Sort the presets in a given file based on that file's sort setting.
+ * Sort the presets in a given instance based on that instance's sort setting.
  *
- * \param *file			The file to sort.
+ * \param *windat		The preset window instance to sort.
  */
 
-void preset_sort(struct file_block *file);
+void preset_sort(struct preset_block *windat);
 
 
 /**

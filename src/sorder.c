@@ -804,7 +804,7 @@ static void sorder_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 		break;
 
 	case SORDER_MENU_NEWSORDER:
-		sorder_open_edit_window(windat->file, NULL_PRESET, &pointer);
+		sorder_open_edit_window(windat->file, NULL_SORDER, &pointer);
 		break;
 
 	case SORDER_MENU_PRINT:

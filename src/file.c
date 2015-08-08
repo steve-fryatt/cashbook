@@ -141,7 +141,6 @@ struct file_block *build_new_file_block(void)
 	new->transactions = NULL;
 	new->accounts = NULL;
 	new->sorders = NULL;
-	new->presets = NULL;
 	new->saved_reports = NULL;
 
 	new->transaction_window = NULL;
@@ -312,7 +311,6 @@ struct file_block *build_new_file_block(void)
 	if (flex_alloc((flex_ptr) &(new->transactions), 4) == 0 ||
 			flex_alloc((flex_ptr) &(new->accounts), 4) == 0 ||
 			flex_alloc((flex_ptr) &(new->sorders), 4) == 0 ||
-			flex_alloc((flex_ptr) &(new->presets), 4) == 0 ||
 			flex_alloc((flex_ptr) &(new->saved_reports), 4) == 0) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
@@ -457,8 +455,6 @@ void delete_file(struct file_block *file)
 		flex_free((flex_ptr) &(file->accounts));
 	if (file->sorders != NULL)
 		flex_free((flex_ptr) &(file->sorders));
-	if (file->presets != NULL)
-		flex_free((flex_ptr) &(file->presets));
 	if (file->saved_reports != NULL)
 		flex_free((flex_ptr) &(file->saved_reports));
 

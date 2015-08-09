@@ -302,7 +302,7 @@ static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 static void		preset_edit_click_handler(wimp_pointer *pointer);
 static osbool		preset_edit_keypress_handler(wimp_key *key);
 static void		preset_refresh_edit_window(void);
-static void		preset_fill_edit_window(struct preset_block *windat, int preset);
+static void		preset_fill_edit_window(struct preset_block *windat, preset_t preset);
 static osbool		preset_process_edit_window(void);
 static osbool		preset_delete_from_edit_window(void);
 
@@ -1476,6 +1476,7 @@ static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 void preset_open_edit_window(struct file_block *file, int preset, wimp_pointer *ptr)
 {
 	if (file == NULL || file->preset_window == NULL)
+		return;
 
 	/* If the window is already open, another preset is being edited or created.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
@@ -2352,7 +2353,7 @@ static osbool preset_delete(struct file_block *file, int preset)
 {
 	int	i, index;
 
-	if (file == NULL || file->preset_window == NULL)
+	if (file == NULL || file->preset_window == NULL || preset == NULL_PRESET || preset >= file->preset_window->preset_count)
 		return FALSE;
 
 	/* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along

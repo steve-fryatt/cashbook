@@ -147,8 +147,8 @@ struct unrec_rep;
 struct cashflow_rep;
 struct balance_rep;
 
-struct accview_window;
-struct account_redraw;
+//struct accview_window;
+//struct account_redraw;
 
 
 

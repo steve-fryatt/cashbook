@@ -138,10 +138,9 @@ struct file_block *build_new_file_block(void)
 	 * successfully claimed later on.
 	 */
 
-	new->transactions = NULL;
 	new->saved_reports = NULL;
 
-	new->transaction_window = NULL;
+	new->transacts = NULL;
 	new->accounts = NULL;
 	new->sorders = NULL;
 	new->presets = NULL;
@@ -242,8 +241,8 @@ struct file_block *build_new_file_block(void)
 
 	/* Set up the transaction window. */
 
-	new->transaction_window = transact_create_instance(new);
-	if (new->transaction_window == NULL) {
+	new->transacts = transact_create_instance(new);
+	if (new->transacts == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -303,8 +302,7 @@ struct file_block *build_new_file_block(void)
 	 * prevent flex getting upset.
 	 */
 
-	if (flex_alloc((flex_ptr) &(new->transactions), 4) == 0 ||
-			flex_alloc((flex_ptr) &(new->saved_reports), 4) == 0) {
+	if (flex_alloc((flex_ptr) &(new->saved_reports), 4) == 0) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -373,8 +371,8 @@ void delete_file(struct file_block *file)
 
 	/* Delete the windows. */
 
-	if (file->transaction_window != NULL)
-		transact_delete_instance(file->transaction_window);
+	if (file->transacts != NULL)
+		transact_delete_instance(file->transacts);
 
 	if (file->accounts != NULL)
 		account_delete_instance(file->accounts);
@@ -431,8 +429,7 @@ void delete_file(struct file_block *file)
 
 
 
-	if (file->transactions != NULL)
-		flex_free((flex_ptr) &(file->transactions));
+
 	if (file->saved_reports != NULL)
 		flex_free((flex_ptr) &(file->saved_reports));
 

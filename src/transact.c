@@ -241,7 +241,7 @@ struct transaction {
  * \TODO -- Warning: at present this definition is duplicated in edit.c!
  */
 
-struct transact_window {
+struct transact_block {
 	struct file_block	*file;						/**< The file to which the window belongs.			*/
 
 	/* Transactcion window handle and title details. */
@@ -265,7 +265,8 @@ struct transact_window {
 
 	/* Transaction Data. */
 
-	int			trans_count;					/**< The number of transactions defined in the file. */
+	struct transaction	*transactions;					/**< The transaction data for the defined transactions			*/
+	int			trans_count;					/**< The number of transactions defined in the file.			*/
 
 };
 
@@ -333,7 +334,7 @@ static struct saveas_block	*transact_saveas_csv = NULL;			/**< The Save CSV save
 static struct saveas_block	*transact_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 
-static void			transact_delete_window(struct transact_window *windat);
+static void			transact_delete_window(struct transact_block *windat);
 static void			transact_window_open_handler(wimp_open *open);
 static void			transact_window_close_handler(wimp_close *close);
 static void			transact_window_click_handler(wimp_pointer *pointer);
@@ -347,8 +348,8 @@ static void			transact_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			transact_window_scroll_handler(wimp_scroll *scroll);
 static void			transact_window_redraw_handler(wimp_draw *redraw);
 static void			transact_adjust_window_columns(void *data, wimp_i icon, int width);
-static void			transact_adjust_sort_icon(struct transact_window *windat);
-static void			transact_adjust_sort_icon_data(struct transact_window *windat, wimp_icon *icon);
+static void			transact_adjust_sort_icon(struct transact_block *windat);
+static void			transact_adjust_sort_icon_data(struct transact_block *windat, wimp_icon *icon);
 
 static void			transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
@@ -357,17 +358,17 @@ static int			transact_complete_menu_compare(const void *va, const void *vb);
 
 static osbool			transact_is_blank(struct file_block *file, tran_t transaction);
 
-static void			transact_open_sort_window(struct transact_window *windat, wimp_pointer *ptr);
+static void			transact_open_sort_window(struct transact_block *windat, wimp_pointer *ptr);
 static osbool			transact_process_sort_window(enum sort_type order, void *data);
 
 static void			transact_open_print_window(struct file_block *file, wimp_pointer *ptr, int clear);
 static void			transact_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
 
-static void			transact_start_direct_save(struct transact_window *windat);
+static void			transact_start_direct_save(struct transact_block *windat);
 static osbool			transact_save_file(char *filename, osbool selection, void *data);
 static osbool			transact_save_csv(char *filename, osbool selection, void *data);
 static osbool			transact_save_tsv(char *filename, osbool selection, void *data);
-static void			transact_export_delimited(struct transact_window *windat, char *filename, enum filing_delimit_type format, int filetype);
+static void			transact_export_delimited(struct transact_block *windat, char *filename, enum filing_delimit_type format, int filetype);
 static osbool			transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 static void			transact_prepare_fileinfo(struct file_block *file);
@@ -424,11 +425,11 @@ void transact_initialise(osspriteop_area *sprites)
  * \return			The instance handle, or NULL on failure.
  */
 
-struct transact_window *transact_create_instance(struct file_block *file)
+struct transact_block *transact_create_instance(struct file_block *file)
 {
-	struct transact_window	*new;
+	struct transact_block	*new;
 
-	new = heap_alloc(sizeof(struct transact_window));
+	new = heap_alloc(sizeof(struct transact_block));
 	if (new == NULL)
 		return NULL;
 
@@ -447,6 +448,12 @@ struct transact_window *transact_create_instance(struct file_block *file)
 	/* Initialise the transaction data. */
 
 	new->trans_count = 0;
+	new->transactions = NULL;
+
+	if (flex_alloc((flex_ptr) &(new->transactions), 4) == 0) {
+		heap_free(new);
+		return NULL;
+	}
 
 	return new;
 }
@@ -458,12 +465,15 @@ struct transact_window *transact_create_instance(struct file_block *file)
  * \param *windat		The instance to be deleted.
  */
 
-void transact_delete_instance(struct transact_window *windat)
+void transact_delete_instance(struct transact_block *windat)
 {
 	if (windat == NULL)
 		return;
 
 	transact_delete_window(windat);
+
+	if (windat->transactions != NULL)
+		flex_free((flex_ptr) &(windat->transactions));
 
 	heap_free(windat);
 }
@@ -603,7 +613,7 @@ void transact_open_window(struct file_block *file)
  * \param *windat		The window to delete.
  */
 
-static void transact_delete_window(struct transact_window *windat)
+static void transact_delete_window(struct transact_block *windat)
 {
 	#ifdef DEBUG
 	debug_printf("\\RDeleting transaction window");
@@ -640,7 +650,7 @@ static void transact_delete_window(struct transact_window *windat)
 
 static void transact_window_open_handler(wimp_open *open)
 {
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 
 	windat = event_get_window_user_data(open->w);
 	if (windat != NULL && windat->file != NULL)
@@ -658,7 +668,7 @@ static void transact_window_open_handler(wimp_open *open)
 
 static void transact_window_close_handler(wimp_close *close)
 {
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 	wimp_pointer		pointer;
 	char			buffer[1024], *pathcopy;
 
@@ -699,7 +709,7 @@ static void transact_window_close_handler(wimp_close *close)
 
 static void transact_window_click_handler(wimp_pointer *pointer)
 {
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 	struct file_block	*file;
 	int			line, transaction, xpos, column;
 	wimp_window_state	window;
@@ -828,7 +838,7 @@ static void transact_window_lose_caret_handler(wimp_caret *caret)
 
 static void transact_pane_click_handler(wimp_pointer *pointer)
 {
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 	struct file_block	*file;
 	wimp_window_state	window;
 	wimp_icon_state		icon;
@@ -1019,7 +1029,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 
 static osbool transact_window_keypress_handler(wimp_key *key)
 {
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 	struct file_block	*file;
 	wimp_pointer		pointer;
 	char			*filename;
@@ -1116,7 +1126,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 
 static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 	int			line;
 	wimp_window_state	window;
 	char			*filename;
@@ -1193,7 +1203,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 
 static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 	struct file_block	*file;
 	wimp_pointer		pointer;
 
@@ -1351,7 +1361,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 
 static void transact_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL)
@@ -1416,7 +1426,7 @@ static void transact_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 static void transact_window_scroll_handler(wimp_scroll *scroll)
 {
 	int			width, height, line, error;
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 
 	windat = event_get_window_user_data(scroll->w);
 	if (windat == NULL || windat->file == NULL)
@@ -1500,7 +1510,7 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 
 static void transact_window_redraw_handler(wimp_draw *redraw)
 {
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 	struct file_block	*file;
 	int			ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col;
 	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
@@ -1773,7 +1783,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 {
-	struct transact_window	*windat = (struct transact_window *) data;
+	struct transact_block	*windat = (struct transact_block *) data;
 	int			i, j, new_extent;
 	wimp_icon_state		icon;
 	wimp_window_info	window;
@@ -1871,7 +1881,7 @@ char *transact_get_column_name(struct file_block *file, wimp_i icon, char *buffe
  * \param *windat		The window to be updated.
  */
 
-static void transact_adjust_sort_icon(struct transact_window *windat)
+static void transact_adjust_sort_icon(struct transact_block *windat)
 {
 	wimp_icon_state icon;
 
@@ -1896,7 +1906,7 @@ static void transact_adjust_sort_icon(struct transact_window *windat)
  * \param *icon			The icon to be updated.
  */
 
-static void transact_adjust_sort_icon_data(struct transact_window *windat, wimp_icon *icon)
+static void transact_adjust_sort_icon_data(struct transact_block *windat, wimp_icon *icon)
 {
 	int	i = 0, width, anchor;
 
@@ -2325,7 +2335,7 @@ static void transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
 {
 	int			column, xpos;
 	wimp_window_state	window;
-	struct transact_window	*windat;
+	struct transact_block	*windat;
 
 	*buffer = '\0';
 
@@ -3186,7 +3196,7 @@ osbool transact_test_index_valid(struct file_block *file, tran_t transaction)
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void transact_open_sort_window(struct transact_window *windat, wimp_pointer *ptr)
+static void transact_open_sort_window(struct transact_block *windat, wimp_pointer *ptr)
 {
 	if (windat == NULL || ptr == NULL)
 		return;
@@ -3206,7 +3216,7 @@ static void transact_open_sort_window(struct transact_window *windat, wimp_point
 
 static osbool transact_process_sort_window(enum sort_type order, void *data)
 {
-	struct transact_window	*windat = (struct transact_window *) data;
+	struct transact_block	*windat = (struct transact_block *) data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -3607,7 +3617,7 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 	struct report		*report;
 	int			i, t;
 	char			line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
-	struct transact_window	*window;
+	struct transact_block	*window;
 
 	if (transact_print_file == NULL || transact_print_file->transaction_window == NULL)
 		return;
@@ -3847,7 +3857,7 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
  * \param *windat		The window to save.
  */
 
-static void transact_start_direct_save(struct transact_window *windat)
+static void transact_start_direct_save(struct transact_block *windat)
 {
 	wimp_pointer	pointer;
 	char		*filename;
@@ -3883,7 +3893,7 @@ static void transact_start_direct_save(struct transact_window *windat)
 
 static osbool transact_save_file(char *filename, osbool selection, void *data)
 {
-	struct transact_window *windat = data;
+	struct transact_block *windat = data;
 
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
@@ -3904,7 +3914,7 @@ static osbool transact_save_file(char *filename, osbool selection, void *data)
 
 static osbool transact_save_csv(char *filename, osbool selection, void *data)
 {
-	struct transact_window *windat = data;
+	struct transact_block *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -3925,7 +3935,7 @@ static osbool transact_save_csv(char *filename, osbool selection, void *data)
 
 static osbool transact_save_tsv(char *filename, osbool selection, void *data)
 {
-	struct transact_window *windat = data;
+	struct transact_block *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -3945,7 +3955,7 @@ static osbool transact_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void transact_export_delimited(struct transact_window *windat, char *filename, enum filing_delimit_type format, int filetype)
+static void transact_export_delimited(struct transact_block *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE	*out;
 	int	i, t;

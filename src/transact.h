@@ -36,6 +36,12 @@
 #include "currency.h"
 #include "filing.h"
 
+typedef int tran_t;
+
+struct transact_block;
+
+#define NULL_TRANSACTION ((tran_t) (-1))
+
 /* Transaction flags (bitwise allocation) */
 
 enum transact_flags {

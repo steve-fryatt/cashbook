@@ -67,8 +67,7 @@
 #define AMOUNT_FIELD_LEN 15
 #define DESCRIPT_FIELD_LEN 101
 
-#define NULL_ACCOUNT (-1)
-#define NULL_TRANSACTION ((int) (-1))
+#define NULL_ACCOUNT ((acct_t) -1)
 #define NULL_TEMPLATE ((int) (-1))
 
 /* Transaction window details */
@@ -123,16 +122,11 @@
  * Basic types
  */
 
-/* None of these are fully used as yet... */
-
-typedef int		tran_t;							/**< A transaction number.					*/
 
 /* \TODO -- These need to move into their modules once we've sorted the rest
  *          of this mess out.
  */
 
-struct transact;
-struct transact_window;
 struct report;
 struct budget_block;
 struct find_block;
@@ -161,7 +155,7 @@ struct file_block
 
 	/* Details of the attached windows. */
 
-	struct transact_window		*transaction_window;			/**< Data relating to the transaction module.			*/
+	struct transact_block		*transacts;				/**< Data relating to the transaction module.			*/
 	struct account_block		*accounts;				/**< Data relating to the account module.			*/
 	struct sorder_block		*sorders;				/**< Data relating to the standing order module.		*/
 	struct preset_block		*presets;				/**< Data relating to the preset module.			*/
@@ -171,10 +165,6 @@ struct file_block
   int                accview_column_width[ACCVIEW_COLUMNS]; /* Base column widths in the account view windows. */
   int                accview_column_position[ACCVIEW_COLUMNS]; /* Base column positions in the account view windows. */
   int                accview_sort_order; /* Default sort order for the accview windows. */
-
-  /* Account, transaction, standing order and preset data structures (pointers which become arrays). */
-
-  struct transaction *transactions;
 
   /* Recalculation data. */
 

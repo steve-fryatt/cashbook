@@ -2754,23 +2754,23 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 	/* Output the preset data as a set of delimited lines. */
 
 	for (i = 0; i < windat->preset_count; i++) {
-		t = windat->file->preset_window->presets[i].sort_index;
+		t = windat->presets[i].sort_index;
 
-		sprintf(buffer, "%c", windat->file->preset_window->presets[t].action_key);
+		sprintf(buffer, "%c", windat->presets[t].action_key);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		filing_output_delimited_field(out, windat->file->preset_window->presets[t].name, format, DELIMIT_NONE);
+		filing_output_delimited_field(out, windat->presets[t].name, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->file->preset_window->presets[t].from, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->presets[t].from, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->file->preset_window->presets[t].to, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->presets[t].to, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(windat->file->preset_window->presets[t].amount, buffer, sizeof(buffer));
+		currency_convert_to_string(windat->presets[t].amount, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-		filing_output_delimited_field(out, windat->file->preset_window->presets[t].description, format, DELIMIT_LAST);
+		filing_output_delimited_field(out, windat->presets[t].description, format, DELIMIT_LAST);
 	}
 
 	/* Close the file and set the type correctly. */

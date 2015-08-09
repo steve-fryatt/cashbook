@@ -221,8 +221,8 @@ void load_transaction_file(char *filename)
 	transact_sort_file_data(file);
 	account_recalculate_all(file);
 	transact_sort(file);
-	sorder_sort(file->sorder_window);
-	preset_sort(file->preset_window);
+	sorder_sort(file->sorders);
+	preset_sort(file->presets);
 	transact_open_window(file); /* The window extent is set in this action. */
 
 	hourglass_off();

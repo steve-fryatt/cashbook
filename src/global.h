@@ -162,11 +162,9 @@ struct file_block
 	/* Details of the attached windows. */
 
 	struct transact_window		*transaction_window;			/**< Data relating to the transaction module.			*/
-	struct account_block		*accountz;				/**< Data relating to the account module.			*/
-	struct sorder_block		*sorder_window;				/**< Data relating to the standing order module.		*/
-	struct preset_block		*preset_window;				/**< Data relating to the preset module.			*/
-
-	// \TODO -- accountz can be renamed accounts once the struct account block is inside accountz itself.
+	struct account_block		*accounts;				/**< Data relating to the account module.			*/
+	struct sorder_block		*sorders;				/**< Data relating to the standing order module.		*/
+	struct preset_block		*presets;				/**< Data relating to the preset module.			*/
 
   /* Default display details for the accview windows. */
 

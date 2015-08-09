@@ -142,9 +142,9 @@ struct file_block *build_new_file_block(void)
 	new->saved_reports = NULL;
 
 	new->transaction_window = NULL;
-	new->accountz = NULL;
-	new->sorder_window = NULL;
-	new->preset_window = NULL;
+	new->accounts = NULL;
+	new->sorders = NULL;
+	new->presets = NULL;
 
 	new->budget = NULL;
 	new->find = NULL;
@@ -251,8 +251,8 @@ struct file_block *build_new_file_block(void)
 
 	/* Set up the accounts window. */
 
-	new->accountz = account_create_instance(new);
-	if (new->accountz == NULL) {
+	new->accounts = account_create_instance(new);
+	if (new->accounts == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -268,8 +268,8 @@ struct file_block *build_new_file_block(void)
 
 	/* Set up the standing order window. */
 
-	new->sorder_window = sorder_create_instance(new);
-	if (new->sorder_window == NULL) {
+	new->sorders = sorder_create_instance(new);
+	if (new->sorders == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -277,8 +277,8 @@ struct file_block *build_new_file_block(void)
 
 	/* Set up the preset window. */
 
-	new->preset_window = preset_create_instance(new);
-	if (new->preset_window == NULL) {
+	new->presets = preset_create_instance(new);
+	if (new->presets == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -377,14 +377,14 @@ void delete_file(struct file_block *file)
 	if (file->transaction_window != NULL)
 		transact_delete_instance(file->transaction_window);
 
-	if (file->accountz != NULL)
-		account_delete_instance(file->accountz);
+	if (file->accounts != NULL)
+		account_delete_instance(file->accounts);
 
-	if (file->sorder_window != NULL)
-		sorder_delete_instance(file->sorder_window);
+	if (file->sorders != NULL)
+		sorder_delete_instance(file->sorders);
 
-	if (file->preset_window != NULL)
-		preset_delete_instance(file->preset_window);
+	if (file->presets != NULL)
+		preset_delete_instance(file->presets);
 
 	/* Delete any reports that are open. */
 

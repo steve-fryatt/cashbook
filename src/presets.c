@@ -434,15 +434,15 @@ void preset_open_window(struct file_block *file)
 	wimp_window_state	parent;
 	os_error		*error;
 
-	if (file == NULL || file->preset_window == NULL)
+	if (file == NULL || file->presets == NULL)
 		return;
 
 	/* Create or re-open the window. */
 
-	if (file->preset_window->preset_window != NULL) {
+	if (file->presets->preset_window != NULL) {
 		/* The window is open, so just bring it forward. */
 
-		windows_open(file->preset_window->preset_window);
+		windows_open(file->presets->preset_window);
 		return;
 	}
 
@@ -452,16 +452,16 @@ void preset_open_window(struct file_block *file)
 
 	/* Create the new window data and build the window. */
 
-	*(file->preset_window->window_title) = '\0';
-	preset_window_def->title_data.indirected_text.text = file->preset_window->window_title;
+	*(file->presets->window_title) = '\0';
+	preset_window_def->title_data.indirected_text.text = file->presets->window_title;
 
-	height = (file->preset_window->preset_count > MIN_PRESET_ENTRIES) ? file->preset_window->preset_count : MIN_PRESET_ENTRIES;
+	height = (file->presets->preset_count > MIN_PRESET_ENTRIES) ? file->presets->preset_count : MIN_PRESET_ENTRIES;
 
 	transact_get_window_state(file, &parent);
 
 	set_initial_window_area(preset_window_def,
-			file->preset_window->column_position[PRESET_COLUMNS-1] +
-			file->preset_window->column_width[PRESET_COLUMNS-1],
+			file->presets->column_position[PRESET_COLUMNS-1] +
+			file->presets->column_width[PRESET_COLUMNS-1],
 			((ICON_HEIGHT+LINE_GUTTER) * height) + PRESET_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
@@ -470,7 +470,7 @@ void preset_open_window(struct file_block *file)
 	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
 		file->child_x_offset = 0;
 
-	error = xwimp_create_window(preset_window_def, &(file->preset_window->preset_window));
+	error = xwimp_create_window(preset_window_def, &(file->presets->preset_window));
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
@@ -485,27 +485,27 @@ void preset_open_window(struct file_block *file)
 	#endif
 
 	for (i=0, j=0; j < PRESET_COLUMNS; i++, j++) {
-		preset_pane_def->icons[i].extent.x0 = file->preset_window->column_position[j];
+		preset_pane_def->icons[i].extent.x0 = file->presets->column_position[j];
 
 		j = column_get_rightmost_in_group(PRESET_PANE_COL_MAP, i);
 
-		preset_pane_def->icons[i].extent.x1 = file->preset_window->column_position[j] +
-				file->preset_window->column_width[j] +
+		preset_pane_def->icons[i].extent.x1 = file->presets->column_position[j] +
+				file->presets->column_width[j] +
 				COLUMN_HEADING_MARGIN;
 	}
 
 	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
-			(osspriteop_id) file->preset_window->sort_sprite;
+			(osspriteop_id) file->presets->sort_sprite;
 	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
 			preset_pane_def->sprite_area;
 
-	preset_adjust_sort_icon_data(file->preset_window, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
+	preset_adjust_sort_icon_data(file->presets, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
 
 	#ifdef DEBUG
 	debug_printf ("Toolbar icons adjusted...");
 	#endif
 
-	error = xwimp_create_window(preset_pane_def, &(file->preset_window->preset_pane));
+	error = xwimp_create_window(preset_pane_def, &(file->presets->preset_pane));
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
@@ -517,33 +517,33 @@ void preset_open_window(struct file_block *file)
 
 	/* Open the window. */
 
-	ihelp_add_window(file->preset_window->preset_window , "Preset", preset_decode_window_help);
-	ihelp_add_window(file->preset_window->preset_pane , "PresetTB", NULL);
+	ihelp_add_window(file->presets->preset_window , "Preset", preset_decode_window_help);
+	ihelp_add_window(file->presets->preset_pane , "PresetTB", NULL);
 
-	windows_open(file->preset_window->preset_window);
-	windows_open_nested_as_toolbar(file->preset_window->preset_pane,
-			file->preset_window->preset_window, PRESET_TOOLBAR_HEIGHT-4);
+	windows_open(file->presets->preset_window);
+	windows_open_nested_as_toolbar(file->presets->preset_pane,
+			file->presets->preset_window, PRESET_TOOLBAR_HEIGHT-4);
 
 	/* Register event handlers for the two windows. */
 
-	event_add_window_user_data(file->preset_window->preset_window, file->preset_window);
-	event_add_window_menu(file->preset_window->preset_window, preset_window_menu);
-	event_add_window_close_event(file->preset_window->preset_window, preset_close_window_handler);
-	event_add_window_mouse_event(file->preset_window->preset_window, preset_window_click_handler);
-	event_add_window_scroll_event(file->preset_window->preset_window, preset_window_scroll_handler);
-	event_add_window_redraw_event(file->preset_window->preset_window, preset_window_redraw_handler);
-	event_add_window_menu_prepare(file->preset_window->preset_window, preset_window_menu_prepare_handler);
-	event_add_window_menu_selection(file->preset_window->preset_window, preset_window_menu_selection_handler);
-	event_add_window_menu_warning(file->preset_window->preset_window, preset_window_menu_warning_handler);
-	event_add_window_menu_close(file->preset_window->preset_window, preset_window_menu_close_handler);
+	event_add_window_user_data(file->presets->preset_window, file->presets);
+	event_add_window_menu(file->presets->preset_window, preset_window_menu);
+	event_add_window_close_event(file->presets->preset_window, preset_close_window_handler);
+	event_add_window_mouse_event(file->presets->preset_window, preset_window_click_handler);
+	event_add_window_scroll_event(file->presets->preset_window, preset_window_scroll_handler);
+	event_add_window_redraw_event(file->presets->preset_window, preset_window_redraw_handler);
+	event_add_window_menu_prepare(file->presets->preset_window, preset_window_menu_prepare_handler);
+	event_add_window_menu_selection(file->presets->preset_window, preset_window_menu_selection_handler);
+	event_add_window_menu_warning(file->presets->preset_window, preset_window_menu_warning_handler);
+	event_add_window_menu_close(file->presets->preset_window, preset_window_menu_close_handler);
 
-	event_add_window_user_data(file->preset_window->preset_pane, file->preset_window);
-	event_add_window_menu(file->preset_window->preset_pane, preset_window_menu);
-	event_add_window_mouse_event(file->preset_window->preset_pane, preset_pane_click_handler);
-	event_add_window_menu_prepare(file->preset_window->preset_pane, preset_window_menu_prepare_handler);
-	event_add_window_menu_selection(file->preset_window->preset_pane, preset_window_menu_selection_handler);
-	event_add_window_menu_warning(file->preset_window->preset_pane, preset_window_menu_warning_handler);
-	event_add_window_menu_close(file->preset_window->preset_pane, preset_window_menu_close_handler);
+	event_add_window_user_data(file->presets->preset_pane, file->presets);
+	event_add_window_menu(file->presets->preset_pane, preset_window_menu);
+	event_add_window_mouse_event(file->presets->preset_pane, preset_pane_click_handler);
+	event_add_window_menu_prepare(file->presets->preset_pane, preset_window_menu_prepare_handler);
+	event_add_window_menu_selection(file->presets->preset_pane, preset_window_menu_selection_handler);
+	event_add_window_menu_warning(file->presets->preset_pane, preset_window_menu_warning_handler);
+	event_add_window_menu_close(file->presets->preset_pane, preset_window_menu_close_handler);
 }
 
 
@@ -693,7 +693,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case PRESET_PANE_SORT:
-			preset_sort(file->preset_window);
+			preset_sort(file->presets);
 			break;
 		}
 	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
@@ -745,7 +745,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 
 			preset_adjust_sort_icon(windat);
 			windows_redraw(windat->preset_pane);
-			preset_sort(file->preset_window);
+			preset_sort(file->presets);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
 		column_start_drag(pointer, windat, windat->preset_window,
@@ -1327,7 +1327,7 @@ static void preset_set_window_extent(struct preset_block *windat)
 
 	/* Get the current window details, and find the extent of the bottom of the visible area. */
 
-	state.w = windat->file->preset_window->preset_window;
+	state.w = windat->file->presets->preset_window;
 	wimp_get_window_state(&state);
 
 	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
@@ -1375,16 +1375,16 @@ void preset_build_window_title(struct file_block *file)
 {
 	char	name[256];
 
-	if (file == NULL || file->preset_window == NULL || file->preset_window->preset_window == NULL)
+	if (file == NULL || file->presets == NULL || file->presets->preset_window == NULL)
 		return;
 
 	file_get_leafname(file, name, sizeof(name));
 
-	msgs_param_lookup("PresetTitle", file->preset_window->window_title,
-			sizeof(file->preset_window->window_title),
+	msgs_param_lookup("PresetTitle", file->presets->window_title,
+			sizeof(file->presets->window_title),
 			name, NULL, NULL, NULL);
 
-	wimp_force_redraw_title(file->preset_window->preset_window);
+	wimp_force_redraw_title(file->presets->preset_window);
 }
 
 
@@ -1396,10 +1396,10 @@ void preset_build_window_title(struct file_block *file)
 
 void preset_redraw_all(struct file_block *file)
 {
-	if (file == NULL || file->preset_window == NULL)
+	if (file == NULL || file->presets == NULL)
 		return;
 
-	preset_force_window_redraw(file, 0, file->preset_window->preset_count - 1);
+	preset_force_window_redraw(file, 0, file->presets->preset_count - 1);
 }
 
 
@@ -1416,16 +1416,16 @@ static void preset_force_window_redraw(struct file_block *file, int from, int to
 	int			y0, y1;
 	wimp_window_info	window;
 
-	if (file == NULL || file->preset_window == NULL || file->preset_window->preset_window == NULL)
+	if (file == NULL || file->presets == NULL || file->presets->preset_window == NULL)
 		return;
 
-	window.w = file->preset_window->preset_window;
+	window.w = file->presets->preset_window;
 	wimp_get_window_info_header_only(&window);
 
 	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
 	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
 
-	wimp_force_redraw(file->preset_window->preset_window, window.extent.x0, y0, window.extent.x1, y1);
+	wimp_force_redraw(file->presets->preset_window, window.extent.x0, y0, window.extent.x1, y1);
 }
 
 
@@ -1475,7 +1475,7 @@ static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 
 void preset_open_edit_window(struct file_block *file, int preset, wimp_pointer *ptr)
 {
-	if (file == NULL || file->preset_window == NULL)
+	if (file == NULL || file->presets == NULL)
 		return;
 
 	/* If the window is already open, another preset is being edited or created.  Assume the user wants to lose
@@ -1495,11 +1495,11 @@ void preset_open_edit_window(struct file_block *file, int preset, wimp_pointer *
 		msgs_lookup("EditAcctAct", icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_OK), 12);
 	}
 
-	preset_fill_edit_window(file->preset_window, preset);
+	preset_fill_edit_window(file->presets, preset);
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
-	preset_edit_owner = file->preset_window;
+	preset_edit_owner = file->presets;
 	preset_edit_number = preset;
 
 	windows_open_centred_at_pointer(preset_edit_window, ptr);
@@ -1928,10 +1928,10 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
 
 static void preset_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore)
 {
-	if (file == NULL || file->preset_window == NULL)
+	if (file == NULL || file->presets == NULL)
 		return;
 
-	preset_print_owner = file->preset_window;
+	preset_print_owner = file->presets;
 	printing_open_simple_window(file, ptr, restore, "PrintPreset", preset_print);
 }
 
@@ -2058,11 +2058,11 @@ wimp_menu *preset_complete_menu_build(struct file_block *file)
 
 	preset_complete_menu_destroy();
 
-	if (file == NULL || file->preset_window == NULL)
+	if (file == NULL || file->presets == NULL)
 		return NULL;
 
-	preset_complete_menu = heap_alloc(28 + 24 * (file->preset_window->preset_count + 1));
-	preset_complete_menu_link = heap_alloc(sizeof(struct preset_complete_link) * (file->preset_window->preset_count + 1));
+	preset_complete_menu = heap_alloc(28 + 24 * (file->presets->preset_count + 1));
+	preset_complete_menu_link = heap_alloc(sizeof(struct preset_complete_link) * (file->presets->preset_count + 1));
 	preset_complete_menu_title = heap_alloc(ACCOUNT_MENU_TITLE_LEN);
 
 	if (preset_complete_menu == NULL || preset_complete_menu_link == NULL || preset_complete_menu_title == NULL) {
@@ -2083,7 +2083,7 @@ wimp_menu *preset_complete_menu_build(struct file_block *file)
 
 	/* Set the menu and icon flags up. */
 
-	preset_complete_menu->entries[line].menu_flags = (file->preset_window->preset_count > 0) ? wimp_MENU_SEPARATE : 0;
+	preset_complete_menu->entries[line].menu_flags = (file->presets->preset_count > 0) ? wimp_MENU_SEPARATE : 0;
 	preset_complete_menu->entries[line].sub_menu = (wimp_menu *) -1;
 	preset_complete_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
 			wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
@@ -2095,13 +2095,13 @@ wimp_menu *preset_complete_menu_build(struct file_block *file)
 	preset_complete_menu->entries[line].data.indirected_text.validation = NULL;
 	preset_complete_menu->entries[line].data.indirected_text.size = PRESET_NAME_LEN;
 
-	if (file->preset_window->preset_count > 0) {
-		for (i=0; i<file->preset_window->preset_count; i++) {
+	if (file->presets->preset_count > 0) {
+		for (i=0; i<file->presets->preset_count; i++) {
 			line++;
 
-			p = file->preset_window->presets[i].sort_index;
+			p = file->presets->presets[i].sort_index;
 
-			strcpy (preset_complete_menu_link[line].name, file->preset_window->presets[p].name);
+			strcpy (preset_complete_menu_link[line].name, file->presets->presets[p].name);
 			preset_complete_menu_link[line].preset = p;
 
 			if (strlen (preset_complete_menu_link[line].name) > width)
@@ -2310,32 +2310,32 @@ static int preset_add(struct file_block *file)
 {
 	int	new;
 
-	if (file == NULL || file->preset_window == NULL)
+	if (file == NULL || file->presets == NULL)
 		return NULL_PRESET;
 
-	if (flex_extend((flex_ptr) &(file->preset_window->presets), sizeof(struct preset) * (file->preset_window->preset_count+1)) != 1) {
+	if (flex_extend((flex_ptr) &(file->presets->presets), sizeof(struct preset) * (file->presets->preset_count+1)) != 1) {
 		error_msgs_report_error("NoMemNewPreset");
 		return NULL_PRESET;
 	}
 
-	new = file->preset_window->preset_count++;
+	new = file->presets->preset_count++;
 
-	*file->preset_window->presets[new].name = '\0';
-	file->preset_window->presets[new].action_key = 0;
+	*file->presets->presets[new].name = '\0';
+	file->presets->presets[new].action_key = 0;
 
-	file->preset_window->presets[new].flags = 0;
+	file->presets->presets[new].flags = 0;
 
-	file->preset_window->presets[new].date = NULL_DATE;
-	file->preset_window->presets[new].from = NULL_ACCOUNT;
-	file->preset_window->presets[new].to = NULL_ACCOUNT;
-	file->preset_window->presets[new].amount = NULL_CURRENCY;
+	file->presets->presets[new].date = NULL_DATE;
+	file->presets->presets[new].from = NULL_ACCOUNT;
+	file->presets->presets[new].to = NULL_ACCOUNT;
+	file->presets->presets[new].amount = NULL_CURRENCY;
 
-	*file->preset_window->presets[new].reference = '\0';
-	*file->preset_window->presets[new].description = '\0';
+	*file->presets->presets[new].reference = '\0';
+	*file->presets->presets[new].description = '\0';
 
-	file->preset_window->presets[new].sort_index = new;
+	file->presets->presets[new].sort_index = new;
 
-	preset_set_window_extent(file->preset_window);
+	preset_set_window_extent(file->presets);
 
 	return new;
 }
@@ -2353,49 +2353,49 @@ static osbool preset_delete(struct file_block *file, int preset)
 {
 	int	i, index;
 
-	if (file == NULL || file->preset_window == NULL || preset == NULL_PRESET || preset >= file->preset_window->preset_count)
+	if (file == NULL || file->presets == NULL || preset == NULL_PRESET || preset >= file->presets->preset_count)
 		return FALSE;
 
 	/* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along
 	 * so that they remain in the correct places. */
 
-	for (i = 0; i < file->preset_window->preset_count && file->preset_window->presets[i].sort_index != preset; i++);
+	for (i = 0; i < file->presets->preset_count && file->presets->presets[i].sort_index != preset; i++);
 
-	if (file->preset_window->presets[i].sort_index == preset && i != preset) {
+	if (file->presets->presets[i].sort_index == preset && i != preset) {
 		index = i;
 
 		if (index > preset)
 			for (i=index; i>preset; i--)
-				file->preset_window->presets[i].sort_index = file->preset_window->presets[i-1].sort_index;
+				file->presets->presets[i].sort_index = file->presets->presets[i-1].sort_index;
 		else
 			for (i=index; i<preset; i++)
-				file->preset_window->presets[i].sort_index = file->preset_window->presets[i+1].sort_index;
+				file->presets->presets[i].sort_index = file->presets->presets[i+1].sort_index;
 	}
 
 	/* Delete the preset */
 
-	flex_midextend((flex_ptr) &(file->preset_window->presets), (preset + 1) * sizeof(struct preset), -sizeof(struct preset));
-	file->preset_window->preset_count--;
+	flex_midextend((flex_ptr) &(file->presets->presets), (preset + 1) * sizeof(struct preset), -sizeof(struct preset));
+	file->presets->preset_count--;
 
 	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
 	 * greater than the deleted entry by one.
 	 */
 
-	for (i = 0; i < file->preset_window->preset_count; i++)
-		if (file->preset_window->presets[i].sort_index > preset)
-			file->preset_window->presets[i].sort_index = file->preset_window->presets[i].sort_index - 1;
+	for (i = 0; i < file->presets->preset_count; i++)
+		if (file->presets->presets[i].sort_index > preset)
+			file->presets->presets[i].sort_index = file->presets->presets[i].sort_index - 1;
 
 	/* Update the main preset display window. */
 
-	preset_set_window_extent(file->preset_window);
+	preset_set_window_extent(file->presets);
 
-	if (file->preset_window->preset_window != NULL) {
-		windows_open(file->preset_window->preset_window);
+	if (file->presets->preset_window != NULL) {
+		windows_open(file->presets->preset_window);
 		if (config_opt_read("AutoSortPresets")) {
-			preset_sort(file->preset_window);
-			preset_force_window_redraw(file, file->preset_window->preset_count, file->preset_window->preset_count);
+			preset_sort(file->presets);
+			preset_force_window_redraw(file, file->presets->preset_count, file->presets->preset_count);
 		} else {
-			preset_force_window_redraw(file, 0, file->preset_window->preset_count);
+			preset_force_window_redraw(file, 0, file->presets->preset_count);
 		}
 	}
 
@@ -2419,15 +2419,15 @@ int preset_find_from_keypress(struct file_block *file, char key)
 	int	preset = NULL_PRESET;
 
 
-	if (file == NULL || file->preset_window == NULL || key == '\0')
+	if (file == NULL || file->presets == NULL || key == '\0')
 		return preset;
 
 	preset = 0;
 
-	while ((preset < file->preset_window->preset_count) && (file->preset_window->presets[preset].action_key != key))
+	while ((preset < file->presets->preset_count) && (file->presets->presets[preset].action_key != key))
 		preset++;
 
-	if (preset == file->preset_window->preset_count)
+	if (preset == file->presets->preset_count)
 		preset = NULL_PRESET;
 
 	return preset;
@@ -2444,10 +2444,10 @@ int preset_find_from_keypress(struct file_block *file, char key)
 
 enum preset_caret preset_get_caret_destination(struct file_block *file, int preset)
 {
-	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_window->preset_count)
+	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->presets->preset_count)
 		return 0;
 
-	return file->preset_window->presets[preset].caret_target;
+	return file->presets->presets[preset].caret_target;
 
 }
 
@@ -2461,7 +2461,7 @@ enum preset_caret preset_get_caret_destination(struct file_block *file, int pres
 
 int preset_get_count(struct file_block *file)
 {
-	return (file != NULL && file->preset_window != NULL) ? file->preset_window->preset_count : 0;
+	return (file != NULL && file->presets != NULL) ? file->presets->preset_count : 0;
 }
 
 
@@ -2484,7 +2484,7 @@ unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t 
 {
 	unsigned	changed = 0;
 
-	if (file == NULL || file->preset_window == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->preset_window->preset_count)
+	if (file == NULL || file->presets == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->presets->preset_count)
 		return changed;
 
 	/* Update the transaction, piece by piece.
@@ -2492,51 +2492,51 @@ unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t 
 	 * Start with the date.
 	 */
 
-	if (file->preset_window->presets[preset].flags & TRANS_TAKE_TODAY) {
+	if (file->presets->presets[preset].flags & TRANS_TAKE_TODAY) {
 		*date = date_today();
 		changed |= (1 << EDIT_ICON_DATE);
-	} else if (file->preset_window->presets[preset].date != NULL_DATE && *date != file->preset_window->presets[preset].date) {
-		*date = file->preset_window->presets[preset].date;
+	} else if (file->presets->presets[preset].date != NULL_DATE && *date != file->presets->presets[preset].date) {
+		*date = file->presets->presets[preset].date;
 		changed |= (1 << EDIT_ICON_DATE);
 	}
 
 	/* Update the From account. */
 
-	if (file->preset_window->presets[preset].from != NULL_ACCOUNT) {
-		*from = file->preset_window->presets[preset].from;
-		*flags = (*flags & ~TRANS_REC_FROM) | (file->preset_window->presets[preset].flags & TRANS_REC_FROM);
+	if (file->presets->presets[preset].from != NULL_ACCOUNT) {
+		*from = file->presets->presets[preset].from;
+		*flags = (*flags & ~TRANS_REC_FROM) | (file->presets->presets[preset].flags & TRANS_REC_FROM);
 		changed |= (1 << EDIT_ICON_FROM);
 	}
 
 	/* Update the To account. */
 
-	if (file->preset_window->presets[preset].to != NULL_ACCOUNT) {
-		*to = file->preset_window->presets[preset].to;
-		*flags = (*flags & ~TRANS_REC_TO) | (file->preset_window->presets[preset].flags & TRANS_REC_TO);
+	if (file->presets->presets[preset].to != NULL_ACCOUNT) {
+		*to = file->presets->presets[preset].to;
+		*flags = (*flags & ~TRANS_REC_TO) | (file->presets->presets[preset].flags & TRANS_REC_TO);
 		changed |= (1 << EDIT_ICON_TO);
 	}
 
 	/* Update the reference. */
 
-	if (file->preset_window->presets[preset].flags & TRANS_TAKE_CHEQUE) {
+	if (file->presets->presets[preset].flags & TRANS_TAKE_CHEQUE) {
 		account_get_next_cheque_number(file, *from, *to, 1, reference, REF_FIELD_LEN);
 		changed |= (1 << EDIT_ICON_REF);
-	} else if (*(file->preset_window->presets[preset].reference) != '\0' && strcmp(reference, file->preset_window->presets[preset].reference) != 0) {
-		strcpy(reference, file->preset_window->presets[preset].reference);
+	} else if (*(file->presets->presets[preset].reference) != '\0' && strcmp(reference, file->presets->presets[preset].reference) != 0) {
+		strcpy(reference, file->presets->presets[preset].reference);
 		changed |= (1 << EDIT_ICON_REF);
 	}
 
 	/* Update the amount. */
 
-	if (file->preset_window->presets[preset].amount != NULL_CURRENCY && *amount != file->preset_window->presets[preset].amount) {
-		*amount = file->preset_window->presets[preset].amount;
+	if (file->presets->presets[preset].amount != NULL_CURRENCY && *amount != file->presets->presets[preset].amount) {
+		*amount = file->presets->presets[preset].amount;
 		changed |= (1 << EDIT_ICON_AMOUNT);
 	}
 
 	/* Update the description. */
 
-	if (*(file->preset_window->presets[preset].description) != '\0' && strcmp(description, file->preset_window->presets[preset].description) != 0) {
-		strcpy(description, file->preset_window->presets[preset].description);
+	if (*(file->presets->presets[preset].description) != '\0' && strcmp(description, file->presets->presets[preset].description) != 0) {
+		strcpy(description, file->presets->presets[preset].description);
 		changed |= (1 << EDIT_ICON_DESCRIPT);
 	}
 
@@ -2556,29 +2556,29 @@ void preset_write_file(struct file_block *file, FILE *out)
 	int	i;
 	char	buffer[MAX_FILE_LINE_LEN];
 
-	if (file == NULL || file->preset_window == NULL)
+	if (file == NULL || file->presets == NULL)
 		return;
 
 	fprintf(out, "\n[Presets]\n");
 
-	fprintf(out, "Entries: %x\n", file->preset_window->preset_count);
+	fprintf(out, "Entries: %x\n", file->presets->preset_count);
 
-	column_write_as_text(file->preset_window->column_width, PRESET_COLUMNS, buffer);
+	column_write_as_text(file->presets->column_width, PRESET_COLUMNS, buffer);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
-	fprintf(out, "SortOrder: %x\n", file->preset_window->sort_order);
+	fprintf(out, "SortOrder: %x\n", file->presets->sort_order);
 
-	for (i = 0; i < file->preset_window->preset_count; i++) {
+	for (i = 0; i < file->presets->preset_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x\n",
-				file->preset_window->presets[i].action_key, file->preset_window->presets[i].caret_target,
-				file->preset_window->presets[i].date, file->preset_window->presets[i].flags,
-				file->preset_window->presets[i].from, file->preset_window->presets[i].to, file->preset_window->presets[i].amount);
-		if (*(file->preset_window->presets[i].name) != '\0')
-			config_write_token_pair(out, "Name", file->preset_window->presets[i].name);
-		if (*(file->preset_window->presets[i].reference) != '\0')
-			config_write_token_pair(out, "Ref", file->preset_window->presets[i].reference);
-		if (*(file->preset_window->presets[i].description) != '\0')
-			config_write_token_pair(out, "Desc", file->preset_window->presets[i].description);
+				file->presets->presets[i].action_key, file->presets->presets[i].caret_target,
+				file->presets->presets[i].date, file->presets->presets[i].flags,
+				file->presets->presets[i].from, file->presets->presets[i].to, file->presets->presets[i].amount);
+		if (*(file->presets->presets[i].name) != '\0')
+			config_write_token_pair(out, "Name", file->presets->presets[i].name);
+		if (*(file->presets->presets[i].reference) != '\0')
+			config_write_token_pair(out, "Ref", file->presets->presets[i].reference);
+		if (*(file->presets->presets[i].description) != '\0')
+			config_write_token_pair(out, "Desc", file->presets->presets[i].description);
 	}
 }
 
@@ -2598,52 +2598,52 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 {
 	int	result, block_size, i = -1;
 
-	block_size = flex_size((flex_ptr) &(file->preset_window->presets)) / sizeof(struct preset);
+	block_size = flex_size((flex_ptr) &(file->presets->presets)) / sizeof(struct preset);
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
 			block_size = strtoul (value, NULL, 16);
-			if (block_size > file->preset_window->preset_count) {
+			if (block_size > file->presets->preset_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->preset_window->presets), sizeof(struct preset) * block_size);
+				flex_extend((flex_ptr) &(file->presets->presets), sizeof(struct preset) * block_size);
 			} else {
-				block_size = file->preset_window->preset_count;
+				block_size = file->presets->preset_count;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
-			column_init_window(file->preset_window->column_width,
-					file->preset_window->column_position,
+			column_init_window(file->presets->column_width,
+					file->presets->column_position,
 					PRESET_COLUMNS, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
-			file->preset_window->sort_order = strtoul(value, NULL, 16);
+			file->presets->sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
-			file->preset_window->preset_count++;
-			if (file->preset_window->preset_count > block_size) {
-				block_size = file->preset_window->preset_count;
+			file->presets->preset_count++;
+			if (file->presets->preset_count > block_size) {
+				block_size = file->presets->preset_count;
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->preset_window->presets), sizeof(struct preset) * block_size);
+				flex_extend((flex_ptr) &(file->presets->presets), sizeof(struct preset) * block_size);
 			}
-			i = file->preset_window->preset_count - 1;
-			file->preset_window->presets[i].action_key = strtoul(next_field (value, ','), NULL, 16);
-			file->preset_window->presets[i].caret_target = strtoul(next_field (NULL, ','), NULL, 16);
-			file->preset_window->presets[i].date = strtoul(next_field (NULL, ','), NULL, 16);
-			file->preset_window->presets[i].flags = strtoul(next_field (NULL, ','), NULL, 16);
-			file->preset_window->presets[i].from = strtoul(next_field (NULL, ','), NULL, 16);
-			file->preset_window->presets[i].to = strtoul(next_field (NULL, ','), NULL, 16);
-			file->preset_window->presets[i].amount = strtoul(next_field (NULL, ','), NULL, 16);
-			*(file->preset_window->presets[i].name) = '\0';
-			*(file->preset_window->presets[i].reference) = '\0';
-			*(file->preset_window->presets[i].description) = '\0';
-			file->preset_window->presets[i].sort_index = i;
+			i = file->presets->preset_count - 1;
+			file->presets->presets[i].action_key = strtoul(next_field (value, ','), NULL, 16);
+			file->presets->presets[i].caret_target = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets->presets[i].date = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets->presets[i].flags = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets->presets[i].from = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets->presets[i].to = strtoul(next_field (NULL, ','), NULL, 16);
+			file->presets->presets[i].amount = strtoul(next_field (NULL, ','), NULL, 16);
+			*(file->presets->presets[i].name) = '\0';
+			*(file->presets->presets[i].reference) = '\0';
+			*(file->presets->presets[i].description) = '\0';
+			file->presets->presets[i].sort_index = i;
 		} else if (i != -1 && string_nocase_strcmp(token, "Name") == 0) {
-			strcpy(file->preset_window->presets[i].name, value);
+			strcpy(file->presets->presets[i].name, value);
 		} else if (i != -1 && string_nocase_strcmp(token, "Ref") == 0) {
-			strcpy(file->preset_window->presets[i].reference, value);
+			strcpy(file->presets->presets[i].reference, value);
 		} else if (i != -1 && string_nocase_strcmp(token, "Desc") == 0) {
-			strcpy(file->preset_window->presets[i].description, value);
+			strcpy(file->presets->presets[i].description, value);
 		} else {
 			*unknown_data = TRUE;
 		}
@@ -2651,15 +2651,15 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 
-	block_size = flex_size((flex_ptr) &(file->preset_window->presets)) / sizeof(struct preset);
+	block_size = flex_size((flex_ptr) &(file->presets->presets)) / sizeof(struct preset);
 
 	#ifdef DEBUG
-	debug_printf("Preset block size: %d, required: %d", block_size, file->preset_window->preset_count);
+	debug_printf("Preset block size: %d, required: %d", block_size, file->presets->preset_count);
 	#endif
 
-	if (block_size > file->preset_window->preset_count) {
-		block_size = file->preset_window->preset_count;
-		flex_extend((flex_ptr) &(file->preset_window->presets), sizeof(struct preset) * block_size);
+	if (block_size > file->presets->preset_count) {
+		block_size = file->presets->preset_count;
+		flex_extend((flex_ptr) &(file->presets->presets), sizeof(struct preset) * block_size);
 
 		#ifdef DEBUG
 		debug_printf("Block shrunk to %d", block_size);
@@ -2796,11 +2796,11 @@ osbool preset_check_account(struct file_block *file, int account)
 	int		i;
 	osbool		found = FALSE;
 
-	if (file == NULL || file->preset_window == NULL)
+	if (file == NULL || file->presets == NULL)
 		return FALSE;
 
-	for (i = 0; i < file->preset_window->preset_count && !found; i++)
-		if (file->preset_window->presets[i].from == account || file->preset_window->presets[i].to == account)
+	for (i = 0; i < file->presets->preset_count && !found; i++)
+		if (file->presets->presets[i].from == account || file->presets->presets[i].to == account)
 			found = TRUE;
 
 	return found;

@@ -140,7 +140,6 @@ struct file_block *build_new_file_block(void)
 
 	new->transactions = NULL;
 	new->accounts = NULL;
-	new->sorders = NULL;
 	new->saved_reports = NULL;
 
 	new->transaction_window = NULL;
@@ -299,7 +298,6 @@ struct file_block *build_new_file_block(void)
 
   new->trans_count = 0;
   new->account_count = 0;
-  new->sorder_count = 0;
   new->saved_report_count = 0;
 
   new->last_full_recalc = NULL_DATE;
@@ -310,7 +308,6 @@ struct file_block *build_new_file_block(void)
 
 	if (flex_alloc((flex_ptr) &(new->transactions), 4) == 0 ||
 			flex_alloc((flex_ptr) &(new->accounts), 4) == 0 ||
-			flex_alloc((flex_ptr) &(new->sorders), 4) == 0 ||
 			flex_alloc((flex_ptr) &(new->saved_reports), 4) == 0) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
@@ -453,8 +450,6 @@ void delete_file(struct file_block *file)
 		flex_free((flex_ptr) &(file->transactions));
 	if (file->accounts != NULL)
 		flex_free((flex_ptr) &(file->accounts));
-	if (file->sorders != NULL)
-		flex_free((flex_ptr) &(file->sorders));
 	if (file->saved_reports != NULL)
 		flex_free((flex_ptr) &(file->saved_reports));
 
@@ -708,7 +703,7 @@ void file_redraw_windows(struct file_block *file)
 
 	/* Redraw the standing order window. */
 
-	sorder_force_window_redraw(file, 0, file->sorder_count);
+	sorder_redraw_all(file);
 
 	/* Redraw the preset window. */
 

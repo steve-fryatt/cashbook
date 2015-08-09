@@ -32,6 +32,13 @@
 
 #include "filing.h"
 
+/* A standing order number. */
+
+typedef int sorder_t;
+
+struct sorder_block;
+
+#define NULL_SORDER ((sorder_t) (-1))
 
 /**
  * Initialise the standing order system.
@@ -49,7 +56,7 @@ void sorder_initialise(osspriteop_area *sprites);
  * \return			The instance handle, or NULL on failure.
  */
 
-struct sorder_window *sorder_create_instance(struct file_block *file);
+struct sorder_block *sorder_create_instance(struct file_block *file);
 
 
 /**
@@ -58,7 +65,7 @@ struct sorder_window *sorder_create_instance(struct file_block *file);
  * \param *windat		The instance to be deleted.
  */
 
-void sorder_delete_instance(struct sorder_window *windat);
+void sorder_delete_instance(struct sorder_block *windat);
 
 
 /**
@@ -81,15 +88,12 @@ void sorder_build_window_title(struct file_block *file);
 
 
 /**
- * Force a redraw of the Standing Order list window, for the given range of
- * lines.
+ * Force the complete redraw of the Standing Order list window.
  *
- * \param *file			The file owning the window.
- * \param from			The first line to redraw, inclusive.
- * \param to			The last line to redraw, inclusive.
+ * \param *file			The file owning the window to redraw.
  */
 
-void sorder_force_window_redraw(struct file_block *file, int from, int to);
+void sorder_redraw_all(struct file_block *file);
 
 
 /**
@@ -100,16 +104,16 @@ void sorder_force_window_redraw(struct file_block *file, int from, int to);
  * \param *ptr			The current Wimp pointer position.
  */
 
-void sorder_open_edit_window(struct file_block *file, int sorder, wimp_pointer *ptr);
+void sorder_open_edit_window(struct file_block *file, sorder_t sorder, wimp_pointer *ptr);
 
 
 /**
  * Sort the standing orders in a given file based on that file's sort setting.
  *
- * \param *file			The file to sort.
+ * \param *windat		The standing order instance to sort.
  */
 
-void sorder_sort(struct file_block *file);
+void sorder_sort(struct sorder_block *windat);
 
 
 /**
@@ -119,6 +123,16 @@ void sorder_sort(struct file_block *file);
  */
 
 void sorder_purge(struct file_block *file);
+
+
+/**
+ * Find the number of standing orders in a file.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The number of standing orders in the file.
+ */
+
+int sorder_get_count(struct file_block *file);
 
 
 /**

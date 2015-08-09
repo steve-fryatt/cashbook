@@ -4169,7 +4169,7 @@ static void transact_prepare_fileinfo(struct file_block *file)
 		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_MODIFIED, "No");
 
 	icons_printf(transact_fileinfo_window, FILEINFO_ICON_TRANSACT, "%d", transact_get_count(file));
-	icons_printf(transact_fileinfo_window, FILEINFO_ICON_SORDERS, "%d", file->sorder_count);
+	icons_printf(transact_fileinfo_window, FILEINFO_ICON_SORDERS, "%d", sorder_get_count(file));
 	icons_printf(transact_fileinfo_window, FILEINFO_ICON_PRESETS, "%d", preset_get_count(file));
 	icons_printf(transact_fileinfo_window, FILEINFO_ICON_ACCOUNTS, "%d", account_count_type_in_file(file, ACCOUNT_FULL));
 	icons_printf(transact_fileinfo_window, FILEINFO_ICON_HEADINGS, "%d", account_count_type_in_file(file, ACCOUNT_IN | ACCOUNT_OUT));

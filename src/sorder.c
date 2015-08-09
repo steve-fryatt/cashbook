@@ -206,7 +206,7 @@ struct sorder {
 	 * for handling entries in the sorder window.
 	 */
 
-	int			sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
+	int			sort_index;					/**< Point to another order, to allow the sorder window to be sorted.	*/
 };
 
 
@@ -214,32 +214,37 @@ struct sorder {
  * Standing Order Window data structure
  */
 
-struct sorder_window {
-	struct file_block	*file;						/**< The file to which the window belongs.			*/
+struct sorder_block {
+	struct file_block	*file;						/**< The file to which the window belongs.				*/
 
 	/* Transactcion window handle and title details. */
 
-	wimp_w			sorder_window;					/**< Window handle of the standing order window.		*/
+	wimp_w			sorder_window;					/**< Window handle of the standing order window.			*/
 	char			window_title[256];
-	wimp_w			sorder_pane;					/**< Window handle of the standing order window toolbar pane.	*/
+	wimp_w			sorder_pane;					/**< Window handle of the standing order window toolbar pane.		*/
 
 	/* Display column details. */
 
-	int			column_width[SORDER_COLUMNS];			/**< Array holding the column widths in the transaction window.	*/
-	int			column_position[SORDER_COLUMNS];		/**< Array holding the column X-offsets in the transact window.	*/
+	int			column_width[SORDER_COLUMNS];			/**< Array holding the column widths in the transaction window.		*/
+	int			column_position[SORDER_COLUMNS];		/**< Array holding the column X-offsets in the transact window.		*/
 
 	/* Other window details. */
 
-	enum sort_type		sort_order;					/**< The order in which the window is sorted.			*/
+	enum sort_type		sort_order;					/**< The order in which the window is sorted.				*/
 
-	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.			*/
+	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.				*/
+
+	/* Standing Order data. */
+
+	struct sorder		*sorders;					/**< The standing order data for the defined standing orders		*/
+	int			sorder_count;					/**< The number of standing orders defined in the file.			*/
 };
 
 
 /* Standing Order Edit Window. */
 
 static wimp_w			sorder_edit_window = NULL;			/**< The handle of the standing order edit window.			*/
-static struct file_block	*sorder_edit_file = NULL;			/**< The file currently owning the standing order edit window.		*/
+static struct sorder_block	*sorder_edit_owner = NULL;			/**< The file currently owning the standing order edit window.		*/
 static int			sorder_edit_number = -1;			/**< The standing order currently being edited.				*/
 
 /* Standing Order Sort Window. */
@@ -264,7 +269,7 @@ static struct sort_icon sorder_sort_directions[] = {				/**< Details of the sort
 
 /* Standing Order Print Window. */
 
-static struct file_block	*sorder_print_file = NULL;			/**< The file currently owning the standing order print window.		*/
+static struct sorder_block	*sorder_print_owner = NULL;			/**< The instance currently owning the standing order print window.		*/
 
 /* Standing Order List Window. */
 
@@ -280,7 +285,7 @@ static struct saveas_block	*sorder_saveas_csv = NULL;			/**< The Save CSV saveas
 static struct saveas_block	*sorder_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 
-static void			sorder_delete_window(struct sorder_window *windat);
+static void			sorder_delete_window(struct sorder_block *windat);
 static void			sorder_close_window_handler(wimp_close *close);
 static void			sorder_window_click_handler(wimp_pointer *pointer);
 static void			sorder_pane_click_handler(wimp_pointer *pointer);
@@ -291,31 +296,32 @@ static void			sorder_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			sorder_window_scroll_handler(wimp_scroll *scroll);
 static void			sorder_window_redraw_handler(wimp_draw *redraw);
 static void			sorder_adjust_window_columns(void *data, wimp_i group, int width);
-static void			sorder_adjust_sort_icon(struct sorder_window *windat);
-static void			sorder_adjust_sort_icon_data(struct sorder_window *windat, wimp_icon *icon);
-static void			sorder_set_window_extent(struct sorder_window *windat);
+static void			sorder_adjust_sort_icon(struct sorder_block *windat);
+static void			sorder_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon *icon);
+static void			sorder_set_window_extent(struct sorder_block *windat);
+static void			sorder_force_window_redraw(struct file_block *file, int from, int to);
 static void			sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void			sorder_edit_click_handler(wimp_pointer *pointer);
 static osbool			sorder_edit_keypress_handler(wimp_key *key);
 static void			sorder_refresh_edit_window(void);
-static void			sorder_fill_edit_window(struct file_block *file, int sorder, osbool edit_mode);
+static void			sorder_fill_edit_window(struct sorder_block *windat, int sorder, osbool edit_mode);
 static osbool			sorder_process_edit_window(void);
 static osbool			sorder_delete_from_edit_window(void);
 static osbool			sorder_stop_from_edit_window(void);
 
-static void			sorder_open_sort_window(struct sorder_window *windat, wimp_pointer *ptr);
+static void			sorder_open_sort_window(struct sorder_block *windat, wimp_pointer *ptr);
 static osbool			sorder_process_sort_window(enum sort_type order, void *data);
 
 static void			sorder_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
 static void			sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
-static int			sorder_add(struct file_block *file);
-static osbool			sorder_delete(struct file_block *file, int sorder);
+static sorder_t			sorder_add(struct file_block *file);
+static osbool			sorder_delete(struct file_block *file, sorder_t sorder);
 
 static osbool			sorder_save_csv(char *filename, osbool selection, void *data);
 static osbool			sorder_save_tsv(char *filename, osbool selection, void *data);
-static void			sorder_export_delimited(struct sorder_window *windat, char *filename, enum filing_delimit_type format, int filetype);
+static void			sorder_export_delimited(struct sorder_block *windat, char *filename, enum filing_delimit_type format, int filetype);
 
 static enum date_adjust		sorder_get_date_adjustment(enum transact_flags flags);
 
@@ -364,11 +370,11 @@ void sorder_initialise(osspriteop_area *sprites)
  * \return			The instance handle, or NULL on failure.
  */
 
-struct sorder_window *sorder_create_instance(struct file_block *file)
+struct sorder_block *sorder_create_instance(struct file_block *file)
 {
-	struct sorder_window	*new;
+	struct sorder_block	*new;
 
-	new = heap_alloc(sizeof(struct sorder_window));
+	new = heap_alloc(sizeof(struct sorder_block));
 	if (new == NULL)
 		return NULL;
 
@@ -384,6 +390,16 @@ struct sorder_window *sorder_create_instance(struct file_block *file)
 
 	new->sort_order = SORT_NEXTDATE | SORT_DESCENDING;
 
+	/* Set up the standing order data structures. */
+
+	new->sorder_count = 0;
+	new->sorders = NULL;
+
+	if (flex_alloc((flex_ptr) &(new->sorders), 4) == 0) {
+		heap_free(new);
+		return NULL;
+	}
+
 	return new;
 }
 
@@ -394,12 +410,15 @@ struct sorder_window *sorder_create_instance(struct file_block *file)
  * \param *windat		The instance to be deleted.
  */
 
-void sorder_delete_instance(struct sorder_window *windat)
+void sorder_delete_instance(struct sorder_block *windat)
 {
 	if (windat == NULL)
 		return;
 
 	sorder_delete_window(windat);
+
+	if (windat->sorders != NULL)
+		flex_free((flex_ptr) &(windat->sorders));
 
 	heap_free(windat);
 }
@@ -417,6 +436,9 @@ void sorder_open_window(struct file_block *file)
 	wimp_window_state	parent;
 	os_error		*error;
 
+	if (file == NULL || file->sorder_window == NULL)
+		return;
+
 	/* Create or re-open the window. */
 
 	if (file->sorder_window->sorder_window != NULL) {
@@ -433,7 +455,7 @@ void sorder_open_window(struct file_block *file)
 	*(file->sorder_window->window_title) = '\0';
 	sorder_window_def->title_data.indirected_text.text = file->sorder_window->window_title;
 
-	height =  (file->sorder_count > MIN_SORDER_ENTRIES) ? file->sorder_count : MIN_SORDER_ENTRIES;
+	height =  (file->sorder_window->sorder_count > MIN_SORDER_ENTRIES) ? file->sorder_window->sorder_count : MIN_SORDER_ENTRIES;
 
 	transact_get_window_state(file, &parent);
 
@@ -533,7 +555,7 @@ void sorder_open_window(struct file_block *file)
  * \param *windat		The window to delete.
  */
 
-static void sorder_delete_window(struct sorder_window *windat)
+static void sorder_delete_window(struct sorder_block *windat)
 {
 	#ifdef DEBUG
 	debug_printf ("\\RDeleting standing order window");
@@ -544,7 +566,7 @@ static void sorder_delete_window(struct sorder_window *windat)
 
 	sort_close_dialogue(sorder_sort_dialogue, windat);
 
-	if (sorder_edit_file == windat->file && windows_get_open(sorder_edit_window))
+	if (sorder_edit_owner == windat && windows_get_open(sorder_edit_window))
 		close_dialogue_with_caret(sorder_edit_window);
 
 	if (windat->sorder_window != NULL) {
@@ -571,7 +593,7 @@ static void sorder_delete_window(struct sorder_window *windat)
 
 static void sorder_close_window_handler(wimp_close *close)
 {
-	struct sorder_window	*windat;
+	struct sorder_block	*windat;
 
 	#ifdef DEBUG
 	debug_printf("\\RClosing Standing Order window");
@@ -595,16 +617,13 @@ static void sorder_close_window_handler(wimp_close *close)
 
 static void sorder_window_click_handler(wimp_pointer *pointer)
 {
-	struct sorder_window	*windat;
-	struct file_block	*file;
+	struct sorder_block	*windat;
 	int			line;
 	wimp_window_state	window;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->file == NULL)
 		return;
-
-	file = windat->file;
 
 	/* Find the window type and get the line clicked on. */
 
@@ -613,13 +632,13 @@ static void sorder_window_click_handler(wimp_pointer *pointer)
 
 	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-	if (line < 0 || line >= file->sorder_count)
+	if (line < 0 || line >= windat->sorder_count)
 		line = -1;
 
 	/* Handle double-clicks, which will open an edit standing order window. */
 
 	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
-		sorder_open_edit_window(file, file->sorders[line].sort_index, pointer);
+		sorder_open_edit_window(windat->file, windat->sorders[line].sort_index, pointer);
 }
 
 
@@ -631,7 +650,7 @@ static void sorder_window_click_handler(wimp_pointer *pointer)
 
 static void sorder_pane_click_handler(wimp_pointer *pointer)
 {
-	struct sorder_window	*windat;
+	struct sorder_block	*windat;
 	struct file_block	*file;
 	wimp_window_state	window;
 	wimp_icon_state		icon;
@@ -673,7 +692,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case SORDER_PANE_SORT:
-			sorder_sort(file);
+			sorder_sort(file->sorder_window);
 			break;
 		}
 	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
@@ -725,7 +744,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 
 			sorder_adjust_sort_icon(file->sorder_window);
 			windows_redraw(windat->sorder_pane);
-			sorder_sort(file);
+			sorder_sort(file->sorder_window);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
 		column_start_drag(pointer, windat, windat->sorder_window,
@@ -744,7 +763,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 
 static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	struct sorder_window	*windat;
+	struct sorder_block	*windat;
 	int			line;
 	wimp_window_state	window;
 
@@ -762,7 +781,7 @@ static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 
 			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-			if (line >= 0 && line < windat->file->sorder_count)
+			if (line >= 0 && line < windat->sorder_count)
 				sorder_window_menu_line = line;
 		}
 
@@ -784,7 +803,7 @@ static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 
 static void sorder_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	struct sorder_window	*windat;
+	struct sorder_block	*windat;
 	wimp_pointer		pointer;
 
 	windat = event_get_window_user_data(w);
@@ -800,7 +819,7 @@ static void sorder_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 
 	case SORDER_MENU_EDIT:
 		if (sorder_window_menu_line != -1)
-			sorder_open_edit_window(windat->file, windat->file->sorders[sorder_window_menu_line].sort_index, &pointer);
+			sorder_open_edit_window(windat->file, windat->sorders[sorder_window_menu_line].sort_index, &pointer);
 		break;
 
 	case SORDER_MENU_NEWSORDER:
@@ -828,7 +847,7 @@ static void sorder_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 
 static void sorder_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-	struct sorder_window	*windat;
+	struct sorder_block	*windat;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL)
@@ -940,8 +959,7 @@ static void sorder_window_scroll_handler(wimp_scroll *scroll)
 
 static void sorder_window_redraw_handler(wimp_draw *redraw)
 {
-	struct sorder_window	*windat;
-	struct file_block	*file;
+	struct sorder_block	*windat;
 	int			ox, oy, top, base, y, i, t;
 	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
@@ -949,8 +967,6 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL)
 		return;
-
-	file = windat->file;
 
 	more = wimp_redraw_window(redraw);
 
@@ -983,7 +999,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
-			t = (y < file->sorder_count) ? file->sorders[y].sort_index : 0;
+			t = (y < windat->sorder_count) ? windat->sorders[y].sort_index : 0;
 
 			/* Plot out the background with a filled white rectangle. */
 
@@ -1011,14 +1027,14 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			sorder_window_def->icons[SORDER_ICON_FROM_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			if (y < file->sorder_count && file->sorders[t].from != NULL_ACCOUNT) {
+			if (y < windat->sorder_count && windat->sorders[t].from != NULL_ACCOUNT) {
 				sorder_window_def->icons[SORDER_ICON_FROM].data.indirected_text.text =
-						account_get_ident(file, file->sorders[t].from);
+						account_get_ident(windat->file, windat->sorders[t].from);
 				sorder_window_def->icons[SORDER_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
 				sorder_window_def->icons[SORDER_ICON_FROM_NAME].data.indirected_text.text =
-						account_get_name(file, file->sorders[t].from);
+						account_get_name(windat->file, windat->sorders[t].from);
 
-				if (file->sorders[t].flags & TRANS_REC_FROM)
+				if (windat->sorders[t].flags & TRANS_REC_FROM)
 					strcpy(icon_buffer, rec_char);
 				else
 					*icon_buffer = '\0';
@@ -1050,14 +1066,14 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			sorder_window_def->icons[SORDER_ICON_TO_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 
-			if (y < file->sorder_count && file->sorders[t].to != NULL_ACCOUNT) {
+			if (y < windat->sorder_count && windat->sorders[t].to != NULL_ACCOUNT) {
 				sorder_window_def->icons[SORDER_ICON_TO].data.indirected_text.text =
-						account_get_ident(file, file->sorders[t].to);
+						account_get_ident(windat->file, windat->sorders[t].to);
 				sorder_window_def->icons[SORDER_ICON_TO_REC].data.indirected_text.text = icon_buffer;
 				sorder_window_def->icons[SORDER_ICON_TO_NAME].data.indirected_text.text =
-						account_get_name(file, file->sorders[t].to);
+						account_get_name(windat->file, windat->sorders[t].to);
 
-				if (file->sorders[t].flags & TRANS_REC_TO)
+				if (windat->sorders[t].flags & TRANS_REC_TO)
 					strcpy(icon_buffer, rec_char);
 				else
 					*icon_buffer = '\0';
@@ -1078,8 +1094,8 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
 			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
-			if (y < file->sorder_count)
-				currency_convert_to_string(file->sorders[t].normal_amount, icon_buffer, DESCRIPT_FIELD_LEN);
+			if (y < windat->sorder_count)
+				currency_convert_to_string(windat->sorders[t].normal_amount, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_AMOUNT]));
@@ -1090,8 +1106,8 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
 			sorder_window_def->icons[SORDER_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
-			if (y < file->sorder_count){
-				sorder_window_def->icons[SORDER_ICON_DESCRIPTION].data.indirected_text.text = file->sorders[t].description;
+			if (y < windat->sorder_count){
+				sorder_window_def->icons[SORDER_ICON_DESCRIPTION].data.indirected_text.text = windat->sorders[t].description;
 			} else {
 				sorder_window_def->icons[SORDER_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
 				*icon_buffer = '\0';
@@ -1104,9 +1120,9 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
 			sorder_window_def->icons[SORDER_ICON_NEXTDATE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
-			if (y < file->sorder_count) {
-				if (file->sorders[t].adjusted_next_date != NULL_DATE)
-					date_convert_to_string(file->sorders[t].adjusted_next_date, icon_buffer, DESCRIPT_FIELD_LEN);
+			if (y < windat->sorder_count) {
+				if (windat->sorders[t].adjusted_next_date != NULL_DATE)
+					date_convert_to_string(windat->sorders[t].adjusted_next_date, icon_buffer, DESCRIPT_FIELD_LEN);
 				else
 					msgs_lookup("SOrderStopped", icon_buffer, sizeof (icon_buffer));
 			} else {
@@ -1120,8 +1136,8 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
 			sorder_window_def->icons[SORDER_ICON_LEFT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
-			if (y < file->sorder_count)
-				sprintf (icon_buffer, "%d", file->sorders[t].left);
+			if (y < windat->sorder_count)
+				sprintf (icon_buffer, "%d", windat->sorders[t].left);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon (&(sorder_window_def->icons[SORDER_ICON_LEFT]));
@@ -1142,7 +1158,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
 {
-	struct sorder_window	*windat = (struct sorder_window *) data;
+	struct sorder_block	*windat = (struct sorder_block *) data;
 	int			i, j, new_extent;
 	wimp_icon_state		icon;
 	wimp_window_info	window;
@@ -1207,7 +1223,7 @@ static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
  * \param *windat		The standing order window to update.
  */
 
-static void sorder_adjust_sort_icon(struct sorder_window *windat)
+static void sorder_adjust_sort_icon(struct sorder_block *windat)
 {
 	wimp_icon_state		icon;
 
@@ -1232,7 +1248,7 @@ static void sorder_adjust_sort_icon(struct sorder_window *windat)
  * \param *icon			The icon to be updated.
  */
 
-static void sorder_adjust_sort_icon_data(struct sorder_window *windat, wimp_icon *icon)
+static void sorder_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon *icon)
 {
 	int	i = 0, width, anchor;
 
@@ -1296,7 +1312,7 @@ static void sorder_adjust_sort_icon_data(struct sorder_window *windat, wimp_icon
  * \param *windat		The standing order window to update.
  */
 
-static void sorder_set_window_extent(struct sorder_window *windat)
+static void sorder_set_window_extent(struct sorder_block *windat)
 {
 	wimp_window_state	state;
 	os_box			extent;
@@ -1309,7 +1325,7 @@ static void sorder_set_window_extent(struct sorder_window *windat)
 
 	/* Get the number of rows to show in the window, and work out the window extent from this. */
 
-	new_lines = (windat->file->sorder_count > MIN_SORDER_ENTRIES) ? windat->file->sorder_count : MIN_SORDER_ENTRIES;
+	new_lines = (windat->sorder_count > MIN_SORDER_ENTRIES) ? windat->sorder_count : MIN_SORDER_ENTRIES;
 
 	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_lines) - SORDER_TOOLBAR_HEIGHT;
 
@@ -1377,6 +1393,21 @@ void sorder_build_window_title(struct file_block *file)
 
 
 /**
+ * Force the complete redraw of the Standing Order list window.
+ *
+ * \param *file			The file owning the window to redraw.
+ */
+
+void sorder_redraw_all(struct file_block *file)
+{
+	if (file == NULL || file->sorder_window == NULL)
+		return;
+
+	sorder_force_window_redraw(file, 0, file->sorder_window->sorder_count - 1);
+}
+
+
+/**
  * Force a redraw of the Standing Order list window, for the given range of
  * lines.
  *
@@ -1385,7 +1416,7 @@ void sorder_build_window_title(struct file_block *file)
  * \param to			The last line to redraw, inclusive.
  */
 
-void sorder_force_window_redraw(struct file_block *file, int from, int to)
+static void sorder_force_window_redraw(struct file_block *file, int from, int to)
 {
 	int			y0, y1;
 	wimp_window_info	window;
@@ -1418,7 +1449,7 @@ static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 {
 	int			column, xpos;
 	wimp_window_state	window;
-	struct sorder_window	*windat;
+	struct sorder_block	*windat;
 
 	*buffer = '\0';
 
@@ -1447,9 +1478,12 @@ static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
  * \param *ptr			The current Wimp pointer position.
  */
 
-void sorder_open_edit_window(struct file_block *file, int sorder, wimp_pointer *ptr)
+void sorder_open_edit_window(struct file_block *file, sorder_t sorder, wimp_pointer *ptr)
 {
 	osbool		edit_mode;
+
+	if (file == NULL || file->sorder_window == NULL)
+		return;
 
 	/* If the window is already open, another standing is being edited or created.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
@@ -1462,7 +1496,7 @@ void sorder_open_edit_window(struct file_block *file, int sorder, wimp_pointer *
 	 * be changed.
 	 */
 
-	edit_mode = (sorder != NULL_SORDER && file->sorders[sorder].adjusted_next_date != NULL_DATE);
+	edit_mode = (sorder != NULL_SORDER && file->sorder_window->sorders[sorder].adjusted_next_date != NULL_DATE);
 
 	/* Set the contents of the window up. */
 
@@ -1474,11 +1508,11 @@ void sorder_open_edit_window(struct file_block *file, int sorder, wimp_pointer *
 		msgs_lookup("EditAcctAct", icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_OK), 12);
 	}
 
-	sorder_fill_edit_window(file, sorder, edit_mode);
+	sorder_fill_edit_window(file->sorder_window, sorder, edit_mode);
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
-	sorder_edit_file = file;
+	sorder_edit_owner = file->sorder_window;
 	sorder_edit_number = sorder;
 
 	windows_open_centred_at_pointer(sorder_edit_window, ptr);
@@ -1536,13 +1570,13 @@ static void sorder_edit_click_handler(wimp_pointer *pointer)
 
 	case SORDER_EDIT_FMNAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(sorder_edit_file, ACCOUNT_MENU_FROM, 0,
+			open_account_menu(sorder_edit_owner->file, ACCOUNT_MENU_FROM, 0,
 					sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC, pointer);
 		break;
 
 	case SORDER_EDIT_TONAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(sorder_edit_file, ACCOUNT_MENU_TO, 0,
+			open_account_menu(sorder_edit_owner->file, ACCOUNT_MENU_TO, 0,
 					sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC, pointer);
 		break;
 
@@ -1583,11 +1617,11 @@ static osbool sorder_edit_keypress_handler(wimp_key *key)
 			return FALSE;
 
 		if (key->i == SORDER_EDIT_FMIDENT)
-			account_lookup_field(sorder_edit_file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+			account_lookup_field(sorder_edit_owner->file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
 					sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC);
 
 		else if (key->i == SORDER_EDIT_TOIDENT)
-			account_lookup_field(sorder_edit_file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
+			account_lookup_field(sorder_edit_owner->file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
 					sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC);
 		break;
 	}
@@ -1602,9 +1636,9 @@ static osbool sorder_edit_keypress_handler(wimp_key *key)
 
 static void sorder_refresh_edit_window(void)
 {
-	sorder_fill_edit_window(sorder_edit_file, sorder_edit_number,
+	sorder_fill_edit_window(sorder_edit_owner, sorder_edit_number,
 			sorder_edit_number != NULL_SORDER &&
-			sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE);
+			sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE);
 	icons_redraw_group(sorder_edit_window, 14,
 			SORDER_EDIT_START, SORDER_EDIT_NUMBER, SORDER_EDIT_PERIOD,
 			SORDER_EDIT_FMIDENT, SORDER_EDIT_FMREC, SORDER_EDIT_FMNAME,
@@ -1616,13 +1650,13 @@ static void sorder_refresh_edit_window(void)
 
 /**
  * Update the contents of the Standing Order Edit window to reflect the current
- * settings of the given file and standing order.
+ * settings of the given standing order window and standing order.
  *
- * \param *file			The file to use.
- * \param preset		The preset to display, or NULL_PRESET for none.
+ * \param *windat		The standing order instance to use.
+ * \param preset		The standing order to display, or NULL_SORDER for none.
  */
 
-static void sorder_fill_edit_window(struct file_block *file, int sorder, osbool edit_mode)
+static void sorder_fill_edit_window(struct sorder_block *windat, int sorder, osbool edit_mode)
 {
 	if (sorder == NULL_SORDER) {
 		/* Set start date. */
@@ -1686,84 +1720,84 @@ static void sorder_fill_edit_window(struct file_block *file, int sorder, osbool 
 	} else {
 		/* Set start date. */
 
-		date_convert_to_string(file->sorders[sorder].start_date,
+		date_convert_to_string(windat->sorders[sorder].start_date,
 				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_START),
 				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_START));
 
 		/* Set number. */
 
-		icons_printf(sorder_edit_window, SORDER_EDIT_NUMBER, "%d", file->sorders[sorder].number);
+		icons_printf(sorder_edit_window, SORDER_EDIT_NUMBER, "%d", windat->sorders[sorder].number);
 
 		/* Set period details. */
 
-		icons_printf(sorder_edit_window, SORDER_EDIT_PERIOD, "%d", file->sorders[sorder].period);
+		icons_printf(sorder_edit_window, SORDER_EDIT_PERIOD, "%d", windat->sorders[sorder].period);
 
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERDAYS,
-				file->sorders[sorder].period_unit == DATE_PERIOD_DAYS);
+				windat->sorders[sorder].period_unit == DATE_PERIOD_DAYS);
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERMONTHS,
-				file->sorders[sorder].period_unit == DATE_PERIOD_MONTHS);
+				windat->sorders[sorder].period_unit == DATE_PERIOD_MONTHS);
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_PERYEARS,
-				file->sorders[sorder].period_unit == DATE_PERIOD_YEARS);
+				windat->sorders[sorder].period_unit == DATE_PERIOD_YEARS);
 
 		/* Set the ignore weekends details. */
 
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_AVOID,
-				(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
-				file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+				(windat->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
+				windat->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
 
-		icons_set_selected(sorder_edit_window, SORDER_EDIT_SKIPFWD, !(file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
-		icons_set_selected(sorder_edit_window, SORDER_EDIT_SKIPBACK, (file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_SKIPFWD, !(windat->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+		icons_set_selected(sorder_edit_window, SORDER_EDIT_SKIPBACK, (windat->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
 
 		icons_set_shaded(sorder_edit_window, SORDER_EDIT_SKIPFWD,
-				!(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
-				file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+				!(windat->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
+				windat->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
 
 		icons_set_shaded(sorder_edit_window, SORDER_EDIT_SKIPBACK,
-				!(file->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
-				file->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
+				!(windat->sorders[sorder].flags & TRANS_SKIP_FORWARD ||
+				windat->sorders[sorder].flags & TRANS_SKIP_BACKWARD));
 
 		/* Fill in the from and to fields. */
 
-		fill_account_field(file, file->sorders[sorder].from, file->sorders[sorder].flags & TRANS_REC_FROM,
+		fill_account_field(windat->file, windat->sorders[sorder].from, windat->sorders[sorder].flags & TRANS_REC_FROM,
 				sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC);
 
-		fill_account_field(file, file->sorders[sorder].to, file->sorders[sorder].flags & TRANS_REC_TO,
+		fill_account_field(windat->file, windat->sorders[sorder].to, windat->sorders[sorder].flags & TRANS_REC_TO,
 				sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC);
 
 		/* Fill in the reference field. */
 
-		icons_strncpy(sorder_edit_window, SORDER_EDIT_REF, file->sorders[sorder].reference);
+		icons_strncpy(sorder_edit_window, SORDER_EDIT_REF, windat->sorders[sorder].reference);
 
 		/* Fill in the amount fields. */
 
-		currency_convert_to_string(file->sorders[sorder].normal_amount,
+		currency_convert_to_string(windat->sorders[sorder].normal_amount,
 				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT),
 				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_AMOUNT));
 
 
-		currency_convert_to_string(file->sorders[sorder].first_amount,
+		currency_convert_to_string(windat->sorders[sorder].first_amount,
 				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST),
 				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_FIRST));
 
 		icons_set_shaded(sorder_edit_window, SORDER_EDIT_FIRST,
-				(file->sorders[sorder].first_amount == file->sorders[sorder].normal_amount));
+				(windat->sorders[sorder].first_amount == windat->sorders[sorder].normal_amount));
 
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_FIRSTSW,
-				(file->sorders[sorder].first_amount != file->sorders[sorder].normal_amount));
+				(windat->sorders[sorder].first_amount != windat->sorders[sorder].normal_amount));
 
-		currency_convert_to_string(file->sorders[sorder].last_amount,
+		currency_convert_to_string(windat->sorders[sorder].last_amount,
 				icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST),
 				icons_get_indirected_text_length(sorder_edit_window, SORDER_EDIT_LAST));
 
 		icons_set_shaded(sorder_edit_window, SORDER_EDIT_LAST,
-				(file->sorders[sorder].last_amount == file->sorders[sorder].normal_amount));
+				(windat->sorders[sorder].last_amount == windat->sorders[sorder].normal_amount));
 
 		icons_set_selected(sorder_edit_window, SORDER_EDIT_LASTSW,
-				(file->sorders[sorder].last_amount != file->sorders[sorder].normal_amount));
+				(windat->sorders[sorder].last_amount != windat->sorders[sorder].normal_amount));
 
 		/* Fill in the description field. */
 
-		icons_strncpy(sorder_edit_window, SORDER_EDIT_DESC, file->sorders[sorder].description);
+		icons_strncpy(sorder_edit_window, SORDER_EDIT_DESC, windat->sorders[sorder].description);
 	}
 
 	/* Shade icons as required for the edit mode.
@@ -1820,20 +1854,20 @@ static osbool sorder_process_edit_window(void)
 	/* If the standing order doesn't exsit, create it.  If it does exist, validate any data that requires it. */
 
 	if (sorder_edit_number == NULL_SORDER) {
-		sorder_edit_number = sorder_add(sorder_edit_file);
-		sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE; /* Set to allow editing. */
+		sorder_edit_number = sorder_add(sorder_edit_owner->file);
+		sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE; /* Set to allow editing. */
 
 		done = 0;
 	} else {
-		done = sorder_edit_file->sorders[sorder_edit_number].number - sorder_edit_file->sorders[sorder_edit_number].left;
+		done = sorder_edit_owner->sorders[sorder_edit_number].number - sorder_edit_owner->sorders[sorder_edit_number].left;
 		if (atoi(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_NUMBER)) < done &&
-				sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE) {
+				sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date != NULL_DATE) {
 			error_msgs_report_error("BadSONumber");
 			return FALSE;
 		}
 
-		if (sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE &&
-				sorder_edit_file->sorders[sorder_edit_number].start_date == new_start_date &&
+		if (sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE &&
+				sorder_edit_owner->sorders[sorder_edit_number].start_date == new_start_date &&
 				(error_msgs_report_question("CheckSODate", "CheckSODateB") == 2))
 			return FALSE;
 	}
@@ -1845,32 +1879,32 @@ static osbool sorder_process_edit_window(void)
 
 	/* Zero the flags and reset them as required. */
 
-	sorder_edit_file->sorders[sorder_edit_number].flags = 0;
+	sorder_edit_owner->sorders[sorder_edit_number].flags = 0;
 
 	/* Get the avoid mode. */
 
 	if (icons_get_selected(sorder_edit_window, SORDER_EDIT_AVOID)) {
 		if (icons_get_selected(sorder_edit_window, SORDER_EDIT_SKIPFWD))
-			sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_SKIP_FORWARD;
+			sorder_edit_owner->sorders[sorder_edit_number].flags |= TRANS_SKIP_FORWARD;
 		else if (icons_get_selected(sorder_edit_window, SORDER_EDIT_SKIPBACK))
-			sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_SKIP_BACKWARD;
+			sorder_edit_owner->sorders[sorder_edit_number].flags |= TRANS_SKIP_BACKWARD;
 	}
 
 	/* If it's a new/finished order, get the start date and period and set up the date fields. */
 
-	if (sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE) {
-		sorder_edit_file->sorders[sorder_edit_number].period_unit = new_period_unit;
+	if (sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE) {
+		sorder_edit_owner->sorders[sorder_edit_number].period_unit = new_period_unit;
 
-		sorder_edit_file->sorders[sorder_edit_number].start_date = new_start_date;
+		sorder_edit_owner->sorders[sorder_edit_number].start_date = new_start_date;
 
-		sorder_edit_file->sorders[sorder_edit_number].raw_next_date =
-				sorder_edit_file->sorders[sorder_edit_number].start_date;
+		sorder_edit_owner->sorders[sorder_edit_number].raw_next_date =
+				sorder_edit_owner->sorders[sorder_edit_number].start_date;
 
-		sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date =
-				date_find_working_day(sorder_edit_file->sorders[sorder_edit_number].raw_next_date,
-				sorder_get_date_adjustment(sorder_edit_file->sorders[sorder_edit_number].flags));
+		sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date =
+				date_find_working_day(sorder_edit_owner->sorders[sorder_edit_number].raw_next_date,
+				sorder_get_date_adjustment(sorder_edit_owner->sorders[sorder_edit_number].flags));
 
-		sorder_edit_file->sorders[sorder_edit_number].period =
+		sorder_edit_owner->sorders[sorder_edit_number].period =
 				atoi(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_PERIOD));
 
 		done = 0;
@@ -1878,63 +1912,63 @@ static osbool sorder_process_edit_window(void)
 
 	/* Get the number of transactions. */
 
-	sorder_edit_file->sorders[sorder_edit_number].number =
+	sorder_edit_owner->sorders[sorder_edit_number].number =
 			atoi(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_NUMBER));
 
-	sorder_edit_file->sorders[sorder_edit_number].left =
-			sorder_edit_file->sorders[sorder_edit_number].number - done;
+	sorder_edit_owner->sorders[sorder_edit_number].left =
+			sorder_edit_owner->sorders[sorder_edit_number].number - done;
 
-	if (sorder_edit_file->sorders[sorder_edit_number].left == 0)
-		sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
+	if (sorder_edit_owner->sorders[sorder_edit_number].left == 0)
+		sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
 
 	/* Get the from and to fields. */
 
-	sorder_edit_file->sorders[sorder_edit_number].from = account_find_by_ident(sorder_edit_file,
+	sorder_edit_owner->sorders[sorder_edit_number].from = account_find_by_ident(sorder_edit_owner->file,
 			icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FMIDENT), ACCOUNT_FULL | ACCOUNT_IN);
 
-	sorder_edit_file->sorders[sorder_edit_number].to = account_find_by_ident(sorder_edit_file,
+	sorder_edit_owner->sorders[sorder_edit_number].to = account_find_by_ident(sorder_edit_owner->file,
 			icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_TOIDENT), ACCOUNT_FULL | ACCOUNT_OUT);
 
 	if (*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FMREC) != '\0')
-		sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_REC_FROM;
+		sorder_edit_owner->sorders[sorder_edit_number].flags |= TRANS_REC_FROM;
 
 	if (*icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_TOREC) != '\0')
-		sorder_edit_file->sorders[sorder_edit_number].flags |= TRANS_REC_TO;
+		sorder_edit_owner->sorders[sorder_edit_number].flags |= TRANS_REC_TO;
 
 	/* Get the amounts. */
 
-	sorder_edit_file->sorders[sorder_edit_number].normal_amount =
+	sorder_edit_owner->sorders[sorder_edit_number].normal_amount =
 		currency_convert_from_string(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_AMOUNT));
 
 	if (icons_get_selected(sorder_edit_window, SORDER_EDIT_FIRSTSW))
-		sorder_edit_file->sorders[sorder_edit_number].first_amount =
+		sorder_edit_owner->sorders[sorder_edit_number].first_amount =
 				currency_convert_from_string(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_FIRST));
 	else
-		sorder_edit_file->sorders[sorder_edit_number].first_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
+		sorder_edit_owner->sorders[sorder_edit_number].first_amount = sorder_edit_owner->sorders[sorder_edit_number].normal_amount;
 
 	if (icons_get_selected(sorder_edit_window, SORDER_EDIT_LASTSW))
-		sorder_edit_file->sorders[sorder_edit_number].last_amount =
+		sorder_edit_owner->sorders[sorder_edit_number].last_amount =
 				currency_convert_from_string(icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_LAST));
 	else
-		sorder_edit_file->sorders[sorder_edit_number].last_amount = sorder_edit_file->sorders[sorder_edit_number].normal_amount;
+		sorder_edit_owner->sorders[sorder_edit_number].last_amount = sorder_edit_owner->sorders[sorder_edit_number].normal_amount;
 
 	/* Store the reference. */
 
-	strcpy(sorder_edit_file->sorders[sorder_edit_number].reference, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_REF));
+	strcpy(sorder_edit_owner->sorders[sorder_edit_number].reference, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_REF));
 
 	/* Store the description. */
 
-	strcpy(sorder_edit_file->sorders[sorder_edit_number].description, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_DESC));
+	strcpy(sorder_edit_owner->sorders[sorder_edit_number].description, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_DESC));
 
 	if (config_opt_read("AutoSortSOrders"))
-		sorder_sort(sorder_edit_file);
+		sorder_sort(sorder_edit_owner);
 	else
-		sorder_force_window_redraw(sorder_edit_file, sorder_edit_number, sorder_edit_number);
+		sorder_force_window_redraw(sorder_edit_owner->file, sorder_edit_number, sorder_edit_number);
 
-	file_set_data_integrity(sorder_edit_file, TRUE);
-	sorder_process(sorder_edit_file);
-	account_recalculate_all(sorder_edit_file);
-	transact_set_window_extent(sorder_edit_file);
+	file_set_data_integrity(sorder_edit_owner->file, TRUE);
+	sorder_process(sorder_edit_owner->file);
+	account_recalculate_all(sorder_edit_owner->file);
+	transact_set_window_extent(sorder_edit_owner->file);
 
 	return TRUE;
 }
@@ -1952,7 +1986,7 @@ static osbool sorder_delete_from_edit_window(void)
 	if (error_msgs_report_question("DeleteSOrder", "DeleteSOrderB") == 2)
 		return FALSE;
 
-	return sorder_delete(sorder_edit_file, sorder_edit_number);
+	return sorder_delete(sorder_edit_owner->file, sorder_edit_number);
 }
 
 
@@ -1971,9 +2005,9 @@ static osbool sorder_stop_from_edit_window(void)
 
 	/* Stop the order */
 
-	sorder_edit_file->sorders[sorder_edit_number].raw_next_date = NULL_DATE;
-	sorder_edit_file->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
-	sorder_edit_file->sorders[sorder_edit_number].left = 0;
+	sorder_edit_owner->sorders[sorder_edit_number].raw_next_date = NULL_DATE;
+	sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
+	sorder_edit_owner->sorders[sorder_edit_number].left = 0;
 
 	/* Redraw the standing order edit window's contents. */
 
@@ -1982,10 +2016,10 @@ static osbool sorder_stop_from_edit_window(void)
 	/* Update the main standing order display window. */
 
 	if (config_opt_read("AutoSortSOrders"))
-		sorder_sort(sorder_edit_file);
+		sorder_sort(sorder_edit_owner);
 	else
-		sorder_force_window_redraw(sorder_edit_file, sorder_edit_number, sorder_edit_number);
-	file_set_data_integrity(sorder_edit_file, TRUE);
+		sorder_force_window_redraw(sorder_edit_owner->file, sorder_edit_number, sorder_edit_number);
+	file_set_data_integrity(sorder_edit_owner->file, TRUE);
 
 	return TRUE;
 }
@@ -1998,7 +2032,7 @@ static osbool sorder_stop_from_edit_window(void)
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void sorder_open_sort_window(struct sorder_window *windat, wimp_pointer *ptr)
+static void sorder_open_sort_window(struct sorder_block *windat, wimp_pointer *ptr)
 {
 	if (windat == NULL || ptr == NULL)
 		return;
@@ -2018,7 +2052,7 @@ static void sorder_open_sort_window(struct sorder_window *windat, wimp_pointer *
 
 static osbool sorder_process_sort_window(enum sort_type order, void *data)
 {
-	struct sorder_window	*windat = (struct sorder_window *) data;
+	struct sorder_block	*windat = (struct sorder_block *) data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -2027,7 +2061,7 @@ static osbool sorder_process_sort_window(enum sort_type order, void *data)
 
 	sorder_adjust_sort_icon(windat);
 	windows_redraw(windat->sorder_pane);
-	sorder_sort(windat->file);
+	sorder_sort(windat);
 
 	return TRUE;
 }
@@ -2043,7 +2077,10 @@ static osbool sorder_process_sort_window(enum sort_type order, void *data)
 
 static void sorder_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore)
 {
-	sorder_print_file = file;
+	if (file == NULL || file->sorder_window == NULL)
+		return;
+
+	sorder_print_owner = file->sorder_window;
 	printing_open_simple_window(file, ptr, restore, "PrintSOrder", sorder_print);
 }
 
@@ -2064,11 +2101,10 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 	struct report		*report;
 	int			i, t;
 	char			line[1024], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
-	struct sorder_window	*window;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 	msgs_lookup("PrintTitleSOrder", buffer, sizeof (buffer));
-	report = report_open(sorder_print_file, buffer, NULL);
+	report = report_open(sorder_print_owner->file, buffer, NULL);
 
 	if (report == NULL) {
 		error_msgs_report_error("PrintMemFail");
@@ -2077,11 +2113,9 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 
 	hourglass_on();
 
-	window = sorder_print_file->sorder_window;
-
 	/* Output the page title. */
 
-	file_get_leafname(sorder_print_file, numbuf1, sizeof (numbuf1));
+	file_get_leafname(sorder_print_owner->file, numbuf1, sizeof (numbuf1));
 	msgs_param_lookup("SOrderTitle", buffer, sizeof (buffer), numbuf1, NULL, NULL, NULL);
 	sprintf(line, "\\b\\u%s", buffer);
 	report_write_line(report, 0, line);
@@ -2090,63 +2124,63 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 	/* Output the headings line, taking the text from the window icons. */
 
 	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_FROM, numbuf1, sizeof(numbuf1)));
+	sprintf(buffer, "\\k\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_FROM, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_TO, numbuf1, sizeof(numbuf1)));
+	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_TO, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_AMOUNT, numbuf1, sizeof(numbuf1)));
+	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_AMOUNT, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(window->sorder_pane, SORDER_PANE_NEXTDATE, numbuf1, sizeof(numbuf1)));
+	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_NEXTDATE, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s", icons_copy_text(window->sorder_pane, SORDER_PANE_LEFT, numbuf1, sizeof(numbuf1)));
+	sprintf(buffer, "\\b\\u\\r%s", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_LEFT, numbuf1, sizeof(numbuf1)));
 	strcat(line, buffer);
 
 	report_write_line(report, 0, line);
 
 	/* Output the standing order data as a set of delimited lines. */
 
-	for (i=0; i < sorder_print_file->sorder_count; i++) {
-		t = sorder_print_file->sorders[i].sort_index;
+	for (i=0; i < sorder_print_owner->sorder_count; i++) {
+		t = sorder_print_owner->sorders[i].sort_index;
 
 		*line = '\0';
 
-		sprintf(buffer, "\\k%s\\t", account_get_ident(sorder_print_file, sorder_print_file->sorders[t].from));
+		sprintf(buffer, "\\k%s\\t", account_get_ident(sorder_print_owner->file, sorder_print_owner->sorders[t].from));
 		strcat(line, buffer);
 
-		strcpy(numbuf1, (sorder_print_file->sorders[t].flags & TRANS_REC_FROM) ? rec_char : "");
+		strcpy(numbuf1, (sorder_print_owner->sorders[t].flags & TRANS_REC_FROM) ? rec_char : "");
 		sprintf(buffer, "%s\\t", numbuf1);
 		strcat(line, buffer);
 
-		sprintf(buffer, "%s\\t", account_get_name(sorder_print_file, sorder_print_file->sorders[t].from));
+		sprintf(buffer, "%s\\t", account_get_name(sorder_print_owner->file, sorder_print_owner->sorders[t].from));
 		strcat(line, buffer);
 
-		sprintf(buffer, "%s\\t", account_get_ident(sorder_print_file, sorder_print_file->sorders[t].to));
+		sprintf(buffer, "%s\\t", account_get_ident(sorder_print_owner->file, sorder_print_owner->sorders[t].to));
 		strcat(line, buffer);
 
-		strcpy(numbuf1, (sorder_print_file->sorders[t].flags & TRANS_REC_TO) ? rec_char : "");
+		strcpy(numbuf1, (sorder_print_owner->sorders[t].flags & TRANS_REC_TO) ? rec_char : "");
 		sprintf(buffer, "%s\\t", numbuf1);
 		strcat(line, buffer);
 
-		sprintf(buffer, "%s\\t", account_get_name(sorder_print_file, sorder_print_file->sorders[t].to));
+		sprintf(buffer, "%s\\t", account_get_name(sorder_print_owner->file, sorder_print_owner->sorders[t].to));
 		strcat(line, buffer);
 
-		currency_convert_to_string(sorder_print_file->sorders[t].normal_amount, numbuf1, sizeof(numbuf1));
+		currency_convert_to_string(sorder_print_owner->sorders[t].normal_amount, numbuf1, sizeof(numbuf1));
 		sprintf(buffer, "\\r%s\\t", numbuf1);
 		strcat(line, buffer);
 
-		sprintf(buffer, "%s\\t", sorder_print_file->sorders[t].description);
+		sprintf(buffer, "%s\\t", sorder_print_owner->sorders[t].description);
 		strcat(line, buffer);
 
-		if (sorder_print_file->sorders[t].adjusted_next_date != NULL_DATE)
-			date_convert_to_string(sorder_print_file->sorders[t].adjusted_next_date, numbuf1, sizeof(numbuf1));
+		if (sorder_print_owner->sorders[t].adjusted_next_date != NULL_DATE)
+			date_convert_to_string(sorder_print_owner->sorders[t].adjusted_next_date, numbuf1, sizeof(numbuf1));
 		else
 			msgs_lookup("SOrderStopped", numbuf1, sizeof(numbuf1));
 		sprintf(buffer, "%s\\t", numbuf1);
 		strcat(line, buffer);
 
-		sprintf(buffer, "\\r%d", sorder_print_file->sorders[t].left);
+		sprintf(buffer, "\\r%d", sorder_print_owner->sorders[t].left);
 		strcat(line, buffer);
 
 		report_write_line(report, 0, line);
@@ -2161,15 +2195,15 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 /**
  * Sort the standing orders in a given file based on that file's sort setting.
  *
- * \param *file			The file to sort.
+ * \param *windat		The standing order instance to sort.
  */
 
-void sorder_sort(struct file_block *file)
+void sorder_sort(struct sorder_block *windat)
 {
 	int		gap, comb, temp, order;
 	osbool		sorted, reorder;
 
-	if (file == NULL || file->sorder_window == NULL)
+	if (windat == NULL)
 		return;
 
 	#ifdef DEBUG
@@ -2182,76 +2216,76 @@ void sorder_sort(struct file_block *file)
 	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
 	 */
 
-	gap = file->sorder_count - 1;
+	gap = windat->sorder_count - 1;
 
-	order = file->sorder_window->sort_order;
+	order = windat->sort_order;
 
 	do {
 		gap = (gap > 1) ? (gap * 10 / 13) : 1;
-		if ((file->sorder_count >= 12) && (gap == 9 || gap == 10))
+		if ((windat->sorder_count >= 12) && (gap == 9 || gap == 10))
 			gap = 11;
 
 		sorted = TRUE;
-		for (comb = 0; (comb + gap) < file->sorder_count; comb++) {
+		for (comb = 0; (comb + gap) < windat->sorder_count; comb++) {
 			switch (order) {
 			case SORT_FROM | SORT_ASCENDING:
-				reorder = (strcmp(account_get_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
-						account_get_name(file, file->sorders[file->sorders[comb].sort_index].from)) < 0);
+				reorder = (strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[comb+gap].sort_index].from),
+						account_get_name(windat->file, windat->sorders[windat->sorders[comb].sort_index].from)) < 0);
 				break;
 
 			case SORT_FROM | SORT_DESCENDING:
-				reorder = (strcmp(account_get_name(file, file->sorders[file->sorders[comb+gap].sort_index].from),
-						account_get_name(file, file->sorders[file->sorders[comb].sort_index].from)) > 0);
+				reorder = (strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[comb+gap].sort_index].from),
+						account_get_name(windat->file, windat->sorders[windat->sorders[comb].sort_index].from)) > 0);
 				break;
 
 			case SORT_TO | SORT_ASCENDING:
-				reorder = (strcmp(account_get_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
-						account_get_name(file, file->sorders[file->sorders[comb].sort_index].to)) < 0);
+				reorder = (strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[comb+gap].sort_index].to),
+						account_get_name(windat->file, windat->sorders[windat->sorders[comb].sort_index].to)) < 0);
 				break;
 
 			case SORT_TO | SORT_DESCENDING:
-				reorder = (strcmp(account_get_name(file, file->sorders[file->sorders[comb+gap].sort_index].to),
-						account_get_name(file, file->sorders[file->sorders[comb].sort_index].to)) > 0);
+				reorder = (strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[comb+gap].sort_index].to),
+						account_get_name(windat->file, windat->sorders[windat->sorders[comb].sort_index].to)) > 0);
 				break;
 
 			case SORT_AMOUNT | SORT_ASCENDING:
-				reorder = (file->sorders[file->sorders[comb+gap].sort_index].normal_amount <
-						file->sorders[file->sorders[comb].sort_index].normal_amount);
+				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].normal_amount <
+						windat->sorders[windat->sorders[comb].sort_index].normal_amount);
 				break;
 
 			case SORT_AMOUNT | SORT_DESCENDING:
-				reorder = (file->sorders[file->sorders[comb+gap].sort_index].normal_amount >
-						file->sorders[file->sorders[comb].sort_index].normal_amount);
+				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].normal_amount >
+						windat->sorders[windat->sorders[comb].sort_index].normal_amount);
 				break;
 
 			case SORT_DESCRIPTION | SORT_ASCENDING:
-				reorder = (strcmp(file->sorders[file->sorders[comb+gap].sort_index].description,
-						file->sorders[file->sorders[comb].sort_index].description) < 0);
+				reorder = (strcmp(windat->sorders[windat->sorders[comb+gap].sort_index].description,
+						windat->sorders[windat->sorders[comb].sort_index].description) < 0);
 				break;
 
 			case SORT_DESCRIPTION | SORT_DESCENDING:
-				reorder = (strcmp(file->sorders[file->sorders[comb+gap].sort_index].description,
-						file->sorders[file->sorders[comb].sort_index].description) > 0);
+				reorder = (strcmp(windat->sorders[windat->sorders[comb+gap].sort_index].description,
+						windat->sorders[windat->sorders[comb].sort_index].description) > 0);
 				break;
 
 			case SORT_NEXTDATE | SORT_ASCENDING:
-				reorder = (file->sorders[file->sorders[comb+gap].sort_index].adjusted_next_date >
-						file->sorders[file->sorders[comb].sort_index].adjusted_next_date);
+				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].adjusted_next_date >
+						windat->sorders[windat->sorders[comb].sort_index].adjusted_next_date);
 				break;
 
 			case SORT_NEXTDATE | SORT_DESCENDING:
-				reorder = (file->sorders[file->sorders[comb+gap].sort_index].adjusted_next_date <
-						file->sorders[file->sorders[comb].sort_index].adjusted_next_date);
+				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].adjusted_next_date <
+						windat->sorders[windat->sorders[comb].sort_index].adjusted_next_date);
 				break;
 
 			case SORT_LEFT | SORT_ASCENDING:
-				reorder = (file->sorders[file->sorders[comb+gap].sort_index].left <
-						file->sorders[file->sorders[comb].sort_index].left);
+				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].left <
+						windat->sorders[windat->sorders[comb].sort_index].left);
 				break;
 
 			case SORT_LEFT | SORT_DESCENDING:
-				reorder = (file->sorders[file->sorders[comb+gap].sort_index].left >
-						file->sorders[file->sorders[comb].sort_index].left);
+				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].left >
+						windat->sorders[windat->sorders[comb].sort_index].left);
 				break;
 
 			default:
@@ -2260,16 +2294,16 @@ void sorder_sort(struct file_block *file)
 			}
 
 			if (reorder) {
-				temp = file->sorders[comb+gap].sort_index;
-				file->sorders[comb+gap].sort_index = file->sorders[comb].sort_index;
-				file->sorders[comb].sort_index = temp;
+				temp = windat->sorders[comb+gap].sort_index;
+				windat->sorders[comb+gap].sort_index = windat->sorders[comb].sort_index;
+				windat->sorders[comb].sort_index = temp;
 
 				sorted = FALSE;
 			}
 		}
 	} while (!sorted || gap != 1);
 
-	sorder_force_window_redraw(file, 0, file->sorder_count - 1);
+	sorder_force_window_redraw(windat->file, 0, windat->sorder_count - 1);
 
 	hourglass_off();
 }
@@ -2283,38 +2317,41 @@ void sorder_sort(struct file_block *file)
  * \return			The new standing order index, or NULL_SORDER.
  */
 
-static int sorder_add(struct file_block *file)
+static sorder_t sorder_add(struct file_block *file)
 {
 	int	new;
 
-	if (flex_extend((flex_ptr) &(file->sorders), sizeof(struct sorder) * (file->sorder_count+1)) != 1) {
+	if (file == NULL || file->sorder_window == NULL)
+		return NULL_SORDER;
+
+	if (flex_extend((flex_ptr) &(file->sorder_window->sorders), sizeof(struct sorder) * (file->sorder_window->sorder_count+1)) != 1) {
 		error_msgs_report_error("NoMemNewSO");
 		return NULL_SORDER;
 	}
 
-	new = file->sorder_count++;
+	new = file->sorder_window->sorder_count++;
 
-	file->sorders[new].start_date = NULL_DATE;
-	file->sorders[new].raw_next_date = NULL_DATE;
-	file->sorders[new].adjusted_next_date = NULL_DATE;
+	file->sorder_window->sorders[new].start_date = NULL_DATE;
+	file->sorder_window->sorders[new].raw_next_date = NULL_DATE;
+	file->sorder_window->sorders[new].adjusted_next_date = NULL_DATE;
 
-	file->sorders[new].number = 0;
-	file->sorders[new].left = 0;
-	file->sorders[new].period = 0;
-	file->sorders[new].period_unit = 0;
+	file->sorder_window->sorders[new].number = 0;
+	file->sorder_window->sorders[new].left = 0;
+	file->sorder_window->sorders[new].period = 0;
+	file->sorder_window->sorders[new].period_unit = 0;
 
-	file->sorders[new].flags = 0;
+	file->sorder_window->sorders[new].flags = 0;
 
-	file->sorders[new].from = NULL_ACCOUNT;
-	file->sorders[new].to = NULL_ACCOUNT;
-	file->sorders[new].normal_amount = NULL_CURRENCY;
-	file->sorders[new].first_amount = NULL_CURRENCY;
-	file->sorders[new].last_amount = NULL_CURRENCY;
+	file->sorder_window->sorders[new].from = NULL_ACCOUNT;
+	file->sorder_window->sorders[new].to = NULL_ACCOUNT;
+	file->sorder_window->sorders[new].normal_amount = NULL_CURRENCY;
+	file->sorder_window->sorders[new].first_amount = NULL_CURRENCY;
+	file->sorder_window->sorders[new].last_amount = NULL_CURRENCY;
 
-	*file->sorders[new].reference = '\0';
-	*file->sorders[new].description = '\0';
+	*file->sorder_window->sorders[new].reference = '\0';
+	*file->sorder_window->sorders[new].description = '\0';
 
-	file->sorders[new].sort_index = new;
+	file->sorder_window->sorders[new].sort_index = new;
 
 	sorder_set_window_extent(file->sorder_window);
 
@@ -2330,38 +2367,41 @@ static int sorder_add(struct file_block *file)
  * \return 			TRUE if successful; else FALSE.
  */
 
-static osbool sorder_delete(struct file_block *file, int sorder)
+static osbool sorder_delete(struct file_block *file, sorder_t sorder)
 {
 	int	i, index;
+
+	if (file == NULL || file->sorder_window == NULL || sorder == NULL_SORDER || sorder >= file->sorder_window->sorder_count)
+		return FALSE;
 
 	/* Find the index entry for the deleted order, and if it doesn't index itself, shuffle all the indexes along
 	 * so that they remain in the correct places. */
 
-	for (i = 0; i < file->sorder_count && file->sorders[i].sort_index != sorder; i++);
+	for (i = 0; i < file->sorder_window->sorder_count && file->sorder_window->sorders[i].sort_index != sorder; i++);
 
-	if (file->sorders[i].sort_index == sorder && i != sorder) {
+	if (file->sorder_window->sorders[i].sort_index == sorder && i != sorder) {
 		index = i;
 
 		if (index > sorder)
 			for (i = index; i > sorder; i--)
-				file->sorders[i].sort_index = file->sorders[i-1].sort_index;
+				file->sorder_window->sorders[i].sort_index = file->sorder_window->sorders[i-1].sort_index;
 		else
 			for (i = index; i < sorder; i++)
-				file->sorders[i].sort_index = file->sorders[i+1].sort_index;
+				file->sorder_window->sorders[i].sort_index = file->sorder_window->sorders[i+1].sort_index;
 	}
 
 	/* Delete the order */
 
-	flex_midextend((flex_ptr) &(file->sorders), (sorder + 1) * sizeof(struct sorder), -sizeof(struct sorder));
-	file->sorder_count--;
+	flex_midextend((flex_ptr) &(file->sorder_window->sorders), (sorder + 1) * sizeof(struct sorder), -sizeof(struct sorder));
+	file->sorder_window->sorder_count--;
 
 	/* Adjust the sort indexes that point to entries above the deleted one, by reducing any indexes that are
 	 * greater than the deleted entry by one.
 	 */
 
-	for (i = 0; i < file->sorder_count; i++)
-		if (file->sorders[i].sort_index > sorder)
-			file->sorders[i].sort_index = file->sorders[i].sort_index - 1;
+	for (i = 0; i < file->sorder_window->sorder_count; i++)
+		if (file->sorder_window->sorders[i].sort_index > sorder)
+			file->sorder_window->sorders[i].sort_index = file->sorder_window->sorders[i].sort_index - 1;
 
 	/* Update the main standing order display window. */
 
@@ -2369,10 +2409,10 @@ static osbool sorder_delete(struct file_block *file, int sorder)
 	if (file->sorder_window->sorder_window != NULL) {
 		windows_open(file->sorder_window->sorder_window);
 		if (config_opt_read("AutoSortSOrders")) {
-			sorder_sort(file);
-			sorder_force_window_redraw(file, file->sorder_count, file->sorder_count);
+			sorder_sort(file->sorder_window);
+			sorder_force_window_redraw(file, file->sorder_window->sorder_count, file->sorder_window->sorder_count);
 		} else {
-			sorder_force_window_redraw(file, 0, file->sorder_count);
+			sorder_force_window_redraw(file, 0, file->sorder_window->sorder_count);
 		}
 	}
 
@@ -2392,10 +2432,26 @@ void sorder_purge(struct file_block *file)
 {
 	int	i;
 
-	for (i = 0; i < file->sorder_count; i++) {
-		if (file->sorders[i].adjusted_next_date == NULL_DATE && sorder_delete(file, i))
+	if (file == NULL || file->sorder_window == NULL)
+		return;
+
+	for (i = 0; i < file->sorder_window->sorder_count; i++) {
+		if (file->sorder_window->sorders[i].adjusted_next_date == NULL_DATE && sorder_delete(file, i))
 			i--; /* Account for the record having been deleted. */
 	}
+}
+
+
+/**
+ * Find the number of standing orders in a file.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The number of standing orders in the file.
+ */
+
+int sorder_get_count(struct file_block *file)
+{
+	return (file != NULL && file->sorder_window != NULL) ? file->sorder_window->sorder_count : 0;
 }
 
 
@@ -2409,9 +2465,13 @@ void sorder_purge(struct file_block *file)
 void sorder_process(struct file_block *file)
 {
 	unsigned int	today;
-	int		order, amount;
+	sorder_t	order;
+	int		amount;
 	osbool		changed;
 	char		ref[REF_FIELD_LEN], desc[DESCRIPT_FIELD_LEN];
+
+	if (file == NULL || file->sorder_window == NULL)
+		return;
 
 	#ifdef DEBUG
 	debug_printf("\\YStanding Order processing");
@@ -2420,55 +2480,55 @@ void sorder_process(struct file_block *file)
 	today = date_today();
 	changed = FALSE;
 
-	for (order=0; order<file->sorder_count; order++) {
+	for (order = 0; order < file->sorder_window->sorder_count; order++) {
 		#ifdef DEBUG
 		debug_printf ("Processing order %d...", order);
 		#endif
 
 		/* While the next date for the standing order is today or before today, process it. */
 
-		while (file->sorders[order].adjusted_next_date!= NULL_DATE && file->sorders[order].adjusted_next_date <= today) {
+		while (file->sorder_window->sorders[order].adjusted_next_date!= NULL_DATE && file->sorder_window->sorders[order].adjusted_next_date <= today) {
 			/* Action the standing order. */
 
-			if (file->sorders[order].left == file->sorders[order].number)
-				amount = file->sorders[order].first_amount;
-			else if (file->sorders[order].left == 1)
-				amount = file->sorders[order].last_amount;
+			if (file->sorder_window->sorders[order].left == file->sorder_window->sorders[order].number)
+				amount = file->sorder_window->sorders[order].first_amount;
+			else if (file->sorder_window->sorders[order].left == 1)
+				amount = file->sorder_window->sorders[order].last_amount;
 			else
-				amount = file->sorders[order].normal_amount;
+				amount = file->sorder_window->sorders[order].normal_amount;
 
 			/* Reference and description are copied out of the block first as pointers are passed in to transact_add_raw_entry ()
 			 * and the act of adding the transaction will move the flex block and invalidate those pointers before they
 			 * get used.
 			 */
 
-			strcpy(ref, file->sorders[order].reference);
-			strcpy(desc, file->sorders[order].description);
+			strcpy(ref, file->sorder_window->sorders[order].reference);
+			strcpy(desc, file->sorder_window->sorders[order].description);
 
-			transact_add_raw_entry(file, file->sorders[order].adjusted_next_date,
-					file->sorders[order].from, file->sorders[order].to,
-					file->sorders[order].flags & (TRANS_REC_FROM | TRANS_REC_TO), amount, ref, desc);
+			transact_add_raw_entry(file, file->sorder_window->sorders[order].adjusted_next_date,
+					file->sorder_window->sorders[order].from, file->sorder_window->sorders[order].to,
+					file->sorder_window->sorders[order].flags & (TRANS_REC_FROM | TRANS_REC_TO), amount, ref, desc);
 
 			#ifdef DEBUG
-			debug_printf("Adding SO, ref '%s', desc '%s'...", file->sorders[order].reference, file->sorders[order].description);
+			debug_printf("Adding SO, ref '%s', desc '%s'...", file->sorder_window->sorders[order].reference, file->sorder_window->sorders[order].description);
 			#endif
 
 			changed = TRUE;
 
 			/* Decrement the outstanding orders. */
 
-			file->sorders[order].left--;
+			file->sorder_window->sorders[order].left--;
 
 			/* If there are outstanding orders to carry out, work out the next date and remember that. */
 
-			if (file->sorders[order].left > 0) {
-				file->sorders[order].raw_next_date = date_add_period(file->sorders[order].raw_next_date,
-						file->sorders[order].period_unit, file->sorders[order].period);
+			if (file->sorder_window->sorders[order].left > 0) {
+				file->sorder_window->sorders[order].raw_next_date = date_add_period(file->sorder_window->sorders[order].raw_next_date,
+						file->sorder_window->sorders[order].period_unit, file->sorder_window->sorders[order].period);
 
-				file->sorders[order].adjusted_next_date = date_find_working_day(file->sorders[order].raw_next_date,
-						sorder_get_date_adjustment(file->sorders[order].flags));
+				file->sorder_window->sorders[order].adjusted_next_date = date_find_working_day(file->sorder_window->sorders[order].raw_next_date,
+						sorder_get_date_adjustment(file->sorder_window->sorders[order].flags));
 			} else {
-				file->sorders[order].adjusted_next_date = NULL_DATE;
+				file->sorder_window->sorders[order].adjusted_next_date = NULL_DATE;
 			}
 
 			sorder_force_window_redraw(file, order, order);
@@ -2492,7 +2552,7 @@ void sorder_process(struct file_block *file)
 		}
 
 		if (config_opt_read("AutoSortSOrders"))
-			sorder_sort(file);
+			sorder_sort(file->sorder_window);
 
 		accview_rebuild_all(file);
 	}
@@ -2509,7 +2569,8 @@ void sorder_process(struct file_block *file)
 void sorder_trial(struct file_block *file)
 {
 	unsigned int	trial_date, raw_next_date, adjusted_next_date;
-	int		order, amount, left;
+	sorder_t	order;
+	int		amount, left;
 
 	#ifdef DEBUG
 	debug_printf("\\YStanding Order trialling");
@@ -2525,36 +2586,36 @@ void sorder_trial(struct file_block *file)
 
 	/* Process the standing orders. */
 
-	for (order=0; order<file->sorder_count; order++) {
+	for (order = 0; order < file->sorder_window->sorder_count; order++) {
 		#ifdef DEBUG
 		debug_printf("Trialling order %d...", order);
 		#endif
 
 		/* While the next date for the standing order is today or before today, process it. */
 
-		raw_next_date = file->sorders[order].raw_next_date;
-		adjusted_next_date = file->sorders[order].adjusted_next_date;
-		left = file->sorders[order].left;
+		raw_next_date = file->sorder_window->sorders[order].raw_next_date;
+		adjusted_next_date = file->sorder_window->sorders[order].adjusted_next_date;
+		left = file->sorder_window->sorders[order].left;
 
 		while (adjusted_next_date!= NULL_DATE && adjusted_next_date <= trial_date) {
 			/* Action the standing order. */
 
-			if (left == file->sorders[order].number)
-				amount = file->sorders[order].first_amount;
-			else if (file->sorders[order].left == 1)
-				amount = file->sorders[order].last_amount;
+			if (left == file->sorder_window->sorders[order].number)
+				amount = file->sorder_window->sorders[order].first_amount;
+			else if (file->sorder_window->sorders[order].left == 1)
+				amount = file->sorder_window->sorders[order].last_amount;
 			else
-				amount = file->sorders[order].normal_amount;
+				amount = file->sorder_window->sorders[order].normal_amount;
 
 			#ifdef DEBUG
-			debug_printf("Adding trial SO, ref '%s', desc '%s'...", file->sorders[order].reference, file->sorders[order].description);
+			debug_printf("Adding trial SO, ref '%s', desc '%s'...", file->sorder_window->sorders[order].reference, file->sorder_window->sorders[order].description);
 			#endif
 
-			if (file->sorders[order].from != NULL_ACCOUNT)
-				account_adjust_sorder_trial(file, file->sorders[order].from, -amount);
+			if (file->sorder_window->sorders[order].from != NULL_ACCOUNT)
+				account_adjust_sorder_trial(file, file->sorder_window->sorders[order].from, -amount);
 
-			if (file->sorders[order].to != NULL_ACCOUNT)
-				account_adjust_sorder_trial(file, file->sorders[order].to, +amount);
+			if (file->sorder_window->sorders[order].to != NULL_ACCOUNT)
+				account_adjust_sorder_trial(file, file->sorder_window->sorders[order].to, +amount);
 
 			/* Decrement the outstanding orders. */
 
@@ -2563,8 +2624,8 @@ void sorder_trial(struct file_block *file)
 			/* If there are outstanding orders to carry out, work out the next date and remember that. */
 
 			if (left > 0) {
-				raw_next_date = date_add_period(raw_next_date, file->sorders[order].period_unit, file->sorders[order].period);
-				adjusted_next_date = date_find_working_day(raw_next_date, sorder_get_date_adjustment(file->sorders[order].flags));
+				raw_next_date = date_add_period(raw_next_date, file->sorder_window->sorders[order].period_unit, file->sorder_window->sorders[order].period);
+				adjusted_next_date = date_find_working_day(raw_next_date, sorder_get_date_adjustment(file->sorder_window->sorders[order].flags));
 			} else {
 				adjusted_next_date = NULL_DATE;
 			}
@@ -2585,6 +2646,9 @@ void sorder_full_report(struct file_block *file)
 	int			i;
 	char			line[1024], buffer[256], numbuf1[256], numbuf2[32], numbuf3[32];
 
+	if (file == NULL || file->sorder_window == NULL)
+		return;
+
 	msgs_lookup("SORWinT", buffer, sizeof(buffer));
 	report = report_open(file, buffer, NULL);
 
@@ -2601,60 +2665,60 @@ void sorder_full_report(struct file_block *file)
 	msgs_param_lookup("SORHeader", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
-	snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorder_count);
+	snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorder_window->sorder_count);
 	msgs_param_lookup("SORCount", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
 	/* Output the data for each of the standing orders in turn. */
 
-	for (i=0; i < file->sorder_count; i++) {
+	for (i=0; i < file->sorder_window->sorder_count; i++) {
 		report_write_line(report, 0, ""); /* Separate each entry with a blank line. */
 
 		snprintf(numbuf1, sizeof(numbuf1), "%d", i+1);
 		msgs_param_lookup("SORNumber", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		msgs_param_lookup("SORFrom", line, sizeof(line), account_get_name(file, file->sorders[i].from), NULL, NULL, NULL);
+		msgs_param_lookup("SORFrom", line, sizeof(line), account_get_name(file, file->sorder_window->sorders[i].from), NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		msgs_param_lookup("SORTo", line, sizeof(line), account_get_name(file, file->sorders[i].to), NULL, NULL, NULL);
+		msgs_param_lookup("SORTo", line, sizeof(line), account_get_name(file, file->sorder_window->sorders[i].to), NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		msgs_param_lookup("SORRef", line, sizeof(line), file->sorders[i].reference, NULL, NULL, NULL);
+		msgs_param_lookup("SORRef", line, sizeof(line), file->sorder_window->sorders[i].reference, NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		currency_convert_to_string(file->sorders[i].normal_amount, numbuf1, sizeof(numbuf1));
+		currency_convert_to_string(file->sorder_window->sorders[i].normal_amount, numbuf1, sizeof(numbuf1));
 		msgs_param_lookup("SORAmount", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		if (file->sorders[i].normal_amount != file->sorders[i].first_amount) {
-			currency_convert_to_string(file->sorders[i].first_amount, numbuf1, sizeof(numbuf1));
+		if (file->sorder_window->sorders[i].normal_amount != file->sorder_window->sorders[i].first_amount) {
+			currency_convert_to_string(file->sorder_window->sorders[i].first_amount, numbuf1, sizeof(numbuf1));
 			msgs_param_lookup("SORFirst", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 			report_write_line(report, 0, line);
 		}
 
-		if (file->sorders[i].normal_amount != file->sorders[i].last_amount) {
-			currency_convert_to_string(file->sorders[i].last_amount, numbuf1, sizeof(numbuf1));
+		if (file->sorder_window->sorders[i].normal_amount != file->sorder_window->sorders[i].last_amount) {
+			currency_convert_to_string(file->sorder_window->sorders[i].last_amount, numbuf1, sizeof(numbuf1));
 			msgs_param_lookup("SORFirst", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 			report_write_line(report, 0, line);
 		}
 
-		msgs_param_lookup("SORDesc", line, sizeof(line), file->sorders[i].description, NULL, NULL, NULL);
+		msgs_param_lookup("SORDesc", line, sizeof(line), file->sorder_window->sorders[i].description, NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorders[i].number);
-		snprintf(numbuf2, sizeof(numbuf2), "%d", file->sorders[i].number - file->sorders[i].left);
-		snprintf(numbuf3, sizeof(numbuf3), "%d", file->sorders[i].left);
+		snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorder_window->sorders[i].number);
+		snprintf(numbuf2, sizeof(numbuf2), "%d", file->sorder_window->sorders[i].number - file->sorder_window->sorders[i].left);
+		snprintf(numbuf3, sizeof(numbuf3), "%d", file->sorder_window->sorders[i].left);
 		msgs_param_lookup("SORCounts", line, sizeof(line), numbuf1, numbuf2, numbuf3, NULL);
 		report_write_line(report, 0, line);
 
-		date_convert_to_string(file->sorders[i].start_date, numbuf1, sizeof(numbuf1));
+		date_convert_to_string(file->sorder_window->sorders[i].start_date, numbuf1, sizeof(numbuf1));
 		msgs_param_lookup("SORStart", line, sizeof(line), numbuf1, NULL, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorders[i].period);
+		snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorder_window->sorders[i].period);
 		*numbuf2 = '\0';
-		switch (file->sorders[i].period_unit) {
+		switch (file->sorder_window->sorders[i].period_unit) {
 		case DATE_PERIOD_DAYS:
 			msgs_lookup("SOrderDays", numbuf2, sizeof(numbuf2));
 			break;
@@ -2674,16 +2738,16 @@ void sorder_full_report(struct file_block *file)
 		msgs_param_lookup("SOREvery", line, sizeof(line), numbuf1, numbuf2, NULL, NULL);
 		report_write_line(report, 0, line);
 
-		if (file->sorders[i].flags & TRANS_SKIP_FORWARD) {
+		if (file->sorder_window->sorders[i].flags & TRANS_SKIP_FORWARD) {
 			msgs_lookup("SORAvoidFwd", line, sizeof(line));
 			report_write_line(report, 0, line);
-		} else if (file->sorders[i].flags & TRANS_SKIP_BACKWARD) {
+		} else if (file->sorder_window->sorders[i].flags & TRANS_SKIP_BACKWARD) {
 			msgs_lookup("SORAvoidBack", line, sizeof(line));
 			report_write_line(report, 0, line);
 		}
 
-		if (file->sorders[i].adjusted_next_date != NULL_DATE)
-			date_convert_to_string(file->sorders[i].adjusted_next_date, numbuf1, sizeof(numbuf1));
+		if (file->sorder_window->sorders[i].adjusted_next_date != NULL_DATE)
+			date_convert_to_string(file->sorder_window->sorders[i].adjusted_next_date, numbuf1, sizeof(numbuf1));
 		else
 			msgs_lookup("SOrderStopped", numbuf1, sizeof(numbuf1));
 		msgs_param_lookup("SORNext", line, sizeof(line), numbuf1, NULL, NULL, NULL);
@@ -2715,23 +2779,23 @@ void sorder_write_file(struct file_block *file, FILE *out)
 
 	fprintf (out, "\n[StandingOrders]\n");
 
-	fprintf (out, "Entries: %x\n", file->sorder_count);
+	fprintf (out, "Entries: %x\n", file->sorder_window->sorder_count);
 
 	column_write_as_text (file->sorder_window->column_width, SORDER_COLUMNS, buffer);
 	fprintf (out, "WinColumns: %s\n", buffer);
 
 	fprintf (out, "SortOrder: %x\n", file->sorder_window->sort_order);
 
-	for (i = 0; i < file->sorder_count; i++) {
+	for (i = 0; i < file->sorder_window->sorder_count; i++) {
 		fprintf (out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
-				file->sorders[i].start_date, file->sorders[i].number, file->sorders[i].period,
-				file->sorders[i].period_unit, file->sorders[i].raw_next_date, file->sorders[i].adjusted_next_date,
-				file->sorders[i].left, file->sorders[i].flags, file->sorders[i].from, file->sorders[i].to,
-				file->sorders[i].normal_amount, file->sorders[i].first_amount, file->sorders[i].last_amount);
-		if (*(file->sorders[i].reference) != '\0')
-			config_write_token_pair (out, "Ref", file->sorders[i].reference);
-		if (*(file->sorders[i].description) != '\0')
-			config_write_token_pair (out, "Desc", file->sorders[i].description);
+				file->sorder_window->sorders[i].start_date, file->sorder_window->sorders[i].number, file->sorder_window->sorders[i].period,
+				file->sorder_window->sorders[i].period_unit, file->sorder_window->sorders[i].raw_next_date, file->sorder_window->sorders[i].adjusted_next_date,
+				file->sorder_window->sorders[i].left, file->sorder_window->sorders[i].flags, file->sorder_window->sorders[i].from, file->sorder_window->sorders[i].to,
+				file->sorder_window->sorders[i].normal_amount, file->sorder_window->sorders[i].first_amount, file->sorder_window->sorders[i].last_amount);
+		if (*(file->sorder_window->sorders[i].reference) != '\0')
+			config_write_token_pair (out, "Ref", file->sorder_window->sorders[i].reference);
+		if (*(file->sorder_window->sorders[i].description) != '\0')
+			config_write_token_pair (out, "Desc", file->sorder_window->sorders[i].description);
 	}
 }
 
@@ -2751,18 +2815,18 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 {
 	int	result, block_size, i = -1;
 
-	block_size = flex_size((flex_ptr) &(file->sorders)) / sizeof(struct sorder);
+	block_size = flex_size((flex_ptr) &(file->sorder_window->sorders)) / sizeof(struct sorder);
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
 			block_size = strtoul(value, NULL, 16);
-			if (block_size > file->sorder_count) {
+			if (block_size > file->sorder_window->sorder_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->sorders), sizeof(struct sorder) * block_size);
+				flex_extend((flex_ptr) &(file->sorder_window->sorders), sizeof(struct sorder) * block_size);
 			} else {
-				block_size = file->sorder_count;
+				block_size = file->sorder_window->sorder_count;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			column_init_window(file->sorder_window->column_width,
@@ -2771,35 +2835,35 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
 			file->sorder_window->sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp (token, "@") == 0) {
-			file->sorder_count++;
-			if (file->sorder_count > block_size) {
-				block_size = file->sorder_count;
+			file->sorder_window->sorder_count++;
+			if (file->sorder_window->sorder_count > block_size) {
+				block_size = file->sorder_window->sorder_count;
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->sorders), sizeof(struct sorder) * block_size);
+				flex_extend((flex_ptr) &(file->sorder_window->sorders), sizeof(struct sorder) * block_size);
 			}
-			i = file->sorder_count-1;
-			file->sorders[i].start_date = strtoul (next_field (value, ','), NULL, 16);
-			file->sorders[i].number = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].period = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].period_unit = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].raw_next_date = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].adjusted_next_date = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].left = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].flags = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].from = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].to = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].normal_amount = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].first_amount = strtoul (next_field (NULL, ','), NULL, 16);
-			file->sorders[i].last_amount = strtoul (next_field (NULL, ','), NULL, 16);
-			*(file->sorders[i].reference) = '\0';
-			*(file->sorders[i].description) = '\0';
-			file->sorders[i].sort_index = i;
+			i = file->sorder_window->sorder_count - 1;
+			file->sorder_window->sorders[i].start_date = strtoul(next_field(value, ','), NULL, 16);
+			file->sorder_window->sorders[i].number = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].period = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].period_unit = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].raw_next_date = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].adjusted_next_date = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].left = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].flags = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].from = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].to = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].normal_amount = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].first_amount = strtoul(next_field(NULL, ','), NULL, 16);
+			file->sorder_window->sorders[i].last_amount = strtoul(next_field(NULL, ','), NULL, 16);
+			*(file->sorder_window->sorders[i].reference) = '\0';
+			*(file->sorder_window->sorders[i].description) = '\0';
+			file->sorder_window->sorders[i].sort_index = i;
 		} else if (i != -1 && string_nocase_strcmp(token, "Ref") == 0) {
-			strcpy(file->sorders[i].reference, value);
+			strcpy(file->sorder_window->sorders[i].reference, value);
 		} else if (i != -1 && string_nocase_strcmp (token, "Desc") == 0) {
-			strcpy(file->sorders[i].description, value);
+			strcpy(file->sorder_window->sorders[i].description, value);
 		} else {
 			*unknown_data = TRUE;
 		}
@@ -2807,15 +2871,15 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 
-	block_size = flex_size((flex_ptr) &(file->sorders)) / sizeof(struct sorder);
+	block_size = flex_size((flex_ptr) &(file->sorder_window->sorders)) / sizeof(struct sorder);
 
 	#ifdef DEBUG
-	debug_printf("StandingOrder block size: %d, required: %d", block_size, file->sorder_count);
+	debug_printf("StandingOrder block size: %d, required: %d", block_size, file->sorder_window->sorder_count);
 	#endif
 
-	if (block_size > file->sorder_count) {
-		block_size = file->sorder_count;
-		flex_extend((flex_ptr) &(file->sorders), sizeof(struct sorder) * block_size);
+	if (block_size > file->sorder_window->sorder_count) {
+		block_size = file->sorder_window->sorder_count;
+		flex_extend((flex_ptr) &(file->sorder_window->sorders), sizeof(struct sorder) * block_size);
 
 		#ifdef DEBUG
 		debug_printf("Block shrunk to %d", block_size);
@@ -2836,7 +2900,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 
 static osbool sorder_save_csv(char *filename, osbool selection, void *data)
 {
-	struct sorder_window *windat = data;
+	struct sorder_block *windat = data;
 	
 	if (windat == NULL)
 		return FALSE;
@@ -2857,7 +2921,7 @@ static osbool sorder_save_csv(char *filename, osbool selection, void *data)
 
 static osbool sorder_save_tsv(char *filename, osbool selection, void *data)
 {
-	struct sorder_window *windat = data;
+	struct sorder_block *windat = data;
 	
 	if (windat == NULL)
 		return FALSE;
@@ -2877,7 +2941,7 @@ static osbool sorder_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void sorder_export_delimited(struct sorder_window *windat, char *filename, enum filing_delimit_type format, int filetype)
+static void sorder_export_delimited(struct sorder_block *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	int			i, t;
@@ -2909,27 +2973,27 @@ static void sorder_export_delimited(struct sorder_window *windat, char *filename
 
 	/* Output the standing order data as a set of delimited lines. */
 
-	for (i=0; i < windat->file->sorder_count; i++) {
-		t = windat->file->sorders[i].sort_index;
+	for (i=0; i < windat->sorder_count; i++) {
+		t = windat->sorders[i].sort_index;
 
-		account_build_name_pair(windat->file, windat->file->sorders[t].from, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->sorders[t].from, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->file->sorders[t].to, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->sorders[t].to, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(windat->file->sorders[t].normal_amount, buffer, sizeof(buffer));
+		currency_convert_to_string(windat->sorders[t].normal_amount, buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-		filing_output_delimited_field(out, windat->file->sorders[t].description, format, DELIMIT_NONE);
+		filing_output_delimited_field(out, windat->sorders[t].description, format, DELIMIT_NONE);
 
-		if (windat->file->sorders[t].adjusted_next_date != NULL_DATE)
-			date_convert_to_string(windat->file->sorders[t].adjusted_next_date, buffer, sizeof(buffer));
+		if (windat->sorders[t].adjusted_next_date != NULL_DATE)
+			date_convert_to_string(windat->sorders[t].adjusted_next_date, buffer, sizeof(buffer));
 		else
 			msgs_lookup("SOrderStopped", buffer, sizeof(buffer));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		sprintf(buffer, "%d", windat->file->sorders[t].left);
+		sprintf(buffer, "%d", windat->sorders[t].left);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 	}
 
@@ -2956,8 +3020,11 @@ osbool sorder_check_account(struct file_block *file, int account)
 	int		i;
 	osbool		found = FALSE;
 
-	for (i = 0; i < file->sorder_count && !found; i++)
-		if (file->sorders[i].from == account || file->sorders[i].to == account)
+	if (file == NULL || file->sorder_window == NULL)
+		return FALSE;
+
+	for (i = 0; i < file->sorder_window->sorder_count && !found; i++)
+		if (file->sorder_window->sorders[i].from == account || file->sorder_window->sorders[i].to == account)
 			found = TRUE;
 
 	return found;

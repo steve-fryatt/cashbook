@@ -68,7 +68,6 @@
 #define DESCRIPT_FIELD_LEN 101
 
 #define NULL_ACCOUNT (-1)
-#define NULL_SORDER ((int) (-1))
 #define NULL_TRANSACTION ((int) (-1))
 #define NULL_TEMPLATE ((int) (-1))
 
@@ -137,8 +136,6 @@ struct transact;
 struct transact_window;
 struct account;
 struct account_block;
-struct sorder;
-struct sorder_window;
 struct report;
 struct budget_block;
 struct find_block;
@@ -172,10 +169,10 @@ struct file_block
 
 	struct transact_window		*transaction_window;			/**< Data relating to the transaction module.			*/
 	struct account_block		*accountz;				/**< Data relating to the account module.			*/
-	struct sorder_window		*sorder_window;				/**< Data relating to the standing order module.		*/
+	struct sorder_block		*sorder_window;				/**< Data relating to the standing order module.		*/
 	struct preset_block		*preset_window;				/**< Data relating to the preset module.			*/
 
-	// \TODO -- accountz can be renamed accounts once the struct account block is insize accountz itself.
+	// \TODO -- accountz can be renamed accounts once the struct account block is inside accountz itself.
 
   /* Default display details for the accview windows. */
 
@@ -187,13 +184,11 @@ struct file_block
 
   int                account_count;      /* The number of accounts defined in the file. */
   int                trans_count;        /* The number of transactions defined in the file. */
-  int                sorder_count;       /* The number of standing orders defined in the file. */
 
   /* Account, transaction, standing order and preset data structures (pointers which become arrays). */
 
   struct account     *accounts;
   struct transaction *transactions;
-  struct sorder      *sorders;
 
   /* Recalculation data. */
 

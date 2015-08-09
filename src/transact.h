@@ -261,7 +261,7 @@ int transact_find_nearest_window_centre(struct file_block *file, acct_t account)
  * \return			The appropriate line, or -1 if not found.
  */
 
-int transact_get_line_from_transaction(struct file_block *file, int transaction);
+int transact_get_line_from_transaction(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -383,7 +383,7 @@ void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, a
  * \param transaction		The transaction to be cleared.
  */
 
-void transact_clear_raw_entry(struct file_block *file, int transaction);
+void transact_clear_raw_entry(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -405,7 +405,7 @@ void transact_strip_blanks_from_end(struct file_block *file);
  * \return			The date of the transaction, or NULL_DATE.
  */
 
-date_t transact_get_date(struct file_block *file, int transaction);
+date_t transact_get_date(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -416,7 +416,7 @@ date_t transact_get_date(struct file_block *file, int transaction);
  * \return			The from account of the transaction, or NULL_ACCOUNT.
  */
 
-acct_t transact_get_from(struct file_block *file, int transaction);
+acct_t transact_get_from(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -427,7 +427,7 @@ acct_t transact_get_from(struct file_block *file, int transaction);
  * \return			The to account of the transaction, or NULL_ACCOUNT.
  */
 
-acct_t transact_get_to(struct file_block *file, int transaction);
+acct_t transact_get_to(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -438,7 +438,7 @@ acct_t transact_get_to(struct file_block *file, int transaction);
  * \return			The flags of the transaction, or TRANS_FLAGS_NONE.
  */
 
-enum transact_flags transact_get_flags(struct file_block *file, int transaction);
+enum transact_flags transact_get_flags(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -449,7 +449,7 @@ enum transact_flags transact_get_flags(struct file_block *file, int transaction)
  * \return			The amount of the transaction, or NULL_CURRENCY.
  */
 
-amt_t transact_get_amount(struct file_block *file, int transaction);
+amt_t transact_get_amount(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -471,7 +471,7 @@ amt_t transact_get_amount(struct file_block *file, int transaction);
  *				either the supplied buffer or the original.
  */
 
-char *transact_get_reference(struct file_block *file, int transaction, char *buffer, size_t length);
+char *transact_get_reference(struct file_block *file, tran_t transaction, char *buffer, size_t length);
 
 
 /**
@@ -493,7 +493,7 @@ char *transact_get_reference(struct file_block *file, int transaction, char *buf
  *				either the supplied buffer or the original.
  */
 
-char *transact_get_description(struct file_block *file, int transaction, char *buffer, size_t length);
+char *transact_get_description(struct file_block *file, tran_t transaction, char *buffer, size_t length);
 
 
 /**
@@ -504,7 +504,18 @@ char *transact_get_description(struct file_block *file, int transaction, char *b
  * \return			The sort workspace for the transaction, or 0.
  */
 
-int transact_get_sort_workspace(struct file_block *file, int transaction);
+int transact_get_sort_workspace(struct file_block *file, tran_t transaction);
+
+
+/**
+ * Test the validity of a transaction index.
+ *
+ * \param *file			The file to test against.
+ * \param transaction		The transaction index to test.
+ * \return			TRUE if the index is valid; FALSE if not.
+ */
+
+osbool transact_test_index_valid(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -549,6 +560,16 @@ void transact_find_next_reconcile_line(struct file_block *file, osbool set);
  */
 
 int transact_find_first_blank_line(struct file_block *file);
+
+
+/**
+ * Purge unused transactions from a file.
+ *
+ * \param *file			The file to purge.
+ * \param cutoff		The cutoff date before which transactions should be removed.
+ */
+
+void transact_purge(struct file_block *file, date_t cutoff);
 
 
 /**
@@ -638,7 +659,7 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-osbool transact_check_account(struct file_block *file, int account);
+osbool transact_check_account(struct file_block *file, acct_t account);
 
 #endif
 

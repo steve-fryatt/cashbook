@@ -295,7 +295,6 @@ struct file_block *build_new_file_block(void)
 
   /* Set up the default initial values. */
 
-  new->trans_count = 0;
   new->saved_report_count = 0;
 
   new->last_full_recalc = NULL_DATE;
@@ -673,30 +672,12 @@ void file_redraw_all(void)
 
 void file_redraw_windows(struct file_block *file)
 {
-	/* Redraw the transaction window. */
-
-	transact_force_window_redraw(file, 0, file->trans_count);
-
-	/* Redraw the account list windows. */
-
+	transact_redraw_all(file);
 	account_redraw_all(file);
-
-	/* Redraw the account view windows. */
-
 	accview_redraw_all(file);
-
-	/* Redraw the standing order window. */
-
 	sorder_redraw_all(file);
-
-	/* Redraw the preset window. */
-
 	preset_redraw_all(file);
-
-	/* Redraw the report windows. */
-
 	report_redraw_all(file);
-
 }
 
 

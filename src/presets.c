@@ -320,6 +320,12 @@ static osbool		preset_save_tsv(char *filename, osbool selection, void *data);
 static void		preset_export_delimited(struct preset_block *windat, char *filename, enum filing_delimit_type format, int filetype);
 
 
+/**
+ * Test whether a preset number is safe to look up in the preset data array.
+ */
+
+#define preset_valid(windat, preset) (((preset) != NULL_PRESET) && ((preset) >= 0) && ((preset) < ((windat)->preset_count)))
+
 
 /**
  * Initialise the preset system.
@@ -2442,13 +2448,27 @@ int preset_find_from_keypress(struct file_block *file, char key)
  * \return			The preset's caret target.
  */
 
-enum preset_caret preset_get_caret_destination(struct file_block *file, int preset)
+enum preset_caret preset_get_caret_destination(struct file_block *file, preset_t preset)
 {
 	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->presets->preset_count)
 		return 0;
 
 	return file->presets->presets[preset].caret_target;
 
+}
+
+
+/**
+ * Test the validity of a preset index.
+ *
+ * \param *file			The file to test against.
+ * \param preset		The preset index to test.
+ * \return			TRUE if the index is valid; FALSE if not.
+ */
+
+osbool preset_test_index_valid(struct file_block *file, preset_t preset)
+{
+	return (preset_valid(file->presets, preset)) ? TRUE : FALSE;
 }
 
 

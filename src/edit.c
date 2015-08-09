@@ -134,6 +134,10 @@ struct transact_window {
 	enum sort_type		sort_order;					/**< The order in which the window is sorted. */
 
 	char			sort_sprite[12];				/**< Space for the sort icon's indirected data. */
+
+	/* Transaction Data. */
+
+	int			trans_count;					/**< The number of transactions defined in the file. */
 };
 
 /* ==================================================================================================================
@@ -169,6 +173,12 @@ static wimp_i	edit_convert_preset_icon_number(enum preset_caret caret);
 static void	edit_delete_line_transaction_content(struct file_block *file);
 static void	edit_process_content_keypress(struct file_block *file, wimp_key *key);
 static char	*find_complete_description(struct file_block *file, int line, char *buffer, size_t length);
+
+/**
+ * Test whether an account number is safe to look up in the account data array.
+ */
+
+#define transact_valid(windat, transaction) (((transaction) != NULL_TRANSACTION) && ((transaction) >= 0) && ((transaction) < ((windat)->trans_count)))
 
 
 
@@ -255,7 +265,7 @@ void edit_place_new_line(struct file_block *file, int line)
 
 	/* Initialise the data. */
 
-	if (line < file->trans_count) {
+	if (transact_valid(file->transaction_window, line)) {
 		transaction = file->transactions[line].sort_index;
 
 		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
@@ -330,7 +340,7 @@ void edit_place_new_line_by_transaction(struct file_block *file, int transaction
 		return;
 
 	if (transaction != NULL_TRANSACTION) {
-		for (i=0; i < file->trans_count; i++) {
+		for (i = 0; i < file->transaction_window->trans_count; i++) {
 			if (file->transactions[i].sort_index == transaction) {
 				edit_place_new_line(file, i);
 				wimp_get_caret_position(&caret);
@@ -342,7 +352,7 @@ void edit_place_new_line_by_transaction(struct file_block *file, int transaction
 			}
 		}
 	} else {
-		edit_place_new_line(file, file->trans_count);
+		edit_place_new_line(file, file->transaction_window->trans_count);
 		wimp_get_caret_position(&caret);
 		if (caret.w == file->transaction_window->transaction_window)
 			icons_put_caret_at_end(file->transaction_window->transaction_window, EDIT_ICON_DATE);
@@ -524,7 +534,7 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 
 	if (entry_window == NULL || entry_window->transaction_window == NULL ||
 			(w != entry_window->transaction_window->transaction_window && w != NULL) ||
-			entry_window->transaction_window->entry_line >= entry_window->trans_count)
+			entry_window->transaction_window->entry_line >= entry_window->transaction_window->trans_count)
 		return;
 
 	transaction = entry_window->transactions[entry_window->transaction_window->entry_line].sort_index;
@@ -614,13 +624,14 @@ static void edit_set_line_shading(struct file_block *file)
 	int	icon_fg_col, transaction;
 	wimp_i	i;
 
-	if (file == NULL || entry_window != file || file->trans_count == 0 ||
-			file->transaction_window == NULL || file->transaction_window->entry_line >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || entry_window != file ||
+			file->transaction_window->trans_count == 0 ||
+			!transact_valid(file->transaction_window, file->transaction_window->entry_line))
 		return;
 
 	transaction = file->transactions[file->transaction_window->entry_line].sort_index;
 
-	if (config_opt_read("ShadeReconciled") && (file->transaction_window->entry_line < file->trans_count) &&
+	if (config_opt_read("ShadeReconciled") && (file->transaction_window->entry_line < file->transaction_window->trans_count) &&
 			((file->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
 		icon_fg_col = (config_int_read("ShadeReconciledColour") << wimp_ICON_FG_COLOUR_SHIFT);
 	else
@@ -646,7 +657,7 @@ int edit_get_line_transaction(struct file_block *file)
 
 	transaction = NULL_TRANSACTION;
 
-	if (file != NULL && file->transaction_window != NULL && entry_window == file && file->transaction_window->entry_line < file->trans_count)
+	if (file != NULL && file->transaction_window != NULL && entry_window == file && transact_valid(file->transaction_window, file->transaction_window->entry_line))
 		transaction = file->transactions[file->transaction_window->entry_line].sort_index;
 
 	return (transaction);
@@ -661,13 +672,13 @@ int edit_get_line_transaction(struct file_block *file)
  * \param change_flag	Indicate which reconciled flags to change.
  */
 
-void edit_toggle_transaction_reconcile_flag(struct file_block *file, int transaction, enum transact_flags change_flag)
+void edit_toggle_transaction_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag)
 {
 	int	change_icon, line;
 	osbool	changed = FALSE;
 
 
-	if (file == NULL || file->transaction_window == NULL || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return;
 
 	/* Establish which icon it is that will need to be updated. */
@@ -744,7 +755,7 @@ void edit_toggle_transaction_reconcile_flag(struct file_block *file, int transac
  * \param new_date	The new date to set the transaction to.
  */
 
-void edit_change_transaction_date(struct file_block *file, int transaction, date_t new_date)
+void edit_change_transaction_date(struct file_block *file, tran_t transaction, date_t new_date)
 {
 	int	line;
 	osbool	changed = FALSE;
@@ -753,7 +764,7 @@ void edit_change_transaction_date(struct file_block *file, int transaction, date
 
 	/* Only do anything if the transaction is inside the limit of the file. */
 
-	if (file == NULL || file->transaction_window == NULL || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return;
 
 	account_remove_transaction(file, transaction);
@@ -823,7 +834,7 @@ void edit_change_transaction_date(struct file_block *file, int transaction, date
  * \param new_amount	The new amount to set the transaction to.
  */
 
-static void edit_change_transaction_amount(struct file_block *file, int transaction, amt_t new_amount)
+static void edit_change_transaction_amount(struct file_block *file, tran_t transaction, amt_t new_amount)
 {
 	int	line;
 	osbool	changed = FALSE;
@@ -831,7 +842,7 @@ static void edit_change_transaction_amount(struct file_block *file, int transact
 
 	/* Only do anything if the transaction is inside the limit of the file. */
 
-	if (file == NULL || file->transaction_window == NULL || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return;
  
 	account_remove_transaction(file, transaction);
@@ -887,7 +898,7 @@ static void edit_change_transaction_amount(struct file_block *file, int transact
  * \param new_text	The new text to set the field to.
  */
 
-void edit_change_transaction_refdesc(struct file_block *file, int transaction, wimp_i target, char *new_text)
+void edit_change_transaction_refdesc(struct file_block *file, tran_t transaction, wimp_i target, char *new_text)
 {
 	int	line;
 	osbool	changed = FALSE;
@@ -896,7 +907,7 @@ void edit_change_transaction_refdesc(struct file_block *file, int transaction, w
 
 	/* Only do anything if the transaction is inside the limit of the file. */
 
-	if (file == NULL || file->transaction_window == NULL || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return;
 
 	/* Find the field that will be getting changed. */
@@ -959,7 +970,7 @@ void edit_change_transaction_refdesc(struct file_block *file, int transaction, w
  * \param new_account	The new account to set the field to.
  */
 
-void edit_change_transaction_account(struct file_block *file, int transaction, wimp_i target, acct_t new_account)
+void edit_change_transaction_account(struct file_block *file, tran_t transaction, wimp_i target, acct_t new_account)
 {
 	int		line;
 	osbool		changed = FALSE;
@@ -969,7 +980,7 @@ void edit_change_transaction_account(struct file_block *file, int transaction, w
 
 	/* Only do anything if the transaction is inside the limit of the file. */
 
-	if (file == NULL || file->transaction_window == NULL || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return;
 
 	account_remove_transaction(file, transaction);
@@ -1078,7 +1089,7 @@ void edit_insert_preset_into_transaction(struct file_block *file, tran_t transac
 	unsigned	changed = 0;
 
 
-	if (file == NULL || file->transaction_window == NULL || transaction >= file->trans_count || preset == NULL_PRESET || preset >= preset_get_count(file))
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction) || !preset_test_index_valid(file, preset))
 		return;  
   
 	account_remove_transaction(file, transaction);
@@ -1141,7 +1152,7 @@ static unsigned edit_raw_insert_preset_into_transaction(struct file_block *file,
 {
 	unsigned	changed = 0;
 
-	if (transaction < file->trans_count && preset != NULL_PRESET && preset < preset_get_count(file))
+	if (transact_valid(file->transaction_window, transaction) && preset_test_index_valid(file, preset))
 		changed = preset_apply(file, preset, &(file->transactions[transaction].date),
 				&(file->transactions[transaction].from),
 				&(file->transactions[transaction].to),
@@ -1219,8 +1230,8 @@ static void edit_delete_line_transaction_content(struct file_block *file)
 	 * current entry window, and the line is in range.
 	 */
 
-	if (!config_opt_read("AllowTransDelete") || file == NULL ||
-			entry_window != file || file->transaction_window->entry_line >= file->trans_count)
+	if (!config_opt_read("AllowTransDelete") || file == NULL || file->transaction_window == NULL ||
+			entry_window != file || !transact_valid(file->transaction_window, file->transaction_window->entry_line))
 		return;
 
 	transaction = file->transactions[file->transaction_window->entry_line].sort_index;
@@ -1325,8 +1336,8 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 				 * line before MUST be blank, so we do nothing.
 				 */
 
-				if (file->transaction_window->entry_line <= file->trans_count) {
-					if (file->transaction_window->entry_line == file->trans_count)
+				if (file->transaction_window->entry_line <= file->transaction_window->trans_count) {
+					if (file->transaction_window->entry_line == file->transaction_window->trans_count)
 						transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 					transaction = file->transactions[file->transaction_window->entry_line].sort_index;
 					previous = file->transactions[file->transaction_window->entry_line-1].sort_index;
@@ -1393,7 +1404,7 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 					config_opt_read("AutoSort")) {
 				transact_sort(file);
 
-				if (file->transaction_window->entry_line < file->trans_count) {
+				if (transact_valid(file->transaction_window, file->transaction_window->entry_line)) {
 					accview_sort(file, file->transactions[file->transactions[file->transaction_window->entry_line].sort_index].from);
 					accview_sort(file, file->transactions[file->transactions[file->transaction_window->entry_line].sort_index].to);
 				}
@@ -1488,8 +1499,8 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 
 	line = file->transaction_window->entry_line;
 
-	if (line >= file->trans_count) {
-		for (i=file->trans_count; i<=line; i++) {
+	if (line >= file->transaction_window->trans_count) {
+		for (i = file->transaction_window->trans_count; i <= line; i++) {
 			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 			edit_refresh_line_content(key->w, EDIT_ICON_ROW, -1);
 		}
@@ -1665,7 +1676,7 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 						&& ((file->transaction_window->sort_order & SORT_MASK) == SORT_DESCRIPTION))) &&
 					config_opt_read("AutoSort")) {
 				transact_sort(file);
-				if (file->transaction_window->entry_line < file->trans_count) {
+				if (transact_valid(file->transaction_window, file->transaction_window->entry_line)) {
 					accview_sort(file, file->transactions[file->transactions[file->transaction_window->entry_line].sort_index].from);
 					accview_sort(file, file->transactions[file->transactions[file->transaction_window->entry_line].sort_index].to);
 				}
@@ -1746,11 +1757,11 @@ static char *find_complete_description(struct file_block *file, int line, char *
 {
 	int i, t;
 
-	if (file == NULL || buffer == NULL)
+	if (file == NULL || file->transaction_window == NULL || buffer == NULL)
 		return buffer;
 
-	if (line >= file->trans_count)
-		line = file->trans_count - 1;
+	if (line >= file->transaction_window->trans_count)
+		line = file->transaction_window->trans_count - 1;
 
 	for (i = line - 1; i >= 0; i--) {
 		t = file->transactions[i].sort_index;

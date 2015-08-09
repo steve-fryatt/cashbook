@@ -177,8 +177,8 @@ static void decode_account_menu(wimp_selection *selection)
 		 * This really ought to be in edit.c!
 		 */
 
-		if (main_menu_line >= main_menu_file->trans_count && selection->items[0] != -1)
-			for (i=main_menu_file->trans_count; i<=main_menu_line; i++)
+		if (main_menu_line >= transact_get_count(main_menu_file) && selection->items[0] != -1)
+			for (i = transact_get_count(main_menu_file); i <= main_menu_line; i++)
 				transact_add_raw_entry(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
 		/* Again check that the transaction is in range.  If it isn't, the additions failed.
@@ -186,7 +186,7 @@ static void decode_account_menu(wimp_selection *selection)
 		 * Then change the transaction as instructed.
 		 */
 
-		if (main_menu_line < main_menu_file->trans_count && selection->items[1] != -1) {
+		if (main_menu_line < transact_get_count(main_menu_file) && selection->items[1] != -1) {
 			switch (main_menu_column) {
 			case ACCOUNT_MENU_FROM:
 				column = EDIT_ICON_FROM;
@@ -287,8 +287,8 @@ static void decode_date_menu(wimp_selection *selection)
 	 * This really ought to be in edit.c!
 	 */
 
-	if (main_menu_line >= main_menu_file->trans_count && selection->items[0] != -1)
-		for (i=main_menu_file->trans_count; i<=main_menu_line; i++)
+	if (main_menu_line >= transact_get_count(main_menu_file) && selection->items[0] != -1)
+		for (i = transact_get_count(main_menu_file); i <= main_menu_line; i++)
 			transact_add_raw_entry(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
 	/* Again check that the transaction is in range.  If it isn't, the additions failed.
@@ -296,7 +296,7 @@ static void decode_date_menu(wimp_selection *selection)
 	 * Then change the transaction as instructed.
 	 */
 
-	if (main_menu_line < main_menu_file->trans_count && selection->items[0] != -1) {
+	if (main_menu_line < transact_get_count(main_menu_file) && selection->items[0] != -1) {
 		if (preset_complete_menu_decode(selection) == NULL_PRESET)
 			edit_change_transaction_date(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
 					date_today());
@@ -367,8 +367,8 @@ static void decode_refdesc_menu (wimp_selection *selection)
 	 * This really ought to be in edit.c!
 	 */
 
-	if (main_menu_line >= main_menu_file->trans_count && selection->items[0] != -1)
-		for (i=main_menu_file->trans_count; i<=main_menu_line; i++)
+	if (main_menu_line >= transact_get_count(main_menu_file) && selection->items[0] != -1)
+		for (i = transact_get_count(main_menu_file); i <= main_menu_line; i++)
 			transact_add_raw_entry(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
 	/* Again check that the transaction is in range.  If it isn't, the additions failed.
@@ -376,7 +376,7 @@ static void decode_refdesc_menu (wimp_selection *selection)
 	 * Then change the transaction as instructed.
 	 */
 
-	if (main_menu_line < main_menu_file->trans_count && selection->items[0] != -1) {
+	if (main_menu_line < transact_get_count(main_menu_file) && selection->items[0] != -1) {
 		field = transact_complete_menu_decode(selection);
 
 		if (refdesc_menu_type == REFDESC_MENU_REFERENCE && field == NULL) {

@@ -1956,7 +1956,7 @@ static int accview_build(struct accview_window *view)
 	debug_printf("\\BBuilding account statement view");
 	#endif
 
-	if (flex_alloc((flex_ptr) &(view->line_data), view->file->trans_count * sizeof(struct accview_redraw)) == 0) {
+	if (flex_alloc((flex_ptr) &(view->line_data), transact_get_count(view->file) * sizeof(struct accview_redraw)) == 0) {
 		error_msgs_report_info("AccviewMemErr2");
 		return lines;
 	}
@@ -2034,7 +2034,7 @@ static int accview_calculate(struct accview_window *view)
 
 	balance = account_get_opening_balance(view->file, view->account);
 
-	for (i = 0; i < file->trans_count; i++) {
+	for (i = 0; i < transact_get_count(file); i++) {
 		direction = accview_get_transaction_direction(view, i);
 
 		if (direction != ACCVIEW_DIRECTION_NONE) {

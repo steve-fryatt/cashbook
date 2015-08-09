@@ -4272,7 +4272,7 @@ void account_recalculate_all(struct file_block *file)
 
 	/* Add in the effects of each transaction */
 
-	for (transaction = 0; transaction < file->trans_count; transaction++) {
+	for (transaction = 0; transaction < transact_get_count(file); transaction++) {
 		transaction_date = transact_get_date(file, transaction);
 		transaction_amount = transact_get_amount(file, transaction);
 		transaction_flags = transact_get_flags(file, transaction);
@@ -4343,7 +4343,7 @@ void account_remove_transaction(struct file_block *file, tran_t transaction)
 	enum transact_flags	transaction_flags;
 	amt_t			transaction_amount;
 
-	if (file == NULL || file->accounts == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->accounts == NULL || !transact_test_index_valid(file, transaction))
 		return;
 
 	budget_get_dates(file, &budget_start, &budget_finish);
@@ -4406,7 +4406,7 @@ void account_restore_transaction(struct file_block *file, int transaction)
 	enum transact_flags	transaction_flags;
 	amt_t			transaction_amount;
 
-	if (file == NULL || file->accounts == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->accounts == NULL || !transact_test_index_valid(file, transaction))
 		return;
 
 	budget_get_dates(file, &budget_start, &budget_finish);

@@ -1122,7 +1122,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 		found = 0;
 
-		for (i = 0; i < file->trans_count; i++) {
+		for (i = 0; i < transact_get_count(file); i++) {
 			date = transact_get_date(file, i);
 			from = transact_get_from(file, i);
 			to = transact_get_to(file, i);
@@ -1838,7 +1838,7 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 					tot_in = 0;
 					tot_out = 0;
 
-					for (i = 0; i < file->trans_count; i++) {
+					for (i = 0; i < transact_get_count(file); i++) {
 						date = transact_get_date(file, i);
 						from = transact_get_from(file, i);
 						to = transact_get_to(file, i);
@@ -1919,7 +1919,7 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 		while (analysis_get_next_date_period(&next_start, &next_end, date_text, sizeof(date_text))) {
 			found = 0;
 
-			for (i = 0; i < file->trans_count; i++) {
+			for (i = 0; i < transact_get_count(file); i++) {
 				date = transact_get_date(file, i);
 				from = transact_get_from(file, i);
 				to = transact_get_to(file, i);
@@ -2529,7 +2529,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 
 		found = 0;
 
-		for (i = 0; i < file->trans_count; i++) {
+		for (i = 0; i < transact_get_count(file); i++) {
 			date = transact_get_date(file, i);
 
 			if ((next_start == NULL_DATE || date >= next_start) && (next_end == NULL_DATE || date <= next_end)) {
@@ -3160,7 +3160,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 		 * period and outputting them to the screen.
 		 */
 
-		for (i = 0; i < file->trans_count; i++) {
+		for (i = 0; i < transact_get_count(file); i++) {
 			if (next_end == NULL_DATE || transact_get_date(file, i) <= next_end) {
 				from = transact_get_from(file, i);
 				to = transact_get_to(file, i);
@@ -3474,7 +3474,7 @@ static osbool analysis_process_lookup_window(void)
 
 static void analysis_find_date_range(struct file_block *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget)
 {
-	int		i;
+	int		i, transactions;
 	osbool		find_start, find_end;
 	date_t		date;
 
@@ -3495,13 +3495,15 @@ static void analysis_find_date_range(struct file_block *file, date_t *start_date
 	/* If either of the dates wasn't specified, we need to find the earliest and latest dates in the file. */
 
 	if (find_start || find_end) {
+		transactions = transact_get_count(file);
+
 		if (find_start)
-			*start_date = (file->trans_count > 0) ? transact_get_date(file, 0) : NULL_DATE;
+			*start_date = (transactions > 0) ? transact_get_date(file, 0) : NULL_DATE;
 
 		if (find_end)
-			*end_date = (file->trans_count > 0) ? transact_get_date(file, 0) : NULL_DATE;
+			*end_date = (transactions > 0) ? transact_get_date(file, transactions - 1) : NULL_DATE;
 
-		for (i=0; i<file->trans_count; i++) {
+		for (i = 0; i < transactions; i++) {
 			date = transact_get_date(file, i);
 
 			if (find_start && date != NULL_DATE && date < *start_date)

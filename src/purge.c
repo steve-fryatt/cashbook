@@ -329,10 +329,6 @@ static osbool purge_process_window(void)
 /**
  * Purge unused components from a file.
  *
- * \TODO -- There might be an argument for moving a lot of the mechanics of this
- *          function into the transact and account modules, in the same way that
- *          standing orders are purged via sorder_purge()?
- *
  * \param *file			The file to be purged.
  * \param transactions		TRUE to purge transactions; FALSE to ignore.
  * \param cutoff		The cutoff transaction date, or NULL_DATE for all.
@@ -343,12 +339,6 @@ static osbool purge_process_window(void)
 
 static void purge_file(struct file_block *file, osbool transactions, date_t cutoff, osbool accounts, osbool headings, osbool sorders)
 {
-	int			i;
-	enum transact_flags	flags;
-	acct_t			from, to;
-	date_t			date;
-	amt_t			amount;
-
 	hourglass_on();
 
 	/* Redraw the file now, so that the full extent of the original data
@@ -363,34 +353,8 @@ static void purge_file(struct file_block *file, osbool transactions, date_t cuto
 
 	/* Purge unused transactions from the file. */
 
-	if (transactions) {
-		for (i=0; i<file->trans_count; i++) {
-			date = transact_get_date(file, i);
-			flags = transact_get_flags(file, i);
-		
-			if ((flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO) &&
-					(cutoff == NULL_DATE || date < cutoff)) {
-				from = transact_get_from(file, i);
-				to = transact_get_to(file, i);
-				amount = transact_get_amount(file, i);
-
-				/* If the from and to accounts are full accounts, */
-
-				if (from != NULL_ACCOUNT && (account_get_type(file, from) & ACCOUNT_FULL) != 0)
-					account_adjust_opening_balance(file, from, -amount);
-
-				if (to != NULL_ACCOUNT && (account_get_type(file, to) & ACCOUNT_FULL) != 0)
-					account_adjust_opening_balance(file, to, +amount);
-
-				transact_clear_raw_entry(file, i);
-			}
-		}
-
-		if (file->sort_valid == 0)
-			transact_sort_file_data(file);
-
-		transact_strip_blanks_from_end(file);
-	}
+	if (transactions)
+		transact_purge(file, cutoff);
 
 	/* Purge any unused standing orders from the file. */
 
@@ -418,7 +382,7 @@ static void purge_file(struct file_block *file, osbool transactions, date_t cuto
 
 	transact_set_window_extent(file);
 
-	transact_place_caret(file, file->trans_count, EDIT_ICON_DATE);
+	transact_place_caret(file, transact_find_first_blank_line(file), EDIT_ICON_DATE);
 
 	hourglass_off();
 }

@@ -172,10 +172,6 @@ struct file_block
   int                accview_column_position[ACCVIEW_COLUMNS]; /* Base column positions in the account view windows. */
   int                accview_sort_order; /* Default sort order for the accview windows. */
 
-  /* Array size counts. */
-
-  int                trans_count;        /* The number of transactions defined in the file. */
-
   /* Account, transaction, standing order and preset data structures (pointers which become arrays). */
 
   struct transaction *transactions;

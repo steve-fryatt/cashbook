@@ -180,6 +180,17 @@ enum preset_caret preset_get_caret_destination(struct file_block *file, int pres
 
 
 /**
+ * Test the validity of a preset index.
+ *
+ * \param *file			The file to test against.
+ * \param preset		The preset index to test.
+ * \return			TRUE if the index is valid; FALSE if not.
+ */
+
+osbool preset_test_index_valid(struct file_block *file, preset_t preset);
+
+
+/**
  * Find the number of presets in a file.
  *
  * \param *file			The file to interrogate.

@@ -2548,7 +2548,7 @@ void sorder_process(struct file_block *file)
 		if (config_opt_read("SortAfterSOrders")) {
 			transact_sort(file);
 		} else {
-			transact_force_window_redraw(file, 0, file->trans_count - 1);
+			transact_redraw_all(file);
 		}
 
 		if (config_opt_read("AutoSortSOrders"))

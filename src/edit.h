@@ -134,7 +134,7 @@ int edit_get_line_transaction(struct file_block *file);
  * \param change_flag	Indicate which reconciled flags to change.
  */
 
-void edit_toggle_transaction_reconcile_flag(struct file_block *file, int transaction, enum transact_flags change_flag);
+void edit_toggle_transaction_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag);
 
 
 /**
@@ -145,7 +145,7 @@ void edit_toggle_transaction_reconcile_flag(struct file_block *file, int transac
  * \param new_date	The new date to set the transaction to.
  */
 
-void edit_change_transaction_date(struct file_block *file, int transaction, date_t new_date);
+void edit_change_transaction_date(struct file_block *file, tran_t transaction, date_t new_date);
 
 
 /**
@@ -157,7 +157,7 @@ void edit_change_transaction_date(struct file_block *file, int transaction, date
  * \param new_text	The new text to set the field to.
  */
 
-void edit_change_transaction_refdesc(struct file_block *file, int transaction, wimp_i target, char *new_text);
+void edit_change_transaction_refdesc(struct file_block *file, tran_t transaction, wimp_i target, char *new_text);
 
 
 /**
@@ -169,7 +169,7 @@ void edit_change_transaction_refdesc(struct file_block *file, int transaction, w
  * \param new_account	The new account to set the field to.
  */
 
-void edit_change_transaction_account(struct file_block *file, int transaction, wimp_i target, acct_t new_account);
+void edit_change_transaction_account(struct file_block *file, tran_t transaction, wimp_i target, acct_t new_account);
 
 
 /**
@@ -181,7 +181,7 @@ void edit_change_transaction_account(struct file_block *file, int transaction, w
  * \param preset	The preset to insert into the transaction.
  */
 
-void edit_insert_preset_into_transaction(struct file_block *file, int transaction, int preset);
+void edit_insert_preset_into_transaction(struct file_block *file, tran_t transaction, int preset);
 
 
 /**

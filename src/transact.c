@@ -262,6 +262,11 @@ struct transact_window {
 	enum sort_type		sort_order;					/**< The order in which the window is sorted. */
 
 	char			sort_sprite[12];				/**< Space for the sort icon's indirected data. */
+
+	/* Transaction Data. */
+
+	int			trans_count;					/**< The number of transactions defined in the file. */
+
 };
 
 
@@ -350,7 +355,7 @@ static void			transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_c
 static void			transact_complete_menu_add_entry(struct transact_list_link **entries, int *count, int *max, char *new);
 static int			transact_complete_menu_compare(const void *va, const void *vb);
 
-static osbool			transact_is_blank(struct file_block *file, int transaction);
+static osbool			transact_is_blank(struct file_block *file, tran_t transaction);
 
 static void			transact_open_sort_window(struct transact_window *windat, wimp_pointer *ptr);
 static osbool			transact_process_sort_window(enum sort_type order, void *data);
@@ -366,6 +371,12 @@ static void			transact_export_delimited(struct transact_window *windat, char *fi
 static osbool			transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 static void			transact_prepare_fileinfo(struct file_block *file);
+
+/**
+ * Test whether a transaction number is safe to look up in the transaction data array.
+ */
+
+#define transact_valid(windat, transaction) (((transaction) != NULL_TRANSACTION) && ((transaction) >= 0) && ((transaction) < ((windat)->trans_count)))
 
 
 /**
@@ -433,6 +444,10 @@ struct transact_window *transact_create_instance(struct file_block *file)
 
 	new->sort_order = SORT_DATE | SORT_ASCENDING;
 
+	/* Initialise the transaction data. */
+
+	new->trans_count = 0;
+
 	return new;
 }
 
@@ -465,6 +480,9 @@ void transact_open_window(struct file_block *file)
 	int		i, j, height;
 	os_error	*error;
 
+	if (file == NULL || file->transaction_window == NULL)
+		return;
+
 	if (file->transaction_window->transaction_window != NULL) {
 		windows_open(file->transaction_window->transaction_window);
 		return;
@@ -473,8 +491,8 @@ void transact_open_window(struct file_block *file)
 	/* Set the default values */
 
 	file->transaction_window->entry_line = -1;
-	file->transaction_window->display_lines = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-			file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
+	file->transaction_window->display_lines = (file->transaction_window->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
+			file->transaction_window->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 
 	/* Create the new window data and build the window. */
 
@@ -574,7 +592,7 @@ void transact_open_window(struct file_block *file)
 
 	/* Put the caret into the first empty line. */
 
-	transact_place_caret(file, file->trans_count, EDIT_ICON_DATE);
+	transact_place_caret(file, file->transaction_window->trans_count, EDIT_ICON_DATE);
 }
 
 
@@ -774,7 +792,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 			} else if (column == TRANSACT_ICON_DESCRIPTION) {
 				/* If the column is the Description, open the to description menu. */
 				open_refdesc_menu(file, REFDESC_MENU_DESCRIPTION, line, pointer);
-			} else if (line < file->trans_count) {
+			} else if (line < windat->trans_count) {
 				/* ...while the rest have to occur over a transaction line. */
 				transaction = file->transactions[line].sort_index;
 
@@ -1126,7 +1144,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 	 */
 
 	if (pointer != NULL) {
-		transact_window_menu_line = -1;
+		transact_window_menu_line = NULL_TRANSACTION;
 
 		if (w == windat->transaction_window) {
 			window.w = w;
@@ -1134,7 +1152,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 
 			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
-			if (line >= 0 && line < windat->file->trans_count)
+			if (transact_valid(windat, line))
 				transact_window_menu_line = line;
 		}
 
@@ -1526,13 +1544,13 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
-			t = (y < file->trans_count) ? file->transactions[y].sort_index : 0;
+			t = (y < windat->trans_count) ? file->transactions[y].sort_index : 0;
 
 			/* Work out the foreground colour for the line, based on whether
 			 * the line is to be shaded or not.
 			 */
 
-			if (shade_rec && (y < file->trans_count) &&
+			if (shade_rec && (y < windat->trans_count) &&
 					((file->transactions[t].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
 				icon_fg_col = (shade_rec_col << wimp_ICON_FG_COLOUR_SHIFT);
 			else
@@ -1564,7 +1582,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_ROW].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_ROW].flags |= icon_fg_col;
 
-			if (y < file->trans_count)
+			if (y < windat->trans_count)
 				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", transact_get_transaction_number(t));
 			else
 				*icon_buffer = '\0';
@@ -1581,7 +1599,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_DATE].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_DATE].flags |= icon_fg_col;
 
-			if (y < file->trans_count)
+			if (y < windat->trans_count)
 				date_convert_to_string(file->transactions[t].date, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
@@ -1614,7 +1632,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].flags |= icon_fg_col;
 
-			if (y < file->trans_count && file->transactions[t].from != NULL_ACCOUNT) {
+			if (y < windat->trans_count && file->transactions[t].from != NULL_ACCOUNT) {
 				transact_window_def->icons[TRANSACT_ICON_FROM].data.indirected_text.text =
 						account_get_ident(file, file->transactions[t].from);
 				transact_window_def->icons[TRANSACT_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
@@ -1662,7 +1680,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_TO_NAME].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_TO_NAME].flags |= icon_fg_col;
 
-			if (y < file->trans_count && file->transactions[t].to != NULL_ACCOUNT) {
+			if (y < windat->trans_count && file->transactions[t].to != NULL_ACCOUNT) {
 				transact_window_def->icons[TRANSACT_ICON_TO].data.indirected_text.text =
 						account_get_ident(file, file->transactions[t].to);
 				transact_window_def->icons[TRANSACT_ICON_TO_REC].data.indirected_text.text = icon_buffer;
@@ -1694,7 +1712,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags |= icon_fg_col;
 
-			if (y < file->trans_count) {
+			if (y < windat->trans_count) {
 				transact_window_def->icons[TRANSACT_ICON_REFERENCE].data.indirected_text.text = file->transactions[t].reference;
 			} else {
 				transact_window_def->icons[TRANSACT_ICON_REFERENCE].data.indirected_text.text = icon_buffer;
@@ -1713,7 +1731,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags |= icon_fg_col;
 
-			if (y < file->trans_count)
+			if (y < windat->trans_count)
 				currency_convert_to_string(file->transactions[t].amount, icon_buffer, DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
@@ -1730,7 +1748,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags |= icon_fg_col;
 
-			if (y < file->trans_count) {
+			if (y < windat->trans_count) {
 				transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].data.indirected_text.text = file->transactions[t].description;
 			} else {
 				transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
@@ -1958,9 +1976,9 @@ void transact_set_window_extent(struct file_block *file)
 
 	/* If the window display length is too small, extend it to one blank line after the data. */
 
-	if (file->transaction_window->display_lines <= (file->trans_count + MIN_TRANSACT_BLANK_LINES)) {
-		file->transaction_window->display_lines = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-				file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
+	if (file->transaction_window->display_lines <= (file->transaction_window->trans_count + MIN_TRANSACT_BLANK_LINES)) {
+		file->transaction_window->display_lines = (file->transaction_window->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
+				file->transaction_window->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 	}
 
 	/* Work out the new extent. */
@@ -2037,8 +2055,8 @@ void transact_minimise_window_extent(struct file_block *file)
 	 * and the location of the edit line.
 	 */
 
-	minimum_length = (file->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-			file->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
+	minimum_length = (file->transaction_window->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
+			file->transaction_window->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 
 	if (file->transaction_window->entry_line >= minimum_length)
 		minimum_length = file->transaction_window->entry_line + 1;
@@ -2107,7 +2125,7 @@ void transact_redraw_all(struct file_block *file)
 	if (file == NULL || file->transaction_window == NULL)
 		return;
 
-	transact_force_window_redraw(file, 0, file->trans_count - 1);
+	transact_force_window_redraw(file, 0, file->transaction_window->trans_count - 1);
 }
 
 
@@ -2249,8 +2267,8 @@ int transact_find_nearest_window_centre(struct file_block *file, acct_t account)
 
 	centre = ((-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER)) + ((height / 2) / (ICON_HEIGHT+LINE_GUTTER));
 
-	if (centre >= file->trans_count)
-		centre = file->trans_count - 1;
+	if (centre >= file->transaction_window->trans_count)
+		centre = file->transaction_window->trans_count - 1;
 
 	/* If there are no transactions, we can't return one. */
 
@@ -2270,8 +2288,8 @@ int transact_find_nearest_window_centre(struct file_block *file, acct_t account)
 	result = NULL_TRANSACTION;
 	i = 1;
 
-	while (centre + i < file->trans_count || centre - i >= 0) {
-		if (centre + i < file->trans_count &&
+	while (centre + i < file->transaction_window->trans_count || centre - i >= 0) {
+		if (centre + i < file->transaction_window->trans_count &&
 				(file->transactions[file->transactions[centre + i].sort_index].from == account ||
 				file->transactions[file->transactions[centre + i].sort_index].to == account)) {
 			result = file->transactions[centre + i].sort_index;
@@ -2337,15 +2355,15 @@ static void transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
  * \return			The appropriate line, or -1 if not found.
  */
 
-int transact_get_line_from_transaction(struct file_block *file, int transaction)
+int transact_get_line_from_transaction(struct file_block *file, tran_t transaction)
 {
 	int	i;
 	int	line = -1;
 
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return line;
 
-	for (i = 0; i < file->trans_count; i++) {
+	for (i = 0; i < file->transaction_window->trans_count; i++) {
 		if (file->transactions[i].sort_index == transaction) {
 			line = i;
 			break;
@@ -2367,7 +2385,7 @@ int transact_get_line_from_transaction(struct file_block *file, int transaction)
 
 int transact_get_transaction_from_line(struct file_block *file, int line)
 {
-	if (file == NULL || line < 0 || line >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, line))
 		return NULL_TRANSACTION;
 
 	return file->transactions[line].sort_index;
@@ -2383,7 +2401,7 @@ int transact_get_transaction_from_line(struct file_block *file, int line)
 
 int transact_get_count(struct file_block *file)
 {
-	return (file != NULL) ? file->trans_count : 0;
+	return (file != NULL && file->transaction_window != NULL) ? file->transaction_window->trans_count : 0;
 }
 
 
@@ -2396,7 +2414,7 @@ int transact_get_count(struct file_block *file)
 
 int transact_get_caret_line(struct file_block *file)
 {
-	return (file != NULL || file->transaction_window == NULL) ? file->transaction_window->entry_line : 0;
+	return (file != NULL && file->transaction_window != NULL) ? file->transaction_window->entry_line : 0;
 }
 
 
@@ -2475,6 +2493,9 @@ wimp_menu *transact_complete_menu_build(struct file_block *file, enum transact_l
 	osbool		no_original;
 	char		*title_token;
 
+	if (file == NULL || file->transaction_window == NULL)
+		return NULL;
+
 	hourglass_on();
 
 	account_complete_menu_destroy();
@@ -2500,17 +2521,17 @@ wimp_menu *transact_complete_menu_build(struct file_block *file, enum transact_l
 	 * be matched against the final transaction as a result of pulling start_line into range.
 	 */
 
-	if (start_line >= file->trans_count) {
-		start_line = file->trans_count - 1;
+	if (start_line >= file->transaction_window->trans_count) {
+		start_line = file->transaction_window->trans_count - 1;
 		no_original = TRUE;
 	} else {
 		no_original = FALSE;
 	}
 
-	if (file->trans_count > 0 && transact_complete_menu_link != NULL) {
+	if (file->transaction_window->trans_count > 0 && transact_complete_menu_link != NULL) {
 		/* Find the largest range from the current line to one end of the transaction list. */
 
-		range = ((file->trans_count - start_line - 1) > start_line) ? (file->trans_count - start_line - 1) : start_line;
+		range = ((file->transaction_window->trans_count - start_line - 1) > start_line) ? (file->transaction_window->trans_count - start_line - 1) : start_line;
 
 		/* Work out from the line to the edges of the transaction window. For each transaction, check the entries
 		 * and add them into the list.
@@ -2518,7 +2539,7 @@ wimp_menu *transact_complete_menu_build(struct file_block *file, enum transact_l
 
 		if (menu_type == REFDESC_MENU_REFERENCE) {
 			for (i=1; i<=range && (item_limit == 0 || items <= item_limit); i++) {
-				if ((start_line+i < file->trans_count) && (no_original ||
+				if ((start_line+i < file->transaction_window->trans_count) && (no_original ||
 						(*(file->transactions[file->transactions[start_line].sort_index].reference) == '\0') ||
 						(string_nocase_strstr(file->transactions[file->transactions[start_line+i].sort_index].reference,
 						file->transactions[file->transactions[start_line].sort_index].reference) ==
@@ -2537,7 +2558,7 @@ wimp_menu *transact_complete_menu_build(struct file_block *file, enum transact_l
 			}
 		} else if (menu_type == REFDESC_MENU_DESCRIPTION) {
 			for (i=1; i<=range && (item_limit == 0 || items < item_limit); i++) {
-				if ((start_line+i < file->trans_count) && (no_original ||
+				if ((start_line+i < file->transaction_window->trans_count) && (no_original ||
 						(*(file->transactions[file->transactions[start_line].sort_index].description) == '\0') ||
 						(string_nocase_strstr(file->transactions[file->transactions[start_line+i].sort_index].description,
 						file->transactions[file->transactions[start_line].sort_index].description) ==
@@ -2686,10 +2707,11 @@ void transact_complete_menu_prepare(int line)
 {
 	acct_t		account;
 
-	if (transact_complete_menu == NULL || transact_complete_menu_type != REFDESC_MENU_REFERENCE)
+	if (transact_complete_menu == NULL || transact_complete_menu_file == NULL || transact_complete_menu_file->transaction_window == NULL ||
+			transact_complete_menu_type != REFDESC_MENU_REFERENCE)
 		return;
 
-	if ((line < transact_complete_menu_file->trans_count) &&
+	if ((line < transact_complete_menu_file->transaction_window->trans_count) &&
 			((account = transact_complete_menu_file->transactions[transact_complete_menu_file->transactions[line].sort_index].from) != NULL_ACCOUNT) &&
 			account_cheque_number_available(transact_complete_menu_file, account))
 		transact_complete_menu->entries[0].icon_flags &= ~wimp_ICON_SHADED;
@@ -2845,15 +2867,15 @@ void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, a
 {
 	int new;
 
-	if (file == NULL)
+	if (file == NULL || file->transaction_window == NULL)
 		return;
 
-	if (flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * (file->trans_count + 1)) != 1) {
+	if (flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * (file->transaction_window->trans_count + 1)) != 1) {
 		error_msgs_report_error("NoMemNewTrans");
 		return;
 	}
 
-	new = file->trans_count++;
+	new = file->transaction_window->trans_count++;
 
 	file->transactions[new].date = date;
 	file->transactions[new].amount = amount;
@@ -2881,9 +2903,9 @@ void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, a
  * \param transaction		The transaction to be cleared.
  */
 
-void transact_clear_raw_entry(struct file_block *file, int transaction)
+void transact_clear_raw_entry(struct file_block *file, tran_t transaction)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return;
 
 	file->transactions[transaction].date = NULL_DATE;
@@ -2906,9 +2928,9 @@ void transact_clear_raw_entry(struct file_block *file, int transaction)
  * \return			TRUE if the transaction is empty; FALSE if not.
  */
 
-static osbool transact_is_blank(struct file_block *file, int transaction)
+static osbool transact_is_blank(struct file_block *file, tran_t transaction)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return FALSE;
 
 	return (file->transactions[transaction].date == NULL_DATE &&
@@ -2934,10 +2956,10 @@ void transact_strip_blanks_from_end(struct file_block *file)
 	osbool	found;
 
 
-	if (file == NULL)
+	if (file == NULL || file->transaction_window == NULL)
 		return;
 
-	i = file->trans_count - 1;
+	i = file->transaction_window->trans_count - 1;
 
 	while (transact_is_blank(file, i)) {
 
@@ -2965,10 +2987,10 @@ void transact_strip_blanks_from_end(struct file_block *file)
 	 * from the end of the file.
 	 */
 
-	if (i < file->trans_count - 1) {
-		file->trans_count = i + 1;
+	if (i < file->transaction_window->trans_count - 1) {
+		file->transaction_window->trans_count = i + 1;
 
-		flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * file->trans_count);
+		flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * file->transaction_window->trans_count);
 	}
 }
 
@@ -2981,9 +3003,9 @@ void transact_strip_blanks_from_end(struct file_block *file)
  * \return			The date of the transaction, or NULL_DATE.
  */
 
-date_t transact_get_date(struct file_block *file, int transaction)
+date_t transact_get_date(struct file_block *file, tran_t transaction)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return NULL_DATE;
 
 	return file->transactions[transaction].date;
@@ -2998,9 +3020,9 @@ date_t transact_get_date(struct file_block *file, int transaction)
  * \return			The from account of the transaction, or NULL_ACCOUNT.
  */
 
-acct_t transact_get_from(struct file_block *file, int transaction)
+acct_t transact_get_from(struct file_block *file, tran_t transaction)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return NULL_ACCOUNT;
 
 	return file->transactions[transaction].from;
@@ -3015,9 +3037,9 @@ acct_t transact_get_from(struct file_block *file, int transaction)
  * \return			The to account of the transaction, or NULL_ACCOUNT.
  */
 
-acct_t transact_get_to(struct file_block *file, int transaction)
+acct_t transact_get_to(struct file_block *file, tran_t transaction)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return NULL_ACCOUNT;
 
 	return file->transactions[transaction].to;
@@ -3032,9 +3054,9 @@ acct_t transact_get_to(struct file_block *file, int transaction)
  * \return			The flags of the transaction, or TRANS_FLAGS_NONE.
  */
 
-enum transact_flags transact_get_flags(struct file_block *file, int transaction)
+enum transact_flags transact_get_flags(struct file_block *file, tran_t transaction)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return TRANS_FLAGS_NONE;
 
 	return file->transactions[transaction].flags;
@@ -3049,9 +3071,9 @@ enum transact_flags transact_get_flags(struct file_block *file, int transaction)
  * \return			The amount of the transaction, or NULL_CURRENCY.
  */
 
-amt_t transact_get_amount(struct file_block *file, int transaction)
+amt_t transact_get_amount(struct file_block *file, tran_t transaction)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return NULL_CURRENCY;
 
 	return file->transactions[transaction].amount;
@@ -3077,9 +3099,9 @@ amt_t transact_get_amount(struct file_block *file, int transaction)
  *				either the supplied buffer or the original.
  */
 
-char *transact_get_reference(struct file_block *file, int transaction, char *buffer, size_t length)
+char *transact_get_reference(struct file_block *file, tran_t transaction, char *buffer, size_t length)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return NULL;
 
 	if (buffer == NULL || length == 0)
@@ -3111,9 +3133,9 @@ char *transact_get_reference(struct file_block *file, int transaction, char *buf
  *				either the supplied buffer or the original.
  */
 
-char *transact_get_description(struct file_block *file, int transaction, char *buffer, size_t length)
+char *transact_get_description(struct file_block *file, tran_t transaction, char *buffer, size_t length)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return NULL;
 
 	if (buffer == NULL || length == 0)
@@ -3134,12 +3156,26 @@ char *transact_get_description(struct file_block *file, int transaction, char *b
  * \return			The sort workspace for the transaction, or 0.
  */
 
-int transact_get_sort_workspace(struct file_block *file, int transaction)
+int transact_get_sort_workspace(struct file_block *file, tran_t transaction)
 {
-	if (file == NULL || transaction < 0 || transaction >= file->trans_count)
+	if (file == NULL || file->transaction_window == NULL || !transact_valid(file->transaction_window, transaction))
 		return 0;
 
 	return file->transactions[transaction].sort_workspace;
+}
+
+
+/**
+ * Test the validity of a transaction index.
+ *
+ * \param *file			The file to test against.
+ * \param transaction		The transaction index to test.
+ * \return			TRUE if the index is valid; FALSE if not.
+ */
+
+osbool transact_test_index_valid(struct file_block *file, tran_t transaction)
+{
+	return (transact_valid(file->transaction_window, transaction)) ? TRUE : FALSE;
 }
 
 
@@ -3215,17 +3251,17 @@ void transact_sort(struct file_block *file)
 	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
 	 */
 
-	gap = file->trans_count - 1;
+	gap = file->transaction_window->trans_count - 1;
 
 	order = file->transaction_window->sort_order;
 
 	do {
 		gap = (gap > 1) ? (gap * 10 / 13) : 1;
-		if ((file->trans_count >= 12) && (gap == 9 || gap == 10))
+		if ((file->transaction_window->trans_count >= 12) && (gap == 9 || gap == 10))
 			gap = 11;
 
 		sorted = TRUE;
-		for (comb = 0; (comb + gap) < file->trans_count; comb++) {
+		for (comb = 0; (comb + gap) < file->transaction_window->trans_count; comb++) {
 			switch (order) {
 			case SORT_ROW | SORT_ASCENDING:
 				reorder = (transact_get_transaction_number(file->transactions[comb+gap].sort_index) <
@@ -3324,7 +3360,7 @@ void transact_sort(struct file_block *file)
 			file->transaction_window->transaction_window == caret.w)
 		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
 
-	transact_force_window_redraw(file, 0, file->trans_count - 1);
+	transact_force_window_redraw(file, 0, file->transaction_window->trans_count - 1);
 
 	hourglass_off();
 }
@@ -3350,13 +3386,16 @@ void transact_sort_file_data(struct file_block *file)
 	debug_printf("Sorting transactions");
 #endif
 
+	if (file == NULL || file->transaction_window == NULL)
+		return;
+
 	hourglass_on();
 
 	/* Start by recording the order of the transactions on display in the
 	 * main window, and also the order of the transactions themselves.
 	 */
 
-	for (i=0; i < file->trans_count; i++) {
+	for (i=0; i < file->transaction_window->trans_count; i++) {
 		file->transactions[file->transactions[i].sort_index].saved_sort = i;	/* Record transaction window lines. */
 		file->transactions[i].sort_index = i;					/* Record old transaction locations. */
 	}
@@ -3366,15 +3405,15 @@ void transact_sort_file_data(struct file_block *file)
 	 * in descending order.  Otherwise, the status quo is left.
 	 */
 
-	gap = file->trans_count - 1;
+	gap = file->transaction_window->trans_count - 1;
 
 	do {
 		gap = (gap > 1) ? (gap * 10 / 13) : 1;
-		if ((file->trans_count >= 12) && (gap == 9 || gap == 10))
+		if ((file->transaction_window->trans_count >= 12) && (gap == 9 || gap == 10))
 			gap = 11;
 
 		sorted = TRUE;
-		for (comb = 0; (comb + gap) < file->trans_count; comb++) {
+		for (comb = 0; (comb + gap) < file->transaction_window->trans_count; comb++) {
 			if (file->transactions[comb+gap].date < file->transactions[comb].date) {
 				temp = file->transactions[comb+gap];
 				file->transactions[comb+gap] = file->transactions[comb];
@@ -3389,12 +3428,12 @@ void transact_sort_file_data(struct file_block *file)
 	 * main window.
 	 */
 
-	for (i=0; i < file->trans_count; i++)
+	for (i=0; i < file->transaction_window->trans_count; i++)
 		file->transactions[file->transactions[i].sort_index].sort_workspace = i;
 
 	accview_reindex_all(file);
 
-	for (i=0; i < file->trans_count; i++)
+	for (i=0; i < file->transaction_window->trans_count; i++)
 		file->transactions[file->transactions[i].saved_sort].sort_index = i;
 
 	file->sort_valid = TRUE;
@@ -3436,7 +3475,7 @@ void transact_find_next_reconcile_line(struct file_block *file, osbool set)
 	line++;
 	found = -1;
 
-	while ((line < file->trans_count) && (found == -1)) {
+	while ((line < file->transaction_window->trans_count) && (found == -1)) {
 		if (file->transactions[file->transactions[line].sort_index].from == account &&
 				((file->transactions[file->transactions[line].sort_index].flags & TRANS_REC_FROM) ==
 						((set) ? TRANS_REC_FROM : TRANS_FLAGS_NONE)))
@@ -3466,14 +3505,14 @@ int transact_find_first_blank_line(struct file_block *file)
 {
 	int line;
 
-	if (file == NULL)
+	if (file == NULL || file->transaction_window == NULL)
 		return 0;
 
 	#ifdef DEBUG
 	debug_printf("\\DFinding first blank line");
 	#endif
 
-	line = file->trans_count;
+	line = file->transaction_window->trans_count;
 
 	while (line > 0 && transact_is_blank(file, file->transactions[line - 1].sort_index)) {
 		line--;
@@ -3484,6 +3523,53 @@ int transact_find_first_blank_line(struct file_block *file)
 	}
 
 	return line;
+}
+
+
+/**
+ * Purge unused transactions from a file.
+ *
+ * \param *file			The file to purge.
+ * \param cutoff		The cutoff date before which transactions should be removed.
+ */
+
+void transact_purge(struct file_block *file, date_t cutoff)
+{
+	tran_t			transaction;
+	enum transact_flags	flags;
+	acct_t			from, to;
+	date_t			date;
+	amt_t			amount;
+
+	if (file == NULL || file->transaction_window == NULL)
+		return;
+
+	for (transaction = 0; transaction < file->transaction_window->trans_count; transaction++) {
+		date = transact_get_date(file, transaction);
+		flags = transact_get_flags(file, transaction);
+	
+		if ((flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO) &&
+				(cutoff == NULL_DATE || date < cutoff)) {
+			from = transact_get_from(file, transaction);
+			to = transact_get_to(file, transaction);
+			amount = transact_get_amount(file, transaction);
+
+			/* If the from and to accounts are full accounts, */
+
+			if (from != NULL_ACCOUNT && (account_get_type(file, from) & ACCOUNT_FULL) != 0)
+				account_adjust_opening_balance(file, from, -amount);
+
+			if (to != NULL_ACCOUNT && (account_get_type(file, to) & ACCOUNT_FULL) != 0)
+				account_adjust_opening_balance(file, to, +amount);
+
+			transact_clear_raw_entry(file, transaction);
+		}
+	}
+
+	if (file->sort_valid == 0)
+		transact_sort_file_data(file);
+
+	transact_strip_blanks_from_end(file);
 }
 
 
@@ -3522,6 +3608,9 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 	int			i, t;
 	char			line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
 	struct transact_window	*window;
+
+	if (transact_print_file == NULL || transact_print_file->transaction_window == NULL)
+		return;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 	msgs_lookup("PrintTitleTransact", buffer, sizeof(buffer));
@@ -3566,7 +3655,7 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 
 	/* Output the transaction data as a set of delimited lines. */
 
-	for (i=0; i < transact_print_file->trans_count; i++) {
+	for (i=0; i < transact_print_file->transaction_window->trans_count; i++) {
 		if ((from == NULL_DATE || transact_print_file->transactions[i].date >= from) &&
 				(to == NULL_DATE || transact_print_file->transactions[i].date <= to)) {
 			*line = '\0';
@@ -3644,14 +3733,14 @@ void transact_write_file(struct file_block *file, FILE *out)
 
 	fprintf(out, "\n[Transactions]\n");
 
-	fprintf(out, "Entries: %x\n", file->trans_count);
+	fprintf(out, "Entries: %x\n", file->transaction_window->trans_count);
 
 	column_write_as_text(file->transaction_window->column_width, TRANSACT_COLUMNS, buffer);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
 	fprintf(out, "SortOrder: %x\n", file->transaction_window->sort_order);
 
-	for (i = 0; i < file->trans_count; i++) {
+	for (i = 0; i < file->transaction_window->trans_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x\n",
 				file->transactions[i].date, file->transactions[i].flags, file->transactions[i].from,
 				file->transactions[i].to, file->transactions[i].amount);
@@ -3684,13 +3773,13 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
 			block_size = strtoul(value, NULL, 16);
-			if (block_size > file->trans_count) {
+			if (block_size > file->transaction_window->trans_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
 				flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * block_size);
 			} else {
-				block_size = file->trans_count;
+				block_size = file->transaction_window->trans_count;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			/* For file format 1.00 or older, there's no row column at the
@@ -3702,15 +3791,15 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0){
 			file->transaction_window->sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
-			file->trans_count++;
-			if (file->trans_count > block_size) {
-				block_size = file->trans_count;
+			file->transaction_window->trans_count++;
+			if (file->transaction_window->trans_count > block_size) {
+				block_size = file->transaction_window->trans_count;
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
 				flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * block_size);
 			}
-			i = file->trans_count-1;
+			i = file->transaction_window->trans_count-1;
 			file->transactions[i].date = strtoul(next_field (value, ','), NULL, 16);
 			file->transactions[i].flags = strtoul(next_field (NULL, ','), NULL, 16);
 			file->transactions[i].from = strtoul(next_field (NULL, ','), NULL, 16);
@@ -3735,11 +3824,11 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 	block_size = flex_size((flex_ptr) &(file->transactions)) / sizeof(struct transaction);
 
 	#ifdef DEBUG
-	debug_printf("Transaction block size: %d, required: %d", block_size, file->trans_count);
+	debug_printf("Transaction block size: %d, required: %d", block_size, file->transaction_window->trans_count);
 	#endif
 
-	if (block_size > file->trans_count) {
-		block_size = file->trans_count;
+	if (block_size > file->transaction_window->trans_count) {
+		block_size = file->transaction_window->trans_count;
 		flex_extend((flex_ptr) &(file->transactions), sizeof(struct transaction) * block_size);
 
 		#ifdef DEBUG
@@ -3893,7 +3982,7 @@ static void transact_export_delimited(struct transact_window *windat, char *file
 
 	/* Output the transaction data as a set of delimited lines. */
 
-	for (i=0; i < windat->file->trans_count; i++) {
+	for (i=0; i < windat->trans_count; i++) {
 		t = windat->file->transactions[i].sort_index;
 
 		snprintf(buffer, sizeof(buffer), "%d", transact_get_transaction_number(t));
@@ -3963,7 +4052,7 @@ int transact_find_date(struct file_block *file, date_t target)
 {
 	int		min, max, mid;
 
-	if (file == NULL || file->trans_count == 0 || target == NULL_DATE)
+	if (file == NULL || file->transaction_window || file->transaction_window->trans_count == 0 || target == NULL_DATE)
 		return NULL_TRANSACTION;
 
 	/* If the transactions are not already sorted, sort them into date
@@ -3976,7 +4065,7 @@ int transact_find_date(struct file_block *file, date_t target)
 	/* Search through the sorted array using a binary search. */
 
 	min = 0;
-	max = file->trans_count - 1;
+	max = file->transaction_window->trans_count - 1;
 
 	while (min < max) {
 		mid = (min + max)/2;
@@ -4045,7 +4134,7 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
 	int			transaction;
 
 
-	if (file == NULL)
+	if (file == NULL || file->transaction_window)
 		return TRANSACT_FIELD_NONE;
 
 	match = FALSE;
@@ -4053,7 +4142,7 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
 	from_rec = flags & TRANS_REC_FROM;
 	to_rec = flags & TRANS_REC_TO;
 
-	while (*line < file->trans_count && *line >= 0 && !match) {
+	while (*line < file->transaction_window->trans_count && *line >= 0 && !match) {
 		/* Initialise the test result variable.  The tests all have a bit allocated.  For OR tests, these start unset and
 		 * are set if a test passes; a non-zero value at the end indicates a match.  For AND tests, all the required bits
 		 * are set at the start and cleared as tests match.  A zero value at the end indicates a match.
@@ -4149,12 +4238,15 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-osbool transact_check_account(struct file_block *file, int account)
+osbool transact_check_account(struct file_block *file, acct_t account)
 {
 	int		i;
 	osbool		found = FALSE;
 
-	for (i = 0; i < file->trans_count && !found; i++)
+	if (file == NULL || file->transaction_window == NULL)
+		return FALSE;
+
+	for (i = 0; i < file->transaction_window->trans_count && !found; i++)
 		if (file->transactions[i].from == account || file->transactions[i].to == account)
 			found = TRUE;
 

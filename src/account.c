@@ -339,7 +339,11 @@ static osbool			account_save_csv(char *filename, osbool selection, void *data);
 static osbool			account_save_tsv(char *filename, osbool selection, void *data);
 static void			account_export_delimited(struct account_window *windat, char *filename, enum filing_delimit_type format, int filetype);
 
-#define account_valid(windat, account) (((account) >= 0) && ((account) < ((windat)->account_count)))
+/**
+ * Test whether an account number is safe to look up in the account data array.
+ */
+
+#define account_valid(windat, account) (((account) != NULL_ACCOUNT) && ((account) >= 0) && ((account) < ((windat)->account_count)))
 
 /**
  * Initialise the account system.
@@ -2304,7 +2308,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 {
 	wimp_w		win = NULL;
 
-	if (file == NULL || file->accounts == NULL || !account_valid(file->accounts, account))
+	if (file == NULL || file->accounts == NULL)
 		return;
 
 	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
@@ -2338,7 +2342,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 			msgs_lookup("NewHdr", windows_get_indirected_title_addr(win), 50);
 			icons_msgs_lookup(win, HEAD_EDIT_OK, "NewAcctAct");
 		}
-	} else {
+	} else if (account_valid(file->accounts, account)) {
 		if (file->accounts->accounts[account].type & ACCOUNT_FULL) {
 			account_fill_acc_edit_window(file->accounts, account);
 			win = account_acc_edit_window;
@@ -2352,6 +2356,8 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 			msgs_lookup("EditHdr", windows_get_indirected_title_addr(win), 50);
 			icons_msgs_lookup(win, HEAD_EDIT_OK, "EditAcctAct");
 		}
+	} else {
+		return;
 	}
 
 	/* Set the pointers up so we can find this lot again and open the window. */
@@ -2521,7 +2527,7 @@ static void account_fill_acc_edit_window(struct account_block *block, acct_t acc
 {
 	int	i;
 
-	if (block == NULL || !account_valid(block, account))
+	if (block == NULL)
 		return;
 
 	if (account == NULL_ACCOUNT) {
@@ -2543,7 +2549,7 @@ static void account_fill_acc_edit_window(struct account_block *block, acct_t acc
 			 *icons_get_indirected_text_addr(account_acc_edit_window, i) = '\0';
 
 		icons_set_deleted(account_acc_edit_window, ACCT_EDIT_DELETE, 1);
-	} else {
+	} else if (account_valid(block, account)) {
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_NAME, block->accounts[account].name);
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_IDENT, block->accounts[account].ident);
 
@@ -2579,7 +2585,7 @@ static void account_fill_acc_edit_window(struct account_block *block, acct_t acc
 
 static void account_fill_hdg_edit_window(struct account_block *block, acct_t account, enum account_type type)
 {
-	if (block == NULL || !account_valid(block, account))
+	if (block == NULL)
 		return;
 
 	if (account == NULL_ACCOUNT) {
@@ -2595,7 +2601,7 @@ static void account_fill_hdg_edit_window(struct account_block *block, acct_t acc
 		icons_set_selected(account_hdg_edit_window, HEAD_EDIT_OUTGOING, (type & ACCOUNT_OUT));
 
 		icons_set_deleted(account_hdg_edit_window, HEAD_EDIT_DELETE, 1);
-	} else {
+	} else if (account_valid(block, account)) {
 		icons_strncpy(account_hdg_edit_window, HEAD_EDIT_NAME, block->accounts[account].name);
 		icons_strncpy(account_hdg_edit_window, HEAD_EDIT_IDENT, block->accounts[account].ident);
 
@@ -3592,7 +3598,7 @@ char *account_get_ident(struct file_block *file, acct_t account)
 	if (file == NULL || file->accounts == NULL)
 		return "";
 
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return "";
 
 	return file->accounts->accounts[account].ident;
@@ -3613,7 +3619,7 @@ char *account_get_name(struct file_block *file, acct_t account)
 	if (file == NULL || file->accounts == NULL)
 		return "";
 
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return "";
 
 	return file->accounts->accounts[account].name;
@@ -3635,7 +3641,7 @@ char *account_build_name_pair(struct file_block *file, acct_t account, char *buf
 {
 	*buffer = '\0';
 
-	if (file != NULL && file->accounts != NULL && account != NULL_ACCOUNT && account_valid(file->accounts, account) && file->accounts->accounts[account].type != ACCOUNT_NULL)
+	if (file != NULL && file->accounts != NULL && account_valid(file->accounts, account) && file->accounts->accounts[account].type != ACCOUNT_NULL)
 		snprintf(buffer, size, "%s:%s", account_get_ident(file, account), account_get_name(file, account));
 
 	return buffer;
@@ -3773,7 +3779,7 @@ struct accview_window *account_get_accview(struct file_block *file, acct_t accou
 	if (file == NULL || file->accounts == NULL)
 		return NULL;
 	
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return NULL;
 
 	return file->accounts->accounts[account].account_view;
@@ -3793,7 +3799,7 @@ void account_set_accview(struct file_block *file, acct_t account, struct accview
 	if (file == NULL || file->accounts == NULL)
 		return;
 	
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return;
 
 	file->accounts->accounts[account].account_view = view;
@@ -3813,7 +3819,7 @@ enum account_type account_get_type(struct file_block *file, acct_t account)
 	if (file == NULL || file->accounts == NULL)
 		return ACCOUNT_NULL;
 
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return ACCOUNT_NULL;
 
 	return file->accounts->accounts[account].type;
@@ -3833,7 +3839,7 @@ amt_t account_get_opening_balance(struct file_block *file, acct_t account)
 	if (file == NULL || file->accounts == NULL)
 		return 0;
 
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return 0;
 
 	return file->accounts->accounts[account].opening_balance;
@@ -3854,7 +3860,7 @@ void account_adjust_opening_balance(struct file_block *file, acct_t account, amt
 	if (file == NULL || file->accounts == NULL)
 		return;
 
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return;
 
 	file->accounts->accounts[account].opening_balance += adjust;
@@ -3895,7 +3901,7 @@ void account_adjust_sorder_trial(struct file_block *file, acct_t account, amt_t 
 	if (file == NULL || file->accounts == NULL)
 		return;
 
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return;
 
 	file->accounts->accounts[account].sorder_trial += adjust;
@@ -3915,7 +3921,7 @@ amt_t account_get_credit_limit(struct file_block *file, acct_t account)
 	if (file == NULL || file->accounts == NULL)
 		return 0;
 
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return 0;
 
 	return file->accounts->accounts[account].credit_limit;
@@ -3935,7 +3941,7 @@ amt_t account_get_budget_amount(struct file_block *file, acct_t account)
 	if (file == NULL || file->accounts == NULL)
 		return 0;
 
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return 0;
 
 	return file->accounts->accounts[account].budget_amount;
@@ -4159,7 +4165,7 @@ osbool account_cheque_number_available(struct file_block *file, acct_t account)
 	if (file == NULL || file->accounts == NULL)
 		return FALSE;
 
-	if (account == NULL_ACCOUNT || !account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
+	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return FALSE;
 
 	return (file->accounts->accounts[account].cheque_num_width > 0) ? TRUE : FALSE;
@@ -4330,7 +4336,7 @@ void account_recalculate_all(struct file_block *file)
  * \param transasction	The transaction to remove.
  */
 
-void account_remove_transaction(struct file_block *file, int transaction)
+void account_remove_transaction(struct file_block *file, tran_t transaction)
 {
 	date_t			budget_start, budget_finish, transaction_date;
 	acct_t			transaction_account;

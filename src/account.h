@@ -611,7 +611,7 @@ void account_recalculate_all(struct file_block *file);
  * \param transasction	The transaction to remove.
  */
 
-void account_remove_transaction(struct file_block *file, int transaction);
+void account_remove_transaction(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -624,7 +624,7 @@ void account_remove_transaction(struct file_block *file, int transaction);
  * \param transasction	The transaction to restore.
  */
 
-void account_restore_transaction(struct file_block *file, int transaction);
+void account_restore_transaction(struct file_block *file, tran_t transaction);
 
 
 /**

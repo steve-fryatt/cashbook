@@ -32,8 +32,7 @@
 
 #include "oslib/wimp.h"
 
-#include "global.h"
-
+#include "account.h"
 #include "currency.h"
 #include "filing.h"
 
@@ -190,6 +189,15 @@ os_error *transact_get_window_state(struct file_block *file, wimp_window_state *
  */
 
 void transact_build_window_title(struct file_block *file);
+
+
+/**
+ * Force the complete redraw of the Transaction window.
+ *
+ * \param *file			The file owning the window to redraw.
+ */
+
+void transact_redraw_all(struct file_block *file);
 
 
 /**

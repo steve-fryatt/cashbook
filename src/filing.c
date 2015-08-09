@@ -269,7 +269,6 @@ char *next_plain_field (char *line, char sep)
 void save_transaction_file(struct file_block *file, char *filename)
 {
 	FILE	*out;
-	int	i;
 	bits	load;
 
 
@@ -316,13 +315,7 @@ void save_transaction_file(struct file_block *file, char *filename)
 	strcpy(file->filename, filename);
 
 	transact_build_window_title(file);
-
-	for (i = 0; i < ACCOUNT_WINDOWS; i++)
-		account_build_window_title(file, i);
-
-	for (i = 0; i < file->account_count; i++)
-		accview_build_window_title(file, i);
-
+	account_build_window_titles(file);
 	sorder_build_window_title(file);
 	preset_build_window_title(file);
 

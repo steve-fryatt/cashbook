@@ -35,6 +35,10 @@
 #include "currency.h"
 #include "global.h"
 
+typedef int acct_t;
+
+struct account_block;
+
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
  */
@@ -161,14 +165,13 @@ void account_open_window(struct file_block *file, enum account_type type);
 
 
 /**
- * Recreate the title of the specified Account window connected to the
- * given file.
+ * Recreate the titles of all the account list and account view
+ * windows associated with a file.
  *
- * \param *file			The file to rebuild the title for.
- * \param entry			The entry of the window to to be updated.
+ * \param *file			The file to rebuild the titles for.
  */
 
-void account_build_window_title(struct file_block *file, int entry);
+void account_build_window_titles(struct file_block *file);
 
 
 /**
@@ -302,6 +305,27 @@ acct_t account_add(struct file_block *file, char *name, char *ident, enum accoun
  */
 
 osbool account_delete(struct file_block *file, acct_t account);
+
+
+/**
+ * Purge unused accounts from a file.
+ *
+ * \param *file			The file to purge.
+ * \param accounts		TRUE to remove accounts; FALSE to ignore.
+ * \param headings		TRUE to remove headings; FALSE to ignore.
+ */
+
+void account_purge(struct file_block *file, osbool accounts, osbool headings);
+
+
+/**
+ * Find the number of accounts in a file.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The number of accounts in the file.
+ */
+
+int account_get_count(struct file_block *file);
 
 
 /**

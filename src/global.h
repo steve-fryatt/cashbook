@@ -125,7 +125,6 @@
 
 /* None of these are fully used as yet... */
 
-typedef int		acct_t;							/**< An account number.						*/
 typedef int		tran_t;							/**< A transaction number.					*/
 
 /* \TODO -- These need to move into their modules once we've sorted the rest
@@ -134,8 +133,6 @@ typedef int		tran_t;							/**< A transaction number.					*/
 
 struct transact;
 struct transact_window;
-struct account;
-struct account_block;
 struct report;
 struct budget_block;
 struct find_block;
@@ -146,9 +143,6 @@ struct trans_rep;
 struct unrec_rep;
 struct cashflow_rep;
 struct balance_rep;
-
-//struct accview_window;
-//struct account_redraw;
 
 
 
@@ -182,12 +176,10 @@ struct file_block
 
   /* Array size counts. */
 
-  int                account_count;      /* The number of accounts defined in the file. */
   int                trans_count;        /* The number of transactions defined in the file. */
 
   /* Account, transaction, standing order and preset data structures (pointers which become arrays). */
 
-  struct account     *accounts;
   struct transaction *transactions;
 
   /* Recalculation data. */

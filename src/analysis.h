@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_ANALYSIS
 #define CASHBOOK_ANALYSIS
 
+#include "account.h"
+
 /**
  * Initialise the Analysis module and all its dialogue boxes.
  */

@@ -30,6 +30,7 @@
 #ifndef CASHBOOK_PRESETS
 #define CASHBOOK_PRESETS
 
+#include "account.h"
 #include "currency.h"
 #include "filing.h"
 

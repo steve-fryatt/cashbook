@@ -1143,7 +1143,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 
 		/* If the submenus concerned are greyed out, give them a valid submenu pointer so that the arrow shows. */
 
-		if (windat->file->account_count == 0)
+		if (account_get_count(windat->file) == 0)
 			transact_window_menu_account->entries[MAIN_MENU_ACCOUNTS_VIEW].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
 		if (windat->file->saved_report_count == 0)
 			transact_window_menu_analysis->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
@@ -2093,6 +2093,21 @@ void transact_build_window_title(struct file_block *file)
 
 	if (file->transaction_window->transaction_window != NULL)
 		wimp_force_redraw_title(file->transaction_window->transaction_window);
+}
+
+
+/**
+ * Force the complete redraw of the Transaction window.
+ *
+ * \param *file			The file owning the window to redraw.
+ */
+
+void transact_redraw_all(struct file_block *file)
+{
+	if (file == NULL || file->transaction_window == NULL)
+		return;
+
+	transact_force_window_redraw(file, 0, file->trans_count - 1);
 }
 
 

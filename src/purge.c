@@ -399,18 +399,8 @@ static void purge_file(struct file_block *file, osbool transactions, date_t cuto
 
 	/* Purge unused accounts and headings from the file. */
 
-	if (accounts || headings) {
-		for (i=0; i<file->account_count; i++) {
-			if (!account_used_in_file(file, i) &&
-					((accounts && ((account_get_type(file, i) & ACCOUNT_FULL) != 0)) ||
-					(headings && ((account_get_type(file, i) & (ACCOUNT_IN | ACCOUNT_OUT)) != 0)))) {
-#ifdef DEBUG
-				debug_printf("Deleting account %d, type %x", i, file->accounts[i].type);
-#endif
-				account_delete(file, i);
-			}
-		}
-	}
+	if (accounts || headings)
+		account_purge(file, accounts, headings);
 
 	/* Recalculate the file and update the window. */
 

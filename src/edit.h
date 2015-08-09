@@ -30,6 +30,7 @@
 #ifndef CASHBOOK_EDIT
 #define CASHBOOK_EDIT
 
+#include "account.h"
 #include "transact.h"
 
 /* ------------------------------------------------------------------------------------------------------------------

@@ -1000,7 +1000,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 	if (file == NULL)
 		return;
 
-	if (flex_alloc((flex_ptr) &data, file->account_count * sizeof(struct analysis_data)) == 0) {
+	if (flex_alloc((flex_ptr) &data, account_get_count(file) * sizeof(struct analysis_data)) == 0) {
 		error_msgs_report_info("NoMemReport");
 		return;
 	}
@@ -1102,7 +1102,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 	/* Initialise the heading remainder values for the report. */
 
-	for (i=0; i < file->account_count; i++) {
+	for (i = 0; i < account_get_count(file); i++) {
 		enum account_type type = account_get_type(file, i);
 	
 		if (type & ACCOUNT_OUT)
@@ -1115,7 +1115,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 		/* Zero the heading totals for the report. */
 
-		for (i=0; i < file->account_count; i++)
+		for (i = 0; i < account_get_count(file); i++)
 			data[i].report_total = 0;
 
 		/* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
@@ -1744,7 +1744,7 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 	if (file == NULL)
 		return;
 
-	if (flex_alloc((flex_ptr) &data, file->account_count * sizeof(struct analysis_data)) == 0) {
+	if (flex_alloc((flex_ptr) &data, account_get_count(file) * sizeof(struct analysis_data)) == 0) {
 		error_msgs_report_info("NoMemReport");
 		return;
 	}
@@ -2399,7 +2399,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 	if (file == NULL)
 		return;
 
-	if (flex_alloc((flex_ptr) &data, file->account_count * sizeof(struct analysis_data)) == 0) {
+	if (flex_alloc((flex_ptr) &data, account_get_count(file) * sizeof(struct analysis_data)) == 0) {
 		error_msgs_report_info("NoMemReport");
 		return;
 	}
@@ -2442,7 +2442,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 
 	items = 0;
 
-	for (i=0; i < file->account_count; i++)
+	for (i = 0; i < account_get_count(file); i++)
 		if ((data[i].report_flags & ANALYSIS_REPORT_INCLUDE) != 0)
 			items++;
 
@@ -2522,7 +2522,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 	while (analysis_get_next_date_period(&next_start, &next_end, date_text, sizeof(date_text))) {
 		/* Zero the heading totals for the report. */
 
-		for (i=0; i < file->account_count; i++)
+		for (i = 0; i < account_get_count(file); i++)
 			data[i].report_total = 0;
 
 		/* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
@@ -3032,7 +3032,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 	if (file == NULL)
 		return;
 
-	if (flex_alloc((flex_ptr) &data, file->account_count * sizeof(struct analysis_data)) == 0) {
+	if (flex_alloc((flex_ptr) &data, account_get_count(file) * sizeof(struct analysis_data)) == 0) {
 		error_msgs_report_info("NoMemReport");
 		return;
 	}
@@ -3073,7 +3073,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 
 	items = 0;
 
-	for (i=0; i < file->account_count; i++)
+	for (i = 0; i < account_get_count(file); i++)
 		if ((data[i].report_flags & ANALYSIS_REPORT_INCLUDE) != 0)
 			items++;
 
@@ -3153,7 +3153,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 	while (analysis_get_next_date_period(&next_start, &next_end, date_text, sizeof(date_text))) {
 		/* Zero the heading totals for the report. */
 
-		for (i=0; i < file->account_count; i++)
+		for (i = 0; i < account_get_count(file); i++)
 			data[i].report_total = account_get_opening_balance(file, i);
 
 		/* Scan through the transactions, adding the values up for those occurring before the end of the current
@@ -3848,7 +3848,7 @@ static void analysis_clear_account_report_flags(struct file_block *file, struct 
 	if (file == NULL || data == NULL)
 		return;
 
-	for (i = 0; i < file->account_count; i++)
+	for (i = 0; i < account_get_count(file); i++)
 		data[i].report_flags = ANALYSIS_REPORT_NONE;
 }
 
@@ -3877,13 +3877,13 @@ static void analysis_set_account_report_flags_from_list(struct file_block *file,
 			 * given account type.
 			 */
 
-			for (account = 0; account < file->account_count; account++)
+			for (account = 0; account < account_get_count(file); account++)
 				if ((account_get_type(file, account) & type) != 0)
 					data[account].report_flags |= flags;
 		} else {
 			/* Set a specific account. */
 
-			if (account < file->account_count)
+			if (account < account_get_count(file))
 				data[account].report_flags |= flags;
 		}
 	}

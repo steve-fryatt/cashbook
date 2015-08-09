@@ -2142,7 +2142,7 @@ void accview_reindex_all(struct file_block *file)
 	debug_printf("Reindexing account views...");
 	#endif
 
-	for (account = 0; account < file->account_count; account++) {
+	for (account = 0; account < account_get_count(file); account++) {
 		view = account_get_accview(file, account);
 	
 		if (view != NULL && view->line_data != NULL) {
@@ -2169,7 +2169,7 @@ void accview_redraw_all(struct file_block *file)
 	if (file == NULL)
 		return;
 
-	for (account = 0; account < file->account_count; account++) {
+	for (account = 0; account < account_get_count(file); account++) {
 		view = account_get_accview(file, account);
 
 		if (view != NULL && view->accview_window != NULL)
@@ -2192,7 +2192,7 @@ void accview_recalculate_all(struct file_block *file)
 	if (file == NULL)
 		return;
 
-	for (account = 0; account < file->account_count; account++) {
+	for (account = 0; account < account_get_count(file); account++) {
 		view = account_get_accview(file, account);
 
 		if (view != NULL && view->accview_window != NULL)
@@ -2215,7 +2215,7 @@ void accview_rebuild_all(struct file_block *file)
 	if (file == NULL)
 		return;
 
-	for (account = 0; account < file->account_count; account++) {
+	for (account = 0; account < account_get_count(file); account++) {
 		view = account_get_accview(file, account);
 
 		if (view != NULL && view->accview_window != NULL)

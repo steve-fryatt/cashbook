@@ -30,6 +30,7 @@
 #ifndef CASHBOOK_ACCVIEW
 #define CASHBOOK_ACCVIEW
 
+#include "account.h"
 #include "filing.h"
 
 

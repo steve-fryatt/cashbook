@@ -32,12 +32,12 @@
 
 #include <stdio.h>
 
+typedef int acct_t;
+struct account_block;
+
 #include "currency.h"
 #include "global.h"
-
-typedef int acct_t;
-
-struct account_block;
+#include "transact.h"
 
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants

@@ -145,9 +145,9 @@ struct transact_block {
  * Global variables.
  */
 
-/* A pointer to the file block belomging to the window currently holding the edit line. */
+/* A pointer to the window block belonging to the window currently holding the edit line. */
 
-static struct file_block *entry_window = NULL;
+static struct transact_block *edit_entry_window = NULL;
 
 /* The following are the buffers used by the edit line in the transaction window. */
 
@@ -206,16 +206,16 @@ void edit_place_new_line(struct file_block *file, int line)
 
 	/* Start by deleting any existing edit line, from any open transaction window. */
 
-	if (entry_window != NULL) {
+	if (edit_entry_window != NULL) {
 		/* The assumption is that the data will be safe as it's always copied into
 		 * memory as soon as a key is pressed in any of the writable icons...
 		 */
 
 		for (i = 0; i < TRANSACT_COLUMNS; i++)
-			wimp_delete_icon(entry_window->transacts->transaction_window, (wimp_i) i);
+			wimp_delete_icon(edit_entry_window->transaction_window, (wimp_i) i);
 
-		entry_window->transacts->entry_line = -1;
-		entry_window = NULL;
+		edit_entry_window->entry_line = -1;
+		edit_entry_window = NULL;
 	}
 
 	/* Extend the window work area if required. */
@@ -267,25 +267,25 @@ void edit_place_new_line(struct file_block *file, int line)
 	/* Initialise the data. */
 
 	if (transact_valid(file->transacts, line)) {
-		transaction = file->transactions[line].sort_index;
+		transaction = file->transacts->transactions[line].sort_index;
 
 		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
-		date_convert_to_string(file->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
-		strncpy(buffer_from_ident, account_get_ident(file, file->transactions[transaction].from), ACCOUNT_IDENT_LEN);
-		strncpy(buffer_from_name, account_get_name(file, file->transactions[transaction].from), ACCOUNT_NAME_LEN);
-		if (file->transactions[transaction].flags & TRANS_REC_FROM)
+		date_convert_to_string(file->transacts->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
+		strncpy(buffer_from_ident, account_get_ident(file, file->transacts->transactions[transaction].from), ACCOUNT_IDENT_LEN);
+		strncpy(buffer_from_name, account_get_name(file, file->transacts->transactions[transaction].from), ACCOUNT_NAME_LEN);
+		if (file->transacts->transactions[transaction].flags & TRANS_REC_FROM)
 			msgs_lookup("RecChar", buffer_from_rec, REC_FIELD_LEN);
 		else
 			*buffer_from_rec = '\0';
-		strncpy(buffer_to_ident, account_get_ident(file, file->transactions[transaction].to), ACCOUNT_IDENT_LEN);
-		strncpy(buffer_to_name, account_get_name(file, file->transactions[transaction].to), ACCOUNT_NAME_LEN);
-		if (file->transactions[transaction].flags & TRANS_REC_TO)
+		strncpy(buffer_to_ident, account_get_ident(file, file->transacts->transactions[transaction].to), ACCOUNT_IDENT_LEN);
+		strncpy(buffer_to_name, account_get_name(file, file->transacts->transactions[transaction].to), ACCOUNT_NAME_LEN);
+		if (file->transacts->transactions[transaction].flags & TRANS_REC_TO)
 			msgs_lookup("RecChar", buffer_to_rec, REC_FIELD_LEN);
 		else
 			*buffer_to_rec = '\0';
-		strncpy(buffer_reference, file->transactions[transaction].reference, REF_FIELD_LEN);
-		currency_convert_to_string(file->transactions[transaction].amount, buffer_amount, AMOUNT_FIELD_LEN);
-		strncpy(buffer_description, file->transactions[transaction].description, DESCRIPT_FIELD_LEN);
+		strncpy(buffer_reference, file->transacts->transactions[transaction].reference, REF_FIELD_LEN);
+		currency_convert_to_string(file->transacts->transactions[transaction].amount, buffer_amount, AMOUNT_FIELD_LEN);
+		strncpy(buffer_description, file->transacts->transactions[transaction].description, DESCRIPT_FIELD_LEN);
 	} else {
 		*buffer_row = '\0';
 		*buffer_date = '\0';
@@ -319,7 +319,7 @@ void edit_place_new_line(struct file_block *file, int line)
 	/* Update the window data to show the line being edited. */
 
 	file->transacts->entry_line = line;
-	entry_window = file;
+	edit_entry_window = file->transacts;
 
 	edit_set_line_shading(file);
 }
@@ -337,12 +337,12 @@ void edit_place_new_line_by_transaction(struct file_block *file, int transaction
 	int        i;
 	wimp_caret caret;
 
-	if (file == NULL || file->transacts == NULL || entry_window != file)
+	if (file == NULL || file->transacts == NULL || edit_entry_window != file->transacts)
 		return;
 
 	if (transaction != NULL_TRANSACTION) {
 		for (i = 0; i < file->transacts->trans_count; i++) {
-			if (file->transactions[i].sort_index == transaction) {
+			if (file->transacts->transactions[i].sort_index == transaction) {
 				edit_place_new_line(file, i);
 				wimp_get_caret_position(&caret);
 				if (caret.w == file->transacts->transaction_window)
@@ -374,8 +374,8 @@ void edit_place_new_line_by_transaction(struct file_block *file, int transaction
 
 void edit_file_deleted(struct file_block *file)
 {
-	if (entry_window == file)
-		entry_window = NULL;
+	if (file != NULL && edit_entry_window == file->transacts)
+		edit_entry_window = NULL;
 }
 
 
@@ -391,7 +391,7 @@ void edit_find_line_vertically(struct file_block *file)
 	int			height, top, bottom;
 
 
-	if (file == NULL || file->transacts == NULL || file != entry_window)
+	if (file == NULL || file->transacts == NULL || file->transacts != edit_entry_window)
 		return;
 
 	window.w = file->transacts->transaction_window;
@@ -447,7 +447,7 @@ static void edit_find_icon_horizontally(struct file_block *file)
 	int			icon_width, icon_xmin, icon_xmax, icon_target, group;
 
 
-	if (file == NULL || file->transacts == NULL || file != entry_window)
+	if (file == NULL || file->transacts == NULL || file->transacts != edit_entry_window)
 		return;
 
 	window.w = file->transacts->transaction_window;
@@ -533,39 +533,38 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 {
 	int	transaction;
 
-	if (entry_window == NULL || entry_window->transacts == NULL ||
-			(w != entry_window->transacts->transaction_window && w != NULL) ||
-			entry_window->transacts->entry_line >= entry_window->transacts->trans_count)
+	if (edit_entry_window == NULL || edit_entry_window->file == NULL || (w != edit_entry_window->transaction_window && w != NULL) ||
+			edit_entry_window->entry_line >= edit_entry_window->trans_count)
 		return;
 
-	transaction = entry_window->transactions[entry_window->transacts->entry_line].sort_index;
+	transaction = edit_entry_window->transactions[edit_entry_window->entry_line].sort_index;
 
 	if ((only == -1 || only == EDIT_ICON_ROW) && avoid != EDIT_ICON_ROW) {
 		/* Replace the row number. */
 
 		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
-		wimp_set_icon_state(entry_window->transacts->transaction_window, EDIT_ICON_ROW, 0, 0);
+		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_ROW, 0, 0);
 	}
 
 	if ((only == -1 || only == EDIT_ICON_DATE) && avoid != EDIT_ICON_DATE) {
 		/* Re-convert the date, so that it is displayed in standard format. */
 
-		date_convert_to_string(entry_window->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
-		wimp_set_icon_state(entry_window->transacts->transaction_window, EDIT_ICON_DATE, 0, 0);
+		date_convert_to_string(edit_entry_window->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
+		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_DATE, 0, 0);
 	}
 
 	if ((only == -1 || only == EDIT_ICON_FROM) && avoid != EDIT_ICON_FROM) {
 		/* Remove the from ident if it didn't match an account. */
 
-		if (entry_window->transactions[transaction].from == NULL_ACCOUNT) {
+		if (edit_entry_window->transactions[transaction].from == NULL_ACCOUNT) {
 			*buffer_from_ident = '\0';
 			*buffer_from_name = '\0';
 			*buffer_from_rec = '\0';
-			wimp_set_icon_state(entry_window->transacts->transaction_window, EDIT_ICON_FROM, 0, 0);
+			wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_FROM, 0, 0);
 		} else {
-			strcpy(buffer_from_ident, account_get_ident(entry_window, entry_window->transactions[transaction].from));
-			strcpy(buffer_from_name, account_get_name(entry_window, entry_window->transactions[transaction].from));
-			if (entry_window->transactions[transaction].flags & TRANS_REC_FROM)
+			strcpy(buffer_from_ident, account_get_ident(edit_entry_window->file, edit_entry_window->transactions[transaction].from));
+			strcpy(buffer_from_name, account_get_name(edit_entry_window->file, edit_entry_window->transactions[transaction].from));
+			if (edit_entry_window->transactions[transaction].flags & TRANS_REC_FROM)
 				msgs_lookup("RecChar", buffer_from_rec, REC_FIELD_LEN);
 			else
 				*buffer_from_rec = '\0';
@@ -575,15 +574,15 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 	if ((only == -1 || only == EDIT_ICON_TO) && avoid != EDIT_ICON_TO) {
 		/* Remove the to ident if it didn't match an account. */
 
-		if (entry_window->transactions[transaction].to == NULL_ACCOUNT) {
+		if (edit_entry_window->transactions[transaction].to == NULL_ACCOUNT) {
 			*buffer_to_ident = '\0';
 			*buffer_to_name = '\0';
 			*buffer_to_rec = '\0';
-			wimp_set_icon_state(entry_window->transacts->transaction_window, EDIT_ICON_TO, 0, 0);
+			wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_TO, 0, 0);
 		} else {
-			strcpy(buffer_to_ident, account_get_ident(entry_window, entry_window->transactions[transaction].to));
-			strcpy(buffer_to_name, account_get_name(entry_window, entry_window->transactions[transaction].to));
-			if (entry_window->transactions[transaction].flags & TRANS_REC_TO)
+			strcpy(buffer_to_ident, account_get_ident(edit_entry_window->file, edit_entry_window->transactions[transaction].to));
+			strcpy(buffer_to_name, account_get_name(edit_entry_window->file, edit_entry_window->transactions[transaction].to));
+			if (edit_entry_window->transactions[transaction].flags & TRANS_REC_TO)
 				msgs_lookup("RecChar", buffer_to_rec, REC_FIELD_LEN);
 			else
 				*buffer_to_rec = '\0';
@@ -593,22 +592,22 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
 	if ((only == -1 || only == EDIT_ICON_REF) && avoid != EDIT_ICON_REF) {
 		/* Copy the contents back into the icon. */
 
-		strcpy(buffer_reference, entry_window->transactions[transaction].reference);
-		wimp_set_icon_state(entry_window->transacts->transaction_window, EDIT_ICON_REF, 0, 0);
+		strcpy(buffer_reference, edit_entry_window->transactions[transaction].reference);
+		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_REF, 0, 0);
 	}
 
 	if ((only == -1 || only == EDIT_ICON_AMOUNT) && avoid != EDIT_ICON_AMOUNT) {
 		/* Re-convert the amount so that it is displayed in standard format. */
 
-		currency_convert_to_string(entry_window->transactions[transaction].amount, buffer_amount, AMOUNT_FIELD_LEN);
-		wimp_set_icon_state(entry_window->transacts->transaction_window, EDIT_ICON_AMOUNT, 0, 0);
+		currency_convert_to_string(edit_entry_window->transactions[transaction].amount, buffer_amount, AMOUNT_FIELD_LEN);
+		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_AMOUNT, 0, 0);
 	}
 
 	if ((only == -1 || only == EDIT_ICON_DESCRIPT) && avoid != EDIT_ICON_DESCRIPT) {
 		/* Copy the contents back into the icon. */
 
-		strcpy(buffer_description, entry_window->transactions[transaction].description);
-		wimp_set_icon_state(entry_window->transacts->transaction_window, EDIT_ICON_DESCRIPT, 0, 0);
+		strcpy(buffer_description, edit_entry_window->transactions[transaction].description);
+		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_DESCRIPT, 0, 0);
 	}
 }
 
@@ -625,21 +624,21 @@ static void edit_set_line_shading(struct file_block *file)
 	int	icon_fg_col, transaction;
 	wimp_i	i;
 
-	if (file == NULL || file->transacts == NULL || entry_window != file ||
+	if (file == NULL || file->transacts == NULL || edit_entry_window != file->transacts ||
 			file->transacts->trans_count == 0 ||
 			!transact_valid(file->transacts, file->transacts->entry_line))
 		return;
 
-	transaction = file->transactions[file->transacts->entry_line].sort_index;
+	transaction = file->transacts->transactions[file->transacts->entry_line].sort_index;
 
 	if (config_opt_read("ShadeReconciled") && (file->transacts->entry_line < file->transacts->trans_count) &&
-			((file->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
+			((file->transacts->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
 		icon_fg_col = (config_int_read("ShadeReconciledColour") << wimp_ICON_FG_COLOUR_SHIFT);
 	else
 		icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
 	for (i = 0; i < TRANSACT_COLUMNS; i++)
-		wimp_set_icon_state(entry_window->transacts->transaction_window, i, icon_fg_col, wimp_ICON_FG_COLOUR);
+		wimp_set_icon_state(edit_entry_window->transaction_window, i, icon_fg_col, wimp_ICON_FG_COLOUR);
 }
 
 
@@ -658,8 +657,8 @@ int edit_get_line_transaction(struct file_block *file)
 
 	transaction = NULL_TRANSACTION;
 
-	if (file != NULL && file->transacts != NULL && entry_window == file && transact_valid(file->transacts, file->transacts->entry_line))
-		transaction = file->transactions[file->transacts->entry_line].sort_index;
+	if (file != NULL && file->transacts != NULL && edit_entry_window == file->transacts && transact_valid(file->transacts, file->transacts->entry_line))
+		transaction = file->transacts->transactions[file->transacts->entry_line].sort_index;
 
 	return (transaction);
 }
@@ -696,18 +695,18 @@ void edit_toggle_transaction_reconcile_flag(struct file_block *file, tran_t tran
 	 * If a change is made, this is flagged to allow the update to be recorded properly.
 	 */
 
-	if (file->transactions[transaction].flags & change_flag) {
-		file->transactions[transaction].flags &= ~change_flag;
+	if (file->transacts->transactions[transaction].flags & change_flag) {
+		file->transacts->transactions[transaction].flags &= ~change_flag;
 
-		if (file->transactions[file->transacts->entry_line].sort_index == transaction)
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
 			*icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon) = '\0';
 
 		changed = TRUE;
-	} else if ((change_flag == TRANS_REC_FROM && file->transactions[transaction].from != NULL_ACCOUNT) ||
-			(change_flag == TRANS_REC_TO && file->transactions[transaction].to != NULL_ACCOUNT)) {
-		file->transactions[transaction].flags |= change_flag;
+	} else if ((change_flag == TRANS_REC_FROM && file->transacts->transactions[transaction].from != NULL_ACCOUNT) ||
+			(change_flag == TRANS_REC_TO && file->transacts->transactions[transaction].to != NULL_ACCOUNT)) {
+		file->transacts->transactions[transaction].flags |= change_flag;
 
-		if (file->transactions[file->transacts->entry_line].sort_index == transaction)
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
 			msgs_lookup("RecChar",
 					icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon),
 					REC_FIELD_LEN);
@@ -727,16 +726,16 @@ void edit_toggle_transaction_reconcile_flag(struct file_block *file, tran_t tran
 
 	if (changed == TRUE) {
 		if (change_flag == TRANS_REC_FROM)
-			accview_redraw_transaction(file, file->transactions[transaction].from, transaction);
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
 		else
-			accview_redraw_transaction(file, file->transactions[transaction].to, transaction);
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 
 		/* If the line is the edit line, setting the shading uses
 		 * wimp_set_icon_state() and the line will effectively be redrawn
 		 * for free.
 		 */
 
-		if (file->transactions[file->transacts->entry_line].sort_index == transaction) {
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
 			edit_set_line_shading(file);
 		} else {
 			line = transact_get_line_from_transaction(file, transaction);
@@ -774,11 +773,11 @@ void edit_change_transaction_date(struct file_block *file, tran_t transaction, d
 	 * has changed, flag this up.
 	 */
 
-	old_date = file->transactions[transaction].date;
+	old_date = file->transacts->transactions[transaction].date;
 
-	file->transactions[transaction].date = new_date;
+	file->transacts->transactions[transaction].date = new_date;
 
-	if (old_date != file->transactions[transaction].date) {
+	if (old_date != file->transacts->transactions[transaction].date) {
 		changed = TRUE;
 		file->sort_valid = FALSE;
 	}
@@ -813,7 +812,7 @@ void edit_change_transaction_date(struct file_block *file, tran_t transaction, d
 		 * for free.
 		 */
 
-		if (file->transactions[file->transacts->entry_line].sort_index == transaction) {
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
 			edit_refresh_line_content(file->transacts->transaction_window, EDIT_ICON_DATE, -1);
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transacts->transaction_window);
@@ -852,9 +851,9 @@ static void edit_change_transaction_amount(struct file_block *file, tran_t trans
 	 * has changed, flag this up.
 	 */
 
-	if (new_amount != file->transactions[transaction].amount) {
+	if (new_amount != file->transacts->transactions[transaction].amount) {
 		changed = TRUE;
-		file->transactions[transaction].amount = new_amount;
+		file->transacts->transactions[transaction].amount = new_amount;
 	}
 
 	/* Return the line to the calculations.   This will automatically update all
@@ -868,15 +867,15 @@ static void edit_change_transaction_amount(struct file_block *file, tran_t trans
 	 */
 
 	if (changed == TRUE) {
-		accview_recalculate(file, file->transactions[transaction].from, transaction);
-		accview_recalculate(file, file->transactions[transaction].to, transaction);
+		accview_recalculate(file, file->transacts->transactions[transaction].from, transaction);
+		accview_recalculate(file, file->transacts->transactions[transaction].to, transaction);
 
 		/* If the line is the edit line, setting the shading uses
 		 * wimp_set_icon_state() and the line will effectively be redrawn
 		 * for free.
 		 */
 
-		if (file->transactions[file->transacts->entry_line].sort_index == transaction) {
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
 			edit_refresh_line_content(file->transacts->transaction_window, EDIT_ICON_AMOUNT, -1);
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transacts->transaction_window);
@@ -915,11 +914,11 @@ void edit_change_transaction_refdesc(struct file_block *file, tran_t transaction
 
 	switch (target) {
 	case EDIT_ICON_REF:
-		field = file->transactions[transaction].reference;
+		field = file->transacts->transactions[transaction].reference;
 		break;
 
 	case EDIT_ICON_DESCRIPT:
-		field = file->transactions[transaction].description;
+		field = file->transacts->transactions[transaction].description;
 		break;
 
 	default:
@@ -940,15 +939,15 @@ void edit_change_transaction_refdesc(struct file_block *file, tran_t transaction
 	if (changed == TRUE) {
 		/* Refresh any account views that may be affected. */
 
-		accview_redraw_transaction(file, file->transactions[transaction].from, transaction);
-		accview_redraw_transaction(file, file->transactions[transaction].to, transaction);
+		accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
+		accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 
 		/* If the line is the edit line, setting the shading uses
 		 * wimp_set_icon_state() and the line will effectively be redrawn
 		 * for free.
 		 */
 
-		if (file->transactions[file->transacts->entry_line].sort_index == transaction) {
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
 			edit_refresh_line_content(file->transacts->transaction_window, target, -1);
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transacts->transaction_window);
@@ -999,31 +998,31 @@ void edit_change_transaction_account(struct file_block *file, tran_t transaction
 
 	switch (target) {
 	case EDIT_ICON_FROM:
-		old_acct = file->transactions[transaction].from;
-		old_flags = file->transactions[transaction].flags;
+		old_acct = file->transacts->transactions[transaction].from;
+		old_flags = file->transacts->transactions[transaction].flags;
 
-		file->transactions[transaction].from = new_account;
+		file->transacts->transactions[transaction].from = new_account;
 
 		if (account_get_type(file, new_account) == ACCOUNT_FULL)
-			file->transactions[transaction].flags &= ~TRANS_REC_FROM;
+			file->transacts->transactions[transaction].flags &= ~TRANS_REC_FROM;
 		else
-			file->transactions[transaction].flags |= TRANS_REC_FROM;
+			file->transacts->transactions[transaction].flags |= TRANS_REC_FROM;
 
-		if (old_acct != file->transactions[transaction].from || old_flags != file->transactions[transaction].flags)
+		if (old_acct != file->transacts->transactions[transaction].from || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
 		break;
 	case EDIT_ICON_TO:
-		old_acct = file->transactions[transaction].to;
-		old_flags = file->transactions[transaction].flags;
+		old_acct = file->transacts->transactions[transaction].to;
+		old_flags = file->transacts->transactions[transaction].flags;
 
-		file->transactions[transaction].to = new_account;
+		file->transacts->transactions[transaction].to = new_account;
 
 		if (account_get_type(file, new_account) == ACCOUNT_FULL)
-			file->transactions[transaction].flags &= ~TRANS_REC_TO;
+			file->transacts->transactions[transaction].flags &= ~TRANS_REC_TO;
 		else
-			file->transactions[transaction].flags |= TRANS_REC_TO;
+			file->transacts->transactions[transaction].flags |= TRANS_REC_TO;
 
-		if (old_acct != file->transactions[transaction].to || old_flags != file->transactions[transaction].flags)
+		if (old_acct != file->transacts->transactions[transaction].to || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
 		break;
 	}
@@ -1046,13 +1045,13 @@ void edit_change_transaction_account(struct file_block *file, tran_t transaction
 		switch (target) {
 		case EDIT_ICON_FROM:
 			accview_rebuild(file, old_acct);
-			accview_rebuild(file, file->transactions[transaction].from);
-			accview_redraw_transaction(file, file->transactions[transaction].to, transaction);
+			accview_rebuild(file, file->transacts->transactions[transaction].from);
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 			break;
 		case EDIT_ICON_TO:
 			accview_rebuild(file, old_acct);
-			accview_rebuild(file, file->transactions[transaction].to);
-			accview_redraw_transaction(file, file->transactions[transaction].from, transaction);
+			accview_rebuild(file, file->transacts->transactions[transaction].to);
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
 			break;
 		}
 
@@ -1061,7 +1060,7 @@ void edit_change_transaction_account(struct file_block *file, tran_t transaction
 		 * for free.
 		 */
 
-		if (file->transactions[file->transacts->entry_line].sort_index == transaction) {
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
 			edit_refresh_line_content(file->transacts->transaction_window, target, -1);
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transacts->transaction_window);
@@ -1120,7 +1119,7 @@ void edit_insert_preset_into_transaction(struct file_block *file, tran_t transac
 		 * redrawn for free.
 		 */
 
-		if (file->transactions[file->transacts->entry_line].sort_index == transaction) {
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
 			edit_refresh_line_content(file->transacts->transaction_window, -1, -1);
 			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transacts->transaction_window);
@@ -1154,13 +1153,13 @@ static unsigned edit_raw_insert_preset_into_transaction(struct file_block *file,
 	unsigned	changed = 0;
 
 	if (transact_valid(file->transacts, transaction) && preset_test_index_valid(file, preset))
-		changed = preset_apply(file, preset, &(file->transactions[transaction].date),
-				&(file->transactions[transaction].from),
-				&(file->transactions[transaction].to),
-				&(file->transactions[transaction].flags),
-				&(file->transactions[transaction].amount),
-				file->transactions[transaction].reference,
-				file->transactions[transaction].description);
+		changed = preset_apply(file, preset, &(file->transacts->transactions[transaction].date),
+				&(file->transacts->transactions[transaction].from),
+				&(file->transacts->transactions[transaction].to),
+				&(file->transacts->transactions[transaction].flags),
+				&(file->transacts->transactions[transaction].amount),
+				file->transacts->transactions[transaction].reference,
+				file->transacts->transactions[transaction].description);
 
 	return changed;
 }
@@ -1232,10 +1231,10 @@ static void edit_delete_line_transaction_content(struct file_block *file)
 	 */
 
 	if (!config_opt_read("AllowTransDelete") || file == NULL || file->transacts == NULL ||
-			entry_window != file || !transact_valid(file->transacts, file->transacts->entry_line))
+			edit_entry_window != file->transacts || !transact_valid(file->transacts, file->transacts->entry_line))
 		return;
 
-	transaction = file->transactions[file->transacts->entry_line].sort_index;
+	transaction = file->transacts->transactions[file->transacts->entry_line].sort_index;
 
 	/* Take the transaction out of the fully calculated results. */
 
@@ -1243,13 +1242,13 @@ static void edit_delete_line_transaction_content(struct file_block *file)
 
 	/* Blank out all of the transaction. */
 
-	file->transactions[transaction].date = NULL_DATE;
-	file->transactions[transaction].from = NULL_ACCOUNT;
-	file->transactions[transaction].to = NULL_ACCOUNT;
-	file->transactions[transaction].flags = TRANS_FLAGS_NONE;
-	file->transactions[transaction].amount = NULL_CURRENCY;
-	*(file->transactions[transaction].reference) = '\0';
-	*(file->transactions[transaction].description) = '\0';
+	file->transacts->transactions[transaction].date = NULL_DATE;
+	file->transacts->transactions[transaction].from = NULL_ACCOUNT;
+	file->transacts->transactions[transaction].to = NULL_ACCOUNT;
+	file->transacts->transactions[transaction].flags = TRANS_FLAGS_NONE;
+	file->transacts->transactions[transaction].amount = NULL_CURRENCY;
+	*(file->transacts->transactions[transaction].reference) = '\0';
+	*(file->transacts->transactions[transaction].description) = '\0';
 
 	/* Put the transaction back into the sorted totals. */
 
@@ -1300,17 +1299,17 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 		 * at a time, refreshing the icon the caret was in first.
 		 */
 
-		if (entry_window == file && file->transacts->entry_line > 0) {
+		if (edit_entry_window == file->transacts && file->transacts->entry_line > 0) {
 			wimp_get_caret_position(&caret);
-			edit_refresh_line_content(entry_window->transacts->transaction_window, caret.i, -1);
+			edit_refresh_line_content(edit_entry_window->transaction_window, caret.i, -1);
 			edit_place_new_line(file, file->transacts->entry_line - 1);
 			wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y - (ICON_HEIGHT+LINE_GUTTER), -1, -1);
 			edit_find_line_vertically(file);
 		}
 	} else if (key->c == wimp_KEY_DOWN) {
-		if (entry_window == file) {
+		if (edit_entry_window == file->transacts) {
 			wimp_get_caret_position(&caret);
-			edit_refresh_line_content(entry_window->transacts->transaction_window, caret.i, -1);
+			edit_refresh_line_content(edit_entry_window->transaction_window, caret.i, -1);
 			edit_place_new_line(file, file->transacts->entry_line + 1);
 			wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y + (ICON_HEIGHT+LINE_GUTTER), -1, -1);
 			edit_find_line_vertically(file);
@@ -1322,7 +1321,7 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 		 * of a line.
 		 */
 
-		if (entry_window == file) {
+		if (edit_entry_window == file->transacts) {
 			wimp_get_caret_position(&caret);
 			if ((osbyte1(osbyte_SCAN_KEYBOARD, 129, 0) == 0xff) && (file->transacts->entry_line > 0)) {
 
@@ -1340,8 +1339,8 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 				if (file->transacts->entry_line <= file->transacts->trans_count) {
 					if (file->transacts->entry_line == file->transacts->trans_count)
 						transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
-					transaction = file->transactions[file->transacts->entry_line].sort_index;
-					previous = file->transactions[file->transacts->entry_line-1].sort_index;
+					transaction = file->transacts->transactions[file->transacts->entry_line].sort_index;
+					previous = file->transacts->transactions[file->transacts->entry_line-1].sort_index;
 				} else {
 					transaction = -1;
 					previous = -1;
@@ -1354,35 +1353,35 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 				if (transaction > -1) {
 					switch (caret.i) {
 					case EDIT_ICON_DATE:
-						edit_change_transaction_date(file, transaction, file->transactions[previous].date);
+						edit_change_transaction_date(file, transaction, file->transacts->transactions[previous].date);
 						break;
 
 					case EDIT_ICON_FROM:
-						edit_change_transaction_account(file, transaction, EDIT_ICON_FROM, file->transactions[previous].from);
-						if ((file->transactions[previous].flags & TRANS_REC_FROM) !=
-								(file->transactions[transaction].flags & TRANS_REC_FROM))
+						edit_change_transaction_account(file, transaction, EDIT_ICON_FROM, file->transacts->transactions[previous].from);
+						if ((file->transacts->transactions[previous].flags & TRANS_REC_FROM) !=
+								(file->transacts->transactions[transaction].flags & TRANS_REC_FROM))
 						edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_FROM);
 						break;
 
 					case EDIT_ICON_TO:
-						edit_change_transaction_account(file, transaction, EDIT_ICON_TO, file->transactions[previous].to);
-						if ((file->transactions[previous].flags & TRANS_REC_TO) !=
-								(file->transactions[transaction].flags & TRANS_REC_TO))
+						edit_change_transaction_account(file, transaction, EDIT_ICON_TO, file->transacts->transactions[previous].to);
+						if ((file->transacts->transactions[previous].flags & TRANS_REC_TO) !=
+								(file->transacts->transactions[transaction].flags & TRANS_REC_TO))
 						edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_TO);
 						break;
 
 					case EDIT_ICON_REF:
 						edit_change_transaction_refdesc(file, transaction, EDIT_ICON_REF,
-								file->transactions[previous].reference);
+								file->transacts->transactions[previous].reference);
 						break;
 
 					case EDIT_ICON_AMOUNT:
-						edit_change_transaction_amount(file, transaction, file->transactions[previous].amount);
+						edit_change_transaction_amount(file, transaction, file->transacts->transactions[previous].amount);
 						break;
 
 					case EDIT_ICON_DESCRIPT:
 						edit_change_transaction_refdesc(file, transaction, EDIT_ICON_DESCRIPT,
-								file->transactions[previous].description);
+								file->transacts->transactions[previous].description);
 						break;
 					}
 				}
@@ -1392,7 +1391,7 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 				 * will already have done the work.
 				 */
 
-				edit_refresh_line_content(entry_window->transacts->transaction_window, caret.i, -1);
+				edit_refresh_line_content(edit_entry_window->transaction_window, caret.i, -1);
 			}
 
 			if (key->c == wimp_KEY_RETURN &&
@@ -1403,11 +1402,11 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 					 (caret.i == EDIT_ICON_AMOUNT   && (file->transacts->sort_order & SORT_MASK) == SORT_AMOUNT) ||
 					 (caret.i == EDIT_ICON_DESCRIPT && (file->transacts->sort_order & SORT_MASK) == SORT_DESCRIPTION)) &&
 					config_opt_read("AutoSort")) {
-				transact_sort(file);
+				transact_sort(file->transacts);
 
 				if (transact_valid(file->transacts, file->transacts->entry_line)) {
-					accview_sort(file, file->transactions[file->transactions[file->transacts->entry_line].sort_index].from);
-					accview_sort(file, file->transactions[file->transactions[file->transacts->entry_line].sort_index].to);
+					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].from);
+					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].to);
 				}
 			}
 
@@ -1417,7 +1416,7 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 					icon = EDIT_ICON_TO;
 				if (icon == EDIT_ICON_TO_REC)
 					icon = EDIT_ICON_REF;
-				icons_put_caret_at_end(entry_window->transacts->transaction_window, icon);
+				icons_put_caret_at_end(edit_entry_window->transaction_window, icon);
 				edit_find_icon_horizontally(file);
 			} else {
 				if (key->c == wimp_KEY_RETURN)
@@ -1425,7 +1424,7 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 				else
 					edit_place_new_line(file, file->transacts->entry_line + 1);
 
-				icons_put_caret_at_end(entry_window->transacts->transaction_window, EDIT_ICON_DATE);
+				icons_put_caret_at_end(edit_entry_window->transaction_window, EDIT_ICON_DATE);
 				edit_find_icon_horizontally(file);
 				edit_find_line_vertically(file);
 			}
@@ -1437,9 +1436,9 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 		 * of a line.
 		 */
 
-		if (entry_window == file) {
+		if (edit_entry_window == file->transacts) {
 			wimp_get_caret_position(&caret);
-			edit_refresh_line_content(entry_window->transacts->transaction_window, caret.i, -1);
+			edit_refresh_line_content(edit_entry_window->transaction_window, caret.i, -1);
 
 			if (caret.i > EDIT_ICON_DATE) {
 				icon = caret.i - 1;
@@ -1448,13 +1447,13 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 				if (icon == EDIT_ICON_FROM_NAME)
 					icon = EDIT_ICON_FROM;
 
-				icons_put_caret_at_end(entry_window->transacts->transaction_window, icon);
+				icons_put_caret_at_end(edit_entry_window->transaction_window, icon);
 				edit_find_icon_horizontally(file);
 				edit_find_line_vertically(file);
 			} else {
 				if (file->transacts->entry_line > 0) {
 					edit_place_new_line(file, file->transacts->entry_line - 1);
-					icons_put_caret_at_end(entry_window->transacts->transaction_window, EDIT_ICON_DESCRIPT);
+					icons_put_caret_at_end(edit_entry_window->transaction_window, EDIT_ICON_DESCRIPT);
 					edit_find_icon_horizontally(file);
 				}
 			}
@@ -1490,7 +1489,7 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 	preset = NULL_PRESET;
 	old_acct = NULL_ACCOUNT;
 
-	if (file == NULL || file->transacts == NULL || entry_window != file)
+	if (file == NULL || file->transacts == NULL || edit_entry_window != file->transacts)
 		return;
 
 	/* If there is not a transaction entry for the current edit line location
@@ -1507,7 +1506,7 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 		}
 	}
 
-	transaction = file->transactions[line].sort_index;
+	transaction = file->transacts->transactions[line].sort_index;
 
 	/* Take the transaction out of the fully calculated results.
 	 *
@@ -1543,10 +1542,10 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 				icons_replace_caret_in_window(key->w);
 			}
 
-			previous_date = (line > 0) ? file->transactions[file->transactions[line - 1].sort_index].date : NULL_DATE;
+			previous_date = (line > 0) ? file->transacts->transactions[file->transacts->transactions[line - 1].sort_index].date : NULL_DATE;
 			date = date_convert_from_string(buffer_date, previous_date, 0);
-			if (date != file->transactions[transaction].date) {
-				file->transactions[transaction].date = date;
+			if (date != file->transacts->transactions[transaction].date) {
+				file->transacts->transactions[transaction].date = date;
 				changed = TRUE;
 				file->sort_valid = 0;
 			}
@@ -1557,59 +1556,59 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 		 * changes to an income heading; else it is cleared.
 		 */
 
-		old_acct = file->transactions[transaction].from;
-		old_flags = file->transactions[transaction].flags;
+		old_acct = file->transacts->transactions[transaction].from;
+		old_flags = file->transacts->transactions[transaction].flags;
 
-		file->transactions[transaction].from = account_lookup_field(file, key->c, ACCOUNT_IN | ACCOUNT_FULL,
-				file->transactions[transaction].from, &reconciled,
+		file->transacts->transactions[transaction].from = account_lookup_field(file, key->c, ACCOUNT_IN | ACCOUNT_FULL,
+				file->transacts->transactions[transaction].from, &reconciled,
 				file->transacts->transaction_window, EDIT_ICON_FROM, EDIT_ICON_FROM_NAME, EDIT_ICON_FROM_REC);
 
 		if (reconciled == TRUE)
-			file->transactions[transaction].flags |= TRANS_REC_FROM;
+			file->transacts->transactions[transaction].flags |= TRANS_REC_FROM;
 		else
-			file->transactions[transaction].flags &= ~TRANS_REC_FROM;
+			file->transacts->transactions[transaction].flags &= ~TRANS_REC_FROM;
 
 		edit_set_line_shading(file);
 
-		if (old_acct != file->transactions[transaction].from || old_flags != file->transactions[transaction].flags)
+		if (old_acct != file->transacts->transactions[transaction].from || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
 	} else if (key->i == EDIT_ICON_TO) {
 		/* Look up the account ident as it stands, store the result and
 		 * update the name field.
 		 */
 
-		old_acct = file->transactions[transaction].to;
-		old_flags = file->transactions[transaction].flags;
+		old_acct = file->transacts->transactions[transaction].to;
+		old_flags = file->transacts->transactions[transaction].flags;
 
-		file->transactions[transaction].to = account_lookup_field(file, key->c, ACCOUNT_OUT | ACCOUNT_FULL,
-				file->transactions[transaction].to, &reconciled,
+		file->transacts->transactions[transaction].to = account_lookup_field(file, key->c, ACCOUNT_OUT | ACCOUNT_FULL,
+				file->transacts->transactions[transaction].to, &reconciled,
 				file->transacts->transaction_window, EDIT_ICON_TO, EDIT_ICON_TO_NAME, EDIT_ICON_TO_REC);
 
 		if (reconciled == TRUE)
-			file->transactions[transaction].flags |= TRANS_REC_TO;
+			file->transacts->transactions[transaction].flags |= TRANS_REC_TO;
 		else
-			file->transactions[transaction].flags &= ~TRANS_REC_TO;
+			file->transacts->transactions[transaction].flags &= ~TRANS_REC_TO;
 
 		edit_set_line_shading(file);
 
-		if (old_acct != file->transactions[transaction].to || old_flags != file->transactions[transaction].flags)
+		if (old_acct != file->transacts->transactions[transaction].to || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
 	} else if (key->i == EDIT_ICON_REF) {
 		if (key->c == wimp_KEY_F1) {
-			account_get_next_cheque_number(file, file->transactions[transaction].from,
-					file->transactions[transaction].to, 1, buffer_reference, sizeof(buffer_reference));
+			account_get_next_cheque_number(file, file->transacts->transactions[transaction].from,
+					file->transacts->transactions[transaction].to, 1, buffer_reference, sizeof(buffer_reference));
 			wimp_set_icon_state(key->w, EDIT_ICON_REF, 0, 0);
 			icons_replace_caret_in_window(key->w);
 		}
 
-		if (strcmp(file->transactions[transaction].reference, buffer_reference) != 0) {
-			strcpy(file->transactions[transaction].reference, buffer_reference);
+		if (strcmp(file->transacts->transactions[transaction].reference, buffer_reference) != 0) {
+			strcpy(file->transacts->transactions[transaction].reference, buffer_reference);
 			changed = TRUE;
 		}
 	} else if (key->i == EDIT_ICON_AMOUNT) {
 		amount = currency_convert_from_string(buffer_amount);
-		if (amount != file->transactions[transaction].amount) {
-			file->transactions[transaction].amount = amount;
+		if (amount != file->transacts->transactions[transaction].amount) {
+			file->transacts->transactions[transaction].amount = amount;
 			changed = TRUE;
 		}
 	} else if (key->i == EDIT_ICON_DESCRIPT) {
@@ -1619,8 +1618,8 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 			icons_replace_caret_in_window(key->w);
 		}
 
-		if (strcmp(file->transactions[transaction].description, buffer_description) != 0) {
-			strcpy(file->transactions[transaction].description, buffer_description);
+		if (strcmp(file->transacts->transactions[transaction].description, buffer_description) != 0) {
+			strcpy(file->transacts->transactions[transaction].description, buffer_description);
 			changed = TRUE;
 		}
 	}
@@ -1676,10 +1675,10 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 					((preset_changes & (1 << EDIT_ICON_DESCRIPT))
 						&& ((file->transacts->sort_order & SORT_MASK) == SORT_DESCRIPTION))) &&
 					config_opt_read("AutoSort")) {
-				transact_sort(file);
+				transact_sort(file->transacts);
 				if (transact_valid(file->transacts, file->transacts->entry_line)) {
-					accview_sort(file, file->transactions[file->transactions[file->transacts->entry_line].sort_index].from);
-					accview_sort(file, file->transactions[file->transactions[file->transacts->entry_line].sort_index].to);
+					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].from);
+					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].to);
 				}
 			}
 		} else if (key->i == EDIT_ICON_DATE) {
@@ -1702,29 +1701,29 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 			 */
 
 			accview_rebuild(file, old_acct);
-			transaction = file->transactions[line].sort_index;
-			accview_rebuild(file, file->transactions[transaction].from);
-			transaction = file->transactions[line].sort_index;
-			accview_redraw_transaction(file, file->transactions[transaction].to, transaction);
+			transaction = file->transacts->transactions[line].sort_index;
+			accview_rebuild(file, file->transacts->transactions[transaction].from);
+			transaction = file->transacts->transactions[line].sort_index;
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 		} else if (key->i == EDIT_ICON_TO) {
 			/* Trust that any accuout views that are open must be based on a
 			 * valid date order, and only rebuild those that are directly affected.
 			 */
 
 			accview_rebuild(file, old_acct);
-			transaction = file->transactions[line].sort_index;
-			accview_rebuild(file, file->transactions[transaction].to);
-			transaction = file->transactions[line].sort_index;
-			accview_redraw_transaction(file, file->transactions[transaction].from, transaction);
+			transaction = file->transacts->transactions[line].sort_index;
+			accview_rebuild(file, file->transacts->transactions[transaction].to);
+			transaction = file->transacts->transactions[line].sort_index;
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
 		} else if (key->i == EDIT_ICON_REF) {
-			accview_redraw_transaction(file, file->transactions[transaction].from, transaction);
-			accview_redraw_transaction(file, file->transactions[transaction].to, transaction);
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 		} else if (key->i == EDIT_ICON_AMOUNT) {
-			accview_recalculate(file, file->transactions[transaction].from, transaction);
-			accview_recalculate(file, file->transactions[transaction].to, transaction);
+			accview_recalculate(file, file->transacts->transactions[transaction].from, transaction);
+			accview_recalculate(file, file->transacts->transactions[transaction].to, transaction);
 		} else if (key->i == EDIT_ICON_DESCRIPT) {
-			 accview_redraw_transaction(file, file->transactions[transaction].from, transaction);
-			accview_redraw_transaction(file, file->transactions[transaction].to, transaction);
+			 accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 		}
 	}
 
@@ -1765,11 +1764,11 @@ static char *find_complete_description(struct file_block *file, int line, char *
 		line = file->transacts->trans_count - 1;
 
 	for (i = line - 1; i >= 0; i--) {
-		t = file->transactions[i].sort_index;
+		t = file->transacts->transactions[i].sort_index;
 
-		if (*(file->transactions[t].description) != '\0' &&
-				string_nocase_strstr(file->transactions[t].description, buffer) == file->transactions[t].description) {
-			strncpy(buffer, file->transactions[t].description, length);
+		if (*(file->transacts->transactions[t].description) != '\0' &&
+				string_nocase_strstr(file->transacts->transactions[t].description, buffer) == file->transacts->transactions[t].description) {
+			strncpy(buffer, file->transacts->transactions[t].description, length);
 			break;
 		}
 	}

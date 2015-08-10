@@ -32,13 +32,12 @@
 
 #include "oslib/wimp.h"
 
+typedef int tran_t;
+struct transact_block;
+
 #include "account.h"
 #include "currency.h"
 #include "filing.h"
-
-typedef int tran_t;
-
-struct transact_block;
 
 #define NULL_TRANSACTION ((tran_t) (-1))
 
@@ -121,7 +120,7 @@ void transact_initialise(osspriteop_area *sprites);
  * \return			The instance handle, or NULL on failure.
  */
 
-struct transact_window *transact_create_instance(struct file_block *file);
+struct transact_block *transact_create_instance(struct file_block *file);
 
 
 /**
@@ -130,7 +129,7 @@ struct transact_window *transact_create_instance(struct file_block *file);
  * \param *windat		The instance to be deleted.
  */
 
-void transact_delete_instance(struct transact_window *windat);
+void transact_delete_instance(struct transact_block *windat);
 
 
 /**
@@ -527,10 +526,10 @@ osbool transact_test_index_valid(struct file_block *file, tran_t transaction);
 /**
  * Sort the contents of the transaction window based on the file's sort setting.
  *
- * \param *file			The file to sort.
+ * \param *windat		The transaction window instance to sort.
  */
 
-void transact_sort(struct file_block *file);
+void transact_sort(struct transact_block *windat);
 
 
 /**

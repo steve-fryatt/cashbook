@@ -220,7 +220,7 @@ void load_transaction_file(char *filename)
 	sorder_process(file);
 	transact_sort_file_data(file);
 	account_recalculate_all(file);
-	transact_sort(file);
+	transact_sort(file->transacts);
 	sorder_sort(file->sorders);
 	preset_sort(file->presets);
 	transact_open_window(file); /* The window extent is set in this action. */

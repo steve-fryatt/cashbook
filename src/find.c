@@ -702,7 +702,7 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 	transact_place_caret(find_window_owner->file, line, icon);
 
 	transact_get_column_name(find_window_owner->file, icon, buf1, sizeof(buf1));
-	snprintf(buf2, sizeof(buf2), "%d", line);
+	snprintf(buf2, sizeof(buf2), "%d", transact_get_transaction_number(line));
 
 	msgs_param_lookup("Found", icons_get_indirected_text_addr(find_result_window, FOUND_ICON_INFO), 64, buf1, buf2, NULL, NULL);
 

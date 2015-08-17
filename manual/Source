@@ -1508,6 +1508,7 @@ This test build changes the file format used by <cite>CashBook</cite>. Files fro
 <li>Add transaction numbers to all transaction views and reports (tickets #430 and&nbsp;#494).
 <li>Remove escaped characters from print job titles (ticket&nbsp;#509).
 <li>Fix ZeroPain when closing files, and tidy up file closure code to prevent accidental dereferencing of stale pointers (ticket&nbsp;#556).
+<li>Report correct transaction numbers in Found dialogue box (ticket&nbsp;#567).
 </list>
 
 </chapter>

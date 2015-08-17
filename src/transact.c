@@ -4141,7 +4141,7 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
 	int			transaction;
 
 
-	if (file == NULL || file->transacts)
+	if (file == NULL || file->transacts == NULL)
 		return TRANSACT_FIELD_NONE;
 
 	match = FALSE;

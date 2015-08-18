@@ -311,8 +311,8 @@ static void main_initialise(void)
 	snprintf(res_temp, sizeof(res_temp), "%s.Templates", resources);
 	templates_open(res_temp);
 
-	file_initialise();
 	saveas_initialise();
+	file_initialise();
 	iconbar_initialise();
 	choices_initialise();
 	analysis_initialise();

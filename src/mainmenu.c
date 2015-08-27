@@ -64,7 +64,6 @@
 #include "budget.h"
 #include "caret.h"
 #include "choices.h"
-#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "find.h"

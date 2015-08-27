@@ -41,6 +41,7 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
+#include "sflib/dataxfer.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
@@ -49,7 +50,6 @@
 
 /* Application header files */
 
-#include "dataxfer.h"
 #include "global.h"
 #include "main.h"
 #include "clipboard.h"

@@ -73,7 +73,6 @@
 #include "budget.h"
 #include "column.h"
 #include "currency.h"
-#include "dataxfer.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"

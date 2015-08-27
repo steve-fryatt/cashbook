@@ -58,7 +58,6 @@
 #include "printing.h"
 
 #include "caret.h"
-#include "dataxfer.h"
 #include "date.h"
 #include "ihelp.h"
 #include "templates.h"

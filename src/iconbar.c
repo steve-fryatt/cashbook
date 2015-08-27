@@ -40,6 +40,7 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/dataxfer.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
@@ -55,7 +56,6 @@
 #include "iconbar.h"
 
 #include "choices.h"
-#include "dataxfer.h"
 #include "file.h"
 #include "filing.h"
 #include "ihelp.h"

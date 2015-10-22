@@ -597,8 +597,8 @@ void transact_open_window(struct file_block *file)
 	event_add_window_menu_close(file->transacts->transaction_pane, transact_window_menu_close_handler);
 	event_add_window_icon_popup(file->transacts->transaction_pane, TRANSACT_PANE_VIEWACCT, transact_account_list_menu, -1, NULL);
 
-	dataxfer_set_load_target(CSV_FILE_TYPE, file->transacts->transaction_window, -1, transact_load_csv, file);
-	dataxfer_set_load_target(CSV_FILE_TYPE, file->transacts->transaction_pane, -1, transact_load_csv, file);
+	dataxfer_set_load_target(DATAXFER_TARGET_DRAG, CSV_FILE_TYPE, file->transacts->transaction_window, -1, transact_load_csv, file);
+	dataxfer_set_load_target(DATAXFER_TARGET_DRAG, CSV_FILE_TYPE, file->transacts->transaction_pane, -1, transact_load_csv, file);
 
 	/* Put the caret into the first empty line. */
 
@@ -628,14 +628,14 @@ static void transact_delete_window(struct transact_block *windat)
 		ihelp_remove_window(windat->transaction_window);
 		event_delete_window(windat->transaction_window);
 		wimp_delete_window(windat->transaction_window);
-		dataxfer_delete_load_target(CSV_FILE_TYPE, windat->transaction_window, -1);
+		dataxfer_delete_load_target(DATAXFER_TARGET_DRAG, CSV_FILE_TYPE, windat->transaction_window, -1);
 		windat->transaction_window = NULL;
 	}
 
 	if (windat->transaction_pane != NULL) {
 		ihelp_remove_window(windat->transaction_pane);
 		event_delete_window(windat->transaction_pane);
-		dataxfer_delete_load_target(CSV_FILE_TYPE, windat->transaction_pane, -1);
+		dataxfer_delete_load_target(DATAXFER_TARGET_DRAG, CSV_FILE_TYPE, windat->transaction_pane, -1);
 		wimp_delete_window(windat->transaction_pane);
 		windat->transaction_pane = NULL;
 	}

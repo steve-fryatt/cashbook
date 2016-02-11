@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -44,14 +44,18 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
+#include "sflib/dataxfer.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -67,13 +71,10 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
-#include "ihelp.h"
 #include "mainmenu.h"
 #include "printing.h"
 #include "report.h"
-#include "saveas.h"
 #include "sort.h"
-#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -292,7 +293,7 @@ void accview_initialise(osspriteop_area *sprites)
 	accview_pane_def = templates_load_window("AccViewTB");
 	accview_pane_def->sprite_area = sprites;
 
-	accview_window_menu = templates_get_menu(TEMPLATES_MENU_ACCVIEW);
+	accview_window_menu = templates_get_menu("AccountViewMenu");
 
 	accview_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", accview_save_csv);
 	accview_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", accview_save_tsv);
@@ -779,14 +780,14 @@ static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 		case ACCOUNT_FULL:
 			msgs_lookup("AccviewMenuTitleAcc", accview_window_menu->title_data.text, 12);
 			msgs_lookup("AccviewMenuEditAcc", menus_get_indirected_text_addr(accview_window_menu, ACCVIEW_MENU_EDITACCT), 20);
-			templates_set_menu_token("AccViewMenu");
+			ihelp_add_menu(accview_window_menu, "AccViewMenu");
 			break;
 
 		case ACCOUNT_IN:
 		case ACCOUNT_OUT:
 			msgs_lookup("AccviewMenuTitleHead", accview_window_menu->title_data.text, 12);
 			msgs_lookup("AccviewMenuEditHead", menus_get_indirected_text_addr(accview_window_menu, ACCVIEW_MENU_EDITACCT), 20);
-			templates_set_menu_token("HeadViewMenu");
+			ihelp_add_menu(accview_window_menu, "HeadViewMenu");
 			break;
 
 		case ACCOUNT_NULL:
@@ -889,7 +890,7 @@ static void accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_
 static void accview_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
 	accview_window_menu_line = -1;
-	templates_set_menu_token(NULL);
+	ihelp_remove_menu(accview_window_menu);
 }
 
 
@@ -2394,7 +2395,7 @@ static osbool accview_save_csv(char *filename, osbool selection, void *data)
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 
-	accview_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	accview_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
 	
 	return TRUE;
 }
@@ -2415,7 +2416,7 @@ static osbool accview_save_tsv(char *filename, osbool selection, void *data)
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 		
-	accview_export_delimited(windat, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	accview_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
 	
 	return TRUE;
 }

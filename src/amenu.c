@@ -1,4 +1,4 @@
-/* Copyright 2011-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2011-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -38,14 +38,15 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/menus.h"
 #include "sflib/event.h"
+#include "sflib/ihelp.h"
+#include "sflib/menus.h"
+#include "sflib/templates.h"
 
 /* Application header files */
 
 #include "amenu.h"
 
-#include "templates.h"
 
 
 static wimp_menu	*amenu_menu = NULL;						/**< The menu handle being processed.			*/
@@ -76,6 +77,7 @@ void amenu_initialise(void)
  * progress.
  *
  * \param *menu			The menu to be opened.
+ * \param *help_token		The interactive help token for the menu.
  * \param *pointer		The details of the position to open it.
  * \param *prepare		A handler to be called before (re-) opening.
  * \param *warning		A handler to be called on submenu warnings.
@@ -83,7 +85,7 @@ void amenu_initialise(void)
  * \param *close		A handler to be called when the menu closes.
  */
 
-void amenu_open(wimp_menu *menu, wimp_pointer *pointer, void (*prepare)(void), void (*warning)(wimp_message_menu_warning *), void (*selection)(wimp_selection *), void (*close)(void))
+void amenu_open(wimp_menu *menu, char *help_token, wimp_pointer *pointer, void (*prepare)(void), void (*warning)(wimp_message_menu_warning *), void (*selection)(wimp_selection *), void (*close)(void))
 {
 	amenu_callback_prepare = prepare;
 	amenu_callback_warning = warning;
@@ -95,7 +97,8 @@ void amenu_open(wimp_menu *menu, wimp_pointer *pointer, void (*prepare)(void), v
 
 	amenu_menu = menus_create_standard_menu(menu, pointer);
 
-	templates_set_menu_handle(amenu_menu);
+	if (help_token != NULL)
+		ihelp_add_menu(amenu_menu, help_token);
 }
 
 
@@ -176,12 +179,12 @@ static void amenu_close(void)
 	if (amenu_callback_close != NULL)
 		amenu_callback_close();
 
+	ihelp_remove_menu(amenu_menu);
+
 	amenu_menu = NULL;
 	amenu_callback_prepare = NULL;
 	amenu_callback_warning = NULL;
 	amenu_callback_selection = NULL;
 	amenu_callback_close = NULL;
-
-	templates_set_menu_handle(NULL);
 }
 

@@ -1,4 +1,4 @@
-/* Copyright 2011-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2011-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -43,6 +43,7 @@ void amenu_initialise(void);
  * progress.
  *
  * \param *menu			The menu to be opened.
+ * \param *help_token		The interactive help token for the menu.
  * \param *pointer		The details of the position to open it.
  * \param *prepare		A handler to be called before (re-) opening.
  * \param *warning		A handler to be called on submenu warnings.
@@ -50,7 +51,8 @@ void amenu_initialise(void);
  * \param *close		A handler to be called when the menu closes.
  */
 
-void amenu_open(wimp_menu *menu, wimp_pointer *pointer, void (*prepare)(void), void (*warning)(wimp_message_menu_warning *), void (*selection)(wimp_selection *), void (*close)(void));
+void amenu_open(wimp_menu *menu, char *help_token, wimp_pointer *pointer,
+		void (*prepare)(void), void (*warning)(wimp_message_menu_warning *), void (*selection)(wimp_selection *), void (*close)(void));
 
 
 /**

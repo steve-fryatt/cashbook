@@ -1,4 +1,4 @@
-/* Copyright 2005-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2005-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -45,8 +45,10 @@
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
+#include "sflib/templates.h"
 #include "sflib/url.h"
 #include "sflib/windows.h"
 
@@ -58,9 +60,7 @@
 #include "choices.h"
 #include "file.h"
 #include "filing.h"
-#include "ihelp.h"
 #include "main.h"
-#include "templates.h"
 
 
 /* Iconbar menu */
@@ -99,7 +99,8 @@ void iconbar_initialise(void)
 
 	/* Set up the iconbar menu and its dialogues. */
 
-	iconbar_menu = templates_get_menu(TEMPLATES_MENU_ICONBAR);
+	iconbar_menu = templates_get_menu("IconBarMenu");
+	ihelp_add_menu(iconbar_menu, "IconBarMenu");
 
 	iconbar_info_window = templates_create_window("ProgInfo");
 	templates_link_menu_dialogue("ProgInfo", iconbar_info_window);
@@ -124,7 +125,8 @@ void iconbar_initialise(void)
 	event_add_window_menu(wimp_ICON_BAR, iconbar_menu);
 	event_add_window_menu_selection(wimp_ICON_BAR, iconbar_menu_selection);
 	
-	dataxfer_set_load_target(DATAXFER_TARGET_ALL, CASHBOOK_FILE_TYPE, wimp_ICON_BAR, -1, iconbar_load_cashbook_file, NULL);
+	dataxfer_set_drop_target(dataxfer_TYPE_CASHBOOK, wimp_ICON_BAR, -1, iconbar_load_cashbook_file, NULL);
+	dataxfer_set_load_type(dataxfer_TYPE_CASHBOOK, iconbar_load_cashbook_file, NULL);
 }
 
 
@@ -215,7 +217,7 @@ static osbool iconbar_proginfo_web_click(wimp_pointer *pointer)
 
 static osbool iconbar_load_cashbook_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
 {
-	if (filetype != CASHBOOK_FILE_TYPE)
+	if (filetype != dataxfer_TYPE_CASHBOOK)
 		return FALSE;
 
 	load_transaction_file(filename);

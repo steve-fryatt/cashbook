@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -55,11 +55,14 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/resources.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
 #include "sflib/tasks.h"
+#include "sflib/templates.h"
 #include "sflib/url.h"
 #include "sflib/windows.h"
 
@@ -84,15 +87,12 @@
 #include "find.h"
 #include "goto.h"
 #include "iconbar.h"
-#include "ihelp.h"
 #include "mainmenu.h"
 #include "presets.h"
 #include "printing.h"
 #include "purge.h"
 #include "report.h"
-#include "saveas.h"
 #include "sorder.h"
-#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -311,7 +311,7 @@ static void main_initialise(void)
 	snprintf(res_temp, sizeof(res_temp), "%s.Templates", resources);
 	templates_open(res_temp);
 
-	saveas_initialise();
+	saveas_initialise("SaveAs", NULL);
 	file_initialise();
 	iconbar_initialise();
 	choices_initialise();

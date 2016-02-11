@@ -30,16 +30,6 @@
 #ifndef CASHBOOK_FILE
 #define CASHBOOK_FILE
 
-/* ==================================================================================================================
- * Static constants
- */
-
-
-#define CASHBOOK_FILE_TYPE 0x1ca
-#define CSV_FILE_TYPE 0xdfe
-#define TSV_FILE_TYPE 0xfff
-#define TEXT_FILE_TYPE 0xfff
-#define FANCYTEXT_FILE_TYPE 0xaf8
 
 /* ==================================================================================================================
  * Data structures

@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -57,9 +57,12 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -81,16 +84,13 @@
 #include "filing.h"
 #include "find.h"
 #include "goto.h"
-#include "ihelp.h"
 #include "mainmenu.h"
 #include "presets.h"
 #include "printing.h"
 #include "purge.h"
 #include "report.h"
-#include "saveas.h"
 #include "sorder.h"
 #include "sort.h"
-#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -407,10 +407,11 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_pane_def = templates_load_window("TransactTB");
 	transact_pane_def->sprite_area = sprites;
 
-	transact_window_menu = templates_get_menu(TEMPLATES_MENU_MAIN);
-	transact_window_menu_account = templates_get_menu(TEMPLATES_MENU_MAIN_ACCOUNTS);
-	transact_window_menu_transact = templates_get_menu(TEMPLATES_MENU_MAIN_TRANSACTIONS);
-	transact_window_menu_analysis = templates_get_menu(TEMPLATES_MENU_MAIN_ANALYSIS);
+	transact_window_menu = templates_get_menu("MainMenu");
+	ihelp_add_menu(transact_window_menu, "MainMenu");
+	transact_window_menu_account = templates_get_menu("MainAccountsSubmenu");
+	transact_window_menu_transact = templates_get_menu("MainTransactionsSubmenu");
+	transact_window_menu_analysis = templates_get_menu("MainAnalysisSubmenu");
 
 	transact_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_save_file);
 	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_save_csv);
@@ -597,8 +598,8 @@ void transact_open_window(struct file_block *file)
 	event_add_window_menu_close(file->transacts->transaction_pane, transact_window_menu_close_handler);
 	event_add_window_icon_popup(file->transacts->transaction_pane, TRANSACT_PANE_VIEWACCT, transact_account_list_menu, -1, NULL);
 
-	dataxfer_set_load_target(DATAXFER_TARGET_DRAG, CSV_FILE_TYPE, file->transacts->transaction_window, -1, transact_load_csv, file);
-	dataxfer_set_load_target(DATAXFER_TARGET_DRAG, CSV_FILE_TYPE, file->transacts->transaction_pane, -1, transact_load_csv, file);
+	dataxfer_set_drop_target(dataxfer_TYPE_CSV, file->transacts->transaction_window, -1, transact_load_csv, file);
+	dataxfer_set_drop_target(dataxfer_TYPE_CSV, file->transacts->transaction_pane, -1, transact_load_csv, file);
 
 	/* Put the caret into the first empty line. */
 
@@ -628,14 +629,14 @@ static void transact_delete_window(struct transact_block *windat)
 		ihelp_remove_window(windat->transaction_window);
 		event_delete_window(windat->transaction_window);
 		wimp_delete_window(windat->transaction_window);
-		dataxfer_delete_load_target(DATAXFER_TARGET_DRAG, CSV_FILE_TYPE, windat->transaction_window, -1);
+		dataxfer_delete_drop_target(dataxfer_TYPE_CSV, windat->transaction_window, -1);
 		windat->transaction_window = NULL;
 	}
 
 	if (windat->transaction_pane != NULL) {
 		ihelp_remove_window(windat->transaction_pane);
 		event_delete_window(windat->transaction_pane);
-		dataxfer_delete_load_target(DATAXFER_TARGET_DRAG, CSV_FILE_TYPE, windat->transaction_pane, -1);
+		dataxfer_delete_drop_target(dataxfer_TYPE_CSV, windat->transaction_pane, -1);
 		wimp_delete_window(windat->transaction_pane);
 		windat->transaction_pane = NULL;
 	}
@@ -1143,7 +1144,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 		if (pointer != NULL) {
 			transact_account_list_menu = account_list_menu_build(windat->file);
 			event_set_menu_block(transact_account_list_menu);
-			templates_set_menu(TEMPLATES_MENU_ACCOPEN, transact_account_list_menu);
+			ihelp_add_menu(transact_account_list_menu, "AccOpenMenu");
 		}
 
 		account_list_menu_prepare();
@@ -1412,6 +1413,7 @@ static void transact_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 		analysis_template_menu_destroy();
 	} else if (menu == transact_account_list_menu) {
 		account_list_menu_destroy();
+		ihelp_remove_menu(transact_account_list_menu);
 		transact_account_list_menu = NULL;
 	}
 }
@@ -3916,7 +3918,7 @@ static osbool transact_save_csv(char *filename, osbool selection, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	transact_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	transact_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
 
 	return TRUE;
 }
@@ -3937,7 +3939,7 @@ static osbool transact_save_tsv(char *filename, osbool selection, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	transact_export_delimited(windat, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	transact_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
 
 	return TRUE;
 }
@@ -4036,7 +4038,7 @@ static osbool transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *fil
 {
 	struct file_block	*file = data;
 
-	if (filetype != CSV_FILE_TYPE || file == NULL)
+	if (filetype != dataxfer_TYPE_CSV || file == NULL)
 		return FALSE;
 
 	import_csv_file(file, filename);

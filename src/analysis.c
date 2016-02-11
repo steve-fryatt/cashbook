@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -45,15 +45,17 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
+#include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
+#include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
-#include "sflib/icons.h"
-#include "sflib/debug.h"
 
 /* Application header files */
 
@@ -66,10 +68,8 @@
 #include "currency.h"
 #include "date.h"
 #include "file.h"
-#include "ihelp.h"
 #include "mainmenu.h"
 #include "report.h"
-#include "templates.h"
 #include "transact.h"
 
 
@@ -4194,7 +4194,7 @@ static void analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 
 	template_menu = analysis_template_menu_build(analysis_save_file, TRUE);
 	event_set_menu_block(template_menu);
-	templates_set_menu(TEMPLATES_MENU_TEMPLATES, template_menu);
+	ihelp_add_menu(template_menu, "RepListMenu");
 }
 
 
@@ -4227,6 +4227,7 @@ static void analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 static void analysis_save_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
 	analysis_template_menu_destroy();
+	ihelp_remove_menu(analysis_template_menu);
 }
 
 

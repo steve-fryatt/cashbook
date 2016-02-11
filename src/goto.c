@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -46,6 +46,8 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -56,8 +58,6 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
-#include "ihelp.h"
-#include "templates.h"
 #include "transact.h"
 
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -26,7 +26,7 @@
  * Icon bar menu.
  */
 
-menu(iconbar_menu, "CashBook")
+menu(IconBarMenu, "CashBook")
 {
 	item("Info") {
 		d_box(ProgInfo);
@@ -40,26 +40,26 @@ menu(iconbar_menu, "CashBook")
  * Main menu.
  */
 
-menu(main_menu, "CashBook")
+menu(MainMenu, "CashBook")
 {
 	item("File") {
-		submenu(file_menu);
+		submenu(MainFileSubmenu);
 	}
 	item("Accounts") {
-		submenu(accounts_menu);
+		submenu(MainAccountsSubmenu);
 	}
 	item("Headings") {
-		submenu(headings_menu);
+		submenu(MainHeadingsSubmenu);
 	}
 	item("Transactions") {
-		submenu(transactions_menu);
+		submenu(MainTransactionsSubmenu);
 	}
 	item("Analysis") {
-		submenu(analysis_menu);
+		submenu(MainAnalysisSubmenu);
 	}
 }
 
-menu(file_menu, "File")
+menu(MainFileSubmenu, "File")
 {
 	item("Info ^F1") {
 		d_box(file_info) {
@@ -88,7 +88,7 @@ menu(file_menu, "File")
 	item("Print... Print");
 }
 
-menu(accounts_menu, "Accounts")
+menu(MainAccountsSubmenu, "Accounts")
 {
 	item("View account");
 	item("List accounts F9") {
@@ -97,7 +97,7 @@ menu(accounts_menu, "Accounts")
 	item("New account...");
 }
 
-menu(headings_menu, "Headings")
+menu(MainHeadingsSubmenu, "Headings")
 {
 	item("List incoming F10");
 	item("List outgoing F11") {
@@ -106,7 +106,7 @@ menu(headings_menu, "Headings")
 	item("New heading...");
 }
 
-menu(transactions_menu, "Transactions")
+menu(MainTransactionsSubmenu, "Transactions")
 {
 	item("Find... F4");
 	item("Goto... F5");
@@ -124,7 +124,7 @@ menu(transactions_menu, "Transactions")
 	item("Reconcile");
 }
 
-menu(analysis_menu, "Analysis")
+menu(MainAnalysisSubmenu, "Analysis")
 {
 	item("Budget...") {
 		dotted;
@@ -143,7 +143,7 @@ menu(analysis_menu, "Analysis")
  * Accounts List menu
  */
 
-menu(acclist_menu, "Accounts")
+menu(AccountListMenu, "Accounts")
 {
 	item("View account") {
 		indirected(20);
@@ -177,7 +177,7 @@ menu(acclist_menu, "Accounts")
  * Account View menu
  */
 
-menu(accview_menu, "Account")
+menu(AccountViewMenu, "Account")
 {
 	item("Find transaction");
 	item("Goto transaction");
@@ -205,7 +205,7 @@ menu(accview_menu, "Account")
  * Standing Order List menu
  */
 
-menu(sorder_menu, "Standing Order")
+menu(SOrderMenu, "Standing Order")
 {
 	item("Sort entries...") {
 		dotted;
@@ -234,7 +234,7 @@ menu(sorder_menu, "Standing Order")
  * Preset List menu
  */
 
-menu(preset_menu, "Preset")
+menu(PresetMenu, "Preset")
 {
 	item("Sort entries...") {
 		dotted;
@@ -260,7 +260,7 @@ menu(preset_menu, "Preset")
  * Report view menu
  */
 
-menu(reportview_menu, "Report")
+menu(ReportViewMenu, "Report")
 {
 	item("Format...") {
 		dotted;

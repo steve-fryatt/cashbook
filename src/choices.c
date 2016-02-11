@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -47,7 +47,9 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files. */
@@ -60,9 +62,7 @@
 #include "date.h"
 #include "file.h"
 #include "fontlist.h"
-#include "ihelp.h"
 #include "mainmenu.h"
-#include "templates.h"
 
 
 /* Pane numbers */
@@ -450,7 +450,7 @@ static void choices_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer
 		choices_font_menu = fontlist_build();
 		choices_font_icon = pointer->i;
 		event_set_menu_block(choices_font_menu);
-		templates_set_menu(TEMPLATES_MENU_FONTS, choices_font_menu);
+		ihelp_add_menu(choices_font_menu, "FontMenu");
 	}
 }
 
@@ -499,6 +499,7 @@ static void choices_menu_close_handler(wimp_w w, wimp_menu *menu)
 	fontlist_destroy();
 	choices_font_menu = NULL;
 	choices_font_icon = -1;
+	ihelp_remove_menu(choices_font_menu);
 }
 
 

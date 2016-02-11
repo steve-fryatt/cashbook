@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -52,6 +52,7 @@
 #include "sflib/icons.h"
 #include "sflib/debug.h"
 #include "sflib/config.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
 
 /* Application header files */
@@ -76,7 +77,6 @@
 #include "printing.h"
 #include "purge.h"
 #include "report.h"
-#include "saveas.h"
 #include "sorder.h"
 #include "transact.h"
 

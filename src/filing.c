@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -54,12 +54,15 @@
 /* SF-Lib header files. */
 
 #include "sflib/string.h"
+#include "sflib/dataxfer.h"
 #include "sflib/debug.h"
 #include "sflib/config.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/msgs.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -76,11 +79,9 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
-#include "ihelp.h"
 #include "presets.h"
 #include "report.h"
 #include "sorder.h"
-#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -301,7 +302,7 @@ void save_transaction_file(struct file_block *file, char *filename)
 	/* Close the file and set the type correctly. */
 
 	fclose(out);
-	osfile_set_type(filename, (bits) CASHBOOK_FILE_TYPE);
+	osfile_set_type(filename, (bits) dataxfer_TYPE_CASHBOOK);
 
 	/* Get the datestamp of the file. */
 

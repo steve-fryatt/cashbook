@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -49,7 +49,9 @@
 #include "sflib/general.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/msgs.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -59,8 +61,6 @@
 
 #include "caret.h"
 #include "date.h"
-#include "ihelp.h"
-#include "templates.h"
 
 /* This code deals with a "RISC OS 2" subset of the printer driver protocol.  We can start print jobs off via
  * the correct set of codes, but all printing is done immediately and the queue mechanism is ignored.

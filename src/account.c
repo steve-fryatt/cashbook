@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -50,14 +50,18 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
+#include "sflib/dataxfer.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -75,14 +79,11 @@
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
-#include "ihelp.h"
 #include "mainmenu.h"
 #include "presets.h"
 #include "printing.h"
 #include "report.h"
-#include "saveas.h"
 #include "sorder.h"
-#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -383,7 +384,7 @@ void account_initialise(osspriteop_area *sprites)
 
 	account_foot_def = templates_load_window("AccountTot");
 
-	account_window_menu = templates_get_menu(TEMPLATES_MENU_ACCLIST);
+	account_window_menu = templates_get_menu("AccountListMenu");
 
 	account_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_save_csv);
 	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_save_tsv);
@@ -865,7 +866,7 @@ static void account_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 			msgs_lookup("AcclistMenuViewAcc", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_VIEWACCT), 20);
 			msgs_lookup("AcclistMenuEditAcc", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_EDITACCT), 20);
 			msgs_lookup("AcclistMenuNewAcc", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_NEWACCT), 20);
-			templates_set_menu_token("AccListMenu");
+			ihelp_add_menu(account_window_menu, "AccListMenu");
 			break;
 
 		case ACCOUNT_IN:
@@ -874,7 +875,7 @@ static void account_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 			msgs_lookup("AcclistMenuViewHead", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_VIEWACCT), 20);
 			msgs_lookup("AcclistMenuEditHead", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_EDITACCT), 20);
 			msgs_lookup("AcclistMenuNewHead", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_NEWACCT), 20);
-			templates_set_menu_token("HeadListMenu");
+			ihelp_add_menu(account_window_menu, "HeadListMenu");
 			break;
 		default:
 			break;
@@ -982,7 +983,7 @@ static void account_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_
 static void account_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
 	account_window_menu_line = -1;
-	templates_set_menu_token(NULL);
+	ihelp_remove_menu(account_window_menu);
 }
 
 
@@ -4945,7 +4946,7 @@ static osbool account_save_csv(char *filename, osbool selection, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	account_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	account_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
 
 	return TRUE;
 }
@@ -4966,7 +4967,7 @@ static osbool account_save_tsv(char *filename, osbool selection, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	account_export_delimited(windat, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	account_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
 
 	return TRUE;
 }

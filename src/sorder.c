@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -48,14 +48,18 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
+#include "sflib/dataxfer.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -73,13 +77,10 @@
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
-#include "ihelp.h"
 #include "mainmenu.h"
 #include "printing.h"
-#include "saveas.h"
 #include "sort.h"
 #include "report.h"
-#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -356,7 +357,8 @@ void sorder_initialise(osspriteop_area *sprites)
 	sorder_pane_def = templates_load_window("SOrderTB");
 	sorder_pane_def->sprite_area = sprites;
 
-	sorder_window_menu = templates_get_menu(TEMPLATES_MENU_SORDER);
+	sorder_window_menu = templates_get_menu("SOrderMenu");
+	ihelp_add_menu(sorder_window_menu, "SorderMenu");
 
 	sorder_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", sorder_save_csv);
 	sorder_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", sorder_save_tsv);
@@ -2905,7 +2907,7 @@ static osbool sorder_save_csv(char *filename, osbool selection, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	sorder_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	sorder_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
 	
 	return TRUE;
 }
@@ -2926,7 +2928,7 @@ static osbool sorder_save_tsv(char *filename, osbool selection, void *data)
 	if (windat == NULL)
 		return FALSE;
 		
-	sorder_export_delimited(windat, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	sorder_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
 	
 	return TRUE;
 }

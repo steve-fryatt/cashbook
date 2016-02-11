@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -75,7 +75,6 @@
 #include "purge.h"
 #include "report.h"
 #include "sorder.h"
-#include "templates.h"
 #include "transact.h"
 
 /* ==================================================================================================================
@@ -149,9 +148,7 @@ void open_account_menu(struct file_block *file, enum account_menu_type type, int
 	if (menu == NULL)
 		return;
 
-	templates_set_menu_token("AccountMenu");
-
-	amenu_open(menu, pointer, NULL, account_menu_submenu_message, decode_account_menu, account_menu_closed_message);
+	amenu_open(menu, "AccountMenu", pointer, NULL, account_menu_submenu_message, decode_account_menu, account_menu_closed_message);
 
 	main_menu_file = file;
 	main_menu_line = line;
@@ -240,7 +237,6 @@ static void account_menu_closed_message(void)
 {
 	analysis_lookup_menu_closed();
 	account_complete_menu_destroy();
-	templates_set_menu_token("");
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -261,9 +257,7 @@ void open_date_menu(struct file_block *file, int line, wimp_pointer *pointer)
 	if (menu == NULL)
 		return;
 
-	templates_set_menu_token("DateMenu");
-
-	amenu_open(menu, pointer, NULL, NULL, decode_date_menu, date_menu_closed_message);
+	amenu_open(menu, "DateMenu", pointer, NULL, NULL, decode_date_menu, date_menu_closed_message);
 
 	main_menu_file = file;
 	main_menu_line = line;
@@ -308,7 +302,6 @@ static void decode_date_menu(wimp_selection *selection)
 static void date_menu_closed_message(void)
 {
 	preset_complete_menu_destroy();
-	templates_set_menu_token("");
 }
 
 
@@ -322,6 +315,7 @@ static void date_menu_closed_message(void)
 void open_refdesc_menu (struct file_block *file, int menu_type, int line, wimp_pointer *pointer)
 {
 	wimp_menu	*menu;
+	char		*token = NULL;
 
 	menu = transact_complete_menu_build(file, menu_type, line);
 
@@ -330,11 +324,11 @@ void open_refdesc_menu (struct file_block *file, int menu_type, int line, wimp_p
 
 	switch (menu_type) {
 	case REFDESC_MENU_REFERENCE:
-		templates_set_menu_token("RefMenu");
+		token = "RefMenu";
 		break;
 
 	case REFDESC_MENU_DESCRIPTION:
-		templates_set_menu_token("DescMenu");
+		token = "DescMenu";
 		break;
 	}
 
@@ -342,7 +336,7 @@ void open_refdesc_menu (struct file_block *file, int menu_type, int line, wimp_p
 	main_menu_line = line;
 	refdesc_menu_type = menu_type;
 
-	amenu_open(menu, pointer, refdesc_menu_prepare, NULL, decode_refdesc_menu, refdesc_menu_closed_message);
+	amenu_open(menu, token, pointer, refdesc_menu_prepare, NULL, decode_refdesc_menu, refdesc_menu_closed_message);
 }
 
 
@@ -400,6 +394,5 @@ static void decode_refdesc_menu (wimp_selection *selection)
 static void refdesc_menu_closed_message(void)
 {
 	transact_complete_menu_destroy();
-	templates_set_menu_token("");
 }
 

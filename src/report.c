@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -46,20 +46,25 @@
 #include "oslib/osfile.h"
 #include "oslib/pdriver.h"
 #include "oslib/os.h"
+#include "oslib/osfile.h"
 #include "oslib/osfind.h"
 #include "oslib/colourtrans.h"
 
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
+#include "sflib/dataxfer.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -72,11 +77,8 @@
 #include "file.h"
 #include "filing.h"
 #include "fontlist.h"
-#include "ihelp.h"
 #include "mainmenu.h"
 #include "printing.h"
-#include "saveas.h"
-#include "templates.h"
 #include "transact.h"
 #include "window.h"
 
@@ -260,7 +262,8 @@ void report_initialise(osspriteop_area *sprites)
 	report_window_def = templates_load_window("Report");
 	report_window_def->sprite_area = sprites;
 
-	report_view_menu = templates_get_menu(TEMPLATES_MENU_REPORT);
+	report_view_menu = templates_get_menu("ReportViewMenu");
+	ihelp_add_menu(report_view_menu, "ReportMenu");
 
 	/* Save dialogue boxes. */
 
@@ -1175,7 +1178,7 @@ static void report_format_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 	report_format_font_menu = fontlist_build();
 	report_format_font_icon = pointer->i;
 	event_set_menu_block(report_format_font_menu);
-	templates_set_menu(TEMPLATES_MENU_FONTS, report_format_font_menu);
+	ihelp_add_menu(report_format_font_menu, "FontMenu");
 }
 
 
@@ -1223,6 +1226,7 @@ static void report_format_menu_close_handler(wimp_w w, wimp_menu *menu)
 	fontlist_destroy();
 	report_format_font_menu = NULL;
 	report_format_font_icon = -1;
+	ihelp_remove_menu(report_format_font_menu);
 }
 
 
@@ -1484,7 +1488,7 @@ static osbool report_save_csv(char *filename, osbool selection, void *data)
 	if (report == NULL || report->file == NULL)
 		return FALSE;
 
-	report_export_delimited(report, filename, DELIMIT_QUOTED_COMMA, CSV_FILE_TYPE);
+	report_export_delimited(report, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
 	
 	return TRUE;
 }
@@ -1505,7 +1509,7 @@ static osbool report_save_tsv(char *filename, osbool selection, void *data)
 	if (report == NULL || report->file == NULL)
 		return FALSE;
 		
-	report_export_delimited(report, filename, DELIMIT_TAB, TSV_FILE_TYPE);
+	report_export_delimited(report, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
 	
 	return TRUE;
 }
@@ -1624,7 +1628,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 	/* Close the file and set the type correctly. */
 
 	fclose(out);
-	osfile_set_type(filename, (bits) (formatting) ? FANCYTEXT_FILE_TYPE : TEXT_FILE_TYPE);
+	osfile_set_type(filename, (bits) (formatting) ? dataxfer_TYPE_FANCYTEXT : osfile_TYPE_TEXT);
 
 	hourglass_off();
 }

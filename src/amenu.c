@@ -96,6 +96,7 @@ void amenu_open(wimp_menu *menu, char *help_token, wimp_pointer *pointer, void (
 		amenu_callback_prepare();
 
 	amenu_menu = menus_create_standard_menu(menu, pointer);
+	event_set_current_menu(amenu_menu);
 
 	if (help_token != NULL)
 		ihelp_add_menu(amenu_menu, help_token);
@@ -178,6 +179,8 @@ static void amenu_close(void)
 {
 	if (amenu_callback_close != NULL)
 		amenu_callback_close();
+
+	event_clear_current_menu(amenu_menu);
 
 	ihelp_remove_menu(amenu_menu);
 

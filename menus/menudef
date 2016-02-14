@@ -68,17 +68,17 @@ menu(MainFileSubmenu, "File")
 		dotted;
 	}
 	item("Save F3") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
 	item("Export CSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
 	item("Export TSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
@@ -161,12 +161,12 @@ menu(AccountListMenu, "Accounts")
 		dotted;
 	}
 	item("Export CSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
 	item("Export TSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
@@ -189,12 +189,12 @@ menu(AccountViewMenu, "Account")
 		dotted;
 	}
 	item("Export CSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
 	item("Export TSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
@@ -215,12 +215,12 @@ menu(SOrderMenu, "Standing Order")
 		dotted;
 	}
 	item("Export CSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
 	item("Export TSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
@@ -244,12 +244,12 @@ menu(PresetMenu, "Preset")
 		dotted;
 	}
 	item("Export CSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
 	item("Export TSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
@@ -266,17 +266,17 @@ menu(ReportViewMenu, "Report")
 		dotted;
 	}
 	item("Save text") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
 	item("Export CSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
 	item("Export TSV") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 		dotted;

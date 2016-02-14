@@ -3859,7 +3859,6 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 static void transact_start_direct_save(struct transact_block *windat)
 {
 	wimp_pointer	pointer;
-	char		*filename;
 
 	if (windat == NULL || windat->file == NULL)
 		return;
@@ -3869,13 +3868,7 @@ static void transact_start_direct_save(struct transact_block *windat)
 	} else {
 		wimp_get_pointer_info(&pointer);
 
-
-			if (file_check_for_filepath(windat->file))
-				filename = windat->file->filename;
-			else
-				filename = NULL;
-
-		saveas_initialise_dialogue(transact_saveas_file, filename, "DefTransFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(transact_saveas_file, NULL, "DefTransFile", NULL, FALSE, FALSE, windat);
 		saveas_prepare_dialogue(transact_saveas_file);
 		saveas_open_dialogue(transact_saveas_file, &pointer);
 	}

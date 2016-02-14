@@ -124,7 +124,7 @@ void iconbar_initialise(void)
 	event_add_window_mouse_event(wimp_ICON_BAR, iconbar_click_handler);
 	event_add_window_menu(wimp_ICON_BAR, iconbar_menu);
 	event_add_window_menu_selection(wimp_ICON_BAR, iconbar_menu_selection);
-	
+
 	dataxfer_set_drop_target(dataxfer_TYPE_CASHBOOK, wimp_ICON_BAR, -1, iconbar_load_cashbook_file, NULL);
 	dataxfer_set_load_type(dataxfer_TYPE_CASHBOOK, iconbar_load_cashbook_file, NULL);
 }

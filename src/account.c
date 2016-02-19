@@ -3672,7 +3672,7 @@ acct_t account_lookup_field(struct file_block *file, char key, enum account_type
 {
 	osbool	new_rec = FALSE;
 
-	if (file == NULL || file->accounts == NULL || !account_valid(file->accounts, account))
+	if (file == NULL || file->accounts == NULL)
 		return NULL_ACCOUNT;
 
 	/* If the character is an alphanumeric or a delete, look up the ident as it stends. */

@@ -107,6 +107,18 @@
 
 #define REPORT_EXPORT_LINE_LENGTH 256
 
+/**
+ * The number of tab bars which can be defined.
+ */
+
+#define REPORT_TAB_BARS 5
+
+/**
+ * The maximum length of a font name.
+ */
+
+#define REPORT_MAX_FONT_NAME 128
+
 enum report_page_area {
 	REPORT_PAGE_NONE   = 0,
 	REPORT_PAGE_BODY   = 1,
@@ -148,8 +160,8 @@ struct report {
 
 	/* Font data */
 
-	char			font_normal[MAX_REP_FONT_NAME];			/**< Name of 'normal' outline font.			*/
-	char			font_bold[MAX_REP_FONT_NAME];			/**< Name of bold outline font.				*/
+	char			font_normal[REPORT_MAX_FONT_NAME];		/**< Name of 'normal' outline font.			*/
+	char			font_bold[REPORT_MAX_FONT_NAME];		/**< Name of bold outline font.				*/
 	int			font_size;					/**< Font size in 1/16 points.				*/
 	int			line_spacing;					/**< Line spacing in percent.				*/
 
@@ -682,8 +694,8 @@ static int report_reflow_content(struct report *report)
 
 	/* Reset the flags used to keep track of items. */
 
-	for (i=0; i<REPORT_TAB_BARS; i++) {
-		for (j=0; j<REPORT_TAB_STOPS; j++) {
+	for (i = 0; i < REPORT_TAB_BARS; i++) {
+		for (j = 0; j < REPORT_TAB_STOPS; j++) {
 			right[i][j]  = FALSE;		/* Flag to mark if anything in a column has been right-aligned. */
 
 							/* These are in OS units, for on screen rendering. */
@@ -792,8 +804,8 @@ static int report_reflow_content(struct report *report)
 	 * must record the widest width; if not, we can get away with the widest non-end-column width.
 	 */
 
-	for (i=0; i<REPORT_TAB_BARS; i++) {
-		for (j=0; j<REPORT_TAB_STOPS; j++) {
+	for (i = 0; i < REPORT_TAB_BARS; i++) {
+		for (j = 0; j < REPORT_TAB_STOPS; j++) {
 			report->font_width[i][j] = (right[i][j]) ? width1[i][j] : width2[i][j];
 			report->text_width[i][j] = (right[i][j]) ? t_width1[i][j] : t_width2[i][j];
 		}
@@ -803,14 +815,14 @@ static int report_reflow_content(struct report *report)
 	 * inter-column gap.
 	 */
 
-	for (i=0; i<REPORT_TAB_BARS; i++) {
+	for (i = 0; i < REPORT_TAB_BARS; i++) {
 		report->font_tab[i][0] = 0;
 
 		#ifdef DEBUG
 		debug_printf("Set tab bar %d (tab 0 = 0)", i);
 		#endif
 
-		for (j=1; j<REPORT_TAB_STOPS; j++) {
+		for (j = 1; j  < REPORT_TAB_STOPS; j++) {
 			report->font_tab[i][j] = report->font_tab[i][j-1] + report->font_width[i][j-1] + REPORT_COLUMN_SPACE;
 
 			#ifdef DEBUG
@@ -825,8 +837,8 @@ static int report_reflow_content(struct report *report)
 
 	total = 0;
 
-	for (i=0; i<REPORT_TAB_BARS; i++) {
-		for (j=0; j<REPORT_TAB_STOPS; j++) {
+	for (i = 0; i < REPORT_TAB_BARS; i++) {
+		for (j = 0; j < REPORT_TAB_STOPS; j++) {
 			if (width1[i][j] > 0 && report->font_tab[i][j] + width1[i][j] > total) {
 				total = report->font_tab[i][j] + width1[i][j];
 			}

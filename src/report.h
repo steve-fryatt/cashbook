@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -65,6 +65,12 @@
 #define REPORT_LINE_SIZE 250
 
 #define REPORT_MAX_LINE_LEN 1000
+
+/**
+ * The maximum number of tabs stops in a tab bar.
+ */
+
+#define REPORT_TAB_STOPS 20
 
 /* Layout details */
 

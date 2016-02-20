@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -100,23 +100,6 @@
 #define ACCVIEW_COLUMNS 10
 #define ACCVIEW_TOOLBAR_HEIGHT 132
 #define MIN_ACCVIEW_ENTRIES 10
-
-/* Report details. */
-
-#define REPORT_TAB_STOPS 20
-#define REPORT_TAB_BARS 5
-#define MAX_REP_FONT_NAME 128
-
-/* Report dialogues. */
-/* SPEC_LEN is the length of the text fields; LIST_LEN is the number of accounts that can be stored. */
-
-#define REPORT_ACC_SPEC_LEN 128
-#define REPORT_ACC_LIST_LEN 64
-
-/* Saved Report templates */
-
-#define SAVED_REPORT_NAME_LEN 32
-
 
 /* ==================================================================================================================
  * Basic types

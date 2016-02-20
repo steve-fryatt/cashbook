@@ -204,6 +204,17 @@
 #define ANALYSIS_LOOKUP_CANCEL 3
 #define ANALYSIS_LOOKUP_OK 4
 
+/* Report dialogues. */
+/* SPEC_LEN is the length of the text fields; LIST_LEN is the number of accounts that can be stored. */
+
+#define ANALYSIS_ACC_SPEC_LEN 128
+#define ANALYSIS_ACC_LIST_LEN 64
+
+/* Saved Report templates */
+
+#define ANALYSIS_SAVED_NAME_LEN 32
+
+
 /**
  * Transaction Report dialogue.
  */
@@ -220,8 +231,8 @@ struct trans_rep {
 
 	int				from_count;
 	int				to_count;
-	acct_t				from[REPORT_ACC_LIST_LEN];
-	acct_t				to[REPORT_ACC_LIST_LEN];
+	acct_t				from[ANALYSIS_ACC_LIST_LEN];
+	acct_t				to[ANALYSIS_ACC_LIST_LEN];
 	char				ref[REF_FIELD_LEN];
 	char				desc[DESCRIPT_FIELD_LEN];
 	amt_t				amount_min;
@@ -246,8 +257,8 @@ struct unrec_rep {
 
 	int				from_count;
 	int				to_count;
-	acct_t				from[REPORT_ACC_LIST_LEN];
-	acct_t				to[REPORT_ACC_LIST_LEN];
+	acct_t				from[ANALYSIS_ACC_LIST_LEN];
+	acct_t				to[ANALYSIS_ACC_LIST_LEN];
 };
 
 /* Cashflow Report dialogue. */
@@ -266,9 +277,9 @@ struct cashflow_rep {
 	int				accounts_count;
 	int				incoming_count;
 	int				outgoing_count;
-	acct_t				accounts[REPORT_ACC_LIST_LEN];
-	acct_t				incoming[REPORT_ACC_LIST_LEN];
-	acct_t				outgoing[REPORT_ACC_LIST_LEN];
+	acct_t				accounts[ANALYSIS_ACC_LIST_LEN];
+	acct_t				incoming[ANALYSIS_ACC_LIST_LEN];
+	acct_t				outgoing[ANALYSIS_ACC_LIST_LEN];
 
   int          tabular;
 };
@@ -288,9 +299,9 @@ struct balance_rep {
 	int				accounts_count;
 	int				incoming_count;
 	int				outgoing_count;
-	acct_t				accounts[REPORT_ACC_LIST_LEN];
-	acct_t				incoming[REPORT_ACC_LIST_LEN];
-	acct_t				outgoing[REPORT_ACC_LIST_LEN];
+	acct_t				accounts[ANALYSIS_ACC_LIST_LEN];
+	acct_t				incoming[ANALYSIS_ACC_LIST_LEN];
+	acct_t				outgoing[ANALYSIS_ACC_LIST_LEN];
 
   int          tabular;
 };
@@ -337,7 +348,7 @@ union analysis_report_block {
 
 struct analysis_report {
 	struct file_block		*file;					/**< The file to which the template belongs.					*/
-	char				name[SAVED_REPORT_NAME_LEN];		/**< The name of the saved report template.					*/
+	char				name[ANALYSIS_SAVED_NAME_LEN];	/**< The name of the saved report template.					*/
 	enum analysis_report_type	type;					/**< The type of the template.							*/
 
 	union analysis_report_block	data;					/**< The template-type-specific data.						*/
@@ -349,7 +360,7 @@ struct analysis_report {
 
 struct analysis_report_link
 {
-	char				name[SAVED_REPORT_NAME_LEN + 3];	/**< The name as it appears in the menu (+3 for ellipsis...)			*/
+	char				name[ANALYSIS_SAVED_NAME_LEN + 3];	/**< The name as it appears in the menu (+3 for ellipsis...)			*/
 	int				template;				/**< Index link to the associated report template in the saved report array.	*/
 };
 
@@ -3901,7 +3912,7 @@ static void analysis_set_account_report_flags_from_list(struct file_block *file,
  * \param type			The type(s) of account to process.
  * \param *list			The textual account ident list to process.
  * \param *array		Pointer to memory to take the numeric list,
- *				with space for REPORT_ACC_LIST_LEN entries.
+ *				with space for ANALYSIS_ACC_LIST_LEN entries.
  * \return			The number of entries added to the list.
  */
 
@@ -3917,7 +3928,7 @@ static int analysis_account_idents_to_list(struct file_block *file, unsigned typ
 
 	ident = strtok(copy, ",");
 
-	while (ident != NULL && i < REPORT_ACC_LIST_LEN) {
+	while (ident != NULL && i < ANALYSIS_ACC_LIST_LEN) {
 		if (strcmp(ident, "*") == 0) {
 			array[i++] = NULL_ACCOUNT;
 		} else {
@@ -3941,7 +3952,7 @@ static int analysis_account_idents_to_list(struct file_block *file, unsigned typ
  *
  * \param *file			The file to process.
  * \param *list			Pointer to the buffer to take the textual
- *				list, which must be REPORT_ACC_SPEC_LEN long.
+ *				list, which must be ANALYSIS_ACC_SPEC_LEN long.
  * \param *array		The account list array to be converted.
  * \param len			The number of accounts in the list.
  */
@@ -3961,10 +3972,10 @@ static void analysis_account_list_to_idents(struct file_block *file, char *list,
 		else
 			strcpy(buffer, "*");
 
-		if (strlen(list) > 0 && strlen(list)+1 < REPORT_ACC_SPEC_LEN)
+		if (strlen(list) > 0 && strlen(list)+1 < ANALYSIS_ACC_SPEC_LEN)
 			strcat(list, ",");
 
-		if (strlen(list) + strlen(buffer) < REPORT_ACC_SPEC_LEN)
+		if (strlen(list) + strlen(buffer) < ANALYSIS_ACC_SPEC_LEN)
 			strcat(list, buffer);
 	}
 }
@@ -3977,7 +3988,7 @@ static void analysis_account_list_to_idents(struct file_block *file, char *list,
  * \param *file			The file to process.
  * \param *list			The textual hex number list to process.
  * \param *array		Pointer to memory to take the numeric list,
- *				with space for REPORT_ACC_LIST_LEN entries.
+ *				with space for ANALYSIS_ACC_LIST_LEN entries.
  * \return			The number of entries added to the list.
  */
 
@@ -3993,7 +4004,7 @@ int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *ar
 
 	value = strtok(copy, ",");
 
-	while (value != NULL && i < REPORT_ACC_LIST_LEN) {
+	while (value != NULL && i < ANALYSIS_ACC_LIST_LEN) {
 		array[i++] = strtoul(value, NULL, 16);
 
 		value = strtok(NULL, ",");

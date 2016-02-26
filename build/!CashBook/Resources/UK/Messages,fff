@@ -50,6 +50,7 @@ NoMemNewFile:There was not enough memory to create the new file.
 
 TransTitle:Transaction list: %0
 
+TransactNoMem:There was not enough memory to open the transaction window.
 NoMemNewTrans:There was not enough memory to add a new transaction.
 
 # Cheque and Payin slip number insertion

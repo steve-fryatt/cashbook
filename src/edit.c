@@ -76,6 +76,12 @@
 #define DATE_FIELD_LEN 11
 
 
+struct edit_block {
+	wimp_window		*template;		/**< The template for the parent window.					*/
+	wimp_w			parent;			/**< The parent window that the edit line belongs to.				*/
+};
+
+
 /**
  * \TODO -- This is an exact duplicate of the struct definition in transact.c.
  *          It needs to be removed once all references to transactions[] in
@@ -122,6 +128,10 @@ struct transact_block {
 	char			window_title[256];
 	wimp_w			transaction_pane;				/**< Window handle of the transaction window toolbar pane */
 
+	/* Edit line details. */
+
+	struct edit_block	*edit_line;					/**< Instance handle of the edit line.					*/
+
 	/* Display column details. */
 
 	int			column_width[TRANSACT_COLUMNS];			/**< Array holding the column widths in the transaction window. */
@@ -163,8 +173,6 @@ static char	buffer_reference [REF_FIELD_LEN];
 static char	buffer_amount[AMOUNT_FIELD_LEN];
 static char	buffer_description[DESCRIPT_FIELD_LEN];
 
-wimp_window *edit_transact_window_def = NULL;	/* \TODO -- Ick! */
-
 
 static void	edit_find_icon_horizontally(struct file_block *file);
 static void	edit_set_line_shading(struct file_block *file);
@@ -182,6 +190,46 @@ static char	*find_complete_description(struct file_block *file, int line, char *
 #define transact_valid(windat, transaction) (((transaction) != NULL_TRANSACTION) && ((transaction) >= 0) && ((transaction) < ((windat)->trans_count)))
 
 
+/**
+ * Create a new edit line instance.
+ *
+ * \param *template	Pointer to the window template definition to use for the edit icons.
+ * \param parent	The window handle in which the edit line will reside.
+ * \return		The new instance handle, or NULL on failure.
+ */
+
+struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent)
+{
+	struct edit_block *new;
+
+	new = heap_alloc(sizeof(struct edit_block));
+	if (new == NULL)
+		return NULL;
+
+	new->template = template;
+	new->parent = parent;
+
+	debug_printf("Created new edit line: 0x%x", new);
+
+	return new;
+}
+
+
+/**
+ * Delete an edit line instance.
+ *
+ * \param *instance	The instance handle to delete.
+ */
+
+void edit_delete_instance(struct edit_block *instance)
+{
+	if (instance == NULL)
+		return;
+
+	debug_printf("Deleting edit line: 0x%x", instance);
+
+	heap_free(instance);
+}
 
 /**
  * Create an edit line at the specified point in the given file's transaction
@@ -190,18 +238,19 @@ static char	*find_complete_description(struct file_block *file, int line, char *
  * The caret isn't placed in this routine.  That is left up to the caller, so
  * that they can place it depending on their context.
  *
+ * \param *edit		The edit instance to process.
  * \param *file		The file to place the edit line in.
  * \param line		The line to place the edit line at, in terms of
  *			sorted display (not the raw transaction number).
  */
 
-void edit_place_new_line(struct file_block *file, int line)
+void edit_place_new_line(struct edit_block *edit, struct file_block *file, int line)
 {
 	int			i, transaction;
 	wimp_icon_create	icon_block;
 
 
-	if (file == NULL || file->transacts == NULL || line == -1)
+	if (edit == NULL || file == NULL || file->transacts == NULL || line == -1)
 		return;
 
 	/* Start by deleting any existing edit line, from any open transaction window. */
@@ -231,44 +280,43 @@ void edit_place_new_line(struct file_block *file, int line)
 
 	/* Set up the indirected buffers. */
 
-	edit_transact_window_def->icons[EDIT_ICON_ROW].data.indirected_text.text = buffer_row;
-	edit_transact_window_def->icons[EDIT_ICON_ROW].data.indirected_text.size = ROW_FIELD_LEN;
+	edit->template->icons[EDIT_ICON_ROW].data.indirected_text.text = buffer_row;
+	edit->template->icons[EDIT_ICON_ROW].data.indirected_text.size = ROW_FIELD_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_DATE].data.indirected_text.text = buffer_date;
-	edit_transact_window_def->icons[EDIT_ICON_DATE].data.indirected_text.size = DATE_FIELD_LEN;
+	edit->template->icons[EDIT_ICON_DATE].data.indirected_text.text = buffer_date;
+	edit->template->icons[EDIT_ICON_DATE].data.indirected_text.size = DATE_FIELD_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_FROM].data.indirected_text.text = buffer_from_ident;
-	edit_transact_window_def->icons[EDIT_ICON_FROM].data.indirected_text.size = ACCOUNT_IDENT_LEN;
+	edit->template->icons[EDIT_ICON_FROM].data.indirected_text.text = buffer_from_ident;
+	edit->template->icons[EDIT_ICON_FROM].data.indirected_text.size = ACCOUNT_IDENT_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_FROM_REC].data.indirected_text.text = buffer_from_rec;
-	edit_transact_window_def->icons[EDIT_ICON_FROM_REC].data.indirected_text.size = REC_FIELD_LEN;
+	edit->template->icons[EDIT_ICON_FROM_REC].data.indirected_text.text = buffer_from_rec;
+	edit->template->icons[EDIT_ICON_FROM_REC].data.indirected_text.size = REC_FIELD_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_FROM_NAME].data.indirected_text.text = buffer_from_name;
-	edit_transact_window_def->icons[EDIT_ICON_FROM_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
+	edit->template->icons[EDIT_ICON_FROM_NAME].data.indirected_text.text = buffer_from_name;
+	edit->template->icons[EDIT_ICON_FROM_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_TO].data.indirected_text.text = buffer_to_ident;
-	edit_transact_window_def->icons[EDIT_ICON_TO].data.indirected_text.size = ACCOUNT_IDENT_LEN;
+	edit->template->icons[EDIT_ICON_TO].data.indirected_text.text = buffer_to_ident;
+	edit->template->icons[EDIT_ICON_TO].data.indirected_text.size = ACCOUNT_IDENT_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_TO_REC].data.indirected_text.text = buffer_to_rec;
-	edit_transact_window_def->icons[EDIT_ICON_TO_REC].data.indirected_text.size = REC_FIELD_LEN;
+	edit->template->icons[EDIT_ICON_TO_REC].data.indirected_text.text = buffer_to_rec;
+	edit->template->icons[EDIT_ICON_TO_REC].data.indirected_text.size = REC_FIELD_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_TO_NAME].data.indirected_text.text = buffer_to_name;
-	edit_transact_window_def->icons[EDIT_ICON_TO_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
+	edit->template->icons[EDIT_ICON_TO_NAME].data.indirected_text.text = buffer_to_name;
+	edit->template->icons[EDIT_ICON_TO_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_REF].data.indirected_text.text = buffer_reference;
-	edit_transact_window_def->icons[EDIT_ICON_REF].data.indirected_text.size = REF_FIELD_LEN;
+	edit->template->icons[EDIT_ICON_REF].data.indirected_text.text = buffer_reference;
+	edit->template->icons[EDIT_ICON_REF].data.indirected_text.size = REF_FIELD_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_AMOUNT].data.indirected_text.text = buffer_amount;
-	edit_transact_window_def->icons[EDIT_ICON_AMOUNT].data.indirected_text.size = AMOUNT_FIELD_LEN;
+	edit->template->icons[EDIT_ICON_AMOUNT].data.indirected_text.text = buffer_amount;
+	edit->template->icons[EDIT_ICON_AMOUNT].data.indirected_text.size = AMOUNT_FIELD_LEN;
 
-	edit_transact_window_def->icons[EDIT_ICON_DESCRIPT].data.indirected_text.text = buffer_description;
-	edit_transact_window_def->icons[EDIT_ICON_DESCRIPT].data.indirected_text.size = DESCRIPT_FIELD_LEN;
+	edit->template->icons[EDIT_ICON_DESCRIPT].data.indirected_text.text = buffer_description;
+	edit->template->icons[EDIT_ICON_DESCRIPT].data.indirected_text.size = DESCRIPT_FIELD_LEN;
 
 	/* Initialise the data. */
 
 	if (transact_valid(file->transacts, line)) {
 		transaction = file->transacts->transactions[line].sort_index;
-
 		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
 		date_convert_to_string(file->transacts->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
 		strncpy(buffer_from_ident, account_get_ident(file, file->transacts->transactions[transaction].from), ACCOUNT_IDENT_LEN);
@@ -303,7 +351,7 @@ void edit_place_new_line(struct file_block *file, int line)
 	/* Set the icon positions correctly and create them. */
 
 	for (i=0; i < TRANSACT_COLUMNS; i++) {
-		memcpy(&(icon_block.icon), &(edit_transact_window_def->icons[i]), sizeof(wimp_icon));
+		memcpy(&(icon_block.icon), &(edit->template->icons[i]), sizeof(wimp_icon));
 
 		icon_block.icon.extent.x0 = file->transacts->column_position[i];
 		icon_block.icon.extent.x1 = file->transacts->column_position[i]
@@ -328,22 +376,23 @@ void edit_place_new_line(struct file_block *file, int line)
 /**
  * Place a new edit line by raw transaction number.
  *
+ * \param *edit		The edit instance to process.
  * \param *file		The file to place the line in.
  * \param transaction	The transaction to place the line on.
  */
 
-void edit_place_new_line_by_transaction(struct file_block *file, int transaction)
+void edit_place_new_line_by_transaction(struct edit_block *edit, struct file_block *file, int transaction)
 {
 	int        i;
 	wimp_caret caret;
 
-	if (file == NULL || file->transacts == NULL || edit_entry_window != file->transacts)
+	if (edit == NULL || file == NULL || file->transacts == NULL || edit_entry_window != file->transacts)
 		return;
 
 	if (transaction != NULL_TRANSACTION) {
 		for (i = 0; i < file->transacts->trans_count; i++) {
 			if (file->transacts->transactions[i].sort_index == transaction) {
-				edit_place_new_line(file, i);
+				edit_place_new_line(edit, file, i);
 				wimp_get_caret_position(&caret);
 				if (caret.w == file->transacts->transaction_window)
 					icons_put_caret_at_end(file->transacts->transaction_window, EDIT_ICON_DATE);
@@ -353,7 +402,7 @@ void edit_place_new_line_by_transaction(struct file_block *file, int transaction
 			}
 		}
 	} else {
-		edit_place_new_line(file, file->transacts->trans_count);
+		edit_place_new_line(edit, file, file->transacts->trans_count);
 		wimp_get_caret_position(&caret);
 		if (caret.w == file->transacts->transaction_window)
 			icons_put_caret_at_end(file->transacts->transaction_window, EDIT_ICON_DATE);
@@ -1089,7 +1138,7 @@ void edit_insert_preset_into_transaction(struct file_block *file, tran_t transac
 	unsigned	changed = 0;
 
 
-	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction) || !preset_test_index_valid(file, preset))
+	if (file == NULL || file->transacts == NULL || file->transacts->edit_line == NULL || !transact_valid(file->transacts, transaction) || !preset_test_index_valid(file, preset))
 		return;  
   
 	account_remove_transaction(file, transaction);
@@ -1106,7 +1155,7 @@ void edit_insert_preset_into_transaction(struct file_block *file, tran_t transac
 	 * the transaction window line and mark the file as modified.
 	 */
 
-	edit_place_new_line_by_transaction(file, transaction);
+	edit_place_new_line_by_transaction(file->transacts->edit_line, file, transaction);
 
 	icons_put_caret_at_end(file->transacts->transaction_window,
 			edit_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
@@ -1273,19 +1322,20 @@ static void edit_delete_line_transaction_content(struct file_block *file)
  * Handle keypresses in an edit line (and hence a transaction window). Process
  * any function keys, then pass content keys on to the edit handler.
  *
+ * \param *edit		The edit instance to process.
  * \param *file		The file to pass they keys to.
  * \param *key		The Wimp's key event block.
  * \return		TRUE if the key was handled; FALSE if not.
  */
 
-osbool edit_process_keypress(struct file_block *file, wimp_key *key)
+osbool edit_process_keypress(struct edit_block *edit, struct file_block *file, wimp_key *key)
 {
 	wimp_caret	caret;
 	wimp_i		icon;
 	int		transaction, previous;
 
 
-	if (file == NULL || file->transacts == NULL)
+	if (edit == NULL || file == NULL || file->transacts == NULL)
 		return FALSE;
 
 	if (key->c == wimp_KEY_F10 + wimp_KEY_CONTROL) {
@@ -1302,7 +1352,7 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 		if (edit_entry_window == file->transacts && file->transacts->entry_line > 0) {
 			wimp_get_caret_position(&caret);
 			edit_refresh_line_content(edit_entry_window->transaction_window, caret.i, -1);
-			edit_place_new_line(file, file->transacts->entry_line - 1);
+			edit_place_new_line(edit, file, file->transacts->entry_line - 1);
 			wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y - (ICON_HEIGHT+LINE_GUTTER), -1, -1);
 			edit_find_line_vertically(file);
 		}
@@ -1310,7 +1360,7 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 		if (edit_entry_window == file->transacts) {
 			wimp_get_caret_position(&caret);
 			edit_refresh_line_content(edit_entry_window->transaction_window, caret.i, -1);
-			edit_place_new_line(file, file->transacts->entry_line + 1);
+			edit_place_new_line(edit, file, file->transacts->entry_line + 1);
 			wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y + (ICON_HEIGHT+LINE_GUTTER), -1, -1);
 			edit_find_line_vertically(file);
 		}
@@ -1420,9 +1470,9 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 				edit_find_icon_horizontally(file);
 			} else {
 				if (key->c == wimp_KEY_RETURN)
-					edit_place_new_line(file, transact_find_first_blank_line(file));
+					edit_place_new_line(edit, file, transact_find_first_blank_line(file));
 				else
-					edit_place_new_line(file, file->transacts->entry_line + 1);
+					edit_place_new_line(edit, file, file->transacts->entry_line + 1);
 
 				icons_put_caret_at_end(edit_entry_window->transaction_window, EDIT_ICON_DATE);
 				edit_find_icon_horizontally(file);
@@ -1452,7 +1502,7 @@ osbool edit_process_keypress(struct file_block *file, wimp_key *key)
 				edit_find_line_vertically(file);
 			} else {
 				if (file->transacts->entry_line > 0) {
-					edit_place_new_line(file, file->transacts->entry_line - 1);
+					edit_place_new_line(edit, file, file->transacts->entry_line - 1);
 					icons_put_caret_at_end(edit_entry_window->transaction_window, EDIT_ICON_DESCRIPT);
 					edit_find_icon_horizontally(file);
 				}

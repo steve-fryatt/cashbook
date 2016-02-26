@@ -49,8 +49,31 @@
 #define EDIT_ICON_AMOUNT 9
 #define EDIT_ICON_DESCRIPT 10
 
+/**
+ * The edit line instance block.
+ */
 
-extern wimp_window *edit_transact_window_def;
+struct edit_block;
+
+
+/**
+ * Create a new edit line instance.
+ *
+ * \param *template	Pointer to the window template definition to use for the edit icons.
+ * \param parent	The window handle in which the edit line will reside.
+ * \return		The new instance handle, or NULL on failure.
+ */
+
+struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent);
+
+
+/**
+ * Delete an edit line instance.
+ *
+ * \param *instance	The instance handle to delete.
+ */
+
+void edit_delete_instance(struct edit_block *instance);
 
 
 /**
@@ -60,21 +83,23 @@ extern wimp_window *edit_transact_window_def;
  * The caret isn't placed in this routine.  That is left up to the caller, so
  * that they can place it depending on their context.
  *
+ * \param *edit		The edit instance to process.
  * \param *file		The file to place the edit line in.
  * \param line		The line to place the edit line at.
  */
 
-void edit_place_new_line(struct file_block *file, int line);
+void edit_place_new_line(struct edit_block *edit, struct file_block *file, int line);
 
 
 /**
  * Place a new edit line by raw transaction number.
  *
+ * \param *edit		The edit instance to process.
  * \param *file		The file to place the line in.
  * \param transaction	The transaction to place the line on.
  */
 
-void edit_place_new_line_by_transaction(struct file_block *file, int transaction);
+void edit_place_new_line_by_transaction(struct edit_block *edit, struct file_block *file, int transaction);
 
 
 /**
@@ -188,12 +213,13 @@ void edit_insert_preset_into_transaction(struct file_block *file, tran_t transac
  * Handle keypresses in an edit line (and hence a transaction window). Process
  * any function keys, then pass content keys on to the edit handler.
  *
+ * \param *edit		The edit instance to process.
  * \param *file		The file to pass they keys to.
  * \param *key		The Wimp's key event block.
  * \return		TRUE if the key was handled; FALSE if not.
  */
 
-osbool edit_process_keypress(struct file_block *file, wimp_key *key);
+osbool edit_process_keypress(struct edit_block *edit, struct file_block *file, wimp_key *key);
 
 #endif
 

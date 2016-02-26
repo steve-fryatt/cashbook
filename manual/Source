@@ -1496,6 +1496,8 @@ Fourth stable release.
 
 <subhead title="1.35 (26 February 2016)">
 
+Update to fourth stable release.
+
 <list>
 <li>Re-implemented Data Transfer support code into a more modern and maintainable format.
 <li>Correctly carry column headings across from the first page when printing reports (ticket&nbsp;#409).

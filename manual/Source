@@ -1494,13 +1494,7 @@ Fourth stable release.
 </list>
 
 
-<subhead title="Test Build">
-
-Alpha release for testing and feedback.
-
-<box type="warning">
-This test build changes the file format used by <cite>CashBook</cite>. Files from earlier versions of the software will load into this test build without problem, but once saved they can not be used in version&nbsp;1.30 or earlier without some manual editing of their content. Take backups of your data before loading it into a test build.
-</box>
+<subhead title="1.35 (26 February 2016)">
 
 <list>
 <li>Re-implemented Data Transfer support code into a more modern and maintainable format.
@@ -1520,7 +1514,7 @@ This test build changes the file format used by <cite>CashBook</cite>. Files fro
 
 <cite>CashBook</cite> is a work in progress so if there is a feature that you think would be useful let me know.
 
-Now that a stable version 1.20 is available, the following ideas are under consideration; other suggestions for new features are welcome.
+Now that a stable version 1.35 is available, the following ideas are under consideration; other suggestions for new features are welcome.
 
 <list>
 <li>Reporting based on monthly variance.

@@ -495,10 +495,10 @@ static void find_fill_window(struct find_block *find_data, osbool restore)
 		date_convert_to_string(find_data->date, icons_get_indirected_text_addr(find_window, FIND_ICON_DATE),
 				icons_get_indirected_text_length(find_window, FIND_ICON_DATE));
 
-		fill_account_field(find_window_owner->file, find_data->from, find_data->from_rec,
+		fill_account_field(find_data->file, find_data->from, find_data->from_rec,
 				find_window, FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC);
 
-		fill_account_field(find_window_owner->file, find_data->to, find_data->to_rec,
+		fill_account_field(find_data->file, find_data->to, find_data->to_rec,
 				find_window, FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC);
 
 		icons_strncpy(find_window, FIND_ICON_REF, find_data->ref);

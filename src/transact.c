@@ -4117,6 +4117,10 @@ void transact_place_caret(struct file_block *file, int line, wimp_i icon)
 		return;
 
 	edit_place_new_line(file->transacts->edit_line, file, line);
+
+	if (icon == TRANSACT_ICON_ROW)
+		icon = TRANSACT_ICON_DATE;
+
 	icons_put_caret_at_end(file->transacts->transaction_window, icon);
 	edit_find_line_vertically(file);
 }

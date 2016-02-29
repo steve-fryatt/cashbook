@@ -1507,6 +1507,16 @@ Update to fourth stable release.
 <li>Report correct transaction numbers in Found dialogue box (ticket&nbsp;#567).
 </list>
 
+
+<subhead title="1.36 (29 February 2016)">
+
+Update to fourth stable release.
+
+<list>
+<li>Don&rsquo;t try to place caret in transaction number column when looking up transactions from account views (ticket&nbsp;#578).
+<li>Use valid dialogue info pointers when opening Find dialogue (ticket&nbsp;#579).
+</list>
+
 </chapter>
 
 

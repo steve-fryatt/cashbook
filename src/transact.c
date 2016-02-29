@@ -242,17 +242,13 @@ struct transaction {
  */
 
 struct transact_block {
-	struct file_block	*file;						/**< The file to which the window belongs.				*/
+	struct file_block	*file;						/**< The file to which the window belongs.			*/
 
 	/* Transactcion window handle and title details. */
 
 	wimp_w			transaction_window;				/**< Window handle of the transaction window */
 	char			window_title[256];
 	wimp_w			transaction_pane;				/**< Window handle of the transaction window toolbar pane */
-
-	/* Edit line details. */
-
-	struct edit_block	*edit_line;					/**< Instance handle of the edit line.					*/
 
 	/* Display column details. */
 
@@ -406,7 +402,7 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_window_def = templates_load_window("Transact");
 	transact_window_def->icon_count = 0;
 
-//	edit_transact_window_def = transact_window_def;			/* \TODO -- Keep us compiling until the edit.c mess is fixed. */
+	edit_transact_window_def = transact_window_def;			/* \TODO -- Keep us compiling until the edit.c mess is fixed. */
 
 	transact_pane_def = templates_load_window("TransactTB");
 	transact_pane_def->sprite_area = sprites;
@@ -444,7 +440,6 @@ struct transact_block *transact_create_instance(struct file_block *file)
 
 	new->transaction_window = NULL;
 	new->transaction_pane = NULL;
-	new->edit_line = NULL;
 
 	column_init_window(new->column_width, new->column_position, TRANSACT_COLUMNS, 0, FALSE,
 			config_str_read("TransactCols"));
@@ -558,15 +553,6 @@ void transact_open_window(struct file_block *file)
 		return;
 	}
 
-	/* Construct the edit line. */
-
-	file->transacts->edit_line = edit_create_instance(transact_window_def, file->transacts->transaction_window);
-	if (file->transacts->edit_line == NULL) {
-		debug_printf("Oh dear");
-		error_msgs_report_error("TransactNoMem");
-		return;
-	}
-
 	/* Set the title */
 
 	transact_build_window_title(file);
@@ -638,11 +624,6 @@ static void transact_delete_window(struct transact_block *windat)
 		return;
 
 	sort_close_dialogue(transact_sort_dialogue, windat);
-
-	if (windat->edit_line != NULL) {
-		edit_delete_instance(windat->edit_line);
-		windat->edit_line = NULL;
-	}
 
 	if (windat->transaction_window != NULL) {
 		ihelp_remove_window(windat->transaction_window);
@@ -755,7 +736,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
 			if (line >= 0) {
-				edit_place_new_line(windat->edit_line, file, line);
+				edit_place_new_line(file, line);
 
 				/* Find the correct point for the caret and insert it. */
 
@@ -1129,7 +1110,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 		transact_scroll_window_to_end(file, TRANSACT_SCROLL_END);
 	} else {
 		/* Pass any keys that are left on to the edit line handler. */
-		return edit_process_keypress(windat->edit_line, file, key);
+		return edit_process_keypress(file, key);
 	}
 
 	return TRUE;
@@ -1838,7 +1819,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 
 	wimp_get_caret_position(&caret);
 
-	edit_place_new_line(windat->edit_line, windat->file, windat->entry_line);
+	edit_place_new_line(windat->file, windat->entry_line);
 	windows_redraw(windat->transaction_window);
 	windows_redraw(windat->transaction_pane);
 
@@ -3379,7 +3360,7 @@ void transact_sort(struct transact_block *windat)
 
 	/* Replace the edit line where we found it prior to the sort. */
 
-	edit_place_new_line_by_transaction(windat->edit_line, windat->file, edit_transaction);
+	edit_place_new_line_by_transaction(windat->file, edit_transaction);
 
 	/* If the caret's position was in the current transaction window, we need to
 	 * replace it in the same position now, so that we don't lose input focus.
@@ -4116,7 +4097,7 @@ void transact_place_caret(struct file_block *file, int line, wimp_i icon)
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	edit_place_new_line(file->transacts->edit_line, file, line);
+	edit_place_new_line(file, line);
 
 	if (icon == TRANSACT_ICON_ROW)
 		icon = TRANSACT_ICON_DATE;

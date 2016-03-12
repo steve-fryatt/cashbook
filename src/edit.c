@@ -79,6 +79,8 @@
 struct edit_block {
 	wimp_window		*template;		/**< The template for the parent window.					*/
 	wimp_w			parent;			/**< The parent window that the edit line belongs to.				*/
+
+	int			edit_line;		/**< The line currently marked for entry, in terms of window lines, or -1.	*/
 };
 
 
@@ -159,6 +161,10 @@ struct transact_block {
 
 static struct transact_block *edit_entry_window = NULL;
 
+/* A pointer to the instance currently holding the active edit line. */
+
+static struct edit_block *edit_active_instance = NULL;
+
 /* The following are the buffers used by the edit line in the transaction window. */
 
 static char	buffer_row[ROW_FIELD_LEN];
@@ -209,7 +215,7 @@ struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent)
 	new->template = template;
 	new->parent = parent;
 
-	debug_printf("Created new edit line: 0x%x", new);
+	new->edit_line = -1;
 
 	return new;
 }
@@ -225,8 +231,6 @@ void edit_delete_instance(struct edit_block *instance)
 {
 	if (instance == NULL)
 		return;
-
-	debug_printf("Deleting edit line: 0x%x", instance);
 
 	heap_free(instance);
 }
@@ -255,16 +259,16 @@ void edit_place_new_line(struct edit_block *edit, struct file_block *file, int l
 
 	/* Start by deleting any existing edit line, from any open transaction window. */
 
-	if (edit_entry_window != NULL) {
+	if (edit_active_instance != NULL) {
 		/* The assumption is that the data will be safe as it's always copied into
 		 * memory as soon as a key is pressed in any of the writable icons...
 		 */
 
 		for (i = 0; i < TRANSACT_COLUMNS; i++)
-			wimp_delete_icon(edit_entry_window->transaction_window, (wimp_i) i);
+			wimp_delete_icon(edit_active_instance->parent, (wimp_i) i);
 
-		edit_entry_window->entry_line = -1;
-		edit_entry_window = NULL;
+		edit_active_instance->entry_line = -1;
+		edit_active_instance = NULL;
 	}
 
 	/* Extend the window work area if required. */
@@ -367,7 +371,7 @@ void edit_place_new_line(struct edit_block *edit, struct file_block *file, int l
 	/* Update the window data to show the line being edited. */
 
 	file->transacts->entry_line = line;
-	edit_entry_window = file->transacts;
+	edit_active_instance = edit;
 
 	edit_set_line_shading(file);
 }
@@ -386,7 +390,7 @@ void edit_place_new_line_by_transaction(struct edit_block *edit, struct file_blo
 	int        i;
 	wimp_caret caret;
 
-	if (edit == NULL || file == NULL || file->transacts == NULL || edit_entry_window != file->transacts)
+	if (edit == NULL || file == NULL || file->transacts == NULL || edit_active_instance != edit)
 		return;
 
 	if (transaction != NULL_TRANSACTION) {
@@ -431,10 +435,10 @@ void edit_file_deleted(struct file_block *file)
 /**
  * Bring the edit line into view in the window in a vertical direction.
  *
- * \param *file		The file that we're interested in working on
+ * \param *edit		The edit line instance that we're interested in working on
  */
 
-void edit_find_line_vertically(struct file_block *file)
+void edit_find_line_vertically(struct edit_block *)
 {
 	wimp_window_state	window;
 	int			height, top, bottom;

@@ -118,10 +118,10 @@ void edit_file_deleted(struct file_block *file);
 /**
  * Bring the edit line into view in the window in a vertical direction.
  *
- * \param *file		The file that we're interested in working on
+ * \param *edit		The edit line instance that we're interested in working on
  */
 
-void edit_find_line_vertically(struct file_block *file);
+void edit_find_line_vertically(struct edit_block *edit);
 
 
 /**

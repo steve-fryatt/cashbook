@@ -304,6 +304,8 @@ static void main_initialise(void)
 	/* Load the window templates. */
 
 	sprites = resources_load_user_sprite_area("<CashBook$Dir>.Sprites");
+	if (sprites == NULL)
+		error_msgs_report_fatal("NoSprites");
 
 	sprintf (res_temp, "%s.Menus", resources);
 	templates_load_menus(res_temp);

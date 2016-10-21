@@ -381,6 +381,7 @@ SORNext:\iNext due date:\t%0
 # Error messages
 
 BadTemplate:Failed to load template.
+NoSprites:The application sprites file could not be opened.
 
 # Interactive Help for windows and icons.
 #

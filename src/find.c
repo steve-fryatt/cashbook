@@ -134,8 +134,8 @@ struct find_block {
 	acct_t			to;						/**< The To account to match, or NULL_ACCOUNT for none.			*/
 	unsigned		to_rec;						/**< The To account's reconciled status. \TODO -- Merge with From?	*/
 	amt_t			amount;						/**< The Amount to match, or NULL_CURRENCY for "don't care".		*/
-	char			ref[REF_FIELD_LEN];				/**< The Reference to match; NULL or '\0' for "don't care".		*/
-	char			desc[DESCRIPT_FIELD_LEN];			/**< The Description to match; NULL or '\0' for "don't care".		*/
+	char			ref[TRANSACT_REF_FIELD_LEN];			/**< The Reference to match; NULL or '\0' for "don't care".		*/
+	char			desc[TRANSACT_DESCRIPT_FIELD_LEN];		/**< The Description to match; NULL or '\0' for "don't care".		*/
 
 	enum find_logic		logic;						/**< The logic to use to combine the fields specified above.		*/
 	osbool			case_sensitive;					/**< TRUE to match case of strings; FALSE to ignore.			*/
@@ -606,7 +606,7 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 	enum find_direction	direction;
 	enum transact_field	result;
 	wimp_pointer		pointer;
-	char			buf1[64], buf2[64], ref[REF_FIELD_LEN+2], desc[DESCRIPT_FIELD_LEN+2];
+	char			buf1[64], buf2[64], ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
 
 	/* If new parameters are being supplied, take copies. */
 
@@ -638,12 +638,12 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 	/* Take local copies of the two text fields, and add bracketing wildcards as necessary. */
 
 	if ((!find_params.whole_text) && (*(find_params.ref) != '\0'))
-		snprintf(ref, REF_FIELD_LEN + 2, "*%s*", find_params.ref);
+		snprintf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", find_params.ref);
 	else
 		strcpy(ref, find_params.ref);
 
 	if ((!find_params.whole_text) && (*(find_params.desc) != '\0'))
-		snprintf(desc, DESCRIPT_FIELD_LEN + 2, "*%s*", find_params.desc);
+		snprintf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", find_params.desc);
 	else
 		strcpy(desc, find_params.desc);
 

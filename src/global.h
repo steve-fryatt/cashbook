@@ -60,12 +60,8 @@
 
 #define ACCOUNT_ADDR_LINES 4
 
-/* The Description field below must be longer than the Refererence.*/
-
 #define REC_FIELD_LEN 2
-#define REF_FIELD_LEN 13
 #define AMOUNT_FIELD_LEN 15
-#define DESCRIPT_FIELD_LEN 101
 
 #define NULL_ACCOUNT ((acct_t) -1)
 #define NULL_TEMPLATE ((int) (-1))

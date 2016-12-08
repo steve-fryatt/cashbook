@@ -41,6 +41,27 @@ struct transact_block;
 
 #define NULL_TRANSACTION ((tran_t) (-1))
 
+/**
+ * The length of the text field needed to hold a transaction row number.
+ */
+
+#define TRANSACT_ROW_FIELD_LEN 10
+
+/**
+ * The length of a transaction reference.
+ * This must be equal to or shorter than the transaction description field.
+ */
+
+#define TRANSACT_REF_FIELD_LEN 13
+
+/**
+ * The length of a transaction description.
+ * This must be longer than the transaction reference field.
+ */
+
+#define TRANSACT_DESCRIPT_FIELD_LEN 101
+
+
 /* Transaction flags (bitwise allocation) */
 
 enum transact_flags {

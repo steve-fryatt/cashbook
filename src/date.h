@@ -55,6 +55,12 @@ typedef unsigned int	date_t;
 #define DATE_MAX ((date_t) 0x270f0c1f)
 
 /**
+ * The size of a textual date field.
+ */
+
+#define DATE_FIELD_LEN 11
+
+/**
  * Days of the week in the form of a bitfield, which can be added together
  * to represent groups of days.
  *

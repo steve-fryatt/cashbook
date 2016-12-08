@@ -185,8 +185,8 @@ struct preset {
 	acct_t			from;
 	acct_t			to;
 	amt_t			amount;
-	char			reference[REF_FIELD_LEN];
-	char			description[DESCRIPT_FIELD_LEN];
+	char			reference[TRANSACT_REF_FIELD_LEN];
+	char			description[TRANSACT_DESCRIPT_FIELD_LEN];
 
 	/* Sort index entries.
 	 *
@@ -967,7 +967,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 	struct preset_block	*windat;
 	struct file_block	*file;
 	int			ox, oy, top, base, y, i, t;
-	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
 	windat = event_get_window_user_data(redraw->w);
@@ -1126,7 +1126,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					PRESET_TOOLBAR_HEIGHT;
 			if (y < windat->preset_count)
-				currency_convert_to_string(windat->presets[t].amount, icon_buffer, DESCRIPT_FIELD_LEN);
+				currency_convert_to_string(windat->presets[t].amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_AMOUNT]));
@@ -2541,7 +2541,7 @@ unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t 
 	/* Update the reference. */
 
 	if (file->presets->presets[preset].flags & TRANS_TAKE_CHEQUE) {
-		account_get_next_cheque_number(file, *from, *to, 1, reference, REF_FIELD_LEN);
+		account_get_next_cheque_number(file, *from, *to, 1, reference, TRANSACT_REF_FIELD_LEN);
 		changed |= (1 << EDIT_ICON_REF);
 	} else if (*(file->presets->presets[preset].reference) != '\0' && strcmp(reference, file->presets->presets[preset].reference) != 0) {
 		strcpy(reference, file->presets->presets[preset].reference);

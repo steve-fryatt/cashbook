@@ -50,6 +50,18 @@
 #define EDIT_ICON_DESCRIPT 10
 
 /**
+ * The different types of field available in an edit line.
+ */
+
+enum edit_field_type {
+	EDIT_FIELD_DISPLAY,		/**< A display field which can not be edited.	*/
+	EDIT_FIELD_TEXT,		/**< A plain text field.			*/
+	EDIT_FIELD_CURRENCY,		/**< A currency field.				*/
+	EDIT_FIELD_DATE,		/**< A date field.				*/
+	EDIT_FIELD_ACCOUNT,		/**< An account field.				*/
+};
+
+/**
  * The edit line instance block.
  */
 
@@ -75,6 +87,9 @@ struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent);
 
 void edit_delete_instance(struct edit_block *instance);
 
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ...);
+
+#ifdef LOSE
 
 /**
  * Create an edit line at the specified point in the given file's transaction
@@ -83,12 +98,11 @@ void edit_delete_instance(struct edit_block *instance);
  * The caret isn't placed in this routine.  That is left up to the caller, so
  * that they can place it depending on their context.
  *
- * \param *edit		The edit instance to process.
- * \param *file		The file to place the edit line in.
+ * \param *instance	The edit instance to process.
  * \param line		The line to place the edit line at.
  */
 
-void edit_place_new_line(struct edit_block *edit, struct file_block *file, int line);
+void void edit_place_new_line(struct edit_block *instance, int line);
 
 
 /**
@@ -100,19 +114,6 @@ void edit_place_new_line(struct edit_block *edit, struct file_block *file, int l
  */
 
 void edit_place_new_line_by_transaction(struct edit_block *edit, struct file_block *file, int transaction);
-
-
-/**
- * Inform the edit line code that a file has been deleted: this removes any
- * references to the edit line if it is within that file's transaction window.
- * 
- * Note that it isn't possible to delete an edit line and its icons: it will
- * only be completely destroyed if the parent window is deleted.
- *
- * \param *file		The file to be deleted.
- */
-
-void edit_file_deleted(struct file_block *file);
 
 
 /**
@@ -220,6 +221,6 @@ void edit_insert_preset_into_transaction(struct file_block *file, tran_t transac
  */
 
 osbool edit_process_keypress(struct edit_block *edit, struct file_block *file, wimp_key *key);
-
+#endif
 #endif
 

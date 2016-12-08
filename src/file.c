@@ -365,10 +365,6 @@ void delete_file(struct file_block *file)
 	if (report_get_pending_print_jobs(file) && error_msgs_report_question("PendingPrints", "PendingPrintsB") == 2)
 		return;
 
-	/* Remove the edit line reference. */
-
-	edit_file_deleted(file);
-
 	/* Delete the windows. */
 
 	if (file->transacts != NULL)

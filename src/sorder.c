@@ -198,8 +198,8 @@ struct sorder {
 	amt_t			normal_amount;
 	amt_t			first_amount;
 	amt_t			last_amount;
-	char			reference[REF_FIELD_LEN];
-	char			description[DESCRIPT_FIELD_LEN];
+	char			reference[TRANSACT_REF_FIELD_LEN];
+	char			description[TRANSACT_DESCRIPT_FIELD_LEN];
 
 	/* Sort index entries.
 	 *
@@ -963,7 +963,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 {
 	struct sorder_block	*windat;
 	int			ox, oy, top, base, y, i, t;
-	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
 	windat = event_get_window_user_data(redraw->w);
@@ -1097,7 +1097,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < windat->sorder_count)
-				currency_convert_to_string(windat->sorders[t].normal_amount, icon_buffer, DESCRIPT_FIELD_LEN);
+				currency_convert_to_string(windat->sorders[t].normal_amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_AMOUNT]));
@@ -1124,7 +1124,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 					SORDER_TOOLBAR_HEIGHT;
 			if (y < windat->sorder_count) {
 				if (windat->sorders[t].adjusted_next_date != NULL_DATE)
-					date_convert_to_string(windat->sorders[t].adjusted_next_date, icon_buffer, DESCRIPT_FIELD_LEN);
+					date_convert_to_string(windat->sorders[t].adjusted_next_date, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 				else
 					msgs_lookup("SOrderStopped", icon_buffer, sizeof (icon_buffer));
 			} else {
@@ -2470,7 +2470,7 @@ void sorder_process(struct file_block *file)
 	sorder_t	order;
 	int		amount;
 	osbool		changed;
-	char		ref[REF_FIELD_LEN], desc[DESCRIPT_FIELD_LEN];
+	char		ref[TRANSACT_REF_FIELD_LEN], desc[TRANSACT_DESCRIPT_FIELD_LEN];
 
 	if (file == NULL || file->sorders == NULL)
 		return;

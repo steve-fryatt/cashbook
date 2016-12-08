@@ -30,6 +30,7 @@
 /* ANSI C header files */
 
 #include <ctype.h>
+#include <stdarg.h>
 #include <string.h>
 
 /* Acorn C header files */
@@ -72,86 +73,59 @@
  * Static constants.
  */
 
-#define ROW_FIELD_LEN 10
-#define DATE_FIELD_LEN 11
 
+/**
+ * An icon within an edit line.
+ */
+
+struct edit_field_standard {
+	wimp_i			icon;			/**< The icon handle in the window template.					*/
+	char			*buffer;		/**< The buffer to use for the icon's text.					*/
+	size_t			length;			/**< The length of the icon's buffer.						*/
+};
+
+struct edit_field_account {
+	wimp_i			name;			/**< The account name icon handle in the window template.			*/
+	char			*name_buffer;		/**< The buffer to use for the icon's text.					*/
+	size_t			name_length;		/**< The length of the icon's buffer.						*/
+
+	wimp_i			ident;			/**< The account ident icon handle in the window template.			*/
+	char			*ident_buffer;		/**< The buffer to use for the icon's text.					*/
+	size_t			ident_length;		/**< The length of the icon's buffer.						*/
+
+	wimp_i			reconcile;		/**< The reconcile icon handle in the window template.				*/
+	char			*reconcile_buffer;	/**< The buffer to use for the icon's text.					*/
+	size_t			reconcile_length;	/**< The length of the icon's buffer.						*/
+};
+
+union edit_field_data {
+	struct edit_field_standard	display;
+	struct edit_field_standard	text;
+	struct edit_field_standard	currency;
+	struct edit_field_standard	date;
+	struct edit_field_account	account;
+};
+
+struct edit_field {
+	enum edit_field_type	type;			/**< The type of field.								*/
+	union edit_field_data	data;			/**< The field-specific data.							*/
+
+	struct edit_field	*next;			/**< Pointer to the next icon in the line, or NULL.				*/
+};
+
+/**
+ * An edit line instance definition.
+ */
 
 struct edit_block {
 	wimp_window		*template;		/**< The template for the parent window.					*/
 	wimp_w			parent;			/**< The parent window that the edit line belongs to.				*/
 
+	struct edit_field	*fields;		/**< The list of fields defined in the line, or NULL for none.			*/
+
 	int			edit_line;		/**< The line currently marked for entry, in terms of window lines, or -1.	*/
 };
 
-
-/**
- * \TODO -- This is an exact duplicate of the struct definition in transact.c.
- *          It needs to be removed once all references to transactions[] in
- *          edit.c have been relocated into transact.c
- *
- * Transatcion data struct.
- */
-
-struct transaction {
-	date_t			date;
-	enum transact_flags	flags;
-	acct_t			from;
-	acct_t			to;
-	amt_t			amount;
-	char			reference[REF_FIELD_LEN];
-	char			description[DESCRIPT_FIELD_LEN];
-
-	/* Sort index entries.
-	 *
-	 * NB - These are unconnected to the rest of the transaction data, and are in effect a separate array that is used
-	 * for handling entries in the transaction window.
-	 */
-
-	int			sort_index;		/**< Point to another transaction, to allow the transaction window to be sorted. */
-	int			saved_sort;		/**< Preserve the transaction window sort order across transaction data sorts. */
-	int			sort_workspace;		/**< Workspace used by the sorting code. */
-};
-
-
-/**
- * \TODO -- This is an exact duplicate of the struct definition in transact.c.
- *          It needs to be removed once all references to transaction_window in
- *          edit.c have been relocated into transact.c
- *
- * Transatcion Window data structure
- */
-
-struct transact_block {
-	struct file_block	*file;						/**< The file to which the window belongs.			*/
-
-	/* Transactcion window handle and title details. */
-
-	wimp_w			transaction_window;				/**< Window handle of the transaction window */
-	char			window_title[256];
-	wimp_w			transaction_pane;				/**< Window handle of the transaction window toolbar pane */
-
-	/* Edit line details. */
-
-	struct edit_block	*edit_line;					/**< Instance handle of the edit line.					*/
-
-	/* Display column details. */
-
-	int			column_width[TRANSACT_COLUMNS];			/**< Array holding the column widths in the transaction window. */
-	int			column_position[TRANSACT_COLUMNS];		/**< Array holding the column X-offsets in the transact window. */
-
-	/* Other window information. */
-
-	int			display_lines;					/**< How many lines the current work area is formatted to display. */
-	int			entry_line;					/**< The line currently marked for data entry, in terms of window lines. */
-	enum sort_type		sort_order;					/**< The order in which the window is sorted. */
-
-	char			sort_sprite[12];				/**< Space for the sort icon's indirected data. */
-
-	/* Transaction Data. */
-
-	struct transaction	*transactions;					/**< The transaction data for the defined transactions			*/
-	int			trans_count;					/**< The number of transactions defined in the file.			*/
-};
 
 /* ==================================================================================================================
  * Global variables.
@@ -165,21 +139,11 @@ static struct transact_block *edit_entry_window = NULL;
 
 static struct edit_block *edit_active_instance = NULL;
 
-/* The following are the buffers used by the edit line in the transaction window. */
 
-static char	buffer_row[ROW_FIELD_LEN];
-static char	buffer_date[DATE_FIELD_LEN];
-static char	buffer_from_ident[ACCOUNT_IDENT_LEN];
-static char	buffer_from_name[ACCOUNT_NAME_LEN];
-static char	buffer_from_rec[REC_FIELD_LEN];
-static char	buffer_to_ident[ACCOUNT_IDENT_LEN];
-static char	buffer_to_name[ACCOUNT_NAME_LEN];
-static char	buffer_to_rec[REC_FIELD_LEN];
-static char	buffer_reference [REF_FIELD_LEN];
-static char	buffer_amount[AMOUNT_FIELD_LEN];
-static char	buffer_description[DESCRIPT_FIELD_LEN];
+static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer, size_t length, int line);
 
 
+#ifdef LOSE
 static void	edit_find_icon_horizontally(struct file_block *file);
 static void	edit_set_line_shading(struct file_block *file);
 static void	edit_change_transaction_amount(struct file_block *file, int transaction, amt_t new_amount);
@@ -188,6 +152,7 @@ static wimp_i	edit_convert_preset_icon_number(enum preset_caret caret);
 static void	edit_delete_line_transaction_content(struct file_block *file);
 static void	edit_process_content_keypress(struct file_block *file, wimp_key *key);
 static char	*find_complete_description(struct file_block *file, int line, char *buffer, size_t length);
+#endif
 
 /**
  * Test whether an account number is safe to look up in the account data array.
@@ -215,6 +180,10 @@ struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent)
 	new->template = template;
 	new->parent = parent;
 
+	/* No fields are defined as yet. */
+
+	new->fields = NULL;
+
 	new->edit_line = -1;
 
 	return new;
@@ -222,19 +191,222 @@ struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent)
 
 
 /**
- * Delete an edit line instance.
+ * Delete an edit line instance, and free all of its resources.
  *
  * \param *instance	The instance handle to delete.
  */
 
 void edit_delete_instance(struct edit_block *instance)
 {
+	struct edit_field	*current, *next;
+
 	if (instance == NULL)
 		return;
+
+	// \TODO -- Should this also delete the icons?
+
+	if (edit_active_instance == instance)
+		edit_active_instance = NULL;
+
+	current = instance->fields;
+
+	while (current != NULL) {
+		next = current->next;
+		heap_free(current);
+		current = next;
+	}
 
 	heap_free(instance);
 }
 
+
+/**
+ * Add a field to an edit line instance.
+ * 
+ * \param *instance	The instance to add the field to.
+ * \param type		The type of field to add.
+ * \param ...		A list of the icons which apply to the field.
+ * \return		True if the field was created OK; False on error.
+ */
+
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ...)
+{
+	va_list			ap;
+	struct edit_field	*new;
+
+	if (instance == NULL)
+		return FALSE;
+
+	/* Allocate storage for the field data. */
+
+	new = heap_alloc(sizeof(struct edit_field));
+	if (new == NULL)
+		return FALSE;
+
+	/* Link the new field into the instance field list. */
+
+	new->next = instance->fields;
+	instance->fields = new;
+
+	/* Set up the field data. */
+
+	new->type = type;
+
+	va_start(ap, type);
+
+	switch (type) {
+	case EDIT_FIELD_DISPLAY:
+		new->data.display.icon = va_arg(ap, wimp_i);
+		new->data.display.buffer = va_arg(ap, char *);
+		new->data.display.length = va_arg(ap, size_t);
+		break;
+	case EDIT_FIELD_TEXT:
+		new->data.text.icon = va_arg(ap, wimp_i);
+		new->data.text.buffer = va_arg(ap, char *);
+		new->data.text.length = va_arg(ap, size_t);
+		break;
+	case EDIT_FIELD_CURRENCY:
+		new->data.currency.icon = va_arg(ap, wimp_i);
+		new->data.currency.buffer = va_arg(ap, char *);
+		new->data.currency.length = va_arg(ap, size_t);
+		break;
+	case EDIT_FIELD_DATE:
+		new->data.date.icon = va_arg(ap, wimp_i);
+		new->data.date.buffer = va_arg(ap, char *);
+		new->data.date.length = va_arg(ap, size_t);
+		break;
+	case EDIT_FIELD_ACCOUNT:
+		new->data.account.ident = va_arg(ap, wimp_i);
+		new->data.account.ident_buffer = va_arg(ap, char *);
+		new->data.account.ident_length = va_arg(ap, size_t);
+
+		new->data.account.reconcile = va_arg(ap, wimp_i);
+		new->data.account.reconcile_buffer = va_arg(ap, char *);
+		new->data.account.reconcile_length = va_arg(ap, size_t);
+
+		new->data.account.name = va_arg(ap, wimp_i);
+		new->data.account.name_buffer = va_arg(ap, char *);
+		new->data.account.name_length = va_arg(ap, size_t);
+		break;
+	}
+
+	va_end(ap);
+
+	return TRUE;
+}
+
+
+
+void edit_place_new_line(struct edit_block *instance, int line)
+{
+	struct edit_field	*field; 
+
+	if (instance == NULL)
+		return;
+
+	/* Delete any active edit line icons. The assumption is that the data will
+	 * be safe as it's always copied into memory as soon as a key is pressed
+	 * in any of the writable icons...
+	 */
+
+	if (edit_active_instance != NULL) {
+		field = edit_active_instance->fields;
+
+		while (field != NULL) {
+			switch (field->type) {
+			case EDIT_FIELD_DISPLAY:
+				wimp_delete_icon(edit_active_instance->parent, field->data.display.icon);
+				break;
+			case EDIT_FIELD_TEXT:
+				wimp_delete_icon(edit_active_instance->parent, field->data.text.icon);
+				break;
+			case EDIT_FIELD_CURRENCY:
+				wimp_delete_icon(edit_active_instance->parent, field->data.currency.icon);
+				break;
+			case EDIT_FIELD_DATE:
+				wimp_delete_icon(edit_active_instance->parent, field->data.date.icon);
+				break;
+			case EDIT_FIELD_ACCOUNT:
+				wimp_delete_icon(edit_active_instance->parent, field->data.account.ident);
+				wimp_delete_icon(edit_active_instance->parent, field->data.account.reconcile);
+				wimp_delete_icon(edit_active_instance->parent, field->data.account.name);
+				break;
+			}
+
+			field = field->next;
+		}
+
+		edit_active_instance->edit_line = -1;
+		edit_active_instance = NULL;
+	}
+
+	/* Configure and create the new edit line icons.
+	 */
+
+	field = instance->fields;
+
+	while (field != NULL) {
+		switch (field->type) {
+		case EDIT_FIELD_DISPLAY:
+			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.display.icon]),
+					field->data.display.buffer, field->data.display.length, line);
+			break;
+		case EDIT_FIELD_TEXT:
+			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.text.icon]),
+					field->data.text.buffer, field->data.text.length, line);
+			break;
+		case EDIT_FIELD_CURRENCY:
+			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.currency.icon]),
+					field->data.currency.buffer, field->data.currency.length, line);
+			break;
+		case EDIT_FIELD_DATE:
+			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.date.icon]),
+					field->data.date.buffer, field->data.date.length, line);
+			break;
+		case EDIT_FIELD_ACCOUNT:
+			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.account.ident]),
+					field->data.account.ident_buffer, field->data.account.ident_length, line);
+			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.account.reconcile]),
+					field->data.account.reconcile_buffer, field->data.account.reconcile_length, line);
+			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.account.name]),
+					field->data.account.name_buffer, field->data.account.name_length, line);
+			break;
+		}
+
+		field = field->next;
+	}
+
+	instance->edit_line = line;
+	edit_active_instance = instance;
+
+//	edit_set_line_shading(file);
+}
+
+
+static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer, size_t length, int line)
+{
+	wimp_icon_create	icon_block;
+
+	icon->data.indirected_text.text = buffer;
+	icon->data.indirected_text.size = length;
+
+	icon_block.w = window;
+
+	memcpy(&(icon_block.icon), icon, sizeof(wimp_icon));
+
+//	icon_block.icon.extent.x0 = file->transacts->column_position[i];
+//	icon_block.icon.extent.x1 = file->transacts->column_position[i]
+//			+ file->transacts->column_width[i];
+//	icon_block.icon.extent.y0 = (-line * (ICON_HEIGHT+LINE_GUTTER))
+//			- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+//	icon_block.icon.extent.y1 = (-line * (ICON_HEIGHT+LINE_GUTTER))
+//			- TRANSACT_TOOLBAR_HEIGHT;
+
+	wimp_create_icon(&icon_block);
+}
+
+
+#ifdef LOSE
 /**
  * Create an edit line at the specified point in the given file's transaction
  * window. Any existing edit line is deleted first.
@@ -254,29 +426,29 @@ void edit_place_new_line(struct edit_block *edit, struct file_block *file, int l
 	wimp_icon_create	icon_block;
 
 
-	if (edit == NULL || file == NULL || file->transacts == NULL || line == -1)
-		return;
+//	if (edit == NULL || file == NULL || file->transacts == NULL || line == -1)
+//		return;
 
 	/* Start by deleting any existing edit line, from any open transaction window. */
 
-	if (edit_active_instance != NULL) {
-		/* The assumption is that the data will be safe as it's always copied into
-		 * memory as soon as a key is pressed in any of the writable icons...
-		 */
+//	if (edit_active_instance != NULL) {
+//		/* The assumption is that the data will be safe as it's always copied into
+//		 * memory as soon as a key is pressed in any of the writable icons...
+//		 */
 
-		for (i = 0; i < TRANSACT_COLUMNS; i++)
-			wimp_delete_icon(edit_active_instance->parent, (wimp_i) i);
+//		for (i = 0; i < TRANSACT_COLUMNS; i++)
+//			wimp_delete_icon(edit_active_instance->parent, (wimp_i) i);
 
-		edit_active_instance->entry_line = -1;
-		edit_active_instance = NULL;
-	}
+//		edit_active_instance->edit_line = -1;
+//		edit_active_instance = NULL;
+//	}
 
 	/* Extend the window work area if required. */
 
-	if (line >= file->transacts->display_lines) {
-		file->transacts->display_lines = line + 1;
-		transact_set_window_extent(file);
-	}
+//	if (line >= file->transacts->display_lines) {
+//		file->transacts->display_lines = line + 1;
+//		transact_set_window_extent(file);
+//	}
 
 	/* Create the icon block required for the icon definitions. */
 
@@ -284,38 +456,38 @@ void edit_place_new_line(struct edit_block *edit, struct file_block *file, int l
 
 	/* Set up the indirected buffers. */
 
-	edit->template->icons[EDIT_ICON_ROW].data.indirected_text.text = buffer_row;
-	edit->template->icons[EDIT_ICON_ROW].data.indirected_text.size = ROW_FIELD_LEN;
+//	edit->template->icons[EDIT_ICON_ROW].data.indirected_text.text = buffer_row;
+//	edit->template->icons[EDIT_ICON_ROW].data.indirected_text.size = ROW_FIELD_LEN;
 
-	edit->template->icons[EDIT_ICON_DATE].data.indirected_text.text = buffer_date;
-	edit->template->icons[EDIT_ICON_DATE].data.indirected_text.size = DATE_FIELD_LEN;
+//	edit->template->icons[EDIT_ICON_DATE].data.indirected_text.text = buffer_date;
+//	edit->template->icons[EDIT_ICON_DATE].data.indirected_text.size = DATE_FIELD_LEN;
 
-	edit->template->icons[EDIT_ICON_FROM].data.indirected_text.text = buffer_from_ident;
-	edit->template->icons[EDIT_ICON_FROM].data.indirected_text.size = ACCOUNT_IDENT_LEN;
+//	edit->template->icons[EDIT_ICON_FROM].data.indirected_text.text = buffer_from_ident;
+//	edit->template->icons[EDIT_ICON_FROM].data.indirected_text.size = ACCOUNT_IDENT_LEN;
 
-	edit->template->icons[EDIT_ICON_FROM_REC].data.indirected_text.text = buffer_from_rec;
-	edit->template->icons[EDIT_ICON_FROM_REC].data.indirected_text.size = REC_FIELD_LEN;
+//	edit->template->icons[EDIT_ICON_FROM_REC].data.indirected_text.text = buffer_from_rec;
+//	edit->template->icons[EDIT_ICON_FROM_REC].data.indirected_text.size = REC_FIELD_LEN;
 
-	edit->template->icons[EDIT_ICON_FROM_NAME].data.indirected_text.text = buffer_from_name;
-	edit->template->icons[EDIT_ICON_FROM_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
+//	edit->template->icons[EDIT_ICON_FROM_NAME].data.indirected_text.text = buffer_from_name;
+//	edit->template->icons[EDIT_ICON_FROM_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
 
-	edit->template->icons[EDIT_ICON_TO].data.indirected_text.text = buffer_to_ident;
-	edit->template->icons[EDIT_ICON_TO].data.indirected_text.size = ACCOUNT_IDENT_LEN;
+//	edit->template->icons[EDIT_ICON_TO].data.indirected_text.text = buffer_to_ident;
+//	edit->template->icons[EDIT_ICON_TO].data.indirected_text.size = ACCOUNT_IDENT_LEN;
 
-	edit->template->icons[EDIT_ICON_TO_REC].data.indirected_text.text = buffer_to_rec;
-	edit->template->icons[EDIT_ICON_TO_REC].data.indirected_text.size = REC_FIELD_LEN;
+//	edit->template->icons[EDIT_ICON_TO_REC].data.indirected_text.text = buffer_to_rec;
+//	edit->template->icons[EDIT_ICON_TO_REC].data.indirected_text.size = REC_FIELD_LEN;
 
-	edit->template->icons[EDIT_ICON_TO_NAME].data.indirected_text.text = buffer_to_name;
-	edit->template->icons[EDIT_ICON_TO_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
+//	edit->template->icons[EDIT_ICON_TO_NAME].data.indirected_text.text = buffer_to_name;
+//	edit->template->icons[EDIT_ICON_TO_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
 
-	edit->template->icons[EDIT_ICON_REF].data.indirected_text.text = buffer_reference;
-	edit->template->icons[EDIT_ICON_REF].data.indirected_text.size = REF_FIELD_LEN;
+//	edit->template->icons[EDIT_ICON_REF].data.indirected_text.text = buffer_reference;
+//	edit->template->icons[EDIT_ICON_REF].data.indirected_text.size = REF_FIELD_LEN;
 
-	edit->template->icons[EDIT_ICON_AMOUNT].data.indirected_text.text = buffer_amount;
-	edit->template->icons[EDIT_ICON_AMOUNT].data.indirected_text.size = AMOUNT_FIELD_LEN;
+//	edit->template->icons[EDIT_ICON_AMOUNT].data.indirected_text.text = buffer_amount;
+//	edit->template->icons[EDIT_ICON_AMOUNT].data.indirected_text.size = AMOUNT_FIELD_LEN;
 
-	edit->template->icons[EDIT_ICON_DESCRIPT].data.indirected_text.text = buffer_description;
-	edit->template->icons[EDIT_ICON_DESCRIPT].data.indirected_text.size = DESCRIPT_FIELD_LEN;
+//	edit->template->icons[EDIT_ICON_DESCRIPT].data.indirected_text.text = buffer_description;
+//	edit->template->icons[EDIT_ICON_DESCRIPT].data.indirected_text.size = DESCRIPT_FIELD_LEN;
 
 	/* Initialise the data. */
 
@@ -412,23 +584,6 @@ void edit_place_new_line_by_transaction(struct edit_block *edit, struct file_blo
 			icons_put_caret_at_end(file->transacts->transaction_window, EDIT_ICON_DATE);
 		edit_find_line_vertically(file);
 	}
-}
-
-
-/**
- * Inform the edit line code that a file has been deleted: this removes any
- * references to the edit line if it is within that file's transaction window.
- * 
- * Note that it isn't possible to delete an edit line and its icons: it will
- * only be completely destroyed if the parent window is deleted.
- *
- * \param *file		The file to be deleted.
- */
-
-void edit_file_deleted(struct file_block *file)
-{
-	if (file != NULL && edit_entry_window == file->transacts)
-		edit_entry_window = NULL;
 }
 
 
@@ -1830,3 +1985,4 @@ static char *find_complete_description(struct file_block *file, int line, char *
 	return buffer;
 }
 
+#endif

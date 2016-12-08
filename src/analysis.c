@@ -233,8 +233,8 @@ struct trans_rep {
 	int				to_count;
 	acct_t				from[ANALYSIS_ACC_LIST_LEN];
 	acct_t				to[ANALYSIS_ACC_LIST_LEN];
-	char				ref[REF_FIELD_LEN];
-	char				desc[DESCRIPT_FIELD_LEN];
+	char				ref[TRANSACT_REF_FIELD_LEN];
+	char				desc[TRANSACT_DESCRIPT_FIELD_LEN];
 	amt_t				amount_min;
 	amt_t				amount_max;
 
@@ -348,7 +348,7 @@ union analysis_report_block {
 
 struct analysis_report {
 	struct file_block		*file;					/**< The file to which the template belongs.					*/
-	char				name[ANALYSIS_SAVED_NAME_LEN];	/**< The name of the saved report template.					*/
+	char				name[ANALYSIS_SAVED_NAME_LEN];		/**< The name of the saved report template.					*/
 	enum analysis_report_type	type;					/**< The type of the template.							*/
 
 	union analysis_report_block	data;					/**< The template-type-specific data.						*/

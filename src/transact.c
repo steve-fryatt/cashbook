@@ -210,8 +210,6 @@
 
 /**
  * Transatcion data structure
- *
- * \TODO -- Warning: at present this definition is duplicated in edit.c!
  */
 
 struct transaction {
@@ -237,8 +235,6 @@ struct transaction {
 
 /**
  * Transatcion Window data structure
- *
- * \TODO -- Warning: at present this definition is duplicated in edit.c!
  */
 
 struct transact_block {
@@ -273,6 +269,20 @@ struct transact_block {
 	int			trans_count;					/**< The number of transactions defined in the file.			*/
 
 };
+
+/* The following are the buffers used by the edit line in the transaction window. */
+
+static char	transact_buffer_row[TRANSACT_ROW_FIELD_LEN];
+static char	transact_buffer_date[DATE_FIELD_LEN];
+static char	transact_buffer_from_ident[ACCOUNT_IDENT_LEN];
+static char	transact_buffer_from_name[ACCOUNT_NAME_LEN];
+static char	transact_buffer_from_rec[REC_FIELD_LEN];
+static char	transact_buffer_to_ident[ACCOUNT_IDENT_LEN];
+static char	transact_buffer_to_name[ACCOUNT_NAME_LEN];
+static char	transact_buffer_to_rec[REC_FIELD_LEN];
+static char	transact_buffer_reference [REF_FIELD_LEN];
+static char	transact_buffer_amount[AMOUNT_FIELD_LEN];
+static char	transact_buffer_description[DESCRIPT_FIELD_LEN];
 
 
 struct transact_list_link {
@@ -562,10 +572,21 @@ void transact_open_window(struct file_block *file)
 
 	file->transacts->edit_line = edit_create_instance(transact_window_def, file->transacts->transaction_window);
 	if (file->transacts->edit_line == NULL) {
-		debug_printf("Oh dear");
 		error_msgs_report_error("TransactNoMem");
 		return;
 	}
+
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, EDIT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, EDIT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, EDIT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
+			EDIT_ICON_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
+			EDIT_ICON_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, EDIT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
+			EDIT_ICON_TO_REC, transact_buffer_to_name, ACCOUNT_NAME_LEN,
+			EDIT_ICON_TO_NAME, transact_buffer_to_rec, REC_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, EDIT_ICON_REF, transact_buffer_reference, REF_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, EDIT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, EDIT_ICON_DESCRIPT, transact_buffer_description, DESCRIPT_FIELD_LEN);
 
 	/* Set the title */
 
@@ -745,7 +766,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 	 * was clicked.
 	 */
 
-	edit_refresh_line_content(NULL, -1, pointer->i);
+//FIXME	edit_refresh_line_content(NULL, -1, pointer->i);
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		if (pointer->i == wimp_ICON_WINDOW) {
@@ -755,7 +776,12 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
 
 			if (line >= 0) {
-				edit_place_new_line(windat->edit_line, file, line);
+				if (line >= windat->display_lines) {
+					windat->display_lines = line + 1;
+					transact_set_window_extent(windat->file);
+				}
+
+				edit_place_new_line(windat->edit_line, line);
 
 				/* Find the correct point for the caret and insert it. */
 
@@ -828,10 +854,10 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 
 				if (column == TRANSACT_ICON_FROM_REC) {
 					/* If the column is the from reconcile flag, toggle its status. */
-					edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_FROM);
+//FIXME					edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_FROM);
 				} else if (column == TRANSACT_ICON_TO_REC) {
 					/* If the column is the to reconcile flag, toggle its status. */
-					edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_TO);
+//FIXME					edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_TO);
 				}
 			}
 		}
@@ -847,7 +873,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 
 static void transact_window_lose_caret_handler(wimp_caret *caret)
 {
-	edit_refresh_line_content(caret->w, -1, -1);
+//FIXME	edit_refresh_line_content(caret->w, -1, -1);
 }
 
 /**
@@ -1129,7 +1155,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 		transact_scroll_window_to_end(file, TRANSACT_SCROLL_END);
 	} else {
 		/* Pass any keys that are left on to the edit line handler. */
-		return edit_process_keypress(windat->edit_line, file, key);
+		return TRUE; //FIXMEedit_process_keypress(windat->edit_line, file, key);
 	}
 
 	return TRUE;
@@ -1838,7 +1864,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 
 	wimp_get_caret_position(&caret);
 
-	edit_place_new_line(windat->edit_line, windat->file, windat->entry_line);
+	edit_place_new_line(windat->edit_line, windat->entry_line);
 	windows_redraw(windat->transaction_window);
 	windows_redraw(windat->transaction_pane);
 
@@ -2175,8 +2201,8 @@ void transact_force_window_redraw(struct file_block *file, int from, int to)
 
 	/* If the edit line falls inside the redraw range, refresh it. */
 
-	if (file->transacts->entry_line >= from && file->transacts->entry_line <= to)
-		edit_refresh_line_content(file->transacts->transaction_window, -1, -1);
+//FIXME	if (file->transacts->entry_line >= from && file->transacts->entry_line <= to)
+//FIXME		edit_refresh_line_content(file->transacts->transaction_window, -1, -1);
 
 	/* Now force a redraw of the whole window range. */
 
@@ -3274,7 +3300,7 @@ void transact_sort(struct transact_block *windat)
 	/* Find the caret position and edit line before sorting. */
 
 	wimp_get_caret_position(&caret);
-	edit_transaction = edit_get_line_transaction(windat->file);
+//FIXME	edit_transaction = edit_get_line_transaction(windat->file);
 
 	/* Sort the entries using a combsort.  This has the advantage over qsort() that the order of entries is only
 	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
@@ -3379,7 +3405,7 @@ void transact_sort(struct transact_block *windat)
 
 	/* Replace the edit line where we found it prior to the sort. */
 
-	edit_place_new_line_by_transaction(windat->edit_line, windat->file, edit_transaction);
+//FIXME	edit_place_new_line_by_transaction(windat->edit_line, windat->file, edit_transaction);
 
 	/* If the caret's position was in the current transaction window, we need to
 	 * replace it in the same position now, so that we don't lose input focus.
@@ -4116,13 +4142,18 @@ void transact_place_caret(struct file_block *file, int line, wimp_i icon)
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	edit_place_new_line(file->transacts->edit_line, file, line);
+	if (line >= file->transacts->display_lines) {
+		file->transacts->display_lines = line + 1;
+		transact_set_window_extent(file);
+	}
+
+	edit_place_new_line(file->transacts->edit_line, line);
 
 	if (icon == TRANSACT_ICON_ROW)
 		icon = TRANSACT_ICON_DATE;
 
 	icons_put_caret_at_end(file->transacts->transaction_window, icon);
-	edit_find_line_vertically(file->transacts->edit_line);
+//FIXME	edit_find_line_vertically(file->transacts->edit_line);
 }
 
 

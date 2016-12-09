@@ -87,7 +87,7 @@ struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent);
 
 void edit_delete_instance(struct edit_block *instance);
 
-osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ...);
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...);
 
 #ifdef LOSE
 

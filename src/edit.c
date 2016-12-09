@@ -110,6 +110,8 @@ struct edit_field {
 	enum edit_field_type	type;			/**< The type of field.								*/
 	union edit_field_data	data;			/**< The field-specific data.							*/
 
+	int			column;			/**< The column of the left-most part of the field.				*/
+
 	struct edit_field	*next;			/**< Pointer to the next icon in the line, or NULL.				*/
 };
 
@@ -140,7 +142,7 @@ static struct transact_block *edit_entry_window = NULL;
 static struct edit_block *edit_active_instance = NULL;
 
 
-static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer, size_t length, int line);
+static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer, size_t length, struct column_block *columns, int column, int line);
 
 
 #ifdef LOSE
@@ -225,11 +227,12 @@ void edit_delete_instance(struct edit_block *instance)
  * 
  * \param *instance	The instance to add the field to.
  * \param type		The type of field to add.
+ * \param column	The column number of the left-most field.
  * \param ...		A list of the icons which apply to the field.
  * \return		True if the field was created OK; False on error.
  */
 
-osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ...)
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...)
 {
 	va_list			ap;
 	struct edit_field	*new;
@@ -251,8 +254,9 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ..
 	/* Set up the field data. */
 
 	new->type = type;
+	new->column = column;
 
-	va_start(ap, type);
+	va_start(ap, column);
 
 	switch (type) {
 	case EDIT_FIELD_DISPLAY:
@@ -297,7 +301,7 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ..
 
 
 
-void edit_place_new_line(struct edit_block *instance, int line)
+void edit_place_new_line(struct edit_block *instance, struct column_block *columns, int line)
 {
 	struct edit_field	*field; 
 
@@ -349,27 +353,27 @@ void edit_place_new_line(struct edit_block *instance, int line)
 		switch (field->type) {
 		case EDIT_FIELD_DISPLAY:
 			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.display.icon]),
-					field->data.display.buffer, field->data.display.length, line);
+					field->data.display.buffer, field->data.display.length, columns, field->column, line);
 			break;
 		case EDIT_FIELD_TEXT:
 			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.text.icon]),
-					field->data.text.buffer, field->data.text.length, line);
+					field->data.text.buffer, field->data.text.length, columns, field->column, line);
 			break;
 		case EDIT_FIELD_CURRENCY:
 			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.currency.icon]),
-					field->data.currency.buffer, field->data.currency.length, line);
+					field->data.currency.buffer, field->data.currency.length, columns, field->column, line);
 			break;
 		case EDIT_FIELD_DATE:
 			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.date.icon]),
-					field->data.date.buffer, field->data.date.length, line);
+					field->data.date.buffer, field->data.date.length, columns, field->column, line);
 			break;
 		case EDIT_FIELD_ACCOUNT:
 			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.account.ident]),
-					field->data.account.ident_buffer, field->data.account.ident_length, line);
+					field->data.account.ident_buffer, field->data.account.ident_length, columns, field->column, line);
 			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.account.reconcile]),
-					field->data.account.reconcile_buffer, field->data.account.reconcile_length, line);
+					field->data.account.reconcile_buffer, field->data.account.reconcile_length, columns, field->column + 1, line);
 			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.account.name]),
-					field->data.account.name_buffer, field->data.account.name_length, line);
+					field->data.account.name_buffer, field->data.account.name_length, columns, field->column + 2, line);
 			break;
 		}
 
@@ -383,7 +387,7 @@ void edit_place_new_line(struct edit_block *instance, int line)
 }
 
 
-static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer, size_t length, int line)
+static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer, size_t length, struct column_block *columns, int column, int line)
 {
 	wimp_icon_create	icon_block;
 
@@ -394,13 +398,10 @@ static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer,
 
 	memcpy(&(icon_block.icon), icon, sizeof(wimp_icon));
 
-//	icon_block.icon.extent.x0 = file->transacts->column_position[i];
-//	icon_block.icon.extent.x1 = file->transacts->column_position[i]
-//			+ file->transacts->column_width[i];
-//	icon_block.icon.extent.y0 = (-line * (ICON_HEIGHT+LINE_GUTTER))
-//			- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-//	icon_block.icon.extent.y1 = (-line * (ICON_HEIGHT+LINE_GUTTER))
-//			- TRANSACT_TOOLBAR_HEIGHT;
+	icon_block.icon.extent.x0 = columns->position[column];
+	icon_block.icon.extent.x1 = columns->position[column] + columns->width[column];
+	icon_block.icon.extent.y0 = (-line * (ICON_HEIGHT + LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+	icon_block.icon.extent.y1 = (-line * (ICON_HEIGHT + LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT;
 
 	wimp_create_icon(&icon_block);
 }

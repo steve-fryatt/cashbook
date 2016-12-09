@@ -581,17 +581,17 @@ void transact_open_window(struct file_block *file)
 		return;
 	}
 
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, EDIT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, EDIT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, EDIT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, 0, EDIT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, 1, EDIT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 2, EDIT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
 			EDIT_ICON_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
 			EDIT_ICON_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, EDIT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 5, EDIT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
 			EDIT_ICON_TO_REC, transact_buffer_to_name, ACCOUNT_NAME_LEN,
 			EDIT_ICON_TO_NAME, transact_buffer_to_rec, REC_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, EDIT_ICON_REF, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, EDIT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, EDIT_ICON_DESCRIPT, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 8, EDIT_ICON_REF, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, 9, EDIT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 10, EDIT_ICON_DESCRIPT, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	/* Set the title */
 
@@ -786,7 +786,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 					transact_set_window_extent(windat->file);
 				}
 
-				edit_place_new_line(windat->edit_line, line);
+				edit_place_new_line(windat->edit_line, windat->columns, line);
 
 				/* Find the correct point for the caret and insert it. */
 
@@ -1867,7 +1867,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 
 	wimp_get_caret_position(&caret);
 
-	edit_place_new_line(windat->edit_line, windat->entry_line);
+	edit_place_new_line(windat->edit_line, windat->columns, windat->entry_line);
 	windows_redraw(windat->transaction_window);
 	windows_redraw(windat->transaction_pane);
 
@@ -4145,7 +4145,7 @@ void transact_place_caret(struct file_block *file, int line, wimp_i icon)
 		transact_set_window_extent(file);
 	}
 
-	edit_place_new_line(file->transacts->edit_line, line);
+	edit_place_new_line(file->transacts->edit_line, file->transacts->columns, line);
 
 	if (icon == TRANSACT_ICON_ROW)
 		icon = TRANSACT_ICON_DATE;

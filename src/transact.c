@@ -454,10 +454,11 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->transaction_window = NULL;
 	new->transaction_pane = NULL;
 	new->edit_line = NULL;
+	new->columns = NULL;
 
 	new-> columns = column_create_instance(TRANSACT_COLUMNS);
 	if (new->columns == NULL) {
-		heap_free(new);
+		transact_delete_instance(new);
 		return NULL;
 	}
 
@@ -471,8 +472,7 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->transactions = NULL;
 
 	if (flex_alloc((flex_ptr) &(new->transactions), 4) == 0) {
-		column_delete_instance(new->columns);
-		heap_free(new);
+		transact_delete_instance(new);
 		return NULL;
 	}
 

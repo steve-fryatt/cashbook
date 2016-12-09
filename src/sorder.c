@@ -385,10 +385,11 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 
 	new->sorder_window = NULL;
 	new->sorder_pane = NULL;
+	new->columns = NULL;
 
 	new-> columns = column_create_instance(SORDER_COLUMNS);
 	if (new->columns == NULL) {
-		heap_free(new);
+		sorder_delete_instance(new);
 		return NULL;
 	}
 
@@ -402,8 +403,7 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	new->sorders = NULL;
 
 	if (flex_alloc((flex_ptr) &(new->sorders), 4) == 0) {
-		column_delete_instance(new->columns);
-		heap_free(new);
+		sorder_delete_instance(new);
 		return NULL;
 	}
 

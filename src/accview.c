@@ -329,10 +329,11 @@ struct accview_block *accview_create_instance(struct file_block *file)
 	/* Initialise the transaction window. */
 
 	new->file = file;
+	new->columns = NULL;
 
 	new-> columns = column_create_instance(ACCVIEW_COLUMNS);
 	if (new->columns == NULL) {
-		heap_free(new);
+		accview_delete_instance(new);
 		return NULL;
 	}
 

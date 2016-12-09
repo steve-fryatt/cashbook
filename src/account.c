@@ -420,6 +420,7 @@ struct account_block *account_create_instance(struct file_block *file)
 		new->account_windows[i].account_window = NULL;
 		new->account_windows[i].account_pane = NULL;
 		new->account_windows[i].account_footer = NULL;
+		new->account_windows[i].columns = NULL;
 
 		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS);
 		if (new->account_windows[i].columns == NULL)
@@ -463,9 +464,7 @@ struct account_block *account_create_instance(struct file_block *file)
 	new->accounts = NULL;
 
 	if (mem_fail || (flex_alloc((flex_ptr) &(new->accounts), 4) == 0)) {
-		for (i = 0; i < ACCOUNT_WINDOWS; i++)
-			column_delete_instance(new->account_windows[i].columns);
-		heap_free(new);
+		account_delete_instance(new);
 		return NULL;
 	}
 

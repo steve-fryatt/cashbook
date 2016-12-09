@@ -389,10 +389,11 @@ struct preset_block *preset_create_instance(struct file_block *file)
 
 	new->preset_window = NULL;
 	new->preset_pane = NULL;
+	new->columns = NULL;
 
 	new-> columns = column_create_instance(PRESET_COLUMNS);
 	if (new->columns == NULL) {
-		heap_free(new);
+		preset_delete_instance(new);
 		return NULL;
 	}
 
@@ -406,8 +407,7 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	new->presets = NULL;
 
 	if (flex_alloc((flex_ptr) &(new->presets), 4) == 0) {
-		column_delete_instance(new->columns);
-		heap_free(new);
+		preset_delete_instance(new);
 		return NULL;
 	}
 

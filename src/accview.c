@@ -142,6 +142,15 @@
 #define ACCVIEW_MENU_PRINT 6
 
 
+struct accview_block {
+	struct file_block	*file;						/**< The file to which the instance belongs.				*/
+
+	/* Default display details for the accview windows. */
+
+	struct column_block	*columns;					/**< Base column data for the account view windows.			*/
+	int			sort_order;					/**< Default sort order for the accview windows.			*/
+};
+
 /**
  * The direction of an accview account entry.
  */
@@ -176,6 +185,8 @@ struct accview_window {
 	wimp_w			accview_pane;					/**< Window handle of the account window toolbar pane.			*/
 
 	/* Display column details. */
+
+	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
 
 	int			column_width[ACCVIEW_COLUMNS];			/**< Array holding the column widths in the account window.		*/
 	int			column_position[ACCVIEW_COLUMNS];		/**< Array holding the column X-offsets in the acct window.		*/
@@ -301,6 +312,56 @@ void accview_initialise(osspriteop_area *sprites)
 
 
 /**
+ * Create a new global account view module instance.
+ *
+ * \param *file			The file to attach the instance to.
+ * \return			The instance handle, or NULL on failure.
+ */
+
+struct accview_block *accview_create_instance(struct file_block *file)
+{
+	struct accview_block	*new;
+
+	new = heap_alloc(sizeof(struct accview_block));
+	if (new == NULL)
+		return NULL;
+
+	/* Initialise the transaction window. */
+
+	new->file = file;
+
+	new-> columns = column_create_instance(ACCVIEW_COLUMNS);
+	if (new->columns == NULL) {
+		heap_free(new);
+		return NULL;
+	}
+
+	column_init_window(new->columns, 0, FALSE, config_str_read("AccViewCols"));
+
+	new->sort_order = SORT_DATE | SORT_ASCENDING;
+
+	return new;
+}
+
+
+/**
+ * Delete a global account view module instance, and all of its data.
+ *
+ * \param *instance		The instance to be deleted.
+ */
+
+void accview_delete_instance(struct accview_block *instance)
+{
+	if (instance == NULL)
+		return;
+
+	column_delete_instance(instance->columns);
+
+	heap_free(instance);
+}
+
+
+/**
  * Create and open a Account View window for the given file and account.
  *
  * \param *file			The file to open a window for.
@@ -356,15 +417,12 @@ void accview_open_window(struct file_block *file, acct_t account)
 	accview_window_def->title_data.indirected_text.text =
 			view->window_title;
 
-	for (i=0; i<ACCVIEW_COLUMNS; i++) {
-		view->column_width[i] = file->accview_column_width[i];
-		view->column_position[i] = file->accview_column_position[i];
-	}
+	view->columns = column_clone_instance(file->accviews->columns);
 
 	height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ?
 			view->display_lines : MIN_ACCVIEW_ENTRIES;
 
-	view->sort_order = file->accview_sort_order;
+	view->sort_order = file->accviews->sort_order;
 
 	/* Find the position to open the window at. */
 
@@ -729,7 +787,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			windows_redraw(windat->accview_pane);
 			accview_sort(file, account);
 
-			file->accview_sort_order = windat->sort_order;
+			file->accviews->sort_order = windat->sort_order;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
 		column_start_drag(pointer, windat, windat->accview_window,
@@ -1268,14 +1326,9 @@ static void accview_adjust_window_columns(void *data, wimp_i group, int width)
 
 	file = windat->file;
 
-	update_dragged_columns(ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), group, width,
-			windat->column_width, windat->column_position,
-			ACCVIEW_COLUMNS);
+	update_dragged_columns(ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), group, width, windat->columns);
 
-	for (i=0; i<ACCVIEW_COLUMNS; i++) {
-		file->accview_column_width[i] = windat->column_width[i];
-		file->accview_column_position[i] = windat->column_position[i];
-	}
+	column_copy_instance(windat->columns, file->accviews->columns);
 
 	/* Re-adjust the icons in the pane. */
 
@@ -1616,7 +1669,7 @@ static osbool accview_process_sort_window(enum sort_type order, void *data)
 	windows_redraw(windat->accview_pane);
 	accview_sort(windat->file, windat->account);
 
-	windat->file->accview_sort_order = windat->sort_order;
+	windat->file->accviews->sort_order = windat->sort_order;
 
 	return TRUE;
 }
@@ -2378,6 +2431,56 @@ static void accview_scroll_to_line(struct accview_window *view, int line)
 		wimp_open_window((wimp_open *) &window);
 	}
 }
+
+
+/**
+ * Save the accview details to a CashBook file.
+ * 
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void accview_write_file(struct file_block *file, FILE *out)
+{
+	char	buffer[MAX_FILE_LINE_LEN];
+
+	column_write_as_text(file->accviews->columns, buffer, MAX_FILE_LINE_LEN);
+
+	fprintf(out, "WinColumns: %s\n", buffer);
+	fprintf(out, "SortOrder: %x\n", file->accviews->sort_order);
+}
+
+
+/**
+ * Process a WinColumns line from the Accounts section of a file.
+ *
+ * \param *file			The file being read in to.
+ * \param format		The format of the disc file.
+ * \param *columns		The column text line.
+ */
+
+void accview_read_file_wincolumns(struct file_block *file, int format, char *columns)
+{
+	/* For file format 1.00 or older, there's no row column at the
+	 * start of the line so skip on to column 1 (date).
+	 */
+
+	column_init_window(file->accviews->columns, (format <= 100) ? 1 : 0, TRUE, columns);
+}
+
+
+/**
+ * Process a SortOrder line from the Accounts section of a file.
+ *
+ * \param *file			The file being read in to.
+ * \param *columns		The sort order text line.
+ */
+
+void accview_read_file_sortorder(struct file_block *file, char *order)
+{
+	file->accviews->sort_order = strtoul(order, NULL, 16);
+}
+
 
 
 /**

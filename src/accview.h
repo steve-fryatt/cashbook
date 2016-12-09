@@ -44,6 +44,25 @@ void accview_initialise(osspriteop_area *sprites);
 
 
 /**
+ * Create a new global account view module instance.
+ *
+ * \param *file			The file to attach the instance to.
+ * \return			The instance handle, or NULL on failure.
+ */
+
+struct accview_block *accview_create_instance(struct file_block *file);
+
+
+/**
+ * Delete a global account view module instance, and all of its data.
+ *
+ * \param *instance		The instance to be deleted.
+ */
+
+void accview_delete_instance(struct accview_block *instance);
+
+
+/**
  * Create and open a Account View window for the given file and account.
  *
  * \param *file			The file to open a window for.
@@ -159,6 +178,37 @@ void accview_recalculate_all(struct file_block *file);
  */
 
 void accview_rebuild_all(struct file_block *file);
+
+
+/**
+ * Save the accview details to a CashBook file.
+ * 
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void accview_write_file(struct file_block *file, FILE *out);
+
+
+/**
+ * Process a WinColumns line from the Accounts section of a file.
+ *
+ * \param *file			The file being read in to.
+ * \param format		The format of the disc file.
+ * \param *columns		The column text line.
+ */
+
+void accview_read_file_wincolumns(struct file_block *file, int format, char *columns);
+
+
+/**
+ * Process a SortOrder line from the Accounts section of a file.
+ *
+ * \param *file			The file being read in to.
+ * \param *columns		The sort order text line.
+ */
+
+void accview_read_file_sortorder(struct file_block *file, char *order);
 
 #endif
 

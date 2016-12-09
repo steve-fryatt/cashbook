@@ -226,8 +226,7 @@ struct sorder_block {
 
 	/* Display column details. */
 
-	int			column_width[SORDER_COLUMNS];			/**< Array holding the column widths in the transaction window.		*/
-	int			column_position[SORDER_COLUMNS];		/**< Array holding the column X-offsets in the transact window.		*/
+	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
 
 	/* Other window details. */
 
@@ -387,8 +386,13 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	new->sorder_window = NULL;
 	new->sorder_pane = NULL;
 
-	column_init_window(new->column_width, new->column_position, SORDER_COLUMNS, 0, FALSE,
-			config_str_read("SOrderCols"));
+	new-> columns = column_create_instance(SORDER_COLUMNS);
+	if (new->columns == NULL) {
+		heap_free(new);
+		return NULL;
+	}
+
+	column_init_window(new->columns, 0, FALSE, config_str_read("SOrderCols"));
 
 	new->sort_order = SORT_NEXTDATE | SORT_DESCENDING;
 
@@ -398,6 +402,7 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	new->sorders = NULL;
 
 	if (flex_alloc((flex_ptr) &(new->sorders), 4) == 0) {
+		column_delete_instance(new->columns);
 		heap_free(new);
 		return NULL;
 	}
@@ -418,6 +423,8 @@ void sorder_delete_instance(struct sorder_block *windat)
 		return;
 
 	sorder_delete_window(windat);
+
+	column_delete_instance(windat->columns);
 
 	if (windat->sorders != NULL)
 		flex_free((flex_ptr) &(windat->sorders));
@@ -461,9 +468,7 @@ void sorder_open_window(struct file_block *file)
 
 	transact_get_window_state(file, &parent);
 
-	set_initial_window_area (sorder_window_def,
-			file->sorders->column_position[SORDER_COLUMNS-1] +
-			file->sorders->column_width[SORDER_COLUMNS-1],
+	set_initial_window_area(sorder_window_def, column_get_window_width(file->sorders->columns),
 			((ICON_HEIGHT+LINE_GUTTER) * height) + SORDER_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
@@ -487,12 +492,12 @@ void sorder_open_window(struct file_block *file)
 	#endif
 
 	for (i=0, j=0; j < SORDER_COLUMNS; i++, j++) {
-		sorder_pane_def->icons[i].extent.x0 = file->sorders->column_position[j];
+		sorder_pane_def->icons[i].extent.x0 = file->sorders->columns->position[j];
 
 		j = column_get_rightmost_in_group(SORDER_PANE_COL_MAP, i);
 
-		sorder_pane_def->icons[i].extent.x1 = file->sorders->column_position[j] +
-				file->sorders->column_width[j] +
+		sorder_pane_def->icons[i].extent.x1 = file->sorders->columns->position[j] +
+				file->sorders->columns->width[j] +
 				COLUMN_HEADING_MARGIN;
 	}
 
@@ -962,12 +967,12 @@ static void sorder_window_scroll_handler(wimp_scroll *scroll)
 static void sorder_window_redraw_handler(wimp_draw *redraw)
 {
 	struct sorder_block	*windat;
-	int			ox, oy, top, base, y, i, t;
+	int			ox, oy, top, base, y, i, t, width;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
 	windat = event_get_window_user_data(redraw->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
 		return;
 
 	more = wimp_redraw_window(redraw);
@@ -980,11 +985,12 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	/* Set the horizontal positions of the icons. */
 
 	for (i=0; i < SORDER_COLUMNS; i++) {
-		sorder_window_def->icons[i].extent.x0 = windat->column_position[i];
-		sorder_window_def->icons[i].extent.x1 = windat->column_position[i] +
-				windat->column_width[i];
+		sorder_window_def->icons[i].extent.x0 = windat->columns->position[i];
+		sorder_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
 		sorder_window_def->icons[i].data.indirected_text.text = icon_buffer;
 	}
+
+	width = column_get_window_width(windat->columns);
 
 	/* Perform the redraw. */
 
@@ -1007,9 +1013,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			wimp_set_colour(wimp_COLOUR_WHITE);
 			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - SORDER_TOOLBAR_HEIGHT);
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
-					ox + windat->column_position[SORDER_COLUMNS-1] +
-					windat->column_width[SORDER_COLUMNS-1],
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width,
 					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - SORDER_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
 
 			/* From field */
@@ -1168,9 +1172,7 @@ static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	update_dragged_columns(SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), group, width,
-			windat->column_width,
-			windat->column_position, SORDER_COLUMNS);
+	update_dragged_columns(SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), group, width, windat->columns);
 
 	/* Re-adjust the icons in the pane. */
 
@@ -1179,19 +1181,18 @@ static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
 		icon.i = i;
 		wimp_get_icon_state(&icon);
 
-		icon.icon.extent.x0 = windat->column_position[j];
+		icon.icon.extent.x0 = windat->columns->position[j];
 
 		j = column_get_rightmost_in_group(SORDER_PANE_COL_MAP, i);
 
-		icon.icon.extent.x1 = windat->column_position[j] +
-				windat->column_width[j] + COLUMN_HEADING_MARGIN;
+		icon.icon.extent.x1 = windat->columns->position[j] +
+				windat->columns->width[j] + COLUMN_HEADING_MARGIN;
 
 		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
 				icon.icon.extent.x1, icon.icon.extent.y1);
-
-		new_extent = windat->column_position[SORDER_COLUMNS-1] +
-				windat->column_width[SORDER_COLUMNS-1];
 	}
+
+	new_extent = column_get_window_width(windat->columns);
 
 	sorder_adjust_sort_icon(windat);
 
@@ -1297,11 +1298,11 @@ static void sorder_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon 
 	width = icon->extent.x1 - icon->extent.x0;
 
 	if ((windat->sort_order & SORT_MASK) == SORT_AMOUNT || (windat->sort_order & SORT_MASK) == SORT_LEFT) {
-		anchor = windat->column_position[i] + COLUMN_HEADING_MARGIN;
+		anchor = windat->columns->position[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
 		icon->extent.x1 = icon->extent.x0 + width;
 	} else {
-		anchor = windat->column_position[i] + windat->column_width[i] + COLUMN_HEADING_MARGIN;
+		anchor = windat->columns->position[i] + windat->columns->width[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
 		icon->extent.x0 = icon->extent.x1 - width;
 	}
@@ -1363,7 +1364,7 @@ static void sorder_set_window_extent(struct sorder_block *windat)
 
 	extent.x0 = 0;
 	extent.y1 = 0;
-	extent.x1 = windat->column_position[SORDER_COLUMNS-1] + windat->column_width[SORDER_COLUMNS-1] + COLUMN_GUTTER;
+	extent.x1 = column_get_window_width(windat->columns) + COLUMN_GUTTER;
 	extent.y0 = new_extent;
 
 	wimp_set_extent(windat->sorder_window, &extent);
@@ -1464,9 +1465,7 @@ static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
-	for (column = 0;
-			column < SORDER_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
-			column++);
+	column = column_get_position(windat->columns, xpos);
 
 	sprintf(buffer, "Col%d", column);
 }
@@ -2783,7 +2782,7 @@ void sorder_write_file(struct file_block *file, FILE *out)
 
 	fprintf (out, "Entries: %x\n", file->sorders->sorder_count);
 
-	column_write_as_text (file->sorders->column_width, SORDER_COLUMNS, buffer);
+	column_write_as_text(file->sorders->columns, buffer, MAX_FILE_LINE_LEN);
 	fprintf (out, "WinColumns: %s\n", buffer);
 
 	fprintf (out, "SortOrder: %x\n", file->sorders->sort_order);
@@ -2831,9 +2830,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 				block_size = file->sorders->sorder_count;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
-			column_init_window(file->sorders->column_width,
-					file->sorders->column_position,
-					SORDER_COLUMNS, 0, TRUE, value);
+			column_init_window(file->sorders->columns, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
 			file->sorders->sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp (token, "@") == 0) {

@@ -32,6 +32,7 @@
 
 #include "oslib/wimp.h"
 
+#include "column.h"
 #include "date.h"
 #include "sort.h"
 
@@ -139,13 +140,11 @@ struct file_block
 	struct sorder_block		*sorders;				/**< Data relating to the standing order module.		*/
 	struct preset_block		*presets;				/**< Data relating to the preset module.			*/
 
-  /* Default display details for the accview windows. */
+	/* Details of the shared account view system. */
 
-  int                accview_column_width[ACCVIEW_COLUMNS]; /* Base column widths in the account view windows. */
-  int                accview_column_position[ACCVIEW_COLUMNS]; /* Base column positions in the account view windows. */
-  int                accview_sort_order; /* Default sort order for the accview windows. */
+	struct accview_block		*accviews;				/**< Data relating to the shared accview module.		*/
 
-  /* Recalculation data. */
+	/* Recalculation data. */
 
 	date_t				last_full_recalc;			/* The last time a full recalculation was done on the file.	*/
 

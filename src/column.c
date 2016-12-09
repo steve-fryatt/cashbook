@@ -46,6 +46,7 @@
 #include "sflib/debug.h"
 #include "sflib/event.h"
 #include "sflib/general.h"
+#include "sflib/heap.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -73,21 +74,113 @@ static int		column_get_minimum_width(char *widths, int column);
 
 
 /**
+ * Create a new column definition instance.
+ * 
+ * \param columns		The number of columns to be defined.
+ * \return			Pointer to the instance, or NULL on failure.
+ */
+
+struct column_block *column_create_instance(size_t columns)
+{
+	void			*mem;
+	struct column_block	*new;
+
+	mem = heap_alloc(sizeof(struct column_block) + (2 * columns * sizeof(int)));
+	if (mem == NULL)
+		return NULL;
+
+	new = mem;
+
+	new->columns = columns;
+
+	mem += sizeof(struct column_block);
+
+	new->position = mem;
+	new->width = mem + (columns * sizeof(int));
+
+	return new;
+}
+
+
+/**
+ * Clone a column definition instance.
+ *
+ * \param *instance		The instance to be cloned.
+ * \return			The new, cloned instance, or NULL on failure.
+ */
+
+struct column_block *column_clone_instance(struct column_block *instance)
+{
+	struct column_block	*new;
+
+	if (instance == NULL)
+		return NULL;
+
+	new = column_create_instance(instance->columns);
+	if (new == NULL)
+		return NULL;
+
+	new->columns = instance->columns;
+
+	column_copy_instance(instance, new);
+
+	return new;
+}
+
+
+/**
+ * Copy the column settings from one column definition instance to another.
+ *
+ * \param *from			The instance to copy the settings from.
+ * \param *to			The instance to copy the settings to.
+ */
+
+void column_copy_instance(struct column_block *from, struct column_block *to)
+{
+	int	i;
+
+	if (from == NULL || to == NULL || from->columns != to->columns)
+		return;
+
+	for (i = 0; i < from->columns; i++) {
+		to->position[i] = from->position[i];
+		to->width[i] = from->width[i];
+	}
+
+}
+
+
+/**
+ * Delete a column instance.
+ * 
+ * \param *instance		Pointer to the instance to be deleted.
+ */
+
+void column_delete_instance(struct column_block *instance)
+{
+	if (instance == NULL)
+		return;
+
+	heap_free(instance);
+}
+
+/**
  * Set a window's column data up, based on the supplied values in a column
  * width configuration string.
  *
- * \param width[]		Array to take column width details.
- * \param position[]		Array to take column position details.
- * \param columns		The number of columns to be processed.
+ * \param *instance		The columns instance to take the data.
  * \param start			The first column to read in from the string.
  * \param skip			TRUE to ignore missing entyries; FALSE to set to default.
  * \param *widths		The width configuration string to process.
  */
 
-void column_init_window(int width[], int position[], int columns, int start, osbool skip, char *widths)
+void column_init_window(struct column_block *instance, int start, osbool skip, char *widths)
 {
 	int	i;
 	char	*copy, *str;
+
+	if (instance == NULL)
+		return;
 
 	copy = strdup(widths);
 
@@ -95,11 +188,11 @@ void column_init_window(int width[], int position[], int columns, int start, osb
 
 	str = strtok(copy, ",");
 
-	for (i = start; i < columns; i++) {
+	for (i = start; i < instance->columns; i++) {
 		if (str != NULL)
-			width[i] = atoi(str);
+			instance->width[i] = atoi(str);
 		else if (skip == FALSE)
-			width[i] = COLUMN_WIDTH_DEFAULT; /* Stick a default value in if the config data is missing. */
+			instance->width[i] = COLUMN_WIDTH_DEFAULT; /* Stick a default value in if the config data is missing. */
 
 		str = strtok(NULL, ",");
 	}
@@ -108,37 +201,54 @@ void column_init_window(int width[], int position[], int columns, int start, osb
 
 	/* Now set the positions, based on the widths that were read in. */
 
-	position[0] = 0;
+	instance->position[0] = 0;
 
-	for (i=1; i < columns; i++)
-		position[i] = position[i-1] + width[i-1] + COLUMN_GUTTER;
+	for (i = 1; i < instance->columns; i++)
+		instance->position[i] = instance->position[i - 1] + instance->width[i - 1] + COLUMN_GUTTER;
 }
 
 
 /**
  * Create a column width configuration string from an array of column widths.
  *
- * \param width[]		An array of column widths.
- * \param columns		The number of columns to process.
+ * \param *instance		The column instance to be processed.
  * \param *buffer		A buffer to hold the configuration string.
+ * \param length		The size of the buffer.
  */
 
-char *column_write_as_text(int width[], int columns, char *buffer)
+char *column_write_as_text(struct column_block *instance, char *buffer, size_t length)
 {
-	int	i;
+	int	i, written;
+	char	*end;
+	size_t	remaining;
+
+	if (buffer == NULL || length == 0)
+		return buffer;
 
 	/* Start the buffer off as a NULL string that will be appended to. */
 
 	*buffer = '\0';
+	end = buffer;
+
+	if (instance == NULL)
+		return buffer;
 
 	/* Write the column widths to the buffer. */
 
-	for (i=0; i < columns; i++)
-		sprintf(strrchr (buffer, '\0'), "%d,", width[i]);
+
+	for (i = 0; i < instance->columns; i++) {
+		remaining = (buffer + length) - end;
+
+		written = snprintf(end, remaining, "%d,", instance->width[i]);
+		if (written > remaining)
+			written = remaining;
+
+		end += written;
+	}
 
 	/* Remove the terminating ','. */
 
-	*strrchr(buffer, ',') = '\0';
+	*(end - 1) = '\0';
 
 	return buffer;
 }
@@ -231,29 +341,71 @@ static void column_terminate_drag(wimp_dragged *drag, void *data)
  * \param *widths		The minimum column width configuration string.
  * \param group			The column group that has been resized.
  * \param new_width		The new width of the dragged group.
- * \param width[]		The column width array to be updated.
- * \param position[]		The column position array to be updated.
- * \param columns		The number of columns to be processed.
+ * \param *instance		The column instance to be updated.
  */
 
-void update_dragged_columns(char *mapping, char *widths, int group, int new_width, int width[], int position[], int columns)
+void update_dragged_columns(char *mapping, char *widths, int group, int new_width, struct column_block *instance)
 {
 	int	sum = 0, i, left, right;
+
+	if (instance == NULL)
+		return;
 
 	left = column_get_leftmost_in_group(mapping, group);
 	right = column_get_rightmost_in_group(mapping, group);
 
+	if (left < 0 || right >= instance->columns || left > right)
+		return;
+
 	for (i = left; i <= right; i++) {
 		if (i == right) {
-			width[i] = new_width - (sum + COLUMN_HEADING_MARGIN);
+			instance->width[i] = new_width - (sum + COLUMN_HEADING_MARGIN);
 		} else {
-			width[i] = column_get_minimum_width(widths, i);
+			instance->width[i] = column_get_minimum_width(widths, i);
 			sum +=  (column_get_minimum_width(widths, i) + COLUMN_GUTTER);
 		}
 	}
 
-	for (i = left+1; i < columns; i++)
-		position[i] = position[i-1] + width[i-1] + COLUMN_GUTTER;
+	for (i = left + 1; i < instance->columns; i++)
+		instance->position[i] = instance->position[i - 1] + instance->width[i - 1] + COLUMN_GUTTER;
+}
+
+
+/**
+ * Get the total width of the columns represented by an instance.
+ * 
+ * \param *instance		The column instance to report on.
+ * \return			The total width, or 0 on error.
+ */
+
+int column_get_window_width(struct column_block *instance)
+{
+	if (instance == NULL)
+		return 0;
+
+	return instance->position[instance->columns - 1] + instance->width[instance->columns - 1];
+}
+
+
+/**
+ * Given an X position in OS units, locate the column into which it falls.
+ *
+ * \param *instance		The column instance to test the position against.
+ * \param xpos			The X position from the left margin, in OS units.
+ * \return			The column into which the location falls.
+ */
+
+int column_get_position(struct column_block *instance, int xpos)
+{
+	int column;
+
+	if (instance == NULL)
+		return 0;
+
+	for (column = 0; column < instance->columns && xpos > (instance->position[column] + instance->width[column]);
+		column++);
+
+	return column;
 }
 
 

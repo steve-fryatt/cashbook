@@ -180,8 +180,7 @@ struct account_window {
 
 	/* Display column details. */
 
-	int			column_width[ACCOUNT_COLUMNS];			/* Array holding the column widths in the account window. */
-	int			column_position[ACCOUNT_COLUMNS];		/* Array holding the column X-offsets in the acct window */
+	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
 
 	/* Data parameters */
 
@@ -402,6 +401,7 @@ struct account_block *account_create_instance(struct file_block *file)
 {
 	struct account_block	*new;
 	int			i;
+	osbool			mem_fail = FALSE;
 
 	new = heap_alloc(sizeof(struct account_block));
 	if (new == NULL)
@@ -421,8 +421,11 @@ struct account_block *account_create_instance(struct file_block *file)
 		new->account_windows[i].account_pane = NULL;
 		new->account_windows[i].account_footer = NULL;
 
-		column_init_window(new->account_windows[i].column_width, new->account_windows[i].column_position,
-				ACCOUNT_COLUMNS, 0, FALSE, config_str_read("AccountCols"));
+		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS);
+		if (new->account_windows[i].columns == NULL)
+			mem_fail = TRUE;
+
+		column_init_window(new->account_windows[i].columns, 0, FALSE, config_str_read("AccountCols"));
 
 		/* Blank out the footer icons. */
 
@@ -459,7 +462,9 @@ struct account_block *account_create_instance(struct file_block *file)
 	new->account_count = 0;
 	new->accounts = NULL;
 
-	if (flex_alloc((flex_ptr) &(new->accounts), 4) == 0) {
+	if (mem_fail || (flex_alloc((flex_ptr) &(new->accounts), 4) == 0)) {
+		for (i = 0; i < ACCOUNT_WINDOWS; i++)
+			column_delete_instance(new->account_windows[i].columns);
 		heap_free(new);
 		return NULL;
 	}
@@ -500,7 +505,9 @@ void account_delete_instance(struct account_block *block)
 	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
 		if (block->account_windows[i].line_data != NULL)
 			flex_free((flex_ptr) &(block->account_windows[i].line_data));
-		
+
+		column_delete_instance(block->account_windows[i].columns);
+
 		account_delete_window(&(block->account_windows[i]));
 	}
 
@@ -563,9 +570,7 @@ void account_open_window(struct file_block *file, enum account_type type)
 
 	transact_get_window_state(file, &parent);
 
-	set_initial_window_area(account_window_def,
-			window->column_position[ACCOUNT_COLUMNS-1] +
-			window->column_width[ACCOUNT_COLUMNS-1],
+	set_initial_window_area(account_window_def, column_get_window_width(window->columns),
 			((ICON_HEIGHT+LINE_GUTTER) * height) +
 			(ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2),
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
@@ -590,9 +595,9 @@ void account_open_window(struct file_block *file, enum account_type type)
 	windows_place_as_toolbar(account_window_def, account_pane_def[tb_type], ACCOUNT_TOOLBAR_HEIGHT-4);
 
 	for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++) {
-		account_pane_def[tb_type]->icons[i].extent.x0 = window->column_position[j];
+		account_pane_def[tb_type]->icons[i].extent.x0 = window->columns->position[j];
 		j = column_get_rightmost_in_group(ACCOUNT_PANE_COL_MAP, i);
-		account_pane_def[tb_type]->icons[i].extent.x1 = window->column_position[j] + window->column_width[j] + COLUMN_HEADING_MARGIN;
+		account_pane_def[tb_type]->icons[i].extent.x1 = window->columns->position[j] + window->columns->width[j] + COLUMN_HEADING_MARGIN;
 	}
 
 	error = xwimp_create_window(account_pane_def[tb_type], &(window->account_pane));
@@ -611,13 +616,13 @@ void account_open_window(struct file_block *file, enum account_type type)
 		account_foot_def->icons[i+1].data.indirected_text.text = window->footer_icon[i];
 
 	for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++) {
-		account_foot_def->icons[i].extent.x0 = window->column_position[j];
+		account_foot_def->icons[i].extent.x0 = window->columns->position[j];
 		account_foot_def->icons[i].extent.y0 = -ACCOUNT_FOOTER_HEIGHT;
 		account_foot_def->icons[i].extent.y1 = 0;
 
 		j = column_get_rightmost_in_group(ACCOUNT_PANE_COL_MAP, i);
 
-		account_foot_def->icons[i].extent.x1 = window->column_position[j] + window->column_width[j];
+		account_foot_def->icons[i].extent.x1 = window->columns->position[j] + window->columns->width[j];
 	}
 
 	error = xwimp_create_window(account_foot_def, &(window->account_footer));
@@ -1066,7 +1071,7 @@ static void account_window_scroll_handler(wimp_scroll *scroll)
 
 static void account_window_redraw_handler(wimp_draw *redraw)
 {
-	int			ox, oy, top, base, y, i, shade_overdrawn_col, icon_fg_col;
+	int			ox, oy, top, base, y, i, shade_overdrawn_col, icon_fg_col, width;
 	char			icon_buffer1[AMOUNT_FIELD_LEN], icon_buffer2[AMOUNT_FIELD_LEN], icon_buffer3[AMOUNT_FIELD_LEN],
 				icon_buffer4[AMOUNT_FIELD_LEN];
 	osbool			more, shade_overdrawn;
@@ -1074,7 +1079,7 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 	struct account_block	*instance;
 
 	windat = event_get_window_user_data(redraw->w);
-	if (windat == NULL)
+	if (windat == NULL || windat->columns == NULL)
 		return;
 
 	instance = windat->instance;
@@ -1090,31 +1095,33 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 	/* Set the horizontal positions of the icons for the account lines. */
 
 	for (i=0; i < ACCOUNT_COLUMNS; i++) {
-		account_window_def->icons[i].extent.x0 = windat->column_position[i];
-		account_window_def->icons[i].extent.x1 = windat->column_position[i] + windat->column_width[i];
+		account_window_def->icons[i].extent.x0 = windat->columns->position[i];
+		account_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
 	}
+
+	width = column_get_window_width(windat->columns);
 
 	/* Set the positions for the heading lines. */
 
-	account_window_def->icons[6].extent.x0 = windat->column_position[0];
-	account_window_def->icons[6].extent.x1 = windat->column_position[ACCOUNT_COLUMNS-1] + windat->column_width[ACCOUNT_COLUMNS-1];
+	account_window_def->icons[6].extent.x0 = windat->columns->position[0];
+	account_window_def->icons[6].extent.x1 = windat->columns->position[ACCOUNT_COLUMNS - 1] + windat->columns->width[ACCOUNT_COLUMNS - 1];
 
 	/* Set the positions for the footer lines. */
 
-	account_window_def->icons[7].extent.x0 = windat->column_position[0];
-	account_window_def->icons[7].extent.x1 = windat->column_position[1] + windat->column_width[1];
+	account_window_def->icons[7].extent.x0 = windat->columns->position[0];
+	account_window_def->icons[7].extent.x1 = windat->columns->position[1] + windat->columns->width[1];
 
-	account_window_def->icons[8].extent.x0 = windat->column_position[2];
-	account_window_def->icons[8].extent.x1 = windat->column_position[2] + windat->column_width[2];
+	account_window_def->icons[8].extent.x0 = windat->columns->position[2];
+	account_window_def->icons[8].extent.x1 = windat->columns->position[2] + windat->columns->width[2];
 
-	account_window_def->icons[9].extent.x0 = windat->column_position[3];
-	account_window_def->icons[9].extent.x1 = windat->column_position[3] + windat->column_width[3];
+	account_window_def->icons[9].extent.x0 = windat->columns->position[3];
+	account_window_def->icons[9].extent.x1 = windat->columns->position[3] + windat->columns->width[3];
 
-	account_window_def->icons[10].extent.x0 = windat->column_position[4];
-	account_window_def->icons[10].extent.x1 = windat->column_position[4] + windat->column_width[4];
+	account_window_def->icons[10].extent.x0 = windat->columns->position[4];
+	account_window_def->icons[10].extent.x1 = windat->columns->position[4] + windat->columns->width[4];
 
-	account_window_def->icons[11].extent.x0 = windat->column_position[5];
-	account_window_def->icons[11].extent.x1 = windat->column_position[ACCOUNT_COLUMNS-1] + windat->column_width[ACCOUNT_COLUMNS-1];
+	account_window_def->icons[11].extent.x0 = windat->columns->position[5];
+	account_window_def->icons[11].extent.x1 = windat->columns->position[5] + windat->columns->width[5];
 
 	/* The three numerical columns keep their icon buffers for the whole time, so set them up now. */
 
@@ -1161,8 +1168,7 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 			wimp_set_colour(wimp_COLOUR_WHITE);
 			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT);
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
-					ox + windat->column_position[ACCOUNT_COLUMNS-1] + windat->column_width[ACCOUNT_COLUMNS-1],
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width,
 					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
 
 			if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_DATA) {
@@ -1412,9 +1418,7 @@ static void account_adjust_window_columns(void *data, wimp_i icon, int width)
 	if (windat == NULL || windat->instance == NULL || windat->instance->file == NULL)
 		return;
 
-	update_dragged_columns(ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), icon, width,
-			windat->column_width,
-			windat->column_position, ACCOUNT_COLUMNS);
+	update_dragged_columns(ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), icon, width, windat->columns);
 
 	/* Re-adjust the icons in the pane. */
 
@@ -1427,24 +1431,24 @@ static void account_adjust_window_columns(void *data, wimp_i icon, int width)
 		icon2.i = i;
 		wimp_get_icon_state(&icon2);
 
-		icon1.icon.extent.x0 = windat->column_position[j];
+		icon1.icon.extent.x0 = windat->columns->position[j];
 
-		icon2.icon.extent.x0 = windat->column_position[j];
+		icon2.icon.extent.x0 = windat->columns->position[j];
 
 		j = column_get_rightmost_in_group(ACCOUNT_PANE_COL_MAP, i);
 
-		icon1.icon.extent.x1 = windat->column_position[j] + windat->column_width[j] + COLUMN_HEADING_MARGIN;
+		icon1.icon.extent.x1 = windat->columns->position[j] + windat->columns->width[j] + COLUMN_HEADING_MARGIN;
 
-		icon2.icon.extent.x1 = windat->column_position[j] + windat->column_width[j];
+		icon2.icon.extent.x1 = windat->columns->position[j] + windat->columns->width[j];
 
 		wimp_resize_icon(icon1.w, icon1.i, icon1.icon.extent.x0, icon1.icon.extent.y0,
 				icon1.icon.extent.x1, icon1.icon.extent.y1);
 
 		wimp_resize_icon(icon2.w, icon2.i, icon2.icon.extent.x0, icon2.icon.extent.y0,
 				icon2.icon.extent.x1, icon2.icon.extent.y1);
-
-		new_extent = windat->column_position[ACCOUNT_COLUMNS - 1] + windat->column_width[ACCOUNT_COLUMNS - 1];
 	}
+
+	new_extent = column_get_window_width(windat->columns);
 
 	/* Replace the edit line to force a redraw and redraw the rest of the window. */
 
@@ -1531,8 +1535,8 @@ static void account_set_window_extent(struct file_block *file, int entry)
 	 */
 
 	extent.x0 = 0;
-	extent.x1 = file->accounts->account_windows[entry].column_position[ACCOUNT_COLUMNS-1] +
-			file->accounts->account_windows[entry].column_width[ACCOUNT_COLUMNS-1];
+	extent.x1 = file->accounts->account_windows[entry].columns->position[ACCOUNT_COLUMNS-1] +
+			file->accounts->account_windows[entry].columns->width[ACCOUNT_COLUMNS-1];
 
 	extent.y0 = new_extent;
 	extent.y1 = 0;
@@ -1685,9 +1689,7 @@ static void account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
-	for (column = 0;
-			column < ACCOUNT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
-			column++);
+	column = column_get_position(windat->columns, xpos);
 
 	sprintf(buffer, "Col%d", column);
 }
@@ -4635,12 +4637,12 @@ void account_write_file(struct file_block *file, FILE *out)
 
 	fprintf(out, "Entries: %x\n", file->accounts->account_count);
 
-	column_write_as_text(file->accview_column_width, ACCVIEW_COLUMNS, buffer);
-	fprintf(out, "WinColumns: %s\n", buffer);
+	/* \TODO -- This probably shouldn't be here, but in the accview module?
+	 * 
+	 * This would require AccView to have its own file section.
+	 */
 
-	/* \TODO -- This probably shouldn't be here, but in the accview module? */
-
-	fprintf(out, "SortOrder: %x\n", file->accview_sort_order);
+	accview_write_file(file, out);
 
 	for (i = 0; i < file->accounts->account_count; i++) {
 
@@ -4678,7 +4680,7 @@ void account_write_file(struct file_block *file, FILE *out)
 
 		fprintf(out, "Entries: %x\n", file->accounts->account_windows[j].display_lines);
 
-		column_write_as_text(file->accounts->account_windows[j].column_width, ACCOUNT_COLUMNS, buffer);
+		column_write_as_text(file->accounts->account_windows[j].columns, buffer, MAX_FILE_LINE_LEN);
 		fprintf(out, "WinColumns: %s\n", buffer);
 
 		for (i = 0; i < file->accounts->account_windows[j].display_lines; i++) {
@@ -4724,13 +4726,9 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 				block_size = file->accounts->account_count;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
-			/* For file format 1.00 or older, there's no row column at the
-			 * start of the line so skip on to colukn 1 (date).
-			 */
-			column_init_window(file->accview_column_width, file->accview_column_position,
-					ACCVIEW_COLUMNS, (format <= 100) ? 1 : 0, TRUE, value);
+			accview_read_file_wincolumns(file, format, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
-			file->accview_sort_order = strtoul(value, NULL, 16);
+			accview_read_file_sortorder(file, value);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
 			/* A new account.  Take the account number, and see if it falls within the current defined set of
 			 * accounts (not the same thing as the pre-expanded account block.  If not, expand the acconut_count
@@ -4885,9 +4883,7 @@ enum config_read_status account_read_list_file(struct file_block *file, FILE *in
 				block_size = file->accounts->account_windows[entry].display_lines;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
-			column_init_window(file->accounts->account_windows[entry].column_width,
-					file->accounts->account_windows[entry].column_position,
-					ACCOUNT_COLUMNS, 0, TRUE, value);
+			column_init_window(file->accounts->account_windows[entry].columns, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
 			file->accounts->account_windows[entry].display_lines++;
 			if (file->accounts->account_windows[entry].display_lines > block_size) {

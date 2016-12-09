@@ -218,8 +218,8 @@ struct transaction {
 	acct_t			from;						/**< The account from which money is being transferred.					*/
 	acct_t			to;						/**< The account to which money is being transferred.					*/
 	amt_t			amount;						/**< The amount of money transferred by the transaction.				*/
-	char			reference[REF_FIELD_LEN];			/**< The transaction reference text.							*/
-	char			description[DESCRIPT_FIELD_LEN];		/**< The transaction description text.							*/
+	char			reference[TRANSACT_REF_FIELD_LEN];		/**< The transaction reference text.							*/
+	char			description[TRANSACT_DESCRIPT_FIELD_LEN];	/**< The transaction description text.							*/
 
 	/* Sort index entries.
 	 *
@@ -252,8 +252,7 @@ struct transact_block {
 
 	/* Display column details. */
 
-	int			column_width[TRANSACT_COLUMNS];			/**< Array holding the column widths in the transaction window. */
-	int			column_position[TRANSACT_COLUMNS];		/**< Array holding the column X-offsets in the transact window. */
+	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
 
 	/* Other window information. */
 
@@ -280,13 +279,13 @@ static char	transact_buffer_from_rec[REC_FIELD_LEN];
 static char	transact_buffer_to_ident[ACCOUNT_IDENT_LEN];
 static char	transact_buffer_to_name[ACCOUNT_NAME_LEN];
 static char	transact_buffer_to_rec[REC_FIELD_LEN];
-static char	transact_buffer_reference [REF_FIELD_LEN];
+static char	transact_buffer_reference [TRANSACT_REF_FIELD_LEN];
 static char	transact_buffer_amount[AMOUNT_FIELD_LEN];
-static char	transact_buffer_description[DESCRIPT_FIELD_LEN];
+static char	transact_buffer_description[TRANSACT_DESCRIPT_FIELD_LEN];
 
 
 struct transact_list_link {
-	char	name[DESCRIPT_FIELD_LEN]; /* This assumes that references are always shorter than descriptions...*/
+	char	name[TRANSACT_DESCRIPT_FIELD_LEN]; /* This assumes that references are always shorter than descriptions...*/
 };
 
 
@@ -456,8 +455,13 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->transaction_pane = NULL;
 	new->edit_line = NULL;
 
-	column_init_window(new->column_width, new->column_position, TRANSACT_COLUMNS, 0, FALSE,
-			config_str_read("TransactCols"));
+	new-> columns = column_create_instance(TRANSACT_COLUMNS);
+	if (new->columns == NULL) {
+		heap_free(new);
+		return NULL;
+	}
+
+	column_init_window(new->columns, 0, FALSE, config_str_read("TransactCols"));
 
 	new->sort_order = SORT_DATE | SORT_ASCENDING;
 
@@ -467,6 +471,7 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->transactions = NULL;
 
 	if (flex_alloc((flex_ptr) &(new->transactions), 4) == 0) {
+		column_delete_instance(new->columns);
 		heap_free(new);
 		return NULL;
 	}
@@ -487,6 +492,8 @@ void transact_delete_instance(struct transact_block *windat)
 		return;
 
 	transact_delete_window(windat);
+
+	column_delete_instance(windat->columns);
 
 	if (windat->transactions != NULL)
 		flex_free((flex_ptr) &(windat->transactions));
@@ -527,9 +534,7 @@ void transact_open_window(struct file_block *file)
 
 	height =  file->transacts->display_lines;
 
-	set_initial_window_area(transact_window_def,
-			file->transacts->column_position[TRANSACT_COLUMNS-1] +
-			file->transacts->column_width[TRANSACT_COLUMNS-1],
+	set_initial_window_area(transact_window_def, column_get_window_width(file->transacts->columns),
 			((ICON_HEIGHT+LINE_GUTTER) * height) + TRANSACT_TOOLBAR_HEIGHT,
 			-1, -1, new_transaction_window_offset * TRANSACTION_WINDOW_OPEN_OFFSET);
 
@@ -548,10 +553,10 @@ void transact_open_window(struct file_block *file)
 	windows_place_as_toolbar(transact_window_def, transact_pane_def, TRANSACT_TOOLBAR_HEIGHT-4);
 
 	for (i=0, j=0; j < TRANSACT_COLUMNS; i++, j++) {
-		transact_pane_def->icons[i].extent.x0 = file->transacts->column_position[j];
+		transact_pane_def->icons[i].extent.x0 = file->transacts->columns->position[j];
 		j = column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, i);
-		transact_pane_def->icons[i].extent.x1 = file->transacts->column_position[j] +
-				file->transacts->column_width[j] +
+		transact_pane_def->icons[i].extent.x1 = file->transacts->columns->position[j] +
+				file->transacts->columns->width[j] +
 				COLUMN_HEADING_MARGIN;
 	}
 
@@ -584,9 +589,9 @@ void transact_open_window(struct file_block *file)
 	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, EDIT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
 			EDIT_ICON_TO_REC, transact_buffer_to_name, ACCOUNT_NAME_LEN,
 			EDIT_ICON_TO_NAME, transact_buffer_to_rec, REC_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, EDIT_ICON_REF, transact_buffer_reference, REF_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, EDIT_ICON_REF, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
 	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, EDIT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, EDIT_ICON_DESCRIPT, transact_buffer_description, DESCRIPT_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, EDIT_ICON_DESCRIPT, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	/* Set the title */
 
@@ -824,8 +829,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 		if (line >= 0) {
 			xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
 
-			for (column = 0; column < TRANSACT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
-					column++);
+			column = column_get_position(windat->columns, xpos);
 
 #ifdef DEBUG
 			debug_printf("Adjust transaction window click (line %d, column %d, xpos %d)", line, column, xpos);
@@ -1558,12 +1562,12 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 static void transact_window_redraw_handler(wimp_draw *redraw)
 {
 	struct transact_block	*windat;
-	int			ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col;
-	char			icon_buffer[DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	int			ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col, width;
+	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
 	windat = event_get_window_user_data(redraw->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
 		return;
 
 	more = wimp_redraw_window(redraw);
@@ -1578,10 +1582,12 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 	/* Set the horizontal positions of the icons. */
 
 	for (i=0; i < TRANSACT_COLUMNS; i++) {
-		transact_window_def->icons[i].extent.x0 = windat->column_position[i];
-		transact_window_def->icons[i].extent.x1 = windat->column_position[i] + windat->column_width[i];
+		transact_window_def->icons[i].extent.x0 = windat->columns->position[i];
+		transact_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
 		transact_window_def->icons[i].data.indirected_text.text = icon_buffer;
 	}
+
+	width = column_get_window_width(windat->columns);
 
 	/* Perform the redraw. */
 
@@ -1614,9 +1620,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			wimp_set_colour(wimp_COLOUR_VERY_LIGHT_GREY);
 			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT);
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
-					ox + windat->column_position[TRANSACT_COLUMNS-1]
-					+ windat->column_width[TRANSACT_COLUMNS-1],
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width,
 					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
 
 			/* We don't need to plot the current edit line, as that has real
@@ -1637,7 +1641,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_ROW].flags |= icon_fg_col;
 
 			if (y < windat->trans_count)
-				snprintf(icon_buffer, DESCRIPT_FIELD_LEN, "%d", transact_get_transaction_number(t));
+				snprintf(icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN, "%d", transact_get_transaction_number(t));
 			else
 				*icon_buffer = '\0';
 
@@ -1654,7 +1658,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_DATE].flags |= icon_fg_col;
 
 			if (y < windat->trans_count)
-				date_convert_to_string(windat->transactions[t].date, icon_buffer, DESCRIPT_FIELD_LEN);
+				date_convert_to_string(windat->transactions[t].date, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 
@@ -1786,7 +1790,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags |= icon_fg_col;
 
 			if (y < windat->trans_count)
-				currency_convert_to_string(windat->transactions[t].amount, icon_buffer, DESCRIPT_FIELD_LEN);
+				currency_convert_to_string(windat->transactions[t].amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 			else
 				*icon_buffer = '\0';
 
@@ -1836,8 +1840,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), target, width,
-			windat->column_width, windat->column_position, TRANSACT_COLUMNS);
+	update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), target, width, windat->columns);
 
 	/* Re-adjust the icons in the pane. */
 
@@ -1846,17 +1849,17 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 		icon.i = i;
 		wimp_get_icon_state(&icon);
 
-		icon.icon.extent.x0 = windat->column_position[j];
+		icon.icon.extent.x0 = windat->columns->position[j];
 
 		j = column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, i);
 
-		icon.icon.extent.x1 = windat->column_position[j] + windat->column_width[j] + COLUMN_HEADING_MARGIN;
+		icon.icon.extent.x1 = windat->columns->position[j] + windat->columns->width[j] + COLUMN_HEADING_MARGIN;
 
 		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
 				icon.icon.extent.x1, icon.icon.extent.y1);
-
-		new_extent = windat->column_position[TRANSACT_COLUMNS-1] + windat->column_width[TRANSACT_COLUMNS-1];
 	}
+
+	new_extent = column_get_window_width(windat->columns);
 
 	transact_adjust_sort_icon(windat);
 
@@ -2002,11 +2005,11 @@ static void transact_adjust_sort_icon_data(struct transact_block *windat, wimp_i
 	width = icon->extent.x1 - icon->extent.x0;
 
 	if ((windat->sort_order & SORT_MASK) == SORT_ROW || (windat->sort_order & SORT_MASK) == SORT_AMOUNT) {
-		anchor = windat->column_position[i] + COLUMN_HEADING_MARGIN;
+		anchor = windat->columns->position[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
 		icon->extent.x1 = icon->extent.x0 + width;
 	} else {
-		anchor = windat->column_position[i] + windat->column_width[i] + COLUMN_HEADING_MARGIN;
+		anchor = windat->columns->position[i] + windat->columns->width[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
 		icon->extent.x0 = icon->extent.x1 - width;
 	}
@@ -2071,8 +2074,7 @@ void transact_set_window_extent(struct file_block *file)
 
 	extent.x0 = 0;
 	extent.y1 = 0;
-	extent.x1 = file->transacts->column_position[TRANSACT_COLUMNS - 1] +
-			file->transacts->column_width[TRANSACT_COLUMNS - 1];
+	extent.x1 = column_get_window_width(file->transacts->columns) + COLUMN_GUTTER;
 	extent.y0 = new_extent;
 
 	wimp_set_extent(file->transacts->transaction_window, &extent);
@@ -2392,9 +2394,7 @@ static void transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
 
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
-	for (column = 0;
-		column < TRANSACT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
-		column++);
+	column = column_get_position(windat->columns, xpos);
 
 	sprintf(buffer, "Col%d", column);
 }
@@ -2568,7 +2568,7 @@ wimp_menu *transact_complete_menu_build(struct file_block *file, enum transact_l
 	/* In the Reference menu, the first item needs to be the Cheque No. entry, so insert that manually. */
 
 	if (transact_complete_menu_link != NULL && menu_type == REFDESC_MENU_REFERENCE)
-		msgs_lookup("RefMenuChq", transact_complete_menu_link[items++].name, DESCRIPT_FIELD_LEN);
+		msgs_lookup("RefMenuChq", transact_complete_menu_link[items++].name, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	/* Bring the start line into range for the current file.  no_original is set true if the line fell off the end
 	 * of the file, as this needs to be a special case of "no text".  If not, lines off the end of the file will
@@ -2684,7 +2684,7 @@ wimp_menu *transact_complete_menu_build(struct file_block *file, enum transact_l
 
 			transact_complete_menu->entries[line].data.indirected_text.text = transact_complete_menu_link[line].name;
 			transact_complete_menu->entries[line].data.indirected_text.validation = NULL;
-			transact_complete_menu->entries[line].data.indirected_text.size = DESCRIPT_FIELD_LEN;
+			transact_complete_menu->entries[line].data.indirected_text.size = TRANSACT_DESCRIPT_FIELD_LEN;
 
 			line++;
 		}
@@ -2937,10 +2937,10 @@ void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, a
 	file->transacts->transactions[new].from = from;
 	file->transacts->transactions[new].to = to;
 	file->transacts->transactions[new].flags = flags;
-	strncpy(file->transacts->transactions[new].reference, (ref != NULL) ? ref : "", REF_FIELD_LEN);
-	file->transacts->transactions[new].reference[REF_FIELD_LEN - 1] = '\0';
-	strncpy(file->transacts->transactions[new].description, (description != NULL) ? description : "", DESCRIPT_FIELD_LEN);
-	file->transacts->transactions[new].description[DESCRIPT_FIELD_LEN - 1] = '\0';
+	strncpy(file->transacts->transactions[new].reference, (ref != NULL) ? ref : "", TRANSACT_REF_FIELD_LEN);
+	file->transacts->transactions[new].reference[TRANSACT_REF_FIELD_LEN - 1] = '\0';
+	strncpy(file->transacts->transactions[new].description, (description != NULL) ? description : "", TRANSACT_DESCRIPT_FIELD_LEN);
+	file->transacts->transactions[new].description[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
 	file->transacts->transactions[new].sort_index = new;
 
 	file_set_data_integrity(file, TRUE);
@@ -3789,7 +3789,7 @@ void transact_write_file(struct file_block *file, FILE *out)
 
 	fprintf(out, "Entries: %x\n", file->transacts->trans_count);
 
-	column_write_as_text(file->transacts->column_width, TRANSACT_COLUMNS, buffer);
+	column_write_as_text(file->transacts->columns, buffer, MAX_FILE_LINE_LEN);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
 	fprintf(out, "SortOrder: %x\n", file->transacts->sort_order);
@@ -3837,11 +3837,9 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			/* For file format 1.00 or older, there's no row column at the
-			 * start of the line so skip on to colukn 1 (date).
+			 * start of the line so skip on to colunn 1 (date).
 			 */
-			column_init_window(file->transacts->column_width,
-				file->transacts->column_position,
-				TRANSACT_COLUMNS, (format <= 100) ? 1 : 0, TRUE, value);
+			column_init_window(file->transacts->columns, (format <= 100) ? 1 : 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0){
 			file->transacts->sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp(token, "@") == 0) {

@@ -138,6 +138,8 @@ struct file_block *build_new_file_block(void)
 	 * successfully claimed later on.
 	 */
 
+	new->accviews = NULL;
+
 	new->saved_reports = NULL;
 
 	new->transacts = NULL;
@@ -257,13 +259,14 @@ struct file_block *build_new_file_block(void)
 		return NULL;
 	}
 
+	/* Initialise the account view window. */
 
-  /* Initialise the account view window. */
-
-	column_init_window(new->accview_column_width, new->accview_column_position,
-			ACCVIEW_COLUMNS, 0, FALSE, config_str_read("AccViewCols"));
-
-  new->accview_sort_order = SORT_DATE | SORT_ASCENDING;
+	new->accviews = accview_create_instance(new);
+	if (new->accviews == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
 
 	/* Set up the standing order window. */
 
@@ -378,6 +381,11 @@ void delete_file(struct file_block *file)
 
 	if (file->presets != NULL)
 		preset_delete_instance(file->presets);
+
+	/* Delete the Account View data. */
+	
+	if (file->accviews != NULL)
+		accview_delete_instance(file->accviews);
 
 	/* Delete any reports that are open. */
 

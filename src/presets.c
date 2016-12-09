@@ -212,8 +212,7 @@ struct preset_block {
 
 	/* Display column details. */
 
-	int			column_width[PRESET_COLUMNS];			/**< Array holding the column widths in the transaction window.		*/
-	int			column_position[PRESET_COLUMNS];		/**< Array holding the column X-offsets in the transact window.		*/
+	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
 
 	/* Other window details. */
 
@@ -391,8 +390,13 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	new->preset_window = NULL;
 	new->preset_pane = NULL;
 
-	column_init_window(new->column_width, new->column_position, PRESET_COLUMNS, 0, FALSE,
-			config_str_read("PresetCols"));
+	new-> columns = column_create_instance(PRESET_COLUMNS);
+	if (new->columns == NULL) {
+		heap_free(new);
+		return NULL;
+	}
+
+	column_init_window(new->columns, 0, FALSE, config_str_read("PresetCols"));
 
 	new->sort_order = SORT_CHAR | SORT_ASCENDING;
 
@@ -402,6 +406,7 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	new->presets = NULL;
 
 	if (flex_alloc((flex_ptr) &(new->presets), 4) == 0) {
+		column_delete_instance(new->columns);
 		heap_free(new);
 		return NULL;
 	}
@@ -422,6 +427,8 @@ void preset_delete_instance(struct preset_block *windat)
 		return;
 
 	preset_delete_window(windat);
+
+	column_delete_instance(windat->columns);
 
 	if (windat->presets != NULL)
 		flex_free((flex_ptr) &(windat->presets));
@@ -467,9 +474,7 @@ void preset_open_window(struct file_block *file)
 
 	transact_get_window_state(file, &parent);
 
-	set_initial_window_area(preset_window_def,
-			file->presets->column_position[PRESET_COLUMNS-1] +
-			file->presets->column_width[PRESET_COLUMNS-1],
+	set_initial_window_area(preset_window_def, column_get_window_width(file->presets->columns),
 			((ICON_HEIGHT+LINE_GUTTER) * height) + PRESET_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
@@ -493,12 +498,12 @@ void preset_open_window(struct file_block *file)
 	#endif
 
 	for (i=0, j=0; j < PRESET_COLUMNS; i++, j++) {
-		preset_pane_def->icons[i].extent.x0 = file->presets->column_position[j];
+		preset_pane_def->icons[i].extent.x0 = file->presets->columns->position[j];
 
 		j = column_get_rightmost_in_group(PRESET_PANE_COL_MAP, i);
 
-		preset_pane_def->icons[i].extent.x1 = file->presets->column_position[j] +
-				file->presets->column_width[j] +
+		preset_pane_def->icons[i].extent.x1 = file->presets->columns->position[j] +
+				file->presets->columns->width[j] +
 				COLUMN_HEADING_MARGIN;
 	}
 
@@ -966,12 +971,12 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 {
 	struct preset_block	*windat;
 	struct file_block	*file;
-	int			ox, oy, top, base, y, i, t;
+	int			ox, oy, top, base, y, i, t, width;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
 	windat = event_get_window_user_data(redraw->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
 		return;
 
 	file = windat->file;
@@ -981,11 +986,12 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 	/* Set the horizontal positions of the icons. */
 
 	for (i=0; i < PRESET_COLUMNS; i++) {
-		preset_window_def->icons[i].extent.x0 = windat->column_position[i];
-		preset_window_def->icons[i].extent.x1 = windat->column_position[i] +
-				windat->column_width[i];
+		preset_window_def->icons[i].extent.x0 = windat->columns->position[i];
+		preset_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
 		preset_window_def->icons[i].data.indirected_text.text = icon_buffer;
 	}
+
+	width = column_get_window_width(windat->columns);
 
 	/* Perform the redraw. */
 
@@ -1013,9 +1019,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			wimp_set_colour(wimp_COLOUR_WHITE);
 			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - PRESET_TOOLBAR_HEIGHT);
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO,
-					ox + windat->column_position[PRESET_COLUMNS-1] +
-					windat->column_width[PRESET_COLUMNS-1],
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width,
 					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - PRESET_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
 
 			/* Key field */
@@ -1170,8 +1174,7 @@ static void preset_adjust_window_columns(void *data, wimp_i group, int width)
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	update_dragged_columns(PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), group, width,
-			windat->column_width, windat->column_position, PRESET_COLUMNS);
+	update_dragged_columns(PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), group, width, windat->columns);
 
 	/* Re-adjust the icons in the pane. */
 
@@ -1180,19 +1183,18 @@ static void preset_adjust_window_columns(void *data, wimp_i group, int width)
 		icon.i = i;
 		wimp_get_icon_state(&icon);
 
-		icon.icon.extent.x0 = windat->column_position[j];
+		icon.icon.extent.x0 = windat->columns->position[j];
 
 		j = column_get_rightmost_in_group(PRESET_PANE_COL_MAP, i);
 
-		icon.icon.extent.x1 = windat->column_position[j] +
-				windat->column_width[j] + COLUMN_HEADING_MARGIN;
+		icon.icon.extent.x1 = windat->columns->position[j] +
+				windat->columns->width[j] + COLUMN_HEADING_MARGIN;
 
 		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
 				icon.icon.extent.x1, icon.icon.extent.y1);
-
-		new_extent = windat->column_position[PRESET_COLUMNS-1] +
-				windat->column_width[PRESET_COLUMNS-1];
 	}
+
+	new_extent = column_get_window_width(windat->columns);
 
 	preset_adjust_sort_icon(windat);
 
@@ -1298,11 +1300,11 @@ static void preset_adjust_sort_icon_data(struct preset_block *windat, wimp_icon 
 	width = icon->extent.x1 - icon->extent.x0;
 
 	if ((windat->sort_order & SORT_MASK) == SORT_AMOUNT) {
-		anchor = windat->column_position[i] + COLUMN_HEADING_MARGIN;
+		anchor = windat->columns->position[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
 		icon->extent.x1 = icon->extent.x0 + width;
 	} else {
-		anchor = windat->column_position[i] + windat->column_width[i] + COLUMN_HEADING_MARGIN;
+		anchor = windat->columns->position[i] + windat->columns->width[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
 		icon->extent.x0 = icon->extent.x1 - width;
 	}
@@ -1365,8 +1367,7 @@ static void preset_set_window_extent(struct preset_block *windat)
 
 	extent.x0 = 0;
 	extent.y1 = 0;
-	extent.x1 = windat->column_position[PRESET_COLUMNS-1] +
-			windat->column_width[PRESET_COLUMNS-1] + COLUMN_GUTTER;
+	extent.x1 = column_get_window_width(windat->columns) + COLUMN_GUTTER;
 	extent.y0 = new_extent;
 
 	wimp_set_extent(windat->preset_window, &extent);
@@ -1465,9 +1466,7 @@ static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
-	for (column = 0;
-			column < PRESET_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
-			column++);
+	column = column_get_position(windat->columns, xpos);
 
 	sprintf(buffer, "Col%d", column);
 }
@@ -2585,7 +2584,7 @@ void preset_write_file(struct file_block *file, FILE *out)
 
 	fprintf(out, "Entries: %x\n", file->presets->preset_count);
 
-	column_write_as_text(file->presets->column_width, PRESET_COLUMNS, buffer);
+	column_write_as_text(file->presets->columns, buffer, MAX_FILE_LINE_LEN);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
 	fprintf(out, "SortOrder: %x\n", file->presets->sort_order);
@@ -2634,9 +2633,7 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 				block_size = file->presets->preset_count;
 			}
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
-			column_init_window(file->presets->column_width,
-					file->presets->column_position,
-					PRESET_COLUMNS, 0, TRUE, value);
+			column_init_window(file->presets->columns, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
 			file->presets->sort_order = strtoul(value, NULL, 16);
 		} else if (string_nocase_strcmp(token, "@") == 0) {

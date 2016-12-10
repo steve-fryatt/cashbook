@@ -1161,7 +1161,7 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 	while (more) {
 		/* Calculate the rows to redraw. */
 
-		top = WINDOW_REDRAW_TOP(ACCOUNT_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
+		top = WINDOW_REDRAW_TOP(ACCOUNT_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
 		if (top < 0)
 			top = 0;
 

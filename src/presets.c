@@ -475,7 +475,7 @@ void preset_open_window(struct file_block *file)
 	transact_get_window_state(file, &parent);
 
 	set_initial_window_area(preset_window_def, column_get_window_width(file->presets->columns),
-			((ICON_HEIGHT+LINE_GUTTER) * height) + PRESET_TOOLBAR_HEIGHT,
+			(height * WINDOW_ROW_HEIGHT) + PRESET_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
@@ -642,10 +642,7 @@ static void preset_window_click_handler(wimp_pointer *pointer)
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-
-	if (line < 0 || line >= windat->preset_count)
-		line = -1;
+	line = window_calculate_click_row(&(pointer->pos), &window, PRESET_TOOLBAR_HEIGHT, windat->preset_count);
 
 	/* Handle double-clicks, which will open an edit preset window. */
 
@@ -793,9 +790,9 @@ static void preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+			line = window_calculate_click_row(&(pointer->pos), &window, PRESET_TOOLBAR_HEIGHT, windat->preset_count);
 
-			if (line >= 0 && line < windat->preset_count)
+			if (line != -1)
 				preset_window_menu_line = line;
 		}
 
@@ -928,26 +925,26 @@ static void preset_window_scroll_handler(wimp_scroll *scroll)
 
 	switch (scroll->ymin) {
 	case wimp_SCROLL_LINE_UP:
-		scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		scroll->yscroll += WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_LINE_DOWN:
-		scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		scroll->yscroll -= WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
 		break;
 
 	case wimp_SCROLL_PAGE_UP:
 		scroll->yscroll += height;
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_PAGE_DOWN:
 		scroll->yscroll -= height;
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
 		break;
 	}
@@ -1003,12 +1000,11 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 	while (more) {
 		/* Calculate the rows to redraw. */
 
-		top = (oy - redraw->clip.y1 - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		top = WINDOW_REDRAW_TOP(PRESET_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 		if (top < 0)
 			top = 0;
 
-		base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2) +
-				oy - redraw->clip.y0 - PRESET_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		WINDOW_REDRAW_BASE(PRESET_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 
 		/* Redraw the data into the window. */
 
@@ -1018,16 +1014,13 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 			/* Plot out the background with a filled white rectangle. */
 
 			wimp_set_colour(wimp_COLOUR_WHITE);
-			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - PRESET_TOOLBAR_HEIGHT);
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width,
-					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - PRESET_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(PRESET_TOOLBAR_HEIGHT, y));
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(PRESET_TOOLBAR_HEIGHT, y));
 
 			/* Key field */
 
-			preset_window_def->icons[PRESET_ICON_KEY].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_KEY].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_KEY].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_KEY].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 			if (y < windat->preset_count)
 				sprintf(icon_buffer, "%c", windat->presets[t].action_key);
 			else
@@ -1036,10 +1029,8 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* Name field */
 
-			preset_window_def->icons[PRESET_ICON_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_NAME].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_NAME].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 			if (y < windat->preset_count) {
 				preset_window_def->icons[PRESET_ICON_NAME].data.indirected_text.text = windat->presets[t].name;
 			} else {
@@ -1050,20 +1041,14 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* From field */
 
-			preset_window_def->icons[PRESET_ICON_FROM].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_FROM].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_FROM].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_FROM].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 
-			preset_window_def->icons[PRESET_ICON_FROM_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_FROM_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_FROM_REC].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_FROM_REC].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 
-			preset_window_def->icons[PRESET_ICON_FROM_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_FROM_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_FROM_NAME].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_FROM_NAME].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 
 
 			if (y < windat->preset_count && windat->presets[t].from != NULL_ACCOUNT) {
@@ -1088,20 +1073,14 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* To field */
 
-			preset_window_def->icons[PRESET_ICON_TO].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_TO].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_TO].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_TO].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 
-			preset_window_def->icons[PRESET_ICON_TO_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_TO_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_TO_REC].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_TO_REC].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 
-			preset_window_def->icons[PRESET_ICON_TO_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_TO_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_TO_NAME].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_TO_NAME].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 
 			if (y < windat->preset_count && windat->presets[t].to != NULL_ACCOUNT) {
 				preset_window_def->icons[PRESET_ICON_TO].data.indirected_text.text = account_get_ident(file, windat->presets[t].to);
@@ -1125,10 +1104,8 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* Amount field */
 
-			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 			if (y < windat->preset_count)
 				currency_convert_to_string(windat->presets[t].amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 			else
@@ -1137,10 +1114,8 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* Comments field */
 
-			preset_window_def->icons[PRESET_ICON_DESCRIPTION].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			preset_window_def->icons[PRESET_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					PRESET_TOOLBAR_HEIGHT;
+			preset_window_def->icons[PRESET_ICON_DESCRIPTION].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
+			preset_window_def->icons[PRESET_ICON_DESCRIPTION].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 			if (y < windat->preset_count) {
 				preset_window_def->icons[PRESET_ICON_DESCRIPTION].data.indirected_text.text = windat->presets[t].description;
 			} else {
@@ -1333,7 +1308,7 @@ static void preset_set_window_extent(struct preset_block *windat)
 
 	new_lines = (windat->preset_count > MIN_PRESET_ENTRIES) ? windat->preset_count : MIN_PRESET_ENTRIES;
 
-	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_lines) - PRESET_TOOLBAR_HEIGHT;
+	new_extent = (-WINDOW_ROW_HEIGHT * new_lines) - PRESET_TOOLBAR_HEIGHT;
 
 	/* Get the current window details, and find the extent of the bottom of the visible area. */
 
@@ -1431,8 +1406,8 @@ static void preset_force_window_redraw(struct file_block *file, int from, int to
 	window.w = file->presets->preset_window;
 	wimp_get_window_info_header_only(&window);
 
-	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
-	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - PRESET_TOOLBAR_HEIGHT;
+	y1 = WINDOW_ROW_TOP(PRESET_TOOLBAR_HEIGHT, from);
+	y0 = WINDOW_ROW_BASE(PRESET_TOOLBAR_HEIGHT, to);
 
 	wimp_force_redraw(file->presets->preset_window, window.extent.x0, y0, window.extent.x1, y1);
 }

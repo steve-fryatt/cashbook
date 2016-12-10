@@ -36,6 +36,9 @@
 #define COLUMN_DRAG_HOTSPOT 40
 #define COLUMN_DRAG_MIN 140
 
+#define COLUMN_GUTTER 4
+
+
 /**
  * A column definition block.
  */

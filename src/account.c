@@ -99,6 +99,17 @@
 #define ACCLIST_MENU_EXPTSV 6
 #define ACCLIST_MENU_PRINT 7
 
+/* Account window details */
+
+#define ACCOUNT_WINDOWS 3
+
+#define ACCOUNT_COLUMNS 6
+#define ACCOUNT_NUM_COLUMNS 4
+#define ACCOUNT_TOOLBAR_HEIGHT 132
+#define ACCOUNT_FOOTER_HEIGHT 36
+#define MIN_ACCOUNT_ENTRIES 10
+#define ACCOUNT_SECTION_LEN 52
+
 /* Account window line redraw data struct */
 
 struct account_redraw {
@@ -570,8 +581,7 @@ void account_open_window(struct file_block *file, enum account_type type)
 	transact_get_window_state(file, &parent);
 
 	set_initial_window_area(account_window_def, column_get_window_width(window->columns),
-			((ICON_HEIGHT+LINE_GUTTER) * height) +
-			(ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2),
+			(height * WINDOW_ROW_HEIGHT) + ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
@@ -755,9 +765,7 @@ static void account_window_click_handler(wimp_pointer *pointer)
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-	if (line < 0 || line >= windat->display_lines)
-		line = -1;
+	line = window_calculate_click_row(&(pointer->pos), &window, ACCOUNT_TOOLBAR_HEIGHT, windat->display_lines);
 
 	/* Handle double-clicks, which will open a statement view or an edit accout window. */
 
@@ -853,9 +861,9 @@ static void account_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+			line = window_calculate_click_row(&(pointer->pos), &window, ACCOUNT_TOOLBAR_HEIGHT, windat->display_lines);
 
-			if (line >= 0 && line < windat->display_lines)
+			if (line != -1)
 				account_window_menu_line = line;
 		}
 
@@ -1029,26 +1037,26 @@ static void account_window_scroll_handler(wimp_scroll *scroll)
 
 	switch (scroll->ymin) {
 	case wimp_SCROLL_LINE_UP:
-		scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		scroll->yscroll += WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_LINE_DOWN:
-		scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		scroll->yscroll -= WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
 		break;
 
 	case wimp_SCROLL_PAGE_UP:
 		scroll->yscroll += height;
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_PAGE_DOWN:
 		scroll->yscroll -= height;
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
  		break;
 	}
@@ -1153,12 +1161,11 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 	while (more) {
 		/* Calculate the rows to redraw. */
 
-		top = (oy - redraw->clip.y1 - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		top = WINDOW_REDRAW_TOP(ACCOUNT_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 		if (top < 0)
 			top = 0;
 
-		base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2) +
-				oy - redraw->clip.y0 - ACCOUNT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		base = WINDOW_REDRAW_BASE(ACCOUNT_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 
 		/* Redraw the data into the window. */
 
@@ -1166,22 +1173,17 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 			/* Plot out the background with a filled white rectangle. */
 
 			wimp_set_colour(wimp_COLOUR_WHITE);
-			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT);
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width,
-					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCOUNT_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(ACCOUNT_TOOLBAR_HEIGHT, y));
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(ACCOUNT_TOOLBAR_HEIGHT, y));
 
 			if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_DATA) {
 				/* Account field */
 
-				account_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[0].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[0].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[1].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[1].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
 				account_window_def->icons[0].data.indirected_text.text =
 						instance->accounts[windat->line_data[y].account].ident;
@@ -1193,25 +1195,17 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 				/* Place the four numerical columns. */
 
-				account_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[2].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[2].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[3].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[3].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[4].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[4].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[5].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[5].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
 				/* Set the column data depending on the window type. */
 
@@ -1299,10 +1293,8 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 			} else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_HEADER) {
 				/* Block header line */
 
-				account_window_def->icons[6].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[6].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[6].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[6].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
 				account_window_def->icons[6].data.indirected_text.text = windat->line_data[y].heading;
 
@@ -1310,30 +1302,20 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 			} else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_FOOTER) {
 				/* Block footer line */
 
-				account_window_def->icons[7].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[7].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[7].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[7].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[8].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[8].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[8].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[8].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[9].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[9].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[9].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[9].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[10].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[10].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[10].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[10].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[11].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[11].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[11].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[11].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
 				account_window_def->icons[7].data.indirected_text.text = windat->line_data[y].heading;
 				currency_convert_to_string(windat->line_data[y].total[0], icon_buffer1, AMOUNT_FIELD_LEN);
@@ -1348,35 +1330,23 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 				wimp_plot_icon(&(account_window_def->icons[11]));
 			} else {
 				/* Blank line */
-				account_window_def->icons[0].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[0].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[0].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[0].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[1].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[1].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[1].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[1].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[2].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[2].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[2].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[2].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[3].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[3].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[3].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[3].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[4].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[4].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[4].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[4].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[5].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-				account_window_def->icons[5].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-						ACCOUNT_TOOLBAR_HEIGHT;
+				account_window_def->icons[5].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[5].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
 				account_window_def->icons[0].data.indirected_text.text = icon_buffer1;
 				account_window_def->icons[1].data.indirected_text.text = icon_buffer1;
@@ -1501,7 +1471,7 @@ static void account_set_window_extent(struct file_block *file, int entry)
 	new_height =  (file->accounts->account_windows[entry].display_lines > MIN_ACCOUNT_ENTRIES) ?
 			file->accounts->account_windows[entry].display_lines : MIN_ACCOUNT_ENTRIES;
 
-	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_height) - (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2);
+	new_extent = (-WINDOW_ROW_HEIGHT * new_height) - (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2);
 
 	/* Get the current window details, and find the extent of the bottom of the visible area. */
 
@@ -1649,8 +1619,8 @@ static void account_force_window_redraw(struct file_block *file, int entry, int 
 	window.w = file->accounts->account_windows[entry].account_window;
 	wimp_get_window_info_header_only(&window);
 
-	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - ACCOUNT_TOOLBAR_HEIGHT;
-	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - ACCOUNT_TOOLBAR_HEIGHT;
+	y1 = WINDOW_ROW_TOP(ACCOUNT_TOOLBAR_HEIGHT, from);
+	y0 = WINDOW_ROW_BASE(ACCOUNT_TOOLBAR_HEIGHT, to);
 
 	wimp_force_redraw(file->accounts->account_windows[entry].account_window, window.extent.x0, y0, window.extent.x1, y1);
 
@@ -4038,9 +4008,9 @@ static void account_start_drag(struct account_window *windat, int line)
 	drag.type = wimp_DRAG_USER_FIXED;
 
 	drag.initial.x0 = ox;
-	drag.initial.y0 = oy + -(line * (ICON_HEIGHT+LINE_GUTTER) + ACCOUNT_TOOLBAR_HEIGHT + ICON_HEIGHT);
+	drag.initial.y0 = oy + WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, line);
 	drag.initial.x1 = ox + (window.visible.x1 - window.visible.x0);
-	drag.initial.y1 = oy + -(line * (ICON_HEIGHT+LINE_GUTTER) + ACCOUNT_TOOLBAR_HEIGHT);
+	drag.initial.y1 = oy + WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, line);
 
 	drag.bbox.x0 = window.visible.x0;
 	drag.bbox.y0 = window.visible.y0;
@@ -4117,8 +4087,7 @@ static void account_terminate_drag(wimp_dragged *drag, void *data)
 	window.w = account_dragging_owner->account_window;
 	wimp_get_window_state(&window);
 
-	line = ((window.visible.y1 - pointer.pos.y) - window.yscroll - ACCOUNT_TOOLBAR_HEIGHT)
-			/ (ICON_HEIGHT+LINE_GUTTER);
+	line = ((window.visible.y1 - pointer.pos.y) - window.yscroll - ACCOUNT_TOOLBAR_HEIGHT) / WINDOW_ROW_HEIGHT;
 
 	if (line < 0)
 		line = 0;

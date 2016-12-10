@@ -45,11 +45,6 @@
 #define IND_DATA_SIZE 8000
 #define MAX_LINE_LENGTH 1024
 
-#define COLUMN_GUTTER 4
-#define LINE_GUTTER 4
-#define ICON_HEIGHT 36
-#define HORIZONTAL_SCROLL 16
-#define AUTO_SCROLL_MARGIN 20
 #define COLUMN_HEADING_MARGIN 2
 #define COLUMN_SORT_OFFSET 8
 
@@ -67,36 +62,8 @@
 #define NULL_ACCOUNT ((acct_t) -1)
 #define NULL_TEMPLATE ((int) (-1))
 
-/* Transaction window details */
 
-#define TRANSACT_COLUMNS 11
-#define TRANSACT_TOOLBAR_HEIGHT 132
 
-#define TRANSACTION_WINDOW_OPEN_OFFSET 48
-#define TRANSACTION_WINDOW_OFFSET_LIMIT 8
-
-#define CHILD_WINDOW_OFFSET 12
-#define CHILD_WINDOW_X_OFFSET 128
-#define CHILD_WINDOW_X_OFFSET_LIMIT 4
-
-/* Account window details */
-
-#define ACCOUNT_WINDOWS 3
-
-#define ACCOUNT_COLUMNS 6
-#define ACCOUNT_NUM_COLUMNS 4
-#define ACCOUNT_TOOLBAR_HEIGHT 132
-#define ACCOUNT_FOOTER_HEIGHT 36
-
-#define MIN_ACCOUNT_ENTRIES 10
-
-#define ACCOUNT_SECTION_LEN 52
-
-/* Account View window details */
-
-#define ACCVIEW_COLUMNS 10
-#define ACCVIEW_TOOLBAR_HEIGHT 132
-#define MIN_ACCVIEW_ENTRIES 10
 
 /* ==================================================================================================================
  * Basic types

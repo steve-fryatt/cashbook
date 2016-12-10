@@ -38,6 +38,89 @@
 #define Y_WINDOW_PERCENT_LIMIT 40
 #define Y_WINDOW_PERCENT_ORIGIN 75
 
+/**
+ * The height of a row icon in a window table.
+ */
+
+#define WINDOW_ROW_ICON_HEIGHT 36
+
+/**
+ * The horizontal spacing between rows in a window table.
+ */
+
+#define WINDOW_ROW_GUTTER 4
+
+#define AUTO_SCROLL_MARGIN 20
+
+#define CHILD_WINDOW_OFFSET 12
+#define CHILD_WINDOW_X_OFFSET 128
+#define CHILD_WINDOW_X_OFFSET_LIMIT 4
+
+
+/**
+ * The horizontal scroll step size, in OS units.
+ */
+
+#define HORIZONTAL_SCROLL 16
+
+
+#define WINDOW_ROW_HEIGHT (WINDOW_ROW_ICON_HEIGHT + WINDOW_ROW_GUTTER)
+
+/**
+ * Calculate the first row to be included in a redraw operation.
+ */
+
+#define WINDOW_REDRAW_TOP(toolbar, y) (((y) - (toolbar)) / WINDOW_ROW_HEIGHT)
+
+/**
+ * Calculate the last row to be included in a redraw operation.
+ */
+
+#define WINDOW_REDRAW_BASE(toolbar, y) (((WINDOW_ROW_HEIGHT * 1.5) + (y) - (toolbar)) / WINDOW_ROW_HEIGHT)
+
+/**
+ * Calculate the base of a row in a table view.
+ */
+
+#define WINDOW_ROW_BASE(toolbar, y) ((-((y) + 1) * WINDOW_ROW_HEIGHT) - (toolbar))
+
+/**
+ * Calculate the top of a row in a table view.
+ */
+
+#define WINDOW_ROW_TOP(toolbar, y) ((-(y) * WINDOW_ROW_HEIGHT) - (toolbar))
+
+/**
+ * Calculate the base of an icon in a table view.
+ */
+
+#define WINDOW_ROW_Y0(toolbar, y) ((-(y) * WINDOW_ROW_HEIGHT) - (toolbar) - WINDOW_ROW_ICON_HEIGHT)
+
+/**
+ * Calculate the top of an icon in a table view.
+ */
+
+#define WINDOW_ROW_Y1(toolbar, y) ((-(y) * WINDOW_ROW_HEIGHT) - (toolbar))
+
+/**
+ * Calculate the raw row number based on a window mouse coordinate.
+ */
+
+#define WINDOW_ROW(toolbar, y) (((-(y)) - (toolbar)) / WINDOW_ROW_HEIGHT)
+
+/**
+ * Caluclate the position within a row, given a window mouse coordinate.
+ */
+
+#define WINDOW_ROW_Y_POS(toolbar, y) (((-(y)) - (toolbar)) % WINDOW_ROW_HEIGHT)
+
+/* Return true or false if a ROW_Y_POS() value is above or below the icon
+ * area of the row.
+ */
+
+#define WINDOW_ROW_BELOW(y) ((y) < WINDOW_ROW_GUTTER)
+#define WINDOW_ROW_ABOVE(y) ((y) > WINDOW_ROW_HEIGHT)
+
 
 /**
  * Set up the extent and visible area of a window in its creation block so that
@@ -52,6 +135,19 @@
  */
 
 void set_initial_window_area(wimp_window *window, int width, int height, int x, int y, int yoff);
+
+
+/**
+ * Calculate the row that the mouse was clicked over in the list window.
+ *
+ * \param *pointer		The relevant Wimp pointer data.
+ * \param *state		The relevant Wimp window state.
+ * \param toolbar_height	The height of the window's toolbar, in OS units.
+ * \param max_lines		The maximum number of lines in the window, or -1 for no constraint.
+ * \return			The row (from 0) or -1 if none.
+ */
+
+int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int toolbar_height, int max_lines);
 
 #endif
 

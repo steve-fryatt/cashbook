@@ -141,6 +141,12 @@
 #define ACCVIEW_MENU_EXPTSV 5
 #define ACCVIEW_MENU_PRINT 6
 
+/* Account View window details */
+
+#define ACCVIEW_COLUMNS 10
+#define ACCVIEW_TOOLBAR_HEIGHT 132
+#define MIN_ACCVIEW_ENTRIES 10
+
 
 struct accview_block {
 	struct file_block	*file;						/**< The file to which the instance belongs.				*/
@@ -187,9 +193,6 @@ struct accview_window {
 	/* Display column details. */
 
 	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
-
-	int			column_width[ACCVIEW_COLUMNS];			/**< Array holding the column widths in the account window.		*/
-	int			column_position[ACCVIEW_COLUMNS];		/**< Array holding the column X-offsets in the acct window.		*/
 
 	/* Data parameters */
 
@@ -429,10 +432,8 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	transact_get_window_state(file, &parent);
 
-	set_initial_window_area(accview_window_def,
-			view->column_position[ACCVIEW_COLUMNS-1] +
-			view->column_width[ACCVIEW_COLUMNS-1],
-			((ICON_HEIGHT+LINE_GUTTER) * height) + ACCVIEW_TOOLBAR_HEIGHT,
+	set_initial_window_area(accview_window_def, column_get_window_width(view->columns),
+			(height * WINDOW_ROW_HEIGHT) + ACCVIEW_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
@@ -461,12 +462,12 @@ void accview_open_window(struct file_block *file, acct_t account)
 	windows_place_as_toolbar(accview_window_def, accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT-4);
 
 	for (i=0, j=0; j < ACCVIEW_COLUMNS; i++, j++) {
-		accview_pane_def->icons[i].extent.x0 = view->column_position[j];
+		accview_pane_def->icons[i].extent.x0 = view->columns->position[j];
 
 		j = column_get_rightmost_in_group (ACCVIEW_PANE_COL_MAP, i);
 
-		accview_pane_def->icons[i].extent.x1 = view->column_position[j] +
-				view->column_width[j] + COLUMN_HEADING_MARGIN;
+		accview_pane_def->icons[i].extent.x1 = view->columns->position[j] +
+				view->columns->width[j] + COLUMN_HEADING_MARGIN;
 	}
 
 	accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
@@ -625,9 +626,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-	if (line < 0 || line >= windat->display_lines)
-		line = -1;
+	line = window_calculate_click_row(&(pointer->pos), &window, ACCVIEW_TOOLBAR_HEIGHT, windat->display_lines);
 
 	/* If the line is a transaction, handle mouse clicks over it.  Menu clicks are ignored and dealt with in the
 	 * else clause.
@@ -641,7 +640,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 	xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
 
 	for (column = 0;
-			column < ACCVIEW_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
+			column < ACCVIEW_COLUMNS && xpos > (windat->columns->position[column] + windat->columns->width[column]);
 			column++);
 
 	if (column != ACCVIEW_COLUMN_RECONCILE && (pointer->buttons == wimp_DOUBLE_SELECT || pointer->buttons == wimp_DOUBLE_ADJUST)) {
@@ -826,9 +825,9 @@ static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+			line = window_calculate_click_row(&(pointer->pos), &window, ACCVIEW_TOOLBAR_HEIGHT, windat->display_lines);
 
-			if (line >= 0 && line < windat->display_lines)
+			if (line != -1)
 				accview_window_menu_line = line;
 		}
 
@@ -991,26 +990,26 @@ static void accview_window_scroll_handler(wimp_scroll *scroll)
 
 	switch (scroll->ymin) {
 	case wimp_SCROLL_LINE_UP:
-		scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		scroll->yscroll += WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_LINE_DOWN:
-		scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		scroll->yscroll -= WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
 		break;
 
 	case wimp_SCROLL_PAGE_UP:
 		scroll->yscroll += height;
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_PAGE_DOWN:
 		scroll->yscroll -= height;
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
 		break;
 	}
@@ -1038,7 +1037,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	acct_t			account, transaction_account;
 	date_t			transaction_date;
 	enum account_type	account_type;
-	int			ox, oy, top, base, y, i, transaction, credit_limit, shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
+	int			ox, oy, top, base, y, i, width, transaction, credit_limit, shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more, shade_budget, shade_overdrawn;
 	date_t			budget_start, budget_finish;
@@ -1074,23 +1073,23 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	/* Set the horizontal positions of the icons for the account lines. */
 
 	for (i=0; i < ACCVIEW_COLUMNS; i++) {
-		accview_window_def->icons[i].extent.x0 = windat->column_position[i];
-		accview_window_def->icons[i].extent.x1 = windat->column_position[i] + windat->column_width[i];
+		accview_window_def->icons[i].extent.x0 = windat->columns->position[i];
+		accview_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
 		accview_window_def->icons[i].data.indirected_text.text = icon_buffer;
 	}
+
+	width = column_get_window_width(windat->columns);
 
 	/* Perform the redraw. */
 
 	while (more) {
 		/* Calculate the rows to redraw. */
 
-		top = (oy - redraw->clip.y1 - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		top = WINDOW_REDRAW_TOP(ACCVIEW_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 		if (top < 0)
 			top = 0;
 
-		base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2) +
-			oy - redraw->clip.y0 - ACCVIEW_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-
+		base = WINDOW_REDRAW_BASE(ACCVIEW_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 
 		/* Redraw the data into the window. */
 
@@ -1098,10 +1097,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			/* Plot out the background with a filled white rectangle. */
 
 			wimp_set_colour (wimp_COLOUR_WHITE);
-			os_plot (os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT);
-			os_plot (os_PLOT_RECTANGLE + os_PLOT_TO,
-					ox + windat->column_position[ACCVIEW_COLUMNS-1] + windat->column_width[ACCVIEW_COLUMNS-1],
-					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+			os_plot (os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(ACCVIEW_TOOLBAR_HEIGHT, y));
+			os_plot (os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(ACCVIEW_TOOLBAR_HEIGHT, y));
 
 			/* Find the transaction that applies to this line. */
 
@@ -1130,8 +1127,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 			/* Row field */
 
-			accview_window_def->icons[ACCVIEW_ICON_ROW].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_ROW].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_ROW].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_ROW].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);;
 
 			accview_window_def->icons[ACCVIEW_ICON_ROW].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_ROW].flags |= icon_fg_col;
@@ -1144,8 +1141,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 			/* Date field */
 
-			accview_window_def->icons[ACCVIEW_ICON_DATE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_DATE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) - ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_DATE].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_DATE].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);
 
 			accview_window_def->icons[ACCVIEW_ICON_DATE].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_DATE].flags |= icon_fg_col;
@@ -1158,26 +1155,20 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 			/* From / To field */
 
-			accview_window_def->icons[ACCVIEW_ICON_IDENT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_IDENT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_IDENT].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_IDENT].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);
 
 			accview_window_def->icons[ACCVIEW_ICON_IDENT].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_IDENT].flags |= icon_fg_col;
 
-			accview_window_def->icons[ACCVIEW_ICON_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_REC].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_REC].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);
 
 			accview_window_def->icons[ACCVIEW_ICON_REC].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_REC].flags |= icon_fg_col;
 
-			accview_window_def->icons[ACCVIEW_ICON_FROMTO].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_FROMTO].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_FROMTO].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_FROMTO].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);
 
 			accview_window_def->icons[ACCVIEW_ICON_FROMTO].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_FROMTO].flags |= icon_fg_col;
@@ -1219,10 +1210,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 			/* Reference field */
 
-			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);
 
 			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].flags |= icon_fg_col;
@@ -1237,10 +1226,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 			/* Payments field */
 
-			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);
 
 			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].flags |= icon_fg_col;
@@ -1253,10 +1240,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 			/* Receipts field */
 
-			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);
 
 			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].flags |= icon_fg_col;
@@ -1269,10 +1254,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 			/* Balance field */
 
-			accview_window_def->icons[ACCVIEW_ICON_BALANCE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_BALANCE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_BALANCE].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_BALANCE].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);
 
 			accview_window_def->icons[ACCVIEW_ICON_BALANCE].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_BALANCE].flags |= icon_fg_balance_col;
@@ -1285,10 +1268,8 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 			/* Comments field */
 
-			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					ACCVIEW_TOOLBAR_HEIGHT;
+			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].extent.y0 = WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y);
+			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].extent.y1 = WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y);
 
 			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].flags &= ~wimp_ICON_FG_COLOUR;
 			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].flags |= icon_fg_col;
@@ -1338,17 +1319,17 @@ static void accview_adjust_window_columns(void *data, wimp_i group, int width)
 		icon.i = i;
 		wimp_get_icon_state(&icon);
 
-		icon.icon.extent.x0 = windat->column_position[j];
+		icon.icon.extent.x0 = windat->columns->position[j];
 
 		j = column_get_rightmost_in_group(ACCVIEW_PANE_COL_MAP, i);
 
-		icon.icon.extent.x1 = windat->column_position[j] + windat->column_width[j] + COLUMN_HEADING_MARGIN;
+		icon.icon.extent.x1 = windat->columns->position[j] + windat->columns->width[j] + COLUMN_HEADING_MARGIN;
 
 		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
 				icon.icon.extent.x1, icon.icon.extent.y1);
-
-		new_extent = windat->column_position[ACCVIEW_COLUMNS-1] + windat->column_width[ACCVIEW_COLUMNS-1];
 	}
+
+	new_extent = column_get_window_width(windat->columns);
 
 	accview_adjust_sort_icon(windat);
 
@@ -1467,11 +1448,11 @@ static void accview_adjust_sort_icon_data(struct accview_window *view, wimp_icon
 			(view->sort_order & SORT_MASK) == SORT_PAYMENTS ||
 			(view->sort_order & SORT_MASK) == SORT_RECEIPTS ||
 			(view->sort_order & SORT_MASK) == SORT_BALANCE) {
-		anchor = view->column_position[i] + COLUMN_HEADING_MARGIN;
+		anchor = view->columns->position[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
 		icon->extent.x1 = icon->extent.x0 + width;
 	} else {
-		anchor = view->column_position[i] + view->column_width[i] + COLUMN_HEADING_MARGIN;
+		anchor = view->columns->position[i] + view->columns->width[i] + COLUMN_HEADING_MARGIN;
 		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
 		icon->extent.x0 = icon->extent.x1 - width;
 	}
@@ -1497,7 +1478,7 @@ static void accview_set_window_extent(struct accview_window *view)
 
 	new_height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ? view->display_lines : MIN_ACCVIEW_ENTRIES;
 
-	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_height) - ACCVIEW_TOOLBAR_HEIGHT;
+	new_extent = (-WINDOW_ROW_HEIGHT * new_height) - ACCVIEW_TOOLBAR_HEIGHT;
 
 	/* Get the current window details, and find the extent of the bottom of the visible area. */
 
@@ -1530,7 +1511,7 @@ static void accview_set_window_extent(struct accview_window *view)
 	 */
 
 	extent.x0 = 0;
-	extent.x1 = view->column_position[ACCVIEW_COLUMNS-1] + view->column_width[ACCVIEW_COLUMNS-1];
+	extent.x1 = column_get_window_width(view->columns);
 
 	extent.y0 = new_extent;
 	extent.y1 = 0;
@@ -1588,8 +1569,8 @@ static void accview_force_window_redraw(struct accview_window *view, int from, i
 	window.w = view->accview_window;
 	wimp_get_window_info_header_only(&window);
 
-	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - ACCVIEW_TOOLBAR_HEIGHT;
-	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - ACCVIEW_TOOLBAR_HEIGHT;
+	y1 = WINDOW_ROW_TOP(ACCVIEW_TOOLBAR_HEIGHT, from);
+	y0 = WINDOW_ROW_BASE(ACCVIEW_TOOLBAR_HEIGHT, to);
 
 	wimp_force_redraw(view->accview_window, window.extent.x0, y0, window.extent.x1, y1);
 }
@@ -1625,7 +1606,7 @@ static void accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
 	for (column = 0;
-			column < TRANSACT_COLUMNS && xpos > (windat->column_position[column] + windat->column_width[column]);
+			column < ACCVIEW_COLUMNS && xpos > (windat->columns->position[column] + windat->columns->width[column]);
 			column++);
 
 	sprintf(buffer, "Col%d", column);
@@ -2368,7 +2349,7 @@ static int accview_get_y_offset_from_transact_window(struct accview_window *view
 	if (view == NULL)
 		return 0;
 
-	return -accview_get_line_from_transact_window(view) * (ICON_HEIGHT + LINE_GUTTER);
+	return -accview_get_line_from_transact_window(view) * WINDOW_ROW_HEIGHT;
 }
 
 
@@ -2411,24 +2392,24 @@ static void accview_scroll_to_line(struct accview_window *view, int line)
 	 * This will allow the edit line to be aligned with the top or bottom of the window.
 	 */
 
-	height = window.visible.y1 - window.visible.y0 - ICON_HEIGHT - LINE_GUTTER - ACCVIEW_TOOLBAR_HEIGHT;
+	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT - ACCVIEW_TOOLBAR_HEIGHT;
 
 	/* Calculate the top full line and bottom full line that are showing in the window.  Part lines don't
 	 * count and are discarded.
 	 */
 
-	top = (-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-	bottom = height / (ICON_HEIGHT+LINE_GUTTER) + top;
+	top = (-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT;
+	bottom = height / WINDOW_ROW_HEIGHT + top;
 
 	/* If the edit line is above or below the visible area, bring it into range. */
 
 	if (line < top) {
-		window.yscroll = -(line * (ICON_HEIGHT+LINE_GUTTER));
+		window.yscroll = -(line * WINDOW_ROW_HEIGHT);
 		wimp_open_window((wimp_open *) &window);
 	}
 
 	if (line > bottom) {
-		window.yscroll = -(line * (ICON_HEIGHT+LINE_GUTTER) - height);
+		window.yscroll = -(line * WINDOW_ROW_HEIGHT - height);
 		wimp_open_window((wimp_open *) &window);
 	}
 }

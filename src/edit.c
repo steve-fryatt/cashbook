@@ -400,8 +400,8 @@ static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer,
 
 	icon_block.icon.extent.x0 = columns->position[column];
 	icon_block.icon.extent.x1 = columns->position[column] + columns->width[column];
-	icon_block.icon.extent.y0 = (-line * (ICON_HEIGHT + LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-	icon_block.icon.extent.y1 = (-line * (ICON_HEIGHT + LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT;
+	icon_block.icon.extent.y0 = -250;//(-line * (ICON_HEIGHT + LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
+	icon_block.icon.extent.y1 = -200;//(-line * (ICON_HEIGHT + LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT;
 
 	wimp_create_icon(&icon_block);
 }

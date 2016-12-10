@@ -464,12 +464,12 @@ void sorder_open_window(struct file_block *file)
 	*(file->sorders->window_title) = '\0';
 	sorder_window_def->title_data.indirected_text.text = file->sorders->window_title;
 
-	height =  (file->sorders->sorder_count > MIN_SORDER_ENTRIES) ? file->sorders->sorder_count : MIN_SORDER_ENTRIES;
+	height = (file->sorders->sorder_count > MIN_SORDER_ENTRIES) ? file->sorders->sorder_count : MIN_SORDER_ENTRIES;
 
 	transact_get_window_state(file, &parent);
 
 	set_initial_window_area(sorder_window_def, column_get_window_width(file->sorders->columns),
-			((ICON_HEIGHT+LINE_GUTTER) * height) + SORDER_TOOLBAR_HEIGHT,
+			(height * WINDOW_ROW_HEIGHT) + SORDER_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
@@ -637,10 +637,7 @@ static void sorder_window_click_handler(wimp_pointer *pointer)
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-
-	if (line < 0 || line >= windat->sorder_count)
-		line = -1;
+	line = window_calculate_click_row(&(pointer->pos), &window, SORDER_TOOLBAR_HEIGHT, windat->sorder_count);
 
 	/* Handle double-clicks, which will open an edit standing order window. */
 
@@ -785,10 +782,9 @@ static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 			window.w = w;
 			wimp_get_window_state(&window);
 
+			line = window_calculate_click_row(&(pointer->pos), &window, SORDER_TOOLBAR_HEIGHT, windat->sorder_count);
 
-			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-
-			if (line >= 0 && line < windat->sorder_count)
+			if (line != -1)
 				sorder_window_menu_line = line;
 		}
 
@@ -925,26 +921,26 @@ static void sorder_window_scroll_handler(wimp_scroll *scroll)
 
 	switch (scroll->ymin) {
 	case wimp_SCROLL_LINE_UP:
-		scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		scroll->yscroll += WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_LINE_DOWN:
-		scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		scroll->yscroll -= WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
 		break;
 
 	case wimp_SCROLL_PAGE_UP:
 		scroll->yscroll += height;
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_PAGE_DOWN:
 		scroll->yscroll -= height;
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
 		break;
 	}
@@ -997,12 +993,11 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	while (more) {
 		/* Calculate the rows to redraw. */
 
-		top = (oy - redraw->clip.y1 - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		top = WINDOW_REDRAW_TOP(SORDER_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 		if (top < 0)
 			top = 0;
 
-		base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2) +
-				oy - redraw->clip.y0 - SORDER_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		base = WINDOW_REDRAW_BASE(SORDER_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 
 		/* Redraw the data into the window. */
 
@@ -1012,26 +1007,19 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			/* Plot out the background with a filled white rectangle. */
 
 			wimp_set_colour(wimp_COLOUR_WHITE);
-			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - SORDER_TOOLBAR_HEIGHT);
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width,
-					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - SORDER_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(SORDER_TOOLBAR_HEIGHT, y));
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(SORDER_TOOLBAR_HEIGHT, y));
 
 			/* From field */
 
-			sorder_window_def->icons[SORDER_ICON_FROM].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_FROM].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_FROM].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_FROM].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 
-			sorder_window_def->icons[SORDER_ICON_FROM_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_FROM_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_FROM_REC].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_FROM_REC].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 
-			sorder_window_def->icons[SORDER_ICON_FROM_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_FROM_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_FROM_NAME].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_FROM_NAME].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 
 			if (y < windat->sorder_count && windat->sorders[t].from != NULL_ACCOUNT) {
 				sorder_window_def->icons[SORDER_ICON_FROM].data.indirected_text.text =
@@ -1057,20 +1045,14 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* To field */
 
-			sorder_window_def->icons[SORDER_ICON_TO].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_TO].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_TO].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_TO].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 
-			sorder_window_def->icons[SORDER_ICON_TO_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_TO_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_TO_REC].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_TO_REC].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 
-			sorder_window_def->icons[SORDER_ICON_TO_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_TO_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_TO_NAME].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_TO_NAME].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 
 			if (y < windat->sorder_count && windat->sorders[t].to != NULL_ACCOUNT) {
 				sorder_window_def->icons[SORDER_ICON_TO].data.indirected_text.text =
@@ -1096,10 +1078,8 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* Amount field */
 
-			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 			if (y < windat->sorder_count)
 				currency_convert_to_string(windat->sorders[t].normal_amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 			else
@@ -1108,10 +1088,8 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* Comments field */
 
-			sorder_window_def->icons[SORDER_ICON_DESCRIPTION].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_DESCRIPTION].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_DESCRIPTION].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 			if (y < windat->sorder_count){
 				sorder_window_def->icons[SORDER_ICON_DESCRIPTION].data.indirected_text.text = windat->sorders[t].description;
 			} else {
@@ -1122,10 +1100,8 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* Next date field */
 
-			sorder_window_def->icons[SORDER_ICON_NEXTDATE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_NEXTDATE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_NEXTDATE].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_NEXTDATE].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 			if (y < windat->sorder_count) {
 				if (windat->sorders[t].adjusted_next_date != NULL_DATE)
 					date_convert_to_string(windat->sorders[t].adjusted_next_date, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
@@ -1138,10 +1114,8 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* Left field */
 
-			sorder_window_def->icons[SORDER_ICON_LEFT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			sorder_window_def->icons[SORDER_ICON_LEFT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER)) -
-					SORDER_TOOLBAR_HEIGHT;
+			sorder_window_def->icons[SORDER_ICON_LEFT].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
+			sorder_window_def->icons[SORDER_ICON_LEFT].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 			if (y < windat->sorder_count)
 				sprintf (icon_buffer, "%d", windat->sorders[t].left);
 			else
@@ -1330,7 +1304,7 @@ static void sorder_set_window_extent(struct sorder_block *windat)
 
 	new_lines = (windat->sorder_count > MIN_SORDER_ENTRIES) ? windat->sorder_count : MIN_SORDER_ENTRIES;
 
-	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * new_lines) - SORDER_TOOLBAR_HEIGHT;
+	new_extent = (-WINDOW_ROW_HEIGHT * new_lines) - SORDER_TOOLBAR_HEIGHT;
 
 	/* Get the current window details, and find the extent of the bottom of the visible area. */
 
@@ -1430,8 +1404,8 @@ static void sorder_force_window_redraw(struct file_block *file, int from, int to
 	window.w = file->sorders->sorder_window;
 	wimp_get_window_info_header_only(&window);
 
-	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - SORDER_TOOLBAR_HEIGHT;
-	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - SORDER_TOOLBAR_HEIGHT;
+	y1 = WINDOW_ROW_TOP(SORDER_TOOLBAR_HEIGHT, from);
+	y0 = WINDOW_ROW_BASE(SORDER_TOOLBAR_HEIGHT, to);
 
 	wimp_force_redraw(file->sorders->sorder_window, window.extent.x0, y0, window.extent.x1, y1);
 }

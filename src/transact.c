@@ -204,8 +204,12 @@
 
 /* Transaction Window details. */
 
+#define TRANSACT_COLUMNS 11
+#define TRANSACT_TOOLBAR_HEIGHT 132
 #define MIN_TRANSACT_ENTRIES 10
 #define MIN_TRANSACT_BLANK_LINES 1
+#define TRANSACTION_WINDOW_OPEN_OFFSET 48
+#define TRANSACTION_WINDOW_OFFSET_LIMIT 8
 
 
 /**
@@ -535,7 +539,7 @@ void transact_open_window(struct file_block *file)
 	height =  file->transacts->display_lines;
 
 	set_initial_window_area(transact_window_def, column_get_window_width(file->transacts->columns),
-			((ICON_HEIGHT+LINE_GUTTER) * height) + TRANSACT_TOOLBAR_HEIGHT,
+			(height * WINDOW_ROW_HEIGHT) + TRANSACT_TOOLBAR_HEIGHT,
 			-1, -1, new_transaction_window_offset * TRANSACTION_WINDOW_OPEN_OFFSET);
 
 	error = xwimp_create_window(transact_window_def, &(file->transacts->transaction_window));
@@ -778,7 +782,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 			window.w = pointer->w;
 			wimp_get_window_state(&window);
 
-			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_TOOLBAR_HEIGHT, -1);
 
 			if (line >= 0) {
 				if (line >= windat->display_lines) {
@@ -820,7 +824,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 		window.w = pointer->w;
 		wimp_get_window_state(&window);
 
-		line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_TOOLBAR_HEIGHT, -1);
 
 		/* If the line was in range, find the column that the click occurred in by scanning through the column
 		 * positions.
@@ -1210,7 +1214,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = ((window.visible.y1 - pointer->pos.y) - window.yscroll - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_TOOLBAR_HEIGHT, -1);
 
 			if (transact_valid(windat, line))
 				transact_window_menu_line = line;
@@ -1511,19 +1515,19 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 
 	switch (scroll->ymin) {
 	case wimp_SCROLL_LINE_UP:
-		scroll->yscroll += (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		scroll->yscroll += WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_LINE_DOWN:
-		scroll->yscroll -= (ICON_HEIGHT + LINE_GUTTER);
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		scroll->yscroll -= WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
 
 		/* Extend the window if necessary. */
 
-		line = (-scroll->yscroll + height) / (ICON_HEIGHT+LINE_GUTTER);
+		line = (-scroll->yscroll + height) / WINDOW_ROW_HEIGHT;
 		if (line > windat->display_lines) {
 			windat->display_lines = line;
 			transact_set_window_extent(windat->file);
@@ -1532,13 +1536,13 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 
 	case wimp_SCROLL_PAGE_UP:
 		scroll->yscroll += height;
-		if ((error = ((scroll->yscroll) % (ICON_HEIGHT+LINE_GUTTER))))
-			scroll->yscroll -= (ICON_HEIGHT+LINE_GUTTER) + error;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
 		break;
 
 	case wimp_SCROLL_PAGE_DOWN:
 		scroll->yscroll -= height;
-		if ((error = ((scroll->yscroll - height) % (ICON_HEIGHT+LINE_GUTTER))))
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
 			scroll->yscroll -= error;
 		break;
 	}
@@ -1594,12 +1598,11 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 	while (more) {
 		/* Calculate the rows to redraw. */
 
-		top = (oy - redraw->clip.y1 - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		top = WINDOW_REDRAW_TOP(TRANSACT_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 		if (top < 0)
 			top = 0;
  
-		base = ((ICON_HEIGHT+LINE_GUTTER) + ((ICON_HEIGHT+LINE_GUTTER) / 2)
-				+ oy - redraw->clip.y0 - TRANSACT_TOOLBAR_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
+		base = WINDOW_REDRAW_BASE(TRANSACT_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 
 		/* Redraw the data into the window. */
 
@@ -1619,9 +1622,8 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			/* Plot out the background with a filled grey rectangle. */
 
 			wimp_set_colour(wimp_COLOUR_VERY_LIGHT_GREY);
-			os_plot(os_MOVE_TO, ox, oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT);
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width,
-					oy - (y * (ICON_HEIGHT+LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT - (ICON_HEIGHT+LINE_GUTTER));
+			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(TRANSACT_TOOLBAR_HEIGHT, y));
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(TRANSACT_TOOLBAR_HEIGHT, y));
 
 			/* We don't need to plot the current edit line, as that has real
 			 * icons in it.
@@ -1632,10 +1634,8 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* Row field. */
 
-			transact_window_def->icons[TRANSACT_ICON_ROW].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_ROW].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_ROW].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_ROW].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
 			transact_window_def->icons[TRANSACT_ICON_ROW].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_ROW].flags |= icon_fg_col;
@@ -1649,10 +1649,8 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* Date field */
 
-			transact_window_def->icons[TRANSACT_ICON_DATE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_DATE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_DATE].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_DATE].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
 			transact_window_def->icons[TRANSACT_ICON_DATE].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_DATE].flags |= icon_fg_col;
@@ -1666,20 +1664,14 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* From field */
 
-			transact_window_def->icons[TRANSACT_ICON_FROM].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_FROM].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_FROM].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_FROM].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
-			transact_window_def->icons[TRANSACT_ICON_FROM_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_FROM_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_FROM_REC].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_FROM_REC].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
-			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
 			transact_window_def->icons[TRANSACT_ICON_FROM].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_FROM].flags |= icon_fg_col;
@@ -1714,20 +1706,14 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* To field */
 
-			transact_window_def->icons[TRANSACT_ICON_TO].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_TO].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_TO].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_TO].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
-			transact_window_def->icons[TRANSACT_ICON_TO_REC].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_TO_REC].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_TO_REC].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_TO_REC].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
-			transact_window_def->icons[TRANSACT_ICON_TO_NAME].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_TO_NAME].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_TO_NAME].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_TO_NAME].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
 			transact_window_def->icons[TRANSACT_ICON_TO].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_TO].flags |= icon_fg_col;
@@ -1762,10 +1748,8 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* Reference field */
 
-			transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
 			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags |= icon_fg_col;
@@ -1781,10 +1765,8 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* Amount field */
 
-			transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
 			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags |= icon_fg_col;
@@ -1798,10 +1780,8 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* Description field */
 
-			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y0 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y1 = (-y * (ICON_HEIGHT+LINE_GUTTER))
-					- TRANSACT_TOOLBAR_HEIGHT;
+			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
+			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
 			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags |= icon_fg_col;
@@ -2040,7 +2020,7 @@ void transact_set_window_extent(struct file_block *file)
 
 	/* Work out the new extent. */
 
-	new_extent = (-(ICON_HEIGHT+LINE_GUTTER) * file->transacts->display_lines) - TRANSACT_TOOLBAR_HEIGHT;
+	new_extent = (-WINDOW_ROW_HEIGHT * file->transacts->display_lines) - TRANSACT_TOOLBAR_HEIGHT;
 
 	/* Get the current window details, and find the extent of the bottom of the visible area. */
 
@@ -2104,7 +2084,7 @@ void transact_minimise_window_extent(struct file_block *file)
 	 */
 
 	height = (window.visible.y1 - window.visible.y0) - TRANSACT_TOOLBAR_HEIGHT;
-	last_visible_line = (-window.yscroll + height) / (ICON_HEIGHT+LINE_GUTTER);
+	last_visible_line = (-window.yscroll + height) / WINDOW_ROW_HEIGHT;
 
 	/* Work out what the minimum length of the window needs to be,
 	 * taking into account minimum window size, entries and blank lines
@@ -2212,8 +2192,8 @@ void transact_force_window_redraw(struct file_block *file, int from, int to)
 	if (xwimp_get_window_info_header_only(&window) != NULL)
 		return;
 
-	y1 = -from * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
-	y0 = -(to + 1) * (ICON_HEIGHT+LINE_GUTTER) - TRANSACT_TOOLBAR_HEIGHT;
+	y1 = WINDOW_ROW_TOP(TRANSACT_TOOLBAR_HEIGHT, from);
+	y0 = WINDOW_ROW_BASE(TRANSACT_TOOLBAR_HEIGHT, to);
 
 	wimp_force_redraw(file->transacts->transaction_window, window.extent.x0, y0, window.extent.x1, y1);
 }
@@ -2314,14 +2294,14 @@ int transact_find_nearest_window_centre(struct file_block *file, acct_t account)
 	 * any OS units taken up by part lines.
 	 */
 
-	height = window.visible.y1 - window.visible.y0 - ICON_HEIGHT - LINE_GUTTER - TRANSACT_TOOLBAR_HEIGHT;
+	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT - TRANSACT_TOOLBAR_HEIGHT;
 
 	/* Calculate the centre line in the window. If this is greater than
 	 * the number of actual tracsactions in the window, reduce it
 	 * accordingly.
 	 */
 
-	centre = ((-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER)) + ((height / 2) / (ICON_HEIGHT+LINE_GUTTER));
+	centre = ((-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT) + ((height / 2) / WINDOW_ROW_HEIGHT);
 
 	if (centre >= file->transacts->trans_count)
 		centre = file->transacts->trans_count - 1;

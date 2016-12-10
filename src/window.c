@@ -131,3 +131,31 @@ void set_initial_window_area(wimp_window *window, int width, int height, int x, 
 	}
 }
 
+
+
+
+
+/**
+ * Calculate the row that the mouse was clicked over in the list window.
+ *
+ * \param *pointer		The relevant Wimp pointer data.
+ * \param *state		The relevant Wimp window state.
+ * \param toolbar_height	The height of the window's toolbar, in OS units.
+ * \param max_lines		The maximum number of lines in the window, or -1 for no constraint.
+ * \return			The row (from 0) or -1 if none.
+ */
+
+int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int toolbar_height, int max_lines)
+{
+	int		y, row_y_pos, row;
+
+	y = pos->y - state->visible.y1 + state->yscroll;
+
+	row = WINDOW_ROW(toolbar_height, y);
+	row_y_pos = WINDOW_ROW_Y_POS(toolbar_height, y);
+
+	if ((row < 0) || ((max_lines > 0) && (row >= max_lines)) || WINDOW_ROW_ABOVE(row_y_pos) || WINDOW_ROW_BELOW(row_y_pos))
+		row = -1;
+
+	return row;
+}

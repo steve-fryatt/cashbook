@@ -68,6 +68,7 @@
 #include "presets.h"
 #include "sort.h"	// \TODO -- This needs to be removed.
 #include "transact.h"
+#include "window.h"
 
 /**
  * Static constants.
@@ -122,6 +123,8 @@ struct edit_field {
 struct edit_block {
 	wimp_window		*template;		/**< The template for the parent window.					*/
 	wimp_w			parent;			/**< The parent window that the edit line belongs to.				*/
+	struct column_block	*columns;		/**< The parent window column settings.						*/
+	int			toolbar_height;		/**< The height of the toolbar in the parent window.				*/
 
 	struct edit_field	*fields;		/**< The list of fields defined in the line, or NULL for none.			*/
 
@@ -142,7 +145,7 @@ static struct transact_block *edit_entry_window = NULL;
 static struct edit_block *edit_active_instance = NULL;
 
 
-static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer, size_t length, struct column_block *columns, int column, int line);
+static void edit_create_field_icon(struct edit_block *instance, wimp_i icon, char *buffer, size_t length, int column, int line);
 
 
 #ifdef LOSE
@@ -166,12 +169,14 @@ static char	*find_complete_description(struct file_block *file, int line, char *
 /**
  * Create a new edit line instance.
  *
- * \param *template	Pointer to the window template definition to use for the edit icons.
- * \param parent	The window handle in which the edit line will reside.
- * \return		The new instance handle, or NULL on failure.
+ * \param *template		Pointer to the window template definition to use for the edit icons.
+ * \param parent		The window handle in which the edit line will reside.
+ * \param *columns		The column settings relating to the instance's parent window.
+ * \param toolbar_height	The height of the window's toolbar.
+ * \return			The new instance handle, or NULL on failure.
  */
 
-struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent)
+struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height)
 {
 	struct edit_block *new;
 
@@ -181,6 +186,8 @@ struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent)
 
 	new->template = template;
 	new->parent = parent;
+	new->columns = columns;
+	new->toolbar_height = toolbar_height;
 
 	/* No fields are defined as yet. */
 
@@ -195,7 +202,7 @@ struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent)
 /**
  * Delete an edit line instance, and free all of its resources.
  *
- * \param *instance	The instance handle to delete.
+ * \param *instance		The instance handle to delete.
  */
 
 void edit_delete_instance(struct edit_block *instance)
@@ -225,11 +232,11 @@ void edit_delete_instance(struct edit_block *instance)
 /**
  * Add a field to an edit line instance.
  * 
- * \param *instance	The instance to add the field to.
- * \param type		The type of field to add.
- * \param column	The column number of the left-most field.
- * \param ...		A list of the icons which apply to the field.
- * \return		True if the field was created OK; False on error.
+ * \param *instance		The instance to add the field to.
+ * \param type			The type of field to add.
+ * \param column		The column number of the left-most field.
+ * \param ...			A list of the icons which apply to the field.
+ * \return			True if the field was created OK; False on error.
  */
 
 osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...)
@@ -300,8 +307,15 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 }
 
 
+/**
+ * Place a new edit line, removing any existing instance first since there can only
+ * be one input focus.
+ * 
+ * \param *instance		The instance to place.
+ * \param line			The line to place the instance in.
+ */
 
-void edit_place_new_line(struct edit_block *instance, struct column_block *columns, int line)
+void edit_place_new_line(struct edit_block *instance, int line)
 {
 	struct edit_field	*field; 
 
@@ -352,28 +366,28 @@ void edit_place_new_line(struct edit_block *instance, struct column_block *colum
 	while (field != NULL) {
 		switch (field->type) {
 		case EDIT_FIELD_DISPLAY:
-			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.display.icon]),
-					field->data.display.buffer, field->data.display.length, columns, field->column, line);
+			edit_create_field_icon(instance, field->data.display.icon,
+					field->data.display.buffer, field->data.display.length, field->column, line);
 			break;
 		case EDIT_FIELD_TEXT:
-			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.text.icon]),
-					field->data.text.buffer, field->data.text.length, columns, field->column, line);
+			edit_create_field_icon(instance, field->data.text.icon,
+					field->data.text.buffer, field->data.text.length, field->column, line);
 			break;
 		case EDIT_FIELD_CURRENCY:
-			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.currency.icon]),
-					field->data.currency.buffer, field->data.currency.length, columns, field->column, line);
+			edit_create_field_icon(instance, field->data.currency.icon,
+					field->data.currency.buffer, field->data.currency.length, field->column, line);
 			break;
 		case EDIT_FIELD_DATE:
-			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.date.icon]),
-					field->data.date.buffer, field->data.date.length, columns, field->column, line);
+			edit_create_field_icon(instance, field->data.date.icon,
+					field->data.date.buffer, field->data.date.length, field->column, line);
 			break;
 		case EDIT_FIELD_ACCOUNT:
-			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.account.ident]),
-					field->data.account.ident_buffer, field->data.account.ident_length, columns, field->column, line);
-			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.account.reconcile]),
-					field->data.account.reconcile_buffer, field->data.account.reconcile_length, columns, field->column + 1, line);
-			edit_create_field_icon(instance->parent, &(instance->template->icons[field->data.account.name]),
-					field->data.account.name_buffer, field->data.account.name_length, columns, field->column + 2, line);
+			edit_create_field_icon(instance, field->data.account.ident,
+					field->data.account.ident_buffer, field->data.account.ident_length, field->column, line);
+			edit_create_field_icon(instance, field->data.account.reconcile,
+					field->data.account.reconcile_buffer, field->data.account.reconcile_length, field->column + 1, line);
+			edit_create_field_icon(instance, field->data.account.name,
+					field->data.account.name_buffer, field->data.account.name_length, field->column + 2, line);
 			break;
 		}
 
@@ -387,21 +401,34 @@ void edit_place_new_line(struct edit_block *instance, struct column_block *colum
 }
 
 
-static void edit_create_field_icon(wimp_w window, wimp_icon *icon, char *buffer, size_t length, struct column_block *columns, int column, int line)
+/**
+ * Create a new edit line field icon.
+ *
+ * \param *instance
+ * \param icon
+ * \param *buffer
+ * \param length
+ * \param column
+ * \param line
+ */
+
+static void edit_create_field_icon(struct edit_block *instance, wimp_i icon, char *buffer, size_t length, int column, int line)
 {
 	wimp_icon_create	icon_block;
 
-	icon->data.indirected_text.text = buffer;
-	icon->data.indirected_text.size = length;
+	if (instance == NULL)
+		return;
 
-	icon_block.w = window;
+	icon_block.w = instance->parent;
+	memcpy(&(icon_block.icon), &(instance->template->icons[icon]), sizeof(wimp_icon));
 
-	memcpy(&(icon_block.icon), icon, sizeof(wimp_icon));
+	icon_block.icon.data.indirected_text.text = buffer;
+	icon_block.icon.data.indirected_text.size = length;
 
-	icon_block.icon.extent.x0 = columns->position[column];
-	icon_block.icon.extent.x1 = columns->position[column] + columns->width[column];
-	icon_block.icon.extent.y0 = -250;//(-line * (ICON_HEIGHT + LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-	icon_block.icon.extent.y1 = -200;//(-line * (ICON_HEIGHT + LINE_GUTTER)) - TRANSACT_TOOLBAR_HEIGHT;
+	icon_block.icon.extent.x0 = instance->columns->position[column];
+	icon_block.icon.extent.x1 = instance->columns->position[column] + instance->columns->width[column];
+	icon_block.icon.extent.y0 = WINDOW_ROW_Y0(instance->toolbar_height, line);
+	icon_block.icon.extent.y1 = WINDOW_ROW_Y1(instance->toolbar_height, line);
 
 	wimp_create_icon(&icon_block);
 }

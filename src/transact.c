@@ -579,7 +579,7 @@ void transact_open_window(struct file_block *file)
 
 	/* Construct the edit line. */
 
-	file->transacts->edit_line = edit_create_instance(transact_window_def, file->transacts->transaction_window);
+	file->transacts->edit_line = edit_create_instance(transact_window_def, file->transacts->transaction_window, file->transacts->columns, TRANSACT_TOOLBAR_HEIGHT);
 	if (file->transacts->edit_line == NULL) {
 		error_msgs_report_error("TransactNoMem");
 		return;
@@ -790,7 +790,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 					transact_set_window_extent(windat->file);
 				}
 
-				edit_place_new_line(windat->edit_line, windat->columns, line);
+				edit_place_new_line(windat->edit_line, line);
 
 				/* Find the correct point for the caret and insert it. */
 
@@ -1847,7 +1847,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 
 	wimp_get_caret_position(&caret);
 
-	edit_place_new_line(windat->edit_line, windat->columns, windat->entry_line);
+	edit_place_new_line(windat->edit_line, windat->entry_line);
 	windows_redraw(windat->transaction_window);
 	windows_redraw(windat->transaction_pane);
 
@@ -4125,7 +4125,7 @@ void transact_place_caret(struct file_block *file, int line, wimp_i icon)
 		transact_set_window_extent(file);
 	}
 
-	edit_place_new_line(file->transacts->edit_line, file->transacts->columns, line);
+	edit_place_new_line(file->transacts->edit_line, line);
 
 	if (icon == TRANSACT_ICON_ROW)
 		icon = TRANSACT_ICON_DATE;

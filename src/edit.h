@@ -61,6 +61,7 @@ enum edit_field_type {
 	EDIT_FIELD_ACCOUNT,		/**< An account field.				*/
 };
 
+
 /**
  * The edit line instance block.
  */
@@ -71,23 +72,47 @@ struct edit_block;
 /**
  * Create a new edit line instance.
  *
- * \param *template	Pointer to the window template definition to use for the edit icons.
- * \param parent	The window handle in which the edit line will reside.
- * \return		The new instance handle, or NULL on failure.
+ * \param *template		Pointer to the window template definition to use for the edit icons.
+ * \param parent		The window handle in which the edit line will reside.
+ * \param *columns		The column settings relating to the instance's parent window.
+ * \param toolbar_height	The height of the window's toolbar.
+ * \return			The new instance handle, or NULL on failure.
  */
 
-struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent);
+struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height);
 
 
 /**
  * Delete an edit line instance.
  *
- * \param *instance	The instance handle to delete.
+ * \param *instance		The instance handle to delete.
  */
 
 void edit_delete_instance(struct edit_block *instance);
 
+
+/**
+ * Add a field to an edit line instance.
+ * 
+ * \param *instance		The instance to add the field to.
+ * \param type			The type of field to add.
+ * \param column		The column number of the left-most field.
+ * \param ...			A list of the icons which apply to the field.
+ * \return			True if the field was created OK; False on error.
+ */
+
 osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...);
+
+
+/**
+ * Place a new edit line, removing any existing instance first since there can only
+ * be one input focus.
+ * 
+ * \param *instance		The instance to place.
+ * \param line			The line to place the instance in.
+ */
+
+void edit_place_new_line(struct edit_block *instance, int line);
 
 #ifdef LOSE
 

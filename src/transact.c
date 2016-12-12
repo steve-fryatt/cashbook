@@ -390,6 +390,10 @@ static osbool			transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *f
 
 static void			transact_prepare_fileinfo(struct file_block *file);
 
+/* These need to move into their correct place. */
+
+static char			*transact_complete_description(struct file_block *file, int line, char *buffer, size_t length);
+
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
  */
@@ -585,17 +589,17 @@ void transact_open_window(struct file_block *file)
 		return;
 	}
 
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, 0, EDIT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, 1, EDIT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 2, EDIT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
-			EDIT_ICON_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
-			EDIT_ICON_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 5, EDIT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
-			EDIT_ICON_TO_REC, transact_buffer_to_name, ACCOUNT_NAME_LEN,
-			EDIT_ICON_TO_NAME, transact_buffer_to_rec, REC_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 8, EDIT_ICON_REF, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, 9, EDIT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 10, EDIT_ICON_DESCRIPT, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, 0, TRANSACT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, 1, TRANSACT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 2, TRANSACT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
+			TRANSACT_ICON_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
+			TRANSACT_ICON_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 5, TRANSACT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
+			TRANSACT_ICON_TO_REC, transact_buffer_to_name, ACCOUNT_NAME_LEN,
+			TRANSACT_ICON_TO_NAME, transact_buffer_to_rec, REC_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 8, TRANSACT_ICON_REFERENCE, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, 9, TRANSACT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 10, TRANSACT_ICON_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	/* Set the title */
 
@@ -647,7 +651,7 @@ void transact_open_window(struct file_block *file)
 
 	/* Put the caret into the first empty line. */
 
-	transact_place_caret(file, file->transacts->trans_count, EDIT_ICON_DATE);
+	transact_place_caret(file, file->transacts->trans_count, TRANSACT_FIELD_DATE);
 }
 
 
@@ -862,10 +866,10 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 
 				if (column == TRANSACT_ICON_FROM_REC) {
 					/* If the column is the from reconcile flag, toggle its status. */
-//FIXME					edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_FROM);
+					transact_toggle_reconcile_flag(file, transaction, TRANS_REC_FROM);
 				} else if (column == TRANSACT_ICON_TO_REC) {
 					/* If the column is the to reconcile flag, toggle its status. */
-//FIXME					edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_TO);
+					transact_toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
 				}
 			}
 		}
@@ -1880,20 +1884,46 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
  * Return the name of a transaction window column.
  *
  * \param *file			The file containing the transaction window.
- * \param icon			The icon representing the required column.
+ * \param field			The field representing the required column.
  * \param *buffer		Pointer to a buffer to take the name.
  * \param len			The length of the supplied buffer.
  * \return			Pointer to the supplied buffer, or NULL.
  */
 
-char *transact_get_column_name(struct file_block *file, wimp_i icon, char *buffer, size_t len)
+char *transact_get_column_name(struct file_block *file, enum transact_field field, char *buffer, size_t len)
 {
+	wimp_i icon;
+
 	if (buffer == NULL || len == 0)
 		return NULL;
 	
 	if (file == NULL || file->transacts == NULL) {
 		*buffer = '\0';
 		return buffer;
+	}
+
+	switch (field) {
+	case TRANSACT_FIELD_NONE:
+		return buffer;
+	case TRANSACT_FIELD_ROW:
+	case TRANSACT_FIELD_DATE:
+		icon = TRANSACT_ICON_DATE;
+		break;
+	case TRANSACT_FIELD_FROM:
+		icon = TRANSACT_ICON_FROM;
+		break;
+	case TRANSACT_FIELD_TO:
+		icon = TRANSACT_ICON_TO;
+		break;
+	case TRANSACT_FIELD_AMOUNT:
+		icon = TRANSACT_ICON_AMOUNT;
+		break;
+	case TRANSACT_FIELD_REF:
+		icon = TRANSACT_ICON_REFERENCE;
+		break;
+	case TRANSACT_FIELD_DESC:
+		icon = TRANSACT_ICON_DESCRIPTION;
+		break;
 	}
 
 	icons_copy_text(file->transacts->transaction_pane, column_get_group(TRANSACT_PANE_COL_MAP, icon), buffer, len);
@@ -3486,9 +3516,10 @@ void transact_sort_file_data(struct file_block *file)
 
 void transact_find_next_reconcile_line(struct file_block *file, osbool set)
 {
-	int		line, account;
-	wimp_i		found;
-	wimp_caret	caret;
+	int			line;
+	acct_t			account;
+	enum transact_field	found;
+	wimp_caret		caret;
 
 	if (file == NULL || file->transacts == NULL || file->auto_reconcile == FALSE)
 		return;
@@ -3498,9 +3529,9 @@ void transact_find_next_reconcile_line(struct file_block *file, osbool set)
 
 	wimp_get_caret_position(&caret);
 
-	if (caret.i == EDIT_ICON_FROM)
+	if (caret.i == TRANSACT_ICON_FROM)
 		account = file->transacts->transactions[file->transacts->transactions[line].sort_index].from;
-	else if (caret.i == EDIT_ICON_TO)
+	else if (caret.i == TRANSACT_ICON_TO)
 		account = file->transacts->transactions[file->transacts->transactions[line].sort_index].to;
 
 	if (account != NULL_ACCOUNT)
@@ -3513,11 +3544,11 @@ void transact_find_next_reconcile_line(struct file_block *file, osbool set)
 		if (file->transacts->transactions[file->transacts->transactions[line].sort_index].from == account &&
 				((file->transacts->transactions[file->transacts->transactions[line].sort_index].flags & TRANS_REC_FROM) ==
 						((set) ? TRANS_REC_FROM : TRANS_FLAGS_NONE)))
-			found = EDIT_ICON_FROM;
+			found = TRANSACT_FIELD_FROM;
 		else if (file->transacts->transactions[file->transacts->transactions[line].sort_index].to == account &&
 				((file->transacts->transactions[file->transacts->transactions[line].sort_index].flags & TRANS_REC_TO) ==
 						((set) ? TRANS_REC_TO : TRANS_FLAGS_NONE)))
-			found = EDIT_ICON_TO;
+			found = TRANSACT_FIELD_TO;
 		else
 			line++;
 	}
@@ -4112,11 +4143,13 @@ int transact_find_date(struct file_block *file, date_t target)
  * \param *file			The file to operate on.
  * \param line			The line (under the current display sort order)
  *				to place the caret in.
- * \param icon			The icon to place the caret in.
+ * \param field			The field to place the caret in.
  */
 
-void transact_place_caret(struct file_block *file, int line, wimp_i icon)
+void transact_place_caret(struct file_block *file, int line, enum transact_field field)
 {
+	wimp_i icon;
+
 	if (file == NULL || file->transacts == NULL)
 		return;
 
@@ -4127,8 +4160,29 @@ void transact_place_caret(struct file_block *file, int line, wimp_i icon)
 
 	edit_place_new_line(file->transacts->edit_line, line);
 
-	if (icon == TRANSACT_ICON_ROW)
+	switch (field) {
+	case TRANSACT_FIELD_NONE:
+		return;
+	case TRANSACT_FIELD_ROW:
+	case TRANSACT_FIELD_DATE:
 		icon = TRANSACT_ICON_DATE;
+		break;
+	case TRANSACT_FIELD_FROM:
+		icon = TRANSACT_ICON_FROM;
+		break;
+	case TRANSACT_FIELD_TO:
+		icon = TRANSACT_ICON_TO;
+		break;
+	case TRANSACT_FIELD_AMOUNT:
+		icon = TRANSACT_ICON_AMOUNT;
+		break;
+	case TRANSACT_FIELD_REF:
+		icon = TRANSACT_ICON_REFERENCE;
+		break;
+	case TRANSACT_FIELD_DESC:
+		icon = TRANSACT_ICON_DESCRIPTION;
+		break;
+	}
 
 	icons_put_caret_at_end(file->transacts->transaction_window, icon);
 //FIXME	edit_find_line_vertically(file->transacts->edit_line);
@@ -4316,3 +4370,470 @@ static void transact_prepare_fileinfo(struct file_block *file)
 	icons_printf(transact_fileinfo_window, FILEINFO_ICON_HEADINGS, "%d", account_count_type_in_file(file, ACCOUNT_IN | ACCOUNT_OUT));
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* The code below this point needs to move to a more appropriate location.
+ * -----------------------------------------------------------------------------------------------------------------------------
+ */
+
+
+
+/**
+ * Toggle the state of one of the reconciled flags for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param change_flag	Indicate which reconciled flags to change.
+ */
+
+void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag)
+{
+	int	change_icon, line;
+	osbool	changed = FALSE;
+
+
+	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
+		return;
+
+	/* Establish which icon it is that will need to be updated. */
+
+	change_icon = (change_flag == TRANS_REC_FROM) ? TRANSACT_ICON_FROM_REC : TRANSACT_ICON_TO_REC;
+
+	/* Only do anything if the transaction is inside the limit of the file. */
+
+	account_remove_transaction(file, transaction);
+
+	/* Update the reconcile flag, either removing it, or adding it in.  If the
+	 * line is the edit line, the icon contents must be manually updated as well.
+	 *
+	 * If a change is made, this is flagged to allow the update to be recorded properly.
+	 */
+
+	if (file->transacts->transactions[transaction].flags & change_flag) {
+		file->transacts->transactions[transaction].flags &= ~change_flag;
+
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
+			*icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon) = '\0';
+
+		changed = TRUE;
+	} else if ((change_flag == TRANS_REC_FROM && file->transacts->transactions[transaction].from != NULL_ACCOUNT) ||
+			(change_flag == TRANS_REC_TO && file->transacts->transactions[transaction].to != NULL_ACCOUNT)) {
+		file->transacts->transactions[transaction].flags |= change_flag;
+
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
+			msgs_lookup("RecChar",
+					icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon),
+					REC_FIELD_LEN);
+
+		changed = 1;
+	}
+
+	/* Return the line to the calculations. This will automatically update
+	 * all the account listings.
+	 */
+
+	account_restore_transaction(file, transaction);
+
+	/* If any changes were made, refresh the relevant account listing, redraw
+	 * the transaction window line and mark the file as modified.
+	 */
+
+	if (changed == TRUE) {
+		if (change_flag == TRANS_REC_FROM)
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
+		else
+			accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
+
+		/* If the line is the edit line, setting the shading uses
+		 * wimp_set_icon_state() and the line will effectively be redrawn
+		 * for free.
+		 */
+
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME			edit_set_line_shading(file);
+		} else {
+			line = transact_get_line_from_transaction(file, transaction);
+			transact_force_window_redraw(file, line, line);
+		}
+
+		file_set_data_integrity(file, TRUE);
+	}
+}
+
+
+/**
+ * Change the date for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param new_date	The new date to set the transaction to.
+ */
+
+void transact_change_date(struct file_block *file, tran_t transaction, date_t new_date)
+{
+	int	line;
+	osbool	changed = FALSE;
+	date_t	old_date = NULL_DATE;
+
+
+	/* Only do anything if the transaction is inside the limit of the file. */
+
+	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
+		return;
+
+	account_remove_transaction(file, transaction);
+
+	/* Look up the existing date, change it and compare the two. If the field
+	 * has changed, flag this up.
+	 */
+
+	old_date = file->transacts->transactions[transaction].date;
+
+	file->transacts->transactions[transaction].date = new_date;
+
+	if (old_date != file->transacts->transactions[transaction].date) {
+		changed = TRUE;
+		file->sort_valid = FALSE;
+	}
+
+	/* Return the line to the calculations. This will automatically update
+	 * all the account listings.
+	 */
+
+	account_restore_transaction(file, transaction);
+
+	/* If any changes were made, refresh the relevant account listings, redraw
+	 * the transaction window line and mark the file as modified.
+	 */
+
+	if (changed == TRUE) {
+		/* Ideally, we would want to recalculate just the affected two
+		 * accounts.  However, because the date sort is unclean, any rebuild
+		 * will force a resort of the transactions, which will require a
+		 * full rebuild of all the open account views. Therefore, call
+		 * accview_recalculate_all() to force a full recalculation. This
+		 * will in turn sort the data if required.
+		 *
+		 * The big assumption here is that, because no from or to entries
+		 * have changed, none of the accounts will change length and so a
+		 * full rebuild is not required.
+		 */
+
+		accview_recalculate_all(file);
+
+		/* If the line is the edit line, setting the shading uses
+		 * wimp_set_icon_state() and the line will effectively be redrawn
+		 * for free.
+		 */
+
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME			edit_refresh_line_content(file->transacts->transaction_window, TRANSACT_ICON_DATE, -1);
+//FIXME			edit_set_line_shading(file);
+			icons_replace_caret_in_window(file->transacts->transaction_window);
+		} else {
+			line = transact_get_line_from_transaction(file, transaction);
+			transact_force_window_redraw(file, line, line);
+		}
+
+		file_set_data_integrity(file, TRUE);
+	}
+}
+
+
+/**
+ * Change the amount of money for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param new_amount	The new amount to set the transaction to.
+ */
+
+static void edit_change_transaction_amount(struct file_block *file, tran_t transaction, amt_t new_amount)
+{
+	int	line;
+	osbool	changed = FALSE;
+
+
+	/* Only do anything if the transaction is inside the limit of the file. */
+
+	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
+		return;
+ 
+	account_remove_transaction(file, transaction);
+
+	/* Look up the existing date, change it and compare the two. If the field
+	 * has changed, flag this up.
+	 */
+
+	if (new_amount != file->transacts->transactions[transaction].amount) {
+		changed = TRUE;
+		file->transacts->transactions[transaction].amount = new_amount;
+	}
+
+	/* Return the line to the calculations.   This will automatically update all
+	 * the account listings.
+	  */
+
+	account_restore_transaction(file, transaction);
+
+	/* If any changes were made, refresh the relevant account listings, redraw
+	 * the transaction window line and mark the file as modified.
+	 */
+
+	if (changed == TRUE) {
+		accview_recalculate(file, file->transacts->transactions[transaction].from, transaction);
+		accview_recalculate(file, file->transacts->transactions[transaction].to, transaction);
+
+		/* If the line is the edit line, setting the shading uses
+		 * wimp_set_icon_state() and the line will effectively be redrawn
+		 * for free.
+		 */
+
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME			edit_refresh_line_content(file->transacts->transaction_window, TRANSACT_ICON_AMOUNT, -1);
+//FIXME			edit_set_line_shading(file);
+			icons_replace_caret_in_window(file->transacts->transaction_window);
+		} else {
+			line = transact_get_line_from_transaction(file, transaction);
+			transact_force_window_redraw(file, line, line);
+		}
+
+		file_set_data_integrity(file, TRUE);
+	}
+}
+
+
+/**
+ * Change the reference or description associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_text	The new text to set the field to.
+ */
+
+void transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text)
+{
+	int	line;
+	osbool	changed = FALSE;
+	char	*field = NULL;
+
+
+	/* Only do anything if the transaction is inside the limit of the file. */
+
+	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
+		return;
+
+	/* Find the field that will be getting changed. */
+
+	switch (target) {
+	case TRANSACT_FIELD_REF:
+		field = file->transacts->transactions[transaction].reference;
+		break;
+
+	case TRANSACT_FIELD_DESC:
+		field = file->transacts->transactions[transaction].description;
+		break;
+
+	default:
+		field = NULL;
+		break;
+	}
+
+
+	if (field != NULL && strcmp(field, new_text) != 0) {
+		changed = TRUE;
+		strcpy(field, new_text);
+	}
+
+	/* If any changes were made, refresh the relevant account listings, redraw
+	 * the transaction window line and mark the file as modified.
+	 */
+
+	if (changed == TRUE) {
+		/* Refresh any account views that may be affected. */
+
+		accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
+		accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
+
+		/* If the line is the edit line, setting the shading uses
+		 * wimp_set_icon_state() and the line will effectively be redrawn
+		 * for free.
+		 */
+
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME			edit_refresh_line_content(file->transacts->transaction_window, target, -1);
+//FIXME			edit_set_line_shading(file);
+			icons_replace_caret_in_window(file->transacts->transaction_window);
+		} else {
+			line = transact_get_line_from_transaction(file, transaction);
+			transact_force_window_redraw(file, line, line);
+		}
+
+		file_set_data_integrity(file, TRUE);
+	}
+}
+
+
+/**
+ * Change the from or to account associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_account	The new account to set the field to.
+ */
+
+void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account)
+{
+	int		line;
+	osbool		changed = FALSE;
+	unsigned	old_flags;
+	acct_t		old_acct = NULL_ACCOUNT;
+
+
+	/* Only do anything if the transaction is inside the limit of the file. */
+
+	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
+		return;
+
+	account_remove_transaction(file, transaction);
+
+	/* Update the reconcile flag, either removing it, or adding it in. If the
+	 * line is the edit line, the icon contents must be manually updated as well.
+	 *
+	 * If a change is made, this is flagged to allow the update to be recorded properly.
+	 */
+
+	/* Look up the account ident as it stands, store the result and
+	 * update the name field.  The reconciled flag is set if the
+	 * account changes to an income heading; else it is cleared.
+	 */
+
+	switch (target) {
+	case TRANSACT_FIELD_FROM:
+		old_acct = file->transacts->transactions[transaction].from;
+		old_flags = file->transacts->transactions[transaction].flags;
+
+		file->transacts->transactions[transaction].from = new_account;
+
+		if (account_get_type(file, new_account) == ACCOUNT_FULL)
+			file->transacts->transactions[transaction].flags &= ~TRANS_REC_FROM;
+		else
+			file->transacts->transactions[transaction].flags |= TRANS_REC_FROM;
+
+		if (old_acct != file->transacts->transactions[transaction].from || old_flags != file->transacts->transactions[transaction].flags)
+			changed = TRUE;
+		break;
+	case TRANSACT_FIELD_TO:
+		old_acct = file->transacts->transactions[transaction].to;
+		old_flags = file->transacts->transactions[transaction].flags;
+
+		file->transacts->transactions[transaction].to = new_account;
+
+		if (account_get_type(file, new_account) == ACCOUNT_FULL)
+			file->transacts->transactions[transaction].flags &= ~TRANS_REC_TO;
+		else
+			file->transacts->transactions[transaction].flags |= TRANS_REC_TO;
+
+		if (old_acct != file->transacts->transactions[transaction].to || old_flags != file->transacts->transactions[transaction].flags)
+			changed = TRUE;
+		break;
+	}
+
+	/* Return the line to the calculations. This will automatically update
+	 * all the account listings.
+	 */
+
+	account_restore_transaction(file, transaction);
+
+	/* Trust that any account views that are open must be based on a valid
+	 * date order, and only rebuild those that are directly affected.
+         */
+
+	/* If any changes were made, refresh the relevant account listing, redraw
+	 * the transaction window line and mark the file as modified.
+	 */
+
+	if (changed == FALSE)
+		return;
+
+	switch (target) {
+	case TRANSACT_FIELD_FROM:
+		accview_rebuild(file, old_acct);
+		accview_rebuild(file, file->transacts->transactions[transaction].from);
+		accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
+		break;
+	case TRANSACT_FIELD_TO:
+		accview_rebuild(file, old_acct);
+		accview_rebuild(file, file->transacts->transactions[transaction].to);
+		accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
+		break;
+	}
+
+	/* If the line is the edit line, setting the shading uses
+	 * wimp_set_icon_state() and the line will effectively be redrawn
+	 * for free.
+	 */
+
+	if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME		edit_refresh_line_content(file->transacts->transaction_window, target, -1);
+//FIXME		edit_set_line_shading(file);
+		icons_replace_caret_in_window(file->transacts->transaction_window);
+	} else {
+		line = transact_get_line_from_transaction(file, transaction);
+		transact_force_window_redraw(file, line, line);
+	}
+
+	file_set_data_integrity(file, TRUE);
+}
+
+
+/**
+ * Complete a description field, by finding the most recent description in the file
+ * which starts with the same characters as the current line.
+ *
+ * \param *file		The file containing the transaction.
+ * \param line		The transaction line to be completed.
+ * \param *buffer	Pointer to the buffer to be completed.
+ * \param length	The length of the buffer.
+ * \return		Pointer to the completed buffer.
+ */
+
+static char *transact_complete_description(struct file_block *file, int line, char *buffer, size_t length)
+{
+	int i, t;
+
+	if (file == NULL || file->transacts == NULL || buffer == NULL)
+		return buffer;
+
+	if (line >= file->transacts->trans_count)
+		line = file->transacts->trans_count - 1;
+
+	for (i = line - 1; i >= 0; i--) {
+		t = file->transacts->transactions[i].sort_index;
+
+		if (*(file->transacts->transactions[t].description) != '\0' &&
+				string_nocase_strstr(file->transacts->transactions[t].description, buffer) == file->transacts->transactions[t].description) {
+			strncpy(buffer, file->transacts->transactions[t].description, length);
+			break;
+		}
+	}
+
+	return buffer;
+}

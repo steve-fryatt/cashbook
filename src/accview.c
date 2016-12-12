@@ -604,7 +604,31 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 {
 	struct file_block	*file;
 	int			line, column, xpos, transaction;
-	int			trans_col_from[] = {0,1,2,2,2,8,9,9,9,10}, trans_col_to[] = {0,1,5,5,5,8,9,9,9,10}, *trans_col;
+	enum transact_field 	trans_col_from[] = {
+					TRANSACT_FIELD_ROW,
+					TRANSACT_FIELD_DATE,
+					TRANSACT_FIELD_FROM,
+					TRANSACT_FIELD_FROM,
+					TRANSACT_FIELD_FROM,
+					TRANSACT_FIELD_REF,
+					TRANSACT_FIELD_AMOUNT,
+					TRANSACT_FIELD_AMOUNT,
+					TRANSACT_FIELD_AMOUNT,
+					TRANSACT_FIELD_DESC
+				};
+	enum transact_field	trans_col_to[] = {
+					TRANSACT_FIELD_ROW,
+					TRANSACT_FIELD_DATE,
+					TRANSACT_FIELD_TO,
+					TRANSACT_FIELD_TO,
+					TRANSACT_FIELD_TO,
+					TRANSACT_FIELD_REF,
+					TRANSACT_FIELD_AMOUNT,
+					TRANSACT_FIELD_AMOUNT,
+					TRANSACT_FIELD_AMOUNT,
+					TRANSACT_FIELD_DESC
+				};
+	enum transact_field	*trans_col;
 	wimp_window_state	window;
 	enum transact_flags	toggle_flag;
 	struct accview_window	*windat;
@@ -658,7 +682,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 		/* Handle adjust-clicks in the reconcile column, to toggle the status. */
 
 		toggle_flag = (transact_get_from(file, transaction) == windat->account) ? TRANS_REC_FROM : TRANS_REC_TO;
-//FIXME		edit_toggle_transaction_reconcile_flag(file, transaction, toggle_flag);
+		transact_toggle_reconcile_flag(file, transaction, toggle_flag);
 	}
 }
 
@@ -886,7 +910,7 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 	case ACCVIEW_MENU_FINDTRANS:
 		transact_place_caret(windat->file, transact_get_line_from_transaction(windat->file,
 				windat->line_data[windat->line_data[accview_window_menu_line].sort_index].transaction),
-				EDIT_ICON_DATE);
+				TRANSACT_FIELD_DATE);
 		break;
 
 	case ACCVIEW_MENU_GOTOTRANS:

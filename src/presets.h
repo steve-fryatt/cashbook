@@ -215,7 +215,7 @@ int preset_get_count(struct file_block *file);
  * \return			Bitfield indicating which fields have changed.
  */
 
-unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description);
+enum transact_field preset_apply(struct file_block *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description);
 
 
 /**

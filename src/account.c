@@ -88,6 +88,58 @@
 #include "window.h"
 
 
+/* Toolbar icons */
+
+#define ACCOUNT_PANE_PARENT 5
+#define ACCOUNT_PANE_ADDACCT 6
+#define ACCOUNT_PANE_ADDSECT 7
+#define ACCOUNT_PANE_PRINT 8
+
+#define ACCOUNT_PANE_COL_MAP "0,1;2;3;4;5"
+
+/* Accounr heading window. */
+
+#define ACCT_EDIT_OK 0
+#define ACCT_EDIT_CANCEL 1
+#define ACCT_EDIT_DELETE 2
+
+#define ACCT_EDIT_NAME 4
+#define ACCT_EDIT_IDENT 6
+#define ACCT_EDIT_CREDIT 8
+#define ACCT_EDIT_BALANCE 10
+#define ACCT_EDIT_ACCNO 18
+#define ACCT_EDIT_SRTCD 20
+#define ACCT_EDIT_ADDR1 22
+#define ACCT_EDIT_ADDR2 23
+#define ACCT_EDIT_ADDR3 24
+#define ACCT_EDIT_ADDR4 25
+#define ACCT_EDIT_PAYIN 12
+#define ACCT_EDIT_CHEQUE 14
+
+/* Edit heading window. */
+
+#define HEAD_EDIT_OK 0
+#define HEAD_EDIT_CANCEL 1
+#define HEAD_EDIT_DELETE 2
+
+#define HEAD_EDIT_NAME 4
+#define HEAD_EDIT_IDENT 6
+#define HEAD_EDIT_INCOMING 7
+#define HEAD_EDIT_OUTGOING 8
+#define HEAD_EDIT_BUDGET 10
+
+/* Edit section window. */
+
+#define SECTION_EDIT_OK 2
+#define SECTION_EDIT_CANCEL 3
+#define SECTION_EDIT_DELETE 4
+
+#define SECTION_EDIT_TITLE 0
+#define SECTION_EDIT_HEADER 5
+#define SECTION_EDIT_FOOTER 6
+
+
+
 /* AccList menu */
 
 #define ACCLIST_MENU_VIEWACCT 0

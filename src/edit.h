@@ -177,51 +177,6 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid);
 int edit_get_line_transaction(struct file_block *file);
 
 
-/**
- * Toggle the state of one of the reconciled flags for a transaction.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to edit.
- * \param change_flag	Indicate which reconciled flags to change.
- */
-
-void edit_toggle_transaction_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag);
-
-
-/**
- * Change the date for a transaction.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to edit.
- * \param new_date	The new date to set the transaction to.
- */
-
-void edit_change_transaction_date(struct file_block *file, tran_t transaction, date_t new_date);
-
-
-/**
- * Change the reference or description associated with a transaction.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to edit.
- * \param target	The target field to change.
- * \param new_text	The new text to set the field to.
- */
-
-void edit_change_transaction_refdesc(struct file_block *file, tran_t transaction, wimp_i target, char *new_text);
-
-
-/**
- * Change the reference or description associated with a transaction.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to edit.
- * \param target	The target field to change.
- * \param new_account	The new account to set the field to.
- */
-
-void edit_change_transaction_account(struct file_block *file, tran_t transaction, wimp_i target, acct_t new_account);
-
 
 /**
  * Insert a preset into a pre-existing transaction, taking care of updating all

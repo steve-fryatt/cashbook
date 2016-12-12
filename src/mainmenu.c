@@ -164,7 +164,9 @@ void open_account_menu(struct file_block *file, enum account_menu_type type, int
 
 static void decode_account_menu(wimp_selection *selection)
 {
-	int i, column, account;
+	int			i;
+	acct_t			account;
+	enum transact_field	target;
 
 	if (account_menu_window == NULL) {
 		/* If the window is NULL, then the menu was opened over the transaction window. */
@@ -185,20 +187,20 @@ static void decode_account_menu(wimp_selection *selection)
 		if (main_menu_line < transact_get_count(main_menu_file) && selection->items[1] != -1) {
 			switch (main_menu_column) {
 			case ACCOUNT_MENU_FROM:
-				column = EDIT_ICON_FROM;
+				target = TRANSACT_FIELD_FROM;
 				break;
 
 			case ACCOUNT_MENU_TO:
-				column = EDIT_ICON_TO;
+				target = TRANSACT_FIELD_TO;
 				break;
 
 			default:
-				column = -1;
+				target = TRANSACT_FIELD_NONE;
 				break;
 			}
 
-//FIXME			edit_change_transaction_account(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-//FIXME					column, account_complete_menu_decode(selection));
+			transact_change_account(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					target, account_complete_menu_decode(selection));
 		}
 	} else {
 		/* If the window is not NULL, the menu was opened over a dialogue box. */
@@ -290,9 +292,9 @@ static void decode_date_menu(wimp_selection *selection)
 	 */
 
 	if (main_menu_line < transact_get_count(main_menu_file) && selection->items[0] != -1) {
-//FIXME		if (preset_complete_menu_decode(selection) == NULL_PRESET)
-//FIXME			edit_change_transaction_date(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-//FIXME					date_today());
+		if (preset_complete_menu_decode(selection) == NULL_PRESET)
+			transact_change_date(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					date_today());
 //FIXME		else
 //FIXME			edit_insert_preset_into_transaction(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
 //FIXME					preset_complete_menu_decode(selection));
@@ -377,14 +379,14 @@ static void decode_refdesc_menu (wimp_selection *selection)
 					transact_get_from(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line)),
 					transact_get_to(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line)),
 					1, cheque_buffer, sizeof(cheque_buffer));
-//FIXME			edit_change_transaction_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-//FIXME					EDIT_ICON_REF, cheque_buffer);
+			transact_change_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					TRANSACT_FIELD_REF, cheque_buffer);
 		} else if (refdesc_menu_type == REFDESC_MENU_REFERENCE && field != NULL) {
-//FIXME			edit_change_transaction_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-//FIXME					EDIT_ICON_REF, field);
+			transact_change_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					TRANSACT_FIELD_REF, field);
 		} else if (refdesc_menu_type == REFDESC_MENU_DESCRIPTION && field != NULL) {
-//FIXME			edit_change_transaction_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-//FIXME					EDIT_ICON_DESCRIPT, field);
+			transact_change_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					TRANSACT_FIELD_DESC, field);
 		}
 	}
 }

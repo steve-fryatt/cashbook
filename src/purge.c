@@ -382,7 +382,7 @@ static void purge_file(struct file_block *file, osbool transactions, date_t cuto
 
 	transact_set_window_extent(file);
 
-	transact_place_caret(file, transact_find_first_blank_line(file), EDIT_ICON_DATE);
+	transact_place_caret(file, transact_find_first_blank_line(file), TRANSACT_FIELD_DATE);
 
 	hourglass_off();
 }

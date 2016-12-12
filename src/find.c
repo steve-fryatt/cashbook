@@ -602,7 +602,7 @@ static osbool find_process_window(void)
 
 static int find_from_line(struct find_block *new_params, int new_dir, int start)
 {
-	int			icon, line;
+	int			line;
 	enum find_direction	direction;
 	enum transact_field	result;
 	wimp_pointer		pointer;
@@ -682,26 +682,11 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 		return NULL_TRANSACTION;
 	}
 
-	if (result & TRANSACT_FIELD_DATE)
-		icon = EDIT_ICON_DATE;
-	else if (result & TRANSACT_FIELD_FROM)
-		icon = EDIT_ICON_FROM;
-	else if (result & TRANSACT_FIELD_TO)
-		icon = EDIT_ICON_TO;
-	else if (result & TRANSACT_FIELD_REF)
-		icon = EDIT_ICON_REF;
-	else if (result & TRANSACT_FIELD_AMOUNT)
-		icon = EDIT_ICON_AMOUNT;
-	else if (result & TRANSACT_FIELD_DESC)
-		icon = EDIT_ICON_DESCRIPT;
-	else
-		icon = EDIT_ICON_DATE;
-
 	wimp_close_window(find_window);
 
-	transact_place_caret(find_window_owner->file, line, icon);
+	transact_place_caret(find_window_owner->file, line, result);
 
-	transact_get_column_name(find_window_owner->file, icon, buf1, sizeof(buf1));
+	transact_get_column_name(find_window_owner->file, result, buf1, sizeof(buf1));
 	snprintf(buf2, sizeof(buf2), "%d", transact_get_transaction_number(line));
 
 	msgs_param_lookup("Found", icons_get_indirected_text_addr(find_result_window, FOUND_ICON_INFO), 64, buf1, buf2, NULL, NULL);

@@ -2476,9 +2476,9 @@ int preset_get_count(struct file_block *file)
  * \return			Bitfield indicating which fields have changed.
  */
 
-unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description)
+enum transact_field preset_apply(struct file_block *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description)
 {
-	unsigned	changed = 0;
+	enum transact_field	changed = TRANSACT_FIELD_NONE;
 
 	if (file == NULL || file->presets == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->presets->preset_count)
 		return changed;
@@ -2490,10 +2490,10 @@ unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t 
 
 	if (file->presets->presets[preset].flags & TRANS_TAKE_TODAY) {
 		*date = date_today();
-		changed |= (1 << EDIT_ICON_DATE);
+		changed |= TRANSACT_FIELD_DATE;
 	} else if (file->presets->presets[preset].date != NULL_DATE && *date != file->presets->presets[preset].date) {
 		*date = file->presets->presets[preset].date;
-		changed |= (1 << EDIT_ICON_DATE);
+		changed |= TRANSACT_FIELD_DATE;
 	}
 
 	/* Update the From account. */
@@ -2501,7 +2501,7 @@ unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t 
 	if (file->presets->presets[preset].from != NULL_ACCOUNT) {
 		*from = file->presets->presets[preset].from;
 		*flags = (*flags & ~TRANS_REC_FROM) | (file->presets->presets[preset].flags & TRANS_REC_FROM);
-		changed |= (1 << EDIT_ICON_FROM);
+		changed |= TRANSACT_FIELD_FROM;
 	}
 
 	/* Update the To account. */
@@ -2509,31 +2509,31 @@ unsigned preset_apply(struct file_block *file, int preset, date_t *date, acct_t 
 	if (file->presets->presets[preset].to != NULL_ACCOUNT) {
 		*to = file->presets->presets[preset].to;
 		*flags = (*flags & ~TRANS_REC_TO) | (file->presets->presets[preset].flags & TRANS_REC_TO);
-		changed |= (1 << EDIT_ICON_TO);
+		changed |= TRANSACT_FIELD_TO;
 	}
 
 	/* Update the reference. */
 
 	if (file->presets->presets[preset].flags & TRANS_TAKE_CHEQUE) {
 		account_get_next_cheque_number(file, *from, *to, 1, reference, TRANSACT_REF_FIELD_LEN);
-		changed |= (1 << EDIT_ICON_REF);
+		changed |= TRANSACT_FIELD_REF;
 	} else if (*(file->presets->presets[preset].reference) != '\0' && strcmp(reference, file->presets->presets[preset].reference) != 0) {
 		strcpy(reference, file->presets->presets[preset].reference);
-		changed |= (1 << EDIT_ICON_REF);
+		changed |= TRANSACT_FIELD_REF;
 	}
 
 	/* Update the amount. */
 
 	if (file->presets->presets[preset].amount != NULL_CURRENCY && *amount != file->presets->presets[preset].amount) {
 		*amount = file->presets->presets[preset].amount;
-		changed |= (1 << EDIT_ICON_AMOUNT);
+		changed |= TRANSACT_FIELD_AMOUNT;
 	}
 
 	/* Update the description. */
 
 	if (*(file->presets->presets[preset].description) != '\0' && strcmp(description, file->presets->presets[preset].description) != 0) {
 		strcpy(description, file->presets->presets[preset].description);
-		changed |= (1 << EDIT_ICON_DESCRIPT);
+		changed |= TRANSACT_FIELD_DESC;
 	}
 
 	return changed;

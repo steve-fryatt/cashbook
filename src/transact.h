@@ -94,7 +94,8 @@ enum transact_field {
 	TRANSACT_FIELD_TO = 0x04,
 	TRANSACT_FIELD_AMOUNT = 0x08,
 	TRANSACT_FIELD_REF = 0x10,
-	TRANSACT_FIELD_DESC = 0x20
+	TRANSACT_FIELD_DESC = 0x20,
+	TRANSACT_FIELD_ROW = 0x40
 };
 
 enum transact_scroll_direction {
@@ -166,13 +167,13 @@ void transact_open_window(struct file_block *file);
  * Return the name of a transaction window column.
  *
  * \param *file			The file containing the transaction window.
- * \param icon			The icon representing the required column.
+ * \param field			The field representing the required column.
  * \param *buffer		Pointer to a buffer to take the name.
  * \param len			The length of the supplied buffer.
  * \return			Pointer to the supplied buffer, or NULL.
  */
 
-char *transact_get_column_name(struct file_block *file, wimp_i icon, char *buffer, size_t len);
+char *transact_get_column_name(struct file_block *file, enum transact_field field, char *buffer, size_t len);
 
 
 /**
@@ -643,10 +644,10 @@ int transact_find_date(struct file_block *file, date_t target);
  * \param *file			The file to operate on.
  * \param line			The line (under the current display sort order)
  *				to place the caret in.
- * \param icon			The icon to place the caret in.
+ * \param field			The field to place the caret in.
  */
 
-void transact_place_caret(struct file_block *file, int line, wimp_i icon);
+void transact_place_caret(struct file_block *file, int line, enum transact_field field);
 
 
 /**
@@ -686,6 +687,80 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
  */
 
 osbool transact_check_account(struct file_block *file, acct_t account);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Toggle the state of one of the reconciled flags for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param change_flag	Indicate which reconciled flags to change.
+ */
+
+void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag);
+
+
+/**
+ * Change the date for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param new_date	The new date to set the transaction to.
+ */
+
+void transact_change_date(struct file_block *file, tran_t transaction, date_t new_date);
+
+
+/**
+ * Change the reference or description associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_text	The new text to set the field to.
+ */
+
+void transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text);
+
+
+/**
+ * Change the from or to account associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_account	The new account to set the field to.
+ */
+
+void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account);
+
+
 
 #endif
 

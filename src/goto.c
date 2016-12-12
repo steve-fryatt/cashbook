@@ -336,7 +336,7 @@ static osbool goto_process_window(void)
 		line = transact_get_line_from_transaction(goto_window_owner->file, transaction);
 	}
 
-	transact_place_caret(goto_window_owner->file, line, EDIT_ICON_DATE);
+	transact_place_caret(goto_window_owner->file, line, TRANSACT_FIELD_DATE);
 
 	return TRUE;
 }

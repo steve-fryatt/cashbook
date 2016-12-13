@@ -393,6 +393,9 @@ static void			transact_prepare_fileinfo(struct file_block *file);
 /* These need to move into their correct place. */
 
 static char			*transact_complete_description(struct file_block *file, int line, char *buffer, size_t length);
+static osbool			transact_edit_get_row(struct edit_data *data);
+static osbool			transact_edit_get_reference(struct edit_data *data);
+static osbool			transact_edit_get_description(struct edit_data *data);
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -589,17 +592,17 @@ void transact_open_window(struct file_block *file)
 		return;
 	}
 
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, 0, TRANSACT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, 1, TRANSACT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 2, TRANSACT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, 0, transact_edit_get_row, NULL, TRANSACT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, 1, NULL, NULL, TRANSACT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 2, NULL, NULL, TRANSACT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
 			TRANSACT_ICON_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
 			TRANSACT_ICON_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 5, TRANSACT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 5, NULL, NULL, TRANSACT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
 			TRANSACT_ICON_TO_REC, transact_buffer_to_name, ACCOUNT_NAME_LEN,
 			TRANSACT_ICON_TO_NAME, transact_buffer_to_rec, REC_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 8, TRANSACT_ICON_REFERENCE, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, 9, TRANSACT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 10, TRANSACT_ICON_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 8, transact_edit_get_reference, NULL, TRANSACT_ICON_REFERENCE, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, 9, NULL, NULL, TRANSACT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 10, transact_edit_get_description, NULL, TRANSACT_ICON_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	/* Set the title */
 
@@ -4836,4 +4839,46 @@ static char *transact_complete_description(struct file_block *file, int line, ch
 	}
 
 	return buffer;
+}
+
+
+
+static osbool transact_edit_get_row(struct edit_data *data)
+{
+	if (data == NULL || data->type != EDIT_FIELD_DISPLAY)
+		return FALSE;
+
+	if (data->display.text == NULL || data->display.length == 0)
+		return FALSE;
+
+	snprintf(data->display.text, data->display.length, "%d", transact_get_transaction_number(data->line));
+	data->display.text[data->display.length - 1] = '\0';
+
+	return TRUE;
+}
+
+static osbool transact_edit_get_reference(struct edit_data *data)
+{
+	if (data == NULL || data->type != EDIT_FIELD_TEXT)
+		return FALSE;
+
+	if (data->display.text == NULL || data->display.length == 0)
+		return FALSE;
+
+	strncpy(data->text.text, "Fooo", data->text.length);
+
+	return TRUE;
+}
+
+static osbool transact_edit_get_description(struct edit_data *data)
+{
+	if (data == NULL || data->type != EDIT_FIELD_TEXT)
+		return FALSE;
+
+	if (data->display.text == NULL || data->display.length == 0)
+		return FALSE;
+
+	strncpy(data->text.text, "Barr", data->text.length);
+
+	return TRUE;
 }

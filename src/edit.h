@@ -61,6 +61,19 @@ enum edit_field_type {
 	EDIT_FIELD_ACCOUNT,		/**< An account field.				*/
 };
 
+struct edit_data_text {
+	char	*text;
+	size_t	length;
+};
+
+struct edit_data {
+	int				line;		/**< The line that we're interested in.		*/
+	enum edit_field_type		type;		/**< The type of field to require the data.	*/
+	union {
+		struct edit_data_text	display;	/**< The data relating to a display field.	*/
+		struct edit_data_text	text;		/**< The data relating to a text field.		*/
+	};
+};
 
 /**
  * The edit line instance block.
@@ -101,7 +114,8 @@ void edit_delete_instance(struct edit_block *instance);
  * \return			True if the field was created OK; False on error.
  */
 
-osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...);
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column,
+		osbool (*get)(struct edit_data *), osbool (*put)(struct edit_data *), ...);
 
 
 /**

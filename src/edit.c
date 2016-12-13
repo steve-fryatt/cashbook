@@ -111,6 +111,11 @@ struct edit_field {
 	enum edit_field_type	type;			/**< The type of field.								*/
 	union edit_field_data	data;			/**< The field-specific data.							*/
 
+	struct edit_data	transfer;		/**< The structure used to transfer data to and from the client.		*/
+
+	osbool			(*get)(struct edit_data *);
+	osbool			(*put)(struct edit_data *);
+
 	int			column;			/**< The column of the left-most part of the field.				*/
 
 	struct edit_field	*next;			/**< Pointer to the next icon in the line, or NULL.				*/
@@ -146,7 +151,7 @@ static struct edit_block *edit_active_instance = NULL;
 
 
 static void edit_create_field_icon(struct edit_block *instance, wimp_i icon, char *buffer, size_t length, int column, int line);
-
+static void edit_get_field_content(struct edit_field *field, int line);
 
 #ifdef LOSE
 static void			edit_find_icon_horizontally(struct file_block *file);
@@ -228,11 +233,14 @@ void edit_delete_instance(struct edit_block *instance)
  * \param *instance		The instance to add the field to.
  * \param type			The type of field to add.
  * \param column		The column number of the left-most field.
+ * \param *get
+ * \param *put
  * \param ...			A list of the icons which apply to the field.
  * \return			True if the field was created OK; False on error.
  */
 
-osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...)
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column,
+		osbool (*get)(struct edit_data *), osbool (*put)(struct edit_data *), ...)
 {
 	va_list			ap;
 	struct edit_field	*new;
@@ -256,18 +264,27 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 	new->type = type;
 	new->column = column;
 
-	va_start(ap, column);
+	new->transfer.type = type;
+
+	new->get = get;
+	new->put = put;
+
+	va_start(ap, put);
 
 	switch (type) {
 	case EDIT_FIELD_DISPLAY:
 		new->data.display.icon = va_arg(ap, wimp_i);
 		new->data.display.buffer = va_arg(ap, char *);
 		new->data.display.length = va_arg(ap, size_t);
+		new->transfer.display.text = new->data.display.buffer;
+		new->transfer.display.length = new->data.display.length;
 		break;
 	case EDIT_FIELD_TEXT:
 		new->data.text.icon = va_arg(ap, wimp_i);
 		new->data.text.buffer = va_arg(ap, char *);
 		new->data.text.length = va_arg(ap, size_t);
+		new->transfer.text.text = new->data.text.buffer;
+		new->transfer.text.length = new->data.text.length;
 		break;
 	case EDIT_FIELD_CURRENCY:
 		new->data.currency.icon = va_arg(ap, wimp_i);
@@ -384,6 +401,8 @@ void edit_place_new_line(struct edit_block *instance, int line)
 			break;
 		}
 
+		edit_get_field_content(field, line);
+
 		field = field->next;
 	}
 
@@ -426,6 +445,62 @@ static void edit_create_field_icon(struct edit_block *instance, wimp_i icon, cha
 	wimp_create_icon(&icon_block);
 }
 
+
+static void edit_get_field_content(struct edit_field *field, int line)
+{
+	
+	if (field == NULL)
+		return;
+
+	/* If there's no get callback, just empty the field. */
+
+	field->transfer.line = line;
+
+	if (field->get == NULL || !field->get(&(field->transfer))) {
+		switch (field->type) {
+		case EDIT_FIELD_DISPLAY:
+			if (field->data.display.buffer != NULL && field->data.display.length > 0)
+				*(field->data.display.buffer) = '\0';
+			break;
+		case EDIT_FIELD_TEXT:
+			if (field->data.text.buffer != NULL && field->data.text.length > 0)
+				*(field->data.text.buffer) = '\0';
+			break;
+		case EDIT_FIELD_CURRENCY:
+			if (field->data.currency.buffer != NULL && field->data.currency.length > 0)
+				*(field->data.currency.buffer) = '\0';
+			break;
+		case EDIT_FIELD_DATE:
+			if (field->data.date.buffer != NULL && field->data.date.length > 0)
+				*(field->data.date.buffer) = '\0';
+			break;
+		case EDIT_FIELD_ACCOUNT:
+			if (field->data.account.ident_buffer != NULL && field->data.account.ident_length > 0)
+				*(field->data.account.ident_buffer) = '\0';
+			if (field->data.account.reconcile_buffer != NULL && field->data.account.reconcile_length > 0)
+				*(field->data.account.reconcile_buffer) = '\0';
+			if (field->data.account.name_buffer != NULL && field->data.account.name_length > 0)
+				*(field->data.account.name_buffer) = '\0';
+			break;
+		}
+
+		return;
+	}
+
+	/* We've got something in the returned data block! */
+
+	switch (field->type) {
+	case EDIT_FIELD_DISPLAY:
+	case EDIT_FIELD_TEXT:
+		break;
+	case EDIT_FIELD_CURRENCY:
+		break;
+	case EDIT_FIELD_DATE:
+		break;
+	case EDIT_FIELD_ACCOUNT:
+		break;
+	}
+}
 
 #ifdef LOSE
 /**

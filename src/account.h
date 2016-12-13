@@ -376,18 +376,31 @@ acct_t account_lookup_field(struct file_block *file, char key, enum account_type
 		osbool *reconciled, wimp_w window, wimp_i ident, wimp_i name, wimp_i rec);
 
 
+/**
+ * Fill an account field (ident, reconciled and name icons) with the details
+ * of an account.
+ * 
+ * \param *file		The file containing the account.
+ * \param account	The account to be shown in the field.
+ * \param reconciled	TRUE to show the account reconciled; FALSE to show unreconciled.
+ * \param window	The window containing the icons.
+ * \param ident		The icon holding the ident.
+ * \param name		The icon holding the account name.
+ * \param rec		The icon holding the reconciled state.
+ */
+
+void account_fill_field(struct file_block *file, acct_t account, osbool reconciled,
+		wimp_w window, wimp_i ident, wimp_i name, wimp_i rec);
 
 
+/**
+ * Toggle the reconcile status shown in an icon.
+ * 
+ * \param window	The window containing the icon.
+ * \param icon		The icon to toggle.
+ */
 
-
-void fill_account_field (struct file_block *file, acct_t account, int reconciled,
-                         wimp_w window, wimp_i ident, wimp_i name, wimp_i rec_field);
-void toggle_account_reconcile_icon (wimp_w window, wimp_i icon);
-
-
-
-
-
+void account_toggle_reconcile_icon(wimp_w window, wimp_i icon);
 
 
 /**

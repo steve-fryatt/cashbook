@@ -208,7 +208,7 @@ static void decode_account_menu(wimp_selection *selection)
 		if (selection->items[1] != -1) {
 			account = account_complete_menu_decode(selection);
 
-			fill_account_field(main_menu_file, account, !(account_get_type(main_menu_file, account) & ACCOUNT_FULL),
+			account_fill_field(main_menu_file, account, !(account_get_type(main_menu_file, account) & ACCOUNT_FULL),
 					account_menu_window, account_menu_ident_icon, account_menu_name_icon, account_menu_rec_icon);
 
 			wimp_set_icon_state(account_menu_window, account_menu_ident_icon, 0, 0);

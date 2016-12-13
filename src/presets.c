@@ -1539,12 +1539,12 @@ static void preset_edit_click_handler(wimp_pointer *pointer)
 
 	case PRESET_EDIT_FMREC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			toggle_account_reconcile_icon(preset_edit_window, PRESET_EDIT_FMREC);
+			account_toggle_reconcile_icon(preset_edit_window, PRESET_EDIT_FMREC);
 		break;
 
 	case PRESET_EDIT_TOREC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			toggle_account_reconcile_icon(preset_edit_window, PRESET_EDIT_TOREC);
+			account_toggle_reconcile_icon(preset_edit_window, PRESET_EDIT_TOREC);
 		break;
 	}
 }
@@ -1676,10 +1676,10 @@ static void preset_fill_edit_window(struct preset_block *windat, preset_t preset
 
 		/* Fill in the from and to fields. */
 
-		fill_account_field(windat->file, windat->presets[preset].from, windat->presets[preset].flags & TRANS_REC_FROM,
+		account_fill_field(windat->file, windat->presets[preset].from, windat->presets[preset].flags & TRANS_REC_FROM,
 				preset_edit_window, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC);
 
-		fill_account_field(windat->file, windat->presets[preset].to, windat->presets[preset].flags & TRANS_REC_TO,
+		account_fill_field(windat->file, windat->presets[preset].to, windat->presets[preset].flags & TRANS_REC_TO,
 				preset_edit_window, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC);
 
 		/* Fill in the reference field. */

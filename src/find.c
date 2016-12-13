@@ -130,9 +130,8 @@ struct find_block {
 
 	date_t			date;						/**< The date to match, or NULL_DATE for none.				*/
 	acct_t			from;						/**< The From account to match, or NULL_ACCOUNT for none.		*/
-	unsigned		from_rec;					/**< The From account's reconciled status.				*/
 	acct_t			to;						/**< The To account to match, or NULL_ACCOUNT for none.			*/
-	unsigned		to_rec;						/**< The To account's reconciled status. \TODO -- Merge with From?	*/
+	enum transact_flags	reconciled;					/**< The From and To Accounts' reconciled status.			*/
 	amt_t			amount;						/**< The Amount to match, or NULL_CURRENCY for "don't care".		*/
 	char			ref[TRANSACT_REF_FIELD_LEN];			/**< The Reference to match; NULL or '\0' for "don't care".		*/
 	char			desc[TRANSACT_DESCRIPT_FIELD_LEN];		/**< The Description to match; NULL or '\0' for "don't care".		*/
@@ -207,9 +206,8 @@ struct find_block *find_create(struct file_block *file)
 	new->file = file;
 	new->date = NULL_DATE;
 	new->from = NULL_ACCOUNT;
-	new->from_rec = TRANS_FLAGS_NONE;
 	new->to = NULL_ACCOUNT;
-	new->to_rec = TRANS_FLAGS_NONE;
+	new->reconciled = TRANS_FLAGS_NONE;
 	new->amount = NULL_CURRENCY;
 	*(new->ref) = '\0';
 	*(new->desc) = '\0';
@@ -366,12 +364,12 @@ static void find_click_handler(wimp_pointer *pointer)
 
 	case FIND_ICON_FMREC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			toggle_account_reconcile_icon(find_window, FIND_ICON_FMREC);
+			account_toggle_reconcile_icon(find_window, FIND_ICON_FMREC);
 		break;
 
 	case FIND_ICON_TOREC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			toggle_account_reconcile_icon(find_window, FIND_ICON_TOREC);
+			account_toggle_reconcile_icon(find_window, FIND_ICON_TOREC);
 		break;
 	}
 }
@@ -495,10 +493,10 @@ static void find_fill_window(struct find_block *find_data, osbool restore)
 		date_convert_to_string(find_data->date, icons_get_indirected_text_addr(find_window, FIND_ICON_DATE),
 				icons_get_indirected_text_length(find_window, FIND_ICON_DATE));
 
-		fill_account_field(find_data->file, find_data->from, find_data->from_rec,
+		account_fill_field(find_data->file, find_data->from, (find_data->reconciled & TRANS_REC_FROM) ? TRUE : FALSE,
 				find_window, FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC);
 
-		fill_account_field(find_data->file, find_data->to, find_data->to_rec,
+		account_fill_field(find_data->file, find_data->to, (find_data->reconciled & TRANS_REC_TO) ? TRUE : FALSE,
 				find_window, FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC);
 
 		icons_strncpy(find_window, FIND_ICON_REF, find_data->ref);
@@ -537,10 +535,13 @@ static osbool find_process_window(void)
 	find_window_owner->date = date_convert_from_string(icons_get_indirected_text_addr(find_window, FIND_ICON_DATE), NULL_DATE, 0);
 	find_window_owner->from = account_find_by_ident(find_window_owner->file, icons_get_indirected_text_addr(find_window, FIND_ICON_FMIDENT),
 			ACCOUNT_FULL | ACCOUNT_IN);
-	find_window_owner->from_rec = (*icons_get_indirected_text_addr(find_window, FIND_ICON_FMREC) == '\0') ? 0 : TRANS_REC_FROM;
 	find_window_owner->to = account_find_by_ident(find_window_owner->file, icons_get_indirected_text_addr(find_window, FIND_ICON_TOIDENT),
 			ACCOUNT_FULL | ACCOUNT_OUT);
-	find_window_owner->to_rec = (*icons_get_indirected_text_addr(find_window, FIND_ICON_TOREC) == '\0') ? 0 : TRANS_REC_TO;
+	find_window_owner->reconciled = TRANS_FLAGS_NONE;
+	if (*icons_get_indirected_text_addr(find_window, FIND_ICON_FMREC) != '\0')
+		find_window_owner->reconciled |= TRANS_REC_FROM;
+	if (*icons_get_indirected_text_addr(find_window, FIND_ICON_TOREC) != '\0')
+		find_window_owner->reconciled |= TRANS_REC_TO;
 	find_window_owner->amount = currency_convert_from_string(icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT));
 	strcpy(find_window_owner->ref, icons_get_indirected_text_addr(find_window, FIND_ICON_REF));
 	strcpy(find_window_owner->desc, icons_get_indirected_text_addr(find_window, FIND_ICON_DESC));
@@ -614,9 +615,8 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 		find_params.file = new_params->file;
 		find_params.date = new_params->date;
 		find_params.from = new_params->from;
-		find_params.from_rec = new_params->from_rec;
 		find_params.to = new_params->to;
-		find_params.to_rec = new_params->to_rec;
+		find_params.reconciled = new_params->reconciled;
 		find_params.amount = new_params->amount;
 		strcpy(find_params.ref, new_params->ref);
 		strcpy(find_params.desc, new_params->desc);
@@ -675,7 +675,7 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 	}
 
 	result = transact_search(find_window_owner->file, &line, direction == FIND_UP, find_params.case_sensitive, find_params.logic == FIND_AND,
-			find_params.date, find_params.from, find_params.to, find_params.from_rec | find_params.to_rec, find_params.amount, ref, desc);
+			find_params.date, find_params.from, find_params.to, find_params.reconciled, find_params.amount, ref, desc);
 
 	if (result == TRANSACT_FIELD_NONE) {
 		error_msgs_report_info ("BadFind");

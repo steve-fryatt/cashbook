@@ -66,13 +66,30 @@ struct edit_data_text {
 	size_t	length;
 };
 
+struct edit_data_currency {
+	amt_t	amount;
+};
+
+struct edit_data_date {
+	date_t	date;
+};
+
+struct edit_data_account {
+	acct_t	account;
+	osbool	reconciled;
+};
+
 struct edit_data {
-	int				line;		/**< The line that we're interested in.		*/
-	enum edit_field_type		type;		/**< The type of field to require the data.	*/
+	int					line;		/**< The line that we're interested in.		*/
+	enum edit_field_type			type;		/**< The type of field to require the data.	*/
 	union {
-		struct edit_data_text	display;	/**< The data relating to a display field.	*/
-		struct edit_data_text	text;		/**< The data relating to a text field.		*/
+		struct edit_data_text		display;	/**< The data relating to a display field.	*/
+		struct edit_data_text		text;		/**< The data relating to a text field.		*/
+		struct edit_data_currency	currency;	/**< The data relating to a currency field.	*/
+		struct edit_data_date		date;		/**< The data relating to a date field.		*/
+		struct edit_data_account	account;	/**< The data relating to an account field.	*/
 	};
+	void					*data;		/**< The client-supplied data pointer.		*/
 };
 
 /**
@@ -85,14 +102,16 @@ struct edit_block;
 /**
  * Create a new edit line instance.
  *
+ * \param *file			The parent file.
  * \param *template		Pointer to the window template definition to use for the edit icons.
  * \param parent		The window handle in which the edit line will reside.
  * \param *columns		The column settings relating to the instance's parent window.
  * \param toolbar_height	The height of the window's toolbar.
+ * \param *data			Client-specific data pointer, or NULL for none.
  * \return			The new instance handle, or NULL on failure.
  */
 
-struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height);
+struct edit_block *edit_create_instance(struct file_block *file, wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height, void *data);
 
 
 /**

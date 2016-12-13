@@ -3749,45 +3749,49 @@ acct_t account_lookup_field(struct file_block *file, char key, enum account_type
 	return account;
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Fill three icons with account name, ident and reconciled status. */
+/**
+ * Fill an account field (ident, reconciled and name icons) with the details
+ * of an account.
+ * 
+ * \param *file		The file containing the account.
+ * \param account	The account to be shown in the field.
+ * \param reconciled	TRUE to show the account reconciled; FALSE to show unreconciled.
+ * \param window	The window containing the icons.
+ * \param ident		The icon holding the ident.
+ * \param name		The icon holding the account name.
+ * \param rec		The icon holding the reconciled state.
+ */
 
-void fill_account_field (struct file_block *file, acct_t account, int reconciled,
-                         wimp_w window, wimp_i ident, wimp_i name, wimp_i rec_field)
+void account_fill_field(struct file_block *file, acct_t account, osbool reconciled,
+		wimp_w window, wimp_i ident, wimp_i name, wimp_i rec)
 {
-  strcpy (icons_get_indirected_text_addr (window, ident), account_get_ident (file, account));
+	icons_strncpy(window, name, account_get_name(file, account));
+	icons_strncpy(window, ident, account_get_ident(file, account));
 
-  if (reconciled)
-  {
-    msgs_lookup ("RecChar", icons_get_indirected_text_addr (window, rec_field), REC_FIELD_LEN);
-  }
-  else
-  {
-    *icons_get_indirected_text_addr (window, rec_field) = '\0';
-  }
-  strcpy (icons_get_indirected_text_addr (window, name), account_get_name (file, account));
+	if (reconciled)
+		icons_msgs_lookup(window, rec, "RecChar");
+	else
+		*icons_get_indirected_text_addr(window, rec) = '\0';
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Toggle the reconcile status in an icon. */
+/**
+ * Toggle the reconcile status shown in an icon.
+ * 
+ * \param window	The window containing the icon.
+ * \param icon		The icon to toggle.
+ */
 
-void toggle_account_reconcile_icon (wimp_w window, wimp_i icon)
+void account_toggle_reconcile_icon(wimp_w window, wimp_i icon)
 {
-  if (*icons_get_indirected_text_addr (window, icon) == '\0')
-  {
-    msgs_lookup ("RecChar", icons_get_indirected_text_addr (window, icon), REC_FIELD_LEN);
-  }
-  else
-  {
-    *icons_get_indirected_text_addr (window, icon) = '\0';
-  }
+	if (*icons_get_indirected_text_addr(window, icon) == '\0')
+		icons_msgs_lookup(window, icon, "RecChar");
+	else
+		*icons_get_indirected_text_addr(window, icon) = '\0';
 
-  wimp_set_icon_state (window, icon, 0, 0);
+	wimp_set_icon_state (window, icon, 0, 0);
 }
-
-/* ================================================================================================================== */
 
 
 /**

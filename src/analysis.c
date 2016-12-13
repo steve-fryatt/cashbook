@@ -3265,9 +3265,7 @@ static void analysis_open_account_lookup(struct file_block *file, wimp_w window,
 {
 	wimp_pointer		pointer;
 
-	icons_strncpy(analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, account_get_ident(file, account));
-	icons_strncpy(analysis_lookup_window, ANALYSIS_LOOKUP_NAME, account_get_name(file, account));
-	*icons_get_indirected_text_addr(analysis_lookup_window, ANALYSIS_LOOKUP_REC) = '\0';
+	account_fill_field(file, account, FALSE, analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC);
 
 	analysis_lookup_file = file;
 	analysis_lookup_type = type;
@@ -3349,7 +3347,7 @@ static void analysis_lookup_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_LOOKUP_REC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			toggle_account_reconcile_icon(analysis_lookup_window, ANALYSIS_LOOKUP_REC);
+			account_toggle_reconcile_icon(analysis_lookup_window, ANALYSIS_LOOKUP_REC);
 		break;
 	}
 }

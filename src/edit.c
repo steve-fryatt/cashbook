@@ -108,6 +108,8 @@ union edit_field_data {
 };
 
 struct edit_field {
+	struct edit_block	*instance;		/**< The parent instance.							*/
+
 	enum edit_field_type	type;			/**< The type of field.								*/
 	union edit_field_data	data;			/**< The field-specific data.							*/
 
@@ -126,6 +128,8 @@ struct edit_field {
  */
 
 struct edit_block {
+	struct file_block	*file;			/**< The parent file.								*/
+
 	wimp_window		*template;		/**< The template for the parent window.					*/
 	wimp_w			parent;			/**< The parent window that the edit line belongs to.				*/
 	struct column_block	*columns;		/**< The parent window column settings.						*/
@@ -134,6 +138,8 @@ struct edit_block {
 	struct edit_field	*fields;		/**< The list of fields defined in the line, or NULL for none.			*/
 
 	int			edit_line;		/**< The line currently marked for entry, in terms of window lines, or -1.	*/
+
+	void			*data;			/**< The client-specific data pointer.						*/
 };
 
 
@@ -167,14 +173,16 @@ static void			edit_process_content_keypress(struct file_block *file, wimp_key *k
 /**
  * Create a new edit line instance.
  *
+ * \param *file			The parent file.
  * \param *template		Pointer to the window template definition to use for the edit icons.
  * \param parent		The window handle in which the edit line will reside.
  * \param *columns		The column settings relating to the instance's parent window.
  * \param toolbar_height	The height of the window's toolbar.
+ * \param *data			Client-specific data pointer, or NULL for none.
  * \return			The new instance handle, or NULL on failure.
  */
 
-struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height)
+struct edit_block *edit_create_instance(struct file_block *file, wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height, void *data)
 {
 	struct edit_block *new;
 
@@ -182,10 +190,12 @@ struct edit_block *edit_create_instance(wimp_window *template, wimp_w parent, st
 	if (new == NULL)
 		return NULL;
 
+	new->file = file;
 	new->template = template;
 	new->parent = parent;
 	new->columns = columns;
 	new->toolbar_height = toolbar_height;
+	new->data = data;
 
 	/* No fields are defined as yet. */
 
@@ -259,12 +269,15 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 	new->next = instance->fields;
 	instance->fields = new;
 
+	new->instance = instance;
+
 	/* Set up the field data. */
 
 	new->type = type;
 	new->column = column;
 
 	new->transfer.type = type;
+	new->transfer.data = instance->data;
 
 	new->get = get;
 	new->put = put;
@@ -492,12 +505,17 @@ static void edit_get_field_content(struct edit_field *field, int line)
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:
 	case EDIT_FIELD_TEXT:
+		/* The supplied pointer was direct to the icon's buffer, so there's nothing to do. */
 		break;
 	case EDIT_FIELD_CURRENCY:
+		currency_convert_to_string(field->transfer.currency.amount, field->data.currency.buffer, field->data.currency.length);
 		break;
 	case EDIT_FIELD_DATE:
+		date_convert_to_string(field->transfer.date.date, field->data.date.buffer, field->data.date.length);
 		break;
 	case EDIT_FIELD_ACCOUNT:
+		account_fill_field(field->instance->file, field->transfer.account.account, field->transfer.account.reconciled,
+				field->instance->parent, field->data.account.ident, field->data.account.name, field->data.account.reconcile);
 		break;
 	}
 }
@@ -589,7 +607,7 @@ void edit_place_new_line(struct edit_block *edit, struct file_block *file, int l
 
 	if (transact_valid(file->transacts, line)) {
 		transaction = file->transacts->transactions[line].sort_index;
-		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
+	//	snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
 		date_convert_to_string(file->transacts->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
 		strncpy(buffer_from_ident, account_get_ident(file, file->transacts->transactions[transaction].from), ACCOUNT_IDENT_LEN);
 		strncpy(buffer_from_name, account_get_name(file, file->transacts->transactions[transaction].from), ACCOUNT_NAME_LEN);
@@ -603,9 +621,9 @@ void edit_place_new_line(struct edit_block *edit, struct file_block *file, int l
 			msgs_lookup("RecChar", buffer_to_rec, REC_FIELD_LEN);
 		else
 			*buffer_to_rec = '\0';
-		strncpy(buffer_reference, file->transacts->transactions[transaction].reference, REF_FIELD_LEN);
+	//	strncpy(buffer_reference, file->transacts->transactions[transaction].reference, REF_FIELD_LEN);
 		currency_convert_to_string(file->transacts->transactions[transaction].amount, buffer_amount, AMOUNT_FIELD_LEN);
-		strncpy(buffer_description, file->transacts->transactions[transaction].description, DESCRIPT_FIELD_LEN);
+	//	strncpy(buffer_description, file->transacts->transactions[transaction].description, DESCRIPT_FIELD_LEN);
 	} else {
 		*buffer_row = '\0';
 		*buffer_date = '\0';

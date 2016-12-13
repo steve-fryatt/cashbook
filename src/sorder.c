@@ -1557,12 +1557,12 @@ static void sorder_edit_click_handler(wimp_pointer *pointer)
 
 	case SORDER_EDIT_FMREC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			toggle_account_reconcile_icon(sorder_edit_window, SORDER_EDIT_FMREC);
+			account_toggle_reconcile_icon(sorder_edit_window, SORDER_EDIT_FMREC);
 		break;
 
 	case SORDER_EDIT_TOREC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			toggle_account_reconcile_icon(sorder_edit_window, SORDER_EDIT_TOREC);
+			account_toggle_reconcile_icon(sorder_edit_window, SORDER_EDIT_TOREC);
 		break;
 	}
 }
@@ -1733,10 +1733,10 @@ static void sorder_fill_edit_window(struct sorder_block *windat, int sorder, osb
 
 		/* Fill in the from and to fields. */
 
-		fill_account_field(windat->file, windat->sorders[sorder].from, windat->sorders[sorder].flags & TRANS_REC_FROM,
+		account_fill_field(windat->file, windat->sorders[sorder].from, windat->sorders[sorder].flags & TRANS_REC_FROM,
 				sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC);
 
-		fill_account_field(windat->file, windat->sorders[sorder].to, windat->sorders[sorder].flags & TRANS_REC_TO,
+		account_fill_field(windat->file, windat->sorders[sorder].to, windat->sorders[sorder].flags & TRANS_REC_TO,
 				sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC);
 
 		/* Fill in the reference field. */

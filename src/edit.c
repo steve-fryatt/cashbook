@@ -170,7 +170,7 @@ static struct transact_block *edit_entry_window = NULL;
 static struct edit_block *edit_active_instance = NULL;
 
 static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
-static void edit_create_field_icon(struct edit_icon *icon, int line);
+static osbool edit_create_field_icon(struct edit_icon *icon, int line);
 static void edit_get_field_content(struct edit_field *field, int line);
 
 #ifdef LOSE
@@ -450,7 +450,8 @@ void edit_place_new_line(struct edit_block *instance, int line)
 	icon = instance->icons;
 
 	while (icon != NULL) {
-		edit_create_field_icon(icon, line);
+		if (!edit_create_field_icon(icon, line))
+			return;
 		icon = icon->next;
 	}
 
@@ -479,14 +480,17 @@ void edit_place_new_line(struct edit_block *instance, int line)
  * \param length
  * \param column
  * \param line
+ * \return
  */
 
-static void edit_create_field_icon(struct edit_icon *icon, int line)
+static osbool edit_create_field_icon(struct edit_icon *icon, int line)
 {
 	wimp_icon_create	icon_block;
+	wimp_i			handle;
+	os_error		*error;
 
 	if (icon == NULL || icon->parent == NULL || icon->parent->instance == NULL || icon->parent->instance->columns == NULL)
-		return;
+		return FALSE;
 
 	icon_block.w = icon->parent->instance->parent;
 	memcpy(&(icon_block.icon), &(icon->parent->instance->template->icons[icon->icon]), sizeof(wimp_icon));
@@ -499,7 +503,18 @@ static void edit_create_field_icon(struct edit_icon *icon, int line)
 	icon_block.icon.extent.y0 = WINDOW_ROW_Y0(icon->parent->instance->toolbar_height, line);
 	icon_block.icon.extent.y1 = WINDOW_ROW_Y1(icon->parent->instance->toolbar_height, line);
 
-	wimp_create_icon(&icon_block);
+	error = xwimp_create_icon(&icon_block, &handle);
+	if (error != NULL) {
+		error_msgs_param_report_error("EditFailIcon", error->errmess, NULL, NULL, NULL);
+		return FALSE;
+	}
+	
+	if (handle != icon->icon) {
+		error_msgs_report_error("EditBadIconHandle");
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 

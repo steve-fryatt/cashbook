@@ -137,6 +137,10 @@ RenRepTitle:Rename template
 SaveRepSave:Save
 RenRepRen:Rename
 
+# Edit Line
+
+EditFailIcon:Failed to create edit icon: %0
+EditBadIconHandle:Unexpected edit line icon handle.
 
 # Standing order list
 

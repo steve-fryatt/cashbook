@@ -77,6 +77,7 @@
 
 /**
  * The different types of icon which can form and edit line.
+ */
 
 enum edit_icon_type {
 	EDIT_ICON_DISPLAY,		/**< A non-writable display field icon, which can not be edited.	*/

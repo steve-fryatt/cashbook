@@ -552,7 +552,6 @@ static void edit_get_field_content(struct edit_field *field, int line)
 		date_convert_to_string(transfer->date.date, icon->buffer, icon->length);
 		break;
 	case EDIT_FIELD_ACCOUNT:
-
 		account_fill_field(field->instance->file, transfer->account.account, transfer->account.reconciled,
 				field->instance->parent, ident, name, rec);
 		break;

@@ -113,6 +113,17 @@ void edit_delete_instance(struct edit_block *instance);
 
 
 /**
+ * Return the complete state of the edit line instance.
+ *
+ * \param *instance		The instance to report on.
+ * \return			TRUE if all memory allocations completed OK; FALSE if any
+ * 				allocations failed.
+ */
+
+osbool edit_complete(struct edit_block *instance);
+
+
+/**
  * Add a field to an edit line instance.
  * 
  * \param *instance		The instance to add the field to.

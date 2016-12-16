@@ -151,6 +151,8 @@ struct edit_block {
 
 	struct edit_data	transfer;		/**< The structure used to transfer data to and from the client.		*/
 
+	osbool			complete;		/**< TRUE if the instance is complete; FALSE if a memory allocation failed.	*/
+
 	int			edit_line;		/**< The line currently marked for entry, in terms of window lines, or -1.	*/
 };
 
@@ -208,6 +210,7 @@ struct edit_block *edit_create_instance(struct file_block *file, wimp_window *te
 	new->columns = columns;
 	new->toolbar_height = toolbar_height;
 	new->transfer.data = data;
+	new->complete = TRUE;
 
 	/* No fields are defined as yet. */
 
@@ -266,6 +269,22 @@ void edit_delete_instance(struct edit_block *instance)
 
 
 /**
+ * Return the complete state of the edit line instance.
+ *
+ * \param *instance		The instance to report on.
+ * \return			TRUE if all memory allocations completed OK; FALSE if any
+ * 				allocations failed.
+ */
+
+osbool edit_complete(struct edit_block *instance)
+{
+	if (instance == NULL)
+		return FALSE;
+
+	return instance->complete;
+}
+
+/**
  * Add a field to an edit line instance.
  * 
  * \param *instance		The instance to add the field to.
@@ -283,14 +302,16 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 	va_list			ap;
 	struct edit_field	*field;
 
-	if (instance == NULL)
+	if (instance == NULL || instance->complete == FALSE)
 		return FALSE;
 
 	/* Allocate storage for the field data. */
 
 	field = heap_alloc(sizeof(struct edit_field));
-	if (field == NULL)
+	if (field == NULL) {
+		instance->complete = FALSE;
 		return FALSE;
+	}
 
 	/* Link the new field into the instance field list. */
 
@@ -332,7 +353,7 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 
 	va_end(ap);
 
-	return TRUE;
+	return instance->complete;
 }
 
 
@@ -340,12 +361,14 @@ static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type 
 {
 	struct edit_icon	*new, *list;
 
-	if (field == NULL || field->instance == NULL)
+	if (field == NULL || field->instance == NULL || field->instance->complete == FALSE)
 		return FALSE;
 
 	new = heap_alloc(sizeof(struct edit_icon));
-	if (new == NULL)
+	if (new == NULL) {
+		field->instance->complete = FALSE;
 		return FALSE;
+	}
 
 	new->type = type;
 	new->parent = field;

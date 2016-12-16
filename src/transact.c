@@ -4865,7 +4865,11 @@ static osbool transact_edit_get_row(struct edit_data *data)
 		return FALSE;
 
 	windat = data->data;
-	t = (data->line >= 0 && data->line < windat->trans_count) ? windat->transactions[data->line].sort_index : 0;
+
+	if (!transact_valid(windat, data->line))
+		return FALSE;
+
+	t = windat->transactions[data->line].sort_index;
 
 	snprintf(data->display.text, data->display.length, "%d", transact_get_transaction_number(t));
 	data->display.text[data->display.length - 1] = '\0';
@@ -4882,7 +4886,11 @@ static osbool transact_edit_get_date(struct edit_data *data)
 		return FALSE;
 
 	windat = data->data;
-	t = (data->line >= 0 && data->line < windat->trans_count) ? windat->transactions[data->line].sort_index : 0;
+
+	if (!transact_valid(windat, data->line))
+		return FALSE;
+
+	t = windat->transactions[data->line].sort_index;
 
 	data->date.date = windat->transactions[t].date;
 
@@ -4898,7 +4906,11 @@ static osbool transact_edit_get_from(struct edit_data *data)
 		return FALSE;
 
 	windat = data->data;
-	t = (data->line >= 0 && data->line < windat->trans_count) ? windat->transactions[data->line].sort_index : 0;
+
+	if (!transact_valid(windat, data->line))
+		return FALSE;
+
+	t = windat->transactions[data->line].sort_index;
 
 	data->account.account = windat->transactions[t].from;
 	data->account.reconciled = (windat->transactions[t].flags & TRANS_REC_FROM) ? TRUE : FALSE;
@@ -4915,7 +4927,11 @@ static osbool transact_edit_get_to(struct edit_data *data)
 		return FALSE;
 
 	windat = data->data;
-	t = (data->line >= 0 && data->line < windat->trans_count) ? windat->transactions[data->line].sort_index : 0;
+
+	if (!transact_valid(windat, data->line))
+		return FALSE;
+
+	t = windat->transactions[data->line].sort_index;
 
 	data->account.account = windat->transactions[t].to;
 	data->account.reconciled = (windat->transactions[t].flags & TRANS_REC_TO) ? TRUE : FALSE;
@@ -4935,7 +4951,11 @@ static osbool transact_edit_get_reference(struct edit_data *data)
 		return FALSE;
 
 	windat = data->data;
-	t = (data->line >= 0 && data->line < windat->trans_count) ? windat->transactions[data->line].sort_index : 0;
+
+	if (!transact_valid(windat, data->line))
+		return FALSE;
+
+	t = windat->transactions[data->line].sort_index;
 
 	strncpy(data->text.text, windat->transactions[t].reference, data->text.length);
 
@@ -4951,7 +4971,11 @@ static osbool transact_edit_get_amount(struct edit_data *data)
 		return FALSE;
 
 	windat = data->data;
-	t = (data->line >= 0 && data->line < windat->trans_count) ? windat->transactions[data->line].sort_index : 0;
+
+	if (!transact_valid(windat, data->line))
+		return FALSE;
+
+	t = windat->transactions[data->line].sort_index;
 
 	data->currency.amount = windat->transactions[t].amount;
 
@@ -4970,7 +4994,11 @@ static osbool transact_edit_get_description(struct edit_data *data)
 		return FALSE;
 
 	windat = data->data;
-	t = (data->line >= 0 && data->line < windat->trans_count) ? windat->transactions[data->line].sort_index : 0;
+
+	if (!transact_valid(windat, data->line))
+		return FALSE;
+
+	t = windat->transactions[data->line].sort_index;
 
 	strncpy(data->text.text, windat->transactions[t].description, data->text.length);
 

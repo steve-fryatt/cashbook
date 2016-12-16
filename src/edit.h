@@ -37,17 +37,6 @@
  * Static constants
  */
 
-#define EDIT_ICON_ROW 0
-#define EDIT_ICON_DATE 1
-#define EDIT_ICON_FROM 2
-#define EDIT_ICON_FROM_REC 3
-#define EDIT_ICON_FROM_NAME 4
-#define EDIT_ICON_TO 5
-#define EDIT_ICON_TO_REC 6
-#define EDIT_ICON_TO_NAME 7
-#define EDIT_ICON_REF 8
-#define EDIT_ICON_AMOUNT 9
-#define EDIT_ICON_DESCRIPT 10
 
 /**
  * The different types of field available in an edit line.

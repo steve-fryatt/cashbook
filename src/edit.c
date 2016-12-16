@@ -76,51 +76,61 @@
 
 
 /**
+ * The different types of icon which can form and edit line.
+
+enum edit_icon_type {
+	EDIT_ICON_DISPLAY,		/**< A non-writable display field icon, which can not be edited.	*/
+	EDIT_ICON_TEXT,			/**< A writable plain text field icon.					*/
+	EDIT_ICON_CURRENCY,		/**< A writable currency field icon.					*/
+	EDIT_ICON_DATE,			/**< A writable date field icon.					*/
+	EDIT_ICON_ACCOUNT_NAME,		/**< A non-writable account field name icon.				*/
+	EDIT_ICON_ACCOUNT_IDENT,	/**< A writable account field ident icon.				*/
+	EDIT_ICON_ACCOUNT_REC		/**< A non-writable, clickable account field reconciliation icon.	*/
+};
+
+/**
+ * A field within an edit line.
+ */
+
+struct edit_field {
+	struct edit_block	*instance;		/**< The parent edit line instance.						*/
+
+	enum edit_field_type	type;			/**< The type of field.								*/
+
+	struct edit_icon	*icon;			/**< The first icon in a linked list associated with the field.			*/
+
+	/**
+	 * Call-back function to get data for the field from the client.
+	 */
+
+	osbool			(*get)(struct edit_data *);
+
+	/**
+	 * Call-back function to return data from the field to the client.
+	 */
+
+	osbool			(*put)(struct edit_data *);
+
+	struct edit_field	*next;			/**< Pointer to the next icon in the line, or NULL.				*/
+};
+
+/**
  * An icon within an edit line.
  */
 
-struct edit_field_standard {
-	wimp_i			icon;			/**< The icon handle in the window template.					*/
-	char			*buffer;		/**< The buffer to use for the icon's text.					*/
-	size_t			length;			/**< The length of the icon's buffer.						*/
-};
+struct edit_icon {
+	struct edit_field	*parent;		/**< The parent field to which the icon belongs.				*/
+	struct edit_icon	*sibling;		/**< Pointer to the next silbing icon in the field, if any (NULL if none).	*/
 
-struct edit_field_account {
-	wimp_i			name;			/**< The account name icon handle in the window template.			*/
-	char			*name_buffer;		/**< The buffer to use for the icon's text.					*/
-	size_t			name_length;		/**< The length of the icon's buffer.						*/
-
-	wimp_i			ident;			/**< The account ident icon handle in the window template.			*/
-	char			*ident_buffer;		/**< The buffer to use for the icon's text.					*/
-	size_t			ident_length;		/**< The length of the icon's buffer.						*/
-
-	wimp_i			reconcile;		/**< The reconcile icon handle in the window template.				*/
-	char			*reconcile_buffer;	/**< The buffer to use for the icon's text.					*/
-	size_t			reconcile_length;	/**< The length of the icon's buffer.						*/
-};
-
-union edit_field_data {
-	struct edit_field_standard	display;
-	struct edit_field_standard	text;
-	struct edit_field_standard	currency;
-	struct edit_field_standard	date;
-	struct edit_field_account	account;
-};
-
-struct edit_field {
-	struct edit_block	*instance;		/**< The parent instance.							*/
-
-	enum edit_field_type	type;			/**< The type of field.								*/
-	union edit_field_data	data;			/**< The field-specific data.							*/
-
-	struct edit_data	transfer;		/**< The structure used to transfer data to and from the client.		*/
-
-	osbool			(*get)(struct edit_data *);
-	osbool			(*put)(struct edit_data *);
+	enum edit_icon_type	type;			/**< The type of icon in an edit line context.					*/
 
 	int			column;			/**< The column of the left-most part of the field.				*/
 
-	struct edit_field	*next;			/**< Pointer to the next icon in the line, or NULL.				*/
+	wimp_i			icon;			/**< The wimp handle of the icon.						*/
+	char			*buffer;		/**< Pointer to a buffer to hold the icon text.					*/
+	size_t			length;			/**< The length of the text buffer.						*/
+
+	struct edit_icon	*next;			/**< Pointer to the next field in the line, or NULL.				*/
 };
 
 /**
@@ -136,10 +146,11 @@ struct edit_block {
 	int			toolbar_height;		/**< The height of the toolbar in the parent window.				*/
 
 	struct edit_field	*fields;		/**< The list of fields defined in the line, or NULL for none.			*/
+	struct edit_icon	*icons;			/**< The list of icons defined in the line, or NULL for none.			*/
+
+	struct edit_data	transfer;		/**< The structure used to transfer data to and from the client.		*/
 
 	int			edit_line;		/**< The line currently marked for entry, in terms of window lines, or -1.	*/
-
-	void			*data;			/**< The client-specific data pointer.						*/
 };
 
 
@@ -155,8 +166,8 @@ static struct transact_block *edit_entry_window = NULL;
 
 static struct edit_block *edit_active_instance = NULL;
 
-
-static void edit_create_field_icon(struct edit_block *instance, wimp_i icon, char *buffer, size_t length, int column, int line);
+static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
+static void edit_create_field_icon(struct edit_icon *icon, int line);
 static void edit_get_field_content(struct edit_field *field, int line);
 
 #ifdef LOSE
@@ -195,11 +206,12 @@ struct edit_block *edit_create_instance(struct file_block *file, wimp_window *te
 	new->parent = parent;
 	new->columns = columns;
 	new->toolbar_height = toolbar_height;
-	new->data = data;
+	new->transfer.data = data;
 
 	/* No fields are defined as yet. */
 
 	new->fields = NULL;
+	new->icons = NULL;
 
 	new->edit_line = -1;
 
@@ -215,7 +227,8 @@ struct edit_block *edit_create_instance(struct file_block *file, wimp_window *te
 
 void edit_delete_instance(struct edit_block *instance)
 {
-	struct edit_field	*current, *next;
+	struct edit_field	*currentf, *nextf;
+	struct edit_icon	*currenti, *nexti;
 
 	if (instance == NULL)
 		return;
@@ -225,13 +238,27 @@ void edit_delete_instance(struct edit_block *instance)
 	if (edit_active_instance == instance)
 		edit_active_instance = NULL;
 
-	current = instance->fields;
+	/* Delete the field definitions. */
 
-	while (current != NULL) {
-		next = current->next;
-		heap_free(current);
-		current = next;
+	currentf = instance->fields;
+
+	while (currentf != NULL) {
+		nextf = currentf->next;
+		heap_free(currentf);
+		currentf = nextf;
 	}
+
+	/* Delete the icon definitions. */
+
+	currenti = instance->icons;
+
+	while (currenti != NULL) {
+		nexti = currenti->next;
+		heap_free(currenti);
+		currenti = nexti;
+	}
+
+	/* Delete the instance itself. */
 
 	heap_free(instance);
 }
@@ -253,78 +280,109 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 		osbool (*get)(struct edit_data *), osbool (*put)(struct edit_data *), ...)
 {
 	va_list			ap;
-	struct edit_field	*new;
+	struct edit_field	*field;
 
 	if (instance == NULL)
 		return FALSE;
 
 	/* Allocate storage for the field data. */
 
-	new = heap_alloc(sizeof(struct edit_field));
-	if (new == NULL)
+	field = heap_alloc(sizeof(struct edit_field));
+	if (field == NULL)
 		return FALSE;
 
 	/* Link the new field into the instance field list. */
 
-	new->next = instance->fields;
-	instance->fields = new;
+	field->next = instance->fields;
+	instance->fields = field;
 
-	new->instance = instance;
+	field->icon = NULL;
+
+	field->instance = instance;
 
 	/* Set up the field data. */
 
-	new->type = type;
-	new->column = column;
+	field->type = type;
 
-	new->transfer.type = type;
-	new->transfer.data = instance->data;
-
-	new->get = get;
-	new->put = put;
+	field->get = get;
+	field->put = put;
 
 	va_start(ap, put);
 
 	switch (type) {
 	case EDIT_FIELD_DISPLAY:
-		new->data.display.icon = va_arg(ap, wimp_i);
-		new->data.display.buffer = va_arg(ap, char *);
-		new->data.display.length = va_arg(ap, size_t);
-		new->transfer.display.text = new->data.display.buffer;
-		new->transfer.display.length = new->data.display.length;
+		edit_add_field_icon(field, EDIT_ICON_DISPLAY, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
 		break;
 	case EDIT_FIELD_TEXT:
-		new->data.text.icon = va_arg(ap, wimp_i);
-		new->data.text.buffer = va_arg(ap, char *);
-		new->data.text.length = va_arg(ap, size_t);
-		new->transfer.text.text = new->data.text.buffer;
-		new->transfer.text.length = new->data.text.length;
+		edit_add_field_icon(field, EDIT_ICON_TEXT, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
 		break;
 	case EDIT_FIELD_CURRENCY:
-		new->data.currency.icon = va_arg(ap, wimp_i);
-		new->data.currency.buffer = va_arg(ap, char *);
-		new->data.currency.length = va_arg(ap, size_t);
+		edit_add_field_icon(field, EDIT_ICON_CURRENCY, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
 		break;
 	case EDIT_FIELD_DATE:
-		new->data.date.icon = va_arg(ap, wimp_i);
-		new->data.date.buffer = va_arg(ap, char *);
-		new->data.date.length = va_arg(ap, size_t);
+		edit_add_field_icon(field, EDIT_ICON_DATE, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
 		break;
 	case EDIT_FIELD_ACCOUNT:
-		new->data.account.ident = va_arg(ap, wimp_i);
-		new->data.account.ident_buffer = va_arg(ap, char *);
-		new->data.account.ident_length = va_arg(ap, size_t);
-
-		new->data.account.reconcile = va_arg(ap, wimp_i);
-		new->data.account.reconcile_buffer = va_arg(ap, char *);
-		new->data.account.reconcile_length = va_arg(ap, size_t);
-
-		new->data.account.name = va_arg(ap, wimp_i);
-		new->data.account.name_buffer = va_arg(ap, char *);
-		new->data.account.name_length = va_arg(ap, size_t);
+		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_IDENT, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
+		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_REC, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column + 1);
+		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_NAME, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column + 2);
 		break;
 	}
 
 	va_end(ap);
+
+	return TRUE;
+}
+
+
+static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column)
+{
+	struct edit_icon	*new, *list;
+
+	if (field == NULL || field->instance == NULL)
+		return FALSE;
+
+	new = heap_alloc(sizeof(struct edit_icon));
+	if (new == NULL)
+		return FALSE;
+
+	new->type = type;
+	new->parent = field;
+	new->icon = icon;
+	new->buffer = buffer;
+	new->length = length;
+	new->column = column;
+
+	/* Link the icon to its parent field, and to any sibling icons. */
+
+	new->sibling = field->icon;
+	field->icon = new;
+
+	/* Link the icon into the bar's icon list. If the existing icon list is empty,
+	 * or the first icon has a higher icon handle than this one, put the new icon
+	 * at the head of the list.
+	 */
+
+	if (field->instance->icons == NULL || field->instance->icons->icon > icon) {
+		debug_printf("Inserting new icon at head of list.");
+		new->next = field->instance->icons;
+		field->instance->icons = new;
+		return FALSE;
+	}
+
+	/* Otherwise, insert the icon into the correct place in the list. */
+
+	list = field->instance->icons;
+
+	while (list->next != NULL && list->next->icon < icon) {
+		debug_printf("Testing new icon %d against %d in list", icon, list->next->icon);
+		list = list->next;
+	}
+
+	debug_printf("Inserting into list");
+
+	new->next = list->next;
+	list->next = new;
 
 	return TRUE;
 }
@@ -340,6 +398,7 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 
 void edit_place_new_line(struct edit_block *instance, int line)
 {
+	struct edit_icon	*icon;
 	struct edit_field	*field; 
 
 	if (instance == NULL)
@@ -351,71 +410,32 @@ void edit_place_new_line(struct edit_block *instance, int line)
 	 */
 
 	if (edit_active_instance != NULL) {
-		field = edit_active_instance->fields;
+		icon = edit_active_instance->icons;
 
-		while (field != NULL) {
-			switch (field->type) {
-			case EDIT_FIELD_DISPLAY:
-				wimp_delete_icon(edit_active_instance->parent, field->data.display.icon);
-				break;
-			case EDIT_FIELD_TEXT:
-				wimp_delete_icon(edit_active_instance->parent, field->data.text.icon);
-				break;
-			case EDIT_FIELD_CURRENCY:
-				wimp_delete_icon(edit_active_instance->parent, field->data.currency.icon);
-				break;
-			case EDIT_FIELD_DATE:
-				wimp_delete_icon(edit_active_instance->parent, field->data.date.icon);
-				break;
-			case EDIT_FIELD_ACCOUNT:
-				wimp_delete_icon(edit_active_instance->parent, field->data.account.ident);
-				wimp_delete_icon(edit_active_instance->parent, field->data.account.reconcile);
-				wimp_delete_icon(edit_active_instance->parent, field->data.account.name);
-				break;
-			}
-
-			field = field->next;
+		while (icon != NULL) {
+			wimp_delete_icon(edit_active_instance->parent, icon->icon);
+			icon = icon->next;
 		}
 
 		edit_active_instance->edit_line = -1;
 		edit_active_instance = NULL;
 	}
 
-	/* Configure and create the new edit line icons.
-	 */
+	/* Create the new edit line icons. */
+
+	icon = instance->icons;
+
+	while (icon != NULL) {
+		edit_create_field_icon(icon, line);
+		icon = icon->next;
+	}
+
+	/* Get the field data. */
 
 	field = instance->fields;
 
 	while (field != NULL) {
-		switch (field->type) {
-		case EDIT_FIELD_DISPLAY:
-			edit_create_field_icon(instance, field->data.display.icon,
-					field->data.display.buffer, field->data.display.length, field->column, line);
-			break;
-		case EDIT_FIELD_TEXT:
-			edit_create_field_icon(instance, field->data.text.icon,
-					field->data.text.buffer, field->data.text.length, field->column, line);
-			break;
-		case EDIT_FIELD_CURRENCY:
-			edit_create_field_icon(instance, field->data.currency.icon,
-					field->data.currency.buffer, field->data.currency.length, field->column, line);
-			break;
-		case EDIT_FIELD_DATE:
-			edit_create_field_icon(instance, field->data.date.icon,
-					field->data.date.buffer, field->data.date.length, field->column, line);
-			break;
-		case EDIT_FIELD_ACCOUNT:
-			edit_create_field_icon(instance, field->data.account.ident,
-					field->data.account.ident_buffer, field->data.account.ident_length, field->column, line);
-			edit_create_field_icon(instance, field->data.account.reconcile,
-					field->data.account.reconcile_buffer, field->data.account.reconcile_length, field->column + 1, line);
-			edit_create_field_icon(instance, field->data.account.name,
-					field->data.account.name_buffer, field->data.account.name_length, field->column + 2, line);
-			break;
-		}
-
 		edit_get_field_content(field, line);
-
 		field = field->next;
 	}
 
@@ -437,23 +457,23 @@ void edit_place_new_line(struct edit_block *instance, int line)
  * \param line
  */
 
-static void edit_create_field_icon(struct edit_block *instance, wimp_i icon, char *buffer, size_t length, int column, int line)
+static void edit_create_field_icon(struct edit_icon *icon, int line)
 {
 	wimp_icon_create	icon_block;
 
-	if (instance == NULL)
+	if (icon == NULL || icon->parent == NULL || icon->parent->instance == NULL || icon->parent->instance->columns == NULL)
 		return;
 
-	icon_block.w = instance->parent;
-	memcpy(&(icon_block.icon), &(instance->template->icons[icon]), sizeof(wimp_icon));
+	icon_block.w = icon->parent->instance->parent;
+	memcpy(&(icon_block.icon), &(icon->parent->instance->template->icons[icon->icon]), sizeof(wimp_icon));
 
-	icon_block.icon.data.indirected_text.text = buffer;
-	icon_block.icon.data.indirected_text.size = length;
+	icon_block.icon.data.indirected_text.text = icon->buffer;
+	icon_block.icon.data.indirected_text.size = icon->length;
 
-	icon_block.icon.extent.x0 = instance->columns->position[column];
-	icon_block.icon.extent.x1 = instance->columns->position[column] + instance->columns->width[column];
-	icon_block.icon.extent.y0 = WINDOW_ROW_Y0(instance->toolbar_height, line);
-	icon_block.icon.extent.y1 = WINDOW_ROW_Y1(instance->toolbar_height, line);
+	icon_block.icon.extent.x0 = icon->parent->instance->columns->position[icon->column];
+	icon_block.icon.extent.x1 = icon->parent->instance->columns->position[icon->column] + icon->parent->instance->columns->width[icon->column];
+	icon_block.icon.extent.y0 = WINDOW_ROW_Y0(icon->parent->instance->toolbar_height, line);
+	icon_block.icon.extent.y1 = WINDOW_ROW_Y1(icon->parent->instance->toolbar_height, line);
 
 	wimp_create_icon(&icon_block);
 }
@@ -461,40 +481,58 @@ static void edit_create_field_icon(struct edit_block *instance, wimp_i icon, cha
 
 static void edit_get_field_content(struct edit_field *field, int line)
 {
-	
-	if (field == NULL)
+	struct edit_data	*transfer;
+	struct edit_icon	*icon;
+	wimp_i			name, ident, rec;
+
+	if (field == NULL || field->instance == NULL)
 		return;
 
-	/* If there's no get callback, just empty the field. */
+	/* Initialise the transfer data block. */
 
-	field->transfer.line = line;
+	transfer = &(field->instance->transfer);
 
-	if (field->get == NULL || !field->get(&(field->transfer))) {
-		switch (field->type) {
-		case EDIT_FIELD_DISPLAY:
-			if (field->data.display.buffer != NULL && field->data.display.length > 0)
-				*(field->data.display.buffer) = '\0';
-			break;
-		case EDIT_FIELD_TEXT:
-			if (field->data.text.buffer != NULL && field->data.text.length > 0)
-				*(field->data.text.buffer) = '\0';
-			break;
-		case EDIT_FIELD_CURRENCY:
-			if (field->data.currency.buffer != NULL && field->data.currency.length > 0)
-				*(field->data.currency.buffer) = '\0';
-			break;
-		case EDIT_FIELD_DATE:
-			if (field->data.date.buffer != NULL && field->data.date.length > 0)
-				*(field->data.date.buffer) = '\0';
-			break;
-		case EDIT_FIELD_ACCOUNT:
-			if (field->data.account.ident_buffer != NULL && field->data.account.ident_length > 0)
-				*(field->data.account.ident_buffer) = '\0';
-			if (field->data.account.reconcile_buffer != NULL && field->data.account.reconcile_length > 0)
-				*(field->data.account.reconcile_buffer) = '\0';
-			if (field->data.account.name_buffer != NULL && field->data.account.name_length > 0)
-				*(field->data.account.name_buffer) = '\0';
-			break;
+	icon = field->icon;
+	if (icon == NULL)
+		return;
+
+	switch (field->type) {
+	case EDIT_FIELD_DISPLAY:
+		transfer->display.text = icon->buffer;
+		transfer->display.length = icon->length;
+		break;
+	case EDIT_FIELD_TEXT:
+		transfer->text.text = icon->buffer;
+		transfer->text.length = icon->length;
+		break;
+	case EDIT_FIELD_ACCOUNT:
+		name = icon->icon;
+		debug_printf("Name icon: %d", name);
+		icon = icon->sibling;
+		if (icon == NULL)
+			return;
+		rec = icon->icon;
+		debug_printf("Rec icon: %d", rec);
+		icon = icon->sibling;
+		if (icon == NULL)
+			return;
+		ident = icon->icon;
+		debug_printf("Ident icon: %d", ident);
+	}
+
+	transfer->type = field->type;
+	transfer->line = line;
+
+	/* If there's a Get callback, call it. If there isn't, or if it fails, set the
+	 * field to its defaults.
+	 */
+
+	if (field->get == NULL || !field->get(transfer)) {
+		while (icon != NULL) {
+			if (icon->buffer != NULL && icon->length > 0)
+				*(icon->buffer) = '\0';
+
+			icon = icon->sibling;
 		}
 
 		return;
@@ -508,14 +546,15 @@ static void edit_get_field_content(struct edit_field *field, int line)
 		/* The supplied pointer was direct to the icon's buffer, so there's nothing to do. */
 		break;
 	case EDIT_FIELD_CURRENCY:
-		currency_convert_to_string(field->transfer.currency.amount, field->data.currency.buffer, field->data.currency.length);
+		currency_convert_to_string(transfer->currency.amount, icon->buffer, icon->length);
 		break;
 	case EDIT_FIELD_DATE:
-		date_convert_to_string(field->transfer.date.date, field->data.date.buffer, field->data.date.length);
+		date_convert_to_string(transfer->date.date, icon->buffer, icon->length);
 		break;
 	case EDIT_FIELD_ACCOUNT:
-		account_fill_field(field->instance->file, field->transfer.account.account, field->transfer.account.reconciled,
-				field->instance->parent, field->data.account.ident, field->data.account.name, field->data.account.reconcile);
+
+		account_fill_field(field->instance->file, transfer->account.account, transfer->account.reconciled,
+				field->instance->parent, ident, name, rec);
 		break;
 	}
 }

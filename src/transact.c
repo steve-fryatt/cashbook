@@ -392,6 +392,8 @@ static void			transact_prepare_fileinfo(struct file_block *file);
 
 /* These need to move into their correct place. */
 
+static tran_t			transact_find_edit_line_by_transaction(struct transact_block *windat);
+static void			transact_place_edit_line(struct transact_block *windat, int line);
 static char			*transact_complete_description(struct file_block *file, int line, char *buffer, size_t length);
 static osbool			transact_edit_get_row(struct edit_data *data);
 static osbool			transact_edit_get_date(struct edit_data *data);
@@ -802,12 +804,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_TOOLBAR_HEIGHT, -1);
 
 			if (line >= 0) {
-				if (line >= windat->display_lines) {
-					windat->display_lines = line + 1;
-					transact_set_window_extent(windat->file);
-				}
-
-				edit_place_new_line(windat->edit_line, line);
+				transact_place_edit_line(windat, line);
 
 				/* Find the correct point for the caret and insert it. */
 
@@ -3308,7 +3305,8 @@ static osbool transact_process_sort_window(enum sort_type order, void *data)
 void transact_sort(struct transact_block *windat)
 {
 	wimp_caret	caret;
-	int		gap, comb, temp, order, edit_transaction;
+	int		gap, comb, temp, order;
+	tran_t		edit_transaction;
 	osbool		sorted, reorder;
 
 	if (windat == NULL || windat->file == NULL)
@@ -3323,7 +3321,7 @@ void transact_sort(struct transact_block *windat)
 	/* Find the caret position and edit line before sorting. */
 
 	wimp_get_caret_position(&caret);
-//FIXME	edit_transaction = edit_get_line_transaction(windat->file);
+	edit_transaction = transact_find_edit_line_by_transaction(windat);
 
 	/* Sort the entries using a combsort.  This has the advantage over qsort() that the order of entries is only
 	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
@@ -3428,7 +3426,7 @@ void transact_sort(struct transact_block *windat)
 
 	/* Replace the edit line where we found it prior to the sort. */
 
-//FIXME	edit_place_new_line_by_transaction(windat->edit_line, windat->file, edit_transaction);
+	transact_place_edit_line_by_transaction(windat, edit_transaction);
 
 	/* If the caret's position was in the current transaction window, we need to
 	 * replace it in the same position now, so that we don't lose input focus.
@@ -4166,12 +4164,7 @@ void transact_place_caret(struct file_block *file, int line, enum transact_field
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	if (line >= file->transacts->display_lines) {
-		file->transacts->display_lines = line + 1;
-		transact_set_window_extent(file);
-	}
-
-	edit_place_new_line(file->transacts->edit_line, line);
+	transact_place_edit_line(file->transacts, line);
 
 	switch (field) {
 	case TRANSACT_FIELD_NONE:
@@ -4403,6 +4396,93 @@ static void transact_prepare_fileinfo(struct file_block *file)
 /* The code below this point needs to move to a more appropriate location.
  * -----------------------------------------------------------------------------------------------------------------------------
  */
+
+
+
+
+
+/**
+ * Get the underlying transaction number relating to the current edit line
+ * position.
+ *
+ * \param *file		The file that we're interested in.
+ * \return		The transaction number, or NULL_TRANSACTION if the
+ *			line isn't in the specified file.
+ */
+
+static tran_t transact_find_edit_line_by_transaction(struct transact_block *windat)
+{
+	int	line;
+	tran_t	transaction;
+
+	if (windat == NULL || windat->transactions == NULL)
+		return NULL_TRANSACTION;
+
+	line = edit_get_line(windat->edit_line);
+	if (!transact_valid(windat, line))
+		return NULL_TRANSACTION;
+
+	return windat->transactions[line].sort_index;
+}
+
+
+
+/**
+ * Place a new edit line in a transaction window by visible line number,
+ * extending the window if required.
+ *
+ * \param *windat	The transaction window to place the line in.
+ * \param line		The line to place.
+ */
+
+static void transact_place_edit_line(struct transact_block *windat, int line)
+{
+	if (windat == NULL)
+		return;
+
+	if (line >= windat->display_lines) {
+		windat->display_lines = line + 1;
+		transact_set_window_extent(windat->file);
+	}
+
+	edit_place_new_line(windat->edit_line, line);
+}
+
+
+/**
+ * Place a new edit line by raw transaction number.
+ *
+ * \param *windat	The transaction window to place the line in.
+ * \param transaction	The transaction to place the line on.
+ */
+
+void transact_place_edit_line_by_transaction(struct transact_block *windat, tran_t transaction)
+{
+	int		i, line;
+	wimp_caret	caret;
+
+	if (windat == NULL)
+		return;
+
+	if (transaction != NULL_TRANSACTION) {
+		for (i = 0; i < windat->trans_count; i++) {
+			if (windat->transactions[i].sort_index == transaction) {
+				line = i;
+				break;
+			}
+		}
+	} else {
+		line = windat->trans_count;
+	}
+
+	transact_place_edit_line(windat, line);
+
+	wimp_get_caret_position(&caret);
+	if (caret.w == windat->transaction_window)
+		icons_put_caret_at_end(windat->transaction_window, TRANSACT_ICON_DATE);
+//FIXME	edit_find_line_vertically(file);
+}
+
 
 
 

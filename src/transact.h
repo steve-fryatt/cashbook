@@ -762,5 +762,23 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 
 
+
+
+
+
+
+
+
+
+/**
+ * Place a new edit line by raw transaction number.
+ *
+ * \param *windat	The transaction window to place the line in.
+ * \param transaction	The transaction to place the line on.
+ */
+
+void transact_place_edit_line_by_transaction(struct transact_block *windat, tran_t transaction);
+
+
 #endif
 

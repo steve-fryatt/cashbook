@@ -597,185 +597,36 @@ static void edit_get_field_content(struct edit_field *field, int line)
 	}
 }
 
+
+/**
+ * Get the line currently designated the edit line in a specific instance.
+ *
+ * \param *instance		The instance of interest.
+ * \return			The edit line, counting from zero, or -1.
+ */
+
+int edit_get_line(struct edit_block *instance)
+{
+	if (instance == NULL)
+		return -1;
+
+	return instance->edit_line;
+}
+
+
+
+
+
+
+
+
+
+
+
 #ifdef LOSE
-/**
- * Create an edit line at the specified point in the given file's transaction
- * window. Any existing edit line is deleted first.
- *
- * The caret isn't placed in this routine.  That is left up to the caller, so
- * that they can place it depending on their context.
- *
- * \param *edit		The edit instance to process.
- * \param *file		The file to place the edit line in.
- * \param line		The line to place the edit line at, in terms of
- *			sorted display (not the raw transaction number).
- */
-
-void edit_place_new_line(struct edit_block *edit, struct file_block *file, int line)
-{
-	int			i, transaction;
-	wimp_icon_create	icon_block;
 
 
-//	if (edit == NULL || file == NULL || file->transacts == NULL || line == -1)
-//		return;
 
-	/* Start by deleting any existing edit line, from any open transaction window. */
-
-//	if (edit_active_instance != NULL) {
-//		/* The assumption is that the data will be safe as it's always copied into
-//		 * memory as soon as a key is pressed in any of the writable icons...
-//		 */
-
-//		for (i = 0; i < TRANSACT_COLUMNS; i++)
-//			wimp_delete_icon(edit_active_instance->parent, (wimp_i) i);
-
-//		edit_active_instance->edit_line = -1;
-//		edit_active_instance = NULL;
-//	}
-
-	/* Extend the window work area if required. */
-
-//	if (line >= file->transacts->display_lines) {
-//		file->transacts->display_lines = line + 1;
-//		transact_set_window_extent(file);
-//	}
-
-	/* Create the icon block required for the icon definitions. */
-
-	icon_block.w = file->transacts->transaction_window;
-
-	/* Set up the indirected buffers. */
-
-//	edit->template->icons[EDIT_ICON_ROW].data.indirected_text.text = buffer_row;
-//	edit->template->icons[EDIT_ICON_ROW].data.indirected_text.size = ROW_FIELD_LEN;
-
-//	edit->template->icons[EDIT_ICON_DATE].data.indirected_text.text = buffer_date;
-//	edit->template->icons[EDIT_ICON_DATE].data.indirected_text.size = DATE_FIELD_LEN;
-
-//	edit->template->icons[EDIT_ICON_FROM].data.indirected_text.text = buffer_from_ident;
-//	edit->template->icons[EDIT_ICON_FROM].data.indirected_text.size = ACCOUNT_IDENT_LEN;
-
-//	edit->template->icons[EDIT_ICON_FROM_REC].data.indirected_text.text = buffer_from_rec;
-//	edit->template->icons[EDIT_ICON_FROM_REC].data.indirected_text.size = REC_FIELD_LEN;
-
-//	edit->template->icons[EDIT_ICON_FROM_NAME].data.indirected_text.text = buffer_from_name;
-//	edit->template->icons[EDIT_ICON_FROM_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
-
-//	edit->template->icons[EDIT_ICON_TO].data.indirected_text.text = buffer_to_ident;
-//	edit->template->icons[EDIT_ICON_TO].data.indirected_text.size = ACCOUNT_IDENT_LEN;
-
-//	edit->template->icons[EDIT_ICON_TO_REC].data.indirected_text.text = buffer_to_rec;
-//	edit->template->icons[EDIT_ICON_TO_REC].data.indirected_text.size = REC_FIELD_LEN;
-
-//	edit->template->icons[EDIT_ICON_TO_NAME].data.indirected_text.text = buffer_to_name;
-//	edit->template->icons[EDIT_ICON_TO_NAME].data.indirected_text.size = ACCOUNT_NAME_LEN;
-
-//	edit->template->icons[EDIT_ICON_REF].data.indirected_text.text = buffer_reference;
-//	edit->template->icons[EDIT_ICON_REF].data.indirected_text.size = REF_FIELD_LEN;
-
-//	edit->template->icons[EDIT_ICON_AMOUNT].data.indirected_text.text = buffer_amount;
-//	edit->template->icons[EDIT_ICON_AMOUNT].data.indirected_text.size = AMOUNT_FIELD_LEN;
-
-//	edit->template->icons[EDIT_ICON_DESCRIPT].data.indirected_text.text = buffer_description;
-//	edit->template->icons[EDIT_ICON_DESCRIPT].data.indirected_text.size = DESCRIPT_FIELD_LEN;
-
-	/* Initialise the data. */
-
-	if (transact_valid(file->transacts, line)) {
-		transaction = file->transacts->transactions[line].sort_index;
-	//	snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
-		date_convert_to_string(file->transacts->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
-		strncpy(buffer_from_ident, account_get_ident(file, file->transacts->transactions[transaction].from), ACCOUNT_IDENT_LEN);
-		strncpy(buffer_from_name, account_get_name(file, file->transacts->transactions[transaction].from), ACCOUNT_NAME_LEN);
-		if (file->transacts->transactions[transaction].flags & TRANS_REC_FROM)
-			msgs_lookup("RecChar", buffer_from_rec, REC_FIELD_LEN);
-		else
-			*buffer_from_rec = '\0';
-		strncpy(buffer_to_ident, account_get_ident(file, file->transacts->transactions[transaction].to), ACCOUNT_IDENT_LEN);
-		strncpy(buffer_to_name, account_get_name(file, file->transacts->transactions[transaction].to), ACCOUNT_NAME_LEN);
-		if (file->transacts->transactions[transaction].flags & TRANS_REC_TO)
-			msgs_lookup("RecChar", buffer_to_rec, REC_FIELD_LEN);
-		else
-			*buffer_to_rec = '\0';
-	//	strncpy(buffer_reference, file->transacts->transactions[transaction].reference, REF_FIELD_LEN);
-		currency_convert_to_string(file->transacts->transactions[transaction].amount, buffer_amount, AMOUNT_FIELD_LEN);
-	//	strncpy(buffer_description, file->transacts->transactions[transaction].description, DESCRIPT_FIELD_LEN);
-	} else {
-		*buffer_row = '\0';
-		*buffer_date = '\0';
-		*buffer_from_ident = '\0';
-		*buffer_from_rec = '\0';
-		*buffer_from_name = '\0';
-		*buffer_to_ident = '\0';
-		*buffer_to_rec = '\0';
-		*buffer_to_name = '\0';
-		*buffer_reference = '\0';
-		*buffer_amount = '\0';
-		*buffer_description = '\0';
-	}
-
-	/* Set the icon positions correctly and create them. */
-
-	for (i=0; i < TRANSACT_COLUMNS; i++) {
-		memcpy(&(icon_block.icon), &(edit->template->icons[i]), sizeof(wimp_icon));
-
-		icon_block.icon.extent.x0 = file->transacts->column_position[i];
-		icon_block.icon.extent.x1 = file->transacts->column_position[i]
-				+ file->transacts->column_width[i];
-		icon_block.icon.extent.y0 = (-line * (ICON_HEIGHT+LINE_GUTTER))
-				- TRANSACT_TOOLBAR_HEIGHT - ICON_HEIGHT;
-		icon_block.icon.extent.y1 = (-line * (ICON_HEIGHT+LINE_GUTTER))
-				- TRANSACT_TOOLBAR_HEIGHT;
-
-		wimp_create_icon(&icon_block);
-	}
-
-	/* Update the window data to show the line being edited. */
-
-	file->transacts->entry_line = line;
-	edit_active_instance = edit;
-
-	edit_set_line_shading(file);
-}
-
-
-/**
- * Place a new edit line by raw transaction number.
- *
- * \param *edit		The edit instance to process.
- * \param *file		The file to place the line in.
- * \param transaction	The transaction to place the line on.
- */
-
-void edit_place_new_line_by_transaction(struct edit_block *edit, struct file_block *file, int transaction)
-{
-	int        i;
-	wimp_caret caret;
-
-	if (edit == NULL || file == NULL || file->transacts == NULL || edit_active_instance != edit)
-		return;
-
-	if (transaction != NULL_TRANSACTION) {
-		for (i = 0; i < file->transacts->trans_count; i++) {
-			if (file->transacts->transactions[i].sort_index == transaction) {
-				edit_place_new_line(edit, file, i);
-				wimp_get_caret_position(&caret);
-				if (caret.w == file->transacts->transaction_window)
-					icons_put_caret_at_end(file->transacts->transaction_window, EDIT_ICON_DATE);
-				edit_find_line_vertically(file);
-
-				break;
-			}
-		}
-	} else {
-		edit_place_new_line(edit, file, file->transacts->trans_count);
-		wimp_get_caret_position(&caret);
-		if (caret.w == file->transacts->transaction_window)
-			icons_put_caret_at_end(file->transacts->transaction_window, EDIT_ICON_DATE);
-		edit_find_line_vertically(file);
-	}
-}
 
 
 /**
@@ -1038,28 +889,6 @@ static void edit_set_line_shading(struct file_block *file)
 
 	for (i = 0; i < TRANSACT_COLUMNS; i++)
 		wimp_set_icon_state(edit_entry_window->transaction_window, i, icon_fg_col, wimp_ICON_FG_COLOUR);
-}
-
-
-/**
- * Get the underlying transaction number relating to the current edit line
- * position.
- *
- * \param *file		The file that we're interested in.
- * \return		The transaction number, or NULL_TRANSACTION if the
- *			line isn't in the specified file.
- */
-
-int edit_get_line_transaction(struct file_block *file)
-{
-	int	transaction;
-
-	transaction = NULL_TRANSACTION;
-
-	if (file != NULL && file->transacts != NULL && edit_entry_window == file->transacts && transact_valid(file->transacts, file->transacts->entry_line))
-		transaction = file->transacts->transactions[file->transacts->entry_line].sort_index;
-
-	return (transaction);
 }
 
 

@@ -147,31 +147,28 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 
 void edit_place_new_line(struct edit_block *instance, int line);
 
+
+/**
+ * Get the line currently designated the edit line in a specific instance.
+ *
+ * \param *instance		The instance of interest.
+ * \return			The edit line, counting from zero, or -1.
+ */
+
+int edit_get_line(struct edit_block *instance);
+
+
+
+
+
+
+
+
+
+
 #ifdef LOSE
 
-/**
- * Create an edit line at the specified point in the given file's transaction
- * window. Any existing edit line is deleted first.
- *
- * The caret isn't placed in this routine.  That is left up to the caller, so
- * that they can place it depending on their context.
- *
- * \param *instance	The edit instance to process.
- * \param line		The line to place the edit line at.
- */
 
-void void edit_place_new_line(struct edit_block *instance, int line);
-
-
-/**
- * Place a new edit line by raw transaction number.
- *
- * \param *edit		The edit instance to process.
- * \param *file		The file to place the line in.
- * \param transaction	The transaction to place the line on.
- */
-
-void edit_place_new_line_by_transaction(struct edit_block *edit, struct file_block *file, int transaction);
 
 
 /**

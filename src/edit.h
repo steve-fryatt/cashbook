@@ -207,19 +207,6 @@ void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid);
 int edit_get_line_transaction(struct file_block *file);
 
 
-
-/**
- * Insert a preset into a pre-existing transaction, taking care of updating all
- * the file data in a clean way.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to update.
- * \param preset	The preset to insert into the transaction.
- */
-
-void edit_insert_preset_into_transaction(struct file_block *file, tran_t transaction, int preset);
-
-
 /**
  * Handle keypresses in an edit line (and hence a transaction window). Process
  * any function keys, then pass content keys on to the edit handler.

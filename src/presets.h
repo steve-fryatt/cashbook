@@ -30,15 +30,21 @@
 #ifndef CASHBOOK_PRESETS
 #define CASHBOOK_PRESETS
 
-#include "account.h"
-#include "currency.h"
-#include "filing.h"
-
-/* A preset number. */
+/**
+ *  A preset number.
+ */
 
 typedef int preset_t;
 
+/**
+ * A preset data block istance.
+ */
+
 struct preset_block;
+
+/**
+ * The NULL, or non-existant, preset.
+ */
 
 #define NULL_PRESET ((preset_t) (-1))
 
@@ -52,6 +58,11 @@ enum preset_caret {
 	PRESET_CARET_AMOUNT = 4,
 	PRESET_CARET_DESCRIPTION = 5
 };
+
+#include "account.h"
+#include "currency.h"
+#include "filing.h"
+
 
 /**
  * Initialise the preset system.

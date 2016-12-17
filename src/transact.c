@@ -394,6 +394,7 @@ static void			transact_prepare_fileinfo(struct file_block *file);
 
 static tran_t			transact_find_edit_line_by_transaction(struct transact_block *windat);
 static void			transact_place_edit_line(struct transact_block *windat, int line);
+static wimp_i			transact_convert_preset_icon_number(enum preset_caret caret);
 static char			*transact_complete_description(struct file_block *file, int line, char *buffer, size_t length);
 static osbool			transact_edit_get_row(struct edit_data *data);
 static osbool			transact_edit_get_date(struct edit_data *data);
@@ -4481,6 +4482,116 @@ void transact_place_edit_line_by_transaction(struct transact_block *windat, tran
 	if (caret.w == windat->transaction_window)
 		icons_put_caret_at_end(windat->transaction_window, TRANSACT_ICON_DATE);
 //FIXME	edit_find_line_vertically(file);
+}
+
+
+// \TODO -- Why isn't this done by line, as the only client needs to look the transaction up
+// only to turn it back into a line???
+
+/**
+ * Insert a preset into a pre-existing transaction, taking care of updating all
+ * the file data in a clean way.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to update.
+ * \param preset	The preset to insert into the transaction.
+ */
+
+void transact_insert_preset_into_transaction(struct file_block *file, tran_t transaction, preset_t preset)
+{
+	int			line;
+	enum transact_field	changed = TRANSACT_FIELD_NONE;
+
+
+	if (file == NULL || file->transacts == NULL || file->transacts->edit_line == NULL || !transact_valid(file->transacts, transaction) || !preset_test_index_valid(file, preset))
+		return;  
+  
+	account_remove_transaction(file, transaction);
+
+//FIXME	changed = edit_raw_insert_preset_into_transaction(file, transaction, preset);
+
+	/* Return the line to the calculations.  This will automatically update
+	 * all the account listings.
+	 */
+
+	account_restore_transaction(file, transaction);
+
+	/* If any changes were made, refresh the relevant account listing, redraw
+	 * the transaction window line and mark the file as modified.
+	 */
+
+	transact_place_edit_line_by_transaction(file->transacts, transaction);
+
+	icons_put_caret_at_end(file->transacts->transaction_window,
+			transact_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
+
+	if (changed != TRANSACT_FIELD_NONE) {
+		accview_rebuild_all(file);
+
+		/* If the line is the edit line, setting the shading uses
+		 * wimp_set_icon_state() and the line will effectively be
+		 * redrawn for free.
+		 */
+
+		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME			edit_refresh_line_content(file->transacts->transaction_window, -1, -1);
+//FIXME			edit_set_line_shading(file);
+			icons_replace_caret_in_window(file->transacts->transaction_window);
+		} else {
+			line = transact_get_line_from_transaction(file, transaction);
+			transact_force_window_redraw(file, line, line);
+		}
+
+		file_set_data_integrity(file, TRUE);
+	}
+}
+
+
+
+
+/**
+ * Take a preset caret destination as used in the preset blocks, and convert it
+ * into an icon number for the transaction edit line.
+ *
+ * \param caret		The preset caret destination to be converted.
+ * \return		The corresponding icon number.
+ */
+
+static wimp_i transact_convert_preset_icon_number(enum preset_caret caret)
+{
+	wimp_i	icon;
+
+	switch (caret) {
+	case PRESET_CARET_DATE:
+		icon = TRANSACT_ICON_DATE;
+		break;
+
+	case PRESET_CARET_FROM:
+		icon = TRANSACT_ICON_FROM;
+		break;
+
+	case PRESET_CARET_TO:
+		icon = TRANSACT_ICON_TO;
+		break;
+
+	case PRESET_CARET_REFERENCE:
+		icon = TRANSACT_ICON_REFERENCE;
+		break;
+
+	case PRESET_CARET_AMOUNT:
+		icon = TRANSACT_ICON_AMOUNT;
+		break;
+
+	case PRESET_CARET_DESCRIPTION:
+		icon = TRANSACT_ICON_DESCRIPTION;
+		break;
+
+	default:
+		icon = TRANSACT_ICON_DATE;
+		break;
+	}
+
+	return icon;
 }
 
 

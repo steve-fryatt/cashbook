@@ -295,9 +295,9 @@ static void decode_date_menu(wimp_selection *selection)
 		if (preset_complete_menu_decode(selection) == NULL_PRESET)
 			transact_change_date(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
 					date_today());
-//FIXME		else
-//FIXME			edit_insert_preset_into_transaction(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-//FIXME					preset_complete_menu_decode(selection));
+		else
+			transact_insert_preset_into_transaction(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
+					preset_complete_menu_decode(selection));
 	}
 }
 

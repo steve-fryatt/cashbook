@@ -38,6 +38,7 @@ struct transact_block;
 #include "account.h"
 #include "currency.h"
 #include "filing.h"
+#include "presets.h"
 
 #define NULL_TRANSACTION ((tran_t) (-1))
 
@@ -768,7 +769,9 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 
 
-
+/* The code below this point needs to move to a more appropriate location.
+ * -----------------------------------------------------------------------------------------------------------------------------
+ */
 
 /**
  * Place a new edit line by raw transaction number.
@@ -778,6 +781,18 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
  */
 
 void transact_place_edit_line_by_transaction(struct transact_block *windat, tran_t transaction);
+
+
+/**
+ * Insert a preset into a pre-existing transaction, taking care of updating all
+ * the file data in a clean way.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to update.
+ * \param preset	The preset to insert into the transaction.
+ */
+
+void transact_insert_preset_into_transaction(struct file_block *file, tran_t transaction, preset_t preset);
 
 
 #endif

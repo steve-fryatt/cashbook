@@ -158,6 +158,16 @@ void edit_place_new_line(struct edit_block *instance, int line);
 int edit_get_line(struct edit_block *instance);
 
 
+/**
+ * Determine whether an edit line instance is the active one with icons present.
+ *
+ * \param *instance		The instance of interest.
+ * \return			TRUE if the instance is active; otherwise FALSE.
+ */
+
+osbool edit_get_active(struct edit_block *instance);
+
+
 
 
 
@@ -167,17 +177,6 @@ int edit_get_line(struct edit_block *instance);
 
 
 #ifdef LOSE
-
-
-
-
-/**
- * Bring the edit line into view in the window in a vertical direction.
- *
- * \param *edit		The edit line instance that we're interested in working on
- */
-
-void edit_find_line_vertically(struct edit_block *edit);
 
 
 /**

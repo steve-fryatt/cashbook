@@ -161,10 +161,6 @@ struct edit_block {
  * Global variables.
  */
 
-/* A pointer to the window block belonging to the window currently holding the edit line. */
-
-static struct transact_block *edit_entry_window = NULL;
-
 /* A pointer to the instance currently holding the active edit line. */
 
 static struct edit_block *edit_active_instance = NULL;
@@ -613,6 +609,18 @@ int edit_get_line(struct edit_block *instance)
 }
 
 
+/**
+ * Determine whether an edit line instance is the active one with icons present.
+ *
+ * \param *instance		The instance of interest.
+ * \return			TRUE if the instance is active; otherwise FALSE.
+ */
+
+osbool edit_get_active(struct edit_block *instance)
+{
+	return (edit_active_instance == instance) ? TRUE : FALSE;
+}
+
 
 
 
@@ -628,56 +636,6 @@ int edit_get_line(struct edit_block *instance)
 
 
 
-/**
- * Bring the edit line into view in the window in a vertical direction.
- *
- * \param *edit		The edit line instance that we're interested in working on
- */
-
-void edit_find_line_vertically(struct edit_block *)
-{
-	wimp_window_state	window;
-	int			height, top, bottom;
-
-
-	if (file == NULL || file->transacts == NULL || file->transacts != edit_entry_window)
-		return;
-
-	window.w = file->transacts->transaction_window;
-	wimp_get_window_state(&window);
-
-	/* Calculate the height of the useful visible window, leaving out any OS units taken up by part lines.
-	 * This will allow the edit line to be aligned with the top or bottom of the window.
-	 */
-
-	height = window.visible.y1 - window.visible.y0 - ICON_HEIGHT - LINE_GUTTER - TRANSACT_TOOLBAR_HEIGHT;
-
-	/* Calculate the top full line and bottom full line that are showing in the window.  Part lines don't
-	 * count and are discarded.
-	 */
-
-	top = (-window.yscroll + ICON_HEIGHT) / (ICON_HEIGHT+LINE_GUTTER);
-	bottom = height / (ICON_HEIGHT+LINE_GUTTER) + top;
-
-#ifdef DEBUG
-	debug_printf("\\BFind transaction edit line");
-	debug_printf("Top: %d, Bottom: %d, Entry line: %d", top, bottom, file->transacts->entry_line);
-#endif
-
-	/* If the edit line is above or below the visible area, bring it into range. */
-
-	if (file->transacts->entry_line < top) {
-	window.yscroll = -(file->transacts->entry_line * (ICON_HEIGHT+LINE_GUTTER));
-	wimp_open_window((wimp_open *) &window);
-	transact_minimise_window_extent(file);
-	}
-
-	if (file->transacts->entry_line > bottom) {
-		window.yscroll = -((file->transacts->entry_line) * (ICON_HEIGHT+LINE_GUTTER) - height);
-		wimp_open_window((wimp_open *) &window);
-		transact_minimise_window_extent(file);
-	}
-}
 
 
 /**

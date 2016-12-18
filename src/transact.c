@@ -405,6 +405,7 @@ static osbool			transact_edit_get_to(struct edit_data *data);
 static osbool			transact_edit_get_reference(struct edit_data *data);
 static osbool			transact_edit_get_amount(struct edit_data *data);
 static osbool			transact_edit_get_description(struct edit_data *data);
+static osbool			transact_edit_get_valid_line(int line, void *data);
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -595,7 +596,9 @@ void transact_open_window(struct file_block *file)
 
 	/* Construct the edit line. */
 
-	file->transacts->edit_line = edit_create_instance(file, transact_window_def, file->transacts->transaction_window, file->transacts->columns, TRANSACT_TOOLBAR_HEIGHT, file->transacts);
+	file->transacts->edit_line = edit_create_instance(file, transact_window_def, file->transacts->transaction_window,
+			file->transacts->columns, TRANSACT_TOOLBAR_HEIGHT,
+			transact_edit_get_valid_line, file->transacts);
 	if (file->transacts->edit_line == NULL) {
 		error_msgs_report_error("TransactNoMem");
 		return;
@@ -804,7 +807,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 	 * was clicked.
 	 */
 
-//FIXME	edit_refresh_line_content(NULL, -1, pointer->i);
+	edit_refresh_line_contents(NULL, -1, pointer->i);
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		if (pointer->i == wimp_ICON_WINDOW) {
@@ -905,7 +908,13 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 
 static void transact_window_lose_caret_handler(wimp_caret *caret)
 {
-//FIXME	edit_refresh_line_content(caret->w, -1, -1);
+	struct transact_block	*windat;
+
+	windat = event_get_window_user_data(caret->w);
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	edit_refresh_line_contents(windat->edit_line, -1, -1);
 }
 
 /**
@@ -2225,7 +2234,7 @@ void transact_redraw_all(struct file_block *file)
 
 void transact_force_window_redraw(struct file_block *file, int from, int to)
 {
-	int			y0, y1;
+	int			y0, y1, line;
 	wimp_window_info	window;
   
 	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
@@ -2233,8 +2242,10 @@ void transact_force_window_redraw(struct file_block *file, int from, int to)
 
 	/* If the edit line falls inside the redraw range, refresh it. */
 
-//FIXME	if (file->transacts->entry_line >= from && file->transacts->entry_line <= to)
-//FIXME		edit_refresh_line_content(file->transacts->transaction_window, -1, -1);
+	line = edit_get_line(file->transacts->edit_line);
+
+	if (line >= from && line <= to)
+		edit_refresh_line_contents(file->transacts->edit_line, -1, -1);
 
 	/* Now force a redraw of the whole window range. */
 
@@ -4603,7 +4614,7 @@ void transact_insert_preset_into_transaction(struct file_block *file, tran_t tra
 		 */
 
 		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME			edit_refresh_line_content(file->transacts->transaction_window, -1, -1);
+			edit_refresh_line_contents(file->transacts->edit_line, -1, -1);
 //FIXME			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transacts->transaction_window);
 		} else {
@@ -4815,7 +4826,7 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 		 */
 
 		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME			edit_refresh_line_content(file->transacts->transaction_window, TRANSACT_ICON_DATE, -1);
+			edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_DATE, -1);
 //FIXME			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transacts->transaction_window);
 		} else {
@@ -4878,7 +4889,7 @@ static void edit_change_transaction_amount(struct file_block *file, tran_t trans
 		 */
 
 		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME			edit_refresh_line_content(file->transacts->transaction_window, TRANSACT_ICON_AMOUNT, -1);
+			edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_AMOUNT, -1);
 //FIXME			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transacts->transaction_window);
 		} else {
@@ -4905,6 +4916,7 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 	int	line;
 	osbool	changed = FALSE;
 	char	*field = NULL;
+	wimp_i	icon;
 
 
 	/* Only do anything if the transaction is inside the limit of the file. */
@@ -4917,14 +4929,17 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 	switch (target) {
 	case TRANSACT_FIELD_REF:
 		field = file->transacts->transactions[transaction].reference;
+		icon = TRANSACT_ICON_REFERENCE;
 		break;
 
 	case TRANSACT_FIELD_DESC:
 		field = file->transacts->transactions[transaction].description;
+		icon = TRANSACT_ICON_DESCRIPTION;
 		break;
 
 	default:
 		field = NULL;
+		icon = -1;
 		break;
 	}
 
@@ -4950,7 +4965,7 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 		 */
 
 		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME			edit_refresh_line_content(file->transacts->transaction_window, target, -1);
+			edit_refresh_line_contents(file->transacts->edit_line, icon, -1);
 //FIXME			edit_set_line_shading(file);
 			icons_replace_caret_in_window(file->transacts->transaction_window);
 		} else {
@@ -4978,6 +4993,7 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 	osbool		changed = FALSE;
 	unsigned	old_flags;
 	acct_t		old_acct = NULL_ACCOUNT;
+	wimp_i		icon;
 
 
 	/* Only do anything if the transaction is inside the limit of the file. */
@@ -5012,6 +5028,8 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 		if (old_acct != file->transacts->transactions[transaction].from || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
+
+		icon = TRANSACT_ICON_FROM;
 		break;
 	case TRANSACT_FIELD_TO:
 		old_acct = file->transacts->transactions[transaction].to;
@@ -5026,6 +5044,8 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 		if (old_acct != file->transacts->transactions[transaction].to || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
+
+		icon = TRANSACT_ICON_TO;
 		break;
 	}
 
@@ -5065,7 +5085,7 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 	 */
 
 	if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME		edit_refresh_line_content(file->transacts->transaction_window, target, -1);
+		edit_refresh_line_contents(file->transacts->edit_line, icon, -1);
 //FIXME		edit_set_line_shading(file);
 		icons_replace_caret_in_window(file->transacts->transaction_window);
 	} else {
@@ -5261,4 +5281,14 @@ static osbool transact_edit_get_description(struct edit_data *data)
 	strncpy(data->text.text, windat->transactions[t].description, data->text.length);
 
 	return TRUE;
+}
+
+static osbool transact_edit_get_valid_line(int line, void *data)
+{
+	struct transact_block	*windat = data;
+
+	if (windat == NULL)
+		return FALSE;
+
+	return (transact_valid(windat, line)) ? TRUE : FALSE;
 }

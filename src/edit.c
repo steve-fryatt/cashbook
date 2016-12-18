@@ -153,6 +153,12 @@ struct edit_block {
 
 	osbool			complete;		/**< TRUE if the instance is complete; FALSE if a memory allocation failed.	*/
 
+	/**
+	 * Call-back function to check with the client whether a line number is in range.
+	 */
+
+	osbool			(*test_line)(int, void *);
+
 	int			edit_line;		/**< The line currently marked for entry, in terms of window lines, or -1.	*/
 };
 
@@ -188,13 +194,18 @@ static void			edit_process_content_keypress(struct file_block *file, wimp_key *k
  * \param parent		The window handle in which the edit line will reside.
  * \param *columns		The column settings relating to the instance's parent window.
  * \param toolbar_height	The height of the window's toolbar.
+ * \param *test_line		Callback handler to test whether lines fall in range.
  * \param *data			Client-specific data pointer, or NULL for none.
  * \return			The new instance handle, or NULL on failure.
  */
 
-struct edit_block *edit_create_instance(struct file_block *file, wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height, void *data)
+struct edit_block *edit_create_instance(struct file_block *file, wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height,
+		osbool (*test_line)(int, void *), void *data)
 {
 	struct edit_block *new;
+
+	if (test_line == NULL)
+		return NULL;
 
 	new = heap_alloc(sizeof(struct edit_block));
 	if (new == NULL)
@@ -207,6 +218,7 @@ struct edit_block *edit_create_instance(struct file_block *file, wimp_window *te
 	new->toolbar_height = toolbar_height;
 	new->transfer.data = data;
 	new->complete = TRUE;
+	new->test_line = test_line;
 
 	/* No fields are defined as yet. */
 
@@ -473,15 +485,12 @@ void edit_place_new_line(struct edit_block *instance, int line)
 
 
 /**
- * Create a new edit line field icon.
+ * Create a new edit line field icon. If a Wimp error occurs, an error box
+ * will be displayed to the user before returning.
  *
- * \param *instance
- * \param icon
- * \param *buffer
- * \param length
- * \param column
- * \param line
- * \return
+ * \param *icon			The icon to be created.
+ * \param line			The window line on which to create it.
+ * \return			TRUE if successful; FALSE on error.
  */
 
 static osbool edit_create_field_icon(struct edit_icon *icon, int line)
@@ -518,6 +527,58 @@ static osbool edit_create_field_icon(struct edit_icon *icon, int line)
 	return TRUE;
 }
 
+
+/**
+ * Refresh the contents of an edit line, by restoring the memory contents back
+ * into the icons.
+ *
+ * \param *instance		The instance to refresh, or NULL to refresh the
+ *				currently active instance (if any).
+ * \param only			If -1, refresh all fields in the line; otherwise,
+ *				only refresh if the field's first icon handle matches.
+ * \param avoid			If -1, refresh all fields in the line; otherwise, only
+ *				refresh if the field's first icon handle does not match.
+ */
+
+void edit_refresh_line_contents(struct edit_block *instance, wimp_i only, wimp_i avoid)
+{
+	struct edit_field	*field;
+	struct edit_icon	*icon;
+
+	if (instance == NULL)
+		instance = edit_active_instance;
+
+	if (instance == NULL || instance->file == NULL || !instance->test_line(instance->edit_line, instance->transfer.data))
+		return;
+
+	/* Get the field data and update the icons. */
+
+	field = instance->fields;
+
+	while (field != NULL) {
+		icon = field->icon;
+
+		if ((icon != NULL) && (only == -1 || only == icon->icon) && (avoid != icon->icon)) {
+			edit_get_field_content(field, instance->edit_line);
+
+			while (icon != NULL) {
+				wimp_set_icon_state(instance->parent, icon->icon, 0, 0);
+				icon = icon->sibling;
+			}
+		}
+
+		field = field->next;
+	}
+}
+
+
+/**
+ * Get a field's contents for a given line from the client, and update the
+ * icons within it. The icons are not redrawn if they already exist.
+ *
+ * \param *field		The field to be updated.
+ * \param line			The window line to update for.
+ */
 
 static void edit_get_field_content(struct edit_field *field, int line)
 {
@@ -631,9 +692,6 @@ static osbool edit_get_field_icons(struct edit_field *field, int icons, ...)
 }
 
 
-
-
-
 /**
  * Get the line currently designated the edit line in a specific instance.
  *
@@ -667,17 +725,7 @@ osbool edit_get_active(struct edit_block *instance)
 
 
 
-
-
-
-
 #ifdef LOSE
-
-
-
-
-
-
 
 /**
  * Bring the current edit line icon (the one containing the caret) into view in
@@ -765,99 +813,6 @@ static void edit_find_icon_horizontally(struct file_block *file)
 }
 
 
-/**
- * Refresh the contents of the edit line icons, copying the contents of memory
- * back into them.
- *
- * \param w		If NULL, refresh any window; otherwise, only refresh if
- *			the parent transaction window handle matches w.
- * \param only		If -1, refresh all icons in the line; otherwise, only
- *			refresh if the icon handle matches i.
- * \param avoid		If -1, refresh all icons in the line; otherwise, only
- *			refresh if the icon handle does not match avoid.
- */
-
-void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid)
-{
-	int	transaction;
-
-	if (edit_entry_window == NULL || edit_entry_window->file == NULL || (w != edit_entry_window->transaction_window && w != NULL) ||
-			edit_entry_window->entry_line >= edit_entry_window->trans_count)
-		return;
-
-	transaction = edit_entry_window->transactions[edit_entry_window->entry_line].sort_index;
-
-	if ((only == -1 || only == EDIT_ICON_ROW) && avoid != EDIT_ICON_ROW) {
-		/* Replace the row number. */
-
-		snprintf(buffer_row, ROW_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
-		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_ROW, 0, 0);
-	}
-
-	if ((only == -1 || only == EDIT_ICON_DATE) && avoid != EDIT_ICON_DATE) {
-		/* Re-convert the date, so that it is displayed in standard format. */
-
-		date_convert_to_string(edit_entry_window->transactions[transaction].date, buffer_date, DATE_FIELD_LEN);
-		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_DATE, 0, 0);
-	}
-
-	if ((only == -1 || only == EDIT_ICON_FROM) && avoid != EDIT_ICON_FROM) {
-		/* Remove the from ident if it didn't match an account. */
-
-		if (edit_entry_window->transactions[transaction].from == NULL_ACCOUNT) {
-			*buffer_from_ident = '\0';
-			*buffer_from_name = '\0';
-			*buffer_from_rec = '\0';
-			wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_FROM, 0, 0);
-		} else {
-			strcpy(buffer_from_ident, account_get_ident(edit_entry_window->file, edit_entry_window->transactions[transaction].from));
-			strcpy(buffer_from_name, account_get_name(edit_entry_window->file, edit_entry_window->transactions[transaction].from));
-			if (edit_entry_window->transactions[transaction].flags & TRANS_REC_FROM)
-				msgs_lookup("RecChar", buffer_from_rec, REC_FIELD_LEN);
-			else
-				*buffer_from_rec = '\0';
-		}
-	}
-
-	if ((only == -1 || only == EDIT_ICON_TO) && avoid != EDIT_ICON_TO) {
-		/* Remove the to ident if it didn't match an account. */
-
-		if (edit_entry_window->transactions[transaction].to == NULL_ACCOUNT) {
-			*buffer_to_ident = '\0';
-			*buffer_to_name = '\0';
-			*buffer_to_rec = '\0';
-			wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_TO, 0, 0);
-		} else {
-			strcpy(buffer_to_ident, account_get_ident(edit_entry_window->file, edit_entry_window->transactions[transaction].to));
-			strcpy(buffer_to_name, account_get_name(edit_entry_window->file, edit_entry_window->transactions[transaction].to));
-			if (edit_entry_window->transactions[transaction].flags & TRANS_REC_TO)
-				msgs_lookup("RecChar", buffer_to_rec, REC_FIELD_LEN);
-			else
-				*buffer_to_rec = '\0';
-		}
-	}
-
-	if ((only == -1 || only == EDIT_ICON_REF) && avoid != EDIT_ICON_REF) {
-		/* Copy the contents back into the icon. */
-
-		strcpy(buffer_reference, edit_entry_window->transactions[transaction].reference);
-		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_REF, 0, 0);
-	}
-
-	if ((only == -1 || only == EDIT_ICON_AMOUNT) && avoid != EDIT_ICON_AMOUNT) {
-		/* Re-convert the amount so that it is displayed in standard format. */
-
-		currency_convert_to_string(edit_entry_window->transactions[transaction].amount, buffer_amount, AMOUNT_FIELD_LEN);
-		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_AMOUNT, 0, 0);
-	}
-
-	if ((only == -1 || only == EDIT_ICON_DESCRIPT) && avoid != EDIT_ICON_DESCRIPT) {
-		/* Copy the contents back into the icon. */
-
-		strcpy(buffer_description, edit_entry_window->transactions[transaction].description);
-		wimp_set_icon_state(edit_entry_window->transaction_window, EDIT_ICON_DESCRIPT, 0, 0);
-	}
-}
 
 
 /**

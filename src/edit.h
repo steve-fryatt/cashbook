@@ -96,12 +96,13 @@ struct edit_block;
  * \param parent		The window handle in which the edit line will reside.
  * \param *columns		The column settings relating to the instance's parent window.
  * \param toolbar_height	The height of the window's toolbar.
+ * \param *test_line		Callback handler to test whether lines fall in range.
  * \param *data			Client-specific data pointer, or NULL for none.
  * \return			The new instance handle, or NULL on failure.
  */
 
-struct edit_block *edit_create_instance(struct file_block *file, wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height, void *data);
-
+struct edit_block *edit_create_instance(struct file_block *file, wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height,
+		osbool (*test_line)(int, void *), void *data);
 
 /**
  * Delete an edit line instance.
@@ -146,6 +147,21 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
  */
 
 void edit_place_new_line(struct edit_block *instance, int line);
+
+
+/**
+ * Refresh the contents of an edit line, by restoring the memory contents back
+ * into the icons.
+ *
+ * \param *instance		The instance to refresh, or NULL to refresh the
+ *				currently active instance (if any).
+ * \param only			If -1, refresh all fields in the line; otherwise,
+ *				only refresh if the field's first icon handle matches.
+ * \param avoid			If -1, refresh all fields in the line; otherwise, only
+ *				refresh if the field's first icon handle does not match.
+ */
+
+void edit_refresh_line_contents(struct edit_block *instance, wimp_i only, wimp_i avoid);
 
 
 /**

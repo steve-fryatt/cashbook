@@ -143,10 +143,12 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
  * be one input focus.
  * 
  * \param *instance		The instance to place.
- * \param line			The line to place the instance in.
+ * \param line			The line to place the instance in, or -1 to replace the
+ *				line in its current location with the current colour.
+ * \param colour		The colour to create the icon.
  */
 
-void edit_place_new_line(struct edit_block *instance, int line);
+void edit_place_new_line(struct edit_block *instance, int line, wimp_colour colour);
 
 
 /**
@@ -184,6 +186,17 @@ int edit_get_line(struct edit_block *instance);
 osbool edit_get_active(struct edit_block *instance);
 
 
+/**
+ * Change the foreground colour of the icons in the edit line. This will do
+ * nothing if the instance does not have the active icons.
+ *
+ * \param *instance		The instance to be changed.
+ * \param colour		The new colour of the line.
+ */
+
+void edit_set_line_colour(struct edit_block *instance, wimp_colour colour);
+
+
 
 
 
@@ -193,21 +206,6 @@ osbool edit_get_active(struct edit_block *instance);
 
 
 #ifdef LOSE
-
-
-/**
- * Refresh the contents of the edit line icons, copying the contents of memory
- * back into them.
- *
- * \param w		If NULL, refresh any window; otherwise, only refresh if
- *			the parent transaction window handle matches w.
- * \param only		If -1, refresh all icons in the line; otherwise, only
- *			refresh if the icon handle matches i.
- * \param avoid		If -1, refresh all icons in the line; otherwise, only
- *			refresh if the icon handle does not match avoid.
- */
-
-void edit_refresh_line_content(wimp_w w, wimp_i only, wimp_i avoid);
 
 
 /**

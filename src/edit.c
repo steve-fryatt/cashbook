@@ -172,13 +172,12 @@ struct edit_block {
 static struct edit_block *edit_active_instance = NULL;
 
 static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
-static osbool edit_create_field_icon(struct edit_icon *icon, int line);
+static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colour colour);
 static void edit_get_field_content(struct edit_field *field, int line);
 static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
 
 #ifdef LOSE
 static void			edit_find_icon_horizontally(struct file_block *file);
-static void			edit_set_line_shading(struct file_block *file);
 static void			edit_change_transaction_amount(struct file_block *file, int transaction, amt_t new_amount);
 static enum transact_field	edit_raw_insert_preset_into_transaction(struct file_block *file, int transaction, int preset);
 static void			edit_delete_line_transaction_content(struct file_block *file);
@@ -430,16 +429,44 @@ static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type 
  * be one input focus.
  * 
  * \param *instance		The instance to place.
- * \param line			The line to place the instance in.
+ * \param line			The line to place the instance in, or -1 to replace the
+ *				line in its current location with the current colour.
+ * \param colour		The colour to create the icon.
  */
 
-void edit_place_new_line(struct edit_block *instance, int line)
+void edit_place_new_line(struct edit_block *instance, int line, wimp_colour colour)
 {
 	struct edit_icon	*icon;
-	struct edit_field	*field; 
+	struct edit_field	*field;
+	wimp_icon_state		state;
+	os_error		*error;
 
 	if (instance == NULL)
 		return;
+
+	/* If no line is specified and the edit line is already in this instance,
+	 * simply replace the line in the same location. This allows the icons to
+	 * be adjusted for a change in column widths, for example.
+	 */
+
+	if (line == -1) {
+		if (instance != edit_active_instance)
+			return;
+
+		/* The line doesn't move. */
+
+		line = instance->edit_line;
+
+		/* Get the foreground colour from the first icon in the line. */
+
+		if (instance->icons != NULL) {
+			state.w = instance->parent;
+			state.i = instance->icons->icon;
+			error = xwimp_get_icon_state(&state);
+			if (error == NULL)
+				colour = (state.icon.flags & wimp_ICON_FG_COLOUR) >> wimp_ICON_FG_COLOUR_SHIFT;
+		}
+	}
 
 	/* Delete any active edit line icons. The assumption is that the data will
 	 * be safe as it's always copied into memory as soon as a key is pressed
@@ -463,7 +490,7 @@ void edit_place_new_line(struct edit_block *instance, int line)
 	icon = instance->icons;
 
 	while (icon != NULL) {
-		if (!edit_create_field_icon(icon, line))
+		if (!edit_create_field_icon(icon, line, colour))
 			return;
 		icon = icon->next;
 	}
@@ -479,8 +506,6 @@ void edit_place_new_line(struct edit_block *instance, int line)
 
 	instance->edit_line = line;
 	edit_active_instance = instance;
-
-//	edit_set_line_shading(file);
 }
 
 
@@ -490,10 +515,11 @@ void edit_place_new_line(struct edit_block *instance, int line)
  *
  * \param *icon			The icon to be created.
  * \param line			The window line on which to create it.
+ * \param colour		The colour to create the icon.
  * \return			TRUE if successful; FALSE on error.
  */
 
-static osbool edit_create_field_icon(struct edit_icon *icon, int line)
+static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colour colour)
 {
 	wimp_icon_create	icon_block;
 	wimp_i			handle;
@@ -512,6 +538,9 @@ static osbool edit_create_field_icon(struct edit_icon *icon, int line)
 	icon_block.icon.extent.x1 = icon->parent->instance->columns->position[icon->column] + icon->parent->instance->columns->width[icon->column];
 	icon_block.icon.extent.y0 = WINDOW_ROW_Y0(icon->parent->instance->toolbar_height, line);
 	icon_block.icon.extent.y1 = WINDOW_ROW_Y1(icon->parent->instance->toolbar_height, line);
+
+	icon_block.icon.flags &= ~wimp_ICON_FG_COLOUR;
+	icon_block.icon.flags |= colour << wimp_ICON_FG_COLOUR_SHIFT;
 
 	error = xwimp_create_icon(&icon_block, &handle);
 	if (error != NULL) {
@@ -721,6 +750,42 @@ osbool edit_get_active(struct edit_block *instance)
 }
 
 
+/**
+ * Change the foreground colour of the icons in the edit line. This will do
+ * nothing if the instance does not have the active icons.
+ *
+ * \param *instance		The instance to be changed.
+ * \param colour		The new colour of the line.
+ */
+
+void edit_set_line_colour(struct edit_block *instance, wimp_colour colour)
+{
+	struct edit_icon	*icon;
+	os_error		*error;
+
+	if (instance == NULL || instance != edit_active_instance || instance->edit_line == -1)
+		return;
+
+	/* Update the icon flags to change the colour. */
+
+	icon = instance->icons;
+
+	while (icon != NULL) {
+		error = xwimp_set_icon_state(instance->parent, icon->icon, colour << wimp_ICON_FG_COLOUR_SHIFT, wimp_ICON_FG_COLOUR);
+
+		if (error != NULL) {
+			error_msgs_param_report_error("EditFailIcon", error->errmess, NULL, NULL, NULL);
+			return;
+		}
+
+		icon = icon->next;
+	}
+}
+
+
+
+
+
 
 
 
@@ -815,34 +880,6 @@ static void edit_find_icon_horizontally(struct file_block *file)
 
 
 
-/**
- * Set the shading of the transaction line to show the current reconcile status
- * of the transactions.
- *
- * \param *file		The file that should be processed.
- */
-
-static void edit_set_line_shading(struct file_block *file)
-{
-	int	icon_fg_col, transaction;
-	wimp_i	i;
-
-	if (file == NULL || file->transacts == NULL || edit_entry_window != file->transacts ||
-			file->transacts->trans_count == 0 ||
-			!transact_valid(file->transacts, file->transacts->entry_line))
-		return;
-
-	transaction = file->transacts->transactions[file->transacts->entry_line].sort_index;
-
-	if (config_opt_read("ShadeReconciled") && (file->transacts->entry_line < file->transacts->trans_count) &&
-			((file->transacts->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
-		icon_fg_col = (config_int_read("ShadeReconciledColour") << wimp_ICON_FG_COLOUR_SHIFT);
-	else
-		icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-
-	for (i = 0; i < TRANSACT_COLUMNS; i++)
-		wimp_set_icon_state(edit_entry_window->transaction_window, i, icon_fg_col, wimp_ICON_FG_COLOUR);
-}
 
 
 

@@ -261,7 +261,6 @@ struct transact_block {
 	/* Other window information. */
 
 	int			display_lines;					/**< How many lines the current work area is formatted to display. */
-	int			entry_line;					/**< The line currently marked for data entry, in terms of window lines. */
 	enum sort_type		sort_order;					/**< The order in which the window is sorted. */
 
 	char			sort_sprite[12];				/**< Space for the sort icon's indirected data. */
@@ -396,6 +395,7 @@ static tran_t			transact_find_edit_line_by_transaction(struct transact_block *wi
 static void			transact_place_edit_line(struct transact_block *windat, int line);
 static void			transact_place_edit_line_by_transaction(struct transact_block *windat, tran_t transaction);
 static void			transact_find_edit_line_vertically(struct transact_block *windat);
+static wimp_colour		transact_line_colour(struct transact_block *windat, int line);
 static wimp_i			transact_convert_preset_icon_number(enum preset_caret caret);
 static char			*transact_complete_description(struct file_block *file, int line, char *buffer, size_t length);
 static osbool			transact_edit_get_row(struct edit_data *data);
@@ -544,7 +544,6 @@ void transact_open_window(struct file_block *file)
 
 	/* Set the default values */
 
-	file->transacts->entry_line = -1;
 	file->transacts->display_lines = (file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
 			file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 
@@ -1599,7 +1598,7 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 static void transact_window_redraw_handler(wimp_draw *redraw)
 {
 	struct transact_block	*windat;
-	int			ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col, width;
+	int			ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col, width, entry_line;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -1625,6 +1624,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 	}
 
 	width = column_get_window_width(windat->columns);
+	entry_line = edit_get_line(windat->edit_line);
 
 	/* Perform the redraw. */
 
@@ -1662,7 +1662,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			 * icons in it.
 			 */
 
-			if (y == windat->entry_line)
+			if (y == entry_line)
 				continue;
 
 			/* Row field. */
@@ -1876,11 +1876,11 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 
 	transact_adjust_sort_icon(windat);
 
-	/* Replace the edit line to force a redraw and redraw the rest of the window. */
+	/* Replace the edit line to update the icon positions and redraw the rest of the window. */
 
 	wimp_get_caret_position(&caret);
 
-	edit_place_new_line(windat->edit_line, windat->entry_line);
+	edit_place_new_line(windat->edit_line, -1, wimp_COLOUR_BLACK);
 	windows_redraw(windat->transaction_window);
 	windows_redraw(windat->transaction_pane);
 
@@ -2129,7 +2129,7 @@ void transact_set_window_extent(struct file_block *file)
 
 void transact_minimise_window_extent(struct file_block *file)
 {
-	int			height, last_visible_line, minimum_length;
+	int			height, last_visible_line, minimum_length, entry_line;
 	wimp_window_state	window;
 
 	if (file == NULL || file->transacts == NULL)
@@ -2153,8 +2153,10 @@ void transact_minimise_window_extent(struct file_block *file)
 	minimum_length = (file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
 			file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 
-	if (file->transacts->entry_line >= minimum_length)
-		minimum_length = file->transacts->entry_line + 1;
+	entry_line = edit_get_line(file->transacts->edit_line);
+
+	if (entry_line >= minimum_length)
+		minimum_length = entry_line + 1;
 
 	if (last_visible_line > minimum_length)
 		minimum_length = last_visible_line;
@@ -2509,7 +2511,14 @@ int transact_get_count(struct file_block *file)
 
 int transact_get_caret_line(struct file_block *file)
 {
-	return (file != NULL && file->transacts != NULL) ? file->transacts->entry_line : 0;
+	int entry_line = 0;
+
+	if (file == NULL || file->transacts == NULL)
+		return 0;
+
+	entry_line = edit_get_line(file->transacts->edit_line);
+
+	return (entry_line >= 0) ? entry_line : 0;
 }
 
 
@@ -3556,7 +3565,7 @@ void transact_find_next_reconcile_line(struct file_block *file, osbool set)
 	if (file == NULL || file->transacts == NULL || file->auto_reconcile == FALSE)
 		return;
 
-	line = file->transacts->entry_line;
+	line = edit_get_line(file->transacts->edit_line);
 	account = NULL_ACCOUNT;
 
 	wimp_get_caret_position(&caret);
@@ -4458,6 +4467,8 @@ static tran_t transact_find_edit_line_by_transaction(struct transact_block *wind
 
 static void transact_place_edit_line(struct transact_block *windat, int line)
 {
+	wimp_colour	colour;
+
 	if (windat == NULL)
 		return;
 
@@ -4466,7 +4477,8 @@ static void transact_place_edit_line(struct transact_block *windat, int line)
 		transact_set_window_extent(windat->file);
 	}
 
-	edit_place_new_line(windat->edit_line, line);
+	colour = transact_line_colour(windat, line);
+	edit_place_new_line(windat->edit_line, line, colour);
 }
 
 
@@ -4539,16 +4551,16 @@ static void transact_find_edit_line_vertically(struct transact_block *windat)
 	top = (-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT;
 	bottom = (height / WINDOW_ROW_HEIGHT) + top;
 
-#ifdef DEBUG
-	debug_printf("\\BFind transaction edit line");
-	debug_printf("Top: %d, Bottom: %d, Entry line: %d", top, bottom, file->transacts->entry_line);
-#endif
-
 	/* If the edit line is above or below the visible area, bring it into range. */
 
 	line = edit_get_line(windat->edit_line);
 	if (line < 0)
 		return;
+
+#ifdef DEBUG
+	debug_printf("\\BFind transaction edit line");
+	debug_printf("Top: %d, Bottom: %d, Entry line: %d", top, bottom, line);
+#endif
 
 	if (line < top) {
 		window.yscroll = -(line * WINDOW_ROW_HEIGHT);
@@ -4563,6 +4575,24 @@ static void transact_find_edit_line_vertically(struct transact_block *windat)
 	}
 }
 
+
+
+
+static wimp_colour transact_line_colour(struct transact_block *windat, int line)
+{
+	tran_t	transaction;
+
+	if (windat == NULL || windat->transactions == NULL || line < 0 || line >= windat->trans_count)
+		return wimp_COLOUR_BLACK;
+
+	transaction = windat->transactions[line].sort_index;
+
+	if (config_opt_read("ShadeReconciled") &&
+			((windat->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
+		return config_int_read("ShadeReconciledColour");
+	else
+		return wimp_COLOUR_BLACK;
+}
 
 
 // \TODO -- Why isn't this done by line, as the only client needs to look the transaction up
@@ -4613,14 +4643,14 @@ void transact_insert_preset_into_transaction(struct file_block *file, tran_t tra
 		 * redrawn for free.
 		 */
 
-		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-			edit_refresh_line_contents(file->transacts->edit_line, -1, -1);
+//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME			edit_refresh_line_contents(file->transacts->edit_line, -1, -1);
 //FIXME			edit_set_line_shading(file);
-			icons_replace_caret_in_window(file->transacts->transaction_window);
-		} else {
-			line = transact_get_line_from_transaction(file, transaction);
-			transact_force_window_redraw(file, line, line);
-		}
+//FIXME			icons_replace_caret_in_window(file->transacts->transaction_window);
+//FIXME		} else {
+//FIXME			line = transact_get_line_from_transaction(file, transaction);
+//FIXME			transact_force_window_redraw(file, line, line);
+//FIXME		}
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -4711,18 +4741,18 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 	if (file->transacts->transactions[transaction].flags & change_flag) {
 		file->transacts->transactions[transaction].flags &= ~change_flag;
 
-		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
-			*icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon) = '\0';
+//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
+//FIXME			*icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon) = '\0';
 
 		changed = TRUE;
 	} else if ((change_flag == TRANS_REC_FROM && file->transacts->transactions[transaction].from != NULL_ACCOUNT) ||
 			(change_flag == TRANS_REC_TO && file->transacts->transactions[transaction].to != NULL_ACCOUNT)) {
 		file->transacts->transactions[transaction].flags |= change_flag;
 
-		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
-			msgs_lookup("RecChar",
-					icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon),
-					REC_FIELD_LEN);
+//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
+//FIXME			msgs_lookup("RecChar",
+//FIXME					icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon),
+//FIXME					REC_FIELD_LEN);
 
 		changed = 1;
 	}
@@ -4748,12 +4778,12 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 		 * for free.
 		 */
 
-		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
 //FIXME			edit_set_line_shading(file);
-		} else {
-			line = transact_get_line_from_transaction(file, transaction);
-			transact_force_window_redraw(file, line, line);
-		}
+//FIXME		} else {
+//FIXME			line = transact_get_line_from_transaction(file, transaction);
+//FIXME			transact_force_window_redraw(file, line, line);
+//FIXME		}
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -4825,14 +4855,14 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 		 * for free.
 		 */
 
-		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-			edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_DATE, -1);
+//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME			edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_DATE, -1);
 //FIXME			edit_set_line_shading(file);
-			icons_replace_caret_in_window(file->transacts->transaction_window);
-		} else {
-			line = transact_get_line_from_transaction(file, transaction);
-			transact_force_window_redraw(file, line, line);
-		}
+//FIXME			icons_replace_caret_in_window(file->transacts->transaction_window);
+//FIXME		} else {
+//FIXME			line = transact_get_line_from_transaction(file, transaction);
+//FIXME			transact_force_window_redraw(file, line, line);
+//FIXME		}
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -4888,14 +4918,14 @@ static void edit_change_transaction_amount(struct file_block *file, tran_t trans
 		 * for free.
 		 */
 
-		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-			edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_AMOUNT, -1);
+//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME			edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_AMOUNT, -1);
 //FIXME			edit_set_line_shading(file);
-			icons_replace_caret_in_window(file->transacts->transaction_window);
-		} else {
-			line = transact_get_line_from_transaction(file, transaction);
-			transact_force_window_redraw(file, line, line);
-		}
+//FIXME			icons_replace_caret_in_window(file->transacts->transaction_window);
+//FIXME		} else {
+//FIXME			line = transact_get_line_from_transaction(file, transaction);
+//FIXME			transact_force_window_redraw(file, line, line);
+//FIXME		}
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -4964,14 +4994,14 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 		 * for free.
 		 */
 
-		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-			edit_refresh_line_contents(file->transacts->edit_line, icon, -1);
+//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME			edit_refresh_line_contents(file->transacts->edit_line, icon, -1);
 //FIXME			edit_set_line_shading(file);
-			icons_replace_caret_in_window(file->transacts->transaction_window);
-		} else {
-			line = transact_get_line_from_transaction(file, transaction);
-			transact_force_window_redraw(file, line, line);
-		}
+//FIXME			icons_replace_caret_in_window(file->transacts->transaction_window);
+//FIXME		} else {
+//FIXME			line = transact_get_line_from_transaction(file, transaction);
+//FIXME			transact_force_window_redraw(file, line, line);
+//FIXME		}
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -5084,14 +5114,14 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 	 * for free.
 	 */
 
-	if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-		edit_refresh_line_contents(file->transacts->edit_line, icon, -1);
+//FIXME	if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
+//FIXME		edit_refresh_line_contents(file->transacts->edit_line, icon, -1);
 //FIXME		edit_set_line_shading(file);
-		icons_replace_caret_in_window(file->transacts->transaction_window);
-	} else {
-		line = transact_get_line_from_transaction(file, transaction);
-		transact_force_window_redraw(file, line, line);
-	}
+//FIXME		icons_replace_caret_in_window(file->transacts->transaction_window);
+//FIXME	} else {
+//FIXME		line = transact_get_line_from_transaction(file, transaction);
+//FIXME		transact_force_window_redraw(file, line, line);
+//FIXME	}
 
 	file_set_data_integrity(file, TRUE);
 }

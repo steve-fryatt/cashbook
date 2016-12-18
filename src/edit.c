@@ -373,10 +373,20 @@ static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type 
 	new->length = length;
 	new->column = column;
 
-	/* Link the icon to its parent field, and to any sibling icons. */
+	/* Link the icon to the end of it's parent's list of sibling icons. */
 
-	new->sibling = field->icon;
-	field->icon = new;
+	new->sibling = NULL;
+
+	if (field->icon == NULL) {
+		field->icon = new;
+	} else {
+		list = field->icon;
+
+		while (list->sibling != NULL)
+			list = list->sibling;
+
+		list->sibling = new;
+	}
 
 	/* Link the icon into the bar's icon list. If the existing icon list is empty,
 	 * or the first icon has a higher icon handle than this one, put the new icon
@@ -518,6 +528,10 @@ static void edit_get_field_content(struct edit_field *field, int line)
 	if (field == NULL || field->instance == NULL || field->icon == NULL)
 		return;
 
+	/* Get the first icon block associated with the field. */
+
+	icon = field->icon;
+
 	/* Initialise the transfer data block. */
 
 	transfer = &(field->instance->transfer);
@@ -539,10 +553,6 @@ static void edit_get_field_content(struct edit_field *field, int line)
 	case EDIT_FIELD_ACCOUNT:
 		break;
 	}
-
-	/* Get the first icon block associated with the field. */
-
-	icon = field->icon;
 
 	/* If there's a Get callback, call it. If there isn't, or if it fails, set the
 	 * field to its defaults and exit.
@@ -575,7 +585,7 @@ static void edit_get_field_content(struct edit_field *field, int line)
 		date_convert_to_string(transfer->date.date, icon->buffer, icon->length);
 		break;
 	case EDIT_FIELD_ACCOUNT:
-		if (!edit_get_field_icons(field, 3, &name, &reconcile, &ident))
+		if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
 			break;
 		account_fill_field(field->instance->file, transfer->account.account, transfer->account.reconciled,
 				field->instance->parent, ident, name, reconcile);

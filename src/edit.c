@@ -168,6 +168,7 @@ static struct edit_block *edit_active_instance = NULL;
 static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
 static osbool edit_create_field_icon(struct edit_icon *icon, int line);
 static void edit_get_field_content(struct edit_field *field, int line);
+static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
 
 #ifdef LOSE
 static void			edit_find_icon_horizontally(struct file_block *file);
@@ -383,7 +384,6 @@ static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type 
 	 */
 
 	if (field->instance->icons == NULL || field->instance->icons->icon > icon) {
-		debug_printf("Inserting new icon at head of list.");
 		new->next = field->instance->icons;
 		field->instance->icons = new;
 		return FALSE;
@@ -393,12 +393,8 @@ static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type 
 
 	list = field->instance->icons;
 
-	while (list->next != NULL && list->next->icon < icon) {
-		debug_printf("Testing new icon %d against %d in list", icon, list->next->icon);
+	while (list->next != NULL && list->next->icon < icon)
 		list = list->next;
-	}
-
-	debug_printf("Inserting into list");
 
 	new->next = list->next;
 	list->next = new;
@@ -517,18 +513,17 @@ static void edit_get_field_content(struct edit_field *field, int line)
 {
 	struct edit_data	*transfer;
 	struct edit_icon	*icon;
-	wimp_i			name, ident, rec;
+	wimp_i			name, ident, reconcile;
 
-	if (field == NULL || field->instance == NULL)
+	if (field == NULL || field->instance == NULL || field->icon == NULL)
 		return;
 
 	/* Initialise the transfer data block. */
 
 	transfer = &(field->instance->transfer);
 
-	icon = field->icon;
-	if (icon == NULL)
-		return;
+	transfer->type = field->type;
+	transfer->line = line;
 
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:
@@ -539,26 +534,18 @@ static void edit_get_field_content(struct edit_field *field, int line)
 		transfer->text.text = icon->buffer;
 		transfer->text.length = icon->length;
 		break;
+	case EDIT_FIELD_CURRENCY:
+	case EDIT_FIELD_DATE:
 	case EDIT_FIELD_ACCOUNT:
-		name = icon->icon;
-		debug_printf("Name icon: %d", name);
-		icon = icon->sibling;
-		if (icon == NULL)
-			return;
-		rec = icon->icon;
-		debug_printf("Rec icon: %d", rec);
-		icon = icon->sibling;
-		if (icon == NULL)
-			return;
-		ident = icon->icon;
-		debug_printf("Ident icon: %d", ident);
+		break;
 	}
 
-	transfer->type = field->type;
-	transfer->line = line;
+	/* Get the first icon block associated with the field. */
+
+	icon = field->icon;
 
 	/* If there's a Get callback, call it. If there isn't, or if it fails, set the
-	 * field to its defaults.
+	 * field to its defaults and exit.
 	 */
 
 	if (field->get == NULL || !field->get(transfer)) {
@@ -572,7 +559,9 @@ static void edit_get_field_content(struct edit_field *field, int line)
 		return;
 	}
 
-	/* We've got something in the returned data block! */
+	/* Something valid was returned in the data block, so update the field icons
+	 * accordingly.
+	 */
 
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:
@@ -586,11 +575,53 @@ static void edit_get_field_content(struct edit_field *field, int line)
 		date_convert_to_string(transfer->date.date, icon->buffer, icon->length);
 		break;
 	case EDIT_FIELD_ACCOUNT:
+		if (!edit_get_field_icons(field, 3, &name, &reconcile, &ident))
+			break;
 		account_fill_field(field->instance->file, transfer->account.account, transfer->account.reconciled,
-				field->instance->parent, ident, name, rec);
+				field->instance->parent, ident, name, reconcile);
 		break;
 	}
 }
+
+
+/**
+ * Return a set of icon handles associated with an edit bar field.
+ * 
+ * \param *field		The field of interest.
+ * \param icons			The number of icons that are expected.
+ * \param ...			Pointers to icon handle variables for each icon.
+ * \return			TRUE if successful; FALSE if something went wrong.
+ */
+
+static osbool edit_get_field_icons(struct edit_field *field, int icons, ...)
+{
+	va_list			ap;
+	struct edit_icon	*icon;
+	wimp_i			*handle;
+
+	if (field == NULL || field->icon == NULL)
+		return FALSE;
+
+	icon = field->icon;
+
+	va_start(ap, icons);
+
+	while (icons > 0 && icon != NULL) {
+		handle = va_arg(ap, wimp_i *);
+
+		*handle = icon->icon;
+
+		icon = icon->sibling;
+		icons--;
+	}
+
+	va_end(ap);
+
+	return (icon != NULL || icons != 0) ? FALSE : TRUE;
+}
+
+
+
 
 
 /**

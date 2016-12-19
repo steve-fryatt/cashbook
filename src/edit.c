@@ -153,11 +153,7 @@ struct edit_block {
 
 	osbool			complete;		/**< TRUE if the instance is complete; FALSE if a memory allocation failed.	*/
 
-	/**
-	 * Call-back function to check with the client whether a line number is in range.
-	 */
-
-	osbool			(*test_line)(int, void *);
+	struct edit_callback	*callbacks;		/**< The client's callback function details.					*/
 
 	int			edit_line;		/**< The line currently marked for entry, in terms of window lines, or -1.	*/
 };
@@ -176,6 +172,8 @@ static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colo
 static void edit_get_field_content(struct edit_field *field, int line);
 static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
 
+static osbool edit_callback_test_line(struct edit_block *instance, int line);
+
 #ifdef LOSE
 static void			edit_find_icon_horizontally(struct file_block *file);
 static void			edit_change_transaction_amount(struct file_block *file, int transaction, amt_t new_amount);
@@ -193,18 +191,15 @@ static void			edit_process_content_keypress(struct file_block *file, wimp_key *k
  * \param parent		The window handle in which the edit line will reside.
  * \param *columns		The column settings relating to the instance's parent window.
  * \param toolbar_height	The height of the window's toolbar.
- * \param *test_line		Callback handler to test whether lines fall in range.
+ * \param *callbacks		Pointer to the client's callback details.
  * \param *data			Client-specific data pointer, or NULL for none.
  * \return			The new instance handle, or NULL on failure.
  */
 
 struct edit_block *edit_create_instance(struct file_block *file, wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height,
-		osbool (*test_line)(int, void *), void *data)
+		struct edit_callback *callbacks, void *data)
 {
 	struct edit_block *new;
-
-	if (test_line == NULL)
-		return NULL;
 
 	new = heap_alloc(sizeof(struct edit_block));
 	if (new == NULL)
@@ -217,7 +212,7 @@ struct edit_block *edit_create_instance(struct file_block *file, wimp_window *te
 	new->toolbar_height = toolbar_height;
 	new->transfer.data = data;
 	new->complete = TRUE;
-	new->test_line = test_line;
+	new->callbacks = callbacks;
 
 	/* No fields are defined as yet. */
 
@@ -577,7 +572,7 @@ void edit_refresh_line_contents(struct edit_block *instance, wimp_i only, wimp_i
 	if (instance == NULL)
 		instance = edit_active_instance;
 
-	if (instance == NULL || instance->file == NULL || !instance->test_line(instance->edit_line, instance->transfer.data))
+	if (instance == NULL || instance->file == NULL || !edit_callback_test_line(instance, instance->edit_line))
 		return;
 
 	/* Get the field data and update the icons. */
@@ -783,10 +778,235 @@ void edit_set_line_colour(struct edit_block *instance, wimp_colour colour)
 }
 
 
+static void edit_move_caret_up_down(struct edit_block *instance, int direction);
+
+/**
+ * Process a keypress in an edit line icon.
+ *
+ * \param *instance		The edit line instance to take the keypress.
+ * \param *key			The keypress event data to process.
+ * \return			TRUE if the keypress was handled; FALSE if not.
+ */
+
+osbool edit_process_keypress(struct edit_block *instance, wimp_key *key)
+{
+	wimp_caret	caret;
+	wimp_i		icon;
+	int		transaction, previous;
+
+	if (instance == NULL || instance->file == NULL || instance != edit_active_instance)
+		return FALSE;
+
+
+	if (key->c == wimp_KEY_CONTROL + wimp_KEY_F10) {
+
+		/* Ctrl-F10 deletes the whole line. */
+
+//FIXME		edit_delete_line_transaction_content(file);
+	} else if (key->c == wimp_KEY_UP) {
+		edit_move_caret_up_down(instance, -1);
+	} else if (key->c == wimp_KEY_DOWN) {
+		edit_move_caret_up_down(instance, +1);
+#ifdef LOSE
+	} else if (key->c == wimp_KEY_RETURN || key->c == wimp_KEY_TAB || key->c == wimp_KEY_TAB + wimp_KEY_CONTROL) {
+
+		/* Return and Tab keys -- move the caret into the next icon,
+		 * refreshing the icon it was moved from first.  Wrap at the end
+		 * of a line.
+		 */
+
+		if (edit_entry_window == file->transacts) {
+			wimp_get_caret_position(&caret);
+			if ((osbyte1(osbyte_SCAN_KEYBOARD, 129, 0) == 0xff) && (file->transacts->entry_line > 0)) {
+
+				/* Test for Ctrl-Tab or Ctrl-Return, and fill down
+				 * from the line above if present.
+				 *
+				 * Find the previous or next transaction. If the
+				 * entry line falls within the actual transactions,
+				 * we just set up two pointers.  If it is on the
+				 * line after the final transaction, add a new one
+				 * and again set the pointers.  Otherwise, the
+				 * line before MUST be blank, so we do nothing.
+				 */
+
+				if (file->transacts->entry_line <= file->transacts->trans_count) {
+					if (file->transacts->entry_line == file->transacts->trans_count)
+						transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
+					transaction = file->transacts->transactions[file->transacts->entry_line].sort_index;
+					previous = file->transacts->transactions[file->transacts->entry_line-1].sort_index;
+				} else {
+					transaction = -1;
+					previous = -1;
+				}
+
+				/* If there is a transaction to fill in, use appropriate
+				 * routines to do the work.
+				 */
+
+				if (transaction > -1) {
+					switch (caret.i) {
+					case EDIT_ICON_DATE:
+						edit_change_transaction_date(file, transaction, file->transacts->transactions[previous].date);
+						break;
+
+					case EDIT_ICON_FROM:
+						edit_change_transaction_account(file, transaction, EDIT_ICON_FROM, file->transacts->transactions[previous].from);
+						if ((file->transacts->transactions[previous].flags & TRANS_REC_FROM) !=
+								(file->transacts->transactions[transaction].flags & TRANS_REC_FROM))
+						edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_FROM);
+						break;
+
+					case EDIT_ICON_TO:
+						edit_change_transaction_account(file, transaction, EDIT_ICON_TO, file->transacts->transactions[previous].to);
+						if ((file->transacts->transactions[previous].flags & TRANS_REC_TO) !=
+								(file->transacts->transactions[transaction].flags & TRANS_REC_TO))
+						edit_toggle_transaction_reconcile_flag(file, transaction, TRANS_REC_TO);
+						break;
+
+					case EDIT_ICON_REF:
+						edit_change_transaction_refdesc(file, transaction, EDIT_ICON_REF,
+								file->transacts->transactions[previous].reference);
+						break;
+
+					case EDIT_ICON_AMOUNT:
+						edit_change_transaction_amount(file, transaction, file->transacts->transactions[previous].amount);
+						break;
+
+					case EDIT_ICON_DESCRIPT:
+						edit_change_transaction_refdesc(file, transaction, EDIT_ICON_DESCRIPT,
+								file->transacts->transactions[previous].description);
+						break;
+					}
+				}
+			} else {
+				/* There's no point refreshing the line if we've
+				 * just done a Ctrl- complete, as the relevant subroutines
+				 * will already have done the work.
+				 */
+
+				edit_refresh_line_content(edit_entry_window->transaction_window, caret.i, -1);
+			}
+
+			if (key->c == wimp_KEY_RETURN &&
+					((caret.i == EDIT_ICON_DATE     && (file->transacts->sort_order & SORT_MASK) == SORT_DATE) ||
+					 (caret.i == EDIT_ICON_FROM     && (file->transacts->sort_order & SORT_MASK) == SORT_FROM) ||
+					 (caret.i == EDIT_ICON_TO       && (file->transacts->sort_order & SORT_MASK) == SORT_TO) ||
+					 (caret.i == EDIT_ICON_REF      && (file->transacts->sort_order & SORT_MASK) == SORT_REFERENCE) ||
+					 (caret.i == EDIT_ICON_AMOUNT   && (file->transacts->sort_order & SORT_MASK) == SORT_AMOUNT) ||
+					 (caret.i == EDIT_ICON_DESCRIPT && (file->transacts->sort_order & SORT_MASK) == SORT_DESCRIPTION)) &&
+					config_opt_read("AutoSort")) {
+				transact_sort(file->transacts);
+
+				if (transact_valid(file->transacts, file->transacts->entry_line)) {
+					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].from);
+					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].to);
+				}
+			}
+
+			if (caret.i < EDIT_ICON_DESCRIPT) {
+				icon = caret.i + 1;
+				if (icon == EDIT_ICON_FROM_REC)
+					icon = EDIT_ICON_TO;
+				if (icon == EDIT_ICON_TO_REC)
+					icon = EDIT_ICON_REF;
+				icons_put_caret_at_end(edit_entry_window->transaction_window, icon);
+				edit_find_icon_horizontally(file);
+			} else {
+				if (key->c == wimp_KEY_RETURN)
+					edit_place_new_line(edit, file, transact_find_first_blank_line(file));
+				else
+					edit_place_new_line(edit, file, file->transacts->entry_line + 1);
+
+				icons_put_caret_at_end(edit_entry_window->transaction_window, EDIT_ICON_DATE);
+				edit_find_icon_horizontally(file);
+				edit_find_line_vertically(file);
+			}
+		}
+	} else if (key->c == (wimp_KEY_TAB + wimp_KEY_SHIFT)) {
+
+		/* Shift-Tab key -- move the caret back to the previous icon,
+		 * refreshing the icon moved from first.  Wrap up at the start
+		 * of a line.
+		 */
+
+		if (edit_entry_window == file->transacts) {
+			wimp_get_caret_position(&caret);
+			edit_refresh_line_content(edit_entry_window->transaction_window, caret.i, -1);
+
+			if (caret.i > EDIT_ICON_DATE) {
+				icon = caret.i - 1;
+				if (icon == EDIT_ICON_TO_NAME)
+					icon = EDIT_ICON_TO;
+				if (icon == EDIT_ICON_FROM_NAME)
+					icon = EDIT_ICON_FROM;
+
+				icons_put_caret_at_end(edit_entry_window->transaction_window, icon);
+				edit_find_icon_horizontally(file);
+				edit_find_line_vertically(file);
+			} else {
+				if (file->transacts->entry_line > 0) {
+					edit_place_new_line(edit, file, file->transacts->entry_line - 1);
+					icons_put_caret_at_end(edit_entry_window->transaction_window, EDIT_ICON_DESCRIPT);
+					edit_find_icon_horizontally(file);
+				}
+			}
+		}
+#endif
+	} else if (key->c == wimp_KEY_F12 ||
+			key->c == (wimp_KEY_SHIFT + wimp_KEY_F12)  ||
+			key->c == (wimp_KEY_CONTROL + wimp_KEY_F12) ||
+			key->c == (wimp_KEY_SHIFT + wimp_KEY_CONTROL + wimp_KEY_F12)) {
+
+		/* We don't want to claim any of the F12 combinations. */
+
+		return FALSE;
+	} else {
+		/* Any unrecognised keys get passed on to the final stage. */
+
+//FIXME		edit_process_content_keypress(file, key);
+	}
+
+	return TRUE;
+}
+
+
+static void edit_move_caret_up_down(struct edit_block *instance, int direction)
+{
+	wimp_caret	caret;
+
+	if (instance == NULL)
+		return;
+
+	/* Establish the direction that we're moving in. */
+
+	if (direction < 0) {
+		direction = -1;
+
+		if (instance->edit_line < 1)
+			return;
+	} else if (direction > 0) {
+		direction = 1;
+	} else {
+		return;
+	}
+
+	wimp_get_caret_position(&caret);
+	edit_refresh_line_contents(instance, caret.i, -1);
+	edit_place_new_line(instance, instance->edit_line + direction, wimp_COLOUR_BLACK);
+	wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y + (direction * WINDOW_ROW_HEIGHT), -1, -1);
+	edit_find_line_vertically(instance->file);
+}
 
 
 
+static osbool edit_callback_test_line(struct edit_block *instance, int line)
+{
+	if (instance == NULL || instance->callbacks == NULL || instance->callbacks->test_line == NULL)
+		return FALSE;
 
+	return instance->callbacks->test_line(line, instance->transfer.data);
+};
 
 
 

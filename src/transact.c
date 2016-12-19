@@ -296,6 +296,10 @@ struct transact_list_link {
 static int    new_transaction_window_offset = 0;
 static wimp_i transaction_pane_sort_substitute_icon = TRANSACT_PANE_DATE;
 
+/* Transaction Window. */
+
+static struct edit_callback	transact_edit_callbacks;			/**< Callback details for the edit line instances.					*/
+
 /* Transaction Sort Window. */
 
 static struct sort_block	*transact_sort_dialogue = NULL;			/**< The transaction window sort dialogue box.						*/
@@ -450,6 +454,8 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_save_file);
 	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_save_csv);
 	transact_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", transact_save_tsv);
+
+	transact_edit_callbacks.test_line = transact_edit_get_valid_line;
 }
 
 
@@ -597,7 +603,7 @@ void transact_open_window(struct file_block *file)
 
 	file->transacts->edit_line = edit_create_instance(file, transact_window_def, file->transacts->transaction_window,
 			file->transacts->columns, TRANSACT_TOOLBAR_HEIGHT,
-			transact_edit_get_valid_line, file->transacts);
+			&transact_edit_callbacks, file->transacts);
 	if (file->transacts->edit_line == NULL) {
 		error_msgs_report_error("TransactNoMem");
 		return;
@@ -1195,7 +1201,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 		transact_scroll_window_to_end(file, TRANSACT_SCROLL_END);
 	} else {
 		/* Pass any keys that are left on to the edit line handler. */
-		return TRUE; //FIXMEedit_process_keypress(windat->edit_line, file, key);
+		return edit_process_keypress(windat->edit_line, key);
 	}
 
 	return TRUE;

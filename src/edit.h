@@ -81,6 +81,15 @@ struct edit_data {
 	void					*data;		/**< The client-supplied data pointer.		*/
 };
 
+struct edit_callback {
+	/**
+	 * Call-back function to check with the client whether a line number is in range.
+	 */
+
+	osbool			(*test_line)(int, void *);
+
+};
+
 /**
  * The edit line instance block.
  */
@@ -96,13 +105,13 @@ struct edit_block;
  * \param parent		The window handle in which the edit line will reside.
  * \param *columns		The column settings relating to the instance's parent window.
  * \param toolbar_height	The height of the window's toolbar.
- * \param *test_line		Callback handler to test whether lines fall in range.
+ * \param *callbacks		Pointer to the client's callback details.
  * \param *data			Client-specific data pointer, or NULL for none.
  * \return			The new instance handle, or NULL on failure.
  */
 
 struct edit_block *edit_create_instance(struct file_block *file, wimp_window *template, wimp_w parent, struct column_block *columns, int toolbar_height,
-		osbool (*test_line)(int, void *), void *data);
+		struct edit_callback *callbacks, void *data);
 
 /**
  * Delete an edit line instance.
@@ -197,40 +206,14 @@ osbool edit_get_active(struct edit_block *instance);
 void edit_set_line_colour(struct edit_block *instance, wimp_colour colour);
 
 
-
-
-
-
-
-
-
-
-#ifdef LOSE
-
-
 /**
- * Get the underlying transaction number relating to the current edit line
- * position.
+ * Process a keypress in an edit line icon.
  *
- * \param *file		The file that we're interested in.
- * \return		The transaction number, or NULL_TRANSACTION if the
- *			line isn't in the specified file.
+ * \param *instance		The edit line instance to take the keypress.
+ * \param *key			The keypress event data to process.
+ * \return			TRUE if the keypress was handled; FALSE if not.
  */
 
-int edit_get_line_transaction(struct file_block *file);
+osbool edit_process_keypress(struct edit_block *instance, wimp_key *key);
 
-
-/**
- * Handle keypresses in an edit line (and hence a transaction window). Process
- * any function keys, then pass content keys on to the edit handler.
- *
- * \param *edit		The edit instance to process.
- * \param *file		The file to pass they keys to.
- * \param *key		The Wimp's key event block.
- * \return		TRUE if the key was handled; FALSE if not.
- */
-
-osbool edit_process_keypress(struct edit_block *edit, struct file_block *file, wimp_key *key);
 #endif
-#endif
-

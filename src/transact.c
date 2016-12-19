@@ -396,6 +396,7 @@ static void			transact_prepare_fileinfo(struct file_block *file);
 /* These need to move into their correct place. */
 
 static tran_t			transact_find_edit_line_by_transaction(struct transact_block *windat);
+static osbool			transact_edit_place_line(int line, void *data);
 static void			transact_place_edit_line(struct transact_block *windat, int line);
 static void			transact_place_edit_line_by_transaction(struct transact_block *windat, tran_t transaction);
 static void			transact_find_edit_line_vertically(struct transact_block *windat);
@@ -456,6 +457,7 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", transact_save_tsv);
 
 	transact_edit_callbacks.test_line = transact_edit_get_valid_line;
+	transact_edit_callbacks.place_line = transact_edit_place_line;
 }
 
 
@@ -4441,9 +4443,9 @@ static void transact_prepare_fileinfo(struct file_block *file)
  * Get the underlying transaction number relating to the current edit line
  * position.
  *
- * \param *file		The file that we're interested in.
- * \return		The transaction number, or NULL_TRANSACTION if the
- *			line isn't in the specified file.
+ * \param *file			The file that we're interested in.
+ * \return			The transaction number, or NULL_TRANSACTION if the
+ *				line isn't in the specified file.
  */
 
 static tran_t transact_find_edit_line_by_transaction(struct transact_block *windat)
@@ -4462,13 +4464,34 @@ static tran_t transact_find_edit_line_by_transaction(struct transact_block *wind
 }
 
 
+/**
+ * Callback to allow the edit line to move.
+ *
+ * \param line			The line in which to place the edit line.
+ * \param *data			Client data: windat.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+static osbool transact_edit_place_line(int line, void *data)
+{
+	struct transact_block	*windat = data;
+
+	if (windat == NULL)
+		return FALSE;
+
+	transact_place_edit_line(windat, line);
+	transact_find_edit_line_vertically(windat);
+
+	return TRUE;
+}
+
 
 /**
  * Place a new edit line in a transaction window by visible line number,
  * extending the window if required.
  *
- * \param *windat	The transaction window to place the line in.
- * \param line		The line to place.
+ * \param *windat		The transaction window to place the line in.
+ * \param line			The line to place.
  */
 
 static void transact_place_edit_line(struct transact_block *windat, int line)
@@ -4491,8 +4514,8 @@ static void transact_place_edit_line(struct transact_block *windat, int line)
 /**
  * Place a new edit line by raw transaction number.
  *
- * \param *windat	The transaction window to place the line in.
- * \param transaction	The transaction to place the line on.
+ * \param *windat		The transaction window to place the line in.
+ * \param transaction		The transaction to place the line on.
  */
 
 static void transact_place_edit_line_by_transaction(struct transact_block *windat, tran_t transaction)
@@ -4529,7 +4552,7 @@ static void transact_place_edit_line_by_transaction(struct transact_block *winda
  * Bring the edit line into view in a vertical direction within a transaction
  * window.
  *
- * \param *windat	The transaction window to be updated.
+ * \param *windat		The transaction window to be updated.
  */
 
 static void transact_find_edit_line_vertically(struct transact_block *windat)

@@ -83,11 +83,17 @@ struct edit_data {
 
 struct edit_callback {
 	/**
-	 * Call-back function to check with the client whether a line number is in range.
+	 * Check with the client whether a line number is in range.
 	 */
 
 	osbool			(*test_line)(int, void *);
 
+	/**
+	 * Request that the client places the edit line at a new location and
+	 * then brings it into view.
+	 */
+
+	osbool			(*place_line)(int, void *);
 };
 
 /**

@@ -173,6 +173,7 @@ static void edit_get_field_content(struct edit_field *field, int line);
 static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
 
 static osbool edit_callback_test_line(struct edit_block *instance, int line);
+static osbool edit_callback_place_line(struct edit_block *instance, int line);
 
 #ifdef LOSE
 static void			edit_find_icon_horizontally(struct file_block *file);
@@ -993,9 +994,8 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 
 	wimp_get_caret_position(&caret);
 	edit_refresh_line_contents(instance, caret.i, -1);
-	edit_place_new_line(instance, instance->edit_line + direction, wimp_COLOUR_BLACK);
+	edit_callback_place_line(instance, instance->edit_line + direction);
 	wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y + (direction * WINDOW_ROW_HEIGHT), -1, -1);
-	edit_find_line_vertically(instance->file);
 }
 
 
@@ -1008,6 +1008,14 @@ static osbool edit_callback_test_line(struct edit_block *instance, int line)
 	return instance->callbacks->test_line(line, instance->transfer.data);
 };
 
+
+static osbool edit_callback_place_line(struct edit_block *instance, int line)
+{
+	if (instance == NULL || instance->callbacks == NULL || instance->callbacks->place_line == NULL)
+		return FALSE;
+
+	return instance->callbacks->place_line(line, instance->transfer.data);
+};
 
 
 #ifdef LOSE

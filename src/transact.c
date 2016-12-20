@@ -615,11 +615,11 @@ void transact_open_window(struct file_block *file)
 			TRANSACT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
 	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, 1, transact_edit_get_date, NULL,
 			TRANSACT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 2, transact_edit_get_from, NULL,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_IN, 2, transact_edit_get_from, NULL,
 			TRANSACT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
 			TRANSACT_ICON_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
 			TRANSACT_ICON_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT, 5, transact_edit_get_to, NULL,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_OUT, 5, transact_edit_get_to, NULL,
 			TRANSACT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
 			TRANSACT_ICON_TO_REC, transact_buffer_to_rec, REC_FIELD_LEN,
 			TRANSACT_ICON_TO_NAME, transact_buffer_to_name, ACCOUNT_NAME_LEN);

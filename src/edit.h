@@ -47,7 +47,8 @@ enum edit_field_type {
 	EDIT_FIELD_TEXT,		/**< A plain text field.			*/
 	EDIT_FIELD_CURRENCY,		/**< A currency field.				*/
 	EDIT_FIELD_DATE,		/**< A date field.				*/
-	EDIT_FIELD_ACCOUNT,		/**< An account field.				*/
+	EDIT_FIELD_ACCOUNT_IN,		/**< An incoming account field.			*/
+	EDIT_FIELD_ACCOUNT_OUT		/**< An outgoing account field.			*/
 };
 
 struct edit_data_text {
@@ -70,6 +71,7 @@ struct edit_data_account {
 
 struct edit_data {
 	int					line;		/**< The line that we're interested in.		*/
+	wimp_i					icon;		/**< The handle of the first icon in the field.	*/
 	enum edit_field_type			type;		/**< The type of field to require the data.	*/
 	union {
 		struct edit_data_text		display;	/**< The data relating to a display field.	*/

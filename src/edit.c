@@ -170,6 +170,7 @@ static struct edit_block *edit_active_instance = NULL;
 static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
 static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colour colour);
 static void edit_get_field_content(struct edit_field *field, int line);
+static void edit_put_field_content(struct edit_field *field, int line);
 static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
 
 static osbool edit_callback_test_line(struct edit_block *instance, int line);
@@ -347,7 +348,8 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 	case EDIT_FIELD_DATE:
 		edit_add_field_icon(field, EDIT_ICON_DATE, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
 		break;
-	case EDIT_FIELD_ACCOUNT:
+	case EDIT_FIELD_ACCOUNT_IN:
+	case EDIT_FIELD_ACCOUNT_OUT:
 		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_IDENT, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
 		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_REC, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column + 1);
 		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_NAME, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column + 2);
@@ -624,6 +626,7 @@ static void edit_get_field_content(struct edit_field *field, int line)
 
 	transfer->type = field->type;
 	transfer->line = line;
+	transfer->icon = icon->icon;
 
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:
@@ -636,7 +639,8 @@ static void edit_get_field_content(struct edit_field *field, int line)
 		break;
 	case EDIT_FIELD_CURRENCY:
 	case EDIT_FIELD_DATE:
-	case EDIT_FIELD_ACCOUNT:
+	case EDIT_FIELD_ACCOUNT_IN:
+	case EDIT_FIELD_ACCOUNT_OUT:
 		break;
 	}
 
@@ -670,13 +674,84 @@ static void edit_get_field_content(struct edit_field *field, int line)
 	case EDIT_FIELD_DATE:
 		date_convert_to_string(transfer->date.date, icon->buffer, icon->length);
 		break;
-	case EDIT_FIELD_ACCOUNT:
+	case EDIT_FIELD_ACCOUNT_IN:
+	case EDIT_FIELD_ACCOUNT_OUT:
 		if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
 			break;
 		account_fill_field(field->instance->file, transfer->account.account, transfer->account.reconciled,
 				field->instance->parent, ident, name, reconcile);
 		break;
 	}
+}
+
+
+/**
+ * Put a field's contents back to the client. The field is not updated or
+ * redrawn.
+ *
+ * \param *field		The field to be updated.
+ * \param line			The window line to update for.
+ */
+
+static void edit_put_field_content(struct edit_field *field, int line)
+{
+	struct edit_data	*transfer;
+	struct edit_icon	*icon;
+	wimp_i			name, ident, reconcile;
+	enum account_type	type;
+
+	if (field == NULL || field->instance == NULL || field->icon == NULL || field->put == NULL)
+		return;
+
+	/* Get the first icon block associated with the field. */
+
+	icon = field->icon;
+
+	/* Initialise the transfer data block. */
+
+	transfer = &(field->instance->transfer);
+
+	transfer->type = field->type;
+	transfer->line = line;
+	transfer->icon = icon->icon;
+
+	switch (field->type) {
+	case EDIT_FIELD_DISPLAY:
+		transfer->display.text = icon->buffer;
+		transfer->display.length = icon->length;
+		break;
+	case EDIT_FIELD_TEXT:
+		transfer->text.text = icon->buffer;
+		transfer->text.length = icon->length;
+		break;
+	case EDIT_FIELD_CURRENCY:
+		transfer->currency.amount = currency_convert_from_string(icon->buffer);
+		break;
+	case EDIT_FIELD_DATE:
+		transfer->line = line - 1;
+		if (line <= 0 || field->get == NULL || !field->get(transfer))
+			transfer->date.date = NULL_DATE;
+		transfer->date.date = date_convert_from_string(icon->buffer, transfer->date.date, 0);
+		trabsfer->line = line;
+		break;
+	case EDIT_FIELD_ACCOUNT_IN:
+	case EDIT_FIELD_ACCOUNT_OUT:
+		if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
+			break;
+		if (field->type == EDIT_FIELD_ACCOUNT_IN)
+			type = ACCOUNT_IN | ACCOUNT_FULL;
+		else if (field->type == EDIT_FIELD_ACCOUNT_OUT)
+			type = ACCOUNT_OUT | ACCOUNT_FULL;
+		else
+			break;
+		transfer->account.account = account_lookup_field(field->instance->file, 
+
+		break;
+	}
+
+	/* Call the Put callback. */
+
+	field->put(transfer);
 }
 
 
@@ -1409,6 +1484,31 @@ osbool edit_process_keypress(struct edit_block *edit, struct file_block *file, w
 
 	return TRUE;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /**

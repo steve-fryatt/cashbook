@@ -89,6 +89,22 @@ enum edit_icon_type {
 	EDIT_ICON_ACCOUNT_REC		/**< A non-writable, clickable account field reconciliation icon.	*/
 };
 
+struct edit_field_text {
+	int	sum;
+};
+
+struct edit_field_currency {
+	amt_t	amount;
+};
+
+struct edit_field_date {
+	date_t	date;
+};
+
+struct edit_field_account {
+	acct_t	account;
+	osbool	reconciled;
+};
 /**
  * A field within an edit line.
  */
@@ -99,6 +115,13 @@ struct edit_field {
 	enum edit_field_type	type;			/**< The type of field.								*/
 
 	struct edit_icon	*icon;			/**< The first icon in a linked list associated with the field.			*/
+
+	union {
+		struct edit_field_text		text;		/**< The data relating to a text field.		*/
+		struct edit_field_currency	currency;	/**< The data relating to a currency field.	*/
+		struct edit_field_date		date;		/**< The data relating to a date field.		*/
+		struct edit_field_account	account;	/**< The data relating to an account field.	*/
+	};
 
 	/**
 	 * Call-back function to get data for the field from the client.
@@ -381,6 +404,27 @@ static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type 
 	new->buffer = buffer;
 	new->length = length;
 	new->column = column;
+
+	/* Initialise the field data. */
+
+	switch (new->type) {
+	case EDIT_FIELD_TEXT:
+		new->text.sum = 0;
+		break;
+	case EDIT_FIELD_CURRENCY:
+		new->currency = NULL_CURRENCY;
+		break;
+	case EDIT_FIELD_DATE:
+		new->date = NULL_DATE;
+		break;
+	case EDIT_FIELD_ACCOUNT_IN:
+	case EDIT_FIELD_ACCOUNT_OUT:
+		new->account.account = NULL_ACCOUNT;
+		new->account.reconciled = FALSE;
+		break;
+	case EDIT_FIELD_DISPLAY:
+		break;
+	}
 
 	/* Link the icon to the end of it's parent's list of sibling icons. */
 

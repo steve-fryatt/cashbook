@@ -1858,7 +1858,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 	wimp_window_info	window;
 	wimp_caret		caret;
 
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->file == NULL || windat->transaction_window == NULL || windat->transaction_pane == NULL)
 		return;
 
 	update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), target, width, windat->columns);
@@ -1892,11 +1892,12 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 	windows_redraw(windat->transaction_window);
 	windows_redraw(windat->transaction_pane);
 
+
 	/* If the caret's position was in the current transaction window, we need to replace it in the same position
 	 * now, so that we don't lose input focus.
 	 */
 
-	if (windat->transaction_window != NULL && windat->transaction_window == caret.w)
+	if (windat->transaction_window == caret.w)
 		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
 
 	/* Set the horizontal extent of the window and pane. */
@@ -2075,7 +2076,7 @@ void transact_set_window_extent(struct file_block *file)
 	os_box			extent;
 	int			visible_extent, new_extent, new_scroll;
 
-	if (file == NULL || file->transacts == NULL)
+	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
 		return;
 
 	/* If the window display length is too small, extend it to one blank line after the data. */
@@ -2140,7 +2141,7 @@ void transact_minimise_window_extent(struct file_block *file)
 	int			height, last_visible_line, minimum_length, entry_line;
 	wimp_window_state	window;
 
-	if (file == NULL || file->transacts == NULL)
+	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
 		return;
 
 	window.w = file->transacts->transaction_window;

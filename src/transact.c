@@ -5239,7 +5239,7 @@ static osbool transact_edit_get_from(struct edit_data *data)
 	tran_t			t;
 	struct transact_block	*windat;
 
-	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_ACCOUNT_OUT)
+	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_ACCOUNT_IN)
 		return FALSE;
 
 	windat = data->data;
@@ -5260,7 +5260,7 @@ static osbool transact_edit_get_to(struct edit_data *data)
 	tran_t			t;
 	struct transact_block	*windat;
 
-	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_ACCOUNT_IN)
+	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_ACCOUNT_OUT)
 		return FALSE;
 
 	windat = data->data;

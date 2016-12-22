@@ -195,16 +195,23 @@ static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colo
 static void edit_get_field_content(struct edit_field *field, int line);
 static void edit_put_field_content(struct edit_field *field, int line);
 static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
+static void edit_move_caret_up_down(struct edit_block *instance, int direction);
+static void edit_process_content_keypress(struct edit_block *instance, wimp_key *key);
+static void edit_process_text_field_keypress(struct edit_field *field, wimp_key *key);
+static void edit_process_date_field_keypress(struct edit_field *field, wimp_key *key);
+static void edit_process_currency_field_keypress(struct edit_field *field, wimp_key *key);
+static void edit_process_account_field_keypress(struct edit_field *field, wimp_key *key, enum account_type type);
 
 static osbool edit_callback_test_line(struct edit_block *instance, int line);
 static osbool edit_callback_place_line(struct edit_block *instance, int line);
+
+static int edit_sum_field_text(char *text, size_t length);
 
 #ifdef LOSE
 static void			edit_find_icon_horizontally(struct file_block *file);
 static void			edit_change_transaction_amount(struct file_block *file, int transaction, amt_t new_amount);
 static enum transact_field	edit_raw_insert_preset_into_transaction(struct file_block *file, int transaction, int preset);
 static void			edit_delete_line_transaction_content(struct file_block *file);
-static void			edit_process_content_keypress(struct file_block *file, wimp_key *key);
 #endif
 
 
@@ -404,27 +411,6 @@ static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type 
 	new->buffer = buffer;
 	new->length = length;
 	new->column = column;
-
-	/* Initialise the field data. */
-
-	switch (new->type) {
-	case EDIT_FIELD_TEXT:
-		new->text.sum = 0;
-		break;
-	case EDIT_FIELD_CURRENCY:
-		new->currency = NULL_CURRENCY;
-		break;
-	case EDIT_FIELD_DATE:
-		new->date = NULL_DATE;
-		break;
-	case EDIT_FIELD_ACCOUNT_IN:
-	case EDIT_FIELD_ACCOUNT_OUT:
-		new->account.account = NULL_ACCOUNT;
-		new->account.reconciled = FALSE;
-		break;
-	case EDIT_FIELD_DISPLAY:
-		break;
-	}
 
 	/* Link the icon to the end of it's parent's list of sibling icons. */
 
@@ -693,6 +679,25 @@ static void edit_get_field_content(struct edit_field *field, int line)
 	 */
 
 	if (field->get == NULL || !field->get(transfer)) {
+		switch (field->type) {
+		case EDIT_FIELD_TEXT:
+			field->text.sum = 0;
+			break;
+		case EDIT_FIELD_CURRENCY:
+			field->currency.amount = NULL_CURRENCY;
+			break;
+		case EDIT_FIELD_DATE:
+			field->date.date = NULL_DATE;
+			break;
+		case EDIT_FIELD_ACCOUNT_IN:
+		case EDIT_FIELD_ACCOUNT_OUT:
+			field->account.account = NULL_ACCOUNT;
+			field->account.reconciled = FALSE;
+			break;
+		case EDIT_FIELD_DISPLAY:
+			break;
+		}
+
 		while (icon != NULL) {
 			if (icon->buffer != NULL && icon->length > 0)
 				*(icon->buffer) = '\0';
@@ -709,17 +714,24 @@ static void edit_get_field_content(struct edit_field *field, int line)
 
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:
+		/* The supplied pointer was direct to the icon's buffer, so there's nothing to do. */
+		break;
 	case EDIT_FIELD_TEXT:
+		field->text.sum = edit_sum_field_text(icon->buffer, icon->length);
 		/* The supplied pointer was direct to the icon's buffer, so there's nothing to do. */
 		break;
 	case EDIT_FIELD_CURRENCY:
+		field->currency.amount = transfer->currency.amount;
 		currency_convert_to_string(transfer->currency.amount, icon->buffer, icon->length);
 		break;
 	case EDIT_FIELD_DATE:
+		field->date.date = transfer->date.date;
 		date_convert_to_string(transfer->date.date, icon->buffer, icon->length);
 		break;
 	case EDIT_FIELD_ACCOUNT_IN:
 	case EDIT_FIELD_ACCOUNT_OUT:
+		field->account.account = transfer->account.account;
+		field->account.reconciled = transfer->account.reconciled;
 		if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
 			break;
 		account_fill_field(field->instance->file, transfer->account.account, transfer->account.reconciled,
@@ -741,8 +753,6 @@ static void edit_put_field_content(struct edit_field *field, int line)
 {
 	struct edit_data	*transfer;
 	struct edit_icon	*icon;
-	wimp_i			name, ident, reconcile;
-	enum account_type	type;
 
 	if (field == NULL || field->instance == NULL || field->icon == NULL || field->put == NULL)
 		return;
@@ -769,27 +779,15 @@ static void edit_put_field_content(struct edit_field *field, int line)
 		transfer->text.length = icon->length;
 		break;
 	case EDIT_FIELD_CURRENCY:
-		transfer->currency.amount = currency_convert_from_string(icon->buffer);
+		transfer->currency.amount = field->currency.amount;
 		break;
 	case EDIT_FIELD_DATE:
-		transfer->line = line - 1;
-		if (line <= 0 || field->get == NULL || !field->get(transfer))
-			transfer->date.date = NULL_DATE;
-		transfer->date.date = date_convert_from_string(icon->buffer, transfer->date.date, 0);
-		trabsfer->line = line;
+		transfer->date.date = field->date.date;
 		break;
 	case EDIT_FIELD_ACCOUNT_IN:
 	case EDIT_FIELD_ACCOUNT_OUT:
-		if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
-			break;
-		if (field->type == EDIT_FIELD_ACCOUNT_IN)
-			type = ACCOUNT_IN | ACCOUNT_FULL;
-		else if (field->type == EDIT_FIELD_ACCOUNT_OUT)
-			type = ACCOUNT_OUT | ACCOUNT_FULL;
-		else
-			break;
-		transfer->account.account = account_lookup_field(field->instance->file, 
-
+		transfer->account.account = field->account.account;
+		transfer->account.reconciled = field->account.reconciled;
 		break;
 	}
 
@@ -898,8 +896,6 @@ void edit_set_line_colour(struct edit_block *instance, wimp_colour colour)
 }
 
 
-static void edit_move_caret_up_down(struct edit_block *instance, int direction);
-
 /**
  * Process a keypress in an edit line icon.
  *
@@ -914,7 +910,7 @@ osbool edit_process_keypress(struct edit_block *instance, wimp_key *key)
 	wimp_i		icon;
 	int		transaction, previous;
 
-	if (instance == NULL || instance->file == NULL || instance != edit_active_instance)
+	if (instance == NULL || instance->file == NULL || instance->parent != key->w || instance != edit_active_instance)
 		return FALSE;
 
 
@@ -1084,12 +1080,20 @@ osbool edit_process_keypress(struct edit_block *instance, wimp_key *key)
 	} else {
 		/* Any unrecognised keys get passed on to the final stage. */
 
-//FIXME		edit_process_content_keypress(file, key);
+		edit_process_content_keypress(instance, key);
 	}
 
 	return TRUE;
 }
 
+
+/**
+ * Move the edit line up or down a row.
+ *
+ * \param *instance		The edit line instance to be moved.
+ * \param direction		The direction to move the line: positive for
+ *				up, or negative for down.
+ */
 
 static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 {
@@ -1118,6 +1122,232 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 }
 
 
+/**
+ * Process possible content-editing keypresses in the edit line.
+ *
+ * \param *instance		The edit line instance accepting the keypress.
+ * \param *key			The Wimp's key event data block.
+ */
+
+static void edit_process_content_keypress(struct edit_block *instance, wimp_key *key)
+{
+	struct edit_field	*field;
+
+
+	if (instance == NULL || instance->parent != key->w)
+		return;
+
+	/* Find the field which owns the caret icon. If a field isn't found, return. */
+
+	field = instance->fields;
+
+	while (field != NULL) {
+		if (field->icon != NULL && field->icon->icon == key->i)
+			break;
+
+		field = field->next;
+	}
+
+	if (field == NULL)
+		return;
+
+	/* Process the keypress for the field. */
+
+	switch (field->type) {
+	case EDIT_FIELD_TEXT:
+		edit_process_text_field_keypress(field, key);
+		break;
+	case EDIT_FIELD_DATE:
+		edit_process_date_field_keypress(field, key);
+		break;
+	case EDIT_FIELD_CURRENCY:
+		edit_process_currency_field_keypress(field, key);
+		break;
+	case EDIT_FIELD_ACCOUNT_IN:
+		edit_process_account_field_keypress(field, key, ACCOUNT_IN | ACCOUNT_FULL);
+		break;
+	case EDIT_FIELD_ACCOUNT_OUT:
+		edit_process_account_field_keypress(field, key, ACCOUNT_OUT | ACCOUNT_FULL);
+		break;
+	case EDIT_FIELD_DISPLAY:
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in a text field, passing any changes made back to
+ * the client.
+ *
+ * \param *field		The field to take the keypress.
+ * \param *key			The keypress data from the Wimp.
+ */
+
+static void edit_process_text_field_keypress(struct edit_field *field, wimp_key *key)
+{
+	int	new_sum;
+
+	if (field == NULL || field->icon == NULL || key == NULL)
+		return;
+
+	/* If F1 is pressed, ask the client to help with an autocomplete. */
+
+	if (key->c == wimp_KEY_F1) {
+		//FIXME Process autocomplete.
+		wimp_set_icon_state(key->w, field->icon->icon, 0, 0);
+		icons_replace_caret_in_window(key->w);
+	}
+
+	/* Calculate the new sum from the field; if it's unchanged, exit. */
+
+	new_sum = edit_sum_field_text(field->icon->buffer, field->icon->length);
+
+	if (new_sum == field->text.sum)
+		return;
+
+	/* Save the new sum and tell the client. */
+
+	field->text.sum = new_sum;
+
+	edit_put_field_content(field, field->instance->edit_line);
+}
+
+
+/**
+ * Process keypresses in a date field, passing any changes made back to
+ * the client.
+ *
+ * \param *field		The field to take the keypress.
+ * \param *key			The keypress data from the Wimp.
+ */
+
+static void edit_process_date_field_keypress(struct edit_field *field, wimp_key *key)
+{
+	struct edit_data	*transfer;
+	date_t			new_date, previous_date;
+
+	if (field == NULL || field->instance == NULL || field->icon == NULL || key == NULL)
+		return;
+
+	/* Alpha key presses in a date field are handled as preset shortcuts. */
+
+	if (isalpha(key->c)) {
+		//FIXME Process a preset key...
+		return;
+	}
+
+	/* If F1 is pressed, insert the current date. */
+
+	if (key->c == wimp_KEY_F1) {
+		date_convert_to_string(date_today(), field->icon->buffer, field->icon->length);
+		wimp_set_icon_state(key->w, field->icon->icon, 0, 0);
+		icons_replace_caret_in_window(key->w);
+	}
+
+	/* If there's a Get callback, use it to get the previous line's date for autocompletion. */
+
+	if (field->get != NULL){
+		transfer = &(field->instance->transfer);
+
+		transfer->type = field->type;
+		transfer->line = field->instance->edit_line - 1;
+		transfer->icon = field->icon->icon;
+
+
+		if (field->get(transfer))
+			previous_date = transfer->date.date;
+		else
+			previous_date = NULL_DATE;
+	} else {
+		previous_date = NULL_DATE;
+	}
+
+	/* Calculate the date from the field text; if it's unchanced, exit. */
+
+	new_date = date_convert_from_string(field->icon->buffer, previous_date, 0);
+
+	if (new_date == field->date.date)
+		return;
+
+	/* Save the new date and tell the client. */
+
+	field->date.date = new_date;
+
+	edit_put_field_content(field, field->instance->edit_line);
+}
+
+
+/**
+ * Process keypresses in a currency field, passing any changes made back to
+ * the client.
+ *
+ * \param *field		The field to take the keypress.
+ * \param *key			The keypress data from the Wimp.
+ */
+
+static void edit_process_currency_field_keypress(struct edit_field *field, wimp_key *key)
+{
+	amt_t	new_amount;
+
+	if (field == NULL || field->icon == NULL || key == NULL)
+		return;
+
+	/* Calculate the new amount from the field text; if it's unchaned, exit. */
+
+	new_amount = currency_convert_from_string(field->icon->buffer);
+
+	if (new_amount == field->currency.amount)
+		return;
+
+	/* Save the new amount and tell the client. */
+
+	field->currency.amount = new_amount;
+
+	edit_put_field_content(field, field->instance->edit_line);
+}
+
+
+/**
+ * Process keypresses in an account field, passing any changes made back to
+ * the client.
+ *
+ * \param *field		The field to take the keypress.
+ * \param *key			The keypress data from the Wimp.
+ * \param type			The types of account applicable to the field.
+ */
+
+static void edit_process_account_field_keypress(struct edit_field *field, wimp_key *key, enum account_type type)
+{
+	acct_t	new_account;
+	bool	new_reconciled;
+	wimp_i	ident, reconcile, name;
+
+	if (field == NULL || field->icon == NULL || key == NULL)
+		return;
+
+	/* Identify the field icon handles */
+
+	if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
+		return;
+
+	/* Look up the new account and reconciled status; if it's unchanged, exit. */
+
+	new_account = account_lookup_field(field->instance->file, key->c, type, field->account.account, &new_reconciled,
+			key->w, ident, name, reconcile);
+
+	if (new_account == field->account.account && new_reconciled == field->account.reconciled)
+		return;
+
+	/* Save the new account and reconciled status, and tell the client. */
+
+	field->account.account = new_account;
+	field->account.reconciled = new_reconciled;
+
+	edit_put_field_content(field, field->instance->edit_line);
+}
+
+
+
 
 static osbool edit_callback_test_line(struct edit_block *instance, int line)
 {
@@ -1135,6 +1365,25 @@ static osbool edit_callback_place_line(struct edit_block *instance, int line)
 
 	return instance->callbacks->place_line(line, instance->transfer.data);
 };
+
+
+static int edit_sum_field_text(char *text, size_t length)
+{
+	int	sum = 0;
+	char	*end = text + length;
+
+	while (text < end && *text >= os_VDU_SPACE)
+		sum += *(text++);
+
+	return sum;
+}
+
+
+
+
+
+
+
 
 
 #ifdef LOSE
@@ -1819,6 +2068,8 @@ static void edit_process_content_keypress(struct file_block *file, wimp_key *key
 			(key->c == '+' || key->c == '=' || key->c == '-' || key->c == '_'))
 		transact_find_next_reconcile_line(file, FALSE);
 }
+
+
 
 
 #endif

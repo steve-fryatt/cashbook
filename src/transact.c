@@ -403,13 +403,9 @@ static void			transact_find_edit_line_vertically(struct transact_block *windat);
 static wimp_colour		transact_line_colour(struct transact_block *windat, int line);
 static wimp_i			transact_convert_preset_icon_number(enum preset_caret caret);
 static char			*transact_complete_description(struct file_block *file, int line, char *buffer, size_t length);
-static osbool			transact_edit_get_row(struct edit_data *data);
-static osbool			transact_edit_get_date(struct edit_data *data);
-static osbool			transact_edit_get_from(struct edit_data *data);
-static osbool			transact_edit_get_to(struct edit_data *data);
-static osbool			transact_edit_get_reference(struct edit_data *data);
-static osbool			transact_edit_get_amount(struct edit_data *data);
-static osbool			transact_edit_get_description(struct edit_data *data);
+static osbool			transact_edit_get_field(struct edit_data *data);
+static osbool			transact_edit_put_simple_field(struct edit_data *data);
+static osbool			transact_edit_put_calc_field(struct edit_data *data);
 static osbool			transact_edit_get_valid_line(int line, void *data);
 
 /**
@@ -611,23 +607,23 @@ void transact_open_window(struct file_block *file)
 		return;
 	}
 
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, 0, transact_edit_get_row, NULL,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, 0, transact_edit_get_field, NULL,
 			TRANSACT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, 1, transact_edit_get_date, NULL,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, 1, transact_edit_get_field, transact_edit_put_calc_field,
 			TRANSACT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_IN, 2, transact_edit_get_from, NULL,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_IN, 2, transact_edit_get_field, transact_edit_put_calc_field,
 			TRANSACT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
 			TRANSACT_ICON_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
 			TRANSACT_ICON_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_OUT, 5, transact_edit_get_to, NULL,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_OUT, 5, transact_edit_get_field, transact_edit_put_calc_field,
 			TRANSACT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
 			TRANSACT_ICON_TO_REC, transact_buffer_to_rec, REC_FIELD_LEN,
 			TRANSACT_ICON_TO_NAME, transact_buffer_to_name, ACCOUNT_NAME_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 8, transact_edit_get_reference, NULL,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 8, transact_edit_get_field, transact_edit_put_simple_field,
 			TRANSACT_ICON_REFERENCE, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, 9, transact_edit_get_amount, NULL,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, 9, transact_edit_get_field, transact_edit_put_calc_field,
 			TRANSACT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 10, transact_edit_get_description, NULL,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 10, transact_edit_get_field, transact_edit_put_simple_field,
 			TRANSACT_ICON_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	if (!edit_complete(file->transacts->edit_line)) {
@@ -5191,15 +5187,20 @@ static char *transact_complete_description(struct file_block *file, int line, ch
 	return buffer;
 }
 
-static osbool transact_edit_get_row(struct edit_data *data)
+
+/**
+ * Handle requests for field data from the edit line.
+ *
+ * \param *data			The data request block.
+ * \return			TRUE if valid data was returned; FALSE if not.
+ */
+
+static osbool transact_edit_get_field(struct edit_data *data)
 {
 	tran_t			t;
 	struct transact_block	*windat;
 
-	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_DISPLAY)
-		return FALSE;
-
-	if (data->display.text == NULL || data->display.length == 0)
+	if (data == NULL || data->data == NULL)
 		return FALSE;
 
 	windat = data->data;
@@ -5209,139 +5210,86 @@ static osbool transact_edit_get_row(struct edit_data *data)
 
 	t = windat->transactions[data->line].sort_index;
 
-	snprintf(data->display.text, data->display.length, "%d", transact_get_transaction_number(t));
-	data->display.text[data->display.length - 1] = '\0';
+	switch (data->icon) {
+	case TRANSACT_ICON_ROW:
+		if (data->type != EDIT_FIELD_DISPLAY || data->display.text == NULL || data->display.length == 0)
+			return FALSE;
+
+		snprintf(data->display.text, data->display.length, "%d", transact_get_transaction_number(t));
+		data->display.text[data->display.length - 1] = '\0';
+		break;
+	case TRANSACT_ICON_DATE:
+		if (data->type != EDIT_FIELD_DATE)
+			return FALSE;
+
+		data->date.date = windat->transactions[t].date;
+		break;
+	case TRANSACT_ICON_FROM:
+		if (data->type != EDIT_FIELD_ACCOUNT_IN)
+			return FALSE;
+
+		data->account.account = windat->transactions[t].from;
+		data->account.reconciled = (windat->transactions[t].flags & TRANS_REC_FROM) ? TRUE : FALSE;
+		break;
+	case TRANSACT_ICON_TO:
+		if (data->type != EDIT_FIELD_ACCOUNT_OUT)
+			return FALSE;
+
+		data->account.account = windat->transactions[t].to;
+		data->account.reconciled = (windat->transactions[t].flags & TRANS_REC_TO) ? TRUE : FALSE;
+		break;
+	case TRANSACT_ICON_AMOUNT:
+		if (data->type != EDIT_FIELD_CURRENCY)
+			return FALSE;
+
+		data->currency.amount = windat->transactions[t].amount;
+		break;
+	case TRANSACT_ICON_REFERENCE:
+		if (data->type != EDIT_FIELD_TEXT || data->display.text == NULL || data->display.length == 0)
+			return FALSE;
+
+		strncpy(data->text.text, windat->transactions[t].reference, data->text.length);
+		data->display.text[data->display.length - 1] = '\0';
+		break;
+	case TRANSACT_ICON_DESCRIPTION:
+		if (data->type != EDIT_FIELD_TEXT || data->display.text == NULL || data->display.length == 0)
+			return FALSE;
+
+		strncpy(data->text.text, windat->transactions[t].description, data->text.length);
+		data->display.text[data->display.length - 1] = '\0';
+		break;
+	}
 
 	return TRUE;
 }
 
-static osbool transact_edit_get_date(struct edit_data *data)
+
+/**
+ * Handle returned field data from the edit line, for non-calculating fields.
+ *
+ * \param *data			The data submit block.
+ * \return			TRUE if valid data was returned; FALSE if not.
+ */
+
+static osbool transact_edit_put_simple_field(struct edit_data *data)
 {
-	tran_t			t;
-	struct transact_block	*windat;
-
-	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_DATE)
-		return FALSE;
-
-	windat = data->data;
-
-	if (!transact_valid(windat, data->line))
-		return FALSE;
-
-	t = windat->transactions[data->line].sort_index;
-
-	data->date.date = windat->transactions[t].date;
-
-	return TRUE;
+	
 }
 
-static osbool transact_edit_get_from(struct edit_data *data)
+
+/**
+ * Handle returned field data from the edit line, for calculating fields.
+ *
+ * \param *data			The data submit block.
+ * \return			TRUE if valid data was returned; FALSE if not.
+ */
+
+static osbool transact_edit_put_calc_field(struct edit_data *data)
 {
-	tran_t			t;
-	struct transact_block	*windat;
-
-	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_ACCOUNT_IN)
-		return FALSE;
-
-	windat = data->data;
-
-	if (!transact_valid(windat, data->line))
-		return FALSE;
-
-	t = windat->transactions[data->line].sort_index;
-
-	data->account.account = windat->transactions[t].from;
-	data->account.reconciled = (windat->transactions[t].flags & TRANS_REC_FROM) ? TRUE : FALSE;
-
-	return TRUE;
+	
 }
 
-static osbool transact_edit_get_to(struct edit_data *data)
-{
-	tran_t			t;
-	struct transact_block	*windat;
 
-	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_ACCOUNT_OUT)
-		return FALSE;
-
-	windat = data->data;
-
-	if (!transact_valid(windat, data->line))
-		return FALSE;
-
-	t = windat->transactions[data->line].sort_index;
-
-	data->account.account = windat->transactions[t].to;
-	data->account.reconciled = (windat->transactions[t].flags & TRANS_REC_TO) ? TRUE : FALSE;
-
-	return TRUE;
-}
-
-static osbool transact_edit_get_reference(struct edit_data *data)
-{
-	tran_t			t;
-	struct transact_block	*windat;
-
-	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_TEXT)
-		return FALSE;
-
-	if (data->display.text == NULL || data->display.length == 0)
-		return FALSE;
-
-	windat = data->data;
-
-	if (!transact_valid(windat, data->line))
-		return FALSE;
-
-	t = windat->transactions[data->line].sort_index;
-
-	strncpy(data->text.text, windat->transactions[t].reference, data->text.length);
-
-	return TRUE;
-}
-
-static osbool transact_edit_get_amount(struct edit_data *data)
-{
-	tran_t			t;
-	struct transact_block	*windat;
-
-	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_CURRENCY)
-		return FALSE;
-
-	windat = data->data;
-
-	if (!transact_valid(windat, data->line))
-		return FALSE;
-
-	t = windat->transactions[data->line].sort_index;
-
-	data->currency.amount = windat->transactions[t].amount;
-
-	return TRUE;
-}
-
-static osbool transact_edit_get_description(struct edit_data *data)
-{
-	tran_t			t;
-	struct transact_block	*windat;
-
-	if (data == NULL || data->data == NULL || data->type != EDIT_FIELD_TEXT)
-		return FALSE;
-
-	if (data->display.text == NULL || data->display.length == 0)
-		return FALSE;
-
-	windat = data->data;
-
-	if (!transact_valid(windat, data->line))
-		return FALSE;
-
-	t = windat->transactions[data->line].sort_index;
-
-	strncpy(data->text.text, windat->transactions[t].description, data->text.length);
-
-	return TRUE;
-}
 
 static osbool transact_edit_get_valid_line(int line, void *data)
 {

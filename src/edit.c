@@ -207,6 +207,7 @@ static osbool edit_callback_test_line(struct edit_block *instance, int line);
 static osbool edit_callback_place_line(struct edit_block *instance, int line);
 
 static int edit_sum_field_text(char *text, size_t length);
+static struct edit_field *edit_find_previous_field(struct edit_field *field);
 
 #ifdef LOSE
 static void			edit_find_icon_horizontally(struct file_block *file);
@@ -1391,6 +1392,27 @@ static int edit_sum_field_text(char *text, size_t length)
 }
 
 
+/**
+ * Find the field before a given field in an edit line.
+ * 
+ * \param *field		The field to search from.
+ * \return			The field before the given field, or NULL.
+ */
+
+static struct edit_field *edit_find_previous_field(struct edit_field *field)
+{
+	struct edit_field	*previous;
+
+	if (field == NULL || field->instance == NULL)
+		return NULL;
+
+	previous = field->instance->fields;
+
+	while (previous != NULL && previous->next != field)
+		previous = previous->next;
+
+	return previous;
+}
 
 
 

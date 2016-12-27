@@ -193,6 +193,8 @@ static struct edit_block *edit_active_instance = NULL;
 static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
 static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colour colour);
 static void edit_move_caret_up_down(struct edit_block *instance, int direction);
+static void edit_move_caret_forward(struct edit_block *instance);
+static void edit_move_caret_back(struct edit_block *instance);
 static void edit_process_content_keypress(struct edit_block *instance, wimp_key *key);
 static void edit_process_text_field_keypress(struct edit_field *field, wimp_key *key);
 static void edit_process_date_field_keypress(struct edit_field *field, wimp_key *key);
@@ -207,7 +209,14 @@ static osbool edit_callback_test_line(struct edit_block *instance, int line);
 static osbool edit_callback_place_line(struct edit_block *instance, int line);
 
 static int edit_sum_field_text(char *text, size_t length);
+
+static struct edit_field *edit_find_caret(struct edit_block *instance);
+static struct edit_field *edit_find_last_field(struct edit_field *field);
+static struct edit_field *edit_find_next_field(struct edit_field *field);
 static struct edit_field *edit_find_previous_field(struct edit_field *field);
+static struct edit_field *edit_find_first_field(struct edit_field *field);
+static osbool edit_is_field_writable(struct edit_field *field);
+
 
 #ifdef LOSE
 static void			edit_find_icon_horizontally(struct file_block *file);
@@ -836,36 +845,14 @@ osbool edit_process_keypress(struct edit_block *instance, wimp_key *key)
 				edit_find_line_vertically(file);
 			}
 		}
+#endif
 	} else if (key->c == (wimp_KEY_TAB + wimp_KEY_SHIFT)) {
-
 		/* Shift-Tab key -- move the caret back to the previous icon,
 		 * refreshing the icon moved from first.  Wrap up at the start
 		 * of a line.
 		 */
 
-		if (edit_entry_window == file->transacts) {
-			wimp_get_caret_position(&caret);
-			edit_refresh_line_content(edit_entry_window->transaction_window, caret.i, -1);
-
-			if (caret.i > EDIT_ICON_DATE) {
-				icon = caret.i - 1;
-				if (icon == EDIT_ICON_TO_NAME)
-					icon = EDIT_ICON_TO;
-				if (icon == EDIT_ICON_FROM_NAME)
-					icon = EDIT_ICON_FROM;
-
-				icons_put_caret_at_end(edit_entry_window->transaction_window, icon);
-				edit_find_icon_horizontally(file);
-				edit_find_line_vertically(file);
-			} else {
-				if (file->transacts->entry_line > 0) {
-					edit_place_new_line(edit, file, file->transacts->entry_line - 1);
-					icons_put_caret_at_end(edit_entry_window->transaction_window, EDIT_ICON_DESCRIPT);
-					edit_find_icon_horizontally(file);
-				}
-			}
-		}
-#endif
+		edit_move_caret_back(instance);
 	} else if (key->c == wimp_KEY_F12 ||
 			key->c == (wimp_KEY_SHIFT + wimp_KEY_F12)  ||
 			key->c == (wimp_KEY_CONTROL + wimp_KEY_F12) ||
@@ -918,6 +905,41 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 	wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y + (direction * WINDOW_ROW_HEIGHT), -1, -1);
 }
 
+static void edit_move_caret_forward(struct edit_block *instance)
+{
+
+}
+
+static void edit_move_caret_back(struct edit_block *instance)
+{
+	struct edit_field	*field, *previous;
+
+	if (instance == NULL)
+		return;
+
+	field = edit_find_caret(instance);
+	if (field == NULL || field->icon == NULL)
+		return;
+
+	edit_refresh_line_contents(instance, field->icon->icon, -1);
+
+	previous = edit_find_previous_field(field);
+
+	if (previous != NULL) {
+		icons_put_caret_at_end(instance->parent, previous->icon->icon);
+//FIXME		edit_find_icon_horizontally(file);
+//FIXME		edit_find_line_vertically(file);
+	} else if (instance->edit_line > 0) {
+		previous = edit_find_last_field(field);
+
+		if (previous != NULL) {
+			edit_callback_place_line(instance, instance->edit_line - 1);
+			icons_put_caret_at_end(instance->parent, previous->icon->icon);
+//FIXME			edit_find_icon_horizontally(file);
+//FIXME			edit_find_line_vertically(file);
+		}
+	}
+}
 
 /**
  * Process possible content-editing keypresses in the edit line.
@@ -1393,7 +1415,93 @@ static int edit_sum_field_text(char *text, size_t length)
 
 
 /**
- * Find the field before a given field in an edit line.
+ * Find the field in an instance which contains the caret.
+ * 
+ * \param *instance		The edit line to search.
+ * \return			The field containing the caret, or NULL.
+ */
+
+static struct edit_field *edit_find_caret(struct edit_block *instance)
+{
+	wimp_caret		caret;
+	struct edit_icon	*icon;
+
+	if (instance == NULL)
+		return NULL;
+
+	wimp_get_caret_position(&caret);
+
+	icon = instance->icons;
+
+	while (icon != NULL && icon->icon != caret.i)
+		icon = icon->next;
+
+	if (icon == NULL)
+		return NULL;
+
+	return icon->parent;
+}
+
+
+/**
+ * Find the last writable field in an edit line containing a given field, in terms
+ * of the user-facing order. This means that the field will be at the start of the
+ * field list, as fields are linked in reverse order.
+ * 
+ * \param *field		The field to search from.
+ * \return			The field before the given field, or NULL.
+ */
+
+static struct edit_field *edit_find_last_field(struct edit_field *field)
+{
+	struct edit_field	*last;
+
+	if (field == NULL || field->instance == NULL)
+		return NULL;
+
+	last = field->instance->fields;
+
+	while (last != NULL && !edit_is_field_writable(last))
+		last = last->next;
+
+	return last;
+}
+
+
+/**
+ * Find the first writable field after a given field in an edit line, in terms
+ * of the user-facing order. This means that the field will be earlier in the
+ * field list, as fields are linked in reverse order.
+ * 
+ * \param *field		The field to search from.
+ * \return			The field before the given field, or NULL.
+ */
+
+static struct edit_field *edit_find_next_field(struct edit_field *field)
+{
+	struct edit_field	*next, *next_writable;
+
+	if (field == NULL || field->instance == NULL)
+		return NULL;
+
+	next = field->instance->fields;
+	next_writable = NULL;
+
+	while (next != NULL && next->next != field) {
+		if (edit_is_field_writable(next))
+			next_writable = next;
+
+		next = next->next;
+	}
+
+	return next_writable;
+}
+
+
+/**
+ * Find the first writable field before a given field in an edit line, in terms
+ * of the user-facing order. This means that the field will be later in the
+ * field list, as fields are linked in reverse order.
  * 
  * \param *field		The field to search from.
  * \return			The field before the given field, or NULL.
@@ -1406,16 +1514,64 @@ static struct edit_field *edit_find_previous_field(struct edit_field *field)
 	if (field == NULL || field->instance == NULL)
 		return NULL;
 
-	previous = field->instance->fields;
+	previous = field->next;
 
-	while (previous != NULL && previous->next != field)
+	while (previous != NULL && !edit_is_field_writable(previous))
 		previous = previous->next;
 
 	return previous;
 }
 
 
+/**
+ * Find the first writable field in an edit line containing a given field, in terms
+ * of the user-facing order. This means that the field will be at the end of the
+ * field list, as fields are linked in reverse order.
+ * 
+ * \param *field		The field to search from.
+ * \return			The field before the given field, or NULL.
+ */
 
+static struct edit_field *edit_find_first_field(struct edit_field *field)
+{
+	struct edit_field	*first, *first_writable;
+
+	if (field == NULL || field->instance == NULL)
+		return NULL;
+
+	first = field->next;
+	first_writable = NULL;
+
+	while (first != NULL && first->next != NULL) {
+		if (edit_is_field_writable(first))
+			first_writable = first;
+
+		first = first->next;
+	}
+
+	return first_writable;
+}
+
+
+/**
+ * Test to see if a given field has a writable icon in its first location. The
+ * icon must be of type Writable Click/Drag.
+ * 
+ * \param *field		The field to test.
+ * \return			TRUE if the field is writable; FALSE if not.
+ */
+
+static osbool edit_is_field_writable(struct edit_field *field)
+{
+	if (field == NULL || field->instance == NULL || field->icon == NULL)
+		return FALSE;
+
+	if (field->instance->template == NULL)
+		return FALSE;
+
+	return (((field->instance->template->icons[field->icon->icon].flags & wimp_ICON_BUTTON_TYPE) >> wimp_ICON_BUTTON_TYPE_SHIFT) ==
+			wimp_BUTTON_WRITE_CLICK_DRAG) ? TRUE : FALSE;
+}
 
 
 

@@ -729,14 +729,14 @@ osbool edit_process_keypress(struct edit_block *instance, wimp_key *key)
 		edit_move_caret_up_down(instance, -1);
 	} else if (key->c == wimp_KEY_DOWN) {
 		edit_move_caret_up_down(instance, +1);
-#ifdef LOSE
 	} else if (key->c == wimp_KEY_RETURN || key->c == wimp_KEY_TAB || key->c == wimp_KEY_TAB + wimp_KEY_CONTROL) {
-
 		/* Return and Tab keys -- move the caret into the next icon,
 		 * refreshing the icon it was moved from first.  Wrap at the end
 		 * of a line.
 		 */
+		 edit_move_caret_forward(instance);
 
+#ifdef LOSE
 		if (edit_entry_window == file->transacts) {
 			wimp_get_caret_position(&caret);
 			if ((osbyte1(osbyte_SCAN_KEYBOARD, 129, 0) == 0xff) && (file->transacts->entry_line > 0)) {
@@ -907,7 +907,33 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 
 static void edit_move_caret_forward(struct edit_block *instance)
 {
+	struct edit_field	*field, *next;
 
+	if (instance == NULL)
+		return;
+
+	field = edit_find_caret(instance);
+	if (field == NULL || field->icon == NULL)
+		return;
+
+	edit_refresh_line_contents(instance, field->icon->icon, -1);
+
+	next = edit_find_next_field(field);
+
+	if (next != NULL) {
+		icons_put_caret_at_end(instance->parent, next->icon->icon);
+//FIXME		edit_find_icon_horizontally(file);
+//FIXME		edit_find_line_vertically(file);
+	} else {
+		next = edit_find_first_field(field);
+
+		if (next != NULL) {
+			edit_callback_place_line(instance, instance->edit_line + 1);
+			icons_put_caret_at_end(instance->parent, next->icon->icon);
+//FIXME			edit_find_icon_horizontally(file);
+//FIXME			edit_find_line_vertically(file);
+		}
+	}
 }
 
 static void edit_move_caret_back(struct edit_block *instance)
@@ -1487,7 +1513,7 @@ static struct edit_field *edit_find_next_field(struct edit_field *field)
 	next = field->instance->fields;
 	next_writable = NULL;
 
-	while (next != NULL && next->next != field) {
+	while (next != NULL && next != field) {
 		if (edit_is_field_writable(next))
 			next_writable = next;
 

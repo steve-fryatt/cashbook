@@ -193,7 +193,7 @@ static struct edit_block *edit_active_instance = NULL;
 static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
 static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colour colour);
 static void edit_move_caret_up_down(struct edit_block *instance, int direction);
-static void edit_move_caret_forward(struct edit_block *instance);
+static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key);
 static void edit_move_caret_back(struct edit_block *instance);
 static void edit_process_content_keypress(struct edit_block *instance, wimp_key *key);
 static void edit_process_text_field_keypress(struct edit_field *field, wimp_key *key);
@@ -712,13 +712,8 @@ void edit_set_line_colour(struct edit_block *instance, wimp_colour colour)
 
 osbool edit_process_keypress(struct edit_block *instance, wimp_key *key)
 {
-	wimp_caret	caret;
-	wimp_i		icon;
-	int		transaction, previous;
-
 	if (instance == NULL || instance->file == NULL || instance->parent != key->w || instance != edit_active_instance)
 		return FALSE;
-
 
 	if (key->c == wimp_KEY_CONTROL + wimp_KEY_F10) {
 
@@ -734,7 +729,7 @@ osbool edit_process_keypress(struct edit_block *instance, wimp_key *key)
 		 * refreshing the icon it was moved from first.  Wrap at the end
 		 * of a line.
 		 */
-		 edit_move_caret_forward(instance);
+		 edit_move_caret_forward(instance, key);
 
 #ifdef LOSE
 		if (edit_entry_window == file->transacts) {
@@ -905,7 +900,7 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 	wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y + (direction * WINDOW_ROW_HEIGHT), -1, -1);
 }
 
-static void edit_move_caret_forward(struct edit_block *instance)
+static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 {
 	struct edit_field	*field, *next;
 
@@ -916,7 +911,11 @@ static void edit_move_caret_forward(struct edit_block *instance)
 	if (field == NULL || field->icon == NULL)
 		return;
 
+//FIXME -- Ctrl + Key copies down from previous field.
+
 	edit_refresh_line_contents(instance, field->icon->icon, -1);
+
+//FIXME -- Return does an auto sort on the window data.
 
 	next = edit_find_next_field(field);
 
@@ -928,7 +927,7 @@ static void edit_move_caret_forward(struct edit_block *instance)
 		next = edit_find_first_field(field);
 
 		if (next != NULL) {
-			edit_callback_place_line(instance, instance->edit_line + 1);
+			edit_callback_place_line(instance, instance->edit_line + 1); //FIXME - Return jumps to first empty line.
 			icons_put_caret_at_end(instance->parent, next->icon->icon);
 //FIXME			edit_find_icon_horizontally(file);
 //FIXME			edit_find_line_vertically(file);

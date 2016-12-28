@@ -938,7 +938,6 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 			edit_callback_place_line(instance, instance->edit_line + 1); //FIXME - Return jumps to first empty line.
 			icons_put_caret_at_end(instance->parent, next->icon->icon);
 			edit_find_field_horizontally(next);
-//FIXME			edit_find_line_vertically(file);
 		}
 	}
 }
@@ -969,7 +968,6 @@ static void edit_move_caret_back(struct edit_block *instance)
 			edit_callback_place_line(instance, instance->edit_line - 1);
 			icons_put_caret_at_end(instance->parent, previous->icon->icon);
 			edit_find_field_horizontally(previous);
-//FIXME			edit_find_line_vertically(file);
 		}
 	}
 }

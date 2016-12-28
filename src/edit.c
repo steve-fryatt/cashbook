@@ -72,7 +72,8 @@
 
 /**
  * The number of transfer blocks associated with an edit line instance, which determines
- * how many concurrent data get or put operations can be happening.
+ * how many concurrent data get or put operations can be happening. This allows for
+ * one operation to trigger another in a nested manner.
  */
 
 #define EDIT_TRANSFER_BLOCKS 2
@@ -161,6 +162,9 @@ struct edit_icon {
 
 /**
  * A data transfer block, holding the public facing data block and associated metadata.
+ * Blocks are allocated to get and put operations on a first-come, first-served basis
+ * to allow more than one operation to be running concurrently (such as if one operation
+ * triggers a nested one).
  */
 
 struct edit_transfer {

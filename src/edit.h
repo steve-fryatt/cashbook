@@ -86,16 +86,36 @@ struct edit_data {
 struct edit_callback {
 	/**
 	 * Check with the client whether a line number is in range.
+	 * 
+	 * \param line			The line number to be tested, in terms of current sort order.
+	 * \param *data			Client-specific data.
+	 * \return			TRUE if successful; FALSE on error.
 	 */
 
-	osbool			(*test_line)(int, void *);
+	osbool			(*test_line)(int line, void *data);
 
 	/**
 	 * Request that the client places the edit line at a new location and
 	 * then brings it into view.
+	 *
+ 	 * \param line			The line number to place the edit line at.
+	 * \param *data			Client-specific data.
+	 * \return			TRUE if successful; FALSE on error.
 	 */
 
-	osbool			(*place_line)(int, void *);
+	osbool			(*place_line)(int line, void *data);
+
+	/**
+	 * Request that the client adjusts the horizontal positioning of its
+	 * window such that the supplied coordinates are in range.
+	 * 
+	 * \param xmin			The minimum X window coordinate, in OS units.
+	 * \param xmax			The maximum X window coordinate, in OS units.
+	 * \param *data			Client-specific data.
+	 * \return			TRUE if successful; FALSE on error.
+	 */
+
+	osbool			(*find_field)(int xmin, int xmax, void *data);
 };
 
 /**

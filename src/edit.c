@@ -205,6 +205,7 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
 static void edit_put_field_content(struct edit_field *field, int line);
 static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
 
+static osbool edit_find_field_horizontally(struct edit_field *field);
 static osbool edit_callback_test_line(struct edit_block *instance, int line);
 static osbool edit_callback_place_line(struct edit_block *instance, int line);
 
@@ -911,6 +912,14 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 	if (field == NULL || field->icon == NULL)
 		return;
 
+	/* If Ctrl is pressed, copy the field contents down from the line above. */
+
+	if ((osbyte1(osbyte_SCAN_KEYBOARD, 129, 0) == 0xff) && (instance->edit_line > 0)) {
+
+	}
+
+
+
 //FIXME -- Ctrl + Key copies down from previous field.
 
 	edit_refresh_line_contents(instance, field->icon->icon, -1);
@@ -921,7 +930,7 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 
 	if (next != NULL) {
 		icons_put_caret_at_end(instance->parent, next->icon->icon);
-//FIXME		edit_find_icon_horizontally(file);
+		edit_find_field_horizontally(next);
 //FIXME		edit_find_line_vertically(file);
 	} else {
 		next = edit_find_first_field(field);
@@ -929,7 +938,7 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 		if (next != NULL) {
 			edit_callback_place_line(instance, instance->edit_line + 1); //FIXME - Return jumps to first empty line.
 			icons_put_caret_at_end(instance->parent, next->icon->icon);
-//FIXME			edit_find_icon_horizontally(file);
+			edit_find_field_horizontally(next);
 //FIXME			edit_find_line_vertically(file);
 		}
 	}
@@ -952,7 +961,7 @@ static void edit_move_caret_back(struct edit_block *instance)
 
 	if (previous != NULL) {
 		icons_put_caret_at_end(instance->parent, previous->icon->icon);
-//FIXME		edit_find_icon_horizontally(file);
+		edit_find_field_horizontally(previous);
 //FIXME		edit_find_line_vertically(file);
 	} else if (instance->edit_line > 0) {
 		previous = edit_find_last_field(field);
@@ -960,7 +969,7 @@ static void edit_move_caret_back(struct edit_block *instance)
 		if (previous != NULL) {
 			edit_callback_place_line(instance, instance->edit_line - 1);
 			icons_put_caret_at_end(instance->parent, previous->icon->icon);
-//FIXME			edit_find_icon_horizontally(file);
+			edit_find_field_horizontally(previous);
 //FIXME			edit_find_line_vertically(file);
 		}
 	}
@@ -1406,6 +1415,49 @@ static osbool edit_get_field_icons(struct edit_field *field, int icons, ...)
 
 	return (icon != NULL || icons != 0) ? FALSE : TRUE;
 }
+
+
+/**
+ * Bring a field in an edit line into view horizontally.
+ *
+ * \param *field		The field to be brought into view.
+ */
+
+static osbool edit_find_field_horizontally(struct edit_field *field)
+{
+	int			xmin, xmax;
+	struct edit_icon	*icon;
+
+	if (field == NULL || field->instance == NULL || field->instance->callbacks == NULL || field->instance->callbacks->find_field == NULL)
+		return FALSE;
+
+	/* Identify the first icon and get its min and max X coordinates. */
+
+	icon = field->icon;
+	if (icon == NULL)
+		return FALSE;
+
+	xmin = field->instance->columns->position[icon->column];
+	xmax = xmin + field->instance->columns->width[icon->column];
+
+	/* Now process any additional icons, expanding the horizontal extent as required. */
+
+	icon = icon->sibling;
+
+	while (icon != NULL) {
+		if (field->instance->columns->position[icon->column] < xmin)
+			xmin = field->instance->columns->position[icon->column];
+
+		if (field->instance->columns->position[icon->column] + field->instance->columns->width[icon->column] > xmax)
+			xmax = field->instance->columns->position[icon->column] + field->instance->columns->width[icon->column];
+
+		icon = icon->sibling;
+	}
+
+	return field->instance->callbacks->find_field(xmin, xmax, field->instance->transfer.data);
+}
+
+
 
 
 

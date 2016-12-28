@@ -405,7 +405,8 @@ static wimp_i			transact_convert_preset_icon_number(enum preset_caret caret);
 static char			*transact_complete_description(struct file_block *file, int line, char *buffer, size_t length);
 static osbool			transact_edit_get_field(struct edit_data *data);
 static osbool			transact_edit_put_field(struct edit_data *data);
-static osbool			transact_edit_get_valid_line(int line, void *data);
+static osbool			transact_edit_test_line(int line, void *data);
+static osbool			transact_edit_find_field(int xmin, int xmax, void *data);
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -451,8 +452,9 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_save_csv);
 	transact_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", transact_save_tsv);
 
-	transact_edit_callbacks.test_line = transact_edit_get_valid_line;
+	transact_edit_callbacks.test_line = transact_edit_test_line;
 	transact_edit_callbacks.place_line = transact_edit_place_line;
+	transact_edit_callbacks.find_field = transact_edit_find_field;
 }
 
 
@@ -5481,7 +5483,7 @@ static osbool transact_edit_put_field(struct edit_data *data)
 
 
 
-static osbool transact_edit_get_valid_line(int line, void *data)
+static osbool transact_edit_test_line(int line, void *data)
 {
 	struct transact_block	*windat = data;
 
@@ -5489,4 +5491,86 @@ static osbool transact_edit_get_valid_line(int line, void *data)
 		return FALSE;
 
 	return (transact_valid(windat, line)) ? TRUE : FALSE;
+}
+
+
+static osbool transact_edit_find_field(int xmin, int xmax, void *data)
+{
+	struct transact_block	*windat = data;
+	wimp_window_state	window;
+	int			icon_width, window_width, window_xmin, window_xmax;
+
+	if (windat == NULL)
+		return FALSE;
+
+//	wimp_icon_state		icon;
+//	wimp_caret		caret;
+//	int			icon_width, icon_xmin, icon_xmax, icon_target, group;
+
+
+
+	window.w = windat->transaction_window;
+	wimp_get_window_state(&window);
+//	wimp_get_caret_position(&caret);
+
+//	if (caret.w != window.w || caret.i == -1)
+//		return;
+
+	/* Find the group holding the current icon. */
+
+//	group = 0;
+//	while (caret.i > column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, group))
+//		group++;
+
+	/* Get the left hand icon dimension */
+
+//	icon.w = window.w;
+//	icon.i = column_get_leftmost_in_group(TRANSACT_PANE_COL_MAP, group);
+//	wimp_get_icon_state(&icon);
+//	icon_xmin = icon.icon.extent.x0;
+
+	/* Get the right hand icon dimension */
+
+//	icon.w = window.w;
+//	icon.i = column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, group);
+//	wimp_get_icon_state(&icon);
+//	icon_xmax = icon.icon.extent.x1;
+
+	icon_width = xmax - xmin;
+
+	/* Establish the window dimensions. */
+
+	window_width = window.visible.x1 - window.visible.x0;
+	window_xmin = window.xscroll;
+	window_xmax = window.xscroll + window_width;
+
+	if (window_width > icon_width) {
+		/* If the icon group fits into the visible window, just pull the overlap into view. */
+
+		if (xmin < window_xmin) {
+			window.xscroll = xmin;
+			wimp_open_window((wimp_open *) &window);
+		} else if (xmax > window_xmax) {
+			window.xscroll = xmax - window_width;
+			wimp_open_window((wimp_open *) &window);
+		}
+	} else {
+		/* If the icon is bigger than the window, however, get the justification end of the icon and ensure that it
+		 * is aligned against that side of the window.
+		 */
+
+//FIXME		icon.w = window.w;
+//FIXME		icon.i = caret.i;
+//FIXME		wimp_get_icon_state(&icon);
+
+//FIXME		icon_target = (icon.icon.flags & wimp_ICON_RJUSTIFIED) ? icon.icon.extent.x1 : icon.icon.extent.x0;
+
+//FIXME		if ((icon_target < window_xmin || icon_target > window_xmax) && !(icon.icon.flags & wimp_ICON_RJUSTIFIED)) {
+//FIXME			window.xscroll = icon_target;
+//FIXME			wimp_open_window((wimp_open *) &window);
+//FIXME		} else if ((icon_target < window_xmin || icon_target > window_xmax) && (icon.icon.flags & wimp_ICON_RJUSTIFIED)) {
+//FIXME			window.xscroll = icon_target - window_width;
+//FIXME			wimp_open_window((wimp_open *) &window);
+//FIXME		}
+	}
 }

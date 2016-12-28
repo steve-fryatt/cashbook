@@ -139,6 +139,17 @@ struct edit_callback {
 	 */
 
 	int			(*first_blank_line)(void *data);
+
+
+	/**
+	 * Give the client the chance to auto-sort on a Return keypress.
+	 *
+	 * \param icon			The handle of the first icon in the affected field.
+	 * \param *data			Client-specific data.
+	 * \return			TRUE on success; FALSE on failure.
+	 */
+
+	osbool			(*auto_sort)(wimp_i icon, void *data);
 };
 
 /**

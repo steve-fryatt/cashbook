@@ -408,6 +408,7 @@ static osbool			transact_edit_put_field(struct edit_data *data);
 static osbool			transact_edit_test_line(int line, void *data);
 static osbool			transact_edit_find_field(int xmin, int xmax, enum edit_align target, void *data);
 static int			transact_edit_first_blank_line(void *data);
+static int			transact_edit_auto_sort(wimp_i icon, void *data);
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -457,6 +458,7 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_edit_callbacks.place_line = transact_edit_place_line;
 	transact_edit_callbacks.find_field = transact_edit_find_field;
 	transact_edit_callbacks.first_blank_line = transact_edit_first_blank_line;
+	transact_edit_callbacks.auto_sort = transact_edit_auto_sort;
 }
 
 
@@ -5555,4 +5557,47 @@ static int transact_edit_first_blank_line(void *data)
 		return -1;
 
 	return transact_find_first_blank_line(windat->file);
+}
+
+static int transact_edit_auto_sort(wimp_i icon, void *data)
+{
+	struct transact_block	*windat = data;
+	int			entry_line;
+
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	debug_printf("Requesting auto-sort on icon %d", icon);
+
+	/* Don't do anything if AutoSort is configured off. */
+
+	if (!config_opt_read("AutoSort"))
+		return TRUE;
+
+	/* Only sort if the keypress was in the active sort column, as nothing
+	 * will be changing otherwise.
+	 */
+
+	if ((icon == TRANSACT_ICON_DATE && (windat->sort_order & SORT_MASK) != SORT_DATE) ||
+			(icon == TRANSACT_ICON_FROM && (windat->sort_order & SORT_MASK) != SORT_FROM) ||
+			(icon == TRANSACT_ICON_TO && (windat->sort_order & SORT_MASK) != SORT_TO) ||
+			(icon == TRANSACT_ICON_REFERENCE && (windat->sort_order & SORT_MASK) != SORT_REFERENCE) ||
+			(icon == TRANSACT_ICON_AMOUNT && (windat->sort_order & SORT_MASK) != SORT_AMOUNT) ||
+			(icon == TRANSACT_ICON_DESCRIPTION && (windat->sort_order & SORT_MASK) != SORT_DESCRIPTION))
+		return TRUE;
+
+	/* Sort the transactions. */
+
+	transact_sort(windat);
+
+	/* Re-sort any affected account views. */
+
+	entry_line = edit_get_line(windat->edit_line);
+
+	if (transact_valid(windat, entry_line)) {
+		accview_sort(windat->file, windat->transactions[windat->transactions[entry_line].sort_index].from);
+		accview_sort(windat->file, windat->transactions[windat->transactions[entry_line].sort_index].to);
+	}
+
+	return TRUE;
 }

@@ -225,6 +225,7 @@ static osbool edit_find_field_horizontally(struct edit_field *field);
 static osbool edit_callback_test_line(struct edit_block *instance, int line);
 static osbool edit_callback_place_line(struct edit_block *instance, int line);
 static int edit_callback_first_blank_line(struct edit_block *instance);
+static osbool edit_callback_auto_sort(struct edit_field *field);
 
 static int edit_sum_field_text(char *text, size_t length);
 
@@ -955,9 +956,16 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 		}
 	}
 
+	/* Refresh the icon that we're about to move from. */
+
 	edit_refresh_line_contents(instance, field->icon->icon, -1);
 
-//FIXME -- Return does an auto sort on the window data.
+	/* If Return was pressed, let the client run an auto-sort if it wishes. */
+
+	if (key->c == wimp_KEY_RETURN)
+		edit_callback_auto_sort(field);
+
+	/* Find the next field and move in to it. */
 
 	next = edit_find_next_field(field);
 
@@ -1543,6 +1551,15 @@ static int edit_callback_first_blank_line(struct edit_block *instance)
 	return instance->callbacks->first_blank_line(instance->client_data);
 
 }
+
+static osbool edit_callback_auto_sort(struct edit_field *field)
+{
+	if (field == NULL || field->icon == NULL || field->instance == NULL ||
+			field->instance->callbacks == NULL || field->instance->callbacks->auto_sort == NULL)
+		return FALSE;
+
+	return field->instance->callbacks->auto_sort(field->icon->icon, field->instance->client_data);
+};
 
 static int edit_sum_field_text(char *text, size_t length)
 {

@@ -71,9 +71,11 @@
 #include "window.h"
 
 /**
- * Static constants.
+ * The number of transfer blocks associated with an edit line instance, which determines
+ * how many concurrent data get or put operations can be happening.
  */
 
+#define EDIT_TRANSFER_BLOCKS 2
 
 /**
  * The different types of icon which can form and edit line.
@@ -158,6 +160,15 @@ struct edit_icon {
 };
 
 /**
+ * A data transfer block, holding the public facing data block and associated metadata.
+ */
+
+struct edit_transfer {
+	osbool			free;			/**< TRUE if the block is free to be allocated; FALSE if it has been claimed.	*/
+	struct edit_data	data;			/**< The data transfer block itself.						*/
+};
+
+/**
  * An edit line instance definition.
  */
 
@@ -174,7 +185,7 @@ struct edit_block {
 
 	void			*client_data;		/**< Client supplied data, for use in callbacks.				*/
 
-	struct edit_data	transfer;		/**< The structure used to transfer data to and from the client.		*/
+	struct edit_transfer	transfer[EDIT_TRANSFER_BLOCKS];		/**< The structure used to transfer data to and from the client.		*/
 
 	osbool			complete;		/**< TRUE if the instance is complete; FALSE if a memory allocation failed.	*/
 
@@ -219,6 +230,7 @@ static struct edit_field *edit_find_next_field(struct edit_field *field);
 static struct edit_field *edit_find_previous_field(struct edit_field *field);
 static struct edit_field *edit_find_first_field(struct edit_field *field);
 static osbool edit_is_field_writable(struct edit_field *field);
+static void edit_initialise_transfer_blocks(struct edit_block *instance);
 static struct edit_data *edit_get_transfer_block(struct edit_block *instance);
 static void edit_free_transfer_block(struct edit_block *instance, struct edit_data *transfer);
 
@@ -258,9 +270,10 @@ struct edit_block *edit_create_instance(struct file_block *file, wimp_window *te
 	new->columns = columns;
 	new->toolbar_height = toolbar_height;
 	new->client_data = data;
-	new->transfer.data = data;
 	new->complete = TRUE;
 	new->callbacks = callbacks;
+
+	edit_initialise_transfer_blocks(new);
 
 	/* No fields are defined as yet. */
 
@@ -1343,8 +1356,10 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
 		break;
 	}
 
-	if (!field->get(transfer))
+	if (!field->get(transfer)) {
+		edit_free_transfer_block(field->instance, transfer);
 		return NULL;
+	}
 
 	return transfer;
 }
@@ -1684,18 +1699,79 @@ static osbool edit_is_field_writable(struct edit_field *field)
 }
 
 
+/**
+ * Initialise the data transfer blocks when a new instance is created.
+ *
+ * \param *instance		The instance to be initialised.
+ */
+
+static void edit_initialise_transfer_blocks(struct edit_block *instance)
+{
+	int	i;
+
+	if (instance == NULL)
+		return;
+
+	for (i = 0; i < EDIT_TRANSFER_BLOCKS; i++) {
+		instance->transfer[i].free = TRUE;
+		instance->transfer[i].data.data = instance->client_data;
+	}
+}
+
+
+/**
+ * Claim a new transfer block from the current instance. Claimed blocks
+ * must be freed after use.
+ * 
+ * \param *instance		The instance to claim from.
+ * \return			Pointer to the block, or NULL on failure.
+ */
 
 static struct edit_data *edit_get_transfer_block(struct edit_block *instance)
 {
+	int			i;
+	struct edit_data	*transfer = NULL;
+
 	if (instance == NULL)
 		return NULL;
 
-	return &(instance->transfer);
+	for (i = 0; i < EDIT_TRANSFER_BLOCKS; i++) {
+		if (instance->transfer[i].free == TRUE) {
+			debug_printf("Allocating transfer block %d", i);
+			instance->transfer[i].free = FALSE;
+			transfer = &(instance->transfer[i].data);
+			break;
+		}
+	}
+
+	return transfer;
 }
+
+
+/**
+ * Release a transfer block claimed from an edit line instance.
+ * 
+ * \param *instance		The instance owning the block to be freed.
+ * \param *transfer		Pointer to the block to be freed.
+ */
 
 static void edit_free_transfer_block(struct edit_block *instance, struct edit_data *transfer)
 {
-	
+	int			i;
+
+	if (instance == NULL || transfer == NULL)
+		return;
+
+	for (i = 0; i < EDIT_TRANSFER_BLOCKS; i++) {
+		if (transfer == &(instance->transfer[i].data)) {
+			debug_printf("Freeing transfer block %d", i);
+			if (instance->transfer[i].free == TRUE)
+				debug_printf("Block not in use!");
+
+			instance->transfer[i].free = TRUE;
+			break;
+		}
+	}
 }
 
 

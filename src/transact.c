@@ -5278,7 +5278,7 @@ static osbool transact_edit_put_field(struct edit_data *data)
 	int			i;
 	tran_t			transaction;
 	acct_t			old_account;
-	osbool			extended, changed;
+	osbool			changed;
 
 	debug_printf("Returning complex data for icon %d in row %d", data->icon, data->line);
 
@@ -5294,13 +5294,11 @@ static osbool transact_edit_put_field(struct edit_data *data)
 	 * entries to reach the current location.
 	 */
 
-	extended = FALSE;
-
 	if (data->line >= windat->trans_count) {
 		for (i = windat->trans_count; i <= data->line; i++)
 			transact_add_raw_entry(windat->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
-		extended = TRUE;
+		edit_refresh_line_contents(windat->edit_line, TRANSACT_ICON_ROW, -1);
 	}
 
 	/* Get out if we failed to create the necessary transactions. */
@@ -5376,14 +5374,6 @@ static osbool transact_edit_put_field(struct edit_data *data)
 
 	if (data->icon != TRANSACT_ICON_REFERENCE && data->icon != TRANSACT_ICON_DESCRIPTION)
 		account_restore_transaction(windat->file, transaction);
-
-	/* Force an update of the row field in the edit line if the transaction list was extended.
-	 * We can't do this earlier, as the refresh will cause more data gets, and this will trample
-	 * on the transfer data block that our own information arrived in...
-	 */
-
-	if (extended == TRUE)
-		edit_refresh_line_contents(windat->edit_line, TRANSACT_ICON_ROW, -1);
 
 	/* Mark the data as unsafe and perform any post-change recalculations that
 	 * may affect the order of the transaction data.

@@ -172,6 +172,8 @@ struct edit_block {
 	struct edit_field	*fields;		/**< The list of fields defined in the line, or NULL for none.			*/
 	struct edit_icon	*icons;			/**< The list of icons defined in the line, or NULL for none.			*/
 
+	void			*client_data;		/**< Client supplied data, for use in callbacks.				*/
+
 	struct edit_data	transfer;		/**< The structure used to transfer data to and from the client.		*/
 
 	osbool			complete;		/**< TRUE if the instance is complete; FALSE if a memory allocation failed.	*/
@@ -217,6 +219,8 @@ static struct edit_field *edit_find_next_field(struct edit_field *field);
 static struct edit_field *edit_find_previous_field(struct edit_field *field);
 static struct edit_field *edit_find_first_field(struct edit_field *field);
 static osbool edit_is_field_writable(struct edit_field *field);
+static struct edit_data *edit_get_transfer_block(struct edit_block *instance);
+static void edit_free_transfer_block(struct edit_block *instance, struct edit_data *transfer);
 
 
 #ifdef LOSE
@@ -253,6 +257,7 @@ struct edit_block *edit_create_instance(struct file_block *file, wimp_window *te
 	new->parent = parent;
 	new->columns = columns;
 	new->toolbar_height = toolbar_height;
+	new->client_data = data;
 	new->transfer.data = data;
 	new->complete = TRUE;
 	new->callbacks = callbacks;
@@ -928,6 +933,7 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 		if (transfer != NULL && field->put != NULL) {
 			transfer->line = instance->edit_line;
 			field->put(transfer);
+			edit_free_transfer_block(instance, transfer);
 		}
 	}
 
@@ -1116,6 +1122,7 @@ static void edit_process_date_field_keypress(struct edit_field *field, wimp_key 
 
 	transfer = edit_get_field_transfer(field, field->instance->edit_line - 1);
 	previous_date = (transfer != NULL) ? transfer->date.date : NULL_DATE;
+	edit_free_transfer_block(field->instance, transfer);
 
 	/* Calculate the date from the field text; if it's unchanced, exit. */
 
@@ -1289,6 +1296,8 @@ static void edit_get_field_content(struct edit_field *field, int line)
 				field->instance->parent, ident, name, reconcile);
 		break;
 	}
+
+	edit_free_transfer_block(field->instance, transfer);
 }
 
 
@@ -1310,7 +1319,9 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
 	if (field == NULL || field->instance == NULL || field->icon == NULL || field->get == NULL)
 		return NULL;
 
-	transfer = &(field->instance->transfer);
+	transfer = edit_get_transfer_block(field->instance);
+	if (transfer == NULL)
+		return NULL;
 
 	transfer->type = field->type;
 	transfer->line = line;
@@ -1361,7 +1372,9 @@ static void edit_put_field_content(struct edit_field *field, int line)
 
 	/* Initialise the transfer data block. */
 
-	transfer = &(field->instance->transfer);
+	transfer = edit_get_transfer_block(field->instance);
+	if (transfer == NULL)
+		return;
 
 	transfer->type = field->type;
 	transfer->line = line;
@@ -1392,6 +1405,8 @@ static void edit_put_field_content(struct edit_field *field, int line)
 	/* Call the Put callback. */
 
 	field->put(transfer);
+
+	edit_free_transfer_block(field->instance, transfer);
 }
 
 
@@ -1472,7 +1487,7 @@ static osbool edit_find_field_horizontally(struct edit_field *field)
 		icon = icon->sibling;
 	}
 
-	return field->instance->callbacks->find_field(xmin, xmax, alignment, field->instance->transfer.data);
+	return field->instance->callbacks->find_field(xmin, xmax, alignment, field->instance->client_data);
 }
 
 
@@ -1484,7 +1499,7 @@ static osbool edit_callback_test_line(struct edit_block *instance, int line)
 	if (instance == NULL || instance->callbacks == NULL || instance->callbacks->test_line == NULL)
 		return FALSE;
 
-	return instance->callbacks->test_line(line, instance->transfer.data);
+	return instance->callbacks->test_line(line, instance->client_data);
 };
 
 
@@ -1493,7 +1508,7 @@ static osbool edit_callback_place_line(struct edit_block *instance, int line)
 	if (instance == NULL || instance->callbacks == NULL || instance->callbacks->place_line == NULL)
 		return FALSE;
 
-	return instance->callbacks->place_line(line, instance->transfer.data);
+	return instance->callbacks->place_line(line, instance->client_data);
 };
 
 
@@ -1669,6 +1684,19 @@ static osbool edit_is_field_writable(struct edit_field *field)
 }
 
 
+
+static struct edit_data *edit_get_transfer_block(struct edit_block *instance)
+{
+	if (instance == NULL)
+		return NULL;
+
+	return &(instance->transfer);
+}
+
+static void edit_free_transfer_block(struct edit_block *instance, struct edit_data *transfer)
+{
+	
+}
 
 
 #ifdef LOSE

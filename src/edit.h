@@ -83,6 +83,17 @@ struct edit_data {
 	void					*data;		/**< The client-supplied data pointer.		*/
 };
 
+/**
+ * Field alignment options.
+ */
+
+enum edit_align {
+	EDIT_ALIGN_NONE,		/**< Alignment not specified.			*/
+	EDIT_ALIGN_LEFT,		/**< Align to the left-hand end of the field.	*/
+	EDIT_ALIGN_CENTRE,		/**< Align to the centre of the field.		*/
+	EDIT_ALIGN_RIGHT		/**< Align to the right-hand end of the field.	*/
+};
+
 struct edit_callback {
 	/**
 	 * Check with the client whether a line number is in range.
@@ -111,11 +122,12 @@ struct edit_callback {
 	 * 
 	 * \param xmin			The minimum X window coordinate, in OS units.
 	 * \param xmax			The maximum X window coordinate, in OS units.
+	 * \param target		The target alignment
 	 * \param *data			Client-specific data.
 	 * \return			TRUE if successful; FALSE on error.
 	 */
 
-	osbool			(*find_field)(int xmin, int xmax, void *data);
+	osbool			(*find_field)(int xmin, int xmax, enum edit_align target, void *data);
 };
 
 /**

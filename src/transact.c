@@ -406,7 +406,7 @@ static char			*transact_complete_description(struct file_block *file, int line, 
 static osbool			transact_edit_get_field(struct edit_data *data);
 static osbool			transact_edit_put_field(struct edit_data *data);
 static osbool			transact_edit_test_line(int line, void *data);
-static osbool			transact_edit_find_field(int xmin, int xmax, void *data);
+static osbool			transact_edit_find_field(int xmin, int xmax, enum edit_align target, void *data);
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -5494,7 +5494,7 @@ static osbool transact_edit_test_line(int line, void *data)
 }
 
 
-static osbool transact_edit_find_field(int xmin, int xmax, void *data)
+static osbool transact_edit_find_field(int xmin, int xmax, enum edit_align target, void *data)
 {
 	struct transact_block	*windat = data;
 	wimp_window_state	window;
@@ -5503,38 +5503,8 @@ static osbool transact_edit_find_field(int xmin, int xmax, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-//	wimp_icon_state		icon;
-//	wimp_caret		caret;
-//	int			icon_width, icon_xmin, icon_xmax, icon_target, group;
-
-
-
 	window.w = windat->transaction_window;
 	wimp_get_window_state(&window);
-//	wimp_get_caret_position(&caret);
-
-//	if (caret.w != window.w || caret.i == -1)
-//		return;
-
-	/* Find the group holding the current icon. */
-
-//	group = 0;
-//	while (caret.i > column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, group))
-//		group++;
-
-	/* Get the left hand icon dimension */
-
-//	icon.w = window.w;
-//	icon.i = column_get_leftmost_in_group(TRANSACT_PANE_COL_MAP, group);
-//	wimp_get_icon_state(&icon);
-//	icon_xmin = icon.icon.extent.x0;
-
-	/* Get the right hand icon dimension */
-
-//	icon.w = window.w;
-//	icon.i = column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, group);
-//	wimp_get_icon_state(&icon);
-//	icon_xmax = icon.icon.extent.x1;
 
 	icon_width = xmax - xmin;
 
@@ -5555,22 +5525,22 @@ static osbool transact_edit_find_field(int xmin, int xmax, void *data)
 			wimp_open_window((wimp_open *) &window);
 		}
 	} else {
-		/* If the icon is bigger than the window, however, get the justification end of the icon and ensure that it
-		 * is aligned against that side of the window.
-		 */
+		/* If the icon is bigger than the window, however, align the target with the edge of the window. */
 
-//FIXME		icon.w = window.w;
-//FIXME		icon.i = caret.i;
-//FIXME		wimp_get_icon_state(&icon);
-
-//FIXME		icon_target = (icon.icon.flags & wimp_ICON_RJUSTIFIED) ? icon.icon.extent.x1 : icon.icon.extent.x0;
-
-//FIXME		if ((icon_target < window_xmin || icon_target > window_xmax) && !(icon.icon.flags & wimp_ICON_RJUSTIFIED)) {
-//FIXME			window.xscroll = icon_target;
-//FIXME			wimp_open_window((wimp_open *) &window);
-//FIXME		} else if ((icon_target < window_xmin || icon_target > window_xmax) && (icon.icon.flags & wimp_ICON_RJUSTIFIED)) {
-//FIXME			window.xscroll = icon_target - window_width;
-//FIXME			wimp_open_window((wimp_open *) &window);
-//FIXME		}
+		switch (target) {
+		case EDIT_ALIGN_LEFT:
+		case EDIT_ALIGN_CENTRE:
+			if (xmin < window_xmin || xmin > window_xmax) {
+				window.xscroll = xmin;
+				wimp_open_window((wimp_open *) &window);
+			}
+			break;
+		case EDIT_ALIGN_RIGHT:
+			if (xmax < window_xmin || xmax > window_xmax) {
+				window.xscroll = xmax - window_width;
+				wimp_open_window((wimp_open *) &window);
+			}
+			break;
+		}
 	}
 }

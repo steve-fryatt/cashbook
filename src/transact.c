@@ -407,6 +407,7 @@ static osbool			transact_edit_get_field(struct edit_data *data);
 static osbool			transact_edit_put_field(struct edit_data *data);
 static osbool			transact_edit_test_line(int line, void *data);
 static osbool			transact_edit_find_field(int xmin, int xmax, enum edit_align target, void *data);
+static int			transact_edit_first_blank_line(void *data);
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -455,6 +456,7 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_edit_callbacks.test_line = transact_edit_test_line;
 	transact_edit_callbacks.place_line = transact_edit_place_line;
 	transact_edit_callbacks.find_field = transact_edit_find_field;
+	transact_edit_callbacks.first_blank_line = transact_edit_first_blank_line;
 }
 
 
@@ -5543,4 +5545,14 @@ static osbool transact_edit_find_field(int xmin, int xmax, enum edit_align targe
 			break;
 		}
 	}
+}
+
+static int transact_edit_first_blank_line(void *data)
+{
+	struct transact_block	*windat = data;
+
+	if (windat == NULL || windat->file == NULL)
+		return -1;
+
+	return transact_find_first_blank_line(windat->file);
 }

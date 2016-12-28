@@ -128,6 +128,17 @@ struct edit_callback {
 	 */
 
 	osbool			(*find_field)(int xmin, int xmax, enum edit_align target, void *data);
+
+
+	/**
+	 * Request from the client the first blank line in the window, in terms
+	 * of its current sort order.
+	 *
+	 * \param *data			Client-specific data.
+	 * \return			The first blank line, or -1 on error.
+	 */
+
+	int			(*first_blank_line)(void *data);
 };
 
 /**

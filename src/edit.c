@@ -224,6 +224,7 @@ static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
 static osbool edit_find_field_horizontally(struct edit_field *field);
 static osbool edit_callback_test_line(struct edit_block *instance, int line);
 static osbool edit_callback_place_line(struct edit_block *instance, int line);
+static int edit_callback_first_blank_line(struct edit_block *instance);
 
 static int edit_sum_field_text(char *text, size_t length);
 
@@ -933,6 +934,7 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 {
 	struct edit_field	*field, *next;
 	struct edit_data	*transfer;
+	int			line;
 
 	if (instance == NULL)
 		return;
@@ -967,7 +969,11 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 		next = edit_find_first_field(field);
 
 		if (next != NULL) {
-			edit_callback_place_line(instance, instance->edit_line + 1); //FIXME - Return jumps to first empty line.
+			line = (key->c == wimp_KEY_RETURN) ? edit_callback_first_blank_line(instance) : -1;
+			if (line == -1)
+				line = instance->edit_line + 1;
+
+			edit_callback_place_line(instance, line);
 			icons_put_caret_at_end(instance->parent, next->icon->icon);
 			edit_find_field_horizontally(next);
 		}
@@ -1529,6 +1535,14 @@ static osbool edit_callback_place_line(struct edit_block *instance, int line)
 	return instance->callbacks->place_line(line, instance->client_data);
 };
 
+static int edit_callback_first_blank_line(struct edit_block *instance)
+{
+	if (instance == NULL || instance->callbacks == NULL || instance->callbacks->first_blank_line == NULL)
+		return -1;
+
+	return instance->callbacks->first_blank_line(instance->client_data);
+
+}
 
 static int edit_sum_field_text(char *text, size_t length)
 {

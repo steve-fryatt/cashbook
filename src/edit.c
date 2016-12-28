@@ -903,6 +903,7 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 {
 	struct edit_field	*field, *next;
+	struct edit_data	*transfer;
 
 	if (instance == NULL)
 		return;
@@ -914,12 +915,13 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 	/* If Ctrl is pressed, copy the field contents down from the line above. */
 
 	if ((osbyte1(osbyte_SCAN_KEYBOARD, 129, 0) == 0xff) && (instance->edit_line > 0)) {
+		transfer = edit_get_field_transfer(field, instance->edit_line - 1);
 
+		if (transfer != NULL && field->put != NULL) {
+			transfer->line = instance->edit_line;
+			field->put(transfer);
+		}
 	}
-
-
-
-//FIXME -- Ctrl + Key copies down from previous field.
 
 	edit_refresh_line_contents(instance, field->icon->icon, -1);
 

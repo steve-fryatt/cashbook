@@ -125,18 +125,6 @@ struct edit_field {
 		struct edit_field_account	account;	/**< The data relating to an account field.	*/
 	};
 
-	/**
-	 * Call-back function to get data for the field from the client.
-	 */
-
-	osbool			(*get)(struct edit_data *);
-
-	/**
-	 * Call-back function to return data from the field to the client.
-	 */
-
-	osbool			(*put)(struct edit_data *);
-
 	struct edit_field	*next;			/**< Pointer to the next icon in the line, or NULL.				*/
 };
 
@@ -358,14 +346,11 @@ osbool edit_complete(struct edit_block *instance)
  * \param *instance		The instance to add the field to.
  * \param type			The type of field to add.
  * \param column		The column number of the left-most field.
- * \param *get
- * \param *put
  * \param ...			A list of the icons which apply to the field.
  * \return			True if the field was created OK; False on error.
  */
 
-osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column,
-		osbool (*get)(struct edit_data *), osbool (*put)(struct edit_data *), ...)
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...)
 {
 	va_list			ap;
 	struct edit_field	*field;
@@ -394,10 +379,7 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 
 	field->type = type;
 
-	field->get = get;
-	field->put = put;
-
-	va_start(ap, put);
+	va_start(ap, column);
 
 	switch (type) {
 	case EDIT_FIELD_DISPLAY:
@@ -839,9 +821,9 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 	if ((osbyte1(osbyte_SCAN_KEYBOARD, 129, 0) == 0xff) && (instance->edit_line > 0)) {
 		transfer = edit_get_field_transfer(field, instance->edit_line - 1);
 
-		if (transfer != NULL && field->put != NULL) {
+		if (transfer != NULL && instance->callbacks != NULL && instance->callbacks->put_field != NULL) {
 			transfer->line = instance->edit_line;
-			field->put(transfer);
+			instance->callbacks->put_field(transfer);
 			edit_free_transfer_block(instance, transfer);
 		}
 	}
@@ -1236,7 +1218,10 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
 	struct edit_data	*transfer;
 
 
-	if (field == NULL || field->instance == NULL || field->icon == NULL || field->get == NULL)
+	if (field == NULL || field->instance == NULL || field->icon == NULL)
+		return NULL;
+
+	if (field->instance->callbacks == NULL || field->instance->callbacks->get_field == NULL)
 		return NULL;
 
 	transfer = edit_get_transfer_block(field->instance);
@@ -1263,7 +1248,7 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
 		break;
 	}
 
-	if (!field->get(transfer)) {
+	if (!field->instance->callbacks->get_field(transfer)) {
 		edit_free_transfer_block(field->instance, transfer);
 		return NULL;
 	}
@@ -1285,7 +1270,10 @@ static void edit_put_field_content(struct edit_field *field, int line)
 	struct edit_data	*transfer;
 	struct edit_icon	*icon;
 
-	if (field == NULL || field->instance == NULL || field->icon == NULL || field->put == NULL)
+	if (field == NULL || field->instance == NULL || field->icon == NULL)
+		return;
+
+	if (field->instance->callbacks == NULL || field->instance->callbacks->put_field == NULL)
 		return;
 
 	/* Get the first icon block associated with the field. */
@@ -1326,7 +1314,7 @@ static void edit_put_field_content(struct edit_field *field, int line)
 
 	/* Call the Put callback. */
 
-	field->put(transfer);
+	field->instance->callbacks->put_field(transfer);
 
 	edit_free_transfer_block(field->instance, transfer);
 }

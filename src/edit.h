@@ -96,6 +96,24 @@ enum edit_align {
 
 struct edit_callback {
 	/**
+	 * Request new or updated field data from the client.
+	 * 
+	 * \param *transfer		Pointer to the data transfer structure to take the data.
+	 * \return			TRUE if data was returned; FALSE if not.
+	 */
+
+	osbool			(*get_field)(struct edit_data *transfer);
+
+	/**
+	 * Send changed field data back to the client.
+	 * 
+	 * \param *transfer		Pointer to the data transfer structure containing the data.
+	 * \return			TRUE if the new data was accepted; FALSE if not.
+	 */
+
+	osbool			(*put_field)(struct edit_data *transfer);
+
+	/**
 	 * Check with the client whether a line number is in range.
 	 * 
 	 * \param line			The line number to be tested, in terms of current sort order.
@@ -205,8 +223,7 @@ osbool edit_complete(struct edit_block *instance);
  * \return			True if the field was created OK; False on error.
  */
 
-osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column,
-		osbool (*get)(struct edit_data *), osbool (*put)(struct edit_data *), ...);
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...);
 
 
 /**

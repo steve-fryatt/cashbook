@@ -66,7 +66,6 @@
 #include "edit.h"
 #include "file.h"
 #include "presets.h"
-#include "sort.h"	// \TODO -- This needs to be removed.
 #include "transact.h"
 #include "window.h"
 

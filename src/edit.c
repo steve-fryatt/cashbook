@@ -900,6 +900,14 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 	wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y + (direction * WINDOW_ROW_HEIGHT), -1, -1);
 }
 
+
+/**
+ * Move the caret on to the next field in a line.
+ * 
+ * \param *instance		The edit line instance to be updated.
+ * \param *key			The Wimp keypress data associated with the request.
+ */
+
 static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 {
 	struct edit_field	*field, *next;
@@ -944,6 +952,13 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 	}
 }
 
+
+/**
+ * Move the caret back to the previous field in a line.
+ * 
+ * \param *instance		The edit line instance to be updated.
+ */
+
 static void edit_move_caret_back(struct edit_block *instance)
 {
 	struct edit_field	*field, *previous;
@@ -973,6 +988,7 @@ static void edit_move_caret_back(struct edit_block *instance)
 		}
 	}
 }
+
 
 /**
  * Process possible content-editing keypresses in the edit line.

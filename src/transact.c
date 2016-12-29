@@ -5559,7 +5559,7 @@ osbool transact_insert_preset_into_line(struct file_block *file, int line, prese
 {
 	enum transact_field	changed = TRANSACT_FIELD_NONE;
 	tran_t			transaction;
-	int			entry_line, i;
+	int			i;
 
 
 	if (file == NULL || file->transacts == NULL || file->transacts->edit_line == NULL || !preset_test_index_valid(file, preset))

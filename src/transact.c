@@ -4463,7 +4463,6 @@ static void transact_prepare_fileinfo(struct file_block *file)
 static tran_t transact_find_edit_line_by_transaction(struct transact_block *windat)
 {
 	int	line;
-	tran_t	transaction;
 
 	if (windat == NULL || windat->transactions == NULL)
 		return NULL_TRANSACTION;
@@ -4698,16 +4697,12 @@ static wimp_i transact_convert_preset_icon_number(enum preset_caret caret)
 
 void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag)
 {
-	int	change_icon, line;
+	int	line;
 	osbool	changed = FALSE;
 
 
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
 		return;
-
-	/* Establish which icon it is that will need to be updated. */
-
-	change_icon = (change_flag == TRANS_REC_FROM) ? TRANSACT_ICON_FROM_REC : TRANSACT_ICON_TO_REC;
 
 	/* Only do anything if the transaction is inside the limit of the file. */
 

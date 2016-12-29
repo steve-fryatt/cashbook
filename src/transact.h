@@ -229,17 +229,6 @@ void transact_redraw_all(struct file_block *file);
 
 
 /**
- * Force a redraw of the Transaction window, for the given range of lines.
- *
- * \param *file			The file owning the window.
- * \param from			The first line to redraw, inclusive.
- * \param to			The last line to redraw, inclusive.
- */
-
-void transact_force_window_redraw(struct file_block *file, int from, int to);
-
-
-/**
  * Update the state of the buttons in a transaction window toolbar.
  *
  * \param *file			The file owning the window to update.

@@ -370,7 +370,7 @@ static void			transact_window_redraw_handler(wimp_draw *redraw);
 static void			transact_adjust_window_columns(void *data, wimp_i icon, int width);
 static void			transact_adjust_sort_icon(struct transact_block *windat);
 static void			transact_adjust_sort_icon_data(struct transact_block *windat, wimp_icon *icon);
-
+static void			transact_force_window_redraw(struct transact_block *windat, int from, int to);
 static void			transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void			transact_complete_menu_add_entry(struct transact_list_link **entries, int *count, int *max, char *new);
@@ -2239,43 +2239,46 @@ void transact_redraw_all(struct file_block *file)
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	transact_force_window_redraw(file, 0, file->transacts->trans_count - 1);
+	transact_force_window_redraw(file->transacts, 0, file->transacts->trans_count - 1);
 }
 
 
 /**
  * Force a redraw of the Transaction window, for the given range of lines.
  *
- * \param *file			The file owning the window.
+ * \param *windat		The window to be redrawn.
  * \param from			The first line to redraw, inclusive.
  * \param to			The last line to redraw, inclusive.
  */
 
-void transact_force_window_redraw(struct file_block *file, int from, int to)
+static void transact_force_window_redraw(struct transact_block *windat, int from, int to)
 {
 	int			y0, y1, line;
 	wimp_window_info	window;
   
-	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
+	if (windat == NULL || windat->transaction_window == NULL)
 		return;
 
 	/* If the edit line falls inside the redraw range, refresh it. */
 
-	line = edit_get_line(file->transacts->edit_line);
+	line = edit_get_line(windat->edit_line);
 
-	if (line >= from && line <= to)
-		edit_refresh_line_contents(file->transacts->edit_line, -1, -1);
+	if (line >= from && line <= to) {
+		edit_refresh_line_contents(windat->edit_line, -1, -1);
+		edit_set_line_colour(windat->edit_line, transact_line_colour(windat, line));
+		icons_replace_caret_in_window(windat->transaction_window);
+	}
 
 	/* Now force a redraw of the whole window range. */
 
-	window.w = file->transacts->transaction_window;
+	window.w = windat->transaction_window;
 	if (xwimp_get_window_info_header_only(&window) != NULL)
 		return;
 
 	y1 = WINDOW_ROW_TOP(TRANSACT_TOOLBAR_HEIGHT, from);
 	y0 = WINDOW_ROW_BASE(TRANSACT_TOOLBAR_HEIGHT, to);
 
-	wimp_force_redraw(file->transacts->transaction_window, window.extent.x0, y0, window.extent.x1, y1);
+	wimp_force_redraw(windat->transaction_window, window.extent.x0, y0, window.extent.x1, y1);
 }
 
 
@@ -3482,7 +3485,7 @@ void transact_sort(struct transact_block *windat)
 	if (windat->transaction_window != NULL && windat->transaction_window == caret.w)
 		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
 
-	transact_force_window_redraw(windat->file, 0, windat->trans_count - 1);
+	transact_redraw_all(windat->file);
 
 	hourglass_off();
 }
@@ -4751,17 +4754,10 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 		else
 			accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 
-		/* If the line is the edit line, setting the shading uses
-		 * wimp_set_icon_state() and the line will effectively be redrawn
-		 * for free.
-		 */
+		/* Force a redraw of the affected line. */
 
-//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME			edit_set_line_shading(file);
-//FIXME		} else {
-//FIXME			line = transact_get_line_from_transaction(file, transaction);
-//FIXME			transact_force_window_redraw(file, line, line);
-//FIXME		}
+		line = transact_get_line_from_transaction(file, transaction);
+		transact_force_window_redraw(file->transacts, line, line);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -4828,19 +4824,10 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 
 		accview_recalculate_all(file);
 
-		/* If the line is the edit line, setting the shading uses
-		 * wimp_set_icon_state() and the line will effectively be redrawn
-		 * for free.
-		 */
+		/* Force a redraw of the affected line. */
 
-//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME			edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_DATE, -1);
-//FIXME			edit_set_line_shading(file);
-//FIXME			icons_replace_caret_in_window(file->transacts->transaction_window);
-//FIXME		} else {
-//FIXME			line = transact_get_line_from_transaction(file, transaction);
-//FIXME			transact_force_window_redraw(file, line, line);
-//FIXME		}
+		line = transact_get_line_from_transaction(file, transaction);
+		transact_force_window_redraw(file->transacts, line, line);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -4891,19 +4878,10 @@ static void edit_change_transaction_amount(struct file_block *file, tran_t trans
 		accview_recalculate(file, file->transacts->transactions[transaction].from, transaction);
 		accview_recalculate(file, file->transacts->transactions[transaction].to, transaction);
 
-		/* If the line is the edit line, setting the shading uses
-		 * wimp_set_icon_state() and the line will effectively be redrawn
-		 * for free.
-		 */
+		/* Force a redraw of the affected line. */
 
-//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME			edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_AMOUNT, -1);
-//FIXME			edit_set_line_shading(file);
-//FIXME			icons_replace_caret_in_window(file->transacts->transaction_window);
-//FIXME		} else {
-//FIXME			line = transact_get_line_from_transaction(file, transaction);
-//FIXME			transact_force_window_redraw(file, line, line);
-//FIXME		}
+		line = transact_get_line_from_transaction(file, transaction);
+		transact_force_window_redraw(file->transacts, line, line);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -4967,19 +4945,10 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 		accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
 		accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 
-		/* If the line is the edit line, setting the shading uses
-		 * wimp_set_icon_state() and the line will effectively be redrawn
-		 * for free.
-		 */
+		/* Force a redraw of the affected line. */
 
-//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME			edit_refresh_line_contents(file->transacts->edit_line, icon, -1);
-//FIXME			edit_set_line_shading(file);
-//FIXME			icons_replace_caret_in_window(file->transacts->transaction_window);
-//FIXME		} else {
-//FIXME			line = transact_get_line_from_transaction(file, transaction);
-//FIXME			transact_force_window_redraw(file, line, line);
-//FIXME		}
+		line = transact_get_line_from_transaction(file, transaction);
+		transact_force_window_redraw(file->transacts, line, line);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -5087,19 +5056,10 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 		break;
 	}
 
-	/* If the line is the edit line, setting the shading uses
-	 * wimp_set_icon_state() and the line will effectively be redrawn
-	 * for free.
-	 */
+	/* Force a redraw of the affected line. */
 
-//FIXME	if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME		edit_refresh_line_contents(file->transacts->edit_line, icon, -1);
-//FIXME		edit_set_line_shading(file);
-//FIXME		icons_replace_caret_in_window(file->transacts->transaction_window);
-//FIXME	} else {
-//FIXME		line = transact_get_line_from_transaction(file, transaction);
-//FIXME		transact_force_window_redraw(file, line, line);
-//FIXME	}
+	line = transact_get_line_from_transaction(file, transaction);
+	transact_force_window_redraw(file->transacts, line, line);
 
 	file_set_data_integrity(file, TRUE);
 }
@@ -5690,21 +5650,10 @@ osbool transact_insert_preset_into_line(struct file_block *file, int line, prese
 
 	accview_rebuild_all(file);
 
-		/* If the line is the edit line, setting the shading uses
-		 * wimp_set_icon_state() and the line will effectively be
-		 * redrawn for free.
-		 */
+	/* Force a redraw of the affected line. */
 
-//	entry_line = edit_get_line(windat->edit_line);
+	transact_force_window_redraw(file->transacts, line, line);
 
-//	if (entry_line == line) {
-//			edit_refresh_line_contents(file->transacts->edit_line, -1, -1);
-//			e
-//			edit_set_line_shading(file);
-//			icons_replace_caret_in_window(file->transacts->transaction_window);
-//	} else {
-//		transact_force_window_redraw(file, line, line);
-//	}
 
 	/* If we're auto-sorting, and the sort column has been updated as
 	 * part of the preset, then do an auto sort now.

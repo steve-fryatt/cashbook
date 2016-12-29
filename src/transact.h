@@ -780,11 +780,12 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
  * the file data in a clean way.
  *
  * \param *file		The file to edit.
- * \param transaction	The transaction to update.
+ * \param line		The line in the transaction window to update.
  * \param preset	The preset to insert into the transaction.
+ * \return		TRUE if successful; FALSE on failure.
  */
 
-void transact_insert_preset_into_transaction(struct file_block *file, tran_t transaction, preset_t preset);
+osbool transact_insert_preset_into_line(struct file_block *file, int line, preset_t preset);
 
 
 #endif

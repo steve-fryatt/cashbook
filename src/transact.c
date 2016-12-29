@@ -4633,66 +4633,6 @@ static wimp_colour transact_line_colour(struct transact_block *windat, int line)
 }
 
 
-// \TODO -- Why isn't this done by line, as the only client needs to look the transaction up
-// only to turn it back into a line???
-
-/**
- * Insert a preset into a pre-existing transaction, taking care of updating all
- * the file data in a clean way.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to update.
- * \param preset	The preset to insert into the transaction.
- */
-
-void transact_insert_preset_into_transaction(struct file_block *file, tran_t transaction, preset_t preset)
-{
-	int			line;
-	enum transact_field	changed = TRANSACT_FIELD_NONE;
-
-
-	if (file == NULL || file->transacts == NULL || file->transacts->edit_line == NULL || !transact_valid(file->transacts, transaction) || !preset_test_index_valid(file, preset))
-		return;  
-  
-	account_remove_transaction(file, transaction);
-
-//FIXME	changed = edit_raw_insert_preset_into_transaction(file, transaction, preset);
-
-	/* Return the line to the calculations.  This will automatically update
-	 * all the account listings.
-	 */
-
-	account_restore_transaction(file, transaction);
-
-	/* If any changes were made, refresh the relevant account listing, redraw
-	 * the transaction window line and mark the file as modified.
-	 */
-
-	transact_place_edit_line_by_transaction(file->transacts, transaction);
-
-	icons_put_caret_at_end(file->transacts->transaction_window,
-			transact_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
-
-	if (changed != TRANSACT_FIELD_NONE) {
-		accview_rebuild_all(file);
-
-		/* If the line is the edit line, setting the shading uses
-		 * wimp_set_icon_state() and the line will effectively be
-		 * redrawn for free.
-		 */
-
-//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction) {
-//FIXME			edit_refresh_line_contents(file->transacts->edit_line, -1, -1);
-//FIXME			edit_set_line_shading(file);
-//FIXME			icons_replace_caret_in_window(file->transacts->transaction_window);
-//FIXME		} else {
-//FIXME			line = transact_get_line_from_transaction(file, transaction);
-//FIXME			transact_force_window_redraw(file, line, line);
-//FIXME		}
-
-		file_set_data_integrity(file, TRUE);
-	}
-}
 
 
 
@@ -5395,50 +5335,6 @@ static osbool transact_edit_put_field(struct edit_data *data)
 
 	if (changed == TRUE) {
 		file_set_data_integrity(windat->file, TRUE);
-#ifdef LOSE
-		if (preset != NULL_PRESET) {
-			/* There is a special case for a preset, since although the caret
-			 * may have been in the Date column, the effects of the update could
-			 *  affect all columns and have much wider ramifications.  This is
-			 * the only update code that runs for preset entries.
-			 *
-			 * Unlike all the other options, presets must refresh the line on screen too.
-			 */
-
-			accview_rebuild_all(file);
-
-			edit_refresh_line_content(file->transacts->transaction_window, -1, -1);
-			edit_set_line_shading(file);
-			icons_put_caret_at_end(file->transacts->transaction_window,
-			edit_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
-
-			/* If we're auto-sorting, and the sort column has been updated as
-			 * part of the preset, then do an auto sort now.
-			 *
-			 * We will always sort if the sort column is Date, because pressing
-			 * a preset key is analagous to hitting Return.
-			 */
-
-			if ((((file->transacts->sort_order & SORT_MASK) == SORT_DATE) ||
-					((preset_changes & (1 << EDIT_ICON_FROM))
-						&& ((file->transacts->sort_order & SORT_MASK) == SORT_FROM)) ||
-					((preset_changes & (1 << EDIT_ICON_TO))
-						&& ((file->transacts->sort_order & SORT_MASK) == SORT_TO)) ||
-					((preset_changes & (1 << EDIT_ICON_REF))
-						&& ((file->transacts->sort_order & SORT_MASK) == SORT_REFERENCE)) ||
-					((preset_changes & (1 << EDIT_ICON_AMOUNT))
-						&& ((file->transacts->sort_order & SORT_MASK) == SORT_AMOUNT)) ||
-					((preset_changes & (1 << EDIT_ICON_DESCRIPT))
-						&& ((file->transacts->sort_order & SORT_MASK) == SORT_DESCRIPTION))) &&
-					config_opt_read("AutoSort")) {
-				transact_sort(file->transacts);
-				if (transact_valid(file->transacts, file->transacts->entry_line)) {
-					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].from);
-					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].to);
-				}
-			}
-		} else
-#endif
 		if (data->icon == TRANSACT_ICON_DATE) {
 			/* Ideally, we would want to recalculate just the affected two
 			 * accounts.  However, because the date sort is unclean, any rebuild
@@ -5557,6 +5453,8 @@ static osbool transact_edit_find_field(int xmin, int xmax, enum edit_align targe
 			break;
 		}
 	}
+
+	return TRUE;
 }
 
 static int transact_edit_first_blank_line(void *data)
@@ -5678,7 +5576,221 @@ static osbool transact_edit_auto_complete(struct edit_data *data)
 	return TRUE;
 }
 
+
+/**
+ * Process preset insertion requests from the edit line.
+ * 
+ * \param line			The line at which to insert the preset.
+ * \param key			The Wimp Key number triggering the request.
+ * \param *data			Our client data, holding the window instance.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
 static osbool transact_edit_insert_preset(int line, wimp_key_no key, void *data)
 {
-	debug_printf("REquesting preset insertion: key %c at line %d", key, line);
+	struct transact_block	*windat;
+	preset_t		preset;
+
+	if (data == NULL)
+		return FALSE;
+
+	windat = data;
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	/* Identify the preset to be inserted. */
+
+	preset = preset_find_from_keypress(windat->file, toupper(key));
+
+	if (preset == NULL_PRESET)
+		return TRUE;
+
+	return transact_insert_preset_into_line(windat->file, line, preset);
 }
+
+
+/**
+ * Insert a preset into a pre-existing transaction, taking care of updating all
+ * the file data in a clean way.
+ *
+ * \param *file		The file to edit.
+ * \param line		The line in the transaction window to update.
+ * \param preset	The preset to insert into the transaction.
+ * \return		TRUE if successful; FALSE on failure.
+ */
+
+osbool transact_insert_preset_into_line(struct file_block *file, int line, preset_t preset)
+{
+	enum transact_field	changed = TRANSACT_FIELD_NONE;
+	tran_t			transaction;
+	int			entry_line, i;
+
+
+	if (file == NULL || file->transacts == NULL || file->transacts->edit_line == NULL || !preset_test_index_valid(file, preset))
+		return FALSE;
+
+	/* Identify the transaction to be updated. */
+	/* If there is not a transaction entry for the current edit line location
+	 * (ie. if this is the first keypress in a new line), extend the transaction
+	 * entries to reach the current location.
+	 */
+
+	if (line >= file->transacts->trans_count) {
+		for (i = file->transacts->trans_count; i <= line; i++)
+			transact_add_raw_entry(file->transacts->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
+
+		edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_ROW, -1);
+	}
+
+	if (line >= file->transacts->trans_count)
+		return FALSE;
+
+	transaction = file->transacts->transactions[line].sort_index;
+
+	if (!transact_valid(file->transacts, transaction))
+		return FALSE;
+
+	/* Remove the target transaction from all calculations. */
+
+	account_remove_transaction(file, transaction);
+
+	/* Apply the preset to the transaction. */
+
+	changed = preset_apply(file, preset, &(file->transacts->transactions[transaction].date),
+			&(file->transacts->transactions[transaction].from),
+			&(file->transacts->transactions[transaction].to),
+			&(file->transacts->transactions[transaction].flags),
+			&(file->transacts->transactions[transaction].amount),
+			file->transacts->transactions[transaction].reference,
+			file->transacts->transactions[transaction].description);
+
+	/* Return the line to the calculations.  This will automatically update
+	 * all the account listings.
+	 */
+
+	account_restore_transaction(file, transaction);
+
+	/* Replace the edit line to make it pick up the changes. */
+
+	transact_place_edit_line(file->transacts, line);
+
+	/* Put the caret at the end of the preset destination field. */
+
+	icons_put_caret_at_end(file->transacts->transaction_window,
+			transact_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
+
+	/* If nothing changed, there's no more to do. */
+
+	if (changed = TRANSACT_FIELD_NONE)
+		return TRUE;
+
+	/* If any changes were made, refresh the relevant account listing, redraw
+	 * the transaction window line and mark the file as modified.
+	 */
+
+	accview_rebuild_all(file);
+
+		/* If the line is the edit line, setting the shading uses
+		 * wimp_set_icon_state() and the line will effectively be
+		 * redrawn for free.
+		 */
+
+//	entry_line = edit_get_line(windat->edit_line);
+
+//	if (entry_line == line) {
+//			edit_refresh_line_contents(file->transacts->edit_line, -1, -1);
+//			e
+//			edit_set_line_shading(file);
+//			icons_replace_caret_in_window(file->transacts->transaction_window);
+//	} else {
+//		transact_force_window_redraw(file, line, line);
+//	}
+
+	/* If we're auto-sorting, and the sort column has been updated as
+	 * part of the preset, then do an auto sort now.
+	 *
+	 * We will always sort if the sort column is Date, because pressing
+	 * a preset key is analagous to hitting Return.
+	 */
+
+	if (config_opt_read("AutoSort") && (
+			((file->transacts->sort_order & SORT_MASK) == SORT_DATE) ||
+			((changed & TRANSACT_FIELD_FROM) && ((file->transacts->sort_order & SORT_MASK) == SORT_FROM)) ||
+			((changed & TRANSACT_FIELD_TO) && ((file->transacts->sort_order & SORT_MASK) == SORT_TO)) ||
+			((changed & TRANSACT_FIELD_REF) && ((file->transacts->sort_order & SORT_MASK) == SORT_REFERENCE)) ||
+			((changed & TRANSACT_FIELD_AMOUNT) && ((file->transacts->sort_order & SORT_MASK) == SORT_AMOUNT)) ||
+			((changed & TRANSACT_FIELD_DESC) && ((file->transacts->sort_order & SORT_MASK) == SORT_DESCRIPTION)))) {
+		transact_sort(file->transacts);
+		
+		if (transact_valid(file->transacts, line)) {
+			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].from);
+			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].to);
+		}
+	}
+
+
+	file_set_data_integrity(file, TRUE);
+
+	return TRUE;
+}
+
+
+
+
+
+
+#ifdef LOSE
+
+			if (preset != NULL_PRESET && (preset_changes = edit_raw_insert_preset_into_transaction(file, transaction, preset))) {
+				changed = TRUE;
+
+				if (preset_changes & (1 << EDIT_ICON_DATE))
+					file->sort_valid = FALSE;
+			}
+#endif
+
+
+#ifdef LOSE
+		if (preset != NULL_PRESET) {
+			/* There is a special case for a preset, since although the caret
+			 * may have been in the Date column, the effects of the update could
+			 *  affect all columns and have much wider ramifications.  This is
+			 * the only update code that runs for preset entries.
+			 *
+			 * Unlike all the other options, presets must refresh the line on screen too.
+			 */
+
+//			accview_rebuild_all(file);
+
+//			edit_refresh_line_content(file->transacts->transaction_window, -1, -1);
+//			edit_set_line_shading(file);
+//			icons_put_caret_at_end(file->transacts->transaction_window,
+//			edit_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
+
+			/* If we're auto-sorting, and the sort column has been updated as
+			 * part of the preset, then do an auto sort now.
+			 *
+			 * We will always sort if the sort column is Date, because pressing
+			 * a preset key is analagous to hitting Return.
+			 */
+
+			if ((((file->transacts->sort_order & SORT_MASK) == SORT_DATE) ||
+					((preset_changes & (1 << EDIT_ICON_FROM))
+						&& ((file->transacts->sort_order & SORT_MASK) == SORT_FROM)) ||
+					((preset_changes & (1 << EDIT_ICON_TO))
+						&& ((file->transacts->sort_order & SORT_MASK) == SORT_TO)) ||
+					((preset_changes & (1 << EDIT_ICON_REF))
+						&& ((file->transacts->sort_order & SORT_MASK) == SORT_REFERENCE)) ||
+					((preset_changes & (1 << EDIT_ICON_AMOUNT))
+						&& ((file->transacts->sort_order & SORT_MASK) == SORT_AMOUNT)) ||
+					((preset_changes & (1 << EDIT_ICON_DESCRIPT))
+						&& ((file->transacts->sort_order & SORT_MASK) == SORT_DESCRIPTION))) &&
+					config_opt_read("AutoSort")) {
+				transact_sort(file->transacts);
+				if (transact_valid(file->transacts, file->transacts->entry_line)) {
+					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].from);
+					accview_sort(file, file->transacts->transactions[file->transacts->transactions[file->transacts->entry_line].sort_index].to);
+				}
+			}
+		} else
+#endif

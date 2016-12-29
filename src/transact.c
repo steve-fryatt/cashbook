@@ -4954,7 +4954,6 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 	osbool		changed = FALSE;
 	unsigned	old_flags;
 	acct_t		old_acct = NULL_ACCOUNT;
-	wimp_i		icon;
 
 
 	/* Only do anything if the transaction is inside the limit of the file. */
@@ -4989,8 +4988,6 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 		if (old_acct != file->transacts->transactions[transaction].from || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
-
-		icon = TRANSACT_ICON_FROM;
 		break;
 	case TRANSACT_FIELD_TO:
 		old_acct = file->transacts->transactions[transaction].to;
@@ -5005,8 +5002,6 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 		if (old_acct != file->transacts->transactions[transaction].to || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
-
-		icon = TRANSACT_ICON_TO;
 		break;
 	}
 

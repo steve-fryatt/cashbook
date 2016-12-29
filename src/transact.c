@@ -5617,7 +5617,7 @@ osbool transact_insert_preset_into_line(struct file_block *file, int line, prese
 
 	/* If nothing changed, there's no more to do. */
 
-	if (changed = TRANSACT_FIELD_NONE)
+	if (changed == TRANSACT_FIELD_NONE)
 		return TRUE;
 
 	/* If any changes were made, refresh the relevant account listing, redraw

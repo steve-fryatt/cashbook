@@ -5461,7 +5461,6 @@ static int transact_edit_auto_sort(wimp_i icon, void *data)
 static osbool transact_edit_auto_complete(struct edit_data *data)
 {
 	struct transact_block	*windat;
-	int			i;
 	tran_t			transaction;
 
 	if (data == NULL)

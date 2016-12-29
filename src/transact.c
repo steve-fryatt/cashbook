@@ -4721,21 +4721,11 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 
 	if (file->transacts->transactions[transaction].flags & change_flag) {
 		file->transacts->transactions[transaction].flags &= ~change_flag;
-
-//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
-//FIXME			*icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon) = '\0';
-
 		changed = TRUE;
 	} else if ((change_flag == TRANS_REC_FROM && file->transacts->transactions[transaction].from != NULL_ACCOUNT) ||
 			(change_flag == TRANS_REC_TO && file->transacts->transactions[transaction].to != NULL_ACCOUNT)) {
 		file->transacts->transactions[transaction].flags |= change_flag;
-
-//FIXME		if (file->transacts->transactions[file->transacts->entry_line].sort_index == transaction)
-//FIXME			msgs_lookup("RecChar",
-//FIXME					icons_get_indirected_text_addr(file->transacts->transaction_window, change_icon),
-//FIXME					REC_FIELD_LEN);
-
-		changed = 1;
+		changed = TRUE;
 	}
 
 	/* Return the line to the calculations. This will automatically update

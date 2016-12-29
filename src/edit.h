@@ -168,6 +168,27 @@ struct edit_callback {
 	 */
 
 	osbool			(*auto_sort)(wimp_i icon, void *data);
+
+
+	/**
+	 * Request that the client provide an auto-complete for a given field.
+	 *
+	 * \param *transfer		Pointer to the data transfer structure to take the completion data.
+	 * \return			TRUE if data was returned; FALSE if not.
+	 */
+
+	osbool			(*auto_complete)(struct edit_data *transfer);
+
+	/**
+	 * Request that the client insert a preset template into a given line.
+	 *
+	 * \param line			The line number at which to inset the preset.
+	 * \param key			The Wimp key number triggering the preset.
+	 * \param *data			Client-specific data.
+	 * \return			TRUE if the preset was processed; FALSE if not.
+	 */
+
+	osbool			(*insert_preset)(int line, wimp_key_no key, void *data);
 };
 
 /**

@@ -204,8 +204,8 @@ static void edit_process_text_field_keypress(struct edit_field *field, wimp_key 
 static void edit_process_date_field_keypress(struct edit_field *field, wimp_key *key);
 static void edit_process_currency_field_keypress(struct edit_field *field, wimp_key *key);
 static void edit_process_account_field_keypress(struct edit_field *field, wimp_key *key, enum account_type type);
-static void edit_get_field_content(struct edit_field *field, int line);
-static struct edit_data *edit_get_field_transfer(struct edit_field *field, int line);
+static void edit_get_field_content(struct edit_field *field, int line, osbool complete);
+static struct edit_data *edit_get_field_transfer(struct edit_field *field, int line, osbool complete);
 static void edit_put_field_content(struct edit_field *field, int line);
 static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
 
@@ -214,6 +214,7 @@ static osbool edit_callback_test_line(struct edit_block *instance, int line);
 static osbool edit_callback_place_line(struct edit_block *instance, int line);
 static int edit_callback_first_blank_line(struct edit_block *instance);
 static osbool edit_callback_auto_sort(struct edit_field *field);
+static osbool edit_callback_insert_preset(struct edit_block *instance, int line, wimp_key_no key);
 
 static int edit_sum_field_text(char *text, size_t length);
 
@@ -544,7 +545,7 @@ void edit_place_new_line(struct edit_block *instance, int line, wimp_colour colo
 	field = instance->fields;
 
 	while (field != NULL) {
-		edit_get_field_content(field, line);
+		edit_get_field_content(field, line, FALSE);
 		field = field->next;
 	}
 
@@ -632,7 +633,7 @@ void edit_refresh_line_contents(struct edit_block *instance, wimp_i only, wimp_i
 		icon = field->icon;
 
 		if ((icon != NULL) && (only == -1 || only == icon->icon) && (avoid != icon->icon)) {
-			edit_get_field_content(field, instance->edit_line);
+			edit_get_field_content(field, instance->edit_line, FALSE);
 
 			while (icon != NULL) {
 				wimp_set_icon_state(instance->parent, icon->icon, 0, 0);
@@ -819,7 +820,7 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 	/* If Ctrl is pressed, copy the field contents down from the line above. */
 
 	if ((osbyte1(osbyte_SCAN_KEYBOARD, 129, 0) == 0xff) && (instance->edit_line > 0)) {
-		transfer = edit_get_field_transfer(field, instance->edit_line - 1);
+		transfer = edit_get_field_transfer(field, instance->edit_line - 1, FALSE);
 
 		if (transfer != NULL && instance->callbacks != NULL && instance->callbacks->put_field != NULL) {
 			transfer->line = instance->edit_line;
@@ -969,8 +970,9 @@ static void edit_process_text_field_keypress(struct edit_field *field, wimp_key 
 	/* If F1 is pressed, ask the client to help with an autocomplete. */
 
 	if (key->c == wimp_KEY_F1) {
-		//FIXME Process autocomplete.
+		edit_get_field_content(field, field->instance->edit_line, TRUE);
 		wimp_set_icon_state(key->w, field->icon->icon, 0, 0);
+		edit_put_field_content(field, field->instance->edit_line);
 		icons_replace_caret_in_window(key->w);
 	}
 
@@ -1008,7 +1010,7 @@ static void edit_process_date_field_keypress(struct edit_field *field, wimp_key 
 	/* Alpha key presses in a date field are handled as preset shortcuts. */
 
 	if (isalpha(key->c)) {
-		//FIXME Process a preset key...
+		edit_callback_insert_preset(field->instance, field->instance->edit_line, key->c);
 		return;
 	}
 
@@ -1022,7 +1024,7 @@ static void edit_process_date_field_keypress(struct edit_field *field, wimp_key 
 
 	/* If there's a Get callback, use it to get the previous line's date for autocompletion. */
 
-	transfer = edit_get_field_transfer(field, field->instance->edit_line - 1);
+	transfer = edit_get_field_transfer(field, field->instance->edit_line - 1, FALSE);
 	previous_date = (transfer != NULL) ? transfer->date.date : NULL_DATE;
 	edit_free_transfer_block(field->instance, transfer);
 
@@ -1117,9 +1119,10 @@ static void edit_process_account_field_keypress(struct edit_field *field, wimp_k
  *
  * \param *field		The field to be updated.
  * \param line			The window line to update for.
+ * \param complete		TRUE to perform an autocomplete; FALSE for a get.
  */
 
-static void edit_get_field_content(struct edit_field *field, int line)
+static void edit_get_field_content(struct edit_field *field, int line, osbool complete)
 {
 	struct edit_data	*transfer;
 	struct edit_icon	*icon;
@@ -1134,11 +1137,13 @@ static void edit_get_field_content(struct edit_field *field, int line)
 
 	/* Get a transfer block from the client for the field. */
 
-	transfer = edit_get_field_transfer(field, line);
+	transfer = edit_get_field_transfer(field, line, complete);
 
 	/* If no data was available, set the field to its defaults and exit. */
 
-	if (transfer == NULL) {
+	if (transfer == NULL && complete == TRUE) {
+		return;
+	} else if (transfer == NULL) {
 		switch (field->type) {
 		case EDIT_FIELD_TEXT:
 			field->text.sum = 0;
@@ -1204,24 +1209,28 @@ static void edit_get_field_content(struct edit_field *field, int line)
 
 
 /**
- * Set up a transfer block and call the client's Get callback (if present) to
- * request data for a field at a given line. The transfer block is returned, or
- * NULL if there was no callback or no valid data returned.
+ * Set up a transfer block and call the client's Get or Auto Complete callback
+ * (if present) to request data for a field at a given line. The transfer block
+ * is returned, or NULL if there was no callback or no valid data returned.
  *
  * \param *field		The field to request data for.
  * \param line			The line to request data for.
+ * \param complete		TRUE to request an autocomplete; FALSE for a get.
  * \return			Pointer to the completed transfer block, or NULL.
  */
 
-static struct edit_data *edit_get_field_transfer(struct edit_field *field, int line)
+static struct edit_data *edit_get_field_transfer(struct edit_field *field, int line, osbool complete)
 {
 	struct edit_data	*transfer;
+	osbool			(*callback)(struct edit_data *);
 
 
-	if (field == NULL || field->instance == NULL || field->icon == NULL)
+	if (field == NULL || field->instance == NULL || field->icon == NULL || field->instance->callbacks == NULL)
 		return NULL;
 
-	if (field->instance->callbacks == NULL || field->instance->callbacks->get_field == NULL)
+	callback = (complete == TRUE) ? field->instance->callbacks->auto_complete : field->instance->callbacks->get_field;
+
+	if (callback == NULL)
 		return NULL;
 
 	transfer = edit_get_transfer_block(field->instance);
@@ -1242,13 +1251,17 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
 		transfer->text.length = field->icon->length;
 		break;
 	case EDIT_FIELD_CURRENCY:
+		transfer->currency.amount = field->currency.amount;
 	case EDIT_FIELD_DATE:
+		transfer->date.date = field->date.date;
 	case EDIT_FIELD_ACCOUNT_IN:
 	case EDIT_FIELD_ACCOUNT_OUT:
+		transfer->account.account = field->account.account;
+		transfer->account.reconciled = field->account.reconciled;
 		break;
 	}
 
-	if (!field->instance->callbacks->get_field(transfer)) {
+	if (!callback(transfer)) {
 		edit_free_transfer_block(field->instance, transfer);
 		return NULL;
 	}
@@ -1438,6 +1451,15 @@ static osbool edit_callback_auto_sort(struct edit_field *field)
 
 	return field->instance->callbacks->auto_sort(field->icon->icon, field->instance->client_data);
 };
+
+static osbool edit_callback_insert_preset(struct edit_block *instance, int line, wimp_key_no key)
+{
+	if (instance == NULL || instance->callbacks == NULL || instance->callbacks->insert_preset == NULL)
+		return FALSE;
+
+	return instance->callbacks->insert_preset(line, key, instance->client_data);
+
+}
 
 static int edit_sum_field_text(char *text, size_t length)
 {

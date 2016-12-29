@@ -409,6 +409,9 @@ static osbool			transact_edit_test_line(int line, void *data);
 static osbool			transact_edit_find_field(int xmin, int xmax, enum edit_align target, void *data);
 static int			transact_edit_first_blank_line(void *data);
 static int			transact_edit_auto_sort(wimp_i icon, void *data);
+static osbool			transact_edit_auto_complete(struct edit_data *data);
+static osbool			transact_edit_insert_preset(int line, wimp_key_no key, void *data);
+
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -461,6 +464,8 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_edit_callbacks.find_field = transact_edit_find_field;
 	transact_edit_callbacks.first_blank_line = transact_edit_first_blank_line;
 	transact_edit_callbacks.auto_sort = transact_edit_auto_sort;
+	transact_edit_callbacks.auto_complete = transact_edit_auto_complete;
+	transact_edit_callbacks.insert_preset = transact_edit_insert_preset;
 }
 
 
@@ -5173,20 +5178,23 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 static char *transact_complete_description(struct file_block *file, int line, char *buffer, size_t length)
 {
-	int i, t;
+	tran_t	t;
 
 	if (file == NULL || file->transacts == NULL || buffer == NULL)
 		return buffer;
 
 	if (line >= file->transacts->trans_count)
 		line = file->transacts->trans_count - 1;
+	else
+		line -= 1;
 
-	for (i = line - 1; i >= 0; i--) {
-		t = file->transacts->transactions[i].sort_index;
+	for (; line >= 0; line--) {
+		t = file->transacts->transactions[line].sort_index;
 
 		if (*(file->transacts->transactions[t].description) != '\0' &&
 				string_nocase_strstr(file->transacts->transactions[t].description, buffer) == file->transacts->transactions[t].description) {
 			strncpy(buffer, file->transacts->transactions[t].description, length);
+			buffer[length - 1] = '\0';
 			break;
 		}
 	}
@@ -5602,4 +5610,75 @@ static int transact_edit_auto_sort(wimp_i icon, void *data)
 	}
 
 	return TRUE;
+}
+
+
+/**
+ * Process auto-complete requests from the edit line for one of the transaction
+ * fields.
+ * 
+ * \param *data			The field auto-complete data.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+static osbool transact_edit_auto_complete(struct edit_data *data)
+{
+	struct transact_block	*windat;
+	int			i;
+	tran_t			transaction;
+	acct_t			old_account;
+	osbool			changed;
+
+	if (data == NULL)
+		return FALSE;
+
+	windat = data->data;
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	debug_printf("Requesting auto-completion");
+
+	/* We can only complete text fields at the moment, as none of the others make sense. */
+
+	if (data->type != EDIT_FIELD_TEXT)
+		return FALSE;
+
+	/* Process the Reference or Descripton field as appropriate. */
+
+	switch (data->icon) {
+	case TRANSACT_ICON_REFERENCE:
+		/* To complete the reference, we need to be in a valid transaction which contains
+		 * at least one of the From or To fields.
+		 */
+
+		if (data->line >= windat->trans_count)
+			return FALSE;
+
+		transaction = windat->transactions[data->line].sort_index;
+
+		if (!transact_valid(windat, transaction))
+			return FALSE;
+
+		account_get_next_cheque_number(windat->file, windat->transactions[transaction].from, windat->transactions[transaction].to,
+				1, data->text.text, data->text.length);
+		break;
+
+	case TRANSACT_ICON_DESCRIPTION:
+		/* The description field can be completed whether or not there's an underlying
+		 * transaction, as we just search back up from the last valid line.
+		 */
+
+		transact_complete_description(windat->file, data->line, data->text.text, data->text.length);
+		break;
+
+	default:
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static osbool transact_edit_insert_preset(int line, wimp_key_no key, void *data)
+{
+	debug_printf("REquesting preset insertion: key %c at line %d", key, line);
 }

@@ -1711,37 +1711,6 @@ static void edit_free_transfer_block(struct edit_block *instance, struct edit_da
 
 #ifdef LOSE
 
-/**
- * Insert the contents of a preset into a transaction, if that transaction already
- * exists in the target file.
- *
- * This function is assumed to be called by code that takes care of updating the
- * transaction record and all the associated totals. Normally, this would be done
- * by wrapping the call up inside a pair of account_remove_transaction() and
- * account_restore_transaction() calls.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to update.
- * \param preset	The preset to insert into the transaction.
- * \return		A bitfield showing which icons have been edited.
- */
-
-static enum transact_field edit_raw_insert_preset_into_transaction(struct file_block *file, tran_t transaction, preset_t preset)
-{
-	enum transact_field	changed = TRANSACT_FIELD_NONE;
-
-	if (transact_valid(file->transacts, transaction) && preset_test_index_valid(file, preset))
-		changed = preset_apply(file, preset, &(file->transacts->transactions[transaction].date),
-				&(file->transacts->transactions[transaction].from),
-				&(file->transacts->transactions[transaction].to),
-				&(file->transacts->transactions[transaction].flags),
-				&(file->transacts->transactions[transaction].amount),
-				file->transacts->transactions[transaction].reference,
-				file->transacts->transactions[transaction].description);
-
-	return changed;
-}
-
 
 
 

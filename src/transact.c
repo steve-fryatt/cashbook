@@ -4886,8 +4886,6 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 {
 	int	line;
 	osbool	changed = FALSE;
-	char	*field = NULL;
-	wimp_i	icon;
 
 
 	/* Only do anything if the transaction is inside the limit of the file. */
@@ -4899,44 +4897,45 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 
 	switch (target) {
 	case TRANSACT_FIELD_REF:
-		field = file->transacts->transactions[transaction].reference;
-		icon = TRANSACT_ICON_REFERENCE;
+		if (strcmp(file->transacts->transactions[transaction].reference, new_text) == 0)
+			break;
+
+		strncpy(file->transacts->transactions[transaction].reference, new_text, TRANSACT_REF_FIELD_LEN);
+		file->transacts->transactions[transaction].reference[TRANSACT_REF_FIELD_LEN - 1] = '\0';
+		changed = TRUE;
 		break;
 
 	case TRANSACT_FIELD_DESC:
-		field = file->transacts->transactions[transaction].description;
-		icon = TRANSACT_ICON_DESCRIPTION;
+		if (strcmp(file->transacts->transactions[transaction].description, new_text) == 0)
+			break;
+
+		strncpy(file->transacts->transactions[transaction].description, new_text, TRANSACT_DESCRIPT_FIELD_LEN);
+		file->transacts->transactions[transaction].description[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+		changed = TRUE;
 		break;
 
 	default:
-		field = NULL;
-		icon = -1;
 		break;
-	}
-
-
-	if (field != NULL && strcmp(field, new_text) != 0) {
-		changed = TRUE;
-		strcpy(field, new_text);
 	}
 
 	/* If any changes were made, refresh the relevant account listings, redraw
 	 * the transaction window line and mark the file as modified.
 	 */
 
-	if (changed == TRUE) {
-		/* Refresh any account views that may be affected. */
+	if (changed == FALSE)
+		return;
 
-		accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
-		accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
+	/* Refresh any account views that may be affected. */
 
-		/* Force a redraw of the affected line. */
+	accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
+	accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 
-		line = transact_get_line_from_transaction(file, transaction);
-		transact_force_window_redraw(file->transacts, line, line);
+	/* Force a redraw of the affected line. */
 
-		file_set_data_integrity(file, TRUE);
-	}
+	line = transact_get_line_from_transaction(file, transaction);
+	transact_force_window_redraw(file->transacts, line, line);
+
+	file_set_data_integrity(file, TRUE);
 }
 
 

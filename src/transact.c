@@ -5463,8 +5463,6 @@ static osbool transact_edit_auto_complete(struct edit_data *data)
 	struct transact_block	*windat;
 	int			i;
 	tran_t			transaction;
-	acct_t			old_account;
-	osbool			changed;
 
 	if (data == NULL)
 		return FALSE;

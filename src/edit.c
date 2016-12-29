@@ -206,7 +206,7 @@ static void edit_process_currency_field_keypress(struct edit_field *field, wimp_
 static void edit_process_account_field_keypress(struct edit_field *field, wimp_key *key, enum account_type type);
 static void edit_get_field_content(struct edit_field *field, int line, osbool complete);
 static struct edit_data *edit_get_field_transfer(struct edit_field *field, int line, osbool complete);
-static void edit_put_field_content(struct edit_field *field, int line);
+static void edit_put_field_content(struct edit_field *field, int line, wimp_key_no key);
 static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
 
 static osbool edit_find_field_horizontally(struct edit_field *field);
@@ -824,6 +824,7 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 
 		if (transfer != NULL && instance->callbacks != NULL && instance->callbacks->put_field != NULL) {
 			transfer->line = instance->edit_line;
+			transfer->key = key->c;
 			instance->callbacks->put_field(transfer);
 			edit_free_transfer_block(instance, transfer);
 		}
@@ -972,7 +973,7 @@ static void edit_process_text_field_keypress(struct edit_field *field, wimp_key 
 	if (key->c == wimp_KEY_F1) {
 		edit_get_field_content(field, field->instance->edit_line, TRUE);
 		wimp_set_icon_state(key->w, field->icon->icon, 0, 0);
-		edit_put_field_content(field, field->instance->edit_line);
+		edit_put_field_content(field, field->instance->edit_line, key->c);
 		icons_replace_caret_in_window(key->w);
 	}
 
@@ -987,7 +988,7 @@ static void edit_process_text_field_keypress(struct edit_field *field, wimp_key 
 
 	field->text.sum = new_sum;
 
-	edit_put_field_content(field, field->instance->edit_line);
+	edit_put_field_content(field, field->instance->edit_line, key->c);
 }
 
 
@@ -1039,7 +1040,7 @@ static void edit_process_date_field_keypress(struct edit_field *field, wimp_key 
 
 	field->date.date = new_date;
 
-	edit_put_field_content(field, field->instance->edit_line);
+	edit_put_field_content(field, field->instance->edit_line, key->c);
 }
 
 
@@ -1069,7 +1070,7 @@ static void edit_process_currency_field_keypress(struct edit_field *field, wimp_
 
 	field->currency.amount = new_amount;
 
-	edit_put_field_content(field, field->instance->edit_line);
+	edit_put_field_content(field, field->instance->edit_line, key->c);
 }
 
 
@@ -1109,7 +1110,7 @@ static void edit_process_account_field_keypress(struct edit_field *field, wimp_k
 	field->account.account = new_account;
 	field->account.reconciled = new_reconciled;
 
-	edit_put_field_content(field, field->instance->edit_line);
+	edit_put_field_content(field, field->instance->edit_line, key->c);
 }
 
 
@@ -1240,6 +1241,7 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
 	transfer->type = field->type;
 	transfer->line = line;
 	transfer->icon = field->icon->icon;
+	transfer->key = '\0';
 
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:
@@ -1276,9 +1278,10 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
  *
  * \param *field		The field to be updated.
  * \param line			The window line to update for.
+ * \param key			The key number relating to the update.
  */
 
-static void edit_put_field_content(struct edit_field *field, int line)
+static void edit_put_field_content(struct edit_field *field, int line, wimp_key_no key)
 {
 	struct edit_data	*transfer;
 	struct edit_icon	*icon;
@@ -1302,6 +1305,7 @@ static void edit_put_field_content(struct edit_field *field, int line)
 	transfer->type = field->type;
 	transfer->line = line;
 	transfer->icon = icon->icon;
+	transfer->key = key;
 
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:

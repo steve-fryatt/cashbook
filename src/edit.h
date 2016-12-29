@@ -70,17 +70,18 @@ struct edit_data_account {
 };
 
 struct edit_data {
-	int					line;		/**< The line that we're interested in.		*/
-	wimp_i					icon;		/**< The handle of the first icon in the field.	*/
-	enum edit_field_type			type;		/**< The type of field to require the data.	*/
+	int					line;		/**< The line that we're interested in.			*/
+	wimp_i					icon;		/**< The handle of the first icon in the field.		*/
+	enum edit_field_type			type;		/**< The type of field to require the data.		*/
 	union {
-		struct edit_data_text		display;	/**< The data relating to a display field.	*/
-		struct edit_data_text		text;		/**< The data relating to a text field.		*/
-		struct edit_data_currency	currency;	/**< The data relating to a currency field.	*/
-		struct edit_data_date		date;		/**< The data relating to a date field.		*/
-		struct edit_data_account	account;	/**< The data relating to an account field.	*/
+		struct edit_data_text		display;	/**< The data relating to a display field.		*/
+		struct edit_data_text		text;		/**< The data relating to a text field.			*/
+		struct edit_data_currency	currency;	/**< The data relating to a currency field.		*/
+		struct edit_data_date		date;		/**< The data relating to a date field.			*/
+		struct edit_data_account	account;	/**< The data relating to an account field.		*/
 	};
-	void					*data;		/**< The client-supplied data pointer.		*/
+	wimp_key_no				key;		/**< The keypress resulting in the reported change.	*/
+	void					*data;		/**< The client-supplied data pointer.			*/
 };
 
 /**

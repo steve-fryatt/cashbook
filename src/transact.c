@@ -380,7 +380,7 @@ static osbool			transact_is_blank(struct file_block *file, tran_t transaction);
 
 static void			transact_open_sort_window(struct transact_block *windat, wimp_pointer *ptr);
 static osbool			transact_process_sort_window(enum sort_type order, void *data);
-
+static void			transact_find_next_reconcile_line(struct transact_block *windat, osbool set);
 static void			transact_open_print_window(struct file_block *file, wimp_pointer *ptr, int clear);
 static void			transact_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
 
@@ -3571,51 +3571,51 @@ void transact_sort_file_data(struct file_block *file)
  * Find the next line of an account, based on its reconcoled status, and place
  * the caret into the unreconciled account field.
  *
- * \param *file			The file to search in.
+ * \param *windat		The transaction window instance to search in.
  * \param set			TRUE to match reconciled lines; FALSE to match unreconciled ones.
  */
 
-void transact_find_next_reconcile_line(struct file_block *file, osbool set)
+static void transact_find_next_reconcile_line(struct transact_block *windat, osbool set)
 {
 	int			line;
 	acct_t			account;
 	enum transact_field	found;
 	wimp_caret		caret;
 
-	if (file == NULL || file->transacts == NULL || file->auto_reconcile == FALSE)
+	if (windat == NULL || windat->file == NULL || windat->file->auto_reconcile == FALSE)
 		return;
 
-	line = edit_get_line(file->transacts->edit_line);
+	line = edit_get_line(windat->edit_line);
 	account = NULL_ACCOUNT;
 
 	wimp_get_caret_position(&caret);
 
 	if (caret.i == TRANSACT_ICON_FROM)
-		account = file->transacts->transactions[file->transacts->transactions[line].sort_index].from;
+		account = windat->transactions[windat->transactions[line].sort_index].from;
 	else if (caret.i == TRANSACT_ICON_TO)
-		account = file->transacts->transactions[file->transacts->transactions[line].sort_index].to;
+		account = windat->transactions[windat->transactions[line].sort_index].to;
 
-	if (account != NULL_ACCOUNT)
+	if (account == NULL_ACCOUNT)
 		return;
 
 	line++;
-	found = -1;
+	found = TRANSACT_FIELD_NONE;
 
-	while ((line < file->transacts->trans_count) && (found == -1)) {
-		if (file->transacts->transactions[file->transacts->transactions[line].sort_index].from == account &&
-				((file->transacts->transactions[file->transacts->transactions[line].sort_index].flags & TRANS_REC_FROM) ==
+	while ((line < windat->trans_count) && (found == TRANSACT_FIELD_NONE)) {
+		if (windat->transactions[windat->transactions[line].sort_index].from == account &&
+				((windat->transactions[windat->transactions[line].sort_index].flags & TRANS_REC_FROM) ==
 						((set) ? TRANS_REC_FROM : TRANS_FLAGS_NONE)))
 			found = TRANSACT_FIELD_FROM;
-		else if (file->transacts->transactions[file->transacts->transactions[line].sort_index].to == account &&
-				((file->transacts->transactions[file->transacts->transactions[line].sort_index].flags & TRANS_REC_TO) ==
+		else if (windat->transactions[windat->transactions[line].sort_index].to == account &&
+				((windat->transactions[windat->transactions[line].sort_index].flags & TRANS_REC_TO) ==
 						((set) ? TRANS_REC_TO : TRANS_FLAGS_NONE)))
 			found = TRANSACT_FIELD_TO;
 		else
 			line++;
 	}
 
-	if (found != -1)
-		transact_place_caret(file, line, found);
+	if (found != TRANSACT_FIELD_NONE)
+		transact_place_caret(windat->file, line, found);
 }
 
 
@@ -5334,9 +5334,9 @@ static osbool transact_edit_put_field(struct edit_data *data)
 	 * is the edit line location.  Move that and we've lost everything.
 	 */
 
-//FIXME	if ((key->i == EDIT_ICON_FROM || key->i == EDIT_ICON_TO) &&
-//FIXME			(key->c == '+' || key->c == '=' || key->c == '-' || key->c == '_'))
-//FIXME		transact_find_next_reconcile_line(file, FALSE);
+	if ((data->icon == TRANSACT_ICON_FROM || data->icon == TRANSACT_ICON_TO) &&
+			(data->key == '+' || data->key == '=' || data->key == '-' || data->key == '_'))
+		transact_find_next_reconcile_line(windat, FALSE);
 
 	return TRUE;
 }

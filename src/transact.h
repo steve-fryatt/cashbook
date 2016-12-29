@@ -558,17 +558,6 @@ void transact_sort_file_data(struct file_block *file);
 
 
 /**
- * Find the next line of an account, based on its reconcoled status, and place
- * the caret into the unreconciled account field.
- *
- * \param *file			The file to search in.
- * \param set			TRUE to match reconciled lines; FALSE to match unreconciled ones.
- */
-
-void transact_find_next_reconcile_line(struct file_block *file, osbool set);
-
-
-/**
  * Find and return the line number of the first blank line in a file, based on
  * display order.
  *

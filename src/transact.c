@@ -3343,6 +3343,8 @@ static void transact_place_edit_line_by_transaction(struct transact_block *winda
 	if (windat == NULL)
 		return;
 
+	line = windat->trans_count;
+
 	if (transaction != NULL_TRANSACTION) {
 		for (i = 0; i < windat->trans_count; i++) {
 			if (windat->transactions[i].sort_index == transaction) {
@@ -3350,8 +3352,6 @@ static void transact_place_edit_line_by_transaction(struct transact_block *winda
 				break;
 			}
 		}
-	} else {
-		line = windat->trans_count;
 	}
 
 	transact_place_edit_line(windat, line);

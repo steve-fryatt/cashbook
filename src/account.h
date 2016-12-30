@@ -51,10 +51,12 @@ struct account_block;
  */
 
 enum account_type {
-	ACCOUNT_NULL = 0x0000,							/**< Unset account type.				*/
-	ACCOUNT_FULL = 0x0001,							/**< Bank account type.					*/
-	ACCOUNT_IN   = 0x0100,							/**< Income enabled analysis header.			*/
-	ACCOUNT_OUT  = 0x0200							/**< Outgoing enabled analysis header.			*/
+	ACCOUNT_NULL     = 0x0000,						/**< Unset account type.				*/
+	ACCOUNT_FULL     = 0x0001,						/**< Bank account type.					*/
+	ACCOUNT_IN       = 0x0100,						/**< Income enabled analysis header.			*/
+	ACCOUNT_OUT      = 0x0200,						/**< Outgoing enabled analysis header.			*/
+	ACCOUNT_FULL_IN  = 0x0101,						/**< Income analysis header and bank account combo.	*/
+	ACCOUNT_FULL_OUT = 0x0201						/**< Outgoing analysis header and bank account combo.	*/
 };
 
 /**

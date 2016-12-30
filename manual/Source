@@ -1517,6 +1517,14 @@ Update to fourth stable release.
 <li>Use valid dialogue info pointers when opening Find dialogue (ticket&nbsp;#579).
 </list>
 
+
+<subhead title="Test Build">
+
+<list>
+<li>Re-implemented data entry line code into a stand-alone module separate from the Transaction module.
+<li>Fixed problem with &lsquo;Reconcile Mode&rsquo; where the caret didn&rsquo;t advance on keypresses.
+</list>
+
 </chapter>
 
 

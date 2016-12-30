@@ -536,6 +536,76 @@ osbool transact_test_index_valid(struct file_block *file, tran_t transaction);
 
 
 /**
+ * Find and return the line number of the first blank line in a file, based on
+ * display order.
+ *
+ * \param *file			The file to search.
+ * \return			The first blank display line.
+ */
+
+int transact_find_first_blank_line(struct file_block *file);
+
+
+/**
+ * Change the date for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param new_date	The new date to set the transaction to.
+ */
+
+void transact_change_date(struct file_block *file, tran_t transaction, date_t new_date);
+
+
+/**
+ * Change the from or to account associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_account	The new account to set the field to.
+ */
+
+void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account);
+
+
+/**
+ * Toggle the state of one of the reconciled flags for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param change_flag	Indicate which reconciled flags to change.
+ */
+
+void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag);
+
+
+/**
+ * Change the reference or description associated with a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param target	The target field to change.
+ * \param new_text	The new text to set the field to.
+ */
+
+void transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text);
+
+
+/**
+ * Insert a preset into a pre-existing transaction, taking care of updating all
+ * the file data in a clean way.
+ *
+ * \param *file		The file to edit.
+ * \param line		The line in the transaction window to update.
+ * \param preset	The preset to insert into the transaction.
+ * \return		TRUE if successful; FALSE on failure.
+ */
+
+osbool transact_insert_preset_into_line(struct file_block *file, int line, preset_t preset);
+
+
+/**
  * Sort the contents of the transaction window based on the file's sort setting.
  *
  * \param *windat		The transaction window instance to sort.
@@ -555,17 +625,6 @@ void transact_sort(struct transact_block *windat);
  */
 
 void transact_sort_file_data(struct file_block *file);
-
-
-/**
- * Find and return the line number of the first blank line in a file, based on
- * display order.
- *
- * \param *file			The file to search.
- * \return			The first blank display line.
- */
-
-int transact_find_first_blank_line(struct file_block *file);
 
 
 /**
@@ -694,76 +753,6 @@ osbool transact_check_account(struct file_block *file, acct_t account);
 
 
 
-/**
- * Toggle the state of one of the reconciled flags for a transaction.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to edit.
- * \param change_flag	Indicate which reconciled flags to change.
- */
-
-void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag);
-
-
-/**
- * Change the date for a transaction.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to edit.
- * \param new_date	The new date to set the transaction to.
- */
-
-void transact_change_date(struct file_block *file, tran_t transaction, date_t new_date);
-
-
-/**
- * Change the reference or description associated with a transaction.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to edit.
- * \param target	The target field to change.
- * \param new_text	The new text to set the field to.
- */
-
-void transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text);
-
-
-/**
- * Change the from or to account associated with a transaction.
- *
- * \param *file		The file to edit.
- * \param transaction	The transaction to edit.
- * \param target	The target field to change.
- * \param new_account	The new account to set the field to.
- */
-
-void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account);
-
-
-
-
-
-
-
-
-
-/* The code below this point needs to move to a more appropriate location.
- * -----------------------------------------------------------------------------------------------------------------------------
- */
-
-
-
-/**
- * Insert a preset into a pre-existing transaction, taking care of updating all
- * the file data in a clean way.
- *
- * \param *file		The file to edit.
- * \param line		The line in the transaction window to update.
- * \param preset	The preset to insert into the transaction.
- * \return		TRUE if successful; FALSE on failure.
- */
-
-osbool transact_insert_preset_into_line(struct file_block *file, int line, preset_t preset);
 
 
 #endif

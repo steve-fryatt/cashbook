@@ -581,6 +581,17 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 
 
 /**
+ * Change the amount of money for a transaction.
+ *
+ * \param *file		The file to edit.
+ * \param transaction	The transaction to edit.
+ * \param new_amount	The new amount to set the transaction to.
+ */
+
+void transact_change_amount(struct file_block *file, tran_t transaction, amt_t new_amount);
+
+
+/**
  * Change the reference or description associated with a transaction.
  *
  * \param *file		The file to edit.

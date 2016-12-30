@@ -3854,7 +3854,7 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
  * \param new_amount	The new amount to set the transaction to.
  */
 
-static void edit_change_transaction_amount(struct file_block *file, tran_t transaction, amt_t new_amount)
+void transact_change_amount(struct file_block *file, tran_t transaction, amt_t new_amount)
 {
 	int	line;
 	osbool	changed = FALSE;

@@ -1881,7 +1881,9 @@ static struct edit_data *edit_get_transfer_block(struct edit_block *instance)
 
 	for (i = 0; i < EDIT_TRANSFER_BLOCKS; i++) {
 		if (instance->transfer[i].free == TRUE) {
+#ifdef DEBUG
 			debug_printf("Allocating transfer block %d", i);
+#endif
 			instance->transfer[i].free = FALSE;
 			transfer = &(instance->transfer[i].data);
 			break;
@@ -1908,9 +1910,11 @@ static void edit_free_transfer_block(struct edit_block *instance, struct edit_da
 
 	for (i = 0; i < EDIT_TRANSFER_BLOCKS; i++) {
 		if (transfer == &(instance->transfer[i].data)) {
+#ifdef DEBUG
 			debug_printf("Freeing transfer block %d", i);
 			if (instance->transfer[i].free == TRUE)
 				debug_printf("Block not in use!");
+#endif
 
 			instance->transfer[i].free = TRUE;
 			break;

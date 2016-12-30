@@ -4076,7 +4076,9 @@ static osbool transact_edit_put_field(struct edit_data *data)
 	acct_t			old_account;
 	osbool			changed;
 
+#ifdef DEBUG
 	debug_printf("Returning complex data for icon %d in row %d", data->icon, data->line);
+#endif
 
 	if (data == NULL)
 		return FALSE;
@@ -4306,7 +4308,9 @@ static osbool transact_edit_auto_complete(struct edit_data *data)
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 
+#ifdef DEBUG
 	debug_printf("Requesting auto-completion");
+#endif
 
 	/* We can only complete text fields at the moment, as none of the others make sense. */
 
@@ -4599,7 +4603,9 @@ static int transact_edit_auto_sort(wimp_i icon, void *data)
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 
+#ifdef DEBUG
 	debug_printf("Requesting auto-sort on icon %d", icon);
+#endif
 
 	/* Don't do anything if AutoSort is configured off. */
 

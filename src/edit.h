@@ -137,8 +137,10 @@ struct edit_callback {
 
 	/**
 	 * Request that the client adjusts the horizontal positioning of its
-	 * window such that the supplied coordinates are in range.
+	 * window such that the supplied coordinates are in range. It should also
+	 * ensure that the specified line is visible in the window.
 	 * 
+	 * \param line			The line at which the edit line is located.
 	 * \param xmin			The minimum X window coordinate, in OS units.
 	 * \param xmax			The maximum X window coordinate, in OS units.
 	 * \param target		The target alignment
@@ -146,7 +148,7 @@ struct edit_callback {
 	 * \return			TRUE if successful; FALSE on error.
 	 */
 
-	osbool			(*find_field)(int xmin, int xmax, enum edit_align target, void *data);
+	osbool			(*find_field)(int line, int xmin, int xmax, enum edit_align target, void *data);
 
 
 	/**

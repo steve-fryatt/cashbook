@@ -846,7 +846,6 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 	if (next != NULL) {
 		icons_put_caret_at_end(instance->parent, next->icon->icon);
 		edit_find_field_horizontally(next);
-//FIXME		edit_find_line_vertically(file);
 	} else {
 		next = edit_find_first_field(field);
 
@@ -887,7 +886,6 @@ static void edit_move_caret_back(struct edit_block *instance)
 	if (previous != NULL) {
 		icons_put_caret_at_end(instance->parent, previous->icon->icon);
 		edit_find_field_horizontally(previous);
-//FIXME		edit_find_line_vertically(file);
 	} else if (instance->edit_line > 0) {
 		previous = edit_find_last_field(field);
 
@@ -1414,7 +1412,7 @@ static osbool edit_find_field_horizontally(struct edit_field *field)
 		icon = icon->sibling;
 	}
 
-	return field->instance->callbacks->find_field(xmin, xmax, alignment, field->instance->client_data);
+	return field->instance->callbacks->find_field(field->instance->edit_line, xmin, xmax, alignment, field->instance->client_data);
 }
 
 

@@ -406,7 +406,7 @@ static char			*transact_complete_description(struct file_block *file, int line, 
 static osbool			transact_edit_get_field(struct edit_data *data);
 static osbool			transact_edit_put_field(struct edit_data *data);
 static osbool			transact_edit_test_line(int line, void *data);
-static osbool			transact_edit_find_field(int xmin, int xmax, enum edit_align target, void *data);
+static osbool			transact_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data);
 static int			transact_edit_first_blank_line(void *data);
 static int			transact_edit_auto_sort(wimp_i icon, void *data);
 static osbool			transact_edit_auto_complete(struct edit_data *data);
@@ -5343,7 +5343,7 @@ static osbool transact_edit_test_line(int line, void *data)
 }
 
 
-static osbool transact_edit_find_field(int xmin, int xmax, enum edit_align target, void *data)
+static osbool transact_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data)
 {
 	struct transact_block	*windat = data;
 	wimp_window_state	window;
@@ -5392,6 +5392,13 @@ static osbool transact_edit_find_field(int xmin, int xmax, enum edit_align targe
 			break;
 		}
 	}
+
+	/* Make sure that the line is visible vertically, as well. 
+	 * NB: This currently ignores the line parameter, as transact_find_edit_line_vertically()
+	 * queries the edit line directly. At present, these both yield the same result.
+	 */
+
+	transact_find_edit_line_vertically(windat);
 
 	return TRUE;
 }

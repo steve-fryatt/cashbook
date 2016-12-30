@@ -33,55 +33,72 @@
 #include "account.h"
 #include "transact.h"
 
-/* ------------------------------------------------------------------------------------------------------------------
- * Static constants
- */
-
 
 /**
  * The different types of field available in an edit line.
  */
 
 enum edit_field_type {
-	EDIT_FIELD_DISPLAY,		/**< A display field which can not be edited.	*/
-	EDIT_FIELD_TEXT,		/**< A plain text field.			*/
-	EDIT_FIELD_CURRENCY,		/**< A currency field.				*/
-	EDIT_FIELD_DATE,		/**< A date field.				*/
-	EDIT_FIELD_ACCOUNT_IN,		/**< An incoming account field.			*/
-	EDIT_FIELD_ACCOUNT_OUT		/**< An outgoing account field.			*/
+	EDIT_FIELD_DISPLAY,					/**< A display field which can not be edited.			*/
+	EDIT_FIELD_TEXT,					/**< A plain text field.					*/
+	EDIT_FIELD_CURRENCY,					/**< A currency field.						*/
+	EDIT_FIELD_DATE,					/**< A date field.						*/
+	EDIT_FIELD_ACCOUNT_IN,					/**< An incoming account field.					*/
+	EDIT_FIELD_ACCOUNT_OUT					/**< An outgoing account field.					*/
 };
+
+/**
+ * Data associated with a text field.
+ */
 
 struct edit_data_text {
-	char	*text;
-	size_t	length;
+	char					*text;		/**< Pointer to a buffer to hold the text value of the field.	*/
+	size_t					length;		/**< The maximum length of the buffer.				*/
 };
+
+/**
+ * Data associated with a currency field.
+ */
 
 struct edit_data_currency {
-	amt_t	amount;
+	amt_t					amount;		/**< The currency value of the field.				*/
 };
+
+/**
+ * Data associated with a date field.
+ */
 
 struct edit_data_date {
-	date_t	date;
+	date_t					date;		/**< The date value of the field.				*/
 };
+
+/**
+ * Data associated with an account field.
+ */
 
 struct edit_data_account {
-	acct_t	account;
-	osbool	reconciled;
+	acct_t					account;	/**< The account value of the field.				*/
+	osbool					reconciled;	/**< TRUE if the field has been reconciled; FALSE if not.	*/
 };
 
+/**
+ * Block to hold data being transferred from the client to an edit line
+ * field or back again.
+ */
+
 struct edit_data {
-	int					line;		/**< The line that we're interested in.			*/
-	wimp_i					icon;		/**< The handle of the first icon in the field.		*/
-	enum edit_field_type			type;		/**< The type of field to require the data.		*/
+	int					line;		/**< The line containing the field to be transferred		*/
+	wimp_i					icon;		/**< The handle of the first icon in the field.			*/
+	enum edit_field_type			type;		/**< The type of field to be transferred			*/
 	union {
-		struct edit_data_text		display;	/**< The data relating to a display field.		*/
-		struct edit_data_text		text;		/**< The data relating to a text field.			*/
-		struct edit_data_currency	currency;	/**< The data relating to a currency field.		*/
-		struct edit_data_date		date;		/**< The data relating to a date field.			*/
-		struct edit_data_account	account;	/**< The data relating to an account field.		*/
+		struct edit_data_text		display;	/**< The data relating to a display field.			*/
+		struct edit_data_text		text;		/**< The data relating to a text field.				*/
+		struct edit_data_currency	currency;	/**< The data relating to a currency field.			*/
+		struct edit_data_date		date;		/**< The data relating to a date field.				*/
+		struct edit_data_account	account;	/**< The data relating to an account field.			*/
 	};
-	wimp_key_no				key;		/**< The keypress resulting in the reported change.	*/
-	void					*data;		/**< The client-supplied data pointer.			*/
+	wimp_key_no				key;		/**< The keypress resulting in the reported change, or \0.	*/
+	void					*data;		/**< The client-supplied data pointer.				*/
 };
 
 /**
@@ -89,11 +106,16 @@ struct edit_data {
  */
 
 enum edit_align {
-	EDIT_ALIGN_NONE,		/**< Alignment not specified.			*/
-	EDIT_ALIGN_LEFT,		/**< Align to the left-hand end of the field.	*/
-	EDIT_ALIGN_CENTRE,		/**< Align to the centre of the field.		*/
-	EDIT_ALIGN_RIGHT		/**< Align to the right-hand end of the field.	*/
+	EDIT_ALIGN_NONE,					/**< Alignment not specified.					*/
+	EDIT_ALIGN_LEFT,					/**< Align to the left-hand end of the field.			*/
+	EDIT_ALIGN_CENTRE,					/**< Align to the centre of the field.				*/
+	EDIT_ALIGN_RIGHT					/**< Align to the right-hand end of the field.			*/
 };
+
+/**
+ * A set of callbacks which clients must either supply or set to NULL. These
+ * will be used by the edit line to communicate with the client.
+ */
 
 struct edit_callback {
 	/**

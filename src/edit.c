@@ -82,50 +82,67 @@
  */
 
 enum edit_icon_type {
-	EDIT_ICON_DISPLAY,		/**< A non-writable display field icon, which can not be edited.	*/
-	EDIT_ICON_TEXT,			/**< A writable plain text field icon.					*/
-	EDIT_ICON_CURRENCY,		/**< A writable currency field icon.					*/
-	EDIT_ICON_DATE,			/**< A writable date field icon.					*/
-	EDIT_ICON_ACCOUNT_NAME,		/**< A non-writable account field name icon.				*/
-	EDIT_ICON_ACCOUNT_IDENT,	/**< A writable account field ident icon.				*/
-	EDIT_ICON_ACCOUNT_REC		/**< A non-writable, clickable account field reconciliation icon.	*/
+	EDIT_ICON_DISPLAY,						/**< A non-writable display field icon, which can not be edited.		*/
+	EDIT_ICON_TEXT,							/**< A writable plain text field icon.						*/
+	EDIT_ICON_CURRENCY,						/**< A writable currency field icon.						*/
+	EDIT_ICON_DATE,							/**< A writable date field icon.						*/
+	EDIT_ICON_ACCOUNT_NAME,						/**< A non-writable account field name icon.					*/
+	EDIT_ICON_ACCOUNT_IDENT,					/**< A writable account field ident icon.					*/
+	EDIT_ICON_ACCOUNT_REC						/**< A non-writable, clickable account field reconciliation icon.		*/
 };
+
+/**
+ * Data relating to a text field.
+ */
 
 struct edit_field_text {
-	int	sum;
+	int	sum;							/**< The sum (checksum/hash) of the field's text.				*/
 };
+
+/**
+ * Data relating to a currency field.
+ */
 
 struct edit_field_currency {
-	amt_t	amount;
+	amt_t	amount;							/**< The currency amount held in the field.					*/
 };
+
+/**
+ * Data relating to a date field.
+ */
 
 struct edit_field_date {
-	date_t	date;
+	date_t	date;							/**< The date held in the field.						*/
 };
 
+/**
+ * Data relating to an account field.
+ */
+
 struct edit_field_account {
-	acct_t	account;
-	osbool	reconciled;
+	acct_t	account;						/**< The account held in the field.						*/
+	osbool	reconciled;						/**< TRUE if the account is reconciled; FALSE if it is not.			*/
 };
+
 /**
  * A field within an edit line.
  */
 
 struct edit_field {
-	struct edit_block	*instance;		/**< The parent edit line instance.						*/
+	struct edit_block	*instance;				/**< The parent edit line instance.						*/
 
-	enum edit_field_type	type;			/**< The type of field.								*/
+	enum edit_field_type	type;					/**< The type of field.								*/
 
-	struct edit_icon	*icon;			/**< The first icon in a linked list associated with the field.			*/
+	struct edit_icon	*icon;					/**< The first icon in a linked list associated with the field.			*/
 
 	union {
-		struct edit_field_text		text;		/**< The data relating to a text field.		*/
-		struct edit_field_currency	currency;	/**< The data relating to a currency field.	*/
-		struct edit_field_date		date;		/**< The data relating to a date field.		*/
-		struct edit_field_account	account;	/**< The data relating to an account field.	*/
+		struct edit_field_text		text;			/**< The data relating to a text field.						*/
+		struct edit_field_currency	currency;		/**< The data relating to a currency field.					*/
+		struct edit_field_date		date;			/**< The data relating to a date field.						*/
+		struct edit_field_account	account;		/**< The data relating to an account field.					*/
 	};
 
-	struct edit_field	*next;			/**< Pointer to the next icon in the line, or NULL.				*/
+	struct edit_field	*next;					/**< Pointer to the next icon in the line, or NULL.				*/
 };
 
 /**
@@ -133,18 +150,18 @@ struct edit_field {
  */
 
 struct edit_icon {
-	struct edit_field	*parent;		/**< The parent field to which the icon belongs.				*/
-	struct edit_icon	*sibling;		/**< Pointer to the next silbing icon in the field, if any (NULL if none).	*/
+	struct edit_field	*parent;				/**< The parent field to which the icon belongs.				*/
+	struct edit_icon	*sibling;				/**< Pointer to the next silbing icon in the field, if any (NULL if none).	*/
 
-	enum edit_icon_type	type;			/**< The type of icon in an edit line context.					*/
+	enum edit_icon_type	type;					/**< The type of icon in an edit line context.					*/
 
-	int			column;			/**< The column of the left-most part of the field.				*/
+	int			column;					/**< The column of the left-most part of the field.				*/
 
-	wimp_i			icon;			/**< The wimp handle of the icon.						*/
-	char			*buffer;		/**< Pointer to a buffer to hold the icon text.					*/
-	size_t			length;			/**< The length of the text buffer.						*/
+	wimp_i			icon;					/**< The wimp handle of the icon.						*/
+	char			*buffer;				/**< Pointer to a buffer to hold the icon text.					*/
+	size_t			length;					/**< The length of the text buffer.						*/
 
-	struct edit_icon	*next;			/**< Pointer to the next field in the line, or NULL.				*/
+	struct edit_icon	*next;					/**< Pointer to the next field in the line, or NULL.				*/
 };
 
 /**
@@ -155,8 +172,8 @@ struct edit_icon {
  */
 
 struct edit_transfer {
-	osbool			free;			/**< TRUE if the block is free to be allocated; FALSE if it has been claimed.	*/
-	struct edit_data	data;			/**< The data transfer block itself.						*/
+	osbool			free;					/**< TRUE if the block is free to be allocated; FALSE if it has been claimed.	*/
+	struct edit_data	data;					/**< The data transfer block itself.						*/
 };
 
 /**
@@ -164,71 +181,70 @@ struct edit_transfer {
  */
 
 struct edit_block {
-	struct file_block	*file;			/**< The parent file.								*/
+	struct file_block	*file;					/**< The parent file.								*/
 
-	wimp_window		*template;		/**< The template for the parent window.					*/
-	wimp_w			parent;			/**< The parent window that the edit line belongs to.				*/
-	struct column_block	*columns;		/**< The parent window column settings.						*/
-	int			toolbar_height;		/**< The height of the toolbar in the parent window.				*/
+	wimp_window		*template;				/**< The template for the parent window.					*/
+	wimp_w			parent;					/**< The parent window that the edit line belongs to.				*/
+	struct column_block	*columns;				/**< The parent window column settings.						*/
+	int			toolbar_height;				/**< The height of the toolbar in the parent window.				*/
 
-	struct edit_field	*fields;		/**< The list of fields defined in the line, or NULL for none.			*/
-	struct edit_icon	*icons;			/**< The list of icons defined in the line, or NULL for none.			*/
+	struct edit_field	*fields;				/**< The list of fields defined in the line, or NULL for none.			*/
+	struct edit_icon	*icons;					/**< The list of icons defined in the line, or NULL for none.			*/
 
-	void			*client_data;		/**< Client supplied data, for use in callbacks.				*/
+	void			*client_data;				/**< Client supplied data, for use in callbacks.				*/
 
 	struct edit_transfer	transfer[EDIT_TRANSFER_BLOCKS];		/**< The structure used to transfer data to and from the client.		*/
 
-	osbool			complete;		/**< TRUE if the instance is complete; FALSE if a memory allocation failed.	*/
+	osbool			complete;				/**< TRUE if the instance is complete; FALSE if a memory allocation failed.	*/
 
-	struct edit_callback	*callbacks;		/**< The client's callback function details.					*/
+	struct edit_callback	*callbacks;				/**< The client's callback function details.					*/
 
-	int			edit_line;		/**< The line currently marked for entry, in terms of window lines, or -1.	*/
+	int			edit_line;				/**< The line currently marked for entry, in terms of window lines, or -1.	*/
 };
 
 
-/* ==================================================================================================================
- * Global variables.
- */
+/* Global Variables. */
 
-/* A pointer to the instance currently holding the active edit line. */
+/**
+ * Pointer to the instance currently holding the active edit line.
+ */
 
 static struct edit_block *edit_active_instance = NULL;
 
-static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
-static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colour colour);
-static void edit_move_caret_up_down(struct edit_block *instance, int direction);
-static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key);
-static void edit_move_caret_back(struct edit_block *instance);
-static void edit_process_content_keypress(struct edit_block *instance, wimp_key *key);
-static void edit_process_text_field_keypress(struct edit_field *field, wimp_key *key);
-static void edit_process_date_field_keypress(struct edit_field *field, wimp_key *key);
-static void edit_process_currency_field_keypress(struct edit_field *field, wimp_key *key);
-static void edit_process_account_field_keypress(struct edit_field *field, wimp_key *key, enum account_type type);
-static void edit_get_field_content(struct edit_field *field, int line, osbool complete);
-static void edit_delete_line_content(struct edit_block *instance);
-static void edit_refresh_field_contents(struct edit_field *field);
-static struct edit_data *edit_get_field_transfer(struct edit_field *field, int line, osbool complete);
-static void edit_put_field_content(struct edit_field *field, int line, wimp_key_no key);
-static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
+/* Static Function Prototypes. */
 
-static osbool edit_find_field_horizontally(struct edit_field *field);
-static osbool edit_callback_test_line(struct edit_block *instance, int line);
-static osbool edit_callback_place_line(struct edit_block *instance, int line);
-static int edit_callback_first_blank_line(struct edit_block *instance);
-static osbool edit_callback_auto_sort(struct edit_field *field);
-static osbool edit_callback_insert_preset(struct edit_block *instance, int line, wimp_key_no key);
-
-static int edit_sum_field_text(char *text, size_t length);
-
-static struct edit_field *edit_find_caret(struct edit_block *instance);
-static struct edit_field *edit_find_last_field(struct edit_field *field);
-static struct edit_field *edit_find_next_field(struct edit_field *field);
-static struct edit_field *edit_find_previous_field(struct edit_field *field);
-static struct edit_field *edit_find_first_field(struct edit_field *field);
-static osbool edit_is_field_writable(struct edit_field *field);
-static void edit_initialise_transfer_blocks(struct edit_block *instance);
-static struct edit_data *edit_get_transfer_block(struct edit_block *instance);
-static void edit_free_transfer_block(struct edit_block *instance, struct edit_data *transfer);
+static osbool			edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
+static osbool			edit_create_field_icon(struct edit_icon *icon, int line, wimp_colour colour);
+static void			edit_move_caret_up_down(struct edit_block *instance, int direction);
+static void			edit_move_caret_forward(struct edit_block *instance, wimp_key *key);
+static void			edit_move_caret_back(struct edit_block *instance);
+static void			edit_process_content_keypress(struct edit_block *instance, wimp_key *key);
+static void			edit_process_text_field_keypress(struct edit_field *field, wimp_key *key);
+static void			edit_process_date_field_keypress(struct edit_field *field, wimp_key *key);
+static void			edit_process_currency_field_keypress(struct edit_field *field, wimp_key *key);
+static void			edit_process_account_field_keypress(struct edit_field *field, wimp_key *key, enum account_type type);
+static void			edit_get_field_content(struct edit_field *field, int line, osbool complete);
+static void			edit_delete_line_content(struct edit_block *instance);
+static void			edit_refresh_field_contents(struct edit_field *field);
+static struct edit_data		*edit_get_field_transfer(struct edit_field *field, int line, osbool complete);
+static void			edit_put_field_content(struct edit_field *field, int line, wimp_key_no key);
+static osbool			edit_get_field_icons(struct edit_field *field, int icons, ...);
+static osbool			edit_find_field_horizontally(struct edit_field *field);
+static osbool			edit_callback_test_line(struct edit_block *instance, int line);
+static osbool			edit_callback_place_line(struct edit_block *instance, int line);
+static int			edit_callback_first_blank_line(struct edit_block *instance);
+static osbool			edit_callback_auto_sort(struct edit_field *field);
+static osbool			edit_callback_insert_preset(struct edit_block *instance, int line, wimp_key_no key);
+static int			edit_sum_field_text(char *text, size_t length);
+static struct edit_field	*edit_find_caret(struct edit_block *instance);
+static struct edit_field	*edit_find_last_field(struct edit_field *field);
+static struct edit_field	*edit_find_next_field(struct edit_field *field);
+static struct edit_field	*edit_find_previous_field(struct edit_field *field);
+static struct edit_field	*edit_find_first_field(struct edit_field *field);
+static osbool			edit_is_field_writable(struct edit_field *field);
+static void			edit_initialise_transfer_blocks(struct edit_block *instance);
+static struct edit_data		*edit_get_transfer_block(struct edit_block *instance);
+static void			edit_free_transfer_block(struct edit_block *instance, struct edit_data *transfer);
 
 
 /**

@@ -1935,15 +1935,15 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 
 char *transact_get_column_name(struct file_block *file, enum transact_field field, char *buffer, size_t len)
 {
-	wimp_i icon;
+	wimp_i icon = wimp_ICON_WINDOW;
 
 	if (buffer == NULL || len == 0)
 		return NULL;
-	
-	if (file == NULL || file->transacts == NULL) {
-		*buffer = '\0';
+
+	*buffer = '\0';
+
+	if (file == NULL || file->transacts == NULL)
 		return buffer;
-	}
 
 	switch (field) {
 	case TRANSACT_FIELD_NONE:
@@ -1968,6 +1968,9 @@ char *transact_get_column_name(struct file_block *file, enum transact_field fiel
 		icon = TRANSACT_ICON_DESCRIPTION;
 		break;
 	}
+
+	if (icon == wimp_ICON_WINDOW)
+		return buffer;
 
 	icons_copy_text(file->transacts->transaction_pane, column_get_group(TRANSACT_PANE_COL_MAP, icon), buffer, len);
 

@@ -3748,6 +3748,13 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 		if (old_acct != file->transacts->transactions[transaction].to || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
 		break;
+	case TRANSACT_FIELD_ROW:
+	case TRANSACT_FIELD_DATE:
+	case TRANSACT_FIELD_REF:
+	case TRANSACT_FIELD_AMOUNT:
+	case TRANSACT_FIELD_DESC:
+	case TRANSACT_FIELD_NONE:
+		break;
 	}
 
 	/* Return the line to the calculations. This will automatically update
@@ -3777,6 +3784,13 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 		accview_rebuild(file, old_acct);
 		accview_rebuild(file, file->transacts->transactions[transaction].to);
 		accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
+		break;
+	case TRANSACT_FIELD_ROW:
+	case TRANSACT_FIELD_DATE:
+	case TRANSACT_FIELD_REF:
+	case TRANSACT_FIELD_AMOUNT:
+	case TRANSACT_FIELD_DESC:
+	case TRANSACT_FIELD_NONE:
 		break;
 	}
 

@@ -3526,6 +3526,8 @@ static osbool transact_edit_find_field(int line, int xmin, int xmax, enum edit_a
 				wimp_open_window((wimp_open *) &window);
 			}
 			break;
+		case EDIT_ALIGN_NONE:
+			break;
 		}
 	}
 

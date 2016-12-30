@@ -330,7 +330,7 @@ void import_csv_file (struct file_block *file, char *filename)
 {
   FILE         *input;
   char         line[1024], log[1024], b1[64], b2[64],
-               *date, *ref, *amount, *description, *dummy, *ident, *name, *raw_from, *raw_to;
+               *date, *ref, *amount, *description, *ident, *name, *raw_from, *raw_to;
   int          from, to, import_count, reject_count, error;
   wimp_pointer pointer;
   unsigned int type;
@@ -471,14 +471,14 @@ void import_csv_file (struct file_block *file, char *filename)
       }
       else
       {
-        dummy = next_field(NULL, ',');
+        next_field(NULL, ',');
       }
 
       amount = unquote_string(amount);
 
       /* Skip Balance */
 
-      dummy = next_field(NULL, ',');
+      next_field(NULL, ',');
 
       /* Description */
 

@@ -336,6 +336,7 @@ osbool edit_complete(struct edit_block *instance)
 	return instance->complete;
 }
 
+
 /**
  * Add a field to an edit line instance.
  * 
@@ -403,6 +404,19 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 	return instance->complete;
 }
 
+
+/**
+ * Add an icon definition to an edit line field. This does not create the
+ * icon itself.
+ * 
+ * \param *field		The field to which the icon will belong.
+ * \param type			The type of icon being created.
+ * \param icon			The expected Wimp icon handle for the icon.
+ * \param *buffer		Pointer to the buffer to hold the icon contents.
+ * \param *length		The length of the supplied icon buffer.
+ * \param column		The window column to which the icon belongs.
+ * \return			TRUE on success; FALSE on error or failure.
+ */
 
 static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column)
 {
@@ -525,13 +539,21 @@ void edit_place_new_line(struct edit_block *instance, int line, wimp_colour colo
 		edit_active_instance = NULL;
 	}
 
+	/* Set the active instance so that the icon creation knows that it's OK. */
+
+	instance->edit_line = line;
+	edit_active_instance = instance;
+
 	/* Create the new edit line icons. */
 
 	icon = instance->icons;
 
 	while (icon != NULL) {
-		if (!edit_create_field_icon(icon, line, colour))
+		if (!edit_create_field_icon(icon, line, colour)) {
+			edit_active_instance->edit_line = -1;
+			edit_active_instance = NULL;
 			return;
+		}
 		icon = icon->next;
 	}
 
@@ -543,9 +565,6 @@ void edit_place_new_line(struct edit_block *instance, int line, wimp_colour colo
 		edit_get_field_content(field, line, FALSE);
 		field = field->next;
 	}
-
-	instance->edit_line = line;
-	edit_active_instance = instance;
 }
 
 
@@ -566,6 +585,9 @@ static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colo
 	os_error		*error;
 
 	if (icon == NULL || icon->parent == NULL || icon->parent->instance == NULL || icon->parent->instance->columns == NULL)
+		return FALSE;
+
+	if (icon->parent->instance != edit_active_instance)
 		return FALSE;
 
 	icon_block.w = icon->parent->instance->parent;
@@ -618,6 +640,9 @@ void edit_refresh_line_contents(struct edit_block *instance, wimp_i only, wimp_i
 		instance = edit_active_instance;
 
 	if (instance == NULL || instance->file == NULL || !edit_callback_test_line(instance, instance->edit_line))
+		return;
+
+	if (instance != edit_active_instance)
 		return;
 
 	/* Get the field data and update the icons. */
@@ -768,7 +793,7 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 {
 	wimp_caret	caret;
 
-	if (instance == NULL)
+	if (instance == NULL || instance != edit_active_instance)
 		return;
 
 	/* Establish the direction that we're moving in. */
@@ -804,7 +829,7 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 	struct edit_data	*transfer;
 	int			line;
 
-	if (instance == NULL)
+	if (instance == NULL || instance != edit_active_instance)
 		return;
 
 	field = edit_find_caret(instance);
@@ -866,7 +891,7 @@ static void edit_move_caret_back(struct edit_block *instance)
 {
 	struct edit_field	*field, *previous;
 
-	if (instance == NULL)
+	if (instance == NULL || instance != edit_active_instance)
 		return;
 
 	field = edit_find_caret(instance);
@@ -904,7 +929,7 @@ static void edit_process_content_keypress(struct edit_block *instance, wimp_key 
 	struct edit_field	*field;
 
 
-	if (instance == NULL || instance->parent != key->w)
+	if (instance == NULL || instance->parent != key->w || instance != edit_active_instance)
 		return;
 
 	/* Find the field which owns the caret icon. If a field isn't found, return. */
@@ -1524,8 +1549,14 @@ static osbool edit_find_field_horizontally(struct edit_field *field)
 }
 
 
-
-
+/**
+ * Contact the client to test if a given line in its window represents
+ * valid data or not.
+ *
+ * \param *instance		The instance holding the line to be tested.
+ * \param line			The line number to be tested.
+ * \return			TRUE if the line is valid; FALSE if not, or on error.
+ */
 
 static osbool edit_callback_test_line(struct edit_block *instance, int line)
 {
@@ -1536,6 +1567,16 @@ static osbool edit_callback_test_line(struct edit_block *instance, int line)
 };
 
 
+/**
+ * Contact the client to request that the edit line is placed at a given
+ * location in the window related to the specified instance. The client will
+ * be expected to make sure that the line is visible to the user.
+ * 
+ * \param *instance		The instance to take the line.
+ * \param line			The line number at which to place the edit line.
+ * \return			TRUE if the line was placed successfull; FALSE if not.
+ */
+
 static osbool edit_callback_place_line(struct edit_block *instance, int line)
 {
 	if (instance == NULL || instance->callbacks == NULL || instance->callbacks->place_line == NULL)
@@ -1543,6 +1584,15 @@ static osbool edit_callback_place_line(struct edit_block *instance, int line)
 
 	return instance->callbacks->place_line(line, instance->client_data);
 };
+
+
+/**
+ * Contact the client to request details of the first blank line in an edit
+ * line instance's parent window.
+ * 
+ * \param *instance		The instance of interest.
+ * \return			The line number indexed from 0, or -1 on failure.
+ */
 
 static int edit_callback_first_blank_line(struct edit_block *instance)
 {
@@ -1553,6 +1603,15 @@ static int edit_callback_first_blank_line(struct edit_block *instance)
 
 }
 
+
+/**
+ * Contact the client to request that a field's parent window is sorted on
+ * that field, if applicable.
+ * 
+ * \param *field		The field to request the sort on.
+ * \return			TRUE if the request was successfully handled; FALSE if not.
+ */
+
 static osbool edit_callback_auto_sort(struct edit_field *field)
 {
 	if (field == NULL || field->icon == NULL || field->instance == NULL ||
@@ -1562,6 +1621,18 @@ static osbool edit_callback_auto_sort(struct edit_field *field)
 	return field->instance->callbacks->auto_sort(field->icon->icon, field->instance->client_data);
 };
 
+
+/**
+ * Contact the client to report that a transaction preset request has been
+ * received for a given edit line instance. In practice, this means that an
+ * alphabetic character was entered into a date field.
+ * 
+ * \param *instance		The instance receiving the request.
+ * \param line			The line at which the request was received.
+ * \param key			The keypress triggering the request, in upper or lower case.
+ * \return			TRUE if the request was successfully handled; FALSE if not.
+ */
+
 static osbool edit_callback_insert_preset(struct edit_block *instance, int line, wimp_key_no key)
 {
 	if (instance == NULL || instance->callbacks == NULL || instance->callbacks->insert_preset == NULL)
@@ -1570,6 +1641,19 @@ static osbool edit_callback_insert_preset(struct edit_block *instance, int line,
 	return instance->callbacks->insert_preset(line, key, instance->client_data);
 
 }
+
+
+/**
+ * Calculate the sum of the characters in a text buffer. This can be used
+ * as a very simple checksum/hash for text fields, in order to allow a guess
+ * to me made as to whether or not their content has changed.
+ * Fields are assumed to contain only non-control characters, and will
+ * terminate on the first byte below ASCII Space.
+ *
+ * \param *text			Pointer to the buffer to be summed.
+ * \param length		The maximum length of the buffer.
+ * \return			The calculated sum (0 on failure).
+ */
 
 static int edit_sum_field_text(char *text, size_t length)
 {

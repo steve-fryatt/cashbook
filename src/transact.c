@@ -5464,7 +5464,7 @@ int transact_find_date(struct file_block *file, date_t target)
 
 void transact_place_caret(struct file_block *file, int line, enum transact_field field)
 {
-	wimp_i icon;
+	wimp_i icon = wimp_ICON_WINDOW;
 
 	if (file == NULL || file->transacts == NULL)
 		return;
@@ -5494,6 +5494,9 @@ void transact_place_caret(struct file_block *file, int line, enum transact_field
 		icon = TRANSACT_ICON_DESCRIPTION;
 		break;
 	}
+
+	if (icon == wimp_ICON_WINDOW)
+		icon = TRANSACT_ICON_DATE;
 
 	icons_put_caret_at_end(file->transacts->transaction_window, icon);
 	transact_find_edit_line_vertically(file->transacts);

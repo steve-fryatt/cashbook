@@ -205,6 +205,8 @@ static void edit_process_date_field_keypress(struct edit_field *field, wimp_key 
 static void edit_process_currency_field_keypress(struct edit_field *field, wimp_key *key);
 static void edit_process_account_field_keypress(struct edit_field *field, wimp_key *key, enum account_type type);
 static void edit_get_field_content(struct edit_field *field, int line, osbool complete);
+static void edit_delete_line_content(struct edit_block *instance);
+static void edit_refresh_field_contents(struct edit_field *field);
 static struct edit_data *edit_get_field_transfer(struct edit_field *field, int line, osbool complete);
 static void edit_put_field_content(struct edit_field *field, int line, wimp_key_no key);
 static osbool edit_get_field_icons(struct edit_field *field, int icons, ...);
@@ -228,12 +230,6 @@ static void edit_initialise_transfer_blocks(struct edit_block *instance);
 static struct edit_data *edit_get_transfer_block(struct edit_block *instance);
 static void edit_free_transfer_block(struct edit_block *instance, struct edit_data *transfer);
 
-
-#ifdef LOSE
-static void			edit_change_transaction_amount(struct file_block *file, int transaction, amt_t new_amount);
-static enum transact_field	edit_raw_insert_preset_into_transaction(struct file_block *file, int transaction, int preset);
-static void			edit_delete_line_transaction_content(struct file_block *file);
-#endif
 
 
 /**
@@ -722,10 +718,9 @@ osbool edit_process_keypress(struct edit_block *instance, wimp_key *key)
 		return FALSE;
 
 	if (key->c == wimp_KEY_CONTROL + wimp_KEY_F10) {
-
 		/* Ctrl-F10 deletes the whole line. */
 
-//FIXME		edit_delete_line_transaction_content(file);
+		edit_delete_line_content(instance);
 	} else if (key->c == wimp_KEY_UP) {
 		edit_move_caret_up_down(instance, -1);
 	} else if (key->c == wimp_KEY_DOWN) {
@@ -1125,7 +1120,6 @@ static void edit_get_field_content(struct edit_field *field, int line, osbool co
 {
 	struct edit_data	*transfer;
 	struct edit_icon	*icon;
-	wimp_i			name, ident, reconcile;
 
 	if (field == NULL || field->instance == NULL || field->icon == NULL)
 		return;
@@ -1178,32 +1172,147 @@ static void edit_get_field_content(struct edit_field *field, int line, osbool co
 
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:
-		/* The supplied pointer was direct to the icon's buffer, so there's nothing to do. */
 		break;
 	case EDIT_FIELD_TEXT:
 		field->text.sum = edit_sum_field_text(icon->buffer, icon->length);
-		/* The supplied pointer was direct to the icon's buffer, so there's nothing to do. */
 		break;
 	case EDIT_FIELD_CURRENCY:
 		field->currency.amount = transfer->currency.amount;
-		currency_convert_to_string(transfer->currency.amount, icon->buffer, icon->length);
 		break;
 	case EDIT_FIELD_DATE:
 		field->date.date = transfer->date.date;
-		date_convert_to_string(transfer->date.date, icon->buffer, icon->length);
 		break;
 	case EDIT_FIELD_ACCOUNT_IN:
 	case EDIT_FIELD_ACCOUNT_OUT:
 		field->account.account = transfer->account.account;
 		field->account.reconciled = transfer->account.reconciled;
-		if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
-			break;
-		account_fill_field(field->instance->file, transfer->account.account, transfer->account.reconciled,
-				field->instance->parent, ident, name, reconcile);
 		break;
 	}
 
 	edit_free_transfer_block(field->instance, transfer);
+
+	edit_refresh_field_contents(field);
+}
+
+
+/**
+ * If transaction deletion is enabled, delete the contents of the edit line
+ * in the supplied instance field by field, writing the data back to the
+ * client as we go. The underlying data will remain in place, but will be
+ * blank.
+ *
+ * \param *instance		The edit line instance to delete the contents of.
+ */
+
+static void edit_delete_line_content(struct edit_block *instance)
+{
+	struct edit_field	*field;
+	struct edit_icon	*icon;
+	osbool			changed;
+
+	if (instance == NULL || instance->file == NULL || instance != edit_active_instance)
+		return;
+
+	if (!config_opt_read("AllowTransDelete"))
+		return;
+
+	/* Get the field data and update the icons. */
+
+	field = instance->fields;
+
+	while (field != NULL) {
+		icon = field->icon;
+
+		changed = FALSE;
+
+		switch (field->type) {
+		case EDIT_FIELD_TEXT:
+			if (icon == NULL || icon->length == 0 || *(icon->buffer) == '\0')
+				break;
+
+			*(icon->buffer) = '\0';
+			field->text.sum = edit_sum_field_text(icon->buffer, icon->length);
+			changed = TRUE;
+			break;
+		
+		case EDIT_FIELD_DATE:
+			if (field->date.date == NULL_DATE)
+				break;
+
+			field->date.date = NULL_DATE;
+			changed = TRUE;
+			break;
+		
+		case EDIT_FIELD_CURRENCY:
+			if (field->currency.amount == NULL_CURRENCY)
+				break;
+
+			field->currency.amount = NULL_CURRENCY;
+			changed = TRUE;
+			break;
+		
+		case EDIT_FIELD_ACCOUNT_IN:
+		case EDIT_FIELD_ACCOUNT_OUT:
+			if (field->account.account == NULL_ACCOUNT && field->account.reconciled == FALSE)
+				break;
+
+			field->account.account = NULL_ACCOUNT;
+			field->account.reconciled = FALSE;
+			changed = TRUE;
+			break;
+
+		case EDIT_FIELD_DISPLAY:
+			break;
+		}
+
+		if (changed == TRUE) {
+			edit_put_field_content(field, instance->edit_line, wimp_KEY_CONTROL + wimp_KEY_F10);
+			edit_refresh_field_contents(field);
+
+			while (icon != NULL) {
+				wimp_set_icon_state(instance->parent, icon->icon, 0, 0);
+				icon = icon->sibling;
+			}
+		}
+
+		field = field->next;
+	}
+}
+
+
+/**
+ * Refresh the icons in a field from the field's data, where this is held
+ * in a separate copy from the field's icon buffer.
+ * 
+ * \param *field		The field to be updated.
+ */
+
+static void edit_refresh_field_contents(struct edit_field *field)
+{
+	wimp_i	name, ident, reconcile;
+
+	if (field == NULL || field->icon == NULL)
+		return;
+
+	switch (field->type) {
+	case EDIT_FIELD_DISPLAY:
+	case EDIT_FIELD_TEXT:
+		/* The supplied pointer was direct to the icon's buffer, so there's nothing to do. */
+		break;
+	case EDIT_FIELD_CURRENCY:
+		currency_convert_to_string(field->currency.amount, field->icon->buffer, field->icon->length);
+		break;
+	case EDIT_FIELD_DATE:
+		date_convert_to_string(field->date.date, field->icon->buffer, field->icon->length);
+		break;
+	case EDIT_FIELD_ACCOUNT_IN:
+	case EDIT_FIELD_ACCOUNT_OUT:
+		if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
+			break;
+		account_fill_field(field->instance->file, field->account.account, field->account.reconciled,
+				field->instance->parent, ident, name, reconcile);
+		break;
+	}
 }
 
 
@@ -1709,6 +1818,9 @@ static void edit_free_transfer_block(struct edit_block *instance, struct edit_da
 		}
 	}
 }
+
+
+
 
 
 #ifdef LOSE

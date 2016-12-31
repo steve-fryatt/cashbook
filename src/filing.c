@@ -398,16 +398,20 @@ void import_csv_file (struct file_block *file, char *filename)
 
 			/* Date */
 
-			date = next_field(line, ',');
-			date = unquote_string(date);
+			date = filing_read_delimited_field(line, DELIMIT_COMMA, DELIMIT_NONE);
+
+	//		date = next_field(line, ',');
+	//		date = unquote_string(date);
 
 			if (date_convert_from_string(date, NULL_DATE, 0) == NULL_DATE)
 				error = TRUE;
 
 			/* From */
 
-			ident = next_field(NULL, ',');
-			ident = unquote_string(ident);
+			ident = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
+
+	//		ident = next_field(NULL, ',');
+	//		ident = unquote_string(ident);
 
 			raw_from = ident;
 
@@ -431,8 +435,10 @@ void import_csv_file (struct file_block *file, char *filename)
 
 			/* To */
 
-			ident = next_field(NULL, ',');
-			ident = unquote_string(ident);
+			ident = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
+
+	//		ident = next_field(NULL, ',');
+	//		ident = unquote_string(ident);
 
 			raw_to = ident;
 
@@ -456,28 +462,37 @@ void import_csv_file (struct file_block *file, char *filename)
 
 			/* Ref */
 
-			ref = next_field(NULL, ',');
-			ref = unquote_string(ref);
+			ref = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
+
+	//		ref = next_field(NULL, ',');
+	//		ref = unquote_string(ref);
 
 			/* Amount */
 
-			amount = next_field(NULL, ',');
+			amount = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
+
+	//		amount = next_field(NULL, ',');
 
 			if (*amount == '\0')
-				amount = next_field(NULL, ',');
+				amount = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
+	//			amount = next_field(NULL, ',');
 			else
-				next_field(NULL, ',');
+				filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
+	//			next_field(NULL, ',');
 
-			amount = unquote_string(amount);
+	//		amount = unquote_string(amount);
 
 			/* Skip Balance */
 
-			next_field(NULL, ',');
+			filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
+	//		next_field(NULL, ',');
 
 			/* Description */
 
-			description = next_field(NULL, ',');
-			description = unquote_string(description);
+			description = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
+
+	//		description = next_field(NULL, ',');
+	//		description = unquote_string(description);
 
 			/* Create a new transaction. */
 
@@ -616,7 +631,7 @@ int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_typ
 		break;
 
 	case DELIMIT_COMMA:		/* Only quote if leading whitespace, trailing whitespace, or enclosed comma. */
-		if (isspace(string[0]) || isspace (string[strlen(string)-1]))
+		if (isspace(string[0]) || isspace(string[strlen(string)-1]))
 			quote = TRUE;
 
 		for (i = 0; string[i] != 0 && quote == 0; i++)
@@ -650,6 +665,125 @@ int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_typ
 
 	return 0;
 }
+
+
+/**
+ * Read a field from a line of text in memory, treating it as a field in
+ * delimited format and processing any quoting as necessary.
+ * 
+ * NB: This operation modifies the original data in memory.
+ * 
+ * \param *line			A line from the file to be processed, or NULL to continue
+ *				on the same line as before.
+ * \param format		The field format to be read.
+ * \param flags			Flags indicating addtional formatting to apply.
+ * \return			Pointer to the processed field contents, or NULL.
+ */
+
+char *filing_read_delimited_field(char *line, enum filing_delimit_type format, enum filing_delimit_flags flags)
+{
+	static char	*ptr = NULL;
+	char		*field, *p1, *p2;
+	char		separator;
+	osbool		allow_quotes, quoted, found_quotes;
+	osbool		remove_whitespace = FALSE;
+
+	/* Initialise the line pointer if a new line has been supplied. */
+
+	if (line != NULL)
+		ptr = line;
+
+	/* If there's no line pointer, exit immediately. */
+
+	if (ptr == NULL)
+		return NULL;
+
+	/* Identify the field separator and any associated formatting. */
+
+	switch (format) {
+	case DELIMIT_COMMA:
+	case DELIMIT_QUOTED_COMMA:
+		separator = ',';
+		allow_quotes = TRUE;
+		remove_whitespace = TRUE;
+		break;
+	case DELIMIT_TAB:
+		separator = '\t';
+		allow_quotes = FALSE;
+		remove_whitespace = FALSE;
+		break;
+	}
+
+	quoted = FALSE;
+	found_quotes = FALSE;
+
+	/* If the field doesn't support leading whitespace, strip any off from the start. */
+
+	if (remove_whitespace == TRUE) {
+		while (*ptr != '\0' && isspace(*ptr))
+			ptr++;
+	}
+
+	/* Scan through the line, looking for the end of the field while ignoring separators in quoted blocks. */
+
+	field = ptr;
+
+	while (*ptr != '\0' && ((*ptr != separator) || quoted)) {
+		if (allow_quotes && *ptr == '"') {
+			found_quotes = TRUE;
+			quoted = !quoted;
+		}
+
+		ptr++;
+	}
+
+	/* If the field doesn't support trailing whitespace, strip any off from the end. */
+
+	if (remove_whitespace == TRUE) {
+		p1 = ptr;
+
+		while (p1 > field && (p1 == '\0' || isspace(*p1)))
+			p1--;
+
+		if (p1 != ptr)
+			*p1 = '\0';
+	}
+
+	/* Terminate the field at the separator, if it wasn't the last field in the line. */
+
+	if (*ptr == separator) {
+		*ptr = '\0';
+		ptr++;
+	}
+
+	/* If quotes were found, strip them out. */
+
+	if (found_quotes) {
+		p1 = field;
+		p2 = field;
+
+		while (*p1 != '\0') {
+			if (*p1 == '"') {
+				if (*(p1 + 1) == '"') {
+					/* Replace double quotes with singles. */
+					p1 += 2;
+					*p2++ = '"';
+				} else {
+					/* Step past individual quotes. */
+					p1++;
+				}
+			} else {
+				/* Copy non-quotes as they are. */
+				*p2++ = *p1++;
+			}
+		}
+
+		*p2 = '\0';
+	}
+
+	return field;
+}
+
 
 /* ==================================================================================================================
  * String processing.

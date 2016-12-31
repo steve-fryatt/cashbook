@@ -112,6 +112,23 @@ void filing_force_windows_closed(struct file_block *file);
 
 int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_type format, enum filing_delimit_flags flags);
 
+
+/**
+ * Read a field from a line of text in memory, treating it as a field in
+ * delimited format and processing any quoting as necessary.
+ * 
+ * NB: This operation modifies the original data in memory.
+ * 
+ * \param *line			A line from the file to be processed, or NULL to continue
+ *				on the same line as before.
+ * \param format		The field format to be read.
+ * \param flags			Flags indicating addtional formatting to apply.
+ * \return			Pointer to the processed field contents, or NULL.
+ */
+
+char *filing_read_delimited_field(char *line, enum filing_delimit_type format, enum filing_delimit_flags flags);
+
+
 /* String processing */
 
 char *unquote_string (char *string);

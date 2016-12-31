@@ -5426,7 +5426,7 @@ static osbool transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *fil
 	if (filetype != dataxfer_TYPE_CSV || file == NULL)
 		return FALSE;
 
-	import_csv_file(file, filename);
+	filing_import_csv_file(file, filename);
 
 	return TRUE;
 }

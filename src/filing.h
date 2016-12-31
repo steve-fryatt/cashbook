@@ -81,11 +81,14 @@ void filing_load_cashbook_file(char *filename);
 void filing_save_cashbook_file(struct file_block *file, char *filename);
 
 
+/**
+ * Import the contents of a CSV file into an existing file instance.
+ *
+ * \param *file			The file instance to take the CSV data.
+ * \param *filename		Pointer to the name of the CSV file to process.
+ */
 
-/* Delimited file import */
-
-void import_csv_file (struct file_block *file, char *filename);
-
+void filing_import_csv_file(struct file_block *file, char *filename);
 
 
 /**

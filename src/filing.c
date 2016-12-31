@@ -341,11 +341,15 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 	hourglass_off();
 }
 
-/* ==================================================================================================================
- * Delimited file import
+
+/**
+ * Import the contents of a CSV file into an existing file instance.
+ *
+ * \param *file			The file instance to take the CSV data.
+ * \param *filename		Pointer to the name of the CSV file to process.
  */
 
-void import_csv_file (struct file_block *file, char *filename)
+void filing_import_csv_file(struct file_block *file, char *filename)
 {
   FILE         *input;
   char         line[FILING_CSV_LINE_LENGTH], log[FILING_LOG_LINE_LENGTH], b1[FILING_TEMP_BUF_LENGTH], b2[FILING_TEMP_BUF_LENGTH],
@@ -580,10 +584,6 @@ void filing_force_windows_closed(struct file_block *file)
 	if (import_window_file == file && windows_get_open(filing_import_window))
 		wimp_close_window(filing_import_window);
 }
-
-/* ==================================================================================================================
- * Delimited file export
- */
 
 
 /**

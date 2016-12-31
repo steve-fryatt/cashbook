@@ -400,18 +400,12 @@ void import_csv_file (struct file_block *file, char *filename)
 
 			date = filing_read_delimited_field(line, DELIMIT_COMMA, DELIMIT_NONE);
 
-	//		date = next_field(line, ',');
-	//		date = unquote_string(date);
-
 			if (date_convert_from_string(date, NULL_DATE, 0) == NULL_DATE)
 				error = TRUE;
 
 			/* From */
 
 			ident = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
-
-	//		ident = next_field(NULL, ',');
-	//		ident = unquote_string(ident);
 
 			raw_from = ident;
 
@@ -437,9 +431,6 @@ void import_csv_file (struct file_block *file, char *filename)
 
 			ident = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
 
-	//		ident = next_field(NULL, ',');
-	//		ident = unquote_string(ident);
-
 			raw_to = ident;
 
 			rec_to = (strchr(ident, '#') > 0) ? TRANS_REC_TO : TRANS_FLAGS_NONE;
@@ -464,35 +455,22 @@ void import_csv_file (struct file_block *file, char *filename)
 
 			ref = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
 
-	//		ref = next_field(NULL, ',');
-	//		ref = unquote_string(ref);
-
 			/* Amount */
 
 			amount = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
 
-	//		amount = next_field(NULL, ',');
-
 			if (*amount == '\0')
 				amount = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
-	//			amount = next_field(NULL, ',');
 			else
 				filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
-	//			next_field(NULL, ',');
-
-	//		amount = unquote_string(amount);
 
 			/* Skip Balance */
 
 			filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
-	//		next_field(NULL, ',');
 
 			/* Description */
 
 			description = filing_read_delimited_field(NULL, DELIMIT_COMMA, DELIMIT_NONE);
-
-	//		description = next_field(NULL, ',');
-	//		description = unquote_string(description);
 
 			/* Create a new transaction. */
 
@@ -788,19 +766,6 @@ char *filing_read_delimited_field(char *line, enum filing_delimit_type format, e
 /* ==================================================================================================================
  * String processing.
  */
-
-char *unquote_string (char *string)
-{
-  string = string_strip_surrounding_whitespace (string);
-
-  if (*string == '"' && *(strchr(string, '\0')-1) == '"')
-  {
-    string++;
-    *(strchr(string, '\0')-1) = '\0';
-  }
-
-  return (string);
-}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 

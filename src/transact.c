@@ -439,8 +439,6 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_window_def = templates_load_window("Transact");
 	transact_window_def->icon_count = 0;
 
-//	edit_transact_window_def = transact_window_def;			/* \TODO -- Keep us compiling until the edit.c mess is fixed. */
-
 	transact_pane_def = templates_load_window("TransactTB");
 	transact_pane_def->sprite_area = sprites;
 

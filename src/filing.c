@@ -479,14 +479,15 @@ void import_csv_file (struct file_block *file, char *filename)
 				reject_count++;
 			} else {
 				transact_add_raw_entry(file, date_convert_from_string(date, NULL_DATE, 0), from, to, rec_from | rec_to,
-				currency_convert_from_string(amount), ref, description);
+						currency_convert_from_string(amount), ref, description);
 				msgs_lookup("Imported", b1, FILING_TEMP_BUF_LENGTH);
 
 				import_count++;
 			}
 
-			sprintf(log, "%s\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'",
-			b1, date, raw_from, raw_to, ref, amount, description);
+			snprintf(log, FILING_LOG_LINE_LENGTH, "%s\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'",
+					b1, date, raw_from, raw_to, ref, amount, description);
+			log[FILING_LOG_LINE_LENGTH - 1] = '\0';
 			report_write_line(file->import_report, 0, log);
 		}
 
@@ -506,10 +507,10 @@ void import_csv_file (struct file_block *file, char *filename)
 
 	report_write_line(file->import_report, 0, "");
 
-	snprintf (b1, FILING_TEMP_BUF_LENGTH, "%d", import_count);
+	snprintf(b1, FILING_TEMP_BUF_LENGTH, "%d", import_count);
 	b1[FILING_TEMP_BUF_LENGTH - 1] = '\0';
 
-	snprintf (b2, FILING_TEMP_BUF_LENGTH, "%d", reject_count);
+	snprintf(b2, FILING_TEMP_BUF_LENGTH, "%d", reject_count);
 	b2[FILING_TEMP_BUF_LENGTH - 1] = '\0';
 
 	msgs_param_lookup("IRTotals", log, FILING_LOG_LINE_LENGTH, b1, b2, NULL, NULL);

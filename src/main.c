@@ -87,6 +87,7 @@
 #include "find.h"
 #include "goto.h"
 #include "iconbar.h"
+#include "interest.h"
 #include "mainmenu.h"
 #include "presets.h"
 #include "printing.h"
@@ -322,6 +323,7 @@ static void main_initialise(void)
 	find_initialise();
 	goto_initialise();
 	purge_initialise();
+	interest_initialise();
 	transact_initialise(sprites);
 	account_initialise(sprites);
 	accview_initialise(sprites);

@@ -111,6 +111,10 @@ struct file_block
 
 	struct accview_block		*accviews;				/**< Data relating to the shared accview module.		*/
 
+	/* The interest rate manager. */
+
+	struct interest_block		*interest;				/**< Data relating to the interest rate manager.		*/
+
 	/* Recalculation data. */
 
 	date_t				last_full_recalc;			/* The last time a full recalculation was done on the file.	*/

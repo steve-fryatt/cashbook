@@ -72,6 +72,7 @@
 #include "filing.h"
 #include "find.h"
 #include "goto.h"
+#include "interest.h"
 #include "mainmenu.h"
 #include "presets.h"
 #include "printing.h"
@@ -139,6 +140,8 @@ struct file_block *build_new_file_block(void)
 	 */
 
 	new->accviews = NULL;
+
+	new->interest = NULL;
 
 	new->saved_reports = NULL;
 
@@ -236,6 +239,15 @@ struct file_block *build_new_file_block(void)
 
 	new->unrec_rep = analysis_create_unreconciled();
 	if (new->unrec_rep == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+
+	/* Set up the interest rate manager. */
+
+	new->interest = interest_create_instance(new);
+	if (new->interest == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -382,8 +394,13 @@ void delete_file(struct file_block *file)
 	if (file->presets != NULL)
 		preset_delete_instance(file->presets);
 
+	/* Delete the Interest Rate data. */
+
+	if (file->interest != NULL)
+		interest_delete_instance(file->interest);
+
 	/* Delete the Account View data. */
-	
+
 	if (file->accviews != NULL)
 		accview_delete_instance(file->accviews);
 

@@ -460,7 +460,7 @@ static osbool file_save_file(char *filename, osbool selection, void *data)
 	if (file == NULL)
 		return FALSE;
 
-	save_transaction_file(file, filename);
+	filing_save_cashbook_file(file, filename);
 	delete_file(file);
 
 	return TRUE;

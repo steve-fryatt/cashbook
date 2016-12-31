@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -32,25 +32,12 @@
 
 #include <stdio.h>
 
-/* ------------------------------------------------------------------------------------------------------------------
- * Static constants
+
+/**
+ * The maximum length of a line in a CashBook file.
  */
 
-#define LOAD_SECT_NONE     0
-#define LOAD_SECT_BUDGET   1
-#define LOAD_SECT_ACCOUNTS 2
-#define LOAD_SECT_ACCLIST  3
-#define LOAD_SECT_TRANSACT 4
-#define LOAD_SECT_SORDER   5
-#define LOAD_SECT_PRESET   6
-#define LOAD_SECT_REPORT   7
-
-#define ICOMP_ICON_IMPORTED 0
-#define ICOMP_ICON_REJECTED 2
-#define ICOMP_ICON_CLOSE 5
-#define ICOMP_ICON_LOG 4
-
-#define MAX_FILE_LINE_LEN 1024
+#define FILING_MAX_FILE_LINE_LEN 1024
 
 enum filing_delimit_type {
 	DELIMIT_TAB,								/**< Fields delimited by tabs.							*/
@@ -64,11 +51,8 @@ enum filing_delimit_flags {
 	DELIMIT_NUM	= 0x02							/**< Numeric field, so no quoting required.					*/
 };
 
-/* ------------------------------------------------------------------------------------------------------------------
- * Function prototypes.
- */
 
-
+/* Function Prototypes. */
 
 /**
  * Initialise the filing system.
@@ -76,14 +60,27 @@ enum filing_delimit_flags {
 
 void filing_initialise(void);
 
-/* Loading accounts files */
 
-void load_transaction_file (char *filename);
-char *next_plain_field (char *line, char sep);
+/**
+ * Load a CashBook file into memory, creating a new file instance and opening
+ * a transaction window to display the contents.
+ *
+ * \param *filename		Pointer to the name of the file to be loaded.
+ */
 
-/* Saving accounts files */
+void filing_load_cashbook_file(char *filename);
 
-void save_transaction_file (struct file_block *file, char *filename);
+
+/**
+ * Save the data associated with a file block back to disc.
+ *
+ * \param *file			The file instance to be saved.
+ * \param *filename		Pointer to the name of the file to save to.
+ */
+
+void filing_save_cashbook_file(struct file_block *file, char *filename);
+
+
 
 /* Delimited file import */
 
@@ -119,5 +116,5 @@ int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_typ
 
 char *unquote_string (char *string);
 char *next_field (char *line, char sep);
-
+char *next_plain_field (char *line, char sep);
 #endif

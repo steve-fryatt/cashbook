@@ -360,7 +360,7 @@ static void main_parse_command_line(int argc, char *argv[])
 	if (argc > 1) {
 		for (i=1; i<argc; i++) {
 			if (strcmp(argv[i], "-file") == 0 && i+1 < argc)
-				load_transaction_file(argv[i+1]);
+				filing_load_cashbook_file(argv[i+1]);
 		}
 	}
 }

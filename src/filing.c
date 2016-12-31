@@ -89,12 +89,55 @@
  * Global Variables
  */
 
+/**
+ * The current CashBook file format version.
+ */
+
 #define FILING_CURRENT_FORMAT 101
 
-static struct file_block	*import_window_file = NULL;
+/**
+ * The maximum Import CSV file line length.
+ */
+
+#define FILING_CSV_LINE_LENGTH 1024
+
+/**
+ * The maximum log output line length.
+ */
+
+#define FILING_LOG_LINE_LENGTH 1024
+
+/**
+ * The size of a temporary text buffer.
+ */
+
+#define FILING_TEMP_BUF_LENGTH 64
+
+
+/**
+ * Icons in the import report dialogue.
+ */
+
+#define FILING_ICON_IMPORTED 0
+#define FILING_ICON_REJECTED 2
+#define FILING_ICON_CLOSE 5
+#define FILING_ICON_LOG 4
+
+/* Global Variables. */
+
+/**
+ * The handle of the Import Complete dialogue box.
+ */
+
 static wimp_w			filing_import_window = NULL;
 
+/**
+ * The file instance to which the Import Complete dialogue box belongs, or NULL.
+ */
 
+static struct file_block	*import_window_file = NULL;
+
+/* Static Function Prototypes. */
 
 static void		filing_import_complete_click_handler(wimp_pointer *pointer);
 static void 		filing_close_import_complete(osbool show_log);
@@ -112,15 +155,18 @@ void filing_initialise(void)
 }
 
 
-/* ==================================================================================================================
- * Account file loading
+/**
+ * Load a CashBook file into memory, creating a new file instance and opening
+ * a transaction window to display the contents.
+ *
+ * \param *filename		Pointer to the name of the file to be loaded.
  */
 
-void load_transaction_file(char *filename)
+void filing_load_cashbook_file(char *filename)
 {
 	enum config_read_status	result = sf_CONFIG_READ_EOF;
 	int			file_format = 0;
-	char			section[MAX_FILE_LINE_LEN], token[MAX_FILE_LINE_LEN], value[MAX_FILE_LINE_LEN], *suffix;
+	char			section[FILING_MAX_FILE_LINE_LEN], token[FILING_MAX_FILE_LINE_LEN], value[FILING_MAX_FILE_LINE_LEN], *suffix;
 	bits			load;
 	struct file_block	*file;
 	FILE			*in;
@@ -232,41 +278,14 @@ void load_transaction_file(char *filename)
 }
 
 
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-char *next_plain_field (char *line, char sep)
-{
-  static char *current;
-  char        *start;
-
-  if (line != NULL)
-  {
-    current = string_strip_surrounding_whitespace (line);
-  }
-
-  start = current;
-
-  while (*current != '\0' && *current != sep)
-  {
-    current++;
-  }
-
-  if (*current == sep)
-  {
-    *current = '\0';
-    current ++;
-  }
-
-  return (start);
-}
-
-/* ==================================================================================================================
- * Account file saving
+/**
+ * Save the data associated with a file block back to disc.
+ *
+ * \param *file			The file instance to be saved.
+ * \param *filename		Pointer to the name of the file to save to.
  */
 
-void save_transaction_file(struct file_block *file, char *filename)
+void filing_save_cashbook_file(struct file_block *file, char *filename)
 {
 	FILE	*out;
 	bits	load;
@@ -329,212 +348,188 @@ void save_transaction_file(struct file_block *file, char *filename)
 void import_csv_file (struct file_block *file, char *filename)
 {
   FILE         *input;
-  char         line[1024], log[1024], b1[64], b2[64],
+  char         line[FILING_CSV_LINE_LENGTH], log[FILING_LOG_LINE_LENGTH], b1[FILING_TEMP_BUF_LENGTH], b2[FILING_TEMP_BUF_LENGTH],
                *date, *ref, *amount, *description, *ident, *name, *raw_from, *raw_to;
-  int          from, to, import_count, reject_count, error;
+  int          from, to, import_count, reject_count;
+	osbool		error;
   wimp_pointer pointer;
   unsigned int type;
   enum transact_flags rec_from, rec_to;
 
 
-  import_window_file = file;
+	import_window_file = file;
 
-  import_count = 0;
-  reject_count = 0;
+	import_count = 0;
+	reject_count = 0;
 
-  hourglass_on ();
+	hourglass_on();
 
-  /* If there's an existing log, delete it. */
+	/* If there's an existing log, delete it. */
 
-  if (file->import_report != NULL)
-  {
-    report_delete(file->import_report);
-    file->import_report = NULL;
-  }
+	if (file->import_report != NULL) {
+		report_delete(file->import_report);
+		file->import_report = NULL;
+	}
 
-  if (windows_get_open (filing_import_window))
-  {
-    wimp_close_window (filing_import_window);
-  }
+	if (windows_get_open(filing_import_window))
+		wimp_close_window(filing_import_window);
 
-  /* Open a log report for the process, and title it. */
+	/* Open a log report for the process, and title it. */
 
-  msgs_lookup("IRWinT", log, sizeof (log));
-  file->import_report = report_open(file, log, NULL);
+	msgs_lookup("IRWinT", log, FILING_LOG_LINE_LENGTH);
+	file->import_report = report_open(file, log, NULL);
 
-  file_get_leafname(file, line, sizeof (line));
-  msgs_param_lookup("IRTitle", log, sizeof (log), line, NULL, NULL, NULL);
-  report_write_line(file->import_report, 0, log);
-  msgs_param_lookup("IRImpFile", log, sizeof (log), filename, NULL, NULL, NULL);
-  report_write_line(file->import_report, 0, log);
+	file_get_leafname(file, line, FILING_CSV_LINE_LENGTH);
+	msgs_param_lookup("IRTitle", log, FILING_LOG_LINE_LENGTH, line, NULL, NULL, NULL);
+	report_write_line(file->import_report, 0, log);
+	msgs_param_lookup("IRImpFile", log, FILING_LOG_LINE_LENGTH, filename, NULL, NULL, NULL);
+	report_write_line(file->import_report, 0, log);
 
-  report_write_line(file->import_report, 0, "");
+	report_write_line(file->import_report, 0, "");
 
-  msgs_lookup("IRHeadings", log, sizeof (log));
-  report_write_line(file->import_report, 0, log);
+	msgs_lookup("IRHeadings", log, FILING_LOG_LINE_LENGTH);
+	report_write_line(file->import_report, 0, log);
 
-  input = fopen (filename, "r");
+	input = fopen(filename, "r");
 
-  if (input != NULL)
-  {
-    while (fgets (line, sizeof (line), input) != NULL)
-    {
-      error = 0;
+	if (input != NULL) {
+		while (fgets(line, FILING_CSV_LINE_LENGTH, input) != NULL) {
+			error = FALSE;
 
-      /* Date */
+			/* Date */
 
-      date = next_field (line, ',');
-      date = unquote_string (date);
+			date = next_field(line, ',');
+			date = unquote_string(date);
 
-      if (date_convert_from_string(date, NULL_DATE, 0) == NULL_DATE)
-      {
-        error = 1;
-      }
+			if (date_convert_from_string(date, NULL_DATE, 0) == NULL_DATE)
+				error = TRUE;
 
-      /* From */
+			/* From */
 
-      ident = next_field (NULL, ',');
-      ident = unquote_string (ident);
+			ident = next_field(NULL, ',');
+			ident = unquote_string(ident);
 
-      raw_from = ident;
+			raw_from = ident;
 
-      rec_from = (strchr (ident, '#') > 0) ? TRANS_REC_FROM : TRANS_FLAGS_NONE;
+			rec_from = (strchr(ident, '#') > 0) ? TRANS_REC_FROM : TRANS_FLAGS_NONE;
 
-      name = ident + strcspn (ident, "#:");
-      *name++ = '\0';
-      while (strchr ("#:", *name))
-      {
-        name++;
-      }
+			name = ident + strcspn(ident, "#:");
+			*name++ = '\0';
+			while (strchr("#:", *name))
+				name++;
 
-      if (*ident == '\0')
-      {
-        error = 1;
-        from = NULL_ACCOUNT;
-      }
-      else
-      {
-        type = isdigit (*ident) ? ACCOUNT_FULL : ACCOUNT_IN;
-        from = account_find_by_ident(file, ident, type);
+			if (*ident == '\0') {
+				error = TRUE;
+				from = NULL_ACCOUNT;
+			} else {
+				type = isdigit(*ident) ? ACCOUNT_FULL : ACCOUNT_IN;
+				from = account_find_by_ident(file, ident, type);
 
-        if (from == -1)
-        {
-          from = account_add (file, name, ident, type);
-        }
-      }
+				if (from == -1)
+					from = account_add(file, name, ident, type);
+			}
 
-      /* To */
+			/* To */
 
-      ident = next_field (NULL, ',');
-      ident = unquote_string (ident);
+			ident = next_field(NULL, ',');
+			ident = unquote_string(ident);
 
-      raw_to = ident;
+			raw_to = ident;
 
-      rec_to = (strchr (ident, '#') > 0) ? TRANS_REC_TO : TRANS_FLAGS_NONE;
+			rec_to = (strchr(ident, '#') > 0) ? TRANS_REC_TO : TRANS_FLAGS_NONE;
 
-      name = ident + strcspn (ident, "#:");
-      *name++ = '\0';
-      while (strchr ("#:", *name))
-      {
-        name++;
-      }
+			name = ident + strcspn(ident, "#:");
+			*name++ = '\0';
+			while (strchr("#:", *name))
+				name++;
 
+			if (*ident == '\0') {
+				error = TRUE;
+				to = NULL_ACCOUNT;
+			} else {
+				type = isdigit(*ident) ? ACCOUNT_FULL : ACCOUNT_OUT;
+				to = account_find_by_ident(file, ident, type);
 
-      if (*ident == '\0')
-      {
-        error = 1;
-        to = NULL_ACCOUNT;
-      }
-      else
-      {
-        type = isdigit(*ident) ? ACCOUNT_FULL : ACCOUNT_OUT;
-        to = account_find_by_ident(file, ident, type);
+				if (to == -1)
+					to = account_add(file, name, ident, type);
+			}
 
-        if (to == -1)
-        {
-          to = account_add(file, name, ident, type);
-        }
-      }
+			/* Ref */
 
-      /* Ref */
+			ref = next_field(NULL, ',');
+			ref = unquote_string(ref);
 
-      ref = next_field(NULL, ',');
-      ref = unquote_string(ref);
+			/* Amount */
 
-      /* Amount */
+			amount = next_field(NULL, ',');
 
-      amount = next_field(NULL, ',');
+			if (*amount == '\0')
+				amount = next_field(NULL, ',');
+			else
+				next_field(NULL, ',');
 
-      if (*amount == '\0')
-      {
-        amount = next_field(NULL, ',');
-      }
-      else
-      {
-        next_field(NULL, ',');
-      }
+			amount = unquote_string(amount);
 
-      amount = unquote_string(amount);
+			/* Skip Balance */
 
-      /* Skip Balance */
+			next_field(NULL, ',');
 
-      next_field(NULL, ',');
+			/* Description */
 
-      /* Description */
+			description = next_field(NULL, ',');
+			description = unquote_string(description);
 
-      description = next_field(NULL, ',');
-      description = unquote_string(description);
+			/* Create a new transaction. */
 
-      /* Create a new transaction. */
+			if (error == TRUE) {
+				msgs_lookup("Rejected", b1, FILING_TEMP_BUF_LENGTH);
+				reject_count++;
+			} else {
+				transact_add_raw_entry(file, date_convert_from_string(date, NULL_DATE, 0), from, to, rec_from | rec_to,
+				currency_convert_from_string(amount), ref, description);
+				msgs_lookup("Imported", b1, FILING_TEMP_BUF_LENGTH);
 
-      if (error == 1)
-      {
-        msgs_lookup("Rejected", b1, sizeof(b1));
-        reject_count++;
-      }
-      else
-      {
-        transact_add_raw_entry(file, date_convert_from_string(date, NULL_DATE, 0), from, to, rec_from | rec_to,
-                             currency_convert_from_string(amount), ref, description);
-        msgs_lookup("Imported", b1, sizeof(b1));
+				import_count++;
+			}
 
-        import_count++;
-      }
+			sprintf(log, "%s\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'",
+			b1, date, raw_from, raw_to, ref, amount, description);
+			report_write_line(file->import_report, 0, log);
+		}
 
-      sprintf(log, "%s\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'",
-               b1, date, raw_from, raw_to, ref, amount, description);
-      report_write_line(file->import_report, 0, log);
-    }
-    fclose(input);
+		fclose(input);
 
-    transact_set_window_extent(file);
-    transact_sort_file_data(file);
-    sorder_trial(file);
-    account_recalculate_all(file);
-    accview_rebuild_all(file);
-    file_set_data_integrity(file, TRUE);
+		transact_set_window_extent(file);
+		transact_sort_file_data(file);
+		sorder_trial(file);
+		account_recalculate_all(file);
+		accview_rebuild_all(file);
+		file_set_data_integrity(file, TRUE);
 
-    transact_redraw_all(file);
- }
+		transact_redraw_all(file);
+	}
 
-  /* Sort out the import results window. */
+	/* Sort out the import results window. */
 
-  report_write_line (file->import_report, 0, "");
+	report_write_line(file->import_report, 0, "");
 
-  sprintf (b1, "%d", import_count);
-  sprintf (b2, "%d", reject_count);
-  msgs_param_lookup ("IRTotals", log, sizeof (log), b1, b2, NULL, NULL);
-  report_write_line (file->import_report, 0, log);
+	snprintf (b1, FILING_TEMP_BUF_LENGTH, "%d", import_count);
+	b1[FILING_TEMP_BUF_LENGTH - 1] = '\0';
 
-  sprintf (icons_get_indirected_text_addr (filing_import_window, ICOMP_ICON_IMPORTED), "%d", import_count);
-  sprintf (icons_get_indirected_text_addr (filing_import_window, ICOMP_ICON_REJECTED), "%d", reject_count);
+	snprintf (b2, FILING_TEMP_BUF_LENGTH, "%d", reject_count);
+	b2[FILING_TEMP_BUF_LENGTH - 1] = '\0';
 
-  wimp_get_pointer_info (&pointer);
-  windows_open_centred_at_pointer (filing_import_window, &pointer);
+	msgs_param_lookup("IRTotals", log, FILING_LOG_LINE_LENGTH, b1, b2, NULL, NULL);
+	report_write_line(file->import_report, 0, log);
 
-  hourglass_off ();
+	icons_printf(filing_import_window, FILING_ICON_IMPORTED, "%d", import_count);
+	icons_printf(filing_import_window, FILING_ICON_REJECTED, "%d", reject_count);
+
+	wimp_get_pointer_info(&pointer);
+	windows_open_centred_at_pointer(filing_import_window, &pointer);
+
+	hourglass_off();
 }
-
 
 
 /**
@@ -546,11 +541,11 @@ void import_csv_file (struct file_block *file, char *filename)
 static void filing_import_complete_click_handler(wimp_pointer *pointer)
 {
 	switch (pointer->i) {
-	case ICOMP_ICON_CLOSE:
+	case FILING_ICON_CLOSE:
 		filing_close_import_complete(FALSE);
 		break;
 
-	case ICOMP_ICON_LOG:
+	case FILING_ICON_LOG:
 		filing_close_import_complete(TRUE);
 		break;
 	}
@@ -695,6 +690,33 @@ char *next_field (char *line, char sep)
     {
       quoted = !quoted;
     }
+    current++;
+  }
+
+  if (*current == sep)
+  {
+    *current = '\0';
+    current ++;
+  }
+
+  return (start);
+}
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+char *next_plain_field (char *line, char sep)
+{
+  static char *current;
+  char        *start;
+
+  if (line != NULL)
+  {
+    current = string_strip_surrounding_whitespace (line);
+  }
+
+  start = current;
+
+  while (*current != '\0' && *current != sep)
+  {
     current++;
   }
 

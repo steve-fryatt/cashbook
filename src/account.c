@@ -4650,7 +4650,7 @@ static void account_recalculate_windows(struct file_block *file)
 void account_write_file(struct file_block *file, FILE *out)
 {
 	int	i, j;
-	char	buffer[MAX_FILE_LINE_LEN];
+	char	buffer[FILING_MAX_FILE_LINE_LEN];
 
 	if (file == NULL || file->accounts == NULL)
 		return;
@@ -4704,7 +4704,7 @@ void account_write_file(struct file_block *file, FILE *out)
 
 		fprintf(out, "Entries: %x\n", file->accounts->account_windows[j].display_lines);
 
-		column_write_as_text(file->accounts->account_windows[j].columns, buffer, MAX_FILE_LINE_LEN);
+		column_write_as_text(file->accounts->account_windows[j].columns, buffer, FILING_MAX_FILE_LINE_LEN);
 		fprintf(out, "WinColumns: %s\n", buffer);
 
 		for (i = 0; i < file->accounts->account_windows[j].display_lines; i++) {

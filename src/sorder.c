@@ -2747,7 +2747,7 @@ void sorder_full_report(struct file_block *file)
 void sorder_write_file(struct file_block *file, FILE *out)
 {
 	int	i;
-	char	buffer[MAX_FILE_LINE_LEN];
+	char	buffer[FILING_MAX_FILE_LINE_LEN];
 
 	if (file == NULL || file->sorders == NULL)
 		return;
@@ -2756,7 +2756,7 @@ void sorder_write_file(struct file_block *file, FILE *out)
 
 	fprintf (out, "Entries: %x\n", file->sorders->sorder_count);
 
-	column_write_as_text(file->sorders->columns, buffer, MAX_FILE_LINE_LEN);
+	column_write_as_text(file->sorders->columns, buffer, FILING_MAX_FILE_LINE_LEN);
 	fprintf (out, "WinColumns: %s\n", buffer);
 
 	fprintf (out, "SortOrder: %x\n", file->sorders->sort_order);

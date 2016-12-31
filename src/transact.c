@@ -5129,7 +5129,7 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 void transact_write_file(struct file_block *file, FILE *out)
 {
 	int	i;
-	char	buffer[MAX_FILE_LINE_LEN];
+	char	buffer[FILING_MAX_FILE_LINE_LEN];
 
 	if (file == NULL || file->transacts == NULL)
 		return;
@@ -5138,7 +5138,7 @@ void transact_write_file(struct file_block *file, FILE *out)
 
 	fprintf(out, "Entries: %x\n", file->transacts->trans_count);
 
-	column_write_as_text(file->transacts->columns, buffer, MAX_FILE_LINE_LEN);
+	column_write_as_text(file->transacts->columns, buffer, FILING_MAX_FILE_LINE_LEN);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
 	fprintf(out, "SortOrder: %x\n", file->transacts->sort_order);
@@ -5256,7 +5256,7 @@ static void transact_start_direct_save(struct transact_block *windat)
 		return;
 
 	if (file_check_for_filepath(windat->file)) {
-		save_transaction_file(windat->file, windat->file->filename);
+		filing_save_cashbook_file(windat->file, windat->file->filename);
 	} else {
 		wimp_get_pointer_info(&pointer);
 
@@ -5282,7 +5282,7 @@ static osbool transact_save_file(char *filename, osbool selection, void *data)
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 
-	save_transaction_file(windat->file, filename);
+	filing_save_cashbook_file(windat->file, filename);
 
 	return TRUE;
 }

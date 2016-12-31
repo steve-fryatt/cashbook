@@ -2448,9 +2448,9 @@ static void accview_scroll_to_line(struct accview_window *view, int line)
 
 void accview_write_file(struct file_block *file, FILE *out)
 {
-	char	buffer[MAX_FILE_LINE_LEN];
+	char	buffer[FILING_MAX_FILE_LINE_LEN];
 
-	column_write_as_text(file->accviews->columns, buffer, MAX_FILE_LINE_LEN);
+	column_write_as_text(file->accviews->columns, buffer, FILING_MAX_FILE_LINE_LEN);
 
 	fprintf(out, "WinColumns: %s\n", buffer);
 	fprintf(out, "SortOrder: %x\n", file->accviews->sort_order);

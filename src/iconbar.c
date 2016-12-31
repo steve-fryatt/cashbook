@@ -220,7 +220,7 @@ static osbool iconbar_load_cashbook_file(wimp_w w, wimp_i i, unsigned filetype, 
 	if (filetype != dataxfer_TYPE_CASHBOOK)
 		return FALSE;
 
-	load_transaction_file(filename);
+	filing_load_cashbook_file(filename);
 
 	return TRUE;
 }

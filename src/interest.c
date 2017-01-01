@@ -89,6 +89,12 @@ static int			interest_window_menu_line = -1;			/**< The line over which the Inte
 
 struct interest_block {
 	struct file_block	*file;						/**< The file to which the instance belongs.				*/
+
+	/* The window handles associated with the instance. */
+
+	wimp_w			interest_window;
+	wimp_w			interest_pane;
+	wimp_w			interest_footer;
 };
 
 /**

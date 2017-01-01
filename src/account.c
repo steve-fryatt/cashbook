@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -107,14 +107,19 @@
 #define ACCT_EDIT_IDENT 6
 #define ACCT_EDIT_CREDIT 8
 #define ACCT_EDIT_BALANCE 10
-#define ACCT_EDIT_ACCNO 18
-#define ACCT_EDIT_SRTCD 20
-#define ACCT_EDIT_ADDR1 22
-#define ACCT_EDIT_ADDR2 23
-#define ACCT_EDIT_ADDR3 24
-#define ACCT_EDIT_ADDR4 25
 #define ACCT_EDIT_PAYIN 12
 #define ACCT_EDIT_CHEQUE 14
+#define ACCT_EDIT_RATE 18
+#define ACCT_EDIT_RATES 19
+#define ACCT_EDIT_OFFSET_IDENT 21
+#define ACCT_EDIT_OFFSET_REC 22
+#define ACCT_EDIT_OFFSET_NAME 23
+#define ACCT_EDIT_ACCNO 27
+#define ACCT_EDIT_SRTCD 29
+#define ACCT_EDIT_ADDR1 31
+#define ACCT_EDIT_ADDR2 32
+#define ACCT_EDIT_ADDR3 33
+#define ACCT_EDIT_ADDR4 34
 
 /* Edit heading window. */
 

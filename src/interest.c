@@ -1,4 +1,4 @@
-/* Copyright 2016-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2016-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -74,6 +74,13 @@
 #include "edit.h"
 #include "window.h"
 
+/* Interest Rate List Window. */
+
+static wimp_window		*interest_window_def = NULL;			/**< The definition for the Interest Rate List Window.			*/
+static wimp_window		*interest_pane_def = NULL;			/**< The definition for the Interest Rate List Toolbar pane.		*/
+static wimp_window		*interest_foot_def = NULL;			/**< The definition for the Interest Rate List Footer pane.		*/
+static wimp_menu		*interest_window_menu = NULL;			/**< The Interest Rate List Window menu handle.				*/
+static int			interest_window_menu_line = -1;			/**< The line over which the Interest Rate List Window Menu was opened.	*/
 
 
 /**
@@ -86,10 +93,24 @@ struct interest_block {
 
 /**
  * Initialise the transaction system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-void interest_initialise(void)
+void interest_initialise(osspriteop_area *sprites)
 {
+	interest_window_def = templates_load_window("Interest");
+	interest_window_def->icon_count = 0;
+
+	interest_pane_def = templates_load_window("InterestTB");
+	interest_pane_def->sprite_area = sprites;
+
+	interest_foot_def = templates_load_window("InterestFB");
+
+//	interest_window_menu = templates_get_menu("InterestMenu");
+
+//	account_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_save_csv);
+//	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_save_tsv);
 }
 
 

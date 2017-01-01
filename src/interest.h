@@ -1,4 +1,4 @@
-/* Copyright 2016-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2016-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -55,9 +55,11 @@ struct interest_block;
 
 /**
  * Initialise the transaction system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
-void interest_initialise(void);
+void interest_initialise(osspriteop_area *sprites);
 
 
 /**

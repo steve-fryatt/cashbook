@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -323,7 +323,7 @@ static void main_initialise(void)
 	find_initialise();
 	goto_initialise();
 	purge_initialise();
-	interest_initialise();
+	interest_initialise(sprites);
 	transact_initialise(sprites);
 	account_initialise(sprites);
 	accview_initialise(sprites);

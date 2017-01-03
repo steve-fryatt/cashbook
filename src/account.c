@@ -4757,6 +4757,8 @@ void account_write_file(struct file_block *file, FILE *out)
 				config_write_token_pair(out, "Addr3", file->accounts->accounts[i].address[3]);
 			if (file->accounts->accounts[i].payin_num_width != 0 || file->accounts->accounts[i].next_payin_num != 0)
 				fprintf(out, "PayIn: %x,%x\n", file->accounts->accounts[i].payin_num_width, file->accounts->accounts[i].next_payin_num);
+			if (file->accounts->accounts[i].offset_against != NULL_ACCOUNT)
+				fprintf(out, "Offset: %x", file->accounts->accounts[i].offset_against);
 		}
 	}
 
@@ -4911,6 +4913,8 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 		} else if (i != -1 && string_nocase_strcmp(token, "PayIn") == 0) {
 			file->accounts->accounts[i].payin_num_width = strtoul(next_field(value, ','), NULL, 16);
 			file->accounts->accounts[i].next_payin_num = strtoul(next_field(NULL, ','), NULL, 16);
+		} else if (i != -1 && string_nocase_strcmp(token, "Offset") == 0) {
+			file->accounts->accounts[i].offset_against = strtoul(next_field(value, ','), NULL, 16);
 		} else {
 			*unknown_data = TRUE;
 		}

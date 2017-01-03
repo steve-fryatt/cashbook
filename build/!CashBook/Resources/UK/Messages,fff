@@ -1,4 +1,4 @@
-# Copyright 2004-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2004-2017, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of CashBook:
 #
@@ -540,6 +540,11 @@ Help.EditAccount.Limit:\Tcredit or overdraft limit for the account.
 Help.EditAccount.Open:\Topening balance used to calculate other balances from.
 Help.EditAccount.Cheque:\Tnumber of the next cheque, for use in the reference field.|MLeave blank if no number is required.
 Help.EditAccount.Payin:\Tnumber of the next paying in slip, for use in the reference field.|MLeave blank if no number is required.
+Help.EditAccount.Rate:\Tcurrent interest rate which is being applied to the account.|MIt can be set using the Rates... button to the right.
+Help.EditAccount.Rates:\Sset the interest rates which apply to the account.
+Help.EditAccount.Off:\Tident of an account against whose interest this account balance will be offset.
+Help.EditAccount.OffRec:This indicates whether the offset account should be reconciled, which has no effect.
+Help.EditAccount.OffName:\Tname of an account against whose interest this account balance will be offset.|M\Aselect an account from a list.
 Help.EditAccount.AccNo:\Taccount number of the account.|MIt is only used for information.
 Help.EditAccount.Sort:\Tsort code of the account.|MIt is only used for information.
 Help.EditAccount.Addr?:\Taddress of the bank.|MIt is only used for information.

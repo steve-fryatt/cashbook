@@ -2591,7 +2591,7 @@ static void account_fill_acc_edit_window(struct account_block *block, acct_t acc
 				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_RATE));
 
 		account_fill_field(block->file, NULL_ACCOUNT, FALSE, account_acc_edit_window,
-				ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_REC, ACCT_EDIT_OFFSET_NAME);
+				ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC);
 
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_ACCNO) = '\0';
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_SRTCD) = '\0';
@@ -2619,7 +2619,7 @@ static void account_fill_acc_edit_window(struct account_block *block, acct_t acc
 				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_RATE));
 
 		account_fill_field(block->file, block->accounts[account].offset_against, FALSE, account_acc_edit_window,
-				ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_REC, ACCT_EDIT_OFFSET_NAME);
+				ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC);
 
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_ACCNO, block->accounts[account].account_no);
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_SRTCD, block->accounts[account].sort_code);
@@ -2738,6 +2738,9 @@ static osbool account_process_acc_edit_window(void)
 		account_edit_owner->accounts[account_edit_number].cheque_num_width = 0;
 		account_edit_owner->accounts[account_edit_number].next_cheque_num = 0;
 	}
+
+	account_edit_owner->accounts[account_edit_number].offset_against = account_find_by_ident(account_edit_owner->file,
+			icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_OFFSET_IDENT), ACCOUNT_FULL);
 
 	strcpy(account_edit_owner->accounts[account_edit_number].account_no, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_ACCNO));
 	strcpy(account_edit_owner->accounts[account_edit_number].sort_code, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_SRTCD));

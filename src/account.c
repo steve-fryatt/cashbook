@@ -4761,7 +4761,7 @@ void account_write_file(struct file_block *file, FILE *out)
 			if (file->accounts->accounts[i].payin_num_width != 0 || file->accounts->accounts[i].next_payin_num != 0)
 				fprintf(out, "PayIn: %x,%x\n", file->accounts->accounts[i].payin_num_width, file->accounts->accounts[i].next_payin_num);
 			if (file->accounts->accounts[i].offset_against != NULL_ACCOUNT)
-				fprintf(out, "Offset: %x", file->accounts->accounts[i].offset_against);
+				fprintf(out, "Offset: %x\n", file->accounts->accounts[i].offset_against);
 		}
 	}
 

@@ -21,7 +21,7 @@ Version $$version$$ ($$date$$)†
 #Indent 2
 #Table Columns 2
 è <Introduction & Installation=>Intro>
-è <Beginners' Tutorial=>Tutorial>
+è <Beginnersë Tutorial=>Tutorial>
 
 è <Accounts & Analysis Headings=>Accounts>
 è <Transactions=>Transact>
@@ -210,7 +210,7 @@ When opening dialogue boxes, the previous contents will be remembered by default
 
 
 
-<chapter title="Beginners' Tutorial" file="Tutorial">
+<chapter title="Beginners&rsquo; Tutorial" file="Tutorial">
 
 Before starting to look at the features of <cite>CashBook</cite> in detail, it may be helpful to work through an example of setting up accounts and analysis headings. This should make it clearer how the various components fit together.  All of the concepts introduced here are described in more detail elsewhere in this manual.
 

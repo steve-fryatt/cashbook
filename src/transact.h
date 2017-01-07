@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -105,12 +105,6 @@ enum transact_scroll_direction {
 	TRANSACT_SCROLL_END
 };
 
-
-/* ------------------------------------------------------------------------------------------------------------------
- * Static constants
- */
-
-#define TRANSACT_PANE_COL_MAP "0;1;2,3,4;5,6,7;8;9;10"
 
 
 /**

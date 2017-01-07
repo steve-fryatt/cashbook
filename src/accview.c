@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -116,7 +116,18 @@
 
 #define ACCVIEW_COLUMN_RECONCILE 3
 
-#define ACCVIEW_PANE_COL_MAP "0;1;2,3,4;5;6;7;8;9"
+static struct column_map accview_columns[] = {
+	{ACCVIEW_ICON_ROW, ACCVIEW_PANE_ROW, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_DATE, ACCVIEW_PANE_DATE, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_REC, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_FROMTO, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_REFERENCE, ACCVIEW_PANE_REFERENCE, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_PAYMENTS, ACCVIEW_PANE_PAYMENTS, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_RECEIPTS, ACCVIEW_PANE_RECEIPTS, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_BALANCE, ACCVIEW_PANE_BALANCE, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_DESCRIPTION, ACCVIEW_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+};
 
 #define ACCVIEW_SORT_OK 2
 #define ACCVIEW_SORT_CANCEL 3
@@ -334,12 +345,13 @@ struct accview_block *accview_create_instance(struct file_block *file)
 	new->file = file;
 	new->columns = NULL;
 
-	new-> columns = column_create_instance(ACCVIEW_COLUMNS);
+	new->columns = column_create_instance(ACCVIEW_COLUMNS, accview_columns);
 	if (new->columns == NULL) {
 		accview_delete_instance(new);
 		return NULL;
 	}
 
+	column_set_minimum_widths(new->columns, config_str_read("LimAccViewCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("AccViewCols"));
 
 	new->sort_order = SORT_DATE | SORT_ASCENDING;
@@ -374,7 +386,7 @@ void accview_delete_instance(struct accview_block *instance)
 
 void accview_open_window(struct file_block *file, acct_t account)
 {
-	int			i, j, height;
+	int			height;
 	os_error		*error;
 	wimp_window_state	parent;
 	struct accview_window	*view;
@@ -460,15 +472,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 	/* Create the toolbar pane. */
 
 	windows_place_as_toolbar(accview_window_def, accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT-4);
-
-	for (i=0, j=0; j < ACCVIEW_COLUMNS; i++, j++) {
-		accview_pane_def->icons[i].extent.x0 = view->columns->position[j];
-
-		j = column_get_rightmost_in_group (ACCVIEW_PANE_COL_MAP, i);
-
-		accview_pane_def->icons[i].extent.x1 = view->columns->position[j] +
-				view->columns->width[j] + COLUMN_HEADING_MARGIN;
-	}
+	columns_place_heading_icons(view->columns, accview_pane_def);
 
 	accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
 			(osspriteop_id) view->sort_sprite;
@@ -814,8 +818,8 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			file->accviews->sort_order = windat->sort_order;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, windat, windat->accview_window,
-				ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), accview_adjust_window_columns);
+		column_set_minimum_widths(windat->columns, config_str_read("LimAccViewCols"));;
+		column_start_drag(windat->columns, pointer, windat, windat->accview_window, accview_adjust_window_columns);
 	}
 }
 
@@ -1323,8 +1327,7 @@ static void accview_adjust_window_columns(void *data, wimp_i group, int width)
 {
 	struct accview_window	*windat = (struct accview_window *) data;
 	struct file_block	*file;
-	int			i, j, new_extent;
-	wimp_icon_state		icon;
+	int			new_extent;
 	wimp_window_info	window;
 
 	if (windat == NULL || windat->file == NULL)
@@ -1332,26 +1335,9 @@ static void accview_adjust_window_columns(void *data, wimp_i group, int width)
 
 	file = windat->file;
 
-	update_dragged_columns(ACCVIEW_PANE_COL_MAP, config_str_read("LimAccViewCols"), group, width, windat->columns);
+	columns_update_dragged(windat->columns, windat->accview_pane, NULL, group, width);
 
 	column_copy_instance(windat->columns, file->accviews->columns);
-
-	/* Re-adjust the icons in the pane. */
-
-	for (i=0, j=0; j < ACCVIEW_COLUMNS; i++, j++) {
-		icon.w = windat->accview_pane;
-		icon.i = i;
-		wimp_get_icon_state(&icon);
-
-		icon.icon.extent.x0 = windat->columns->position[j];
-
-		j = column_get_rightmost_in_group(ACCVIEW_PANE_COL_MAP, i);
-
-		icon.icon.extent.x1 = windat->columns->position[j] + windat->columns->width[j] + COLUMN_HEADING_MARGIN;
-
-		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-				icon.icon.extent.x1, icon.icon.extent.y1);
-	}
 
 	new_extent = column_get_window_width(windat->columns);
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -167,8 +167,20 @@
 #define SORDER_SORT_ASCENDING 10
 #define SORDER_SORT_DESCENDING 11
 
-#define SORDER_PANE_COL_MAP "0,1,2;3,4,5;6;7;8;9"
 #define SORDER_PANE_SORT_DIR_ICON 10
+
+static struct column_map sorder_columns[] = {
+	{SORDER_ICON_FROM, SORDER_PANE_FROM, wimp_ICON_WINDOW},
+	{SORDER_ICON_FROM_REC, SORDER_PANE_FROM, wimp_ICON_WINDOW},
+	{SORDER_ICON_FROM_NAME, SORDER_PANE_FROM, wimp_ICON_WINDOW},
+	{SORDER_ICON_TO, SORDER_PANE_TO, wimp_ICON_WINDOW},
+	{SORDER_ICON_TO_REC, SORDER_PANE_TO, wimp_ICON_WINDOW},
+	{SORDER_ICON_TO_NAME, SORDER_PANE_TO, wimp_ICON_WINDOW},
+	{SORDER_ICON_AMOUNT, SORDER_PANE_AMOUNT, wimp_ICON_WINDOW},
+	{SORDER_ICON_DESCRIPTION, SORDER_PANE_DESCRIPTION, wimp_ICON_WINDOW},
+	{SORDER_ICON_NEXTDATE, SORDER_PANE_NEXTDATE, wimp_ICON_WINDOW},
+	{SORDER_ICON_LEFT, SORDER_PANE_LEFT}
+};
 
 /* Standing order window details. */
 
@@ -387,12 +399,13 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	new->sorder_pane = NULL;
 	new->columns = NULL;
 
-	new-> columns = column_create_instance(SORDER_COLUMNS);
+	new-> columns = column_create_instance(SORDER_COLUMNS, sorder_columns);
 	if (new->columns == NULL) {
 		sorder_delete_instance(new);
 		return NULL;
 	}
 
+	column_set_minimum_widths(new->columns, config_str_read("LimSOrderCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("SOrderCols"));
 
 	new->sort_order = SORT_NEXTDATE | SORT_DESCENDING;
@@ -441,7 +454,7 @@ void sorder_delete_instance(struct sorder_block *windat)
 
 void sorder_open_window(struct file_block *file)
 {
-	int			i, j, height;
+	int			height;
 	wimp_window_state	parent;
 	os_error		*error;
 
@@ -491,15 +504,7 @@ void sorder_open_window(struct file_block *file)
 	debug_printf("Window extents set...");
 	#endif
 
-	for (i=0, j=0; j < SORDER_COLUMNS; i++, j++) {
-		sorder_pane_def->icons[i].extent.x0 = file->sorders->columns->position[j];
-
-		j = column_get_rightmost_in_group(SORDER_PANE_COL_MAP, i);
-
-		sorder_pane_def->icons[i].extent.x1 = file->sorders->columns->position[j] +
-				file->sorders->columns->width[j] +
-				COLUMN_HEADING_MARGIN;
-	}
+	columns_place_heading_icons(file->sorders->columns, sorder_pane_def);
 
 	sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
 			(osspriteop_id) file->sorders->sort_sprite;
@@ -751,8 +756,8 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 			sorder_sort(file->sorders);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, windat, windat->sorder_window,
-				SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), sorder_adjust_window_columns);
+		column_set_minimum_widths(windat->columns, config_str_read("LimSOrderCols"));
+		column_start_drag(windat->columns, pointer, windat, windat->sorder_window, sorder_adjust_window_columns);
 	}
 }
 
@@ -1139,32 +1144,13 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 static void sorder_adjust_window_columns(void *data, wimp_i group, int width)
 {
 	struct sorder_block	*windat = (struct sorder_block *) data;
-	int			i, j, new_extent;
-	wimp_icon_state		icon;
+	int			new_extent;
 	wimp_window_info	window;
 
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	update_dragged_columns(SORDER_PANE_COL_MAP, config_str_read("LimSOrderCols"), group, width, windat->columns);
-
-	/* Re-adjust the icons in the pane. */
-
-	for (i=0, j=0; j < SORDER_COLUMNS; i++, j++) {
-		icon.w = windat->sorder_pane;
-		icon.i = i;
-		wimp_get_icon_state(&icon);
-
-		icon.icon.extent.x0 = windat->columns->position[j];
-
-		j = column_get_rightmost_in_group(SORDER_PANE_COL_MAP, i);
-
-		icon.icon.extent.x1 = windat->columns->position[j] +
-				windat->columns->width[j] + COLUMN_HEADING_MARGIN;
-
-		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-				icon.icon.extent.x1, icon.icon.extent.y1);
-	}
+	columns_update_dragged(windat->columns, windat->sorder_pane, NULL, group, width);
 
 	new_extent = column_get_window_width(windat->columns);
 

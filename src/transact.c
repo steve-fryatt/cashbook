@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -137,6 +137,20 @@
 #define TRANSACT_PANE_GOTO 21
 #define TRANSACT_PANE_SORT 22
 #define TRANSACT_PANE_RECONCILE 23
+
+static struct column_map transact_columns[] = {
+	{TRANSACT_ICON_ROW, TRANSACT_PANE_ROW, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_DATE, TRANSACT_PANE_DATE, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_FROM, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_FROM_REC, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_FROM_NAME, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_TO, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_TO_REC, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_TO_NAME, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_REFERENCE, TRANSACT_PANE_REFERENCE, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_AMOUNT, TRANSACT_PANE_AMOUNT, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_DESCRIPTION, TRANSACT_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+};
 
 #define TRANSACT_PANE_DRAG_LIMIT 6 /* The last icon to allow column drags on. */
 #define TRANSACT_PANE_SORT_DIR_ICON 7
@@ -488,12 +502,13 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->edit_line = NULL;
 	new->columns = NULL;
 
-	new-> columns = column_create_instance(TRANSACT_COLUMNS);
+	new->columns = column_create_instance(TRANSACT_COLUMNS, transact_columns);
 	if (new->columns == NULL) {
 		transact_delete_instance(new);
 		return NULL;
 	}
 
+	column_set_minimum_widths(new->columns, config_str_read("LimTransactCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("TransactCols"));
 
 	new->sort_order = SORT_DATE | SORT_ASCENDING;
@@ -542,7 +557,7 @@ void transact_delete_instance(struct transact_block *windat)
 
 void transact_open_window(struct file_block *file)
 {
-	int		i, j, height;
+	int		height;
 	os_error	*error;
 
 	if (file == NULL || file->transacts == NULL)
@@ -582,14 +597,7 @@ void transact_open_window(struct file_block *file)
 	/* Create the toolbar pane. */
 
 	windows_place_as_toolbar(transact_window_def, transact_pane_def, TRANSACT_TOOLBAR_HEIGHT-4);
-
-	for (i=0, j=0; j < TRANSACT_COLUMNS; i++, j++) {
-		transact_pane_def->icons[i].extent.x0 = file->transacts->columns->position[j];
-		j = column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, i);
-		transact_pane_def->icons[i].extent.x1 = file->transacts->columns->position[j] +
-				file->transacts->columns->width[j] +
-				COLUMN_HEADING_MARGIN;
-	}
+	columns_place_heading_icons(file->transacts->columns, transact_pane_def);
 
 	transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
 			(osspriteop_id) file->transacts->sort_sprite;
@@ -1110,8 +1118,8 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			transact_sort(windat);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && pointer->i <= TRANSACT_PANE_DRAG_LIMIT) {
-		column_start_drag(pointer, windat, windat->transaction_window, TRANSACT_PANE_COL_MAP,
-				config_str_read("LimTransactCols"),  transact_adjust_window_columns);
+		column_set_minimum_widths(windat->columns, config_str_read("LimTransactCols"));
+		column_start_drag(windat->columns, pointer, windat, windat->transaction_window, transact_adjust_window_columns);
 	}
 }
 
@@ -1856,32 +1864,14 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 {
 	struct transact_block	*windat = (struct transact_block *) data;
-	int			i, j, new_extent;
-	wimp_icon_state		icon;
+	int			new_extent;
 	wimp_window_info	window;
 	wimp_caret		caret;
 
 	if (windat == NULL || windat->file == NULL || windat->transaction_window == NULL || windat->transaction_pane == NULL)
 		return;
 
-	update_dragged_columns(TRANSACT_PANE_COL_MAP, config_str_read("LimTransactCols"), target, width, windat->columns);
-
-	/* Re-adjust the icons in the pane. */
-
-	for (i=0, j=0; j < TRANSACT_COLUMNS; i++, j++) {
-		icon.w = windat->transaction_pane;
-		icon.i = i;
-		wimp_get_icon_state(&icon);
-
-		icon.icon.extent.x0 = windat->columns->position[j];
-
-		j = column_get_rightmost_in_group(TRANSACT_PANE_COL_MAP, i);
-
-		icon.icon.extent.x1 = windat->columns->position[j] + windat->columns->width[j] + COLUMN_HEADING_MARGIN;
-
-		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-				icon.icon.extent.x1, icon.icon.extent.y1);
-	}
+	columns_update_dragged(windat->columns, windat->transaction_pane, NULL, target, width);
 
 	new_extent = column_get_window_width(windat->columns);
 
@@ -1933,7 +1923,7 @@ static void transact_adjust_window_columns(void *data, wimp_i target, int width)
 
 char *transact_get_column_name(struct file_block *file, enum transact_field field, char *buffer, size_t len)
 {
-	wimp_i icon = wimp_ICON_WINDOW;
+	wimp_i	group, icon = wimp_ICON_WINDOW;
 
 	if (buffer == NULL || len == 0)
 		return NULL;
@@ -1970,7 +1960,12 @@ char *transact_get_column_name(struct file_block *file, enum transact_field fiel
 	if (icon == wimp_ICON_WINDOW)
 		return buffer;
 
-	icons_copy_text(file->transacts->transaction_pane, column_get_group(TRANSACT_PANE_COL_MAP, icon), buffer, len);
+	group = column_get_group_icon(file->transacts->columns, icon);
+
+	if (icon == wimp_ICON_WINDOW)
+		return buffer;
+
+	icons_copy_text(file->transacts->transaction_pane, group, buffer, len);
 
 	return buffer;
 }

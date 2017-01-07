@@ -96,7 +96,14 @@
 #define ACCOUNT_PANE_ADDSECT 7
 #define ACCOUNT_PANE_PRINT 8
 
-#define ACCOUNT_PANE_COL_MAP "0,1;2;3;4;5"
+static struct column_map account_columns[] = {
+	{0, 0, 0},
+	{1, 0, 0},
+	{2, 1, 1},
+	{3, 2, 2},
+	{4, 3, 3},
+	{5, 4, 4}
+};
 
 /* Accounr heading window. */
 
@@ -495,10 +502,11 @@ struct account_block *account_create_instance(struct file_block *file)
 		new->account_windows[i].account_footer = NULL;
 		new->account_windows[i].columns = NULL;
 
-		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS);
+		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS, account_columns);
 		if (new->account_windows[i].columns == NULL)
 			mem_fail = TRUE;
 
+		column_set_minimum_widths(new->account_windows[i].columns, config_str_read("LimAccountCols"));
 		column_init_window(new->account_windows[i].columns, 0, FALSE, config_str_read("AccountCols"));
 
 		/* Blank out the footer icons. */
@@ -610,7 +618,7 @@ void account_delete_instance(struct account_block *block)
 
 void account_open_window(struct file_block *file, enum account_type type)
 {
-	int			entry, i, j, tb_type, height;
+	int			entry, i, tb_type, height;
 	os_error		*error;
 	wimp_window_state	parent;
 	struct account_window	*window;
@@ -664,12 +672,7 @@ void account_open_window(struct file_block *file, enum account_type type)
 	tb_type = (type == ACCOUNT_FULL) ? 0 : 1; /* Use toolbar 0 if it's a full account, 1 otherwise. */
 
 	windows_place_as_toolbar(account_window_def, account_pane_def[tb_type], ACCOUNT_TOOLBAR_HEIGHT-4);
-
-	for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++) {
-		account_pane_def[tb_type]->icons[i].extent.x0 = window->columns->position[j];
-		j = column_get_rightmost_in_group(ACCOUNT_PANE_COL_MAP, i);
-		account_pane_def[tb_type]->icons[i].extent.x1 = window->columns->position[j] + window->columns->width[j] + COLUMN_HEADING_MARGIN;
-	}
+	columns_place_heading_icons(window->columns, account_pane_def[tb_type]);
 
 	error = xwimp_create_window(account_pane_def[tb_type], &(window->account_pane));
 	if (error != NULL) {
@@ -682,19 +685,10 @@ void account_open_window(struct file_block *file, enum account_type type)
 	/* Create the footer pane. */
 
 	windows_place_as_footer(account_window_def, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
+	columns_place_footer_icons(window->columns, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
 
 	for (i=0; i < ACCOUNT_NUM_COLUMNS; i++)
 		account_foot_def->icons[i+1].data.indirected_text.text = window->footer_icon[i];
-
-	for (i=0, j=0; j < ACCOUNT_COLUMNS; i++, j++) {
-		account_foot_def->icons[i].extent.x0 = window->columns->position[j];
-		account_foot_def->icons[i].extent.y0 = -ACCOUNT_FOOTER_HEIGHT;
-		account_foot_def->icons[i].extent.y1 = 0;
-
-		j = column_get_rightmost_in_group(ACCOUNT_PANE_COL_MAP, i);
-
-		account_foot_def->icons[i].extent.x1 = window->columns->position[j] + window->columns->width[j];
-	}
 
 	error = xwimp_create_window(account_foot_def, &(window->account_footer));
 	if (error != NULL) {
@@ -892,7 +886,8 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 			break;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, windat, windat->account_window, ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), account_adjust_window_columns);
+		column_set_minimum_widths(windat->columns, config_str_read("LimAccountCols"));
+		column_start_drag(windat->columns, pointer, windat, windat->account_window, account_adjust_window_columns);
 	}
 }
 
@@ -1442,42 +1437,13 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 static void account_adjust_window_columns(void *data, wimp_i icon, int width)
 {
 	struct account_window	*windat = (struct account_window *) data;
-	int			i, j, new_extent;
-	wimp_icon_state		icon1, icon2;
+	int			new_extent;
 	wimp_window_info	window;
 
 	if (windat == NULL || windat->instance == NULL || windat->instance->file == NULL)
 		return;
 
-	update_dragged_columns(ACCOUNT_PANE_COL_MAP, config_str_read("LimAccountCols"), icon, width, windat->columns);
-
-	/* Re-adjust the icons in the pane. */
-
-	for (i = 0, j = 0; j < ACCOUNT_COLUMNS; i++, j++) {
-		icon1.w = windat->account_pane;
-		icon1.i = i;
-		wimp_get_icon_state(&icon1);
-
-		icon2.w = windat->account_footer;
-		icon2.i = i;
-		wimp_get_icon_state(&icon2);
-
-		icon1.icon.extent.x0 = windat->columns->position[j];
-
-		icon2.icon.extent.x0 = windat->columns->position[j];
-
-		j = column_get_rightmost_in_group(ACCOUNT_PANE_COL_MAP, i);
-
-		icon1.icon.extent.x1 = windat->columns->position[j] + windat->columns->width[j] + COLUMN_HEADING_MARGIN;
-
-		icon2.icon.extent.x1 = windat->columns->position[j] + windat->columns->width[j];
-
-		wimp_resize_icon(icon1.w, icon1.i, icon1.icon.extent.x0, icon1.icon.extent.y0,
-				icon1.icon.extent.x1, icon1.icon.extent.y1);
-
-		wimp_resize_icon(icon2.w, icon2.i, icon2.icon.extent.x0, icon2.icon.extent.y0,
-				icon2.icon.extent.x1, icon2.icon.extent.y1);
-	}
+	columns_update_dragged(windat->columns, windat->account_pane, windat->account_footer, icon, width);
 
 	new_extent = column_get_window_width(windat->columns);
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -69,34 +69,43 @@ static void		(*column_drag_callback)(void *, wimp_i, int);		/**< The callback ha
 
 
 static void		column_terminate_drag(wimp_dragged *drag, void *data);
-static int		column_get_minimum_group_width(char *mapping, char *widths, int group);
-static int		column_get_minimum_width(char *widths, int column);
+static int		column_get_minimum_group_width(struct column_block *instance, int group);
+static int		column_get_leftmost_in_heading_group(struct column_block *instance, wimp_i heading);
+static int		column_get_rightmost_in_heading_group(struct column_block *instance, wimp_i heading);
+static int		column_get_rightmost_in_footer_group(struct column_block *instance, wimp_i footer);
+
 
 
 /**
  * Create a new column definition instance.
  * 
  * \param columns		The number of columns to be defined.
+ * \param *map			Pointer to the column icon map.
  * \return			Pointer to the instance, or NULL on failure.
  */
 
-struct column_block *column_create_instance(size_t columns)
+struct column_block *column_create_instance(size_t columns, struct column_map *map)
 {
 	void			*mem;
 	struct column_block	*new;
 
-	mem = heap_alloc(sizeof(struct column_block) + (2 * columns * sizeof(int)));
+	if (map == NULL)
+		return NULL;
+
+	mem = heap_alloc(sizeof(struct column_block) + (3 * columns * sizeof(int)));
 	if (mem == NULL)
 		return NULL;
 
 	new = mem;
 
 	new->columns = columns;
+	new->map = map;
 
 	mem += sizeof(struct column_block);
 
 	new->position = mem;
 	new->width = mem + (columns * sizeof(int));
+	new->minimum_width = mem + (columns * sizeof(int));
 
 	return new;
 }
@@ -116,11 +125,12 @@ struct column_block *column_clone_instance(struct column_block *instance)
 	if (instance == NULL)
 		return NULL;
 
-	new = column_create_instance(instance->columns);
+	new = column_create_instance(instance->columns, instance->map);
 	if (new == NULL)
 		return NULL;
 
 	new->columns = instance->columns;
+	new->map = instance->map;
 
 	column_copy_instance(instance, new);
 
@@ -129,7 +139,7 @@ struct column_block *column_clone_instance(struct column_block *instance)
 
 
 /**
- * Copy the column settings from one column definition instance to another.
+ * Copy the column widths from one column definition instance to another.
  *
  * \param *from			The instance to copy the settings from.
  * \param *to			The instance to copy the settings to.
@@ -145,6 +155,7 @@ void column_copy_instance(struct column_block *from, struct column_block *to)
 	for (i = 0; i < from->columns; i++) {
 		to->position[i] = from->position[i];
 		to->width[i] = from->width[i];
+		to->minimum_width[i] = from->minimum_width[i];
 	}
 
 }
@@ -163,6 +174,48 @@ void column_delete_instance(struct column_block *instance)
 
 	heap_free(instance);
 }
+
+
+/**
+ * Set, or reset, the minimum column widths for an instance from a
+ * configuration string. The string is a comma-separated list of decimal
+ * integers giving the widths, in OS units, of each column.
+ *
+ * \param *instance		Pointer to the instance to be updated.
+ * \param *widths		The width configuration string to be used.
+ */
+
+void column_set_minimum_widths(struct column_block *instance, char *widths)
+{
+	int	column;
+	char	*token, *copy;
+
+
+	if (instance == NULL || widths == NULL)
+		return;
+
+	/* Take a copy of the configuration string. */
+
+	copy = strdup(widths);
+
+	if (copy == NULL)
+		return;
+
+	/* Extract the minimum widths from the string. */
+
+	token = strtok(copy, ",");
+
+	for (column = 0; column < instance->columns; column++) {
+		instance->minimum_width[column] = (token != NULL) ? atoi(token) : COLUMN_DRAG_MIN;
+
+		token = strtok(NULL, ",");
+	}
+
+	/* Free the copied string. */
+
+	free(copy);
+}
+
 
 /**
  * Set a window's column data up, based on the supplied values in a column
@@ -207,6 +260,72 @@ void column_init_window(struct column_block *instance, int start, osbool skip, c
 		instance->position[i] = instance->position[i - 1] + instance->width[i - 1] + COLUMN_GUTTER;
 }
 
+
+/**
+ * Adjust the positions of the column heading icons in the toolbar window
+ * template, according to the current column positions, ready for the
+ * window to be created.
+ *
+ * \param *instance		Pointer to the column instance to use.
+ * \param *heading		Pointer to the heading window template definition.
+ */
+
+void columns_place_heading_icons(struct column_block *instance, wimp_window *definition)
+{
+	int	column;
+	wimp_i	icon;
+
+	if (instance == NULL || definition == NULL)
+		return;
+
+	/* Position the heading icons. */
+
+	for (column = 0; column < instance->columns; column++) {
+		icon = instance->map[column].heading;
+		if (icon == wimp_ICON_WINDOW)
+			continue;
+
+		definition->icons[icon].extent.x0 = instance->position[column];
+		column = column_get_rightmost_in_heading_group(instance, icon);
+		definition->icons[icon].extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
+	}
+}
+
+
+/**
+ * Adjust the positions of the column footer icons in the footer window
+ * template, according to the current column positions, ready for the
+ * window to be created. Vertically, the icons are set to Y1=0 and
+ * Y0 to the negative window height.
+ *
+ * \param *instance		Pointer to the column instance to use.
+ * \param *heading		Pointer to the heading window template definition.
+ */
+
+void columns_place_footer_icons(struct column_block *instance, wimp_window *definition, int height)
+{
+	int	column;
+	wimp_i	icon;
+
+	if (instance == NULL)
+		return;
+
+	/* Position the footer icons. */
+
+
+	for (column = 0; column < instance->columns; column++) {
+		icon = instance->map[column].footer;
+		if (icon == wimp_ICON_WINDOW)
+			continue;
+
+		definition->icons[icon].extent.y0 = -height;
+		definition->icons[icon].extent.y1 = 0;
+
+		definition->icons[icon].extent.x0 = instance->position[column];
+		column = column_get_rightmost_in_footer_group(instance, icon);
+		definition->icons[icon].extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
+	}
+}
 
 /**
  * Create a column width configuration string from an array of column widths.
@@ -257,15 +376,14 @@ char *column_write_as_text(struct column_block *instance, char *buffer, size_t l
 /**
  * Start a column width drag operation.
  *
+ * \param *instance		The column instance to be processed.
  * \param *ptr			The Wimp pointer data starting the drag.
  * \param *data			Client-specific data pointer.
  * \param w			The parent window the dragged toolbar belongs to.
- * \param *mapping		The column group mapping for the window.
- * \param *widths		The minimum column width configuration string.
  * \param *callback		The function to be called at the end of the drag.
  */
 
-void column_start_drag(wimp_pointer *ptr, void *data, wimp_w w, char *mapping, char *widths, void (*callback)(void *, wimp_i, int))
+void column_start_drag(struct column_block *instance, wimp_pointer *ptr, void *data, wimp_w w, void (*callback)(void *, wimp_i, int))
 {
 	wimp_window_state	window;
 	wimp_window_info	parent;
@@ -302,7 +420,7 @@ void column_start_drag(wimp_pointer *ptr, void *data, wimp_w w, char *mapping, c
 		drag.initial.y1 = oy + icon.icon.extent.y1;
 
 		drag.bbox.x0 = ox + icon.icon.extent.x0 -
-				(icon.icon.extent.x1 - icon.icon.extent.x0 - column_get_minimum_group_width(mapping, widths, ptr->i));
+				(icon.icon.extent.x1 - icon.icon.extent.x0 - column_get_minimum_group_width(instance, ptr->i));
 		drag.bbox.y0 = parent.visible.y0;
 		drag.bbox.x1 = 0x7fffffff;
 		drag.bbox.y1 = oy + icon.icon.extent.y1;
@@ -337,37 +455,87 @@ static void column_terminate_drag(wimp_dragged *drag, void *data)
  * the column width and position arrays.  Most columns just take their minimum
  * width, while the right-hand column takes up the slack.
  *
- * \param *mapping		The column group mapping for the window.
- * \param *widths		The minimum column width configuration string.
- * \param group			The column group that has been resized.
+ * \param *instance		The column instance to be processed.
+ * \param header		Handle of the heading window, or NULL.
+ * \param footer		Handle of the footer window, or NULL.
+ * \param group			The heading icon of the column group that has been resized.
  * \param new_width		The new width of the dragged group.
- * \param *instance		The column instance to be updated.
  */
 
-void update_dragged_columns(char *mapping, char *widths, int group, int new_width, struct column_block *instance)
+void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w footer, wimp_i group, int new_width)
 {
-	int	sum = 0, i, left, right;
-
+	int			sum = 0;
+	int			column, left, right;
+	wimp_icon_state		icon;
+	
 	if (instance == NULL)
 		return;
 
-	left = column_get_leftmost_in_group(mapping, group);
-	right = column_get_rightmost_in_group(mapping, group);
+	left = column_get_leftmost_in_heading_group(instance, group);
+	right = column_get_rightmost_in_heading_group(instance, group);
 
 	if (left < 0 || right >= instance->columns || left > right)
 		return;
 
-	for (i = left; i <= right; i++) {
-		if (i == right) {
-			instance->width[i] = new_width - (sum + COLUMN_HEADING_MARGIN);
+	debug_printf("Adjusting columns %d to %d, for icon %d", left, right, group);
+
+	for (column = left; column <= right; column++) {
+		if (column == right) {
+			instance->width[column] = new_width - (sum + COLUMN_HEADING_MARGIN);
 		} else {
-			instance->width[i] = column_get_minimum_width(widths, i);
-			sum +=  (column_get_minimum_width(widths, i) + COLUMN_GUTTER);
+			instance->width[column] = instance->minimum_width[column];
+			sum += (instance->minimum_width[column] + COLUMN_GUTTER);
 		}
 	}
 
-	for (i = left + 1; i < instance->columns; i++)
-		instance->position[i] = instance->position[i - 1] + instance->width[i - 1] + COLUMN_GUTTER;
+	for (column = left + 1; column < instance->columns; column++)
+		instance->position[column] = instance->position[column - 1] + instance->width[column - 1] + COLUMN_GUTTER;
+
+	/* Adjust the icons in the header pane. */
+
+	if (header != NULL) {
+		icon.w = header;
+
+		for (column = 0; column < instance->columns; column++) {
+			icon.i = instance->map[column].heading;
+			if (icon.i == wimp_ICON_WINDOW)
+				continue;
+
+			wimp_get_icon_state(&icon);
+
+			icon.icon.extent.x0 = instance->position[column];
+
+			column = column_get_rightmost_in_heading_group(instance, icon.i);
+
+			icon.icon.extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
+
+			wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+					icon.icon.extent.x1, icon.icon.extent.y1);
+		}
+	}
+
+	/* Adjust the icons in the footer pane. */
+
+	if (footer != NULL) {
+		icon.w = footer;
+
+		for (column = 0; column < instance->columns; column++) {
+			icon.i = instance->map[column].footer;
+			if (icon.i == wimp_ICON_WINDOW)
+				continue;
+
+			wimp_get_icon_state(&icon);
+
+			icon.icon.extent.x0 = instance->position[column];
+
+				column = column_get_rightmost_in_footer_group(instance, icon.i);
+
+			icon.icon.extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
+
+			wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+					icon.icon.extent.x1, icon.icon.extent.y1);
+		}
+	}
 }
 
 
@@ -410,21 +578,58 @@ int column_get_position(struct column_block *instance, int xpos)
 
 
 /**
- * Return the number of the column group containing the given column.
- *
- * \param *mapping		The column group mapping string.
- * \param column		The column to investigate.
- * \return			The column group number.
+ * Return the column group icon handle for the column containing a given
+ * field icon.
+ * 
+ * \param *instance		The column set instance to search.
+ * \param field			The field icon handle to look up.
+ * \return			The column heading icon handle.
  */
 
-int column_get_group(char *mapping, int column)
+wimp_i column_get_group_icon(struct column_block *instance, wimp_i field)
 {
-	int	group = 0;
+	int	column;
+	wimp_i	heading = wimp_ICON_WINDOW;
 
-	while (column_get_rightmost_in_group(mapping, group) < column)
-		group++;
+	if (instance == NULL)
+		return wimp_ICON_WINDOW;
 
-	return group;
+	for (column = 0; column < instance->columns; column++) {
+		if (instance->map[column].field == field) {
+			heading = instance->map[column].heading;
+			break;
+		}
+	}
+
+	return heading;
+}
+
+
+
+/**
+ * Return the minimum width that a group of columns can be dragged to.  This is
+ * a simple sum of the minimum widths of all the columns in that group.
+ *
+ * \param *instance		The instance colntaining the column group.
+ * \param heading		The icon heading the group.
+ * \return			The minimum width of the group.
+ */
+
+static int column_get_minimum_group_width(struct column_block *instance, wimp_i heading)
+{
+	int	width = 0;
+	int	left, right, column;
+
+	if (instance == NULL)
+		return 0;
+
+	left = column_get_leftmost_in_heading_group(instance, heading);
+	right = column_get_rightmost_in_heading_group(instance, heading);
+
+	for (column = left; column <= right; column++)
+		width += instance->minimum_width[column];
+
+	return(width);
 }
 
 
@@ -436,31 +641,21 @@ int column_get_group(char *mapping, int column)
  * \return			The left-most column in the group.
  */
 
-int column_get_leftmost_in_group(char *mapping, int group)
+static int column_get_leftmost_in_heading_group(struct column_block *instance, wimp_i heading)
 {
-	char	*copy, *token, *value;
-	int	column = 0;
+	int	column, match = 0;
 
-	copy = strdup(mapping);
+	if (instance == NULL)
+		return 0;
 
-	if (copy == NULL)
-		return column;
+	for (column = 0; column < instance->columns && instance->map[column].heading <= heading; column++) {
+		if (heading == instance->map[column].heading) {
+			match = column;
+			break;
+		}
+	}
 
-	/* Find the mapping block for the required group. */
-
-	token = strtok(copy, ";");
-
-	while (group-- > 0)
-		token = strtok(NULL, ";");
-
-	/* Find the left-most column in the block. */
-
-	value = strtok(token, ",");
-	column = atoi(value);
-
-	free(copy);
-
-	return column;
+	return match;
 }
 
 
@@ -472,98 +667,41 @@ int column_get_leftmost_in_group(char *mapping, int group)
  * \return			The right-most column in the group.
  */
 
-int column_get_rightmost_in_group(char *mapping, int group)
+static int column_get_rightmost_in_heading_group(struct column_block *instance, wimp_i heading)
 {
-	char	*copy, *token, *value;
-	int	column = 0;
+	int	column, match = 0;
 
-	copy = strdup(mapping);
+	if (instance == NULL)
+		return 0;
 
-	if (copy == NULL)
-		return column;
-
-	/* Find the mapping block for the required group. */
-
-	token = strtok(copy, ";");
-
-	while (group-- > 0)
-		token = strtok(NULL, ";");
-
-	/* Find the right-most column in the block. */
-
-	value = strtok(token, ",");
-
-	while (value != NULL) {
-		column = atoi(value);
-		value = strtok(NULL, ",");
+	for (column = 0; column < instance->columns && instance->map[column].heading <= heading; column++) {
+		if (heading == instance->map[column].heading)
+			match = column;
 	}
 
-	free(copy);
-
-	return column;
+	return match;
 }
 
 
 /**
- * Return the minimum width that a group of columns can be dragged to.  This is
- * a simple sum of the minimum widths of all the columns in that group.
+ * Return the number of the right-hand column in a given group.
  *
- * \param *mapping		The column group mapping to apply.
- * \param *widths		The minimum column width configuration string.
- * \param group			The group to return data for.
- * \return			The minimum width of the group.
+ * \param *mapping		The column group mapping string.
+ * \param group			The column group.
+ * \return			The right-most column in the group.
  */
 
-static int column_get_minimum_group_width(char *mapping, char *widths, int group)
+static int column_get_rightmost_in_footer_group(struct column_block *instance, wimp_i footer)
 {
-	int	left, right, width, i;
+	int	column, match = 0;
 
-	width = 0;
+	if (instance == NULL)
+		return 0;
 
-	left = column_get_leftmost_in_group(mapping, group);
-	right = column_get_rightmost_in_group(mapping, group);
-
-	for (i = left; i <= right; i++)
-		width += column_get_minimum_width (widths, i);
-
-	return(width);
-}
-
-
-/**
- * Return the minimum width that a column can be dragged to.
- *
- * \param *mapping		The column group mapping to apply.
- * \param *widths		The minimum column width configuration string.
- * \param group			The group to return data for.
- * \return			The minimum width of the group.
- */
-
-static int column_get_minimum_width(char *widths, int column)
-{
-	int	width, i;
-	char	*token, *copy;
-
-
-	width = COLUMN_DRAG_MIN;
-	copy = strdup(widths);
-
-	if (copy == NULL)
-		return width;
-
-	token = strtok(copy, ",");
-	i = 0;
-
-	while (i < column) {
-		token = strtok(NULL, ",");
-		i++;
+	for (column = 0; column < instance->columns && instance->map[column].footer <= footer; column++) {
+		if (footer == instance->map[column].footer)
+			match = column;
 	}
 
-	if (token != NULL)
-		width = atoi(token);
-
-	free(copy);
-
-	return width;
+	return match;
 }
-

@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -158,7 +158,19 @@
 #define PRESET_PANE_PRINT 8
 #define PRESET_PANE_SORT 9
 
-#define PRESET_PANE_COL_MAP "0;1;2,3,4;5,6,7;8;9"
+static struct column_map preset_columns[] = {
+	{PRESET_ICON_KEY, PRESET_PANE_KEY, wimp_ICON_WINDOW},
+	{PRESET_ICON_NAME, PRESET_PANE_NAME, wimp_ICON_WINDOW},
+	{PRESET_ICON_FROM, PRESET_PANE_FROM, wimp_ICON_WINDOW},
+	{PRESET_ICON_FROM_REC, PRESET_PANE_FROM, wimp_ICON_WINDOW},
+	{PRESET_ICON_FROM_NAME, PRESET_PANE_FROM, wimp_ICON_WINDOW},
+	{PRESET_ICON_TO, PRESET_PANE_TO, wimp_ICON_WINDOW},
+	{PRESET_ICON_TO_REC, PRESET_PANE_TO, wimp_ICON_WINDOW},
+	{PRESET_ICON_TO_NAME, PRESET_PANE_TO, wimp_ICON_WINDOW},
+	{PRESET_ICON_AMOUNT, PRESET_PANE_AMOUNT, wimp_ICON_WINDOW},
+	{PRESET_ICON_DESCRIPTION, PRESET_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+};
+
 #define PRESET_PANE_SORT_DIR_ICON 10
 
 /* Preset window details. */
@@ -391,12 +403,13 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	new->preset_pane = NULL;
 	new->columns = NULL;
 
-	new-> columns = column_create_instance(PRESET_COLUMNS);
+	new-> columns = column_create_instance(PRESET_COLUMNS, preset_columns);
 	if (new->columns == NULL) {
 		preset_delete_instance(new);
 		return NULL;
 	}
 
+	column_set_minimum_widths(new->columns, config_str_read("LimPresetCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("PresetCols"));
 
 	new->sort_order = SORT_CHAR | SORT_ASCENDING;
@@ -445,7 +458,7 @@ void preset_delete_instance(struct preset_block *windat)
 
 void preset_open_window(struct file_block *file)
 {
-	int			i, j, height;
+	int			height;
 	wimp_window_state	parent;
 	os_error		*error;
 
@@ -497,15 +510,7 @@ void preset_open_window(struct file_block *file)
 	debug_printf ("Window extents set...");
 	#endif
 
-	for (i=0, j=0; j < PRESET_COLUMNS; i++, j++) {
-		preset_pane_def->icons[i].extent.x0 = file->presets->columns->position[j];
-
-		j = column_get_rightmost_in_group(PRESET_PANE_COL_MAP, i);
-
-		preset_pane_def->icons[i].extent.x1 = file->presets->columns->position[j] +
-				file->presets->columns->width[j] +
-				COLUMN_HEADING_MARGIN;
-	}
+	columns_place_heading_icons(file->presets->columns, preset_pane_def);
 
 	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
 			(osspriteop_id) file->presets->sort_sprite;
@@ -758,8 +763,8 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 			preset_sort(file->presets);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		column_start_drag(pointer, windat, windat->preset_window,
-				PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), preset_adjust_window_columns);
+		column_set_minimum_widths(windat->columns, config_str_read("LimPresetCols"));
+		column_start_drag(windat->columns, pointer, windat, windat->preset_window, preset_adjust_window_columns);
 	}
 }
 
@@ -1142,32 +1147,13 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 static void preset_adjust_window_columns(void *data, wimp_i group, int width)
 {
 	struct preset_block	*windat = (struct preset_block *) data;
-	int			i, j, new_extent;
-	wimp_icon_state		icon;
+	int			new_extent;
 	wimp_window_info	window;
 
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	update_dragged_columns(PRESET_PANE_COL_MAP, config_str_read("LimPresetCols"), group, width, windat->columns);
-
-	/* Re-adjust the icons in the pane. */
-
-	for (i=0, j=0; j < PRESET_COLUMNS; i++, j++) {
-		icon.w = windat->preset_pane;
-		icon.i = i;
-		wimp_get_icon_state(&icon);
-
-		icon.icon.extent.x0 = windat->columns->position[j];
-
-		j = column_get_rightmost_in_group(PRESET_PANE_COL_MAP, i);
-
-		icon.icon.extent.x1 = windat->columns->position[j] +
-				windat->columns->width[j] + COLUMN_HEADING_MARGIN;
-
-		wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-				icon.icon.extent.x1, icon.icon.extent.y1);
-	}
+	columns_update_dragged(windat->columns, windat->preset_pane, NULL, group, width);
 
 	new_extent = column_get_window_width(windat->columns);
 

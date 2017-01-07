@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -39,15 +39,23 @@
 #define COLUMN_GUTTER 4
 
 
+struct column_map {
+	wimp_i			field;					/**< The icon relating to the column in the main data table window.					*/
+	wimp_i			heading;				/**< The icon relating to the column heading in the table heading pane.					*/
+	wimp_i			footer;					/**< The icon relating to the column footer in the table footer pane.					*/
+};
+
 /**
  * A column definition block.
  */
 
 struct column_block {
-	size_t	columns;		/**< The number of columns defined in the block.							*/
+	size_t			columns;				/**< The number of columns defined in the block.							*/
+	struct column_map	*map;					/**< The column icon map.										*/
 
-	int	*position;		/**< The positions of the individual columns from the left hand edge of the window, in OS units.	*/
-	int	*width;			/**< The widths of the individual columns, in OS units.							*/
+	int			*position;				/**< The positions of the individual columns from the left hand edge of the window, in OS units.	*/
+	int			*width;					/**< The widths of the individual columns, in OS units.							*/
+	int			*minimum_width;				/**< The minimum widths of individual columns, in OS units.						*/
 };
 
 
@@ -55,10 +63,11 @@ struct column_block {
  * Create a new column definition instance.
  * 
  * \param columns		The number of columns to be defined.
+ * \param *map			Pointer to the column icon map.
  * \return			Pointer to the instance, or NULL on failure.
  */
 
-struct column_block *column_create_instance(size_t columns);
+struct column_block *column_create_instance(size_t columns, struct column_map *map);
 
 
 /**
@@ -72,7 +81,7 @@ struct column_block *column_clone_instance(struct column_block *instance);
 
 
 /**
- * Copy the column settings from one column definition instance to another.
+ * Copy the column widths from one column definition instance to another.
  *
  * \param *from			The instance to copy the settings from.
  * \param *to			The instance to copy the settings to.
@@ -91,6 +100,18 @@ void column_delete_instance(struct column_block *instance);
 
 
 /**
+ * Set, or reset, the minimum column widths for an instance from a
+ * configuration string. The string is a comma-separated list of decimal
+ * integers giving the widths, in OS units, of each column.
+ *
+ * \param *instance		Pointer to the instance to be updated.
+ * \param *widths		The width configuration string to be used.
+ */
+
+void column_set_minimum_widths(struct column_block *instance, char *widths);
+
+
+/**
  * Set a window's column data up, based on the supplied values in a column
  * width configuration string.
  *
@@ -101,6 +122,31 @@ void column_delete_instance(struct column_block *instance);
  */
 
 void column_init_window(struct column_block *instance, int start, osbool skip, char *widths);
+
+
+/**
+ * Adjust the positions of the column heading icons in the toolbar window
+ * template, according to the current column positions, ready for the
+ * window to be created.
+ *
+ * \param *instance		Pointer to the column instance to use.
+ * \param *heading		Pointer to the heading window template definition.
+ */
+
+void columns_place_heading_icons(struct column_block *instance, wimp_window *definition);
+
+
+/**
+ * Adjust the positions of the column footer icons in the footer window
+ * template, according to the current column positions, ready for the
+ * window to be created. Vertically, the icons are set to Y1=0 and
+ * Y0 to the negative window height.
+ *
+ * \param *instance		Pointer to the column instance to use.
+ * \param *heading		Pointer to the heading window template definition.
+ */
+
+void columns_place_footer_icons(struct column_block *instance, wimp_window *definition, int height);
 
 
 /**
@@ -117,15 +163,14 @@ char *column_write_as_text(struct column_block *instance, char *buffer, size_t l
 /**
  * Start a column width drag operation.
  *
+ * \param *instance		The column instance to be processed.
  * \param *ptr			The Wimp pointer data starting the drag.
  * \param *data			Client-specific data pointer.
  * \param w			The parent window the dragged toolbar belongs to.
- * \param *mapping		The column group mapping for the window.
- * \param *widths		The minimum column width configuration string.
  * \param *callback		The function to be called at the end of the drag.
  */
 
-void column_start_drag(wimp_pointer *ptr, void *data, wimp_w w, char *mapping, char *widths, void (*callback)(void *, wimp_i, int));
+void column_start_drag(struct column_block *instance, wimp_pointer *ptr, void *data, wimp_w w, void (*callback)(void *, wimp_i, int));
 
 
 /**
@@ -133,14 +178,14 @@ void column_start_drag(wimp_pointer *ptr, void *data, wimp_w w, char *mapping, c
  * the column width and position arrays.  Most columns just take their minimum
  * width, while the right-hand column takes up the slack.
  *
- * \param *mapping		The column group mapping for the window.
- * \param *widths		The minimum column width configuration string.
- * \param group			The column group that has been resized.
+ * \param *instance		The column instance to be processed.
+ * \param header		Handle of the heading window, or NULL.
+ * \param footer		Handle of the footer window, or NULL.
+ * \param group			The heading icon of the column group that has been resized.
  * \param new_width		The new width of the dragged group.
- * \param *instance		The column instance to be updated.
  */
 
-void update_dragged_columns(char *mapping, char *widths, int group, int new_width, struct column_block *instance);
+void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w footer, wimp_i group, int new_width);
 
 
 /**
@@ -165,36 +210,15 @@ int column_get_position(struct column_block *instance, int xpos);
 
 
 /**
- * Return the number of the column group containing the given column.
- *
- * \param *mapping		The column group mapping string.
- * \param column		The column to investigate.
- * \return			The column group number.
+ * Return the column group icon handle for the column containing a given
+ * field icon.
+ * 
+ * \param *instance		The column set instance to search.
+ * \param field			The field icon handle to look up.
+ * \return			The column heading icon handle.
  */
 
-int column_get_group(char *mapping, int column);
-
-
-/**
- * Return the number of the left-hand column in a given group.
- *
- * \param *mapping		The column group mapping string.
- * \param group			The column group.
- * \return			The left-most column in the group.
- */
-
-int column_get_leftmost_in_group(char *mapping, int group);
-
-
-/**
- * Return the number of the right-hand column in a given group.
- *
- * \param *mapping		The column group mapping string.
- * \param group			The column group.
- * \return			The right-most column in the group.
- */
-
-int column_get_rightmost_in_group(char *mapping, int group);
+wimp_i column_get_group_icon(struct column_block *instance, wimp_i field);
 
 #endif
 

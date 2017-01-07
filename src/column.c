@@ -644,20 +644,23 @@ int column_get_window_width(struct column_block *instance)
  *
  * \param *instance		The column instance to test the position against.
  * \param xpos			The X position from the left margin, in OS units.
- * \return			The column into which the location falls.
+ * \return			The iocn of the column into which the location falls.
  */
 
-int column_get_position(struct column_block *instance, int xpos)
+wimp_i column_get_position(struct column_block *instance, int xpos)
 {
 	int column;
 
 	if (instance == NULL)
-		return 0;
+		return wimp_ICON_WINDOW;
 
 	for (column = 0; column < instance->columns && xpos > (instance->position[column] + instance->width[column]);
 		column++);
 
-	return column;
+	if (column >= instance->columns)
+		return wimp_ICON_WINDOW;
+
+	return instance->map[column].field;
 }
 
 

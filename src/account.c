@@ -1682,7 +1682,8 @@ static void account_force_window_redraw(struct file_block *file, int entry, int 
 
 static void account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
-	int				column, xpos;
+	int				xpos;
+	wimp_i				column;
 	wimp_window_state		window;
 	struct account_window		*windat;
 

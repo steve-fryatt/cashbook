@@ -811,7 +811,8 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 {
 	struct transact_block	*windat;
 	struct file_block	*file;
-	int			line, transaction, xpos, column;
+	int			line, transaction, xpos;
+	wimp_i			column;
 	wimp_window_state	window;
 	wimp_pointer		ptr;
 
@@ -2431,7 +2432,8 @@ int transact_find_nearest_window_centre(struct file_block *file, acct_t account)
 
 static void transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
-	int			column, xpos;
+	int			xpos;
+	wimp_i			column;
 	wimp_window_state	window;
 	struct transact_block	*windat;
 

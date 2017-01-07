@@ -608,7 +608,9 @@ static void accview_close_window_handler(wimp_close *close)
 static void accview_window_click_handler(wimp_pointer *pointer)
 {
 	struct file_block	*file;
-	int			line, column, xpos, transaction;
+	int			line, xpos;
+	tran_t			transaction;
+	wimp_i			column;
 	enum transact_field 	trans_col_from[] = {
 					TRANSACT_FIELD_ROW,
 					TRANSACT_FIELD_DATE,
@@ -1593,7 +1595,8 @@ static void accview_force_window_redraw(struct accview_window *view, int from, i
 
 static void accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
-	int			column, xpos;
+	int			xpos;
+	wimp_i			column;
 	wimp_window_state	window;
 	struct accview_window	*windat;
 

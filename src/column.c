@@ -326,6 +326,7 @@ void columns_place_footer_icons(struct column_block *instance, wimp_window *defi
 	}
 }
 
+
 /**
  * Create a column width configuration string from an array of column widths.
  *

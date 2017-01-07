@@ -667,10 +667,7 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 	transaction = windat->line_data[windat->line_data[line].sort_index].transaction;
 
 	xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
-
-	for (column = 0;
-			column < ACCVIEW_COLUMNS && xpos > (windat->columns->position[column] + windat->columns->width[column]);
-			column++);
+	column = column_get_position(windat->columns, xpos);
 
 	if (column != ACCVIEW_COLUMN_RECONCILE && (pointer->buttons == wimp_DOUBLE_SELECT || pointer->buttons == wimp_DOUBLE_ADJUST)) {
 		/* Handle double-clicks, which will locate the transaction in the main window.  Clicks in the reconcile
@@ -1611,10 +1608,7 @@ static void accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 	wimp_get_window_state(&window);
 
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
-
-	for (column = 0;
-			column < ACCVIEW_COLUMNS && xpos > (windat->columns->position[column] + windat->columns->width[column]);
-			column++);
+	column = column_get_position(windat->columns, xpos);
 
 	sprintf(buffer, "Col%d", column);
 }

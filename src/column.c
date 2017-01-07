@@ -75,7 +75,6 @@ static int		column_get_rightmost_in_heading_group(struct column_block *instance,
 static int		column_get_rightmost_in_footer_group(struct column_block *instance, wimp_i footer);
 
 
-
 /**
  * Create a new column definition instance.
  * 
@@ -105,7 +104,7 @@ struct column_block *column_create_instance(size_t columns, struct column_map *m
 
 	new->position = mem;
 	new->width = mem + (columns * sizeof(int));
-	new->minimum_width = mem + (columns * sizeof(int));
+	new->minimum_width = mem + (2 * columns * sizeof(int));
 
 	return new;
 }
@@ -477,8 +476,6 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
 	if (left < 0 || right >= instance->columns || left > right)
 		return;
 
-	debug_printf("Adjusting columns %d to %d, for icon %d", left, right, group);
-
 	for (column = left; column <= right; column++) {
 		if (column == right) {
 			instance->width[column] = new_width - (sum + COLUMN_HEADING_MARGIN);
@@ -528,7 +525,7 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
 
 			icon.icon.extent.x0 = instance->position[column];
 
-				column = column_get_rightmost_in_footer_group(instance, icon.i);
+			column = column_get_rightmost_in_footer_group(instance, icon.i);
 
 			icon.icon.extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
 

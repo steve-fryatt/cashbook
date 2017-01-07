@@ -121,6 +121,8 @@
 #define TRANSACT_PANE_AMOUNT 5
 #define TRANSACT_PANE_DESCRIPTION 6
 
+#define TRANSACT_PANE_SORT_DIR_ICON 7
+
 #define TRANSACT_PANE_SAVE 8
 #define TRANSACT_PANE_PRINT 9
 #define TRANSACT_PANE_ACCOUNTS 10
@@ -137,23 +139,6 @@
 #define TRANSACT_PANE_GOTO 21
 #define TRANSACT_PANE_SORT 22
 #define TRANSACT_PANE_RECONCILE 23
-
-static struct column_map transact_columns[] = {
-	{TRANSACT_ICON_ROW, TRANSACT_PANE_ROW, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_DATE, TRANSACT_PANE_DATE, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_FROM, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_FROM_REC, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_FROM_NAME, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_TO, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_TO_REC, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_TO_NAME, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_REFERENCE, TRANSACT_PANE_REFERENCE, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_AMOUNT, TRANSACT_PANE_AMOUNT, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_DESCRIPTION, TRANSACT_PANE_DESCRIPTION, wimp_ICON_WINDOW}
-};
-
-#define TRANSACT_PANE_DRAG_LIMIT 6 /* The last icon to allow column drags on. */
-#define TRANSACT_PANE_SORT_DIR_ICON 7
 
 /* Main Menu */
 
@@ -225,6 +210,21 @@ static struct column_map transact_columns[] = {
 #define TRANSACTION_WINDOW_OPEN_OFFSET 48
 #define TRANSACTION_WINDOW_OFFSET_LIMIT 8
 
+/* Transaction Window column mapping. */
+
+static struct column_map transact_columns[] = {
+	{TRANSACT_ICON_ROW, TRANSACT_PANE_ROW, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_DATE, TRANSACT_PANE_DATE, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_FROM, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_FROM_REC, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_FROM_NAME, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_TO, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_TO_REC, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_TO_NAME, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_REFERENCE, TRANSACT_PANE_REFERENCE, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_AMOUNT, TRANSACT_PANE_AMOUNT, wimp_ICON_WINDOW},
+	{TRANSACT_ICON_DESCRIPTION, TRANSACT_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+};
 
 /**
  * Transatcion data structure
@@ -1117,7 +1117,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			windows_redraw(windat->transaction_pane);
 			transact_sort(windat);
 		}
-	} else if (pointer->buttons == wimp_DRAG_SELECT && pointer->i <= TRANSACT_PANE_DRAG_LIMIT) {
+	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimTransactCols"));
 		column_start_drag(windat->columns, pointer, windat, windat->transaction_window, transact_adjust_window_columns);
 	}

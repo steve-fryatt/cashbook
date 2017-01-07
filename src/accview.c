@@ -106,28 +106,15 @@
 #define ACCVIEW_PANE_BALANCE 6
 #define ACCVIEW_PANE_DESCRIPTION 7
 
+#define ACCVIEW_PANE_SORT_DIR_ICON 8
+
 #define ACCVIEW_PANE_PARENT 9
 #define ACCVIEW_PANE_PRINT 10
 #define ACCVIEW_PANE_EDIT 11
 #define ACCVIEW_PANE_GOTOEDIT 12
 #define ACCVIEW_PANE_SORT 13
 
-#define ACCVIEW_PANE_SORT_DIR_ICON 8
-
 #define ACCVIEW_COLUMN_RECONCILE 3
-
-static struct column_map accview_columns[] = {
-	{ACCVIEW_ICON_ROW, ACCVIEW_PANE_ROW, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_DATE, ACCVIEW_PANE_DATE, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_REC, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_FROMTO, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_REFERENCE, ACCVIEW_PANE_REFERENCE, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_PAYMENTS, ACCVIEW_PANE_PAYMENTS, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_RECEIPTS, ACCVIEW_PANE_RECEIPTS, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_BALANCE, ACCVIEW_PANE_BALANCE, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_DESCRIPTION, ACCVIEW_PANE_DESCRIPTION, wimp_ICON_WINDOW}
-};
 
 #define ACCVIEW_SORT_OK 2
 #define ACCVIEW_SORT_CANCEL 3
@@ -158,6 +145,20 @@ static struct column_map accview_columns[] = {
 #define ACCVIEW_TOOLBAR_HEIGHT 132
 #define MIN_ACCVIEW_ENTRIES 10
 
+/* Account View window column mapping. */
+
+static struct column_map accview_columns[] = {
+	{ACCVIEW_ICON_ROW, ACCVIEW_PANE_ROW, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_DATE, ACCVIEW_PANE_DATE, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_REC, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_FROMTO, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_REFERENCE, ACCVIEW_PANE_REFERENCE, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_PAYMENTS, ACCVIEW_PANE_PAYMENTS, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_RECEIPTS, ACCVIEW_PANE_RECEIPTS, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_BALANCE, ACCVIEW_PANE_BALANCE, wimp_ICON_WINDOW},
+	{ACCVIEW_ICON_DESCRIPTION, ACCVIEW_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+};
 
 struct accview_block {
 	struct file_block	*file;						/**< The file to which the instance belongs.				*/
@@ -817,7 +818,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 
 			file->accviews->sort_order = windat->sort_order;
 		}
-	} else if (pointer->buttons == wimp_DRAG_SELECT) {
+	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimAccViewCols"));;
 		column_start_drag(windat->columns, pointer, windat, windat->accview_window, accview_adjust_window_columns);
 	}

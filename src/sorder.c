@@ -110,6 +110,7 @@
 #define SORDER_MENU_EXPTSV 4
 #define SORDER_MENU_PRINT 5
 #define SORDER_MENU_FULLREP 6
+
 /* Standing order edit icons. */
 
 #define SORDER_EDIT_OK 0
@@ -154,6 +155,8 @@
 #define SORDER_PANE_PRINT 8
 #define SORDER_PANE_SORT 9
 
+#define SORDER_PANE_SORT_DIR_ICON 10
+
 /* Standing Order Sort Window */
 
 #define SORDER_SORT_OK 2
@@ -167,7 +170,13 @@
 #define SORDER_SORT_ASCENDING 10
 #define SORDER_SORT_DESCENDING 11
 
-#define SORDER_PANE_SORT_DIR_ICON 10
+/* Standing order window details. */
+
+#define SORDER_COLUMNS 10
+#define SORDER_TOOLBAR_HEIGHT 132
+#define MIN_SORDER_ENTRIES 10
+
+/* Standing Order Window column mapping. */
 
 static struct column_map sorder_columns[] = {
 	{SORDER_ICON_FROM, SORDER_PANE_FROM, wimp_ICON_WINDOW},
@@ -181,12 +190,6 @@ static struct column_map sorder_columns[] = {
 	{SORDER_ICON_NEXTDATE, SORDER_PANE_NEXTDATE, wimp_ICON_WINDOW},
 	{SORDER_ICON_LEFT, SORDER_PANE_LEFT}
 };
-
-/* Standing order window details. */
-
-#define SORDER_COLUMNS 10
-#define SORDER_TOOLBAR_HEIGHT 132
-#define MIN_SORDER_ENTRIES 10
 
 /**
  * Standing Order Data structure -- implementation.
@@ -755,7 +758,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 			windows_redraw(windat->sorder_pane);
 			sorder_sort(file->sorders);
 		}
-	} else if (pointer->buttons == wimp_DRAG_SELECT) {
+	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimSOrderCols"));
 		column_start_drag(windat->columns, pointer, windat, windat->sorder_window, sorder_adjust_window_columns);
 	}

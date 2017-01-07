@@ -158,6 +158,17 @@
 #define PRESET_PANE_PRINT 8
 #define PRESET_PANE_SORT 9
 
+#define PRESET_PANE_SORT_DIR_ICON 10
+
+/* Preset window details. */
+
+#define PRESET_COLUMNS 10
+#define PRESET_TOOLBAR_HEIGHT 132
+#define MIN_PRESET_ENTRIES 10
+#define PRESET_NAME_LEN 32
+
+/* Preset Window column mapping. */
+
 static struct column_map preset_columns[] = {
 	{PRESET_ICON_KEY, PRESET_PANE_KEY, wimp_ICON_WINDOW},
 	{PRESET_ICON_NAME, PRESET_PANE_NAME, wimp_ICON_WINDOW},
@@ -170,15 +181,6 @@ static struct column_map preset_columns[] = {
 	{PRESET_ICON_AMOUNT, PRESET_PANE_AMOUNT, wimp_ICON_WINDOW},
 	{PRESET_ICON_DESCRIPTION, PRESET_PANE_DESCRIPTION, wimp_ICON_WINDOW}
 };
-
-#define PRESET_PANE_SORT_DIR_ICON 10
-
-/* Preset window details. */
-
-#define PRESET_COLUMNS 10
-#define PRESET_TOOLBAR_HEIGHT 132
-#define MIN_PRESET_ENTRIES 10
-#define PRESET_NAME_LEN 32
 
 
 /**
@@ -762,7 +764,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 			windows_redraw(windat->preset_pane);
 			preset_sort(file->presets);
 		}
-	} else if (pointer->buttons == wimp_DRAG_SELECT) {
+	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimPresetCols"));
 		column_start_drag(windat->columns, pointer, windat, windat->preset_window, preset_adjust_window_columns);
 	}

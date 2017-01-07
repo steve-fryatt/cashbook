@@ -373,6 +373,31 @@ char *column_write_as_text(struct column_block *instance, char *buffer, size_t l
 
 
 /**
+ * Test an icon from the column headings window to see if it is a draggable
+ * column heading.
+ *
+ * \param *instance		The column instance to be tested.
+ * \param icon			The icon to be tested.
+ * \return			TRUE if the icon is a draggable column; FALSE if not.
+ */
+
+osbool column_is_heading_draggable(struct column_block *instance, wimp_i icon)
+{
+	int	column;
+
+	if (instance == NULL)
+		return FALSE;
+
+	for (column = 0; column < instance->columns; column++) {
+		if (icon == instance->map[column].heading)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+
+/**
  * Start a column width drag operation.
  *
  * \param *instance		The column instance to be processed.

@@ -885,7 +885,7 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 			account_open_print_window(windat->instance->file, windat->type, pointer, !config_opt_read("RememberValues"));
 			break;
 		}
-	} else if (pointer->buttons == wimp_DRAG_SELECT) {
+	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimAccountCols"));
 		column_start_drag(windat->columns, pointer, windat, windat->account_window, account_adjust_window_columns);
 	}

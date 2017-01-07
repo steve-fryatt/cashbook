@@ -405,7 +405,7 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	new->preset_pane = NULL;
 	new->columns = NULL;
 
-	new-> columns = column_create_instance(PRESET_COLUMNS, preset_columns);
+	new-> columns = column_create_instance(PRESET_COLUMNS, preset_columns, NULL);
 	if (new->columns == NULL) {
 		preset_delete_instance(new);
 		return NULL;

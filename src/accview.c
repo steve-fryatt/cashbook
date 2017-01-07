@@ -346,7 +346,7 @@ struct accview_block *accview_create_instance(struct file_block *file)
 	new->file = file;
 	new->columns = NULL;
 
-	new->columns = column_create_instance(ACCVIEW_COLUMNS, accview_columns);
+	new->columns = column_create_instance(ACCVIEW_COLUMNS, accview_columns, NULL);
 	if (new->columns == NULL) {
 		accview_delete_instance(new);
 		return NULL;

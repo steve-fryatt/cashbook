@@ -502,7 +502,7 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->edit_line = NULL;
 	new->columns = NULL;
 
-	new->columns = column_create_instance(TRANSACT_COLUMNS, transact_columns);
+	new->columns = column_create_instance(TRANSACT_COLUMNS, transact_columns, NULL);
 	if (new->columns == NULL) {
 		transact_delete_instance(new);
 		return NULL;

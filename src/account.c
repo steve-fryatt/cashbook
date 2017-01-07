@@ -88,22 +88,41 @@
 #include "transact.h"
 #include "window.h"
 
+/* Account Window icons. */
 
-/* Toolbar icons */
+#define ACCOUNT_ICON_IDENT 0
+#define ACCOUNT_ICON_NAME 1
+#define ACCOUNT_ICON_STATEMENT 2
+#define ACCOUNT_ICON_CURRENT 3
+#define ACCOUNT_ICON_FINAL 4
+#define ACCOUNT_ICON_BUDGET 5
+#define ACCOUNT_ICON_HEADING 6
+#define ACCOUNT_ICON_FOOT_NAME 7
+#define ACCOUNT_ICON_FOOT_STATEMENT 8
+#define ACCOUNT_ICON_FOOT_CURRENT 9
+#define ACCOUNT_ICON_FOOT_FINAL 10
+#define ACCOUNT_ICON_FOOT_BUDGET 11
+
+/* Toolbar icons. */
+
+#define ACCOUNT_PANE_NAME 0
+#define ACCOUNT_PANE_STATEMENT 1
+#define ACCOUNT_PANE_CURRENT 2
+#define ACCOUNT_PANE_FINAL 3
+#define ACCOUNT_PANE_BUDGET 4
 
 #define ACCOUNT_PANE_PARENT 5
 #define ACCOUNT_PANE_ADDACCT 6
 #define ACCOUNT_PANE_ADDSECT 7
 #define ACCOUNT_PANE_PRINT 8
 
-static struct column_map account_columns[] = {
-	{0, 0, 0},
-	{1, 0, 0},
-	{2, 1, 1},
-	{3, 2, 2},
-	{4, 3, 3},
-	{5, 4, 4}
-};
+/* Footer icons. */
+
+#define ACCOUNT_FOOTER_NAME 0
+#define ACCOUNT_FOOTER_STATEMENT 1
+#define ACCOUNT_FOOTER_CURRENT 2
+#define ACCOUNT_FOOTER_FINAL 3
+#define ACCOUNT_FOOTER_BUDGET 4
 
 /* Accounr heading window. */
 
@@ -151,8 +170,6 @@ static struct column_map account_columns[] = {
 #define SECTION_EDIT_HEADER 5
 #define SECTION_EDIT_FOOTER 6
 
-
-
 /* AccList menu */
 
 #define ACCLIST_MENU_VIEWACCT 0
@@ -174,6 +191,27 @@ static struct column_map account_columns[] = {
 #define ACCOUNT_FOOTER_HEIGHT 36
 #define MIN_ACCOUNT_ENTRIES 10
 #define ACCOUNT_SECTION_LEN 52
+
+/* Account Window column map. */
+
+static struct column_map account_columns[] = {
+	{ACCOUNT_ICON_IDENT, ACCOUNT_PANE_NAME, ACCOUNT_FOOTER_NAME},
+	{ACCOUNT_ICON_NAME, ACCOUNT_PANE_NAME, ACCOUNT_FOOTER_NAME},
+	{ACCOUNT_ICON_STATEMENT, ACCOUNT_PANE_STATEMENT, ACCOUNT_FOOTER_STATEMENT},
+	{ACCOUNT_ICON_CURRENT, ACCOUNT_PANE_CURRENT, ACCOUNT_FOOTER_CURRENT},
+	{ACCOUNT_ICON_FINAL, ACCOUNT_PANE_FINAL, ACCOUNT_FOOTER_FINAL},
+	{ACCOUNT_ICON_BUDGET, ACCOUNT_PANE_BUDGET, ACCOUNT_FOOTER_BUDGET}
+};
+
+static struct column_extra account_extra_columns[] = {
+	{ACCOUNT_ICON_HEADING, 0, 5},
+	{ACCOUNT_ICON_FOOT_NAME, 0, 1},
+	{ACCOUNT_ICON_FOOT_STATEMENT, 2, 2},
+	{ACCOUNT_ICON_FOOT_CURRENT, 3, 3},
+	{ACCOUNT_ICON_FOOT_FINAL, 4, 4},
+	{ACCOUNT_ICON_FOOT_BUDGET, 5, 5},
+	{wimp_ICON_WINDOW, 0, 0}
+};
 
 /* Account window line redraw data struct */
 
@@ -502,7 +540,7 @@ struct account_block *account_create_instance(struct file_block *file)
 		new->account_windows[i].account_footer = NULL;
 		new->account_windows[i].columns = NULL;
 
-		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS, account_columns);
+		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS, account_columns, account_extra_columns);
 		if (new->account_windows[i].columns == NULL)
 			mem_fail = TRUE;
 
@@ -1135,7 +1173,7 @@ static void account_window_scroll_handler(wimp_scroll *scroll)
 
 static void account_window_redraw_handler(wimp_draw *redraw)
 {
-	int			ox, oy, top, base, y, i, shade_overdrawn_col, icon_fg_col, width;
+	int			ox, oy, top, base, y, shade_overdrawn_col, icon_fg_col, width;
 	char			icon_buffer1[AMOUNT_FIELD_LEN], icon_buffer2[AMOUNT_FIELD_LEN], icon_buffer3[AMOUNT_FIELD_LEN],
 				icon_buffer4[AMOUNT_FIELD_LEN];
 	osbool			more, shade_overdrawn;
@@ -1158,60 +1196,35 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons for the account lines. */
 
-	for (i=0; i < ACCOUNT_COLUMNS; i++) {
-		account_window_def->icons[i].extent.x0 = windat->columns->position[i];
-		account_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
-	}
+	columns_place_table_icons(windat->columns, account_window_def, NULL, 0);
 
 	width = column_get_window_width(windat->columns);
 
-	/* Set the positions for the heading lines. */
-
-	account_window_def->icons[6].extent.x0 = windat->columns->position[0];
-	account_window_def->icons[6].extent.x1 = windat->columns->position[ACCOUNT_COLUMNS - 1] + windat->columns->width[ACCOUNT_COLUMNS - 1];
-
-	/* Set the positions for the footer lines. */
-
-	account_window_def->icons[7].extent.x0 = windat->columns->position[0];
-	account_window_def->icons[7].extent.x1 = windat->columns->position[1] + windat->columns->width[1];
-
-	account_window_def->icons[8].extent.x0 = windat->columns->position[2];
-	account_window_def->icons[8].extent.x1 = windat->columns->position[2] + windat->columns->width[2];
-
-	account_window_def->icons[9].extent.x0 = windat->columns->position[3];
-	account_window_def->icons[9].extent.x1 = windat->columns->position[3] + windat->columns->width[3];
-
-	account_window_def->icons[10].extent.x0 = windat->columns->position[4];
-	account_window_def->icons[10].extent.x1 = windat->columns->position[4] + windat->columns->width[4];
-
-	account_window_def->icons[11].extent.x0 = windat->columns->position[5];
-	account_window_def->icons[11].extent.x1 = windat->columns->position[5] + windat->columns->width[5];
-
 	/* The three numerical columns keep their icon buffers for the whole time, so set them up now. */
 
-	account_window_def->icons[2].data.indirected_text.text = icon_buffer1;
-	account_window_def->icons[3].data.indirected_text.text = icon_buffer2;
-	account_window_def->icons[4].data.indirected_text.text = icon_buffer3;
-	account_window_def->icons[5].data.indirected_text.text = icon_buffer4;
+	account_window_def->icons[ACCOUNT_ICON_STATEMENT].data.indirected_text.text = icon_buffer1;
+	account_window_def->icons[ACCOUNT_ICON_CURRENT].data.indirected_text.text = icon_buffer2;
+	account_window_def->icons[ACCOUNT_ICON_FINAL].data.indirected_text.text = icon_buffer3;
+	account_window_def->icons[ACCOUNT_ICON_BUDGET].data.indirected_text.text = icon_buffer4;
 
-	account_window_def->icons[8].data.indirected_text.text = icon_buffer1;
-	account_window_def->icons[9].data.indirected_text.text = icon_buffer2;
-	account_window_def->icons[10].data.indirected_text.text = icon_buffer3;
-	account_window_def->icons[11].data.indirected_text.text = icon_buffer4;
+	account_window_def->icons[ACCOUNT_ICON_FOOT_STATEMENT].data.indirected_text.text = icon_buffer1;
+	account_window_def->icons[ACCOUNT_ICON_FOOT_CURRENT].data.indirected_text.text = icon_buffer2;
+	account_window_def->icons[ACCOUNT_ICON_FOOT_FINAL].data.indirected_text.text = icon_buffer3;
+	account_window_def->icons[ACCOUNT_ICON_FOOT_BUDGET].data.indirected_text.text = icon_buffer4;
 
 	/* Reset all the icon colours. */
 
-	account_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
-	account_window_def->icons[2].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+	account_window_def->icons[ACCOUNT_ICON_STATEMENT].flags &= ~wimp_ICON_FG_COLOUR;
+	account_window_def->icons[ACCOUNT_ICON_STATEMENT].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-	account_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
-	account_window_def->icons[3].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+	account_window_def->icons[ACCOUNT_ICON_CURRENT].flags &= ~wimp_ICON_FG_COLOUR;
+	account_window_def->icons[ACCOUNT_ICON_CURRENT].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-	account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
-	account_window_def->icons[4].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+	account_window_def->icons[ACCOUNT_ICON_FINAL].flags &= ~wimp_ICON_FG_COLOUR;
+	account_window_def->icons[ACCOUNT_ICON_FINAL].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-	account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
-	account_window_def->icons[5].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+	account_window_def->icons[ACCOUNT_ICON_BUDGET].flags &= ~wimp_ICON_FG_COLOUR;
+	account_window_def->icons[ACCOUNT_ICON_BUDGET].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
 	/* Perform the redraw. */
 

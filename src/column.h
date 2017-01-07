@@ -45,6 +45,12 @@ struct column_map {
 	wimp_i			footer;					/**< The icon relating to the column footer in the table footer pane.					*/
 };
 
+struct column_extra {
+	wimp_i			icon;					/**< The additional icon in the main data table window.							*/
+	int			left;					/**< The column from which the icon spans on the left.							*/
+	int			right;					/**< The column to which the icon spans on the right.							*/
+};
+
 /**
  * A column definition block.
  */
@@ -52,6 +58,7 @@ struct column_map {
 struct column_block {
 	size_t			columns;				/**< The number of columns defined in the block.							*/
 	struct column_map	*map;					/**< The column icon map.										*/
+	struct column_extra	*extra;					/**< The additional column list.									*/
 
 	int			*position;				/**< The positions of the individual columns from the left hand edge of the window, in OS units.	*/
 	int			*width;					/**< The widths of the individual columns, in OS units.							*/
@@ -64,10 +71,11 @@ struct column_block {
  * 
  * \param columns		The number of columns to be defined.
  * \param *map			Pointer to the column icon map.
+ * \param *extra		Pointer to the extra icon list, or NULL for none.
  * \return			Pointer to the instance, or NULL on failure.
  */
 
-struct column_block *column_create_instance(size_t columns, struct column_map *map);
+struct column_block *column_create_instance(size_t columns, struct column_map *map, struct column_extra *extra);
 
 
 /**

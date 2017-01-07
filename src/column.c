@@ -80,10 +80,11 @@ static int		column_get_rightmost_in_footer_group(struct column_block *instance, 
  * 
  * \param columns		The number of columns to be defined.
  * \param *map			Pointer to the column icon map.
+ * \param *extra		Pointer to the extra icon list, or NULL for none.
  * \return			Pointer to the instance, or NULL on failure.
  */
 
-struct column_block *column_create_instance(size_t columns, struct column_map *map)
+struct column_block *column_create_instance(size_t columns, struct column_map *map, struct column_extra *extra)
 {
 	void			*mem;
 	struct column_block	*new;
@@ -99,6 +100,7 @@ struct column_block *column_create_instance(size_t columns, struct column_map *m
 
 	new->columns = columns;
 	new->map = map;
+	new->extra = extra;
 
 	mem += sizeof(struct column_block);
 
@@ -124,7 +126,7 @@ struct column_block *column_clone_instance(struct column_block *instance)
 	if (instance == NULL)
 		return NULL;
 
-	new = column_create_instance(instance->columns, instance->map);
+	new = column_create_instance(instance->columns, instance->map, instance->extra);
 	if (new == NULL)
 		return NULL;
 
@@ -273,13 +275,13 @@ void column_init_window(struct column_block *instance, int start, osbool skip, c
 
 void columns_place_table_icons(struct column_block *instance, wimp_window *definition, char *buffer, size_t length)
 {
-	int	column;
+	int	column, extra, left, right;
 	wimp_i	icon;
 
 	if (instance == NULL || definition == NULL)
 		return;
 
-	/* Position the heading icons. */
+	/* Position the main column icons. */
 
 	for (column = 0; column < instance->columns; column++) {
 		icon = instance->map[column].field;
@@ -288,6 +290,29 @@ void columns_place_table_icons(struct column_block *instance, wimp_window *defin
 
 		definition->icons[icon].extent.x0 = instance->position[column];
 		definition->icons[icon].extent.x1 = instance->position[column] + instance->width[column];
+		if (buffer != NULL) {
+			definition->icons[icon].data.indirected_text.text = buffer;
+			definition->icons[icon].data.indirected_text.size = length;
+		}
+	}
+
+	/* If there are no extra icons to position, there's nothing more to do. */
+
+	if (instance->extra == NULL)
+		return;
+
+	/* Position the extra icons in the list. */
+
+	for (extra = 0; instance->extra[extra].icon != wimp_ICON_WINDOW; extra++) {
+		icon = instance->extra[extra].icon;
+		left = instance->extra[extra].left;
+		right = instance->extra[extra].right;
+
+		if (left < 0 || right < left || right >= instance->columns)
+			continue;
+
+		definition->icons[icon].extent.x0 = instance->position[left];
+		definition->icons[icon].extent.x1 = instance->position[right] + instance->width[right];
 		if (buffer != NULL) {
 			definition->icons[icon].data.indirected_text.text = buffer;
 			definition->icons[icon].data.indirected_text.size = length;

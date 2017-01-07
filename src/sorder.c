@@ -402,7 +402,7 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	new->sorder_pane = NULL;
 	new->columns = NULL;
 
-	new-> columns = column_create_instance(SORDER_COLUMNS, sorder_columns);
+	new-> columns = column_create_instance(SORDER_COLUMNS, sorder_columns, NULL);
 	if (new->columns == NULL) {
 		sorder_delete_instance(new);
 		return NULL;

@@ -975,7 +975,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 {
 	struct preset_block	*windat;
 	struct file_block	*file;
-	int			ox, oy, top, base, y, i, t, width;
+	int			ox, oy, top, base, y, t, width;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -989,11 +989,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons. */
 
-	for (i=0; i < PRESET_COLUMNS; i++) {
-		preset_window_def->icons[i].extent.x0 = windat->columns->position[i];
-		preset_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
-		preset_window_def->icons[i].data.indirected_text.text = icon_buffer;
-	}
+	columns_place_table_icons(windat->columns, preset_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	width = column_get_window_width(windat->columns);
 

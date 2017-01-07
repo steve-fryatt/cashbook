@@ -971,7 +971,7 @@ static void sorder_window_scroll_handler(wimp_scroll *scroll)
 static void sorder_window_redraw_handler(wimp_draw *redraw)
 {
 	struct sorder_block	*windat;
-	int			ox, oy, top, base, y, i, t, width;
+	int			ox, oy, top, base, y, t, width;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -988,11 +988,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons. */
 
-	for (i=0; i < SORDER_COLUMNS; i++) {
-		sorder_window_def->icons[i].extent.x0 = windat->columns->position[i];
-		sorder_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
-		sorder_window_def->icons[i].data.indirected_text.text = icon_buffer;
-	}
+	columns_place_table_icons(windat->columns, sorder_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	width = column_get_window_width(windat->columns);
 

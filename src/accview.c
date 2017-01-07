@@ -1066,7 +1066,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	acct_t			account, transaction_account;
 	date_t			transaction_date;
 	enum account_type	account_type;
-	int			ox, oy, top, base, y, i, width, transaction, credit_limit, shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
+	int			ox, oy, top, base, y, width, transaction, credit_limit, shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more, shade_budget, shade_overdrawn;
 	date_t			budget_start, budget_finish;
@@ -1101,11 +1101,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons for the account lines. */
 
-	for (i=0; i < ACCVIEW_COLUMNS; i++) {
-		accview_window_def->icons[i].extent.x0 = windat->columns->position[i];
-		accview_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
-		accview_window_def->icons[i].data.indirected_text.text = icon_buffer;
-	}
+	columns_place_table_icons(windat->columns, accview_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	width = column_get_window_width(windat->columns);
 

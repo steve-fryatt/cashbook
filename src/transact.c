@@ -1617,7 +1617,7 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 static void transact_window_redraw_handler(wimp_draw *redraw)
 {
 	struct transact_block	*windat;
-	int			ox, oy, top, base, y, i, t, shade_rec, shade_rec_col, icon_fg_col, width, entry_line;
+	int			ox, oy, top, base, y, t, shade_rec, shade_rec_col, icon_fg_col, width, entry_line;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -1636,11 +1636,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons. */
 
-	for (i=0; i < TRANSACT_COLUMNS; i++) {
-		transact_window_def->icons[i].extent.x0 = windat->columns->position[i];
-		transact_window_def->icons[i].extent.x1 = windat->columns->position[i] + windat->columns->width[i];
-		transact_window_def->icons[i].data.indirected_text.text = icon_buffer;
-	}
+	columns_place_table_icons(windat->columns, transact_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	width = column_get_window_width(windat->columns);
 	entry_line = edit_get_line(windat->edit_line);

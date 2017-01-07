@@ -261,6 +261,42 @@ void column_init_window(struct column_block *instance, int start, osbool skip, c
 
 
 /**
+ * Horizontally position the table icons in a window defintion, so that
+ * they are ready to be used in a redraw operation. If a buffer is supplied,
+ * the icons' indirected data is set up to point to it.
+ *
+ * \param *instance		Pointer to the column instance to use.
+ * \param *definition		Pointer to the table window template definition.
+ * \param *buffer		Pointer to a buffer to use for indirection, or NULL for none.
+ * \param length		The length of the indirection buffer.
+ */
+
+void columns_place_table_icons(struct column_block *instance, wimp_window *definition, char *buffer, size_t length)
+{
+	int	column;
+	wimp_i	icon;
+
+	if (instance == NULL || definition == NULL)
+		return;
+
+	/* Position the heading icons. */
+
+	for (column = 0; column < instance->columns; column++) {
+		icon = instance->map[column].field;
+		if (icon == wimp_ICON_WINDOW)
+			continue;
+
+		definition->icons[icon].extent.x0 = instance->position[column];
+		definition->icons[icon].extent.x1 = instance->position[column] + instance->width[column];
+		if (buffer != NULL) {
+			definition->icons[icon].data.indirected_text.text = buffer;
+			definition->icons[icon].data.indirected_text.size = length;
+		}
+	}
+}
+
+
+/**
  * Adjust the positions of the column heading icons in the toolbar window
  * template, according to the current column positions, ready for the
  * window to be created.

@@ -1545,9 +1545,7 @@ static void account_set_window_extent(struct file_block *file, int entry)
 	 */
 
 	extent.x0 = 0;
-	extent.x1 = file->accounts->account_windows[entry].columns->position[ACCOUNT_COLUMNS-1] +
-			file->accounts->account_windows[entry].columns->width[ACCOUNT_COLUMNS-1];
-
+	extent.x1 = column_get_window_width(file->accounts->account_windows[entry].columns) + COLUMN_GUTTER;
 	extent.y0 = new_extent;
 	extent.y1 = 0;
 

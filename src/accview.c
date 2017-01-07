@@ -1596,7 +1596,7 @@ static void accview_force_window_redraw(struct accview_window *view, int from, i
 static void accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
 	int			xpos;
-	wimp_i			column;
+	wimp_i			icon;
 	wimp_window_state	window;
 	struct accview_window	*windat;
 
@@ -1611,9 +1611,15 @@ static void accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 	wimp_get_window_state(&window);
 
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
-	column = column_get_position(windat->columns, xpos);
 
-	sprintf(buffer, "Col%d", column);
+	icon = column_get_position(windat->columns, xpos);
+	if (icon == wimp_ICON_WINDOW)
+		return;
+
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, accview_window_def->icons[icon].data.indirected_text.validation, 'N')) {
+		snprintf(buffer, IHELP_INAME_LEN, "Col%d", icon);
+		buffer[IHELP_INAME_LEN - 1] = '\0';
+	}
 }
 
 

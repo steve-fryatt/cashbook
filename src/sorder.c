@@ -1410,7 +1410,7 @@ static void sorder_force_window_redraw(struct file_block *file, int from, int to
 static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
 	int			xpos;
-	wimp_i			column;
+	wimp_i			icon;
 	wimp_window_state	window;
 	struct sorder_block	*windat;
 
@@ -1425,9 +1425,14 @@ static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
-	column = column_get_position(windat->columns, xpos);
+	icon = column_get_position(windat->columns, xpos);
+	if (icon == wimp_ICON_WINDOW)
+		return;
 
-	sprintf(buffer, "Col%d", column);
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, sorder_window_def->icons[icon].data.indirected_text.validation, 'N')) {
+		snprintf(buffer, IHELP_INAME_LEN, "Col%d", icon);
+		buffer[IHELP_INAME_LEN - 1] = '\0';
+	}
 }
 
 

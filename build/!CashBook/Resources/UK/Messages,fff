@@ -394,17 +394,17 @@ NoSprites:The application sprites file could not be opened.
 Help.IconBar:\TCashBook application.|M\Screate a new file and open its transaction \w.
 
 Help.Transact/Help.TransactTB:\Ttransaction \w.
-Help.Transact.Col0/Help.AccView.Col0/Help.HeadView.Col0:\Ttransaction number column, showing the number of the transaction.
-Help.Transact.Col1:\Tdate column, showing the date on which transactions occur.|M\Splace the caret.|M\Ainsert the current date or select a transaction preset from a list.
-Help.Transact.Col2:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.
-Help.Transact.Col3:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
-Help.Transact.Col4:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
-Help.Transact.Col5:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.
-Help.Transact.Col6:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
-Help.Transact.Col7:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
-Help.Transact.Col8:\Treference column, allowing a short reference to be included.|M\Splace the caret.|M\Ainsert a copy of an existing reference or the next cheque number.
-Help.Transact.Col9:\Tamount column, showing the amount of money transferred.|M\Splace the caret.
-Help.Transact.Col10:\Tdescription column, which allows any other information to be recorded.|M\Splace the caret.|M\Ainsert a copy of an existing description.
+Help.Transact.No/Help.AccView.No/Help.HeadView.No:\Ttransaction number column, showing the number of the transaction.
+Help.Transact.Date:\Tdate column, showing the date on which transactions occur.|M\Splace the caret.|M\Ainsert the current date or select a transaction preset from a list.
+Help.Transact.From:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.
+Help.Transact.FromRec:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
+Help.Transact.FromName:\Tfrom column, showing the account or analysis heading from which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
+Help.Transact.To:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.
+Help.Transact.ToRec:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Atoggle the reconciled state.
+Help.Transact.ToName:\Tto column, showing the account or analysis heading to which money is transferred.|M\Splace the caret.|M\Aselect an account or heading from a list.
+Help.Transact.Ref:\Treference column, allowing a short reference to be included.|M\Splace the caret.|M\Ainsert a copy of an existing reference or the next cheque number.
+Help.Transact.Amt:\Tamount column, showing the amount of money transferred.|M\Splace the caret.
+Help.Transact.Desc:\Tdescription column, which allows any other information to be recorded.|M\Splace the caret.|M\Ainsert a copy of an existing description.
 
 Help.TransactTB.ColNo/Help.AccViewTB.ColNo/Help.HeadViewTB.ColNo:\Ttransaction number column.|M\Ssort the entries in ascending order by transaction number, or \a for descending.|M\Dchange the column width.
 Help.TransactTB.ColDate/Help.AccViewTB.ColDate/Help.HeadViewTB.ColDate:\Tdate column.|M\Ssort the entries in ascending order by date, or \a for descending.|M\Dchange the column width.
@@ -421,11 +421,11 @@ Help.TransactTB.Sort:\Sopen the transaction sort dialogue, to update or change t
 Help.TransactTB.Icon20/Help.AccViewTB.Icon12/Help.SOrderTB.Icon10/Help.PresetTB.Icon10:\Tsort indicator, showing which column the data is being sorted on.
 
 Help.AccList/Help.AccListTB/Help.AccListFB:\Taccount list \w.
-Help.AccList.Col0/Help.AccList.Col1:\Taccount name column.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
-Help.AccList.Col2:\Tstatement balance column, showing the reconciled totals.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
-Help.AccList.Col3:\Tcurrent balance column, showing the totals at this date.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
-Help.AccList.Col4:\Tfinal balance column, showing the totals at a given date in the future.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
-Help.AccList.Col5:\Tbudget variance column, showing the changes over the budget period.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+Help.AccList.Ident/Help.AccList.Name:\Taccount name column.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+Help.AccList.Stat:\Tstatement balance column, showing the reconciled totals.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+Help.AccList.Curr:\Tcurrent balance column, showing the totals at this date.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+Help.AccList.Final:\Tfinal balance column, showing the totals at a given date in the future.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
+Help.AccList.Bud:\Tbudget variance column, showing the changes over the budget period.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
 
 Help.AccListTB.Up/Help.HeadListTB.Up/Help.AccViewTB.Up/Help.HeadViewTB.Up/Help.SOrderTB.Up/Help.PresetTB.Up:\Sbring this file's transaction \w to the front.
 Help.AccListTB.ColName/Help.HeadListTB.ColName:\Tname column.|M\Dchange the column width.
@@ -440,11 +440,11 @@ Help.AccListFB.Tot3:\Ttotal of the final balance column.
 Help.AccListFB.Tot4:\Ttotal of the budget variance column.
 
 Help.HeadList/Help.HeadListTB/Help.HeadListFB:\Tanalysis heading list \w.
-Help.HeadList.Col0/Help.HeadList.Col1:\Theading name column.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
-Help.HeadList.Col2:\Ttotal column, showing the total amount associated with the heading.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
-Help.HeadList.Col3:\Tbudget limit column, showing the amount budgeted for the heading.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
-Help.HeadList.Col4:\Tbudget total column, showing the amount associated with the heading during the budget period.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
-Help.HeadList.Col5:\Tbudget balance column of the analysis heading list \w, showing the amount outstanding to for the budget period.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+Help.HeadList.Ident/Help.HeadList.Name:\Theading name column.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+Help.HeadList.Stat:\Ttotal column, showing the total amount associated with the heading.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+Help.HeadList.Curr:\Tbudget limit column, showing the amount budgeted for the heading.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+Help.HeadList.Final:\Tbudget total column, showing the amount associated with the heading during the budget period.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
+Help.HeadList.Bud:\Tbudget balance column of the analysis heading list \w, showing the amount outstanding to for the budget period.|MDouble-click \s to open a statement view for the analysis heading.|MDouble-click \a to edit the analysis heading.
 
 Help.HeadListTB.ColTot:\Ttotal column.|M\Dchange the column width.
 Help.HeadListTB.ColBud:\Tbudget limit column.|M\Dchange the column width.
@@ -457,14 +457,14 @@ Help.HeadListFB.Tot3:\Ttotal of the budget total column.
 Help.HeadListFB.Tot4:\Ttotal of the budget balance column.
 
 Help.AccView/Help.AccViewTB:\Taccount statement view \w.
-Help.AccView.Col1/Help.HeadView.Col1:\Tdate column, showing the date on which transactions occur.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
-Help.AccView.Col2/Help.AccView.Col4/Help.HeadView.Col2/Help.HeadView.Col4:\Tfrom/to column, showing the other account or analysis heading in the transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
-Help.AccView.Col3:\Treconciled status for the transaction in this account.|MDouble-click \s to find this transaction in the transaction \w.|M\Atoggle the reconciled status.
-Help.AccView.Col5:\Treference column, allowing a short reference to be included.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
-Help.AccView.Col6:\Tpayments column, showing payments out of this account.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
-Help.AccView.Col7:\Treceipts column, showing payments in to this account.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
-Help.AccView.Col8:\Taccount balance column, showing the balance of the account after this transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
-Help.AccView.Col9/Help.HeadView.Col9:\Tdescription column, which allows any other information to be recorded.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Date/Help.HeadView.Date:\Tdate column, showing the date on which transactions occur.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Acct/Help.AccView.AcctName/Help.HeadView.Acct/Help.HeadView.AcctName:\Tfrom/to column, showing the other account or analysis heading in the transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.AcctRec:\Treconciled status for the transaction in this account.|MDouble-click \s to find this transaction in the transaction \w.|M\Atoggle the reconciled status.
+Help.AccView.Ref:\Treference column, showing any short reference associated with the transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Paymt:\Tpayments column, showing payments out of this account.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Recpt:\Treceipts column, showing payments in to this account.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Bal:\Taccount balance column, showing the balance of the account after this transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.AccView.Desc/Help.HeadView.Desc:\Tdescription column, showing any other information to be recorded for the transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
 
 Help.AccViewTB.ColFmTo/Help.HeadViewTB.ColFmTo:\Tfrom/to column.|M\Ssort the entries in ascending order by from/to entry, or \a for descending.|M\Dchange the column width.
 Help.AccViewTB.ColPaymt/Help.HeadViewTB.ColPaymt:\Tpayment column.|M\Ssort the entries in ascending order by payment amount, or \a for descending.|M\Dchange the column width.
@@ -474,31 +474,31 @@ Help.AccViewTB.Sort:\Sopen the account entry sort dialogue, to update or change 
 Help.HeadViewTB.Sort:\Sopen the analysis heading entry sort dialogue, to update or change the sort details.|M\Are-sort the entries using the current settings.
 
 Help.HeadView/Help.HeadViewTB:\Tanalysis heading statement view \w.
-Help.HeadView.Col3:\Treconciled status for the transaction in this analysis heading.|MDouble-click \s to find this transaction in the transaction \w.|M\Atoggle the reconciled status.
-Help.HeadView.Col5:\Treference column, allowing a short reference to be included.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
-Help.HeadView.Col6:\Tpayments column, showing payments from this analysis heading.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
-Help.HeadView.Col7:\Treceipts column, showing payments to this analysis heading.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
-Help.HeadView.Col8:\Theading balance column, showing the total associated with this analysis heading after this transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.HeadView.AcctRec:\Treconciled status for the transaction in this analysis heading.|MDouble-click \s to find this transaction in the transaction \w.|M\Atoggle the reconciled status.
+Help.HeadView.Ref:\Treference column, allowing a short reference to be included.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.HeadView.Paymt:\Tpayments column, showing payments from this analysis heading.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.HeadView.Recpt:\Treceipts column, showing payments to this analysis heading.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
+Help.HeadView.Bal:\Theading balance column, showing the total associated with this analysis heading after this transaction.|MDouble-click \s to find this transaction in the transaction \w.|MDouble-click \a to bring the transaction \w to the front.
 
 Help.SOrder/Help.SOrderTB:\Tstanding order list \w.
-Help.SOrder.Col0/Help.SOrder.Col1/Help.SOrder.Col2:\Tfrom column, showing the account or analysis heading from which money will be transferred.|MDouble-click \s to edit the standing order.
-Help.SOrder.Col3/Help.SOrder.Col4/Help.SOrder.Col5:\Tto column, showing the account or analysis heading to which money will be transferred.|MDouble-click \s to edit the standing order.
-Help.SOrder.Col6:\Tamount column, showing the amount of money that will be transferred.|MDouble-click \s to edit the standing order.
-Help.SOrder.Col7:\Tdescription column, which allows other information about the standing orders to be recorded.|MDouble-click \s to edit the standing order.
-Help.SOrder.Col8:\Tnext date column, showing the date on which the next transaction will take place.|MDouble-click \s to edit the standing order.
-Help.SOrder.Col9:\Tremaining transactions column, showing the number of transactions still to take place.|MDouble-click \s to edit the standing order.
+Help.SOrder.From/Help.SOrder.FromRec/Help.SOrder.FromName:\Tfrom column, showing the account or analysis heading from which money will be transferred.|MDouble-click \s to edit the standing order.
+Help.SOrder.To/Help.SOrder.ToRec/Help.SOrder.ToName:\Tto column, showing the account or analysis heading to which money will be transferred.|MDouble-click \s to edit the standing order.
+Help.SOrder.Amt:\Tamount column, showing the amount of money that will be transferred.|MDouble-click \s to edit the standing order.
+Help.SOrder.Desc:\Tdescription column, which allows other information about the standing orders to be recorded.|MDouble-click \s to edit the standing order.
+Help.SOrder.Next:\Tnext date column, showing the date on which the next transaction will take place.|MDouble-click \s to edit the standing order.
+Help.SOrder.Left:\Tremaining transactions column, showing the number of transactions still to take place.|MDouble-click \s to edit the standing order.
 
 Help.SOrderTB.ColNext:\Tnext date column.|M\Ssort the entries in ascending order by next date, or \a for descending.|M\Dchange the column width.
 Help.SOrderTB.ColLeft:\Tremaining transactions column.|M\Ssort the entries in ascending order by transactions left, or \a for descending.|M\Dchange the column width.
 Help.SOrderTB.Sort:\Sopen the standing order sort dialogue, to update or change the sort details.|M\Are-sort the standing orders using the current settings.
 
 Help.Preset/Help.PresetTB:\Tpreset list \w.
-Help.Preset.Col0:\Tkey column, showing the key used to insert the preset transaction.|MDouble-click \s to edit the preset.
-Help.Preset.Col1:\Tname column, showing the name of the preset transaction.|MDouble-click \s to edit the preset.
-Help.Preset.Col2/Help.Preset.Col3/Help.Preset.Col4:\Tfrom column, showing the account or analysis heading from which money will be transferred.|MDouble-click \s to edit the preset.
-Help.Preset.Col5/Help.Preset.Col6/Help.Preset.Col7:\Tto column, showing the account or analysis heading to which money will be transferred.|MDouble-click \s to edit the preset.
-Help.Preset.Col8:\Tamount column, showing the amount of money that will be transferred.|MDouble-click \s to edit the preset.
-Help.Preset.Col9:\Tdescription column, which allows other information about the presets to be recorded.|MDouble-click \s to edit the preset.
+Help.Preset.Key:\Tkey column, showing the key used to insert the preset transaction.|MDouble-click \s to edit the preset.
+Help.Preset.Name:\Tname column, showing the name of the preset transaction.|MDouble-click \s to edit the preset.
+Help.Preset.From/Help.Preset.FromRec/Help.Preset.FromName:\Tfrom column, showing the account or analysis heading from which money will be transferred.|MDouble-click \s to edit the preset.
+Help.Preset.To/Help.Preset.ToRec/Help.Preset.ToName:\Tto column, showing the account or analysis heading to which money will be transferred.|MDouble-click \s to edit the preset.
+Help.Preset.Amt:\Tamount column, showing the amount of money that will be transferred.|MDouble-click \s to edit the preset.
+Help.Preset.Desc:\Tdescription column, which allows other information about the presets to be recorded.|MDouble-click \s to edit the preset.
 
 Help.PresetTB.ColKey:\Tkey column.|M\Ssort the entries in ascending order by next date, or \a for descending.|M\Dchange the column width.
 Help.PresetTB.ColName:\Tname column.|M\Ssort the entries in ascending order by transactions left, or \a for descending.|M\Dchange the column width.

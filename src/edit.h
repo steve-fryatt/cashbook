@@ -264,12 +264,11 @@ osbool edit_complete(struct edit_block *instance);
  * 
  * \param *instance		The instance to add the field to.
  * \param type			The type of field to add.
- * \param column		The column number of the left-most field.
  * \param ...			A list of the icons which apply to the field.
  * \return			True if the field was created OK; False on error.
  */
 
-osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...);
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ...);
 
 
 /**

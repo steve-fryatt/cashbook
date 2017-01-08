@@ -623,23 +623,23 @@ void transact_open_window(struct file_block *file)
 		return;
 	}
 
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY, 0,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY,
 			TRANSACT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE, 1,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE,
 			TRANSACT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_IN, 2,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_IN,
 			TRANSACT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
 			TRANSACT_ICON_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
 			TRANSACT_ICON_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_OUT, 5,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_OUT,
 			TRANSACT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
 			TRANSACT_ICON_TO_REC, transact_buffer_to_rec, REC_FIELD_LEN,
 			TRANSACT_ICON_TO_NAME, transact_buffer_to_name, ACCOUNT_NAME_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 8,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT,
 			TRANSACT_ICON_REFERENCE, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY, 9,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY,
 			TRANSACT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
-	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT, 10,
+	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT,
 			TRANSACT_ICON_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	if (!edit_complete(file->transacts->edit_line)) {

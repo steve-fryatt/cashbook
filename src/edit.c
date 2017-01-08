@@ -155,8 +155,6 @@ struct edit_icon {
 
 	enum edit_icon_type	type;					/**< The type of icon in an edit line context.					*/
 
-	int			column;					/**< The column of the left-most part of the field.				*/
-
 	wimp_i			icon;					/**< The wimp handle of the icon.						*/
 	char			*buffer;				/**< Pointer to a buffer to hold the icon text.					*/
 	size_t			length;					/**< The length of the text buffer.						*/
@@ -213,7 +211,7 @@ static struct edit_block *edit_active_instance = NULL;
 
 /* Static Function Prototypes. */
 
-static osbool			edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column);
+static osbool			edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length);
 static osbool			edit_create_field_icon(struct edit_icon *icon, int line, wimp_colour colour);
 static void			edit_move_caret_up_down(struct edit_block *instance, int direction);
 static void			edit_move_caret_forward(struct edit_block *instance, wimp_key *key);
@@ -358,12 +356,11 @@ osbool edit_complete(struct edit_block *instance)
  * 
  * \param *instance		The instance to add the field to.
  * \param type			The type of field to add.
- * \param column		The column number of the left-most field.
  * \param ...			A list of the icons which apply to the field.
  * \return			True if the field was created OK; False on error.
  */
 
-osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, int column, ...)
+osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ...)
 {
 	va_list			ap;
 	struct edit_field	*field;
@@ -392,26 +389,26 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
 
 	field->type = type;
 
-	va_start(ap, column);
+	va_start(ap, type);
 
 	switch (type) {
 	case EDIT_FIELD_DISPLAY:
-		edit_add_field_icon(field, EDIT_ICON_DISPLAY, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
+		edit_add_field_icon(field, EDIT_ICON_DISPLAY, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
 		break;
 	case EDIT_FIELD_TEXT:
-		edit_add_field_icon(field, EDIT_ICON_TEXT, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
+		edit_add_field_icon(field, EDIT_ICON_TEXT, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
 		break;
 	case EDIT_FIELD_CURRENCY:
-		edit_add_field_icon(field, EDIT_ICON_CURRENCY, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
+		edit_add_field_icon(field, EDIT_ICON_CURRENCY, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
 		break;
 	case EDIT_FIELD_DATE:
-		edit_add_field_icon(field, EDIT_ICON_DATE, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
+		edit_add_field_icon(field, EDIT_ICON_DATE, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
 		break;
 	case EDIT_FIELD_ACCOUNT_IN:
 	case EDIT_FIELD_ACCOUNT_OUT:
-		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_IDENT, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column);
-		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_REC, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column + 1);
-		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_NAME, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t), column + 2);
+		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_IDENT, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
+		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_REC, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
+		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_NAME, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
 		break;
 	}
 
@@ -430,11 +427,10 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, in
  * \param icon			The expected Wimp icon handle for the icon.
  * \param *buffer		Pointer to the buffer to hold the icon contents.
  * \param *length		The length of the supplied icon buffer.
- * \param column		The window column to which the icon belongs.
  * \return			TRUE on success; FALSE on error or failure.
  */
 
-static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length, int column)
+static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type type, wimp_i icon, char *buffer, size_t length)
 {
 	struct edit_icon	*new, *list;
 
@@ -452,7 +448,6 @@ static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type 
 	new->icon = icon;
 	new->buffer = buffer;
 	new->length = length;
-	new->column = column;
 
 	/* Link the icon to the end of it's parent's list of sibling icons. */
 

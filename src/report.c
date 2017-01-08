@@ -403,7 +403,7 @@ void report_close(struct report *report)
 
 	report->height = report->lines * linespace + REPORT_BOTTOM_MARGIN;
 
-	set_initial_window_area(report_window_def,
+	window_set_initial_area(report_window_def,
 			(report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH,
 			(report->height > REPORT_MIN_HEIGHT) ? report->height : REPORT_MIN_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),

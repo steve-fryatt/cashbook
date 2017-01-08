@@ -489,7 +489,7 @@ void preset_open_window(struct file_block *file)
 
 	transact_get_window_state(file, &parent);
 
-	set_initial_window_area(preset_window_def, column_get_window_width(file->presets->columns),
+	window_set_initial_area(preset_window_def, column_get_window_width(file->presets->columns),
 			(height * WINDOW_ROW_HEIGHT) + PRESET_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);

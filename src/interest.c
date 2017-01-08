@@ -291,7 +291,7 @@ void interest_open_window(struct interest_block *instance, acct_t account)
 
 	transact_get_window_state(instance->file, &parent);
 
-	set_initial_window_area(interest_window_def, column_get_window_width(instance->columns),
+	window_set_initial_area(interest_window_def, column_get_window_width(instance->columns),
 			(height * WINDOW_ROW_HEIGHT) + INTEREST_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(instance->file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);

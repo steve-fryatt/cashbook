@@ -78,7 +78,7 @@ static char		window_reconciled_symbol[REC_FIELD_LEN];
  * \param yoff			Y Offset to apply to enable raked openings.
  */
 
-void set_initial_window_area(wimp_window *window, int width, int height, int x, int y, int yoff)
+void window_set_initial_area(wimp_window *window, int width, int height, int x, int y, int yoff)
 {
 	int	limit, lower_limit;
 	osbool	clear_iconbar;

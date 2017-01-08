@@ -580,7 +580,7 @@ void transact_open_window(struct file_block *file)
 
 	height =  file->transacts->display_lines;
 
-	set_initial_window_area(transact_window_def, column_get_window_width(file->transacts->columns),
+	window_set_initial_area(transact_window_def, column_get_window_width(file->transacts->columns),
 			(height * WINDOW_ROW_HEIGHT) + TRANSACT_TOOLBAR_HEIGHT,
 			-1, -1, new_transaction_window_offset * TRANSACTION_WINDOW_OPEN_OFFSET);
 

@@ -697,7 +697,7 @@ void account_open_window(struct file_block *file, enum account_type type)
 
 	transact_get_window_state(file, &parent);
 
-	set_initial_window_area(account_window_def, column_get_window_width(window->columns),
+	window_set_initial_area(account_window_def, column_get_window_width(window->columns),
 			(height * WINDOW_ROW_HEIGHT) + ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);

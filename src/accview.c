@@ -445,7 +445,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	transact_get_window_state(file, &parent);
 
-	set_initial_window_area(accview_window_def, column_get_window_width(view->columns),
+	window_set_initial_area(accview_window_def, column_get_window_width(view->columns),
 			(height * WINDOW_ROW_HEIGHT) + ACCVIEW_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);

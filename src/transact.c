@@ -1624,7 +1624,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 	wimp_colour		shade_rec_col, icon_fg_col;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			shade_rec, more;
-	os_t			redraw_start = os_read_monotonic_time();
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
@@ -1731,8 +1730,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle(redraw);
 	}
-
-	debug_printf("Transaction Redraw done in %dcs", os_read_monotonic_time() - redraw_start);
 }
 
 

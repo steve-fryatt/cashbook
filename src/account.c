@@ -1185,7 +1185,6 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 	osbool			more, shade_overdrawn;
 	struct account_window	*windat;
 	struct account_block	*instance;
-	os_t			redraw_start = os_read_monotonic_time();
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->columns == NULL)
@@ -1335,8 +1334,6 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle(redraw);
 	}
-
-	debug_printf("Account List Redraw done in %dcs", os_read_monotonic_time() - redraw_start);
 }
 
 

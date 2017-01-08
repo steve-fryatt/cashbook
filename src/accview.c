@@ -1067,7 +1067,6 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more, shade_budget, shade_overdrawn;
 	date_t			budget_start, budget_finish;
-	os_t			redraw_start = os_read_monotonic_time();
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL || windat->account == NULL_ACCOUNT)
@@ -1214,8 +1213,6 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 		}
 		more = wimp_get_rectangle(redraw);
 	}
-
-	debug_printf("Account View Redraw done in %dcs", os_read_monotonic_time() - redraw_start);
 }
 
 

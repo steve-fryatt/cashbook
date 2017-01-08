@@ -971,7 +971,6 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	int			ox, oy, top, base, y, t, width;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
-	os_t			redraw_start = os_read_monotonic_time();
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
@@ -1055,8 +1054,6 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle (redraw);
 	}
-
-	debug_printf("Standing Order Redraw done in %dcs", os_read_monotonic_time() - redraw_start);
 }
 
 

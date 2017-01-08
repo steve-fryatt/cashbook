@@ -1533,79 +1533,32 @@ static void transact_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void transact_window_scroll_handler(wimp_scroll *scroll)
 {
-	int			width, height, line, error;
+	int			line;
 	struct transact_block	*windat;
 
 	windat = event_get_window_user_data(scroll->w);
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	/* Add in the X scroll offset. */
+	window_process_scroll_effect(scroll, TRANSACT_TOOLBAR_HEIGHT);
 
-	width = scroll->visible.x1 - scroll->visible.x0;
+	/* Extend the window downwards if necessary. */
 
-	switch (scroll->xmin) {
-	case wimp_SCROLL_COLUMN_LEFT:
-		scroll->xscroll -= HORIZONTAL_SCROLL;
-		break;
+	if (scroll->ymin == wimp_SCROLL_LINE_DOWN) {
+		line = (-scroll->yscroll + (scroll->visible.y1 - scroll->visible.y0) - TRANSACT_TOOLBAR_HEIGHT) / WINDOW_ROW_HEIGHT;
 
-	case wimp_SCROLL_COLUMN_RIGHT:
-		scroll->xscroll += HORIZONTAL_SCROLL;
-		break;
-
-	case wimp_SCROLL_PAGE_LEFT:
-		scroll->xscroll -= width;
-		break;
-
-	case wimp_SCROLL_PAGE_RIGHT:
-	scroll->xscroll += width;
-		break;
-	}
-
-	/* Add in the Y scroll offset. */
-
-	height = (scroll->visible.y1 - scroll->visible.y0) - TRANSACT_TOOLBAR_HEIGHT;
-
-	switch (scroll->ymin) {
-	case wimp_SCROLL_LINE_UP:
-		scroll->yscroll += WINDOW_ROW_HEIGHT;
-		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
-			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
-		break;
-
-	case wimp_SCROLL_LINE_DOWN:
-		scroll->yscroll -= WINDOW_ROW_HEIGHT;
-		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
-			scroll->yscroll -= error;
-
-		/* Extend the window if necessary. */
-
-		line = (-scroll->yscroll + height) / WINDOW_ROW_HEIGHT;
 		if (line > windat->display_lines) {
 			windat->display_lines = line;
 			transact_set_window_extent(windat->file);
 		}
-		break;
-
-	case wimp_SCROLL_PAGE_UP:
-		scroll->yscroll += height;
-		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
-			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
-		break;
-
-	case wimp_SCROLL_PAGE_DOWN:
-		scroll->yscroll -= height;
-		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
-			scroll->yscroll -= error;
-		break;
 	}
 
-	/* Re-open the window, then try and reduce the window extent if possible.
-	 *
-	 * It is assumed that the wimp will deal with out-of-bounds offsets for us.
-	 */
+	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
 
 	wimp_open_window((wimp_open *) scroll);
+
+	/* Try to reduce the window extent, if possible. */
+
 	transact_minimise_window_extent(windat->file);
 }
 

@@ -161,6 +161,7 @@ struct interest_block {
 /* Static function prototypes. */
 
 static void		interest_close_window_handler(wimp_close *close);
+static void		interest_window_scroll_handler(wimp_scroll *scroll);
 static void		interest_window_redraw_handler(wimp_draw *redraw);
 static void		interest_adjust_window_columns(void *data, wimp_i group, int width);
 static void		interest_adjust_sort_icon(struct interest_block *windat);
@@ -385,7 +386,7 @@ void interest_open_window(struct interest_block *instance, acct_t account)
 //	event_add_window_lose_caret_event(file->transacts->transaction_window, transact_window_lose_caret_handler);
 //	event_add_window_mouse_event(file->transacts->transaction_window, transact_window_click_handler);
 //	event_add_window_key_event(file->transacts->transaction_window, transact_window_keypress_handler);
-//	event_add_window_scroll_event(file->transacts->transaction_window, transact_window_scroll_handler);
+	event_add_window_scroll_event(instance->interest_window, interest_window_scroll_handler);
 	event_add_window_redraw_event(instance->interest_window, interest_window_redraw_handler);
 //	event_add_window_menu_prepare(file->transacts->transaction_window, transact_window_menu_prepare_handler);
 //	event_add_window_menu_selection(file->transacts->transaction_window, transact_window_menu_selection_handler);
@@ -464,6 +465,22 @@ static void interest_close_window_handler(wimp_close *close)
 	/* Close the window */
 
 	interest_delete_window(instance, instance->active_account);
+}
+
+
+/**
+ * Process scroll events in the interest rate window.
+ *
+ * \param *scroll		The scroll event block to handle.
+ */
+
+static void interest_window_scroll_handler(wimp_scroll *scroll)
+{
+	window_process_scroll_effect(scroll, INTEREST_TOOLBAR_HEIGHT);
+
+	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
+
+	wimp_open_window((wimp_open *) scroll);
 }
 
 

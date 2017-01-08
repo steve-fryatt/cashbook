@@ -147,7 +147,70 @@ void window_set_initial_area(wimp_window *window, int width, int height, int x, 
 }
 
 
+/**
+ * Process data from a scroll event, updating the window position in the
+ * associated data block as required.
+ *
+ * \param *scroll		The scroll event data to be processed.
+ * \param pane_szie		The size, in OS units, of any toolbar and footer panes.
+ */
 
+void window_process_scroll_effect(wimp_scroll *scroll, int pane_size)
+{
+	int	width, height, error;
+
+	/* Add in the X scroll offset. */
+
+	width = scroll->visible.x1 - scroll->visible.x0;
+
+	switch (scroll->xmin) {
+	case wimp_SCROLL_COLUMN_LEFT:
+		scroll->xscroll -= HORIZONTAL_SCROLL;
+		break;
+
+	case wimp_SCROLL_COLUMN_RIGHT:
+		scroll->xscroll += HORIZONTAL_SCROLL;
+		break;
+
+	case wimp_SCROLL_PAGE_LEFT:
+		scroll->xscroll -= width;
+		break;
+
+	case wimp_SCROLL_PAGE_RIGHT:
+		scroll->xscroll += width;
+		break;
+	}
+
+	/* Add in the Y scroll offset. */
+
+	height = (scroll->visible.y1 - scroll->visible.y0) - pane_size;
+
+	switch (scroll->ymin) {
+	case wimp_SCROLL_LINE_UP:
+		scroll->yscroll += WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
+		break;
+
+	case wimp_SCROLL_LINE_DOWN:
+		scroll->yscroll -= WINDOW_ROW_HEIGHT;
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= error;
+		break;
+
+	case wimp_SCROLL_PAGE_UP:
+		scroll->yscroll += height;
+		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
+		break;
+
+	case wimp_SCROLL_PAGE_DOWN:
+		scroll->yscroll -= height;
+		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
+			scroll->yscroll -= error;
+		break;
+	}
+}
 
 
 /**

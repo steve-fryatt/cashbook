@@ -147,6 +147,17 @@ void window_set_initial_area(wimp_window *window, int width, int height, int x, 
 
 
 /**
+ * Process data from a scroll event, updating the window position in the
+ * associated data block as required.
+ *
+ * \param *scroll		The scroll event data to be processed.
+ * \param pane_szie		The size, in OS units, of any toolbar and footer panes.
+ */
+
+void window_process_scroll_effect(wimp_scroll *scroll, int pane_size);
+
+
+/**
  * Calculate the row that the mouse was clicked over in the list window.
  *
  * \param *pointer		The relevant Wimp pointer data.

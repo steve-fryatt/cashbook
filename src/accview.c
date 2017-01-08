@@ -985,64 +985,9 @@ static void accview_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void accview_window_scroll_handler(wimp_scroll *scroll)
 {
-	int		width, height, error;
+	window_process_scroll_effect(scroll, ACCVIEW_TOOLBAR_HEIGHT);
 
-	/* Add in the X scroll offset. */
-
-	width = scroll->visible.x1 - scroll->visible.x0;
-
-	switch (scroll->xmin) {
-	case wimp_SCROLL_COLUMN_LEFT:
-		scroll->xscroll -= HORIZONTAL_SCROLL;
-		break;
-
-	case wimp_SCROLL_COLUMN_RIGHT:
-		scroll->xscroll += HORIZONTAL_SCROLL;
-		break;
-
-	case wimp_SCROLL_PAGE_LEFT:
-		scroll->xscroll -= width;
-		break;
-
-	case wimp_SCROLL_PAGE_RIGHT:
-		scroll->xscroll += width;
-		break;
-	}
-
-	/* Add in the Y scroll offset. */
-
-	height = (scroll->visible.y1 - scroll->visible.y0) - ACCVIEW_TOOLBAR_HEIGHT;
-
-	switch (scroll->ymin) {
-	case wimp_SCROLL_LINE_UP:
-		scroll->yscroll += WINDOW_ROW_HEIGHT;
-		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
-			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
-		break;
-
-	case wimp_SCROLL_LINE_DOWN:
-		scroll->yscroll -= WINDOW_ROW_HEIGHT;
-		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
-			scroll->yscroll -= error;
-		break;
-
-	case wimp_SCROLL_PAGE_UP:
-		scroll->yscroll += height;
-		if ((error = ((scroll->yscroll) % WINDOW_ROW_HEIGHT)))
-			scroll->yscroll -= WINDOW_ROW_HEIGHT + error;
-		break;
-
-	case wimp_SCROLL_PAGE_DOWN:
-		scroll->yscroll -= height;
-		if ((error = ((scroll->yscroll - height) % WINDOW_ROW_HEIGHT)))
-			scroll->yscroll -= error;
-		break;
-	}
-
-	/* Re-open the window.
-	 *
-	 * It is assumed that the wimp will deal with out-of-bounds offsets for us.
-	 */
+	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
 
 	wimp_open_window((wimp_open *) scroll);
 }

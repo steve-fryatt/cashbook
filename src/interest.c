@@ -72,6 +72,7 @@
 #include "column.h"
 #include "date.h"
 #include "edit.h"
+#include "file.h"
 #include "window.h"
 
 /**
@@ -80,6 +81,40 @@
  */
 
 #define INTEREST_FORMAT_LENGTH 20
+
+/* Interest Window details. */
+
+/**
+ * The height of the interest toolbar pane. */
+
+#define INTEREST_TOOLBAR_HEIGHT 132
+
+/**
+ * The number of columns in the interest window. */
+
+#define INTEREST_COLUMNS 3
+
+/* The interest window icons. */
+
+#define INTEREST_ICON_DATE 0
+#define INTEREST_ICON_RATE 1
+#define INTEREST_ICON_DESCRIPTION 2
+
+/* The toolbar pane icons. */
+
+#define INTEREST_PANE_DATE 0
+#define INTEREST_PANE_RATE 1
+#define INTEREST_PANE_DESCRIPTION 2
+
+#define INTEREST_PANE_SORT_DIR_ICON 3
+
+/* Interest Rate Window column mapping. */
+
+static struct column_map interest_columns[] = {
+	{INTEREST_ICON_DATE, INTEREST_PANE_DATE, wimp_ICON_WINDOW},
+	{INTEREST_ICON_RATE, INTEREST_PANE_RATE, wimp_ICON_WINDOW},
+	{INTEREST_ICON_DESCRIPTION, INTEREST_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+};
 
 /* Interest Rate List Window. */
 
@@ -103,9 +138,30 @@ struct interest_block {
 	/* The window handles associated with the instance. */
 
 	wimp_w			interest_window;
+	char			window_title[WINDOW_TITLE_LENGTH];
 	wimp_w			interest_pane;
 	wimp_w			interest_footer;
+
+	/* Display column details. */
+
+	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
+
+	/* Other window details. */
+
+	enum sort_type		sort_order;					/**< The order in which the window is sorted.				*/
+
+	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
+
+	/* The account currently associated with this instance. */
+
+	acct_t			active_account;
 };
+
+/* Static function prototypes. */
+
+static void		interest_close_window_handler(wimp_close *close);
+
+
 
 /**
  * Initialise the transaction system.
@@ -151,6 +207,21 @@ struct interest_block *interest_create_instance(struct file_block *file)
 
 	new->file = file;
 
+	new->interest_window = NULL;
+	new->interest_pane = NULL;
+	new->columns = NULL;
+
+	new-> columns = column_create_instance(INTEREST_COLUMNS, interest_columns, NULL);
+	if (new->columns == NULL) {
+		interest_delete_instance(new);
+		return NULL;
+	}
+
+	column_set_minimum_widths(new->columns, config_str_read("LimInterestCols"));
+	column_init_window(new->columns, 0, FALSE, config_str_read("InterestCols"));
+
+	new->active_account = NULL_ACCOUNT;
+
 	return new;
 }
 
@@ -166,8 +237,256 @@ void interest_delete_instance(struct interest_block *instance)
 	if (instance == NULL)
 		return;
 
+	if (instance->interest_window != NULL)
+		interest_delete_window(instance, NULL_ACCOUNT);
+
 	heap_free(instance);
 }
+
+
+/**
+ * Open an interest window for a given account.
+ * 
+ * \param *instance		The instance to own the window.
+ * \param account		The account to open the window for.
+ */
+
+void interest_open_window(struct interest_block *instance, acct_t account)
+{
+	int			height;
+	wimp_window_state	parent;
+	os_error		*error;
+
+	debug_printf("We want to open an interest window for instance 0x%x, account %d", instance, account);
+
+	if (instance == NULL || instance->file == NULL)
+		return;
+
+	/* If there's a different account active, close it down. */
+
+	if (instance->active_account != NULL_ACCOUNT && instance->active_account != account)
+		interest_delete_window(instance, instance->active_account);
+
+	/* If the window is currently open, bring it to the top of the stack. */
+
+	if (instance->interest_window != NULL) {
+		windows_open(instance->interest_window);
+		return;
+	}
+
+	/* Set the default values */
+
+	*(instance->window_title) = '\0';
+	interest_window_def->title_data.indirected_text.text = instance->window_title;
+
+//	height = (file->sorders->sorder_count > MIN_SORDER_ENTRIES) ? file->sorders->sorder_count : MIN_SORDER_ENTRIES;
+	height = 10;
+
+	transact_get_window_state(instance->file, &parent);
+
+	set_initial_window_area(interest_window_def, column_get_window_width(instance->columns),
+			(height * WINDOW_ROW_HEIGHT) + INTEREST_TOOLBAR_HEIGHT,
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + instance->file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
+
+	instance->file->child_x_offset++;
+	if (instance->file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
+		instance->file->child_x_offset = 0;
+
+	error = xwimp_create_window(interest_window_def, &(instance->interest_window));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	/* Create the toolbar pane. */
+
+	windows_place_as_toolbar(interest_window_def, interest_pane_def, INTEREST_TOOLBAR_HEIGHT - 4);
+	columns_place_heading_icons(instance->columns, interest_pane_def);
+
+	interest_pane_def->icons[INTEREST_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
+			(osspriteop_id) instance->sort_sprite;
+	interest_pane_def->icons[INTEREST_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
+			interest_pane_def->sprite_area;
+	interest_pane_def->icons[INTEREST_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
+
+//	transact_adjust_sort_icon_data(file->transacts, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
+
+	error = xwimp_create_window(interest_pane_def, &(instance->interest_pane));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	/* Construct the edit line. */
+
+//	file->transacts->edit_line = edit_create_instance(file, transact_window_def, file->transacts->transaction_window,
+//			file->transacts->columns, TRANSACT_TOOLBAR_HEIGHT,
+//			&transact_edit_callbacks, file->transacts);
+//	if (file->transacts->edit_line == NULL) {
+//		error_msgs_report_error("TransactNoMem");
+//		return;
+//	}
+
+//	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DISPLAY,
+//			TRANSACT_ICON_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
+//	edit_add_field(file->transacts->edit_line, EDIT_FIELD_DATE,
+//			TRANSACT_ICON_DATE, transact_buffer_date, DATE_FIELD_LEN);
+//	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_IN,
+//			TRANSACT_ICON_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
+//			TRANSACT_ICON_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
+//			TRANSACT_ICON_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
+//	edit_add_field(file->transacts->edit_line, EDIT_FIELD_ACCOUNT_OUT,
+//			TRANSACT_ICON_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
+//			TRANSACT_ICON_TO_REC, transact_buffer_to_rec, REC_FIELD_LEN,
+//			TRANSACT_ICON_TO_NAME, transact_buffer_to_name, ACCOUNT_NAME_LEN);
+//	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT,
+//			TRANSACT_ICON_REFERENCE, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
+//	edit_add_field(file->transacts->edit_line, EDIT_FIELD_CURRENCY,
+//			TRANSACT_ICON_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
+//	edit_add_field(file->transacts->edit_line, EDIT_FIELD_TEXT,
+//			TRANSACT_ICON_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
+
+//	if (!edit_complete(file->transacts->edit_line)) {
+//		edit_delete_instance(file->transacts->edit_line);
+//		error_msgs_report_error("TransactNoMem");
+//		return;
+//	}
+
+	instance->active_account = account;
+
+	/* Set the title */
+
+	interest_build_window_title(instance->file);
+
+	/* Update the toolbar */
+
+//	transact_update_toolbar(file);
+
+
+	/* Open the window. */
+
+	windows_open(instance->interest_window);
+	windows_open_nested_as_toolbar(instance->interest_pane, instance->interest_window, INTEREST_TOOLBAR_HEIGHT - 4);
+
+	ihelp_add_window(instance->interest_window , "Interest", NULL /*transact_decode_window_help*/);
+	ihelp_add_window(instance->interest_pane , "InterestTB", NULL);
+
+	/* Register event handlers for the two windows. */
+	/* \TODO -- Should this be all three windows?   */
+
+	event_add_window_user_data(instance->interest_window, instance);
+//	event_add_window_menu(file->transacts->transaction_window, transact_window_menu);
+//	event_add_window_open_event(file->transacts->transaction_window, transact_window_open_handler);
+	event_add_window_close_event(instance->interest_window, interest_close_window_handler);
+//	event_add_window_lose_caret_event(file->transacts->transaction_window, transact_window_lose_caret_handler);
+//	event_add_window_mouse_event(file->transacts->transaction_window, transact_window_click_handler);
+//	event_add_window_key_event(file->transacts->transaction_window, transact_window_keypress_handler);
+//	event_add_window_scroll_event(file->transacts->transaction_window, transact_window_scroll_handler);
+//	event_add_window_redraw_event(file->transacts->transaction_window, transact_window_redraw_handler);
+//	event_add_window_menu_prepare(file->transacts->transaction_window, transact_window_menu_prepare_handler);
+//	event_add_window_menu_selection(file->transacts->transaction_window, transact_window_menu_selection_handler);
+//	event_add_window_menu_warning(file->transacts->transaction_window, transact_window_menu_warning_handler);
+//	event_add_window_menu_close(file->transacts->transaction_window, transact_window_menu_close_handler);
+
+//	event_add_window_user_data(instance->interest_pane, instance);
+//	event_add_window_menu(file->transacts->transaction_pane, transact_window_menu);
+//	event_add_window_mouse_event(file->transacts->transaction_pane, transact_pane_click_handler);
+//	event_add_window_menu_prepare(file->transacts->transaction_pane, transact_window_menu_prepare_handler);
+//	event_add_window_menu_selection(file->transacts->transaction_pane, transact_window_menu_selection_handler);
+//	event_add_window_menu_warning(file->transacts->transaction_pane, transact_window_menu_warning_handler);
+//	event_add_window_menu_close(file->transacts->transaction_pane, transact_window_menu_close_handler);
+//	event_add_window_icon_popup(file->transacts->transaction_pane, TRANSACT_PANE_VIEWACCT, transact_account_list_menu, -1, NULL);
+
+//	dataxfer_set_drop_target(dataxfer_TYPE_CSV, file->transacts->transaction_window, -1, NULL, transact_load_csv, file);
+//	dataxfer_set_drop_target(dataxfer_TYPE_CSV, file->transacts->transaction_pane, -1, NULL, transact_load_csv, file);
+
+	/* Put the caret into the first empty line. */
+
+//	transact_place_caret(file, file->transacts->trans_count, TRANSACT_FIELD_DATE);
+}
+
+
+/**
+ * Close an interest window.
+ * 
+ * \param *instance		The instance which owns the window.
+ * \param account		The account to close the window for, or NULL_ACCOUNT
+ *				to forcibly close any window that the instance has open.
+ */
+
+void interest_delete_window(struct interest_block *instance, acct_t account)
+{
+	if (instance == NULL || (account != NULL_ACCOUNT && account != instance->active_account))
+		return;
+
+	debug_printf("We want to close an interest window for instance 0x%x, account %d", instance, account);
+
+	if (instance->interest_window != NULL) {
+		ihelp_remove_window(instance->interest_window);
+		event_delete_window(instance->interest_window);
+		wimp_delete_window(instance->interest_window);
+		instance->interest_window = NULL;
+	}
+
+	if (instance->interest_pane != NULL) {
+		ihelp_remove_window(instance->interest_pane);
+		event_delete_window(instance->interest_pane);
+		wimp_delete_window(instance->interest_pane);
+		instance->interest_pane = NULL;
+	}
+
+	instance->active_account = NULL_ACCOUNT;
+}
+
+
+/**
+ * Handle Close events on Interest windows, deleting the window.
+ *
+ * \param *close		The Wimp Close data block.
+ */
+
+static void interest_close_window_handler(wimp_close *close)
+{
+	struct interest_block	*instance;
+
+	#ifdef DEBUG
+	debug_printf("\\RClosing Interest window");
+	#endif
+
+	instance = event_get_window_user_data(close->w);
+	if (instance == NULL)
+		return;
+
+	/* Close the window */
+
+	interest_delete_window(instance, instance->active_account);
+}
+
+
+
+/**
+ * Recreate the title of the Interest List window connected to the given
+ * file.
+ *
+ * \param *file			The file to rebuild the title for.
+ */
+
+void interest_build_window_title(struct file_block *file)
+{
+	char	name[WINDOW_TITLE_LENGTH];
+
+	if (file == NULL || file->interest == NULL || file->interest->interest_window == NULL)
+		return;
+
+	file_get_leafname(file, name, WINDOW_TITLE_LENGTH);
+
+	msgs_param_lookup("InterestTitle", file->interest->window_title, WINDOW_TITLE_LENGTH,
+			account_get_name(file, file->interest->active_account), name, NULL, NULL);
+
+	wimp_force_redraw_title(file->interest->interest_window);
+}
+
 
 
 /**

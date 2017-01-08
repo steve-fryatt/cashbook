@@ -79,6 +79,7 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
+#include "interest.h"
 #include "presets.h"
 #include "report.h"
 #include "sorder.h"
@@ -337,6 +338,7 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 	account_build_window_titles(file);
 	sorder_build_window_title(file);
 	preset_build_window_title(file);
+	interest_build_window_title(file);
 
 	hourglass_off();
 }

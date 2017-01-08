@@ -82,6 +82,37 @@ void interest_delete_instance(struct interest_block *instance);
 
 
 /**
+ * Open an interest window for a given account.
+ * 
+ * \param *instance		The instance to own the window.
+ * \param account		The account to open the window for.
+ */
+
+void interest_open_window(struct interest_block *instance, acct_t account);
+
+
+/**
+ * Close an interest window.
+ * 
+ * \param *instance		The instance which owns the window.
+ * \param account		The account to close the window for, or NULL_ACCOUNT
+ *				to forcibly close any window that the instance has open.
+ */
+
+void interest_delete_window(struct interest_block *instance, acct_t account);
+
+
+/**
+ * Recreate the title of the Interest List window connected to the given
+ * file.
+ *
+ * \param *file			The file to rebuild the title for.
+ */
+
+void interest_build_window_title(struct file_block *file);
+
+
+/**
  * Return an interest rate for a given account on a given date. Returns
  * NULL_RATE on failure.
  *

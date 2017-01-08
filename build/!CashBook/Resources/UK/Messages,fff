@@ -155,6 +155,10 @@ SOrderTitle:Standing orders list: %0
 
 PresetTitle:Transaction preset list: %0
 
+# Interest list
+
+InterestTitle:%0 interest rates: %1
+
 # Account and heading editing
 
 NewAcct:Create new account

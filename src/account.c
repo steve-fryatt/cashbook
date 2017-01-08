@@ -2304,21 +2304,31 @@ static void account_acc_edit_click_handler(wimp_pointer *pointer)
 {
 	switch (pointer->i) {
 	case ACCT_EDIT_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
+		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(account_acc_edit_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
+		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			account_refresh_acc_edit_window();
+		}
 		break;
 
 	case ACCT_EDIT_OK:
-		if (account_process_acc_edit_window() && pointer->buttons == wimp_CLICK_SELECT)
+		if (account_process_acc_edit_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(account_acc_edit_window);
+			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
+		}
 		break;
 
 	case ACCT_EDIT_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && account_delete_from_edit_window())
+		if (pointer->buttons == wimp_CLICK_SELECT && account_delete_from_edit_window()) {
 			close_dialogue_with_caret(account_acc_edit_window);
+			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
+		}
 		break;
+
+	case ACCT_EDIT_RATES:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			interest_open_window(account_edit_owner->file->interest, account_edit_number);
 
 	case ACCT_EDIT_OFFSET_NAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
@@ -2340,12 +2350,15 @@ static osbool account_acc_edit_keypress_handler(wimp_key *key)
 {
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-		if (account_process_acc_edit_window())
+		if (account_process_acc_edit_window()) {
 			close_dialogue_with_caret(account_acc_edit_window);
+			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
+		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(account_acc_edit_window);
+		interest_delete_window(account_edit_owner->file->interest, account_edit_number);
 		break;
 
 	default:

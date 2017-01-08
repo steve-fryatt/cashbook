@@ -290,6 +290,8 @@ static void main_initialise(void)
 	config_str_init("LimSOrderCols", "88,32,140,88,32,140,140,200,140,60");
 	config_str_init("PresetCols", "120,500,88,32,362,88,32,362,176,500");
 	config_str_init("LimPresetCols", "88,200,88,32,140,88,32,140,140,200");
+	config_str_init("InterestCols", "180,176,808");
+	config_str_init("LimInterestCols", "140,140,200");
 
 	config_load();
 

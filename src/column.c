@@ -63,6 +63,20 @@
 #include "transact.h"
 
 
+/**
+ * A column definition block.
+ */
+
+struct column_block {
+	size_t			columns;				/**< The number of columns defined in the block.							*/
+	struct column_map	*map;					/**< The column icon map.										*/
+	struct column_extra	*extra;					/**< The additional column list.									*/
+
+	int			*position;				/**< The positions of the individual columns from the left hand edge of the window, in OS units.	*/
+	int			*width;					/**< The widths of the individual columns, in OS units.							*/
+	int			*minimum_width;				/**< The minimum widths of individual columns, in OS units.						*/
+};
+
 static void		*column_drag_data;					/**< Client-specific data for the drag.				*/
 static wimp_i		column_drag_icon;					/**< The handle of the icon being dragged.			*/
 static void		(*column_drag_callback)(void *, wimp_i, int);		/**< The callback handler for the drag.				*/

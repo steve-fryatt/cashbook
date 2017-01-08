@@ -43,11 +43,22 @@
 #define COLUMN_GUTTER 4
 
 
+/**
+ * A column map entry, detailing the field, header and footer icons associated
+ * with the column.
+ */
+
 struct column_map {
 	wimp_i			field;					/**< The icon relating to the column in the main data table window.					*/
 	wimp_i			heading;				/**< The icon relating to the column heading in the table heading pane.					*/
 	wimp_i			footer;					/**< The icon relating to the column footer in the table footer pane.					*/
 };
+
+
+/**
+ * An extra icon entry, detailing the icon handle and the columns to which it
+ * is associated.
+ */
 
 struct column_extra {
 	wimp_i			icon;					/**< The additional icon in the main data table window.							*/
@@ -55,19 +66,13 @@ struct column_extra {
 	int			right;					/**< The column to which the icon spans on the right.							*/
 };
 
+
 /**
  * A column definition block.
  */
 
-struct column_block {
-	size_t			columns;				/**< The number of columns defined in the block.							*/
-	struct column_map	*map;					/**< The column icon map.										*/
-	struct column_extra	*extra;					/**< The additional column list.									*/
+struct column_block;
 
-	int			*position;				/**< The positions of the individual columns from the left hand edge of the window, in OS units.	*/
-	int			*width;					/**< The widths of the individual columns, in OS units.							*/
-	int			*minimum_width;				/**< The minimum widths of individual columns, in OS units.						*/
-};
 
 /**
  * Create a new column definition instance.

@@ -70,6 +70,7 @@ static void		(*column_drag_callback)(void *, wimp_i, int);		/**< The callback ha
 
 static void		column_terminate_drag(wimp_dragged *drag, void *data);
 static int		column_get_minimum_group_width(struct column_block *instance, int group);
+static int		column_get_from_field(struct column_block *instance, wimp_i field);
 static int		column_get_leftmost_in_heading_group(struct column_block *instance, wimp_i heading);
 static int		column_get_rightmost_in_heading_group(struct column_block *instance, wimp_i heading);
 static int		column_get_rightmost_in_footer_group(struct column_block *instance, wimp_i footer);
@@ -347,6 +348,8 @@ void columns_place_heading_icons(struct column_block *instance, wimp_window *def
 
 		definition->icons[icon].extent.x0 = instance->position[column];
 		column = column_get_rightmost_in_heading_group(instance, icon);
+		if (column == -1)
+			break;
 		definition->icons[icon].extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
 	}
 }
@@ -383,6 +386,8 @@ void columns_place_footer_icons(struct column_block *instance, wimp_window *defi
 
 		definition->icons[icon].extent.x0 = instance->position[column];
 		column = column_get_rightmost_in_footer_group(instance, icon);
+		if (column == -1)
+			break;
 		definition->icons[icon].extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
 	}
 }
@@ -560,7 +565,7 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
 	left = column_get_leftmost_in_heading_group(instance, group);
 	right = column_get_rightmost_in_heading_group(instance, group);
 
-	if (left < 0 || right >= instance->columns || left > right)
+	if (left == -1 || right == -1 || left < 0 || right >= instance->columns || left > right)
 		return;
 
 	for (column = left; column <= right; column++) {
@@ -590,6 +595,8 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
 			icon.icon.extent.x0 = instance->position[column];
 
 			column = column_get_rightmost_in_heading_group(instance, icon.i);
+			if (column == -1)
+				break;
 
 			icon.icon.extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
 
@@ -613,12 +620,70 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
 			icon.icon.extent.x0 = instance->position[column];
 
 			column = column_get_rightmost_in_footer_group(instance, icon.i);
+			if (column == -1)
+				break;
 
 			icon.icon.extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
 
 			wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
 					icon.icon.extent.x1, icon.icon.extent.y1);
 		}
+	}
+}
+
+
+/**
+ * Position the column sort indicator icon in a table header pane.
+ * 
+ * \param *instance		The column instance to use for the positioning.
+ * \param *indicator		Pointer to the icon definiton data for the sort indicator.
+ * \param *window		Pointer to the header pane window definition template.
+ * \param heading		The column heading icon handle to take the sort indicator.
+ * \param sort_order		The sort details for the table.
+ */
+
+void column_update_search_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window, wimp_i heading, enum sort_type sort_order)
+{
+	int		column, anchor, width;
+	char		*sprite;
+	size_t		length;
+
+	if (instance == NULL || indicator == NULL || window == NULL)
+		return;
+
+	/* Update the sort icon sprite name. As this is a sprite name, there's
+	 * no need to forcibly terminate the string on a buffer overrun, as the
+	 * system stops at 12 characters anyway.
+	 */
+
+	sprite = (char *) indicator->data.indirected_sprite.id;
+	length = indicator->data.indirected_sprite.size;
+
+	if (sort_order & SORT_ASCENDING)
+		strncpy(sprite, "sortarrd", length);
+	else if (sort_order & SORT_DESCENDING)
+		strncpy(sprite, "sortarru", length);
+
+	/* Place the icon in the correct location. */
+
+	width = indicator->extent.x1 - indicator->extent.x0;
+
+	if ((window->icons[heading].flags & wimp_ICON_HCENTRED) || (window->icons[heading].flags & wimp_ICON_RJUSTIFIED)) {
+		column = column_get_leftmost_in_heading_group(instance, heading);
+		if (column == -1)
+			return;
+
+		anchor = instance->position[column] + COLUMN_HEADING_MARGIN;
+		indicator->extent.x0 = anchor + COLUMN_SORT_OFFSET;
+		indicator->extent.x1 = indicator->extent.x0 + width;
+	} else {
+		column = column_get_rightmost_in_heading_group(instance, heading);
+		if (column == -1)
+			return;
+
+		anchor = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
+		indicator->extent.x1 = anchor - COLUMN_SORT_OFFSET;
+		indicator->extent.x0 = indicator->extent.x1 - width;
 	}
 }
 
@@ -676,19 +741,15 @@ wimp_i column_get_position(struct column_block *instance, int xpos)
 wimp_i column_get_group_icon(struct column_block *instance, wimp_i field)
 {
 	int	column;
-	wimp_i	heading = wimp_ICON_WINDOW;
 
 	if (instance == NULL)
 		return wimp_ICON_WINDOW;
 
-	for (column = 0; column < instance->columns; column++) {
-		if (instance->map[column].field == field) {
-			heading = instance->map[column].heading;
-			break;
-		}
-	}
+	column = column_get_from_field(instance, field);
+	if (column == -1)
+		return wimp_ICON_WINDOW;
 
-	return heading;
+	return instance->map[column].heading;
 }
 
 
@@ -713,6 +774,9 @@ static int column_get_minimum_group_width(struct column_block *instance, wimp_i 
 	left = column_get_leftmost_in_heading_group(instance, heading);
 	right = column_get_rightmost_in_heading_group(instance, heading);
 
+	if (left == -1 || right == -1)
+		return 0;
+
 	for (column = left; column <= right; column++)
 		width += instance->minimum_width[column];
 
@@ -721,19 +785,43 @@ static int column_get_minimum_group_width(struct column_block *instance, wimp_i 
 
 
 /**
+ * Return the number of the column using the given field icon.
+ *
+ * \param *instance		The instance to search.
+ * \param field			The field icon to be loctaed.
+ * \return			The associated column number, or -1 on failure.
+ */
+
+static int column_get_from_field(struct column_block *instance, wimp_i field)
+{
+	int column;
+
+	if (instance == NULL)
+		return -1;
+
+	for (column = 0; column < instance->columns; column++) {
+		if (instance->map[column].field == field)
+			return column;
+	}
+
+	return -1;
+}
+
+
+/**
  * Return the number of the left-hand column in a given group.
  *
  * \param *mapping		The column group mapping string.
  * \param group			The column group.
- * \return			The left-most column in the group.
+ * \return			The left-most column in the group, or -1 on failure.
  */
 
 static int column_get_leftmost_in_heading_group(struct column_block *instance, wimp_i heading)
 {
-	int	column, match = 0;
+	int	column, match = -1;
 
 	if (instance == NULL)
-		return 0;
+		return -1;
 
 	for (column = 0; column < instance->columns && instance->map[column].heading <= heading; column++) {
 		if (heading == instance->map[column].heading) {
@@ -751,15 +839,15 @@ static int column_get_leftmost_in_heading_group(struct column_block *instance, w
  *
  * \param *mapping		The column group mapping string.
  * \param group			The column group.
- * \return			The right-most column in the group.
+ * \return			The right-most column in the group, or -1 on failure.
  */
 
 static int column_get_rightmost_in_heading_group(struct column_block *instance, wimp_i heading)
 {
-	int	column, match = 0;
+	int	column, match = -1;
 
 	if (instance == NULL)
-		return 0;
+		return -1;
 
 	for (column = 0; column < instance->columns && instance->map[column].heading <= heading; column++) {
 		if (heading == instance->map[column].heading)
@@ -775,15 +863,15 @@ static int column_get_rightmost_in_heading_group(struct column_block *instance, 
  *
  * \param *mapping		The column group mapping string.
  * \param group			The column group.
- * \return			The right-most column in the group.
+ * \return			The right-most column in the group, or -1 on failure.
  */
 
 static int column_get_rightmost_in_footer_group(struct column_block *instance, wimp_i footer)
 {
-	int	column, match = 0;
+	int	column, match = -1;
 
 	if (instance == NULL)
-		return 0;
+		return -1;
 
 	for (column = 0; column < instance->columns && instance->map[column].footer <= footer; column++) {
 		if (footer == instance->map[column].footer)

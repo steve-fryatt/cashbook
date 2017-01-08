@@ -277,7 +277,7 @@ struct transact_block {
 	int			display_lines;					/**< How many lines the current work area is formatted to display. */
 	enum sort_type		sort_order;					/**< The order in which the window is sorted. */
 
-	char			sort_sprite[12];				/**< Space for the sort icon's indirected data. */
+	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data. */
 
 	/* Transaction Data. */
 
@@ -603,6 +603,7 @@ void transact_open_window(struct file_block *file)
 			(osspriteop_id) file->transacts->sort_sprite;
 	transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
 			transact_pane_def->sprite_area;
+	transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
 	transact_adjust_sort_icon_data(file->transacts, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
 
@@ -2001,64 +2002,34 @@ static void transact_adjust_sort_icon(struct transact_block *windat)
 
 static void transact_adjust_sort_icon_data(struct transact_block *windat, wimp_icon *icon)
 {
-	int	i = 0, width, anchor;
-
 	if (windat == NULL)
 		return;
 
-	if (windat->sort_order & SORT_ASCENDING)
-		strcpy(windat->sort_sprite, "sortarrd");
-	else if (windat->sort_order & SORT_DESCENDING)
-		strcpy(windat->sort_sprite, "sortarru");
-
 	switch (windat->sort_order & SORT_MASK) {
 	case SORT_ROW:
-		i = TRANSACT_ICON_ROW;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_ROW;
 		break;
-
 	case SORT_DATE:
-		i = TRANSACT_ICON_DATE;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_DATE;
 		break;
-
 	case SORT_FROM:
-		i = TRANSACT_ICON_FROM_NAME;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_FROM;
 		break;
-
 	case SORT_TO:
-		i = TRANSACT_ICON_TO_NAME;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_TO;
 		break;
-
 	case SORT_REFERENCE:
-		i = TRANSACT_ICON_REFERENCE;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_REFERENCE;
 		break;
-
 	case SORT_AMOUNT:
-		i = TRANSACT_ICON_AMOUNT;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_AMOUNT;
 		break;
-
 	case SORT_DESCRIPTION:
-		i = TRANSACT_ICON_DESCRIPTION;
 		transaction_pane_sort_substitute_icon = TRANSACT_PANE_DESCRIPTION;
 		break;
 	}
 
-	width = icon->extent.x1 - icon->extent.x0;
-
-	if ((windat->sort_order & SORT_MASK) == SORT_ROW || (windat->sort_order & SORT_MASK) == SORT_AMOUNT) {
-		anchor = windat->columns->position[i] + COLUMN_HEADING_MARGIN;
-		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
-		icon->extent.x1 = icon->extent.x0 + width;
-	} else {
-		anchor = windat->columns->position[i] + windat->columns->width[i] + COLUMN_HEADING_MARGIN;
-		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
-		icon->extent.x0 = icon->extent.x1 - width;
-	}
+	column_update_search_indicator(windat->columns, icon, transact_pane_def, transaction_pane_sort_substitute_icon, windat->sort_order);
 }
 
 

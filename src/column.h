@@ -27,9 +27,13 @@
  * Window column support code.
  */
 
+#include "sort.h"
+
 #ifndef CASHBOOK_COLUMN
 #define CASHBOOK_COLUMN
 
+
+#define COLUMN_SORT_SPRITE_LEN 12
 
 #define COLUMN_WIDTH_DEFAULT 100
 
@@ -64,7 +68,6 @@ struct column_block {
 	int			*width;					/**< The widths of the individual columns, in OS units.							*/
 	int			*minimum_width;				/**< The minimum widths of individual columns, in OS units.						*/
 };
-
 
 /**
  * Create a new column definition instance.
@@ -220,6 +223,19 @@ void column_start_drag(struct column_block *instance, wimp_pointer *ptr, void *d
  */
 
 void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w footer, wimp_i group, int new_width);
+
+
+/**
+ * Position the column sort indicator icon in a table header pane.
+ * 
+ * \param *instance		The column instance to use for the positioning.
+ * \param *indicator		Pointer to the icon definiton data for the sort indicator.
+ * \param *window		Pointer to the header pane window definition template.
+ * \param heading		The column heading icon handle to take the sort indicator.
+ * \param sort_order		The sort details for the table.
+ */
+
+void column_update_search_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window, wimp_i heading, enum sort_type sort_order);
 
 
 /**

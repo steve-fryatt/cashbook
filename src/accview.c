@@ -213,7 +213,7 @@ struct accview_window {
 
 	enum sort_type		sort_order;					/**< The current sort details for the window.				*/
 
-	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.				*/
+	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
 };
 
 
@@ -479,6 +479,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 			(osspriteop_id) view->sort_sprite;
 	accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
 			accview_pane_def->sprite_area;
+	accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
 	accview_adjust_sort_icon_data(view, &(accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON]));
 
@@ -1396,72 +1397,37 @@ static void accview_adjust_sort_icon(struct accview_window *view)
 
 static void accview_adjust_sort_icon_data(struct accview_window *view, wimp_icon *icon)
 {
-	int		i = 1, width, anchor;
-
 	if (view == NULL)
 		return;
 
-	if (view->sort_order & SORT_ASCENDING)
-		strcpy(view->sort_sprite, "sortarrd");
-	else if (view->sort_order & SORT_DESCENDING)
-		strcpy(view->sort_sprite, "sortarru");
-
 	switch (view->sort_order & SORT_MASK) {
 	case SORT_ROW:
-		i = ACCVIEW_ICON_ROW;
 		accview_substitute_sort_icon = ACCVIEW_PANE_ROW;
 		break;
-
 	case SORT_DATE:
-		i = ACCVIEW_ICON_DATE;
 		accview_substitute_sort_icon = ACCVIEW_PANE_DATE;
 		break;
-
 	case SORT_FROMTO:
-		i = ACCVIEW_ICON_FROMTO;
 		accview_substitute_sort_icon = ACCVIEW_PANE_FROMTO;
 		break;
-
 	case SORT_REFERENCE:
-		i = ACCVIEW_ICON_REFERENCE;
 		accview_substitute_sort_icon = ACCVIEW_PANE_REFERENCE;
 		break;
-
 	case SORT_PAYMENTS:
-		i = ACCVIEW_ICON_PAYMENTS;
 		accview_substitute_sort_icon = ACCVIEW_PANE_PAYMENTS;
 		break;
-
 	case SORT_RECEIPTS:
-		i = ACCVIEW_ICON_RECEIPTS;
 		accview_substitute_sort_icon = ACCVIEW_PANE_RECEIPTS;
 		break;
-
 	case SORT_BALANCE:
-		i = ACCVIEW_ICON_BALANCE;
 		accview_substitute_sort_icon = ACCVIEW_PANE_BALANCE;
 		break;
-
 	case SORT_DESCRIPTION:
-		i = ACCVIEW_ICON_DESCRIPTION;
 		accview_substitute_sort_icon = ACCVIEW_PANE_DESCRIPTION;
 		break;
 	}
 
-	width = icon->extent.x1 - icon->extent.x0;
-
-	if ((view->sort_order & SORT_MASK) == SORT_ROW ||
-			(view->sort_order & SORT_MASK) == SORT_PAYMENTS ||
-			(view->sort_order & SORT_MASK) == SORT_RECEIPTS ||
-			(view->sort_order & SORT_MASK) == SORT_BALANCE) {
-		anchor = view->columns->position[i] + COLUMN_HEADING_MARGIN;
-		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
-		icon->extent.x1 = icon->extent.x0 + width;
-	} else {
-		anchor = view->columns->position[i] + view->columns->width[i] + COLUMN_HEADING_MARGIN;
-		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
-		icon->extent.x0 = icon->extent.x1 - width;
-	}
+	column_update_search_indicator(view->columns, icon, accview_pane_def, accview_substitute_sort_icon, view->sort_order);
 }
 
 

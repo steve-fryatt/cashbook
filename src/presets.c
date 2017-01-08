@@ -232,7 +232,7 @@ struct preset_block {
 
 	enum sort_type		sort_order;					/**< The order in which the window is sorted.				*/
 
-	char			sort_sprite[12];				/**< Space for the sort icon's indirected data.				*/
+	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
 
 	/* Preset Data. */
 
@@ -518,6 +518,7 @@ void preset_open_window(struct file_block *file)
 			(osspriteop_id) file->presets->sort_sprite;
 	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
 			preset_pane_def->sprite_area;
+	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
 	preset_adjust_sort_icon_data(file->presets, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
 
@@ -1214,59 +1215,31 @@ static void preset_adjust_sort_icon(struct preset_block *windat)
 
 static void preset_adjust_sort_icon_data(struct preset_block *windat, wimp_icon *icon)
 {
-	int	i = 0, width, anchor;
-
 	if (windat == NULL)
 		return;
 
-	if (windat->sort_order & SORT_ASCENDING)
-		strcpy(windat->sort_sprite, "sortarrd");
-	else if (windat->sort_order & SORT_DESCENDING)
-		strcpy(windat->sort_sprite, "sortarru");
-
 	switch (windat->sort_order & SORT_MASK) {
 	case SORT_CHAR:
-		i = PRESET_ICON_KEY;
 		preset_substitute_sort_icon = PRESET_PANE_KEY;
 		break;
-
 	case SORT_NAME:
-		i = PRESET_ICON_NAME;
 		preset_substitute_sort_icon = PRESET_PANE_NAME;
 		break;
-
 	case SORT_FROM:
-		i = PRESET_ICON_FROM_NAME;
 		preset_substitute_sort_icon = PRESET_PANE_FROM;
 		break;
-
 	case SORT_TO:
-		i = PRESET_ICON_TO_NAME;
 		preset_substitute_sort_icon = PRESET_PANE_TO;
 		break;
-
 	case SORT_AMOUNT:
-		i = PRESET_ICON_AMOUNT;
 		preset_substitute_sort_icon = PRESET_PANE_AMOUNT;
 		break;
-
 	case SORT_DESCRIPTION:
-		i = PRESET_ICON_DESCRIPTION;
 		preset_substitute_sort_icon = PRESET_PANE_DESCRIPTION;
 		break;
 	}
 
-	width = icon->extent.x1 - icon->extent.x0;
-
-	if ((windat->sort_order & SORT_MASK) == SORT_AMOUNT) {
-		anchor = windat->columns->position[i] + COLUMN_HEADING_MARGIN;
-		icon->extent.x0 = anchor + COLUMN_SORT_OFFSET;
-		icon->extent.x1 = icon->extent.x0 + width;
-	} else {
-		anchor = windat->columns->position[i] + windat->columns->width[i] + COLUMN_HEADING_MARGIN;
-		icon->extent.x1 = anchor - COLUMN_SORT_OFFSET;
-		icon->extent.x0 = icon->extent.x1 - width;
-	}
+	column_update_search_indicator(windat->columns, icon, preset_pane_def, preset_substitute_sort_icon, windat->sort_order);
 }
 
 

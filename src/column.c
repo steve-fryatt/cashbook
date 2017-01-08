@@ -311,7 +311,7 @@ void column_place_icon_horizontally(struct column_block *instance, wimp_i field,
  * \param length		The length of the indirection buffer.
  */
 
-void columns_place_table_icons(struct column_block *instance, wimp_window *definition, char *buffer, size_t length)
+void columns_place_table_icons_horizontally(struct column_block *instance, wimp_window *definition, char *buffer, size_t length)
 {
 	int	column, extra, left, right;
 	wimp_i	icon;

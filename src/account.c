@@ -1196,7 +1196,7 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons for the account lines. */
 
-	columns_place_table_icons(windat->columns, account_window_def, NULL, 0);
+	columns_place_table_icons_horizontally(windat->columns, account_window_def, NULL, 0);
 
 	width = column_get_window_width(windat->columns);
 

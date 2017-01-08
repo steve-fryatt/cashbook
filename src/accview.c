@@ -1101,7 +1101,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons for the account lines. */
 
-	columns_place_table_icons(windat->columns, accview_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
+	columns_place_table_icons_horizontally(windat->columns, accview_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	width = column_get_window_width(windat->columns);
 

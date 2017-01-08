@@ -612,8 +612,7 @@ static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colo
 	icon_block.icon.data.indirected_text.text = icon->buffer;
 	icon_block.icon.data.indirected_text.size = icon->length;
 
-	icon_block.icon.extent.x0 = icon->parent->instance->columns->position[icon->column];
-	icon_block.icon.extent.x1 = icon->parent->instance->columns->position[icon->column] + icon->parent->instance->columns->width[icon->column];
+	column_place_icon_horizontally(icon->parent->instance->columns, icon->icon, &icon_block);
 	icon_block.icon.extent.y0 = WINDOW_ROW_Y0(icon->parent->instance->toolbar_height, line);
 	icon_block.icon.extent.y1 = WINDOW_ROW_Y1(icon->parent->instance->toolbar_height, line);
 

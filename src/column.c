@@ -264,6 +264,29 @@ void column_init_window(struct column_block *instance, int start, osbool skip, c
 
 
 /**
+ * Set an icon definitions X0 and X1 coordinates to suit a column position.
+ * 
+ * \param *instance		The instance to set the icon from.
+ * \param field			The icon belonging to the column.
+ * \param *icon			Pointer to the icon definition.
+ */
+
+void column_place_icon_horizontally(struct column_block *instance, wimp_i field, wimp_icon_create *icon)
+{
+	int	column;
+
+	if (instance == NULL || icon == NULL)
+		return;
+
+	column = column_get_from_field(instance, field);
+	if (column == -1)
+		return;
+
+	icon->icon.extent.x0 = instance->position[column];
+	icon->icon.extent.x1 = instance->position[column] + instance->width[column];
+}
+
+/**
  * Horizontally position the table icons in a window defintion, so that
  * they are ready to be used in a redraw operation. If a buffer is supplied,
  * the icons' indirected data is set up to point to it.

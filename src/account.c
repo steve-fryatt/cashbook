@@ -1174,8 +1174,7 @@ static void account_window_scroll_handler(wimp_scroll *scroll)
 static void account_window_redraw_handler(wimp_draw *redraw)
 {
 	int			ox, oy, top, base, y, shade_overdrawn_col, icon_fg_col, width;
-	char			icon_buffer1[AMOUNT_FIELD_LEN], icon_buffer2[AMOUNT_FIELD_LEN], icon_buffer3[AMOUNT_FIELD_LEN],
-				icon_buffer4[AMOUNT_FIELD_LEN];
+	char			icon_buffer[AMOUNT_FIELD_LEN];
 	osbool			more, shade_overdrawn;
 	struct account_window	*windat;
 	struct account_block	*instance;
@@ -1197,35 +1196,10 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons for the account lines. */
 
-	columns_place_table_icons_horizontally(windat->columns, account_window_def, NULL, 0);
-
+	columns_place_table_icons_horizontally(windat->columns, account_window_def, icon_buffer, AMOUNT_FIELD_LEN);
 	width = column_get_window_width(windat->columns);
 
-	/* The three numerical columns keep their icon buffers for the whole time, so set them up now. */
-
-	account_window_def->icons[ACCOUNT_ICON_STATEMENT].data.indirected_text.text = icon_buffer1;
-	account_window_def->icons[ACCOUNT_ICON_CURRENT].data.indirected_text.text = icon_buffer2;
-	account_window_def->icons[ACCOUNT_ICON_FINAL].data.indirected_text.text = icon_buffer3;
-	account_window_def->icons[ACCOUNT_ICON_BUDGET].data.indirected_text.text = icon_buffer4;
-
-	account_window_def->icons[ACCOUNT_ICON_FOOT_STATEMENT].data.indirected_text.text = icon_buffer1;
-	account_window_def->icons[ACCOUNT_ICON_FOOT_CURRENT].data.indirected_text.text = icon_buffer2;
-	account_window_def->icons[ACCOUNT_ICON_FOOT_FINAL].data.indirected_text.text = icon_buffer3;
-	account_window_def->icons[ACCOUNT_ICON_FOOT_BUDGET].data.indirected_text.text = icon_buffer4;
-
-	/* Reset all the icon colours. */
-
-	account_window_def->icons[ACCOUNT_ICON_STATEMENT].flags &= ~wimp_ICON_FG_COLOUR;
-	account_window_def->icons[ACCOUNT_ICON_STATEMENT].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-
-	account_window_def->icons[ACCOUNT_ICON_CURRENT].flags &= ~wimp_ICON_FG_COLOUR;
-	account_window_def->icons[ACCOUNT_ICON_CURRENT].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-
-	account_window_def->icons[ACCOUNT_ICON_FINAL].flags &= ~wimp_ICON_FG_COLOUR;
-	account_window_def->icons[ACCOUNT_ICON_FINAL].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-
-	account_window_def->icons[ACCOUNT_ICON_BUDGET].flags &= ~wimp_ICON_FG_COLOUR;
-	account_window_def->icons[ACCOUNT_ICON_BUDGET].flags |= (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+	window_set_icon_templates(account_window_def);
 
 	/* Perform the redraw. */
 
@@ -1252,136 +1226,103 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 			columns_place_table_icons_vertically(windat->columns, account_window_def,
 					WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y));
 
-			if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_DATA) {
-				/* Account field */
+			/* If we're off the end of the data, plot a blank line and continue. */
 
-				account_window_def->icons[ACCOUNT_ICON_IDENT].data.indirected_text.text =
-						instance->accounts[windat->line_data[y].account].ident;
-				account_window_def->icons[ACCOUNT_ICON_NAME].data.indirected_text.text =
-						instance->accounts[windat->line_data[y].account].name;
+			if (y >= windat->display_lines) {
+				columns_plot_empty_table_icons(windat->columns);
+				continue;
+			}
 
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_IDENT]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_NAME]));
-
-				/* Set the column data depending on the window type. */
+			switch (windat->line_data[y].type) {
+			case ACCOUNT_LINE_DATA:
+				window_plot_text_field(ACCOUNT_ICON_IDENT, instance->accounts[windat->line_data[y].account].ident, wimp_COLOUR_BLACK);
+				window_plot_text_field(ACCOUNT_ICON_NAME, instance->accounts[windat->line_data[y].account].name, wimp_COLOUR_BLACK);
 
 				switch (windat->type) {
 				case ACCOUNT_FULL:
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].statement_balance, icon_buffer1, AMOUNT_FIELD_LEN);
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].current_balance, icon_buffer2, AMOUNT_FIELD_LEN);
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].trial_balance, icon_buffer3, AMOUNT_FIELD_LEN);
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].budget_balance, icon_buffer4, AMOUNT_FIELD_LEN);
-
 					if (shade_overdrawn &&
 							(instance->accounts[windat->line_data[y].account].statement_balance <
 							-instance->accounts[windat->line_data[y].account].credit_limit))
-						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+						icon_fg_col = shade_overdrawn_col;
 					else
-						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-					account_window_def->icons[ACCOUNT_ICON_STATEMENT].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[ACCOUNT_ICON_STATEMENT].flags |= icon_fg_col;
+						icon_fg_col = wimp_COLOUR_BLACK;
+
+					window_plot_currency_field(ACCOUNT_ICON_STATEMENT, instance->accounts[windat->line_data[y].account].statement_balance, icon_fg_col);
 
 					if (shade_overdrawn &&
 							(instance->accounts[windat->line_data[y].account].current_balance <
 							-instance->accounts[windat->line_data[y].account].credit_limit))
-						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+						icon_fg_col = shade_overdrawn_col;
 					else
-						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-					account_window_def->icons[ACCOUNT_ICON_CURRENT].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[ACCOUNT_ICON_CURRENT].flags |= icon_fg_col;
+						icon_fg_col = wimp_COLOUR_BLACK;
+
+					window_plot_currency_field(ACCOUNT_ICON_CURRENT, instance->accounts[windat->line_data[y].account].current_balance, icon_fg_col);
 
 					if (shade_overdrawn &&
 							(instance->accounts[windat->line_data[y].account].trial_balance < 0))
-						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+						icon_fg_col = shade_overdrawn_col;
 					else
-						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-					account_window_def->icons[ACCOUNT_ICON_FINAL].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[ACCOUNT_ICON_FINAL].flags |= icon_fg_col;
+						icon_fg_col = wimp_COLOUR_BLACK;
+
+					window_plot_currency_field(ACCOUNT_ICON_FINAL, instance->accounts[windat->line_data[y].account].trial_balance, icon_fg_col);
+
+					window_plot_currency_field(ACCOUNT_ICON_BUDGET, instance->accounts[windat->line_data[y].account].budget_balance, wimp_COLOUR_BLACK);
 					break;
 
 				case ACCOUNT_IN:
-					currency_convert_to_string(-instance->accounts[windat->line_data[y].account].future_balance, icon_buffer1, AMOUNT_FIELD_LEN);
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].budget_amount, icon_buffer2, AMOUNT_FIELD_LEN);
-					currency_convert_to_string(-instance->accounts[windat->line_data[y].account].budget_balance, icon_buffer3, AMOUNT_FIELD_LEN);
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].budget_result, icon_buffer4, AMOUNT_FIELD_LEN);
-
 					if (shade_overdrawn &&
 							(-instance->accounts[windat->line_data[y].account].budget_balance <
 							instance->accounts[windat->line_data[y].account].budget_amount))
-						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+						icon_fg_col = shade_overdrawn_col;
 					else
-						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-					account_window_def->icons[ACCOUNT_ICON_FINAL].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[ACCOUNT_ICON_FINAL].flags |= icon_fg_col;
-					account_window_def->icons[ACCOUNT_ICON_BUDGET].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[ACCOUNT_ICON_BUDGET].flags |= icon_fg_col;
+						icon_fg_col = wimp_COLOUR_BLACK;
+
+					window_plot_currency_field(ACCOUNT_ICON_STATEMENT, -instance->accounts[windat->line_data[y].account].future_balance, wimp_COLOUR_BLACK);
+					window_plot_currency_field(ACCOUNT_ICON_CURRENT, instance->accounts[windat->line_data[y].account].budget_amount, wimp_COLOUR_BLACK);
+					window_plot_currency_field(ACCOUNT_ICON_FINAL, -instance->accounts[windat->line_data[y].account].budget_balance, icon_fg_col);
+					window_plot_currency_field(ACCOUNT_ICON_BUDGET, instance->accounts[windat->line_data[y].account].budget_result, icon_fg_col);
 					break;
 
 				case ACCOUNT_OUT:
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].future_balance, icon_buffer1, AMOUNT_FIELD_LEN);
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].budget_amount, icon_buffer2, AMOUNT_FIELD_LEN);
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].budget_balance, icon_buffer3, AMOUNT_FIELD_LEN);
-					currency_convert_to_string(instance->accounts[windat->line_data[y].account].budget_result, icon_buffer4, AMOUNT_FIELD_LEN);
-
 					if (shade_overdrawn &&
 							(instance->accounts[windat->line_data[y].account].budget_balance >
 							instance->accounts[windat->line_data[y].account].budget_amount))
-						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+						icon_fg_col = shade_overdrawn_col;
 					else
-						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+						icon_fg_col = wimp_COLOUR_BLACK;
 
-					account_window_def->icons[ACCOUNT_ICON_FINAL].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[ACCOUNT_ICON_FINAL].flags |= icon_fg_col;
-					account_window_def->icons[ACCOUNT_ICON_BUDGET].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[ACCOUNT_ICON_BUDGET].flags |= icon_fg_col;
+					window_plot_currency_field(ACCOUNT_ICON_STATEMENT, instance->accounts[windat->line_data[y].account].future_balance, wimp_COLOUR_BLACK);
+					window_plot_currency_field(ACCOUNT_ICON_CURRENT, instance->accounts[windat->line_data[y].account].budget_amount, wimp_COLOUR_BLACK);
+					window_plot_currency_field(ACCOUNT_ICON_FINAL, instance->accounts[windat->line_data[y].account].budget_balance, icon_fg_col);
+					window_plot_currency_field(ACCOUNT_ICON_BUDGET, instance->accounts[windat->line_data[y].account].budget_result, icon_fg_col);
 					break;
 
 				default:
 					break;
 				}
+				break;
 
-				/* Plot the three icons. */
+			case ACCOUNT_LINE_HEADER:
 
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_STATEMENT]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_CURRENT]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FINAL]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_BUDGET]));
-			} else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_HEADER) {
 				/* Block header line */
 
-				account_window_def->icons[ACCOUNT_ICON_HEADING].data.indirected_text.text = windat->line_data[y].heading;
+				window_plot_text_field(ACCOUNT_ICON_HEADING, windat->line_data[y].heading, wimp_COLOUR_WHITE);
+				break;
 
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_HEADING]));
-			} else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_FOOTER) {
+			case ACCOUNT_LINE_FOOTER:
+
 				/* Block footer line */
 
-				account_window_def->icons[ACCOUNT_ICON_FOOT_NAME].data.indirected_text.text = windat->line_data[y].heading;
-				currency_convert_to_string(windat->line_data[y].total[0], icon_buffer1, AMOUNT_FIELD_LEN);
-				currency_convert_to_string(windat->line_data[y].total[1], icon_buffer2, AMOUNT_FIELD_LEN);
-				currency_convert_to_string(windat->line_data[y].total[2], icon_buffer3, AMOUNT_FIELD_LEN);
-				currency_convert_to_string(windat->line_data[y].total[3], icon_buffer4, AMOUNT_FIELD_LEN);
+				window_plot_text_field(ACCOUNT_ICON_FOOT_NAME, windat->line_data[y].heading, wimp_COLOUR_BLACK);
 
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_NAME]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_STATEMENT]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_CURRENT]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_FINAL]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_BUDGET]));
-			} else {
-				/* Blank line */
+				window_plot_currency_field(ACCOUNT_ICON_FOOT_STATEMENT, windat->line_data[y].total[0], wimp_COLOUR_BLACK);
+				window_plot_currency_field(ACCOUNT_ICON_FOOT_CURRENT, windat->line_data[y].total[1], wimp_COLOUR_BLACK);
+				window_plot_currency_field(ACCOUNT_ICON_FOOT_FINAL, windat->line_data[y].total[2], wimp_COLOUR_BLACK);
+				window_plot_currency_field(ACCOUNT_ICON_FOOT_BUDGET, windat->line_data[y].total[3], wimp_COLOUR_BLACK);
+				break;
 
-				account_window_def->icons[ACCOUNT_ICON_IDENT].data.indirected_text.text = icon_buffer1;
-				account_window_def->icons[ACCOUNT_ICON_NAME].data.indirected_text.text = icon_buffer1;
-				*icon_buffer1 = '\0';
-				*icon_buffer2 = '\0';
-				*icon_buffer3 = '\0';
-				*icon_buffer4 = '\0';
-
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_IDENT]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_NAME]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_STATEMENT]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_CURRENT]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FINAL]));
-				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_BUDGET]));
+			case ACCOUNT_LINE_BLANK:
+				break;
 			}
 		}
 

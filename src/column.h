@@ -179,6 +179,18 @@ void columns_place_table_icons_vertically(struct column_block *instance, wimp_wi
 
 
 /**
+ * Plot all of the table icons in a window definition as empty fields, via
+ * the window template iocn plotting mechanism. This can be used to plot a
+ * blank line in a window. It is assumed that the window template has been
+ * set up.
+ *
+ * \param *instance		The columns instance to be plotted.
+ */
+
+void columns_plot_empty_table_icons(struct column_block *instance);
+
+
+/**
  * Adjust the positions of the column heading icons in the toolbar window
  * template, according to the current column positions, ready for the
  * window to be created.

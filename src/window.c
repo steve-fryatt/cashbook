@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -43,12 +43,27 @@
 /* SF-Lib header files. */
 
 #include "sflib/general.h"
+#include "sflib/msgs.h"
 #include "sflib/windows.h"
 
 /* Application header files */
 
 #include "global.h"
 #include "window.h"
+
+#include "currency.h"
+#include "date.h"
+
+/**
+ * The window template block currently being used for plotting icons.
+ */
+
+static wimp_window	*window_icon_templates = NULL;
+
+/**
+ * The character sequence used to indicate a reconciled account reference. */
+
+static char		window_reconciled_symbol[REC_FIELD_LEN];
 
 
 /**
@@ -158,4 +173,172 @@ int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int tool
 		row = -1;
 
 	return row;
+}
+
+
+/**
+ * Initialise a window template for use by the icon plotting interface.
+ * 
+ * It is assumed that all of the icons in the template have valid indirection
+ * data set up for them, including buffer sizes.
+ *
+ * \param *definition		Pointer to the window template.
+ */
+
+void window_set_icon_templates(wimp_window *definition)
+{
+	window_icon_templates = definition;
+	msgs_lookup("RecChar", window_reconciled_symbol, REC_FIELD_LEN);
+}
+
+
+/**
+ * Plot an empty field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ */
+ 
+void window_plot_empty_field(wimp_i field)
+{
+	wimp_icon	*icon = window_icon_templates->icons + field;
+
+	if (icon->data.indirected_text.text == NULL || icon->data.indirected_text.size < 0)
+		return;
+
+	*(icon->data.indirected_text.text) = '\0';
+
+	wimp_plot_icon(icon);
+}
+
+
+/**
+ * Plot a text field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param *text			Pointer to the text to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_text_field(wimp_i field, char *text, wimp_colour colour)
+{
+	wimp_icon	*icon = window_icon_templates->icons + field;
+	char		*buffer;
+
+	icon->flags &= ~wimp_ICON_FG_COLOUR;
+	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
+
+	buffer = icon->data.indirected_text.text;
+	icon->data.indirected_text.text = text;
+
+	wimp_plot_icon(icon);
+
+	icon->data.indirected_text.text = buffer;
+}
+
+
+/**
+ * Plot an integer field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param number		The integer value to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_int_field(wimp_i field, int number, wimp_colour colour)
+{
+	wimp_icon	*icon = window_icon_templates->icons + field;
+
+	icon->flags &= ~wimp_ICON_FG_COLOUR;
+	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
+
+	snprintf(icon->data.indirected_text.text, icon->data.indirected_text.size, "%d", number);
+
+	wimp_plot_icon(icon);
+}
+
+
+/**
+ * Plot a single character field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param character		The single character to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_char_field(wimp_i field, char character, wimp_colour colour)
+{
+	wimp_icon	*icon = window_icon_templates->icons + field;
+
+	icon->flags &= ~wimp_ICON_FG_COLOUR;
+	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
+
+	snprintf(icon->data.indirected_text.text, icon->data.indirected_text.size, "%c", character);
+
+	wimp_plot_icon(icon);
+}
+
+
+/**
+ * Plot a reconciled flag field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param reconciled		The reconciled state (yes or no) to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_reconciled_field(wimp_i field, osbool reconciled, wimp_colour colour)
+{
+	wimp_icon	*icon = window_icon_templates->icons + field;
+
+	icon->flags &= ~wimp_ICON_FG_COLOUR;
+	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
+
+	if (reconciled)
+		strncpy(icon->data.indirected_text.text, window_reconciled_symbol, icon->data.indirected_text.size);
+	else
+		*(icon->data.indirected_text.text) = '\0';
+
+	wimp_plot_icon(icon);
+}
+
+
+/**
+ * Plot a date field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param date			The date to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_date_field(wimp_i field, date_t date, wimp_colour colour)
+{
+	wimp_icon	*icon = window_icon_templates->icons + field;
+
+	icon->flags &= ~wimp_ICON_FG_COLOUR;
+	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
+
+	date_convert_to_string(date, icon->data.indirected_text.text, icon->data.indirected_text.size);
+
+	wimp_plot_icon(icon);
+}
+
+
+/**
+ * Plot a currency field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param amount		The currency amount to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_currency_field(wimp_i field, amt_t amount, wimp_colour colour)
+{
+	wimp_icon	*icon = window_icon_templates->icons + field;
+
+	icon->flags &= ~wimp_ICON_FG_COLOUR;
+	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
+
+	currency_convert_to_string(amount, icon->data.indirected_text.text, icon->data.indirected_text.size);
+
+	wimp_plot_icon(icon);
 }

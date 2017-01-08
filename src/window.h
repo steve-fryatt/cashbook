@@ -1,4 +1,4 @@
-/* Copyright 2003-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -29,6 +29,9 @@
 
 #ifndef CASHBOOK_WINDOW
 #define CASHBOOK_WINDOW
+
+#include "currency.h"
+#include "date.h"
 
 /* ==================================================================================================================
  * Static constants
@@ -149,5 +152,91 @@ void set_initial_window_area(wimp_window *window, int width, int height, int x, 
 
 int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int toolbar_height, int max_lines);
 
-#endif
 
+/**
+ * Initialise a window template for use by the icon plotting interface.
+ * 
+ * It is assumed that all of the icons in the template have valid indirection
+ * data set up for them, including buffer sizes.
+ *
+ * \param *definition		Pointer to the window template.
+ */
+
+void window_set_icon_templates(wimp_window *definition);
+
+
+/**
+ * Plot an empty field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ */
+ 
+void window_plot_empty_field(wimp_i field);
+
+
+/**
+ * Plot a text field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param *text			Pointer to the text to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_text_field(wimp_i field, char *text, wimp_colour colour);
+
+
+/**
+ * Plot an integer field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param number		The integer value to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_int_field(wimp_i field, int number, wimp_colour colour);
+
+
+/**
+ * Plot a single character field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param character		The single character to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_char_field(wimp_i field, char character, wimp_colour colour);
+
+
+/**
+ * Plot a reconciled flag field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param reconciled		The reconciled state (yes or no) to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_reconciled_field(wimp_i field, osbool reconciled, wimp_colour colour);
+
+
+/**
+ * Plot a date field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param date			The date to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_date_field(wimp_i field, date_t date, wimp_colour colour);
+
+
+/**
+ * Plot a currency field from the icon plotting template.
+ *
+ * \param field			The field icon to plot.
+ * \param amount		The currency amount to be plotted in the field.
+ * \param colour		The foreground colour to plot the icon text in.
+ */
+ 
+void window_plot_currency_field(wimp_i field, amt_t amount, wimp_colour colour);
+
+#endif

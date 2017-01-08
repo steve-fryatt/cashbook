@@ -973,7 +973,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 {
 	struct sorder_block	*windat;
 	int			ox, oy, top, base, y, t, width;
-	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 	os_t			redraw_start = os_read_monotonic_time();
 
@@ -986,13 +986,13 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	ox = redraw->box.x0 - redraw->xscroll;
 	oy = redraw->box.y1 - redraw->yscroll;
 
-	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
-
 	/* Set the horizontal positions of the icons. */
 
 	columns_place_table_icons_horizontally(windat->columns, sorder_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	width = column_get_window_width(windat->columns);
+
+	window_set_icon_templates(sorder_window_def);
 
 	/* Perform the redraw. */
 
@@ -1021,92 +1021,41 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			columns_place_table_icons_vertically(windat->columns, sorder_window_def,
 					WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y));
 
-			/* From field */
+			/* If we're off the end of the data, plot a blank line and continue. */
 
-			if (y < windat->sorder_count && windat->sorders[t].from != NULL_ACCOUNT) {
-				sorder_window_def->icons[SORDER_ICON_FROM].data.indirected_text.text =
-						account_get_ident(windat->file, windat->sorders[t].from);
-				sorder_window_def->icons[SORDER_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[SORDER_ICON_FROM_NAME].data.indirected_text.text =
-						account_get_name(windat->file, windat->sorders[t].from);
-
-				if (windat->sorders[t].flags & TRANS_REC_FROM)
-					strcpy(icon_buffer, rec_char);
-				else
-					*icon_buffer = '\0';
-			} else {
-				sorder_window_def->icons[SORDER_ICON_FROM].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[SORDER_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[SORDER_ICON_FROM_NAME].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
+			if (y >= windat->sorder_count) {
+				columns_plot_empty_table_icons(windat->columns);
+				continue;
 			}
 
-			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_FROM]));
-			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_FROM_REC]));
-			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_FROM_NAME]));
+			/* From field */
+
+			window_plot_text_field(SORDER_ICON_FROM, account_get_ident(windat->file, windat->sorders[t].from), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(SORDER_ICON_FROM_REC, (windat->sorders[t].flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
+			window_plot_text_field(SORDER_ICON_FROM_NAME, account_get_name(windat->file, windat->sorders[t].from), wimp_COLOUR_BLACK);
 
 			/* To field */
 
-			if (y < windat->sorder_count && windat->sorders[t].to != NULL_ACCOUNT) {
-				sorder_window_def->icons[SORDER_ICON_TO].data.indirected_text.text =
-						account_get_ident(windat->file, windat->sorders[t].to);
-				sorder_window_def->icons[SORDER_ICON_TO_REC].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[SORDER_ICON_TO_NAME].data.indirected_text.text =
-						account_get_name(windat->file, windat->sorders[t].to);
-
-				if (windat->sorders[t].flags & TRANS_REC_TO)
-					strcpy(icon_buffer, rec_char);
-				else
-					*icon_buffer = '\0';
-			} else {
-				sorder_window_def->icons[SORDER_ICON_TO].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[SORDER_ICON_TO_REC].data.indirected_text.text = icon_buffer;
-				sorder_window_def->icons[SORDER_ICON_TO_NAME].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-
-			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_TO]));
-			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_TO_REC]));
-			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_TO_NAME]));
+			window_plot_text_field(SORDER_ICON_TO, account_get_ident(windat->file, windat->sorders[t].to), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(SORDER_ICON_TO_REC, (windat->sorders[t].flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
+			window_plot_text_field(SORDER_ICON_TO_NAME, account_get_name(windat->file, windat->sorders[t].to), wimp_COLOUR_BLACK);
 
 			/* Amount field */
 
-			if (y < windat->sorder_count)
-				currency_convert_to_string(windat->sorders[t].normal_amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-			else
-				*icon_buffer = '\0';
-			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_AMOUNT]));
+			window_plot_currency_field(SORDER_ICON_AMOUNT, windat->sorders[t].normal_amount, wimp_COLOUR_BLACK);
 
-			/* Comments field */
+			/* Description field */
 
-			if (y < windat->sorder_count){
-				sorder_window_def->icons[SORDER_ICON_DESCRIPTION].data.indirected_text.text = windat->sorders[t].description;
-			} else {
-				sorder_window_def->icons[SORDER_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_DESCRIPTION]));
+			window_plot_text_field(SORDER_ICON_DESCRIPTION, windat->sorders[t].description, wimp_COLOUR_BLACK);
 
 			/* Next date field */
 
-			if (y < windat->sorder_count) {
-				if (windat->sorders[t].adjusted_next_date != NULL_DATE)
-					date_convert_to_string(windat->sorders[t].adjusted_next_date, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-				else
-					msgs_lookup("SOrderStopped", icon_buffer, sizeof (icon_buffer));
-			} else {
-				*icon_buffer = '\0';
-			}
-			wimp_plot_icon(&(sorder_window_def->icons[SORDER_ICON_NEXTDATE]));
+			window_plot_date_field(SORDER_ICON_NEXTDATE, windat->sorders[t].adjusted_next_date, wimp_COLOUR_BLACK);
 
 			/* Left field */
 
-			if (y < windat->sorder_count)
-				sprintf (icon_buffer, "%d", windat->sorders[t].left);
-			else
-				*icon_buffer = '\0';
-			wimp_plot_icon (&(sorder_window_def->icons[SORDER_ICON_LEFT]));
-			}
+			window_plot_int_field(SORDER_ICON_LEFT,windat->sorders[t].left, wimp_COLOUR_BLACK);
+		}
 
 		more = wimp_get_rectangle (redraw);
 	}

@@ -54,13 +54,7 @@
 #include "global.h"
 #include "column.h"
 
-#include "account.h"
-#include "accview.h"
-#include "edit.h"
-#include "file.h"
-#include "presets.h"
-#include "sorder.h"
-#include "transact.h"
+#include "window.h"
 
 
 /**
@@ -401,6 +395,35 @@ void columns_place_table_icons_vertically(struct column_block *instance, wimp_wi
 
 		definition->icons[icon].extent.y0 = ymin;
 		definition->icons[icon].extent.y1 = ymax;
+	}
+}
+
+
+/**
+ * Plot all of the table icons in a window definition as empty fields, via
+ * the window template iocn plotting mechanism. This can be used to plot a
+ * blank line in a window. It is assumed that the window template has been
+ * set up.
+ *
+ * \param *instance		The columns instance to be plotted.
+ */
+
+void columns_plot_empty_table_icons(struct column_block *instance)
+{
+	int	column;
+	wimp_i	icon;
+
+	if (instance == NULL)
+		return;
+
+	/* Position the main column icons. */
+
+	for (column = 0; column < instance->columns; column++) {
+		icon = instance->map[column].field;
+		if (icon == wimp_ICON_WINDOW)
+			continue;
+
+		window_plot_empty_field(icon);
 	}
 }
 

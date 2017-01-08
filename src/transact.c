@@ -1619,9 +1619,11 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 static void transact_window_redraw_handler(wimp_draw *redraw)
 {
 	struct transact_block	*windat;
-	int			ox, oy, top, base, y, t, shade_rec, shade_rec_col, icon_fg_col, width, entry_line;
-	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
-	osbool			more;
+	int			ox, oy, top, base, y, width, entry_line;
+	tran_t			t;
+	wimp_colour		shade_rec_col, icon_fg_col;
+	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool			shade_rec, more;
 	os_t			redraw_start = os_read_monotonic_time();
 
 	windat = event_get_window_user_data(redraw->w);
@@ -1633,7 +1635,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 	ox = redraw->box.x0 - redraw->xscroll;
 	oy = redraw->box.y1 - redraw->yscroll;
 
-	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 	shade_rec = config_opt_read("ShadeReconciled");
 	shade_rec_col = config_int_read("ShadeReconciledColour");
 
@@ -1643,6 +1644,8 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 	width = column_get_window_width(windat->columns);
 	entry_line = edit_get_line(windat->edit_line);
+
+	window_set_icon_templates(transact_window_def);
 
 	/* Perform the redraw. */
 
@@ -1666,9 +1669,9 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			if (shade_rec && (y < windat->trans_count) &&
 					((windat->transactions[t].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
-				icon_fg_col = (shade_rec_col << wimp_ICON_FG_COLOUR_SHIFT);
+				icon_fg_col = shade_rec_col;
 			else
-				icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+				icon_fg_col = wimp_COLOUR_BLACK;
 
 			/* Plot out the background with a filled grey rectangle. */
 
@@ -1676,9 +1679,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(TRANSACT_TOOLBAR_HEIGHT, y));
 			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(TRANSACT_TOOLBAR_HEIGHT, y));
 
-			/* We don't need to plot the current edit line, as that has real
-			 * icons in it.
-			 */
+			/* We don't need to plot the current edit line, as that has real icons in it. */
 
 			if (y == entry_line)
 				continue;
@@ -1688,135 +1689,44 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			columns_place_table_icons_vertically(windat->columns, transact_window_def,
 					WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y));
 
+			/* If we're off the end of the data, plot a blank line and continue. */
+
+			if (y >= windat->trans_count) {
+				columns_plot_empty_table_icons(windat->columns);
+				continue;
+			}
+
 			/* Row field. */
 
-			transact_window_def->icons[TRANSACT_ICON_ROW].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_ROW].flags |= icon_fg_col;
-
-			if (y < windat->trans_count)
-				snprintf(icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN, "%d", transact_get_transaction_number(t));
-			else
-				*icon_buffer = '\0';
-
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_ROW]));
+			window_plot_int_field(TRANSACT_ICON_ROW, transact_get_transaction_number(t), icon_fg_col);
 
 			/* Date field */
 
-			transact_window_def->icons[TRANSACT_ICON_DATE].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_DATE].flags |= icon_fg_col;
-
-			if (y < windat->trans_count)
-				date_convert_to_string(windat->transactions[t].date, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-			else
-				*icon_buffer = '\0';
-
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_DATE]));
+			window_plot_date_field(TRANSACT_ICON_DATE, windat->transactions[t].date, icon_fg_col);
 
 			/* From field */
 
-			transact_window_def->icons[TRANSACT_ICON_FROM].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_FROM].flags |= icon_fg_col;
-
-			transact_window_def->icons[TRANSACT_ICON_FROM_REC].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_FROM_REC].flags |= icon_fg_col;
-
-			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].flags |= icon_fg_col;
-
-			if (y < windat->trans_count && windat->transactions[t].from != NULL_ACCOUNT) {
-				transact_window_def->icons[TRANSACT_ICON_FROM].data.indirected_text.text =
-						account_get_ident(windat->file, windat->transactions[t].from);
-				transact_window_def->icons[TRANSACT_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
-				transact_window_def->icons[TRANSACT_ICON_FROM_NAME].data.indirected_text.text =
-						account_get_name(windat->file, windat->transactions[t].from);
-
-				if (windat->transactions[t].flags & TRANS_REC_FROM)
-					strcpy(icon_buffer, rec_char);
-				else
-					*icon_buffer = '\0';
-			} else {
-				transact_window_def->icons[TRANSACT_ICON_FROM].data.indirected_text.text = icon_buffer;
-				transact_window_def->icons[TRANSACT_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
-				transact_window_def->icons[TRANSACT_ICON_FROM_NAME].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_FROM]));
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_FROM_REC]));
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_FROM_NAME]));
+			window_plot_text_field(TRANSACT_ICON_FROM, account_get_ident(windat->file, windat->transactions[t].from), icon_fg_col);
+			window_plot_reconciled_field(TRANSACT_ICON_FROM_REC, (windat->transactions[t].flags & TRANS_REC_FROM), icon_fg_col);
+			window_plot_text_field(TRANSACT_ICON_FROM_NAME, account_get_name(windat->file, windat->transactions[t].from), icon_fg_col);
 
 			/* To field */
 
-			transact_window_def->icons[TRANSACT_ICON_TO].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_TO].flags |= icon_fg_col;
-
-			transact_window_def->icons[TRANSACT_ICON_TO_REC].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_TO_REC].flags |= icon_fg_col;
-
-			transact_window_def->icons[TRANSACT_ICON_TO_NAME].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_TO_NAME].flags |= icon_fg_col;
-
-			if (y < windat->trans_count && windat->transactions[t].to != NULL_ACCOUNT) {
-				transact_window_def->icons[TRANSACT_ICON_TO].data.indirected_text.text =
-						account_get_ident(windat->file, windat->transactions[t].to);
-				transact_window_def->icons[TRANSACT_ICON_TO_REC].data.indirected_text.text = icon_buffer;
-				transact_window_def->icons[TRANSACT_ICON_TO_NAME].data.indirected_text.text =
-						account_get_name(windat->file, windat->transactions[t].to);
-
-				if (windat->transactions[t].flags & TRANS_REC_TO)
-					strcpy(icon_buffer, rec_char);
-				else
-					*icon_buffer = '\0';
-			} else {
-				transact_window_def->icons[TRANSACT_ICON_TO].data.indirected_text.text = icon_buffer;
-				transact_window_def->icons[TRANSACT_ICON_TO_REC].data.indirected_text.text = icon_buffer;
-				transact_window_def->icons[TRANSACT_ICON_TO_NAME].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_TO]));
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_TO_REC]));
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_TO_NAME]));
+			window_plot_text_field(TRANSACT_ICON_TO, account_get_ident(windat->file, windat->transactions[t].to), icon_fg_col);
+			window_plot_reconciled_field(TRANSACT_ICON_TO_REC, (windat->transactions[t].flags & TRANS_REC_TO), icon_fg_col);
+			window_plot_text_field(TRANSACT_ICON_TO_NAME, account_get_name(windat->file, windat->transactions[t].to), icon_fg_col);
 
 			/* Reference field */
 
-			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags |= icon_fg_col;
-
-			if (y < windat->trans_count) {
-				transact_window_def->icons[TRANSACT_ICON_REFERENCE].data.indirected_text.text = windat->transactions[t].reference;
-			} else {
-				transact_window_def->icons[TRANSACT_ICON_REFERENCE].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_REFERENCE]));
+			window_plot_text_field(TRANSACT_ICON_REFERENCE, windat->transactions[t].reference, icon_fg_col);
 
 			/* Amount field */
 
-			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags |= icon_fg_col;
-
-			if (y < windat->trans_count)
-				currency_convert_to_string(windat->transactions[t].amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-			else
-				*icon_buffer = '\0';
-
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_AMOUNT]));
+			window_plot_currency_field(TRANSACT_ICON_AMOUNT, windat->transactions[t].amount, icon_fg_col);
 
 			/* Description field */
 
-			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags &= ~wimp_ICON_FG_COLOUR;
-			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags |= icon_fg_col;
-
-			if (y < windat->trans_count) {
-				transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].data.indirected_text.text = windat->transactions[t].description;
-			} else {
-				transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-
-			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_DESCRIPTION]));
+			window_plot_text_field(TRANSACT_ICON_DESCRIPTION, windat->transactions[t].description, icon_fg_col);
 		}
 
 		more = wimp_get_rectangle(redraw);

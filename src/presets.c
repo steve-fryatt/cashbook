@@ -975,9 +975,8 @@ static void preset_window_scroll_handler(wimp_scroll *scroll)
 static void preset_window_redraw_handler(wimp_draw *redraw)
 {
 	struct preset_block	*windat;
-	struct file_block	*file;
 	int			ox, oy, top, base, y, t, width;
-	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 	os_t			redraw_start = os_read_monotonic_time();
 
@@ -985,15 +984,13 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
 		return;
 
-	file = windat->file;
-
-	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
-
 	/* Set the horizontal positions of the icons. */
 
 	columns_place_table_icons_horizontally(windat->columns, preset_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	width = column_get_window_width(windat->columns);
+
+	window_set_icon_templates(preset_window_def);
 
 	/* Perform the redraw. */
 
@@ -1027,85 +1024,40 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 			columns_place_table_icons_vertically(windat->columns, preset_window_def,
 					WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y));
 
+			/* If we're off the end of the data, plot a blank line and continue. */
+
+			if (y >= windat->preset_count) {
+				columns_plot_empty_table_icons(windat->columns);
+				continue;
+			}
+
 			/* Key field */
 
-			if (y < windat->preset_count)
-				sprintf(icon_buffer, "%c", windat->presets[t].action_key);
-			else
-				*icon_buffer = '\0';
-			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_KEY]));
+			window_plot_char_field(PRESET_ICON_KEY, windat->presets[t].action_key, wimp_COLOUR_BLACK);
 
 			/* Name field */
 
-			if (y < windat->preset_count) {
-				preset_window_def->icons[PRESET_ICON_NAME].data.indirected_text.text = windat->presets[t].name;
-			} else {
-				preset_window_def->icons[PRESET_ICON_NAME].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-			wimp_plot_icon (&(preset_window_def->icons[PRESET_ICON_NAME]));
+			window_plot_text_field(PRESET_ICON_NAME, windat->presets[t].name, wimp_COLOUR_BLACK);
 
 			/* From field */
 
-			if (y < windat->preset_count && windat->presets[t].from != NULL_ACCOUNT) {
-				preset_window_def->icons[PRESET_ICON_FROM].data.indirected_text.text = account_get_ident(file, windat->presets[t].from);
-				preset_window_def->icons[PRESET_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[PRESET_ICON_FROM_NAME].data.indirected_text.text = account_get_name(file, windat->presets[t].from);
-
-				if (windat->presets[t].flags & TRANS_REC_FROM)
-					strcpy(icon_buffer, rec_char);
-				else
-					*icon_buffer = '\0';
-			} else {
-				preset_window_def->icons[PRESET_ICON_FROM].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[PRESET_ICON_FROM_REC].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[PRESET_ICON_FROM_NAME].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-
-			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_FROM]));
-			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_FROM_REC]));
-			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_FROM_NAME]));
+			window_plot_text_field(PRESET_ICON_FROM, account_get_ident(windat->file, windat->presets[t].from), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(PRESET_ICON_FROM_REC, (windat->presets[t].flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_ICON_FROM_NAME, account_get_name(windat->file, windat->presets[t].from), wimp_COLOUR_BLACK);
 
 			/* To field */
 
-			if (y < windat->preset_count && windat->presets[t].to != NULL_ACCOUNT) {
-				preset_window_def->icons[PRESET_ICON_TO].data.indirected_text.text = account_get_ident(file, windat->presets[t].to);
-				preset_window_def->icons[PRESET_ICON_TO_REC].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[PRESET_ICON_TO_NAME].data.indirected_text.text = account_get_name(file, windat->presets[t].to);
-
-				if (windat->presets[t].flags & TRANS_REC_TO)
-					strcpy(icon_buffer, rec_char);
-				else
-					*icon_buffer = '\0';
-			} else {
-				preset_window_def->icons[PRESET_ICON_TO].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[PRESET_ICON_TO_REC].data.indirected_text.text = icon_buffer;
-				preset_window_def->icons[PRESET_ICON_TO_NAME].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-
-			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_TO]));
-			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_TO_REC]));
-			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_TO_NAME]));
+			window_plot_text_field(PRESET_ICON_TO, account_get_ident(windat->file, windat->presets[t].to), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(PRESET_ICON_TO_REC, (windat->presets[t].flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_ICON_TO_NAME, account_get_name(windat->file, windat->presets[t].to), wimp_COLOUR_BLACK);
 
 			/* Amount field */
 
-			if (y < windat->preset_count)
-				currency_convert_to_string(windat->presets[t].amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-			else
-				*icon_buffer = '\0';
-			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_AMOUNT]));
+			window_plot_currency_field(PRESET_ICON_AMOUNT, windat->presets[t].amount, wimp_COLOUR_BLACK);
 
-			/* Comments field */
+			/* Description field */
 
-			if (y < windat->preset_count) {
-				preset_window_def->icons[PRESET_ICON_DESCRIPTION].data.indirected_text.text = windat->presets[t].description;
-			} else {
-				preset_window_def->icons[PRESET_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-			wimp_plot_icon(&(preset_window_def->icons[PRESET_ICON_DESCRIPTION]));
+			window_plot_text_field(PRESET_ICON_DESCRIPTION, windat->presets[t].description, wimp_COLOUR_BLACK);
 		}
 
 		more = wimp_get_rectangle(redraw);

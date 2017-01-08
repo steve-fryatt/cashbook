@@ -1061,30 +1061,28 @@ static void accview_window_scroll_handler(wimp_scroll *scroll)
 static void accview_window_redraw_handler(wimp_draw *redraw)
 {
 	struct accview_window	*windat;
-	struct file_block	*file;
 	enum accview_direction	transaction_direction;
 	acct_t			account, transaction_account;
 	date_t			transaction_date;
 	enum account_type	account_type;
-	int			ox, oy, top, base, y, width, transaction, credit_limit, shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
-	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
+	int			ox, oy, top, base, y, width, credit_limit;
+	tran_t			transaction;
+	wimp_colour		shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
+	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more, shade_budget, shade_overdrawn;
 	date_t			budget_start, budget_finish;
 	os_t			redraw_start = os_read_monotonic_time();
 
 	windat = event_get_window_user_data(redraw->w);
-	if (windat == NULL)
+	if (windat == NULL || windat->file == NULL || windat->account == NULL_ACCOUNT)
 		return;
 
-	file = windat->file;
 	account = windat->account;
-	if (file == NULL || account == NULL_ACCOUNT)
-		return;
 
-	account_type = account_get_type(file, account);
-	credit_limit = account_get_credit_limit(file, account);
+	account_type = account_get_type(windat->file, account);
+	credit_limit = account_get_credit_limit(windat->file, account);
 
-	budget_get_dates(file, &budget_start, &budget_finish);
+	budget_get_dates(windat->file, &budget_start, &budget_finish);
 
 	shade_budget = (account_type & (ACCOUNT_IN | ACCOUNT_OUT)) && config_opt_read ("ShadeBudgeted") &&
 			(budget_start != NULL_DATE || budget_finish != NULL_DATE);
@@ -1098,13 +1096,13 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	ox = redraw->box.x0 - redraw->xscroll;
 	oy = redraw->box.y1 - redraw->yscroll;
 
-	msgs_lookup ("RecChar", rec_char, REC_FIELD_LEN);
-
 	/* Set the horizontal positions of the icons for the account lines. */
 
 	columns_place_table_icons_horizontally(windat->columns, accview_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	width = column_get_window_width(windat->columns);
+
+	window_set_icon_templates(accview_window_def);
 
 	/* Perform the redraw. */
 
@@ -1131,157 +1129,92 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 			columns_place_table_icons_vertically(windat->columns, accview_window_def,
 					WINDOW_ROW_Y0(ACCVIEW_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(ACCVIEW_TOOLBAR_HEIGHT, y));
 
+			/* If we're off the end of the data, plot a blank line and continue. */
+
+			if (y >= windat->display_lines) {
+				columns_plot_empty_table_icons(windat->columns);
+				continue;
+			}
+
 			/* Find the transaction that applies to this line. */
 
 			transaction = (y < windat->display_lines) ? (windat->line_data)[(windat->line_data)[y].sort_index].transaction : 0;
 
 			transaction_direction = accview_get_transaction_direction(windat, transaction);
-			transaction_date = transact_get_date(file, transaction);
+			transaction_date = transact_get_date(windat->file, transaction);
 
 			/* work out the foreground colour for the line, based on whether the line is to be shaded or not. */
 
 			if (shade_budget && (y < windat->display_lines) &&
 					((budget_start == NULL_DATE || transaction_date < budget_start) ||
 					(budget_finish == NULL_DATE || transaction_date > budget_finish))) {
-				icon_fg_col = (shade_budget_col << wimp_ICON_FG_COLOUR_SHIFT);
-				icon_fg_balance_col = (shade_budget_col << wimp_ICON_FG_COLOUR_SHIFT);
+				icon_fg_col = shade_budget_col;
+				icon_fg_balance_col = shade_budget_col;
 			} else if (shade_overdrawn && (y < windat->display_lines) &&
 					((windat->line_data)[(windat->line_data)[y].sort_index].balance < -credit_limit)) {
-				icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-				icon_fg_balance_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
+				icon_fg_col = wimp_COLOUR_BLACK;
+				icon_fg_balance_col = shade_overdrawn_col;
 			} else {
-				icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-				icon_fg_balance_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
+				icon_fg_col = wimp_COLOUR_BLACK;
+				icon_fg_balance_col = wimp_COLOUR_BLACK;
 			}
-
-			*icon_buffer = '\0';
 
 			/* Row field */
 
-			accview_window_def->icons[ACCVIEW_ICON_ROW].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_ROW].flags |= icon_fg_col;
-
-			if (y < windat->display_lines)
-				snprintf(icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
-			else
-				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_ROW]));
+			window_plot_int_field(ACCVIEW_ICON_ROW, transact_get_transaction_number(transaction), icon_fg_col);
 
 			/* Date field */
 
-			accview_window_def->icons[ACCVIEW_ICON_DATE].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_DATE].flags |= icon_fg_col;
-
-			if (y < windat->display_lines)
-				date_convert_to_string(transaction_date, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-			else
-				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_DATE]));
+			window_plot_date_field(ACCVIEW_ICON_DATE, transaction_date, icon_fg_col);
 
 			/* From / To field */
 
-			accview_window_def->icons[ACCVIEW_ICON_IDENT].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_IDENT].flags |= icon_fg_col;
+			transaction_account = NULL_ACCOUNT;
 
-			accview_window_def->icons[ACCVIEW_ICON_REC].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_REC].flags |= icon_fg_col;
-
-			accview_window_def->icons[ACCVIEW_ICON_FROMTO].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_FROMTO].flags |= icon_fg_col;
-
-			if (y < windat->display_lines && transaction_direction == ACCVIEW_DIRECTION_FROM &&
-					(transaction_account = transact_get_to(file, transaction)) != NULL_ACCOUNT) {
-				accview_window_def->icons[ACCVIEW_ICON_IDENT].data.indirected_text.text =
-						account_get_ident(file, transaction_account);
-				accview_window_def->icons[ACCVIEW_ICON_REC].data.indirected_text.text = icon_buffer;
-				accview_window_def->icons[ACCVIEW_ICON_FROMTO].data.indirected_text.text =
-						account_get_name(file, transaction_account);
-
-				if (transact_get_flags(file, transaction) & TRANS_REC_FROM)
-					strcpy(icon_buffer, rec_char);
-				else
-					*icon_buffer = '\0';
-			} else if (y < windat->display_lines && transaction_direction == ACCVIEW_DIRECTION_TO &&
-					(transaction_account = transact_get_from(file, transaction)) != NULL_ACCOUNT) {
-				accview_window_def->icons[ACCVIEW_ICON_IDENT].data.indirected_text.text =
-						account_get_ident(file, transaction_account);
-				accview_window_def->icons[ACCVIEW_ICON_REC].data.indirected_text.text = icon_buffer;
-				accview_window_def->icons[ACCVIEW_ICON_FROMTO].data.indirected_text.text =
-						account_get_name(file, transaction_account);
-
-				if (transact_get_flags(file, transaction) & TRANS_REC_TO)
-					strcpy(icon_buffer, rec_char);
-				else
-					*icon_buffer = '\0';
-			} else {
-				accview_window_def->icons[ACCVIEW_ICON_IDENT].data.indirected_text.text = icon_buffer;
-				accview_window_def->icons[ACCVIEW_ICON_REC].data.indirected_text.text = icon_buffer;
-				accview_window_def->icons[ACCVIEW_ICON_FROMTO].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
+			switch (transaction_direction) {
+			case ACCVIEW_DIRECTION_FROM:
+				transaction_account = transact_get_to(windat->file, transaction);
+				window_plot_reconciled_field(ACCVIEW_ICON_REC, (transact_get_flags(windat->file, transaction) & TRANS_REC_FROM), icon_fg_col);
+				break;
+			case ACCVIEW_DIRECTION_TO:
+				transaction_account = transact_get_to(windat->file, transaction);
+				window_plot_reconciled_field(ACCVIEW_ICON_REC, (transact_get_flags(windat->file, transaction) & TRANS_REC_TO), icon_fg_col);
+				break;
+			case ACCVIEW_DIRECTION_NONE:
+				window_plot_empty_field(ACCVIEW_ICON_REC);
 			}
 
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_IDENT]));
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_REC]));
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_FROMTO]));
+			window_plot_text_field(ACCVIEW_ICON_IDENT, account_get_ident(windat->file, transaction_account), icon_fg_col);
+			window_plot_text_field(ACCVIEW_ICON_FROMTO, account_get_name(windat->file, transaction_account), icon_fg_col);
 
 			/* Reference field */
 
-			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_REFERENCE].flags |= icon_fg_col;
+			window_plot_text_field(ACCVIEW_ICON_REFERENCE, transact_get_reference(windat->file, transaction, NULL, 0), icon_fg_col);
 
-			if (y < windat->display_lines) {
-				accview_window_def->icons[ACCVIEW_ICON_REFERENCE].data.indirected_text.text = transact_get_reference(file, transaction, NULL, 0);
-			} else {
-				accview_window_def->icons[ACCVIEW_ICON_REFERENCE].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
+			/* Payments and Receipts fields */
+
+			switch (transaction_direction) {
+			case ACCVIEW_DIRECTION_FROM:
+				window_plot_currency_field(ACCVIEW_ICON_PAYMENTS, transact_get_amount(windat->file, transaction), icon_fg_col);
+				window_plot_empty_field(ACCVIEW_ICON_RECEIPTS);
+				break;
+			case ACCVIEW_DIRECTION_TO:
+				window_plot_empty_field(ACCVIEW_ICON_PAYMENTS);
+				window_plot_currency_field(ACCVIEW_ICON_RECEIPTS, transact_get_amount(windat->file, transaction), icon_fg_col);
+				break;
+			case ACCVIEW_DIRECTION_NONE:
+				window_plot_empty_field(ACCVIEW_ICON_PAYMENTS);
+				window_plot_empty_field(ACCVIEW_ICON_RECEIPTS);
+				break;
 			}
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_REFERENCE]));
-
-			/* Payments field */
-
-			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_PAYMENTS].flags |= icon_fg_col;
-
-			if (y < windat->display_lines && transaction_direction == ACCVIEW_DIRECTION_FROM)
-				currency_convert_to_string(transact_get_amount(file, transaction), icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-			else
-				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_PAYMENTS]));
-
-			/* Receipts field */
-
-			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_RECEIPTS].flags |= icon_fg_col;
-
-			if (y < windat->display_lines && transaction_direction == ACCVIEW_DIRECTION_TO)
-				currency_convert_to_string(transact_get_amount(file, transaction), icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-			else
-				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_RECEIPTS]));
 
 			/* Balance field */
 
-			accview_window_def->icons[ACCVIEW_ICON_BALANCE].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_BALANCE].flags |= icon_fg_balance_col;
+			window_plot_currency_field(ACCVIEW_ICON_BALANCE, (windat->line_data)[(windat->line_data)[y].sort_index].balance, icon_fg_balance_col);
 
-			if (y < windat->display_lines)
-				currency_convert_to_string((windat->line_data)[(windat->line_data)[y].sort_index].balance, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-			else
-				*icon_buffer = '\0';
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_BALANCE]));
+			/* Description field */
 
-			/* Comments field */
-
-			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].flags &= ~wimp_ICON_FG_COLOUR;
-			accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].flags |= icon_fg_col;
-
-			if (y < windat->display_lines) {
-				accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].data.indirected_text.text = transact_get_description(file, transaction, NULL, 0);
-			} else {
-				accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION].data.indirected_text.text = icon_buffer;
-				*icon_buffer = '\0';
-			}
-			wimp_plot_icon(&(accview_window_def->icons[ACCVIEW_ICON_DESCRIPTION]));
+			window_plot_text_field(ACCVIEW_ICON_DESCRIPTION, transact_get_description(windat->file, transaction, NULL, 0), icon_fg_col);
 		}
 		more = wimp_get_rectangle(redraw);
 	}

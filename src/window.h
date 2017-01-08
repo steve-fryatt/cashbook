@@ -37,6 +37,12 @@
  * Static constants
  */
 
+/**
+ * The length of a window title buffer.
+ */
+
+#define WINDOW_TITLE_LENGTH 256
+
 #define X_WINDOW_PERCENT_LIMIT 98
 #define Y_WINDOW_PERCENT_LIMIT 40
 #define Y_WINDOW_PERCENT_ORIGIN 75

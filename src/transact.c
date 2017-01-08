@@ -261,7 +261,7 @@ struct transact_block {
 	/* Transactcion window handle and title details. */
 
 	wimp_w			transaction_window;				/**< Window handle of the transaction window */
-	char			window_title[256];
+	char			window_title[WINDOW_TITLE_LENGTH];
 	wimp_w			transaction_pane;				/**< Window handle of the transaction window toolbar pane */
 
 	/* Edit line details. */
@@ -2063,8 +2063,7 @@ void transact_build_window_title(struct file_block *file)
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	file_get_pathname(file, file->transacts->window_title,
-			sizeof(file->transacts->window_title) - 2);
+	file_get_pathname(file, file->transacts->window_title, WINDOW_TITLE_LENGTH - 2);
 
 	if (file_get_data_integrity(file))
 		strcat(file->transacts->window_title, " *");

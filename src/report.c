@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -144,7 +144,7 @@ struct report {
 	struct file_block	*file;						/**< The file that the report belongs to.		*/
 
 	wimp_w			window;
-	char			window_title[256];
+	char			window_title[WINDOW_TITLE_LENGTH];
 
 	/* Report status flags. */
 
@@ -326,7 +326,8 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->max_lines = 0;
 
 	new->window = NULL;
-	strcpy(new->window_title, title);
+	strncpy(new->window_title, title, WINDOW_TITLE_LENGTH);
+	new->window_title[WINDOW_TITLE_LENGTH - 1] = '\0';
 
 	if (flex_alloc((flex_ptr) &(new->data), REPORT_BLOCK_SIZE))
 		new->block_size = REPORT_BLOCK_SIZE;

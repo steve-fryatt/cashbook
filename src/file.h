@@ -108,7 +108,7 @@ osbool file_check_for_filepath(struct file_block *file);
  * \return		A pointer to the supplied buffer.
  */
 
-char *file_get_pathname(struct file_block *file, char *path, int len);
+char *file_get_pathname(struct file_block *file, char *path, size_t len);
 
 
 /**
@@ -121,7 +121,7 @@ char *file_get_pathname(struct file_block *file, char *path, int len);
  * \return		A pointer to the supplied buffer.
  */
 
-char *file_get_leafname(struct file_block *file, char *leaf, int len);
+char *file_get_leafname(struct file_block *file, char *leaf, size_t len);
 
 
 /**

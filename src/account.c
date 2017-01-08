@@ -300,7 +300,7 @@ struct account_window {
 	/* Account window handle and title details. */
 
 	wimp_w			account_window;					/* Window handle of the account window */
-	char			window_title[256];
+	char			window_title[WINDOW_TITLE_LENGTH];
 	wimp_w			account_pane;					/* Window handle of the account window toolbar pane */
 	wimp_w			account_footer;					/* Window handle of the account window footer pane */
 	char			footer_icon[ACCOUNT_NUM_COLUMNS][AMOUNT_FIELD_LEN]; /* Indirected blocks for footer icons. */
@@ -1491,29 +1491,26 @@ void account_build_window_titles(struct file_block *file)
 
 static void account_build_window_title(struct file_block *file, int entry)
 {
-	char	name[256];
+	char	name[WINDOW_TITLE_LENGTH];
 
 	if (file == NULL || file->accounts == NULL || file->accounts->account_windows[entry].account_window == NULL)
 		return;
 
-	file_get_leafname(file, name, sizeof(name));
+	file_get_leafname(file, name, WINDOW_TITLE_LENGTH);
 
 	switch (file->accounts->account_windows[entry].type) {
 	case ACCOUNT_FULL:
-		msgs_param_lookup("AcclistTitleAcc", file->accounts->account_windows[entry].window_title,
-				sizeof(file->accounts->account_windows[entry].window_title),
+		msgs_param_lookup("AcclistTitleAcc", file->accounts->account_windows[entry].window_title, WINDOW_TITLE_LENGTH,
 				name, NULL, NULL, NULL);
 		break;
 
 	case ACCOUNT_IN:
-		msgs_param_lookup("AcclistTitleHIn", file->accounts->account_windows[entry].window_title,
-				sizeof(file->accounts->account_windows[entry].window_title),
+		msgs_param_lookup("AcclistTitleHIn", file->accounts->account_windows[entry].window_title, WINDOW_TITLE_LENGTH,
 				name, NULL, NULL, NULL);
 		break;
 
 	case ACCOUNT_OUT:
-		msgs_param_lookup("AcclistTitleHOut", file->accounts->account_windows[entry].window_title,
-				sizeof(file->accounts->account_windows[entry].window_title),
+		msgs_param_lookup("AcclistTitleHOut", file->accounts->account_windows[entry].window_title, WINDOW_TITLE_LENGTH,
 				name, NULL, NULL, NULL);
 		break;
 

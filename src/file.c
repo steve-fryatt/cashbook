@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -80,6 +80,7 @@
 #include "report.h"
 #include "sorder.h"
 #include "transact.h"
+#include "window.h"
 
 /* ==================================================================================================================
  * Global variables.
@@ -589,19 +590,22 @@ osbool file_check_for_filepath(struct file_block *file)
  * \return		A pointer to the supplied buffer.
  */
 
-char *file_get_pathname(struct file_block *file, char *path, int len)
+char *file_get_pathname(struct file_block *file, char *path, size_t len)
 {
-	if (file == NULL) {
-		if (path != NULL && len > 0)
-			*path = '\0';
+	if (path == NULL || len <= 0)
+		return path;
 
+	if (file == NULL) {
+		*path = '\0';
 		return path;
 	}
 
-	if (*(file->filename) != '\0')
+	if (*(file->filename) != '\0') {
 		strncpy(path, file->filename, len);
-	else
+		path[len - 1] = '\0';
+	} else {
 		file_get_default_title(file, path, len);
+	}
 
 	return path;
 }
@@ -617,19 +621,22 @@ char *file_get_pathname(struct file_block *file, char *path, int len)
  * \return		A pointer to the supplied buffer.
  */
 
-char *file_get_leafname(struct file_block *file, char *leaf, int len)
+char *file_get_leafname(struct file_block *file, char *leaf, size_t len)
 {
-	if (file == NULL) {
-		if (leaf != NULL && len > 0)
-			*leaf = '\0';
+	if (leaf == NULL || len <= 0)
+		return leaf;
 
+	if (file == NULL) {
+		*leaf = '\0';
 		return leaf;
 	}
 
-	if (*(file->filename) != '\0')
+	if (*(file->filename) != '\0') {
 		strncpy(leaf, string_find_leafname(file->filename), len);
-	else
+		leaf[len - 1] = '\0';
+	} else {
 		file_get_default_title(file, leaf, len);
+	}
 
 	return leaf;
 }
@@ -647,9 +654,9 @@ char *file_get_leafname(struct file_block *file, char *leaf, int len)
 
 static char *file_get_default_title(struct file_block *file, char *name, size_t len)
 {
-	char	number[256];
+	char	number[WINDOW_TITLE_LENGTH];
 
-	if (name == NULL)
+	if (name == NULL || len <= 0)
 		return name;
 
 	*name = '\0';
@@ -657,7 +664,8 @@ static char *file_get_default_title(struct file_block *file, char *name, size_t 
 	if (file == NULL)
 		return name;
 
-	snprintf(number, len, "%d", file->untitled_count);
+	snprintf(number, WINDOW_TITLE_LENGTH, "%d", file->untitled_count);
+	number[WINDOW_TITLE_LENGTH - 1] = '\0';
 	msgs_param_lookup("DefTitle", name, len, number, NULL, NULL, NULL);
 
 	return name;

@@ -199,7 +199,7 @@ struct accview_window {
 	/* Account window handle and title details. */
 
 	wimp_w			accview_window;					/**< Window handle of the account window.				*/
-	char			window_title[256];
+	char			window_title[WINDOW_TITLE_LENGTH];
 	wimp_w			accview_pane;					/**< Window handle of the account window toolbar pane.			*/
 
 	/* Display column details. */
@@ -1414,7 +1414,7 @@ static void accview_set_window_extent(struct accview_window *view)
 void accview_build_window_title(struct file_block *file, acct_t account)
 {
 	struct accview_window	*view;
-	char			name[256];
+	char			name[WINDOW_TITLE_LENGTH];
 
 	if (file == NULL || account == NULL_ACCOUNT)
 		return;
@@ -1423,9 +1423,9 @@ void accview_build_window_title(struct file_block *file, acct_t account)
 	if (view == NULL)
 		return;
 
-	file_get_leafname(file, name, sizeof(name));
+	file_get_leafname(file, name, WINDOW_TITLE_LENGTH);
 
-	msgs_param_lookup("AccviewTitle", view->window_title, sizeof(view->window_title),
+	msgs_param_lookup("AccviewTitle", view->window_title, WINDOW_TITLE_LENGTH,
 			account_get_name(file, account), name, NULL, NULL);
 
 	wimp_force_redraw_title(view->accview_window);

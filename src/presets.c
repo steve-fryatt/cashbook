@@ -221,7 +221,7 @@ struct preset_block {
 	/* Preset window handle and title details. */
 
 	wimp_w			preset_window;					/**< Window handle of the preset window.				*/
-	char			window_title[256];
+	char			window_title[WINDOW_TITLE_LENGTH];
 	wimp_w			preset_pane;					/**< Window handle of the preset window toolbar pane.			*/
 
 	/* Display column details. */
@@ -1246,15 +1246,14 @@ static void preset_set_window_extent(struct preset_block *windat)
 
 void preset_build_window_title(struct file_block *file)
 {
-	char	name[256];
+	char	name[WINDOW_TITLE_LENGTH];
 
 	if (file == NULL || file->presets == NULL || file->presets->preset_window == NULL)
 		return;
 
-	file_get_leafname(file, name, sizeof(name));
+	file_get_leafname(file, name, WINDOW_TITLE_LENGTH);
 
-	msgs_param_lookup("PresetTitle", file->presets->window_title,
-			sizeof(file->presets->window_title),
+	msgs_param_lookup("PresetTitle", file->presets->window_title, WINDOW_TITLE_LENGTH,
 			name, NULL, NULL, NULL);
 
 	wimp_force_redraw_title(file->presets->preset_window);

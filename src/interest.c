@@ -123,6 +123,7 @@ static wimp_window		*interest_pane_def = NULL;			/**< The definition for the Int
 static wimp_window		*interest_foot_def = NULL;			/**< The definition for the Interest Rate List Footer pane.		*/
 static wimp_menu		*interest_window_menu = NULL;			/**< The Interest Rate List Window menu handle.				*/
 static int			interest_window_menu_line = -1;			/**< The line over which the Interest Rate List Window Menu was opened.	*/
+static wimp_i			interest_substitute_sort_icon = INTEREST_PANE_DATE;	/**< The icon currently obscured by the sort icon.			*/
 
 
 static int			interest_decimal_places = 0;			/**< The number of decimal places with which to show interest amounts.	*/
@@ -160,6 +161,10 @@ struct interest_block {
 /* Static function prototypes. */
 
 static void		interest_close_window_handler(wimp_close *close);
+static void		interest_window_redraw_handler(wimp_draw *redraw);
+static void		interest_adjust_window_columns(void *data, wimp_i group, int width);
+static void		interest_adjust_sort_icon(struct interest_block *windat);
+static void		interest_adjust_sort_icon_data(struct interest_block *windat, wimp_icon *icon);
 
 
 
@@ -219,6 +224,8 @@ struct interest_block *interest_create_instance(struct file_block *file)
 
 	column_set_minimum_widths(new->columns, config_str_read("LimInterestCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("InterestCols"));
+
+	new->sort_order = SORT_DATE | SORT_ASCENDING;
 
 	new->active_account = NULL_ACCOUNT;
 
@@ -306,7 +313,7 @@ void interest_open_window(struct interest_block *instance, acct_t account)
 			interest_pane_def->sprite_area;
 	interest_pane_def->icons[INTEREST_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-//	transact_adjust_sort_icon_data(file->transacts, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
+	interest_adjust_sort_icon_data(instance, &(interest_pane_def->icons[INTEREST_PANE_SORT_DIR_ICON]));
 
 	error = xwimp_create_window(interest_pane_def, &(instance->interest_pane));
 	if (error != NULL) {
@@ -379,7 +386,7 @@ void interest_open_window(struct interest_block *instance, acct_t account)
 //	event_add_window_mouse_event(file->transacts->transaction_window, transact_window_click_handler);
 //	event_add_window_key_event(file->transacts->transaction_window, transact_window_keypress_handler);
 //	event_add_window_scroll_event(file->transacts->transaction_window, transact_window_scroll_handler);
-//	event_add_window_redraw_event(file->transacts->transaction_window, transact_window_redraw_handler);
+	event_add_window_redraw_event(instance->interest_window, interest_window_redraw_handler);
 //	event_add_window_menu_prepare(file->transacts->transaction_window, transact_window_menu_prepare_handler);
 //	event_add_window_menu_selection(file->transacts->transaction_window, transact_window_menu_selection_handler);
 //	event_add_window_menu_warning(file->transacts->transaction_window, transact_window_menu_warning_handler);
@@ -459,6 +466,202 @@ static void interest_close_window_handler(wimp_close *close)
 	interest_delete_window(instance, instance->active_account);
 }
 
+
+/**
+ * Process redraw events in the interest rate window.
+ *
+ * \param *redraw		The draw event block to handle.
+ */
+
+static void interest_window_redraw_handler(wimp_draw *redraw)
+{
+	struct interest_block	*windat;
+	int			ox, oy, top, base, y, t, width;
+	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool			more;
+
+	windat = event_get_window_user_data(redraw->w);
+	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
+		return;
+
+	more = wimp_redraw_window(redraw);
+
+	ox = redraw->box.x0 - redraw->xscroll;
+	oy = redraw->box.y1 - redraw->yscroll;
+
+	/* Set the horizontal positions of the icons. */
+
+	columns_place_table_icons_horizontally(windat->columns, interest_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
+
+	width = column_get_window_width(windat->columns);
+
+	window_set_icon_templates(interest_window_def);
+
+	/* Perform the redraw. */
+
+	while (more) {
+		/* Calculate the rows to redraw. */
+
+		top = WINDOW_REDRAW_TOP(INTEREST_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
+		if (top < 0)
+			top = 0;
+
+		base = WINDOW_REDRAW_BASE(INTEREST_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
+
+		/* Redraw the data into the window. */
+
+		for (y = top; y <= base; y++) {
+	//		t = (y < windat->sorder_count) ? windat->sorders[y].sort_index : 0;
+
+			/* Plot out the background with a filled white rectangle. */
+
+			wimp_set_colour(wimp_COLOUR_VERY_LIGHT_GREY);
+			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(INTEREST_TOOLBAR_HEIGHT, y));
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(INTEREST_TOOLBAR_HEIGHT, y));
+
+			/* Place the icons in the current row. */
+
+			columns_place_table_icons_vertically(windat->columns, interest_window_def,
+					WINDOW_ROW_Y0(INTEREST_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(INTEREST_TOOLBAR_HEIGHT, y));
+
+			/* If we're off the end of the data, plot a blank line and continue. */
+
+			if (y >= 0 /* windat->sorder_count */) {
+				columns_plot_empty_table_icons(windat->columns);
+				continue;
+			}
+
+			/* From field */
+
+	//		window_plot_text_field(SORDER_ICON_FROM, account_get_ident(windat->file, windat->sorders[t].from), wimp_COLOUR_BLACK);
+	//		window_plot_reconciled_field(SORDER_ICON_FROM_REC, (windat->sorders[t].flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
+	//		window_plot_text_field(SORDER_ICON_FROM_NAME, account_get_name(windat->file, windat->sorders[t].from), wimp_COLOUR_BLACK);
+
+			/* To field */
+
+	//		window_plot_text_field(SORDER_ICON_TO, account_get_ident(windat->file, windat->sorders[t].to), wimp_COLOUR_BLACK);
+	//		window_plot_reconciled_field(SORDER_ICON_TO_REC, (windat->sorders[t].flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
+	//		window_plot_text_field(SORDER_ICON_TO_NAME, account_get_name(windat->file, windat->sorders[t].to), wimp_COLOUR_BLACK);
+
+			/* Amount field */
+
+	//		window_plot_currency_field(SORDER_ICON_AMOUNT, windat->sorders[t].normal_amount, wimp_COLOUR_BLACK);
+
+			/* Description field */
+
+	//		window_plot_text_field(SORDER_ICON_DESCRIPTION, windat->sorders[t].description, wimp_COLOUR_BLACK);
+
+			/* Next date field */
+
+	//		window_plot_date_field(SORDER_ICON_NEXTDATE, windat->sorders[t].adjusted_next_date, wimp_COLOUR_BLACK);
+
+			/* Left field */
+
+	//		window_plot_int_field(SORDER_ICON_LEFT,windat->sorders[t].left, wimp_COLOUR_BLACK);
+		}
+
+		more = wimp_get_rectangle (redraw);
+	}
+}
+
+
+/**
+ * Callback handler for completing the drag of a column heading.
+ *
+ * \param *data			The window block for the origin of the drag.
+ * \param group			The column group which has been dragged.
+ * \param width			The new width for the group.
+ */
+
+static void interest_adjust_window_columns(void *data, wimp_i group, int width)
+{
+	struct interest_block	*windat = (struct interest_block *) data;
+	int			new_extent;
+	wimp_window_info	window;
+
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	columns_update_dragged(windat->columns, windat->interest_pane, NULL, group, width);
+
+	new_extent = column_get_window_width(windat->columns);
+
+	interest_adjust_sort_icon(windat);
+
+	/* Replace the edit line to force a redraw and redraw the rest of the window. */
+
+	windows_redraw(windat->interest_window);
+	windows_redraw(windat->interest_pane);
+
+	/* Set the horizontal extent of the window and pane. */
+
+	window.w = windat->interest_pane;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	window.w = windat->interest_window;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	windows_open(window.w);
+
+	file_set_data_integrity(windat->file, TRUE);
+}
+
+
+/**
+ * Adjust the sort icon in a interest window, to reflect the current column
+ * heading positions.
+ *
+ * \param *windat		The interest window to update.
+ */
+
+static void interest_adjust_sort_icon(struct interest_block *windat)
+{
+	wimp_icon_state		icon;
+
+	if (windat == NULL)
+		return;
+
+	icon.w = windat->interest_pane;
+	icon.i = INTEREST_PANE_SORT_DIR_ICON;
+	wimp_get_icon_state(&icon);
+
+	interest_adjust_sort_icon_data(windat, &(icon.icon));
+
+	wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+			icon.icon.extent.x1, icon.icon.extent.y1);
+}
+
+
+/**
+ * Adjust an icon definition to match the current standing order sort settings.
+ *
+ * \param *windat		The standing order window to be updated.
+ * \param *icon			The icon to be updated.
+ */
+
+static void interest_adjust_sort_icon_data(struct interest_block *windat, wimp_icon *icon)
+{
+	if (windat == NULL)
+		return;
+
+	switch (windat->sort_order & SORT_MASK) {
+	case SORT_DATE:
+		interest_substitute_sort_icon = INTEREST_PANE_DATE;
+		break;
+	case SORT_RATE:
+		interest_substitute_sort_icon = INTEREST_PANE_RATE;
+		break;
+	case SORT_DESCRIPTION:
+		interest_substitute_sort_icon = INTEREST_PANE_DESCRIPTION;
+		break;
+	}
+
+	column_update_search_indicator(windat->columns, icon, interest_pane_def, interest_substitute_sort_icon, windat->sort_order);
+}
 
 
 /**

@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -82,7 +82,11 @@ enum sort_type {
 	/* Sorts applying to Preset windows. */
 
 	SORT_CHAR = 0x03000,				/**< Sort on the Char column of a window.			*/
-	SORT_NAME = 0x04000				/**< Sort on the Name column of a window.			*/
+	SORT_NAME = 0x04000,				/**< Sort on the Name column of a window.			*/
+
+	/* Sorts applying to Interest windows. */
+
+	SORT_RATE = 0x05000				/**< Sort on the Rate column of a window.			*/
 };
 
 

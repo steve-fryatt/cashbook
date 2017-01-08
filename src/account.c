@@ -197,6 +197,10 @@
 #define ACCOUNT_NUM_COLUMN_FINAL 2
 #define ACCOUNT_NUM_COLUMN_BUDGET 3
 
+#define ACCOUNT_PANES 2
+#define ACCOUNT_PANE_ACCOUNT 0
+#define ACCOUNT_PANE_HEADING 1
+
 /* Account Window column map. */
 
 static struct column_map account_columns[] = {
@@ -363,7 +367,7 @@ static enum account_type	account_print_type = ACCOUNT_NULL;		/**< The type of ac
 /* Account List Window. */
 
 static wimp_window		*account_window_def = NULL;			/**< The definition for the Accounts List Window.			*/
-static wimp_window		*account_pane_def[2] = {NULL, NULL};		/**< The definition for the Accounts List Toolbar pane.			*/
+static wimp_window		*account_pane_def[ACCOUNT_PANES] = {NULL, NULL};/**< The definition for the Accounts List Toolbar pane.			*/
 static wimp_window		*account_foot_def = NULL;			/**< The definition for the Accounts List Footer pane.			*/
 static wimp_menu		*account_window_menu = NULL;			/**< The Accounts List Window menu handle.				*/
 static int			account_window_menu_line = -1;			/**< The line over which the Accounts List Window Menu was opened.	*/
@@ -498,11 +502,11 @@ void account_initialise(osspriteop_area *sprites)
 	account_window_def = templates_load_window("Account");
 	account_window_def->icon_count = 0;
 
-	account_pane_def[0] = templates_load_window("AccountATB");
-	account_pane_def[0]->sprite_area = sprites;
+	account_pane_def[ACCOUNT_PANE_ACCOUNT] = templates_load_window("AccountATB");
+	account_pane_def[ACCOUNT_PANE_ACCOUNT]->sprite_area = sprites;
 
-	account_pane_def[1] = templates_load_window("AccountHTB");
-	account_pane_def[1]->sprite_area = sprites;
+	account_pane_def[ACCOUNT_PANE_HEADING] = templates_load_window("AccountHTB");
+	account_pane_def[ACCOUNT_PANE_HEADING]->sprite_area = sprites;
 
 	account_foot_def = templates_load_window("AccountTot");
 
@@ -712,7 +716,7 @@ void account_open_window(struct file_block *file, enum account_type type)
 
 	/* Create the toolbar pane. */
 
-	tb_type = (type == ACCOUNT_FULL) ? 0 : 1; /* Use toolbar 0 if it's a full account, 1 otherwise. */
+	tb_type = (type == ACCOUNT_FULL) ? ACCOUNT_PANE_ACCOUNT : ACCOUNT_PANE_HEADING;
 
 	windows_place_as_toolbar(account_window_def, account_pane_def[tb_type], ACCOUNT_TOOLBAR_HEIGHT-4);
 	columns_place_heading_icons(window->columns, account_pane_def[tb_type]);

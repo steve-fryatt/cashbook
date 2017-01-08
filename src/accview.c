@@ -447,12 +447,8 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	set_initial_window_area(accview_window_def, column_get_window_width(view->columns),
 			(height * WINDOW_ROW_HEIGHT) + ACCVIEW_TOOLBAR_HEIGHT,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
-
-	file->child_x_offset++;
-	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
-		file->child_x_offset = 0;
 
 	/* Set the scroll offset to show the contents of the transaction window */
 

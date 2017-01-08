@@ -486,12 +486,8 @@ void sorder_open_window(struct file_block *file)
 
 	set_initial_window_area(sorder_window_def, column_get_window_width(file->sorders->columns),
 			(height * WINDOW_ROW_HEIGHT) + SORDER_TOOLBAR_HEIGHT,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
-
-	file->child_x_offset++;
-	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
-		file->child_x_offset = 0;
 
 	error = xwimp_create_window(sorder_window_def, &(file->sorders->sorder_window));
 	if (error != NULL) {

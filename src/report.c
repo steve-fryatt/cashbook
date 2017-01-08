@@ -406,12 +406,8 @@ void report_close(struct report *report)
 	set_initial_window_area(report_window_def,
 			(report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH,
 			(report->height > REPORT_MIN_HEIGHT) ? report->height : REPORT_MIN_HEIGHT,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
-
-	file->child_x_offset++;
-	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
-		file->child_x_offset = 0;
 
 	report->window = wimp_create_window(report_window_def);
 	windows_open(report->window);

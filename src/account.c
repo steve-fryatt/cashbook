@@ -699,12 +699,8 @@ void account_open_window(struct file_block *file, enum account_type type)
 
 	set_initial_window_area(account_window_def, column_get_window_width(window->columns),
 			(height * WINDOW_ROW_HEIGHT) + ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
-
-	file->child_x_offset++;
-	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
-		file->child_x_offset = 0;
 
 	error = xwimp_create_window (account_window_def, &(window->account_window));
 	if (error != NULL) {

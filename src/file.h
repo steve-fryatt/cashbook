@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -122,6 +122,16 @@ char *file_get_pathname(struct file_block *file, char *path, size_t len);
  */
 
 char *file_get_leafname(struct file_block *file, char *leaf, size_t len);
+
+
+/**
+ * Return the next X offset, in OS units, for opening a new child window.
+ * 
+ * \param *file		The file to return a new offset for.
+ * \return		The new offset, in OS units.
+ */
+
+int file_get_next_open_offset(struct file_block *file);
 
 
 /**

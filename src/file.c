@@ -673,6 +673,29 @@ static char *file_get_default_title(struct file_block *file, char *name, size_t 
 
 
 /**
+ * Return the next X offset, in OS units, for opening a new child window.
+ * 
+ * \param *file		The file to return a new offset for.
+ * \return		The new offset, in OS units.
+ */
+
+int file_get_next_open_offset(struct file_block *file)
+{
+	int offset;
+
+	if (file == NULL)
+		return 0;
+
+	offset = CHILD_WINDOW_X_OFFSET * file->child_x_offset++;
+
+	if (file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
+		file->child_x_offset = 0;
+
+	return offset;
+}
+
+
+/**
  * Redraw the windows associated with all open files.
  */
 

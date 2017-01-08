@@ -286,12 +286,8 @@ void interest_open_window(struct interest_block *instance, acct_t account)
 
 	set_initial_window_area(interest_window_def, column_get_window_width(instance->columns),
 			(height * WINDOW_ROW_HEIGHT) + INTEREST_TOOLBAR_HEIGHT,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + instance->file->child_x_offset * CHILD_WINDOW_X_OFFSET,
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(instance->file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
-
-	instance->file->child_x_offset++;
-	if (instance->file->child_x_offset >= CHILD_WINDOW_X_OFFSET_LIMIT)
-		instance->file->child_x_offset = 0;
 
 	error = xwimp_create_window(interest_window_def, &(instance->interest_window));
 	if (error != NULL) {

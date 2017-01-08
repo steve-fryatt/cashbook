@@ -1536,27 +1536,21 @@ static osbool edit_find_field_horizontally(struct edit_field *field)
 	if (field == NULL || field->instance == NULL || field->instance->callbacks == NULL || field->instance->callbacks->find_field == NULL)
 		return FALSE;
 
-	/* Identify the first icon and get its min and max X coordinates. */
+	/* Identify the first icon and set XMin and XMax to the windown borders. */
 
 	icon = field->icon;
 	if (icon == NULL)
 		return FALSE;
 
-	xmin = field->instance->columns->position[icon->column];
-	xmax = xmin + field->instance->columns->width[icon->column];
+	xmin = column_get_window_width(field->instance->columns);
+	xmax = 0;
 
 	alignment = (field->instance->template->icons[icon->icon].flags & wimp_ICON_RJUSTIFIED) ? EDIT_ALIGN_RIGHT : EDIT_ALIGN_LEFT;
 
-	/* Now process any additional icons, expanding the horizontal extent as required. */
-
-	icon = icon->sibling;
+	/* Now process the icons, expanding the horizontal extent as required. */
 
 	while (icon != NULL) {
-		if (field->instance->columns->position[icon->column] < xmin)
-			xmin = field->instance->columns->position[icon->column];
-
-		if (field->instance->columns->position[icon->column] + field->instance->columns->width[icon->column] > xmax)
-			xmax = field->instance->columns->position[icon->column] + field->instance->columns->width[icon->column];
+		column_get_xpos(field->instance->columns, icon->icon, &xmin, &xmax);
 
 		icon = icon->sibling;
 	}

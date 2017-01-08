@@ -689,6 +689,35 @@ void column_update_search_indicator(struct column_block *instance, wimp_icon *in
 
 
 /**
+ * Find the minimum and maximum horizontal positions of a field's icon, reporting
+ * back in OS units relative to the parent window origin.
+ * 
+ * \param *instance		The column instance to report on.
+ * \param field			The icon used by the field.
+ * \param *xmin			Pointer to variable to take the minimum X coordinate.
+ * \param *xmax			Pointer to variable to take the maximum X coordinate.
+ */
+
+void column_get_xpos(struct column_block *instance, wimp_i field, int *xmin, int *xmax)
+{
+	int	column;
+
+	if (instance == NULL || (xmin == NULL && xmax == NULL))
+		return;
+
+	column = column_get_from_field(instance, field);
+	if (column == -1)
+		return;
+
+	if (xmin != NULL && instance->position[column] < *xmin)
+		*xmin = instance->position[column];
+
+	if (xmax != NULL && instance->position[column] + instance->width[column] > *xmax)
+		*xmax = instance->position[column] + instance->width[column];
+}
+
+
+/**
  * Get the total width of the columns represented by an instance.
  * 
  * \param *instance		The column instance to report on.

@@ -300,6 +300,7 @@ void column_place_icon_horizontally(struct column_block *instance, wimp_i field,
 	icon->icon.extent.x1 = instance->position[column] + instance->width[column];
 }
 
+
 /**
  * Horizontally position the table icons in a window defintion, so that
  * they are ready to be used in a redraw operation. If a buffer is supplied,
@@ -355,6 +356,51 @@ void columns_place_table_icons_horizontally(struct column_block *instance, wimp_
 			definition->icons[icon].data.indirected_text.text = buffer;
 			definition->icons[icon].data.indirected_text.size = length;
 		}
+	}
+}
+
+
+/**
+ * Vertically position the table icons in a window defintion, so that
+ * they are ready to be used in a redraw operation.
+ *
+ * \param *instance		Pointer to the column instance to use.
+ * \param *definition		Pointer to the table window template definition.
+ * \param ymin			The minimum Y0 window coordinate for the table row.
+ * \param ymax			The maximum Y1 window coordinate for the table row.
+ */
+
+void columns_place_table_icons_vertically(struct column_block *instance, wimp_window *definition, int ymin, int ymax)
+{
+	int	column, extra;
+	wimp_i	icon;
+
+	if (instance == NULL || definition == NULL)
+		return;
+
+	/* Position the main column icons. */
+
+	for (column = 0; column < instance->columns; column++) {
+		icon = instance->map[column].field;
+		if (icon == wimp_ICON_WINDOW)
+			continue;
+
+		definition->icons[icon].extent.y0 = ymin;
+		definition->icons[icon].extent.y1 = ymax;
+	}
+
+	/* If there are no extra icons to position, there's nothing more to do. */
+
+	if (instance->extra == NULL)
+		return;
+
+	/* Position the extra icons in the list. */
+
+	for (extra = 0; instance->extra[extra].icon != wimp_ICON_WINDOW; extra++) {
+		icon = instance->extra[extra].icon;
+
+		definition->icons[icon].extent.y0 = ymin;
+		definition->icons[icon].extent.y1 = ymax;
 	}
 }
 

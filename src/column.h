@@ -166,6 +166,19 @@ void columns_place_table_icons_horizontally(struct column_block *instance, wimp_
 
 
 /**
+ * Vertically position the table icons in a window defintion, so that
+ * they are ready to be used in a redraw operation.
+ *
+ * \param *instance		Pointer to the column instance to use.
+ * \param *definition		Pointer to the table window template definition.
+ * \param ymin			The minimum Y0 window coordinate for the table row.
+ * \param ymax			The maximum Y1 window coordinate for the table row.
+ */
+
+void columns_place_table_icons_vertically(struct column_block *instance, wimp_window *definition, int ymin, int ymax);
+
+
+/**
  * Adjust the positions of the column heading icons in the toolbar window
  * template, according to the current column positions, ready for the
  * window to be created.

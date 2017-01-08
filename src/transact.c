@@ -1622,6 +1622,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 	int			ox, oy, top, base, y, t, shade_rec, shade_rec_col, icon_fg_col, width, entry_line;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
+	os_t			redraw_start = os_read_monotonic_time();
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
@@ -1682,10 +1683,12 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			if (y == entry_line)
 				continue;
 
-			/* Row field. */
+			/* Place the icons in the current row. */
 
-			transact_window_def->icons[TRANSACT_ICON_ROW].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_ROW].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
+			columns_place_table_icons_vertically(windat->columns, transact_window_def,
+					WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y));
+
+			/* Row field. */
 
 			transact_window_def->icons[TRANSACT_ICON_ROW].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_ROW].flags |= icon_fg_col;
@@ -1699,9 +1702,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* Date field */
 
-			transact_window_def->icons[TRANSACT_ICON_DATE].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_DATE].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
-
 			transact_window_def->icons[TRANSACT_ICON_DATE].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_DATE].flags |= icon_fg_col;
 
@@ -1713,15 +1713,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_DATE]));
 
 			/* From field */
-
-			transact_window_def->icons[TRANSACT_ICON_FROM].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_FROM].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
-
-			transact_window_def->icons[TRANSACT_ICON_FROM_REC].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_FROM_REC].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
-
-			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_FROM_NAME].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
 			transact_window_def->icons[TRANSACT_ICON_FROM].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_FROM].flags |= icon_fg_col;
@@ -1756,15 +1747,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* To field */
 
-			transact_window_def->icons[TRANSACT_ICON_TO].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_TO].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
-
-			transact_window_def->icons[TRANSACT_ICON_TO_REC].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_TO_REC].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
-
-			transact_window_def->icons[TRANSACT_ICON_TO_NAME].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_TO_NAME].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
-
 			transact_window_def->icons[TRANSACT_ICON_TO].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_TO].flags |= icon_fg_col;
 
@@ -1798,9 +1780,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* Reference field */
 
-			transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_REFERENCE].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
-
 			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_REFERENCE].flags |= icon_fg_col;
 
@@ -1815,9 +1794,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 			/* Amount field */
 
-			transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_AMOUNT].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
-
 			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_AMOUNT].flags |= icon_fg_col;
 
@@ -1829,9 +1805,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 			wimp_plot_icon(&(transact_window_def->icons[TRANSACT_ICON_AMOUNT]));
 
 			/* Description field */
-
-			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y0 = WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, y);
-			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].extent.y1 = WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, y);
 
 			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags &= ~wimp_ICON_FG_COLOUR;
 			transact_window_def->icons[TRANSACT_ICON_DESCRIPTION].flags |= icon_fg_col;
@@ -1848,6 +1821,8 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle(redraw);
 	}
+
+	debug_printf("Transaction Redraw done in %dcs", os_read_monotonic_time() - redraw_start);
 }
 
 

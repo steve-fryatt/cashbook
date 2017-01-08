@@ -975,6 +975,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	int			ox, oy, top, base, y, t, width;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
+	os_t			redraw_start = os_read_monotonic_time();
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
@@ -1015,16 +1016,12 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(SORDER_TOOLBAR_HEIGHT, y));
 			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(SORDER_TOOLBAR_HEIGHT, y));
 
+			/* Place the icons in the current row. */
+
+			columns_place_table_icons_vertically(windat->columns, sorder_window_def,
+					WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y));
+
 			/* From field */
-
-			sorder_window_def->icons[SORDER_ICON_FROM].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_FROM].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
-
-			sorder_window_def->icons[SORDER_ICON_FROM_REC].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_FROM_REC].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
-
-			sorder_window_def->icons[SORDER_ICON_FROM_NAME].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_FROM_NAME].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 
 			if (y < windat->sorder_count && windat->sorders[t].from != NULL_ACCOUNT) {
 				sorder_window_def->icons[SORDER_ICON_FROM].data.indirected_text.text =
@@ -1050,15 +1047,6 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* To field */
 
-			sorder_window_def->icons[SORDER_ICON_TO].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_TO].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
-
-			sorder_window_def->icons[SORDER_ICON_TO_REC].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_TO_REC].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
-
-			sorder_window_def->icons[SORDER_ICON_TO_NAME].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_TO_NAME].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
-
 			if (y < windat->sorder_count && windat->sorders[t].to != NULL_ACCOUNT) {
 				sorder_window_def->icons[SORDER_ICON_TO].data.indirected_text.text =
 						account_get_ident(windat->file, windat->sorders[t].to);
@@ -1083,8 +1071,6 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* Amount field */
 
-			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_AMOUNT].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 			if (y < windat->sorder_count)
 				currency_convert_to_string(windat->sorders[t].normal_amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 			else
@@ -1093,8 +1079,6 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* Comments field */
 
-			sorder_window_def->icons[SORDER_ICON_DESCRIPTION].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_DESCRIPTION].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 			if (y < windat->sorder_count){
 				sorder_window_def->icons[SORDER_ICON_DESCRIPTION].data.indirected_text.text = windat->sorders[t].description;
 			} else {
@@ -1105,8 +1089,6 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* Next date field */
 
-			sorder_window_def->icons[SORDER_ICON_NEXTDATE].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_NEXTDATE].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 			if (y < windat->sorder_count) {
 				if (windat->sorders[t].adjusted_next_date != NULL_DATE)
 					date_convert_to_string(windat->sorders[t].adjusted_next_date, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
@@ -1119,8 +1101,6 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* Left field */
 
-			sorder_window_def->icons[SORDER_ICON_LEFT].extent.y0 = WINDOW_ROW_Y0(SORDER_TOOLBAR_HEIGHT, y);
-			sorder_window_def->icons[SORDER_ICON_LEFT].extent.y1 = WINDOW_ROW_Y1(SORDER_TOOLBAR_HEIGHT, y);
 			if (y < windat->sorder_count)
 				sprintf (icon_buffer, "%d", windat->sorders[t].left);
 			else
@@ -1130,6 +1110,8 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle (redraw);
 	}
+
+	debug_printf("Standing Order Redraw done in %dcs", os_read_monotonic_time() - redraw_start);
 }
 
 

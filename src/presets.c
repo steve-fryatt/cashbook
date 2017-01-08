@@ -979,6 +979,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 	int			ox, oy, top, base, y, t, width;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN], rec_char[REC_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
+	os_t			redraw_start = os_read_monotonic_time();
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
@@ -1021,10 +1022,13 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(PRESET_TOOLBAR_HEIGHT, y));
 			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(PRESET_TOOLBAR_HEIGHT, y));
 
+			/* Place the icons in the current row. */
+
+			columns_place_table_icons_vertically(windat->columns, preset_window_def,
+					WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y));
+
 			/* Key field */
 
-			preset_window_def->icons[PRESET_ICON_KEY].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_KEY].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 			if (y < windat->preset_count)
 				sprintf(icon_buffer, "%c", windat->presets[t].action_key);
 			else
@@ -1033,8 +1037,6 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* Name field */
 
-			preset_window_def->icons[PRESET_ICON_NAME].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_NAME].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 			if (y < windat->preset_count) {
 				preset_window_def->icons[PRESET_ICON_NAME].data.indirected_text.text = windat->presets[t].name;
 			} else {
@@ -1044,16 +1046,6 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 			wimp_plot_icon (&(preset_window_def->icons[PRESET_ICON_NAME]));
 
 			/* From field */
-
-			preset_window_def->icons[PRESET_ICON_FROM].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_FROM].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
-
-			preset_window_def->icons[PRESET_ICON_FROM_REC].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_FROM_REC].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
-
-			preset_window_def->icons[PRESET_ICON_FROM_NAME].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_FROM_NAME].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
-
 
 			if (y < windat->preset_count && windat->presets[t].from != NULL_ACCOUNT) {
 				preset_window_def->icons[PRESET_ICON_FROM].data.indirected_text.text = account_get_ident(file, windat->presets[t].from);
@@ -1077,15 +1069,6 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* To field */
 
-			preset_window_def->icons[PRESET_ICON_TO].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_TO].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
-
-			preset_window_def->icons[PRESET_ICON_TO_REC].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_TO_REC].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
-
-			preset_window_def->icons[PRESET_ICON_TO_NAME].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_TO_NAME].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
-
 			if (y < windat->preset_count && windat->presets[t].to != NULL_ACCOUNT) {
 				preset_window_def->icons[PRESET_ICON_TO].data.indirected_text.text = account_get_ident(file, windat->presets[t].to);
 				preset_window_def->icons[PRESET_ICON_TO_REC].data.indirected_text.text = icon_buffer;
@@ -1108,8 +1091,6 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* Amount field */
 
-			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_AMOUNT].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 			if (y < windat->preset_count)
 				currency_convert_to_string(windat->presets[t].amount, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 			else
@@ -1118,8 +1099,6 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 			/* Comments field */
 
-			preset_window_def->icons[PRESET_ICON_DESCRIPTION].extent.y0 = WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y);
-			preset_window_def->icons[PRESET_ICON_DESCRIPTION].extent.y1 = WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y);
 			if (y < windat->preset_count) {
 				preset_window_def->icons[PRESET_ICON_DESCRIPTION].data.indirected_text.text = windat->presets[t].description;
 			} else {
@@ -1132,6 +1111,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 		more = wimp_get_rectangle(redraw);
 	}
 
+	debug_printf("Preset Redraw done in %dcs", os_read_monotonic_time() - redraw_start);
 }
 
 

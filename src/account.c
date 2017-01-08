@@ -1249,33 +1249,33 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 			if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_DATA) {
 				/* Account field */
 
-				account_window_def->icons[0].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[0].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_IDENT].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_IDENT].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[1].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[1].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_NAME].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_NAME].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[0].data.indirected_text.text =
+				account_window_def->icons[ACCOUNT_ICON_IDENT].data.indirected_text.text =
 						instance->accounts[windat->line_data[y].account].ident;
-				account_window_def->icons[1].data.indirected_text.text =
+				account_window_def->icons[ACCOUNT_ICON_NAME].data.indirected_text.text =
 						instance->accounts[windat->line_data[y].account].name;
 
-				wimp_plot_icon(&(account_window_def->icons[0]));
-				wimp_plot_icon(&(account_window_def->icons[1]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_IDENT]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_NAME]));
 
 				/* Place the four numerical columns. */
 
-				account_window_def->icons[2].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[2].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_STATEMENT].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_STATEMENT].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[3].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[3].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_CURRENT].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_CURRENT].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[4].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[4].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FINAL].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FINAL].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[5].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[5].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_BUDGET].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_BUDGET].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
 				/* Set the column data depending on the window type. */
 
@@ -1292,8 +1292,8 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
 					else
 						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-					account_window_def->icons[2].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[2].flags |= icon_fg_col;
+					account_window_def->icons[ACCOUNT_ICON_STATEMENT].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[ACCOUNT_ICON_STATEMENT].flags |= icon_fg_col;
 
 					if (shade_overdrawn &&
 							(instance->accounts[windat->line_data[y].account].current_balance <
@@ -1301,16 +1301,16 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
 					else
 						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-					account_window_def->icons[3].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[3].flags |= icon_fg_col;
+					account_window_def->icons[ACCOUNT_ICON_CURRENT].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[ACCOUNT_ICON_CURRENT].flags |= icon_fg_col;
 
 					if (shade_overdrawn &&
 							(instance->accounts[windat->line_data[y].account].trial_balance < 0))
 						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
 					else
 						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-					account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[4].flags |= icon_fg_col;
+					account_window_def->icons[ACCOUNT_ICON_FINAL].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[ACCOUNT_ICON_FINAL].flags |= icon_fg_col;
 					break;
 
 				case ACCOUNT_IN:
@@ -1325,10 +1325,10 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 						icon_fg_col = (shade_overdrawn_col << wimp_ICON_FG_COLOUR_SHIFT);
 					else
 						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
-					account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[4].flags |= icon_fg_col;
-					account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[5].flags |= icon_fg_col;
+					account_window_def->icons[ACCOUNT_ICON_FINAL].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[ACCOUNT_ICON_FINAL].flags |= icon_fg_col;
+					account_window_def->icons[ACCOUNT_ICON_BUDGET].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[ACCOUNT_ICON_BUDGET].flags |= icon_fg_col;
 					break;
 
 				case ACCOUNT_OUT:
@@ -1344,10 +1344,10 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 					else
 						icon_fg_col = (wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT);
 
-					account_window_def->icons[4].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[4].flags |= icon_fg_col;
-					account_window_def->icons[5].flags &= ~wimp_ICON_FG_COLOUR;
-					account_window_def->icons[5].flags |= icon_fg_col;
+					account_window_def->icons[ACCOUNT_ICON_FINAL].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[ACCOUNT_ICON_FINAL].flags |= icon_fg_col;
+					account_window_def->icons[ACCOUNT_ICON_BUDGET].flags &= ~wimp_ICON_FG_COLOUR;
+					account_window_def->icons[ACCOUNT_ICON_BUDGET].flags |= icon_fg_col;
 					break;
 
 				default:
@@ -1356,81 +1356,81 @@ static void account_window_redraw_handler(wimp_draw *redraw)
 
 				/* Plot the three icons. */
 
-				wimp_plot_icon(&(account_window_def->icons[2]));
-				wimp_plot_icon(&(account_window_def->icons[3]));
-				wimp_plot_icon(&(account_window_def->icons[4]));
-				wimp_plot_icon(&(account_window_def->icons[5]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_STATEMENT]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_CURRENT]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FINAL]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_BUDGET]));
 			} else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_HEADER) {
 				/* Block header line */
 
-				account_window_def->icons[6].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[6].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_HEADING].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_HEADING].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[6].data.indirected_text.text = windat->line_data[y].heading;
+				account_window_def->icons[ACCOUNT_ICON_HEADING].data.indirected_text.text = windat->line_data[y].heading;
 
-				wimp_plot_icon(&(account_window_def->icons[6]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_HEADING]));
 			} else if (y<windat->display_lines && windat->line_data[y].type == ACCOUNT_LINE_FOOTER) {
 				/* Block footer line */
 
-				account_window_def->icons[7].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[7].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_NAME].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_NAME].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[8].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[8].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_STATEMENT].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_STATEMENT].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[9].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[9].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_CURRENT].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_CURRENT].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[10].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[10].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_FINAL].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_FINAL].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[11].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[11].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_BUDGET].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FOOT_BUDGET].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[7].data.indirected_text.text = windat->line_data[y].heading;
+				account_window_def->icons[ACCOUNT_ICON_FOOT_NAME].data.indirected_text.text = windat->line_data[y].heading;
 				currency_convert_to_string(windat->line_data[y].total[0], icon_buffer1, AMOUNT_FIELD_LEN);
 				currency_convert_to_string(windat->line_data[y].total[1], icon_buffer2, AMOUNT_FIELD_LEN);
 				currency_convert_to_string(windat->line_data[y].total[2], icon_buffer3, AMOUNT_FIELD_LEN);
 				currency_convert_to_string(windat->line_data[y].total[3], icon_buffer4, AMOUNT_FIELD_LEN);
 
-				wimp_plot_icon(&(account_window_def->icons[7]));
-				wimp_plot_icon(&(account_window_def->icons[8]));
-				wimp_plot_icon(&(account_window_def->icons[9]));
-				wimp_plot_icon(&(account_window_def->icons[10]));
-				wimp_plot_icon(&(account_window_def->icons[11]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_NAME]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_STATEMENT]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_CURRENT]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_FINAL]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FOOT_BUDGET]));
 			} else {
 				/* Blank line */
-				account_window_def->icons[0].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[0].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_IDENT].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_IDENT].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[1].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[1].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_NAME].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_NAME].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[2].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[2].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_STATEMENT].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_STATEMENT].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[3].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[3].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_CURRENT].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_CURRENT].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[4].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[4].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FINAL].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_FINAL].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[5].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
-				account_window_def->icons[5].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_BUDGET].extent.y0 = WINDOW_ROW_Y0(ACCOUNT_TOOLBAR_HEIGHT, y);
+				account_window_def->icons[ACCOUNT_ICON_BUDGET].extent.y1 = WINDOW_ROW_Y1(ACCOUNT_TOOLBAR_HEIGHT, y);
 
-				account_window_def->icons[0].data.indirected_text.text = icon_buffer1;
-				account_window_def->icons[1].data.indirected_text.text = icon_buffer1;
+				account_window_def->icons[ACCOUNT_ICON_IDENT].data.indirected_text.text = icon_buffer1;
+				account_window_def->icons[ACCOUNT_ICON_NAME].data.indirected_text.text = icon_buffer1;
 				*icon_buffer1 = '\0';
 				*icon_buffer2 = '\0';
 				*icon_buffer3 = '\0';
 				*icon_buffer4 = '\0';
 
-				wimp_plot_icon(&(account_window_def->icons[0]));
-				wimp_plot_icon(&(account_window_def->icons[1]));
-				wimp_plot_icon(&(account_window_def->icons[2]));
-				wimp_plot_icon(&(account_window_def->icons[3]));
-				wimp_plot_icon(&(account_window_def->icons[4]));
-				wimp_plot_icon(&(account_window_def->icons[5]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_IDENT]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_NAME]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_STATEMENT]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_CURRENT]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_FINAL]));
+				wimp_plot_icon(&(account_window_def->icons[ACCOUNT_ICON_BUDGET]));
 			}
 		}
 

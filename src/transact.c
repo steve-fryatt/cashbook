@@ -880,7 +880,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 		if (line >= 0) {
 			xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
 
-			column = column_get_position(windat->columns, xpos);
+			column = column_find_icon_from_xpos(windat->columns, xpos);
 
 #ifdef DEBUG
 			debug_printf("Adjust transaction window click (line %d, column %d, xpos %d)", line, column, xpos);
@@ -2419,7 +2419,7 @@ static void transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
 
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
-	icon = column_get_position(windat->columns, xpos);
+	icon = column_find_icon_from_xpos(windat->columns, xpos);
 	if (icon == wimp_ICON_WINDOW)
 		return;
 

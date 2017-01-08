@@ -712,7 +712,7 @@ int column_get_window_width(struct column_block *instance)
  * \return			The iocn of the column into which the location falls.
  */
 
-wimp_i column_get_position(struct column_block *instance, int xpos)
+wimp_i column_find_icon_from_xpos(struct column_block *instance, int xpos)
 {
 	int column;
 

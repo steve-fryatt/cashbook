@@ -1399,7 +1399,7 @@ static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 
 	xpos = (pos.x - window.visible.x0) + window.xscroll;
 
-	icon = column_get_position(windat->columns, xpos);
+	icon = column_find_icon_from_xpos(windat->columns, xpos);
 	if (icon == wimp_ICON_WINDOW)
 		return;
 

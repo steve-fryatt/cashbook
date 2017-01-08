@@ -186,11 +186,16 @@
 #define ACCOUNT_WINDOWS 3
 
 #define ACCOUNT_COLUMNS 6
-#define ACCOUNT_NUM_COLUMNS 4
 #define ACCOUNT_TOOLBAR_HEIGHT 132
 #define ACCOUNT_FOOTER_HEIGHT 36
 #define MIN_ACCOUNT_ENTRIES 10
 #define ACCOUNT_SECTION_LEN 52
+
+#define ACCOUNT_NUM_COLUMNS 4
+#define ACCOUNT_NUM_COLUMN_STATEMENT 0
+#define ACCOUNT_NUM_COLUMN_CURRENT 1
+#define ACCOUNT_NUM_COLUMN_FINAL 2
+#define ACCOUNT_NUM_COLUMN_BUDGET 3
 
 /* Account Window column map. */
 
@@ -219,7 +224,7 @@ struct account_redraw {
 	enum account_line_type	type;						/* Type of line (account, header, footer, blank, etc).		*/
 
 	acct_t			account;					/* Number of account.						*/
-	amt_t			total[ACCOUNT_COLUMNS - 2];			/* Balance totals for section.					*/
+	amt_t			total[ACCOUNT_NUM_COLUMNS];			/* Balance totals for section.					*/
 	char			heading[ACCOUNT_SECTION_LEN];			/* Heading for section.						*/
 };
 
@@ -294,7 +299,7 @@ struct account_window {
 	char			window_title[256];
 	wimp_w			account_pane;					/* Window handle of the account window toolbar pane */
 	wimp_w			account_footer;					/* Window handle of the account window footer pane */
-	char			footer_icon[ACCOUNT_COLUMNS-2][AMOUNT_FIELD_LEN]; /* Indirected blocks for footer icons. */
+	char			footer_icon[ACCOUNT_NUM_COLUMNS][AMOUNT_FIELD_LEN]; /* Indirected blocks for footer icons. */
 
 	/* Display column details. */
 
@@ -549,10 +554,10 @@ struct account_block *account_create_instance(struct file_block *file)
 
 		/* Blank out the footer icons. */
 
-		*new->account_windows[i].footer_icon[0] = '\0';
-		*new->account_windows[i].footer_icon[1] = '\0';
-		*new->account_windows[i].footer_icon[2] = '\0';
-		*new->account_windows[i].footer_icon[3] = '\0';
+		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT] = '\0';
+		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_CURRENT] = '\0';
+		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_FINAL] = '\0';
+		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_BUDGET] = '\0';
 
     /* Set the individual windows to the type of account they will hold. */
 
@@ -656,7 +661,7 @@ void account_delete_instance(struct account_block *block)
 
 void account_open_window(struct file_block *file, enum account_type type)
 {
-	int			entry, i, tb_type, height;
+	int			entry, tb_type, height;
 	os_error		*error;
 	wimp_window_state	parent;
 	struct account_window	*window;
@@ -725,8 +730,10 @@ void account_open_window(struct file_block *file, enum account_type type)
 	windows_place_as_footer(account_window_def, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
 	columns_place_footer_icons(window->columns, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
 
-	for (i=0; i < ACCOUNT_NUM_COLUMNS; i++)
-		account_foot_def->icons[i+1].data.indirected_text.text = window->footer_icon[i];
+	account_foot_def->icons[ACCOUNT_FOOTER_STATEMENT].data.indirected_text.text = window->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT];
+	account_foot_def->icons[ACCOUNT_FOOTER_CURRENT].data.indirected_text.text = window->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT];
+	account_foot_def->icons[ACCOUNT_FOOTER_FINAL].data.indirected_text.text = window->footer_icon[ACCOUNT_NUM_COLUMN_FINAL];
+	account_foot_def->icons[ACCOUNT_FOOTER_BUDGET].data.indirected_text.text = window->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET];
 
 	error = xwimp_create_window(account_foot_def, &(window->account_footer));
 	if (error != NULL) {
@@ -3115,10 +3122,10 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 		} else if (window->line_data[i].type == ACCOUNT_LINE_HEADER) {
 			snprintf(line, sizeof(line), "\\k\\u%s", window->line_data[i].heading);
 		} else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER) {
-			currency_convert_to_string(window->line_data[i].total[0], numbuf1, sizeof(numbuf1));
-			currency_convert_to_string(window->line_data[i].total[1], numbuf2, sizeof(numbuf2));
-			currency_convert_to_string(window->line_data[i].total[2], numbuf3, sizeof(numbuf3));
-			currency_convert_to_string(window->line_data[i].total[3], numbuf4, sizeof(numbuf4));
+			currency_convert_to_string(window->line_data[i].total[ACCOUNT_NUM_COLUMN_STATEMENT], numbuf1, sizeof(numbuf1));
+			currency_convert_to_string(window->line_data[i].total[ACCOUNT_NUM_COLUMN_CURRENT], numbuf2, sizeof(numbuf2));
+			currency_convert_to_string(window->line_data[i].total[ACCOUNT_NUM_COLUMN_FINAL], numbuf3, sizeof(numbuf3));
+			currency_convert_to_string(window->line_data[i].total[ACCOUNT_NUM_COLUMN_BUDGET], numbuf4, sizeof(numbuf4));
 
 			snprintf(line, sizeof(line), "\\k%s\\t\\s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s",
 					window->line_data[i].heading, numbuf1, numbuf2, numbuf3, numbuf4);
@@ -3131,7 +3138,10 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 
 	icons_copy_text(window->account_footer, 0, buffer, sizeof(buffer));
 	snprintf(line, sizeof(line), "\\k\\u%s\\t\\s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s", buffer,
-			window->footer_icon[0], window->footer_icon[1], window->footer_icon[2], window->footer_icon[3]);
+			window->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT],
+			window->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT],
+			window->footer_icon[ACCOUNT_NUM_COLUMN_FINAL],
+			window->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET]);
 	report_write_line(report, 0, line);
 
 	hourglass_off();
@@ -4437,7 +4447,7 @@ void account_restore_transaction(struct file_block *file, int transaction)
 
 static void account_recalculate_windows(struct file_block *file)
 {
-	int	entry, i, j, sub_total[ACCOUNT_COLUMNS-2], total[ACCOUNT_COLUMNS-2];
+	int	entry, i, j, sub_total[ACCOUNT_NUM_COLUMNS], total[ACCOUNT_NUM_COLUMNS];
 
 	if (file == NULL || file->accounts == NULL)
 		return;
@@ -4446,7 +4456,7 @@ static void account_recalculate_windows(struct file_block *file)
 
 	entry = account_find_window_entry_from_type(file, ACCOUNT_FULL);
 
-	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++) {
+	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++) {
 		sub_total[i] = 0;
 		total[i] = 0;
 	}
@@ -4454,24 +4464,24 @@ static void account_recalculate_windows(struct file_block *file)
 	for (i = 0; i < file->accounts->account_windows[entry].display_lines; i++) {
 		switch (file->accounts->account_windows[entry].line_data[i].type) {
 		case ACCOUNT_LINE_DATA:
-			sub_total[0] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].statement_balance;
-			sub_total[1] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].current_balance;
-			sub_total[2] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].trial_balance;
-			sub_total[3] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
+			sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].statement_balance;
+			sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].current_balance;
+			sub_total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].trial_balance;
+			sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
 
-			total[0] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].statement_balance;
-			total[1] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].current_balance;
-			total[2] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].trial_balance;
-			total[3] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
+			total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].statement_balance;
+			total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].current_balance;
+			total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].trial_balance;
+			total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
 			break;
 
 		case ACCOUNT_LINE_HEADER:
-			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
 				sub_total[j] = 0;
 			break;
 
 		case ACCOUNT_LINE_FOOTER:
-			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
 				file->accounts->account_windows[entry].line_data[i].total[j] = sub_total[j];
 			break;
 
@@ -4480,14 +4490,14 @@ static void account_recalculate_windows(struct file_block *file)
 		}
 	}
 
-	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++)
+	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++)
 		currency_convert_to_string(total[i], file->accounts->account_windows[entry].footer_icon[i], AMOUNT_FIELD_LEN);
 
 	/* Calculate the incoming account details. */
 
 	entry = account_find_window_entry_from_type(file, ACCOUNT_IN);
 
-	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++) {
+	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++) {
 		sub_total[i] = 0;
 		total[i] = 0;
 	}
@@ -4503,24 +4513,24 @@ static void account_recalculate_windows(struct file_block *file)
 				file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result = NULL_CURRENCY;
 			}
 
-			sub_total[0] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
-			sub_total[1] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
-			sub_total[2] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			sub_total[3] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
+			sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
+			sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
+			sub_total[ACCOUNT_NUM_COLUMN_FINAL] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
+			sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
 
-			total[0] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
-			total[1] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
-			total[2] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			total[3] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
+			total[ACCOUNT_NUM_COLUMN_STATEMENT] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
+			total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
+			total[ACCOUNT_NUM_COLUMN_FINAL] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
+			total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
 			break;
 
 		case ACCOUNT_LINE_HEADER:
-			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
 				sub_total[j] = 0;
 			break;
 
 		case ACCOUNT_LINE_FOOTER:
-			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
 				file->accounts->account_windows[entry].line_data[i].total[j] = sub_total[j];
 			break;
 
@@ -4529,14 +4539,14 @@ static void account_recalculate_windows(struct file_block *file)
 		}
 	}
 
-	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++)
+	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++)
 		currency_convert_to_string(total[i], file->accounts->account_windows[entry].footer_icon[i], AMOUNT_FIELD_LEN);
 
 	/* Calculate the outgoing account details. */
 
 	entry = account_find_window_entry_from_type(file, ACCOUNT_OUT);
 
-	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++) {
+	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++) {
 		sub_total[i] = 0;
 		total[i] = 0;
 	}
@@ -4552,24 +4562,24 @@ static void account_recalculate_windows(struct file_block *file)
 				file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result = NULL_CURRENCY;
 			}
 
-			sub_total[0] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
-			sub_total[1] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
-			sub_total[2] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			sub_total[3] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
+			sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
+			sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
+			sub_total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
+			sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
 
-			total[0] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
-			total[1] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
-			total[2] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			total[3] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
+			total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
+			total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
+			total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
+			total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
 			break;
 
 		case ACCOUNT_LINE_HEADER:
-			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
 				sub_total[j] = 0;
 			break;
 
 		case ACCOUNT_LINE_FOOTER:
-			for (j = 0; j < ACCOUNT_COLUMNS - 2; j++)
+			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
 				file->accounts->account_windows[entry].line_data[i].total[j] = sub_total[j];
 			break;
 
@@ -4578,7 +4588,7 @@ static void account_recalculate_windows(struct file_block *file)
 		}
 	}
 
-	for (i = 0; i < ACCOUNT_COLUMNS - 2; i++)
+	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++)
 		currency_convert_to_string(total[i], file->accounts->account_windows[entry].footer_icon[i], AMOUNT_FIELD_LEN);
 }
 
@@ -5030,16 +5040,16 @@ static void account_export_delimited(struct account_window *windat, char *filena
 		} else if (windat->line_data[i].type == ACCOUNT_LINE_FOOTER) {
 			filing_output_delimited_field(out, windat->line_data[i].heading, format, DELIMIT_NONE);
 
-			currency_convert_to_string(windat->line_data[i].total[0], buffer, sizeof(buffer));
+			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_STATEMENT], buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			currency_convert_to_string(windat->line_data[i].total[1], buffer, sizeof(buffer));
+			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_CURRENT], buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			currency_convert_to_string(windat->line_data[i].total[2], buffer, sizeof(buffer));
+			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_FINAL], buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			currency_convert_to_string(windat->line_data[i].total[3], buffer, sizeof(buffer));
+			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_BUDGET], buffer, sizeof(buffer));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 		}
 	}
@@ -5048,10 +5058,10 @@ static void account_export_delimited(struct account_window *windat, char *filena
 
 	icons_copy_text(windat->account_footer, 0, buffer, sizeof(buffer));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	filing_output_delimited_field(out, windat->footer_icon[0], format, DELIMIT_NUM);
-	filing_output_delimited_field(out, windat->footer_icon[1], format, DELIMIT_NUM);
-	filing_output_delimited_field(out, windat->footer_icon[2], format, DELIMIT_NUM);
-	filing_output_delimited_field(out, windat->footer_icon[3], format, DELIMIT_NUM | DELIMIT_LAST);
+	filing_output_delimited_field(out, windat->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT], format, DELIMIT_NUM);
+	filing_output_delimited_field(out, windat->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT], format, DELIMIT_NUM);
+	filing_output_delimited_field(out, windat->footer_icon[ACCOUNT_NUM_COLUMN_FINAL], format, DELIMIT_NUM);
+	filing_output_delimited_field(out, windat->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET], format, DELIMIT_NUM | DELIMIT_LAST);
 
 	/* Close the file and set the type correctly. */
 

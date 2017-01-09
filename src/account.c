@@ -1341,58 +1341,19 @@ static void account_adjust_window_columns(void *data, wimp_i icon, int width)
 
 static void account_set_window_extent(struct file_block *file, int entry)
 {
-	wimp_window_state	state;
-	os_box			extent;
-	int			new_height, visible_extent, new_extent, new_scroll;
+	int	lines;
 
 	/* Set the extent. */
 
 	if (file == NULL || file->accounts->account_windows[entry].account_window == NULL)
 		return;
 
-	/* Get the number of rows to show in the window, and work out the window extent from this. */
-
-	new_height =  (file->accounts->account_windows[entry].display_lines > MIN_ACCOUNT_ENTRIES) ?
+	lines = (file->accounts->account_windows[entry].display_lines > MIN_ACCOUNT_ENTRIES) ?
 			file->accounts->account_windows[entry].display_lines : MIN_ACCOUNT_ENTRIES;
 
-	new_extent = (-WINDOW_ROW_HEIGHT * new_height) - (ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2);
-
-	/* Get the current window details, and find the extent of the bottom of the visible area. */
-
-	state.w = file->accounts->account_windows[entry].account_window;
-	wimp_get_window_state(&state);
-
-	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-	if (new_extent > visible_extent) {
-		/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
-		 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
-		 */
-
-		new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
-
-		if (new_scroll > 0) {
-			state.visible.y0 += new_scroll;
-			state.yscroll = 0;
-		} else {
-			state.yscroll = new_scroll;
-		}
-
-		wimp_open_window((wimp_open *) &state);
-	}
-
-	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-	 * exist.
-	 */
-
-	extent.x0 = 0;
-	extent.x1 = column_get_window_width(file->accounts->account_windows[entry].columns) + COLUMN_GUTTER;
-	extent.y0 = new_extent;
-	extent.y1 = 0;
-
-	wimp_set_extent(file->accounts->account_windows[entry].account_window, &extent);
+	window_set_extent(file->accounts->account_windows[entry].account_window, lines,
+			ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2,
+			column_get_window_width(file->accounts->account_windows[entry].columns));
 }
 
 

@@ -214,6 +214,64 @@ void window_process_scroll_effect(wimp_scroll *scroll, int pane_size)
 
 
 /**
+ * Set an extent for a table window.
+ * 
+ * \param window		The window to set the extent for.
+ * \param lines			The number of lines to display in the new window.
+ * \param pane_height		The height of any toolbar and footer panes.
+ * \param width			The width of the window, in OS units.
+ */
+
+void window_set_extent(wimp_w window, int lines, int pane_height, int width)
+{
+	wimp_window_state	state;
+	os_box			extent;
+	int			visible_extent, new_extent, new_scroll;
+
+	/* Get the number of rows to show in the window, and work out the window extent from this. */
+
+	new_extent = (-WINDOW_ROW_HEIGHT * lines) - pane_height;
+
+	/* Get the current window details, and find the extent of the bottom of the visible area. */
+
+	state.w = window;
+	wimp_get_window_state(&state);
+
+	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
+
+	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
+
+	if (new_extent > visible_extent) {
+		/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
+		 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
+		 */
+
+		new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
+
+		if (new_scroll > 0) {
+			state.visible.y0 += new_scroll;
+			state.yscroll = 0;
+		} else {
+			state.yscroll = new_scroll;
+		}
+
+		wimp_open_window((wimp_open *) &state);
+	}
+
+	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
+	 * exist.
+	 */
+
+	extent.x0 = 0;
+	extent.x1 = width + COLUMN_GUTTER;
+	extent.y0 = new_extent;
+	extent.y1 = 0;
+
+	wimp_set_extent(window, &extent);
+}
+
+
+/**
  * Calculate the row that the mouse was clicked over in the list window.
  *
  * \param *pointer		The relevant Wimp pointer data.

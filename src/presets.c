@@ -1121,58 +1121,15 @@ static void preset_adjust_sort_icon_data(struct preset_block *windat, wimp_icon 
 
 static void preset_set_window_extent(struct preset_block *windat)
 {
-	wimp_window_state	state;
-	os_box			extent;
-	int			new_lines, visible_extent, new_extent, new_scroll;
+	int	lines;
 
 
-	/* Set the extent. */
-
-	if (windat == NULL || windat->file == NULL || windat->preset_window == NULL)
+	if (windat == NULL || windat->preset_window == NULL)
 		return;
 
-	/* Get the number of rows to show in the window, and work out the window extent from this. */
+	lines = (windat->preset_count > MIN_PRESET_ENTRIES) ? windat->preset_count : MIN_PRESET_ENTRIES;
 
-	new_lines = (windat->preset_count > MIN_PRESET_ENTRIES) ? windat->preset_count : MIN_PRESET_ENTRIES;
-
-	new_extent = (-WINDOW_ROW_HEIGHT * new_lines) - PRESET_TOOLBAR_HEIGHT;
-
-	/* Get the current window details, and find the extent of the bottom of the visible area. */
-
-	state.w = windat->file->presets->preset_window;
-	wimp_get_window_state(&state);
-
-	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-	if (new_extent > visible_extent) {
-		/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
-		 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
-		 */
-
-		new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
-
-		if (new_scroll > 0) {
-			state.visible.y0 += new_scroll;
-			state.yscroll = 0;
-		} else {
-			state.yscroll = new_scroll;
-		}
-
-		wimp_open_window((wimp_open *) &state);
-	}
-
-	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-	 * exist.
-	 */
-
-	extent.x0 = 0;
-	extent.y1 = 0;
-	extent.x1 = column_get_window_width(windat->columns) + COLUMN_GUTTER;
-	extent.y0 = new_extent;
-
-	wimp_set_extent(windat->preset_window, &extent);
+	window_set_extent(windat->preset_window, lines, PRESET_TOOLBAR_HEIGHT, column_get_window_width(windat->columns));
 }
 
 

@@ -1288,56 +1288,15 @@ static void accview_adjust_sort_icon_data(struct accview_window *view, wimp_icon
 
 static void accview_set_window_extent(struct accview_window *view)
 {
-	wimp_window_state	state;
-	os_box			extent;
-	int			new_height, visible_extent, new_extent, new_scroll;
+	int	lines;
+
 
 	if (view == NULL || view->account == NULL_ACCOUNT || view->accview_window == NULL)
 		return;
 
-	/* Get the number of rows to show in the window, and work out the window extent from this. */
+	lines = (view->display_lines > MIN_ACCVIEW_ENTRIES) ? view->display_lines : MIN_ACCVIEW_ENTRIES;
 
-	new_height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ? view->display_lines : MIN_ACCVIEW_ENTRIES;
-
-	new_extent = (-WINDOW_ROW_HEIGHT * new_height) - ACCVIEW_TOOLBAR_HEIGHT;
-
-	/* Get the current window details, and find the extent of the bottom of the visible area. */
-
-	state.w = view->accview_window;
-	wimp_get_window_state(&state);
-
-	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-	if (new_extent > visible_extent) {
-		/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
-		 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
-		 */
-
-		new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
-
-		if (new_scroll > 0) {
-			state.visible.y0 += new_scroll;
-			state.yscroll = 0;
-		} else {
-			state.yscroll = new_scroll;
-		}
-
-		wimp_open_window((wimp_open *) &state);
-	}
-
-	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-	 * exist.
-	 */
-
-	extent.x0 = 0;
-	extent.x1 = column_get_window_width(view->columns);
-
-	extent.y0 = new_extent;
-	extent.y1 = 0;
-
-	wimp_set_extent(view->accview_window, &extent);
+	window_set_extent(view->accview_window, lines, ACCVIEW_TOOLBAR_HEIGHT, column_get_window_width(view->columns));
 }
 
 

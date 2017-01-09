@@ -158,6 +158,18 @@ void window_process_scroll_effect(wimp_scroll *scroll, int pane_size);
 
 
 /**
+ * Set an extent for a table window.
+ * 
+ * \param window		The window to set the extent for.
+ * \param lines			The number of lines to display in the new window.
+ * \param pane_height		The height of any toolbar and footer panes.
+ * \param width			The width of the window, in OS units.
+ */
+
+void window_set_extent(wimp_w window, int lines, int pane_height, int width);
+
+
+/**
  * Calculate the row that the mouse was clicked over in the list window.
  *
  * \param *pointer		The relevant Wimp pointer data.

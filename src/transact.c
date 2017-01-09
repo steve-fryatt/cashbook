@@ -1876,10 +1876,6 @@ static void transact_adjust_sort_icon_data(struct transact_block *windat, wimp_i
 
 void transact_set_window_extent(struct file_block *file)
 {
-	wimp_window_state	state;
-	os_box			extent;
-	int			visible_extent, new_extent, new_scroll;
-
 	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
 		return;
 
@@ -1890,46 +1886,8 @@ void transact_set_window_extent(struct file_block *file)
 				file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 	}
 
-	/* Work out the new extent. */
-
-	new_extent = (-WINDOW_ROW_HEIGHT * file->transacts->display_lines) - TRANSACT_TOOLBAR_HEIGHT;
-
-	/* Get the current window details, and find the extent of the bottom of the visible area. */
-
-	state.w = file->transacts->transaction_window;
-	wimp_get_window_state(&state);
-
-	visible_extent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-	if (new_extent > visible_extent) {
-		/* Calculate the required new scroll offset.  If this is greater than zero, the current window is too
-		 * big and will need shrinking down.  Otherwise, just set the new scroll offset.
-		 */
-
-		new_scroll = new_extent - (state.visible.y0 - state.visible.y1);
-
-		if (new_scroll > 0) {
-			state.visible.y0 += new_scroll;
-			state.yscroll = 0;
-		} else {
-			state.yscroll = new_scroll;
-		}
-
-		wimp_open_window((wimp_open *) &state);
-	}
-
-	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-	 * exist.
-	 */
-
-	extent.x0 = 0;
-	extent.y1 = 0;
-	extent.x1 = column_get_window_width(file->transacts->columns) + COLUMN_GUTTER;
-	extent.y0 = new_extent;
-
-	wimp_set_extent(file->transacts->transaction_window, &extent);
+	window_set_extent(file->transacts->transaction_window, file->transacts->display_lines, TRANSACT_TOOLBAR_HEIGHT,
+			column_get_window_width(file->transacts->columns));
 }
 
 

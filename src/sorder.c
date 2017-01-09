@@ -751,9 +751,9 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 					windat->sort_order |= SORT_DESCENDING;
 			}
 
-			sorder_adjust_sort_icon(file->sorders);
+			sorder_adjust_sort_icon(windat);
 			windows_redraw(windat->sorder_pane);
-			sorder_sort(file->sorders);
+			sorder_sort(windat);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimSOrderCols"));

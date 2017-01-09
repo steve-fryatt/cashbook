@@ -113,6 +113,15 @@ void interest_build_window_title(struct file_block *file);
 
 
 /**
+ * Force the complete redraw of the interest rate window.
+ *
+ * \param *file			The file owning the window to redraw.
+ */
+
+void interest_redraw_all(struct file_block *file);
+
+
+/**
  * Return an interest rate for a given account on a given date. Returns
  * NULL_RATE on failure.
  *

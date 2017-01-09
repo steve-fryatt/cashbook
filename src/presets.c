@@ -759,7 +759,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 
 			preset_adjust_sort_icon(windat);
 			windows_redraw(windat->preset_pane);
-			preset_sort(file->presets);
+			preset_sort(windat);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimPresetCols"));

@@ -161,11 +161,14 @@ struct interest_block {
 /* Static function prototypes. */
 
 static void		interest_close_window_handler(wimp_close *close);
+static void		interest_pane_click_handler(wimp_pointer *pointer);
 static void		interest_window_scroll_handler(wimp_scroll *scroll);
 static void		interest_window_redraw_handler(wimp_draw *redraw);
 static void		interest_adjust_window_columns(void *data, wimp_i group, int width);
 static void		interest_adjust_sort_icon(struct interest_block *windat);
 static void		interest_adjust_sort_icon_data(struct interest_block *windat, wimp_icon *icon);
+static void		interest_force_window_redraw(struct file_block *file, int from, int to);
+static void		interest_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
 
@@ -373,7 +376,7 @@ void interest_open_window(struct interest_block *instance, acct_t account)
 	windows_open(instance->interest_window);
 	windows_open_nested_as_toolbar(instance->interest_pane, instance->interest_window, INTEREST_TOOLBAR_HEIGHT - 4);
 
-	ihelp_add_window(instance->interest_window , "Interest", NULL /*transact_decode_window_help*/);
+	ihelp_add_window(instance->interest_window , "Interest", interest_decode_window_help);
 	ihelp_add_window(instance->interest_pane , "InterestTB", NULL);
 
 	/* Register event handlers for the two windows. */
@@ -393,9 +396,9 @@ void interest_open_window(struct interest_block *instance, acct_t account)
 //	event_add_window_menu_warning(file->transacts->transaction_window, transact_window_menu_warning_handler);
 //	event_add_window_menu_close(file->transacts->transaction_window, transact_window_menu_close_handler);
 
-//	event_add_window_user_data(instance->interest_pane, instance);
+	event_add_window_user_data(instance->interest_pane, instance);
 //	event_add_window_menu(file->transacts->transaction_pane, transact_window_menu);
-//	event_add_window_mouse_event(file->transacts->transaction_pane, transact_pane_click_handler);
+	event_add_window_mouse_event(instance->interest_pane, interest_pane_click_handler);
 //	event_add_window_menu_prepare(file->transacts->transaction_pane, transact_window_menu_prepare_handler);
 //	event_add_window_menu_selection(file->transacts->transaction_pane, transact_window_menu_selection_handler);
 //	event_add_window_menu_warning(file->transacts->transaction_pane, transact_window_menu_warning_handler);
@@ -465,6 +468,105 @@ static void interest_close_window_handler(wimp_close *close)
 	/* Close the window */
 
 	interest_delete_window(instance, instance->active_account);
+}
+
+
+/**
+ * Process mouse clicks in the interest rate pane.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void interest_pane_click_handler(wimp_pointer *pointer)
+{
+	struct interest_block	*windat;
+	struct file_block	*file;
+	wimp_window_state	window;
+	wimp_icon_state		icon;
+	int			ox;
+
+	windat = event_get_window_user_data(pointer->w);
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	file = windat->file;
+
+	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
+
+	if (pointer->i == INTEREST_PANE_SORT_DIR_ICON)
+		pointer->i = interest_substitute_sort_icon;
+
+	if (pointer->buttons == wimp_CLICK_SELECT) {
+	//	switch (pointer->i) {
+	//	case SORDER_PANE_PARENT:
+	//		transact_bring_window_to_top(windat->file);
+	//		break;
+
+	//	case SORDER_PANE_PRINT:
+	//		sorder_open_print_window(file, pointer, config_opt_read("RememberValues"));
+	//		break;
+
+	//	case SORDER_PANE_ADDSORDER:
+	//		sorder_open_edit_window(file, NULL_SORDER, pointer);
+	//		break;
+
+	//	case SORDER_PANE_SORT:
+	//		sorder_open_sort_window(windat, pointer);
+	//		break;
+	//	}
+	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+	//	switch (pointer->i) {
+	//	case SORDER_PANE_PRINT:
+	//		sorder_open_print_window(file, pointer, !config_opt_read("RememberValues"));
+	//		break;
+
+	//	case SORDER_PANE_SORT:
+	//		sorder_sort(file->sorders);
+	//		break;
+	//	}
+	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
+			pointer->i != wimp_ICON_WINDOW) {
+		window.w = pointer->w;
+		wimp_get_window_state(&window);
+
+		ox = window.visible.x0 - window.xscroll;
+
+		icon.w = pointer->w;
+		icon.i = pointer->i;
+		wimp_get_icon_state(&icon);
+
+		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
+			windat->sort_order = SORT_NONE;
+
+			switch (pointer->i) {
+			case INTEREST_PANE_DATE:
+				windat->sort_order = SORT_DATE;
+				break;
+
+			case INTEREST_PANE_RATE:
+				windat->sort_order = SORT_RATE;
+				break;
+
+			case INTEREST_PANE_DESCRIPTION:
+				windat->sort_order = SORT_DESCRIPTION;
+				break;
+			}
+
+			if (windat->sort_order != SORT_NONE) {
+				if (pointer->buttons == wimp_CLICK_SELECT * 256)
+					windat->sort_order |= SORT_ASCENDING;
+				else
+					windat->sort_order |= SORT_DESCENDING;
+			}
+
+			interest_adjust_sort_icon(windat);
+			windows_redraw(windat->interest_pane);
+	//		sorder_sort(file->sorders);
+		}
+	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
+		column_set_minimum_widths(windat->columns, config_str_read("LimInterestCols"));
+		column_start_drag(windat->columns, pointer, windat, windat->interest_window, interest_adjust_window_columns);
+	}
 }
 
 
@@ -704,6 +806,86 @@ void interest_build_window_title(struct file_block *file)
 }
 
 
+/**
+ * Force the complete redraw of the interest rate window.
+ *
+ * \param *file			The file owning the window to redraw.
+ */
+
+void interest_redraw_all(struct file_block *file)
+{
+	if (file == NULL || file->sorders == NULL)
+		return;
+
+//	interest_force_window_redraw(file, 0, file->interest->sorder_count - 1); \FIXME!!!
+}
+
+
+/**
+ * Force a redraw of the interest rate window, for the given range of lines.
+ *
+ * \param *file			The file owning the window.
+ * \param from			The first line to redraw, inclusive.
+ * \param to			The last line to redraw, inclusive.
+ */
+
+static void interest_force_window_redraw(struct file_block *file, int from, int to)
+{
+	int			y0, y1;
+	wimp_window_info	window;
+
+	if (file == NULL || file->interest == NULL || file->interest->interest_window == NULL)
+		return;
+
+	window.w = file->interest->interest_window;
+	wimp_get_window_info_header_only(&window);
+
+	y1 = WINDOW_ROW_TOP(INTEREST_TOOLBAR_HEIGHT, from);
+	y0 = WINDOW_ROW_BASE(INTEREST_TOOLBAR_HEIGHT, to);
+
+	wimp_force_redraw(file->interest->interest_window, window.extent.x0, y0, window.extent.x1, y1);
+}
+
+
+/**
+ * Turn a mouse position over the interest window into an interactive
+ * help token.
+ *
+ * \param *buffer		A buffer to take the generated token.
+ * \param w			The window under the pointer.
+ * \param i			The icon under the pointer.
+ * \param pos			The current mouse position.
+ * \param buttons		The current mouse button state.
+ */
+
+static void interest_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
+{
+	int			xpos;
+	wimp_i			icon;
+	wimp_window_state	window;
+	struct interest_block	*windat;
+
+	*buffer = '\0';
+
+	windat = event_get_window_user_data(w);
+	if (windat == NULL)
+		return;
+
+	window.w = w;
+	wimp_get_window_state(&window);
+
+	xpos = (pos.x - window.visible.x0) + window.xscroll;
+
+	icon = column_find_icon_from_xpos(windat->columns, xpos);
+	if (icon == wimp_ICON_WINDOW)
+		return;
+
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, interest_window_def->icons[icon].data.indirected_text.validation, 'N')) {
+		snprintf(buffer, IHELP_INAME_LEN, "Col%d", icon);
+		buffer[IHELP_INAME_LEN - 1] = '\0';
+	}
+}
+
 
 /**
  * Return an interest rate for a given account on a given date. Returns
@@ -736,8 +918,6 @@ char *interest_convert_to_string(rate_t rate, char *buffer, size_t length)
 {
 	int	i, places, size;
 	char	*end, conversion[INTEREST_FORMAT_LENGTH];
-
-	debug_printf("Converting %d to 0x%x of length %d", rate, buffer, length);
 
 	if (buffer == NULL || length == 0)
 		return NULL;

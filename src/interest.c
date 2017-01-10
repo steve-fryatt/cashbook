@@ -167,6 +167,7 @@ static void		interest_window_redraw_handler(wimp_draw *redraw);
 static void		interest_adjust_window_columns(void *data, wimp_i group, int width);
 static void		interest_adjust_sort_icon(struct interest_block *windat);
 static void		interest_adjust_sort_icon_data(struct interest_block *windat, wimp_icon *icon);
+static void		interest_set_window_extent(struct interest_block *windat);
 static void		interest_force_window_redraw(struct file_block *file, int from, int to);
 static void		interest_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
@@ -782,6 +783,26 @@ static void interest_adjust_sort_icon_data(struct interest_block *windat, wimp_i
 	column_update_search_indicator(windat->columns, icon, interest_pane_def, interest_substitute_sort_icon, windat->sort_order);
 }
 
+
+/**
+ * Set the extent of the interest rate window for the specified file.
+ *
+ * \param *windat		The interest rate window to update.
+ */
+
+static void interest_set_window_extent(struct interest_block *windat)
+{
+	int	lines;
+
+
+	if (windat == NULL || windat->interest_window == NULL)
+		return;
+
+//	lines = (windat->preset_count > MIN_PRESET_ENTRIES) ? windat->preset_count : MIN_PRESET_ENTRIES;
+	lines = 10;
+
+	window_set_extent(windat->interest_window, lines, INTEREST_TOOLBAR_HEIGHT, column_get_window_width(windat->columns));
+}
 
 /**
  * Recreate the title of the Interest List window connected to the given

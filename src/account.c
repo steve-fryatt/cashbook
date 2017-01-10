@@ -419,7 +419,7 @@ static void			account_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void			account_window_scroll_handler(wimp_scroll *scroll);
 static void			account_window_redraw_handler(wimp_draw *redraw);
 static void			account_adjust_window_columns(void *data, wimp_i icon, int width);
-static void			account_set_window_extent(struct file_block *file, int entry);
+static void			account_set_window_extent(struct account_window *windat);
 static void			account_build_window_title(struct file_block *file, int entry);
 static void			account_force_window_redraw(struct file_block *file, int entry, int from, int to);
 static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
@@ -1335,25 +1335,22 @@ static void account_adjust_window_columns(void *data, wimp_i icon, int width)
 /**
  * Set the extent of an account window for the specified file.
  *
- * \param *file			The file to update.
- * \param entry			The entry of the window to to be updated.
+ * \param *windat		The window to be updated.
  */
 
-static void account_set_window_extent(struct file_block *file, int entry)
+static void account_set_window_extent(struct account_window *windat)
 {
 	int	lines;
 
 	/* Set the extent. */
 
-	if (file == NULL || file->accounts->account_windows[entry].account_window == NULL)
+	if (windat == NULL || windat->account_window == NULL)
 		return;
 
-	lines = (file->accounts->account_windows[entry].display_lines > MIN_ACCOUNT_ENTRIES) ?
-			file->accounts->account_windows[entry].display_lines : MIN_ACCOUNT_ENTRIES;
+	lines = (windat->display_lines > MIN_ACCOUNT_ENTRIES) ? windat->display_lines : MIN_ACCOUNT_ENTRIES;
 
-	window_set_extent(file->accounts->account_windows[entry].account_window, lines,
-			ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2,
-			column_get_window_width(file->accounts->account_windows[entry].columns));
+	window_set_extent(windat->account_window, lines, ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2,
+			column_get_window_width(windat->columns));
 }
 
 
@@ -2828,7 +2825,7 @@ static osbool account_process_section_window(void)
 	/* Tidy up and redraw the windows */
 
 	account_recalculate_all(account_section_owner->file);
-	account_set_window_extent(account_section_owner->file, account_section_entry);
+	account_set_window_extent(account_section_owner->account_windows + account_section_entry);
 	windows_open(account_section_owner->account_windows[account_section_entry].account_window);
 	account_force_window_redraw(account_section_owner->file, account_section_entry,
 			0, account_section_owner->account_windows[account_section_entry].display_lines);
@@ -2861,7 +2858,7 @@ static osbool account_delete_from_section_window(void)
 
 	/* Update the accounts display window. */
 
-	account_set_window_extent(account_section_owner->file, account_section_entry);
+	account_set_window_extent(account_section_owner->account_windows + account_section_entry);
 	windows_open(account_section_owner->account_windows[account_section_entry].account_window);
 	account_force_window_redraw(account_section_owner->file, account_section_entry,
 			0, account_section_owner->account_windows[account_section_entry].display_lines);
@@ -3190,7 +3187,7 @@ static void account_add_to_lists(struct file_block *file, acct_t account)
 
 	/* If the target window is open, change the extent as necessary. */
 
-	account_set_window_extent(file, entry);
+	account_set_window_extent(file->accounts->account_windows + entry);
 }
 
 
@@ -3269,7 +3266,7 @@ osbool account_delete(struct file_block *file, acct_t account)
 			}
 		}
 
-		account_set_window_extent (file, i);
+		account_set_window_extent(file->accounts->account_windows + i);
 		if (file->accounts->account_windows[i].account_window != NULL) {
 			windows_open(file->accounts->account_windows[i].account_window);
 			account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines);

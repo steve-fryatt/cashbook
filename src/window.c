@@ -263,7 +263,7 @@ void window_set_extent(wimp_w window, int lines, int pane_height, int width)
 	 */
 
 	extent.x0 = 0;
-	extent.x1 = width + COLUMN_GUTTER;
+	extent.x1 = width;
 	extent.y0 = new_extent;
 	extent.y1 = 0;
 

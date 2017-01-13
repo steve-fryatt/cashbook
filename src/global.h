@@ -34,7 +34,7 @@
 
 #include "column.h"
 #include "date.h"
-#include "sort.h"
+#include "sort_dialogue.h"
 
 /* ==================================================================================================================
  * Templates and resources.

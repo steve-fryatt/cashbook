@@ -74,7 +74,7 @@
 #include "mainmenu.h"
 #include "printing.h"
 #include "report.h"
-#include "sort.h"
+#include "sort_dialogue.h"
 #include "transact.h"
 #include "window.h"
 
@@ -221,9 +221,9 @@ struct accview_window {
 
 /* Account View Sort Window. */
 
-static struct sort_block	*accview_sort_dialogue = NULL;			/**< The preset window sort dialogue box.			*/
+static struct sort_dialogue_block	*accview_sort_dialogue = NULL;		/**< The preset window sort dialogue box.			*/
 
-static struct sort_icon accview_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
+static struct sort_dialogue_icon accview_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
 	{ACCVIEW_SORT_ROW, SORT_ROW},
 	{ACCVIEW_SORT_DATE, SORT_DATE},
 	{ACCVIEW_SORT_FROMTO, SORT_FROMTO},
@@ -235,7 +235,7 @@ static struct sort_icon accview_sort_columns[] = {				/**< Details of the sort d
 	{0, SORT_NONE}
 };
 
-static struct sort_icon accview_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
+static struct sort_dialogue_icon accview_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
 	{ACCVIEW_SORT_ASCENDING, SORT_ASCENDING},
 	{ACCVIEW_SORT_DESCENDING, SORT_DESCENDING},
 	{0, SORT_NONE}
@@ -308,7 +308,7 @@ void accview_initialise(osspriteop_area *sprites)
 
 	sort_window = templates_create_window("SortAccView");
 	ihelp_add_window(sort_window, "SortAccView", NULL);
-	accview_sort_dialogue = sort_create_dialogue(sort_window, accview_sort_columns, accview_sort_directions,
+	accview_sort_dialogue = sort_dialogue_create(sort_window, accview_sort_columns, accview_sort_directions,
 			ACCVIEW_SORT_OK, ACCVIEW_SORT_CANCEL, accview_process_sort_window);
 
 	accview_window_def = templates_load_window("AccView");
@@ -554,7 +554,7 @@ void accview_delete_window(struct file_block *file, acct_t account)
 	if (view == NULL)
 		return;
 
-	sort_close_dialogue(accview_sort_dialogue, view);
+	sort_dialogue_close(accview_sort_dialogue, view);
 
 	if (view->accview_window != NULL) {
 		ihelp_remove_window(view->accview_window);
@@ -1410,7 +1410,7 @@ static void accview_open_sort_window(struct accview_window *view, wimp_pointer *
 	if (view == NULL || ptr == NULL)
 		return;
 
-	sort_open_dialogue(accview_sort_dialogue, ptr, view->sort_order, view);
+	sort_dialogue_open(accview_sort_dialogue, ptr, view->sort_order, view);
 }
 
 

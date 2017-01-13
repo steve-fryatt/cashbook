@@ -90,7 +90,7 @@
 #include "purge.h"
 #include "report.h"
 #include "sorder.h"
-#include "sort.h"
+#include "sort_dialogue.h"
 #include "transact.h"
 #include "window.h"
 
@@ -315,9 +315,17 @@ static struct edit_callback	transact_edit_callbacks;			/**< Callback details for
 
 /* Transaction Sort Window. */
 
-static struct sort_block	*transact_sort_dialogue = NULL;			/**< The transaction window sort dialogue box.						*/
+/**
+ * The Transaction Window sort dialogue box.
+ */
 
-static struct sort_icon transact_sort_columns[] = {				/**< Details of the sort dialogue column icons.						*/
+static struct sort_dialogue_block *transact_sort_dialogue = NULL;
+
+/**
+ * The column icons used in the sort dialogue.
+ */
+
+static struct sort_dialogue_icon transact_sort_columns[] = {
 	{TRANS_SORT_ROW, SORT_ROW},
 	{TRANS_SORT_DATE, SORT_DATE},
 	{TRANS_SORT_FROM, SORT_FROM},
@@ -328,7 +336,11 @@ static struct sort_icon transact_sort_columns[] = {				/**< Details of the sort 
 	{0, SORT_NONE}
 };
 
-static struct sort_icon transact_sort_directions[] = {				/**< Details of the sort dialogue direction icons.					*/
+/**
+ * The direction icons used in the sort dialogue.
+ */
+
+static struct sort_dialogue_icon transact_sort_directions[] = {				/**< Details of the sort dialogue direction icons.					*/
 	{TRANS_SORT_ASCENDING, SORT_ASCENDING},
 	{TRANS_SORT_DESCENDING, SORT_DESCENDING},
 	{0, SORT_NONE}
@@ -442,7 +454,7 @@ void transact_initialise(osspriteop_area *sprites)
 
 	sort_window = templates_create_window("SortTrans");
 	ihelp_add_window(sort_window, "SortTrans", NULL);
-	transact_sort_dialogue = sort_create_dialogue(sort_window, transact_sort_columns, transact_sort_directions,
+	transact_sort_dialogue = sort_dialogue_create(sort_window, transact_sort_columns, transact_sort_directions,
 			TRANS_SORT_OK, TRANS_SORT_CANCEL, transact_process_sort_window);
 
 	transact_fileinfo_window = templates_create_window("FileInfo");
@@ -717,7 +729,7 @@ static void transact_delete_window(struct transact_block *windat)
 	if (windat == NULL)
 		return;
 
-	sort_close_dialogue(transact_sort_dialogue, windat);
+	sort_dialogue_close(transact_sort_dialogue, windat);
 
 	if (windat->edit_line != NULL) {
 		edit_delete_instance(windat->edit_line);
@@ -4438,7 +4450,7 @@ static void transact_open_sort_window(struct transact_block *windat, wimp_pointe
 	if (windat == NULL || ptr == NULL)
 		return;
 
-	sort_open_dialogue(transact_sort_dialogue, ptr, windat->sort_order, windat);
+	sort_dialogue_open(transact_sort_dialogue, ptr, windat->sort_order, windat);
 }
 
 

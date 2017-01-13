@@ -22,19 +22,19 @@
  */
 
 /**
- * \file: sort.h
+ * \file: sort_dialogue.h
  *
  * Sorting user interface
  */
 
-#ifndef CASHBOOK_SORT
-#define CASHBOOK_SORT
+#ifndef CASHBOOK_SORT_DIALOGUE
+#define CASHBOOK_SORT_DIALOGUE
 
 /**
  * A sort dialogue data handle.
  */
 
-struct sort_block;
+struct sort_dialogue_block;
 
 
 /**
@@ -95,7 +95,7 @@ enum sort_type {
  * sort type definition.
  */
 
-struct sort_icon {
+struct sort_dialogue_icon {
 	wimp_i		icon;				/**< The handle of the icon being defined.			*/
 	enum sort_type	type;				/**< The sort type which applied to the icon.			*/
 };
@@ -113,7 +113,7 @@ struct sort_icon {
  * \return			Pointer to the newly created dialogue handle, or NULL on failure.
  */
 
-struct sort_block *sort_create_dialogue(wimp_w window, struct sort_icon columns[], struct sort_icon directions[], wimp_i ok, wimp_i cancel,
+struct sort_dialogue_block *sort_dialogue_create(wimp_w window, struct sort_dialogue_icon columns[], struct sort_dialogue_icon directions[], wimp_i ok, wimp_i cancel,
 		osbool (*callback)(enum sort_type order, void *data));
 
 
@@ -128,7 +128,7 @@ struct sort_block *sort_create_dialogue(wimp_w window, struct sort_icon columns[
  *				selection callback function.
  */
 
-void sort_open_dialogue(struct sort_block *dialogue, wimp_pointer *ptr, enum sort_type order, void *data);
+void sort_dialogue_open(struct sort_dialogue_block *dialogue, wimp_pointer *ptr, enum sort_type order, void *data);
 
 
 /**
@@ -140,7 +140,6 @@ void sort_open_dialogue(struct sort_block *dialogue, wimp_pointer *ptr, enum sor
  *				data supplied to sort_open_dialogue().
  */
 
-void sort_close_dialogue(struct sort_block *dialogue, void *data);
+void sort_dialogue_close(struct sort_dialogue_block *dialogue, void *data);
 
 #endif
-

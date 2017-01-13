@@ -22,7 +22,7 @@
  */
 
 /**
- * \file: sort.c
+ * \file: sort_dialogue.c
  *
  * Sorting user interface implementation.
  */
@@ -46,7 +46,7 @@
 
 /* Application header files */
 
-#include "sort.h"
+#include "sort_dialogue.h"
 
 #include "caret.h"
 
@@ -54,30 +54,30 @@
  * Sort Window data block
  */
 
-struct sort_block {
+struct sort_dialogue_block {
 	/* Client data. */
 
-	void			*data;						/**< Data belonging to the client for the current instance.	*/
-	enum sort_type		order;						/**< The original sort order displayed in the dialogue.		*/
+	void				*data;						/**< Data belonging to the client for the current instance.	*/
+	enum sort_type			order;						/**< The original sort order displayed in the dialogue.		*/
 
-	osbool			(*callback)(enum sort_type order, void *data);	/**< Callback to receive new sort order details.		*/
+	osbool				(*callback)(enum sort_type order, void *data);	/**< Callback to receive new sort order details.		*/
 
 	/* The sort dialogue handle. */
 
-	wimp_w			window;						/**< The window handle of the sort dialogue.			*/
+	wimp_w				window;						/**< The window handle of the sort dialogue.			*/
 
 	/* The icons in the window. */
 
-	wimp_i			icon_ok;					/**< The handle of the dialogue's OK icon.			*/
-	wimp_i			icon_cancel;					/**< The handle of the dialogue's Cancel icon.			*/
-	struct sort_icon	*columns;					/**< A list of icons relating to the column choices.		*/
-	struct sort_icon	*directions;					/**< A list of icons relating to the direction choices.		*/
+	wimp_i				icon_ok;					/**< The handle of the dialogue's OK icon.			*/
+	wimp_i				icon_cancel;					/**< The handle of the dialogue's Cancel icon.			*/
+	struct sort_dialogue_icon	*columns;					/**< A list of icons relating to the column choices.		*/
+	struct sort_dialogue_icon	*directions;					/**< A list of icons relating to the direction choices.		*/
 };
 
 
-static void sort_fill_dialogue(struct sort_block *dialogue);
-static osbool sort_process_dialogue(struct sort_block *dialogue);
-static void sort_force_close_dialogue(struct sort_block *dialogue);
+static void sort_dialogue_fill(struct sort_dialogue_block *dialogue);
+static osbool sort_dialogue_process(struct sort_dialogue_block *dialogue);
+static void sort_dialogue_force_close(struct sort_dialogue_block *dialogue);
 static void sort_dialogue_click_handler(wimp_pointer *pointer);
 static osbool sort_dialogue_keypress_handler(wimp_key *key);
 
@@ -94,13 +94,13 @@ static osbool sort_dialogue_keypress_handler(wimp_key *key);
  * \return			Pointer to the newly created dialogue handle, or NULL on failure.
  */
 
-struct sort_block *sort_create_dialogue(wimp_w window, struct sort_icon columns[], struct sort_icon directions[], wimp_i ok, wimp_i cancel,
+struct sort_dialogue_block *sort_dialogue_create(wimp_w window, struct sort_dialogue_icon columns[], struct sort_dialogue_icon directions[], wimp_i ok, wimp_i cancel,
 		osbool (*callback)(enum sort_type order, void *data))
 {
-	struct sort_block	*new;
-	int			i;
+	struct sort_dialogue_block	*new;
+	int				i;
 
-	new = malloc(sizeof(struct sort_block));
+	new = malloc(sizeof(struct sort_dialogue_block));
 	if (new == NULL)
 		return NULL;
 
@@ -138,7 +138,7 @@ struct sort_block *sort_create_dialogue(wimp_w window, struct sort_icon columns[
  *				selection callback function.
  */
 
-void sort_open_dialogue(struct sort_block *dialogue, wimp_pointer *ptr, enum sort_type order, void *data)
+void sort_dialogue_open(struct sort_dialogue_block *dialogue, wimp_pointer *ptr, enum sort_type order, void *data)
 {
 	if (dialogue == NULL || ptr == NULL)
 		return;
@@ -149,7 +149,7 @@ void sort_open_dialogue(struct sort_block *dialogue, wimp_pointer *ptr, enum sor
 	dialogue->data = data;
 	dialogue->order = order;
 
-	sort_fill_dialogue(dialogue);
+	sort_dialogue_fill(dialogue);
 
 	windows_open_centred_at_pointer(dialogue->window, ptr);
 	place_dialogue_caret(dialogue->window, wimp_ICON_WINDOW);
@@ -165,13 +165,13 @@ void sort_open_dialogue(struct sort_block *dialogue, wimp_pointer *ptr, enum sor
  *				data supplied to sort_open_dialogue().
  */
 
-void sort_close_dialogue(struct sort_block *dialogue, void *data)
+void sort_dialogue_close(struct sort_dialogue_block *dialogue, void *data)
 {
 	if (dialogue == NULL)
 		return;
 
 	if (data == NULL || dialogue->data == data)
-		sort_force_close_dialogue(dialogue);
+		sort_dialogue_force_close(dialogue);
 }
 
 
@@ -182,7 +182,7 @@ void sort_close_dialogue(struct sort_block *dialogue, void *data)
  * \param *dialogue		The handle of the dialogue to be filled.
  */
 
-static void sort_fill_dialogue(struct sort_block *dialogue)
+static void sort_dialogue_fill(struct sort_dialogue_block *dialogue)
 {
 	int	i;
 
@@ -210,7 +210,7 @@ static void sort_fill_dialogue(struct sort_block *dialogue)
  */
 
 
-static osbool sort_process_dialogue(struct sort_block *dialogue)
+static osbool sort_dialogue_process(struct sort_dialogue_block *dialogue)
 {
 	enum sort_type	order = SORT_NONE;
 	int		i;
@@ -246,7 +246,7 @@ static osbool sort_process_dialogue(struct sort_block *dialogue)
  * \param *dialogue		The handle of the dialogue to close.
  */
 
-static void sort_force_close_dialogue(struct sort_block *dialogue)
+static void sort_dialogue_force_close(struct sort_dialogue_block *dialogue)
 {
 	if (dialogue == NULL)
 		return;
@@ -275,7 +275,7 @@ static void sort_force_close_dialogue(struct sort_block *dialogue)
 
 static void sort_dialogue_click_handler(wimp_pointer *pointer)
 {
-	struct sort_block	*dialogue;
+	struct sort_dialogue_block	*dialogue;
 
 	dialogue = event_get_window_user_data(pointer->w);
 	if (dialogue == NULL)
@@ -283,12 +283,12 @@ static void sort_dialogue_click_handler(wimp_pointer *pointer)
 
 	if (pointer->i == dialogue->icon_cancel) {
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			sort_force_close_dialogue(dialogue);
+			sort_dialogue_force_close(dialogue);
 		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			sort_fill_dialogue(dialogue);
+			sort_dialogue_fill(dialogue);
 	} else if (pointer->i == dialogue->icon_ok) {
-		if (sort_process_dialogue(dialogue) && pointer->buttons == wimp_CLICK_SELECT)
-			sort_force_close_dialogue(dialogue);
+		if (sort_dialogue_process(dialogue) && pointer->buttons == wimp_CLICK_SELECT)
+			sort_dialogue_force_close(dialogue);
 	}
 }
 
@@ -302,7 +302,7 @@ static void sort_dialogue_click_handler(wimp_pointer *pointer)
 
 static osbool sort_dialogue_keypress_handler(wimp_key *key)
 {
-	struct sort_block	*dialogue;
+	struct sort_dialogue_block	*dialogue;
 
 	dialogue = event_get_window_user_data(key->w);
 	if (dialogue == NULL)
@@ -310,12 +310,12 @@ static osbool sort_dialogue_keypress_handler(wimp_key *key)
 
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-		if (sort_process_dialogue(dialogue))
-			sort_force_close_dialogue(dialogue);
+		if (sort_dialogue_process(dialogue))
+			sort_dialogue_force_close(dialogue);
 		break;
 
 	case wimp_KEY_ESCAPE:
-		sort_force_close_dialogue(dialogue);
+		sort_dialogue_force_close(dialogue);
 		break;
 
 	default:
@@ -325,4 +325,3 @@ static osbool sort_dialogue_keypress_handler(wimp_key *key)
 
 	return TRUE;
 }
-

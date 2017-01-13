@@ -75,7 +75,7 @@
 #include "filing.h"
 #include "mainmenu.h"
 #include "printing.h"
-#include "sort.h"
+#include "sort_dialogue.h"
 #include "report.h"
 #include "window.h"
 
@@ -255,9 +255,9 @@ static int			preset_edit_number = -1;			/**< The preset currently being edited.	
 
 /* Preset Sort Window. */
 
-static struct sort_block	*preset_sort_dialogue = NULL;			/**< The preset window sort dialogue box.				*/
+static struct sort_dialogue_block	*preset_sort_dialogue = NULL;		/**< The preset window sort dialogue box.				*/
 
-static struct sort_icon preset_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
+static struct sort_dialogue_icon preset_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
 	{PRESET_SORT_FROM, SORT_FROM},
 	{PRESET_SORT_TO, SORT_TO},
 	{PRESET_SORT_AMOUNT, SORT_AMOUNT},
@@ -267,7 +267,7 @@ static struct sort_icon preset_sort_columns[] = {				/**< Details of the sort di
 	{0, SORT_NONE}
 };
 
-static struct sort_icon preset_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
+static struct sort_dialogue_icon preset_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
 	{PRESET_SORT_ASCENDING, SORT_ASCENDING},
 	{PRESET_SORT_DESCENDING, SORT_DESCENDING},
 	{0, SORT_NONE}
@@ -363,7 +363,7 @@ void preset_initialise(osspriteop_area *sprites)
 
 	sort_window = templates_create_window("SortPreset");
 	ihelp_add_window(sort_window, "SortPreset", NULL);
-	preset_sort_dialogue = sort_create_dialogue(sort_window, preset_sort_columns, preset_sort_directions,
+	preset_sort_dialogue = sort_dialogue_create(sort_window, preset_sort_columns, preset_sort_directions,
 			PRESET_SORT_OK, PRESET_SORT_CANCEL, preset_process_sort_window);
 
 	preset_window_def = templates_load_window("Preset");
@@ -579,7 +579,7 @@ static void preset_delete_window(struct preset_block *windat)
 	if (windat == NULL)
 		return;
 
-	sort_close_dialogue(preset_sort_dialogue, windat);
+	sort_dialogue_close(preset_sort_dialogue, windat);
 
 	if (preset_edit_owner == windat && windows_get_open(preset_edit_window))
 		close_dialogue_with_caret(preset_edit_window);
@@ -1659,7 +1659,7 @@ static void preset_open_sort_window(struct preset_block *windat, wimp_pointer *p
 	if (windat == NULL || ptr == NULL)
 		return;
 
-	sort_open_dialogue(preset_sort_dialogue, ptr, windat->sort_order, windat);
+	sort_dialogue_open(preset_sort_dialogue, ptr, windat->sort_order, windat);
 }
 
 

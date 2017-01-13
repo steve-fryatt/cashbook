@@ -79,7 +79,7 @@
 #include "filing.h"
 #include "mainmenu.h"
 #include "printing.h"
-#include "sort.h"
+#include "sort_dialogue.h"
 #include "report.h"
 #include "transact.h"
 #include "window.h"
@@ -264,9 +264,9 @@ static int			sorder_edit_number = -1;			/**< The standing order currently being 
 
 /* Standing Order Sort Window. */
 
-static struct sort_block	*sorder_sort_dialogue = NULL;			/**< The standing order window sort dialogue box.			*/
+static struct sort_dialogue_block	*sorder_sort_dialogue = NULL;		/**< The standing order window sort dialogue box.			*/
 
-static struct sort_icon sorder_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
+static struct sort_dialogue_icon sorder_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
 	{SORDER_SORT_FROM, SORT_FROM},
 	{SORDER_SORT_TO, SORT_TO},
 	{SORDER_SORT_AMOUNT, SORT_AMOUNT},
@@ -276,7 +276,7 @@ static struct sort_icon sorder_sort_columns[] = {				/**< Details of the sort di
 	{0, SORT_NONE}
 };
 
-static struct sort_icon sorder_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
+static struct sort_dialogue_icon sorder_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
 	{SORDER_SORT_ASCENDING, SORT_ASCENDING},
 	{SORDER_SORT_DESCENDING, SORT_DESCENDING},
 	{0, SORT_NONE}
@@ -361,7 +361,7 @@ void sorder_initialise(osspriteop_area *sprites)
 
 	sort_window = templates_create_window("SortSOrder");
 	ihelp_add_window(sort_window, "SortSOrder", NULL);
-	sorder_sort_dialogue = sort_create_dialogue(sort_window, sorder_sort_columns, sorder_sort_directions,
+	sorder_sort_dialogue = sort_dialogue_create(sort_window, sorder_sort_columns, sorder_sort_directions,
 			SORDER_SORT_OK, SORDER_SORT_CANCEL, sorder_process_sort_window);
 
 	sorder_window_def = templates_load_window("SOrder");
@@ -575,7 +575,7 @@ static void sorder_delete_window(struct sorder_block *windat)
 	if (windat == NULL)
 		return;
 
-	sort_close_dialogue(sorder_sort_dialogue, windat);
+	sort_dialogue_close(sorder_sort_dialogue, windat);
 
 	if (sorder_edit_owner == windat && windows_get_open(sorder_edit_window))
 		close_dialogue_with_caret(sorder_edit_window);
@@ -1803,7 +1803,7 @@ static void sorder_open_sort_window(struct sorder_block *windat, wimp_pointer *p
 	if (windat == NULL || ptr == NULL)
 		return;
 
-	sort_open_dialogue(sorder_sort_dialogue, ptr, windat->sort_order, windat);
+	sort_dialogue_open(sorder_sort_dialogue, ptr, windat->sort_order, windat);
 }
 
 

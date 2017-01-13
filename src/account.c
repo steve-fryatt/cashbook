@@ -549,7 +549,7 @@ struct account_block *account_create_instance(struct file_block *file)
 		new->account_windows[i].account_footer = NULL;
 		new->account_windows[i].columns = NULL;
 
-		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS, account_columns, account_extra_columns);
+		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS, account_columns, account_extra_columns, wimp_ICON_WINDOW);
 		if (new->account_windows[i].columns == NULL)
 			mem_fail = TRUE;
 

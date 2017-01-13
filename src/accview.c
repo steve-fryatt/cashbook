@@ -252,7 +252,6 @@ static wimp_window		*accview_window_def = NULL;			/**< The definition for the Ac
 static wimp_window		*accview_pane_def = NULL;			/**< The definition for the Account View Window pane.			*/
 static wimp_menu		*accview_window_menu = NULL;			/**< The Account View Window menu handle.				*/
 static int			accview_window_menu_line = -1;			/**< The line over which the Account View Window Menu was opened.	*/
-static wimp_i			accview_substitute_sort_icon = ACCVIEW_PANE_DATE;/**< The icon currently obscured by the sort icon.			*/
 
 /* SaveAs Dialogue Handles. */
 
@@ -346,7 +345,7 @@ struct accview_block *accview_create_instance(struct file_block *file)
 	new->file = file;
 	new->columns = NULL;
 
-	new->columns = column_create_instance(ACCVIEW_COLUMNS, accview_columns, NULL);
+	new->columns = column_create_instance(ACCVIEW_COLUMNS, accview_columns, NULL, ACCVIEW_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
 		accview_delete_instance(new);
 		return NULL;
@@ -716,8 +715,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
-	if (pointer->i == ACCVIEW_PANE_SORT_DIR_ICON)
-		pointer->i = accview_substitute_sort_icon;
+	column_update_heading_icon_click(windat->columns, pointer);
 
 	/* Decode the mouse click. */
 
@@ -1246,37 +1244,40 @@ static void accview_adjust_sort_icon(struct accview_window *view)
 
 static void accview_adjust_sort_icon_data(struct accview_window *view, wimp_icon *icon)
 {
+	wimp_i	heading = wimp_ICON_WINDOW;
+
 	if (view == NULL)
 		return;
 
 	switch (view->sort_order & SORT_MASK) {
 	case SORT_ROW:
-		accview_substitute_sort_icon = ACCVIEW_PANE_ROW;
+		heading = ACCVIEW_PANE_ROW;
 		break;
 	case SORT_DATE:
-		accview_substitute_sort_icon = ACCVIEW_PANE_DATE;
+		heading = ACCVIEW_PANE_DATE;
 		break;
 	case SORT_FROMTO:
-		accview_substitute_sort_icon = ACCVIEW_PANE_FROMTO;
+		heading = ACCVIEW_PANE_FROMTO;
 		break;
 	case SORT_REFERENCE:
-		accview_substitute_sort_icon = ACCVIEW_PANE_REFERENCE;
+		heading = ACCVIEW_PANE_REFERENCE;
 		break;
 	case SORT_PAYMENTS:
-		accview_substitute_sort_icon = ACCVIEW_PANE_PAYMENTS;
+		heading = ACCVIEW_PANE_PAYMENTS;
 		break;
 	case SORT_RECEIPTS:
-		accview_substitute_sort_icon = ACCVIEW_PANE_RECEIPTS;
+		heading = ACCVIEW_PANE_RECEIPTS;
 		break;
 	case SORT_BALANCE:
-		accview_substitute_sort_icon = ACCVIEW_PANE_BALANCE;
+		heading = ACCVIEW_PANE_BALANCE;
 		break;
 	case SORT_DESCRIPTION:
-		accview_substitute_sort_icon = ACCVIEW_PANE_DESCRIPTION;
+		heading = ACCVIEW_PANE_DESCRIPTION;
 		break;
 	}
 
-	column_update_search_indicator(view->columns, icon, accview_pane_def, accview_substitute_sort_icon, view->sort_order);
+	if (heading != wimp_ICON_WINDOW)
+		column_update_sort_indicator(view->columns, icon, accview_pane_def, heading, view->sort_order);
 }
 
 

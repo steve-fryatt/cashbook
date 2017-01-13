@@ -123,7 +123,6 @@ static wimp_window		*interest_pane_def = NULL;			/**< The definition for the Int
 static wimp_window		*interest_foot_def = NULL;			/**< The definition for the Interest Rate List Footer pane.		*/
 static wimp_menu		*interest_window_menu = NULL;			/**< The Interest Rate List Window menu handle.				*/
 static int			interest_window_menu_line = -1;			/**< The line over which the Interest Rate List Window Menu was opened.	*/
-static wimp_i			interest_substitute_sort_icon = INTEREST_PANE_DATE;	/**< The icon currently obscured by the sort icon.			*/
 
 
 static int			interest_decimal_places = 0;			/**< The number of decimal places with which to show interest amounts.	*/
@@ -221,7 +220,7 @@ struct interest_block *interest_create_instance(struct file_block *file)
 	new->interest_pane = NULL;
 	new->columns = NULL;
 
-	new-> columns = column_create_instance(INTEREST_COLUMNS, interest_columns, NULL);
+	new-> columns = column_create_instance(INTEREST_COLUMNS, interest_columns, NULL, wimp_ICON_WINDOW);
 	if (new->columns == NULL) {
 		interest_delete_instance(new);
 		return NULL;
@@ -494,8 +493,7 @@ static void interest_pane_click_handler(wimp_pointer *pointer)
 
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
-	if (pointer->i == INTEREST_PANE_SORT_DIR_ICON)
-		pointer->i = interest_substitute_sort_icon;
+	column_update_heading_icon_click(windat->columns, pointer);
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 	//	switch (pointer->i) {
@@ -765,22 +763,25 @@ static void interest_adjust_sort_icon(struct interest_block *windat)
 
 static void interest_adjust_sort_icon_data(struct interest_block *windat, wimp_icon *icon)
 {
+	wimp_i	heading = wimp_ICON_WINDOW;
+
 	if (windat == NULL)
 		return;
 
 	switch (windat->sort_order & SORT_MASK) {
 	case SORT_DATE:
-		interest_substitute_sort_icon = INTEREST_PANE_DATE;
+		heading = INTEREST_PANE_DATE;
 		break;
 	case SORT_RATE:
-		interest_substitute_sort_icon = INTEREST_PANE_RATE;
+		heading = INTEREST_PANE_RATE;
 		break;
 	case SORT_DESCRIPTION:
-		interest_substitute_sort_icon = INTEREST_PANE_DESCRIPTION;
+		heading = INTEREST_PANE_DESCRIPTION;
 		break;
 	}
 
-	column_update_search_indicator(windat->columns, icon, interest_pane_def, interest_substitute_sort_icon, windat->sort_order);
+	if (heading != wimp_ICON_WINDOW)
+		column_update_sort_indicator(windat->columns, icon, interest_pane_def, heading, windat->sort_order);
 }
 
 

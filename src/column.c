@@ -69,6 +69,9 @@ struct column_block {
 	int			*position;				/**< The positions of the individual columns from the left hand edge of the window, in OS units.	*/
 	int			*width;					/**< The widths of the individual columns, in OS units.							*/
 	int			*minimum_width;				/**< The minimum widths of individual columns, in OS units.						*/
+
+	wimp_i			sort_heading;				/**< The column heading icon which is currently obscured by the sort indicator.				*/
+	wimp_i			sort_indicator;				/**< The icon which is used to display the sort indicator.						*/
 };
 
 static void		*column_drag_data;					/**< Client-specific data for the drag.				*/
@@ -90,10 +93,11 @@ static int		column_get_rightmost_in_footer_group(struct column_block *instance, 
  * \param columns		The number of columns to be defined.
  * \param *map			Pointer to the column icon map.
  * \param *extra		Pointer to the extra icon list, or NULL for none.
+ * \param sort_indicator	The icon used to display the sort order in the column headings.
  * \return			Pointer to the instance, or NULL on failure.
  */
 
-struct column_block *column_create_instance(size_t columns, struct column_map *map, struct column_extra *extra)
+struct column_block *column_create_instance(size_t columns, struct column_map *map, struct column_extra *extra, wimp_i sort_indicator)
 {
 	void			*mem;
 	struct column_block	*new;
@@ -117,6 +121,9 @@ struct column_block *column_create_instance(size_t columns, struct column_map *m
 	new->width = mem + (columns * sizeof(int));
 	new->minimum_width = mem + (2 * columns * sizeof(int));
 
+	new->sort_indicator = sort_indicator;
+	new->sort_heading = wimp_ICON_WINDOW;
+
 	return new;
 }
 
@@ -135,7 +142,7 @@ struct column_block *column_clone_instance(struct column_block *instance)
 	if (instance == NULL)
 		return NULL;
 
-	new = column_create_instance(instance->columns, instance->map, instance->extra);
+	new = column_create_instance(instance->columns, instance->map, instance->extra, instance->sort_indicator);
 	if (new == NULL)
 		return NULL;
 
@@ -748,7 +755,7 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
  * \param sort_order		The sort details for the table.
  */
 
-void column_update_search_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window, wimp_i heading, enum sort_type sort_order)
+void column_update_sort_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window, wimp_i heading, enum sort_type sort_order)
 {
 	int		column, anchor, width;
 	char		*sprite;
@@ -756,6 +763,8 @@ void column_update_search_indicator(struct column_block *instance, wimp_icon *in
 
 	if (instance == NULL || indicator == NULL || window == NULL)
 		return;
+
+	instance->sort_heading = heading;
 
 	/* Update the sort icon sprite name. As this is a sprite name, there's
 	 * no need to forcibly terminate the string on a buffer overrun, as the
@@ -791,6 +800,25 @@ void column_update_search_indicator(struct column_block *instance, wimp_icon *in
 		indicator->extent.x1 = anchor - COLUMN_SORT_OFFSET;
 		indicator->extent.x0 = indicator->extent.x1 - width;
 	}
+}
+
+
+/**
+ * Process clicks on the window containing the column headings, so that
+ * if the icon under the pointer is the sort indicator, it reflects the
+ * icon beneath this.
+ * 
+ * \param *instance		The column instance to use.
+ * \param *pointer		Pointer to the pointer data returned by the Wimp.
+ */
+ 
+void column_update_heading_icon_click(struct column_block *instance, wimp_pointer *pointer)
+{
+	if (instance == NULL || pointer == NULL)
+		return;
+
+	if (pointer->i == instance->sort_indicator)
+		pointer->i = instance->sort_heading;
 }
 
 

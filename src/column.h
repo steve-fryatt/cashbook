@@ -80,10 +80,11 @@ struct column_block;
  * \param columns		The number of columns to be defined.
  * \param *map			Pointer to the column icon map.
  * \param *extra		Pointer to the extra icon list, or NULL for none.
+ * \param sort_indicator	The icon used to display the sort order in the column headings.
  * \return			Pointer to the instance, or NULL on failure.
  */
 
-struct column_block *column_create_instance(size_t columns, struct column_map *map, struct column_extra *extra);
+struct column_block *column_create_instance(size_t columns, struct column_map *map, struct column_extra *extra, wimp_i sort_indicator);
 
 
 /**
@@ -276,8 +277,19 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
  * \param sort_order		The sort details for the table.
  */
 
-void column_update_search_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window, wimp_i heading, enum sort_type sort_order);
+void column_update_sort_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window, wimp_i heading, enum sort_type sort_order);
 
+
+/**
+ * Process clicks on the window containing the column headings, so that
+ * if the icon under the pointer is the sort indicator, it reflects the
+ * icon beneath this.
+ * 
+ * \param *instance		The column instance to use.
+ * \param *pointer		Pointer to the pointer data returned by the Wimp.
+ */
+ 
+void column_update_heading_icon_click(struct column_block *instance, wimp_pointer *pointer);
 
 /**
  * Find the minimum and maximum horizontal positions of a field's icon, reporting

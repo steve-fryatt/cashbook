@@ -283,7 +283,6 @@ static wimp_window		*preset_window_def = NULL;			/**< The definition for the Pre
 static wimp_window		*preset_pane_def = NULL;			/**< The definition for the Preset Window pane.				*/
 static wimp_menu		*preset_window_menu = NULL;			/**< The Preset Window menu handle.					*/
 static int			preset_window_menu_line = -1;			/**< The line over which the Preset Window Menu was opened.		*/
-static wimp_i			preset_substitute_sort_icon = PRESET_PANE_FROM;	/**< The icon currently obscured by the sort icon.			*/
 
 /* Preset Shortcut Menu. */
 
@@ -405,7 +404,7 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	new->preset_pane = NULL;
 	new->columns = NULL;
 
-	new-> columns = column_create_instance(PRESET_COLUMNS, preset_columns, NULL);
+	new-> columns = column_create_instance(PRESET_COLUMNS, preset_columns, NULL, PRESET_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
 		preset_delete_instance(new);
 		return NULL;
@@ -677,8 +676,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
-	if (pointer->i == PRESET_PANE_SORT_DIR_ICON)
-		pointer->i = preset_substitute_sort_icon;
+	column_update_heading_icon_click(windat->columns, pointer);
 
 	/* Process toolbar clicks and column heading drags. */
 
@@ -1085,31 +1083,34 @@ static void preset_adjust_sort_icon(struct preset_block *windat)
 
 static void preset_adjust_sort_icon_data(struct preset_block *windat, wimp_icon *icon)
 {
+	wimp_i	heading = wimp_ICON_WINDOW;
+
 	if (windat == NULL)
 		return;
 
 	switch (windat->sort_order & SORT_MASK) {
 	case SORT_CHAR:
-		preset_substitute_sort_icon = PRESET_PANE_KEY;
+		heading = PRESET_PANE_KEY;
 		break;
 	case SORT_NAME:
-		preset_substitute_sort_icon = PRESET_PANE_NAME;
+		heading = PRESET_PANE_NAME;
 		break;
 	case SORT_FROM:
-		preset_substitute_sort_icon = PRESET_PANE_FROM;
+		heading = PRESET_PANE_FROM;
 		break;
 	case SORT_TO:
-		preset_substitute_sort_icon = PRESET_PANE_TO;
+		heading = PRESET_PANE_TO;
 		break;
 	case SORT_AMOUNT:
-		preset_substitute_sort_icon = PRESET_PANE_AMOUNT;
+		heading = PRESET_PANE_AMOUNT;
 		break;
 	case SORT_DESCRIPTION:
-		preset_substitute_sort_icon = PRESET_PANE_DESCRIPTION;
+		heading = PRESET_PANE_DESCRIPTION;
 		break;
 	}
 
-	column_update_search_indicator(windat->columns, icon, preset_pane_def, preset_substitute_sort_icon, windat->sort_order);
+	if (heading != wimp_ICON_WINDOW)
+		column_update_sort_indicator(windat->columns, icon, preset_pane_def, heading, windat->sort_order);
 }
 
 

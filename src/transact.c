@@ -308,7 +308,6 @@ struct transact_list_link {
 
 
 static int    new_transaction_window_offset = 0;
-static wimp_i transaction_pane_sort_substitute_icon = TRANSACT_PANE_DATE;
 
 /* Transaction Window. */
 
@@ -502,7 +501,7 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->edit_line = NULL;
 	new->columns = NULL;
 
-	new->columns = column_create_instance(TRANSACT_COLUMNS, transact_columns, NULL);
+	new->columns = column_create_instance(TRANSACT_COLUMNS, transact_columns, NULL, TRANSACT_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
 		transact_delete_instance(new);
 		return NULL;
@@ -961,8 +960,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
-	if (pointer->i == TRANSACT_PANE_SORT_DIR_ICON)
-		pointer->i = transaction_pane_sort_substitute_icon;
+	column_update_heading_icon_click(windat->columns, pointer);
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
@@ -1837,34 +1835,37 @@ static void transact_adjust_sort_icon(struct transact_block *windat)
 
 static void transact_adjust_sort_icon_data(struct transact_block *windat, wimp_icon *icon)
 {
+	wimp_i	heading = wimp_ICON_WINDOW;
+
 	if (windat == NULL)
 		return;
 
 	switch (windat->sort_order & SORT_MASK) {
 	case SORT_ROW:
-		transaction_pane_sort_substitute_icon = TRANSACT_PANE_ROW;
+		heading = TRANSACT_PANE_ROW;
 		break;
 	case SORT_DATE:
-		transaction_pane_sort_substitute_icon = TRANSACT_PANE_DATE;
+		heading = TRANSACT_PANE_DATE;
 		break;
 	case SORT_FROM:
-		transaction_pane_sort_substitute_icon = TRANSACT_PANE_FROM;
+		heading = TRANSACT_PANE_FROM;
 		break;
 	case SORT_TO:
-		transaction_pane_sort_substitute_icon = TRANSACT_PANE_TO;
+		heading = TRANSACT_PANE_TO;
 		break;
 	case SORT_REFERENCE:
-		transaction_pane_sort_substitute_icon = TRANSACT_PANE_REFERENCE;
+		heading = TRANSACT_PANE_REFERENCE;
 		break;
 	case SORT_AMOUNT:
-		transaction_pane_sort_substitute_icon = TRANSACT_PANE_AMOUNT;
+		heading = TRANSACT_PANE_AMOUNT;
 		break;
 	case SORT_DESCRIPTION:
-		transaction_pane_sort_substitute_icon = TRANSACT_PANE_DESCRIPTION;
+		heading = TRANSACT_PANE_DESCRIPTION;
 		break;
 	}
 
-	column_update_search_indicator(windat->columns, icon, transact_pane_def, transaction_pane_sort_substitute_icon, windat->sort_order);
+	if (heading != wimp_ICON_WINDOW)
+		column_update_sort_indicator(windat->columns, icon, transact_pane_def, heading, windat->sort_order);
 }
 
 

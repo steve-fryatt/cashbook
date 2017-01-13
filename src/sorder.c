@@ -292,7 +292,6 @@ static wimp_window		*sorder_window_def = NULL;			/**< The definition for the Sta
 static wimp_window		*sorder_pane_def = NULL;			/**< The definition for the Standing Order Window pane.			*/
 static wimp_menu		*sorder_window_menu = NULL;			/**< The Standing Order Window menu handle.				*/
 static int			sorder_window_menu_line = -1;			/**< The line over which the Standing Order Window Menu was opened.	*/
-static wimp_i			sorder_substitute_sort_icon = SORDER_PANE_FROM;	/**< The icon currently obscured by the sort icon.			*/
 
 /* SaveAs Dialogue Handles. */
 
@@ -402,7 +401,7 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	new->sorder_pane = NULL;
 	new->columns = NULL;
 
-	new-> columns = column_create_instance(SORDER_COLUMNS, sorder_columns, NULL);
+	new-> columns = column_create_instance(SORDER_COLUMNS, sorder_columns, NULL, SORDER_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
 		sorder_delete_instance(new);
 		return NULL;
@@ -673,8 +672,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
-	if (pointer->i == SORDER_PANE_SORT_DIR_ICON)
-		pointer->i = sorder_substitute_sort_icon;
+	column_update_heading_icon_click(windat->columns, pointer);
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
@@ -1082,31 +1080,34 @@ static void sorder_adjust_sort_icon(struct sorder_block *windat)
 
 static void sorder_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon *icon)
 {
+	wimp_i	heading = wimp_ICON_WINDOW;
+
 	if (windat == NULL)
 		return;
 
 	switch (windat->sort_order & SORT_MASK) {
 	case SORT_FROM:
-		sorder_substitute_sort_icon = SORDER_PANE_FROM;
+		heading = SORDER_PANE_FROM;
 		break;
 	case SORT_TO:
-		sorder_substitute_sort_icon = SORDER_PANE_TO;
+		heading = SORDER_PANE_TO;
 		break;
 	case SORT_AMOUNT:
-		sorder_substitute_sort_icon = SORDER_PANE_AMOUNT;
+		heading = SORDER_PANE_AMOUNT;
 		break;
 	case SORT_DESCRIPTION:
-		sorder_substitute_sort_icon = SORDER_PANE_DESCRIPTION;
+		heading = SORDER_PANE_DESCRIPTION;
 		break;
 	case SORT_NEXTDATE:
-		sorder_substitute_sort_icon = SORDER_PANE_NEXTDATE;
+		heading = SORDER_PANE_NEXTDATE;
 		break;
 	case SORT_LEFT:
-		sorder_substitute_sort_icon = SORDER_PANE_LEFT;
+		heading = SORDER_PANE_LEFT;
 		break;
 	}
 
-	column_update_search_indicator(windat->columns, icon, sorder_pane_def, sorder_substitute_sort_icon, windat->sort_order);
+	if (heading != wimp_ICON_WINDOW)
+		column_update_sort_indicator(windat->columns, icon, sorder_pane_def, heading, windat->sort_order);
 }
 
 

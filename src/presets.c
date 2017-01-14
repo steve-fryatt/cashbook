@@ -419,7 +419,7 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimPresetCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("PresetCols"));
 
-	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING);
+	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING, NULL, new);
 	if (new->sort == NULL) {
 		preset_delete_instance(new);
 		return NULL;

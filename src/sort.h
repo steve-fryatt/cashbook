@@ -91,13 +91,34 @@ enum sort_type {
 
 
 /**
+ * A set of callbacks which clients must either supply or set to NULL. These
+ * will be used by the edit line to communicate with the client.
+ */
+
+struct sort_callback {
+	/**
+	 * Request the client compare the data at two indexes.
+	 * 
+	 * \param *transfer		Pointer to the data transfer structure to take the data.
+	 * \return			TRUE if data was returned; FALSE if not.
+	 */
+
+	int			(*compare)(enum sort_type type, int index1, int index2, void *data);
+
+	void			(*swap)(int index1, int index2, void *data);
+};
+
+
+/**
  * Create a new Sort instance.
  *
  * \param type			The initial sort type data for the instance.
+ * \param *callback		Pointer to the client-supplied sort callbacks.
+ * \param *data			Pointer to the client data to be returned on all callbacks.
  * \return			Pointer to the newly created instance, or NULL on failure.
  */
 
-struct sort_block *sort_create_instance(enum sort_type type);
+struct sort_block *sort_create_instance(enum sort_type type, struct sort_callback *callback, void *data);
 
 
 /**
@@ -107,5 +128,11 @@ struct sort_block *sort_create_instance(enum sort_type type);
  */
 
 void sort_delete_instance(struct sort_block *instance);
+
+void sort_set_order(struct sort_block *instance, enum sort_type order);
+
+enum sort_type sort_get_order(struct sort_block *instance);
+
+void sort_process(struct sort_block *instance, size_t items);
 
 #endif

@@ -416,7 +416,7 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimSOrderCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("SOrderCols"));
 
-	new->sort = sort_create_instance(SORT_NEXTDATE | SORT_DESCENDING);
+	new->sort = sort_create_instance(SORT_NEXTDATE | SORT_DESCENDING, NULL, new);
 	if (new->sort == NULL) {
 		sorder_delete_instance(new);
 		return NULL;

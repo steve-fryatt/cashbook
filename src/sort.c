@@ -51,6 +51,14 @@
 
 struct sort_block {
 	enum sort_type		type;					/**< The sort settings for the instance			*/
+
+	/**
+	 * The client callbacks and their associated data
+	 */
+
+	struct sort_callback	*callback;
+
+	void			*data;
 };
 
 
@@ -58,10 +66,12 @@ struct sort_block {
  * Create a new Sort instance.
  *
  * \param type			The initial sort type data for the instance.
+ * \param *callback		Pointer to the client-supplied sort callbacks.
+ * \param *data			Pointer to the client data to be returned on all callbacks.
  * \return			Pointer to the newly created instance, or NULL on failure.
  */
 
-struct sort_block *sort_create_instance(enum sort_type type)
+struct sort_block *sort_create_instance(enum sort_type type, struct sort_callback *callback, void *data)
 {
 	struct sort_block	*new;
 
@@ -70,6 +80,8 @@ struct sort_block *sort_create_instance(enum sort_type type)
 		return NULL;
 
 	new->type = type;
+	new->callback = callback;
+	new->data = data;
 
 	return new;
 }
@@ -87,4 +99,55 @@ void sort_delete_instance(struct sort_block *instance)
 		return;
 
 	heap_free(instance);
+}
+
+
+void sort_set_order(struct sort_block *instance, enum sort_type order)
+{
+	if (instance == NULL)
+		return;
+
+	instance->type = order;
+}
+
+enum sort_type sort_get_order(struct sort_block *instance)
+{
+	if (instance == NULL)
+		return SORT_NONE;
+
+	return instance->type;
+}
+
+void sort_process(struct sort_block *instance, size_t items)
+{
+	int		gap, comb, result;
+	osbool		sorted;
+	enum sort_type	order;
+
+	if (instance == NULL || instance->callback == NULL || instance->callback->compare == NULL || instance->callback->swap == NULL)
+		return;
+
+	/* Sort the entries using a combsort.  This has the advantage over qsort() that the order of entries is only
+	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
+	 */
+
+	gap = items - 1;
+
+	order = instance->type & SORT_MASK;
+
+	do {
+		gap = (gap > 1) ? (gap * 10 / 13) : 1;
+		if ((items >= 12) && (gap == 9 || gap == 10))
+			gap = 11;
+
+		sorted = TRUE;
+		for (comb = 0; (comb + gap) < items; comb++) {
+			result = instance->callback->compare(order, comb, comb + gap, instance->data);
+
+			if (((instance->type & SORT_DESCENDING) && (result < 0)) || ((instance->type & SORT_ASCENDING) && (result > 0))) {
+				instance->callback->swap(comb + gap, comb, instance->data);
+				sorted = FALSE;
+			}
+		}
+	} while (!sorted || gap != 1);
 }

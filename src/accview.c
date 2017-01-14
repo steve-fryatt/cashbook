@@ -444,7 +444,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 	height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ?
 			view->display_lines : MIN_ACCVIEW_ENTRIES;
 
-	view->sort = sort_create_instance(file->accviews->sort_order);
+	view->sort = sort_create_instance(file->accviews->sort_order, NULL, view);
 
 	view->sort_order = file->accviews->sort_order;
 

@@ -281,7 +281,6 @@ struct transact_block {
 	/* Other window information. */
 
 	int			display_lines;					/**< How many lines the current work area is formatted to display. */
-	enum sort_type		sort_order;					/**< The order in which the window is sorted. */
 
 	/* Transaction Data. */
 
@@ -349,6 +348,10 @@ static struct sort_dialogue_icon transact_sort_directions[] = {				/**< Details 
 	{TRANS_SORT_DESCENDING, SORT_DESCENDING},
 	{0, SORT_NONE}
 };
+
+/* Transaction sorting. */
+
+static struct sort_callback	transact_sort_callbacks;
 
 /* Transaction Print Window. */
 
@@ -426,6 +429,10 @@ static wimp_colour		transact_line_colour(struct transact_block *windat, int line
 
 static void			transact_open_sort_window(struct transact_block *windat, wimp_pointer *ptr);
 static osbool			transact_process_sort_window(enum sort_type order, void *data);
+
+static int			transact_sort_compare(enum sort_type type, int index1, int index2, void *data);
+static void			transact_sort_swap(int index1, int index2, void *data);
+
 static void			transact_open_print_window(struct file_block *file, wimp_pointer *ptr, int clear);
 static void			transact_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
 
@@ -490,6 +497,9 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_edit_callbacks.auto_sort = transact_edit_auto_sort;
 	transact_edit_callbacks.auto_complete = transact_edit_auto_complete;
 	transact_edit_callbacks.insert_preset = transact_edit_insert_preset;
+
+	transact_sort_callbacks.compare = transact_sort_compare;
+	transact_sort_callbacks.swap = transact_sort_swap;
 }
 
 
@@ -527,9 +537,7 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimTransactCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("TransactCols"));
 
-	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING);
-
-	new->sort_order = SORT_DATE | SORT_ASCENDING;
+	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, &transact_sort_callbacks, new);
 
 	/* Initialise the transaction data. */
 
@@ -970,6 +978,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 	wimp_icon_state		icon;
 	int			ox;
 	char			*filename;
+	enum sort_type		direction;
 
 
 	windat = event_get_window_user_data(pointer->w);
@@ -1094,43 +1103,36 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			windat->sort_order = SORT_NONE;
+			direction = (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
 			switch (pointer->i) {
 			case TRANSACT_PANE_ROW:
-				windat->sort_order = SORT_ROW;
+				sort_set_order(windat->sort, SORT_ROW | direction);
 				break;
 
 			case TRANSACT_PANE_DATE:
-				windat->sort_order = SORT_DATE;
+				sort_set_order(windat->sort, SORT_DATE | direction);
 				break;
 
 			case TRANSACT_PANE_FROM:
-				windat->sort_order = SORT_FROM;
+				sort_set_order(windat->sort, SORT_FROM | direction);
 				break;
 
 			case TRANSACT_PANE_TO:
-				windat->sort_order = SORT_TO;
+				sort_set_order(windat->sort, SORT_TO | direction);
 				break;
 
 			case TRANSACT_PANE_REFERENCE:
-				windat->sort_order = SORT_REFERENCE;
+				sort_set_order(windat->sort, SORT_REFERENCE | direction);
 				break;
 
 			case TRANSACT_PANE_AMOUNT:
-				windat->sort_order = SORT_AMOUNT;
+				sort_set_order(windat->sort, SORT_AMOUNT | direction);
 				break;
 
 			case TRANSACT_PANE_DESCRIPTION:
-				windat->sort_order = SORT_DESCRIPTION;
+				sort_set_order(windat->sort, SORT_DESCRIPTION | direction);
 				break;
-			}
-
-			if (windat->sort_order != SORT_NONE) {
-				if (pointer->buttons == wimp_CLICK_SELECT * 256)
-					windat->sort_order |= SORT_ASCENDING;
-				else
-					windat->sort_order |= SORT_DESCENDING;
 			}
 
 			transact_adjust_sort_icon(windat);
@@ -1855,12 +1857,15 @@ static void transact_adjust_sort_icon(struct transact_block *windat)
 
 static void transact_adjust_sort_icon_data(struct transact_block *windat, wimp_icon *icon)
 {
-	wimp_i	heading = wimp_ICON_WINDOW;
+	wimp_i		heading = wimp_ICON_WINDOW;
+	enum sort_type	order;
 
 	if (windat == NULL)
 		return;
 
-	switch (windat->sort_order & SORT_MASK) {
+	order = sort_get_order(windat->sort);
+
+	switch (order & SORT_MASK) {
 	case SORT_ROW:
 		heading = TRANSACT_PANE_ROW;
 		break;
@@ -1885,7 +1890,7 @@ static void transact_adjust_sort_icon_data(struct transact_block *windat, wimp_i
 	}
 
 	if (heading != wimp_ICON_WINDOW)
-		column_update_sort_indicator(windat->columns, icon, transact_pane_def, heading, windat->sort_order);
+		column_update_sort_indicator(windat->columns, icon, transact_pane_def, heading, order);
 }
 
 
@@ -4218,6 +4223,7 @@ osbool transact_insert_preset_into_line(struct file_block *file, int line, prese
 	enum transact_field	changed = TRANSACT_FIELD_NONE;
 	tran_t			transaction;
 	int			i;
+	enum sort_type		order;
 
 
 	if (file == NULL || file->transacts == NULL || file->transacts->edit_line == NULL || !preset_test_index_valid(file, preset))
@@ -4299,13 +4305,15 @@ osbool transact_insert_preset_into_line(struct file_block *file, int line, prese
 	 * a preset key is analagous to hitting Return.
 	 */
 
+	order = sort_get_order(file->transacts->sort);
+
 	if (config_opt_read("AutoSort") && (
-			((file->transacts->sort_order & SORT_MASK) == SORT_DATE) ||
-			((changed & TRANSACT_FIELD_FROM) && ((file->transacts->sort_order & SORT_MASK) == SORT_FROM)) ||
-			((changed & TRANSACT_FIELD_TO) && ((file->transacts->sort_order & SORT_MASK) == SORT_TO)) ||
-			((changed & TRANSACT_FIELD_REF) && ((file->transacts->sort_order & SORT_MASK) == SORT_REFERENCE)) ||
-			((changed & TRANSACT_FIELD_AMOUNT) && ((file->transacts->sort_order & SORT_MASK) == SORT_AMOUNT)) ||
-			((changed & TRANSACT_FIELD_DESC) && ((file->transacts->sort_order & SORT_MASK) == SORT_DESCRIPTION)))) {
+			((order & SORT_MASK) == SORT_DATE) ||
+			((changed & TRANSACT_FIELD_FROM) && ((order & SORT_MASK) == SORT_FROM)) ||
+			((changed & TRANSACT_FIELD_TO) && ((order & SORT_MASK) == SORT_TO)) ||
+			((changed & TRANSACT_FIELD_REF) && ((order & SORT_MASK) == SORT_REFERENCE)) ||
+			((changed & TRANSACT_FIELD_AMOUNT) && ((order & SORT_MASK) == SORT_AMOUNT)) ||
+			((changed & TRANSACT_FIELD_DESC) && ((order & SORT_MASK) == SORT_DESCRIPTION)))) {
 		transact_sort(file->transacts);
 		
 		if (transact_valid(file->transacts, line)) {
@@ -4379,6 +4387,7 @@ static int transact_edit_auto_sort(wimp_i icon, void *data)
 {
 	struct transact_block	*windat = data;
 	int			entry_line;
+	enum sort_type		order;
 
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
@@ -4396,12 +4405,14 @@ static int transact_edit_auto_sort(wimp_i icon, void *data)
 	 * will be changing otherwise.
 	 */
 
-	if ((icon == TRANSACT_ICON_DATE && (windat->sort_order & SORT_MASK) != SORT_DATE) ||
-			(icon == TRANSACT_ICON_FROM && (windat->sort_order & SORT_MASK) != SORT_FROM) ||
-			(icon == TRANSACT_ICON_TO && (windat->sort_order & SORT_MASK) != SORT_TO) ||
-			(icon == TRANSACT_ICON_REFERENCE && (windat->sort_order & SORT_MASK) != SORT_REFERENCE) ||
-			(icon == TRANSACT_ICON_AMOUNT && (windat->sort_order & SORT_MASK) != SORT_AMOUNT) ||
-			(icon == TRANSACT_ICON_DESCRIPTION && (windat->sort_order & SORT_MASK) != SORT_DESCRIPTION))
+	order = sort_get_order(windat->sort);
+
+	if ((icon == TRANSACT_ICON_DATE && (order & SORT_MASK) != SORT_DATE) ||
+			(icon == TRANSACT_ICON_FROM && (order & SORT_MASK) != SORT_FROM) ||
+			(icon == TRANSACT_ICON_TO && (order & SORT_MASK) != SORT_TO) ||
+			(icon == TRANSACT_ICON_REFERENCE && (order & SORT_MASK) != SORT_REFERENCE) ||
+			(icon == TRANSACT_ICON_AMOUNT && (order & SORT_MASK) != SORT_AMOUNT) ||
+			(icon == TRANSACT_ICON_DESCRIPTION && (order & SORT_MASK) != SORT_DESCRIPTION))
 		return TRUE;
 
 	/* Sort the transactions. */
@@ -4458,7 +4469,7 @@ static void transact_open_sort_window(struct transact_block *windat, wimp_pointe
 	if (windat == NULL || ptr == NULL)
 		return;
 
-	sort_dialogue_open(transact_sort_dialogue, ptr, windat->sort_order, windat);
+	sort_dialogue_open(transact_sort_dialogue, ptr, sort_get_order(windat->sort), windat);
 }
 
 
@@ -4478,7 +4489,7 @@ static osbool transact_process_sort_window(enum sort_type order, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	windat->sort_order = order;
+	sort_set_order(windat->sort, order);
 
 	transact_adjust_sort_icon(windat);
 	windows_redraw(windat->transaction_pane);
@@ -4497,9 +4508,7 @@ static osbool transact_process_sort_window(enum sort_type order, void *data)
 void transact_sort(struct transact_block *windat)
 {
 	wimp_caret	caret;
-	int		gap, comb, temp, order;
 	tran_t		edit_transaction;
-	osbool		sorted, reorder;
 
 	if (windat == NULL || windat->file == NULL)
 		return;
@@ -4515,106 +4524,9 @@ void transact_sort(struct transact_block *windat)
 	wimp_get_caret_position(&caret);
 	edit_transaction = transact_find_edit_line_by_transaction(windat);
 
-	/* Sort the entries using a combsort.  This has the advantage over qsort() that the order of entries is only
-	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
-	 */
+	/* Run the sort. */
 
-	gap = windat->trans_count - 1;
-
-	order = windat->sort_order;
-
-	do {
-		gap = (gap > 1) ? (gap * 10 / 13) : 1;
-		if ((windat->trans_count >= 12) && (gap == 9 || gap == 10))
-			gap = 11;
-
-		sorted = TRUE;
-		for (comb = 0; (comb + gap) < windat->trans_count; comb++) {
-			switch (order) {
-			case SORT_ROW | SORT_ASCENDING:
-				reorder = (transact_get_transaction_number(windat->transactions[comb+gap].sort_index) <
-						transact_get_transaction_number(windat->transactions[comb].sort_index));
-				break;
-
-			case SORT_ROW | SORT_DESCENDING:
-				reorder = (transact_get_transaction_number(windat->transactions[comb+gap].sort_index) >
-						transact_get_transaction_number(windat->transactions[comb].sort_index));
-				break;
-
-			case SORT_DATE | SORT_ASCENDING:
-				reorder = (windat->transactions[windat->transactions[comb+gap].sort_index].date <
-						windat->transactions[windat->transactions[comb].sort_index].date);
-				break;
-
-			case SORT_DATE | SORT_DESCENDING:
-				reorder = (windat->transactions[windat->transactions[comb+gap].sort_index].date >
-						windat->transactions[windat->transactions[comb].sort_index].date);
-				break;
-
-			case SORT_FROM | SORT_ASCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->transactions[windat->transactions[comb+gap].sort_index].from),
-						account_get_name(windat->file, windat->transactions[windat->transactions[comb].sort_index].from)) < 0);
-				break;
-
-			case SORT_FROM | SORT_DESCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->transactions[windat->transactions[comb+gap].sort_index].from),
-						account_get_name(windat->file, windat->transactions[windat->transactions[comb].sort_index].from)) > 0);
-				break;
-
-			case SORT_TO | SORT_ASCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->transactions[windat->transactions[comb+gap].sort_index].to),
-						account_get_name(windat->file, windat->transactions[windat->transactions[comb].sort_index].to)) < 0);
-				break;
-
-			case SORT_TO | SORT_DESCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->transactions[windat->transactions[comb+gap].sort_index].to),
-						account_get_name(windat->file, windat->transactions[windat->transactions[comb].sort_index].to)) > 0);
-				break;
-
-			case SORT_REFERENCE | SORT_ASCENDING:
-				reorder = (strcmp(windat->transactions[windat->transactions[comb+gap].sort_index].reference,
-						windat->transactions[windat->transactions[comb].sort_index].reference) < 0);
-				break;
-
-			case SORT_REFERENCE | SORT_DESCENDING:
-				reorder = (strcmp(windat->transactions[windat->transactions[comb+gap].sort_index].reference,
-						windat->transactions[windat->transactions[comb].sort_index].reference) > 0);
-				break;
-
-			case SORT_AMOUNT | SORT_ASCENDING:
-				reorder = (windat->transactions[windat->transactions[comb+gap].sort_index].amount <
-						windat->transactions[windat->transactions[comb].sort_index].amount);
-				break;
-
-			case SORT_AMOUNT | SORT_DESCENDING:
-				reorder = (windat->transactions[windat->transactions[comb+gap].sort_index].amount >
-						windat->transactions[windat->transactions[comb].sort_index].amount);
-				break;
-
-			case SORT_DESCRIPTION | SORT_ASCENDING:
-				reorder = (strcmp(windat->transactions[windat->transactions[comb+gap].sort_index].description,
-						windat->transactions[windat->transactions[comb].sort_index].description) < 0);
-				break;
-
-			case SORT_DESCRIPTION | SORT_DESCENDING:
-				reorder = (strcmp(windat->transactions[windat->transactions[comb+gap].sort_index].description,
-						windat->transactions[windat->transactions[comb].sort_index].description) > 0);
-				break;
-
-			default:
-				reorder = FALSE;
-				break;
-			}
-
-			if (reorder) {
-				temp = windat->transactions[comb+gap].sort_index;
-				windat->transactions[comb+gap].sort_index = windat->transactions[comb].sort_index;
-				windat->transactions[comb].sort_index = temp;
-
-				sorted = FALSE;
-			}
-		}
-	} while (!sorted || gap != 1);
+	sort_process(windat->sort, windat->trans_count);
 
 	/* Replace the edit line where we found it prior to the sort. */
 
@@ -4632,6 +4544,61 @@ void transact_sort(struct transact_block *windat)
 	hourglass_off();
 }
 
+
+static int transact_sort_compare(enum sort_type type, int index1, int index2, void *data)
+{
+	struct transact_block *windat = data;
+
+	if (windat == NULL)
+		return 0;
+
+	switch (type) {
+	case SORT_ROW:
+		return (transact_get_transaction_number(windat->transactions[index1].sort_index) -
+				transact_get_transaction_number(windat->transactions[index2].sort_index));
+
+	case SORT_DATE:
+		return (windat->transactions[windat->transactions[index1].sort_index].date -
+				windat->transactions[windat->transactions[index2].sort_index].date);
+
+	case SORT_FROM:
+		return strcmp(account_get_name(windat->file, windat->transactions[windat->transactions[index1].sort_index].from),
+				account_get_name(windat->file, windat->transactions[windat->transactions[index2].sort_index].from));
+
+	case SORT_TO:
+		return strcmp(account_get_name(windat->file, windat->transactions[windat->transactions[index1].sort_index].to),
+				account_get_name(windat->file, windat->transactions[windat->transactions[index2].sort_index].to));
+
+	case SORT_REFERENCE:
+		return strcmp(windat->transactions[windat->transactions[index1].sort_index].reference,
+				windat->transactions[windat->transactions[index2].sort_index].reference);
+
+	case SORT_AMOUNT:
+		return (windat->transactions[windat->transactions[index1].sort_index].amount -
+				windat->transactions[windat->transactions[index2].sort_index].amount);
+
+	case SORT_DESCRIPTION:
+		return strcmp(windat->transactions[windat->transactions[index1].sort_index].description,
+				windat->transactions[windat->transactions[index2].sort_index].description);
+
+	default:
+		return 0;
+	}
+}
+
+
+static void transact_sort_swap(int index1, int index2, void *data)
+{
+	struct transact_block	*windat = data;
+	int			temp;
+
+	if (windat == NULL)
+		return;
+
+	temp = windat->transactions[index1].sort_index;
+	windat->transactions[index1].sort_index = windat->transactions[index2].sort_index;
+	windat->transactions[index2].sort_index = temp;
+}
 
 /**
  * Sort the underlying transaction data within a file, to put them into date order.
@@ -4921,7 +4888,7 @@ void transact_write_file(struct file_block *file, FILE *out)
 	column_write_as_text(file->transacts->columns, buffer, FILING_MAX_FILE_LINE_LEN);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
-	fprintf(out, "SortOrder: %x\n", file->transacts->sort_order);
+	fprintf(out, "SortOrder: %x\n", sort_get_order(file->transacts->sort));
 
 	for (i = 0; i < file->transacts->trans_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x\n",
@@ -4949,7 +4916,7 @@ void transact_write_file(struct file_block *file, FILE *out)
 
 enum config_read_status transact_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data)
 {
-	int	result, block_size, i = -1;
+	int		result, block_size, i = -1;
 
 	block_size = flex_size((flex_ptr) &(file->transacts->transactions)) / sizeof(struct transaction);
 
@@ -4970,7 +4937,7 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 			 */
 			column_init_window(file->transacts->columns, (format <= 100) ? 1 : 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0){
-			file->transacts->sort_order = strtoul(value, NULL, 16);
+			sort_set_order(file->transacts->sort, strtoul(value, NULL, 16));
 		} else if (string_nocase_strcmp(token, "@") == 0) {
 			file->transacts->trans_count++;
 			if (file->transacts->trans_count > block_size) {

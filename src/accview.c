@@ -167,7 +167,10 @@ struct accview_block {
 	/* Default display details for the accview windows. */
 
 	struct column_block	*columns;					/**< Base column data for the account view windows.			*/
-	int			sort_order;					/**< Default sort order for the accview windows.			*/
+
+	/* Default sort details for account view windows. */
+
+	struct sort_block	*sort;
 };
 
 /**
@@ -356,6 +359,7 @@ struct accview_block *accview_create_instance(struct file_block *file)
 
 	new->file = file;
 	new->columns = NULL;
+	new->sort = NULL;
 
 	new->columns = column_create_instance(ACCVIEW_COLUMNS, accview_columns, NULL, ACCVIEW_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
@@ -366,7 +370,11 @@ struct accview_block *accview_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimAccViewCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("AccViewCols"));
 
-	new->sort_order = SORT_DATE | SORT_ASCENDING;
+	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, NULL, NULL);
+	if (new->sort == NULL) {
+		accview_delete_instance(new);
+		return NULL;
+	}
 
 	return new;
 }
@@ -384,6 +392,7 @@ void accview_delete_instance(struct accview_block *instance)
 		return;
 
 	column_delete_instance(instance->columns);
+	sort_delete_instance(instance->sort);
 
 	heap_free(instance);
 }
@@ -437,6 +446,9 @@ void accview_open_window(struct file_block *file, acct_t account)
 	debug_printf("\\BCreate Account View for %d", account);
 	#endif
 
+	view->columns = NULL;
+	view->sort = NULL;
+
 	accview_build(view);
 
 	/* Set the main window extent and create it. */
@@ -446,11 +458,24 @@ void accview_open_window(struct file_block *file, acct_t account)
 			view->window_title;
 
 	view->columns = column_clone_instance(file->accviews->columns);
+	if (view->columns == NULL) {
+		accview_delete_window(file, account);
+		error_msgs_report_info("AccviewMemErr1");
+		return;
+	}
+
 
 	height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ?
 			view->display_lines : MIN_ACCVIEW_ENTRIES;
 
-	view->sort = sort_create_instance(file->accviews->sort_order, &accview_sort_callbacks, view);
+	view->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, &accview_sort_callbacks, view);
+	if (view->sort == NULL) {
+		accview_delete_window(file, account);
+		error_msgs_report_info("AccviewMemErr1");
+		return;
+	}
+
+	sort_copy_order(view->sort, file->accviews->sort);
 
 	/* Find the position to open the window at. */
 
@@ -819,7 +844,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			windows_redraw(windat->accview_pane);
 			accview_sort(file, account);
 
-			file->accviews->sort_order = sort_get_order(windat->sort);
+			sort_copy_order(file->accviews->sort, windat->sort);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimAccViewCols"));;
@@ -1448,7 +1473,7 @@ static osbool accview_process_sort_window(enum sort_type order, void *data)
 	windows_redraw(windat->accview_pane);
 	accview_sort(windat->file, windat->account);
 
-	windat->file->accviews->sort_order = order;
+	sort_copy_order(windat->file->accviews->sort, windat->sort);
 
 	return TRUE;
 }
@@ -2187,7 +2212,7 @@ void accview_write_file(struct file_block *file, FILE *out)
 	column_write_as_text(file->accviews->columns, buffer, FILING_MAX_FILE_LINE_LEN);
 
 	fprintf(out, "WinColumns: %s\n", buffer);
-	fprintf(out, "SortOrder: %x\n", file->accviews->sort_order);
+	fprintf(out, "SortOrder: %x\n", sort_get_order(file->accviews->sort));
 }
 
 
@@ -2218,7 +2243,7 @@ void accview_read_file_wincolumns(struct file_block *file, int format, char *col
 
 void accview_read_file_sortorder(struct file_block *file, char *order)
 {
-	file->accviews->sort_order = strtoul(order, NULL, 16);
+	sort_set_order(file->accviews->sort, strtoul(order, NULL, 16));
 }
 
 

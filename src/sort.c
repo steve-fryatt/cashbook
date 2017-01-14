@@ -114,6 +114,14 @@ enum sort_type sort_get_order(struct sort_block *instance)
 	return instance->type;
 }
 
+void sort_copy_order(struct sort_block *instance, struct sort_block *source)
+{
+	if (instance == NULL || source == NULL)
+		return;
+
+	instance->type = source->type;
+}
+
 void sort_process(struct sort_block *instance, size_t items)
 {
 	int		gap, comb, result;

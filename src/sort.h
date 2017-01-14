@@ -133,6 +133,8 @@ void sort_set_order(struct sort_block *instance, enum sort_type order);
 
 enum sort_type sort_get_order(struct sort_block *instance);
 
+void sort_copy_order(struct sort_block *instance, struct sort_block *source);
+
 void sort_process(struct sort_block *instance, size_t items);
 
 #endif

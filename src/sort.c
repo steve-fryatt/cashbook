@@ -47,15 +47,15 @@
 #include "sort.h"
 
 struct sort_block {
-	enum sort_type		type;					/**< The sort settings for the instance			*/
+	enum sort_type		type;					/**< The sort settings for the instance					*/
 
 	/**
 	 * The client callbacks and their associated data
 	 */
 
-	struct sort_callback	*callback;
+	struct sort_callback	*callback;				/**< Pointer to the a structure holding the callback function details.	*/
 
-	void			*data;
+	void			*data;					/**< Client-supplied data for passing to the callback functions.	*/
 };
 
 
@@ -99,6 +99,13 @@ void sort_delete_instance(struct sort_block *instance)
 }
 
 
+/**
+ * Set the sort details -- field and direction -- of the instance.
+ *
+ * \param *instance		The instance to set.
+ * \param order			The new sort details to be set.
+ */
+
 void sort_set_order(struct sort_block *instance, enum sort_type order)
 {
 	if (instance == NULL)
@@ -106,6 +113,15 @@ void sort_set_order(struct sort_block *instance, enum sort_type order)
 
 	instance->type = order;
 }
+
+
+/**
+ * Get the current sort details -- field and direction -- from a
+ * sort instance.
+ *
+ * \param *instance		The instance to interrogate.
+ * \return			The sort order applied to the instance.
+ */
 
 enum sort_type sort_get_order(struct sort_block *instance)
 {
@@ -115,6 +131,15 @@ enum sort_type sort_get_order(struct sort_block *instance)
 	return instance->type;
 }
 
+
+/**
+ * Copy the sort details -- field and direction -- from one sort instance
+ * to another.
+ *
+ * \param *nstance		The instance to be updated with new details.
+ * \param *source		The instance to copy the details from.
+ */
+
 void sort_copy_order(struct sort_block *instance, struct sort_block *source)
 {
 	if (instance == NULL || source == NULL)
@@ -122,6 +147,15 @@ void sort_copy_order(struct sort_block *instance, struct sort_block *source)
 
 	instance->type = source->type;
 }
+
+
+/**
+ * Read the sort details encoded in a line of ASCII text, and use them to
+ * update a sort instance.
+ * 
+ * \param *instance		The instance to be updated with the details.
+ * \param *value		Pointer to the text containing the details.
+ */
 
 void sort_read_from_text(struct sort_block *instance, char *value)
 {
@@ -131,6 +165,15 @@ void sort_read_from_text(struct sort_block *instance, char *value)
 	instance->type = strtoul(value, NULL, 16);
 }
 
+
+/**
+ * Write the sort details from an instance into an ASCII string.
+ *
+ * \param *instance		The instance to take the details from.
+ * \param *buffer		Pointer to the buffer to take the string.
+ * \param length		The length of the buffer supplied.
+ */
+
 void sort_write_as_text(struct sort_block *instance, char *buffer, size_t length)
 {
 	if (instance == NULL || buffer == NULL || length <= 0)
@@ -139,6 +182,14 @@ void sort_write_as_text(struct sort_block *instance, char *buffer, size_t length
 	snprintf(buffer, length, "%x", instance->type);
 	buffer[length - 1] = '\0';
 }
+
+
+/**
+ * Perform a sort operation using the settings contained in a sort instance.
+ *
+ * \param *instance		The instance to use for the sorting.
+ * \param items			The number of items which are to be sorted.
+ */
 
 void sort_process(struct sort_block *instance, size_t items)
 {

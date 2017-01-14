@@ -129,14 +129,68 @@ struct sort_block *sort_create_instance(enum sort_type type, struct sort_callbac
 
 void sort_delete_instance(struct sort_block *instance);
 
+
+/**
+ * Set the sort details -- field and direction -- of the instance.
+ *
+ * \param *instance		The instance to set.
+ * \param order			The new sort details to be set.
+ */
+
 void sort_set_order(struct sort_block *instance, enum sort_type order);
+
+
+/**
+ * Get the current sort details -- field and direction -- from a
+ * sort instance.
+ *
+ * \param *instance		The instance to interrogate.
+ * \return			The sort order applied to the instance.
+ */
 
 enum sort_type sort_get_order(struct sort_block *instance);
 
+
+/**
+ * Copy the sort details -- field and direction -- from one sort instance
+ * to another.
+ *
+ * \param *nstance		The instance to be updated with new details.
+ * \param *source		The instance to copy the details from.
+ */
+
 void sort_copy_order(struct sort_block *instance, struct sort_block *source);
 
+
+/**
+ * Read the sort details encoded in a line of ASCII text, and use them to
+ * update a sort instance.
+ * 
+ * \param *instance		The instance to be updated with the details.
+ * \param *value		Pointer to the text containing the details.
+ */
+
 void sort_read_from_text(struct sort_block *instance, char *value);
+
+
+/**
+ * Write the sort details from an instance into an ASCII string.
+ *
+ * \param *instance		The instance to take the details from.
+ * \param *buffer		Pointer to the buffer to take the string.
+ * \param length		The length of the buffer supplied.
+ */
+
 void sort_write_as_text(struct sort_block *instance, char *buffer, size_t length);
+
+
+/**
+ * Perform a sort operation using the settings contained in a sort instance.
+ *
+ * \param *instance		The instance to use for the sorting.
+ * \param items			The number of items which are to be sorted.
+ */
+
 void sort_process(struct sort_block *instance, size_t items);
 
 #endif

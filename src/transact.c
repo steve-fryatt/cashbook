@@ -4651,7 +4651,7 @@ void transact_sort_file_data(struct file_block *file)
 
 	for (i=0; i < file->transacts->trans_count; i++) {
 		file->transacts->transactions[file->transacts->transactions[i].sort_index].saved_sort = i;	/* Record transaction window lines. */
-		file->transacts->transactions[i].sort_index = i;					/* Record old transaction locations. */
+		file->transacts->transactions[i].sort_index = i;						/* Record old transaction locations. */
 	}
 
 	/* Sort the entries using a combsort.  This has the advantage over qsort()

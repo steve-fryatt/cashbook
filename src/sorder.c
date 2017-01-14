@@ -250,10 +250,6 @@ struct sorder_block {
 
 	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
 
-	/* Other window details. */
-
-	enum sort_type		sort_order;					/**< The order in which the window is sorted.				*/
-
 	/* Standing Order data. */
 
 	struct sorder		*sorders;					/**< The standing order data for the defined standing orders		*/
@@ -286,6 +282,10 @@ static struct sort_dialogue_icon sorder_sort_directions[] = {				/**< Details of
 	{SORDER_SORT_DESCENDING, SORT_DESCENDING},
 	{0, SORT_NONE}
 };
+
+/* Standing Order sorting. */
+
+static struct sort_callback	sorder_sort_callbacks;
 
 /* Standing Order Print Window. */
 
@@ -335,6 +335,9 @@ static osbool			sorder_process_sort_window(enum sort_type order, void *data);
 static void			sorder_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
 static void			sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
+static int			sorder_sort_compare(enum sort_type type, int index1, int index2, void *data);
+static void			sorder_sort_swap(int index1, int index2, void *data);
+
 static sorder_t			sorder_add(struct file_block *file);
 static osbool			sorder_delete(struct file_block *file, sorder_t sorder);
 
@@ -380,6 +383,9 @@ void sorder_initialise(osspriteop_area *sprites)
 
 	sorder_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", sorder_save_csv);
 	sorder_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", sorder_save_tsv);
+
+	sorder_sort_callbacks.compare = sorder_sort_compare;
+	sorder_sort_callbacks.swap = sorder_sort_swap;
 }
 
 
@@ -416,13 +422,11 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimSOrderCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("SOrderCols"));
 
-	new->sort = sort_create_instance(SORT_NEXTDATE | SORT_DESCENDING, NULL, new);
+	new->sort = sort_create_instance(SORT_NEXTDATE | SORT_DESCENDING, &sorder_sort_callbacks, new);
 	if (new->sort == NULL) {
 		sorder_delete_instance(new);
 		return NULL;
 	}
-
-	new->sort_order = SORT_NEXTDATE | SORT_DESCENDING;
 
 	/* Set up the standing order data structures. */
 
@@ -676,6 +680,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
+	enum sort_type		direction;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->file == NULL)
@@ -727,39 +732,32 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			windat->sort_order = SORT_NONE;
+			direction = (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
 			switch (pointer->i) {
 			case SORDER_PANE_FROM:
-				windat->sort_order = SORT_FROM;
+				sort_set_order(windat->sort, SORT_FROM | direction);
 				break;
 
 			case SORDER_PANE_TO:
-				windat->sort_order = SORT_TO;
+				sort_set_order(windat->sort, SORT_TO | direction);
 				break;
 
 			case SORDER_PANE_AMOUNT:
-				windat->sort_order = SORT_AMOUNT;
+				sort_set_order(windat->sort, SORT_AMOUNT | direction);
 				break;
 
 			case SORDER_PANE_DESCRIPTION:
-				windat->sort_order = SORT_DESCRIPTION;
+				sort_set_order(windat->sort, SORT_DESCRIPTION | direction);
 				break;
 
 			case SORDER_PANE_NEXTDATE:
-				windat->sort_order = SORT_NEXTDATE;
+				sort_set_order(windat->sort, SORT_NEXTDATE | direction);
 				break;
 
 			case SORDER_PANE_LEFT:
-				windat->sort_order = SORT_LEFT;
+				sort_set_order(windat->sort, SORT_LEFT | direction);
 				break;
-			}
-
-			if (windat->sort_order != SORT_NONE) {
-				if (pointer->buttons == wimp_CLICK_SELECT * 256)
-					windat->sort_order |= SORT_ASCENDING;
-				else
-					windat->sort_order |= SORT_DESCENDING;
 			}
 
 			sorder_adjust_sort_icon(windat);
@@ -1093,12 +1091,15 @@ static void sorder_adjust_sort_icon(struct sorder_block *windat)
 
 static void sorder_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon *icon)
 {
-	wimp_i	heading = wimp_ICON_WINDOW;
+	wimp_i		heading = wimp_ICON_WINDOW;
+	enum sort_type	order;
 
 	if (windat == NULL)
 		return;
 
-	switch (windat->sort_order & SORT_MASK) {
+	order = sort_get_order(windat->sort);
+
+	switch (order & SORT_MASK) {
 	case SORT_FROM:
 		heading = SORDER_PANE_FROM;
 		break;
@@ -1120,7 +1121,7 @@ static void sorder_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon 
 	}
 
 	if (heading != wimp_ICON_WINDOW)
-		column_update_sort_indicator(windat->columns, icon, sorder_pane_def, heading, windat->sort_order);
+		column_update_sort_indicator(windat->columns, icon, sorder_pane_def, heading, order);
 }
 
 
@@ -1816,7 +1817,7 @@ static void sorder_open_sort_window(struct sorder_block *windat, wimp_pointer *p
 	if (windat == NULL || ptr == NULL)
 		return;
 
-	sort_dialogue_open(sorder_sort_dialogue, ptr, windat->sort_order, windat);
+	sort_dialogue_open(sorder_sort_dialogue, ptr, sort_get_order(windat->sort), windat);
 }
 
 
@@ -1836,7 +1837,7 @@ static osbool sorder_process_sort_window(enum sort_type order, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	windat->sort_order = order;
+	sort_set_order(windat->sort, order);
 
 	sorder_adjust_sort_icon(windat);
 	windows_redraw(windat->sorder_pane);
@@ -1979,9 +1980,6 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 
 void sorder_sort(struct sorder_block *windat)
 {
-	int		gap, comb, temp, order;
-	osbool		sorted, reorder;
-
 	if (windat == NULL)
 		return;
 
@@ -1991,102 +1989,85 @@ void sorder_sort(struct sorder_block *windat)
 
 	hourglass_on();
 
-	/* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
-	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
-	 */
+	/* Run the sort. */
 
-	gap = windat->sorder_count - 1;
-
-	order = windat->sort_order;
-
-	do {
-		gap = (gap > 1) ? (gap * 10 / 13) : 1;
-		if ((windat->sorder_count >= 12) && (gap == 9 || gap == 10))
-			gap = 11;
-
-		sorted = TRUE;
-		for (comb = 0; (comb + gap) < windat->sorder_count; comb++) {
-			switch (order) {
-			case SORT_FROM | SORT_ASCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[comb+gap].sort_index].from),
-						account_get_name(windat->file, windat->sorders[windat->sorders[comb].sort_index].from)) < 0);
-				break;
-
-			case SORT_FROM | SORT_DESCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[comb+gap].sort_index].from),
-						account_get_name(windat->file, windat->sorders[windat->sorders[comb].sort_index].from)) > 0);
-				break;
-
-			case SORT_TO | SORT_ASCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[comb+gap].sort_index].to),
-						account_get_name(windat->file, windat->sorders[windat->sorders[comb].sort_index].to)) < 0);
-				break;
-
-			case SORT_TO | SORT_DESCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[comb+gap].sort_index].to),
-						account_get_name(windat->file, windat->sorders[windat->sorders[comb].sort_index].to)) > 0);
-				break;
-
-			case SORT_AMOUNT | SORT_ASCENDING:
-				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].normal_amount <
-						windat->sorders[windat->sorders[comb].sort_index].normal_amount);
-				break;
-
-			case SORT_AMOUNT | SORT_DESCENDING:
-				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].normal_amount >
-						windat->sorders[windat->sorders[comb].sort_index].normal_amount);
-				break;
-
-			case SORT_DESCRIPTION | SORT_ASCENDING:
-				reorder = (strcmp(windat->sorders[windat->sorders[comb+gap].sort_index].description,
-						windat->sorders[windat->sorders[comb].sort_index].description) < 0);
-				break;
-
-			case SORT_DESCRIPTION | SORT_DESCENDING:
-				reorder = (strcmp(windat->sorders[windat->sorders[comb+gap].sort_index].description,
-						windat->sorders[windat->sorders[comb].sort_index].description) > 0);
-				break;
-
-			case SORT_NEXTDATE | SORT_ASCENDING:
-				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].adjusted_next_date >
-						windat->sorders[windat->sorders[comb].sort_index].adjusted_next_date);
-				break;
-
-			case SORT_NEXTDATE | SORT_DESCENDING:
-				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].adjusted_next_date <
-						windat->sorders[windat->sorders[comb].sort_index].adjusted_next_date);
-				break;
-
-			case SORT_LEFT | SORT_ASCENDING:
-				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].left <
-						windat->sorders[windat->sorders[comb].sort_index].left);
-				break;
-
-			case SORT_LEFT | SORT_DESCENDING:
-				reorder = (windat->sorders[windat->sorders[comb+gap].sort_index].left >
-						windat->sorders[windat->sorders[comb].sort_index].left);
-				break;
-
-			default:
-				reorder = FALSE;
-				break;
-			}
-
-			if (reorder) {
-				temp = windat->sorders[comb+gap].sort_index;
-				windat->sorders[comb+gap].sort_index = windat->sorders[comb].sort_index;
-				windat->sorders[comb].sort_index = temp;
-
-				sorted = FALSE;
-			}
-		}
-	} while (!sorted || gap != 1);
+	sort_process(windat->sort, windat->sorder_count);
 
 	sorder_force_window_redraw(windat->file, 0, windat->sorder_count - 1);
 
 	hourglass_off();
 }
 
+
+/**
+ * Compare two lines of a standing order list, returning the result of the
+ * in terms of a positive value, zero or a negative value.
+ * 
+ * \param type			The required column type of the comparison.
+ * \param index1		The index of the first line to be compared.
+ * \param index2		The index of the second line to be compared.
+ * \param *data			Client specific data, which is our window block.
+ * \return			The comparison result.
+ */
+
+static int sorder_sort_compare(enum sort_type type, int index1, int index2, void *data)
+{
+	struct sorder_block *windat = data;
+
+	if (windat == NULL)
+		return 0;
+
+	switch (type) {
+	case SORT_FROM:
+		return strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[index1].sort_index].from),
+				account_get_name(windat->file, windat->sorders[windat->sorders[index2].sort_index].from));
+
+	case SORT_TO:
+		return strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[index1].sort_index].to),
+				account_get_name(windat->file, windat->sorders[windat->sorders[index2].sort_index].to));
+
+	case SORT_AMOUNT:
+		return (windat->sorders[windat->sorders[index1].sort_index].normal_amount -
+				windat->sorders[windat->sorders[index2].sort_index].normal_amount);
+
+	case SORT_DESCRIPTION:
+		return strcmp(windat->sorders[windat->sorders[index1].sort_index].description,
+				windat->sorders[windat->sorders[index2].sort_index].description);
+
+	case SORT_NEXTDATE:
+		return (windat->sorders[windat->sorders[index2].sort_index].adjusted_next_date -
+				windat->sorders[windat->sorders[index1].sort_index].adjusted_next_date);
+
+	case SORT_LEFT:
+		return  (windat->sorders[windat->sorders[index1].sort_index].left -
+				windat->sorders[windat->sorders[index2].sort_index].left);
+
+	default:
+		return 0;
+	}
+}
+
+
+/**
+ * Swap the sort index of two lines of a standing order list.
+ * 
+ * \param index1		The index of the first line to be swapped.
+ * \param index2		The index of the second line to be swapped.
+ * \param *data			Client specific data, which is our window block.
+ */
+
+static void sorder_sort_swap(int index1, int index2, void *data)
+{
+	struct sorder_block	*windat = data;
+	int			temp;
+
+	if (windat == NULL)
+		return;
+
+	temp = windat->sorders[index1].sort_index;
+	windat->sorders[index1].sort_index = windat->sorders[index2].sort_index;
+	windat->sorders[index2].sort_index = temp;
+}
 
 /**
  * Create a new standing order with null details.  Values are left to be set
@@ -2563,7 +2544,7 @@ void sorder_write_file(struct file_block *file, FILE *out)
 	column_write_as_text(file->sorders->columns, buffer, FILING_MAX_FILE_LINE_LEN);
 	fprintf (out, "WinColumns: %s\n", buffer);
 
-	fprintf (out, "SortOrder: %x\n", file->sorders->sort_order);
+	fprintf (out, "SortOrder: %x\n", sort_get_order(file->sorders->sort));
 
 	for (i = 0; i < file->sorders->sorder_count; i++) {
 		fprintf (out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
@@ -2610,7 +2591,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			column_init_window(file->sorders->columns, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
-			file->sorders->sort_order = strtoul(value, NULL, 16);
+			sort_set_order(file->sorders->sort, strtoul(value, NULL, 16));
 		} else if (string_nocase_strcmp (token, "@") == 0) {
 			file->sorders->sorder_count++;
 			if (file->sorders->sorder_count > block_size) {

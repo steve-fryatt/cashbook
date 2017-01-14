@@ -235,10 +235,6 @@ struct preset_block {
 
 	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
 
-	/* Other window details. */
-
-	enum sort_type		sort_order;					/**< The order in which the window is sorted.				*/
-
 	/* Preset Data. */
 
 	struct preset		*presets;					/**< The preset data for the defined presets.				*/
@@ -277,6 +273,10 @@ static struct sort_dialogue_icon preset_sort_directions[] = {				/**< Details of
 	{PRESET_SORT_DESCENDING, SORT_DESCENDING},
 	{0, SORT_NONE}
 };
+
+/* Preset sorting. */
+
+static struct sort_callback	preset_sort_callbacks;
 
 /* Preset Print Window. */
 
@@ -329,6 +329,9 @@ static osbool		preset_process_sort_window(enum sort_type order, void *data);
 
 static void		preset_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
 static void		preset_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
+
+static int		preset_sort_compare(enum sort_type type, int index1, int index2, void *data);
+static void		preset_sort_swap(int index1, int index2, void *data);
 
 static int		preset_add(struct file_block *file);
 static osbool		preset_delete(struct file_block *file, int preset);
@@ -383,6 +386,8 @@ void preset_initialise(osspriteop_area *sprites)
 	preset_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_save_csv);
 	preset_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_save_tsv);
 
+	preset_sort_callbacks.compare = preset_sort_compare;
+	preset_sort_callbacks.swap = preset_sort_swap;
 }
 
 
@@ -419,13 +424,11 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimPresetCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("PresetCols"));
 
-	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING, NULL, new);
+	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING,  &preset_sort_callbacks, new);
 	if (new->sort == NULL) {
 		preset_delete_instance(new);
 		return NULL;
 	}
-
-	new->sort_order = SORT_CHAR | SORT_ASCENDING;
 
 	/* Set up the preset data structures. */
 
@@ -680,6 +683,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
+	enum sort_type		direction;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->file == NULL)
@@ -733,39 +737,32 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			windat->sort_order = SORT_NONE;
+			direction = (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
 			switch (pointer->i) {
 			case PRESET_PANE_KEY:
-				windat->sort_order = SORT_CHAR;
+				sort_set_order(windat->sort, SORT_CHAR | direction);
 				break;
 
 			case PRESET_PANE_NAME:
-				windat->sort_order = SORT_NAME;
+				sort_set_order(windat->sort, SORT_NAME | direction);
 				break;
 
 			case PRESET_PANE_FROM:
-				windat->sort_order = SORT_FROM;
+				sort_set_order(windat->sort, SORT_FROM | direction);
 				break;
 
 			case PRESET_PANE_TO:
-				windat->sort_order = SORT_TO;
+				sort_set_order(windat->sort, SORT_TO | direction);
 				break;
 
 			case PRESET_PANE_AMOUNT:
-				windat->sort_order = SORT_AMOUNT;
+				sort_set_order(windat->sort, SORT_AMOUNT | direction);
 				break;
 
 			case PRESET_PANE_DESCRIPTION:
-				windat->sort_order = SORT_DESCRIPTION;
+				sort_set_order(windat->sort, SORT_DESCRIPTION | direction);
 				break;
-			}
-
-			if (windat->sort_order != SORT_NONE) {
-				if (pointer->buttons == wimp_CLICK_SELECT * 256)
-					windat->sort_order |= SORT_ASCENDING;
-				else
-					windat->sort_order |= SORT_DESCENDING;
 			}
 
 			preset_adjust_sort_icon(windat);
@@ -1096,12 +1093,15 @@ static void preset_adjust_sort_icon(struct preset_block *windat)
 
 static void preset_adjust_sort_icon_data(struct preset_block *windat, wimp_icon *icon)
 {
-	wimp_i	heading = wimp_ICON_WINDOW;
+	wimp_i		heading = wimp_ICON_WINDOW;
+	enum sort_type	order;
 
 	if (windat == NULL)
 		return;
 
-	switch (windat->sort_order & SORT_MASK) {
+	order = sort_get_order(windat->sort);
+
+	switch (order & SORT_MASK) {
 	case SORT_CHAR:
 		heading = PRESET_PANE_KEY;
 		break;
@@ -1123,7 +1123,7 @@ static void preset_adjust_sort_icon_data(struct preset_block *windat, wimp_icon 
 	}
 
 	if (heading != wimp_ICON_WINDOW)
-		column_update_sort_indicator(windat->columns, icon, preset_pane_def, heading, windat->sort_order);
+		column_update_sort_indicator(windat->columns, icon, preset_pane_def, heading, order);
 }
 
 
@@ -1672,7 +1672,7 @@ static void preset_open_sort_window(struct preset_block *windat, wimp_pointer *p
 	if (windat == NULL || ptr == NULL)
 		return;
 
-	sort_dialogue_open(preset_sort_dialogue, ptr, windat->sort_order, windat);
+	sort_dialogue_open(preset_sort_dialogue, ptr, sort_get_order(windat->sort), windat);
 }
 
 
@@ -1692,7 +1692,7 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	windat->sort_order = order;
+	sort_set_order(windat->sort, order);
 
 	preset_adjust_sort_icon(windat);
 	windows_redraw(windat->preset_pane);
@@ -1975,9 +1975,6 @@ int preset_complete_menu_decode(wimp_selection *selection)
 
 void preset_sort(struct preset_block *windat)
 {
-	int		gap, comb, temp, order;
-	osbool		sorted, reorder;
-
 	if (windat == NULL)
 		return;
 
@@ -1987,100 +1984,84 @@ void preset_sort(struct preset_block *windat)
 
 	hourglass_on();
 
-	/* Sort the entries using a combsort.  This has the advantage over qsort() that the order of entries is only
-	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
-	 */
+	/* Run the sort. */
 
-	gap = windat->preset_count - 1;
-
-	order = windat->sort_order;
-
-	do {
-		gap = (gap > 1) ? (gap * 10 / 13) : 1;
-		if ((windat->preset_count >= 12) && (gap == 9 || gap == 10))
-			gap = 11;
-
-		sorted = TRUE;
-		for (comb = 0; (comb + gap) < windat->preset_count; comb++) {
-			switch (order) {
-			case SORT_CHAR | SORT_ASCENDING:
-				reorder = (windat->presets[windat->presets[comb+gap].sort_index].action_key <
-						windat->presets[windat->presets[comb].sort_index].action_key);
-				break;
-
-			case SORT_CHAR | SORT_DESCENDING:
-				reorder = (windat->presets[windat->presets[comb+gap].sort_index].action_key >
-						windat->presets[windat->presets[comb].sort_index].action_key);
-				break;
-
-			case SORT_NAME | SORT_ASCENDING:
-				reorder = (strcmp(windat->presets[windat->presets[comb+gap].sort_index].name,
-						windat->presets[windat->presets[comb].sort_index].name) < 0);
-				break;
-
-			case SORT_NAME | SORT_DESCENDING:
-				reorder = (strcmp(windat->presets[windat->presets[comb+gap].sort_index].name,
-						windat->presets[windat->presets[comb].sort_index].name) > 0);
-				break;
-
-			case SORT_FROM | SORT_ASCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->presets[windat->presets[comb+gap].sort_index].from),
-						account_get_name(windat->file, windat->presets[windat->presets[comb].sort_index].from)) < 0);
-				break;
-
-			case SORT_FROM | SORT_DESCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->presets[windat->presets[comb+gap].sort_index].from),
-						account_get_name(windat->file, windat->presets[windat->presets[comb].sort_index].from)) > 0);
-				break;
-
-			case SORT_TO | SORT_ASCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->presets[windat->presets[comb+gap].sort_index].to),
-						account_get_name(windat->file, windat->presets[windat->presets[comb].sort_index].to)) < 0);
-				break;
-
-			case SORT_TO | SORT_DESCENDING:
-				reorder = (strcmp(account_get_name(windat->file, windat->presets[windat->presets[comb+gap].sort_index].to),
-						account_get_name(windat->file, windat->presets[windat->presets[comb].sort_index].to)) > 0);
-				break;
-
-			case SORT_AMOUNT | SORT_ASCENDING:
-				reorder = (windat->presets[windat->presets[comb+gap].sort_index].amount <
-						windat->presets[windat->presets[comb].sort_index].amount);
-				break;
-
-			case SORT_AMOUNT | SORT_DESCENDING:
-				reorder = (windat->presets[windat->presets[comb+gap].sort_index].amount >
-						windat->presets[windat->presets[comb].sort_index].amount);
-				break;
-
-			case SORT_DESCRIPTION | SORT_ASCENDING:
-				reorder = (strcmp(windat->presets[windat->presets[comb+gap].sort_index].description,
-						windat->presets[windat->presets[comb].sort_index].description) < 0);
-				break;
-
-			case SORT_DESCRIPTION | SORT_DESCENDING:
-				reorder = (strcmp(windat->presets[windat->presets[comb+gap].sort_index].description,
-						windat->presets[windat->presets[comb].sort_index].description) > 0);
-				break;
-
-			default:
-				reorder = FALSE;
-				break;
-			}
-
-			if (reorder) {
-				temp = windat->presets[comb+gap].sort_index;
-				windat->presets[comb+gap].sort_index = windat->presets[comb].sort_index;
-				windat->presets[comb].sort_index = temp;
-
-				sorted = FALSE;
-			}
-		}
-	} while (!sorted || gap != 1);
+	sort_process(windat->sort, windat->preset_count);
 
 	preset_force_window_redraw(windat->file, 0, windat->preset_count - 1);
 
 	hourglass_off();
+}
+
+
+/**
+ * Compare two lines of a preset list, returning the result of the
+ * in terms of a positive value, zero or a negative value.
+ * 
+ * \param type			The required column type of the comparison.
+ * \param index1		The index of the first line to be compared.
+ * \param index2		The index of the second line to be compared.
+ * \param *data			Client specific data, which is our window block.
+ * \return			The comparison result.
+ */
+
+static int preset_sort_compare(enum sort_type type, int index1, int index2, void *data)
+{
+	struct preset_block *windat = data;
+
+	if (windat == NULL)
+		return 0;
+
+	switch (type) {
+	case SORT_CHAR:
+		return (windat->presets[windat->presets[index1].sort_index].action_key -
+				windat->presets[windat->presets[index2].sort_index].action_key);
+
+	case SORT_NAME:
+		return strcmp(windat->presets[windat->presets[index1].sort_index].name,
+				windat->presets[windat->presets[index2].sort_index].name);
+
+	case SORT_FROM:
+		return strcmp(account_get_name(windat->file, windat->presets[windat->presets[index1].sort_index].from),
+				account_get_name(windat->file, windat->presets[windat->presets[index2].sort_index].from));
+
+	case SORT_TO:
+		return strcmp(account_get_name(windat->file, windat->presets[windat->presets[index1].sort_index].to),
+				account_get_name(windat->file, windat->presets[windat->presets[index2].sort_index].to));
+
+	case SORT_AMOUNT:
+		return (windat->presets[windat->presets[index1].sort_index].amount -
+				windat->presets[windat->presets[index2].sort_index].amount);
+
+	case SORT_DESCRIPTION:
+		return strcmp(windat->presets[windat->presets[index1].sort_index].description,
+				windat->presets[windat->presets[index2].sort_index].description);
+
+	default:
+		return 0;
+	}
+}
+
+
+/**
+ * Swap the sort index of two lines of a preset list.
+ * 
+ * \param index1		The index of the first line to be swapped.
+ * \param index2		The index of the second line to be swapped.
+ * \param *data			Client specific data, which is our window block.
+ */
+
+static void preset_sort_swap(int index1, int index2, void *data)
+{
+	struct preset_block	*windat = data;
+	int			temp;
+
+	if (windat == NULL)
+		return;
+
+	temp = windat->presets[index1].sort_index;
+	windat->presets[index1].sort_index = windat->presets[index2].sort_index;
+	windat->presets[index2].sort_index = temp;
 }
 
 
@@ -2365,7 +2346,7 @@ void preset_write_file(struct file_block *file, FILE *out)
 	column_write_as_text(file->presets->columns, buffer, FILING_MAX_FILE_LINE_LEN);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
-	fprintf(out, "SortOrder: %x\n", file->presets->sort_order);
+	fprintf(out, "SortOrder: %x\n", sort_get_order(file->presets->sort));
 
 	for (i = 0; i < file->presets->preset_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x\n",
@@ -2413,7 +2394,7 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			column_init_window(file->presets->columns, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
-			file->presets->sort_order = strtoul(value, NULL, 16);
+			sort_set_order(file->presets->sort, strtoul(value, NULL, 16));
 		} else if (string_nocase_strcmp(token, "@") == 0) {
 			file->presets->preset_count++;
 			if (file->presets->preset_count > block_size) {

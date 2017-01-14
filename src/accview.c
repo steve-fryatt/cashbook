@@ -217,9 +217,6 @@ struct accview_window {
 
 	int			display_lines;					/**< Count of the lines in the window.					*/
 	struct accview_redraw	*line_data;					/**< Pointer to array of line data for the redraw.			*/
-
-	enum sort_type		sort_order;					/**< The current sort details for the window.				*/
-
 };
 
 
@@ -247,6 +244,9 @@ static struct sort_dialogue_icon accview_sort_directions[] = {				/**< Details o
 	{0, SORT_NONE}
 };
 
+/* Account View sorting. */
+
+static struct sort_callback	accview_sort_callbacks;
 
 /* Account View Print Window. */
 
@@ -286,6 +286,9 @@ static osbool			accview_process_sort_window(enum sort_type order, void *data);
 
 static void			accview_open_print_window(struct accview_window *view, wimp_pointer *ptr, osbool restore);
 static void			accview_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
+
+static int			accview_sort_compare(enum sort_type type, int index1, int index2, void *data);
+static void			accview_sort_swap(int index1, int index2, void *data);
 
 static int			accview_build(struct accview_window *view);
 static int			accview_calculate(struct accview_window *view);
@@ -328,6 +331,9 @@ void accview_initialise(osspriteop_area *sprites)
 
 	accview_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", accview_save_csv);
 	accview_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", accview_save_tsv);
+
+	accview_sort_callbacks.compare = accview_sort_compare;
+	accview_sort_callbacks.swap = accview_sort_swap;
 }
 
 
@@ -444,9 +450,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 	height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ?
 			view->display_lines : MIN_ACCVIEW_ENTRIES;
 
-	view->sort = sort_create_instance(file->accviews->sort_order, NULL, view);
-
-	view->sort_order = file->accviews->sort_order;
+	view->sort = sort_create_instance(file->accviews->sort_order, &accview_sort_callbacks, view);
 
 	/* Find the position to open the window at. */
 
@@ -712,6 +716,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
+	enum sort_type		direction;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL)
@@ -774,54 +779,47 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			windat->sort_order = SORT_NONE;
+			direction = (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
 			switch (pointer->i) {
 			case ACCVIEW_PANE_ROW:
-				windat->sort_order = SORT_ROW;
+				sort_set_order(windat->sort, SORT_ROW | direction);
 				break;
 
 			case ACCVIEW_PANE_DATE:
-				windat->sort_order = SORT_DATE;
+				sort_set_order(windat->sort, SORT_DATE | direction);
 				break;
 
 			case ACCVIEW_PANE_FROMTO:
-				windat->sort_order = SORT_FROMTO;
+				sort_set_order(windat->sort, SORT_FROMTO | direction);
 				break;
 
 			case ACCVIEW_PANE_REFERENCE:
-				windat->sort_order = SORT_REFERENCE;
+				sort_set_order(windat->sort, SORT_REFERENCE | direction);
 				break;
 
 			case ACCVIEW_PANE_PAYMENTS:
-				windat->sort_order = SORT_PAYMENTS;
+				sort_set_order(windat->sort, SORT_PAYMENTS | direction);
 				break;
 
 			case ACCVIEW_PANE_RECEIPTS:
-				windat->sort_order = SORT_RECEIPTS;
+				sort_set_order(windat->sort, SORT_RECEIPTS | direction);
 				break;
 
 			case ACCVIEW_PANE_BALANCE:
-				windat->sort_order = SORT_BALANCE;
+				sort_set_order(windat->sort, SORT_BALANCE | direction);
 				break;
 
 			case ACCVIEW_PANE_DESCRIPTION:
-				windat->sort_order = SORT_DESCRIPTION;
+				sort_set_order(windat->sort, SORT_DESCRIPTION | direction);
 				break;
-			}
-
-			if (windat->sort_order != SORT_NONE) {
-				if (pointer->buttons == wimp_CLICK_SELECT * 256)
-					windat->sort_order |= SORT_ASCENDING;
-				else
-					windat->sort_order |= SORT_DESCENDING;
 			}
 
 			accview_adjust_sort_icon(windat);
 			windows_redraw(windat->accview_pane);
 			accview_sort(file, account);
 
-			file->accviews->sort_order = windat->sort_order;
+			file->accviews->sort_order = sort_get_order(windat->sort);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimAccViewCols"));;
@@ -1255,12 +1253,15 @@ static void accview_adjust_sort_icon(struct accview_window *view)
 
 static void accview_adjust_sort_icon_data(struct accview_window *view, wimp_icon *icon)
 {
-	wimp_i	heading = wimp_ICON_WINDOW;
+	wimp_i		heading = wimp_ICON_WINDOW;
+	enum sort_type	order;
 
 	if (view == NULL)
 		return;
 
-	switch (view->sort_order & SORT_MASK) {
+	order = sort_get_order(view->sort);
+
+	switch (order & SORT_MASK) {
 	case SORT_ROW:
 		heading = ACCVIEW_PANE_ROW;
 		break;
@@ -1288,7 +1289,7 @@ static void accview_adjust_sort_icon_data(struct accview_window *view, wimp_icon
 	}
 
 	if (heading != wimp_ICON_WINDOW)
-		column_update_sort_indicator(view->columns, icon, accview_pane_def, heading, view->sort_order);
+		column_update_sort_indicator(view->columns, icon, accview_pane_def, heading, order);
 }
 
 
@@ -1421,7 +1422,7 @@ static void accview_open_sort_window(struct accview_window *view, wimp_pointer *
 	if (view == NULL || ptr == NULL)
 		return;
 
-	sort_dialogue_open(accview_sort_dialogue, ptr, view->sort_order, view);
+	sort_dialogue_open(accview_sort_dialogue, ptr, sort_get_order(view->sort), view);
 }
 
 
@@ -1441,13 +1442,13 @@ static osbool accview_process_sort_window(enum sort_type order, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	windat->sort_order = order;
+	sort_set_order(windat->sort, order);
 
 	accview_adjust_sort_icon(windat);
 	windows_redraw(windat->accview_pane);
 	accview_sort(windat->file, windat->account);
 
-	windat->file->accviews->sort_order = windat->sort_order;
+	windat->file->accviews->sort_order = order;
 
 	return TRUE;
 }
@@ -1615,8 +1616,6 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 
 void accview_sort(struct file_block *file, acct_t account)
 {
-	int			gap, comb, temp, order;
-	osbool			sorted, reorder;
 	struct accview_window	*view;
 
 	#ifdef DEBUG
@@ -1632,139 +1631,102 @@ void accview_sort(struct file_block *file, acct_t account)
 
 	hourglass_on();
 
-	/* Sort the entries using a combsort.  This has the advantage over qsort () that the order of entries is only
-	 * affected if they are not equal and are in descending order.  Otherwise, the status quo is left.
-	 */
+	/* Run the sort. */
 
-	gap = view->display_lines - 1;
-	order = view->sort_order;
-
-	do {
-		gap = (gap > 1) ? (gap * 10 / 13) : 1;
-		if ((view->display_lines >= 12) && (gap == 9 || gap == 10))
-			gap = 11;
-
-		sorted = TRUE;
-		for (comb = 0; (comb + gap) < view->display_lines; comb++) {
-			switch (order) {
-			case SORT_ROW | SORT_ASCENDING:
-				reorder = (transact_get_transaction_number(view->line_data[view->line_data[comb+gap].sort_index].transaction) <
-						transact_get_transaction_number(view->line_data[view->line_data[comb].sort_index].transaction));
-				break;
-
-			case SORT_ROW | SORT_DESCENDING:
-				reorder = (transact_get_transaction_number(view->line_data[view->line_data[comb+gap].sort_index].transaction) >
-						transact_get_transaction_number(view->line_data[view->line_data[comb].sort_index].transaction));
-				break;
-
-			case SORT_DATE | SORT_ASCENDING:
-				reorder = (transact_get_date(file, view->line_data[view->line_data[comb+gap].sort_index].transaction) <
-						transact_get_date(file, view->line_data[view->line_data[comb].sort_index].transaction));
-				break;
-
-			case SORT_DATE | SORT_DESCENDING:
-				reorder = (transact_get_date(file, view->line_data[view->line_data[comb+gap].sort_index].transaction) >
-						transact_get_date(file, view->line_data[view->line_data[comb].sort_index].transaction));
-				break;
-
-			case SORT_FROMTO | SORT_ASCENDING:
-				reorder = (strcmp(account_get_name(file,
-						(accview_get_transaction_direction(view, view->line_data[view->line_data[comb+gap].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
-						(transact_get_to(file, view->line_data[view->line_data[comb+gap].sort_index].transaction)) :
-						(transact_get_from(file, view->line_data[view->line_data[comb+gap].sort_index].transaction))),
-						account_get_name(file,
-						(accview_get_transaction_direction(view, view->line_data[view->line_data[comb].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
-						(transact_get_to(file, view->line_data[view->line_data[comb].sort_index].transaction)) :
-						(transact_get_from(file, view->line_data[view->line_data[comb].sort_index].transaction)))) < 0);
-				break;
-
-			case SORT_FROMTO | SORT_DESCENDING:
-				reorder = (strcmp(account_get_name(file,
-						(accview_get_transaction_direction(view, view->line_data[view->line_data[comb+gap].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
-						(transact_get_to(file, view->line_data[view->line_data[comb+gap].sort_index].transaction)) :
-						(transact_get_from(file, view->line_data[view->line_data[comb+gap].sort_index].transaction))),
-						account_get_name(file,
-						(accview_get_transaction_direction(view, view->line_data[view->line_data[comb].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
-						(transact_get_to(file, view->line_data[view->line_data[comb].sort_index].transaction)) :
-						(transact_get_from(file, view->line_data[view->line_data[comb].sort_index].transaction)))) > 0);
-				break;
-
-			case SORT_REFERENCE | SORT_ASCENDING:
-				reorder = (strcmp(transact_get_reference(file, view->line_data[view->line_data[comb+gap].sort_index].transaction, NULL, 0),
-						transact_get_reference(file, view->line_data[view->line_data[comb].sort_index].transaction, NULL, 0)) < 0);
-				break;
-
-			case SORT_REFERENCE | SORT_DESCENDING:
-				reorder = (strcmp(transact_get_reference(file, view->line_data[view->line_data[comb+gap].sort_index].transaction, NULL, 0),
-						transact_get_reference(file, view->line_data[view->line_data[comb].sort_index].transaction, NULL, 0)) > 0);
-				break;
-
-			case SORT_PAYMENTS | SORT_ASCENDING:
-				reorder = (((accview_get_transaction_direction(view, view->line_data[view->line_data[comb+gap].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
-						(transact_get_amount(file, view->line_data[view->line_data[comb+gap].sort_index].transaction)) : 0) <
-						((accview_get_transaction_direction(view, view->line_data[view->line_data[comb].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
-						(transact_get_amount(file, view->line_data[view->line_data[comb].sort_index].transaction)) : 0));
-				break;
-
-			case SORT_PAYMENTS | SORT_DESCENDING:
-				reorder = (((accview_get_transaction_direction(view, view->line_data[view->line_data[comb+gap].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
-						(transact_get_amount(file, view->line_data[view->line_data[comb+gap].sort_index].transaction)) : 0) >
-						((accview_get_transaction_direction(view, view->line_data[view->line_data[comb].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
-						(transact_get_amount(file, view->line_data[view->line_data[comb].sort_index].transaction)) : 0));
-				break;
-
-			case SORT_RECEIPTS | SORT_ASCENDING:
-				reorder = (((accview_get_transaction_direction(view, view->line_data[view->line_data[comb+gap].sort_index].transaction) == ACCVIEW_DIRECTION_TO) ?
-						(transact_get_amount(file, view->line_data[view->line_data[comb+gap].sort_index].transaction)) : 0) <
-						((accview_get_transaction_direction(view, view->line_data[view->line_data[comb].sort_index].transaction) == ACCVIEW_DIRECTION_TO) ?
-						(transact_get_amount(file, view->line_data[view->line_data[comb].sort_index].transaction)) : 0));
-				break;
-
-			case SORT_RECEIPTS | SORT_DESCENDING:
-				reorder = (((accview_get_transaction_direction(view, view->line_data[view->line_data[comb+gap].sort_index].transaction) == ACCVIEW_DIRECTION_TO) ?
-						(transact_get_amount(file, view->line_data[view->line_data[comb+gap].sort_index].transaction)) : 0) >
-						((accview_get_transaction_direction(view, view->line_data[view->line_data[comb].sort_index].transaction) == ACCVIEW_DIRECTION_TO) ?
-						(transact_get_amount(file, view->line_data[view->line_data[comb].sort_index].transaction)) : 0));
-				break;
-
-			case SORT_BALANCE | SORT_ASCENDING:
-				reorder = (view->line_data[view->line_data[comb+gap].sort_index].balance <
-						view->line_data[view->line_data[comb].sort_index].balance);
-				break;
-
-			case SORT_BALANCE | SORT_DESCENDING:
-				reorder = (view->line_data[view->line_data[comb+gap].sort_index].balance >
-						view->line_data[view->line_data[comb].sort_index].balance);
-				break;
-
-			case SORT_DESCRIPTION | SORT_ASCENDING:
-				reorder = (strcmp(transact_get_description(file, view->line_data[view->line_data[comb+gap].sort_index].transaction, NULL, 0),
-						transact_get_description(file, view->line_data[view->line_data[comb].sort_index].transaction, NULL, 0)) < 0);
-				break;
-
-			case SORT_DESCRIPTION | SORT_DESCENDING:
-				reorder = (strcmp(transact_get_description(file, view->line_data[view->line_data[comb+gap].sort_index].transaction, NULL, 0),
-						transact_get_description(file, view->line_data[view->line_data[comb].sort_index].transaction, NULL, 0)) > 0);
-				break;
-
-			default:
-				reorder = FALSE;
-				break;
-			}
-
-			if (reorder) {
-				temp = view->line_data[comb+gap].sort_index;
-				view->line_data[comb+gap].sort_index = view->line_data[comb].sort_index;
-				view->line_data[comb].sort_index = temp;
-
-				sorted = FALSE;
-			}
-		}
-	} while (!sorted || gap != 1);
+	sort_process(view->sort, view->display_lines);
 
 	accview_force_window_redraw(view, 0, view->display_lines - 1);
 
 	hourglass_off();
+}
+
+
+/**
+ * Compare two lines of an account view, returning the result of the
+ * in terms of a positive value, zero or a negative value.
+ * 
+ * \param type			The required column type of the comparison.
+ * \param index1		The index of the first line to be compared.
+ * \param index2		The index of the second line to be compared.
+ * \param *data			Client specific data, which is our window block.
+ * \return			The comparison result.
+ */
+
+static int accview_sort_compare(enum sort_type type, int index1, int index2, void *data)
+{
+	struct accview_window *view = data;
+
+	if (view == NULL)
+		return 0;
+
+	switch (type) {
+	case SORT_ROW:
+		return (transact_get_transaction_number(view->line_data[view->line_data[index1].sort_index].transaction) -
+				transact_get_transaction_number(view->line_data[view->line_data[index2].sort_index].transaction));
+
+	case SORT_DATE:
+		return (transact_get_date(view->file, view->line_data[view->line_data[index1].sort_index].transaction) -
+				transact_get_date(view->file, view->line_data[view->line_data[index2].sort_index].transaction));
+
+	case SORT_FROMTO:
+		return strcmp(account_get_name(view->file,
+				(accview_get_transaction_direction(view, view->line_data[view->line_data[index1].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
+				(transact_get_to(view->file, view->line_data[view->line_data[index1].sort_index].transaction)) :
+				(transact_get_from(view->file, view->line_data[view->line_data[index1].sort_index].transaction))),
+				account_get_name(view->file,
+				(accview_get_transaction_direction(view, view->line_data[view->line_data[index2].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
+				(transact_get_to(view->file, view->line_data[view->line_data[index2].sort_index].transaction)) :
+				(transact_get_from(view->file, view->line_data[view->line_data[index2].sort_index].transaction))));
+
+	case SORT_REFERENCE:
+		return strcmp(transact_get_reference(view->file, view->line_data[view->line_data[index1].sort_index].transaction, NULL, 0),
+				transact_get_reference(view->file, view->line_data[view->line_data[index2].sort_index].transaction, NULL, 0));
+
+	case SORT_PAYMENTS:
+		return (((accview_get_transaction_direction(view, view->line_data[view->line_data[index1].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
+				(transact_get_amount(view->file, view->line_data[view->line_data[index1].sort_index].transaction)) : 0) -
+				((accview_get_transaction_direction(view, view->line_data[view->line_data[index2].sort_index].transaction) == ACCVIEW_DIRECTION_FROM) ?
+				(transact_get_amount(view->file, view->line_data[view->line_data[index2].sort_index].transaction)) : 0));
+
+	case SORT_RECEIPTS:
+		return (((accview_get_transaction_direction(view, view->line_data[view->line_data[index1].sort_index].transaction) == ACCVIEW_DIRECTION_TO) ?
+				(transact_get_amount(view->file, view->line_data[view->line_data[index1].sort_index].transaction)) : 0) -
+				((accview_get_transaction_direction(view, view->line_data[view->line_data[index2].sort_index].transaction) == ACCVIEW_DIRECTION_TO) ?
+				(transact_get_amount(view->file, view->line_data[view->line_data[index2].sort_index].transaction)) : 0));
+
+	case SORT_BALANCE:
+		return (view->line_data[view->line_data[index1].sort_index].balance -
+				view->line_data[view->line_data[index2].sort_index].balance);
+
+	case SORT_DESCRIPTION:
+		return strcmp(transact_get_description(view->file, view->line_data[view->line_data[index1].sort_index].transaction, NULL, 0),
+				transact_get_description(view->file, view->line_data[view->line_data[index2].sort_index].transaction, NULL, 0));
+
+	default:
+		return 0;
+	}
+}
+
+
+/**
+ * Swap the sort index of two lines of am account view.
+ * 
+ * \param index1		The index of the first line to be swapped.
+ * \param index2		The index of the second line to be swapped.
+ * \param *data			Client specific data, which is our window block.
+ */
+
+static void accview_sort_swap(int index1, int index2, void *data)
+{
+	struct accview_window	*view = data;
+	int			temp;
+
+	if (view == NULL)
+		return;
+
+	temp = view->line_data[index1].sort_index;
+	view->line_data[index1].sort_index = view->line_data[index2].sort_index;
+	view->line_data[index2].sort_index = temp;
 }
 
 

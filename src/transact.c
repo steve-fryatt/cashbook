@@ -4545,6 +4545,17 @@ void transact_sort(struct transact_block *windat)
 }
 
 
+/**
+ * Compare two lines of a transaction list, returning the result of the
+ * in terms of a positive value, zero or a negative value.
+ * 
+ * \param type			The required column type of the comparison.
+ * \param index1		The index of the first line to be compared.
+ * \param index2		The index of the second line to be compared.
+ * \param *data			Client specific data, which is our window block.
+ * \return			The comparison result.
+ */
+
 static int transact_sort_compare(enum sort_type type, int index1, int index2, void *data)
 {
 	struct transact_block *windat = data;
@@ -4587,6 +4598,14 @@ static int transact_sort_compare(enum sort_type type, int index1, int index2, vo
 }
 
 
+/**
+ * Swap the sort index of two lines of a transaction list.
+ * 
+ * \param index1		The index of the first line to be swapped.
+ * \param index2		The index of the second line to be swapped.
+ * \param *data			Client specific data, which is our window block.
+ */
+
 static void transact_sort_swap(int index1, int index2, void *data)
 {
 	struct transact_block	*windat = data;
@@ -4599,6 +4618,7 @@ static void transact_sort_swap(int index1, int index2, void *data)
 	windat->transactions[index1].sort_index = windat->transactions[index2].sort_index;
 	windat->transactions[index2].sort_index = temp;
 }
+
 
 /**
  * Sort the underlying transaction data within a file, to put them into date order.

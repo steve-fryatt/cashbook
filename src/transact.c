@@ -272,12 +272,16 @@ struct transact_block {
 
 	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
 
+	/* Window sorting information. */
+
+	struct sort_block	*sort;						/**< Instance handle for the sort code.					*/
+
+	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
+
 	/* Other window information. */
 
 	int			display_lines;					/**< How many lines the current work area is formatted to display. */
 	enum sort_type		sort_order;					/**< The order in which the window is sorted. */
-
-	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data. */
 
 	/* Transaction Data. */
 
@@ -512,6 +516,7 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->transaction_pane = NULL;
 	new->edit_line = NULL;
 	new->columns = NULL;
+	new->sort = NULL;
 
 	new->columns = column_create_instance(TRANSACT_COLUMNS, transact_columns, NULL, TRANSACT_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
@@ -521,6 +526,8 @@ struct transact_block *transact_create_instance(struct file_block *file)
 
 	column_set_minimum_widths(new->columns, config_str_read("LimTransactCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("TransactCols"));
+
+	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING);
 
 	new->sort_order = SORT_DATE | SORT_ASCENDING;
 
@@ -552,6 +559,7 @@ void transact_delete_instance(struct transact_block *windat)
 	transact_delete_window(windat);
 
 	column_delete_instance(windat->columns);
+	sort_delete_instance(windat->sort);
 
 	if (windat->transactions != NULL)
 		flex_free((flex_ptr) &(windat->transactions));

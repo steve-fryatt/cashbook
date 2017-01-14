@@ -79,6 +79,7 @@
 #include "filing.h"
 #include "mainmenu.h"
 #include "printing.h"
+#include "sort.h"
 #include "sort_dialogue.h"
 #include "report.h"
 #include "transact.h"
@@ -243,11 +244,15 @@ struct sorder_block {
 
 	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
 
+	/* Window sorting information. */
+
+	struct sort_block	*sort;						/**< Instance handle for the sort code.					*/
+
+	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
+
 	/* Other window details. */
 
 	enum sort_type		sort_order;					/**< The order in which the window is sorted.				*/
-
-	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
 
 	/* Standing Order data. */
 
@@ -400,6 +405,7 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	new->sorder_window = NULL;
 	new->sorder_pane = NULL;
 	new->columns = NULL;
+	new->sort = NULL;
 
 	new-> columns = column_create_instance(SORDER_COLUMNS, sorder_columns, NULL, SORDER_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
@@ -409,6 +415,12 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 
 	column_set_minimum_widths(new->columns, config_str_read("LimSOrderCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("SOrderCols"));
+
+	new->sort = sort_create_instance(SORT_NEXTDATE | SORT_DESCENDING);
+	if (new->sort == NULL) {
+		sorder_delete_instance(new);
+		return NULL;
+	}
 
 	new->sort_order = SORT_NEXTDATE | SORT_DESCENDING;
 
@@ -440,6 +452,7 @@ void sorder_delete_instance(struct sorder_block *windat)
 	sorder_delete_window(windat);
 
 	column_delete_instance(windat->columns);
+	sort_delete_instance(windat->sort);
 
 	if (windat->sorders != NULL)
 		flex_free((flex_ptr) &(windat->sorders));

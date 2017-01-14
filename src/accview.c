@@ -74,6 +74,7 @@
 #include "mainmenu.h"
 #include "printing.h"
 #include "report.h"
+#include "sort.h"
 #include "sort_dialogue.h"
 #include "transact.h"
 #include "window.h"
@@ -206,6 +207,12 @@ struct accview_window {
 
 	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
 
+	/* Window sorting information. */
+
+	struct sort_block	*sort;						/**< Instance handle for the sort code.					*/
+
+	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
+
 	/* Data parameters */
 
 	int			display_lines;					/**< Count of the lines in the window.					*/
@@ -213,7 +220,6 @@ struct accview_window {
 
 	enum sort_type		sort_order;					/**< The current sort details for the window.				*/
 
-	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
 };
 
 
@@ -438,6 +444,8 @@ void accview_open_window(struct file_block *file, acct_t account)
 	height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ?
 			view->display_lines : MIN_ACCVIEW_ENTRIES;
 
+	view->sort = sort_create_instance(file->accviews->sort_order);
+
 	view->sort_order = file->accviews->sort_order;
 
 	/* Find the position to open the window at. */
@@ -555,6 +563,8 @@ void accview_delete_window(struct file_block *file, acct_t account)
 		return;
 
 	sort_dialogue_close(accview_sort_dialogue, view);
+
+	sort_delete_instance(view->sort);
 
 	if (view->accview_window != NULL) {
 		ihelp_remove_window(view->accview_window);

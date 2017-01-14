@@ -93,16 +93,19 @@ enum sort_type {
 /**
  * Create a new Sort instance.
  *
- * \param window		The handle of the window to use for the dialogue.
- * \param columns[]		Pointer to a list of icons relating to sort columns.
- * \param directions[]		Pointer to a list of icons relating to sort directions.
- * \param ok			The icon handle of the OK icon.
- * \param cancel		The icon handle of the Cancel icon.
- * \param *callback		Pointer to a callback function to receive selections.
- * \return			Pointer to the newly created dialogue handle, or NULL on failure.
+ * \param type			The initial sort type data for the instance.
+ * \return			Pointer to the newly created instance, or NULL on failure.
  */
 
-struct sort_block *sort_create_instance(void);
+struct sort_block *sort_create_instance(enum sort_type type);
 
+
+/**
+ * Delete a Sort instance.
+ *
+ * \param *nstance		The instance to be deleted.
+ */
+
+void sort_delete_instance(struct sort_block *instance);
 
 #endif

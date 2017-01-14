@@ -36,14 +36,55 @@
 
 /* OSLib header files */
 
-#include "oslib/wimp.h"
+//#include "oslib/wimp.h"
 
 /* SF-Lib header files. */
 
-#include "sflib/event.h"
-#include "sflib/icons.h"
-#include "sflib/windows.h"
+//#include "sflib/event.h"
+#include "sflib/heap.h"
+//#include "sflib/icons.h"
+//#include "sflib/windows.h"
 
 /* Application header files */
 
 #include "sort.h"
+
+struct sort_block {
+	enum sort_type		type;					/**< The sort settings for the instance			*/
+};
+
+
+/**
+ * Create a new Sort instance.
+ *
+ * \param type			The initial sort type data for the instance.
+ * \return			Pointer to the newly created instance, or NULL on failure.
+ */
+
+struct sort_block *sort_create_instance(enum sort_type type)
+{
+	struct sort_block	*new;
+
+	new = heap_alloc(sizeof(struct sort_block));
+	if (new == NULL)
+		return NULL;
+
+	new->type = type;
+
+	return new;
+}
+
+
+/**
+ * Delete a Sort instance.
+ *
+ * \param *nstance		The instance to be deleted.
+ */
+
+void sort_delete_instance(struct sort_block *instance)
+{
+	if (instance == NULL)
+		return;
+
+	heap_free(instance);
+}

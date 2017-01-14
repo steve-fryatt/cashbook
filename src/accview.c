@@ -564,6 +564,7 @@ void accview_delete_window(struct file_block *file, acct_t account)
 
 	sort_dialogue_close(accview_sort_dialogue, view);
 
+	column_delete_instance(view->columns);
 	sort_delete_instance(view->sort);
 
 	if (view->accview_window != NULL) {

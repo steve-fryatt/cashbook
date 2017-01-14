@@ -36,14 +36,10 @@
 
 /* OSLib header files */
 
-//#include "oslib/wimp.h"
 
 /* SF-Lib header files. */
 
-//#include "sflib/event.h"
 #include "sflib/heap.h"
-//#include "sflib/icons.h"
-//#include "sflib/windows.h"
 
 /* Application header files */
 

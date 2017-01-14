@@ -4908,7 +4908,8 @@ void transact_write_file(struct file_block *file, FILE *out)
 	column_write_as_text(file->transacts->columns, buffer, FILING_MAX_FILE_LINE_LEN);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
-	fprintf(out, "SortOrder: %x\n", sort_get_order(file->transacts->sort));
+	sort_write_as_text(file->transacts->sort, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "SortOrder: %s\n", buffer);
 
 	for (i = 0; i < file->transacts->trans_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x\n",
@@ -4957,7 +4958,7 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 			 */
 			column_init_window(file->transacts->columns, (format <= 100) ? 1 : 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0){
-			sort_set_order(file->transacts->sort, strtoul(value, NULL, 16));
+			sort_read_from_text(file->transacts->sort, value);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
 			file->transacts->trans_count++;
 			if (file->transacts->trans_count > block_size) {

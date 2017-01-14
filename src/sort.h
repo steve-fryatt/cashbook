@@ -135,6 +135,8 @@ enum sort_type sort_get_order(struct sort_block *instance);
 
 void sort_copy_order(struct sort_block *instance, struct sort_block *source);
 
+void sort_read_from_text(struct sort_block *instance, char *value);
+void sort_write_as_text(struct sort_block *instance, char *buffer, size_t length);
 void sort_process(struct sort_block *instance, size_t items);
 
 #endif

@@ -29,6 +29,7 @@
 
 /* ANSI C header files */
 
+#include <stdio.h>
 #include <stdlib.h>
 
 /* Acorn C header files */
@@ -120,6 +121,23 @@ void sort_copy_order(struct sort_block *instance, struct sort_block *source)
 		return;
 
 	instance->type = source->type;
+}
+
+void sort_read_from_text(struct sort_block *instance, char *value)
+{
+	if (instance == NULL || value == NULL)
+		return;
+
+	instance->type = strtoul(value, NULL, 16);
+}
+
+void sort_write_as_text(struct sort_block *instance, char *buffer, size_t length)
+{
+	if (instance == NULL || buffer == NULL || length <= 0)
+		return;
+
+	snprintf(buffer, length, "%x", instance->type);
+	buffer[length - 1] = '\0';
 }
 
 void sort_process(struct sort_block *instance, size_t items)

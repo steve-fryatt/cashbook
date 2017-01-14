@@ -2346,7 +2346,8 @@ void preset_write_file(struct file_block *file, FILE *out)
 	column_write_as_text(file->presets->columns, buffer, FILING_MAX_FILE_LINE_LEN);
 	fprintf(out, "WinColumns: %s\n", buffer);
 
-	fprintf(out, "SortOrder: %x\n", sort_get_order(file->presets->sort));
+	sort_write_as_text(file->presets->sort, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "SortOrder: %s\n", buffer);
 
 	for (i = 0; i < file->presets->preset_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x\n",
@@ -2394,7 +2395,7 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			column_init_window(file->presets->columns, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
-			sort_set_order(file->presets->sort, strtoul(value, NULL, 16));
+			sort_read_from_text(file->presets->sort, value);
 		} else if (string_nocase_strcmp(token, "@") == 0) {
 			file->presets->preset_count++;
 			if (file->presets->preset_count > block_size) {

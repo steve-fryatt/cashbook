@@ -2210,9 +2210,10 @@ void accview_write_file(struct file_block *file, FILE *out)
 	char	buffer[FILING_MAX_FILE_LINE_LEN];
 
 	column_write_as_text(file->accviews->columns, buffer, FILING_MAX_FILE_LINE_LEN);
-
 	fprintf(out, "WinColumns: %s\n", buffer);
-	fprintf(out, "SortOrder: %x\n", sort_get_order(file->accviews->sort));
+
+	sort_write_as_text(file->accviews->sort, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "SortOrder: %s\n", buffer);
 }
 
 
@@ -2243,7 +2244,7 @@ void accview_read_file_wincolumns(struct file_block *file, int format, char *col
 
 void accview_read_file_sortorder(struct file_block *file, char *order)
 {
-	sort_set_order(file->accviews->sort, strtoul(order, NULL, 16));
+	sort_read_from_text(file->accviews->sort, order);
 }
 
 

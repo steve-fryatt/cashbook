@@ -2537,25 +2537,26 @@ void sorder_write_file(struct file_block *file, FILE *out)
 	if (file == NULL || file->sorders == NULL)
 		return;
 
-	fprintf (out, "\n[StandingOrders]\n");
+	fprintf(out, "\n[StandingOrders]\n");
 
-	fprintf (out, "Entries: %x\n", file->sorders->sorder_count);
+	fprintf(out, "Entries: %x\n", file->sorders->sorder_count);
 
 	column_write_as_text(file->sorders->columns, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf (out, "WinColumns: %s\n", buffer);
+	fprintf(out, "WinColumns: %s\n", buffer);
 
-	fprintf (out, "SortOrder: %x\n", sort_get_order(file->sorders->sort));
+	sort_write_as_text(file->sorders->sort, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "SortOrder: %s\n", buffer);
 
 	for (i = 0; i < file->sorders->sorder_count; i++) {
-		fprintf (out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
+		fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
 				file->sorders->sorders[i].start_date, file->sorders->sorders[i].number, file->sorders->sorders[i].period,
 				file->sorders->sorders[i].period_unit, file->sorders->sorders[i].raw_next_date, file->sorders->sorders[i].adjusted_next_date,
 				file->sorders->sorders[i].left, file->sorders->sorders[i].flags, file->sorders->sorders[i].from, file->sorders->sorders[i].to,
 				file->sorders->sorders[i].normal_amount, file->sorders->sorders[i].first_amount, file->sorders->sorders[i].last_amount);
 		if (*(file->sorders->sorders[i].reference) != '\0')
-			config_write_token_pair (out, "Ref", file->sorders->sorders[i].reference);
+			config_write_token_pair(out, "Ref", file->sorders->sorders[i].reference);
 		if (*(file->sorders->sorders[i].description) != '\0')
-			config_write_token_pair (out, "Desc", file->sorders->sorders[i].description);
+			config_write_token_pair(out, "Desc", file->sorders->sorders[i].description);
 	}
 }
 
@@ -2591,7 +2592,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
 			column_init_window(file->sorders->columns, 0, TRUE, value);
 		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
-			sort_set_order(file->sorders->sort, strtoul(value, NULL, 16));
+			sort_read_from_text(file->sorders->sort, value);
 		} else if (string_nocase_strcmp (token, "@") == 0) {
 			file->sorders->sorder_count++;
 			if (file->sorders->sorder_count > block_size) {

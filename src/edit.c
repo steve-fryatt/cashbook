@@ -353,7 +353,7 @@ osbool edit_complete(struct edit_block *instance)
 
 /**
  * Add a field to an edit line instance.
- * 
+ *
  * \param *instance		The instance to add the field to.
  * \param type			The type of field to add.
  * \param ...			A list of the icons which apply to the field.
@@ -421,7 +421,7 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ..
 /**
  * Add an icon definition to an edit line field. This does not create the
  * icon itself.
- * 
+ *
  * \param *field		The field to which the icon will belong.
  * \param type			The type of icon being created.
  * \param icon			The expected Wimp icon handle for the icon.
@@ -492,7 +492,7 @@ static osbool edit_add_field_icon(struct edit_field *field, enum edit_icon_type 
 /**
  * Place a new edit line, removing any existing instance first since there can only
  * be one input focus.
- * 
+ *
  * \param *instance		The instance to place.
  * \param line			The line to place the instance in, or -1 to replace the
  *				line in its current location with the current colour.
@@ -619,7 +619,7 @@ static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colo
 		error_msgs_param_report_error("EditFailIcon", error->errmess, NULL, NULL, NULL);
 		return FALSE;
 	}
-	
+
 	if (handle != icon->icon) {
 		error_msgs_report_error("EditBadIconHandle");
 		return FALSE;
@@ -828,7 +828,7 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 
 /**
  * Move the caret on to the next field in a line.
- * 
+ *
  * \param *instance		The edit line instance to be updated.
  * \param *key			The Wimp keypress data associated with the request.
  */
@@ -893,7 +893,7 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 
 /**
  * Move the caret back to the previous field in a line.
- * 
+ *
  * \param *instance		The edit line instance to be updated.
  */
 
@@ -1268,7 +1268,7 @@ static void edit_delete_line_content(struct edit_block *instance)
 			field->text.sum = edit_sum_field_text(icon->buffer, icon->length);
 			changed = TRUE;
 			break;
-		
+
 		case EDIT_FIELD_DATE:
 			if (field->date.date == NULL_DATE)
 				break;
@@ -1276,7 +1276,7 @@ static void edit_delete_line_content(struct edit_block *instance)
 			field->date.date = NULL_DATE;
 			changed = TRUE;
 			break;
-		
+
 		case EDIT_FIELD_CURRENCY:
 			if (field->currency.amount == NULL_CURRENCY)
 				break;
@@ -1284,7 +1284,7 @@ static void edit_delete_line_content(struct edit_block *instance)
 			field->currency.amount = NULL_CURRENCY;
 			changed = TRUE;
 			break;
-		
+
 		case EDIT_FIELD_ACCOUNT_IN:
 		case EDIT_FIELD_ACCOUNT_OUT:
 			if (field->account.account == NULL_ACCOUNT && field->account.reconciled == FALSE)
@@ -1317,7 +1317,7 @@ static void edit_delete_line_content(struct edit_block *instance)
 /**
  * Refresh the icons in a field from the field's data, where this is held
  * in a separate copy from the field's icon buffer.
- * 
+ *
  * \param *field		The field to be updated.
  */
 
@@ -1480,7 +1480,7 @@ static void edit_put_field_content(struct edit_field *field, int line, wimp_key_
 
 /**
  * Return a set of icon handles associated with an edit bar field.
- * 
+ *
  * \param *field		The field of interest.
  * \param icons			The number of icons that are expected.
  * \param ...			Pointers to icon handle variables for each icon.
@@ -1575,7 +1575,7 @@ static osbool edit_callback_test_line(struct edit_block *instance, int line)
  * Contact the client to request that the edit line is placed at a given
  * location in the window related to the specified instance. The client will
  * be expected to make sure that the line is visible to the user.
- * 
+ *
  * \param *instance		The instance to take the line.
  * \param line			The line number at which to place the edit line.
  * \return			TRUE if the line was placed successfull; FALSE if not.
@@ -1593,7 +1593,7 @@ static osbool edit_callback_place_line(struct edit_block *instance, int line)
 /**
  * Contact the client to request details of the first blank line in an edit
  * line instance's parent window.
- * 
+ *
  * \param *instance		The instance of interest.
  * \return			The line number indexed from 0, or -1 on failure.
  */
@@ -1611,7 +1611,7 @@ static int edit_callback_first_blank_line(struct edit_block *instance)
 /**
  * Contact the client to request that a field's parent window is sorted on
  * that field, if applicable.
- * 
+ *
  * \param *field		The field to request the sort on.
  * \return			TRUE if the request was successfully handled; FALSE if not.
  */
@@ -1630,7 +1630,7 @@ static osbool edit_callback_auto_sort(struct edit_field *field)
  * Contact the client to report that a transaction preset request has been
  * received for a given edit line instance. In practice, this means that an
  * alphabetic character was entered into a date field.
- * 
+ *
  * \param *instance		The instance receiving the request.
  * \param line			The line at which the request was received.
  * \param key			The keypress triggering the request, in upper or lower case.
@@ -1673,7 +1673,7 @@ static int edit_sum_field_text(char *text, size_t length)
 
 /**
  * Find the field in an instance which contains the caret.
- * 
+ *
  * \param *instance		The edit line to search.
  * \return			The field containing the caret, or NULL.
  */
@@ -1704,7 +1704,7 @@ static struct edit_field *edit_find_caret(struct edit_block *instance)
  * Find the last writable field in an edit line containing a given field, in terms
  * of the user-facing order. This means that the field will be at the start of the
  * field list, as fields are linked in reverse order.
- * 
+ *
  * \param *field		The field to search from.
  * \return			The field before the given field, or NULL.
  */
@@ -1729,7 +1729,7 @@ static struct edit_field *edit_find_last_field(struct edit_field *field)
  * Find the first writable field after a given field in an edit line, in terms
  * of the user-facing order. This means that the field will be earlier in the
  * field list, as fields are linked in reverse order.
- * 
+ *
  * \param *field		The field to search from.
  * \return			The field before the given field, or NULL.
  */
@@ -1759,7 +1759,7 @@ static struct edit_field *edit_find_next_field(struct edit_field *field)
  * Find the first writable field before a given field in an edit line, in terms
  * of the user-facing order. This means that the field will be later in the
  * field list, as fields are linked in reverse order.
- * 
+ *
  * \param *field		The field to search from.
  * \return			The field before the given field, or NULL.
  */
@@ -1784,7 +1784,7 @@ static struct edit_field *edit_find_previous_field(struct edit_field *field)
  * Find the first writable field in an edit line containing a given field, in terms
  * of the user-facing order. This means that the field will be at the end of the
  * field list, as fields are linked in reverse order.
- * 
+ *
  * \param *field		The field to search from.
  * \return			The field before the given field, or NULL.
  */
@@ -1813,7 +1813,7 @@ static struct edit_field *edit_find_first_field(struct edit_field *field)
 /**
  * Test to see if a given field has a writable icon in its first location. The
  * icon must be of type Writable Click/Drag.
- * 
+ *
  * \param *field		The field to test.
  * \return			TRUE if the field is writable; FALSE if not.
  */
@@ -1854,7 +1854,7 @@ static void edit_initialise_transfer_blocks(struct edit_block *instance)
 /**
  * Claim a new transfer block from the current instance. Claimed blocks
  * must be freed after use.
- * 
+ *
  * \param *instance		The instance to claim from.
  * \return			Pointer to the block, or NULL on failure.
  */
@@ -1884,7 +1884,7 @@ static struct edit_data *edit_get_transfer_block(struct edit_block *instance)
 
 /**
  * Release a transfer block claimed from an edit line instance.
- * 
+ *
  * \param *instance		The instance owning the block to be freed.
  * \param *transfer		Pointer to the block to be freed.
  */

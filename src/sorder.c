@@ -2002,7 +2002,7 @@ void sorder_sort(struct sorder_block *windat)
 /**
  * Compare two lines of a standing order list, returning the result of the
  * in terms of a positive value, zero or a negative value.
- * 
+ *
  * \param type			The required column type of the comparison.
  * \param index1		The index of the first line to be compared.
  * \param index2		The index of the second line to be compared.
@@ -2050,7 +2050,7 @@ static int sorder_sort_compare(enum sort_type type, int index1, int index2, void
 
 /**
  * Swap the sort index of two lines of a standing order list.
- * 
+ *
  * \param index1		The index of the first line to be swapped.
  * \param index2		The index of the second line to be swapped.
  * \param *data			Client specific data, which is our window block.
@@ -2490,7 +2490,7 @@ void sorder_full_report(struct file_block *file)
 		case DATE_PERIOD_YEARS:
 			msgs_lookup("SOrderYears", numbuf2, sizeof(numbuf2));
 			break;
-		
+
 		default:
 			*numbuf2 = '\0';
 			break;
@@ -2660,12 +2660,12 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 static osbool sorder_save_csv(char *filename, osbool selection, void *data)
 {
 	struct sorder_block *windat = data;
-	
+
 	if (windat == NULL)
 		return FALSE;
 
 	sorder_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
-	
+
 	return TRUE;
 }
 
@@ -2681,12 +2681,12 @@ static osbool sorder_save_csv(char *filename, osbool selection, void *data)
 static osbool sorder_save_tsv(char *filename, osbool selection, void *data)
 {
 	struct sorder_block *windat = data;
-	
+
 	if (windat == NULL)
 		return FALSE;
-		
+
 	sorder_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
-	
+
 	return TRUE;
 }
 

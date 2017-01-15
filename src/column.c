@@ -89,7 +89,7 @@ static int		column_get_rightmost_in_footer_group(struct column_block *instance, 
 
 /**
  * Create a new column definition instance.
- * 
+ *
  * \param columns		The number of columns to be defined.
  * \param *map			Pointer to the column icon map.
  * \param *extra		Pointer to the extra icon list, or NULL for none.
@@ -180,7 +180,7 @@ void column_copy_instance(struct column_block *from, struct column_block *to)
 
 /**
  * Delete a column instance.
- * 
+ *
  * \param *instance		Pointer to the instance to be deleted.
  */
 
@@ -280,7 +280,7 @@ void column_init_window(struct column_block *instance, int start, osbool skip, c
 
 /**
  * Set an icon definitions X0 and X1 coordinates to suit a column position.
- * 
+ *
  * \param *instance		The instance to set the icon from.
  * \param field			The icon belonging to the column.
  * \param *icon			Pointer to the icon definition.
@@ -671,7 +671,7 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
 	int			sum = 0;
 	int			column, left, right;
 	wimp_icon_state		icon;
-	
+
 	if (instance == NULL)
 		return;
 
@@ -747,7 +747,7 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
 
 /**
  * Position the column sort indicator icon in a table header pane.
- * 
+ *
  * \param *instance		The column instance to use for the positioning.
  * \param *indicator		Pointer to the icon definiton data for the sort indicator.
  * \param *window		Pointer to the header pane window definition template.
@@ -807,11 +807,11 @@ void column_update_sort_indicator(struct column_block *instance, wimp_icon *indi
  * Process clicks on the window containing the column headings, so that
  * if the icon under the pointer is the sort indicator, it reflects the
  * icon beneath this.
- * 
+ *
  * \param *instance		The column instance to use.
  * \param *pointer		Pointer to the pointer data returned by the Wimp.
  */
- 
+
 void column_update_heading_icon_click(struct column_block *instance, wimp_pointer *pointer)
 {
 	if (instance == NULL || pointer == NULL)
@@ -825,7 +825,7 @@ void column_update_heading_icon_click(struct column_block *instance, wimp_pointe
 /**
  * Find the minimum and maximum horizontal positions of a field's icon, reporting
  * back in OS units relative to the parent window origin.
- * 
+ *
  * \param *instance		The column instance to report on.
  * \param field			The icon used by the field.
  * \param *xmin			Pointer to variable to take the minimum X coordinate.
@@ -853,7 +853,7 @@ void column_get_xpos(struct column_block *instance, wimp_i field, int *xmin, int
 
 /**
  * Get the total width of the columns represented by an instance.
- * 
+ *
  * \param *instance		The column instance to report on.
  * \return			The total width, or 0 on error.
  */
@@ -895,7 +895,7 @@ wimp_i column_find_icon_from_xpos(struct column_block *instance, int xpos)
 /**
  * Return the column group icon handle for the column containing a given
  * field icon.
- * 
+ *
  * \param *instance		The column set instance to search.
  * \param field			The field icon handle to look up.
  * \return			The column heading icon handle.

@@ -1997,7 +1997,7 @@ void preset_sort(struct preset_block *windat)
 /**
  * Compare two lines of a preset list, returning the result of the
  * in terms of a positive value, zero or a negative value.
- * 
+ *
  * \param type			The required column type of the comparison.
  * \param index1		The index of the first line to be compared.
  * \param index2		The index of the second line to be compared.
@@ -2045,7 +2045,7 @@ static int preset_sort_compare(enum sort_type type, int index1, int index2, void
 
 /**
  * Swap the sort index of two lines of a preset list.
- * 
+ *
  * \param index1		The index of the first line to be swapped.
  * \param index2		The index of the second line to be swapped.
  * \param *data			Client specific data, which is our window block.
@@ -2460,12 +2460,12 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 static osbool preset_save_csv(char *filename, osbool selection, void *data)
 {
 	struct preset_block *windat = data;
-	
+
 	if (windat == NULL)
 		return FALSE;
 
 	preset_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
-	
+
 	return TRUE;
 }
 
@@ -2481,12 +2481,12 @@ static osbool preset_save_csv(char *filename, osbool selection, void *data)
 static osbool preset_save_tsv(char *filename, osbool selection, void *data)
 {
 	struct preset_block *windat = data;
-	
+
 	if (windat == NULL)
 		return FALSE;
-		
+
 	preset_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
-	
+
 	return TRUE;
 }
 

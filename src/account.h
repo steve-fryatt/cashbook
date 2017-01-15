@@ -381,7 +381,7 @@ acct_t account_lookup_field(struct file_block *file, char key, enum account_type
 /**
  * Fill an account field (ident, reconciled and name icons) with the details
  * of an account.
- * 
+ *
  * \param *file		The file containing the account.
  * \param account	The account to be shown in the field.
  * \param reconciled	TRUE to show the account reconciled; FALSE to show unreconciled.
@@ -397,7 +397,7 @@ void account_fill_field(struct file_block *file, acct_t account, osbool reconcil
 
 /**
  * Toggle the reconcile status shown in an icon.
- * 
+ *
  * \param window	The window containing the icon.
  * \param icon		The icon to toggle.
  */

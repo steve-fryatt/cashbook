@@ -3588,7 +3588,7 @@ acct_t account_lookup_field(struct file_block *file, char key, enum account_type
 /**
  * Fill an account field (ident, reconciled and name icons) with the details
  * of an account.
- * 
+ *
  * \param *file		The file containing the account.
  * \param account	The account to be shown in the field.
  * \param reconciled	TRUE to show the account reconciled; FALSE to show unreconciled.
@@ -3613,7 +3613,7 @@ void account_fill_field(struct file_block *file, acct_t account, osbool reconcil
 
 /**
  * Toggle the reconcile status shown in an icon.
- * 
+ *
  * \param window	The window containing the icon.
  * \param icon		The icon to toggle.
  */
@@ -3641,7 +3641,7 @@ struct accview_window *account_get_accview(struct file_block *file, acct_t accou
 {
 	if (file == NULL || file->accounts == NULL)
 		return NULL;
-	
+
 	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return NULL;
 
@@ -3661,7 +3661,7 @@ void account_set_accview(struct file_block *file, acct_t account, struct accview
 {
 	if (file == NULL || file->accounts == NULL)
 		return;
-	
+
 	if (!account_valid(file->accounts, account) || file->accounts->accounts[account].type == ACCOUNT_NULL)
 		return;
 
@@ -4085,7 +4085,7 @@ char *account_get_next_cheque_number(struct file_block *file, acct_t from_accoun
 	if (file == NULL || file->accounts == NULL || buffer == NULL) {
 		if (buffer != NULL)
 			*buffer = '\0';
-		
+
 		return buffer;
 	}
 
@@ -4525,7 +4525,7 @@ void account_write_file(struct file_block *file, FILE *out)
 	fprintf(out, "Entries: %x\n", file->accounts->account_count);
 
 	/* \TODO -- This probably shouldn't be here, but in the accview module?
-	 * 
+	 *
 	 * This would require AccView to have its own file section.
 	 */
 

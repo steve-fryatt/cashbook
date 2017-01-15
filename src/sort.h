@@ -98,7 +98,7 @@ enum sort_type {
 struct sort_callback {
 	/**
 	 * Request the client compare the data at two indexes.
-	 * 
+	 *
 	 * \param *transfer		Pointer to the data transfer structure to take the data.
 	 * \return			TRUE if data was returned; FALSE if not.
 	 */
@@ -165,7 +165,7 @@ void sort_copy_order(struct sort_block *instance, struct sort_block *source);
 /**
  * Read the sort details encoded in a line of ASCII text, and use them to
  * update a sort instance.
- * 
+ *
  * \param *instance		The instance to be updated with the details.
  * \param *value		Pointer to the text containing the details.
  */

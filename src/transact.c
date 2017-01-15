@@ -1627,7 +1627,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 		top = WINDOW_REDRAW_TOP(TRANSACT_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
 		if (top < 0)
 			top = 0;
- 
+
 		base = WINDOW_REDRAW_BASE(TRANSACT_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
 
 		/* Redraw the data into the window. */
@@ -2034,7 +2034,7 @@ static void transact_force_window_redraw(struct transact_block *windat, int from
 {
 	int			y0, y1, line;
 	wimp_window_info	window;
-  
+
 	if (windat == NULL || windat->transaction_window == NULL)
 		return;
 
@@ -2123,7 +2123,7 @@ void transact_scroll_window_to_end(struct file_block *file, enum transact_scroll
 	case TRANSACT_SCROLL_NONE:
 		break;
 	}
- 
+
  	transact_minimise_window_extent(file);
  	wimp_open_window((wimp_open *) &window);
 }
@@ -2203,7 +2203,7 @@ int transact_find_nearest_window_centre(struct file_block *file, acct_t account)
 
 		i++;
 	}
- 
+
 	return result;
 }
 
@@ -3316,7 +3316,7 @@ static osbool transact_edit_find_field(int line, int xmin, int xmax, enum edit_a
 		}
 	}
 
-	/* Make sure that the line is visible vertically, as well. 
+	/* Make sure that the line is visible vertically, as well.
 	 * NB: This currently ignores the line parameter, as transact_find_edit_line_vertically()
 	 * queries the edit line directly. At present, these both yield the same result.
 	 */
@@ -3668,7 +3668,7 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
 
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
 		return;
- 
+
 	account_remove_transaction(file, transaction);
 
 	/* Look up the existing date, change it and compare the two. If the field
@@ -4076,7 +4076,7 @@ static void transact_find_next_reconcile_line(struct transact_block *windat, osb
 /**
  * Process auto-complete requests from the edit line for one of the transaction
  * fields.
- * 
+ *
  * \param *data			The field auto-complete data.
  * \return			TRUE if successful; FALSE on failure.
  */
@@ -4178,7 +4178,7 @@ static char *transact_complete_description(struct file_block *file, int line, ch
 
 /**
  * Process preset insertion requests from the edit line.
- * 
+ *
  * \param line			The line at which to insert the preset.
  * \param key			The Wimp Key number triggering the request.
  * \param *data			Our client data, holding the window instance.
@@ -4315,7 +4315,7 @@ osbool transact_insert_preset_into_line(struct file_block *file, int line, prese
 			((changed & TRANSACT_FIELD_AMOUNT) && ((order & SORT_MASK) == SORT_AMOUNT)) ||
 			((changed & TRANSACT_FIELD_DESC) && ((order & SORT_MASK) == SORT_DESCRIPTION)))) {
 		transact_sort(file->transacts);
-		
+
 		if (transact_valid(file->transacts, line)) {
 			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].from);
 			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].to);
@@ -4434,7 +4434,7 @@ static int transact_edit_auto_sort(wimp_i icon, void *data)
 
 /**
  * Find the Wimp colour of a given line in a transaction window.
- * 
+ *
  * \param *windat		The transaction window instance of interest.
  * \param line			The line of interest.
  * \return			The required Wimp colour, or Black on failure.
@@ -4548,7 +4548,7 @@ void transact_sort(struct transact_block *windat)
 /**
  * Compare two lines of a transaction list, returning the result of the
  * in terms of a positive value, zero or a negative value.
- * 
+ *
  * \param type			The required column type of the comparison.
  * \param index1		The index of the first line to be compared.
  * \param index2		The index of the second line to be compared.
@@ -4600,7 +4600,7 @@ static int transact_sort_compare(enum sort_type type, int index1, int index2, vo
 
 /**
  * Swap the sort index of two lines of a transaction list.
- * 
+ *
  * \param index1		The index of the first line to be swapped.
  * \param index2		The index of the second line to be swapped.
  * \param *data			Client specific data, which is our window block.
@@ -4717,7 +4717,7 @@ void transact_purge(struct file_block *file, date_t cutoff)
 	for (transaction = 0; transaction < file->transacts->trans_count; transaction++) {
 		date = transact_get_date(file, transaction);
 		flags = transact_get_flags(file, transaction);
-	
+
 		if ((flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO) &&
 				(cutoff == NULL_DATE || date < cutoff)) {
 			from = transact_get_from(file, transaction);

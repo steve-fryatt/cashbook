@@ -1669,7 +1669,7 @@ void accview_sort(struct file_block *file, acct_t account)
 /**
  * Compare two lines of an account view, returning the result of the
  * in terms of a positive value, zero or a negative value.
- * 
+ *
  * \param type			The required column type of the comparison.
  * \param index1		The index of the first line to be compared.
  * \param index2		The index of the second line to be compared.
@@ -1735,7 +1735,7 @@ static int accview_sort_compare(enum sort_type type, int index1, int index2, voi
 
 /**
  * Swap the sort index of two lines of am account view.
- * 
+ *
  * \param index1		The index of the first line to be swapped.
  * \param index2		The index of the second line to be swapped.
  * \param *data			Client specific data, which is our window block.
@@ -1963,7 +1963,7 @@ void accview_reindex_all(struct file_block *file)
 
 	for (account = 0; account < account_get_count(file); account++) {
 		view = account_get_accview(file, account);
-	
+
 		if (view != NULL && view->line_data != NULL) {
 			for (line = 0; line < view->display_lines; line++) {
 				transaction = (view->line_data)[line].transaction;
@@ -2200,7 +2200,7 @@ static void accview_scroll_to_line(struct accview_window *view, int line)
 
 /**
  * Save the accview details to a CashBook file.
- * 
+ *
  * \param *file			The file to write.
  * \param *out			The file handle to write to.
  */
@@ -2260,12 +2260,12 @@ void accview_read_file_sortorder(struct file_block *file, char *order)
 static osbool accview_save_csv(char *filename, osbool selection, void *data)
 {
 	struct accview_window *windat = data;
-	
+
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
 
 	accview_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
-	
+
 	return TRUE;
 }
 
@@ -2281,12 +2281,12 @@ static osbool accview_save_csv(char *filename, osbool selection, void *data)
 static osbool accview_save_tsv(char *filename, osbool selection, void *data)
 {
 	struct accview_window *windat = data;
-	
+
 	if (windat == NULL || windat->file == NULL)
 		return FALSE;
-		
+
 	accview_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
-	
+
 	return TRUE;
 }
 

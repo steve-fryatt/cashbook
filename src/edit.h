@@ -120,7 +120,7 @@ enum edit_align {
 struct edit_callback {
 	/**
 	 * Request new or updated field data from the client.
-	 * 
+	 *
 	 * \param *transfer		Pointer to the data transfer structure to take the data.
 	 * \return			TRUE if data was returned; FALSE if not.
 	 */
@@ -129,7 +129,7 @@ struct edit_callback {
 
 	/**
 	 * Send changed field data back to the client.
-	 * 
+	 *
 	 * \param *transfer		Pointer to the data transfer structure containing the data.
 	 * \return			TRUE if the new data was accepted; FALSE if not.
 	 */
@@ -138,7 +138,7 @@ struct edit_callback {
 
 	/**
 	 * Check with the client whether a line number is in range.
-	 * 
+	 *
 	 * \param line			The line number to be tested, in terms of current sort order.
 	 * \param *data			Client-specific data.
 	 * \return			TRUE if successful; FALSE on error.
@@ -161,7 +161,7 @@ struct edit_callback {
 	 * Request that the client adjusts the horizontal positioning of its
 	 * window such that the supplied coordinates are in range. It should also
 	 * ensure that the specified line is visible in the window.
-	 * 
+	 *
 	 * \param line			The line at which the edit line is located.
 	 * \param xmin			The minimum X window coordinate, in OS units.
 	 * \param xmax			The maximum X window coordinate, in OS units.
@@ -261,7 +261,7 @@ osbool edit_complete(struct edit_block *instance);
 
 /**
  * Add a field to an edit line instance.
- * 
+ *
  * \param *instance		The instance to add the field to.
  * \param type			The type of field to add.
  * \param ...			A list of the icons which apply to the field.
@@ -274,7 +274,7 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ..
 /**
  * Place a new edit line, removing any existing instance first since there can only
  * be one input focus.
- * 
+ *
  * \param *instance		The instance to place.
  * \param line			The line to place the instance in, or -1 to replace the
  *				line in its current location with the current colour.

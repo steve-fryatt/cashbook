@@ -1149,7 +1149,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 				window_plot_reconciled_field(ACCVIEW_ICON_REC, (transact_get_flags(windat->file, transaction) & TRANS_REC_FROM), icon_fg_col);
 				break;
 			case ACCVIEW_DIRECTION_TO:
-				transaction_account = transact_get_to(windat->file, transaction);
+				transaction_account = transact_get_from(windat->file, transaction);
 				window_plot_reconciled_field(ACCVIEW_ICON_REC, (transact_get_flags(windat->file, transaction) & TRANS_REC_TO), icon_fg_col);
 				break;
 			case ACCVIEW_DIRECTION_NONE:

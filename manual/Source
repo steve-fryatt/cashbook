@@ -1523,6 +1523,7 @@ Update to fourth stable release.
 <list>
 <li>Re-implemented data entry line code into a stand-alone module separate from the Transaction module.
 <li>Fixed problem with &lsquo;Reconcile Mode&rsquo; where the caret didn&rsquo;t advance on keypresses.
+<li>Perform a secondary visual sort on transaction number in <window>transaction</window> and <window> account view</window> windows, to ensure that transactions always retain the same relative order when the sort index is the same (tickets&nbsp;#280, #362, #488 and #594).
 </list>
 
 </chapter>

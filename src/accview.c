@@ -149,16 +149,16 @@
 /* Account View window column mapping. */
 
 static struct column_map accview_columns[] = {
-	{ACCVIEW_ICON_ROW, ACCVIEW_PANE_ROW, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_DATE, ACCVIEW_PANE_DATE, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_REC, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_FROMTO, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_REFERENCE, ACCVIEW_PANE_REFERENCE, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_PAYMENTS, ACCVIEW_PANE_PAYMENTS, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_RECEIPTS, ACCVIEW_PANE_RECEIPTS, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_BALANCE, ACCVIEW_PANE_BALANCE, wimp_ICON_WINDOW},
-	{ACCVIEW_ICON_DESCRIPTION, ACCVIEW_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+	{ACCVIEW_ICON_ROW, ACCVIEW_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
+	{ACCVIEW_ICON_DATE, ACCVIEW_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
+	{ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
+	{ACCVIEW_ICON_REC, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
+	{ACCVIEW_ICON_FROMTO, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
+	{ACCVIEW_ICON_REFERENCE, ACCVIEW_PANE_REFERENCE, wimp_ICON_WINDOW, SORT_REFERENCE},
+	{ACCVIEW_ICON_PAYMENTS, ACCVIEW_PANE_PAYMENTS, wimp_ICON_WINDOW, SORT_PAYMENTS},
+	{ACCVIEW_ICON_RECEIPTS, ACCVIEW_PANE_RECEIPTS, wimp_ICON_WINDOW, SORT_RECEIPTS},
+	{ACCVIEW_ICON_BALANCE, ACCVIEW_PANE_BALANCE, wimp_ICON_WINDOW, SORT_BALANCE},
+	{ACCVIEW_ICON_DESCRIPTION, ACCVIEW_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
 };
 
 struct accview_block {
@@ -741,7 +741,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
-	enum sort_type		direction;
+	enum sort_type		sort_order;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL)
@@ -804,47 +804,19 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			direction = (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
+			sort_order = column_get_sort_type_from_heading(windat->columns, pointer->i);
 
-			switch (pointer->i) {
-			case ACCVIEW_PANE_ROW:
-				sort_set_order(windat->sort, SORT_ROW | direction);
-				break;
+			if (sort_order != SORT_NONE) {
+				sort_order |= (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
-			case ACCVIEW_PANE_DATE:
-				sort_set_order(windat->sort, SORT_DATE | direction);
-				break;
+				sort_set_order(windat->sort, sort_order);
 
-			case ACCVIEW_PANE_FROMTO:
-				sort_set_order(windat->sort, SORT_FROMTO | direction);
-				break;
+				accview_adjust_sort_icon(windat);
+				windows_redraw(windat->accview_pane);
+				accview_sort(file, account);
 
-			case ACCVIEW_PANE_REFERENCE:
-				sort_set_order(windat->sort, SORT_REFERENCE | direction);
-				break;
-
-			case ACCVIEW_PANE_PAYMENTS:
-				sort_set_order(windat->sort, SORT_PAYMENTS | direction);
-				break;
-
-			case ACCVIEW_PANE_RECEIPTS:
-				sort_set_order(windat->sort, SORT_RECEIPTS | direction);
-				break;
-
-			case ACCVIEW_PANE_BALANCE:
-				sort_set_order(windat->sort, SORT_BALANCE | direction);
-				break;
-
-			case ACCVIEW_PANE_DESCRIPTION:
-				sort_set_order(windat->sort, SORT_DESCRIPTION | direction);
-				break;
+				sort_copy_order(file->accviews->sort, windat->sort);
 			}
-
-			accview_adjust_sort_icon(windat);
-			windows_redraw(windat->accview_pane);
-			accview_sort(file, account);
-
-			sort_copy_order(file->accviews->sort, windat->sort);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimAccViewCols"));;
@@ -1278,43 +1250,14 @@ static void accview_adjust_sort_icon(struct accview_window *view)
 
 static void accview_adjust_sort_icon_data(struct accview_window *view, wimp_icon *icon)
 {
-	wimp_i		heading = wimp_ICON_WINDOW;
-	enum sort_type	order;
+	enum sort_type	sort_order;
 
 	if (view == NULL)
 		return;
 
-	order = sort_get_order(view->sort);
+	sort_order = sort_get_order(view->sort);
 
-	switch (order & SORT_MASK) {
-	case SORT_ROW:
-		heading = ACCVIEW_PANE_ROW;
-		break;
-	case SORT_DATE:
-		heading = ACCVIEW_PANE_DATE;
-		break;
-	case SORT_FROMTO:
-		heading = ACCVIEW_PANE_FROMTO;
-		break;
-	case SORT_REFERENCE:
-		heading = ACCVIEW_PANE_REFERENCE;
-		break;
-	case SORT_PAYMENTS:
-		heading = ACCVIEW_PANE_PAYMENTS;
-		break;
-	case SORT_RECEIPTS:
-		heading = ACCVIEW_PANE_RECEIPTS;
-		break;
-	case SORT_BALANCE:
-		heading = ACCVIEW_PANE_BALANCE;
-		break;
-	case SORT_DESCRIPTION:
-		heading = ACCVIEW_PANE_DESCRIPTION;
-		break;
-	}
-
-	if (heading != wimp_ICON_WINDOW)
-		column_update_sort_indicator(view->columns, icon, accview_pane_def, heading, order);
+	column_update_sort_indicator(view->columns, icon, accview_pane_def, sort_order);
 }
 
 

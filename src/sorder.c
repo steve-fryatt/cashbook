@@ -180,16 +180,16 @@
 /* Standing Order Window column mapping. */
 
 static struct column_map sorder_columns[] = {
-	{SORDER_ICON_FROM, SORDER_PANE_FROM, wimp_ICON_WINDOW},
-	{SORDER_ICON_FROM_REC, SORDER_PANE_FROM, wimp_ICON_WINDOW},
-	{SORDER_ICON_FROM_NAME, SORDER_PANE_FROM, wimp_ICON_WINDOW},
-	{SORDER_ICON_TO, SORDER_PANE_TO, wimp_ICON_WINDOW},
-	{SORDER_ICON_TO_REC, SORDER_PANE_TO, wimp_ICON_WINDOW},
-	{SORDER_ICON_TO_NAME, SORDER_PANE_TO, wimp_ICON_WINDOW},
-	{SORDER_ICON_AMOUNT, SORDER_PANE_AMOUNT, wimp_ICON_WINDOW},
-	{SORDER_ICON_DESCRIPTION, SORDER_PANE_DESCRIPTION, wimp_ICON_WINDOW},
-	{SORDER_ICON_NEXTDATE, SORDER_PANE_NEXTDATE, wimp_ICON_WINDOW},
-	{SORDER_ICON_LEFT, SORDER_PANE_LEFT, wimp_ICON_WINDOW}
+	{SORDER_ICON_FROM, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{SORDER_ICON_FROM_REC, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{SORDER_ICON_FROM_NAME, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{SORDER_ICON_TO, SORDER_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{SORDER_ICON_TO_REC, SORDER_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{SORDER_ICON_TO_NAME, SORDER_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{SORDER_ICON_AMOUNT, SORDER_PANE_AMOUNT, wimp_ICON_WINDOW, SORT_AMOUNT},
+	{SORDER_ICON_DESCRIPTION, SORDER_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION},
+	{SORDER_ICON_NEXTDATE, SORDER_PANE_NEXTDATE, wimp_ICON_WINDOW, SORT_NEXTDATE},
+	{SORDER_ICON_LEFT, SORDER_PANE_LEFT, wimp_ICON_WINDOW, SORT_LEFT}
 };
 
 /**
@@ -680,7 +680,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
-	enum sort_type		direction;
+	enum sort_type		sort_order;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->file == NULL)
@@ -732,37 +732,16 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			direction = (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
+			sort_order = column_get_sort_type_from_heading(windat->columns, pointer->i);
 
-			switch (pointer->i) {
-			case SORDER_PANE_FROM:
-				sort_set_order(windat->sort, SORT_FROM | direction);
-				break;
+			if (sort_order != SORT_NONE) {
+				sort_order |= (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
-			case SORDER_PANE_TO:
-				sort_set_order(windat->sort, SORT_TO | direction);
-				break;
-
-			case SORDER_PANE_AMOUNT:
-				sort_set_order(windat->sort, SORT_AMOUNT | direction);
-				break;
-
-			case SORDER_PANE_DESCRIPTION:
-				sort_set_order(windat->sort, SORT_DESCRIPTION | direction);
-				break;
-
-			case SORDER_PANE_NEXTDATE:
-				sort_set_order(windat->sort, SORT_NEXTDATE | direction);
-				break;
-
-			case SORDER_PANE_LEFT:
-				sort_set_order(windat->sort, SORT_LEFT | direction);
-				break;
+				sort_set_order(windat->sort, sort_order);
+				sorder_adjust_sort_icon(windat);
+				windows_redraw(windat->sorder_pane);
+				sorder_sort(windat);
 			}
-
-			sorder_adjust_sort_icon(windat);
-			windows_redraw(windat->sorder_pane);
-			sorder_sort(windat);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimSOrderCols"));
@@ -1091,37 +1070,14 @@ static void sorder_adjust_sort_icon(struct sorder_block *windat)
 
 static void sorder_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon *icon)
 {
-	wimp_i		heading = wimp_ICON_WINDOW;
-	enum sort_type	order;
+	enum sort_type	sort_order;
 
 	if (windat == NULL)
 		return;
 
-	order = sort_get_order(windat->sort);
+	sort_order = sort_get_order(windat->sort);
 
-	switch (order & SORT_MASK) {
-	case SORT_FROM:
-		heading = SORDER_PANE_FROM;
-		break;
-	case SORT_TO:
-		heading = SORDER_PANE_TO;
-		break;
-	case SORT_AMOUNT:
-		heading = SORDER_PANE_AMOUNT;
-		break;
-	case SORT_DESCRIPTION:
-		heading = SORDER_PANE_DESCRIPTION;
-		break;
-	case SORT_NEXTDATE:
-		heading = SORDER_PANE_NEXTDATE;
-		break;
-	case SORT_LEFT:
-		heading = SORDER_PANE_LEFT;
-		break;
-	}
-
-	if (heading != wimp_ICON_WINDOW)
-		column_update_sort_indicator(windat->columns, icon, sorder_pane_def, heading, order);
+	column_update_sort_indicator(windat->columns, icon, sorder_pane_def, sort_order);
 }
 
 

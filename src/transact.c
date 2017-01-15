@@ -213,17 +213,17 @@
 /* Transaction Window column mapping. */
 
 static struct column_map transact_columns[] = {
-	{TRANSACT_ICON_ROW, TRANSACT_PANE_ROW, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_DATE, TRANSACT_PANE_DATE, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_FROM, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_FROM_REC, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_FROM_NAME, TRANSACT_PANE_FROM, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_TO, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_TO_REC, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_TO_NAME, TRANSACT_PANE_TO, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_REFERENCE, TRANSACT_PANE_REFERENCE, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_AMOUNT, TRANSACT_PANE_AMOUNT, wimp_ICON_WINDOW},
-	{TRANSACT_ICON_DESCRIPTION, TRANSACT_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+	{TRANSACT_ICON_ROW, TRANSACT_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
+	{TRANSACT_ICON_DATE, TRANSACT_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
+	{TRANSACT_ICON_FROM, TRANSACT_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{TRANSACT_ICON_FROM_REC, TRANSACT_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{TRANSACT_ICON_FROM_NAME, TRANSACT_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{TRANSACT_ICON_TO, TRANSACT_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{TRANSACT_ICON_TO_REC, TRANSACT_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{TRANSACT_ICON_TO_NAME, TRANSACT_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{TRANSACT_ICON_REFERENCE, TRANSACT_PANE_REFERENCE, wimp_ICON_WINDOW, SORT_REFERENCE},
+	{TRANSACT_ICON_AMOUNT, TRANSACT_PANE_AMOUNT, wimp_ICON_WINDOW, SORT_AMOUNT},
+	{TRANSACT_ICON_DESCRIPTION, TRANSACT_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
 };
 
 /**
@@ -538,6 +538,10 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	column_init_window(new->columns, 0, FALSE, config_str_read("TransactCols"));
 
 	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING,  &transact_sort_callbacks, new);
+	if (new->sort == NULL) {
+		transact_delete_instance(new);
+		return NULL;
+	}
 
 	/* Initialise the transaction data. */
 
@@ -978,7 +982,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 	wimp_icon_state		icon;
 	int			ox;
 	char			*filename;
-	enum sort_type		direction;
+	enum sort_type		sort_order;
 
 
 	windat = event_get_window_user_data(pointer->w);
@@ -1103,41 +1107,16 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			direction = (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
+			sort_order = column_get_sort_type_from_heading(windat->columns, pointer->i);
 
-			switch (pointer->i) {
-			case TRANSACT_PANE_ROW:
-				sort_set_order(windat->sort, SORT_ROW | direction);
-				break;
+			if (sort_order != SORT_NONE) {
+				sort_order |= (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
-			case TRANSACT_PANE_DATE:
-				sort_set_order(windat->sort, SORT_DATE | direction);
-				break;
-
-			case TRANSACT_PANE_FROM:
-				sort_set_order(windat->sort, SORT_FROM | direction);
-				break;
-
-			case TRANSACT_PANE_TO:
-				sort_set_order(windat->sort, SORT_TO | direction);
-				break;
-
-			case TRANSACT_PANE_REFERENCE:
-				sort_set_order(windat->sort, SORT_REFERENCE | direction);
-				break;
-
-			case TRANSACT_PANE_AMOUNT:
-				sort_set_order(windat->sort, SORT_AMOUNT | direction);
-				break;
-
-			case TRANSACT_PANE_DESCRIPTION:
-				sort_set_order(windat->sort, SORT_DESCRIPTION | direction);
-				break;
+				sort_set_order(windat->sort, sort_order);
+				transact_adjust_sort_icon(windat);
+				windows_redraw(windat->transaction_pane);
+				transact_sort(windat);
 			}
-
-			transact_adjust_sort_icon(windat);
-			windows_redraw(windat->transaction_pane);
-			transact_sort(windat);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimTransactCols"));
@@ -1857,40 +1836,14 @@ static void transact_adjust_sort_icon(struct transact_block *windat)
 
 static void transact_adjust_sort_icon_data(struct transact_block *windat, wimp_icon *icon)
 {
-	wimp_i		heading = wimp_ICON_WINDOW;
-	enum sort_type	order;
+	enum sort_type	sort_order;
 
 	if (windat == NULL)
 		return;
 
-	order = sort_get_order(windat->sort);
+	sort_order = sort_get_order(windat->sort);
 
-	switch (order & SORT_MASK) {
-	case SORT_ROW:
-		heading = TRANSACT_PANE_ROW;
-		break;
-	case SORT_DATE:
-		heading = TRANSACT_PANE_DATE;
-		break;
-	case SORT_FROM:
-		heading = TRANSACT_PANE_FROM;
-		break;
-	case SORT_TO:
-		heading = TRANSACT_PANE_TO;
-		break;
-	case SORT_REFERENCE:
-		heading = TRANSACT_PANE_REFERENCE;
-		break;
-	case SORT_AMOUNT:
-		heading = TRANSACT_PANE_AMOUNT;
-		break;
-	case SORT_DESCRIPTION:
-		heading = TRANSACT_PANE_DESCRIPTION;
-		break;
-	}
-
-	if (heading != wimp_ICON_WINDOW)
-		column_update_sort_indicator(windat->columns, icon, transact_pane_def, heading, order);
+	column_update_sort_indicator(windat->columns, icon, transact_pane_def, sort_order);
 }
 
 

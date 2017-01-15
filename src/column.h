@@ -46,12 +46,18 @@
 /**
  * A column map entry, detailing the field, header and footer icons associated
  * with the column.
+ * 
+ * It is assumed that heading icons will be contiguous, so while adjacent fields
+ * may share the same heading, a heading icon can not be re-used once another
+ * icon has been introduced. Sort orders should go with heading icons, on a
+ * one-to-one correlation.
  */
 
 struct column_map {
 	wimp_i			field;					/**< The icon relating to the column in the main data table window.					*/
 	wimp_i			heading;				/**< The icon relating to the column heading in the table heading pane.					*/
 	wimp_i			footer;					/**< The icon relating to the column footer in the table footer pane.					*/
+	enum sort_type		sort;					/**< The sort order relating to the column.								*/
 };
 
 
@@ -273,11 +279,10 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
  * \param *instance		The column instance to use for the positioning.
  * \param *indicator		Pointer to the icon definiton data for the sort indicator.
  * \param *window		Pointer to the header pane window definition template.
- * \param heading		The column heading icon handle to take the sort indicator.
  * \param sort_order		The sort details for the table.
  */
 
-void column_update_sort_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window, wimp_i heading, enum sort_type sort_order);
+void column_update_sort_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window,enum sort_type sort_order);
 
 
 /**
@@ -323,6 +328,28 @@ int column_get_window_width(struct column_block *instance);
  */
 
 wimp_i column_find_icon_from_xpos(struct column_block *instance, int xpos);
+
+
+/**
+ * Given a heading icon, return the sort type associated with it.
+ *
+ * \param *instance		The column set instance to search.
+ * \param heading		The column heading icon to look up.
+ * \return			The associated sort order, or SORT_NONE.
+ */
+
+enum sort_type column_get_sort_type_from_heading(struct column_block *instance, wimp_i heading);
+
+
+/**
+ * Given a sort order, return the heading icon associated with it.
+ *
+ * \param *instance		The column set instance to search.
+ * \param sort			The sort type to look up.
+ * \return			The associated column heading icon, or wimp_ICON_WINDOW.
+ */
+
+wimp_i column_get_heading_from_sort_type(struct column_block *instance, enum sort_type sort);
 
 
 /**

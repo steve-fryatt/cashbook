@@ -171,16 +171,16 @@
 /* Preset Window column mapping. */
 
 static struct column_map preset_columns[] = {
-	{PRESET_ICON_KEY, PRESET_PANE_KEY, wimp_ICON_WINDOW},
-	{PRESET_ICON_NAME, PRESET_PANE_NAME, wimp_ICON_WINDOW},
-	{PRESET_ICON_FROM, PRESET_PANE_FROM, wimp_ICON_WINDOW},
-	{PRESET_ICON_FROM_REC, PRESET_PANE_FROM, wimp_ICON_WINDOW},
-	{PRESET_ICON_FROM_NAME, PRESET_PANE_FROM, wimp_ICON_WINDOW},
-	{PRESET_ICON_TO, PRESET_PANE_TO, wimp_ICON_WINDOW},
-	{PRESET_ICON_TO_REC, PRESET_PANE_TO, wimp_ICON_WINDOW},
-	{PRESET_ICON_TO_NAME, PRESET_PANE_TO, wimp_ICON_WINDOW},
-	{PRESET_ICON_AMOUNT, PRESET_PANE_AMOUNT, wimp_ICON_WINDOW},
-	{PRESET_ICON_DESCRIPTION, PRESET_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+	{PRESET_ICON_KEY, PRESET_PANE_KEY, wimp_ICON_WINDOW, SORT_CHAR},
+	{PRESET_ICON_NAME, PRESET_PANE_NAME, wimp_ICON_WINDOW, SORT_NAME},
+	{PRESET_ICON_FROM, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{PRESET_ICON_FROM_REC, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{PRESET_ICON_FROM_NAME, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{PRESET_ICON_TO, PRESET_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{PRESET_ICON_TO_REC, PRESET_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{PRESET_ICON_TO_NAME, PRESET_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{PRESET_ICON_AMOUNT, PRESET_PANE_AMOUNT, wimp_ICON_WINDOW, SORT_AMOUNT},
+	{PRESET_ICON_DESCRIPTION, PRESET_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
 };
 
 
@@ -683,7 +683,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
-	enum sort_type		direction;
+	enum sort_type		sort_order;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->file == NULL)
@@ -737,37 +737,16 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			direction = (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
+			sort_order = column_get_sort_type_from_heading(windat->columns, pointer->i);
 
-			switch (pointer->i) {
-			case PRESET_PANE_KEY:
-				sort_set_order(windat->sort, SORT_CHAR | direction);
-				break;
+			if (sort_order != SORT_NONE) {
+				sort_order |= (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
-			case PRESET_PANE_NAME:
-				sort_set_order(windat->sort, SORT_NAME | direction);
-				break;
-
-			case PRESET_PANE_FROM:
-				sort_set_order(windat->sort, SORT_FROM | direction);
-				break;
-
-			case PRESET_PANE_TO:
-				sort_set_order(windat->sort, SORT_TO | direction);
-				break;
-
-			case PRESET_PANE_AMOUNT:
-				sort_set_order(windat->sort, SORT_AMOUNT | direction);
-				break;
-
-			case PRESET_PANE_DESCRIPTION:
-				sort_set_order(windat->sort, SORT_DESCRIPTION | direction);
-				break;
+				sort_set_order(windat->sort, sort_order);
+				preset_adjust_sort_icon(windat);
+				windows_redraw(windat->preset_pane);
+				preset_sort(windat);
 			}
-
-			preset_adjust_sort_icon(windat);
-			windows_redraw(windat->preset_pane);
-			preset_sort(windat);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimPresetCols"));
@@ -1093,37 +1072,14 @@ static void preset_adjust_sort_icon(struct preset_block *windat)
 
 static void preset_adjust_sort_icon_data(struct preset_block *windat, wimp_icon *icon)
 {
-	wimp_i		heading = wimp_ICON_WINDOW;
-	enum sort_type	order;
+	enum sort_type	sort_order;
 
 	if (windat == NULL)
 		return;
 
-	order = sort_get_order(windat->sort);
+	sort_order = sort_get_order(windat->sort);
 
-	switch (order & SORT_MASK) {
-	case SORT_CHAR:
-		heading = PRESET_PANE_KEY;
-		break;
-	case SORT_NAME:
-		heading = PRESET_PANE_NAME;
-		break;
-	case SORT_FROM:
-		heading = PRESET_PANE_FROM;
-		break;
-	case SORT_TO:
-		heading = PRESET_PANE_TO;
-		break;
-	case SORT_AMOUNT:
-		heading = PRESET_PANE_AMOUNT;
-		break;
-	case SORT_DESCRIPTION:
-		heading = PRESET_PANE_DESCRIPTION;
-		break;
-	}
-
-	if (heading != wimp_ICON_WINDOW)
-		column_update_sort_indicator(windat->columns, icon, preset_pane_def, heading, order);
+	column_update_sort_indicator(windat->columns, icon, preset_pane_def, sort_order);
 }
 
 

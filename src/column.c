@@ -82,6 +82,7 @@ static void		(*column_drag_callback)(void *, wimp_i, int);		/**< The callback ha
 static void		column_terminate_drag(wimp_dragged *drag, void *data);
 static int		column_get_minimum_group_width(struct column_block *instance, int group);
 static int		column_get_from_field(struct column_block *instance, wimp_i field);
+static int		column_get_leftmost_from_sort_type(struct column_block *instance, enum sort_type sort);
 static int		column_get_leftmost_in_heading_group(struct column_block *instance, wimp_i heading);
 static int		column_get_rightmost_in_heading_group(struct column_block *instance, wimp_i heading);
 static int		column_get_rightmost_in_footer_group(struct column_block *instance, wimp_i footer);
@@ -751,17 +752,21 @@ void columns_update_dragged(struct column_block *instance, wimp_w header, wimp_w
  * \param *instance		The column instance to use for the positioning.
  * \param *indicator		Pointer to the icon definiton data for the sort indicator.
  * \param *window		Pointer to the header pane window definition template.
- * \param heading		The column heading icon handle to take the sort indicator.
  * \param sort_order		The sort details for the table.
  */
 
-void column_update_sort_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window, wimp_i heading, enum sort_type sort_order)
+void column_update_sort_indicator(struct column_block *instance, wimp_icon *indicator, wimp_window *window, enum sort_type sort_order)
 {
 	int		column, anchor, width;
 	char		*sprite;
 	size_t		length;
+	wimp_i		heading;
 
-	if (instance == NULL || indicator == NULL || window == NULL)
+	if (instance == NULL || indicator == NULL || window == NULL || sort_order == SORT_NONE)
+		return;
+
+	heading = column_get_heading_from_sort_type(instance, sort_order);
+	if (heading == wimp_ICON_WINDOW)
 		return;
 
 	instance->sort_heading = heading;
@@ -893,6 +898,52 @@ wimp_i column_find_icon_from_xpos(struct column_block *instance, int xpos)
 
 
 /**
+ * Given a heading icon, return the sort type associated with it.
+ *
+ * \param *instance		The column set instance to search.
+ * \param heading		The column heading icon to look up.
+ * \return			The associated sort order, or SORT_NONE.
+ */
+
+enum sort_type column_get_sort_type_from_heading(struct column_block *instance, wimp_i heading)
+{
+	int	left;
+
+	if (instance == NULL)
+		return SORT_NONE;
+
+	left = column_get_leftmost_in_heading_group(instance, heading);
+	if (left == -1)
+		return SORT_NONE;
+
+	return instance->map[left].sort;
+}
+
+
+/**
+ * Given a sort order, return the heading icon associated with it.
+ *
+ * \param *instance		The column set instance to search.
+ * \param sort			The sort type to look up.
+ * \return			The associated column heading icon, or wimp_ICON_WINDOW.
+ */
+
+wimp_i column_get_heading_from_sort_type(struct column_block *instance, enum sort_type sort)
+{
+	int	left;
+
+	if (instance == NULL)
+		return wimp_ICON_WINDOW;
+
+	left = column_get_leftmost_from_sort_type(instance, sort & SORT_MASK);
+	if (left == -1)
+		return wimp_ICON_WINDOW;
+
+	return instance->map[left].heading;
+}
+
+
+/**
  * Return the column group icon handle for the column containing a given
  * field icon.
  *
@@ -964,6 +1015,30 @@ static int column_get_from_field(struct column_block *instance, wimp_i field)
 
 	for (column = 0; column < instance->columns; column++) {
 		if (instance->map[column].field == field)
+			return column;
+	}
+
+	return -1;
+}
+
+
+/**
+ * Return the number of the left-most column using the given sort type.
+ *
+ * \param *instance		The instance to search.
+ * \param sort			The sort type to be located.
+ * \return			The left-most column number, or -1 on failure.
+ */
+
+static int column_get_leftmost_from_sort_type(struct column_block *instance, enum sort_type sort)
+{
+	int column;
+
+	if (instance == NULL)
+		return -1;
+
+	for (column = 0; column < instance->columns; column++) {
+		if (instance->map[column].sort == sort)
 			return column;
 	}
 

@@ -128,6 +128,10 @@ static int			interest_window_menu_line = -1;			/**< The line over which the Inte
 static int			interest_decimal_places = 0;			/**< The number of decimal places with which to show interest amounts.	*/
 static char			interest_decimal_point = '.';			/**< The character to use for a decimal point.				*/
 
+/* Interest Rate sorting. */
+
+static struct sort_callback	interest_sort_callbacks;
+
 /**
  * Interest Rate instance data structure
  */
@@ -146,9 +150,9 @@ struct interest_block {
 
 	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
 
-	/* Other window details. */
+	/* Window sorting information. */
 
-	enum sort_type		sort_order;					/**< The order in which the window is sorted.				*/
+	struct sort_block	*sort;						/**< Instance handle for the sort code.					*/
 
 	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
 
@@ -194,6 +198,9 @@ void interest_initialise(osspriteop_area *sprites)
 //	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_save_tsv);
 
 	interest_decimal_places = 2;
+
+	interest_sort_callbacks.compare = NULL; //interest_sort_compare;
+	interest_sort_callbacks.swap = NULL; //interest_sort_swap;
 }
 
 
@@ -219,6 +226,7 @@ struct interest_block *interest_create_instance(struct file_block *file)
 	new->interest_window = NULL;
 	new->interest_pane = NULL;
 	new->columns = NULL;
+	new->sort = NULL;
 
 	new-> columns = column_create_instance(INTEREST_COLUMNS, interest_columns, NULL, wimp_ICON_WINDOW);
 	if (new->columns == NULL) {
@@ -229,7 +237,11 @@ struct interest_block *interest_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimInterestCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("InterestCols"));
 
-	new->sort_order = SORT_DATE | SORT_ASCENDING;
+	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING,  &interest_sort_callbacks, new);
+	if (new->sort == NULL) {
+		interest_delete_instance(new);
+		return NULL;
+	}
 
 	new->active_account = NULL_ACCOUNT;
 
@@ -484,6 +496,7 @@ static void interest_pane_click_handler(wimp_pointer *pointer)
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	int			ox;
+	enum sort_type		sort_order;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->file == NULL)
@@ -535,32 +548,16 @@ static void interest_pane_click_handler(wimp_pointer *pointer)
 		wimp_get_icon_state(&icon);
 
 		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			windat->sort_order = SORT_NONE;
+			sort_order = column_get_sort_type_from_heading(windat->columns, pointer->i);
 
-			switch (pointer->i) {
-			case INTEREST_PANE_DATE:
-				windat->sort_order = SORT_DATE;
-				break;
+			if (sort_order != SORT_NONE) {
+				sort_order |= (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
-			case INTEREST_PANE_RATE:
-				windat->sort_order = SORT_RATE;
-				break;
-
-			case INTEREST_PANE_DESCRIPTION:
-				windat->sort_order = SORT_DESCRIPTION;
-				break;
+				sort_set_order(windat->sort, sort_order);
+				interest_adjust_sort_icon(windat);
+				windows_redraw(windat->interest_pane);
+	//			sorder_sort(file->sorders);
 			}
-
-			if (windat->sort_order != SORT_NONE) {
-				if (pointer->buttons == wimp_CLICK_SELECT * 256)
-					windat->sort_order |= SORT_ASCENDING;
-				else
-					windat->sort_order |= SORT_DESCENDING;
-			}
-
-			interest_adjust_sort_icon(windat);
-			windows_redraw(windat->interest_pane);
-	//		sorder_sort(file->sorders);
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimInterestCols"));
@@ -763,25 +760,14 @@ static void interest_adjust_sort_icon(struct interest_block *windat)
 
 static void interest_adjust_sort_icon_data(struct interest_block *windat, wimp_icon *icon)
 {
-	wimp_i	heading = wimp_ICON_WINDOW;
+	enum sort_type	sort_order;
 
 	if (windat == NULL)
 		return;
 
-	switch (windat->sort_order & SORT_MASK) {
-	case SORT_DATE:
-		heading = INTEREST_PANE_DATE;
-		break;
-	case SORT_RATE:
-		heading = INTEREST_PANE_RATE;
-		break;
-	case SORT_DESCRIPTION:
-		heading = INTEREST_PANE_DESCRIPTION;
-		break;
-	}
+	sort_order = sort_get_order(windat->sort);
 
-	if (heading != wimp_ICON_WINDOW)
-		column_update_sort_indicator(windat->columns, icon, interest_pane_def, heading, windat->sort_order);
+	column_update_sort_indicator(windat->columns, icon, interest_pane_def, sort_order);
 }
 
 

@@ -112,13 +112,14 @@ struct sort_callback {
 /**
  * Create a new Sort instance.
  *
- * \param type			The initial sort type data for the instance.
+ * \param initial			The initial sort type data for the instance.
+ * \param fallback		The fallback sort type for the instance.
  * \param *callback		Pointer to the client-supplied sort callbacks.
  * \param *data			Pointer to the client data to be returned on all callbacks.
  * \return			Pointer to the newly created instance, or NULL on failure.
  */
 
-struct sort_block *sort_create_instance(enum sort_type type, struct sort_callback *callback, void *data);
+struct sort_block *sort_create_instance(enum sort_type initial, enum sort_type fallback, struct sort_callback *callback, void *data);
 
 
 /**

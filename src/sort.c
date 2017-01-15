@@ -49,6 +49,8 @@
 struct sort_block {
 	enum sort_type		type;					/**< The sort settings for the instance					*/
 
+	enum sort_type		fallback;				/**< The fallback sort type for the instance				*/
+
 	/**
 	 * The client callbacks and their associated data
 	 */
@@ -62,13 +64,14 @@ struct sort_block {
 /**
  * Create a new Sort instance.
  *
- * \param type			The initial sort type data for the instance.
+ * \param initial			The initial sort type data for the instance.
+ * \param fallback		The fallback sort type for the instance.
  * \param *callback		Pointer to the client-supplied sort callbacks.
  * \param *data			Pointer to the client data to be returned on all callbacks.
  * \return			Pointer to the newly created instance, or NULL on failure.
  */
 
-struct sort_block *sort_create_instance(enum sort_type type, struct sort_callback *callback, void *data)
+struct sort_block *sort_create_instance(enum sort_type initial, enum sort_type fallback, struct sort_callback *callback, void *data)
 {
 	struct sort_block	*new;
 
@@ -76,7 +79,8 @@ struct sort_block *sort_create_instance(enum sort_type type, struct sort_callbac
 	if (new == NULL)
 		return NULL;
 
-	new->type = type;
+	new->type = initial;
+	new->fallback = fallback;
 	new->callback = callback;
 	new->data = data;
 
@@ -194,8 +198,8 @@ void sort_write_as_text(struct sort_block *instance, char *buffer, size_t length
 void sort_process(struct sort_block *instance, size_t items)
 {
 	int		gap, comb, result;
-	osbool		sorted;
-	enum sort_type	order;
+	osbool		sorted, ascending, descending;
+	enum sort_type	order, fallback;
 
 	if (instance == NULL || instance->callback == NULL || instance->callback->compare == NULL || instance->callback->swap == NULL)
 		return;
@@ -207,6 +211,10 @@ void sort_process(struct sort_block *instance, size_t items)
 	gap = items - 1;
 
 	order = instance->type & SORT_MASK;
+	fallback = instance->fallback & SORT_MASK;
+
+	if (order == SORT_NONE)
+		return;
 
 	do {
 		gap = (gap > 1) ? (gap * 10 / 13) : 1;
@@ -217,7 +225,17 @@ void sort_process(struct sort_block *instance, size_t items)
 		for (comb = 0; (comb + gap) < items; comb++) {
 			result = instance->callback->compare(order, comb, comb + gap, instance->data);
 
-			if (((instance->type & SORT_DESCENDING) && (result < 0)) || ((instance->type & SORT_ASCENDING) && (result > 0))) {
+			if (result != 0) {
+				ascending = (instance->type & SORT_ASCENDING) ? TRUE : FALSE;
+				descending = (instance->type & SORT_DESCENDING) ? TRUE : FALSE;
+			} else if (fallback != SORT_NONE) {
+				result = instance->callback->compare(fallback, comb, comb + gap, instance->data);
+
+				ascending = (instance->fallback & SORT_ASCENDING) ? TRUE : FALSE;
+				descending = (instance->fallback & SORT_DESCENDING) ? TRUE : FALSE;
+			}
+
+			if ((descending && (result < 0)) || (ascending && (result > 0))) {
 				instance->callback->swap(comb + gap, comb, instance->data);
 				sorted = FALSE;
 			}

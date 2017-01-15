@@ -370,7 +370,7 @@ struct accview_block *accview_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimAccViewCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("AccViewCols"));
 
-	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, NULL, NULL);
+	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING, NULL, NULL);
 	if (new->sort == NULL) {
 		accview_delete_instance(new);
 		return NULL;
@@ -468,7 +468,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 	height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ?
 			view->display_lines : MIN_ACCVIEW_ENTRIES;
 
-	view->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, &accview_sort_callbacks, view);
+	view->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING, &accview_sort_callbacks, view);
 	if (view->sort == NULL) {
 		accview_delete_window(file, account);
 		error_msgs_report_info("AccviewMemErr1");

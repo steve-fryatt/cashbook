@@ -537,7 +537,7 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimTransactCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("TransactCols"));
 
-	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, &transact_sort_callbacks, new);
+	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING,  &transact_sort_callbacks, new);
 
 	/* Initialise the transaction data. */
 

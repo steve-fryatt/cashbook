@@ -440,6 +440,9 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 	 * entered, allowing anything from 100ad to be entered.
 	 */
 
+	if (year < 0)
+		year = 0;
+
 	if (year >= 0 && year < 80)
 		year += 2000;
 	else if (year >=80 && year <= 99)
@@ -449,6 +452,9 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 	 * given.
 	 */
 
+	if (month < 1)
+		month = 1;
+
 	month_limit = date_months_in_year(year);
 
 	if (month > month_limit)
@@ -457,6 +463,9 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 	/* Check the day, and bring it into a valid range for the month and
 	 * year given.
 	 */
+
+	if (day < 1)
+		day = 1;
 
 	day_limit = (month_days == 0) ? date_days_in_month(month, year) : month_days;
 

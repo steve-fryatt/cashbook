@@ -82,6 +82,12 @@
 
 #define INTEREST_FORMAT_LENGTH 20
 
+/**
+ * The length of an interest rate description field.
+ */
+
+#define INTEREST_DESCRIPTION_LEN 101
+
 /* Interest Window details. */
 
 /**
@@ -133,6 +139,22 @@ static char			interest_decimal_point = '.';			/**< The character to use for a de
 static struct sort_callback	interest_sort_callbacks;
 
 /**
+ * Interest Rate entry data structure.
+ */
+
+struct interest_rate {
+	acct_t			account;
+
+	rate_t			rate;
+
+	date_t			effective_date;
+
+	amt_t			minimum_balance;
+
+	char			description[INTEREST_DESCRIPTION_LEN];
+};
+
+/**
  * Interest Rate instance data structure
  */
 
@@ -159,6 +181,18 @@ struct interest_block {
 	/* The account currently associated with this instance. */
 
 	acct_t			active_account;
+
+	/* The data. */
+
+	struct interest_rate	*rates;
+
+	int			rate_count;
+
+	int			*display_index;
+
+	int			display_count;
+	int			display_lines;
+
 };
 
 /* Static function prototypes. */
@@ -228,6 +262,17 @@ struct interest_block *interest_create_instance(struct file_block *file)
 	new->columns = NULL;
 	new->sort = NULL;
 
+	new->rates = NULL;
+	new->display_index = NULL;
+
+	new->rate_count = 0;
+	new->display_count = 0;
+	new->display_lines = 0;
+
+	new->active_account = NULL_ACCOUNT;
+
+	/* Initialise the window columns. */
+
 	new-> columns = column_create_instance(INTEREST_COLUMNS, interest_columns, NULL, wimp_ICON_WINDOW);
 	if (new->columns == NULL) {
 		interest_delete_instance(new);
@@ -237,13 +282,25 @@ struct interest_block *interest_create_instance(struct file_block *file)
 	column_set_minimum_widths(new->columns, config_str_read("LimInterestCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("InterestCols"));
 
+	/* Initialise the window sort. */
+
 	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING,  &interest_sort_callbacks, new);
 	if (new->sort == NULL) {
 		interest_delete_instance(new);
 		return NULL;
 	}
 
-	new->active_account = NULL_ACCOUNT;
+	/* Initialise the flex blocks. */
+
+	if (flex_alloc((flex_ptr) &(new->rates), 4) == 0) {
+		interest_delete_instance(new);
+		return NULL;
+	}
+
+	if (flex_alloc((flex_ptr) &(new->display_index), 4) == 0) {
+		interest_delete_instance(new);
+		return NULL;
+	}
 
 	return new;
 }
@@ -262,6 +319,15 @@ void interest_delete_instance(struct interest_block *instance)
 
 	if (instance->interest_window != NULL)
 		interest_delete_window(instance, NULL_ACCOUNT);
+
+	column_delete_instance(instance->columns);
+	sort_delete_instance(instance->sort);
+
+	if (instance->rates != NULL)
+		flex_free((flex_ptr) &(instance->rates));
+
+	if (instance->display_index != NULL)
+		flex_free((flex_ptr) &(instance->display_index));
 
 	heap_free(instance);
 }

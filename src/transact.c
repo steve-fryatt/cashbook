@@ -528,8 +528,10 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->columns = NULL;
 	new->sort = NULL;
 
-	new->trans_count = 0;
 	new->transactions = NULL;
+	new->trans_count = 0;
+
+	/* Initialise the window columns. */
 
 	new->columns = column_create_instance(TRANSACT_COLUMNS, transact_columns, NULL, TRANSACT_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
@@ -539,6 +541,8 @@ struct transact_block *transact_create_instance(struct file_block *file)
 
 	column_set_minimum_widths(new->columns, config_str_read("LimTransactCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("TransactCols"));
+
+	/* Initialise the window sort. */
 
 	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING,  &transact_sort_callbacks, new);
 	if (new->sort == NULL) {
@@ -617,6 +621,7 @@ void transact_open_window(struct file_block *file)
 
 	error = xwimp_create_window(transact_window_def, &(file->transacts->transaction_window));
 	if (error != NULL) {
+		transact_delete_window(file->transacts);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -640,6 +645,7 @@ void transact_open_window(struct file_block *file)
 
 	error = xwimp_create_window(transact_pane_def, &(file->transacts->transaction_pane));
 	if (error != NULL) {
+		transact_delete_window(file->transacts);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -650,6 +656,7 @@ void transact_open_window(struct file_block *file)
 			file->transacts->columns, TRANSACT_TOOLBAR_HEIGHT,
 			&transact_edit_callbacks, file->transacts);
 	if (file->transacts->edit_line == NULL) {
+		transact_delete_window(file->transacts);
 		error_msgs_report_error("TransactNoMem");
 		return;
 	}
@@ -674,7 +681,7 @@ void transact_open_window(struct file_block *file)
 			TRANSACT_ICON_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	if (!edit_complete(file->transacts->edit_line)) {
-		edit_delete_instance(file->transacts->edit_line);
+		transact_delete_window(file->transacts);
 		error_msgs_report_error("TransactNoMem");
 		return;
 	}

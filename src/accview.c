@@ -293,7 +293,7 @@ static void			accview_print(osbool text, osbool format, osbool scale, osbool rot
 static int			accview_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void			accview_sort_swap(int index1, int index2, void *data);
 
-static int			accview_build(struct accview_window *view);
+static osbool			accview_build(struct accview_window *view);
 static int			accview_calculate(struct accview_window *view);
 
 static enum accview_direction	accview_get_transaction_direction(struct accview_window *view, int transaction);
@@ -361,6 +361,8 @@ struct accview_block *accview_create_instance(struct file_block *file)
 	new->columns = NULL;
 	new->sort = NULL;
 
+	/* Initialise the global window columns defaults. */
+
 	new->columns = column_create_instance(ACCVIEW_COLUMNS, accview_columns, NULL, ACCVIEW_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
 		accview_delete_instance(new);
@@ -369,6 +371,8 @@ struct accview_block *accview_create_instance(struct file_block *file)
 
 	column_set_minimum_widths(new->columns, config_str_read("LimAccViewCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("AccViewCols"));
+
+	/* Initialise the global window sort defaults. */
 
 	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING, NULL, NULL);
 	if (new->sort == NULL) {
@@ -428,7 +432,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 		transact_sort_file_data(file);
 
 	/* The block pointer is put into the new variable, as the file->accounts[account].account_view pointer may move
-	 * as a result of the flex heap shifting for heap_alloc ().
+	 * as a result of the flex heap shifting for heap_alloc().
 	 */
 
 	view = heap_alloc(sizeof(struct accview_window));
@@ -451,13 +455,21 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	view->line_data = NULL;
 
-	accview_build(view);
+	if (!accview_build(view)) {
+		accview_delete_window(file, account);
+		return;
+	}
 
 	/* Set the main window extent and create it. */
 
 	*(view->window_title) = '\0';
 	accview_window_def->title_data.indirected_text.text =
 			view->window_title;
+
+	height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ?
+			view->display_lines : MIN_ACCVIEW_ENTRIES;
+
+	/* Clone the column settings from the global defaults. */
 
 	view->columns = column_clone_instance(file->accviews->columns);
 	if (view->columns == NULL) {
@@ -466,9 +478,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 		return;
 	}
 
-
-	height = (view->display_lines > MIN_ACCVIEW_ENTRIES) ?
-			view->display_lines : MIN_ACCVIEW_ENTRIES;
+	/* Clone the sort settings from the global defaults. */
 
 	view->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING, &accview_sort_callbacks, view);
 	if (view->sort == NULL) {
@@ -494,6 +504,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	error = xwimp_create_window(accview_window_def, &(view->accview_window));
 	if (error != NULL) {
+		accview_delete_window(file, account);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -519,6 +530,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	error = xwimp_create_window(accview_pane_def, &(view->accview_pane));
 	if (error != NULL) {
+		accview_delete_window(file, account);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -1707,14 +1719,15 @@ static void accview_sort_swap(int index1, int index2, void *data)
  * fill it as required, then shrink it down again to the correct size.
  *
  * \param *view			The view to be built.
+ * \return			TRUE on success; FALSE on failure.
  */
 
-static int accview_build(struct accview_window *view)
+static osbool accview_build(struct accview_window *view)
 {
 	int	i, lines = 0;
 
 	if (view == NULL || view->file == NULL)
-		return lines;
+		return FALSE;
 
 
 	#ifdef DEBUG
@@ -1723,7 +1736,7 @@ static int accview_build(struct accview_window *view)
 
 	if (flex_alloc((flex_ptr) &(view->line_data), transact_get_count(view->file) * sizeof(struct accview_redraw)) == 0) {
 		error_msgs_report_info("AccviewMemErr2");
-		return lines;
+		return FALSE;
 	}
 
 	lines = accview_calculate(view);
@@ -1733,7 +1746,7 @@ static int accview_build(struct accview_window *view)
 	for (i = 0; i < lines; i++)
 		view->line_data[i].sort_index = i;
 
-	return lines;
+	return TRUE;
 }
 
 
@@ -1768,7 +1781,11 @@ void accview_rebuild(struct file_block *file, acct_t account)
 	if (view->line_data != NULL)
 		flex_free((flex_ptr) &(view->line_data));
 
-	accview_build(view);
+	if (!accview_build(view)) {
+		accview_delete_window(file, account);
+		return;
+	}
+
 	accview_set_window_extent(view);
 	accview_sort(file, account);
 	windows_redraw(view->accview_window);

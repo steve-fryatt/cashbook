@@ -413,8 +413,10 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	new->columns = NULL;
 	new->sort = NULL;
 
-	new->sorder_count = 0;
 	new->sorders = NULL;
+	new->sorder_count = 0;
+
+	/* Initialise the window columns. */
 
 	new-> columns = column_create_instance(SORDER_COLUMNS, sorder_columns, NULL, SORDER_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
@@ -424,6 +426,8 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 
 	column_set_minimum_widths(new->columns, config_str_read("LimSOrderCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("SOrderCols"));
+
+	/* Initialise the window sort. */
 
 	new->sort = sort_create_instance(SORT_NEXTDATE | SORT_DESCENDING, SORT_NONE, &sorder_sort_callbacks, new);
 	if (new->sort == NULL) {
@@ -507,6 +511,7 @@ void sorder_open_window(struct file_block *file)
 
 	error = xwimp_create_window(sorder_window_def, &(file->sorders->sorder_window));
 	if (error != NULL) {
+		sorder_delete_window(file->sorders);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -535,6 +540,7 @@ void sorder_open_window(struct file_block *file)
 
 	error = xwimp_create_window(sorder_pane_def, &(file->sorders->sorder_pane));
 	if (error != NULL) {
+		sorder_delete_window(file->sorders);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}

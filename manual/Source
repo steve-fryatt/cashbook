@@ -1526,6 +1526,7 @@ Update to fourth stable release.
 <li>Perform a secondary visual sort on transaction number in <window>transaction</window> and <window> account view</window> windows, to ensure that transactions always retain the same relative order when the sort index is the same (tickets&nbsp;#280, #362, #488 and #594).
 <li>Don&rsquo;t allow zero or negative days or months when entering dates (ticket&nbsp;#607).
 <li>Don&rsquo;t allow negative credit limits to be entered (ticket&nbsp;#606).
+<li>Close <window>account edit</window> and <window>heading edit</window> dialogue boxes when their parent windows close.
 </list>
 
 </chapter>

@@ -538,6 +538,9 @@ struct account_block *account_create_instance(struct file_block *file)
 
 	new->file = file;
 
+	new->accounts = NULL;
+	new->account_count = 0;
+
 	/* Initialise the account and heading windows. */
 
 	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
@@ -549,12 +552,8 @@ struct account_block *account_create_instance(struct file_block *file)
 		new->account_windows[i].account_footer = NULL;
 		new->account_windows[i].columns = NULL;
 
-		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS, account_columns, account_extra_columns, wimp_ICON_WINDOW);
-		if (new->account_windows[i].columns == NULL)
-			mem_fail = TRUE;
-
-		column_set_minimum_widths(new->account_windows[i].columns, config_str_read("LimAccountCols"));
-		column_init_window(new->account_windows[i].columns, 0, FALSE, config_str_read("AccountCols"));
+		new->account_windows[i].display_lines = 0;
+		new->account_windows[i].line_data = NULL;
 
 		/* Blank out the footer icons. */
 
@@ -563,33 +562,51 @@ struct account_block *account_create_instance(struct file_block *file)
 		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_FINAL] = '\0';
 		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_BUDGET] = '\0';
 
-    /* Set the individual windows to the type of account they will hold. */
+		/* Set the individual windows to the type of account they will hold.
+		 *
+		 * \TODO -- Ick! Is there really no better way to do this? 
+		 */
 
-    switch (i)
-    {
-      case 0:
-        new->account_windows[i].type = ACCOUNT_FULL;
-        break;
+		switch (i) {
+		case 0:
+			new->account_windows[i].type = ACCOUNT_FULL;
+			break;
 
-      case 1:
-        new->account_windows[i].type = ACCOUNT_IN;
-        break;
+		case 1:
+			new->account_windows[i].type = ACCOUNT_IN;
+			break;
 
-      case 2:
-        new->account_windows[i].type = ACCOUNT_OUT;
-        break;
-    }
+		case 2:
+			new->account_windows[i].type = ACCOUNT_OUT;
+			break;
+		}
+
+		/* If there was a memory failure, we only want to initialise the block enough
+		 * that it can be destroyed again. However, we do need to initialise all of
+		 * the blocks so that everything is set to NULL that needs to be.
+		 */
+
+		if (mem_fail == TRUE)
+			continue;
+
+		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS, account_columns, account_extra_columns, wimp_ICON_WINDOW);
+		if (new->account_windows[i].columns == NULL) {
+			mem_fail = TRUE;
+			continue;
+		}
+
+		column_set_minimum_widths(new->account_windows[i].columns, config_str_read("LimAccountCols"));
+		column_init_window(new->account_windows[i].columns, 0, FALSE, config_str_read("AccountCols"));
 
 		/* Set the initial lines up */
 
-		new->account_windows[i].display_lines = 0;
-		flex_alloc ((flex_ptr) &(new->account_windows[i].line_data), 4); /* Set up to an initial dummy amount. */ //\TODO -- There's no error checking here!
+		if (flex_alloc((flex_ptr) &(new->account_windows[i].line_data), 4) == 0) {
+			mem_fail = TRUE;
+			continue;
+		}
 	}
 
 	/* Set up the account data structures. */
-
-	new->account_count = 0;
-	new->accounts = NULL;
 
 	if (mem_fail || (flex_alloc((flex_ptr) &(new->accounts), 4) == 0)) {
 		account_delete_instance(new);
@@ -613,19 +630,6 @@ void account_delete_instance(struct account_block *block)
 
 	if (block == NULL)
 		return;
-
-	/* Close any dialogues which belong to this instance. */
-
-	if (account_edit_owner == block) {
-		if (windows_get_open(account_acc_edit_window))
-			close_dialogue_with_caret(account_acc_edit_window);
-
-		if (windows_get_open(account_hdg_edit_window))
-			close_dialogue_with_caret(account_hdg_edit_window);
-	}
-
-	if (account_section_owner == block && windows_get_open(account_section_window))
-		close_dialogue_with_caret(account_section_window);
 
 	/* Step through the account list windows. */
 
@@ -802,6 +806,19 @@ static void account_delete_window(struct account_window *windat)
 	#ifdef DEBUG
 	debug_printf ("\\RDeleting accounts window");
 	#endif
+
+	/* Close any dialogues which belong to this window. */
+
+	if (account_edit_owner == windat->instance) {
+		if (windows_get_open(account_acc_edit_window))
+			close_dialogue_with_caret(account_acc_edit_window);
+
+		if (windows_get_open(account_hdg_edit_window))
+			close_dialogue_with_caret(account_hdg_edit_window);
+	}
+
+	if (account_section_owner == windat->instance && windows_get_open(account_section_window))
+		close_dialogue_with_caret(account_section_window);
 
 	/* Delete the window, if it exists. */
 

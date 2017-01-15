@@ -415,8 +415,10 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	new->columns = NULL;
 	new->sort = NULL;
 
-	new->preset_count = 0;
 	new->presets = NULL;
+	new->preset_count = 0;
+
+	/* Initialise the window columns. */
 
 	new-> columns = column_create_instance(PRESET_COLUMNS, preset_columns, NULL, PRESET_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
@@ -426,6 +428,8 @@ struct preset_block *preset_create_instance(struct file_block *file)
 
 	column_set_minimum_widths(new->columns, config_str_read("LimPresetCols"));
 	column_init_window(new->columns, 0, FALSE, config_str_read("PresetCols"));
+
+	/* Initialise the window sort. */
 
 	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING, SORT_NONE, &preset_sort_callbacks, new);
 	if (new->sort == NULL) {
@@ -511,6 +515,7 @@ void preset_open_window(struct file_block *file)
 
 	error = xwimp_create_window(preset_window_def, &(file->presets->preset_window));
 	if (error != NULL) {
+		preset_delete_window(file->presets);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -539,6 +544,7 @@ void preset_open_window(struct file_block *file)
 
 	error = xwimp_create_window(preset_pane_def, &(file->presets->preset_pane));
 	if (error != NULL) {
+		preset_delete_window(file->presets);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}

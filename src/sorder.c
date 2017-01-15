@@ -413,6 +413,9 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	new->columns = NULL;
 	new->sort = NULL;
 
+	new->sorder_count = 0;
+	new->sorders = NULL;
+
 	new-> columns = column_create_instance(SORDER_COLUMNS, sorder_columns, NULL, SORDER_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
 		sorder_delete_instance(new);
@@ -429,9 +432,6 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	}
 
 	/* Set up the standing order data structures. */
-
-	new->sorder_count = 0;
-	new->sorders = NULL;
 
 	if (flex_alloc((flex_ptr) &(new->sorders), 4) == 0) {
 		sorder_delete_instance(new);

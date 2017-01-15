@@ -415,6 +415,9 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	new->columns = NULL;
 	new->sort = NULL;
 
+	new->preset_count = 0;
+	new->presets = NULL;
+
 	new-> columns = column_create_instance(PRESET_COLUMNS, preset_columns, NULL, PRESET_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
 		preset_delete_instance(new);
@@ -431,9 +434,6 @@ struct preset_block *preset_create_instance(struct file_block *file)
 	}
 
 	/* Set up the preset data structures. */
-
-	new->preset_count = 0;
-	new->presets = NULL;
 
 	if (flex_alloc((flex_ptr) &(new->presets), 4) == 0) {
 		preset_delete_instance(new);

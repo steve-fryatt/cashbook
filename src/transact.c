@@ -528,6 +528,9 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->columns = NULL;
 	new->sort = NULL;
 
+	new->trans_count = 0;
+	new->transactions = NULL;
+
 	new->columns = column_create_instance(TRANSACT_COLUMNS, transact_columns, NULL, TRANSACT_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
 		transact_delete_instance(new);
@@ -544,9 +547,6 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	}
 
 	/* Initialise the transaction data. */
-
-	new->trans_count = 0;
-	new->transactions = NULL;
 
 	if (flex_alloc((flex_ptr) &(new->transactions), 4) == 0) {
 		transact_delete_instance(new);

@@ -449,6 +449,8 @@ void accview_open_window(struct file_block *file, acct_t account)
 	view->columns = NULL;
 	view->sort = NULL;
 
+	view->line_data = NULL;
+
 	accview_build(view);
 
 	/* Set the main window extent and create it. */
@@ -608,7 +610,8 @@ void accview_delete_window(struct file_block *file, acct_t account)
 		wimp_delete_window(view->accview_pane);
 	}
 
-	flex_free((flex_ptr) &(view->line_data));
+	if (view->line_data != NULL)
+		flex_free((flex_ptr) &(view->line_data));
 
 	account_set_accview(file, account, NULL);
 	heap_free(view);

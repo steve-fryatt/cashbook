@@ -1050,3 +1050,126 @@ char *interest_convert_to_string(rate_t rate, char *buffer, size_t length)
 
 	return buffer;
 }
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Save the interest rate details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void interest_write_file(struct file_block *file, FILE *out)
+{
+	int	i;
+	char	buffer[FILING_MAX_FILE_LINE_LEN];
+
+	if (file == NULL || file->transacts == NULL)
+		return;
+
+	fprintf(out, "\n[Interest]\n");
+
+	fprintf(out, "Entries: %x\n", file->interest->rate_count);
+
+	column_write_as_text(file->interest->columns, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "WinColumns: %s\n", buffer);
+
+	sort_write_as_text(file->interest->sort, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "SortOrder: %s\n", buffer);
+
+	for (i = 0; i < file->interest->rate_count; i++) {
+		fprintf(out, "@: %x,%x,%x,%x\n",
+				file->interest->rates[i].account, file->interest->rates[i].rate, file->interest->rates[i].effective_date,
+				file->interest->rates[i].minimum_balance);
+		if (*(file->interest->rates[i].description) != '\0')
+			config_write_token_pair(out, "Desc", file->interest->rates[i].description);
+	}
+}
+
+
+/**
+ * Read interest rate details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+enum config_read_status interest_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+{
+	int		result, block_size, i = -1;
+
+	block_size = flex_size((flex_ptr) &(file->interest->rates)) / sizeof(struct interest_rate);
+
+	do {
+		if (string_nocase_strcmp(token, "Entries") == 0) {
+			block_size = strtoul(value, NULL, 16);
+			if (block_size > file->interest->rate_count) {
+				#ifdef DEBUG
+				debug_printf("Section block pre-expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->interest->rates), sizeof(struct interest_rate) * block_size);
+			} else {
+				block_size = file->interest->rate_count;
+			}
+		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
+			/* For file format 1.00 or older, there's no row column at the
+			 * start of the line so skip on to colunn 1 (date).
+			 */
+			column_init_window(file->interest->columns, 0, TRUE, value);
+		} else if (string_nocase_strcmp(token, "SortOrder") == 0){
+			sort_read_from_text(file->interest->sort, value);
+		} else if (string_nocase_strcmp(token, "@") == 0) {
+			file->interest->rate_count++;
+			if (file->interest->rate_count > block_size) {
+				block_size = file->interest->rate_count;
+				#ifdef DEBUG
+				debug_printf("Section block expand to %d", block_size);
+				#endif
+				flex_extend((flex_ptr) &(file->interest->rates), sizeof(struct interest_rate) * block_size);
+			}
+			i = file->interest->rate_count-1;
+			file->interest->rates[i].account = strtoul(next_field (value, ','), NULL, 16);
+			file->interest->rates[i].rate = strtoul(next_field (NULL, ','), NULL, 16);
+			file->interest->rates[i].effective_date = strtoul(next_field (NULL, ','), NULL, 16);
+			file->interest->rates[i].minimum_balance = strtoul(next_field (NULL, ','), NULL, 16);
+
+			*(file->interest->rates[i].description) = '\0';
+		} else if (i != -1 && string_nocase_strcmp(token, "Desc") == 0) {
+			strcpy(file->interest->rates[i].description, value);
+		} else {
+			*unknown_data = TRUE;
+		}
+
+		result = config_read_token_pair(in, token, value, section);
+	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+
+	block_size = flex_size((flex_ptr) &(file->interest->rates)) / sizeof(struct interest_rate);
+
+	#ifdef DEBUG
+	debug_printf("Transaction block size: %d, required: %d", block_size, file->interest->rate_count);
+	#endif
+
+	if (block_size > file->interest->rate_count) {
+		block_size = file->interest->rate_count;
+		flex_extend((flex_ptr) &(file->interest->rates), sizeof(struct interest_rate) * block_size);
+
+		#ifdef DEBUG
+		debug_printf("Block shrunk to %d", block_size);
+		#endif
+	}
+
+	return result;
+}

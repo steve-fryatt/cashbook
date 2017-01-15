@@ -147,4 +147,28 @@ rate_t interest_get_current_rate(struct interest_block *instance, acct_t account
 
 char *interest_convert_to_string(rate_t rate, char *buffer, size_t length);
 
+
+/**
+ * Save the interest rate details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void interest_write_file(struct file_block *file, FILE *out);
+
+
+/**
+ * Read interest rate details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read into.
+ * \param *out			The file handle to read from.
+ * \param *section		A string buffer to hold file section names.
+ * \param *token		A string buffer to hold file token names.
+ * \param *value		A string buffer to hold file token values.
+ * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ */
+
+enum config_read_status interest_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+
 #endif

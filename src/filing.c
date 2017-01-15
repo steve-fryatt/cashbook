@@ -208,6 +208,8 @@ void filing_load_cashbook_file(char *filename)
 			result = account_read_acct_file(file, in, section, token, value, file_format, &unknown_data);
 		else if (string_nocase_strcmp(section, "AccountList") == 0)
 			result = account_read_list_file(file, in, section, token, value, suffix, &unknown_data);
+		else if (string_nocase_strcmp(section, "Interest") == 0)
+			result = interest_read_file(file, in, section, token, value, &unknown_data);
 		else if (string_nocase_strcmp(section, "Transactions") == 0)
 			result = transact_read_file(file, in, section, token, value, file_format, &unknown_data);
 		else if (string_nocase_strcmp(section, "StandingOrders") == 0)
@@ -314,6 +316,7 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 
 	budget_write_file(file, out);
 	account_write_file(file, out);
+	interest_write_file(file, out);
 	transact_write_file(file, out);
 	sorder_write_file(file, out);
 	preset_write_file(file, out);

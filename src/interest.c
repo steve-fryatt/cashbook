@@ -98,28 +98,31 @@
 /**
  * The number of columns in the interest window. */
 
-#define INTEREST_COLUMNS 3
+#define INTEREST_COLUMNS 4
 
 /* The interest window icons. */
 
 #define INTEREST_ICON_DATE 0
 #define INTEREST_ICON_RATE 1
-#define INTEREST_ICON_DESCRIPTION 2
+#define INTEREST_ICON_BALANCE 2
+#define INTEREST_ICON_DESCRIPTION 3
 
 /* The toolbar pane icons. */
 
 #define INTEREST_PANE_DATE 0
 #define INTEREST_PANE_RATE 1
-#define INTEREST_PANE_DESCRIPTION 2
+#define INTEREST_PANE_BALANCE 2
+#define INTEREST_PANE_DESCRIPTION 3
 
-#define INTEREST_PANE_SORT_DIR_ICON 3
+#define INTEREST_PANE_SORT_DIR_ICON 4
 
 /* Interest Rate Window column mapping. */
 
 static struct column_map interest_columns[] = {
-	{INTEREST_ICON_DATE, INTEREST_PANE_DATE, wimp_ICON_WINDOW},
-	{INTEREST_ICON_RATE, INTEREST_PANE_RATE, wimp_ICON_WINDOW},
-	{INTEREST_ICON_DESCRIPTION, INTEREST_PANE_DESCRIPTION, wimp_ICON_WINDOW}
+	{INTEREST_ICON_DATE, INTEREST_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
+	{INTEREST_ICON_RATE, INTEREST_PANE_RATE, wimp_ICON_WINDOW, SORT_RATE},
+	{INTEREST_ICON_BALANCE, INTEREST_PANE_BALANCE, wimp_ICON_WINDOW, SORT_BALANCE},
+	{INTEREST_ICON_DESCRIPTION, INTEREST_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
 };
 
 /* Interest Rate List Window. */
@@ -657,7 +660,7 @@ static void interest_window_scroll_handler(wimp_scroll *scroll)
 static void interest_window_redraw_handler(wimp_draw *redraw)
 {
 	struct interest_block	*windat;
-	int			ox, oy, top, base, y, t, width;
+	int			ox, oy, top, base, y, r, width;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -692,7 +695,8 @@ static void interest_window_redraw_handler(wimp_draw *redraw)
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
-	//		t = (y < windat->sorder_count) ? windat->sorders[y].sort_index : 0;
+	//		r = (y < windat->sorder_count) ? windat->sorders[y].sort_index : 0;
+			r = y;
 
 			/* Plot out the background with a filled white rectangle. */
 
@@ -707,38 +711,26 @@ static void interest_window_redraw_handler(wimp_draw *redraw)
 
 			/* If we're off the end of the data, plot a blank line and continue. */
 
-			if (y >= 0 /* windat->sorder_count */) {
+			if (y >= windat->rate_count) {
 				columns_plot_empty_table_icons(windat->columns);
 				continue;
 			}
 
-			/* From field */
+			/* Effective Date field */
 
-	//		window_plot_text_field(SORDER_ICON_FROM, account_get_ident(windat->file, windat->sorders[t].from), wimp_COLOUR_BLACK);
-	//		window_plot_reconciled_field(SORDER_ICON_FROM_REC, (windat->sorders[t].flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
-	//		window_plot_text_field(SORDER_ICON_FROM_NAME, account_get_name(windat->file, windat->sorders[t].from), wimp_COLOUR_BLACK);
+			window_plot_date_field(INTEREST_ICON_DATE, windat->rates[r].effective_date, wimp_COLOUR_BLACK);
 
-			/* To field */
+			/* Rate field */
 
-	//		window_plot_text_field(SORDER_ICON_TO, account_get_ident(windat->file, windat->sorders[t].to), wimp_COLOUR_BLACK);
-	//		window_plot_reconciled_field(SORDER_ICON_TO_REC, (windat->sorders[t].flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
-	//		window_plot_text_field(SORDER_ICON_TO_NAME, account_get_name(windat->file, windat->sorders[t].to), wimp_COLOUR_BLACK);
+			window_plot_interest_rate_field(INTEREST_ICON_RATE, windat->rates[r].rate, wimp_COLOUR_BLACK);
 
-			/* Amount field */
+			/* Minimum Balance field */
 
-	//		window_plot_currency_field(SORDER_ICON_AMOUNT, windat->sorders[t].normal_amount, wimp_COLOUR_BLACK);
+			window_plot_currency_field(INTEREST_ICON_BALANCE, windat->rates[r].minimum_balance, wimp_COLOUR_BLACK);
 
 			/* Description field */
 
-	//		window_plot_text_field(SORDER_ICON_DESCRIPTION, windat->sorders[t].description, wimp_COLOUR_BLACK);
-
-			/* Next date field */
-
-	//		window_plot_date_field(SORDER_ICON_NEXTDATE, windat->sorders[t].adjusted_next_date, wimp_COLOUR_BLACK);
-
-			/* Left field */
-
-	//		window_plot_int_field(SORDER_ICON_LEFT,windat->sorders[t].left, wimp_COLOUR_BLACK);
+			window_plot_text_field(INTEREST_ICON_DESCRIPTION, windat->rates[r].description, wimp_COLOUR_BLACK);
 		}
 
 		more = wimp_get_rectangle (redraw);

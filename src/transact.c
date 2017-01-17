@@ -83,6 +83,7 @@
 #include "file.h"
 #include "filing.h"
 #include "find.h"
+#include "flexutils.h"
 #include "goto.h"
 #include "mainmenu.h"
 #include "presets.h"
@@ -552,7 +553,7 @@ struct transact_block *transact_create_instance(struct file_block *file)
 
 	/* Initialise the transaction data. */
 
-	if (flex_alloc((flex_ptr) &(new->transactions), 4) == 0) {
+	if (!flexutils_initialise((void **) &(new->transactions))) {
 		transact_delete_instance(new);
 		return NULL;
 	}

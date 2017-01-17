@@ -77,6 +77,7 @@
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
+#include "flexutils.h"
 #include "mainmenu.h"
 #include "printing.h"
 #include "sort.h"
@@ -437,7 +438,7 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 
 	/* Set up the standing order data structures. */
 
-	if (flex_alloc((flex_ptr) &(new->sorders), 4) == 0) {
+	if (!flexutils_initialise((void **) &(new->sorders))) {
 		sorder_delete_instance(new);
 		return NULL;
 	}

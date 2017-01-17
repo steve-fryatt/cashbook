@@ -73,6 +73,7 @@
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
+#include "flexutils.h"
 #include "mainmenu.h"
 #include "printing.h"
 #include "sort.h"
@@ -439,7 +440,7 @@ struct preset_block *preset_create_instance(struct file_block *file)
 
 	/* Set up the preset data structures. */
 
-	if (flex_alloc((flex_ptr) &(new->presets), 4) == 0) {
+	if (!flexutils_initialise((void **) &(new->presets))) {
 		preset_delete_instance(new);
 		return NULL;
 	}

@@ -73,6 +73,7 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
+#include "flexutils.h"
 #include "window.h"
 
 /**
@@ -295,12 +296,12 @@ struct interest_block *interest_create_instance(struct file_block *file)
 
 	/* Initialise the flex blocks. */
 
-	if (flex_alloc((flex_ptr) &(new->rates), 4) == 0) {
+	if (!flexutils_initialise((void **) &(new->rates))) {
 		interest_delete_instance(new);
 		return NULL;
 	}
 
-	if (flex_alloc((flex_ptr) &(new->display_index), 4) == 0) {
+	if (!flexutils_initialise((void **) &(new->display_index))) {
 		interest_delete_instance(new);
 		return NULL;
 	}

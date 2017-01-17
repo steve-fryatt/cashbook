@@ -79,6 +79,7 @@
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
+#include "flexutils.h"
 #include "interest.h"
 #include "mainmenu.h"
 #include "presets.h"
@@ -600,7 +601,7 @@ struct account_block *account_create_instance(struct file_block *file)
 
 		/* Set the initial lines up */
 
-		if (flex_alloc((flex_ptr) &(new->account_windows[i].line_data), 4) == 0) {
+		if (!flexutils_initialise((void **) &(new->account_windows[i].line_data))) {
 			mem_fail = TRUE;
 			continue;
 		}
@@ -608,7 +609,7 @@ struct account_block *account_create_instance(struct file_block *file)
 
 	/* Set up the account data structures. */
 
-	if (mem_fail || (flex_alloc((flex_ptr) &(new->accounts), 4) == 0)) {
+	if (mem_fail || (!flexutils_initialise((void **) &(new->accounts)))) {
 		account_delete_instance(new);
 		return NULL;
 	}

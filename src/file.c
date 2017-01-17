@@ -71,6 +71,7 @@
 #include "edit.h"
 #include "filing.h"
 #include "find.h"
+#include "flexutils.h"
 #include "goto.h"
 #include "interest.h"
 #include "mainmenu.h"
@@ -318,7 +319,7 @@ struct file_block *build_new_file_block(void)
 	 * prevent flex getting upset.
 	 */
 
-	if (flex_alloc((flex_ptr) &(new->saved_reports), 4) == 0) {
+	if (!flexutils_initialise((void **) &(new->saved_reports))) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;

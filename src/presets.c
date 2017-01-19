@@ -2346,7 +2346,18 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 	size_t			block_size;
 	int			i = -1;
 
-	block_size = flex_size((flex_ptr) &(file->presets->presets)) / sizeof(struct preset);
+#ifdef DEBUG
+	debug_printf("\\GLoading Transaction Presets.");
+#endif
+
+	/* Identify the current size of the flex block allocation. */
+
+	if (!flexutils_get_size((void **) &(file->presets->presets), sizeof(struct preset), &block_size)) {
+		*load_status = FILING_STATUS_BAD_MEMORY;
+		return sf_CONFIG_READ_EOF;
+	}
+
+	/* Process the file contents until the end of the section. */
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
@@ -2355,7 +2366,10 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->presets->presets), sizeof(struct preset) * block_size);
+				if (!flexutils_resize_block((void **) &(file->presets->presets), block_size)) {
+					*load_status = FILING_STATUS_MEMORY;
+					return sf_CONFIG_READ_EOF;
+				}
 			} else {
 				block_size = file->presets->preset_count;
 			}
@@ -2367,10 +2381,13 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 			file->presets->preset_count++;
 			if (file->presets->preset_count > block_size) {
 				block_size = file->presets->preset_count;
+				if (!flexutils_resize_block((void **) &(file->presets->presets), block_size)) {
+					*load_status = FILING_STATUS_MEMORY;
+					return sf_CONFIG_READ_EOF;
+				}
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->presets->presets), sizeof(struct preset) * block_size);
 			}
 			i = file->presets->preset_count - 1;
 			file->presets->presets[i].action_key = strtoul(next_field (value, ','), NULL, 16);
@@ -2397,19 +2414,11 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 
-	block_size = flex_size((flex_ptr) &(file->presets->presets)) / sizeof(struct preset);
+	/* Shrink the flex block back down to the minimum required. */
 
-	#ifdef DEBUG
-	debug_printf("Preset block size: %d, required: %d", block_size, file->presets->preset_count);
-	#endif
-
-	if (block_size > file->presets->preset_count) {
-		block_size = file->presets->preset_count;
-		flex_extend((flex_ptr) &(file->presets->presets), sizeof(struct preset) * block_size);
-
-		#ifdef DEBUG
-		debug_printf("Block shrunk to %d", block_size);
-		#endif
+	if (!flexutils_shrink_block((void **) &(file->presets->presets), file->presets->preset_count)) {
+		*load_status = FILING_STATUS_BAD_MEMORY;
+		return sf_CONFIG_READ_EOF;
 	}
 
 	return result;

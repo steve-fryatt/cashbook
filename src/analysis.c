@@ -5106,7 +5106,18 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 	size_t			block_size;
 	int			i = -1;
 
-	block_size = flex_size((flex_ptr) &(file->saved_reports)) / sizeof(struct analysis_report);
+#ifdef DEBUG
+	debug_printf("\\GLoading Analysis Reports.");
+#endif
+
+	/* Identify the current size of the flex block allocation. */
+
+	if (!flexutils_get_size((void **) &(file->saved_reports), sizeof(struct analysis_report), &block_size)) {
+		*load_status = FILING_STATUS_BAD_MEMORY;
+		return sf_CONFIG_READ_EOF;
+	}
+
+	/* Process the file contents until the end of the section. */
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
@@ -5115,7 +5126,10 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->saved_reports), sizeof(struct analysis_report) * block_size);
+				if (!flexutils_resize_block((void **) &(file->saved_reports), block_size)) {
+					*load_status = FILING_STATUS_MEMORY;
+					return sf_CONFIG_READ_EOF;
+				}
 			} else {
 				block_size = file->saved_report_count;
 			}
@@ -5126,7 +5140,10 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->saved_reports), sizeof(struct analysis_report) * block_size);
+				if (!flexutils_resize_block((void **) &(file->saved_reports), block_size)) {
+					*load_status = FILING_STATUS_MEMORY;
+					return sf_CONFIG_READ_EOF;
+				}
 			}
 			i = file->saved_report_count-1;
 			file->saved_reports[i].type = strtoul(next_field(value, ','), NULL, 16);
@@ -5253,19 +5270,11 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 
-	block_size = flex_size((flex_ptr) &(file->saved_reports)) / sizeof(struct analysis_report);
+	/* Shrink the flex block back down to the minimum required. */
 
-	#ifdef DEBUG
-	debug_printf("Saved Report block size: %d, required: %d", block_size, file->saved_report_count);
-	#endif
-
-	if (block_size > file->saved_report_count) {
-		block_size = file->saved_report_count;
-		flex_extend((flex_ptr) &(file->saved_reports), sizeof(struct analysis_report) * block_size);
-
-		#ifdef DEBUG
-		debug_printf("Block shrunk to %d", block_size);
-		#endif
+	if (!flexutils_shrink_block((void **) &(file->saved_reports), file->saved_report_count)) {
+		*load_status = FILING_STATUS_BAD_MEMORY;
+		return sf_CONFIG_READ_EOF;
 	}
 
 	return result;

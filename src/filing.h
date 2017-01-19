@@ -55,7 +55,8 @@ enum filing_status {
 	FILING_STATUS_OK,							/**< The operation is OK.							*/
 	FILING_STATUS_VERSION,							/**< An unknown file version number has been found.				*/ 
 	FILING_STATUS_UNEXPECTED,						/**< The operation has encountered unexpected file contents.			*/
-	FILING_STATUS_MEMORY							/**< The operation has run out of memory.					*/
+	FILING_STATUS_MEMORY,							/**< The operation has run out of memory.					*/
+	FILING_STATUS_BAD_MEMORY						/**< Something went wrong with the memory allocation.				*/
 };
 
 /* Function Prototypes. */

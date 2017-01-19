@@ -243,9 +243,9 @@ void filing_load_cashbook_file(char *filename)
 				}
 
 				result = config_read_token_pair(in, token, value, section);
-			} while (load_status != FILING_STATUS_VERSION && load_status != FILING_STATUS_MEMORY && result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+			} while ((load_status == FILING_STATUS_OK || load_status == FILING_STATUS_UNEXPECTED) && result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 		}
-	} while (load_status != FILING_STATUS_VERSION && load_status != FILING_STATUS_MEMORY && result != sf_CONFIG_READ_EOF);
+	} while ((load_status == FILING_STATUS_OK || load_status == FILING_STATUS_UNEXPECTED) && result != sf_CONFIG_READ_EOF);
 
 	fclose(in);
 
@@ -260,6 +260,9 @@ void filing_load_cashbook_file(char *filename)
 			break;
 		case FILING_STATUS_MEMORY:
 			error_msgs_report_error("NoMemNewFile");
+			break;
+		case FILING_STATUS_BAD_MEMORY:
+			error_msgs_report_error("BadMemory");
 			break;
 		case FILING_STATUS_OK:
 		case FILING_STATUS_UNEXPECTED:

@@ -2543,7 +2543,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 	enum config_read_status	result;
 
 	if (!flexutils_get_size((void **) &(file->sorders->sorders), sizeof(struct sorder), &block_size)) {
-		*load_status = FILING_STATUS_MEMORY;
+		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -51,6 +51,12 @@ enum filing_delimit_flags {
 	DELIMIT_NUM	= 0x02							/**< Numeric field, so no quoting required.					*/
 };
 
+enum filing_status {
+	FILING_STATUS_OK,							/**< The operation is OK.							*/
+	FILING_STATUS_VERSION,							/**< An unknown file version number has been found.				*/ 
+	FILING_STATUS_UNEXPECTED,						/**< The operation has encountered unexpected file contents.			*/
+	FILING_STATUS_MEMORY							/**< The operation has run out of memory.					*/
+};
 
 /* Function Prototypes. */
 

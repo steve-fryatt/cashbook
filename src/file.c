@@ -454,7 +454,7 @@ void delete_file(struct file_block *file)
 
 
 	if (file->saved_reports != NULL)
-		flex_free((flex_ptr) &(file->saved_reports));
+		flexutils_free((void **) &(file->saved_reports));
 
 	/* Deallocate the block itself. */
 

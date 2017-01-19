@@ -636,7 +636,7 @@ void account_delete_instance(struct account_block *block)
 
 	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
 		if (block->account_windows[i].line_data != NULL)
-			flex_free((flex_ptr) &(block->account_windows[i].line_data));
+			flexutils_free((void **) &(block->account_windows[i].line_data));
 
 		column_delete_instance(block->account_windows[i].columns);
 
@@ -655,7 +655,7 @@ void account_delete_instance(struct account_block *block)
 	}
 
 	if (block->accounts != NULL)
-		flex_free((flex_ptr) &(block->accounts));
+		flexutils_free((void **) &(block->accounts));
 
 	heap_free(block);
 }
@@ -4612,12 +4612,15 @@ void account_write_file(struct file_block *file, FILE *out)
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
  * \param format		The format number of the file.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ * \param *load_status		Pointer to return the current status of the load operation.
+ * \return			The state of the config read operation.
  */
 
-enum config_read_status account_read_acct_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data)
+enum config_read_status account_read_acct_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, enum filing_status *load_status)
 {
-	int	result, block_size, i = -1, j;
+	enum config_read_status	result;
+	size_t			block_size;
+	int			i = -1, j;
 
 	block_size = flex_size((flex_ptr) &(file->accounts->accounts)) / sizeof(struct account);
 
@@ -4734,7 +4737,7 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 		} else if (i != -1 && string_nocase_strcmp(token, "Offset") == 0) {
 			file->accounts->accounts[i].offset_against = strtoul(next_field(value, ','), NULL, 16);
 		} else {
-			*unknown_data = TRUE;
+			*load_status = FILING_STATUS_UNEXPECTED;
 		}
 
 		result = config_read_token_pair(in, token, value, section);
@@ -4768,12 +4771,15 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
  * \param *suffix		A string containing the trailing end of the section name.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ * \param *load_status		Pointer to return the current status of the load operation.
+ * \return			The state of the config read operation.
  */
 
-enum config_read_status account_read_list_file(struct file_block *file, FILE *in, char *section, char *token, char *value, char *suffix, osbool *unknown_data)
+enum config_read_status account_read_list_file(struct file_block *file, FILE *in, char *section, char *token, char *value, char *suffix, enum filing_status *load_status)
 {
-	int	result, block_size, i = -1, type, entry;
+	enum config_read_status	result;
+	size_t			block_size;
+	int			i = -1, type, entry;
 
 	type = strtoul(suffix, NULL, 16);
 	entry = account_find_window_entry_from_type(file, type);
@@ -4811,7 +4817,7 @@ enum config_read_status account_read_list_file(struct file_block *file, FILE *in
 		} else if (i != -1 && string_nocase_strcmp(token, "Heading") == 0) {
 			strcpy (file->accounts->account_windows[entry].line_data[i].heading, value);
 		} else {
-			*unknown_data = TRUE;
+			*load_status = FILING_STATUS_UNEXPECTED;
 		}
 
 		result = config_read_token_pair(in, token, value, section);

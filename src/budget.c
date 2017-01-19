@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -385,12 +385,13 @@ void budget_write_file(struct file_block *file, FILE *out)
  * \param *section		A string buffer to hold file section names.
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ * \param *load_status		Pointer to return the current status of the load operation.
+ * \return			The state of the config read operation.
  */
 
-enum config_read_status budget_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+enum config_read_status budget_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status)
 {
-	int	result;
+	enum config_read_status	result;
 
 	do {
 		if (string_nocase_strcmp (token, "Start") == 0)
@@ -402,7 +403,7 @@ enum config_read_status budget_read_file(struct file_block *file, FILE *in, char
 		else if (string_nocase_strcmp (token, "RestrictPost") == 0)
 			file->budget->limit_postdate = (config_read_opt_string(value) == TRUE);
 		else
-			*unknown_data = TRUE;
+			*load_status = FILING_STATUS_UNEXPECTED;
 
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);

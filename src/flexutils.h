@@ -30,6 +30,7 @@
 #ifndef CASHBOOK_FLEXUTILS
 #define CASHBOOK_FLEXUTILS
 
+#include <stdlib.h>
 #include "oslib/types.h"
 #include "flex.h"
 
@@ -44,5 +45,18 @@
  */
 
 osbool flexutils_initialise(void **anchor);
+
+
+/**
+ * Free a non-NULL flex anchor, and set the anchor to NULL.
+ *
+ * \param **anchor		The flex anchor to be freed.
+ */
+
+void flexutils_free(void **anchor);
+
+osbool flexutils_get_size(void **anchor, size_t block, size_t *size);
+
+osbool flexutils_resize_block(void **anchor, size_t new_size);
 
 #endif

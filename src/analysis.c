@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -68,6 +68,7 @@
 #include "currency.h"
 #include "date.h"
 #include "file.h"
+#include "flexutils.h"
 #include "mainmenu.h"
 #include "report.h"
 #include "transact.h"
@@ -1076,7 +1077,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 	template = analysis_create_template(&analysis_report_template);
 	if (template == NULL) {
 		if (data != NULL)
-			flex_free((flex_ptr) &data);
+			flexutils_free((void **) &data);
 		hourglass_off();
 		error_msgs_report_info("NoMemReport");
 		return;
@@ -1087,7 +1088,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 	if (report == NULL) {
 		if (data != NULL)
-			flex_free((flex_ptr) &data);
+			flexutils_free((void **) &data);
 		if (template != NULL)
 			heap_free(template);
 		hourglass_off();
@@ -1322,7 +1323,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 	report_close(report);
 
 	if (data != NULL)
-		flex_free((flex_ptr) &data);
+		flexutils_free((void **) &data);
 
 	hourglass_off();
 }
@@ -1803,7 +1804,7 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 	template = analysis_create_template(&analysis_report_template);
 	if (template == NULL) {
 		if (data != NULL)
-			flex_free((flex_ptr) &data);
+			flexutils_free((void **) &data);
 		hourglass_off();
 		error_msgs_report_info("NoMemReport");
 		return;
@@ -1981,7 +1982,7 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 	report_close(report);
 
 	if (data != NULL)
-		flex_free((flex_ptr) &data);
+		flexutils_free((void **) &data);
 
 	hourglass_off();
 }
@@ -2473,7 +2474,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 	template = analysis_create_template(&analysis_report_template);
 	if (template == NULL) {
 		if (data != NULL)
-			flex_free((flex_ptr) &data);
+			flexutils_free((void **) &data);
 		hourglass_off();
 		error_msgs_report_info("NoMemReport");
 		return;
@@ -2619,7 +2620,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 	report_close(report);
 
 	if (data != NULL)
-		flex_free((flex_ptr) &data);
+		flexutils_free((void **) &data);
 
 	hourglass_off();
 }
@@ -3104,7 +3105,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 	template = analysis_create_template(&analysis_report_template);
 	if (template == NULL) {
 		if (data != NULL)
-			flex_free((flex_ptr) &data);
+			flexutils_free((void **) &data);
 		hourglass_off();
 		error_msgs_report_info("NoMemReport");
 		return;
@@ -3244,7 +3245,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 	report_close(report);
 
 	if (data != NULL)
-		flex_free((flex_ptr) &data);
+		flexutils_free((void **) &data);
 
 	hourglass_off();
 }
@@ -5095,12 +5096,15 @@ void analysis_write_file(struct file_block *file, FILE *out)
  * \param *section		A string buffer to hold file section names.
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
- */
+ * \param *load_status		Pointer to return the current status of the load operation.
+ * \return			The state of the config read operation.
+  */
 
-enum config_read_status analysis_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+enum config_read_status analysis_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status)
 {
-	int	result, block_size, i = -1;
+	enum config_read_status	result;
+	size_t			block_size;
+	int			i = -1;
 
 	block_size = flex_size((flex_ptr) &(file->saved_reports)) / sizeof(struct analysis_report);
 
@@ -5243,7 +5247,7 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 				string_nocase_strcmp(token, "Desc") == 0) {
 			strcpy(file->saved_reports[i].data.transaction.desc, value);
 		} else {
-			*unknown_data = TRUE;
+			*load_status = FILING_STATUS_UNEXPECTED;
 		}
 
 		result = config_read_token_pair(in, token, value, section);

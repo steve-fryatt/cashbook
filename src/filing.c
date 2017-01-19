@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -171,7 +171,7 @@ void filing_load_cashbook_file(char *filename)
 	bits			load;
 	struct file_block	*file;
 	FILE			*in;
-	osbool			unknown_data = FALSE, unknown_format = FALSE;
+	enum filing_status	load_status = FILING_STATUS_OK;
 
 	#ifdef DEBUG
 	debug_printf("\\BLoading accounts file");
@@ -203,25 +203,25 @@ void filing_load_cashbook_file(char *filename)
 		suffix = next_field(NULL, ':');
 
 		if (string_nocase_strcmp(section, "Budget") == 0)
-			result = budget_read_file(file, in, section, token, value, &unknown_data);
+			result = budget_read_file(file, in, section, token, value, &load_status);
 		else if (string_nocase_strcmp(section, "Accounts") == 0)
-			result = account_read_acct_file(file, in, section, token, value, file_format, &unknown_data);
+			result = account_read_acct_file(file, in, section, token, value, file_format, &load_status);
 		else if (string_nocase_strcmp(section, "AccountList") == 0)
-			result = account_read_list_file(file, in, section, token, value, suffix, &unknown_data);
+			result = account_read_list_file(file, in, section, token, value, suffix, &load_status);
 		else if (string_nocase_strcmp(section, "Interest") == 0)
-			result = interest_read_file(file, in, section, token, value, &unknown_data);
+			result = interest_read_file(file, in, section, token, value, &load_status);
 		else if (string_nocase_strcmp(section, "Transactions") == 0)
-			result = transact_read_file(file, in, section, token, value, file_format, &unknown_data);
+			result = transact_read_file(file, in, section, token, value, file_format, &load_status);
 		else if (string_nocase_strcmp(section, "StandingOrders") == 0)
-			result = sorder_read_file(file, in, section, token, value, &unknown_data);
+			result = sorder_read_file(file, in, section, token, value, &load_status);
 		else if (string_nocase_strcmp(section, "Presets") == 0)
-			result = preset_read_file(file, in, section, token, value, &unknown_data);
+			result = preset_read_file(file, in, section, token, value, &load_status);
 		else if (string_nocase_strcmp(section, "Reports") == 0)
-			result = analysis_read_file(file, in, section, token, value, &unknown_data);
+			result = analysis_read_file(file, in, section, token, value, &load_status);
 		else {
 			do {
 				if (*section != '\0')
-					unknown_data = TRUE;
+					load_status = FILING_STATUS_UNEXPECTED;
 
 				/* Load in the file format, converting an n.nn number into an
 				 * integer value (eg. 1.00 would become 100).  Supports 0.00 to 9.99.
@@ -236,25 +236,35 @@ void filing_load_cashbook_file(char *filename)
 						file_format = atoi(value);
 
 						if (file_format > FILING_CURRENT_FORMAT)
-							unknown_format = TRUE;
+							load_status = FILING_STATUS_VERSION;
 					} else {
-						unknown_data = TRUE;
+						load_status = FILING_STATUS_UNEXPECTED;
 					}
 				}
 
 				result = config_read_token_pair(in, token, value, section);
-			} while (unknown_format == FALSE && result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+			} while (load_status != FILING_STATUS_VERSION && load_status != FILING_STATUS_MEMORY && result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 		}
-	} while (unknown_format == FALSE && result != sf_CONFIG_READ_EOF);
+	} while (load_status != FILING_STATUS_VERSION && load_status != FILING_STATUS_MEMORY && result != sf_CONFIG_READ_EOF);
 
 	fclose(in);
 
 	/* If the file format wasn't understood, get out now. */
 
-	if (unknown_format) {
+	if (load_status == FILING_STATUS_VERSION || load_status == FILING_STATUS_MEMORY) {
 		delete_file(file);
 		hourglass_off();
-		error_msgs_report_error("UnknownFileFormat");
+		switch (load_status) {
+		case FILING_STATUS_VERSION:
+			error_msgs_report_error("UnknownFileFormat");
+			break;
+		case FILING_STATUS_MEMORY:
+			error_msgs_report_error("NoMemNewFile");
+			break;
+		case FILING_STATUS_OK:
+		case FILING_STATUS_UNEXPECTED:
+			break;
+		}
 		return;
 	}
 
@@ -276,7 +286,7 @@ void filing_load_cashbook_file(char *filename)
 
 	hourglass_off();
 
-	if (unknown_data)
+	if (load_status == FILING_STATUS_UNEXPECTED)
 		error_msgs_report_info("UnknownFileData");
 }
 

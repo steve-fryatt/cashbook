@@ -71,6 +71,7 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
+#include "flexutils.h"
 #include "mainmenu.h"
 #include "printing.h"
 #include "report.h"
@@ -623,7 +624,7 @@ void accview_delete_window(struct file_block *file, acct_t account)
 	}
 
 	if (view->line_data != NULL)
-		flex_free((flex_ptr) &(view->line_data));
+		flexutils_free((void **) &(view->line_data));
 
 	account_set_accview(file, account, NULL);
 	heap_free(view);
@@ -1779,7 +1780,7 @@ void accview_rebuild(struct file_block *file, acct_t account)
 		transact_sort_file_data(file);
 
 	if (view->line_data != NULL)
-		flex_free((flex_ptr) &(view->line_data));
+		flexutils_free((void **) &(view->line_data));
 
 	if (!accview_build(view)) {
 		accview_delete_window(file, account);

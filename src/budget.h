@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -32,6 +32,7 @@
 
 #include "date.h"
 #include "file.h"
+#include "filing.h"
 
 /**
  * Initialise the Budget module.
@@ -125,10 +126,11 @@ void budget_write_file(struct file_block *file, FILE *out);
  * \param *section		A string buffer to hold file section names.
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ * \param *load_status		Pointer to return the current status of the load operation.
+ * \return			The state of the config read operation.
  */
 
-enum config_read_status budget_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+enum config_read_status budget_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status);
 
 #endif
 

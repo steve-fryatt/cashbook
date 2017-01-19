@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -182,10 +182,11 @@ void sorder_write_file(struct file_block *file, FILE *f);
  * \param *section		A string buffer to hold file section names.
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
+ * \param *value		A string buffer to hold file token values.
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data);
+enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status);
 
 
 /**

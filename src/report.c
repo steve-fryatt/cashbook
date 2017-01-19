@@ -77,6 +77,7 @@
 #include "file.h"
 #include "filing.h"
 #include "fontlist.h"
+#include "flexutils.h"
 #include "mainmenu.h"
 #include "printing.h"
 #include "transact.h"
@@ -519,10 +520,10 @@ void report_delete(struct report *report)
 	/* Free the flex bloxks. */
 
 	if (report->data != NULL)
-		flex_free((flex_ptr) &(report->data));
+		flexutils_free((void **) &(report->data));
 
 	if (report->line_ptr != NULL)
-		flex_free((flex_ptr) &(report->line_ptr));
+		flexutils_free((void **) &(report->line_ptr));
 
 	if (report->template != NULL)
 		heap_free(report->template);

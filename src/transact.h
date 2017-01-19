@@ -661,10 +661,11 @@ void transact_write_file(struct file_block *file, FILE *out);
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
  * \param format		The format number of the file.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ * \param *load_status		Pointer to return the current status of the load operation.
+ * \return			The state of the config read operation.
  */
 
-enum config_read_status transact_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, osbool *unknown_data);
+enum config_read_status transact_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, enum filing_status *load_status);
 
 
 /**

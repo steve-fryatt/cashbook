@@ -464,7 +464,7 @@ void sorder_delete_instance(struct sorder_block *windat)
 	sort_delete_instance(windat->sort);
 
 	if (windat->sorders != NULL)
-		flex_free((flex_ptr) &(windat->sorders));
+		flexutils_free((void **) &(windat->sorders));
 
 	heap_free(windat);
 }
@@ -2532,14 +2532,20 @@ void sorder_write_file(struct file_block *file, FILE *out)
  * \param *section		A string buffer to hold file section names.
  * \param *token		A string buffer to hold file token names.
  * \param *value		A string buffer to hold file token values.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ * \param *load_status		Pointer to return the current status of the load operation.
+ * \return			The state of the config read operation.
  */
 
-enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, osbool *unknown_data)
+enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status)
 {
-	int	result, block_size, i = -1;
+	int			i = -1;
+	size_t			block_size;
+	enum config_read_status	result;
 
-	block_size = flex_size((flex_ptr) &(file->sorders->sorders)) / sizeof(struct sorder);
+	if (!flexutils_get_size((void **) &(file->sorders->sorders), sizeof(struct sorder), &block_size)) {
+		*load_status = FILING_STATUS_MEMORY;
+		return sf_CONFIG_READ_EOF;
+	}
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
@@ -2548,7 +2554,10 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->sorders->sorders), sizeof(struct sorder) * block_size);
+				if (!flexutils_resize_block((void **) &(file->sorders->sorders), block_size)) {
+					*load_status = FILING_STATUS_MEMORY;
+					return sf_CONFIG_READ_EOF;
+				}
 			} else {
 				block_size = file->sorders->sorder_count;
 			}
@@ -2560,10 +2569,13 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 			file->sorders->sorder_count++;
 			if (file->sorders->sorder_count > block_size) {
 				block_size = file->sorders->sorder_count;
+				if (!flexutils_resize_block((void **) &(file->sorders->sorders), block_size)) {
+					*load_status = FILING_STATUS_MEMORY;
+					return sf_CONFIG_READ_EOF;
+				}
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				flex_extend((flex_ptr) &(file->sorders->sorders), sizeof(struct sorder) * block_size);
 			}
 			i = file->sorders->sorder_count - 1;
 			file->sorders->sorders[i].start_date = strtoul(next_field(value, ','), NULL, 16);
@@ -2587,7 +2599,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 		} else if (i != -1 && string_nocase_strcmp (token, "Desc") == 0) {
 			strcpy(file->sorders->sorders[i].description, value);
 		} else {
-			*unknown_data = TRUE;
+			*load_status = FILING_STATUS_UNEXPECTED;
 		}
 
 		result = config_read_token_pair(in, token, value, section);

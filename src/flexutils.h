@@ -55,8 +55,49 @@ osbool flexutils_initialise(void **anchor);
 
 void flexutils_free(void **anchor);
 
+
+/**
+ * Given a unit block size, work out how many objects will fit into a
+ * given flex block. The call will fail if the block size doesn't
+ * correspond to a round number of objects.
+ * 
+ * This call is used to start a sequence of allocations via
+ * flexutils_resize_block(); the sequence ends on a call to 
+ * flexutils_shrink_block().
+ *
+ * \param **anchor		The flex anchor to look at.
+ * \param block			The size of a single object in the block.
+ * \param *size			Pointer to an array to hold the number of blocks found.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
 osbool flexutils_get_size(void **anchor, size_t block, size_t *size);
 
+
+/**
+ * Resize a flex block to hold a specified number of objects. The size of
+ * an object is taken to be that supplied to a previous call to
+ * flexutils_get_size().
+ *
+ * \param **anchor		The flex anchor to be resized.
+ * \param new_size		The required number of objects.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
 osbool flexutils_resize_block(void **anchor, size_t new_size);
+
+
+/**
+ * If required, shrink a flex block down so that it holds only the specified
+ * number of objects. The size of an object is taken to be that supplied to
+ * a previous call to flexutils_get_size(). At the end of this call, that
+ * size is discarded: preventing any more calls to flexutils_resize_block().
+ * 
+ * \param **anchor		The flex anchor to be shrunk.
+ * \param new_size		The maximum required number of objects.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
+osbool flexutils_shrink_block(void **anchor, size_t new_size);
 
 #endif

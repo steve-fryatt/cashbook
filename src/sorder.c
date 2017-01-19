@@ -2542,10 +2542,18 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 	size_t			block_size;
 	enum config_read_status	result;
 
+#ifdef DEBUG
+	debug_printf("\\GLoading Standing Orders.");
+#endif
+
+	/* Identify the current size of the flex block allocation. */
+
 	if (!flexutils_get_size((void **) &(file->sorders->sorders), sizeof(struct sorder), &block_size)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
+
+	/* Process the file contents until the end of the section. */
 
 	do {
 		if (string_nocase_strcmp(token, "Entries") == 0) {
@@ -2605,19 +2613,11 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 		result = config_read_token_pair(in, token, value, section);
 	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
 
-	block_size = flex_size((flex_ptr) &(file->sorders->sorders)) / sizeof(struct sorder);
+	/* Shrink the flex block back down to the minimum required. */
 
-	#ifdef DEBUG
-	debug_printf("StandingOrder block size: %d, required: %d", block_size, file->sorders->sorder_count);
-	#endif
-
-	if (block_size > file->sorders->sorder_count) {
-		block_size = file->sorders->sorder_count;
-		flex_extend((flex_ptr) &(file->sorders->sorders), sizeof(struct sorder) * block_size);
-
-		#ifdef DEBUG
-		debug_printf("Block shrunk to %d", block_size);
-		#endif
+	if (!flexutils_shrink_block((void **) &(file->sorders->sorders), file->sorders->sorder_count)) {
+		*load_status = FILING_STATUS_BAD_MEMORY;
+		return sf_CONFIG_READ_EOF;
 	}
 
 	return result;

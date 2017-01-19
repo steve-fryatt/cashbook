@@ -39,6 +39,10 @@
 
 #include "oslib/types.h"
 
+/* SFLib Header files. */
+
+#include "sflib/debug.h"
+
 /* Application header files. */
 
 #include "flexutils.h"
@@ -93,6 +97,21 @@ void flexutils_free(void **anchor)
 }
 
 
+/**
+ * Given a unit block size, work out how many objects will fit into a
+ * given flex block. The call will fail if the block size doesn't
+ * correspond to a round number of objects.
+ * 
+ * This call is used to start a sequence of allocations via
+ * flexutils_resize_block(); the sequence ends on a call to 
+ * flexutils_shrink_block().
+ *
+ * \param **anchor		The flex anchor to look at.
+ * \param block			The size of a single object in the block.
+ * \param *size			Pointer to an array to hold the number of blocks found.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
 osbool flexutils_get_size(void **anchor, size_t block, size_t *size)
 {
 	size_t	bytes;
@@ -102,6 +121,10 @@ osbool flexutils_get_size(void **anchor, size_t block, size_t *size)
 
 	bytes = flex_size((flex_ptr) anchor);
 	*size = bytes / block;
+
+#ifdef DEBUG
+	debug_printf("Requesting the current block size: %d bytes, %d blocks (%d bytes/block)", bytes, *size, block);
+#endif
 
 	if (((*size * block) != bytes) && (bytes != FLEXUTILS_MIN_BLOCK)) {
 		*size = 0;
@@ -113,12 +136,63 @@ osbool flexutils_get_size(void **anchor, size_t block, size_t *size)
 	return TRUE;
 }
 
+
+/**
+ * Resize a flex block to hold a specified number of objects. The size of
+ * an object is taken to be that supplied to a previous call to
+ * flexutils_get_size().
+ *
+ * \param **anchor		The flex anchor to be resized.
+ * \param new_size		The required number of objects.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
 osbool flexutils_resize_block(void **anchor, size_t new_size)
 {
 	if (anchor == NULL || *anchor == NULL || flexutils_block_size == 0)
 		return FALSE;
 
+#ifdef DEBUG
+	debug_printf("Requesting the current block re-size: %d bytes, %d blocks (%d bytes/block)", flexutils_block_size * new_size, new_size, flexutils_block_size);
+#endif
+
 	if (flex_extend((flex_ptr) anchor, flexutils_block_size * new_size) == 0)
+		return FALSE;
+
+	return TRUE;
+}
+
+
+/**
+ * If required, shrink a flex block down so that it holds only the specified
+ * number of objects. The size of an object is taken to be that supplied to
+ * a previous call to flexutils_get_size(). At the end of this call, that
+ * size is discarded: preventing any more calls to flexutils_resize_block().
+ * 
+ * \param **anchor		The flex anchor to be shrunk.
+ * \param new_size		The maximum required number of objects.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
+osbool flexutils_shrink_block(void **anchor, size_t new_size)
+{
+	size_t	block_size;
+
+	if (anchor == NULL || *anchor == NULL || flexutils_block_size == 0)
+		return FALSE;
+
+#ifdef DEBUG
+	debug_printf("Requesting the current block shrink to %d blocks", new_size);
+#endif
+
+	if (!flexutils_get_size(anchor, flexutils_block_size, &block_size)) {
+		flexutils_block_size = 0;
+		return FALSE;
+	}
+
+	flexutils_block_size = 0;
+
+	if ((block_size > new_size) && (flex_extend((flex_ptr) anchor, flexutils_block_size * new_size)))
 		return FALSE;
 
 	return TRUE;

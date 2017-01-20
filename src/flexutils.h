@@ -100,4 +100,17 @@ osbool flexutils_resize_block(void **anchor, size_t new_size);
 
 osbool flexutils_shrink_block(void **anchor, size_t new_size);
 
+
+/**
+ * Delete an object from within a flex block, shuffling any objects above
+ * it down to fill the gap.
+ * 
+ * \param **anchor		The flex anchor to be shrunk.
+ * \param block_size		The size of a single object in the block.
+ * \param entry			The entry to be deleted.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
+osbool flexutils_delete_object(void **anchor, size_t block_size, int entry);
+
 #endif

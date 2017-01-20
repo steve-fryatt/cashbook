@@ -2870,8 +2870,11 @@ static osbool account_delete_from_section_window(void)
 
 	/* Delete the heading */
 
-	flex_midextend((flex_ptr) &(account_section_owner->account_windows[account_section_entry].line_data),
-			(account_section_line + 1) * sizeof(struct account_redraw), -sizeof(struct account_redraw));
+	if (!flexutils_delete_object((void **) &(account_section_owner->account_windows[account_section_entry].line_data), sizeof(struct account_redraw), account_section_line)) {
+		error_msgs_report_error("BadDelete");
+		return FALSE;
+	}
+
 	account_section_owner->account_windows[account_section_entry].display_lines--;
 
 	/* Update the accounts display window. */
@@ -3277,8 +3280,11 @@ osbool account_delete(struct file_block *file, acct_t account)
 				debug_printf("Deleting entry type %x", file->accounts->account_windows[i].line_data[j].type);
 				#endif
 
-				flex_midextend((flex_ptr) &(file->accounts->account_windows[i].line_data),
-						(j + 1) * sizeof(struct account_redraw), -sizeof(struct account_redraw));
+				if (!flexutils_delete_object((void **) &(file->accounts->account_windows[i].line_data), sizeof(struct account_redraw), j)) {
+					error_msgs_report_error("BadDelete");
+					continue;
+				}
+
 				file->accounts->account_windows[i].display_lines--;
 				j--; /* Take into account that the array has just shortened. */
 			}

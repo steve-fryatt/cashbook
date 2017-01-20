@@ -1528,7 +1528,7 @@ Update to fourth stable release.
 <li>Don&rsquo;t allow negative credit limits to be entered (ticket&nbsp;#606).
 <li>Close <window>account edit</window> and <window>heading edit</window> dialogue boxes when their parent windows close.
 <li>Improve error checking when allocating memory for windows and data structures (ticket&nbsp;#609).
-<li>Improve error checking when allocating memory during file loading.
+<li>Improve error checking when allocating memory during file loading, and when adjusting memory allocation in normal use.
 <li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 

@@ -4660,16 +4660,20 @@ static void analysis_delete_template(struct file_block *file, int template)
 {
 	enum analysis_report_type	type;
 
-	/* delete the specified template. */
+	/* Delete the specified template. */
 
 	if (template < 0 || template >= file->saved_report_count)
 		return;
 
 	type = file->saved_reports[template].type;
 
-	/* first remove the template from the flex block. */
+	/* First remove the template from the flex block. */
 
-	flex_midextend((flex_ptr) &(file->saved_reports), (template + 1) * sizeof(struct analysis_report), -sizeof(struct analysis_report));
+	if (!flexutils_delete_object((void **) &(file->saved_reports), sizeof(struct analysis_report), template)) {
+		error_msgs_report_error("BadDelete");
+		return;
+	}
+
 	file->saved_report_count--;
 	file_set_data_integrity(file, TRUE);
 

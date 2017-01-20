@@ -2103,7 +2103,11 @@ static osbool preset_delete(struct file_block *file, int preset)
 
 	/* Delete the preset */
 
-	flex_midextend((flex_ptr) &(file->presets->presets), (preset + 1) * sizeof(struct preset), -sizeof(struct preset));
+	if (!flexutils_delete_object((void **) &(file->presets->presets), sizeof(struct preset), preset)) {
+		error_msgs_report_error("BadDelete");
+		return FALSE;
+	}
+
 	file->presets->preset_count--;
 
 	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are

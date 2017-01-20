@@ -176,7 +176,7 @@ osbool flexutils_resize_block(void **anchor, size_t new_size)
 
 osbool flexutils_shrink_block(void **anchor, size_t new_size)
 {
-	size_t	block_size;
+	size_t	blocks;
 
 	if (anchor == NULL || *anchor == NULL || flexutils_block_size == 0)
 		return FALSE;
@@ -185,14 +185,48 @@ osbool flexutils_shrink_block(void **anchor, size_t new_size)
 	debug_printf("Requesting the current block shrink to %d blocks", new_size);
 #endif
 
-	if (!flexutils_get_size(anchor, flexutils_block_size, &block_size)) {
+	if (!flexutils_get_size(anchor, flexutils_block_size, &blocks)) {
 		flexutils_block_size = 0;
 		return FALSE;
 	}
 
 	flexutils_block_size = 0;
 
-	if ((block_size > new_size) && (flex_extend((flex_ptr) anchor, flexutils_block_size * new_size)))
+	if ((blocks > new_size) && (flex_extend((flex_ptr) anchor, flexutils_block_size * new_size)))
+		return FALSE;
+
+	return TRUE;
+}
+
+
+/**
+ * Delete an object from within a flex block, shuffling any objects above
+ * it down to fill the gap.
+ * 
+ * \param **anchor		The flex anchor to be shrunk.
+ * \param block_size		The size of a single object in the block.
+ * \param entry			The entry to be deleted.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
+osbool flexutils_delete_object(void **anchor, size_t block_size, int entry)
+{
+	size_t	blocks;
+
+	if (anchor == NULL || *anchor == NULL)
+		return FALSE;
+
+	/* Check that the flex block is an expected size, and that the entry to delete is within it. */
+
+	if (!flexutils_get_size(anchor, block_size, &blocks))
+		return FALSE;
+
+	if (entry < 0 || entry >= blocks)
+		return FALSE;
+
+	/* Try to delete the entry. */
+
+	if (flex_midextend((flex_ptr) anchor, (entry + 1) * block_size, -block_size) == 0)
 		return FALSE;
 
 	return TRUE;

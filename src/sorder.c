@@ -2115,7 +2115,11 @@ static osbool sorder_delete(struct file_block *file, sorder_t sorder)
 
 	/* Delete the order */
 
-	flex_midextend((flex_ptr) &(file->sorders->sorders), (sorder + 1) * sizeof(struct sorder), -sizeof(struct sorder));
+	if (!flexutils_delete_object((void **) &(file->sorders->sorders), sizeof(struct sorder), sorder)) {
+		error_msgs_report_error("BadDelete");
+		return FALSE;
+	}
+
 	file->sorders->sorder_count--;
 
 	/* Adjust the sort indexes that point to entries above the deleted one, by reducing any indexes that are

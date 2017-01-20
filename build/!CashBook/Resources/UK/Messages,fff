@@ -49,6 +49,7 @@ NoMemNewFile:There was not enough memory to create the new file.
 # Memory handling
 
 BadMemory:There was an error with the memory block sizes.
+BadDelete:There was an error while freeing memory.
 
 # Transaction window
 

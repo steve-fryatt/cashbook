@@ -1645,8 +1645,8 @@ static int accview_sort_compare(enum sort_type type, int index1, int index2, voi
 				transact_get_transaction_number(view->line_data[view->line_data[index2].sort_index].transaction));
 
 	case SORT_DATE:
-		return (transact_get_date(view->file, view->line_data[view->line_data[index1].sort_index].transaction) -
-				transact_get_date(view->file, view->line_data[view->line_data[index2].sort_index].transaction));
+		return ((transact_get_date(view->file, view->line_data[view->line_data[index1].sort_index].transaction) & DATE_SORT_MASK) -
+				(transact_get_date(view->file, view->line_data[view->line_data[index2].sort_index].transaction) & DATE_SORT_MASK));
 
 	case SORT_FROMTO:
 		return strcmp(account_get_name(view->file,

@@ -55,6 +55,16 @@ typedef unsigned int	date_t;
 #define DATE_MAX ((date_t) 0x270f0c1f)
 
 /**
+ * Comparing dates with the top bit set will overflow the int result, so
+ * we need to mask the unused bit out.
+ * 
+ * It might be neater to change NULL_DATE to 0x7fffffff, but that could
+ * break saved files?
+ */
+
+#define DATE_SORT_MASK ((date_t) 0x7fffffff)
+
+/**
  * The size of a textual date field.
  */
 

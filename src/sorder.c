@@ -1994,8 +1994,8 @@ static int sorder_sort_compare(enum sort_type type, int index1, int index2, void
 				windat->sorders[windat->sorders[index2].sort_index].description);
 
 	case SORT_NEXTDATE:
-		return (windat->sorders[windat->sorders[index2].sort_index].adjusted_next_date -
-				windat->sorders[windat->sorders[index1].sort_index].adjusted_next_date);
+		return ((windat->sorders[windat->sorders[index2].sort_index].adjusted_next_date & DATE_SORT_MASK) -
+				(windat->sorders[windat->sorders[index1].sort_index].adjusted_next_date & DATE_SORT_MASK));
 
 	case SORT_LEFT:
 		return  (windat->sorders[windat->sorders[index1].sort_index].left -

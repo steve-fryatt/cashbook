@@ -4527,8 +4527,8 @@ static int transact_sort_compare(enum sort_type type, int index1, int index2, vo
 				transact_get_transaction_number(windat->transactions[index2].sort_index));
 
 	case SORT_DATE:
-		return (windat->transactions[windat->transactions[index1].sort_index].date -
-				windat->transactions[windat->transactions[index2].sort_index].date);
+		return ((windat->transactions[windat->transactions[index1].sort_index].date & DATE_SORT_MASK) -
+				(windat->transactions[windat->transactions[index2].sort_index].date & DATE_SORT_MASK));
 
 	case SORT_FROM:
 		return strcmp(account_get_name(windat->file, windat->transactions[windat->transactions[index1].sort_index].from),

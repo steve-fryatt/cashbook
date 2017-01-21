@@ -180,7 +180,7 @@ Negative values can be entered using the method for displaying negative numbers 
 
 <subhead title="Displaying and entering dates">
 
-Date entry and display is also handled in a uniform way, using the <entry>DD-MM-YYYY</entry> format. The separator used for display is set in the configuration, and can be changed as required. Multiple separators can be specified for entering dates.
+Date entry and display is also handled in a uniform way, using one of either <entry>DD-MM-YYYY</entry>, <entry>YYYY-MM-DD</entry> or <entry>MM-DD-YYYY</entry> format. The format, along with the separator used for display is set in the configuration, and can be changed as required. Multiple separators can be specified for entering dates.
 
 When entering dates, it is possible to use two-digit years. These will be expanded into four-digit years such that 80 to 99 become 1980 to 1999, while 00 to 79 become 2000 to 2079. Years must fall in the range 100 to 9999.
 
@@ -1180,7 +1180,7 @@ If <icon>Remember dialogue contents</icon> is ticked, the contents of dialogue b
 
 The <icon>Desktop interface</icon> section contains a couple of options relating to the general interface. If <icon>RISC OS 5 keyboard</icon> is selected, keys such as <key>home</key> and <key>end</key> follow the <cite>RISC OS 5 Style Guide</cite>; otherwise, they follow the old Acorn guidelines. This option is selected by default on any system running RISC OS 5, but can be overridden manually.  <icon>Support global clipboard</icon> determines whether <cite>CashBook</cite> handles global cut, copy and paste from the <window>transaction</window> window. It should be turned off if system wide support is available (eg. if Select or Adjust&rsquo;s icon selection is on, or if an add-on module like <cite>IcnClipBrd</cite> is present).
 
-The <icon>Dates</icon> section controls the way in which dates are handled.  The <icon>Input separators</icon> field contains a list of symbols which can be used to separate the sections of a date on entry.  By default this is <entry>-/\.</entry>, which means that dates can be entered as <entry>DD-MM-YYYY</entry>, <entry>DD/MM/YYYY</entry>, <entry>DD\MM\YYYY</entry> or  <entry>DD.MM.YYYY</entry>.  <icon>Display separator</icon> is the symbol to be used whenever a date is displayed or printed.  The <icon>Use territory calendar info</icon> option tells <cite>CashBook</cite> to get information about the structure of dates (eg. the number of days in each month) from the system. This should usually be left on;  if turned off, <cite>CashBook</cite> uses its own default values.
+The <icon>Dates</icon> section controls the way in which dates are handled. <icon>Format</icon> controls the format in use for all input and display: the different options can be selected from the pop-up menu to the right of the field. The <icon>Input separators</icon> field contains a list of symbols which can be used to separate the sections of a date on entry.  By default this is <entry>-/\.</entry>, which means that dates can be entered as <entry>DD-MM-YYYY</entry>, <entry>DD/MM/YYYY</entry>, <entry>DD\MM\YYYY</entry> or  <entry>DD.MM.YYYY</entry>.  <icon>Display separator</icon> is the symbol to be used whenever a date is displayed or printed.  The <icon>Use territory calendar info</icon> option tells <cite>CashBook</cite> to get information about the structure of dates (eg. the number of days in each month) from the system. This should usually be left on;  if turned off, <cite>CashBook</cite> uses its own default values.
 
 
 <subhead title="Currency choices">
@@ -1521,12 +1521,13 @@ Update to fourth stable release.
 <subhead title="Test Build">
 
 <list>
-<li>Re-implemented data entry line code into a stand-alone module separate from the Transaction module.
+<li>Support added for displaying and entering dates in YYYY-MM-DD and MM-DD-YYYY formats in addition to DD-MM-YYYY.
 <li>Fixed problem with &lsquo;Reconcile Mode&rsquo; where the caret didn&rsquo;t advance on keypresses.
 <li>Perform a secondary visual sort on transaction number in <window>transaction</window> and <window> account view</window> windows, to ensure that transactions always retain the same relative order when the sort index is the same (tickets&nbsp;#280, #362, #488 and #594).
 <li>Don&rsquo;t allow zero or negative days or months when entering dates (ticket&nbsp;#607).
 <li>Don&rsquo;t allow negative credit limits to be entered (ticket&nbsp;#606).
 <li>Close <window>account edit</window> and <window>heading edit</window> dialogue boxes when their parent windows close.
+<li>Re-implemented data entry line code into a stand-alone module separate from the Transaction module.
 <li>Improve error checking when allocating memory for windows and data structures (ticket&nbsp;#609).
 <li>Improve error checking when allocating memory during file loading, and when adjusting memory allocation in normal use.
 <li>Start to add support for entering interest rate data (incomplete and non-functional).

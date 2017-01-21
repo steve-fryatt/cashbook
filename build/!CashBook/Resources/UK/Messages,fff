@@ -1017,3 +1017,7 @@ Help.ReportMenu.05:\Ssave this report definition as a template for future use.
 Help.RepListMenu.??:\Schoose this existing report name.
 
 Help.FontMenu.??/Help.FontMenu.????:\Schoose this font.
+
+Help.ChDateMenu.00:\Sdisplay dates in day, month, year format.
+Help.ChDateMenu.01:\Sdisplay dates in year, month, day format.
+Help.ChDateMenu.02:\Sdisplay dates in month, day, year format.

@@ -233,7 +233,8 @@ void choices_initialise(void)
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_GENERAL], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_GENERAL], choices_keypress_handler);
 
-	date_menu = templates_get_menu("ChoicesDate");
+	date_menu = templates_get_menu("ChoicesDateMenu");
+	ihelp_add_menu(date_menu, "ChDateMenu");
 	event_add_window_icon_popup(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEFORMAT_POP, date_menu, CHOICE_ICON_DATEFORMAT, NULL);
 
 	choices_panes[CHOICE_PANE_CURRENCY] = templates_create_window("Choices1");

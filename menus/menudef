@@ -294,7 +294,7 @@ menu(ReportViewMenu, "Report")
  * enum date_format.
  */
 
-menu(ChoicesDate, "Format")
+menu(ChoicesDateMenu, "Format")
 {
 	item("DD MM YYYY");
 	item("YYYY MM DD");

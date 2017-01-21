@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -88,12 +88,14 @@
 
 /* General pane icons. */
 
+#define CHOICE_ICON_REMEMBERDIALOGUE 0
 #define CHOICE_ICON_CLIPBOARD 4
 #define CHOICE_ICON_RO5KEYS 3
-#define CHOICE_ICON_REMEMBERDIALOGUE 0
-#define CHOICE_ICON_DATEIN 8
-#define CHOICE_ICON_DATEOUT 10
-#define CHOICE_ICON_TERRITORYDATE 11
+#define CHOICE_ICON_DATEFORMAT 8
+#define CHOICE_ICON_DATEFORMAT_POP 9
+#define CHOICE_ICON_DATEIN 11
+#define CHOICE_ICON_DATEOUT 13
+#define CHOICE_ICON_TERRITORYDATE 14
 
 /* Currency pane icons. */
 
@@ -215,6 +217,8 @@ static void		choices_colpick_click_handler(wimp_pointer *pointer);
 
 void choices_initialise(void)
 {
+	wimp_menu	*date_menu;
+
 	choices_colpick_window = templates_create_window("Colours");
 	ihelp_add_window (choices_colpick_window, "Colours", NULL);
 	event_add_window_mouse_event(choices_colpick_window, choices_colpick_click_handler);
@@ -228,6 +232,9 @@ void choices_initialise(void)
 	ihelp_add_window (choices_panes[CHOICE_PANE_GENERAL], "Choices0", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_GENERAL], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_GENERAL], choices_keypress_handler);
+
+	date_menu = templates_get_menu("ChoicesDate");
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEFORMAT_POP, date_menu, CHOICE_ICON_DATEFORMAT, NULL);
 
 	choices_panes[CHOICE_PANE_CURRENCY] = templates_create_window("Choices1");
 	ihelp_add_window (choices_panes[CHOICE_PANE_CURRENCY], "Choices1", NULL);
@@ -593,6 +600,9 @@ static void choices_set_window(void)
 	icons_printf(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEIN, "%s", config_str_read("DateSepIn"));
 	icons_printf(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEOUT, "%s", config_str_read("DateSepOut"));
 
+	event_set_window_icon_popup_selection(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEFORMAT_POP, config_int_read("DateFormat"));
+
+
 	/* Set the currency pane up. */
 
 	icons_set_selected(choices_panes[CHOICE_PANE_CURRENCY], CHOICE_ICON_SHOWZERO,
@@ -765,6 +775,9 @@ static void choices_read_window(void)
 			icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEIN));
 	config_str_set("DateSepOut",
 			icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEOUT));
+
+	config_int_set("DateFormat",
+		event_get_window_icon_popup_selection(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEFORMAT_POP));
 
 
 	/* Read the currency pane. */

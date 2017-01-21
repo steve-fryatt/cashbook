@@ -411,8 +411,6 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 {
 	int				field, offset, day, month, year, base_month, base_year, day_limit, month_limit;
 	char				*next, date[DATE_CONVERT_BUFFER_LEN], *fields[DATE_FIELDS];
-	oswordreadclock_utc_block	time;
-	territory_ordinals		ordinals;
 
 
 	if (string == NULL)
@@ -427,25 +425,15 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 	 * system.
 	 */
 
-	if (base_date != NULL_DATE) {
-		base_month = date_get_month_from_date(base_date);
-		base_year  = date_get_year_from_date(base_date);
+	if (base_date != NULL_DATE)
+		base_date = date_today();
+ 
+	base_month = date_get_month_from_date(base_date);
+	base_year  = date_get_year_from_date(base_date);
 
 #ifdef DEBUG
-		debug_printf("Base dates from given date (year: %d, month: %d)", base_year, base_month);
+	debug_printf("Base dates on year: %d, month: %d", base_year, base_month);
 #endif
-	} else {
-		time.op = oswordreadclock_OP_UTC;
-		oswordreadclock_utc(&time);
-		territory_convert_time_to_ordinals(territory_CURRENT, (const os_date_and_time *) &(time.utc), &ordinals);
-
-		base_year = ordinals.year;
-		base_month = ordinals.month;
-
-#ifdef DEBUG
-		debug_printf("Base dates from RTC (year: %d, month: %d)", base_year, base_month);
-#endif
-	}
 
 	/* Take a copy of the string, so that we can parse it with strtok(). */
 

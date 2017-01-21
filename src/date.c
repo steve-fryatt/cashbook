@@ -409,8 +409,8 @@ char *date_convert_to_year_string(date_t date, char *buffer, size_t length)
 
 date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 {
-	int				field, offset, day, month, year, base_month, base_year, day_limit, month_limit;
-	char				*next, date[DATE_CONVERT_BUFFER_LEN], *fields[DATE_FIELDS];
+	int	field, offset, day, month, year, base_month, base_year, day_limit, month_limit;
+	char	*next, date[DATE_CONVERT_BUFFER_LEN], *fields[DATE_FIELDS];
 
 
 	if (string == NULL)

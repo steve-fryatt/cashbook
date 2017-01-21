@@ -107,7 +107,7 @@ void flexutils_free(void **anchor)
  * 
  * This call is used to start a sequence of allocations via
  * flexutils_load_resize(); the sequence ends on a call to 
- * flexutils_shrink_block().
+ * flexutils_load_shrink().
  *
  * \param **anchor		The flex anchor to look at.
  * \param block			The size of a single object in the block.
@@ -126,11 +126,10 @@ osbool flexutils_load_initialise(void **anchor, size_t block, size_t *size)
 }
 
 
-
 /**
- * Resize a flex block to hold a specified number of objects. The size of
- * an object is taken to be that supplied to a previous call to
- * flexutils_get_size().
+ * Resize a flex block to hold a specified number of objects as part of
+ * a load sequence. The size of an object is taken to be that supplied
+ * to a previous call to flexutils_load_initialise().
  *
  * \param **anchor		The flex anchor to be resized.
  * \param new_size		The required number of objects.
@@ -154,10 +153,11 @@ osbool flexutils_load_resize(void **anchor, size_t new_size)
 
 
 /**
- * If required, shrink a flex block down so that it holds only the specified
- * number of objects. The size of an object is taken to be that supplied to
- * a previous call to flexutils_get_size(). At the end of this call, that
- * size is discarded: preventing any more calls to flexutils_load_resize().
+ * At the end of a file load sequence, shrink a flex block down so that
+ * it holds only the specified number of objects. The size of an object
+ * is taken to be that supplied to a previous call to
+ * flexutils_load_initialise(). At the end of this call, that size is
+ * discarded: preventing any more calls to flexutils_load_resize().
  * 
  * \param **anchor		The flex anchor to be shrunk.
  * \param new_size		The maximum required number of objects.
@@ -273,6 +273,17 @@ osbool flexutils_delete_object(void **anchor, size_t block_size, int entry)
 }
 
 
+/**
+ * Request the number of objects that will fit into a block array in the
+ * specified flex block. The call will fail if the flex block size does
+ * not correspond to an exact number of objects.
+ * 
+ * \param **anchor		The flex block to be measured.
+ * \param block			The size of a single object.
+ * \param *size			Pointer to a variable to take the number
+ *				of objects which will fit into the block.
+ * \return			TRUE if successful; FALSE on an error.
+ */
 
 static osbool flexutils_get_block_size(void **anchor, size_t block, size_t *size)
 {

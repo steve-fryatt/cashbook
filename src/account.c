@@ -33,10 +33,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* Acorn C header files */
-
-#include "flex.h"
-
 /* OSLib header files */
 
 #include "oslib/os.h"
@@ -3135,7 +3131,7 @@ acct_t account_add(struct file_block *file, char *name, char *ident, enum accoun
 	/* If that fails, create a new entry. */
 
 	if (new == NULL_ACCOUNT) {
-		if (flex_extend((flex_ptr) &(file->accounts->accounts), sizeof(struct account) * (file->accounts->account_count + 1)) == 1) {
+		if (!flexutils_resize((void **) &(file->accounts->accounts), sizeof(struct account), file->accounts->account_count + 1)) {
 			new = file->accounts->account_count++;
 			#ifdef DEBUG
 			debug_printf("Created new account: %d", new);
@@ -3228,21 +3224,19 @@ static int account_add_list_display_line(struct file_block *file, int entry)
 	if (file == NULL || file->accounts == NULL)
 		return -1;
 
-	line = -1;
+	if (!flexutils_resize((void **) &(file->accounts->account_windows[entry].line_data), sizeof(struct account_redraw), file->accounts->account_windows[entry].display_lines + 1))
+		return -1;
 
-	if (flex_extend((flex_ptr) &(file->accounts->account_windows[entry].line_data),
-			sizeof(struct account_redraw) * ((file->accounts->account_windows[entry].display_lines)+1)) == 1) {
-		line = file->accounts->account_windows[entry].display_lines++;
+	line = file->accounts->account_windows[entry].display_lines++;
 
-		#ifdef DEBUG
-		debug_printf("Creating new display line %d", line);
-		#endif
+	#ifdef DEBUG
+	debug_printf("Creating new display line %d", line);
+	#endif
 
-		file->accounts->account_windows[entry].line_data[line].type = ACCOUNT_LINE_BLANK;
-		file->accounts->account_windows[entry].line_data[line].account = NULL_ACCOUNT;
+	file->accounts->account_windows[entry].line_data[line].type = ACCOUNT_LINE_BLANK;
+	file->accounts->account_windows[entry].line_data[line].account = NULL_ACCOUNT;
 
-		*file->accounts->account_windows[entry].line_data[line].heading = '\0';
-	}
+	*file->accounts->account_windows[entry].line_data[line].heading = '\0';
 
 	return line;
 }
@@ -4634,7 +4628,7 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_get_size((void **) &(file->accounts->accounts), sizeof(struct account), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(file->accounts->accounts), sizeof(struct account), &block_size)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
@@ -4648,7 +4642,7 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->accounts->accounts), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->accounts->accounts), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -4682,7 +4676,7 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 					#ifdef DEBUG
 					debug_printf("Section block expand to %d", block_size);
 					#endif
-					if (!flexutils_resize_block((void **) &(file->accounts->accounts), block_size)) {
+					if (!flexutils_load_resize((void **) &(file->accounts->accounts), block_size)) {
 						*load_status = FILING_STATUS_MEMORY;
 						return sf_CONFIG_READ_EOF;
 					}
@@ -4768,7 +4762,7 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_shrink_block((void **) &(file->accounts->accounts), file->accounts->account_count)) {
+	if (!flexutils_load_shrink((void **) &(file->accounts->accounts), file->accounts->account_count)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
@@ -4805,7 +4799,7 @@ enum config_read_status account_read_list_file(struct file_block *file, FILE *in
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_get_size((void **) &(file->accounts->account_windows[entry].line_data), sizeof(struct account_redraw), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(file->accounts->account_windows[entry].line_data), sizeof(struct account_redraw), &block_size)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
@@ -4819,7 +4813,7 @@ enum config_read_status account_read_list_file(struct file_block *file, FILE *in
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->accounts->account_windows[entry].line_data), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->accounts->account_windows[entry].line_data), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -4835,7 +4829,7 @@ enum config_read_status account_read_list_file(struct file_block *file, FILE *in
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->accounts->account_windows[entry].line_data), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->accounts->account_windows[entry].line_data), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -4855,7 +4849,7 @@ enum config_read_status account_read_list_file(struct file_block *file, FILE *in
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_shrink_block((void **) &(file->accounts->account_windows[entry].line_data), file->accounts->account_windows[entry].display_lines)) {
+	if (!flexutils_load_shrink((void **) &(file->accounts->account_windows[entry].line_data), file->accounts->account_windows[entry].display_lines)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}

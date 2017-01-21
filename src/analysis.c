@@ -33,10 +33,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Acorn C header files */
-
-#include "flex.h"
-
 /* OSLib header files */
 
 #include "oslib/hourglass.h"
@@ -999,7 +995,7 @@ static osbool analysis_delete_transaction_window(void)
 static void analysis_generate_transaction_report(struct file_block *file)
 {
 	struct report		*report;
-	struct analysis_data	*data;
+	struct analysis_data	*data = NULL;
 	struct analysis_report	*template;
 	int			i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
 				total_days, period_days, period_limit, entries, account;
@@ -1012,7 +1008,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 	if (file == NULL)
 		return;
 
-	if (flex_alloc((flex_ptr) &data, account_get_count(file) * sizeof(struct analysis_data)) == 0) {
+	if (!flexutils_allocate((void **) &data, sizeof(struct analysis_data), account_get_count(file))) {
 		error_msgs_report_info("NoMemReport");
 		return;
 	}
@@ -1749,14 +1745,14 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 	enum transact_flags	flags;
 	amt_t			amount;
 	struct report		*report;
-	struct analysis_data	*data;
+	struct analysis_data	*data = NULL;
 	struct analysis_report	*template;
 	int			acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (file == NULL)
 		return;
 
-	if (flex_alloc((flex_ptr) &data, account_get_count(file) * sizeof(struct analysis_data)) == 0) {
+	if (!flexutils_allocate((void **) &data, sizeof(struct analysis_data), account_get_count(file))) {
 		error_msgs_report_info("NoMemReport");
 		return;
 	}
@@ -2404,14 +2400,14 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 	acct_t			from, to;
 	amt_t			amount;
 	struct report		*report;
-	struct analysis_data	*data;
+	struct analysis_data	*data = NULL;
 	struct analysis_report	*template;
 	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (file == NULL)
 		return;
 
-	if (flex_alloc((flex_ptr) &data, account_get_count(file) * sizeof(struct analysis_data)) == 0) {
+	if (!flexutils_allocate((void **) &data, sizeof(struct analysis_data), account_get_count(file))) {
 		error_msgs_report_info("NoMemReport");
 		return;
 	}
@@ -3037,14 +3033,14 @@ static void analysis_generate_balance_report(struct file_block *file)
 	acct_t			from, to;
 	amt_t			amount;
 	struct report		*report;
-	struct analysis_data	*data;
+	struct analysis_data	*data = NULL;
 	struct analysis_report	*template;
 	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (file == NULL)
 		return;
 
-	if (flex_alloc((flex_ptr) &data, account_get_count(file) * sizeof(struct analysis_data)) == 0) {
+	if (!flexutils_allocate((void **) &data, sizeof(struct analysis_data), account_get_count(file))) {
 		error_msgs_report_info("NoMemReport");
 		return;
 	}
@@ -4635,16 +4631,19 @@ static int analysis_get_template_from_name(struct file_block *file, char *name)
 static void analysis_store_template(struct file_block *file, struct analysis_report *report, int template)
 {
 	if (template == NULL_TEMPLATE) {
-		if (flex_extend((flex_ptr) &(file->saved_reports), sizeof(struct analysis_report) * (file->saved_report_count+1)) == 1)
-			template = file->saved_report_count++;
-		else
+		if (!flexutils_resize((void **) &(file->saved_reports), sizeof(struct analysis_report), file->saved_report_count + 1)) {
 			error_msgs_report_error("NoMemNewTemp");
+			return;
 		}
 
-	if (template >= 0 && template < file->saved_report_count) {
-		analysis_copy_template(&(file->saved_reports[template]), report);
-		file_set_data_integrity(file, TRUE);
+		template = file->saved_report_count++;
 	}
+
+	if (template < 0 || template >= file->saved_report_count)
+		return;
+
+	analysis_copy_template(&(file->saved_reports[template]), report);
+	file_set_data_integrity(file, TRUE);
 }
 
 
@@ -5116,7 +5115,7 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_get_size((void **) &(file->saved_reports), sizeof(struct analysis_report), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(file->saved_reports), sizeof(struct analysis_report), &block_size)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
@@ -5130,7 +5129,7 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->saved_reports), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->saved_reports), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -5144,7 +5143,7 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->saved_reports), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->saved_reports), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -5276,7 +5275,7 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_shrink_block((void **) &(file->saved_reports), file->saved_report_count)) {
+	if (!flexutils_load_shrink((void **) &(file->saved_reports), file->saved_report_count)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}

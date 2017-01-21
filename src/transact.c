@@ -34,10 +34,6 @@
 #include <ctype.h>
 #include <assert.h>
 
-/* Acorn C header files */
-
-#include "flex.h"
-
 /* OSLib header files */
 
 #include "oslib/wimp.h"
@@ -2741,7 +2737,7 @@ void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, a
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	if (flex_extend((flex_ptr) &(file->transacts->transactions), sizeof(struct transaction) * (file->transacts->trans_count + 1)) != 1) {
+	if (!flexutils_resize((void **) &(file->transacts->transactions), sizeof(struct transaction), file->transacts->trans_count + 1)) {
 		error_msgs_report_error("NoMemNewTrans");
 		return;
 	}
@@ -2861,7 +2857,8 @@ void transact_strip_blanks_from_end(struct file_block *file)
 	if (i < file->transacts->trans_count - 1) {
 		file->transacts->trans_count = i + 1;
 
-		flex_extend((flex_ptr) &(file->transacts->transactions), sizeof(struct transaction) * file->transacts->trans_count);
+		if (!flexutils_resize((void **) &(file->transacts->transactions), sizeof(struct transaction), file->transacts->trans_count))
+			error_msgs_report_error("BadDelete");
 	}
 }
 
@@ -4909,7 +4906,7 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_get_size((void **) &(file->transacts->transactions), sizeof(struct transaction), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(file->transacts->transactions), sizeof(struct transaction), &block_size)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
@@ -4923,7 +4920,7 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->transacts->transactions), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->transacts->transactions), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -4944,7 +4941,7 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->transacts->transactions), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->transacts->transactions), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -4973,7 +4970,7 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_shrink_block((void **) &(file->transacts->transactions), file->transacts->trans_count)) {
+	if (!flexutils_load_shrink((void **) &(file->transacts->transactions), file->transacts->trans_count)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}

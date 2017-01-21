@@ -33,10 +33,6 @@
 #include <string.h>
 #include <stdio.h>
 
-/* Acorn C header files */
-
-#include "flex.h"
-
 /* OSLib header files */
 
 #include "oslib/hourglass.h"
@@ -2042,7 +2038,7 @@ static int preset_add(struct file_block *file)
 	if (file == NULL || file->presets == NULL)
 		return NULL_PRESET;
 
-	if (flex_extend((flex_ptr) &(file->presets->presets), sizeof(struct preset) * (file->presets->preset_count+1)) != 1) {
+	if (!flexutils_resize((void **) &(file->presets->presets), sizeof(struct preset), file->presets->preset_count + 1)) {
 		error_msgs_report_error("NoMemNewPreset");
 		return NULL_PRESET;
 	}
@@ -2356,7 +2352,7 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_get_size((void **) &(file->presets->presets), sizeof(struct preset), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(file->presets->presets), sizeof(struct preset), &block_size)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
@@ -2370,7 +2366,7 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->presets->presets), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->presets->presets), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -2385,7 +2381,7 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 			file->presets->preset_count++;
 			if (file->presets->preset_count > block_size) {
 				block_size = file->presets->preset_count;
-				if (!flexutils_resize_block((void **) &(file->presets->presets), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->presets->presets), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -2420,7 +2416,7 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_shrink_block((void **) &(file->presets->presets), file->presets->preset_count)) {
+	if (!flexutils_load_shrink((void **) &(file->presets->presets), file->presets->preset_count)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}

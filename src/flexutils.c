@@ -57,7 +57,10 @@
  * The current allocation block size.
  */
 
-static size_t flexutils_block_size = 0;
+static size_t flexutils_load_block_size = 0;
+
+static osbool flexutils_get_block_size(void **anchor, size_t block, size_t *size);
+
 
 /**
  * Initialise a NULL flex anchor with the minimum amount of memory
@@ -98,12 +101,12 @@ void flexutils_free(void **anchor)
 
 
 /**
- * Given a unit block size, work out how many objects will fit into a
- * given flex block. The call will fail if the block size doesn't
- * correspond to a round number of objects.
+ * Given a unit block size, initialise a load seqence by working out
+ * how many objects will fit into the given flex block. The call will
+ * fail if the block size doesn't correspond to a round number of objects.
  * 
  * This call is used to start a sequence of allocations via
- * flexutils_resize_block(); the sequence ends on a call to 
+ * flexutils_load_resize(); the sequence ends on a call to 
  * flexutils_shrink_block().
  *
  * \param **anchor		The flex anchor to look at.
@@ -112,29 +115,16 @@ void flexutils_free(void **anchor)
  * \return			TRUE if successful; FALSE on an error.
  */
 
-osbool flexutils_get_size(void **anchor, size_t block, size_t *size)
+osbool flexutils_load_initialise(void **anchor, size_t block, size_t *size)
 {
-	size_t	bytes;
-
-	if (anchor == NULL || *anchor == NULL || size == NULL)
+	if (!flexutils_get_block_size(anchor, block, size))
 		return FALSE;
 
-	bytes = flex_size((flex_ptr) anchor);
-	*size = bytes / block;
-
-#ifdef DEBUG
-	debug_printf("Requesting the current block size: %d bytes, %d blocks (%d bytes/block)", bytes, *size, block);
-#endif
-
-	if (((*size * block) != bytes) && (bytes != FLEXUTILS_MIN_BLOCK)) {
-		*size = 0;
-		return FALSE;
-	}
-
-	flexutils_block_size = block;
+	flexutils_load_block_size = block;
 
 	return TRUE;
 }
+
 
 
 /**
@@ -147,16 +137,16 @@ osbool flexutils_get_size(void **anchor, size_t block, size_t *size)
  * \return			TRUE if successful; FALSE on an error.
  */
 
-osbool flexutils_resize_block(void **anchor, size_t new_size)
+osbool flexutils_load_resize(void **anchor, size_t new_size)
 {
-	if (anchor == NULL || *anchor == NULL || flexutils_block_size == 0)
+	if (anchor == NULL || *anchor == NULL || flexutils_load_block_size == 0)
 		return FALSE;
 
 #ifdef DEBUG
-	debug_printf("Requesting the current block re-size: %d bytes, %d blocks (%d bytes/block)", flexutils_block_size * new_size, new_size, flexutils_block_size);
+	debug_printf("Requesting the current block re-size: %d bytes, %d blocks (%d bytes/block)", flexutils_load_block_size * new_size, new_size, flexutils_load_block_size);
 #endif
 
-	if (flex_extend((flex_ptr) anchor, flexutils_block_size * new_size) == 0)
+	if (flex_extend((flex_ptr) anchor, flexutils_load_block_size * new_size) == 0)
 		return FALSE;
 
 	return TRUE;
@@ -167,37 +157,87 @@ osbool flexutils_resize_block(void **anchor, size_t new_size)
  * If required, shrink a flex block down so that it holds only the specified
  * number of objects. The size of an object is taken to be that supplied to
  * a previous call to flexutils_get_size(). At the end of this call, that
- * size is discarded: preventing any more calls to flexutils_resize_block().
+ * size is discarded: preventing any more calls to flexutils_load_resize().
  * 
  * \param **anchor		The flex anchor to be shrunk.
  * \param new_size		The maximum required number of objects.
  * \return			TRUE if successful; FALSE on an error.
  */
 
-osbool flexutils_shrink_block(void **anchor, size_t new_size)
+osbool flexutils_load_shrink(void **anchor, size_t new_size)
 {
 	size_t	blocks;
 
-	if (anchor == NULL || *anchor == NULL || flexutils_block_size == 0)
+	if (anchor == NULL || *anchor == NULL || flexutils_load_block_size == 0)
 		return FALSE;
 
 #ifdef DEBUG
 	debug_printf("Requesting the current block shrink to %d blocks", new_size);
 #endif
 
-	if (!flexutils_get_size(anchor, flexutils_block_size, &blocks)) {
-		flexutils_block_size = 0;
+	if (!flexutils_get_block_size(anchor, flexutils_load_block_size, &blocks)) {
+		flexutils_load_block_size = 0;
 		return FALSE;
 	}
 
-	flexutils_block_size = 0;
+	flexutils_load_block_size = 0;
 
-	if ((blocks > new_size) && (flex_extend((flex_ptr) anchor, flexutils_block_size * new_size)))
+	if ((blocks > new_size) && (flex_extend((flex_ptr) anchor, flexutils_load_block_size * new_size)))
 		return FALSE;
 
 	return TRUE;
 }
 
+
+/**
+ * Allocate memory to a flex block for a given number of objects. The anchor
+ * must be NULL on entry.
+ * 
+ * \param **anchor		The flex anchor to be allocated.
+ * \param block_size		The size of a single object in the block.
+ * \param new_size		The number of blocks required.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
+osbool flexutils_allocate(void **anchor, size_t block_size, size_t new_size)
+{
+	if (anchor == NULL || *anchor != NULL)
+		return FALSE;
+
+	if (flex_alloc((flex_ptr) anchor, new_size * block_size) == 0)
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
+ * Resize a flex block to a new number of objects.
+ * 
+ * \param **anchor		The flex anchor to be resized.
+ * \param block_size		The size of a single object in the block.
+ * \param new_size		The number of blocks required.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
+osbool flexutils_resize(void **anchor, size_t block_size, size_t new_size)
+{
+	size_t	blocks;
+
+	if (anchor == NULL || *anchor == NULL)
+		return FALSE;
+
+	/* Check that the flex block is an expected size, and that the entry to delete is within it. */
+
+	if (!flexutils_get_block_size(anchor, block_size, &blocks))
+		return FALSE;
+
+	/* Try to resize the block. */
+
+	if (flex_extend((flex_ptr) anchor, new_size * block_size) == 0)
+		return FALSE;
+
+	return TRUE;
+}
 
 /**
  * Delete an object from within a flex block, shuffling any objects above
@@ -218,7 +258,7 @@ osbool flexutils_delete_object(void **anchor, size_t block_size, int entry)
 
 	/* Check that the flex block is an expected size, and that the entry to delete is within it. */
 
-	if (!flexutils_get_size(anchor, block_size, &blocks))
+	if (!flexutils_get_block_size(anchor, block_size, &blocks))
 		return FALSE;
 
 	if (entry < 0 || entry >= blocks)
@@ -228,6 +268,30 @@ osbool flexutils_delete_object(void **anchor, size_t block_size, int entry)
 
 	if (flex_midextend((flex_ptr) anchor, (entry + 1) * block_size, -block_size) == 0)
 		return FALSE;
+
+	return TRUE;
+}
+
+
+
+static osbool flexutils_get_block_size(void **anchor, size_t block, size_t *size)
+{
+	size_t	bytes;
+
+	if (anchor == NULL || *anchor == NULL || size == NULL)
+		return FALSE;
+
+	bytes = flex_size((flex_ptr) anchor);
+	*size = bytes / block;
+
+#ifdef DEBUG
+	debug_printf("Requesting the current block size: %d bytes, %d blocks (%d bytes/block)", bytes, *size, block);
+#endif
+
+	if (((*size * block) != bytes) && (bytes != FLEXUTILS_MIN_BLOCK)) {
+		*size = 0;
+		return FALSE;
+	}
 
 	return TRUE;
 }

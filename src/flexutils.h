@@ -71,7 +71,7 @@ void flexutils_free(void **anchor);
  * \return			TRUE if successful; FALSE on an error.
  */
 
-osbool flexutils_get_size(void **anchor, size_t block, size_t *size);
+osbool flexutils_load_initialise(void **anchor, size_t block, size_t *size);
 
 
 /**
@@ -84,7 +84,7 @@ osbool flexutils_get_size(void **anchor, size_t block, size_t *size);
  * \return			TRUE if successful; FALSE on an error.
  */
 
-osbool flexutils_resize_block(void **anchor, size_t new_size);
+osbool flexutils_load_resize(void **anchor, size_t new_size);
 
 
 /**
@@ -98,7 +98,32 @@ osbool flexutils_resize_block(void **anchor, size_t new_size);
  * \return			TRUE if successful; FALSE on an error.
  */
 
-osbool flexutils_shrink_block(void **anchor, size_t new_size);
+osbool flexutils_load_shrink(void **anchor, size_t new_size);
+
+
+/**
+ * Allocate memory to a flex block for a given number of objects. The anchor
+ * must be NULL on entry.
+ * 
+ * \param **anchor		The flex anchor to be allocated.
+ * \param block_size		The size of a single object in the block.
+ * \param new_size		The number of blocks required.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
+osbool flexutils_allocate(void **anchor, size_t block_size, size_t new_size);
+
+
+/**
+ * Resize a flex block to a new number of objects.
+ * 
+ * \param **anchor		The flex anchor to be resized.
+ * \param block_size		The size of a single object in the block.
+ * \param new_size		The number of blocks required.
+ * \return			TRUE if successful; FALSE on an error.
+ */
+
+osbool flexutils_resize(void **anchor, size_t block_size, size_t new_size);
 
 
 /**

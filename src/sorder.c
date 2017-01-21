@@ -33,10 +33,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* Acorn C header files */
-
-#include "flex.h"
-
 /* OSLib header files */
 
 #include "oslib/wimp.h"
@@ -2047,7 +2043,7 @@ static sorder_t sorder_add(struct file_block *file)
 	if (file == NULL || file->sorders == NULL)
 		return NULL_SORDER;
 
-	if (flex_extend((flex_ptr) &(file->sorders->sorders), sizeof(struct sorder) * (file->sorders->sorder_count+1)) != 1) {
+	if (!flexutils_resize((void **) &(file->sorders->sorders), sizeof(struct sorder), file->sorders->sorder_count + 1)) {
 		error_msgs_report_error("NoMemNewSO");
 		return NULL_SORDER;
 	}
@@ -2552,7 +2548,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_get_size((void **) &(file->sorders->sorders), sizeof(struct sorder), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(file->sorders->sorders), sizeof(struct sorder), &block_size)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
@@ -2566,7 +2562,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->sorders->sorders), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->sorders->sorders), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -2581,7 +2577,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 			file->sorders->sorder_count++;
 			if (file->sorders->sorder_count > block_size) {
 				block_size = file->sorders->sorder_count;
-				if (!flexutils_resize_block((void **) &(file->sorders->sorders), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->sorders->sorders), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -2619,7 +2615,7 @@ enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_shrink_block((void **) &(file->sorders->sorders), file->sorders->sorder_count)) {
+	if (!flexutils_load_shrink((void **) &(file->sorders->sorders), file->sorders->sorder_count)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}

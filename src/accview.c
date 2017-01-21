@@ -31,10 +31,6 @@
 
 #include <string.h>
 
-/* Acorn C header files */
-
-#include "flex.h"
-
 /* OSLib header files */
 
 #include "oslib/hourglass.h"
@@ -1735,14 +1731,18 @@ static osbool accview_build(struct accview_window *view)
 	debug_printf("\\BBuilding account statement view");
 	#endif
 
-	if (flex_alloc((flex_ptr) &(view->line_data), transact_get_count(view->file) * sizeof(struct accview_redraw)) == 0) {
+	if (!flexutils_allocate((void **) &(view->line_data), sizeof(struct accview_redraw), transact_get_count(view->file))) {
 		error_msgs_report_info("AccviewMemErr2");
 		return FALSE;
 	}
 
 	lines = accview_calculate(view);
 
-	flex_extend((flex_ptr) &(view->line_data), lines * sizeof(struct accview_redraw));
+	if (!flexutils_resize((void **) &(view->line_data), sizeof(struct accview_redraw), lines)) {
+		flexutils_free((void **) &(view->line_data));
+		error_msgs_report_info("BadMemory");
+		return FALSE;
+	}
 
 	for (i = 0; i < lines; i++)
 		view->line_data[i].sort_index = i;

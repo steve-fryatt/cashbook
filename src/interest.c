@@ -1113,7 +1113,7 @@ enum config_read_status interest_read_file(struct file_block *file, FILE *in, ch
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_get_size((void **) &(file->interest->rates), sizeof(struct interest_rate), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(file->interest->rates), sizeof(struct interest_rate), &block_size)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}
@@ -1127,7 +1127,7 @@ enum config_read_status interest_read_file(struct file_block *file, FILE *in, ch
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->interest->rates), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->interest->rates), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -1148,7 +1148,7 @@ enum config_read_status interest_read_file(struct file_block *file, FILE *in, ch
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				if (!flexutils_resize_block((void **) &(file->interest->rates), block_size)) {
+				if (!flexutils_load_resize((void **) &(file->interest->rates), block_size)) {
 					*load_status = FILING_STATUS_MEMORY;
 					return sf_CONFIG_READ_EOF;
 				}
@@ -1171,7 +1171,7 @@ enum config_read_status interest_read_file(struct file_block *file, FILE *in, ch
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_shrink_block((void **) &(file->interest->rates), file->interest->rate_count)) {
+	if (!flexutils_load_shrink((void **) &(file->interest->rates), file->interest->rate_count)) {
 		*load_status = FILING_STATUS_BAD_MEMORY;
 		return sf_CONFIG_READ_EOF;
 	}

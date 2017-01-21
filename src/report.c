@@ -335,7 +335,7 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	else
 		new->flags |= REPORT_STATUS_MEMERR;
 
-	if (flex_alloc((flex_ptr) &(new->line_ptr), REPORT_LINE_SIZE * sizeof(int)))
+	if (flex_alloc((flex_ptr) &(new->line_ptr), sizeof(int) * REPORT_LINE_SIZE))
 		new->max_lines = REPORT_LINE_SIZE;
 	else
 		new->flags |= REPORT_STATUS_MEMERR;
@@ -374,7 +374,7 @@ void report_close(struct report *report)
 	/* Update the data block. */
 
 	flex_extend((flex_ptr) &(report->data), report->data_size);
-	flex_extend((flex_ptr) &(report->line_ptr), report->lines * sizeof(int));
+	flex_extend((flex_ptr) &(report->line_ptr), sizeof(int) * report->lines);
 
 	report->flags |= REPORT_STATUS_CLOSED;
 
@@ -453,7 +453,7 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 	/* Update the data block. */
 
 	flex_extend((flex_ptr) &(report->data), report->data_size);
-	flex_extend((flex_ptr) &(report->line_ptr), report->lines * sizeof(int));
+	flex_extend((flex_ptr) &(report->line_ptr), sizeof(int) * report->lines);
 
 	report->flags |= REPORT_STATUS_CLOSED;
 
@@ -648,7 +648,7 @@ void report_write_line(struct report *report, int bar, char *text)
 		debug_printf("Extending line pointer block to %d...", ((report->max_lines + REPORT_LINE_SIZE) * sizeof (int)));
 		#endif
 
-		if (flex_extend((flex_ptr) &(report->line_ptr), ((report->max_lines + REPORT_LINE_SIZE) * sizeof (int))))
+		if (flex_extend((flex_ptr) &(report->line_ptr), (sizeof (int) * (report->max_lines + REPORT_LINE_SIZE))))
 			report->max_lines += REPORT_LINE_SIZE;
 		else
 			report->flags |= REPORT_STATUS_MEMERR;

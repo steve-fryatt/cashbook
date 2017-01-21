@@ -246,6 +246,7 @@ static void main_initialise(void)
 	config_int_init("ShadeAccountsColour", wimp_COLOUR_RED);
 
 	config_opt_init("TerritoryDates", TRUE);					/**< Take date information from Territory module.			*/
+	config_int_init("DateFormat", DATE_FORMAT_DMY);					/**< The default date format is DD-MM-YYYY.				*/
 	config_str_init("DateSepIn", "-/\\.");						/**< List of characters to be accepted as input date separators.	*/
 	config_str_init("DateSepOut", "-");						/**< The character to use as output date separator.			*/
 

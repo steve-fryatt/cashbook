@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -58,6 +58,7 @@
 
 #include "sflib/debug.h"
 #include "sflib/config.h"
+#include "sflib/string.h"
 
 /* Application header files */
 
@@ -77,6 +78,33 @@
 
 #define DATE_CONVERT_BUFFER_LEN 64
 
+/**
+ * The number of fields in a date (ie. day, month, year).
+ */
+
+#define DATE_FIELDS 3
+
+/**
+ * The definition of a date format.
+ */
+
+struct date_format_info {
+	enum date_format	format;			/**< The format reference.												*/
+	int			day_field;		/**< The field, from the left, holding the day value.									*/
+	int			month_field;		/**< The field, from the left, holding the month value.									*/
+	int			year_field;		/**< the field, from the left, holding the year value.									*/
+	int			short_offset;		/**< The first offset to apply if fewer than DATE_FIELDS are present; add 1 for each missing field; -1 means no offset.	*/
+};
+
+/**
+ * The date formats understood by the application.
+ */
+
+static struct date_format_info date_formats[] = {
+	{DATE_FORMAT_DMY, 0, 1, 2, -1},
+	{DATE_FORMAT_YMD, 2, 1, 0, 1},
+	{DATE_FORMAT_MDY, 1, 0, 2, 0}
+};
 
 /**
  * A set of days, as used by OS and Territory SWIs.
@@ -146,6 +174,11 @@ static enum date_days		date_weekend_days;				/**< A bitmask containing the days 
 static char			date_sep_out;					/**< The character used to separate dates when displaying them.			*/
 static char			date_sep_in[DATE_SEP_LENGTH];			/**< A list of the characters usable as separators when entering dates.		*/
 
+/**
+ * The date format currently being used by the application.
+ */
+
+static enum date_format		date_active_format;
 
 /**
  * Static Function Protypes
@@ -213,6 +246,12 @@ void date_initialise(void)
 
 	strncpy(date_sep_in, config_str_read("DateSepIn"), DATE_SEP_LENGTH);
 	date_sep_in[DATE_SEP_LENGTH - 1] = '\0';
+
+	/* Set the date format. */
+
+	date_active_format = (enum date_format) config_int_read("DateFormat");
+	if (date_active_format < 0 || date_active_format >= DATE_FORMATS)
+		date_active_format = DATE_FORMAT_DMY;
 }
 
 
@@ -247,7 +286,17 @@ char *date_convert_to_string(date_t date, char *buffer, size_t length)
 	month = date_get_month_from_date(date);
 	year = date_get_year_from_date(date);
 
-	snprintf(buffer, length, "%02d%c%02d%c%04d", day, date_sep_out, month, date_sep_out, year);
+	switch (date_active_format) {
+	case DATE_FORMAT_DMY:
+		snprintf(buffer, length, "%02d%c%02d%c%04d", day, date_sep_out, month, date_sep_out, year);
+		break;
+	case DATE_FORMAT_YMD:
+		snprintf(buffer, length, "%04d%c%02d%c%02d", year, date_sep_out, month, date_sep_out, day);
+		break;
+	case DATE_FORMAT_MDY:
+		snprintf(buffer, length, "%02d%c%02d%c%04d", month, date_sep_out, day, date_sep_out, year);
+		break;
+	}
 	buffer[length - 1] = '\0';
 
 	return buffer;
@@ -360,8 +409,8 @@ char *date_convert_to_year_string(date_t date, char *buffer, size_t length)
 
 date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 {
-	int				day, month, year, base_month, base_year, day_limit, month_limit;
-	char				*next, date[DATE_CONVERT_BUFFER_LEN];
+	int				field, offset, day, month, year, base_month, base_year, day_limit, month_limit;
+	char				*next, date[DATE_CONVERT_BUFFER_LEN], *fields[DATE_FIELDS];
 	oswordreadclock_utc_block	time;
 	territory_ordinals		ordinals;
 
@@ -403,33 +452,59 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 	strncpy(date, string, DATE_CONVERT_BUFFER_LEN);
 	date[DATE_CONVERT_BUFFER_LEN - 1] = '\0';
 
-	/* Get the day; if not present, or not numeric, the date is invalid. */
+	/* Split the string up into fields at the separators. */
 
 	next = strtok(date, date_sep_in);
-	if (next == NULL)
+
+	for (field = 0; next != NULL && field < DATE_FIELDS; field++) {
+		fields[field] = next;
+		next = strtok(NULL, date_sep_in);
+	}
+
+	/* At the end, we should have at least one field, and there should be none left. */
+
+	if (field == 0 || next != NULL)
 		return NULL_DATE;
 
-	day = atoi(next);
-	if (!date_is_string_numeric(next))
+	/* Work out an offset to apply to field indexes to account for missing fields. */
+
+	if ((field < DATE_FIELDS) && (date_formats[date_active_format].short_offset >= 0))
+		offset = date_formats[date_active_format].short_offset + (DATE_FIELDS - field) - 1;
+	else
+		offset = 0;
+
+	/* Get the day; if not numeric, the date is invalid. */
+
+	if (!date_is_string_numeric(fields[date_formats[date_active_format].day_field - offset]))
 		return NULL_DATE;
+
+	day = atoi(fields[date_formats[date_active_format].day_field - offset]);
 
 	/* Get the month. If not present, the base month is used; if not
 	 * numeric, the date is invalid.
 	 */
 
-	next = strtok(NULL, date_sep_in);
-	month = (next != NULL) ? atoi(next) : base_month;
-	if (next != NULL && !date_is_string_numeric(next))
-		return NULL_DATE;
+	if (field >= 2) {
+		if (!date_is_string_numeric(fields[date_formats[date_active_format].month_field - offset]))
+			return NULL_DATE;
+
+		month = atoi(fields[date_formats[date_active_format].month_field - offset]);
+	} else {
+		month = base_month;
+	}
 
 	/* Get the year. If not present, the base year is used; if not
 	 * numeric, the date is invalid.
 	 */
 
-	next = strtok(NULL, date_sep_in);
-	year = (next != NULL) ? atoi(next) : base_year;
-	if (next != NULL && !date_is_string_numeric(next))
-		return NULL_DATE;
+	if (field >= 3) {
+		if (!date_is_string_numeric(fields[date_formats[date_active_format].year_field - offset]))
+			return NULL_DATE;
+
+		year = atoi(fields[date_formats[date_active_format].year_field - offset]);
+	} else {
+		year = base_year;
+	}
 
 #ifdef DEBUG
 	debug_printf("Read date as day %d, month %d, year %d", day, month, year);

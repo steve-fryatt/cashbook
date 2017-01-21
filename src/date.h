@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -59,6 +59,25 @@ typedef unsigned int	date_t;
  */
 
 #define DATE_FIELD_LEN 11
+
+/**
+ * The number of supported date formats, which must correspond to the
+ * number of entries in enum date_format.
+ */
+
+#define DATE_FORMATS 3
+
+/**
+ * The supported date formats. The numbers here correspond to the values
+ * saved in the Config file, and must also match the entries in the
+ * date_formats[] array defined within date.c
+ */
+
+enum date_format {
+	DATE_FORMAT_DMY = 0,		/**< DD-MM-YYYY				*/
+	DATE_FORMAT_YMD = 1,		/**< YYYY-MM-DD				*/
+	DATE_FORMAT_MDY = 2		/**< MM-DD-YYYY				*/
+};
 
 /**
  * Days of the week in the form of a bitfield, which can be added together

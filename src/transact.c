@@ -2830,7 +2830,7 @@ void transact_strip_blanks_from_end(struct file_block *file)
 
 	while (transact_is_blank(file, i)) {
 
-		/* Search the trasnaction sort index to find the line pointing
+		/* Search the transaction sort index to find the line pointing
 		 * to the current blank. If one is found, shuffle all of the
 		 * following indexes up a space to compensate.
 		 */
@@ -3867,7 +3867,7 @@ static osbool transact_edit_put_field(struct edit_data *data)
 	case TRANSACT_ICON_DATE:
 		windat->transactions[transaction].date = data->date.date;
 		changed = TRUE;
-		windat->file->sort_valid = 0;
+		windat->file->sort_valid = FALSE;
 		break;
 	case TRANSACT_ICON_FROM:
 		old_account = windat->transactions[transaction].from;
@@ -4694,7 +4694,7 @@ void transact_purge(struct file_block *file, date_t cutoff)
 		}
 	}
 
-	if (file->sort_valid == 0)
+	if (file->sort_valid == FALSE)
 		transact_sort_file_data(file);
 
 	transact_strip_blanks_from_end(file);
@@ -5191,7 +5191,7 @@ int transact_find_date(struct file_block *file, date_t target)
 	 * order.
 	 */
 
-	if (file->sort_valid == 0)
+	if (file->sort_valid == FALSE)
 		transact_sort_file_data(file);
 
 	/* Search through the sorted array using a binary search. */

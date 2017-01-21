@@ -461,6 +461,10 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 		next = strtok(NULL, date_sep_in);
 	}
 
+#ifdef DEBUG
+	debug_printf("String processed, found %d fields with %s trailing", field, (next == NULL) ? "none" : "some");
+#endif
+
 	/* At the end, we should have at least one field, and there should be none left. */
 
 	if (field == 0 || next != NULL)

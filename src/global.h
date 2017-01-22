@@ -128,7 +128,6 @@ struct file_block
   osbool             sort_valid;         /* Flag to show that the transaction data is sorted OK. */
   int                untitled_count;     /* Count to allow default title of the form <Untitled n>. */
   int                child_x_offset;     /* Count for child window opening offset. */
-  osbool             auto_reconcile;     /* Flag to show if reconcile should jump to the next unreconcliled entry. */
 
   /* Report data structure */
 

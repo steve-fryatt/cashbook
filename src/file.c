@@ -307,7 +307,6 @@ struct file_block *build_new_file_block(void)
   new->sort_valid = TRUE;
   new->untitled_count = ++file_untitled_count;
   new->child_x_offset = 0;
-  new->auto_reconcile = FALSE;
 
   /* Set up the default initial values. */
 

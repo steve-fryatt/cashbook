@@ -277,7 +277,9 @@ struct transact_block {
 
 	/* Other window information. */
 
-	int			display_lines;					/**< How many lines the current work area is formatted to display. */
+	int			display_lines;					/**< How many lines the current work area is formatted to display.	*/
+
+	osbool			auto_reconcile;					/**< Should reconcile jump to the next unreconcliled entry.		*/
 
 	/* Transaction Data. */
 
@@ -527,6 +529,8 @@ struct transact_block *transact_create_instance(struct file_block *file)
 
 	new->transactions = NULL;
 	new->trans_count = 0;
+
+	new->auto_reconcile = FALSE;
 
 	/* Initialise the window columns. */
 
@@ -1049,7 +1053,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_RECONCILE:
-			file->auto_reconcile = !file->auto_reconcile;
+			windat->auto_reconcile = !windat->auto_reconcile;
 			break;
 
 		case TRANSACT_PANE_SORDER:
@@ -1091,7 +1095,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_RECONCILE:
-			file->auto_reconcile = !file->auto_reconcile;
+			windat->auto_reconcile = !windat->auto_reconcile;
 			break;
 		}
 	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 ||
@@ -1296,7 +1300,7 @@ static void transact_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp
 		saveas_initialise_dialogue(transact_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
-	menus_tick_entry(transact_window_menu_transact, MAIN_MENU_TRANS_RECONCILE, windat->file->auto_reconcile);
+	menus_tick_entry(transact_window_menu_transact, MAIN_MENU_TRANS_RECONCILE, windat->auto_reconcile);
 	menus_shade_entry(transact_window_menu_account, MAIN_MENU_ACCOUNTS_VIEW, account_count_type_in_file(windat->file, ACCOUNT_FULL) == 0);
 	menus_shade_entry(transact_window_menu_analysis, MAIN_MENU_ANALYSIS_SAVEDREP, windat->file->saved_report_count == 0);
 	account_list_menu_prepare();
@@ -1419,8 +1423,8 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_TRANS_RECONCILE:
-			windat->file->auto_reconcile = !windat->file->auto_reconcile;
-			icons_set_selected(windat->transaction_pane, TRANSACT_PANE_RECONCILE, windat->file->auto_reconcile);
+			windat->auto_reconcile = !windat->auto_reconcile;
+			icons_set_selected(windat->transaction_pane, TRANSACT_PANE_RECONCILE, windat->auto_reconcile);
 			break;
 		}
 		break;
@@ -4001,7 +4005,7 @@ static void transact_find_next_reconcile_line(struct transact_block *windat, osb
 	enum transact_field	found;
 	wimp_caret		caret;
 
-	if (windat == NULL || windat->file == NULL || windat->file->auto_reconcile == FALSE)
+	if (windat == NULL || windat->file == NULL || windat->auto_reconcile == FALSE)
 		return;
 
 	line = edit_get_line(windat->edit_line);

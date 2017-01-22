@@ -1940,9 +1940,9 @@ void accview_reindex_all(struct file_block *file)
 				transaction = (view->line_data)[line].transaction;
 				(view->line_data)[line].transaction = transact_get_sort_workspace(file, transaction);
 			}
-		}
 
-		accview_force_window_redraw(view, 0, view->display_lines - 1, ACCVIEW_PANE_ROW);
+			accview_force_window_redraw(view, 0, view->display_lines - 1, ACCVIEW_PANE_ROW);
+		}
 	}
 }
 

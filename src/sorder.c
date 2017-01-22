@@ -317,6 +317,7 @@ static void			sorder_adjust_sort_icon_data(struct sorder_block *windat, wimp_ico
 static void			sorder_set_window_extent(struct sorder_block *windat);
 static void			sorder_force_window_redraw(struct sorder_block *windat, int from, int to, wimp_i column);
 static void			sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+static int			sorder_get_line_from_sorder(struct sorder_block *windat, sorder_t sorder);
 
 static void			sorder_edit_click_handler(wimp_pointer *pointer);
 static osbool			sorder_edit_keypress_handler(wimp_key *key);
@@ -343,6 +344,13 @@ static osbool			sorder_save_tsv(char *filename, osbool selection, void *data);
 static void			sorder_export_delimited(struct sorder_block *windat, char *filename, enum filing_delimit_type format, int filetype);
 
 static enum date_adjust		sorder_get_date_adjustment(enum transact_flags flags);
+
+
+/**
+ * Test whether a standing order number is safe to look up in the standing order data array.
+ */
+
+#define sorder_valid(windat, sorder) (((sorder) != NULL_TRANSACTION) && ((sorder) >= 0) && ((sorder) < ((windat)->sorder_count)))
 
 /**
  * Initialise the standing order system.
@@ -1214,6 +1222,34 @@ static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 
 
 /**
+ * Find the display line in a standing order window which points to the
+ * specified standing order under the applied sort.
+ *
+ * \param *windat		The standing order window to search.
+ * \param sorder		The standing order to return the line for.
+ * \return			The appropriate line, or -1 if not found.
+ */
+
+static int sorder_get_line_from_sorder(struct sorder_block *windat, sorder_t sorder)
+{
+	int	i;
+	int	line = -1;
+
+	if (windat == NULL || !sorder_valid(windat, sorder))
+		return line;
+
+	for (i = 0; i < windat->sorder_count; i++) {
+		if (windat->sorders[i].sort_index == sorder) {
+			line = i;
+			break;
+		}
+	}
+
+	return line;
+}
+
+
+/**
  * Open the Standing Order Edit dialogue for a given standing order list window.
  *
  * \param *file			The file to own the dialogue.
@@ -1571,7 +1607,7 @@ static void sorder_fill_edit_window(struct sorder_block *windat, int sorder, osb
 
 static osbool sorder_process_edit_window(void)
 {
-	int		done, new_period_unit;
+	int		done, new_period_unit, line;
 	date_t		new_start_date;
 
 	/* Extract the start date from the dialogue.  Do this first so that we can test the value;
@@ -1703,10 +1739,13 @@ static osbool sorder_process_edit_window(void)
 
 	strcpy(sorder_edit_owner->sorders[sorder_edit_number].description, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_DESC));
 
-	if (config_opt_read("AutoSortSOrders"))
+	if (config_opt_read("AutoSortSOrders")) {
 		sorder_sort(sorder_edit_owner);
-	else
-		sorder_force_window_redraw(sorder_edit_owner, sorder_edit_number, sorder_edit_number, wimp_ICON_WINDOW);
+	} else {
+		line = sorder_get_line_from_sorder(sorder_edit_owner, sorder_edit_number);
+		if (line != -1)
+			sorder_force_window_redraw(sorder_edit_owner, line, line, wimp_ICON_WINDOW);
+	}
 
 	file_set_data_integrity(sorder_edit_owner->file, TRUE);
 	sorder_process(sorder_edit_owner->file);
@@ -1743,6 +1782,8 @@ static osbool sorder_delete_from_edit_window(void)
 
 static osbool sorder_stop_from_edit_window(void)
 {
+	int line;
+
 	if (error_msgs_report_question("StopSOrder", "StopSOrderB") == 2)
 		return FALSE;
 
@@ -1761,8 +1802,12 @@ static osbool sorder_stop_from_edit_window(void)
 	if (config_opt_read("AutoSortSOrders")) {
 		sorder_sort(sorder_edit_owner);
 	} else {
-		sorder_force_window_redraw(sorder_edit_owner, sorder_edit_number, sorder_edit_number, SORDER_PANE_NEXTDATE);
-		sorder_force_window_redraw(sorder_edit_owner, sorder_edit_number, sorder_edit_number, SORDER_PANE_LEFT);
+		line = sorder_get_line_from_sorder(sorder_edit_owner, sorder_edit_number);
+
+		if (line != -1) {
+			sorder_force_window_redraw(sorder_edit_owner, line, line, SORDER_PANE_NEXTDATE);
+			sorder_force_window_redraw(sorder_edit_owner, line, line, SORDER_PANE_LEFT);
+		}
 	}
 	file_set_data_integrity(sorder_edit_owner->file, TRUE);
 
@@ -2139,6 +2184,7 @@ static osbool sorder_delete(struct file_block *file, sorder_t sorder)
 		windows_open(file->sorders->sorder_window);
 		if (config_opt_read("AutoSortSOrders")) {
 			sorder_sort(file->sorders);
+			sorder_force_window_redraw(file->sorders, file->sorders->sorder_count, file->sorders->sorder_count, wimp_ICON_WINDOW);
 		} else {
 			sorder_force_window_redraw(file->sorders, 0, file->sorders->sorder_count, wimp_ICON_WINDOW);
 		}
@@ -2194,8 +2240,9 @@ void sorder_process(struct file_block *file)
 {
 	unsigned int	today;
 	sorder_t	order;
-	int		amount;
+	amt_t		amount;
 	osbool		changed;
+	int		line;
 	char		ref[TRANSACT_REF_FIELD_LEN], desc[TRANSACT_DESCRIPT_FIELD_LEN];
 
 	if (file == NULL || file->sorders == NULL)
@@ -2259,7 +2306,14 @@ void sorder_process(struct file_block *file)
 				file->sorders->sorders[order].adjusted_next_date = NULL_DATE;
 			}
 
-			sorder_force_window_redraw(file->sorders, order, order, wimp_ICON_WINDOW);
+			/* Redraw the standing order in the standing order window. */
+
+			line = sorder_get_line_from_sorder(file->sorders, order);
+
+			if (line != -1) {
+				sorder_force_window_redraw(file->sorders, order, order, SORDER_PANE_NEXTDATE);
+				sorder_force_window_redraw(file->sorders, order, order, SORDER_PANE_LEFT);
+			}
 		}
 	}
 

@@ -313,6 +313,7 @@ static void		preset_adjust_sort_icon_data(struct preset_block *windat, wimp_icon
 static void		preset_set_window_extent(struct preset_block *windat);
 static void		preset_force_window_redraw(struct preset_block *windat, int from, int to, wimp_i column);
 static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+static int		preset_get_line_from_preset(struct preset_block *windat, preset_t preset);
 
 static void		preset_edit_click_handler(wimp_pointer *pointer);
 static osbool		preset_edit_keypress_handler(wimp_key *key);
@@ -1214,6 +1215,34 @@ static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 
 
 /**
+ * Find the display line in a preset window which points to the specified
+ * preset under the applied sort.
+ *
+ * \param *windat		The preset window to search.
+ * \param preset		The preset to return the line for.
+ * \return			The appropriate line, or -1 if not found.
+ */
+
+static int preset_get_line_from_preset(struct preset_block *windat, preset_t preset)
+{
+	int	i;
+	int	line = -1;
+
+	if (windat == NULL || !preset_valid(windat, preset))
+		return line;
+
+	for (i = 0; i < windat->preset_count; i++) {
+		if (windat->presets[i].sort_index == preset) {
+			line = i;
+			break;
+		}
+	}
+
+	return line;
+}
+
+
+/**
  * Open the Preset Edit dialogue for a given preset list window.
  *
  * \param *file			The file to own the dialogue.
@@ -1494,8 +1523,9 @@ static void preset_fill_edit_window(struct preset_block *windat, preset_t preset
 
 static osbool preset_process_edit_window(void)
 {
-	char	copyname[PRESET_NAME_LEN];
-	int	check_key;
+	char		copyname[PRESET_NAME_LEN];
+	preset_t	check_key;
+	int		line;
 
 	/* Test that the preset has been given a name, and reject the data if not. */
 
@@ -1597,10 +1627,14 @@ static osbool preset_process_edit_window(void)
 	else if (icons_get_selected(preset_edit_window, PRESET_EDIT_CARETDESC))
 		preset_edit_owner->presets[preset_edit_number].caret_target = PRESET_CARET_DESCRIPTION;
 
-	if (config_opt_read("AutoSortPresets"))
+	if (config_opt_read("AutoSortPresets")) {
 		preset_sort(preset_edit_owner);
-	else
-		preset_force_window_redraw(preset_edit_owner, preset_edit_number, preset_edit_number, wimp_ICON_WINDOW);
+	} else {
+		line = preset_get_line_from_preset(preset_edit_owner, preset_edit_number);
+
+		if (line != -1)
+			preset_force_window_redraw(preset_edit_owner, line, line, wimp_ICON_WINDOW);
+	}
 
 	file_set_data_integrity(preset_edit_owner->file, TRUE);
 
@@ -2147,9 +2181,9 @@ static osbool preset_delete(struct file_block *file, int preset)
  * \return			The matching preset index, or NULL_PRESET.
  */
 
-int preset_find_from_keypress(struct file_block *file, char key)
+preset_t preset_find_from_keypress(struct file_block *file, char key)
 {
-	int	preset = NULL_PRESET;
+	preset_t preset = NULL_PRESET;
 
 
 	if (file == NULL || file->presets == NULL || key == '\0')
@@ -2227,7 +2261,7 @@ int preset_get_count(struct file_block *file)
  * \return			Bitfield indicating which fields have changed.
  */
 
-enum transact_field preset_apply(struct file_block *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description)
+enum transact_field preset_apply(struct file_block *file, preset_t preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description)
 {
 	enum transact_field	changed = TRANSACT_FIELD_NONE;
 
@@ -2550,7 +2584,7 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-osbool preset_check_account(struct file_block *file, int account)
+osbool preset_check_account(struct file_block *file, acct_t account)
 {
 	int		i;
 	osbool		found = FALSE;

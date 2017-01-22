@@ -2846,7 +2846,7 @@ static osbool account_process_section_window(void)
 	account_set_window_extent(account_section_owner->account_windows + account_section_entry);
 	windows_open(account_section_owner->account_windows[account_section_entry].account_window);
 	account_force_window_redraw(account_section_owner->file, account_section_entry,
-			0, account_section_owner->account_windows[account_section_entry].display_lines, wimp_ICON_WINDOW);
+			account_section_line, account_section_line, wimp_ICON_WINDOW);
 	file_set_data_integrity(account_section_owner->file, TRUE);
 
 	return TRUE;
@@ -2882,7 +2882,7 @@ static osbool account_delete_from_section_window(void)
 	account_set_window_extent(account_section_owner->account_windows + account_section_entry);
 	windows_open(account_section_owner->account_windows[account_section_entry].account_window);
 	account_force_window_redraw(account_section_owner->file, account_section_entry,
-			0, account_section_owner->account_windows[account_section_entry].display_lines, wimp_ICON_WINDOW);
+			account_section_line, account_section_owner->account_windows[account_section_entry].display_lines, wimp_ICON_WINDOW);
 	file_set_data_integrity(account_section_owner->file, TRUE);
 
 	return TRUE;

@@ -176,7 +176,7 @@ void preset_sort(struct preset_block *windat);
  * \return			The matching preset index, or NULL_PRESET.
  */
 
-int preset_find_from_keypress(struct file_block *file, char key);
+preset_t preset_find_from_keypress(struct file_block *file, char key);
 
 
 /**
@@ -187,7 +187,7 @@ int preset_find_from_keypress(struct file_block *file, char key);
  * \return			The preset's caret target.
  */
 
-enum preset_caret preset_get_caret_destination(struct file_block *file, int preset);
+enum preset_caret preset_get_caret_destination(struct file_block *file, preset_t preset);
 
 
 /**
@@ -226,7 +226,7 @@ int preset_get_count(struct file_block *file);
  * \return			Bitfield indicating which fields have changed.
  */
 
-enum transact_field preset_apply(struct file_block *file, int preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description);
+enum transact_field preset_apply(struct file_block *file, preset_t preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description);
 
 
 /**
@@ -263,7 +263,7 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-osbool preset_check_account(struct file_block *file, int account);
+osbool preset_check_account(struct file_block *file, acct_t account);
 
 #endif
 

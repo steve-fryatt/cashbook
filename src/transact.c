@@ -2832,16 +2832,17 @@ static osbool transact_is_blank(struct file_block *file, tran_t transaction)
 
 void transact_strip_blanks_from_end(struct file_block *file)
 {
-	int	i, j;
+	tran_t	transaction;
+	int	line, old_count;
 	osbool	found;
 
 
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	i = file->transacts->trans_count - 1;
+	transaction = file->transacts->trans_count - 1;
 
-	while (transact_is_blank(file, i)) {
+	while (transact_is_blank(file, transaction)) {
 
 		/* Search the transaction sort index to find the line pointing
 		 * to the current blank. If one is found, shuffle all of the
@@ -2850,28 +2851,31 @@ void transact_strip_blanks_from_end(struct file_block *file)
 
 		found = FALSE;
 
-		for (j = 0; j < i; j++) {
-			if (file->transacts->transactions[j].sort_index == i)
+		for (line = 0; line < transaction; line++) {
+			if (file->transacts->transactions[line].sort_index == transaction)
 				found = TRUE;
 
-			if (found)
-				file->transacts->transactions[j].sort_index = file->transacts->transactions[j + 1].sort_index;
+			if (found == TRUE)
+				file->transacts->transactions[line].sort_index = file->transacts->transactions[line + 1].sort_index;
 		}
 
 		/* Remove the transaction. */
 
-		i--;
+		transaction--;
 	}
 
 	/* If any transactions were removed, free up the unneeded memory
 	 * from the end of the file.
 	 */
 
-	if (i < file->transacts->trans_count - 1) {
-		file->transacts->trans_count = i + 1;
+	if (transaction < file->transacts->trans_count - 1) {
+		old_count = file->transacts->trans_count - 1;
+		file->transacts->trans_count = transaction + 1;
 
 		if (!flexutils_resize((void **) &(file->transacts->transactions), sizeof(struct transaction), file->transacts->trans_count))
 			error_msgs_report_error("BadDelete");
+
+		transact_force_window_redraw(file->transacts, 0, old_count, TRANSACT_PANE_ROW);
 	}
 }
 

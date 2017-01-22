@@ -1531,6 +1531,7 @@ Update to fourth stable release.
 <li>Improve error checking when allocating memory for windows and data structures (ticket&nbsp;#609).
 <li>Improve error checking when allocating memory during file loading, and when adjusting memory allocation in normal use.
 <li>Fix redraw of lines in <window>preset</window> and <window>standing order</window> windows, so that the correct entry is redrawn after edit dialogues are closed.
+<li>Row numbers are redrawn if and when they are changed (ticket&nbsp;#530).
 <li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 

@@ -1343,8 +1343,11 @@ static void accview_force_window_redraw(struct accview_window *view, int from, i
 	if (xwimp_get_window_info_header_only(&window) != NULL)
 		return;
 
-	if (column != wimp_ICON_WINDOW)
+	if (column != wimp_ICON_WINDOW) {
+		window.extent.x0 = window.extent.x1;
+		window.extent.x1 = 0;
 		column_get_heading_xpos(view->columns, column, &(window.extent.x0), &(window.extent.x1));
+	}
 
 	window.extent.y1 = WINDOW_ROW_TOP(ACCVIEW_TOOLBAR_HEIGHT, from);
 	window.extent.y0 = WINDOW_ROW_BASE(ACCVIEW_TOOLBAR_HEIGHT, to);

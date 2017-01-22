@@ -1164,8 +1164,11 @@ static void preset_force_window_redraw(struct preset_block *windat, int from, in
 	if (xwimp_get_window_info_header_only(&window) != NULL)
 		return;
 
-	if (column != wimp_ICON_WINDOW)
+	if (column != wimp_ICON_WINDOW) {
+		window.extent.x0 = window.extent.x1;
+		window.extent.x1 = 0;
 		column_get_heading_xpos(windat->columns, column, &(window.extent.x0), &(window.extent.x1));
+	}
 
 	window.extent.y1 = WINDOW_ROW_TOP(PRESET_TOOLBAR_HEIGHT, from);
 	window.extent.y0 = WINDOW_ROW_BASE(PRESET_TOOLBAR_HEIGHT, to);

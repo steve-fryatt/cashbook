@@ -453,8 +453,9 @@ static wimp_menu *refdesc_menu_build(struct file_block *file, enum refdesc_menu_
 
 static void refdesc_menu_add_entry(struct refdesc_menu_link **entries, int *count, int *max, char *new)
 {
-	int		i;
-	osbool		found = FALSE;
+	int				i;
+	osbool				found = FALSE;
+	struct refdesc_menu_link	*new;
 
 	if (*entries == NULL || new == NULL || *new == '\0')
 		return;
@@ -463,16 +464,38 @@ static void refdesc_menu_add_entry(struct refdesc_menu_link **entries, int *coun
 		if (string_nocase_strcmp((*entries)[i].name, new) == 0)
 			found = TRUE;
 
-	if (!found && *count < (*max))
-		strcpy((*entries)[(*count)++].name, new);
+	/* If the text is already in the menu, or there isn't any space to
+	 * add the new line, just exit.
+	 * 
+	 * Because space is post-allocated, if there isn't enough space now
+	 * it mist mean that we've run out of allocation for some reason.
+	 * If so, there's no point trying again.
+	 */
 
-	/* Extend the block *after* the copy, in anticipation of the next call, because this could easily move the
-	 * flex blocks around and that would invalidate the new pointer...
+	if (found || *count >= (*max))
+		return;
+
+	/* Copy the text from the supplied pointer, which is in to the
+	 * transaction flex block, into our own local copy in a non-shifting
+	 * heap allocation.
+	 */
+
+	strncpy((*entries)[(*count)++].name, new, TRANSACT_DESCRIPT_FIELD_LEN);
+	(*entries)[(*count)++].name[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+
+	/* Extend the block *after* the copy, in anticipation of the next
+	 * call, because this could easily move the flex blocks around and
+	 * that would invalidate the pointer that we have been passed by
+	 * the caller (which is into the transaction flex block).
 	 */
 
 	if (*count >= (*max)) {
-		*entries = heap_extend(*entries, sizeof(struct refdesc_menu_link) * (*max + REFDESC_MENU_BLOCKSIZE));
-		*max += REFDESC_MENU_BLOCKSIZE;
+		new = heap_extend(*entries, sizeof(struct refdesc_menu_link) * (*max + REFDESC_MENU_BLOCKSIZE));
+
+		if (new != NULL) {
+			*entries = new;
+			*max += REFDESC_MENU_BLOCKSIZE;
+		}
 	}
 }
 

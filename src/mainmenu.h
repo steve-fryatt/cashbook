@@ -41,16 +41,9 @@
 
 #define DATE_MENU_TODAY 0
 
-/* RefDesc menu */
-
-#define REFDESC_MENU_CHEQUE 0
-
 /* General definitions */
 
 #define ACCOUNT_MENU_TITLE_LEN 32
-
-
-#define REFDESC_MENU_BLOCKSIZE 50
 
 /* ==================================================================================================================
  * Type definitions
@@ -66,10 +59,6 @@ void open_account_menu (struct file_block *file, enum account_menu_type type, in
 /* Date menu */
 
 void open_date_menu(struct file_block *file, int line, wimp_pointer *pointer);
-
-/* RefDesc Menu */
-
-void open_refdesc_menu (struct file_block *file, int menu_type, int line, wimp_pointer *pointer);
 
 #endif
 

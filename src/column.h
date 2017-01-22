@@ -27,6 +27,7 @@
  * Window column support code.
  */
 
+#include <stddef.h>
 #include "sort.h"
 
 #ifndef CASHBOOK_COLUMN

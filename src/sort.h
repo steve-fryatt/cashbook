@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_SORT
 #define CASHBOOK_SORT
 
+#include <stddef.h>
+
 /**
  * A sort instance handle.
  */

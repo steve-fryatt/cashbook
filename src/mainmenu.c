@@ -91,9 +91,6 @@ static wimp_i			account_menu_ident_icon = 0;
 static wimp_i			account_menu_rec_icon = 0;
 
 
-static int                refdesc_menu_type = 0; /* The type of reference or description menu open. */
-
-
 
 
 
@@ -102,10 +99,6 @@ static void account_menu_submenu_message(wimp_message_menu_warning *submenu);
 static void account_menu_closed_message (void);
 static void decode_date_menu(wimp_selection *selection);
 static void date_menu_closed_message(void);
-static void refdesc_menu_prepare(void);
-static void decode_refdesc_menu (wimp_selection *selection);
-static void refdesc_menu_closed_message(void);
-
 
 
 
@@ -305,95 +298,4 @@ static void date_menu_closed_message(void)
 	preset_complete_menu_destroy();
 }
 
-
-/* ==================================================================================================================
- * Ref Desc menu -- List of previous entries to choose from
- */
-
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-void open_refdesc_menu (struct file_block *file, int menu_type, int line, wimp_pointer *pointer)
-{
-	wimp_menu	*menu;
-	char		*token = NULL;
-
-	menu = transact_complete_menu_build(file, menu_type, line);
-
-	if (menu == NULL)
-		return;
-
-	switch (menu_type) {
-	case REFDESC_MENU_REFERENCE:
-		token = "RefMenu";
-		break;
-
-	case REFDESC_MENU_DESCRIPTION:
-		token = "DescMenu";
-		break;
-	}
-
-	main_menu_file = file;
-	main_menu_line = line;
-	refdesc_menu_type = menu_type;
-
-	amenu_open(menu, token, pointer, refdesc_menu_prepare, NULL, decode_refdesc_menu, refdesc_menu_closed_message);
-}
-
-
-
-static void refdesc_menu_prepare(void)
-{
-	transact_complete_menu_prepare(main_menu_line);
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-static void decode_refdesc_menu (wimp_selection *selection)
-{
-	int		i;
-	char		*field, cheque_buffer[TRANSACT_REF_FIELD_LEN];
-
-	if (main_menu_file == NULL)
-		return;
-
-	/* Check that the line is in the range of transactions.  If not, add blank transactions to the file until it is.
-	 * This really ought to be in edit.c!
-	 */
-
-	if (main_menu_line >= transact_get_count(main_menu_file) && selection->items[0] != -1)
-		for (i = transact_get_count(main_menu_file); i <= main_menu_line; i++)
-			transact_add_raw_entry(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
-
-	/* Again check that the transaction is in range.  If it isn't, the additions failed.
-	 *
-	 * Then change the transaction as instructed.
-	 */
-
-	if (main_menu_line < transact_get_count(main_menu_file) && selection->items[0] != -1) {
-		field = transact_complete_menu_decode(selection);
-
-		if (refdesc_menu_type == REFDESC_MENU_REFERENCE && field == NULL) {
-			account_get_next_cheque_number(main_menu_file,
-					transact_get_from(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line)),
-					transact_get_to(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line)),
-					1, cheque_buffer, sizeof(cheque_buffer));
-			transact_change_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-					TRANSACT_FIELD_REF, cheque_buffer);
-		} else if (refdesc_menu_type == REFDESC_MENU_REFERENCE && field != NULL) {
-			transact_change_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-					TRANSACT_FIELD_REF, field);
-		} else if (refdesc_menu_type == REFDESC_MENU_DESCRIPTION && field != NULL) {
-			transact_change_refdesc(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-					TRANSACT_FIELD_DESC, field);
-		}
-	}
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-static void refdesc_menu_closed_message(void)
-{
-	transact_complete_menu_destroy();
-}
 

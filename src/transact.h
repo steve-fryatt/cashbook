@@ -82,12 +82,6 @@ enum transact_flags {
 	TRANS_TAKE_CHEQUE = 0x2000						/**< Always take the next cheque number			*/
 };
 
-enum transact_list_menu_type {
-	REFDESC_MENU_NONE = 0,
-	REFDESC_MENU_REFERENCE,
-	REFDESC_MENU_DESCRIPTION
-};
-
 enum transact_field {
 	TRANSACT_FIELD_NONE = 0,
 	TRANSACT_FIELD_DATE = 0x01,
@@ -326,47 +320,6 @@ int transact_get_caret_line(struct file_block *file);
 
 
 
-
-
-/**
- * Build a Reference or Drescription Complete menu for a given file.
- *
- * \param *file			The file to build the menu for.
- * \param type			The type of menu to build.
- * \param start_line		The line of the window to start from.
- * \return			The menu block, or NULL.
- */
-
-wimp_menu *transact_complete_menu_build(struct file_block *file, enum transact_list_menu_type menu_type, int start_line);
-
-
-/**
- * Destroy any Reference or Description Complete menu which is currently open.
- */
-
-void transact_complete_menu_destroy(void);
-
-
-/**
- * Prepare the currently active Reference or Description menu for opening or
- * reopening, by shading lines which shouldn't be selectable.
- *
- * \param line			The line that the menu is open over.
- */
-
-void transact_complete_menu_prepare(int line);
-
-
-/**
- * Decode menu selections from the Reference or Description menu.
- *
- * \param *selection		The menu selection to be decoded.
- * \return			Pointer to the selected text, or NULL if
- *				the Cheque Number field was selected or there
- *				was not valid menu open.
- */
-
-char *transact_complete_menu_decode(wimp_selection *selection);
 
 
 /**

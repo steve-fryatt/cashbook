@@ -2327,6 +2327,8 @@ void sorder_process(struct file_block *file)
 	/* Refresh things if they have changed. */
 
 	if (changed) {
+		file_set_data_integrity(file, TRUE);
+
 		if (config_opt_read("SortAfterSOrders")) {
 			transact_sort(file->transacts);
 		} else {

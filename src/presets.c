@@ -311,7 +311,7 @@ static void		preset_adjust_window_columns(void *data, wimp_i icon, int width);
 static void		preset_adjust_sort_icon(struct preset_block *windat);
 static void		preset_adjust_sort_icon_data(struct preset_block *windat, wimp_icon *icon);
 static void		preset_set_window_extent(struct preset_block *windat);
-static void		preset_force_window_redraw(struct file_block *file, int from, int to);
+static void		preset_force_window_redraw(struct preset_block *windat, int from, int to, wimp_i column);
 static void		preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void		preset_edit_click_handler(wimp_pointer *pointer);
@@ -1139,33 +1139,37 @@ void preset_redraw_all(struct file_block *file)
 	if (file == NULL || file->presets == NULL)
 		return;
 
-	preset_force_window_redraw(file, 0, file->presets->preset_count - 1);
+	preset_force_window_redraw(file->presets, 0, file->presets->preset_count - 1, wimp_ICON_WINDOW);
 }
 
 
 /**
  * Force a redraw of the Preset list window, for the given range of lines.
  *
- * \param *file			The file owning the window.
+ * \param *file			The preset window to be redrawn.
  * \param from			The first line to redraw, inclusive.
  * \param to			The last line to redraw, inclusive.
+ * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
  */
 
-static void preset_force_window_redraw(struct file_block *file, int from, int to)
+static void preset_force_window_redraw(struct preset_block *windat, int from, int to, wimp_i column)
 {
-	int			y0, y1;
 	wimp_window_info	window;
 
-	if (file == NULL || file->presets == NULL || file->presets->preset_window == NULL)
+	if (windat == NULL || windat->preset_window == NULL)
 		return;
 
-	window.w = file->presets->preset_window;
-	wimp_get_window_info_header_only(&window);
+	window.w = windat->preset_window;
+	if (xwimp_get_window_info_header_only(&window) != NULL)
+		return;
 
-	y1 = WINDOW_ROW_TOP(PRESET_TOOLBAR_HEIGHT, from);
-	y0 = WINDOW_ROW_BASE(PRESET_TOOLBAR_HEIGHT, to);
+	if (column != wimp_ICON_WINDOW)
+		column_get_heading_xpos(windat->columns, column, &(window.extent.x0), &(window.extent.x1));
 
-	wimp_force_redraw(file->presets->preset_window, window.extent.x0, y0, window.extent.x1, y1);
+	window.extent.y1 = WINDOW_ROW_TOP(PRESET_TOOLBAR_HEIGHT, from);
+	window.extent.y0 = WINDOW_ROW_BASE(PRESET_TOOLBAR_HEIGHT, to);
+
+	wimp_force_redraw(windat->preset_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
 }
 
 
@@ -1596,7 +1600,7 @@ static osbool preset_process_edit_window(void)
 	if (config_opt_read("AutoSortPresets"))
 		preset_sort(preset_edit_owner);
 	else
-		preset_force_window_redraw(preset_edit_owner->file, preset_edit_number, preset_edit_number);
+		preset_force_window_redraw(preset_edit_owner, preset_edit_number, preset_edit_number, wimp_ICON_WINDOW);
 
 	file_set_data_integrity(preset_edit_owner->file, TRUE);
 
@@ -1947,7 +1951,7 @@ void preset_sort(struct preset_block *windat)
 
 	sort_process(windat->sort, windat->preset_count);
 
-	preset_force_window_redraw(windat->file, 0, windat->preset_count - 1);
+	preset_force_window_redraw(windat, 0, windat->preset_count - 1, wimp_ICON_WINDOW);
 
 	hourglass_off();
 }
@@ -2122,9 +2126,9 @@ static osbool preset_delete(struct file_block *file, int preset)
 		windows_open(file->presets->preset_window);
 		if (config_opt_read("AutoSortPresets")) {
 			preset_sort(file->presets);
-			preset_force_window_redraw(file, file->presets->preset_count, file->presets->preset_count);
+			preset_force_window_redraw(file->presets, file->presets->preset_count, file->presets->preset_count, wimp_ICON_WINDOW);
 		} else {
-			preset_force_window_redraw(file, 0, file->presets->preset_count);
+			preset_force_window_redraw(file->presets, 0, file->presets->preset_count, wimp_ICON_WINDOW);
 		}
 	}
 

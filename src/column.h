@@ -310,6 +310,19 @@ void column_get_xpos(struct column_block *instance, wimp_i field, int *xmin, int
 
 
 /**
+ * Find the minimum and maximum horizontal positions of a heading's icon
+ * group, reporting back in OS units relative to the parent window origin.
+ *
+ * \param *instance		The column instance to report on.
+ * \param heading		The icon used by the heading.
+ * \param *xmin			Pointer to variable to take the minimum X coordinate.
+ * \param *xmax			Pointer to variable to take the maximum X coordinate.
+ */
+
+void column_get_heading_xpos(struct column_block *instance, wimp_i heading, int *xmin, int *xmax);
+
+
+/**
  * Get the total width of the columns represented by an instance.
  *
  * \param *instance		The column instance to report on.

@@ -399,7 +399,7 @@ static void			transact_window_redraw_handler(wimp_draw *redraw);
 static void			transact_adjust_window_columns(void *data, wimp_i icon, int width);
 static void			transact_adjust_sort_icon(struct transact_block *windat);
 static void			transact_adjust_sort_icon_data(struct transact_block *windat, wimp_icon *icon);
-static void			transact_force_window_redraw(struct transact_block *windat, int from, int to);
+static void			transact_force_window_redraw(struct transact_block *windat, int from, int to, wimp_i column);
 static void			transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void			transact_complete_menu_add_entry(struct transact_list_link **entries, int *count, int *max, char *new);
@@ -1975,7 +1975,7 @@ void transact_redraw_all(struct file_block *file)
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	transact_force_window_redraw(file->transacts, 0, file->transacts->trans_count - 1);
+	transact_force_window_redraw(file->transacts, 0, file->transacts->trans_count - 1, wimp_ICON_WINDOW);
 }
 
 
@@ -1985,11 +1985,12 @@ void transact_redraw_all(struct file_block *file)
  * \param *windat		The window to be redrawn.
  * \param from			The first line to redraw, inclusive.
  * \param to			The last line to redraw, inclusive.
+ * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
  */
 
-static void transact_force_window_redraw(struct transact_block *windat, int from, int to)
+static void transact_force_window_redraw(struct transact_block *windat, int from, int to, wimp_i column)
 {
-	int			y0, y1, line;
+	int			line;
 	wimp_window_info	window;
 
 	if (windat == NULL || windat->transaction_window == NULL)
@@ -2011,10 +2012,13 @@ static void transact_force_window_redraw(struct transact_block *windat, int from
 	if (xwimp_get_window_info_header_only(&window) != NULL)
 		return;
 
-	y1 = WINDOW_ROW_TOP(TRANSACT_TOOLBAR_HEIGHT, from);
-	y0 = WINDOW_ROW_BASE(TRANSACT_TOOLBAR_HEIGHT, to);
+	if (column != wimp_ICON_WINDOW)
+		column_get_heading_xpos(windat->columns, column, &(window.extent.x0), &(window.extent.x1));
 
-	wimp_force_redraw(windat->transaction_window, window.extent.x0, y0, window.extent.x1, y1);
+	window.extent.y1 = WINDOW_ROW_TOP(TRANSACT_TOOLBAR_HEIGHT, from);
+	window.extent.y0 = WINDOW_ROW_BASE(TRANSACT_TOOLBAR_HEIGHT, to);
+
+	wimp_force_redraw(windat->transaction_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
 }
 
 
@@ -3420,7 +3424,7 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 		/* Force a redraw of the affected line. */
 
 		line = transact_get_line_from_transaction(file, transaction);
-		transact_force_window_redraw(file->transacts, line, line);
+		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -3540,7 +3544,7 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 	/* Force a redraw of the affected line. */
 
 	line = transact_get_line_from_transaction(file, transaction);
-	transact_force_window_redraw(file->transacts, line, line);
+	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 	file_set_data_integrity(file, TRUE);
 }
@@ -3601,7 +3605,7 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 		/* Force a redraw of the affected line. */
 
 		line = transact_get_line_from_transaction(file, transaction);
-		transact_force_window_redraw(file->transacts, line, line);
+		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -3655,7 +3659,7 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
 		/* Force a redraw of the affected line. */
 
 		line = transact_get_line_from_transaction(file, transaction);
-		transact_force_window_redraw(file->transacts, line, line);
+		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -3722,7 +3726,7 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 	/* Force a redraw of the affected line. */
 
 	line = transact_get_line_from_transaction(file, transaction);
-	transact_force_window_redraw(file->transacts, line, line);
+	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 	file_set_data_integrity(file, TRUE);
 }
@@ -4253,7 +4257,7 @@ osbool transact_insert_preset_into_line(struct file_block *file, int line, prese
 
 	/* Force a redraw of the affected line. */
 
-	transact_force_window_redraw(file->transacts, line, line);
+	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 
 	/* If we're auto-sorting, and the sort column has been updated as

@@ -418,7 +418,7 @@ static void			account_window_redraw_handler(wimp_draw *redraw);
 static void			account_adjust_window_columns(void *data, wimp_i icon, int width);
 static void			account_set_window_extent(struct account_window *windat);
 static void			account_build_window_title(struct file_block *file, int entry);
-static void			account_force_window_redraw(struct file_block *file, int entry, int from, int to);
+static void			account_force_window_redraw(struct file_block *file, int entry, int from, int to, wimp_i column);
 static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
@@ -1446,7 +1446,7 @@ void account_redraw_all(struct file_block *file)
 		return;
 
 	for (i = 0; i < ACCOUNT_WINDOWS; i++)
-		account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines);
+		account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines, wimp_ICON_WINDOW);
 }
 
 /**
@@ -1457,23 +1457,27 @@ void account_redraw_all(struct file_block *file)
  * \param entry			The account list window to be redrawn.
  * \param from			The first line to redraw, inclusive.
  * \param to			The last line to redraw, inclusive.
+ * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
  */
 
-static void account_force_window_redraw(struct file_block *file, int entry, int from, int to)
+static void account_force_window_redraw(struct file_block *file, int entry, int from, int to, wimp_i column)
 {
-	int			y0, y1;
 	wimp_window_info	window;
 
 	if (file == NULL || file->accounts == NULL || file->accounts->account_windows[entry].account_window == NULL)
 		return;
 
 	window.w = file->accounts->account_windows[entry].account_window;
-	wimp_get_window_info_header_only(&window);
+	if (xwimp_get_window_info_header_only(&window) != NULL)
+		return;
 
-	y1 = WINDOW_ROW_TOP(ACCOUNT_TOOLBAR_HEIGHT, from);
-	y0 = WINDOW_ROW_BASE(ACCOUNT_TOOLBAR_HEIGHT, to);
+	if (column != wimp_ICON_WINDOW)
+		column_get_heading_xpos(file->accounts->account_windows[entry].columns, column, &(window.extent.x0), &(window.extent.x1));
 
-	wimp_force_redraw(file->accounts->account_windows[entry].account_window, window.extent.x0, y0, window.extent.x1, y1);
+	window.extent.y1 = WINDOW_ROW_TOP(ACCOUNT_TOOLBAR_HEIGHT, from);
+	window.extent.y0 = WINDOW_ROW_BASE(ACCOUNT_TOOLBAR_HEIGHT, to);
+
+	wimp_force_redraw(file->accounts->account_windows[entry].account_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
 
 	/* Force a redraw of the three total icons in the footer. */
 
@@ -2842,7 +2846,7 @@ static osbool account_process_section_window(void)
 	account_set_window_extent(account_section_owner->account_windows + account_section_entry);
 	windows_open(account_section_owner->account_windows[account_section_entry].account_window);
 	account_force_window_redraw(account_section_owner->file, account_section_entry,
-			0, account_section_owner->account_windows[account_section_entry].display_lines);
+			0, account_section_owner->account_windows[account_section_entry].display_lines, wimp_ICON_WINDOW);
 	file_set_data_integrity(account_section_owner->file, TRUE);
 
 	return TRUE;
@@ -2878,7 +2882,7 @@ static osbool account_delete_from_section_window(void)
 	account_set_window_extent(account_section_owner->account_windows + account_section_entry);
 	windows_open(account_section_owner->account_windows[account_section_entry].account_window);
 	account_force_window_redraw(account_section_owner->file, account_section_entry,
-			0, account_section_owner->account_windows[account_section_entry].display_lines);
+			0, account_section_owner->account_windows[account_section_entry].display_lines, wimp_ICON_WINDOW);
 	file_set_data_integrity(account_section_owner->file, TRUE);
 
 	return TRUE;
@@ -3287,7 +3291,7 @@ osbool account_delete(struct file_block *file, acct_t account)
 		account_set_window_extent(file->accounts->account_windows + i);
 		if (file->accounts->account_windows[i].account_window != NULL) {
 			windows_open(file->accounts->account_windows[i].account_window);
-			account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines);
+			account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines, wimp_ICON_WINDOW);
 		}
 	}
 
@@ -4052,7 +4056,7 @@ static void account_terminate_drag(wimp_dragged *drag, void *data)
 
 	account_recalculate_all(account_dragging_owner->instance->file);
 	file_set_data_integrity(account_dragging_owner->instance->file, TRUE);
-	account_force_window_redraw(account_dragging_owner->instance->file, account_dragging_owner->entry, 0, account_dragging_owner->display_lines - 1);
+	account_force_window_redraw(account_dragging_owner->instance->file, account_dragging_owner->entry, 0, account_dragging_owner->display_lines - 1, wimp_ICON_WINDOW);
 
 	#ifdef DEBUG
 	debug_printf("Move account from line %d to line %d", account_dragging_start_line, line);
@@ -4362,7 +4366,7 @@ void account_restore_transaction(struct file_block *file, int transaction)
 	account_recalculate_windows(file);
 
 	for (i = 0; i < ACCOUNT_WINDOWS; i++)
-		account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines);
+		account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines, wimp_ICON_WINDOW);
 }
 
 

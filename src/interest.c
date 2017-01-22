@@ -209,7 +209,7 @@ static void		interest_adjust_window_columns(void *data, wimp_i group, int width)
 static void		interest_adjust_sort_icon(struct interest_block *windat);
 static void		interest_adjust_sort_icon_data(struct interest_block *windat, wimp_icon *icon);
 static void		interest_set_window_extent(struct interest_block *windat);
-static void		interest_force_window_redraw(struct file_block *file, int from, int to);
+static void		interest_force_window_redraw(struct interest_block *windat, int from, int to, wimp_i column);
 static void		interest_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
@@ -881,36 +881,40 @@ void interest_build_window_title(struct file_block *file)
 
 void interest_redraw_all(struct file_block *file)
 {
-	if (file == NULL || file->sorders == NULL)
+	if (file == NULL || file->interest == NULL)
 		return;
 
-//	interest_force_window_redraw(file, 0, file->interest->sorder_count - 1); \FIXME!!!
+	interest_force_window_redraw(file->interest, 0, file->interest->rate_count - 1, wimp_ICON_WINDOW);
 }
 
 
 /**
  * Force a redraw of the interest rate window, for the given range of lines.
  *
- * \param *file			The file owning the window.
+ * \param *windat		The interest window to be redrawn.
  * \param from			The first line to redraw, inclusive.
  * \param to			The last line to redraw, inclusive.
+ * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
  */
 
-static void interest_force_window_redraw(struct file_block *file, int from, int to)
+static void interest_force_window_redraw(struct interest_block *windat, int from, int to, wimp_i column)
 {
-	int			y0, y1;
 	wimp_window_info	window;
 
-	if (file == NULL || file->interest == NULL || file->interest->interest_window == NULL)
+	if (windat == NULL || windat->interest_window == NULL)
 		return;
 
-	window.w = file->interest->interest_window;
-	wimp_get_window_info_header_only(&window);
+	window.w = windat->interest_window;
+	if (xwimp_get_window_info_header_only(&window) != NULL)
+		return;
 
-	y1 = WINDOW_ROW_TOP(INTEREST_TOOLBAR_HEIGHT, from);
-	y0 = WINDOW_ROW_BASE(INTEREST_TOOLBAR_HEIGHT, to);
+	if (column != wimp_ICON_WINDOW)
+		column_get_heading_xpos(windat->columns, column, &(window.extent.x0), &(window.extent.x1));
 
-	wimp_force_redraw(file->interest->interest_window, window.extent.x0, y0, window.extent.x1, y1);
+	window.extent.y1 = WINDOW_ROW_TOP(INTEREST_TOOLBAR_HEIGHT, from);
+	window.extent.y0 = WINDOW_ROW_BASE(INTEREST_TOOLBAR_HEIGHT, to);
+
+	wimp_force_redraw(windat->interest_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
 }
 
 

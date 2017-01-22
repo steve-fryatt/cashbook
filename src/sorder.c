@@ -315,7 +315,7 @@ static void			sorder_adjust_window_columns(void *data, wimp_i group, int width);
 static void			sorder_adjust_sort_icon(struct sorder_block *windat);
 static void			sorder_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon *icon);
 static void			sorder_set_window_extent(struct sorder_block *windat);
-static void			sorder_force_window_redraw(struct file_block *file, int from, int to);
+static void			sorder_force_window_redraw(struct sorder_block *windat, int from, int to, wimp_i column);
 static void			sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void			sorder_edit_click_handler(wimp_pointer *pointer);
@@ -1138,7 +1138,7 @@ void sorder_redraw_all(struct file_block *file)
 	if (file == NULL || file->sorders == NULL)
 		return;
 
-	sorder_force_window_redraw(file, 0, file->sorders->sorder_count - 1);
+	sorder_force_window_redraw(file->sorders, 0, file->sorders->sorder_count - 1, wimp_ICON_WINDOW);
 }
 
 
@@ -1146,26 +1146,30 @@ void sorder_redraw_all(struct file_block *file)
  * Force a redraw of the Standing Order list window, for the given range of
  * lines.
  *
- * \param *file			The file owning the window.
+ * \param *windat		The standing order window to redraw.
  * \param from			The first line to redraw, inclusive.
  * \param to			The last line to redraw, inclusive.
+ * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
  */
 
-static void sorder_force_window_redraw(struct file_block *file, int from, int to)
+static void sorder_force_window_redraw(struct sorder_block *windat, int from, int to, wimp_i column)
 {
-	int			y0, y1;
 	wimp_window_info	window;
 
-	if (file == NULL || file->sorders == NULL || file->sorders->sorder_window == NULL)
+	if (windat == NULL || windat->sorder_window == NULL)
 		return;
 
-	window.w = file->sorders->sorder_window;
-	wimp_get_window_info_header_only(&window);
+	window.w = windat->sorder_window;
+	if (xwimp_get_window_info_header_only(&window) != NULL)
+		return;
 
-	y1 = WINDOW_ROW_TOP(SORDER_TOOLBAR_HEIGHT, from);
-	y0 = WINDOW_ROW_BASE(SORDER_TOOLBAR_HEIGHT, to);
+	if (column != wimp_ICON_WINDOW)
+		column_get_heading_xpos(windat->columns, column, &(window.extent.x0), &(window.extent.x1));
 
-	wimp_force_redraw(file->sorders->sorder_window, window.extent.x0, y0, window.extent.x1, y1);
+	window.extent.y1 = WINDOW_ROW_TOP(SORDER_TOOLBAR_HEIGHT, from);
+	window.extent.y0 = WINDOW_ROW_BASE(SORDER_TOOLBAR_HEIGHT, to);
+
+	wimp_force_redraw(windat->sorder_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
 }
 
 
@@ -1702,7 +1706,7 @@ static osbool sorder_process_edit_window(void)
 	if (config_opt_read("AutoSortSOrders"))
 		sorder_sort(sorder_edit_owner);
 	else
-		sorder_force_window_redraw(sorder_edit_owner->file, sorder_edit_number, sorder_edit_number);
+		sorder_force_window_redraw(sorder_edit_owner, sorder_edit_number, sorder_edit_number, wimp_ICON_WINDOW);
 
 	file_set_data_integrity(sorder_edit_owner->file, TRUE);
 	sorder_process(sorder_edit_owner->file);
@@ -1754,10 +1758,12 @@ static osbool sorder_stop_from_edit_window(void)
 
 	/* Update the main standing order display window. */
 
-	if (config_opt_read("AutoSortSOrders"))
+	if (config_opt_read("AutoSortSOrders")) {
 		sorder_sort(sorder_edit_owner);
-	else
-		sorder_force_window_redraw(sorder_edit_owner->file, sorder_edit_number, sorder_edit_number);
+	} else {
+		sorder_force_window_redraw(sorder_edit_owner, sorder_edit_number, sorder_edit_number, SORDER_PANE_NEXTDATE);
+		sorder_force_window_redraw(sorder_edit_owner, sorder_edit_number, sorder_edit_number, SORDER_PANE_LEFT);
+	}
 	file_set_data_integrity(sorder_edit_owner->file, TRUE);
 
 	return TRUE;
@@ -1952,7 +1958,7 @@ void sorder_sort(struct sorder_block *windat)
 
 	sort_process(windat->sort, windat->sorder_count);
 
-	sorder_force_window_redraw(windat->file, 0, windat->sorder_count - 1);
+	sorder_force_window_redraw(windat, 0, windat->sorder_count - 1, wimp_ICON_WINDOW);
 
 	hourglass_off();
 }
@@ -2133,9 +2139,8 @@ static osbool sorder_delete(struct file_block *file, sorder_t sorder)
 		windows_open(file->sorders->sorder_window);
 		if (config_opt_read("AutoSortSOrders")) {
 			sorder_sort(file->sorders);
-			sorder_force_window_redraw(file, file->sorders->sorder_count, file->sorders->sorder_count);
 		} else {
-			sorder_force_window_redraw(file, 0, file->sorders->sorder_count);
+			sorder_force_window_redraw(file->sorders, 0, file->sorders->sorder_count, wimp_ICON_WINDOW);
 		}
 	}
 
@@ -2254,7 +2259,7 @@ void sorder_process(struct file_block *file)
 				file->sorders->sorders[order].adjusted_next_date = NULL_DATE;
 			}
 
-			sorder_force_window_redraw(file, order, order);
+			sorder_force_window_redraw(file->sorders, order, order, wimp_ICON_WINDOW);
 		}
 	}
 

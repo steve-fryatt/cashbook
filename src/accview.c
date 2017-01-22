@@ -278,7 +278,7 @@ static void			accview_adjust_window_columns(void *data, wimp_i group, int width)
 static void			accview_adjust_sort_icon(struct accview_window *view);
 static void			accview_adjust_sort_icon_data(struct accview_window *view, wimp_icon *icon);
 static void			accview_set_window_extent(struct accview_window *view);
-static void			accview_force_window_redraw(struct accview_window *view, int from, int to);
+static void			accview_force_window_redraw(struct accview_window *view, int from, int to, wimp_i column);
 static void			accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void			accview_open_sort_window(struct accview_window *view, wimp_pointer *ptr);
@@ -1329,23 +1329,27 @@ void accview_build_window_title(struct file_block *file, acct_t account)
  * \param *view			The view to be redrawn.
  * \param from			The first line to redraw, inclusive.
  * \param to			The last line to redraw, inclusive.
+ * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
  */
 
-static void accview_force_window_redraw(struct accview_window *view, int from, int to)
+static void accview_force_window_redraw(struct accview_window *view, int from, int to, wimp_i column)
 {
-	int			y0, y1;
 	wimp_window_info	window;
 
 	if (view == NULL)
 		return;
 
 	window.w = view->accview_window;
-	wimp_get_window_info_header_only(&window);
+	if (xwimp_get_window_info_header_only(&window) != NULL)
+		return;
 
-	y1 = WINDOW_ROW_TOP(ACCVIEW_TOOLBAR_HEIGHT, from);
-	y0 = WINDOW_ROW_BASE(ACCVIEW_TOOLBAR_HEIGHT, to);
+	if (column != wimp_ICON_WINDOW)
+		column_get_heading_xpos(view->columns, column, &(window.extent.x0), &(window.extent.x1));
 
-	wimp_force_redraw(view->accview_window, window.extent.x0, y0, window.extent.x1, y1);
+	window.extent.y1 = WINDOW_ROW_TOP(ACCVIEW_TOOLBAR_HEIGHT, from);
+	window.extent.y0 = WINDOW_ROW_BASE(ACCVIEW_TOOLBAR_HEIGHT, to);
+
+	wimp_force_redraw(view->accview_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
 }
 
 
@@ -1615,7 +1619,7 @@ void accview_sort(struct file_block *file, acct_t account)
 
 	sort_process(view->sort, view->display_lines);
 
-	accview_force_window_redraw(view, 0, view->display_lines - 1);
+	accview_force_window_redraw(view, 0, view->display_lines - 1, wimp_ICON_WINDOW);
 
 	hourglass_off();
 }
@@ -1872,7 +1876,7 @@ void accview_recalculate(struct file_block *file, acct_t account, int transactio
 
 	accview_calculate(view);
 	accview_force_window_redraw(view, accview_get_line_from_transaction(view, transaction),
-			view->display_lines-1);
+			view->display_lines - 1, wimp_ICON_WINDOW);
 }
 
 
@@ -1900,7 +1904,7 @@ void accview_redraw_transaction(struct file_block *file, acct_t account, int tra
 	line = accview_get_line_from_transaction(view, transaction);
 
 	if (view != NULL && line != -1)
-		accview_force_window_redraw(view, line, line);
+		accview_force_window_redraw(view, line, line, wimp_ICON_WINDOW);
 }
 
 

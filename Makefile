@@ -32,8 +32,9 @@ HTMLHELP := manual.html
 
 OBJS = account.o accview.o amenu.o analysis.o budget.o caret.o choices.o clipboard.o	\
        column.o currency.o date.o edit.o file.o filing.o find.o flexutils.o fontlist.o	\
-       goto.o iconbar.o interest.o main.o mainmenu.o presets.o printing.o purge.o	\
-       refdesc_menu.o report.o sorder.o sort.o sort_dialogue.o transact.o window.o
+       goto.o iconbar.o interest.o main.o mainmenu.o presets.o preset_menu.o printing.o	\
+       purge.o refdesc_menu.o report.o sorder.o sort.o sort_dialogue.o transact.o	\
+       window.o
 
 include $(SFTOOLS_MAKE)/CApp
 

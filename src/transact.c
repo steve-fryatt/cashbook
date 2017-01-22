@@ -83,6 +83,7 @@
 #include "goto.h"
 #include "mainmenu.h"
 #include "presets.h"
+#include "preset_menu.h"
 #include "printing.h"
 #include "purge.h"
 #include "refdesc_menu.h"
@@ -918,7 +919,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 
 			if (column == TRANSACT_ICON_DATE) {
 				/* If the column is Date, open the date menu. */
-				open_date_menu(file, line, pointer);
+				preset_menu_open(file, line, pointer);
 			} else if (column == TRANSACT_ICON_FROM_NAME) {
 				/* If the column is the From name, open the from account menu. */
 				open_account_menu(file, ACCOUNT_MENU_FROM, line, NULL, 0, 0, 0, pointer);
@@ -2242,7 +2243,7 @@ int transact_get_line_from_transaction(struct file_block *file, tran_t transacti
  * \return			The appropriate transaction, or NULL_TRANSACTION.
  */
 
-int transact_get_transaction_from_line(struct file_block *file, int line)
+tran_t transact_get_transaction_from_line(struct file_block *file, int line)
 {
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, line))
 		return NULL_TRANSACTION;

@@ -278,7 +278,7 @@ int transact_get_line_from_transaction(struct file_block *file, tran_t transacti
  * \return			The appropriate transaction, or NULL_TRANSACTION.
  */
 
-int transact_get_transaction_from_line(struct file_block *file, int line);
+tran_t transact_get_transaction_from_line(struct file_block *file, int line);
 
 
 /**

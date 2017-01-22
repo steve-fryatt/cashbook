@@ -97,8 +97,6 @@ static wimp_i			account_menu_rec_icon = 0;
 static void decode_account_menu(wimp_selection *selection);
 static void account_menu_submenu_message(wimp_message_menu_warning *submenu);
 static void account_menu_closed_message (void);
-static void decode_date_menu(wimp_selection *selection);
-static void date_menu_closed_message(void);
 
 
 
@@ -235,67 +233,4 @@ static void account_menu_closed_message(void)
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-
-
-
-/* ==================================================================================================================
- * Date menu -- List of presets to select from
- */
-
-
-void open_date_menu(struct file_block *file, int line, wimp_pointer *pointer)
-{
-	wimp_menu	*menu;
-
-	menu = preset_complete_menu_build(file);
-
-	if (menu == NULL)
-		return;
-
-	amenu_open(menu, "DateMenu", pointer, NULL, NULL, decode_date_menu, date_menu_closed_message);
-
-	main_menu_file = file;
-	main_menu_line = line;
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-static void decode_date_menu(wimp_selection *selection)
-{
-	int i;
-
-	if (main_menu_file == NULL)
-		return;
-
-
-	if (main_menu_file == NULL)
-		return;
-
-	/* Check that the line is in the range of transactions.  If not, add blank transactions to the file until it is.
-	 * This really ought to be in edit.c!
-	 */
-
-	if (main_menu_line >= transact_get_count(main_menu_file) && selection->items[0] != -1)
-		for (i = transact_get_count(main_menu_file); i <= main_menu_line; i++)
-			transact_add_raw_entry(main_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
-
-	/* Again check that the transaction is in range.  If it isn't, the additions failed.
-	 *
-	 * Then change the transaction as instructed.
-	 */
-
-	if (main_menu_line < transact_get_count(main_menu_file) && selection->items[0] != -1) {
-		if (preset_complete_menu_decode(selection) == NULL_PRESET)
-			transact_change_date(main_menu_file, transact_get_transaction_from_line(main_menu_file, main_menu_line),
-					date_today());
-		else
-			transact_insert_preset_into_line(main_menu_file, main_menu_line, preset_complete_menu_decode(selection));
-	}
-}
-
-static void date_menu_closed_message(void)
-{
-	preset_complete_menu_destroy();
-}
-
 

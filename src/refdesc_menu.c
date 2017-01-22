@@ -97,7 +97,7 @@ static struct file_block		*refdesc_menu_file = NULL;
  * The window line to which the menu currently applies.
  */
 
-static int				refdesc_menu_line = -1;	
+static int				refdesc_menu_line = -1;
 
 /**
  * The menu block.
@@ -207,14 +207,14 @@ static void refdesc_menu_decode(wimp_selection *selection)
 	int		i;
 	char		cheque_buffer[TRANSACT_REF_FIELD_LEN];
 
-	if (refdesc_menu_file == NULL || refdesc_menu_entry_link == NULL || selection->items[0] == -1)
+	if (refdesc_menu_file == NULL || refdesc_menu_entry_link == NULL || refdesc_menu_line == -1 || selection->items[0] == -1)
 		return;
 
 	/* Check that the line is in the range of transactions.  If not, add blank transactions to the file until it is.
 	 * This really ought to be in edit.c!
 	 */
 
-	if (refdesc_menu_line >= transact_get_count(refdesc_menu_file) && selection->items[0] != -1) {
+	if (refdesc_menu_line >= transact_get_count(refdesc_menu_file)) {
 		for (i = transact_get_count(refdesc_menu_file); i <= refdesc_menu_line; i++)
 			transact_add_raw_entry(refdesc_menu_file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 	}
@@ -258,12 +258,12 @@ static wimp_menu *refdesc_menu_build(struct file_block *file, enum refdesc_menu_
 	char		*title_token;
 	char		start_text[TRANSACT_DESCRIPT_FIELD_LEN], *compare_text;
 
-	if (file == NULL || file->transacts == NULL)
+	refdesc_menu_destroy();
+
+	if (file == NULL || menu_type == REFDESC_MENU_NONE)
 		return NULL;
 
 	hourglass_on();
-
-	refdesc_menu_destroy();
 
 	refdesc_menu_file = file;
 	refdesc_menu_line = start_line;
@@ -312,7 +312,7 @@ static wimp_menu *refdesc_menu_build(struct file_block *file, enum refdesc_menu_
 		if (menu_type == REFDESC_MENU_REFERENCE) {
 			transact_get_reference(file, start_transaction, start_text, TRANSACT_DESCRIPT_FIELD_LEN);
 
-			for (i=1; i<=range && (item_limit == 0 || items <= item_limit); i++) {
+			for (i = 1; i <= range && (item_limit == 0 || items <= item_limit); i++) {
 				if (start_line + i < transaction_count) {
 					compare_transaction = transact_get_transaction_from_line(file, start_line + i);
 					compare_text = transact_get_reference(file, compare_transaction, NULL, 0);
@@ -455,14 +455,17 @@ static void refdesc_menu_add_entry(struct refdesc_menu_link **entries, int *coun
 {
 	int				i;
 	osbool				found = FALSE;
-	struct refdesc_menu_link	*new;
+	struct refdesc_menu_link	*extend;
 
 	if (*entries == NULL || new == NULL || *new == '\0')
 		return;
 
-	for (i = 0; (i < *count) && !found; i++)
-		if (string_nocase_strcmp((*entries)[i].name, new) == 0)
+	for (i = 0; i < *count; i++) {
+		if (string_nocase_strcmp((*entries)[i].name, new) == 0) {
 			found = TRUE;
+			break;
+		}
+	}
 
 	/* If the text is already in the menu, or there isn't any space to
 	 * add the new line, just exit.
@@ -480,8 +483,9 @@ static void refdesc_menu_add_entry(struct refdesc_menu_link **entries, int *coun
 	 * heap allocation.
 	 */
 
-	strncpy((*entries)[(*count)++].name, new, TRANSACT_DESCRIPT_FIELD_LEN);
-	(*entries)[(*count)++].name[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+	strncpy((*entries)[(*count)].name, new, TRANSACT_DESCRIPT_FIELD_LEN);
+	(*entries)[(*count)].name[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+	(*count)++;
 
 	/* Extend the block *after* the copy, in anticipation of the next
 	 * call, because this could easily move the flex blocks around and
@@ -490,10 +494,10 @@ static void refdesc_menu_add_entry(struct refdesc_menu_link **entries, int *coun
 	 */
 
 	if (*count >= (*max)) {
-		new = heap_extend(*entries, sizeof(struct refdesc_menu_link) * (*max + REFDESC_MENU_BLOCKSIZE));
+		extend = heap_extend(*entries, sizeof(struct refdesc_menu_link) * (*max + REFDESC_MENU_BLOCKSIZE));
 
-		if (new != NULL) {
-			*entries = new;
+		if (extend != NULL) {
+			*entries = extend;
 			*max += REFDESC_MENU_BLOCKSIZE;
 		}
 	}

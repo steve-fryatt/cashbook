@@ -48,6 +48,12 @@ struct preset_block;
 
 #define NULL_PRESET ((preset_t) (-1))
 
+/**
+ * The maximum length of a preset name.
+ */
+
+#define PRESET_NAME_LEN 32
+
 /* Caret end locations */
 
 enum preset_caret {
@@ -120,6 +126,61 @@ void preset_redraw_all(struct file_block *file);
 
 
 /**
+ * Find the preset which corresponds to a display line in a preset
+ * window.
+ *
+ * \param *file			The file to use the transaction window in.
+ * \param line			The display line to return the transaction for.
+ * \return			The appropriate transaction, or NULL_TRANSACTION.
+ */
+
+preset_t preset_get_preset_from_line(struct file_block *file, int line);
+
+
+/**
+ * Find the number of presets in a file.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The number of presets in the file.
+ */
+
+int preset_get_count(struct file_block *file);
+
+
+/**
+ * Test the validity of a preset index.
+ *
+ * \param *file			The file to test against.
+ * \param preset		The preset index to test.
+ * \return			TRUE if the index is valid; FALSE if not.
+ */
+
+osbool preset_test_index_valid(struct file_block *file, preset_t preset);
+
+
+/**
+ * Return the name for a preset.
+ *
+ * If a buffer is supplied, the name is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * name in the preset array is returned instead. In the latter case, this
+ * pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the transaction.
+ * \param preset		The preset to return the name of.
+ * \param *buffer		Pointer to a buffer to take the name, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting name string,
+ *				either the supplied buffer or the original.
+ */
+
+char *preset_get_name(struct file_block *file, preset_t preset, char *buffer, size_t length);
+
+
+/**
  * Open the Preset Edit dialogue for a given preset list window.
  *
  * \param *file			The file to own the dialogue.
@@ -128,34 +189,6 @@ void preset_redraw_all(struct file_block *file);
  */
 
 void preset_open_edit_window(struct file_block *file, int preset, wimp_pointer *ptr);
-
-
-/**
- * Build a Preset Complete menu and return the pointer.
- *
- * \param *file			The file to build the menu for.
- * \return			The created menu, or NULL for an error.
- */
-
-wimp_menu *preset_complete_menu_build(struct file_block *file);
-
-
-/**
- * Destroy any Preset Complete menu which is currently open.
- */
-
-void preset_complete_menu_destroy(void);
-
-
-/**
- * Decode a selection from the Preset Complete menu, converting to a preset
- * index number.
- *
- * \param *selection		The Wimp Menu Selection to decode.
- * \return			The preset index, or NULL_PRESET.
- */
-
-int preset_complete_menu_decode(wimp_selection *selection);
 
 
 /**
@@ -188,27 +221,6 @@ preset_t preset_find_from_keypress(struct file_block *file, char key);
  */
 
 enum preset_caret preset_get_caret_destination(struct file_block *file, preset_t preset);
-
-
-/**
- * Test the validity of a preset index.
- *
- * \param *file			The file to test against.
- * \param preset		The preset index to test.
- * \return			TRUE if the index is valid; FALSE if not.
- */
-
-osbool preset_test_index_valid(struct file_block *file, preset_t preset);
-
-
-/**
- * Find the number of presets in a file.
- *
- * \param *file			The file to interrogate.
- * \return			The number of presets in the file.
- */
-
-int preset_get_count(struct file_block *file);
 
 
 /**

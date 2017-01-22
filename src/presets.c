@@ -163,7 +163,6 @@
 #define PRESET_COLUMNS 10
 #define PRESET_TOOLBAR_HEIGHT 132
 #define MIN_PRESET_ENTRIES 10
-#define PRESET_NAME_LEN 32
 
 /* Preset Window column mapping. */
 
@@ -238,12 +237,6 @@ struct preset_block {
 	int			preset_count;					/**< The number of presets defined in the file.				*/
 };
 
-struct preset_complete_link
-{
-	char			name[PRESET_NAME_LEN];				/**< The name as it appears in the menu.				*/
-	int			preset;						/**< Link to the associated preset.					*/
-};
-
 
 /* Preset Edit Window. */
 
@@ -285,12 +278,6 @@ static wimp_window		*preset_window_def = NULL;			/**< The definition for the Pre
 static wimp_window		*preset_pane_def = NULL;			/**< The definition for the Preset Window pane.				*/
 static wimp_menu		*preset_window_menu = NULL;			/**< The Preset Window menu handle.					*/
 static int			preset_window_menu_line = -1;			/**< The line over which the Preset Window Menu was opened.		*/
-
-/* Preset Shortcut Menu. */
-
-static wimp_menu			*preset_complete_menu = NULL;		/**< The preset shortcut menu block.					*/
-static struct preset_complete_link	*preset_complete_menu_link = NULL;	/**< Links for the shortcut menu.					*/
-static char				*preset_complete_menu_title = NULL;	/**< The menu title buffer.						*/
 
 /* SaveAs Dialogue Handles. */
 
@@ -1246,6 +1233,91 @@ static int preset_get_line_from_preset(struct preset_block *windat, preset_t pre
 
 
 /**
+ * Find the preset which corresponds to a display line in a preset
+ * window.
+ *
+ * \param *file			The file to use the transaction window in.
+ * \param line			The display line to return the transaction for.
+ * \return			The appropriate transaction, or NULL_TRANSACTION.
+ */
+
+preset_t preset_get_preset_from_line(struct file_block *file, int line)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, line))
+		return NULL_TRANSACTION;
+
+	return file->presets->presets[line].sort_index;
+}
+
+
+/**
+ * Find the number of presets in a file.
+ *
+ * \param *file			The file to interrogate.
+ * \return			The number of presets in the file.
+ */
+
+int preset_get_count(struct file_block *file)
+{
+	return (file != NULL && file->presets != NULL) ? file->presets->preset_count : 0;
+}
+
+
+/**
+ * Test the validity of a preset index.
+ *
+ * \param *file			The file to test against.
+ * \param preset		The preset index to test.
+ * \return			TRUE if the index is valid; FALSE if not.
+ */
+
+osbool preset_test_index_valid(struct file_block *file, preset_t preset)
+{
+	return (preset_valid(file->presets, preset)) ? TRUE : FALSE;
+}
+
+
+/**
+ * Return the name for a preset.
+ *
+ * If a buffer is supplied, the name is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * name in the preset array is returned instead. In the latter case, this
+ * pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the transaction.
+ * \param preset		The preset to return the name of.
+ * \param *buffer		Pointer to a buffer to take the name, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting name string,
+ *				either the supplied buffer or the original.
+ */
+
+char *preset_get_name(struct file_block *file, preset_t preset, char *buffer, size_t length)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset)) {
+		if (buffer != NULL && length > 0) {
+			*buffer = '\0';
+			return buffer;
+		}
+
+		return NULL;
+	}
+
+	if (buffer == NULL || length == 0)
+		return file->presets->presets[preset].name;
+
+	strncpy(buffer, file->presets->presets[preset].name, length);
+	buffer[length - 1] = '\0';
+
+	return buffer;
+}
+
+
+/**
  * Open the Preset Edit dialogue for a given preset list window.
  *
  * \param *file			The file to own the dialogue.
@@ -1829,145 +1901,6 @@ static void preset_print(osbool text, osbool format, osbool scale, osbool rotate
 
 
 /**
- * Build a Preset Complete menu and return the pointer.
- *
- * \param *file			The file to build the menu for.
- * \return			The created menu, or NULL for an error.
- */
-
-wimp_menu *preset_complete_menu_build(struct file_block *file)
-{
-	int	line, width, i, p;
-
-	/* Claim enough memory to build the menu in. */
-
-	preset_complete_menu_destroy();
-
-	if (file == NULL || file->presets == NULL)
-		return NULL;
-
-	preset_complete_menu = heap_alloc(28 + 24 * (file->presets->preset_count + 1));
-	preset_complete_menu_link = heap_alloc(sizeof(struct preset_complete_link) * (file->presets->preset_count + 1));
-	preset_complete_menu_title = heap_alloc(ACCOUNT_MENU_TITLE_LEN);
-
-	if (preset_complete_menu == NULL || preset_complete_menu_link == NULL || preset_complete_menu_title == NULL) {
-		preset_complete_menu_destroy();
-		return NULL;
-	}
-
-	/* Populate the menu. */
-
-	line = 0;
-
-	/* Set up the today's date field. */
-
-	msgs_lookup("DateMenuToday", preset_complete_menu_link[line].name, PRESET_NAME_LEN);
-	preset_complete_menu_link[line].preset = NULL_PRESET;
-
-	width = strlen(preset_complete_menu_link[line].name);
-
-	/* Set the menu and icon flags up. */
-
-	preset_complete_menu->entries[line].menu_flags = (file->presets->preset_count > 0) ? wimp_MENU_SEPARATE : 0;
-	preset_complete_menu->entries[line].sub_menu = (wimp_menu *) -1;
-	preset_complete_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-			wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-			wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-	/* Set the menu icon contents up. */
-
-	preset_complete_menu->entries[line].data.indirected_text.text = preset_complete_menu_link[line].name;
-	preset_complete_menu->entries[line].data.indirected_text.validation = NULL;
-	preset_complete_menu->entries[line].data.indirected_text.size = PRESET_NAME_LEN;
-
-	if (file->presets->preset_count > 0) {
-		for (i=0; i<file->presets->preset_count; i++) {
-			line++;
-
-			p = file->presets->presets[i].sort_index;
-
-			strcpy (preset_complete_menu_link[line].name, file->presets->presets[p].name);
-			preset_complete_menu_link[line].preset = p;
-
-			if (strlen (preset_complete_menu_link[line].name) > width)
-				width = strlen (preset_complete_menu_link[line].name);
-
-			/* Set the menu and icon flags up. */
-
-			preset_complete_menu->entries[line].menu_flags = 0;
-
-			preset_complete_menu->entries[line].sub_menu = (wimp_menu *) -1;
-			preset_complete_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-					wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-					wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-			/* Set the menu icon contents up. */
-
-			preset_complete_menu->entries[line].data.indirected_text.text = preset_complete_menu_link[line].name;
-			preset_complete_menu->entries[line].data.indirected_text.validation = NULL;
-			preset_complete_menu->entries[line].data.indirected_text.size = PRESET_NAME_LEN;
-		}
-	}
-
-	/* Finish off the menu, marking the last entry and filling in the header. */
-
-	preset_complete_menu->entries[line].menu_flags |= wimp_MENU_LAST;
-
-	msgs_lookup ("DateMenuTitle", preset_complete_menu_title, ACCOUNT_MENU_TITLE_LEN);
-	preset_complete_menu->title_data.indirected_text.text = preset_complete_menu_title;
-	preset_complete_menu->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
-	preset_complete_menu->title_fg = wimp_COLOUR_BLACK;
-	preset_complete_menu->title_bg = wimp_COLOUR_LIGHT_GREY;
-	preset_complete_menu->work_fg = wimp_COLOUR_BLACK;
-	preset_complete_menu->work_bg = wimp_COLOUR_WHITE;
-
-	preset_complete_menu->width = (width + 1) * 16;
-	preset_complete_menu->height = 44;
-	preset_complete_menu->gap = 0;
-
-	return preset_complete_menu;
-}
-
-
-/**
- * Destroy any Preset Complete menu which is currently open.
- */
-
-void preset_complete_menu_destroy(void)
-{
-	if (preset_complete_menu != NULL)
-		heap_free(preset_complete_menu);
-
-	if (preset_complete_menu_link != NULL)
-		heap_free(preset_complete_menu_link);
-
-	if (preset_complete_menu_title != NULL)
-		heap_free(preset_complete_menu_title);
-
-	preset_complete_menu = NULL;
-	preset_complete_menu_link = NULL;
-	preset_complete_menu_title = NULL;
-}
-
-
-/**
- * Decode a selection from the Preset Complete menu, converting to a preset
- * index number.
- *
- * \param *selection		The Wimp Menu Selection to decode.
- * \return			The preset index, or NULL_PRESET.
- */
-
-int preset_complete_menu_decode(wimp_selection *selection)
-{
-	if (preset_complete_menu_link == NULL || selection == NULL || selection->items[0] == -1)
-		return NULL_PRESET;
-
-	return preset_complete_menu_link[selection->items[0]].preset;
-}
-
-
-/**
  * Sort the presets in a given instance based on that instance's sort setting.
  *
  * \param *windat		The preset window instance to sort.
@@ -2219,33 +2152,6 @@ enum preset_caret preset_get_caret_destination(struct file_block *file, preset_t
 
 	return file->presets->presets[preset].caret_target;
 
-}
-
-
-/**
- * Test the validity of a preset index.
- *
- * \param *file			The file to test against.
- * \param preset		The preset index to test.
- * \return			TRUE if the index is valid; FALSE if not.
- */
-
-osbool preset_test_index_valid(struct file_block *file, preset_t preset)
-{
-	return (preset_valid(file->presets, preset)) ? TRUE : FALSE;
-}
-
-
-/**
- * Find the number of presets in a file.
- *
- * \param *file			The file to interrogate.
- * \return			The number of presets in the file.
- */
-
-int preset_get_count(struct file_block *file)
-{
-	return (file != NULL && file->presets != NULL) ? file->presets->preset_count : 0;
 }
 
 

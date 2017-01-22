@@ -468,7 +468,7 @@ static void refdesc_menu_add_entry(struct refdesc_menu_link **entries, int *coun
 	 * add the new line, just exit.
 	 * 
 	 * Because space is post-allocated, if there isn't enough space now
-	 * it mist mean that we've run out of allocation for some reason.
+	 * it must mean that we've run out of allocation for some reason.
 	 * If so, there's no point trying again.
 	 */
 

@@ -286,6 +286,7 @@ struct transact_block {
 	struct transaction	*transactions;					/**< The transaction data for the defined transactions			*/
 	int			trans_count;					/**< The number of transactions defined in the file.			*/
 
+	osbool			date_sort_valid;				/**< Is the transaction data sorted correctly into date order?		*/
 };
 
 /* The following are the buffers used by the edit line in the transaction window. */
@@ -531,6 +532,7 @@ struct transact_block *transact_create_instance(struct file_block *file)
 	new->trans_count = 0;
 
 	new->auto_reconcile = FALSE;
+	new->date_sort_valid = TRUE;
 
 	/* Initialise the window columns. */
 
@@ -2768,7 +2770,7 @@ void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, a
 
 	file_set_data_integrity(file, TRUE);
 	if (date != NULL_DATE)
-		file->sort_valid = FALSE;
+		file->transacts->date_sort_valid = FALSE;
 }
 
 
@@ -2794,7 +2796,7 @@ void transact_clear_raw_entry(struct file_block *file, tran_t transaction)
 	*file->transacts->transactions[transaction].reference = '\0';
 	*file->transacts->transactions[transaction].description = '\0';
 
-	file->sort_valid = FALSE;
+	file->transacts->date_sort_valid = FALSE;
 }
 
 
@@ -3400,7 +3402,7 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 
 	if (old_date != file->transacts->transactions[transaction].date) {
 		changed = TRUE;
-		file->sort_valid = FALSE;
+		file->transacts->date_sort_valid = FALSE;
 	}
 
 	/* Return the line to the calculations. This will automatically update
@@ -3878,7 +3880,7 @@ static osbool transact_edit_put_field(struct edit_data *data)
 	case TRANSACT_ICON_DATE:
 		windat->transactions[transaction].date = data->date.date;
 		changed = TRUE;
-		windat->file->sort_valid = FALSE;
+		windat->date_sort_valid = FALSE;
 		break;
 	case TRANSACT_ICON_FROM:
 		old_account = windat->transactions[transaction].from;
@@ -4254,7 +4256,7 @@ osbool transact_insert_preset_into_line(struct file_block *file, int line, prese
 		return TRUE;
 
 	if (changed & TRANSACT_FIELD_DATE)
-		file->sort_valid = FALSE;
+		file->transacts->date_sort_valid = FALSE;
 
 	/* If any changes were made, refresh the relevant account listing, redraw
 	 * the transaction window line and mark the file as modified.
@@ -4609,7 +4611,7 @@ void transact_sort_file_data(struct file_block *file)
 	debug_printf("Sorting transactions");
 #endif
 
-	if (file == NULL || file->transacts == NULL)
+	if (file == NULL || file->transacts == NULL || file->transacts->date_sort_valid == TRUE)
 		return;
 
 	hourglass_on();
@@ -4661,7 +4663,7 @@ void transact_sort_file_data(struct file_block *file)
 
 	transact_force_window_redraw(file->transacts, 0, file->transacts->trans_count - 1, TRANSACT_PANE_ROW);
 
-	file->sort_valid = TRUE;
+	file->transacts->date_sort_valid = TRUE;
 
 	hourglass_off();
 }
@@ -4707,8 +4709,7 @@ void transact_purge(struct file_block *file, date_t cutoff)
 		}
 	}
 
-	if (file->sort_valid == FALSE)
-		transact_sort_file_data(file);
+	transact_sort_file_data(file);
 
 	transact_strip_blanks_from_end(file);
 }
@@ -4916,6 +4917,10 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 #ifdef DEBUG
 	debug_printf("\\GLoading Transactions.");
 #endif
+
+	/* The load is probably going to invalidate the sort order. */
+
+	file->transacts->date_sort_valid = FALSE;
 
 	/* Identify the current size of the flex block allocation. */
 
@@ -5204,8 +5209,7 @@ int transact_find_date(struct file_block *file, date_t target)
 	 * order.
 	 */
 
-	if (file->sort_valid == FALSE)
-		transact_sort_file_data(file);
+	transact_sort_file_data(file);
 
 	/* Search through the sorted array using a binary search. */
 

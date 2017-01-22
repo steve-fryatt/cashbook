@@ -125,7 +125,6 @@ struct file_block
   /* Data integrity. */
 
   osbool             modified;           /* Flag to show if the file has been modified since the last save. */
-  osbool             sort_valid;         /* Flag to show that the transaction data is sorted OK. */
   int                untitled_count;     /* Count to allow default title of the form <Untitled n>. */
   int                child_x_offset;     /* Count for child window opening offset. */
 

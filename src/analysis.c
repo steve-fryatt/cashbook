@@ -1015,8 +1015,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 	hourglass_on();
 
-	if (!(file->sort_valid))
-		transact_sort_file_data(file);
+	transact_sort_file_data(file);
 
 	/* Read the date settings. */
 
@@ -1759,8 +1758,7 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 
 	hourglass_on();
 
-	if (!(file->sort_valid))
-		transact_sort_file_data(file);
+	transact_sort_file_data(file);
 
 	/* Read the date settings. */
 
@@ -2414,8 +2412,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 
 	hourglass_on();
 
-	if (!(file->sort_valid))
-		transact_sort_file_data(file);
+	transact_sort_file_data(file);
 
 	/* Read the date settings. */
 
@@ -3047,8 +3044,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 
 	hourglass_on();
 
-	if (!(file->sort_valid))
-		transact_sort_file_data(file);
+	transact_sort_file_data(file);
 
 	/* Read the date settings. */
 

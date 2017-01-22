@@ -304,7 +304,6 @@ struct file_block *build_new_file_block(void)
 
   *(new->filename) = '\0';
   new->modified = FALSE;
-  new->sort_valid = TRUE;
   new->untitled_count = ++file_untitled_count;
   new->child_x_offset = 0;
 

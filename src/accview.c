@@ -425,8 +425,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 		return;
 	}
 
-	if (!(file->sort_valid))
-		transact_sort_file_data(file);
+	transact_sort_file_data(file);
 
 	/* The block pointer is put into the new variable, as the file->accounts[account].account_view pointer may move
 	 * as a result of the flex heap shifting for heap_alloc().
@@ -1783,8 +1782,7 @@ void accview_rebuild(struct file_block *file, acct_t account)
 	debug_printf("\\BRebuilding account statement view");
 	#endif
 
-	if (!(file->sort_valid))
-		transact_sort_file_data(file);
+	transact_sort_file_data(file);
 
 	if (view->line_data != NULL)
 		flexutils_free((void **) &(view->line_data));
@@ -1874,8 +1872,7 @@ void accview_recalculate(struct file_block *file, acct_t account, int transactio
 	debug_printf("\\BRecalculating account statement view");
 	#endif
 
-	if (!(file->sort_valid))
-		transact_sort_file_data(file);
+	transact_sort_file_data(file);
 
 	accview_calculate(view);
 	accview_force_window_redraw(view, accview_get_line_from_transaction(view, transaction),

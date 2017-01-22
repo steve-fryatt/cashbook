@@ -3831,7 +3831,7 @@ static osbool transact_edit_get_field(struct edit_data *data)
 static osbool transact_edit_put_field(struct edit_data *data)
 {
 	struct transact_block	*windat;
-	int			i;
+	int			start, i;
 	tran_t			transaction;
 	acct_t			old_account;
 	osbool			changed;
@@ -3853,10 +3853,13 @@ static osbool transact_edit_put_field(struct edit_data *data)
 	 */
 
 	if (data->line >= windat->trans_count) {
+		start = windat->trans_count;
+		
 		for (i = windat->trans_count; i <= data->line; i++)
 			transact_add_raw_entry(windat->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
 		edit_refresh_line_contents(windat->edit_line, TRANSACT_ICON_ROW, wimp_ICON_WINDOW);
+		transact_force_window_redraw(windat, start, windat->trans_count - 1, TRANSACT_PANE_ROW);
 	}
 
 	/* Get out if we failed to create the necessary transactions. */

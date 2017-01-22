@@ -290,9 +290,9 @@ void edit_place_new_line(struct edit_block *instance, int line, wimp_colour colo
  *
  * \param *instance		The instance to refresh, or NULL to refresh the
  *				currently active instance (if any).
- * \param only			If -1, refresh all fields in the line; otherwise,
+ * \param only			If wimp_ICON_WINDOW, refresh all fields in the line; otherwise,
  *				only refresh if the field's first icon handle matches.
- * \param avoid			If -1, refresh all fields in the line; otherwise, only
+ * \param avoid			If wimp_ICON_WINDOW, refresh all fields in the line; otherwise, only
  *				refresh if the field's first icon handle does not match.
  */
 

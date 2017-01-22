@@ -635,9 +635,9 @@ static osbool edit_create_field_icon(struct edit_icon *icon, int line, wimp_colo
  *
  * \param *instance		The instance to refresh, or NULL to refresh the
  *				currently active instance (if any).
- * \param only			If -1, refresh all fields in the line; otherwise,
+ * \param only			If wimp_ICON_WINDOW, refresh all fields in the line; otherwise,
  *				only refresh if the field's first icon handle matches.
- * \param avoid			If -1, refresh all fields in the line; otherwise, only
+ * \param avoid			If wimp_ICON_WINDOW, refresh all fields in the line; otherwise, only
  *				refresh if the field's first icon handle does not match.
  */
 
@@ -662,7 +662,7 @@ void edit_refresh_line_contents(struct edit_block *instance, wimp_i only, wimp_i
 	while (field != NULL) {
 		icon = field->icon;
 
-		if ((icon != NULL) && (only == -1 || only == icon->icon) && (avoid != icon->icon)) {
+		if ((icon != NULL) && (only == wimp_ICON_WINDOW || only == icon->icon) && (avoid != icon->icon)) {
 			edit_get_field_content(field, instance->edit_line, FALSE);
 
 			while (icon != NULL) {
@@ -820,7 +820,7 @@ static void edit_move_caret_up_down(struct edit_block *instance, int direction)
 	}
 
 	wimp_get_caret_position(&caret);
-	edit_refresh_line_contents(instance, caret.i, -1);
+	edit_refresh_line_contents(instance, caret.i, wimp_ICON_WINDOW);
 	edit_callback_place_line(instance, instance->edit_line + direction);
 	wimp_set_caret_position(caret.w, caret.i, caret.pos.x, caret.pos.y + (direction * WINDOW_ROW_HEIGHT), -1, -1);
 }
@@ -861,7 +861,7 @@ static void edit_move_caret_forward(struct edit_block *instance, wimp_key *key)
 
 	/* Refresh the icon that we're about to move from. */
 
-	edit_refresh_line_contents(instance, field->icon->icon, -1);
+	edit_refresh_line_contents(instance, field->icon->icon, wimp_ICON_WINDOW);
 
 	/* If Return was pressed, let the client run an auto-sort if it wishes. */
 
@@ -908,7 +908,7 @@ static void edit_move_caret_back(struct edit_block *instance)
 	if (field == NULL || field->icon == NULL)
 		return;
 
-	edit_refresh_line_contents(instance, field->icon->icon, -1);
+	edit_refresh_line_contents(instance, field->icon->icon, wimp_ICON_WINDOW);
 
 	previous = edit_find_previous_field(field);
 

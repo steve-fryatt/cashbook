@@ -862,7 +862,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 	 * was clicked.
 	 */
 
-	edit_refresh_line_contents(NULL, -1, pointer->i);
+	edit_refresh_line_contents(NULL, wimp_ICON_WINDOW, pointer->i);
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		if (pointer->i == wimp_ICON_WINDOW) {
@@ -969,7 +969,7 @@ static void transact_window_lose_caret_handler(wimp_caret *caret)
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	edit_refresh_line_contents(windat->edit_line, -1, -1);
+	edit_refresh_line_contents(windat->edit_line, wimp_ICON_WINDOW, wimp_ICON_WINDOW);
 }
 
 /**
@@ -2001,7 +2001,7 @@ static void transact_force_window_redraw(struct transact_block *windat, int from
 	line = edit_get_line(windat->edit_line);
 
 	if (line >= from && line <= to) {
-		edit_refresh_line_contents(windat->edit_line, -1, -1);
+		edit_refresh_line_contents(windat->edit_line, column, wimp_ICON_WINDOW);
 		edit_set_line_colour(windat->edit_line, transact_line_colour(windat, line));
 		icons_replace_caret_in_window(windat->transaction_window);
 	}
@@ -3843,7 +3843,7 @@ static osbool transact_edit_put_field(struct edit_data *data)
 		for (i = windat->trans_count; i <= data->line; i++)
 			transact_add_raw_entry(windat->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
-		edit_refresh_line_contents(windat->edit_line, TRANSACT_ICON_ROW, -1);
+		edit_refresh_line_contents(windat->edit_line, TRANSACT_ICON_ROW, wimp_ICON_WINDOW);
 	}
 
 	/* Get out if we failed to create the necessary transactions. */
@@ -4201,7 +4201,7 @@ osbool transact_insert_preset_into_line(struct file_block *file, int line, prese
 		for (i = file->transacts->trans_count; i <= line; i++)
 			transact_add_raw_entry(file->transacts->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
-		edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_ROW, -1);
+		edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_ROW, wimp_ICON_WINDOW);
 	}
 
 	if (line >= file->transacts->trans_count)
@@ -4651,6 +4651,8 @@ void transact_sort_file_data(struct file_block *file)
 
 	for (i=0; i < file->transacts->trans_count; i++)
 		file->transacts->transactions[file->transacts->transactions[i].saved_sort].sort_index = i;
+
+	transact_force_window_redraw(file->transacts, 0, file->transacts->trans_count - 1, TRANSACT_PANE_ROW);
 
 	file->sort_valid = TRUE;
 

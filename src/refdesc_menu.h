@@ -22,7 +22,7 @@
  */
 
 /**
- * \file: refdescmenu.c
+ * \file: refdesc_menu.h
  *
  * Reference and Descripton completion menu implementation.
  */

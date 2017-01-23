@@ -186,7 +186,6 @@
 #define ACCOUNT_TOOLBAR_HEIGHT 132
 #define ACCOUNT_FOOTER_HEIGHT 36
 #define MIN_ACCOUNT_ENTRIES 10
-#define ACCOUNT_SECTION_LEN 52
 
 #define ACCOUNT_NUM_COLUMNS 4
 #define ACCOUNT_NUM_COLUMN_STATEMENT 0
@@ -2791,6 +2790,30 @@ int account_get_list_length(struct file_block *file, enum account_type type)
 
 
 /**
+ * Return the  type of a given line of an account list window.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \param line			The line to return the details for.
+ * \return			The type of data on that line.
+ */
+
+enum account_line_type account_get_list_entry_type(struct file_block *file, enum account_type type, int line)
+{
+	int	entry;
+
+	if (file == NULL || file->accounts == NULL || line < 0)
+		return ACCOUNT_LINE_BLANK;
+
+	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1 || line >= file->accounts->account_windows[entry].display_lines)
+		return ACCOUNT_LINE_BLANK;
+
+	return file->accounts->account_windows[entry].line_data[line].type;
+}
+
+
+/**
  * Return the account on a given line of an account list window.
  *
  * \param *file			The file to use.
@@ -2800,7 +2823,7 @@ int account_get_list_length(struct file_block *file, enum account_type type)
  *				line isn't an account.
  */
 
-acct_t account_get_list_entry(struct file_block *file, enum account_type type, int line)
+acct_t account_get_list_entry_account(struct file_block *file, enum account_type type, int line)
 {
 	int	entry;
 
@@ -2817,6 +2840,33 @@ acct_t account_get_list_entry(struct file_block *file, enum account_type type, i
 	return file->accounts->account_windows[entry].line_data[line].account;
 }
 
+
+/**
+ * Return the text on a given line of an account list window.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \param line			The line to return the details for.
+ * \return			A volatile pointer to the text on the line,
+ *				or NULL.
+ */
+
+char *account_get_list_entry_text(struct file_block *file, enum account_type type, int line)
+{
+	int	entry;
+
+	if (file == NULL || file->accounts == NULL || line < 0)
+		return NULL;
+
+	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1 || line >= file->accounts->account_windows[entry].display_lines)
+		return NULL;
+
+	if (file->accounts->account_windows[entry].line_data[line].type == ACCOUNT_LINE_DATA)
+		return account_get_name(file, file->accounts->account_windows[entry].line_data[line].account);
+
+	return file->accounts->account_windows[entry].line_data[line].heading;
+}
 
 /**
  * Find an account by looking up an ident string against accounts of a

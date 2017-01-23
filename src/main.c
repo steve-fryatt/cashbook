@@ -88,7 +88,6 @@
 #include "goto.h"
 #include "iconbar.h"
 #include "interest.h"
-#include "mainmenu.h"
 #include "presets.h"
 #include "printing.h"
 #include "purge.h"

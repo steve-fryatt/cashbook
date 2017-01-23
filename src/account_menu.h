@@ -47,61 +47,33 @@ enum account_menu_type{
 
 
 
-/* Account menu */
 
-void open_account_menu (struct file_block *file, enum account_menu_type type, int line,
-                        wimp_w window, wimp_i icon_i, wimp_i icon_n, wimp_i icon_r, wimp_pointer *pointer);
+/**
+ * Create and open an Account completion menu over a line in a transaction window.
+ * 
+ * \param *file			The file to which the menu will belong.
+ * \param menu_type		The type of menu to be opened.
+ * \param line			The line of the window over which the menu opened.
+ * \param *pointer		Pointer to the Wimp pointer details.
+ */
 
-
-
-
-
-
+void account_menu_open(struct file_block *file, enum account_menu_type menu_type, int line, wimp_pointer *pointer);
 
 
 /**
- * Build an Account Complete menu for a given file and account type.
- *
- * \param *file			The file to build the menu for.
- * \param type			The type of menu to build.
- * \return			The menu block, or NULL.
+ * Create and open an Account completion menu over a set of account icons in
+ * a dialogue box.
+ * 
+ * \param *file			The file to which the menu will belong.
+ * \param menu_type		The type of menu to be opened.
+ * \param window		The window in which the target icons exist.
+ * \param icon_i		The target ident field icon.
+ * \param icon_n		The target name field icon.
+ * \param icon_r		The target reconcile field icon.
+ * \param *pointer		Pointer to the Wimp pointer details.
  */
 
-wimp_menu *account_complete_menu_build(struct file_block *file, enum account_menu_type type);
-
-
-/**
- * Build a submenu for the Account Complete menu on the fly, using information
- * and memory allocated and assembled in account_complete_menu_build().
- *
- * The memory to hold the menu has been allocated and is pointed to by
- * account_complete_submenu and account_complete_submenu_link; if either of these
- *  are NULL, the fucntion must refuse to run.
- *
- * \param *submenu		The submenu warning message block to use.
- * \return			Pointer to the submenu block, or NULL on failure.
- */
-
-wimp_menu *account_complete_submenu_build(wimp_message_menu_warning *submenu);
-
-
-/**
- * Destroy any Account Complete menu which is currently open.
- */
-
-void account_complete_menu_destroy(void);
-
-
-/**
- * Decode a selection from the Account Complete menu, converting to an account
- * number.
- *
- * \param *selection		The menu selection to decode.
- * \return			The account numer, or NULL_ACCOUNT.
- */
-
-acct_t account_complete_menu_decode(wimp_selection *selection);
-
+void account_menu_open_icon(struct file_block *file, enum account_menu_type menu_type,
+		wimp_w window, wimp_i icon_i, wimp_i icon_n, wimp_i icon_r, wimp_pointer *pointer);
 
 #endif
-

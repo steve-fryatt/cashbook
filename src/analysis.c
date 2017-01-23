@@ -69,6 +69,7 @@
 #include "report.h"
 #include "transact.h"
 
+#define ANALYSIS_MENU_TITLE_LEN 32
 
 /* Transaction Report window. */
 
@@ -1200,7 +1201,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 			entries = account_get_list_length(file, ACCOUNT_FULL);
 
 			for (i = 0; i < entries; i++) {
-				if ((account = account_get_list_entry(file, ACCOUNT_FULL, i)) != NULL_ACCOUNT) {
+				if ((account = account_get_list_entry_account(file, ACCOUNT_FULL, i)) != NULL_ACCOUNT) {
 					if (data[account].report_total != 0) {
 						total += data[account].report_total;
 						currency_convert_to_string(data[account].report_total, b1, sizeof(b1));
@@ -1236,7 +1237,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 			entries = account_get_list_length(file, ACCOUNT_OUT);
 
 			for (i = 0; i < entries; i++) {
-				if ((account = account_get_list_entry(file, ACCOUNT_OUT, i)) != NULL_ACCOUNT) {
+				if ((account = account_get_list_entry_account(file, ACCOUNT_OUT, i)) != NULL_ACCOUNT) {
 					if (data[account].report_total != 0) {
 						total += data[account].report_total;
 						currency_convert_to_string(data[account].report_total, b1, sizeof(b1));
@@ -1283,7 +1284,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 			entries = account_get_list_length(file, ACCOUNT_IN);
 
 			for (i = 0; i < entries; i++) {
-				if ((account = account_get_list_entry(file, ACCOUNT_IN, i)) != NULL_ACCOUNT) {
+				if ((account = account_get_list_entry_account(file, ACCOUNT_IN, i)) != NULL_ACCOUNT) {
 					if (data[account].report_total != 0) {
 						total += data[account].report_total;
 						currency_convert_to_string(-data[account].report_total, b1, sizeof(b1));
@@ -1839,7 +1840,7 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 			entries = account_get_list_length(file, sequence[acc_group]);
 
 			for (group_line = 0; group_line < entries; group_line++) {
-				if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					found = 0;
 					tot_in = 0;
 					tot_out = 0;
@@ -2507,7 +2508,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 			entries = account_get_list_length(file, sequence[acc_group]);
 
 			for (group_line = 0; group_line < entries; group_line++) {
-				if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
 						strcat(line, b1);
@@ -2564,7 +2565,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 					entries = account_get_list_length(file, sequence[acc_group]);
 
 					for (group_line = 0; group_line < entries; group_line++) {
-						if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+						if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 							if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 								total += data[acc].report_total;
 								currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
@@ -2592,7 +2593,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 					entries = account_get_list_length(file, sequence[acc_group]);
 
 					for (group_line = 0; group_line < entries; group_line++) {
-						if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+						if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 							if (data[acc].report_total != 0 && (data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 								total += data[acc].report_total;
 								currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
@@ -3137,7 +3138,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 			entries = account_get_list_length(file, sequence[acc_group]);
 
 			for (group_line = 0; group_line < entries; group_line++) {
-				if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
 						strcat(line, b1);
@@ -3190,7 +3191,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 				entries = account_get_list_length(file, sequence[acc_group]);
 
 				for (group_line = 0; group_line < entries; group_line++) {
-					if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+					if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 						if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 							total += data[acc].report_total;
 							currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
@@ -3217,7 +3218,7 @@ static void analysis_generate_balance_report(struct file_block *file)
 				entries = account_get_list_length(file, sequence[acc_group]);
 
 				for (group_line = 0; group_line < entries; group_line++) {
-					if ((acc = account_get_list_entry(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+					if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 						if (data[acc].report_total != 0 && (data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
 							total += data[acc].report_total;
 							currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
@@ -4379,7 +4380,7 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
 	if (file->saved_report_count > 0) {
 		analysis_template_menu = heap_alloc(28 + 24 * file->saved_report_count);
 		analysis_template_menu_link = heap_alloc(file->saved_report_count * sizeof(struct analysis_report_link));
-		analysis_template_menu_title = heap_alloc(ACCOUNT_MENU_TITLE_LEN);
+		analysis_template_menu_title = heap_alloc(ANALYSIS_MENU_TITLE_LEN);
 	}
 
 	if (analysis_template_menu == NULL || analysis_template_menu_link == NULL || analysis_template_menu_title == NULL) {
@@ -4429,7 +4430,7 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
 
 	analysis_template_menu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
 
-	msgs_lookup((standalone) ? "RepListMenuT2" : "RepListMenuT1", analysis_template_menu_title, ACCOUNT_MENU_TITLE_LEN);
+	msgs_lookup((standalone) ? "RepListMenuT2" : "RepListMenuT1", analysis_template_menu_title, ANALYSIS_MENU_TITLE_LEN);
 	analysis_template_menu->title_data.indirected_text.text = analysis_template_menu_title;
 	analysis_template_menu->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
 	analysis_template_menu->title_fg = wimp_COLOUR_BLACK;

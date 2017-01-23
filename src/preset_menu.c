@@ -115,6 +115,7 @@ static void		preset_menu_decode(wimp_selection *selection);
 static wimp_menu	*preset_menu_build(struct file_block *file);
 static void		preset_menu_destroy(void);
 
+
 /**
  * Create and open a Preset completion menu over a line in a transaction window.
  * 

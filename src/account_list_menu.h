@@ -33,8 +33,6 @@
 #include "account.h"
 
 
-
-
 /**
  * Build an Account List menu for a file, and return the pointer.  This is a
  * list of Full Accounts, used for opening a Account List view.
@@ -42,7 +40,6 @@
  * \param *file			The file to build the menu for.
  * \return			The created menu, or NULL for an error.
  */
-
 
 wimp_menu *account_list_menu_build(struct file_block *file);
 
@@ -71,8 +68,5 @@ void account_list_menu_prepare(void);
  */
 
 acct_t account_list_menu_decode(int selection);
-
-
-
 
 #endif

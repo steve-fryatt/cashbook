@@ -90,19 +90,13 @@ static wimp_menu			*account_list_menu = NULL;
  * The associated menu entry data.
  */
 
-static struct account_list_menu_link	*account_list_menu_entry_link = NULL;		/**< Links for the Account List menu.					*/
+static struct account_list_menu_link	*account_list_menu_entry_link = NULL;
 
 /**
  * Memory to hold the indirected menu title.
  */
 
 static char				account_list_menu_title[ACCOUNT_LIST_MENU_TITLE_LEN];
-
-
-
-
-
-
 
 
 
@@ -119,6 +113,7 @@ wimp_menu *account_list_menu_build(struct file_block *file)
 {
 	int	i, line, accounts, display_lines, width;
 	acct_t	account;
+	char	*name;
 
 	account_list_menu_destroy();
 
@@ -157,17 +152,31 @@ wimp_menu *account_list_menu_build(struct file_block *file)
 	width = 0;
 
 	while (line < accounts && i < display_lines) {
-		account = account_get_list_entry(file, ACCOUNT_FULL, i);
+		switch (account_get_list_entry_type(file, ACCOUNT_FULL, i)) {
+		case ACCOUNT_LINE_DATA:
+			account = account_get_list_entry_account(file, ACCOUNT_FULL, i);
 
-		/* If the line is an account, add it to the manu... */
+			/* If the line is an account, add it to the manu... */
 
-		if (account != NULL_ACCOUNT) {
+			if (account == NULL_ACCOUNT) {
+				i++;
+				continue;
+			}
+
+			name = account_get_name(file, account);
+			if (name == NULL) {
+				i++;
+				continue;
+			}
+
 			/* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
 			 * well move while the menu is open.  The account number is also stored, to allow the account to be found.
 			 */
 
-			strcpy(account_list_menu_entry_link[line].name, file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].name);
-			account_list_menu_entry_link[line].account = file->accounts->account_windows[entry].line_data[i].account;
+			strncpy(account_list_menu_entry_link[line].name, name, ACCOUNT_NAME_LEN);
+			account_list_menu_entry_link[line].name[ACCOUNT_NAME_LEN - 1] = '\0';
+			account_list_menu_entry_link[line].account = account;
+
 			if (strlen(account_list_menu_entry_link[line].name) > width)
 				width = strlen(account_list_menu_entry_link[line].name);
 
@@ -191,9 +200,18 @@ wimp_menu *account_list_menu_build(struct file_block *file)
 			#endif
 
 			line++;
-		} else if (file->accounts->account_windows[entry].line_data[i].type == ACCOUNT_LINE_HEADER && line > 0) {
+			break;
+
+		case ACCOUNT_LINE_HEADER:
 			/* If the line is a header, and the menu has an item in it, add a separator... */
-			account_list_menu->entries[line-1].menu_flags |= wimp_MENU_SEPARATE;
+
+			if (line > 0)
+				account_list_menu->entries[line - 1].menu_flags |= wimp_MENU_SEPARATE;
+			break;
+
+		case ACCOUNT_LINE_BLANK:
+		case ACCOUNT_LINE_FOOTER:
+			break;
 		}
 
 		i++;
@@ -249,7 +267,7 @@ void account_list_menu_prepare(void)
 		return;
 
 	do {
-		if (account_list_menu_file->accounts->accounts[account_list_menu_entry_link[i].account].account_view != NULL)
+		if (account_get_accview(account_list_menu_file, account_list_menu_entry_link[i].account) != NULL)
 			account_list_menu->entries[i].menu_flags |= wimp_MENU_TICKED;
 		else
 			account_list_menu->entries[i].menu_flags &= ~wimp_MENU_TICKED;

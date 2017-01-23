@@ -62,7 +62,6 @@
 #include "date.h"
 #include "file.h"
 #include "fontlist.h"
-#include "mainmenu.h"
 
 
 /* Pane numbers */

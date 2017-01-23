@@ -44,6 +44,13 @@ struct account_block;
  * Static constants
  */
 
+/**
+ * The length of a section name in an account list.
+ */
+
+#define ACCOUNT_SECTION_LEN 52
+
+
 
 /**
  * Account types
@@ -204,6 +211,18 @@ int account_get_list_length(struct file_block *file, enum account_type type);
 
 
 /**
+ * Return the  type of a given line of an account list window.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \param line			The line to return the details for.
+ * \return			The type of data on that line.
+ */
+
+enum account_line_type account_get_list_entry_type(struct file_block *file, enum account_type type, int line);
+
+
+/**
  * Return the account on a given line of an account list window.
  *
  * \param *file			The file to use.
@@ -213,7 +232,20 @@ int account_get_list_length(struct file_block *file, enum account_type type);
  *				line isn't an account.
  */
 
-acct_t account_get_list_entry(struct file_block *file, enum account_type type, int line);
+acct_t account_get_list_entry_account(struct file_block *file, enum account_type type, int line);
+
+
+/**
+ * Return the text on a given line of an account list window.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \param line			The line to return the details for.
+ * \return			A volatile pointer to the text on the line,
+ *				or NULL.
+ */
+
+char *account_get_list_entry_text(struct file_block *file, enum account_type type, int line);
 
 
 /**

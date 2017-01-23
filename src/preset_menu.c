@@ -304,5 +304,6 @@ static void preset_menu_destroy(void)
 
 	preset_menu = NULL;
 	preset_menu_entry_link = NULL;
+	preset_menu_line = -1;
 	*preset_menu_title = '\0';
 }

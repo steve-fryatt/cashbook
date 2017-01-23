@@ -67,6 +67,8 @@
 #include "transact.h"
 
 #include "account.h"
+#include "account_list_menu.h"
+#include "account_menu.h"
 #include "accview.h"
 #include "analysis.h"
 #include "budget.h"
@@ -81,7 +83,6 @@
 #include "find.h"
 #include "flexutils.h"
 #include "goto.h"
-#include "mainmenu.h"
 #include "presets.h"
 #include "preset_menu.h"
 #include "printing.h"
@@ -922,10 +923,10 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 				preset_menu_open(file, line, pointer);
 			} else if (column == TRANSACT_ICON_FROM_NAME) {
 				/* If the column is the From name, open the from account menu. */
-				open_account_menu(file, ACCOUNT_MENU_FROM, line, NULL, 0, 0, 0, pointer);
+				account_menu_open(file, ACCOUNT_MENU_FROM, line, pointer);
 			} else if (column == TRANSACT_ICON_TO_NAME) {
 				/* If the column is the To name, open the to account menu. */
-				open_account_menu(file, ACCOUNT_MENU_TO, line, NULL, 0, 0, 0, pointer);
+				account_menu_open(file, ACCOUNT_MENU_TO, line, pointer);
 			} else if (column == TRANSACT_ICON_REFERENCE) {
 				/* If the column is the Reference, open the to reference menu. */
 				refdesc_menu_open(file, REFDESC_MENU_REFERENCE, line, pointer);

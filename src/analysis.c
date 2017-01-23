@@ -59,13 +59,13 @@
 #include "analysis.h"
 
 #include "account.h"
+#include "account_menu.h"
 #include "budget.h"
 #include "caret.h"
 #include "currency.h"
 #include "date.h"
 #include "file.h"
 #include "flexutils.h"
-#include "mainmenu.h"
 #include "report.h"
 #include "transact.h"
 
@@ -3334,7 +3334,7 @@ static void analysis_lookup_click_handler(wimp_pointer *pointer)
 			break;
 		}
 
-		open_account_menu(analysis_lookup_file, type, 0,
+		account_menu_open_icon(analysis_lookup_file, type,
 				analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC, pointer);
 		break;
 

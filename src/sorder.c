@@ -64,6 +64,7 @@
 #include "sorder.h"
 
 #include "account.h"
+#include "account_menu.h"
 #include "accview.h"
 #include "budget.h"
 #include "caret.h"
@@ -74,7 +75,6 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
-#include "mainmenu.h"
 #include "printing.h"
 #include "sort.h"
 #include "sort_dialogue.h"
@@ -1352,13 +1352,13 @@ static void sorder_edit_click_handler(wimp_pointer *pointer)
 
 	case SORDER_EDIT_FMNAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(sorder_edit_owner->file, ACCOUNT_MENU_FROM, 0,
+			account_menu_open_icon(sorder_edit_owner->file, ACCOUNT_MENU_FROM,
 					sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC, pointer);
 		break;
 
 	case SORDER_EDIT_TONAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(sorder_edit_owner->file, ACCOUNT_MENU_TO, 0,
+			account_menu_open_icon(sorder_edit_owner->file, ACCOUNT_MENU_TO,
 					sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC, pointer);
 		break;
 

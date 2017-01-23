@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -57,13 +57,13 @@
 #include "find.h"
 
 #include "account.h"
+#include "account_menu.h"
 #include "caret.h"
 #include "column.h"
 #include "currency.h"
 #include "date.h"
 #include "edit.h"
 #include "file.h"
-#include "mainmenu.h"
 #include "transact.h"
 
 #define FIND_ICON_OK 26
@@ -352,13 +352,13 @@ static void find_click_handler(wimp_pointer *pointer)
 
 	case FIND_ICON_FMNAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(find_window_owner->file, ACCOUNT_MENU_FROM, 0, find_window,
+			account_menu_open_icon(find_window_owner->file, ACCOUNT_MENU_FROM, find_window,
 					FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC, pointer);
 		break;
 
 	case FIND_ICON_TONAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(find_window_owner->file, ACCOUNT_MENU_TO, 0, find_window,
+			account_menu_open_icon(find_window_owner->file, ACCOUNT_MENU_TO, find_window,
 					FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC, pointer);
 		break;
 

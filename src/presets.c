@@ -62,6 +62,7 @@
 #include "presets.h"
 
 #include "account.h"
+#include "account_menu.h"
 #include "caret.h"
 #include "column.h"
 #include "currency.h"
@@ -70,7 +71,6 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
-#include "mainmenu.h"
 #include "printing.h"
 #include "sort.h"
 #include "sort_dialogue.h"
@@ -1397,13 +1397,13 @@ static void preset_edit_click_handler(wimp_pointer *pointer)
 
 	case PRESET_EDIT_FMNAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(preset_edit_owner->file, ACCOUNT_MENU_FROM, 0,
+			account_menu_open_icon(preset_edit_owner->file, ACCOUNT_MENU_FROM,
 					preset_edit_window, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC, pointer);
 		break;
 
 	case PRESET_EDIT_TONAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			open_account_menu(preset_edit_owner->file, ACCOUNT_MENU_TO, 0,
+			account_menu_open_icon(preset_edit_owner->file, ACCOUNT_MENU_TO,
 					preset_edit_window, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC, pointer);
 		break;
 

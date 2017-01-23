@@ -165,6 +165,9 @@ void refdesc_menu_open(struct file_block *file, enum refdesc_menu_type menu_type
 	}
 
 	amenu_open(menu, token, pointer, refdesc_menu_prepare, NULL, refdesc_menu_decode, refdesc_menu_destroy);
+
+	refdesc_menu_file = file;
+	refdesc_menu_line = line;
 }
 
 
@@ -265,8 +268,6 @@ static wimp_menu *refdesc_menu_build(struct file_block *file, enum refdesc_menu_
 
 	hourglass_on();
 
-	refdesc_menu_file = file;
-	refdesc_menu_line = start_line;
 	refdesc_menu_active_type = menu_type;
 
 	/* Claim enough memory to build the menu in. Note that this might return NULL;
@@ -535,6 +536,7 @@ static void refdesc_menu_destroy(void)
 	refdesc_menu = NULL;
 	refdesc_menu_entry_link = NULL;
 	refdesc_menu_file = NULL;
+	refdesc_menu_line = -1;
 	refdesc_menu_active_type = REFDESC_MENU_NONE;
 	*refdesc_menu_title = '\0';
 }

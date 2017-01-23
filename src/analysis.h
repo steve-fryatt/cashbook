@@ -32,6 +32,10 @@
 
 #include "account.h"
 
+
+#define NULL_TEMPLATE ((int) (-1))
+
+
 /**
  * Initialise the Analysis module and all its dialogue boxes.
  */

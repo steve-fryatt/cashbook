@@ -56,6 +56,17 @@
 
 #include "window.h"
 
+/**
+ * The horizontal space between columns in OS units.
+ */
+
+#define COLUMN_HEADING_MARGIN 2
+
+/**
+ * Placement offset for the sort column icon, in OS units.
+ */
+
+#define COLUMN_SORT_OFFSET 8
 
 /**
  * A column definition block.

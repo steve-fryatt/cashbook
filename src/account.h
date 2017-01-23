@@ -45,10 +45,24 @@ struct account_block;
  */
 
 /**
+ * The length of an account name.
+ */
+
+#define ACCOUNT_NAME_LEN 32
+
+/**
+ * The length of an account ident.
+ */
+
+#define ACCOUNT_IDENT_LEN 5
+
+/**
  * The length of a section name in an account list.
  */
 
 #define ACCOUNT_SECTION_LEN 52
+
+#define NULL_ACCOUNT ((acct_t) -1)
 
 
 

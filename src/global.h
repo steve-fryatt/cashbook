@@ -41,22 +41,10 @@
 
 #define FILE_MAX_FILENAME 256
 
-#define COLUMN_HEADING_MARGIN 2
-#define COLUMN_SORT_OFFSET 8
 
-#define ACCOUNT_NAME_LEN 32
-#define ACCOUNT_IDENT_LEN 5
-#define ACCOUNT_NO_LEN 32
-#define ACCOUNT_SRTCD_LEN 15
-#define ACCOUNT_ADDR_LEN 64
-
-#define ACCOUNT_ADDR_LINES 4
 
 #define REC_FIELD_LEN 2
 #define AMOUNT_FIELD_LEN 15
-
-#define NULL_ACCOUNT ((acct_t) -1)
-#define NULL_TEMPLATE ((int) (-1))
 
 
 
@@ -110,10 +98,6 @@ struct file_block
 	/* The interest rate manager. */
 
 	struct interest_block		*interest;				/**< Data relating to the interest rate manager.		*/
-
-	/* Recalculation data. */
-
-	date_t				last_full_recalc;			/* The last time a full recalculation was done on the file.	*/
 
 	/* Budget data. */
 

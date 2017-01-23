@@ -310,7 +310,6 @@ struct file_block *build_new_file_block(void)
 
   new->saved_report_count = 0;
 
-  new->last_full_recalc = NULL_DATE;
 
 	/* Set up the flex memory blocks, using dummy amoungts of 4 bytes to
 	 * prevent flex getting upset.

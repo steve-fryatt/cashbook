@@ -197,6 +197,14 @@
 #define ACCOUNT_PANE_ACCOUNT 0
 #define ACCOUNT_PANE_HEADING 1
 
+
+#define ACCOUNT_NO_LEN 32
+#define ACCOUNT_SRTCD_LEN 15
+#define ACCOUNT_ADDR_LEN 64
+
+#define ACCOUNT_ADDR_LINES 4
+
+
 /* Account Window column map. */
 
 static struct column_map account_columns[] = {
@@ -324,6 +332,10 @@ struct account_block {
 
 	struct account		*accounts;					/**< The account data for the defined accounts			*/
 	int			account_count;					/**< The number of accounts defined in the file.		*/
+
+	/* Recalculation data. */
+
+	date_t			last_full_recalc;				/**< The last time a full recalculation was done on the file.	*/
 };
 
 
@@ -512,6 +524,8 @@ struct account_block *account_create_instance(struct file_block *file)
 
 	new->accounts = NULL;
 	new->account_count = 0;
+
+	new->last_full_recalc = NULL_DATE;
 
 	/* Initialise the account and heading windows. */
 
@@ -3658,7 +3672,7 @@ void account_recalculate_all(struct file_block *file)
 		file->accounts->accounts[account].trial_balance = file->accounts->accounts[account].available_balance + file->accounts->accounts[account].sorder_trial;
 	}
 
-	file->last_full_recalc = date;
+	file->accounts->last_full_recalc = date;
 
 	/* Calculate the accounts windows data and force a redraw of the windows that are open. */
 
@@ -3701,7 +3715,7 @@ void account_remove_transaction(struct file_block *file, tran_t transaction)
 		if (transaction_flags & TRANS_REC_FROM)
 			file->accounts->accounts[transaction_account].statement_balance += transaction_amount;
 
-		if (transaction_date <= file->last_full_recalc)
+		if (transaction_date <= file->accounts->last_full_recalc)
 			file->accounts->accounts[transaction_account].current_balance += transaction_amount;
 
 		if ((budget_start == NULL_DATE || transaction_date >= budget_start) &&
@@ -3717,7 +3731,7 @@ void account_remove_transaction(struct file_block *file, tran_t transaction)
 		if (transaction_flags & TRANS_REC_TO)
 			file->accounts->accounts[transaction_account].statement_balance -= transaction_amount;
 
-		if (transaction_date <= file->last_full_recalc)
+		if (transaction_date <= file->accounts->last_full_recalc)
 			file->accounts->accounts[transaction_account].current_balance -= transaction_amount;
 
 		if ((budget_start == NULL_DATE || transaction_date >= budget_start) &&
@@ -3764,7 +3778,7 @@ void account_restore_transaction(struct file_block *file, int transaction)
 		if (transaction_flags & TRANS_REC_FROM)
 			file->accounts->accounts[transaction_account].statement_balance -= transaction_amount;
 
-		if (transaction_date <= file->last_full_recalc)
+		if (transaction_date <= file->accounts->last_full_recalc)
 			file->accounts->accounts[transaction_account].current_balance -= transaction_amount;
 
 		if ((budget_start == NULL_DATE || transaction_date >= budget_start) &&
@@ -3780,7 +3794,7 @@ void account_restore_transaction(struct file_block *file, int transaction)
 		if (transaction_flags & TRANS_REC_TO)
 			file->accounts->accounts[transaction_account].statement_balance += transaction_amount;
 
-		if (transaction_date <= file->last_full_recalc)
+		if (transaction_date <= file->accounts->last_full_recalc)
 			file->accounts->accounts[transaction_account].current_balance += transaction_amount;
 
 		if ((budget_start == NULL_DATE || transaction_date >= budget_start) &&

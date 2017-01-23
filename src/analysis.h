@@ -172,14 +172,6 @@ void analysis_open_balance_window(struct file_block *file, wimp_pointer *ptr, in
 
 
 /**
- * This function is called whenever the account list menu closes.  If the enter
- * account window is open, it is converted back into a transient menu.
- */
-
-void analysis_lookup_menu_closed(void);
-
-
-/**
  * Remove an account from all of the report templates in a file (pending
  * deletion).
  *

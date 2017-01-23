@@ -1352,13 +1352,13 @@ static void sorder_edit_click_handler(wimp_pointer *pointer)
 
 	case SORDER_EDIT_FMNAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(sorder_edit_owner->file, ACCOUNT_MENU_FROM,
+			account_menu_open_icon(sorder_edit_owner->file, ACCOUNT_MENU_FROM, NULL,
 					sorder_edit_window, SORDER_EDIT_FMIDENT, SORDER_EDIT_FMNAME, SORDER_EDIT_FMREC, pointer);
 		break;
 
 	case SORDER_EDIT_TONAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(sorder_edit_owner->file, ACCOUNT_MENU_TO,
+			account_menu_open_icon(sorder_edit_owner->file, ACCOUNT_MENU_TO, NULL,
 					sorder_edit_window, SORDER_EDIT_TOIDENT, SORDER_EDIT_TONAME, SORDER_EDIT_TOREC, pointer);
 		break;
 

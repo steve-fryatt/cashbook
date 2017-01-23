@@ -473,6 +473,7 @@ static void		analysis_generate_balance_report(struct file_block *file);
 static void		analysis_open_account_lookup(struct file_block *file, wimp_w window, wimp_i icon, int account, enum account_type type);
 static void		analysis_lookup_click_handler(wimp_pointer *pointer);
 static osbool		analysis_lookup_keypress_handler(wimp_key *key);
+static void		analysis_lookup_menu_closed(void);
 static osbool		analysis_process_lookup_window(void);
 
 static void		analysis_find_date_range(struct file_block *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget);
@@ -3335,7 +3336,7 @@ static void analysis_lookup_click_handler(wimp_pointer *pointer)
 			break;
 		}
 
-		account_menu_open_icon(analysis_lookup_file, type,
+		account_menu_open_icon(analysis_lookup_file, type, analysis_lookup_menu_closed,
 				analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC, pointer);
 		break;
 
@@ -3381,7 +3382,7 @@ static osbool analysis_lookup_keypress_handler(wimp_key *key)
  * account window is open, it is converted back into a transient menu.
  */
 
-void analysis_lookup_menu_closed(void)
+static void analysis_lookup_menu_closed(void)
 {
 	wimp_window_state	window_state;
 

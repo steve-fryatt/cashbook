@@ -1397,13 +1397,13 @@ static void preset_edit_click_handler(wimp_pointer *pointer)
 
 	case PRESET_EDIT_FMNAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(preset_edit_owner->file, ACCOUNT_MENU_FROM,
+			account_menu_open_icon(preset_edit_owner->file, ACCOUNT_MENU_FROM, NULL,
 					preset_edit_window, PRESET_EDIT_FMIDENT, PRESET_EDIT_FMNAME, PRESET_EDIT_FMREC, pointer);
 		break;
 
 	case PRESET_EDIT_TONAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(preset_edit_owner->file, ACCOUNT_MENU_TO,
+			account_menu_open_icon(preset_edit_owner->file, ACCOUNT_MENU_TO, NULL,
 					preset_edit_window, PRESET_EDIT_TOIDENT, PRESET_EDIT_TONAME, PRESET_EDIT_TOREC, pointer);
 		break;
 

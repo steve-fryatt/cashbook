@@ -352,13 +352,13 @@ static void find_click_handler(wimp_pointer *pointer)
 
 	case FIND_ICON_FMNAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(find_window_owner->file, ACCOUNT_MENU_FROM, find_window,
+			account_menu_open_icon(find_window_owner->file, ACCOUNT_MENU_FROM, NULL, find_window,
 					FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC, pointer);
 		break;
 
 	case FIND_ICON_TONAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(find_window_owner->file, ACCOUNT_MENU_TO, find_window,
+			account_menu_open_icon(find_window_owner->file, ACCOUNT_MENU_TO, NULL, find_window,
 					FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC, pointer);
 		break;
 

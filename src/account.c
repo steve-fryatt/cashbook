@@ -1626,7 +1626,7 @@ static void account_acc_edit_click_handler(wimp_pointer *pointer)
 
 	case ACCT_EDIT_OFFSET_NAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(account_edit_owner->file, ACCOUNT_MENU_ACCOUNTS,
+			account_menu_open_icon(account_edit_owner->file, ACCOUNT_MENU_ACCOUNTS, NULL,
 					account_acc_edit_window, ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC, pointer);
 		break;
 	}

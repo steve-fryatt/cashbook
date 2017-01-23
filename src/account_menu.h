@@ -66,6 +66,7 @@ void account_menu_open(struct file_block *file, enum account_menu_type menu_type
  * 
  * \param *file			The file to which the menu will belong.
  * \param menu_type		The type of menu to be opened.
+ * \param *close_callback	Callback pointer to report closure of the menu, or NULL.
  * \param window		The window in which the target icons exist.
  * \param icon_i		The target ident field icon.
  * \param icon_n		The target name field icon.
@@ -73,7 +74,7 @@ void account_menu_open(struct file_block *file, enum account_menu_type menu_type
  * \param *pointer		Pointer to the Wimp pointer details.
  */
 
-void account_menu_open_icon(struct file_block *file, enum account_menu_type menu_type,
+void account_menu_open_icon(struct file_block *file, enum account_menu_type menu_type, void (*close_callback)(void),
 		wimp_w window, wimp_i icon_i, wimp_i icon_n, wimp_i icon_r, wimp_pointer *pointer);
 
 #endif

@@ -1286,7 +1286,7 @@ osbool preset_test_index_valid(struct file_block *file, preset_t preset)
  * pointer will become invalid as soon as any operation is carried
  * out which might shift blocks in the flex heap.
  *
- * \param *file			The file containing the transaction.
+ * \param *file			The file containing the preset.
  * \param preset		The preset to return the name of.
  * \param *buffer		Pointer to a buffer to take the name, or
  *				NULL to return a volatile pointer to the

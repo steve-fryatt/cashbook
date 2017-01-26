@@ -32,8 +32,9 @@
 
 #include "account.h"
 
+typedef int template_t;
 
-#define NULL_TEMPLATE ((int) (-1))
+#define NULL_TEMPLATE ((template_t) (-1))
 
 
 /**
@@ -224,25 +225,6 @@ void analysis_open_save_window(struct analysis_report *template, wimp_pointer *p
 
 
 /**
- * Build a Template List menu and return the pointer.
- *
- * \param *file			The file to build the menu for.
- * \param standalone		TRUE if the menu is standalone; FALSE for part of
- *				the main menu.
- * \return			The created menu, or NULL for an error.
- */
-
-wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalone);
-
-
-/**
- * Destroy any Template List menu which is currently open.
- */
-
-void analysis_template_menu_destroy(void);
-
-
-/**
  * Force the closure of any Analysis windows which are open and relate
  * to the given file.
  *
@@ -262,7 +244,8 @@ void analysis_force_windows_closed(struct file_block *file);
 void analysis_force_close_report_save_window(struct analysis_report *template);
 
 
-/* Open a report from a saved template, following its selection from the
+/**
+ *  Open a report from a saved template, following its selection from the
  * template list menu.
  *
  * \param *file			The file owning the template.
@@ -271,6 +254,38 @@ void analysis_force_close_report_save_window(struct analysis_report *template);
  */
 
 void analysis_open_template_from_menu(struct file_block *file, wimp_pointer *ptr, int selection);
+
+
+/**
+ * Return the number of templates in the given file.
+ * 
+ * \param *file			The file to report on.
+ * \return			The number of templates, or 0 on error.
+ */
+ 
+int analysis_get_template_count(struct file_block *file);
+
+
+/**
+ * Return the name for an analysis template.
+ *
+ * If a buffer is supplied, the name is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * name in the template array is returned instead. In the latter case, this
+ * pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the template.
+ * \param template		The template to return the name of.
+ * \param *buffer		Pointer to a buffer to take the name, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting name string,
+ *				either the supplied buffer or the original.
+ */
+
+char *analysis_get_template_name(struct file_block *file, template_t template, char *buffer, size_t length);
 
 
 /**

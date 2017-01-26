@@ -60,6 +60,7 @@
 
 #include "account.h"
 #include "account_menu.h"
+#include "analysis_template_menu.h"
 #include "budget.h"
 #include "caret.h"
 #include "currency.h"
@@ -353,16 +354,6 @@ struct analysis_report {
 };
 
 /**
- * Template Menu Entries
- */
-
-struct analysis_report_link
-{
-	char				name[ANALYSIS_SAVED_NAME_LEN + 3];	/**< The name as it appears in the menu (+3 for ellipsis...)			*/
-	int				template;				/**< Index link to the associated report template in the saved report array.	*/
-};
-
-/**
  * Analysis Scratch Data
  *
  * Data associated with an individual account during report generation.
@@ -432,9 +423,7 @@ static enum analysis_save_mode	analysis_save_mode = ANALYSIS_SAVE_MODE_NONE;	/**
 
 /* Template List Menu. */
 
-static wimp_menu			*analysis_template_menu = NULL;		/**< The saved template menu block.						*/
-static struct analysis_report_link	*analysis_template_menu_link = NULL;	/**< Links for the template menu.						*/
-static char				*analysis_template_menu_title = NULL;	/**< The menu title buffer.							*/
+//static wimp_menu			*analysis_template_menu = NULL;		/**< The saved template menu block.						*/
 
 
 
@@ -499,8 +488,6 @@ static void		analysis_fill_save_window(struct analysis_report *template);
 static void		analysis_fill_rename_window(struct file_block *file, int template);
 static osbool		analysis_process_save_window(void);
 
-static int		analysis_template_menu_compare_entries(const void *va, const void *vb);
-
 static void		analysis_force_close_report_rename_window(wimp_w window);
 
 static int		analysis_get_template_from_name(struct file_block *file, char *name);
@@ -513,6 +500,13 @@ static void		analysis_copy_unreconciled_template(struct unrec_rep *to, struct un
 static void		analysis_copy_cashflow_template(struct cashflow_rep *to, struct cashflow_rep *from);
 static void		analysis_copy_balance_template(struct balance_rep *to, struct balance_rep *from);
 
+
+
+/**
+ * Test whether a template number is safe to look up in the template data array.
+ */
+
+#define analysis_template_valid(file, template) (((template) != NULL_TEMPLATE) && ((template) >= 0) && ((template) < ((file)->saved_report_count)))
 
 
 /**
@@ -4212,10 +4206,19 @@ static void analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 
 static void analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	if (selection->items[0] == -1)
+	template_t	template;
+	char		*name;
+
+	if (selection->items[0] == -1 || analysis_save_file == NULL)
 		return;
 
-	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, analysis_template_menu_link[selection->items[0]].name);
+	template = analysis_template_menu_decode(selection);
+
+	name = analysis_get_template_name(analysis_save_file, template, NULL, 0);
+	if (name == NULL)
+		return;
+
+	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, name);
 	icons_redraw_group(analysis_save_window, 1, ANALYSIS_SAVE_NAME);
 	icons_replace_caret_in_window(analysis_save_window);
 }
@@ -4231,7 +4234,7 @@ static void analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 static void analysis_save_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
 	analysis_template_menu_destroy();
-	ihelp_remove_menu(analysis_template_menu);
+	ihelp_remove_menu(menu);
 }
 
 
@@ -4362,130 +4365,6 @@ static osbool analysis_process_save_window(void)
 
 
 /**
- * Build a Template List menu and return the pointer.
- *
- * \param *file			The file to build the menu for.
- * \param standalone		TRUE if the menu is standalone; FALSE for part of
- *				the main menu.
- * \return			The created menu, or NULL for an error.
- */
-
-wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalone)
-{
-	int	line, width;
-
-	/* Claim enough memory to build the menu in. */
-
-	analysis_template_menu_destroy();
-
-	if (file->saved_report_count > 0) {
-		analysis_template_menu = heap_alloc(28 + 24 * file->saved_report_count);
-		analysis_template_menu_link = heap_alloc(file->saved_report_count * sizeof(struct analysis_report_link));
-		analysis_template_menu_title = heap_alloc(ANALYSIS_MENU_TITLE_LEN);
-	}
-
-	if (analysis_template_menu == NULL || analysis_template_menu_link == NULL || analysis_template_menu_title == NULL) {
-		analysis_template_menu_destroy();
-		return NULL;
-	}
-
-	/* Populate the menu. */
-
-	width = 0;
-
-	for (line = 0; line < file->saved_report_count; line++) {
-		/* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
-		 * well move while the menu is open.  The account number is also stored, to allow the account to be found.
-		 */
-
-		strcpy(analysis_template_menu_link[line].name, file->saved_reports[line].name);
-		if (!standalone)
-			strcat(analysis_template_menu_link[line].name, "...");
-		analysis_template_menu_link[line].template = line;
-		if (strlen(analysis_template_menu_link[line].name) > width)
-			width = strlen(analysis_template_menu_link[line].name);
-	}
-
-	qsort(analysis_template_menu_link, line, sizeof(struct analysis_report_link), analysis_template_menu_compare_entries);
-
-	for (line = 0; line < file->saved_report_count; line++) {
-		/* Set the menu and icon flags up. */
-
-		analysis_template_menu->entries[line].menu_flags = 0;
-
-		analysis_template_menu->entries[line].sub_menu = (wimp_menu *) -1;
-		analysis_template_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-				wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-				wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-		/* Set the menu icon contents up. */
-
-		analysis_template_menu->entries[line].data.indirected_text.text = analysis_template_menu_link[line].name;
-		analysis_template_menu->entries[line].data.indirected_text.validation = NULL;
-		analysis_template_menu->entries[line].data.indirected_text.size = ACCOUNT_NAME_LEN;
-
-		#ifdef DEBUG
-		debug_printf("Line %d: '%s'", line, analysis_template_menu_link[line].name);
-		#endif
-	}
-
-	analysis_template_menu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
-
-	msgs_lookup((standalone) ? "RepListMenuT2" : "RepListMenuT1", analysis_template_menu_title, ANALYSIS_MENU_TITLE_LEN);
-	analysis_template_menu->title_data.indirected_text.text = analysis_template_menu_title;
-	analysis_template_menu->entries[0].menu_flags |= wimp_MENU_TITLE_INDIRECTED;
-	analysis_template_menu->title_fg = wimp_COLOUR_BLACK;
-	analysis_template_menu->title_bg = wimp_COLOUR_LIGHT_GREY;
-	analysis_template_menu->work_fg = wimp_COLOUR_BLACK;
-	analysis_template_menu->work_bg = wimp_COLOUR_WHITE;
-
-	analysis_template_menu->width = (width + 1) * 16;
-	analysis_template_menu->height = 44;
-	analysis_template_menu->gap = 0;
-
-	return analysis_template_menu;
-}
-
-
-/**
- * Destroy any Template List menu which is currently open.
- */
-
-void analysis_template_menu_destroy(void)
-{
-	if (analysis_template_menu != NULL)
-		heap_free(analysis_template_menu);
-
-	if (analysis_template_menu_link != NULL)
-		heap_free(analysis_template_menu_link);
-
-	if (analysis_template_menu_title != NULL)
-		heap_free(analysis_template_menu_title);
-
-	analysis_template_menu = NULL;
-	analysis_template_menu_link = NULL;
-	analysis_template_menu_title = NULL;
-}
-
-
-/**
- * Compare two Template List menu entries for the benefit of qsort().
- *
- * \param *va			The first item structure.
- * \param *vb			The second item structure.
- * \return			Comparison result.
- */
-
-static int analysis_template_menu_compare_entries(const void *va, const void *vb)
-{
-	struct analysis_report_link *a = (struct analysis_report_link *) va;
-	struct analysis_report_link *b = (struct analysis_report_link *) vb;
-
-	return (string_nocase_strcmp(a->name, b->name));
-}
-
-
-/**
  * Force the closure of any Analysis windows which are open and relate
  * to the given file.
  *
@@ -4575,24 +4454,80 @@ void analysis_open_template_from_menu(struct file_block *file, wimp_pointer *ptr
 
 	switch (file->saved_reports[template].type) {
 	case REPORT_TYPE_TRANS:
-		analysis_open_transaction_window(file, ptr, template, config_opt_read ("RememberValues"));
+		analysis_open_transaction_window(file, ptr, template, config_opt_read("RememberValues"));
 		break;
 
 	case REPORT_TYPE_UNREC:
-		analysis_open_unreconciled_window(file, ptr, template, config_opt_read ("RememberValues"));
+		analysis_open_unreconciled_window(file, ptr, template, config_opt_read("RememberValues"));
 		break;
 
 	case REPORT_TYPE_CASHFLOW:
-		analysis_open_cashflow_window(file, ptr, template, config_opt_read ("RememberValues"));
+		analysis_open_cashflow_window(file, ptr, template, config_opt_read("RememberValues"));
 		break;
 
 	case REPORT_TYPE_BALANCE:
-		analysis_open_balance_window(file, ptr, template, config_opt_read ("RememberValues"));
+		analysis_open_balance_window(file, ptr, template, config_opt_read("RememberValues"));
 		break;
 
 	case REPORT_TYPE_NONE:
 		break;
 	}
+}
+
+
+/**
+ * Return the number of templates in the given file.
+ * 
+ * \param *file			The file to report on.
+ * \return			The number of templates, or 0 on error.
+ */
+ 
+int analysis_get_template_count(struct file_block *file)
+{
+	if (file == NULL)
+		return 0;
+
+	return file->save_report_count;
+}
+
+
+/**
+ * Return the name for an analysis template.
+ *
+ * If a buffer is supplied, the name is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * name in the template array is returned instead. In the latter case, this
+ * pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the template.
+ * \param template		The template to return the name of.
+ * \param *buffer		Pointer to a buffer to take the name, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting name string,
+ *				either the supplied buffer or the original.
+ */
+
+char *analysis_get_template_name(struct file_block *file, template_t template, char *buffer, size_t length)
+{
+	if (file == NULL || file->saved_reports == NULL || !analysis_template_valid(file, template)) {
+		if (buffer != NULL && length > 0) {
+			*buffer = '\0';
+			return buffer;
+		}
+
+		return NULL;
+	}
+
+	if (buffer == NULL || length == 0)
+		return file->saved_reports[line].name;
+
+	strncpy(buffer, file->saved_reports[line].name, length);
+	buffer[length - 1] = '\0';
+
+	return buffer;
 }
 
 

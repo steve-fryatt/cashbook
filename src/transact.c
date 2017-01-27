@@ -71,6 +71,7 @@
 #include "account_menu.h"
 #include "accview.h"
 #include "analysis.h"
+#include "analysis_template_menu.h"
 #include "budget.h"
 #include "caret.h"
 #include "clipboard.h"
@@ -1311,6 +1312,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 	struct transact_block	*windat;
 	struct file_block	*file;
 	wimp_pointer		pointer;
+	template_t		template;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL || windat->file == NULL)
@@ -1427,8 +1429,9 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_ANALYSIS_SAVEDREP:
-			if (selection->items[2] != -1)
-				analysis_open_template_from_menu(windat->file, &pointer, selection->items[2]);
+			template = analysis_template_menu_decode(selection->items[2]);
+			if (template != NULL_TEMPLATE)
+				analysis_open_template(windat->file, &pointer, template);
 			break;
 
 		case MAIN_MENU_ANALYSIS_MONTHREP:

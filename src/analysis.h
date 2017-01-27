@@ -36,6 +36,12 @@ typedef int template_t;
 
 #define NULL_TEMPLATE ((template_t) (-1))
 
+/**
+ * The length of a saved report template name.
+ */
+
+#define ANALYSIS_SAVED_NAME_LEN 32
+
 
 /**
  * Initialise the Analysis module and all its dialogue boxes.
@@ -201,7 +207,8 @@ void analysis_remove_account_from_templates(struct file_block *file, acct_t acco
 int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *array);
 
 
-/* Convert a numeric account list array into a textual list of comma-separated
+/**
+ * Convert a numeric account list array into a textual list of comma-separated
  * hex values.
  *
  * \param *file			The file to process.
@@ -245,15 +252,14 @@ void analysis_force_close_report_save_window(struct analysis_report *template);
 
 
 /**
- *  Open a report from a saved template, following its selection from the
- * template list menu.
+ * Open a report from a saved template.
  *
  * \param *file			The file owning the template.
  * \param *ptr			The Wimp pointer details.
  * \param selection		The menu selection entry.
  */
 
-void analysis_open_template_from_menu(struct file_block *file, wimp_pointer *ptr, int selection);
+void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template_t template);
 
 
 /**

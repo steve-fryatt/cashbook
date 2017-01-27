@@ -209,9 +209,6 @@
 #define ANALYSIS_ACC_SPEC_LEN 128
 #define ANALYSIS_ACC_LIST_LEN 64
 
-/* Saved Report templates */
-
-#define ANALYSIS_SAVED_NAME_LEN 32
 
 
 /**
@@ -4212,7 +4209,7 @@ static void analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 	if (selection->items[0] == -1 || analysis_save_file == NULL)
 		return;
 
-	template = analysis_template_menu_decode(selection);
+	template = analysis_template_menu_decode(selection->items[0]);
 
 	name = analysis_get_template_name(analysis_save_file, template, NULL, 0);
 	if (name == NULL)
@@ -4432,24 +4429,17 @@ static void analysis_force_close_report_rename_window(wimp_w window)
 }
 
 
-/* Open a report from a saved template, following its selection from the
- * template list menu.
+/**
+ * Open a report from a saved template.
  *
  * \param *file			The file owning the template.
  * \param *ptr			The Wimp pointer details.
  * \param selection		The menu selection entry.
  */
 
-void analysis_open_template_from_menu(struct file_block *file, wimp_pointer *ptr, int selection)
+void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template_t template)
 {
-	int template;
-
-	if (analysis_template_menu_link == NULL || selection < 0 || selection >= file->saved_report_count)
-		return;
-
-	template = analysis_template_menu_link[selection].template;
-
-	if (template < 0 || template >= file->saved_report_count)
+	if (file == NULL || !analysis_template_valid(file, template))
 		return;
 
 	switch (file->saved_reports[template].type) {
@@ -4487,7 +4477,7 @@ int analysis_get_template_count(struct file_block *file)
 	if (file == NULL)
 		return 0;
 
-	return file->save_report_count;
+	return file->saved_report_count;
 }
 
 
@@ -4522,9 +4512,9 @@ char *analysis_get_template_name(struct file_block *file, template_t template, c
 	}
 
 	if (buffer == NULL || length == 0)
-		return file->saved_reports[line].name;
+		return file->saved_reports[template].name;
 
-	strncpy(buffer, file->saved_reports[line].name, length);
+	strncpy(buffer, file->saved_reports[template].name, length);
 	buffer[length - 1] = '\0';
 
 	return buffer;

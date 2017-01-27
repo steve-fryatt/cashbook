@@ -30,7 +30,7 @@
 #ifndef CASHBOOK_ANALYSIS_TEMPLATE_MENU
 #define CASHBOOK_ANALYSIS_TEMPLATE_MENU
 
-
+#include "analysis.h"
 
 
 /**
@@ -44,6 +44,15 @@
 
 wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalone);
 
+
+/**
+ * Given an index into the menu, return the template that it identifies.
+ *
+ * \param selection		The selection index to decode.
+ * \return			The associated template, or NULL_TEMPLATE.
+ */
+
+template_t analysis_template_menu_decode(int selection);
 
 /**
  * Destroy any Template List menu which is currently open.

@@ -317,15 +317,22 @@ static void analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 
 static void analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	template_t	template;
-	char		*name;
+	template_t		template_number;
+	struct analysis_report	*template;
+	char			*name;
 
 	if (selection->items[0] == -1 || analysis_template_save_file == NULL || analysis_template_save_menu != NULL)
 		return;
 
-	template = analysis_template_menu_decode(selection->items[0]);
+	template_number = analysis_template_menu_decode(selection->items[0]);
+	if (template_number == NULL_TEMPLATE)
+		return;
 
-	name = analysis_get_template_name(analysis_template_save_file, template, NULL, 0);
+	template = analysis_get_template(analysis_template_save_file, template_number);
+	if (template == NULL)
+		return;
+
+	name = analysis_get_template_name(template, NULL, 0);
 	if (name == NULL)
 		return;
 

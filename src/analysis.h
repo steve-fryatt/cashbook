@@ -265,7 +265,23 @@ int analysis_get_template_count(struct file_block *file);
 
 
 /**
+ * Return a volatile pointer to a template block from within a file's saved
+ * templates. This is a pointre into a flex heap block, so it will only
+ * be valid until an operation occurs to shift the blocks.
+ * 
+ * \param *file			The file containing the template of interest.
+ * \param template		The number of the requied template.
+ * \return			Volatile pointer to the template, or NULL.
+ */
+
+struct analysis_report *analysis_get_template(struct file_block *file, template_t template);
+
+
+/**
  * Return the file which owns a template.
+ * 
+ * \param *pointer		Pointer to return the owning file for.
+ * \return			The owning file block, or NULL.
  */
 
 struct file_block *analysis_get_template_file(struct analysis_report *template);
@@ -280,8 +296,7 @@ struct file_block *analysis_get_template_file(struct analysis_report *template);
  * pointer will become invalid as soon as any operation is carried
  * out which might shift blocks in the flex heap.
  *
- * \param *file			The file containing the template.
- * \param template		The template to return the name of.
+ * \param *template		Pointer to the template to return the name of.
  * \param *buffer		Pointer to a buffer to take the name, or
  *				NULL to return a volatile pointer to the
  *				original data.
@@ -290,7 +305,7 @@ struct file_block *analysis_get_template_file(struct analysis_report *template);
  *				either the supplied buffer or the original.
  */
 
-char *analysis_get_template_name(struct file_block *file, template_t template, char *buffer, size_t length);
+char *analysis_get_template_name(struct analysis_report *template, char *buffer, size_t length);
 
 
 /**

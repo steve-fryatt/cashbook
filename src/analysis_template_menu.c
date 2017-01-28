@@ -119,8 +119,9 @@ static int		analysis_template_menu_compare_entries(const void *va, const void *v
 
 wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalone)
 {
-	int	line, width, template_count;
-	char	*name;
+	int			line, width, template_count;
+	struct analysis_report	*template;
+	char			*name;
 
 	/* Claim enough memory to build the menu in. */
 
@@ -147,7 +148,11 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
 		 * well move while the menu is open.  The account number is also stored, to allow the account to be found.
 		 */
 
-		name = analysis_get_template_name(file, line, NULL, 0);
+		template = analysis_get_template(file, line);
+		if (template == NULL)
+			continue;
+
+		name = analysis_get_template_name(template, NULL, 0);
 		if (name == NULL)
 			continue;
 

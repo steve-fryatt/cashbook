@@ -42,6 +42,18 @@ typedef int template_t;
 
 #define ANALYSIS_SAVED_NAME_LEN 32
 
+/**
+ * Saved Report Types.
+ */
+
+enum analysis_report_type {
+	REPORT_TYPE_NONE = 0,							/**< No report.									*/
+	REPORT_TYPE_TRANS = 1,							/**< Transaction report.							*/
+	REPORT_TYPE_UNREC = 2,							/**< Unreconciled transaction report.						*/
+	REPORT_TYPE_CASHFLOW = 3,						/**< Cashflow report.								*/
+	REPORT_TYPE_BALANCE = 4							/**< Balance report.								*/
+};
+
 
 /**
  * Initialise the Analysis module and all its dialogue boxes.
@@ -222,16 +234,6 @@ void analysis_account_list_to_hex(struct file_block *file, char *list, size_t si
 
 
 /**
- * Open the Save Template dialogue box.
- *
- * \param *template	The report template to be saved.
- * \param *ptr		The current Wimp Pointer details.
- */
-
-void analysis_open_save_window(struct analysis_report *template, wimp_pointer *ptr);
-
-
-/**
  * Force the closure of any Analysis windows which are open and relate
  * to the given file.
  *
@@ -239,16 +241,6 @@ void analysis_open_save_window(struct analysis_report *template, wimp_pointer *p
  */
 
 void analysis_force_windows_closed(struct file_block *file);
-
-
-/**
- * Force the closure of the Save Template window if it is open to save the
- * given template.
- *
- * \param *template			The template of interest.
- */
-
-void analysis_force_close_report_save_window(struct analysis_report *template);
 
 
 /**
@@ -270,6 +262,13 @@ void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template
  */
  
 int analysis_get_template_count(struct file_block *file);
+
+
+/**
+ * Return the file which owns a template.
+ */
+
+struct file_block *analysis_get_template_file(struct analysis_report *template);
 
 
 /**

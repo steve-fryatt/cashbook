@@ -37,6 +37,7 @@ OBJS = account.o			\
        amenu.o				\
        analysis.o			\
        analysis_template_menu.o		\
+       analysis_template_save.o		\
        budget.o				\
        caret.o				\
        choices.o			\

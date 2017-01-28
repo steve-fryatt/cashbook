@@ -925,7 +925,7 @@ static void report_view_close_window_handler(wimp_close *close)
 	/* Close the window */
 
 	if (report->window != NULL) {
-		analysis_force_close_report_save_window(report->template);
+		analysis_template_save_force_template_close(report->template);
 
 		ihelp_remove_window(report->window);
 		event_delete_window(report->window);
@@ -993,7 +993,7 @@ static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 		break;
 
 	case REPVIEW_MENU_TEMPLATE:
-		analysis_open_save_window(report->template, &pointer);
+		analysis_template_save_open_window(report->template, &pointer);
 		break;
 	}
 }

@@ -60,7 +60,7 @@
 
 #include "account.h"
 #include "account_menu.h"
-#include "analysis_template_menu.h"
+#include "analysis_template_save.h"
 #include "budget.h"
 #include "caret.h"
 #include "currency.h"
@@ -69,8 +69,6 @@
 #include "flexutils.h"
 #include "report.h"
 #include "transact.h"
-
-#define ANALYSIS_MENU_TITLE_LEN 32
 
 /* Transaction Report window. */
 
@@ -192,10 +190,7 @@
 #define ANALYSIS_BALANCE_OUTGOINGPOPUP 28
 #define ANALYSIS_BALANCE_TABULAR 29
 
-#define ANALYSIS_SAVE_OK 4
-#define ANALYSIS_SAVE_CANCEL 3
-#define ANALYSIS_SAVE_NAME 1
-#define ANALYSIS_SAVE_NAMEPOPUP 2
+
 
 #define ANALYSIS_LOOKUP_IDENT 0
 #define ANALYSIS_LOOKUP_REC 1
@@ -302,29 +297,11 @@ struct balance_rep {
   int          tabular;
 };
 
-enum analysis_save_mode {
-	ANALYSIS_SAVE_MODE_NONE = 0,						/**< The Save/Rename dialogue isn't used.					*/
-	ANALYSIS_SAVE_MODE_SAVE,						/**< The Save/Rename dialogue is in Save mode.					*/
-	ANALYSIS_SAVE_MODE_RENAME						/**< The Save/Rename dialogue is in Rename mode.				*/
-};
-
 enum analysis_flags {
 	ANALYSIS_REPORT_NONE = 0,
 	ANALYSIS_REPORT_FROM = 0x0001,
 	ANALYSIS_REPORT_TO = 0x0002,
 	ANALYSIS_REPORT_INCLUDE = 0x0004
-};
-
-/**
- * Saved Report Types.
- */
-
-enum analysis_report_type {
-	REPORT_TYPE_NONE = 0,							/**< No report.									*/
-	REPORT_TYPE_TRANS = 1,							/**< Transaction report.							*/
-	REPORT_TYPE_UNREC = 2,							/**< Unreconciled transaction report.						*/
-	REPORT_TYPE_CASHFLOW = 3,						/**< Cashflow report.								*/
-	REPORT_TYPE_BALANCE = 4							/**< Balance report.								*/
 };
 
 /**
@@ -369,25 +346,25 @@ static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Tran
 static struct file_block	*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.			*/
 static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.			*/
 static struct trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.			*/
-static int			analysis_transaction_template = NULL_TEMPLATE;	/**< The template which applies to the Transaction dialogue.			*/
+static template_t		analysis_transaction_template = NULL_TEMPLATE;	/**< The template which applies to the Transaction dialogue.			*/
 
 static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.				*/
 static struct file_block	*analysis_unreconciled_file = NULL;		/**< The file currently owning the unreconciled dialogue.			*/
 static osbool			analysis_unreconciled_restore = FALSE;		/**< The restore setting for the current Unreconciled dialogue.			*/
 static struct unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.			*/
-static int			analysis_unreconciled_template = NULL_TEMPLATE;	/**< The template which applies to the Unreconciled dialogue.			*/
+static template_t		analysis_unreconciled_template = NULL_TEMPLATE;	/**< The template which applies to the Unreconciled dialogue.			*/
 
 static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.					*/
 static struct file_block	*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.				*/
 static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.			*/
 static struct cashflow_rep	analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.				*/
-static int			analysis_cashflow_template = NULL_TEMPLATE;	/**< The template which applies to the Cashflow dialogue.			*/
+static template_t		analysis_cashflow_template = NULL_TEMPLATE;	/**< The template which applies to the Cashflow dialogue.			*/
 
 static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.					*/
 static struct file_block	*analysis_balance_file = NULL;			/**< The file currently owning the balance dialogue.				*/
 static osbool			analysis_balance_restore = FALSE;		/**< The restore setting for the current Balance dialogue.			*/
 static struct balance_rep	analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.				*/
-static int			analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.			*/
+static template_t		analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.			*/
 
 static struct analysis_report	analysis_report_template;			/**< New report settings for passing to the Report module.			*/
 
@@ -412,15 +389,8 @@ static osbool			analysis_period_first = TRUE;
 
 /* Save/Rename Reports. */
 
-static wimp_w			analysis_save_window = NULL;			/**< The handle of the Save/Rename window.					*/
-static struct file_block	*analysis_save_file = NULL;			/**< The file currently owning the Save/Rename window.				*/
-static struct analysis_report	*analysis_save_report = NULL;			/**< The report currently owning the Save/Rename window.			*/
-static int			analysis_save_template = NULL_TEMPLATE;		/**< The template currently owning the Save/Rename window.			*/
-static enum analysis_save_mode	analysis_save_mode = ANALYSIS_SAVE_MODE_NONE;	/**< The current mode of the Save/Rename window.				*/
 
 /* Template List Menu. */
-
-//static wimp_menu			*analysis_template_menu = NULL;		/**< The saved template menu block.						*/
 
 
 
@@ -473,19 +443,6 @@ static void		analysis_clear_account_report_flags(struct file_block *file, struct
 static void		analysis_set_account_report_flags_from_list(struct file_block *file, struct analysis_data *data, unsigned type, unsigned flags, acct_t *array, int count);
 static int		analysis_account_idents_to_list(struct file_block *file, unsigned type, char *list, acct_t *array);
 static void		analysis_account_list_to_idents(struct file_block *file, char *list, acct_t *array, int len);
-
-static void		analysis_open_rename_window(struct file_block *file, int template, wimp_pointer *ptr);
-static void		analysis_save_click_handler(wimp_pointer *pointer);
-static osbool		analysis_save_keypress_handler(wimp_key *key);
-static void		analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
-static void		analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
-static void		analysis_save_menu_close_handler(wimp_w w, wimp_menu *menu);
-static void		analysis_refresh_save_window(void);
-static void		analysis_fill_save_window(struct analysis_report *template);
-static void		analysis_fill_rename_window(struct file_block *file, int template);
-static osbool		analysis_process_save_window(void);
-
-static void		analysis_force_close_report_rename_window(wimp_w window);
 
 static int		analysis_get_template_from_name(struct file_block *file, char *name);
 static void		analysis_store_template(struct file_block *file, struct analysis_report *report, int template);
@@ -544,14 +501,7 @@ void analysis_initialise(void)
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, TRUE);
 
-	analysis_save_window = templates_create_window("SaveRepTemp");
-	ihelp_add_window(analysis_save_window, "SaveRepTemp", NULL);
-	event_add_window_mouse_event(analysis_save_window, analysis_save_click_handler);
-	event_add_window_key_event(analysis_save_window, analysis_save_keypress_handler);
-	event_add_window_menu_prepare(analysis_save_window, analysis_save_menu_prepare_handler);
-	event_add_window_menu_selection(analysis_save_window, analysis_save_menu_selection_handler);
-	event_add_window_menu_close(analysis_save_window, analysis_save_menu_close_handler);
-	event_add_window_icon_popup(analysis_save_window, ANALYSIS_SAVE_NAMEPOPUP, NULL, -1, NULL);
+	analysis_template_save_initialise();
 
 	analysis_lookup_window = templates_create_window("AccEnter");
 	ihelp_add_window(analysis_lookup_window, "AccEnter", NULL);
@@ -684,7 +634,7 @@ static void analysis_transaction_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_TRANS_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_force_close_report_rename_window(analysis_transaction_window);
+			analysis_template_save_force_rename_close(analysis_transaction_template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			analysis_refresh_transaction_window();
 		}
@@ -693,7 +643,7 @@ static void analysis_transaction_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_TRANS_OK:
 		if (analysis_process_transaction_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_force_close_report_rename_window(analysis_transaction_window);
+			analysis_template_save_force_rename_close(analysis_transaction_template);
 		}
 		break;
 
@@ -704,7 +654,7 @@ static void analysis_transaction_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_TRANS_RENAME:
 		if (pointer->buttons == wimp_CLICK_SELECT && analysis_transaction_template >= 0 && analysis_transaction_template < analysis_transaction_file->saved_report_count)
-			analysis_open_rename_window(analysis_transaction_file, analysis_transaction_template, pointer);
+			analysis_template_save_open_rename_window(analysis_transaction_file, analysis_transaction_template, pointer);
 		break;
 
 	case ANALYSIS_TRANS_BUDGET:
@@ -750,13 +700,13 @@ static osbool analysis_transaction_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		if (analysis_process_transaction_window()) {
 			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_force_close_report_rename_window(analysis_transaction_window);
+			analysis_template_save_force_rename_close(analysis_transaction_template);
 		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(analysis_transaction_window);
-		analysis_force_close_report_rename_window(analysis_transaction_window);
+		analysis_template_save_force_rename_close(analysis_transaction_template);
 		break;
 
 	case wimp_KEY_F1:
@@ -1434,7 +1384,7 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_UNREC_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_unreconciled_window);
-			analysis_force_close_report_rename_window(analysis_unreconciled_window);
+			analysis_template_save_force_rename_close(analysis_unreconciled_template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			analysis_refresh_unreconciled_window();
 		}
@@ -1443,7 +1393,7 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_UNREC_OK:
 		if (analysis_process_unreconciled_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_unreconciled_window);
-			analysis_force_close_report_rename_window(analysis_unreconciled_window);
+			analysis_template_save_force_rename_close(analysis_unreconciled_template);
 		}
 		break;
 
@@ -1455,7 +1405,7 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_UNREC_RENAME:
 		if (pointer->buttons == wimp_CLICK_SELECT && analysis_unreconciled_template >= 0 &&
 				analysis_unreconciled_template < analysis_unreconciled_file->saved_report_count)
-			analysis_open_rename_window (analysis_unreconciled_file, analysis_unreconciled_template, pointer);
+			analysis_template_save_open_rename_window (analysis_unreconciled_file, analysis_unreconciled_template, pointer);
 		break;
 
 	case ANALYSIS_UNREC_BUDGET:
@@ -1519,13 +1469,13 @@ static osbool analysis_unreconciled_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		if (analysis_process_unreconciled_window()) {
 			close_dialogue_with_caret(analysis_unreconciled_window);
-			analysis_force_close_report_rename_window(analysis_unreconciled_window);
+			analysis_template_save_force_rename_close(analysis_unreconciled_template);
 		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(analysis_unreconciled_window);
-		analysis_force_close_report_rename_window(analysis_unreconciled_window);
+		analysis_template_save_force_rename_close(analysis_unreconciled_template);
 		break;
 
 	case wimp_KEY_F1:
@@ -2095,7 +2045,7 @@ static void analysis_cashflow_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_CASHFLOW_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_cashflow_window);
-			analysis_force_close_report_rename_window(analysis_cashflow_window);
+			analysis_template_save_force_rename_close(analysis_cashflow_template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			analysis_refresh_cashflow_window();
 		}
@@ -2104,7 +2054,7 @@ static void analysis_cashflow_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_CASHFLOW_OK:
 		if (analysis_process_cashflow_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_cashflow_window);
-			analysis_force_close_report_rename_window(analysis_cashflow_window);
+			analysis_template_save_force_rename_close(analysis_cashflow_template);
 		}
 		break;
 
@@ -2115,7 +2065,7 @@ static void analysis_cashflow_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_CASHFLOW_RENAME:
 		if (pointer->buttons == wimp_CLICK_SELECT && analysis_cashflow_template >= 0 && analysis_cashflow_template < analysis_cashflow_file->saved_report_count)
-			analysis_open_rename_window(analysis_cashflow_file, analysis_cashflow_template, pointer);
+			analysis_template_save_open_rename_window(analysis_cashflow_file, analysis_cashflow_template, pointer);
 		break;
 
 	case ANALYSIS_CASHFLOW_BUDGET:
@@ -2168,13 +2118,13 @@ static osbool analysis_cashflow_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		if (analysis_process_cashflow_window()) {
 			close_dialogue_with_caret(analysis_cashflow_window);
-			analysis_force_close_report_rename_window(analysis_cashflow_window);
+			analysis_template_save_force_rename_close(analysis_cashflow_template);
 		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(analysis_cashflow_window);
-		analysis_force_close_report_rename_window(analysis_cashflow_window);
+		analysis_template_save_force_rename_close(analysis_cashflow_template);
 		break;
 
 	case wimp_KEY_F1:
@@ -2731,7 +2681,7 @@ static void analysis_balance_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_BALANCE_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_balance_window);
-			analysis_force_close_report_rename_window(analysis_balance_window);
+			analysis_template_save_force_rename_close(analysis_balance_template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			analysis_refresh_balance_window();
 		}
@@ -2740,7 +2690,7 @@ static void analysis_balance_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_BALANCE_OK:
 		if (analysis_process_balance_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_balance_window);
-			analysis_force_close_report_rename_window(analysis_balance_window);
+			analysis_template_save_force_rename_close(analysis_balance_template);
 		}
 		break;
 
@@ -2751,7 +2701,7 @@ static void analysis_balance_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_BALANCE_RENAME:
 		if (pointer->buttons == wimp_CLICK_SELECT && analysis_balance_template >= 0 && analysis_balance_template < analysis_balance_file->saved_report_count)
-			analysis_open_rename_window(analysis_balance_file, analysis_balance_template, pointer);
+			analysis_template_save_open_rename_window(analysis_balance_file, analysis_balance_template, pointer);
 		break;
 
 	case ANALYSIS_BALANCE_BUDGET:
@@ -2803,13 +2753,13 @@ static osbool analysis_balance_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		if (analysis_process_balance_window()) {
 			close_dialogue_with_caret(analysis_balance_window);
-			analysis_force_close_report_rename_window(analysis_balance_window);
+			analysis_template_save_force_rename_close(analysis_balance_template);
 		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(analysis_balance_window);
-		analysis_force_close_report_rename_window(analysis_balance_window);
+		analysis_template_save_force_rename_close(analysis_balance_template);
 		break;
 
 	case wimp_KEY_F1:
@@ -4030,338 +3980,6 @@ void analysis_account_list_to_hex(struct file_block *file, char *list, size_t si
 
 
 /**
- * Open the Save Template dialogue box.
- *
- * \param *template	The report template to be saved.
- * \param *ptr		The current Wimp Pointer details.
- */
-
-void analysis_open_save_window(struct analysis_report *template, wimp_pointer *ptr)
-{
-	/* If the window is already open, another report is being saved.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(analysis_save_window))
-		wimp_close_window(analysis_save_window);
-
-	/* Set the window contents up. */
-
-	msgs_lookup("SaveRepTitle", windows_get_indirected_title_addr(analysis_save_window), 20);
-	msgs_lookup("SaveRepSave", icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_OK), 10);
-
-	/* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
-	 * can only be done via this dialogue.  In the (unlikely) event that the Save dialogue is open when the last
-	 * report is deleted, then the popup remains active but no memu will appear...
-	 */
-
-	icons_set_shaded(analysis_save_window, ANALYSIS_SAVE_NAMEPOPUP, template->file->saved_report_count == 0);
-
-	analysis_fill_save_window(template);
-
-	ihelp_set_modifier(analysis_save_window, "Sav");
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	analysis_save_file = template->file;
-	analysis_save_report = template;
-	analysis_save_mode = ANALYSIS_SAVE_MODE_SAVE;
-
-	windows_open_centred_at_pointer(analysis_save_window, ptr);
-	place_dialogue_caret_fallback(analysis_save_window, 1, ANALYSIS_SAVE_NAME);
-}
-
-
-/**
- * Open the Rename Template dialogue box.
- *
- * \param *file		The file owning the template.
- * \param template	The template to be renamed.
- * \param *ptr		The current Wimp Pointer details.
- */
-
-static void analysis_open_rename_window(struct file_block *file, int template, wimp_pointer *ptr)
-{
-	/* If the window is already open, another report is being saved.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(analysis_save_window))
-		wimp_close_window(analysis_save_window);
-
-	/* Set the window contents up. */
-
-	msgs_lookup ("RenRepTitle", windows_get_indirected_title_addr(analysis_save_window), 20);
-	msgs_lookup ("RenRepRen", icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_OK), 10);
-
-	/* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
-	 * can only be done via this dislogue.  In the (unlikely) event that the Save dialogue is open when the last
-	 * report is deleted, then the popup remains active but no memu will appear...
-	 */
-
-	icons_set_shaded(analysis_save_window, ANALYSIS_SAVE_NAMEPOPUP, file->saved_report_count == 0);
-
-	analysis_fill_rename_window(file, template);
-
-	ihelp_set_modifier(analysis_save_window, "Ren");
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	analysis_save_file = file;
-	analysis_save_template = template;
-	analysis_save_mode = ANALYSIS_SAVE_MODE_RENAME;
-
-	windows_open_centred_at_pointer(analysis_save_window, ptr);
-	place_dialogue_caret_fallback(analysis_save_window, 1, ANALYSIS_SAVE_NAME);
-}
-
-
-/**
- * Process mouse clicks in the Save/Rename Report dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void analysis_save_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case ANALYSIS_SAVE_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_save_window);
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			analysis_refresh_save_window();
-		}
-		break;
-
-	case ANALYSIS_SAVE_OK:
-		if (analysis_process_save_window() && pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_save_window);
-		}
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Save/Rename Report window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool analysis_save_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (analysis_process_save_window()) {
-			close_dialogue_with_caret(analysis_save_window);
-		}
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(analysis_save_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Process menu prepare events in the Save/Rename Report window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- * \param *pointer	The pointer position, or NULL for a re-open.
- */
-
-static void analysis_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
-{
-	wimp_menu	*template_menu;
-
-	template_menu = analysis_template_menu_build(analysis_save_file, TRUE);
-	event_set_menu_block(template_menu);
-	ihelp_add_menu(template_menu, "RepListMenu");
-}
-
-
-/**
- * Process menu selection events in the Save/Rename Report window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- * \param *selection	The menu selection details.
- */
-
-static void analysis_save_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
-{
-	template_t	template;
-	char		*name;
-
-	if (selection->items[0] == -1 || analysis_save_file == NULL)
-		return;
-
-	template = analysis_template_menu_decode(selection->items[0]);
-
-	name = analysis_get_template_name(analysis_save_file, template, NULL, 0);
-	if (name == NULL)
-		return;
-
-	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, name);
-	icons_redraw_group(analysis_save_window, 1, ANALYSIS_SAVE_NAME);
-	icons_replace_caret_in_window(analysis_save_window);
-}
-
-
-/**
- * Process menu close events in the Save/Rename Report window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- */
-
-static void analysis_save_menu_close_handler(wimp_w w, wimp_menu *menu)
-{
-	analysis_template_menu_destroy();
-	ihelp_remove_menu(menu);
-}
-
-
-/**
- * Refresh the contents of the current Save/Rename Report window.
- */
-
-static void analysis_refresh_save_window(void)
-{
-	switch (analysis_save_mode) {
-	case ANALYSIS_SAVE_MODE_SAVE:
-		analysis_fill_save_window(analysis_save_report);
-		break;
-
-	case ANALYSIS_SAVE_MODE_RENAME:
-		analysis_fill_rename_window(analysis_save_file, analysis_save_template);
-		break;
-
-	default:
-		break;
-	}
-
-	icons_redraw_group(analysis_save_window, 1, ANALYSIS_SAVE_NAME);
-
-	icons_replace_caret_in_window(analysis_save_window);
-}
-
-
-/**
- * Fill the Save Report Window with values.
- *
- * \param: *template		The report template to be saved.
- */
-
-static void analysis_fill_save_window(struct analysis_report *template)
-{
-	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, template->name);
-}
-
-
-/**
- * Fill the Rename Template Window with values.
- *
- * \param: *file		The file containing the template.
- * \param: template		The template to be renamed.
- */
-
-static void analysis_fill_rename_window(struct file_block *file, int template)
-{
-	icons_strncpy(analysis_save_window, ANALYSIS_SAVE_NAME, file->saved_reports[template].name);
-}
-
-
-/**
- * Process OK clicks in the Save/Rename Template window.  If it is a real save,
- * pass the call on to the store saved report function.  If it is a rename,
- * handle it directly here.
- */
-
-static osbool analysis_process_save_window(void)
-{
-	int		template;
-	wimp_w		w;
-
-	if (*icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME) == '\0')
-		return FALSE;
-
-	template = analysis_get_template_from_name(analysis_save_file,
-			icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
-
-	switch (analysis_save_mode) {
-	case ANALYSIS_SAVE_MODE_SAVE:
-		if (template != NULL_TEMPLATE && error_msgs_report_question("CheckTempOvr", "CheckTempOvrB") == 2)
-			return FALSE;
-
-		strcpy(analysis_save_report->name, icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
-		analysis_store_template(analysis_save_file, analysis_save_report, template);
-		break;
-
-	case ANALYSIS_SAVE_MODE_RENAME:
-		if (analysis_save_template != NULL_TEMPLATE) {
-			if (template != NULL_TEMPLATE && template != analysis_save_template) {
-				error_msgs_report_error("TempExists");
-				return FALSE;
-			}
-
-			strcpy(analysis_save_file->saved_reports[analysis_save_template].name,
-					icons_get_indirected_text_addr(analysis_save_window, ANALYSIS_SAVE_NAME));
-
-			/* Update the window title of the parent report dialogue. */
-
-			switch (analysis_save_file->saved_reports[analysis_save_template].type) {
-			case REPORT_TYPE_TRANS:
-				w = analysis_transaction_window;
-				break;
-			case REPORT_TYPE_UNREC:
-				w = analysis_unreconciled_window;
-				break;
-			case REPORT_TYPE_CASHFLOW:
-				w = analysis_cashflow_window;
-				break;
-			case REPORT_TYPE_BALANCE:
-				w = analysis_balance_window;
-				break;
-			default:
-				w = NULL;
-				break;
-			}
-
-			if (w != NULL) {
-				msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(w), 50,
-						analysis_save_file->saved_reports[analysis_save_template].name, NULL, NULL, NULL);
-						xwimp_force_redraw_title(w); /* Nested Wimp only! */
-			}
-
-			/* Mark the file has being modified. */
-
-			file_set_data_integrity(analysis_save_file, TRUE);
-		}
-		break;
-
-	default:
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
  * Force the closure of any Analysis windows which are open and relate
  * to the given file.
  *
@@ -4382,51 +4000,9 @@ void analysis_force_windows_closed(struct file_block *file)
 	if (analysis_balance_file == file && windows_get_open(analysis_balance_window))
 		close_dialogue_with_caret(analysis_balance_window);
 
-	if (analysis_save_file == file && windows_get_open(analysis_save_window))
-		close_dialogue_with_caret(analysis_save_window);
+	analysis_template_save_force_close(file);
 }
 
-
-/**
- * Force the closure of the Save Template window if it is open to save the
- * given template.
- *
- * \param *template			The template of interest.
- */
-
-void analysis_force_close_report_save_window(struct analysis_report *template)
-{
-	if (analysis_save_mode == ANALYSIS_SAVE_MODE_SAVE &&
-			analysis_save_file == template->file && analysis_save_report == template &&
-			windows_get_open(analysis_save_window))
-		close_dialogue_with_caret(analysis_save_window);
-}
-
-
-/**
- * Force the closure of the Rename Template window if it is open to rename the
- * given template.
- *
- * \param *report			The report of interest.
- */
-
-static void analysis_force_close_report_rename_window(wimp_w window)
-{
-	if (!windows_get_open(analysis_save_window) ||
-			analysis_save_mode != ANALYSIS_SAVE_MODE_RENAME ||
-			analysis_save_template == NULL_TEMPLATE)
-		return;
-
-	if ((window == analysis_transaction_window &&
-			analysis_save_file->saved_reports[analysis_save_template].type == REPORT_TYPE_TRANS) ||
-			(window == analysis_unreconciled_window &&
-			analysis_save_file->saved_reports[analysis_save_template].type == REPORT_TYPE_UNREC) ||
-			(window == analysis_cashflow_window &&
-			analysis_save_file->saved_reports[analysis_save_template].type == REPORT_TYPE_CASHFLOW) ||
-			(window == analysis_balance_window &&
-			analysis_save_file->saved_reports[analysis_save_template].type == REPORT_TYPE_BALANCE))
-		close_dialogue_with_caret(analysis_save_window);
-}
 
 
 /**
@@ -4480,6 +4056,18 @@ int analysis_get_template_count(struct file_block *file)
 	return file->saved_report_count;
 }
 
+
+/**
+ * Return the file which owns a template.
+ */
+
+struct file_block *analysis_get_template_file(struct analysis_report *template)
+{
+	if (template == NULL)
+		return NULL;
+
+	return template->file;
+}
 
 /**
  * Return the name for an analysis template.
@@ -4601,9 +4189,7 @@ static void analysis_delete_template(struct file_block *file, int template)
 
 	/* If the rename template window is open for this template, close it now before the pointer is lost. */
 
-	if (windows_get_open(analysis_save_window) && analysis_save_mode == ANALYSIS_SAVE_MODE_RENAME &&
-			template == analysis_save_template)
-		close_dialogue_with_caret(analysis_save_window);
+	analysis_template_save_force_rename_close(template);
 
 	/* Now adjust any other template pointers for currently open report dialogues,
 	 * which may be pointing further up the array.
@@ -4623,10 +4209,7 @@ static void analysis_delete_template(struct file_block *file, int template)
 	if (type != REPORT_TYPE_BALANCE && analysis_balance_template > template)
 		analysis_balance_template--;
 
-	if (analysis_save_template > template)
-		analysis_save_template--;
-	else if (analysis_save_template == template)
-		analysis_save_template = NULL_TEMPLATE;
+	analysis_template_save_delete_template(template);
 }
 
 

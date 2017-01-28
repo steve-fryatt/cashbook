@@ -2529,7 +2529,7 @@ acct_t account_add(struct file_block *file, char *name, char *ident, enum accoun
 	/* If that fails, create a new entry. */
 
 	if (new == NULL_ACCOUNT) {
-		if (!flexutils_resize((void **) &(file->accounts->accounts), sizeof(struct account), file->accounts->account_count + 1)) {
+		if (flexutils_resize((void **) &(file->accounts->accounts), sizeof(struct account), file->accounts->account_count + 1)) {
 			new = file->accounts->account_count++;
 			#ifdef DEBUG
 			debug_printf("Created new account: %d", new);

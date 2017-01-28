@@ -309,13 +309,39 @@ char *analysis_get_template_name(struct analysis_report *template, char *buffer,
 
 
 /**
- * Copy a Report Template from one structure to another.
+ * Find a save template ID based on its name.
  *
- * \param *to			The template structure to take the copy.
- * \param *from			The template to be copied.
+ * \param *file			The file to search in.
+ * \param *name			The name to search for.
+ * \return			The matching template ID, or NULL_TEMPLATE.
  */
 
-void analysis_copy_template(struct analysis_report *to, struct analysis_report *from);
+template_t analysis_get_template_from_name(struct file_block *file, char *name);
+
+
+/**
+ * Store a report's template into a file.
+ *
+ * \param *file			The file to work on.
+ * \param *report		The report to take the template from.
+ * \param template		The template pointer to save to, or
+ *				NULL_TEMPLATE to add a new entry.
+ * \param *name			Pointer to a name to give the template, or
+ *				NULL to leave it as-is.
+ */
+
+void analysis_store_template(struct file_block *file, struct analysis_report *report, template_t template, char *name);
+
+
+/**
+ * Rename a template.
+ *
+ * \param *filer		The file containing the template.
+ * \param template		The template to be renamed.
+ * \param *name			Pointer to the new name.
+ */
+
+void analysis_rename_template(struct file_block *file, template_t template, char *name);
 
 
 /**

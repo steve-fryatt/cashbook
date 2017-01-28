@@ -444,11 +444,10 @@ static void		analysis_set_account_report_flags_from_list(struct file_block *file
 static int		analysis_account_idents_to_list(struct file_block *file, unsigned type, char *list, acct_t *array);
 static void		analysis_account_list_to_idents(struct file_block *file, char *list, acct_t *array, int len);
 
-static int		analysis_get_template_from_name(struct file_block *file, char *name);
-static void		analysis_store_template(struct file_block *file, struct analysis_report *report, int template);
 static void		analysis_delete_template(struct file_block *file, int template);
 static struct analysis_report	*analysis_create_template(struct analysis_report *base);
 
+static void		analysis_copy_template(struct analysis_report *to, struct analysis_report *from);
 static void		analysis_copy_transaction_template(struct trans_rep *to, struct trans_rep *from);
 static void		analysis_copy_unreconciled_template(struct unrec_rep *to, struct unrec_rep *from);
 static void		analysis_copy_cashflow_template(struct cashflow_rep *to, struct cashflow_rep *from);
@@ -634,7 +633,7 @@ static void analysis_transaction_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_TRANS_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_template_save_force_rename_close(analysis_transaction_template);
+			analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			analysis_refresh_transaction_window();
 		}
@@ -643,7 +642,7 @@ static void analysis_transaction_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_TRANS_OK:
 		if (analysis_process_transaction_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_template_save_force_rename_close(analysis_transaction_template);
+			analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
 		}
 		break;
 
@@ -700,13 +699,13 @@ static osbool analysis_transaction_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		if (analysis_process_transaction_window()) {
 			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_template_save_force_rename_close(analysis_transaction_template);
+			analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
 		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(analysis_transaction_window);
-		analysis_template_save_force_rename_close(analysis_transaction_template);
+		analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
 		break;
 
 	case wimp_KEY_F1:
@@ -1384,7 +1383,7 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_UNREC_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_unreconciled_window);
-			analysis_template_save_force_rename_close(analysis_unreconciled_template);
+			analysis_template_save_force_rename_close(analysis_unreconciled_file, analysis_unreconciled_template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			analysis_refresh_unreconciled_window();
 		}
@@ -1393,7 +1392,7 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_UNREC_OK:
 		if (analysis_process_unreconciled_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_unreconciled_window);
-			analysis_template_save_force_rename_close(analysis_unreconciled_template);
+			analysis_template_save_force_rename_close(analysis_unreconciled_file, analysis_unreconciled_template);
 		}
 		break;
 
@@ -1469,13 +1468,13 @@ static osbool analysis_unreconciled_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		if (analysis_process_unreconciled_window()) {
 			close_dialogue_with_caret(analysis_unreconciled_window);
-			analysis_template_save_force_rename_close(analysis_unreconciled_template);
+			analysis_template_save_force_rename_close(analysis_unreconciled_file, analysis_unreconciled_template);
 		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(analysis_unreconciled_window);
-		analysis_template_save_force_rename_close(analysis_unreconciled_template);
+		analysis_template_save_force_rename_close(analysis_unreconciled_file, analysis_unreconciled_template);
 		break;
 
 	case wimp_KEY_F1:
@@ -2045,7 +2044,7 @@ static void analysis_cashflow_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_CASHFLOW_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_cashflow_window);
-			analysis_template_save_force_rename_close(analysis_cashflow_template);
+			analysis_template_save_force_rename_close(analysis_cashflow_file, analysis_cashflow_template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			analysis_refresh_cashflow_window();
 		}
@@ -2054,7 +2053,7 @@ static void analysis_cashflow_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_CASHFLOW_OK:
 		if (analysis_process_cashflow_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_cashflow_window);
-			analysis_template_save_force_rename_close(analysis_cashflow_template);
+			analysis_template_save_force_rename_close(analysis_cashflow_file, analysis_cashflow_template);
 		}
 		break;
 
@@ -2118,13 +2117,13 @@ static osbool analysis_cashflow_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		if (analysis_process_cashflow_window()) {
 			close_dialogue_with_caret(analysis_cashflow_window);
-			analysis_template_save_force_rename_close(analysis_cashflow_template);
+			analysis_template_save_force_rename_close(analysis_cashflow_file, analysis_cashflow_template);
 		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(analysis_cashflow_window);
-		analysis_template_save_force_rename_close(analysis_cashflow_template);
+		analysis_template_save_force_rename_close(analysis_cashflow_file, analysis_cashflow_template);
 		break;
 
 	case wimp_KEY_F1:
@@ -2681,7 +2680,7 @@ static void analysis_balance_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_BALANCE_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_balance_window);
-			analysis_template_save_force_rename_close(analysis_balance_template);
+			analysis_template_save_force_rename_close(analysis_balance_file, analysis_balance_template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			analysis_refresh_balance_window();
 		}
@@ -2690,7 +2689,7 @@ static void analysis_balance_click_handler(wimp_pointer *pointer)
 	case ANALYSIS_BALANCE_OK:
 		if (analysis_process_balance_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(analysis_balance_window);
-			analysis_template_save_force_rename_close(analysis_balance_template);
+			analysis_template_save_force_rename_close(analysis_balance_file, analysis_balance_template);
 		}
 		break;
 
@@ -2753,13 +2752,13 @@ static osbool analysis_balance_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		if (analysis_process_balance_window()) {
 			close_dialogue_with_caret(analysis_balance_window);
-			analysis_template_save_force_rename_close(analysis_balance_template);
+			analysis_template_save_force_rename_close(analysis_balance_file, analysis_balance_template);
 		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(analysis_balance_window);
-		analysis_template_save_force_rename_close(analysis_balance_template);
+		analysis_template_save_force_rename_close(analysis_balance_file, analysis_balance_template);
 		break;
 
 	case wimp_KEY_F1:
@@ -4138,14 +4137,19 @@ char *analysis_get_template_name(struct analysis_report *template, char *buffer,
  * \return			The matching template ID, or NULL_TEMPLATE.
  */
 
-static int analysis_get_template_from_name(struct file_block *file, char *name)
+template_t analysis_get_template_from_name(struct file_block *file, char *name)
 {
-	int	i, found = NULL_TEMPLATE;
+	template_t	i, found = NULL_TEMPLATE;
 
-	if (file != NULL && file->saved_report_count > 0)
-		for (i=0; i<file->saved_report_count && found == -1; i++)
-			if (string_nocase_strcmp (file->saved_reports[i].name, name) == 0)
-				found = i;
+	if (file == NULL || file->saved_report_count <= 0)
+		return NULL_TEMPLATE;
+
+	for (i = 0; i < file->saved_report_count && found == NULL_TEMPLATE; i++) {
+		if (string_nocase_strcmp(file->saved_reports[i].name, name) == 0) {
+			found = i;
+			break;
+		}
+	}
 
 	return found;
 }
@@ -4158,10 +4162,15 @@ static int analysis_get_template_from_name(struct file_block *file, char *name)
  * \param *report		The report to take the template from.
  * \param template		The template pointer to save to, or
  *				NULL_TEMPLATE to add a new entry.
+ * \param *name			Pointer to a name to give the template, or
+ *				NULL to leave it as-is.
  */
 
-static void analysis_store_template(struct file_block *file, struct analysis_report *report, int template)
+void analysis_store_template(struct file_block *file, struct analysis_report *report, template_t template, char *name)
 {
+	if (file == NULL || file->saved_reports == NULL || report == NULL)
+		return;
+
 	if (template == NULL_TEMPLATE) {
 		if (!flexutils_resize((void **) &(file->saved_reports), sizeof(struct analysis_report), file->saved_report_count + 1)) {
 			error_msgs_report_error("NoMemNewTemp");
@@ -4171,11 +4180,68 @@ static void analysis_store_template(struct file_block *file, struct analysis_rep
 		template = file->saved_report_count++;
 	}
 
-	if (template < 0 || template >= file->saved_report_count)
+	if (!analysis_template_valid(file, template))
 		return;
 
-	analysis_copy_template(&(file->saved_reports[template]), report);
+	if (name != NULL) {
+		strncpy(report->name, name, ANALYSIS_SAVED_NAME_LEN);
+		report->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
+	}
+
+	analysis_copy_template(file->saved_reports + template, report);
 	file_set_data_integrity(file, TRUE);
+}
+
+
+/**
+ * Rename a template.
+ *
+ * \param *filer		The file containing the template.
+ * \param template		The template to be renamed.
+ * \param *name			Pointer to the new name.
+ */
+
+void analysis_rename_template(struct file_block *file, template_t template, char *name)
+{
+	wimp_w	w;
+
+	if (file == NULL || file->saved_reports == NULL || !analysis_template_valid(file, template))
+		return;
+
+	/* Copy the new name across into the template. */
+
+	strncpy(file->saved_reports[template].name, name, ANALYSIS_SAVED_NAME_LEN);
+	file->saved_reports[template].name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
+
+	/* Mark the file has being modified. */
+
+	file_set_data_integrity(file, TRUE);
+
+	/* Update the window title of the parent report dialogue. */
+
+	switch (file->saved_reports[template].type) {
+	case REPORT_TYPE_TRANS:
+		w = analysis_transaction_window;
+		break;
+	case REPORT_TYPE_UNREC:
+		w = analysis_unreconciled_window;
+		break;
+	case REPORT_TYPE_CASHFLOW:
+		w = analysis_cashflow_window;
+		break;
+	case REPORT_TYPE_BALANCE:
+		w = analysis_balance_window;
+		break;
+	default:
+		w = NULL;
+		break;
+	}
+
+	if (w == NULL)
+		return;
+
+	msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(w), windows_get_indirected_title_length(w), name, NULL, NULL, NULL);
+	xwimp_force_redraw_title(w);
 }
 
 
@@ -4210,7 +4276,7 @@ static void analysis_delete_template(struct file_block *file, int template)
 
 	/* If the rename template window is open for this template, close it now before the pointer is lost. */
 
-	analysis_template_save_force_rename_close(template);
+	analysis_template_save_force_rename_close(file, template);
 
 	/* Now adjust any other template pointers for currently open report dialogues,
 	 * which may be pointing further up the array.
@@ -4270,7 +4336,7 @@ static struct analysis_report *analysis_create_template(struct analysis_report *
  * \param *from			The template to be copied.
  */
 
-void analysis_copy_template(struct analysis_report *to, struct analysis_report *from)
+static void analysis_copy_template(struct analysis_report *to, struct analysis_report *from)
 {
 	if (from == NULL || to == NULL)
 		return;

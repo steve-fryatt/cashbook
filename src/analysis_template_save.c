@@ -108,7 +108,7 @@ static int					analysis_template_save_template = NULL_TEMPLATE;
 
 static wimp_menu				*analysis_template_save_menu = NULL;
 
-
+/* Static Function Prototypes. */
 
 static void		analysis_template_save_click_handler(wimp_pointer *pointer);
 static osbool		analysis_template_save_keypress_handler(wimp_key *key);

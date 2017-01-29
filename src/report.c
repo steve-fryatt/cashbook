@@ -73,6 +73,7 @@
 #include "report.h"
 
 #include "analysis.h"
+#include "analysis_template_save.h"
 #include "caret.h"
 #include "file.h"
 #include "filing.h"

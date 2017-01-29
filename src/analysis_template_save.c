@@ -207,9 +207,9 @@ void analysis_template_save_open_rename_window(struct file_block *file, int temp
 
 	/* Set the window contents up. */
 
-	msgs_lookup ("RenRepTitle", windows_get_indirected_title_addr(analysis_template_save_window),
+	msgs_lookup("RenRepTitle", windows_get_indirected_title_addr(analysis_template_save_window),
 			windows_get_indirected_title_length(analysis_template_save_window));
-	msgs_lookup ("RenRepRen", icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_OK),
+	msgs_lookup("RenRepRen", icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_OK),
 			icons_get_indirected_text_length(analysis_template_save_window, ANALYSIS_SAVE_OK));
 
 	/* The popup can be shaded here, as the only way its state can be changed is if a report is added: which

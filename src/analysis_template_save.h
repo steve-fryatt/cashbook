@@ -61,11 +61,6 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 void analysis_template_save_open_rename_window(struct file_block *file, int template_number, wimp_pointer *ptr);
 
 
-
-
-
-
-
 /**
  * Report that a report template has been deleted, and adjust the
  * dialogue handle accordingly.

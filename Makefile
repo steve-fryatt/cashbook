@@ -36,6 +36,7 @@ OBJS = account.o			\
        accview.o			\
        amenu.o				\
        analysis.o			\
+       analysis_dialogue.o		\
        analysis_lookup.o		\
        analysis_template_menu.o		\
        analysis_template_save.o		\

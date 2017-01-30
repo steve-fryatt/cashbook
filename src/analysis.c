@@ -60,6 +60,7 @@
 
 #include "account.h"
 #include "account_menu.h"
+#include "analysis_dialogue.h"
 #include "analysis_lookup.h"
 #include "analysis_template_save.h"
 #include "budget.h"
@@ -335,11 +336,15 @@ struct analysis_data
 
 /* Report windows. */
 
+static struct analysis_dialogue_block	*analysis_transaction_dialogue = NULL;
+
 static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.				*/
 static struct file_block	*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.			*/
 static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.			*/
 static struct trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.			*/
 static template_t		analysis_transaction_template = NULL_TEMPLATE;	/**< The template which applies to the Transaction dialogue.			*/
+
+static struct analysis_dialogue_block	*analysis_unreconciled_dialogue = NULL;
 
 static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.				*/
 static struct file_block	*analysis_unreconciled_file = NULL;		/**< The file currently owning the unreconciled dialogue.			*/
@@ -347,11 +352,15 @@ static osbool			analysis_unreconciled_restore = FALSE;		/**< The restore setting
 static struct unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.			*/
 static template_t		analysis_unreconciled_template = NULL_TEMPLATE;	/**< The template which applies to the Unreconciled dialogue.			*/
 
+static struct analysis_dialogue_block	*analysis_cashflow_dialogue = NULL;
+
 static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.					*/
 static struct file_block	*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.				*/
 static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.			*/
 static struct cashflow_rep	analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.				*/
 static template_t		analysis_cashflow_template = NULL_TEMPLATE;	/**< The template which applies to the Cashflow dialogue.			*/
+
+static struct analysis_dialogue_block	*analysis_balance_dialogue = NULL;
 
 static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.					*/
 static struct file_block	*analysis_balance_file = NULL;			/**< The file currently owning the balance dialogue.				*/
@@ -449,14 +458,18 @@ void analysis_initialise(void)
 	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, TRUE);
 	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, TRUE);
+	analysis_transaction_dialogue = analysis_dialogue_initialise("TransRep", "TransRep");
 
 	analysis_unreconciled_window = templates_create_window("UnrecRep");
 	ihelp_add_window(analysis_unreconciled_window, "UnrecRep", NULL);
 	event_add_window_mouse_event(analysis_unreconciled_window, analysis_unreconciled_click_handler);
 	event_add_window_key_event(analysis_unreconciled_window, analysis_unreconciled_keypress_handler);
+	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, FALSE);
+	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, FALSE);
 	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, TRUE);
 	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, TRUE);
+	analysis_unreconciled_dialogue = analysis_dialogue_initialise("UnrecRep", "UnrecRep");
 
 	analysis_cashflow_window = templates_create_window("CashFlwRep");
 	ihelp_add_window(analysis_cashflow_window, "CashFlwRep", NULL);
@@ -465,6 +478,7 @@ void analysis_initialise(void)
 	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, TRUE);
 	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, TRUE);
+	analysis_cashflow_dialogue = analysis_dialogue_initialise("CashFlwRep", "CashFlwRep");
 
 	analysis_balance_window = templates_create_window("BalanceRep");
 	ihelp_add_window(analysis_balance_window, "BalanceRep", NULL);
@@ -473,6 +487,7 @@ void analysis_initialise(void)
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, TRUE);
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, TRUE);
+	analysis_balance_dialogue = analysis_dialogue_initialise("BalanceRep", "BalanceRep");
 
 	analysis_template_save_initialise();
 	analysis_lookup_initialise();
@@ -562,7 +577,8 @@ void analysis_open_transaction_window(struct file_block *file, wimp_pointer *ptr
 		analysis_copy_transaction_template(&(analysis_transaction_settings), &(file->saved_reports[template].data.transaction));
 		analysis_transaction_template = template;
 
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_transaction_window), 50,
+		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_transaction_window),
+				windows_get_indirected_title_length(analysis_transaction_window),
 				file->saved_reports[template].name, NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
@@ -570,7 +586,8 @@ void analysis_open_transaction_window(struct file_block *file, wimp_pointer *ptr
 		analysis_copy_transaction_template(&(analysis_transaction_settings), file->trans_rep);
 		analysis_transaction_template = NULL_TEMPLATE;
 
-		msgs_lookup("TrnRepTitle", windows_get_indirected_title_addr(analysis_transaction_window), 40);
+		msgs_lookup("TrnRepTitle", windows_get_indirected_title_addr(analysis_transaction_window),
+				windows_get_indirected_title_length(analysis_transaction_window));
 	}
 
 	icons_set_deleted(analysis_transaction_window, ANALYSIS_TRANS_DELETE, !template_mode);
@@ -1312,7 +1329,8 @@ void analysis_open_unreconciled_window(struct file_block *file, wimp_pointer *pt
 		analysis_copy_unreconciled_template(&(analysis_unreconciled_settings), &(file->saved_reports[template].data.unreconciled));
 		analysis_unreconciled_template = template;
 
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window), 50,
+		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window),
+				windows_get_indirected_title_length(analysis_unreconciled_window),
 				file->saved_reports[template].name, NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
@@ -1320,7 +1338,8 @@ void analysis_open_unreconciled_window(struct file_block *file, wimp_pointer *pt
 		analysis_copy_unreconciled_template(&(analysis_unreconciled_settings), file->unrec_rep);
 		analysis_unreconciled_template = NULL_TEMPLATE;
 
-		msgs_lookup("UrcRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window), 40);
+		msgs_lookup("UrcRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window),
+				windows_get_indirected_title_length(analysis_unreconciled_window));
 	}
 
 	icons_set_deleted(analysis_unreconciled_window, ANALYSIS_UNREC_DELETE, !template_mode);
@@ -1399,8 +1418,6 @@ static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
 
 	case ANALYSIS_UNREC_GROUPACC:
 	case ANALYSIS_UNREC_GROUPDATE:
-		icons_set_selected(analysis_unreconciled_window, pointer->i, 1);
-
 		icons_set_group_shaded(analysis_unreconciled_window,
 				!(icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUP) &&
 				icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE)), 6,
@@ -1973,7 +1990,8 @@ void analysis_open_cashflow_window(struct file_block *file, wimp_pointer *ptr, i
 		analysis_copy_cashflow_template(&(analysis_cashflow_settings), &(file->saved_reports[template].data.cashflow));
 		analysis_cashflow_template = template;
 
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window), 50,
+		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window),
+				windows_get_indirected_title_length(analysis_cashflow_window),
 				file->saved_reports[template].name, NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
@@ -1981,7 +1999,8 @@ void analysis_open_cashflow_window(struct file_block *file, wimp_pointer *ptr, i
 		analysis_copy_cashflow_template(&(analysis_cashflow_settings), file->cashflow_rep);
 		analysis_cashflow_template = NULL_TEMPLATE;
 
-		msgs_lookup ("CflRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window), 40);
+		msgs_lookup ("CflRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window),
+				windows_get_indirected_title_length(analysis_cashflow_window));
 	}
 
 	icons_set_deleted(analysis_cashflow_window, ANALYSIS_CASHFLOW_DELETE, !template_mode);
@@ -2609,7 +2628,8 @@ void analysis_open_balance_window(struct file_block *file, wimp_pointer *ptr, in
 		analysis_copy_balance_template(&(analysis_balance_settings), &(file->saved_reports[template].data.balance));
 		analysis_balance_template = template;
 
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_balance_window), 50,
+		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_balance_window),
+				windows_get_indirected_title_length(analysis_balance_window),
 				file->saved_reports[template].name, NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
@@ -2617,7 +2637,8 @@ void analysis_open_balance_window(struct file_block *file, wimp_pointer *ptr, in
 		analysis_copy_balance_template (&(analysis_balance_settings), file->balance_rep);
 		analysis_balance_template = NULL_TEMPLATE;
 
-		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(analysis_balance_window), 40);
+		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(analysis_balance_window),
+				windows_get_indirected_title_length(analysis_balance_window));
 	}
 
 	icons_set_deleted(analysis_balance_window, ANALYSIS_BALANCE_DELETE, !template_mode);

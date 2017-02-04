@@ -36,6 +36,14 @@
 
 struct analysis_dialogue_block;
 
+struct analysis_dialogue_callback {
+	/**
+	 * Copy a report template from one location to another.
+	 */
+
+	void (*copy_template)(struct analysis_report *from, struct analysis_report *to);
+	
+};
 
 /**
  * Initialise a new analysis dialogue window.

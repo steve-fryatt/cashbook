@@ -32,6 +32,8 @@
 
 #include "account.h"
 
+struct analysis_block;
+
 typedef int template_t;
 
 #define NULL_TEMPLATE ((template_t) (-1))
@@ -60,6 +62,25 @@ enum analysis_report_type {
  */
 
 void analysis_initialise(void);
+
+
+/**
+ * Create a new analysis report instance.
+ *
+ * \param *file			The file to attach the instance to.
+ * \return			The instance handle, or NULL on failure.
+ */
+
+struct analysis_block *analysis_create_instance(struct file_block *file);
+
+
+/**
+ * Delete an analysis report instance, and all of its data.
+ *
+ * \param *instance	The instance to be deleted.
+ */
+
+void analysis_delete_instance(struct analysis_block *instance);
 
 
 /**
@@ -231,16 +252,6 @@ int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *ar
  */
 
 void analysis_account_list_to_hex(struct file_block *file, char *list, size_t size, acct_t *array, int len);
-
-
-/**
- * Force the closure of any Analysis windows which are open and relate
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void analysis_force_windows_closed(struct file_block *file);
 
 
 /**

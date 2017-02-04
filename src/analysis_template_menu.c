@@ -127,9 +127,11 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
 
 	analysis_template_menu_destroy();
 
-	if (file->saved_report_count > 0) {
-		analysis_template_menu = heap_alloc(28 + 24 * file->saved_report_count);
-		analysis_template_menu_entry_link = heap_alloc(file->saved_report_count * sizeof(struct analysis_template_menu_link));
+	template_count = analysis_get_template_count(file);
+
+	if (template_count > 0) {
+		analysis_template_menu = heap_alloc(28 + 24 * template_count);
+		analysis_template_menu_entry_link = heap_alloc(template_count * sizeof(struct analysis_template_menu_link));
 	}
 
 	if (analysis_template_menu == NULL || analysis_template_menu_entry_link == NULL) {
@@ -140,8 +142,6 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
 	/* Populate the menu. */
 
 	width = 0;
-
-	template_count = analysis_get_template_count(file);
 
 	for (line = 0; line < template_count; line++) {
 		/* Set up the link data.  A copy of the name is taken, because the original is in a flex block and could
@@ -169,7 +169,7 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
 
 	qsort(analysis_template_menu_entry_link, line, sizeof(struct analysis_template_menu_link), analysis_template_menu_compare_entries);
 
-	for (line = 0; line < file->saved_report_count; line++) {
+	for (line = 0; line < template_count; line++) {
 		/* Set the menu and icon flags up. */
 
 		analysis_template_menu->entries[line].menu_flags = 0;

@@ -58,6 +58,7 @@
  *          of this mess out.
  */
 
+struct analysis_report;
 struct report;
 struct budget_block;
 struct find_block;
@@ -79,6 +80,12 @@ struct balance_rep;
 
 struct file_block
 {
+	/* Data integrity. */
+
+	osbool				modified;				/**< TRUE if the file has unsaved modifications.		*/
+	int				untitled_count;				/**< Count to allow default title of the form <Untitled n>.	*/
+	int				child_x_offset;				/**< Count for child window opening offset.			*/
+
 	/* File location */
 
 	char				filename[FILE_MAX_FILENAME];		/**< The filename on disc; if "", it hasn't been saved before.	*/
@@ -103,13 +110,7 @@ struct file_block
 
 	struct budget_block		*budget;				/**< The file's budgeting details.				*/
 
-  /* Data integrity. */
-
-  osbool             modified;           /* Flag to show if the file has been modified since the last save. */
-  int                untitled_count;     /* Count to allow default title of the form <Untitled n>. */
-  int                child_x_offset;     /* Count for child window opening offset. */
-
-  /* Report data structure */
+	/* Report data structure */
 
 	struct report			*reports;				/**< Pointer to a linked list of report structures.		*/
 
@@ -117,10 +118,9 @@ struct file_block
 
 	struct report			*import_report;				/**< The current import log report (\TODO -- Import struct?).	*/
 
-  /* Report templates */
+	/* Analysis Reports */
 
-  struct analysis_report *saved_reports;     /* A pointer to an array of saved report templates. */
-  int                 saved_report_count; /* A count of how many reports are in the file. */
+	struct analysis_block		*analysis;				/**< Data relating to the analysis report module.		*/
 
 	/* Dialogue Content. */
 

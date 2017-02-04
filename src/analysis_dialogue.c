@@ -34,6 +34,7 @@
 /* SF-Lib header files. */
 
 #include "sflib/event.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/ihelp.h"
 #include "sflib/menus.h"
@@ -48,6 +49,7 @@
 
 #include "account.h"
 #include "account_menu.h"
+#include "analysis.h"
 
 
 /**
@@ -83,6 +85,8 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(char *template, cha
 	ihelp_add_window(new->window, ihelp, NULL);
 	event_add_window_mouse_event(new->window, analysis_dialogue_click_handler);
 	event_add_window_key_event(new->window, analysis_dialogue_keypress_handler);
+
+	return new;
 }
 
 
@@ -94,6 +98,7 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(char *template, cha
 
 void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct file_block *file, wimp_pointer *ptr, template_t template, osbool restore)
 {
+#ifdef IGNORE
 	struct analysis_report	*template_block;
 
 	if (dialogue == NULL || file == NULL || ptr == NULL)
@@ -115,24 +120,24 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct fil
 	template_block = analysis_get_template(file, template);
 
 	if (template_block != NULL) {
-		analysis_copy_balance_template(&(analysis_balance_settings), &(file->saved_reports[template].data.balance));
-		analysis_balance_template = template;
+//		analysis_copy_balance_template(&(analysis_balance_settings), &(file->saved_reports[template].data.balance));
+//		analysis_balance_template = template;
 
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_balance_window),
-				windows_get_indirected_title_length(analysis_balance_window),
+		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(dialogue->window),
+				windows_get_indirected_title_length(dialogue->window),
 				file->saved_reports[template].name, NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
-		analysis_copy_balance_template (&(analysis_balance_settings), file->balance_rep);
-		analysis_balance_template = NULL_TEMPLATE;
+//		analysis_copy_balance_template(&(analysis_balance_settings), file->balance_rep);
+//		analysis_balance_template = NULL_TEMPLATE;
 
-		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(analysis_balance_window),
-				windows_get_indirected_title_length(analysis_balance_window));
+		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(dialogue->window),
+				windows_get_indirected_title_length(dialogue->window));
 	}
 
-	icons_set_deleted(analysis_balance_window, ANALYSIS_BALANCE_DELETE, template_block == NULL);
-	icons_set_deleted(analysis_balance_window, ANALYSIS_BALANCE_RENAME, template_block == NULL);
+//	icons_set_deleted(dialogue->window, ANALYSIS_BALANCE_DELETE, template_block == NULL);
+//	icons_set_deleted(dialogue->window, ANALYSIS_BALANCE_RENAME, template_block == NULL);
 
 	/* Set the window contents up. */
 
@@ -140,12 +145,13 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct fil
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
-	analysis_balance_file = file;
-	analysis_balance_restore = restore;
+//	analysis_balance_file = file;
+//	analysis_balance_restore = restore;
 
-	windows_open_centred_at_pointer(analysis_balance_window, ptr);
-	place_dialogue_caret_fallback(analysis_balance_window, 4, ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO,
-			ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_ACCOUNTS);
+	windows_open_centred_at_pointer(dialogue->window, ptr);
+//	place_dialogue_caret_fallback(dialogue->window, 4, ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO,
+//			ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_ACCOUNTS);
+#endif
 }
 
 
@@ -159,6 +165,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct fil
 
 static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 {
+#ifdef IGNORE
 	switch (pointer->i) {
 	case ANALYSIS_TRANS_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
@@ -213,6 +220,7 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 					ANALYSIS_TRANS_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 		break;
 	}
+#endif
 }
 
 
@@ -225,6 +233,7 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 
 static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 {
+#ifdef IGNORE
 	switch (key->c) {
 	case wimp_KEY_RETURN:
 		if (analysis_process_transaction_window()) {
@@ -251,6 +260,6 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 		return FALSE;
 		break;
 	}
-
+#endif
 	return TRUE;
 }

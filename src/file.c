@@ -144,12 +144,11 @@ struct file_block *build_new_file_block(void)
 
 	new->interest = NULL;
 
-	new->saved_reports = NULL;
-
 	new->transacts = NULL;
 	new->accounts = NULL;
 	new->sorders = NULL;
 	new->presets = NULL;
+	new->analysis = NULL;
 
 	new->budget = NULL;
 	new->find = NULL;
@@ -299,27 +298,21 @@ struct file_block *build_new_file_block(void)
 		return NULL;
 	}
 
+	/* Set up the analysis report module. */
+
+	new->analysis = analysis_create_instance(new);
+	if (new->analysis == NULL) {
+		delete_file(new);
+		error_msgs_report_error("NoMemNewFile");
+		return NULL;
+	}
+
   /* Set the filename and save status. */
 
   *(new->filename) = '\0';
   new->modified = FALSE;
   new->untitled_count = ++file_untitled_count;
   new->child_x_offset = 0;
-
-  /* Set up the default initial values. */
-
-  new->saved_report_count = 0;
-
-
-	/* Set up the flex memory blocks, using dummy amoungts of 4 bytes to
-	 * prevent flex getting upset.
-	 */
-
-	if (!flexutils_initialise((void **) &(new->saved_reports))) {
-		delete_file(new);
-		error_msgs_report_error("NoMemNewFile");
-		return NULL;
-	}
 
 	/* Link the file descriptor into the list. */
 
@@ -407,11 +400,15 @@ void delete_file(struct file_block *file)
 	while (file->reports != NULL)
 		report_delete(file->reports);
 
+	/* Delete any analysis report data. */
+
+	if (file->analysis != NULL)
+		analysis_delete_instance(file->analysis);
+
 	/* Do the same for any file-related dialogues that are open. */
 
 	report_force_windows_closed(file);
 	printing_force_windows_closed(file);
-	analysis_force_windows_closed(file);
 	filing_force_windows_closed(file);
 
 	/* Delink the block from the list of open files. */
@@ -444,14 +441,7 @@ void delete_file(struct file_block *file)
 		analysis_delete_transaction(file->trans_rep);
 	if (file->unrec_rep != NULL)
 		analysis_delete_unreconciled(file->unrec_rep);
-
-
-
-
-
-	if (file->saved_reports != NULL)
-		flexutils_free((void **) &(file->saved_reports));
-
+		
 	/* Deallocate the block itself. */
 
 	heap_free(file);

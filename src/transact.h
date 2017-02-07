@@ -618,7 +618,7 @@ void transact_write_file(struct file_block *file, FILE *out);
  * \return			The state of the config read operation.
  */
 
-enum config_read_status transact_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, enum filing_status *load_status);
+enum osbool transact_read_file(struct file_block *file, struct filing_block *in);
 
 
 /**
@@ -685,34 +685,4 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
 
 osbool transact_check_account(struct file_block *file, acct_t account);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif
-

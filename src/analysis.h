@@ -377,7 +377,7 @@ void analysis_write_file(struct file_block *file, FILE *out);
  * \return			The state of the config read operation.
   */
 
-enum config_read_status analysis_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status);
+enum osbool analysis_read_file(struct file_block *file, struct filing_block *in);
 
 #endif
 

@@ -124,6 +124,22 @@
 #define FILING_ICON_CLOSE 5
 #define FILING_ICON_LOG 4
 
+/**
+ * The file load and save handle structure.
+ */
+
+struct filing_block {
+	FILE			*handle;				/**< The handle of the input or output file.		*/
+	char			section[FILING_MAX_FILE_LINE_LEN];
+	char			*suffix;
+	char			token[FILING_MAX_FILE_LINE_LEN];
+	char			value[FILING_MAX_FILE_LINE_LEN];
+	char			*field;
+	int			format;
+	enum config_read_status	result;
+	filing_status		status;
+};
+
 /* Global Variables. */
 
 /**
@@ -142,6 +158,7 @@ static struct file_block	*import_window_file = NULL;
 
 static void		filing_import_complete_click_handler(wimp_pointer *pointer);
 static void 		filing_close_import_complete(osbool show_log);
+static char		*filing_find_next_field(struct filing_block *in);
 
 
 /**
@@ -165,13 +182,9 @@ void filing_initialise(void)
 
 void filing_load_cashbook_file(char *filename)
 {
-	enum config_read_status	result = sf_CONFIG_READ_EOF;
-	int			file_format = 0;
-	char			section[FILING_MAX_FILE_LINE_LEN], token[FILING_MAX_FILE_LINE_LEN], value[FILING_MAX_FILE_LINE_LEN], *suffix;
 	bits			load;
 	struct file_block	*file;
-	FILE			*in;
-	enum filing_status	load_status = FILING_STATUS_OK;
+	struct filing_block	in;
 
 	#ifdef DEBUG
 	debug_printf("\\BLoading accounts file");
@@ -184,9 +197,9 @@ void filing_load_cashbook_file(char *filename)
 		return;
 	}
 
-	in = fopen(filename, "r");
+	in.handle = fopen(filename, "r");
 
-	if (in == NULL) {
+	if (in.handle == NULL) {
 		delete_file(file);
 		error_msgs_report_error("FileLoadFail");
 		return;
@@ -194,67 +207,70 @@ void filing_load_cashbook_file(char *filename)
 
 	hourglass_on();
 
-	*section = '\0';
-	*token = '\0';
-	*value = '\0';
+	*in.section = '\0';
+	*in.token = '\0';
+	*in.value = '\0';
+	in.field = in.section;
+	in.suffix = NULL;
+
+	in.format = 0;
+	in.status = FILING_STATUS_OK;
+	in.result = sf_CONFIG_READ_EOF;
 
 	do {
-		next_field(section, ':');
-		suffix = next_field(NULL, ':');
-
-		if (string_nocase_strcmp(section, "Budget") == 0)
-			result = budget_read_file(file, in, section, token, value, &load_status);
-		else if (string_nocase_strcmp(section, "Accounts") == 0)
-			result = account_read_acct_file(file, in, section, token, value, file_format, &load_status);
-		else if (string_nocase_strcmp(section, "AccountList") == 0)
-			result = account_read_list_file(file, in, section, token, value, suffix, &load_status);
-		else if (string_nocase_strcmp(section, "Interest") == 0)
-			result = interest_read_file(file, in, section, token, value, &load_status);
-		else if (string_nocase_strcmp(section, "Transactions") == 0)
-			result = transact_read_file(file, in, section, token, value, file_format, &load_status);
-		else if (string_nocase_strcmp(section, "StandingOrders") == 0)
-			result = sorder_read_file(file, in, section, token, value, &load_status);
-		else if (string_nocase_strcmp(section, "Presets") == 0)
-			result = preset_read_file(file, in, section, token, value, &load_status);
-		else if (string_nocase_strcmp(section, "Reports") == 0)
-			result = analysis_read_file(file, in, section, token, value, &load_status);
+		if (string_nocase_strcmp(in.section, "Budget") == 0)
+			budget_read_file(file, &in);
+		else if (string_nocase_strcmp(in.section, "Accounts") == 0)
+			account_read_acct_file(file, &in);
+		else if (string_nocase_strcmp(in.section, "AccountList") == 0)
+			account_read_list_file(file, &in);
+		else if (string_nocase_strcmp(in.section, "Interest") == 0)
+			interest_read_file(file, &in);
+		else if (string_nocase_strcmp(in.section, "Transactions") == 0)
+			transact_read_file(file, &in);
+		else if (string_nocase_strcmp(in.section, "StandingOrders") == 0)
+			sorder_read_file(file, &in);
+		else if (string_nocase_strcmp(in.section, "Presets") == 0)
+			preset_read_file(file, &in);
+		else if (string_nocase_strcmp(in.section, "Reports") == 0)
+			analysis_read_file(file, &in);
 		else {
 			do {
-				if (*section != '\0')
-					load_status = FILING_STATUS_UNEXPECTED;
+				if (*in.section != '\0')
+					in.status = FILING_STATUS_UNEXPECTED;
 
 				/* Load in the file format, converting an n.nn number into an
 				 * integer value (eg. 1.00 would become 100).  Supports 0.00 to 9.99.
 				 */
 
-				if (string_nocase_strcmp(token, "Format") == 0) {
-					if (strlen(value) == 4 && isdigit(value[0]) && isdigit(value[2]) && isdigit(value[3]) && value[1] == '.') {
-						value[1] = value[2];
-						value[2] = value[3];
-						value[3] = '\0';
+				if (string_nocase_strcmp(in.token, "Format") == 0) {
+					if (strlen(in.value) == 4 && isdigit(in.value[0]) && isdigit(in.value[2]) && isdigit(in.value[3]) && in.value[1] == '.') {
+						in.value[1] = in.value[2];
+						in.value[2] = in.value[3];
+						in.value[3] = '\0';
 
-						file_format = atoi(value);
+						file_format = atoi(in.value);
 
-						if (file_format > FILING_CURRENT_FORMAT)
-							load_status = FILING_STATUS_VERSION;
+						if (in.format > FILING_CURRENT_FORMAT)
+							in.status = FILING_STATUS_VERSION;
 					} else {
-						load_status = FILING_STATUS_UNEXPECTED;
+						in.status = FILING_STATUS_UNEXPECTED;
 					}
 				}
 
-				result = config_read_token_pair(in, token, value, section);
-			} while ((load_status == FILING_STATUS_OK || load_status == FILING_STATUS_UNEXPECTED) && result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+				in.result = config_read_token_pair(in.handle, in.token, in.value, in.section);
+			} while ((in.status == FILING_STATUS_OK || in.status == FILING_STATUS_UNEXPECTED) && in.result != sf_CONFIG_READ_EOF && in.result != sf_CONFIG_READ_NEW_SECTION);
 		}
-	} while ((load_status == FILING_STATUS_OK || load_status == FILING_STATUS_UNEXPECTED) && result != sf_CONFIG_READ_EOF);
+	} while ((in.status == FILING_STATUS_OK || in.status == FILING_STATUS_UNEXPECTED) && in.result != sf_CONFIG_READ_EOF);
 
-	fclose(in);
+	fclose(in.handle);
 
 	/* If the file format wasn't understood, get out now. */
 
-	if (load_status == FILING_STATUS_VERSION || load_status == FILING_STATUS_MEMORY) {
+	if (in.status == FILING_STATUS_VERSION || in.status == FILING_STATUS_MEMORY) {
 		delete_file(file);
 		hourglass_off();
-		switch (load_status) {
+		switch (in.status) {
 		case FILING_STATUS_VERSION:
 			error_msgs_report_error("UnknownFileFormat");
 			break;
@@ -289,7 +305,7 @@ void filing_load_cashbook_file(char *filename)
 
 	hourglass_off();
 
-	if (load_status == FILING_STATUS_UNEXPECTED)
+	if (in.status == FILING_STATUS_UNEXPECTED)
 		error_msgs_report_info("UnknownFileData");
 }
 
@@ -845,4 +861,238 @@ char *next_plain_field (char *line, char sep)
   }
 
   return (start);
+}
+
+
+
+int filing_get_format(struct filing_block *in)
+{
+	if (in == NULL)
+		return 0;
+
+	return in->format;
+}
+
+osbool filing_get_next_token(struct filing_block *in)
+{
+	char *separator;
+
+	if (in == NULL)
+		return FALSE;
+
+	in->result = config_read_token_pair(in->handle, in->token, in->value, in->section);
+
+	separator = strchr(in->section, ':');
+	if (separator != NULL) {
+		*separator = '\0';
+		in->suffix = separator + 1;
+	} else {
+		in->suffix = NULL;
+	}
+
+	in->field = in->value;
+
+	return (in->result != sf_CONFIG_READ_EOF && in->result != sf_CONFIG_READ_NEW_SECTION) ? TRUE : FALSE;
+}
+
+
+account_type filing_get_account_type_suffix(struct filing_block *in)
+{
+	if (in == NULL || in->suffix == NULL)
+		return ACCOUNT_NULL;
+
+	return strtoul(in->suffix, NULL, 16);
+}
+
+osbool filing_test_token(struct filing_block *in, char *token)
+{
+	if (in == NULL)
+		return FALSE;
+
+	return (string_nocase_strcmp(in->token, token) == 0) ? TRUE : FALSE;
+}
+
+char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length)
+{
+	if (in == NULL)
+		return NULL;
+
+	if (buffer == NULL)
+		return in->value;
+
+	if (length == 0) {
+		in->status == FILING_STATUS_BAD_MEMORY;
+		return NULL;
+	}
+
+	strncpy(buffer, in->value, length);
+	buffer[length - 1] = '\0';
+
+	return TRUE;
+}
+
+date_t filing_get_date_field(struct filing_block *in)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status == FILING_STATUS_CORRUPT;
+		return NULL_DATE;
+	}
+
+	return strtoul(field, NULL, 16);
+}
+
+int filing_get_int_field(struct filing_block *in)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status == FILING_STATUS_CORRUPT;
+		return 0;
+	}
+
+	return strtoul(field, NULL, 16);
+}
+
+unsigned filing_get_unsigned_field(struct filing_block *in)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status == FILING_STATUS_CORRUPT;
+		return 0;
+	}
+
+	return strtoul(field, NULL, 16);
+}
+
+acct_t filing_get_account_field(struct filing_block *in)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status == FILING_STATUS_CORRUPT;
+		return NULL_ACCOUNT;
+	}
+
+	return strtoul(field, NULL, 16);
+}
+
+account_type filing_get_account_type_field(struct filing_block *in)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status == FILING_STATUS_CORRUPT;
+		return ACCOUNT_NULL;
+	}
+
+	return strtoul(field, NULL, 16);
+}
+
+account_line_type filing_get_account_line_type_field(struct filing_block *in)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status == FILING_STATUS_CORRUPT;
+		return ACCOUNT_LINE_BLANK;
+	}
+
+	return strtoul(field, NULL, 16);
+}
+
+amt_t filing_get_currency_field(struct filing_block *in)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status == FILING_STATUS_CORRUPT;
+		return NULL_AMOUNT;
+	}
+
+	return strtoul(field, NULL, 16);
+}
+
+osbool filing_get_opt_field(struct filing_block *in)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status == FILING_STATUS_CORRUPT;
+		return FALSE;
+	}
+
+	return config_read_opt_string(field);
+}
+
+char *filing_get_text_field(struct filing_block *in, char *buffer, size_t length)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status == FILING_STATUS_CORRUPT;
+		return NULL;
+	}
+
+	if (buffer == NULL)
+		return field;
+
+	if (length == 0) {
+		in->status == FILING_STATUS_BAD_MEMORY;
+		return NULL;
+	}
+
+	strncpy(buffer, field, length);
+	buffer[length - 1] = '\0';
+
+	return TRUE;
+}
+
+void filing_set_status(struct filing_block *in, enum filing_status status)
+{
+	if (in == NULL)
+		return;
+
+	in->status = status;
+}
+
+
+/**
+ * Return a pointer to the next comma-separated text field in the current
+ * token value read from the input file.
+ *
+ * \param *in		The input file to read from.
+ * \return		Pointer to the next NULL terminated field, or
+ *			NULL if the field doesn't exist.
+ */
+
+static char *filing_find_next_field(struct filing_block *in)
+{
+	char		*start = NULL;
+	osbool		quoted;
+
+	if (in == NULL)
+		return NULL;
+
+	if (*in->field == '\0')
+		return NULL;
+
+	quoted = FALSE;
+	start = in->field;
+
+	while (*in->field != '\0' && ((*in->field != ',') || quoted)) {
+		if (*in->field == '"')
+			quoted = !quoted;
+
+		in->field++;
+	}
+
+	if (*in->field == sep) {
+		*in->field = '\0';
+		in->field++;
+	}
+
+	return start;
 }

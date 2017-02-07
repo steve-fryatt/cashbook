@@ -380,34 +380,25 @@ void budget_write_file(struct file_block *file, FILE *out)
 /**
  * Read budget details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum config_read_status budget_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status)
+enum osbool budget_read_file(struct file_block *file, struct filing_block *in)
 {
-	enum config_read_status	result;
-
 	do {
-		if (string_nocase_strcmp (token, "Start") == 0)
-			file->budget->start = strtoul (value, NULL, 16);
-		else if (string_nocase_strcmp (token, "Finish") == 0)
-			file->budget->finish = strtoul (value, NULL, 16);
-		else if (string_nocase_strcmp (token, "SOTrial") == 0)
-			file->budget->sorder_trial = strtoul (value, NULL, 16);
-		else if (string_nocase_strcmp (token, "RestrictPost") == 0)
-			file->budget->limit_postdate = (config_read_opt_string(value) == TRUE);
+		if (filing_test_token(in, "Start"))
+			file->budget->start = filing_get_date_field(in);
+		else if (filing_test_token(in, "Finish"))
+			file->budget->finish = filing_get_date_field(in);
+		else if (filing_test_token(in, "SOTrial"))
+			file->budget->sorder_trial = filing_get_int_field(in);
+		else if (filing_test_token(in, "RestrictPost"))
+			file->budget->limit_postdate = filing_get_opt_field(in);
 		else
-			*load_status = FILING_STATUS_UNEXPECTED;
+			filing_set_status(in, FILING_STATUS_UNEXPECTED);
+	} while (filing_get_next_token(in));
 
-		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
-
-	return result;
+	return TRUE;
 }
-

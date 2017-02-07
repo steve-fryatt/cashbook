@@ -186,7 +186,7 @@ void sorder_write_file(struct file_block *file, FILE *f);
  * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
  */
 
-enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status);
+enum osbool sorder_read_file(struct file_block *file, struct filing_block *in);
 
 
 /**

@@ -32,7 +32,6 @@
 
 #include <stdio.h>
 
-
 /**
  * The maximum length of a line in a CashBook file.
  */
@@ -56,8 +55,15 @@ enum filing_status {
 	FILING_STATUS_VERSION,							/**< An unknown file version number has been found.				*/ 
 	FILING_STATUS_UNEXPECTED,						/**< The operation has encountered unexpected file contents.			*/
 	FILING_STATUS_MEMORY,							/**< The operation has run out of memory.					*/
-	FILING_STATUS_BAD_MEMORY						/**< Something went wrong with the memory allocation.				*/
+	FILING_STATUS_BAD_MEMORY,						/**< Something went wrong with the memory allocation.				*/
+	FILING_STATUS_CORRUPT							/**< The file contents appeared to be corrupt.					*/
 };
+
+struct filing_block;
+
+#include "account.h"
+#include "currency.h"
+#include "date.h"
 
 /* Function Prototypes. */
 
@@ -143,4 +149,22 @@ char *filing_read_delimited_field(char *line, enum filing_delimit_type format, e
 
 char *next_field (char *line, char sep);
 char *next_plain_field (char *line, char sep);
+
+
+int filing_get_format(struct filing_block *in);
+osbool filing_get_next_token(struct filing_block *in);
+account_type filing_get_account_type_suffix(struct filing_block *in);
+osbool filing_test_token(struct filing_block *in, char *token);
+char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length);
+date_t filing_get_date_field(struct filing_block *in);
+int filing_get_int_field(struct filing_block *in);
+unsigned filing_get_unsigned_field(struct filing_block *in);
+acct_t filing_get_account_field(struct filing_block *in);
+account_type filing_get_account_type_field(struct filing_block *in);
+account_line_type filing_get_account_line_type_field(struct filing_block *in);
+amt_t filing_get_currency_field(struct filing_block *in);
+osbool filing_get_opt_field(struct filing_block *in);
+char *filing_get_text_field(struct filing_block *in, char *buffer, size_t length);
+void filing_set_status(struct filing_block *in, enum filing_status status);
+
 #endif

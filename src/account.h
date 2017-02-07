@@ -35,11 +35,6 @@
 typedef int acct_t;
 struct account_block;
 
-#include "currency.h"
-#include "filing.h"
-#include "global.h"
-#include "transact.h"
-
 /* ------------------------------------------------------------------------------------------------------------------
  * Static constants
  */
@@ -63,8 +58,6 @@ struct account_block;
 #define ACCOUNT_SECTION_LEN 52
 
 #define NULL_ACCOUNT ((acct_t) -1)
-
-
 
 /**
  * Account types
@@ -91,6 +84,11 @@ enum account_line_type {
 	ACCOUNT_LINE_HEADER,							/**< Section Heading line type.				*/
 	ACCOUNT_LINE_FOOTER							/**< Section Footer line type.				*/
 };
+
+#include "currency.h"
+#include "filing.h"
+#include "global.h"
+#include "transact.h"
 
 
 /**
@@ -563,33 +561,23 @@ void account_write_file(struct file_block *file, FILE *out);
 /**
  * Read account details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param format		The format number of the file.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum config_read_status account_read_acct_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, enum filing_status *load_status);
+osbool account_read_acct_file(struct file_block *file, struct filing_block *in);
 
 
 /**
  * Read account list details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *suffix		A string containing the trailing end of the section name.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum config_read_status account_read_list_file(struct file_block *file, FILE *in, char *section, char *token, char *value, char *suffix, enum filing_status *load_status);
+osbool account_read_list_file(struct file_block *file, struct filing_block *in);
 
 #endif
 

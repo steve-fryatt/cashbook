@@ -4055,21 +4055,16 @@ void account_write_file(struct file_block *file, FILE *out)
 /**
  * Read account details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param format		The format number of the file.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum config_read_status account_read_acct_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, enum filing_status *load_status)
+osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 {
-	enum config_read_status	result;
 	size_t			block_size;
-	int			i = -1, j;
+	acct_t			account = NULL_ACCOUNT;
+	int			j;
 
 #ifdef DEBUG
 	debug_printf("\\GLoading Account Data.");
@@ -4078,44 +4073,44 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 	/* Identify the current size of the flex block allocation. */
 
 	if (!flexutils_load_initialise((void **) &(file->accounts->accounts), sizeof(struct account), &block_size)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
 	/* Process the file contents until the end of the section. */
 
 	do {
-		if (string_nocase_strcmp(token, "Entries") == 0) {
-			block_size = strtoul(value, NULL, 16);
+		if (filing_test_token(in, "Entries")) {
+			block_size = filing_get_int_field(in);
 			if (block_size > file->accounts->account_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->accounts->accounts), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			} else {
 				block_size = file->accounts->account_count;
 			}
-		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
-			accview_read_file_wincolumns(file, format, value);
-		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
-			accview_read_file_sortorder(file, value);
-		} else if (string_nocase_strcmp(token, "@") == 0) {
+		} else if (filing_test_token(in, "WinColumns")) {
+			accview_read_file_wincolumns(file, filing_get_format(in), filing_get_text_value(in, NULL, 0));
+		} else if (filing_test_token(in, "SortOrder")) {
+			accview_read_file_sortorder(file, filing_get_text_value(in, NULL, 0));
+		} else if (filing_test_token(in, "@")) {
 			/* A new account.  Take the account number, and see if it falls within the current defined set of
 			 * accounts (not the same thing as the pre-expanded account block).  If not, expand the acconut_count
 			 * to the new account number and blank all the new entries.
 			 */
 
-			i = strtoul(next_field(value, ','), NULL, 16);
+			account = filing_get_account_field(in);
 
-			if (i >= file->accounts->account_count) {
+			if (account >= file->accounts->account_count) {
 				j = file->accounts->account_count;
-				file->accounts->account_count = i+1;
+				file->accounts->account_count = account + 1;
 
 				#ifdef DEBUG
-				debug_printf("Account range expanded to %d", i);
+				debug_printf("Account range expanded to %d", account);
 				#endif
 
 				/* The block isn't big enough, so expand this to the required size. */
@@ -4126,8 +4121,8 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 					debug_printf("Section block expand to %d", block_size);
 					#endif
 					if (!flexutils_load_resize((void **) &(file->accounts->accounts), block_size)) {
-						*load_status = FILING_STATUS_MEMORY;
-						return sf_CONFIG_READ_EOF;
+						filing_set_status(in, FILING_STATUS_MEMORY);
+						return FALSE;
 					}
 				}
 
@@ -4165,81 +4160,77 @@ enum config_read_status account_read_acct_file(struct file_block *file, FILE *in
 			}
 
 			#ifdef DEBUG
-			debug_printf("Loading account entry %d", i);
+			debug_printf("Loading account entry %d", account);
 			#endif
 
-			strcpy(file->accounts->accounts[i].ident, next_field(NULL, ','));
-			file->accounts->accounts[i].type = strtoul(next_field(NULL, ','), NULL, 16);
-			file->accounts->accounts[i].opening_balance = strtoul(next_field(NULL, ','), NULL, 16);
-			file->accounts->accounts[i].credit_limit = strtoul(next_field(NULL, ','), NULL, 16);
-			file->accounts->accounts[i].budget_amount = strtoul(next_field(NULL, ','), NULL, 16);
-			file->accounts->accounts[i].cheque_num_width = strtoul(next_field(NULL, ','), NULL, 16);
-			file->accounts->accounts[i].next_cheque_num = strtoul(next_field(NULL, ','), NULL, 16);
+			filing_get_text_field(in, file->accounts->accounts[account].ident, ACCOUNT_IDENT_LEN);
+			file->accounts->accounts[account].type = filing_get_account_type_field(in);
+			file->accounts->accounts[account].opening_balance = filing_get_currency_field(in);
+			file->accounts->accounts[account].credit_limit = filing_get_currency_field(in);
+			file->accounts->accounts[account].budget_amount = filing_get_currency_field(in);
+			file->accounts->accounts[account].cheque_num_width = filing_get_int_field(in);
+			file->accounts->accounts[account].next_cheque_num = filing_get_unsigned_field(in);
 
-			*(file->accounts->accounts[i].name) = '\0';
-			*(file->accounts->accounts[i].account_no) = '\0';
-			*(file->accounts->accounts[i].sort_code) = '\0';
-			*(file->accounts->accounts[i].address[0]) = '\0';
-			*(file->accounts->accounts[i].address[1]) = '\0';
-			*(file->accounts->accounts[i].address[2]) = '\0';
-			*(file->accounts->accounts[i].address[3]) = '\0';
-		} else if (i != -1 && string_nocase_strcmp(token, "Name") == 0) {
-			strcpy(file->accounts->accounts[i].name, value);
-		} else if (i != -1 && string_nocase_strcmp(token, "AccNo") == 0) {
-			strcpy(file->accounts->accounts[i].account_no, value);
-		} else if (i != -1 && string_nocase_strcmp(token, "SortCode") == 0) {
-			strcpy(file->accounts->accounts[i].sort_code, value);
-		} else if (i != -1 && string_nocase_strcmp(token, "Addr0") == 0) {
-			strcpy(file->accounts->accounts[i].address[0], value);
-		} else if (i != -1 && string_nocase_strcmp(token, "Addr1") == 0) {
-			strcpy(file->accounts->accounts[i].address[1], value);
-		} else if (i != -1 && string_nocase_strcmp(token, "Addr2") == 0) {
-			strcpy(file->accounts->accounts[i].address[2], value);
-		} else if (i != -1 && string_nocase_strcmp(token, "Addr3") == 0) {
-			strcpy(file->accounts->accounts[i].address[3], value);
-		} else if (i != -1 && string_nocase_strcmp(token, "PayIn") == 0) {
-			file->accounts->accounts[i].payin_num_width = strtoul(next_field(value, ','), NULL, 16);
-			file->accounts->accounts[i].next_payin_num = strtoul(next_field(NULL, ','), NULL, 16);
-		} else if (i != -1 && string_nocase_strcmp(token, "Offset") == 0) {
-			file->accounts->accounts[i].offset_against = strtoul(next_field(value, ','), NULL, 16);
+			*(file->accounts->accounts[account].name) = '\0';
+			*(file->accounts->accounts[account].account_no) = '\0';
+			*(file->accounts->accounts[account].sort_code) = '\0';
+			*(file->accounts->accounts[account].address[0]) = '\0';
+			*(file->accounts->accounts[account].address[1]) = '\0';
+			*(file->accounts->accounts[account].address[2]) = '\0';
+			*(file->accounts->accounts[account].address[3]) = '\0';
+		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Name")) {
+			filing_get_text_value(in, file->accounts->accounts[account].name, ACCOUNT_NAME_LEN);
+		} else if (account != NULL_ACCOUNT && filing_test_token(in, "AccNo")) {
+			filing_get_text_value(in, file->accounts->accounts[account].account_no, ACCOUNT_NO_LEN);
+		} else if (account != NULL_ACCOUNT && filing_test_token(in, "SortCode")) {
+			filing_get_text_value(in, file->accounts->accounts[account].sort_code, ACCOUNT_SRTCD_LEN);
+		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Addr0")) {
+			filing_get_text_value(in, file->accounts->accounts[account].address[0], ACCOUNT_ADDR_LEN);
+		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Addr1")) {
+			filing_get_text_value(in, file->accounts->accounts[account].address[1], ACCOUNT_ADDR_LEN);
+		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Addr2")) {
+			filing_get_text_value(in, file->accounts->accounts[account].address[2], ACCOUNT_ADDR_LEN);
+		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Addr3")) {
+			filing_get_text_value(in, file->accounts->accounts[account].address[3], ACCOUNT_ADDR_LEN);
+		} else if (account != NULL_ACCOUNT && filing_test_token(in, "PayIn")) {
+			file->accounts->accounts[account].payin_num_width = filing_get_int_field(in);
+			file->accounts->accounts[account].next_payin_num = filing_get_unsigned_field(in);
+		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Offset")) {
+			file->accounts->accounts[account].offset_against = filing_get_account_field(in);
 		} else {
-			*load_status = FILING_STATUS_UNEXPECTED;
+			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
-
-		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+	} while (filing_get_next_token(in));
 
 	/* Shrink the flex block back down to the minimum required. */
 
 	if (!flexutils_load_shrink((void **) &(file->accounts->accounts), file->accounts->account_count)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
-	return result;
+	return TRUE;
 }
 
 
 /**
  * Read account list details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *suffix		A string containing the trailing end of the section name.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum config_read_status account_read_list_file(struct file_block *file, FILE *in, char *section, char *token, char *value, char *suffix, enum filing_status *load_status)
+osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 {
-	enum config_read_status	result;
 	size_t			block_size;
 	int			i = -1, type, entry;
 
-	type = strtoul(suffix, NULL, 16);
+	type = filing_get_account_type_suffix(in);
+	if (type == ACCOUNT_NULL) {
+		filing_set_status(in, FILING_STATUS_CORRUPT);
+		return FALSE;
+	}
 	entry = account_find_window_entry_from_type(file, type);
 
 #ifdef DEBUG
@@ -4249,29 +4240,29 @@ enum config_read_status account_read_list_file(struct file_block *file, FILE *in
 	/* Identify the current size of the flex block allocation. */
 
 	if (!flexutils_load_initialise((void **) &(file->accounts->account_windows[entry].line_data), sizeof(struct account_redraw), &block_size)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
 	/* Process the file contents until the end of the section. */
 
 	do {
-		if (string_nocase_strcmp(token, "Entries") == 0) {
-			block_size = strtoul(value, NULL, 16);
+		if (filing_test_token(in, "Entries")) {
+			block_size = filing_get_int_field(in);
 			if (block_size > file->accounts->account_windows[entry].display_lines) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->accounts->account_windows[entry].line_data), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			} else {
 				block_size = file->accounts->account_windows[entry].display_lines;
 			}
-		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
-			column_init_window(file->accounts->account_windows[entry].columns, 0, TRUE, value);
-		} else if (string_nocase_strcmp(token, "@") == 0) {
+		} else if (filing_test_token(in, "WinColumns")) {
+			column_init_window(file->accounts->account_windows[entry].columns, 0, TRUE, filing_get_text_value(in, NULL, 0));
+		} else if (filing_test_token(in, "@")) {
 			file->accounts->account_windows[entry].display_lines++;
 			if (file->accounts->account_windows[entry].display_lines > block_size) {
 				block_size = file->accounts->account_windows[entry].display_lines;
@@ -4279,31 +4270,29 @@ enum config_read_status account_read_list_file(struct file_block *file, FILE *in
 				debug_printf("Section block expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->accounts->account_windows[entry].line_data), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			}
 			i = file->accounts->account_windows[entry].display_lines-1;
 			*(file->accounts->account_windows[entry].line_data[i].heading) = '\0';
-			file->accounts->account_windows[entry].line_data[i].type = strtoul(next_field(value, ','), NULL, 16);
-			file->accounts->account_windows[entry].line_data[i].account = strtoul(next_field(NULL, ','), NULL, 16);
-		} else if (i != -1 && string_nocase_strcmp(token, "Heading") == 0) {
-			strcpy (file->accounts->account_windows[entry].line_data[i].heading, value);
+			file->accounts->account_windows[entry].line_data[i].type = filing_get_account_line_type_field(in);
+			file->accounts->account_windows[entry].line_data[i].account = filing_get_account_field(in);
+		} else if (i != -1 && filing_test_token(in, "Heading")) {
+			filing_get_text_value(in, file->accounts->account_windows[entry].line_data[i].heading, ACCOUNT_SECTION_LEN);
 		} else {
-			*load_status = FILING_STATUS_UNEXPECTED;
+			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
-
-		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+	} while (filing_get_next_token(in));
 
 	/* Shrink the flex block back down to the minimum required. */
 
 	if (!flexutils_load_shrink((void **) &(file->accounts->account_windows[entry].line_data), file->accounts->account_windows[entry].display_lines)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
-	return result;
+	return TRUE;
 }
 
 

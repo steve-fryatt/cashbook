@@ -121,16 +121,11 @@ void budget_write_file(struct file_block *file, FILE *out);
 /**
  * Read budget details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum config_read_status budget_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status);
+osbool budget_read_file(struct file_block *file, struct filing_block *in);
 
 #endif
-

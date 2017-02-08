@@ -43,6 +43,11 @@ typedef int		amt_t;
 
 #define NULL_CURRENCY ((amt_t) 0)
 
+/**
+ * Get a currency field from an input file.
+ */
+
+#define currency_get_currency_field(in) ((amt_t) filing_get_int_field((in)))
 
 /**
  * Initialise, or re-initialise, the currency module.

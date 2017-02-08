@@ -153,16 +153,11 @@ char *next_plain_field (char *line, char sep);
 
 int filing_get_format(struct filing_block *in);
 osbool filing_get_next_token(struct filing_block *in);
-account_type filing_get_account_type_suffix(struct filing_block *in);
+enum account_type filing_get_account_type_suffix(struct filing_block *in);
 osbool filing_test_token(struct filing_block *in, char *token);
 char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length);
-date_t filing_get_date_field(struct filing_block *in);
 int filing_get_int_field(struct filing_block *in);
 unsigned filing_get_unsigned_field(struct filing_block *in);
-acct_t filing_get_account_field(struct filing_block *in);
-account_type filing_get_account_type_field(struct filing_block *in);
-account_line_type filing_get_account_line_type_field(struct filing_block *in);
-amt_t filing_get_currency_field(struct filing_block *in);
 osbool filing_get_opt_field(struct filing_block *in);
 char *filing_get_text_field(struct filing_block *in, char *buffer, size_t length);
 void filing_set_status(struct filing_block *in, enum filing_status status);

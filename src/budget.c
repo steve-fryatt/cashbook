@@ -389,9 +389,9 @@ enum osbool budget_read_file(struct file_block *file, struct filing_block *in)
 {
 	do {
 		if (filing_test_token(in, "Start"))
-			file->budget->start = filing_get_date_field(in);
+			file->budget->start = date_get_date_field(in);
 		else if (filing_test_token(in, "Finish"))
-			file->budget->finish = filing_get_date_field(in);
+			file->budget->finish = date_get_date_field(in);
 		else if (filing_test_token(in, "SOTrial"))
 			file->budget->sorder_trial = filing_get_int_field(in);
 		else if (filing_test_token(in, "RestrictPost"))

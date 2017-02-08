@@ -931,18 +931,6 @@ char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length
 	return TRUE;
 }
 
-date_t filing_get_date_field(struct filing_block *in)
-{
-	char	*field = filing_find_next_field(in);
-
-	if (field == NULL) {
-		in->status == FILING_STATUS_CORRUPT;
-		return NULL_DATE;
-	}
-
-	return strtoul(field, NULL, 16);
-}
-
 int filing_get_int_field(struct filing_block *in)
 {
 	char	*field = filing_find_next_field(in);
@@ -962,54 +950,6 @@ unsigned filing_get_unsigned_field(struct filing_block *in)
 	if (field == NULL) {
 		in->status == FILING_STATUS_CORRUPT;
 		return 0;
-	}
-
-	return strtoul(field, NULL, 16);
-}
-
-acct_t filing_get_account_field(struct filing_block *in)
-{
-	char	*field = filing_find_next_field(in);
-
-	if (field == NULL) {
-		in->status == FILING_STATUS_CORRUPT;
-		return NULL_ACCOUNT;
-	}
-
-	return strtoul(field, NULL, 16);
-}
-
-account_type filing_get_account_type_field(struct filing_block *in)
-{
-	char	*field = filing_find_next_field(in);
-
-	if (field == NULL) {
-		in->status == FILING_STATUS_CORRUPT;
-		return ACCOUNT_NULL;
-	}
-
-	return strtoul(field, NULL, 16);
-}
-
-account_line_type filing_get_account_line_type_field(struct filing_block *in)
-{
-	char	*field = filing_find_next_field(in);
-
-	if (field == NULL) {
-		in->status == FILING_STATUS_CORRUPT;
-		return ACCOUNT_LINE_BLANK;
-	}
-
-	return strtoul(field, NULL, 16);
-}
-
-amt_t filing_get_currency_field(struct filing_block *in)
-{
-	char	*field = filing_find_next_field(in);
-
-	if (field == NULL) {
-		in->status == FILING_STATUS_CORRUPT;
-		return NULL_AMOUNT;
 	}
 
 	return strtoul(field, NULL, 16);

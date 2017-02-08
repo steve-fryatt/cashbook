@@ -65,6 +65,12 @@ typedef unsigned int	date_t;
 #define DATE_SORT_MASK ((date_t) 0x7fffffff)
 
 /**
+ * Get a date field from an input file.
+ */
+
+#define date_get_currency_field(in) ((date_t) filing_get_unsigned_field((in)))
+
+/**
  * The size of a textual date field.
  */
 

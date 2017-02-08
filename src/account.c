@@ -4103,7 +4103,7 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 			 * to the new account number and blank all the new entries.
 			 */
 
-			account = filing_get_account_field(in);
+			account = account_get_account_field(in);
 
 			if (account >= file->accounts->account_count) {
 				j = file->accounts->account_count;
@@ -4164,10 +4164,10 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 			#endif
 
 			filing_get_text_field(in, file->accounts->accounts[account].ident, ACCOUNT_IDENT_LEN);
-			file->accounts->accounts[account].type = filing_get_account_type_field(in);
-			file->accounts->accounts[account].opening_balance = filing_get_currency_field(in);
-			file->accounts->accounts[account].credit_limit = filing_get_currency_field(in);
-			file->accounts->accounts[account].budget_amount = filing_get_currency_field(in);
+			file->accounts->accounts[account].type = account_get_account_type_field(in);
+			file->accounts->accounts[account].opening_balance = currency_get_currency_field(in);
+			file->accounts->accounts[account].credit_limit = currency_get_currency_field(in);
+			file->accounts->accounts[account].budget_amount = currency_get_currency_field(in);
 			file->accounts->accounts[account].cheque_num_width = filing_get_int_field(in);
 			file->accounts->accounts[account].next_cheque_num = filing_get_unsigned_field(in);
 
@@ -4196,7 +4196,7 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 			file->accounts->accounts[account].payin_num_width = filing_get_int_field(in);
 			file->accounts->accounts[account].next_payin_num = filing_get_unsigned_field(in);
 		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Offset")) {
-			file->accounts->accounts[account].offset_against = filing_get_account_field(in);
+			file->accounts->accounts[account].offset_against = account_get_account_field(in);
 		} else {
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
@@ -4276,8 +4276,8 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 			}
 			i = file->accounts->account_windows[entry].display_lines-1;
 			*(file->accounts->account_windows[entry].line_data[i].heading) = '\0';
-			file->accounts->account_windows[entry].line_data[i].type = filing_get_account_line_type_field(in);
-			file->accounts->account_windows[entry].line_data[i].account = filing_get_account_field(in);
+			file->accounts->account_windows[entry].line_data[i].type = account_get_account_line_type_field(in);
+			file->accounts->account_windows[entry].line_data[i].account = account_get_account_field(in);
 		} else if (i != -1 && filing_test_token(in, "Heading")) {
 			filing_get_text_value(in, file->accounts->account_windows[entry].line_data[i].heading, ACCOUNT_SECTION_LEN);
 		} else {

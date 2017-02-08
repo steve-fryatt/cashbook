@@ -85,6 +85,24 @@ enum account_line_type {
 	ACCOUNT_LINE_FOOTER							/**< Section Footer line type.				*/
 };
 
+/**
+ * Get an account field from an input file.
+ */
+
+#define account_get_account_field(in) ((acct_t) filing_get_int_field((in)))
+
+/**
+ * Get an account type field from an input file.
+ */
+
+#define account_get_account_type_field(in) ((enum account_type) filing_get_int_field((in)))
+
+/**
+ * Get an account line type field from an input file.
+ */
+
+#define account_get_account_line_type_field(in) ((enum account_line_type) filing_get_int_field((in)))
+
 #include "currency.h"
 #include "filing.h"
 #include "global.h"

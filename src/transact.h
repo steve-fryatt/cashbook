@@ -608,17 +608,12 @@ void transact_write_file(struct file_block *file, FILE *out);
 /**
  * Read transaction details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param format		The format number of the file.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum osbool transact_read_file(struct file_block *file, struct filing_block *in);
+osbool transact_read_file(struct file_block *file, struct filing_block *in);
 
 
 /**

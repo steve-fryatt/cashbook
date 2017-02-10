@@ -137,7 +137,7 @@ struct filing_block {
 	char			*field;
 	int			format;
 	enum config_read_status	result;
-	filing_status		status;
+	enum filing_status	status;
 };
 
 /* Global Variables. */
@@ -249,7 +249,7 @@ void filing_load_cashbook_file(char *filename)
 						in.value[2] = in.value[3];
 						in.value[3] = '\0';
 
-						file_format = atoi(in.value);
+						in.format = atoi(in.value);
 
 						if (in.format > FILING_CURRENT_FORMAT)
 							in.status = FILING_STATUS_VERSION;
@@ -279,6 +279,9 @@ void filing_load_cashbook_file(char *filename)
 			break;
 		case FILING_STATUS_BAD_MEMORY:
 			error_msgs_report_error("BadMemory");
+			break;
+		case FILING_STATUS_CORRUPT:
+			error_msgs_report_error("CorruptFile");
 			break;
 		case FILING_STATUS_OK:
 		case FILING_STATUS_UNEXPECTED:
@@ -896,7 +899,7 @@ osbool filing_get_next_token(struct filing_block *in)
 }
 
 
-account_type filing_get_account_type_suffix(struct filing_block *in)
+enum account_type filing_get_account_type_suffix(struct filing_block *in)
 {
 	if (in == NULL || in->suffix == NULL)
 		return ACCOUNT_NULL;
@@ -921,14 +924,19 @@ char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length
 		return in->value;
 
 	if (length == 0) {
-		in->status == FILING_STATUS_BAD_MEMORY;
+		in->status = FILING_STATUS_BAD_MEMORY;
 		return NULL;
 	}
 
-	strncpy(buffer, in->value, length);
 	buffer[length - 1] = '\0';
+	strncpy(buffer, in->value, length);
 
-	return TRUE;
+	if (buffer[length - 1] != '\0') {
+		in->status = FILING_STATUS_CORRUPT;
+		buffer[length - 1] = '\0';
+	}
+
+	return buffer;
 }
 
 int filing_get_int_field(struct filing_block *in)
@@ -936,7 +944,7 @@ int filing_get_int_field(struct filing_block *in)
 	char	*field = filing_find_next_field(in);
 
 	if (field == NULL) {
-		in->status == FILING_STATUS_CORRUPT;
+		in->status = FILING_STATUS_CORRUPT;
 		return 0;
 	}
 
@@ -948,7 +956,7 @@ unsigned filing_get_unsigned_field(struct filing_block *in)
 	char	*field = filing_find_next_field(in);
 
 	if (field == NULL) {
-		in->status == FILING_STATUS_CORRUPT;
+		in->status = FILING_STATUS_CORRUPT;
 		return 0;
 	}
 
@@ -960,7 +968,7 @@ osbool filing_get_opt_field(struct filing_block *in)
 	char	*field = filing_find_next_field(in);
 
 	if (field == NULL) {
-		in->status == FILING_STATUS_CORRUPT;
+		in->status = FILING_STATUS_CORRUPT;
 		return FALSE;
 	}
 
@@ -972,7 +980,7 @@ char *filing_get_text_field(struct filing_block *in, char *buffer, size_t length
 	char	*field = filing_find_next_field(in);
 
 	if (field == NULL) {
-		in->status == FILING_STATUS_CORRUPT;
+		in->status = FILING_STATUS_CORRUPT;
 		return NULL;
 	}
 
@@ -980,14 +988,19 @@ char *filing_get_text_field(struct filing_block *in, char *buffer, size_t length
 		return field;
 
 	if (length == 0) {
-		in->status == FILING_STATUS_BAD_MEMORY;
+		in->status = FILING_STATUS_BAD_MEMORY;
 		return NULL;
 	}
 
-	strncpy(buffer, field, length);
 	buffer[length - 1] = '\0';
+	strncpy(buffer, field, length);
 
-	return TRUE;
+	if (buffer[length - 1] != '\0') {
+		in->status = FILING_STATUS_CORRUPT;
+		buffer[length - 1] = '\0';
+	}
+
+	return buffer;
 }
 
 void filing_set_status(struct filing_block *in, enum filing_status status)
@@ -1029,7 +1042,7 @@ static char *filing_find_next_field(struct filing_block *in)
 		in->field++;
 	}
 
-	if (*in->field == sep) {
+	if (*in->field == ',') {
 		*in->field = '\0';
 		in->field++;
 	}

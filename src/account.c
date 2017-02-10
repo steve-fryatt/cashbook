@@ -4224,7 +4224,7 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 {
 	size_t			block_size;
-	int			i = -1, type, entry;
+	int			line = -1, type, entry;
 
 	type = filing_get_account_type_suffix(in);
 	if (type == ACCOUNT_NULL) {
@@ -4274,12 +4274,12 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 					return FALSE;
 				}
 			}
-			i = file->accounts->account_windows[entry].display_lines-1;
-			*(file->accounts->account_windows[entry].line_data[i].heading) = '\0';
-			file->accounts->account_windows[entry].line_data[i].type = account_get_account_line_type_field(in);
-			file->accounts->account_windows[entry].line_data[i].account = account_get_account_field(in);
-		} else if (i != -1 && filing_test_token(in, "Heading")) {
-			filing_get_text_value(in, file->accounts->account_windows[entry].line_data[i].heading, ACCOUNT_SECTION_LEN);
+			line = file->accounts->account_windows[entry].display_lines - 1;
+			*(file->accounts->account_windows[entry].line_data[line].heading) = '\0';
+			file->accounts->account_windows[entry].line_data[line].type = account_get_account_line_type_field(in);
+			file->accounts->account_windows[entry].line_data[line].account = account_get_account_field(in);
+		} else if (line != -1 && filing_test_token(in, "Heading")) {
+			filing_get_text_value(in, file->accounts->account_windows[entry].line_data[line].heading, ACCOUNT_SECTION_LEN);
 		} else {
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}

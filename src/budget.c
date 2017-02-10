@@ -385,7 +385,7 @@ void budget_write_file(struct file_block *file, FILE *out)
  * \return			TRUE if successful; FALSE on failure.
  */
 
-enum osbool budget_read_file(struct file_block *file, struct filing_block *in)
+osbool budget_read_file(struct file_block *file, struct filing_block *in)
 {
 	do {
 		if (filing_test_token(in, "Start"))

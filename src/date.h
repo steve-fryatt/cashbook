@@ -65,12 +65,6 @@ typedef unsigned int	date_t;
 #define DATE_SORT_MASK ((date_t) 0x7fffffff)
 
 /**
- * Get a date field from an input file.
- */
-
-#define date_get_currency_field(in) ((date_t) filing_get_unsigned_field((in)))
-
-/**
  * The size of a textual date field.
  */
 
@@ -142,6 +136,20 @@ enum date_adjust {
 	DATE_ADJUST_FORWARD,							/**< Adjust the date by pulling it earlier in the calendar.	*/
 	DATE_ADJUST_BACKWARD							/**< Adjust the date by pushing it later in the calendar.	*/
 };
+
+/**
+ * Get a date field from an input file.
+ */
+
+#define date_get_date_field(in) ((date_t) filing_get_unsigned_field((in)))
+
+/**
+ * Get a date period field from an input file.
+ */
+
+#define date_get_period_field(in) ((enum date_period) filing_get_int_field((in)))
+
+
 
 /* ==================================================================================================================
  * Function prototypes.

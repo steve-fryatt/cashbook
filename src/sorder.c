@@ -2597,7 +2597,7 @@ void sorder_write_file(struct file_block *file, FILE *out)
  * \return			The state of the config read operation.
  */
 
-enum config_read_status sorder_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status)
+osbool sorder_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status)
 {
 	int			i = -1;
 	size_t			block_size;

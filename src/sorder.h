@@ -177,16 +177,12 @@ void sorder_write_file(struct file_block *file, FILE *f);
 /**
  * Read standing order details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *value		A string buffer to hold file token values.
- * \param *unknown_data		A boolean flag to be set if unknown data is encountered.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum osbool sorder_read_file(struct file_block *file, struct filing_block *in);
+osbool sorder_read_file(struct file_block *file, struct filing_block *in);
 
 
 /**

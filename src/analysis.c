@@ -207,12 +207,12 @@
 struct trans_rep {
 	date_t				date_from;
 	date_t				date_to;
-  int          budget;
+	osbool				budget;
 
-  int          group;
-	int          period;
+	osbool				group;
+	int				period;
 	enum date_period		period_unit;
-  int          lock;
+	osbool				lock;
 
 	int				from_count;
 	int				to_count;
@@ -223,9 +223,9 @@ struct trans_rep {
 	amt_t				amount_min;
 	amt_t				amount_max;
 
-  int          output_trans;
-  int          output_summary;
-  int          output_accsummary;
+	osbool				output_trans;
+	osbool				output_summary;
+	osbool				output_accsummary;
 };
 
 /* Unreconciled Report dialogue. */
@@ -233,12 +233,12 @@ struct trans_rep {
 struct unrec_rep {
 	date_t				date_from;
 	date_t				date_to;
-  int          budget;
+	osbool				budget;
 
-  int          group;
+	osbool				group;
 	int				period;
 	enum date_period		period_unit;
-  int          lock;
+	osbool				lock;
 
 	int				from_count;
 	int				to_count;
@@ -251,13 +251,13 @@ struct unrec_rep {
 struct cashflow_rep {
 	date_t				date_from;
 	date_t				date_to;
-  int          budget;
+	osbool				budget;
 
-  int          group;
+	osbool				group;
 	int				period;
 	enum date_period		period_unit;
-  int          lock;
-  int          empty;
+	osbool				lock;
+	osbool				empty;
 
 	int				accounts_count;
 	int				incoming_count;
@@ -266,7 +266,7 @@ struct cashflow_rep {
 	acct_t				incoming[ANALYSIS_ACC_LIST_LEN];
 	acct_t				outgoing[ANALYSIS_ACC_LIST_LEN];
 
-  int          tabular;
+	osbool				tabular;
 };
 
 /* Balance Report dialogue. */
@@ -274,12 +274,12 @@ struct cashflow_rep {
 struct balance_rep {
 	date_t				date_from;
 	date_t				date_to;
-  int          budget;
+	osbool				budget;
 
-  int          group;
+	osbool				group;
 	int				period;
 	enum date_period		period_unit;
-  int          lock;
+	osbool				lock;
 
 	int				accounts_count;
 	int				incoming_count;
@@ -288,7 +288,7 @@ struct balance_rep {
 	acct_t				incoming[ANALYSIS_ACC_LIST_LEN];
 	acct_t				outgoing[ANALYSIS_ACC_LIST_LEN];
 
-  int          tabular;
+	osbool				tabular;
 };
 
 enum analysis_flags {
@@ -593,20 +593,20 @@ struct trans_rep *analysis_create_transaction(void)
 
 	new->date_from = NULL_DATE;
 	new->date_to = NULL_DATE;
-	new->budget = 0;
-	new->group = 0;
+	new->budget = FALSE;
+	new->group = FALSE;
 	new->period = 1;
 	new->period_unit = DATE_PERIOD_MONTHS;
-	new->lock = 0;
+	new->lock = FALSE;
 	new->from_count = 0;
 	new->to_count = 0;
 	*(new->ref) = '\0';
 	*(new->desc) = '\0';
 	new->amount_min = NULL_CURRENCY;
 	new->amount_max = NULL_CURRENCY;
-	new->output_trans = 1;
-	new->output_summary = 1;
-	new->output_accsummary = 1;
+	new->output_trans = TRUE;
+	new->output_summary = TRUE;
+	new->output_accsummary = TRUE;
 
 	return new;
 }
@@ -1007,7 +1007,8 @@ static void analysis_generate_transaction_report(struct file_block *file)
 	struct report		*report;
 	struct analysis_data	*data = NULL;
 	struct analysis_report	*template;
-	int			i, found, total, unit, period, group, lock, output_trans, output_summary, output_accsummary,
+	osbool			group, lock, output_trans, output_summary, output_accsummary;
+	int			i, found, total, unit, period,
 				total_days, period_days, period_limit, entries, account;
 	date_t			start_date, end_date, next_start, next_end, date;
 	acct_t			from, to;
@@ -1352,11 +1353,11 @@ struct unrec_rep *analysis_create_unreconciled(void)
 
 	new->date_from = NULL_DATE;
 	new->date_to = NULL_DATE;
-	new->budget = 0;
-	new->group = 0;
+	new->budget = FALSE;
+	new->group = FALSE;
 	new->period = 1;
 	new->period_unit = DATE_PERIOD_MONTHS;
-	new->lock = 0;
+	new->lock = FALSE;
 	new->from_count = 0;
 	new->to_count = 0;
 
@@ -1746,7 +1747,8 @@ static osbool analysis_delete_unreconciled_window(void)
 
 static void analysis_generate_unreconciled_report(struct file_block *file)
 {
-	int			i, acc, found, unit, period, group, lock, tot_in, tot_out, entries;
+	osbool			group, lock;
+	int			i, acc, found, unit, period, tot_in, tot_out, entries;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
 				rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
 	date_t			start_date, end_date, next_start, next_end, date;
@@ -2010,16 +2012,16 @@ struct cashflow_rep *analysis_create_cashflow(void)
 
 	new->date_from = NULL_DATE;
 	new->date_to = NULL_DATE;
-	new->budget = 0;
-	new->group = 0;
+	new->budget = FALSE;
+	new->group = FALSE;
 	new->period = 1;
 	new->period_unit = DATE_PERIOD_MONTHS;
-	new->lock = 0;
-	new->empty = 0;
+	new->lock = FALSE;
+	new->empty = FALSE;
 	new->accounts_count = 0;
 	new->incoming_count = 0;
 	new->outgoing_count = 0;
-	new->tabular = 0;
+	new->tabular = FALSE;
 
 	return new;
 }
@@ -2404,7 +2406,8 @@ static osbool analysis_delete_cashflow_window(void)
 
 static void analysis_generate_cashflow_report(struct file_block *file)
 {
-	int			i, acc, items, found, unit, period, group, lock, tabular, show_blank, total;
+	osbool			group, lock, tabular;
+	int			i, acc, items, found, unit, period, show_blank, total;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	date_t			start_date, end_date, next_start, next_end, date;
 	acct_t			from, to;
@@ -2649,15 +2652,15 @@ struct balance_rep *analysis_create_balance(void)
 
 	new->date_from = NULL_DATE;
 	new->date_to = NULL_DATE;
-	new->budget = 0;
-	new->group = 0;
+	new->budget = FALSE;
+	new->group = FALSE;
 	new->period = 1;
 	new->period_unit = DATE_PERIOD_MONTHS;
-	new->lock = 0;
+	new->lock = FALSE;
 	new->accounts_count = 0;
 	new->incoming_count = 0;
 	new->outgoing_count = 0;
-	new->tabular = 0;
+	new->tabular = FALSE;
 
 	return new;
 }
@@ -3038,7 +3041,8 @@ static osbool analysis_delete_balance_window(void)
 
 static void analysis_generate_balance_report(struct file_block *file)
 {
-	int			i, acc, items, unit, period, group, lock, tabular, total;
+	osbool			group, lock, tabular;
+	int			i, acc, items, unit, period, total;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
 	acct_t			from, to;
@@ -4514,20 +4518,15 @@ void analysis_write_file(struct file_block *file, FILE *out)
 /**
  * Read Report Template details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
-  */
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
+ */
 
-enum config_read_status analysis_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status)
+osbool analysis_read_file(struct file_block *file, struct filing_block *in)
 {
-	enum config_read_status	result;
 	size_t			block_size;
-	int			i = -1;
+	template_t		template = NULL_TEMPLATE;
 
 #ifdef DEBUG
 	debug_printf("\\GLoading Analysis Reports.");
@@ -4536,27 +4535,27 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 	/* Identify the current size of the flex block allocation. */
 
 	if (!flexutils_load_initialise((void **) &(file->analysis->saved_reports), sizeof(struct analysis_report), &block_size)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
 	/* Process the file contents until the end of the section. */
 
 	do {
-		if (string_nocase_strcmp(token, "Entries") == 0) {
-			block_size = strtoul(value, NULL, 16);
+		if (filing_test_token(in, "Entries")) {
+			block_size = filing_get_int_field(in);
 			if (block_size > file->analysis->saved_report_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->analysis->saved_reports), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			} else {
 				block_size = file->analysis->saved_report_count;
 			}
-		} else if (string_nocase_strcmp(token, "@") == 0) {
+		} else if (filing_test_token(in, "@")) {
 			file->analysis->saved_report_count++;
 			if (file->analysis->saved_report_count > block_size) {
 				block_size = file->analysis->saved_report_count;
@@ -4564,142 +4563,140 @@ enum config_read_status analysis_read_file(struct file_block *file, FILE *in, ch
 				debug_printf("Section block expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->analysis->saved_reports), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			}
-			i = file->analysis->saved_report_count-1;
-			file->analysis->saved_reports[i].type = strtoul(next_field(value, ','), NULL, 16);
-			switch(file->analysis->saved_reports[i].type) {
+			template = file->analysis->saved_report_count - 1;
+			file->analysis->saved_reports[template].type = analysis_get_report_type_field(in);
+			switch(file->analysis->saved_reports[template].type) {
 			case REPORT_TYPE_TRANS:
-				file->analysis->saved_reports[i].data.transaction.date_from = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.date_to = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.budget = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.group = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.period = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.period_unit = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.lock = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.output_trans = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.output_summary = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.output_accsummary = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.transaction.amount_min = NULL_CURRENCY;
-				file->analysis->saved_reports[i].data.transaction.amount_max = NULL_CURRENCY;
-				file->analysis->saved_reports[i].data.transaction.from_count = 0;
-				file->analysis->saved_reports[i].data.transaction.to_count = 0;
-				*(file->analysis->saved_reports[i].data.transaction.ref) = '\0';
-				*(file->analysis->saved_reports[i].data.transaction.desc) = '\0';
+				file->analysis->saved_reports[template].data.transaction.date_from = date_get_date_field(in);
+				file->analysis->saved_reports[template].data.transaction.date_to = date_get_date_field(in);
+				file->analysis->saved_reports[template].data.transaction.budget = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.transaction.group = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.transaction.period = filing_get_int_field(in);
+				file->analysis->saved_reports[template].data.transaction.period_unit = date_get_period_field(in);
+				file->analysis->saved_reports[template].data.transaction.lock = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.transaction.output_trans = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.transaction.output_summary = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.transaction.output_accsummary = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.transaction.amount_min = NULL_CURRENCY;
+				file->analysis->saved_reports[template].data.transaction.amount_max = NULL_CURRENCY;
+				file->analysis->saved_reports[template].data.transaction.from_count = 0;
+				file->analysis->saved_reports[template].data.transaction.to_count = 0;
+				*(file->analysis->saved_reports[template].data.transaction.ref) = '\0';
+				*(file->analysis->saved_reports[template].data.transaction.desc) = '\0';
 				break;
 
 			case REPORT_TYPE_UNREC:
-				file->analysis->saved_reports[i].data.unreconciled.date_from = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.unreconciled.date_to = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.unreconciled.budget = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.unreconciled.group = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.unreconciled.period = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.unreconciled.period_unit = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.unreconciled.lock = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.unreconciled.from_count = 0;
-				file->analysis->saved_reports[i].data.unreconciled.to_count = 0;
+				file->analysis->saved_reports[template].data.unreconciled.date_from = date_get_date_field(in);
+				file->analysis->saved_reports[template].data.unreconciled.date_to = date_get_date_field(in);
+				file->analysis->saved_reports[template].data.unreconciled.budget = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.unreconciled.group = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.unreconciled.period = filing_get_int_field(in);
+				file->analysis->saved_reports[template].data.unreconciled.period_unit = date_get_period_field(in);
+				file->analysis->saved_reports[template].data.unreconciled.lock = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.unreconciled.from_count = 0;
+				file->analysis->saved_reports[template].data.unreconciled.to_count = 0;
 				break;
 
 			case REPORT_TYPE_CASHFLOW:
-				file->analysis->saved_reports[i].data.cashflow.date_from = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.cashflow.date_to = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.cashflow.budget = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.cashflow.group = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.cashflow.period = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.cashflow.period_unit = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.cashflow.lock = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.cashflow.tabular = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.cashflow.empty = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.cashflow.accounts_count = 0;
-				file->analysis->saved_reports[i].data.cashflow.incoming_count = 0;
-				file->analysis->saved_reports[i].data.cashflow.outgoing_count = 0;
+				file->analysis->saved_reports[template].data.cashflow.date_from = date_get_date_field(in);
+				file->analysis->saved_reports[template].data.cashflow.date_to = date_get_date_field(in);
+				file->analysis->saved_reports[template].data.cashflow.budget = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.cashflow.group = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.cashflow.period = filing_get_int_field(in);
+				file->analysis->saved_reports[template].data.cashflow.period_unit = date_get_period_field(in);
+				file->analysis->saved_reports[template].data.cashflow.lock = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.cashflow.tabular = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.cashflow.empty = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.cashflow.accounts_count = 0;
+				file->analysis->saved_reports[template].data.cashflow.incoming_count = 0;
+				file->analysis->saved_reports[template].data.cashflow.outgoing_count = 0;
 				break;
 
 			case REPORT_TYPE_BALANCE:
-				file->analysis->saved_reports[i].data.balance.date_from = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.balance.date_to = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.balance.budget = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.balance.group = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.balance.period = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.balance.period_unit = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.balance.lock = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.balance.tabular = strtoul(next_field(NULL, ','), NULL, 16);
-				file->analysis->saved_reports[i].data.balance.accounts_count = 0;
-				file->analysis->saved_reports[i].data.balance.incoming_count = 0;
-				file->analysis->saved_reports[i].data.balance.outgoing_count = 0;
+				file->analysis->saved_reports[template].data.balance.date_from = date_get_date_field(in);
+				file->analysis->saved_reports[template].data.balance.date_to = date_get_date_field(in);
+				file->analysis->saved_reports[template].data.balance.budget = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.balance.group = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.balance.period = filing_get_int_field(in);
+				file->analysis->saved_reports[template].data.balance.period_unit = date_get_period_field(in);
+				file->analysis->saved_reports[template].data.balance.lock = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.balance.tabular = filing_get_opt_field(in);
+				file->analysis->saved_reports[template].data.balance.accounts_count = 0;
+				file->analysis->saved_reports[template].data.balance.incoming_count = 0;
+				file->analysis->saved_reports[template].data.balance.outgoing_count = 0;
 				break;
 
 			case REPORT_TYPE_NONE:
 				break;
 			}
-		} else if (i != -1 && string_nocase_strcmp(token, "Name") == 0) {
-			strcpy(file->analysis->saved_reports[i].name, value);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
-				string_nocase_strcmp(token, "Accounts") == 0) {
-			file->analysis->saved_reports[i].data.cashflow.accounts_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.cashflow.accounts);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
-				string_nocase_strcmp(token, "Incoming") == 0) {
-			file->analysis->saved_reports[i].data.cashflow.incoming_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.cashflow.incoming);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_CASHFLOW &&
-				string_nocase_strcmp(token, "Outgoing") == 0) {
-			file->analysis->saved_reports[i].data.cashflow.outgoing_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.cashflow.outgoing);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_BALANCE &&
-				string_nocase_strcmp(token, "Accounts") == 0) {
-			file->analysis->saved_reports[i].data.balance.accounts_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.balance.accounts);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_BALANCE &&
-				string_nocase_strcmp(token, "Incoming") == 0) {
-			file->analysis->saved_reports[i].data.balance.incoming_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.balance.incoming);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_BALANCE &&
-				string_nocase_strcmp(token, "Outgoing") == 0) {
-			file->analysis->saved_reports[i].data.balance.outgoing_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.balance.outgoing);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_TRANS &&
-				string_nocase_strcmp(token, "From") == 0) {
-			file->analysis->saved_reports[i].data.transaction.from_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.transaction.from);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_TRANS &&
-				string_nocase_strcmp(token, "To") == 0) {
-			file->analysis->saved_reports[i].data.transaction.to_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.transaction.to);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_UNREC &&
-				string_nocase_strcmp(token, "From") == 0) {
-			file->analysis->saved_reports[i].data.unreconciled.from_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.unreconciled.from);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_UNREC &&
-				string_nocase_strcmp(token, "To") == 0) {
-			file->analysis->saved_reports[i].data.unreconciled.to_count =
-					analysis_account_hex_to_list(file, value, file->analysis->saved_reports[i].data.unreconciled.to);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_TRANS &&
-				string_nocase_strcmp(token, "Ref") == 0) {
-			strcpy(file->analysis->saved_reports[i].data.transaction.ref, value);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_TRANS &&
-				string_nocase_strcmp(token, "Amount") == 0) {
-			file->analysis->saved_reports[i].data.transaction.amount_min = strtoul(next_field(value, ','), NULL, 16);
-			file->analysis->saved_reports[i].data.transaction.amount_max = strtoul(next_field(NULL, ','), NULL, 16);
-		} else if (i != -1 && file->analysis->saved_reports[i].type == REPORT_TYPE_TRANS &&
-				string_nocase_strcmp(token, "Desc") == 0) {
-			strcpy(file->analysis->saved_reports[i].data.transaction.desc, value);
+		} else if (template != NULL_TEMPLATE && filing_test_token(in, "Name")) {
+			filing_get_text_value(in, file->analysis->saved_reports[template].name, ANALYSIS_SAVED_NAME_LEN);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_CASHFLOW &&
+				filing_test_token(in, "Accounts")) {
+			file->analysis->saved_reports[template].data.cashflow.accounts_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.cashflow.accounts);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_CASHFLOW &&
+				filing_test_token(in, "Incoming")) {
+			file->analysis->saved_reports[template].data.cashflow.incoming_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.cashflow.incoming);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_CASHFLOW &&
+				filing_test_token(in, "Outgoing")) {
+			file->analysis->saved_reports[template].data.cashflow.outgoing_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.cashflow.outgoing);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_BALANCE &&
+				filing_test_token(in, "Accounts")) {
+			file->analysis->saved_reports[template].data.balance.accounts_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.balance.accounts);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_BALANCE &&
+				filing_test_token(in, "Incoming")) {
+			file->analysis->saved_reports[template].data.balance.incoming_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.balance.incoming);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_BALANCE &&
+				filing_test_token(in, "Outgoing")) {
+			file->analysis->saved_reports[template].data.balance.outgoing_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.balance.outgoing);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
+				filing_test_token(in, "From")) {
+			file->analysis->saved_reports[template].data.transaction.from_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.transaction.from);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
+				filing_test_token(in, "To")) {
+			file->analysis->saved_reports[template].data.transaction.to_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.transaction.to);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_UNREC &&
+				filing_test_token(in, "From")) {
+			file->analysis->saved_reports[template].data.unreconciled.from_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.unreconciled.from);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_UNREC &&
+				filing_test_token(in, "To")) {
+			file->analysis->saved_reports[template].data.unreconciled.to_count =
+					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.unreconciled.to);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
+				filing_test_token(in, "Ref")) {
+			filing_get_text_value(in, file->analysis->saved_reports[template].data.transaction.ref, TRANSACT_REF_FIELD_LEN);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
+				filing_test_token(in, "Amount")) {
+			file->analysis->saved_reports[template].data.transaction.amount_min = currency_get_currency_field(in);
+			file->analysis->saved_reports[template].data.transaction.amount_max = currency_get_currency_field(in);
+		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
+				filing_test_token(in, "Desc")) {
+			filing_get_text_value(in, file->analysis->saved_reports[template].data.transaction.desc, TRANSACT_DESCRIPT_FIELD_LEN);
 		} else {
-			*load_status = FILING_STATUS_UNEXPECTED;
+			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
-
-		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+	} while (filing_get_next_token(in));
 
 	/* Shrink the flex block back down to the minimum required. */
 
 	if (!flexutils_load_shrink((void **) &(file->analysis->saved_reports), file->analysis->saved_report_count)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
-	return result;
+	return TRUE;
 }
 

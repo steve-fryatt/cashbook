@@ -1099,20 +1099,15 @@ void interest_write_file(struct file_block *file, FILE *out)
 /**
  * Read interest rate details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum config_read_status interest_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status)
+osbool interest_read_file(struct file_block *file, struct filing_block *in)
 {
-	enum config_read_status	result;
 	size_t			block_size;
-	int			i = -1;
+	rate_t			rate = NULL_RATE;
 
 #ifdef DEBUG
 	debug_printf("\\GLoading Interest Rates.");
@@ -1121,34 +1116,34 @@ enum config_read_status interest_read_file(struct file_block *file, FILE *in, ch
 	/* Identify the current size of the flex block allocation. */
 
 	if (!flexutils_load_initialise((void **) &(file->interest->rates), sizeof(struct interest_rate), &block_size)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
 	/* Process the file contents until the end of the section. */
 
 	do {
-		if (string_nocase_strcmp(token, "Entries") == 0) {
-			block_size = strtoul(value, NULL, 16);
+		if (filing_test_token(in, "Entries")) {
+			block_size = filing_get_int_field(in);
 			if (block_size > file->interest->rate_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->interest->rates), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			} else {
 				block_size = file->interest->rate_count;
 			}
-		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
+		} else if (filing_test_token(in, "WinColumns")) {
 			/* For file format 1.00 or older, there's no row column at the
 			 * start of the line so skip on to colunn 1 (date).
 			 */
-			column_init_window(file->interest->columns, 0, TRUE, value);
-		} else if (string_nocase_strcmp(token, "SortOrder") == 0){
-			sort_read_from_text(file->interest->sort, value);
-		} else if (string_nocase_strcmp(token, "@") == 0) {
+			column_init_window(file->interest->columns, 0, TRUE, filing_get_text_value(in, NULL, 0));
+		} else if (filing_test_token(in, "SortOrder")){
+			sort_read_from_text(file->interest->sort, filing_get_text_value(in, NULL, 0));
+		} else if (filing_test_token(in, "@")) {
 			file->interest->rate_count++;
 			if (file->interest->rate_count > block_size) {
 				block_size = file->interest->rate_count;
@@ -1156,32 +1151,30 @@ enum config_read_status interest_read_file(struct file_block *file, FILE *in, ch
 				debug_printf("Section block expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->interest->rates), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			}
-			i = file->interest->rate_count-1;
-			file->interest->rates[i].account = strtoul(next_field (value, ','), NULL, 16);
-			file->interest->rates[i].rate = strtoul(next_field (NULL, ','), NULL, 16);
-			file->interest->rates[i].effective_date = strtoul(next_field (NULL, ','), NULL, 16);
-			file->interest->rates[i].minimum_balance = strtoul(next_field (NULL, ','), NULL, 16);
+			rate = file->interest->rate_count-1;
+			file->interest->rates[rate].account = account_get_account_field(in);
+			file->interest->rates[rate].rate = interest_get_rate_field(in);
+			file->interest->rates[rate].effective_date = date_get_date_field(in);
+			file->interest->rates[rate].minimum_balance = currency_get_currency_field(in);
 
-			*(file->interest->rates[i].description) = '\0';
-		} else if (i != -1 && string_nocase_strcmp(token, "Desc") == 0) {
-			strcpy(file->interest->rates[i].description, value);
+			*(file->interest->rates[rate].description) = '\0';
+		} else if (rate != NULL_RATE && filing_test_token(in, "Desc")) {
+			filing_get_text_value(in, file->interest->rates[rate].description, INTEREST_DESCRIPTION_LEN);
 		} else {
-			*load_status = FILING_STATUS_UNEXPECTED;
+			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
-
-		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+	} while (filing_get_next_token(in));
 
 	/* Shrink the flex block back down to the minimum required. */
 
 	if (!flexutils_load_shrink((void **) &(file->interest->rates), file->interest->rate_count)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
-	return result;
+	return TRUE;
 }

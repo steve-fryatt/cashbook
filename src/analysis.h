@@ -56,6 +56,12 @@ enum analysis_report_type {
 	REPORT_TYPE_BALANCE = 4							/**< Balance report.								*/
 };
 
+/**
+ * Get a report type field from an input file.
+ */
+
+#define analysis_get_report_type_field(in) ((enum analysis_report_type) filing_get_int_field((in)))
+
 
 /**
  * Initialise the Analysis module and all its dialogue boxes.
@@ -368,16 +374,12 @@ void analysis_write_file(struct file_block *file, FILE *out);
 /**
  * Read Report Template details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
-  */
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
+ */
 
-enum osbool analysis_read_file(struct file_block *file, struct filing_block *in);
+osbool analysis_read_file(struct file_block *file, struct filing_block *in);
 
 #endif
 

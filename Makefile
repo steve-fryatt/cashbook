@@ -36,10 +36,14 @@ OBJS = account.o			\
        accview.o			\
        amenu.o				\
        analysis.o			\
+       analysis_balance.o		\
+       analysis_cashflow.o		\
        analysis_dialogue.o		\
        analysis_lookup.o		\
        analysis_template_menu.o		\
        analysis_template_save.o		\
+       analysis_transaction.o		\
+       analysis_unreconciled.o		\
        budget.o				\
        caret.o				\
        choices.o			\

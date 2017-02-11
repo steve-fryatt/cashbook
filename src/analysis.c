@@ -4632,6 +4632,9 @@ osbool analysis_read_file(struct file_block *file, struct filing_block *in)
 
 			case REPORT_TYPE_NONE:
 				break;
+			default:
+				filing_set_status(in, FILING_STATUS_UNEXPECTED);
+				break;
 			}
 		} else if (template != NULL_TEMPLATE && filing_test_token(in, "Name")) {
 			filing_get_text_value(in, file->analysis->saved_reports[template].name, ANALYSIS_SAVED_NAME_LEN);

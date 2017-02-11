@@ -140,6 +140,12 @@ struct filing_block {
 	enum filing_status	status;
 };
 
+/**
+ * Test for file load statuses which are considered OK for continuing.
+ */
+
+#define filing_load_status_is_ok(status) (((status) == FILING_STATUS_OK) || ((status) == FILING_STATUS_UNEXPECTED))
+
 /* Global Variables. */
 
 /**
@@ -257,17 +263,15 @@ void filing_load_cashbook_file(char *filename)
 						in.status = FILING_STATUS_UNEXPECTED;
 					}
 				}
-
-				in.result = config_read_token_pair(in.handle, in.token, in.value, in.section);
-			} while ((in.status == FILING_STATUS_OK || in.status == FILING_STATUS_UNEXPECTED) && in.result != sf_CONFIG_READ_EOF && in.result != sf_CONFIG_READ_NEW_SECTION);
+			} while (filing_get_next_token(&in));
 		}
-	} while ((in.status == FILING_STATUS_OK || in.status == FILING_STATUS_UNEXPECTED) && in.result != sf_CONFIG_READ_EOF);
+	} while (filing_load_status_is_ok(in.status) && in.result != sf_CONFIG_READ_EOF);
 
 	fclose(in.handle);
 
 	/* If the file format wasn't understood, get out now. */
 
-	if (in.status == FILING_STATUS_VERSION || in.status == FILING_STATUS_MEMORY) {
+	if (!filing_load_status_is_ok(in.status)) {
 		delete_file(file);
 		hourglass_off();
 		switch (in.status) {
@@ -830,17 +834,26 @@ osbool filing_get_next_token(struct filing_block *in)
 {
 	char *separator;
 
-	if (in == NULL)
+	if (in == NULL || !filing_load_status_is_ok(in->status))
 		return FALSE;
 
 	in->result = config_read_token_pair(in->handle, in->token, in->value, in->section);
 
-	separator = strchr(in->section, ':');
-	if (separator != NULL) {
-		*separator = '\0';
-		in->suffix = separator + 1;
-	} else {
-		in->suffix = NULL;
+#ifdef DEBUG
+	debug_printf("Read line: section=%s, token=%s, value=%s", in->section, in->token, in->value);
+#endif
+
+	if (in->result == sf_CONFIG_READ_NEW_SECTION) {
+		separator = strchr(in->section, ':');
+		if (separator != NULL) {
+			*separator = '\0';
+			in->suffix = separator + 1;
+#ifdef DEBUG
+			debug_printf("Split section: section=%s, suffix=%s", in->section, in->suffix);
+#endif
+		} else {
+			in->suffix = NULL;
+		}
 	}
 
 	in->field = in->value;
@@ -902,6 +915,10 @@ char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length
 	if (in == NULL)
 		return NULL;
 
+#ifdef DEBUG
+	debug_printf("Return text value: %s", in->value);
+#endif
+
 	if (buffer == NULL)
 		return in->value;
 
@@ -916,6 +933,9 @@ char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length
 	if (buffer[length - 1] != '\0') {
 		in->status = FILING_STATUS_CORRUPT;
 		buffer[length - 1] = '\0';
+#ifdef DEBUG
+		debug_printf("Field is too long: original=%s, copied=%s", in->value, buffer);
+#endif
 	}
 
 	return buffer;
@@ -1050,6 +1070,9 @@ char *filing_get_text_field(struct filing_block *in, char *buffer, size_t length
 	if (buffer[length - 1] != '\0') {
 		in->status = FILING_STATUS_CORRUPT;
 		buffer[length - 1] = '\0';
+#ifdef DEBUG
+		debug_printf("Field is too long: original=%s, copied=%s", field, buffer);
+#endif
 	}
 
 	return buffer;
@@ -1107,6 +1130,10 @@ static char *filing_find_next_field(struct filing_block *in)
 		*in->field = '\0';
 		in->field++;
 	}
+
+#ifdef DEBUG
+	debug_printf("Split out next field: field=%s, tail=%s", start, in->field);
+#endif
 
 	return start;
 }

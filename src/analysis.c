@@ -3672,7 +3672,7 @@ static void analysis_set_account_report_flags_from_list(struct file_block *file,
 {
 	int	account, i;
 
-	for (i=0; i<count; i++) {
+	for (i = 0; i < count; i++) {
 		account = array[i];
 
 		if (account == NULL_ACCOUNT) {
@@ -4702,4 +4702,3 @@ osbool analysis_read_file(struct file_block *file, struct filing_block *in)
 
 	return TRUE;
 }
-

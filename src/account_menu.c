@@ -40,11 +40,12 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/menus.h"
-#include "sflib/icons.h"
-#include "sflib/msgs.h"
 #include "sflib/config.h"
+#include "sflib/debug.h"
 #include "sflib/heap.h"
+#include "sflib/icons.h"
+#include "sflib/menus.h"
+#include "sflib/msgs.h"
 #include "sflib/string.h"
 
 /* Application header files */

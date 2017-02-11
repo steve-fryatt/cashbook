@@ -395,7 +395,7 @@ osbool budget_read_file(struct file_block *file, struct filing_block *in)
 		else if (filing_test_token(in, "SOTrial"))
 			file->budget->sorder_trial = filing_get_int_field(in);
 		else if (filing_test_token(in, "RestrictPost"))
-			file->budget->limit_postdate = filing_get_opt_field(in);
+			file->budget->limit_postdate = filing_get_opt_value(in);
 		else
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 	} while (filing_get_next_token(in));

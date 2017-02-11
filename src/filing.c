@@ -943,6 +943,25 @@ char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length
 
 
 /**
+ * Return the boolean value of a token in a file, which will be in "Yes"
+ * or "No" format.
+ * The file's data is updated to identify the next field in the record. If
+ * the field is missing or empty, the file is marked as corrupt.
+ *
+ * \param *in			The file being loaded.
+ * \return			The integer value, or FALSE.
+ */
+
+osbool filing_get_opt_value(struct filing_block *in)
+{
+	if (in == NULL || in->value == NULL)
+		return FALSE;
+
+	return config_read_opt_string(in->value);
+}
+
+
+/**
  * Return the value of an integer field in a comma-separated token record.
  * The file's data is updated to identify the next field in the record. If
  * the field is missing or empty, the file is marked as corrupt.
@@ -1009,7 +1028,8 @@ char filing_get_char_field(struct filing_block *in)
 
 
 /**
- * Return the value of a boolean field in a comma-separated token record.
+ * Return the value of a boolean field in a comma-separated token record:
+ * the value "1" is taken as TRUE, while all other values are FALSE.
  * The file's data is updated to identify the next field in the record. If
  * the field is missing or empty, the file is marked as corrupt.
  *
@@ -1026,7 +1046,7 @@ osbool filing_get_opt_field(struct filing_block *in)
 		return FALSE;
 	}
 
-	return config_read_opt_string(field);
+	return (*field == '1') ? TRUE : FALSE;
 }
 
 

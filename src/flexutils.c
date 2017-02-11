@@ -182,7 +182,7 @@ osbool flexutils_load_shrink(void **anchor, size_t new_size)
 
 	flexutils_load_block_size = 0;
 
-	if ((blocks > new_size) && (flex_extend((flex_ptr) anchor, flexutils_load_block_size * new_size)))
+	if ((blocks > new_size) && (flex_extend((flex_ptr) anchor, flexutils_load_block_size * new_size) == 0))
 		return FALSE;
 
 	return TRUE;

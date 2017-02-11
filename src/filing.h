@@ -145,13 +145,6 @@ int filing_output_delimited_field(FILE *f, char *string, enum filing_delimit_typ
 char *filing_read_delimited_field(char *line, enum filing_delimit_type format, enum filing_delimit_flags flags);
 
 
-/* String processing */
-
-char *next_field (char *line, char sep);
-char *next_plain_field (char *line, char sep);
-
-
-
 /**
  * Get the file format number of the a disc file. If the format token has
  * not been found, the format is returned as zero.

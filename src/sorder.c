@@ -220,7 +220,7 @@ struct sorder {
 	 * for handling entries in the sorder window.
 	 */
 
-	int			sort_index;					/**< Point to another order, to allow the sorder window to be sorted.	*/
+	sorder_t		sort_index;					/**< Point to another order, to allow the sorder window to be sorted.	*/
 };
 
 
@@ -250,7 +250,7 @@ struct sorder_block {
 	/* Standing Order data. */
 
 	struct sorder		*sorders;					/**< The standing order data for the defined standing orders		*/
-	int			sorder_count;					/**< The number of standing orders defined in the file.			*/
+	sorder_t		sorder_count;					/**< The number of standing orders defined in the file.			*/
 };
 
 

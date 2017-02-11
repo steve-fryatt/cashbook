@@ -205,7 +205,7 @@ struct preset {
 	 * for handling entries in the preset window.
 	 */
 
-	int		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
+	preset_t		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
 };
 
 /**

@@ -246,9 +246,9 @@ struct transaction {
 	 * for handling entries in the transaction window.
 	 */
 
-	int			sort_index;					/**< Point to another transaction, to allow the transaction window to be sorted.	*/
-	int			saved_sort;					/**< Preserve the transaction window sort order across transaction data sorts.		*/
-	int			sort_workspace;					/**< Workspace used by the sorting code.						*/
+	tran_t			sort_index;					/**< Point to another transaction, to allow the transaction window to be sorted.	*/
+	tran_t			saved_sort;					/**< Preserve the transaction window sort order across transaction data sorts.		*/
+	tran_t			sort_workspace;					/**< Workspace used by the sorting code.						*/
 };
 
 

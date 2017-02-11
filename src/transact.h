@@ -100,6 +100,12 @@ enum transact_scroll_direction {
 };
 
 
+/**
+ * Get a transaction flags field from an input file.
+ */
+
+#define transact_get_flags_field(in) ((enum transact_flags) filing_get_int_field((in)))
+
 
 /**
  * Convert an internal transaction number into a user-facing one.

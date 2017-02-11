@@ -4574,21 +4574,15 @@ void transact_write_file(struct file_block *file, FILE *out)
 /**
  * Read transaction details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param format		The format number of the file.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum config_read_status transact_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, int format, enum filing_status *load_status)
+osbool transact_read_file(struct file_block *file, struct filing_block *in)
 {
-	enum config_read_status	result;
 	size_t			block_size;
-	int			i = -1;
+	tran_t			transaction = NULL_TRANSACTION;
 
 #ifdef DEBUG
 	debug_printf("\\GLoading Transactions.");
@@ -4601,34 +4595,34 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 	/* Identify the current size of the flex block allocation. */
 
 	if (!flexutils_load_initialise((void **) &(file->transacts->transactions), sizeof(struct transaction), &block_size)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
 	/* Process the file contents until the end of the section. */
 
 	do {
-		if (string_nocase_strcmp(token, "Entries") == 0) {
-			block_size = strtoul(value, NULL, 16);
+		if (filing_test_token(in, "Entries")) {
+			block_size = filing_get_int_field(in);
 			if (block_size > file->transacts->trans_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->transacts->transactions), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			} else {
 				block_size = file->transacts->trans_count;
 			}
-		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
+		} else if (filing_test_token(in, "WinColumns")) {
 			/* For file format 1.00 or older, there's no row column at the
 			 * start of the line so skip on to colunn 1 (date).
 			 */
-			column_init_window(file->transacts->columns, (format <= 100) ? 1 : 0, TRUE, value);
-		} else if (string_nocase_strcmp(token, "SortOrder") == 0){
-			sort_read_from_text(file->transacts->sort, value);
-		} else if (string_nocase_strcmp(token, "@") == 0) {
+			column_init_window(file->transacts->columns, (filing_get_format(in) <= 100) ? 1 : 0, TRUE, filing_get_text_value(in, NULL, 0));
+		} else if (filing_test_token(in, "SortOrder")){
+			sort_read_from_text(file->transacts->sort, filing_get_text_value(in, NULL, 0));
+		} else if (filing_test_token(in, "@")) {
 			file->transacts->trans_count++;
 			if (file->transacts->trans_count > block_size) {
 				block_size = file->transacts->trans_count;
@@ -4636,40 +4630,39 @@ enum config_read_status transact_read_file(struct file_block *file, FILE *in, ch
 				debug_printf("Section block expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->transacts->transactions), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			}
-			i = file->transacts->trans_count-1;
-			file->transacts->transactions[i].date = strtoul(next_field (value, ','), NULL, 16);
-			file->transacts->transactions[i].flags = strtoul(next_field (NULL, ','), NULL, 16);
-			file->transacts->transactions[i].from = strtoul(next_field (NULL, ','), NULL, 16);
-			file->transacts->transactions[i].to = strtoul(next_field (NULL, ','), NULL, 16);
-			file->transacts->transactions[i].amount = strtoul(next_field (NULL, ','), NULL, 16);
+			transaction = file->transacts->trans_count - 1;
+			file->transacts->transactions[transaction].date = date_get_date_field(in);
+			file->transacts->transactions[transaction].flags = transact_get_flags_field(in);
+			file->transacts->transactions[transaction].from = account_get_account_field(in);
+			file->transacts->transactions[transaction].to = account_get_account_field(in);
+			file->transacts->transactions[transaction].amount = currency_get_currency_field(in);
 
-			*(file->transacts->transactions[i].reference) = '\0';
-			*(file->transacts->transactions[i].description) = '\0';
+			*(file->transacts->transactions[transaction].reference) = '\0';
+			*(file->transacts->transactions[transaction].description) = '\0';
 
-			file->transacts->transactions[i].sort_index = i;
-		} else if (i != -1 && string_nocase_strcmp(token, "Ref") == 0) {
-			strcpy(file->transacts->transactions[i].reference, value);
-		} else if (i != -1 && string_nocase_strcmp(token, "Desc") == 0) {
-			strcpy(file->transacts->transactions[i].description, value);
+			file->transacts->transactions[transaction].sort_index = transaction;
+		} else if (transaction != NULL_TRANSACTION && filing_test_token(in, "Ref")) {
+			filing_get_text_value(in, file->transacts->transactions[transaction].reference, TRANSACT_REF_FIELD_LEN);
+		} else if (transaction != NULL_TRANSACTION && filing_test_token(in, "Desc")) {
+			filing_get_text_value(in, file->transacts->transactions[transaction].description, TRANSACT_DESCRIPT_FIELD_LEN);
 		} else {
-			*load_status = FILING_STATUS_UNEXPECTED;
+			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
 
-		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+	} while (filing_get_next_token(in));
 
 	/* Shrink the flex block back down to the minimum required. */
 
 	if (!flexutils_load_shrink((void **) &(file->transacts->transactions), file->transacts->trans_count)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
-	return result;
+	return TRUE;
 }
 
 

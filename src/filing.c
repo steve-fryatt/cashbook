@@ -963,6 +963,18 @@ unsigned filing_get_unsigned_field(struct filing_block *in)
 	return strtoul(field, NULL, 16);
 }
 
+char filing_get_char_field(struct filing_block *in)
+{
+	char	*field = filing_find_next_field(in);
+
+	if (field == NULL) {
+		in->status = FILING_STATUS_CORRUPT;
+		return 0;
+	}
+
+	return strtoul(field, NULL, 16);
+}
+
 osbool filing_get_opt_field(struct filing_block *in)
 {
 	char	*field = filing_find_next_field(in);

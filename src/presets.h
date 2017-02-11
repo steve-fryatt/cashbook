@@ -65,6 +65,12 @@ enum preset_caret {
 	PRESET_CARET_DESCRIPTION = 5
 };
 
+/**
+ * Get a preset caret target field from an input file.
+ */
+
+#define preset_get_caret_field(in) ((enum preset_caret) filing_get_int_field((in)))
+
 #include "account.h"
 #include "currency.h"
 #include "filing.h"

@@ -158,6 +158,7 @@ osbool filing_test_token(struct filing_block *in, char *token);
 char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length);
 int filing_get_int_field(struct filing_block *in);
 unsigned filing_get_unsigned_field(struct filing_block *in);
+char filing_get_char_field(struct filing_block *in);
 osbool filing_get_opt_field(struct filing_block *in);
 char *filing_get_text_field(struct filing_block *in, char *buffer, size_t length);
 void filing_set_status(struct filing_block *in, enum filing_status status);

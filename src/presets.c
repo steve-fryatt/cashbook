@@ -2275,23 +2275,17 @@ void preset_write_file(struct file_block *file, FILE *out)
 
 
 /**
- * Read preset details from a CashBook file into a file block.
+ * Read preset order details from a CashBook file into a file block.
  *
- * \param *file			The file to read into.
- * \param *out			The file handle to read from.
- * \param *section		A string buffer to hold file section names.
- * \param *token		A string buffer to hold file token names.
- * \param *value		A string buffer to hold file token values.
- * \param *value		A string buffer to hold file token values.
- * \param *load_status		Pointer to return the current status of the load operation.
- * \return			The state of the config read operation.
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-enum config_read_status preset_read_file(struct file_block *file, FILE *in, char *section, char *token, char *value, enum filing_status *load_status)
+osbool preset_read_file(struct file_block *file, struct filing_block *in)
 {
-	enum config_read_status	result;
 	size_t			block_size;
-	int			i = -1;
+	preset_t		preset = NULL_PRESET;
 
 #ifdef DEBUG
 	debug_printf("\\GLoading Transaction Presets.");
@@ -2300,75 +2294,73 @@ enum config_read_status preset_read_file(struct file_block *file, FILE *in, char
 	/* Identify the current size of the flex block allocation. */
 
 	if (!flexutils_load_initialise((void **) &(file->presets->presets), sizeof(struct preset), &block_size)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
 	/* Process the file contents until the end of the section. */
 
 	do {
-		if (string_nocase_strcmp(token, "Entries") == 0) {
-			block_size = strtoul (value, NULL, 16);
+		if (filing_test_token(in, "Entries")) {
+			block_size = filing_get_int_field(in);
 			if (block_size > file->presets->preset_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
 				if (!flexutils_load_resize((void **) &(file->presets->presets), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 			} else {
 				block_size = file->presets->preset_count;
 			}
-		} else if (string_nocase_strcmp(token, "WinColumns") == 0) {
-			column_init_window(file->presets->columns, 0, TRUE, value);
-		} else if (string_nocase_strcmp(token, "SortOrder") == 0) {
-			sort_read_from_text(file->presets->sort, value);
-		} else if (string_nocase_strcmp(token, "@") == 0) {
+		} else if (filing_test_token(in, "WinColumns")) {
+			column_init_window(file->presets->columns, 0, TRUE, filing_get_text_value(in, NULL, 0));
+		} else if (filing_test_token(in, "SortOrder")) {
+			sort_read_from_text(file->presets->sort, filing_get_text_value(in, NULL, 0));
+		} else if (filing_test_token(in, "@")) {
 			file->presets->preset_count++;
 			if (file->presets->preset_count > block_size) {
 				block_size = file->presets->preset_count;
 				if (!flexutils_load_resize((void **) &(file->presets->presets), block_size)) {
-					*load_status = FILING_STATUS_MEMORY;
-					return sf_CONFIG_READ_EOF;
+					filing_set_status(in, FILING_STATUS_MEMORY);
+					return FALSE;
 				}
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
 			}
-			i = file->presets->preset_count - 1;
-			file->presets->presets[i].action_key = strtoul(next_field (value, ','), NULL, 16);
-			file->presets->presets[i].caret_target = strtoul(next_field (NULL, ','), NULL, 16);
-			file->presets->presets[i].date = strtoul(next_field (NULL, ','), NULL, 16);
-			file->presets->presets[i].flags = strtoul(next_field (NULL, ','), NULL, 16);
-			file->presets->presets[i].from = strtoul(next_field (NULL, ','), NULL, 16);
-			file->presets->presets[i].to = strtoul(next_field (NULL, ','), NULL, 16);
-			file->presets->presets[i].amount = strtoul(next_field (NULL, ','), NULL, 16);
-			*(file->presets->presets[i].name) = '\0';
-			*(file->presets->presets[i].reference) = '\0';
-			*(file->presets->presets[i].description) = '\0';
-			file->presets->presets[i].sort_index = i;
-		} else if (i != -1 && string_nocase_strcmp(token, "Name") == 0) {
-			strcpy(file->presets->presets[i].name, value);
-		} else if (i != -1 && string_nocase_strcmp(token, "Ref") == 0) {
-			strcpy(file->presets->presets[i].reference, value);
-		} else if (i != -1 && string_nocase_strcmp(token, "Desc") == 0) {
-			strcpy(file->presets->presets[i].description, value);
+			preset = file->presets->preset_count - 1;
+			file->presets->presets[preset].action_key = filing_get_char_field(in);
+			file->presets->presets[preset].caret_target = preset_get_caret_field(in);
+			file->presets->presets[preset].date = date_get_date_field(in);
+			file->presets->presets[preset].flags = transact_get_flags_field(in);
+			file->presets->presets[preset].from = account_get_account_field(in);
+			file->presets->presets[preset].to = account_get_account_field(in);
+			file->presets->presets[preset].amount = currency_get_currency_field(in);
+			*(file->presets->presets[preset].name) = '\0';
+			*(file->presets->presets[preset].reference) = '\0';
+			*(file->presets->presets[preset].description) = '\0';
+			file->presets->presets[preset].sort_index = preset;
+		} else if (preset != NULL_PRESET && filing_test_token(in, "Name")) {
+			filing_get_text_value(in, file->presets->presets[preset].name, PRESET_NAME_LEN);
+		} else if (preset != NULL_PRESET && filing_test_token(in, "Ref")) {
+			filing_get_text_value(in, file->presets->presets[preset].reference, TRANSACT_REF_FIELD_LEN);
+		} else if (preset != NULL_PRESET && filing_test_token(in, "Desc")) {
+			filing_get_text_value(in, file->presets->presets[preset].description, TRANSACT_DESCRIPT_FIELD_LEN);
 		} else {
-			*load_status = FILING_STATUS_UNEXPECTED;
+			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
-
-		result = config_read_token_pair(in, token, value, section);
-	} while (result != sf_CONFIG_READ_EOF && result != sf_CONFIG_READ_NEW_SECTION);
+	} while (filing_get_next_token(in));
 
 	/* Shrink the flex block back down to the minimum required. */
 
 	if (!flexutils_load_shrink((void **) &(file->presets->presets), file->presets->preset_count)) {
-		*load_status = FILING_STATUS_BAD_MEMORY;
-		return sf_CONFIG_READ_EOF;
+		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
+		return FALSE;
 	}
 
-	return result;
+	return TRUE;
 }
 
 

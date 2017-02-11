@@ -141,9 +141,7 @@ struct file_block *build_new_file_block(void)
 	 */
 
 	new->accviews = NULL;
-
 	new->interest = NULL;
-
 	new->transacts = NULL;
 	new->accounts = NULL;
 	new->sorders = NULL;

@@ -867,6 +867,13 @@ char *next_plain_field (char *line, char sep)
 }
 
 
+/**
+ * Get the file format number of the a disc file. If the format token has
+ * not been found, the format is returned as zero.
+ * 
+ * \param *in			The file to report on.
+ * \return			The file version, or 0 if not known.
+ */
 
 int filing_get_format(struct filing_block *in)
 {
@@ -875,6 +882,15 @@ int filing_get_format(struct filing_block *in)
 
 	return in->format;
 }
+
+
+/**
+ * Move the file pointer on to the next token contained in the file.
+ * 
+ * \param *in			The file being loaded.
+ * \return			TRUE if the token is in the current section;
+ *				FALSE if there are no more tokens in the section.
+ */
 
 osbool filing_get_next_token(struct filing_block *in)
 {
@@ -899,6 +915,13 @@ osbool filing_get_next_token(struct filing_block *in)
 }
 
 
+/**
+ * Get the account type from the end of an account list section.
+ *
+ * \param *in			The file being loaded.
+ * \return			The account type, or ACCOUT_NULL.
+ */
+
 enum account_type filing_get_account_type_suffix(struct filing_block *in)
 {
 	if (in == NULL || in->suffix == NULL)
@@ -907,6 +930,15 @@ enum account_type filing_get_account_type_suffix(struct filing_block *in)
 	return strtoul(in->suffix, NULL, 16);
 }
 
+
+/**
+ * Test the name of the current token in a file.
+ *
+ * \param *in			The filing being loaded.
+ * \param *token		Pointer to the token name to test against.
+ * \return			TRUE if the token name matches; otherwise FALSE.
+ */
+
 osbool filing_test_token(struct filing_block *in, char *token)
 {
 	if (in == NULL)
@@ -914,6 +946,22 @@ osbool filing_test_token(struct filing_block *in, char *token)
 
 	return (string_nocase_strcmp(in->token, token) == 0) ? TRUE : FALSE;
 }
+
+
+/**
+ * Get the textual value of a token in a file, either returning a pointer to
+ * the volatile data in memory or copying it into a supplied buffer. If the
+ * token value is too long to fit in the buffer, the file is reported as
+ * being corrupt.
+ *
+ * \param *in			The file being loaded.
+ * \param *buffer		Pointer to a buffer to take the string, or
+ *				NULL to return a pointer to the string in
+ *				volatile memory.
+ * \param length		The length of the supplied buffer, or 0.
+ * \return			Pointer to the value string, either in the
+ *				supplied buffer or in volatile memory.
+ */
 
 char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length)
 {
@@ -939,6 +987,16 @@ char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length
 	return buffer;
 }
 
+
+/**
+ * Return the value of an integer field in a comma-separated token record.
+ * The file's data is updated to identify the next field in the record. If
+ * the field is missing or empty, the file is marked as corrupt.
+ *
+ * \param *in			The file being loaded.
+ * \return			The integer value, or 0.
+ */
+
 int filing_get_int_field(struct filing_block *in)
 {
 	char	*field = filing_find_next_field(in);
@@ -950,6 +1008,16 @@ int filing_get_int_field(struct filing_block *in)
 
 	return strtoul(field, NULL, 16);
 }
+
+
+/**
+ * Return the value of an unsigned field in a comma-separated token record.
+ * The file's data is updated to identify the next field in the record. If
+ * the field is missing or empty, the file is marked as corrupt.
+ *
+ * \param *in			The file being loaded.
+ * \return			The integer value, or 0.
+ */
 
 unsigned filing_get_unsigned_field(struct filing_block *in)
 {
@@ -963,17 +1031,37 @@ unsigned filing_get_unsigned_field(struct filing_block *in)
 	return strtoul(field, NULL, 16);
 }
 
+
+/**
+ * Return the value of a char field in a comma-separated token record.
+ * The file's data is updated to identify the next field in the record. If
+ * the field is missing or empty, the file is marked as corrupt.
+ *
+ * \param *in			The file being loaded.
+ * \return			The integer value, or \0.
+ */
+
 char filing_get_char_field(struct filing_block *in)
 {
 	char	*field = filing_find_next_field(in);
 
 	if (field == NULL) {
 		in->status = FILING_STATUS_CORRUPT;
-		return 0;
+		return '\0';
 	}
 
 	return strtoul(field, NULL, 16);
 }
+
+
+/**
+ * Return the value of a boolean field in a comma-separated token record.
+ * The file's data is updated to identify the next field in the record. If
+ * the field is missing or empty, the file is marked as corrupt.
+ *
+ * \param *in			The file being loaded.
+ * \return			The integer value, or FALSE.
+ */
 
 osbool filing_get_opt_field(struct filing_block *in)
 {
@@ -987,6 +1075,24 @@ osbool filing_get_opt_field(struct filing_block *in)
 	return config_read_opt_string(field);
 }
 
+
+/**
+ * Return the value of a text field in a comma-separated token record, 
+ * ither returning a pointer to the volatile data in memory or copying
+ * it into a supplied buffer. If the field is missing or empty, or the
+ * token value is too long to fit in the buffer, the file is reported as
+ * being corrupt.
+ *
+ * \param *in			The file being loaded.
+ * \param *buffer		Pointer to a buffer to take the string, or
+ *				NULL to return a pointer to the string in
+ *				volatile memory.
+ * \param length		The length of the supplied buffer, or 0.
+ * \return			Pointer to the value string, either in the
+ *				supplied buffer or in volatile memory, or
+ *				NULL on failure.
+ */
+ 
 char *filing_get_text_field(struct filing_block *in, char *buffer, size_t length)
 {
 	char	*field = filing_find_next_field(in);
@@ -1014,6 +1120,15 @@ char *filing_get_text_field(struct filing_block *in, char *buffer, size_t length
 
 	return buffer;
 }
+
+
+/**
+ * Set the status of a file being loaded, to indicate problems that have
+ * been encountered by the client modules.
+ *
+ * \param *in			The file being loaded.
+ * \param status		The new status to set for the file.
+ */
 
 void filing_set_status(struct filing_block *in, enum filing_status status)
 {

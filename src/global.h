@@ -129,13 +129,6 @@ struct file_block
 	struct printing			*print;					/**< Data relating to the print dialogues.			*/
 	struct purge_block		*purge;					/**< Data relating to the purge module.				*/
 
-	/* Analysis Report Content. */
-
-	struct trans_rep		*trans_rep;				/**< Data relating to the transaction report dialogue.		*/
-	struct unrec_rep		*unrec_rep;				/**< Data relating to the unreconciled report dialogue.		*/
-	struct cashflow_rep		*cashflow_rep;				/**< Data relating to the cashflow report dialogue.		*/
-	struct balance_rep		*balance_rep;				/**< Data relating to the balance report dialogue.		*/
-
 	/* Pointer to the next file in the list. */
 
 	struct file_block		*next;

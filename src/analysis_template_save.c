@@ -418,6 +418,7 @@ static void analysis_template_save_fill_window(struct analysis_report *template)
 static osbool analysis_template_save_process_window(void)
 {
 	template_t	template;
+	char		*name;
 
 	if (*icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_NAME) == '\0')
 		return FALSE;
@@ -443,8 +444,12 @@ static osbool analysis_template_save_process_window(void)
 			return FALSE;
 		}
 
-		analysis_rename_template(analysis_template_save_file, analysis_template_save_template,
-				icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_NAME));
+		name = icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_NAME);
+
+		analysis_rename_template(analysis_template_save_file, analysis_template_save_template, name);
+
+		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_template_save_window), windows_get_indirected_title_length(analysis_template_save_window), name, NULL, NULL, NULL);
+		xwimp_force_redraw_title(analysis_template_save_window);
 		break;
 
 	default:

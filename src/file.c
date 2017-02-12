@@ -153,10 +153,6 @@ struct file_block *build_new_file_block(void)
 	new->go_to = NULL;
 	new->print = NULL;
 	new->purge = NULL;
-	new->balance_rep = NULL;
-	new->cashflow_rep = NULL;
-	new->trans_rep = NULL;
-	new->unrec_rep = NULL;
 
 	new->reports = NULL;
 	new->import_report = NULL;
@@ -201,42 +197,6 @@ struct file_block *build_new_file_block(void)
 
 	new->purge = purge_create(new);
 	if (new->purge == NULL) {
-		delete_file(new);
-		error_msgs_report_error("NoMemNewFile");
-		return NULL;
-	}
-
-	/* Set up the balance report data. */
-
-	new->balance_rep = analysis_create_balance();
-	if (new->balance_rep == NULL) {
-		delete_file(new);
-		error_msgs_report_error("NoMemNewFile");
-		return NULL;
-	}
-
-	/* Set up the cashflow report data. */
-
-	new->cashflow_rep = analysis_create_cashflow();
-	if (new->cashflow_rep == NULL) {
-		delete_file(new);
-		error_msgs_report_error("NoMemNewFile");
-		return NULL;
-	}
-
-	/* Set up the transaction report data. */
-
-	new->trans_rep = analysis_create_transaction();
-	if (new->trans_rep == NULL) {
-		delete_file(new);
-		error_msgs_report_error("NoMemNewFile");
-		return NULL;
-	}
-
-	/* Set up the unreconciled report data. */
-
-	new->unrec_rep = analysis_create_unreconciled();
-	if (new->unrec_rep == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
@@ -431,15 +391,7 @@ void delete_file(struct file_block *file)
 		printing_delete(file->print);
 	if (file->purge != NULL)
 		purge_delete(file->purge);
-	if (file->balance_rep != NULL)
-		analysis_delete_balance(file->balance_rep);
-	if (file->cashflow_rep != NULL)
-		analysis_delete_cashflow(file->cashflow_rep);
-	if (file->trans_rep != NULL)
-		analysis_delete_transaction(file->trans_rep);
-	if (file->unrec_rep != NULL)
-		analysis_delete_unreconciled(file->unrec_rep);
-		
+
 	/* Deallocate the block itself. */
 
 	heap_free(file);

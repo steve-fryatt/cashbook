@@ -30,6 +30,8 @@ APP := !CashBook
 SHHELP := CashBook,3d6
 HTMLHELP := manual.html
 
+# CCFLAGS := -DDEBUG
+
 OBJS = account.o			\
        account_list_menu.o		\
        account_menu.o			\
@@ -40,6 +42,7 @@ OBJS = account.o			\
        analysis_cashflow.o		\
        analysis_dialogue.o		\
        analysis_lookup.o		\
+       analysis_period.o		\
        analysis_template_menu.o		\
        analysis_template_save.o		\
        analysis_transaction.o		\

@@ -31,6 +31,81 @@
 #ifndef CASHBOOK_ANALYSIS_UNRECONCILED
 #define CASHBOOK_ANALYSIS_UNRECONCILED
 
+/* Unreconciled Report dialogue. */
 
+struct unrec_rep {
+	/**
+	 * The parent analysis report instance.
+	 */
+
+	struct analysis_block		*parent;
+
+	date_t				date_from;
+	date_t				date_to;
+	osbool				budget;
+
+	osbool				group;
+	int				period;
+	enum date_period		period_unit;
+	osbool				lock;
+
+	int				from_count;
+	int				to_count;
+	acct_t				from[ANALYSIS_ACC_LIST_LEN];
+	acct_t				to[ANALYSIS_ACC_LIST_LEN];
+};
+
+
+
+/**
+ * Initialise the Unreconciled Transactions analysis report module.
+ */
+
+void analysis_unreconciled_initialise(void);
+
+
+/**
+ * Construct new unreconciled report data block for a file, and return a pointer
+ * to the resulting block. The block will be allocated with heap_alloc(), and
+ * should be freed after use with heap_free().
+ *
+ * \param *parent	Pointer to the parent analysis instance.
+ * \return		Pointer to the new data block, or NULL on error.
+ */
+
+struct unrec_rep *analysis_unreconciled_create_instance(struct analysis_block *parent);
+
+
+/**
+ * Delete an unreconciled report data block.
+ *
+ * \param *report	Pointer to the report to delete.
+ */
+
+void analysis_unreconciled_delete_instance(struct unrec_rep *report);
+
+
+
+
+
+
+/**
+ * Remove any references to an account if it appears within an
+ * unreconciled transaction report template.
+ *
+ * \param *report	The transaction report to be processed.
+ * \param account	The account to be removed.
+ */
+
+void analysis_unreconciled_remove_account(struct unrec_rep *report, acct_t account);
+
+
+/**
+ * Remove any references to a report template.
+ * 
+ * \param template	The template to be removed.
+ */
+
+void analysis_unreconciled_remove_template(template_t template);
 
 #endif

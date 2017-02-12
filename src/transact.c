@@ -15,7 +15,7 @@
  * Unless required by applicable law or agreed to in
  * writing, software distributed under the Licence is
  * distributed on an "AS IS" basis, WITHOUT WARRANTIES
- * OR CONDITIONS OF ANY KIND, either express or implied.
+ * OR CONDITIONS OF ANY KIND, either express or implied.a
  *
  * See the Licence for the specific language governing
  * permissions and limitations under the Licence.
@@ -1435,19 +1435,19 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_ANALYSIS_MONTHREP:
-			analysis_open_transaction_window(windat->file, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			analysis_transaction_open_window(windat->file->analysis, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_UNREC:
-			analysis_open_unreconciled_window(windat->file, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			analysis_unreconciled_open_window(windat->file->analysis, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_CASHFLOW:
-			analysis_open_cashflow_window(windat->file, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			analysis_cashflow_open_window(windat->file->analysis, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_BALANCE:
-			analysis_open_balance_window(windat->file, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			analysis_balance_open_window(windat->file->analysis, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_SOREP:

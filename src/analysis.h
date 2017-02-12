@@ -30,8 +30,6 @@
 #ifndef CASHBOOK_ANALYSIS
 #define CASHBOOK_ANALYSIS
 
-#include "account.h"
-
 struct analysis_block;
 
 typedef int template_t;
@@ -43,6 +41,35 @@ typedef int template_t;
  */
 
 #define ANALYSIS_SAVED_NAME_LEN 32
+
+/**
+ * The length of an account list text field in a dialogue.
+ */
+
+#define ANALYSIS_ACC_SPEC_LEN 128
+
+/**
+ * The number of accounts which can be stored in a list.
+ */
+
+#define ANALYSIS_ACC_LIST_LEN 64
+
+#include "account.h"
+#include "analysis_balance.h"
+#include "analysis_cashflow.h"
+#include "analysis_transaction.h"
+#include "analysis_unreconciled.h"
+
+/**
+ * Saved Report Data Union.
+ */
+
+union analysis_report_block {
+	struct trans_rep		transaction;
+	struct unrec_rep		unreconciled;
+	struct cashflow_rep		cashflow;
+	struct balance_rep		balance;
+};
 
 /**
  * Saved Report Types.
@@ -89,136 +116,23 @@ struct analysis_block *analysis_create_instance(struct file_block *file);
 void analysis_delete_instance(struct analysis_block *instance);
 
 
-/**
- * Construct new transaction report data block for a file, and return a pointer
- * to the resulting block. The block will be allocated with heap_alloc(), and
- * should be freed after use with heap_free().
- *
- * \return		Pointer to the new data block, or NULL on error.
- */
-
-struct trans_rep *analysis_create_transaction(void);
 
 
-/**
- * Delete a transaction report data block.
- *
- * \param *report	Pointer to the report to delete.
- */
-
-void analysis_delete_transaction(struct trans_rep *report);
 
 
-/**
- * Open the Transaction Report dialogue box.
- *
- * \param *file		The file owning the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param template	The report template to use for the dialogue.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
- */
-
-void analysis_open_transaction_window(struct file_block *file, wimp_pointer *ptr, int template, osbool restore);
 
 
-/**
- * Construct new unreconciled report data block for a file, and return a pointer
- * to the resulting block. The block will be allocated with heap_alloc(), and
- * should be freed after use with heap_free().
- *
- * \return		Pointer to the new data block, or NULL on error.
- */
-
-struct unrec_rep *analysis_create_unreconciled(void);
 
 
-/**
- * Delete an unreconciled report data block.
- *
- * \param *report	Pointer to the report to delete.
- */
-
-void analysis_delete_unreconciled(struct unrec_rep *report);
 
 
-/**
- * Open the Transaction Report dialogue box.
- *
- * \param *file		The file owning the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param template	The report template to use for the dialogue.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
- */
-
-void analysis_open_unreconciled_window(struct file_block *file, wimp_pointer *ptr, int template, osbool restore);
 
 
-/**
- * Construct new cashflow report data block for a file, and return a pointer
- * to the resulting block. The block will be allocated with heap_alloc(), and
- * should be freed after use with heap_free().
- *
- * \return		Pointer to the new data block, or NULL on error.
- */
-
-struct cashflow_rep *analysis_create_cashflow(void);
 
 
-/**
- * Delete a cashflow report data block.
- *
- * \param *report	Pointer to the report to delete.
- */
-
-void analysis_delete_cashflow(struct cashflow_rep *report);
 
 
-/**
- * Open the Cashflow Report dialogue box.
- *
- * \param *file		The file owning the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param template	The report template to use for the dialogue.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
- */
 
-void analysis_open_cashflow_window(struct file_block *file, wimp_pointer *ptr, int template, osbool restore);
-
-
-/**
- * Construct new balance report data block for a file, and return a pointer
- * to the resulting block. The block will be allocated with heap_alloc(), and
- * should be freed after use with heap_free().
- *
- * \return		Pointer to the new data block, or NULL on error.
- */
-
-struct balance_rep *analysis_create_balance(void);
-
-
-/**
- * Delete a balance report data block.
- *
- * \param *report	Pointer to the report to delete.
- */
-
-void analysis_delete_balance(struct balance_rep *report);
-
-
-/**
- * Open the Balance Report dialogue box.
- *
- * \param *file		The file owning the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param template	The report template to use for the dialogue.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
- */
-
-void analysis_open_balance_window(struct file_block *file, wimp_pointer *ptr, int template, osbool restore);
 
 
 /**
@@ -230,6 +144,19 @@ void analysis_open_balance_window(struct file_block *file, wimp_pointer *ptr, in
  */
 
 void analysis_remove_account_from_templates(struct file_block *file, acct_t account);
+
+
+/* Convert a numeric account list array into a textual list of comma-separated
+ * account idents.
+ *
+ * \param *file			The file to process.
+ * \param *list			Pointer to the buffer to take the textual
+ *				list, which must be ANALYSIS_ACC_SPEC_LEN long.
+ * \param *array		The account list array to be converted.
+ * \param len			The number of accounts in the list.
+ */
+
+void analysis_account_list_to_idents(struct analysis_block *instance, char *list, acct_t *array, int len);
 
 
 /**
@@ -292,6 +219,21 @@ int analysis_get_template_count(struct file_block *file);
  */
 
 struct analysis_report *analysis_get_template(struct file_block *file, template_t template);
+
+
+/**
+ * Return a volatile pointer to a template data block from within a file's
+ * saved templates. This is a pointre into a flex heap block, so it will only
+ * be valid until an operation occurs to shift the blocks. If the template
+ * isn't the type specified, NULL is returned.
+ * 
+ * \param *instance		The analysis instance containing the template of interest.
+ * \param template		The number of the requied template.
+ * \param type			The type of template required.
+ * \return			Volatile pointer to the template, or NULL.
+ */
+
+union analysis_report_block *analysis_get_template_contents(struct analysis_block *instance, template_t template, enum analysis_report_type type);
 
 
 /**

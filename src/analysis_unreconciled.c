@@ -105,7 +105,7 @@
 static struct analysis_dialogue_block	*analysis_unreconciled_dialogue = NULL;
 
 static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.				*/
-static struct unrec_rep		*analysis_unreconciled_instance = NULL		/**< The instance currently owning the report dialogue.				*/
+static struct analysis_block	*analysis_unreconciled_instance = NULL		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_unreconciled_file = NULL;		/**< The file currently owning the unreconciled dialogue.			*/
 static osbool			analysis_unreconciled_restore = FALSE;		/**< The restore setting for the current Unreconciled dialogue.			*/
 static struct unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.			*/
@@ -185,7 +185,7 @@ void analysis_unreconciled_delete_instance(struct unrec_rep *report)
 	if (report == NULL)
 		return;
 
-	if ((report == analysis_unreconciled_instance) && windows_get_open(analysis_unreconciled_window))
+	if ((report->parent == analysis_unreconciled_instance) && windows_get_open(analysis_unreconciled_window))
 		close_dialogue_with_caret(analysis_unreconciled_window);
 
 	heap_free(report);

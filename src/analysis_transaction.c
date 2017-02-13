@@ -109,7 +109,7 @@
 static struct analysis_dialogue_block	*analysis_transaction_dialogue = NULL;
 
 static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.				*/
-static struct trans_rep		*analysis_transcation_instance = NULL		/**< The instance currently owning the report dialogue.				*/
+static struct analysis_block	*analysis_transcation_instance = NULL		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.			*/
 static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.			*/
 static struct trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.			*/
@@ -196,7 +196,7 @@ void analysis_transaction_delete_instance(struct trans_rep *report)
 	if (report == NULL)
 		return;
 
-	if ((report == analysis_transcation_instance) && windows_get_open(analysis_transaction_window))
+	if ((report->parent == analysis_transcation_instance) && windows_get_open(analysis_transaction_window))
 		close_dialogue_with_caret(analysis_transaction_window);
 
 	heap_free(report);

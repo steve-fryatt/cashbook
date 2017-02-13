@@ -105,7 +105,7 @@
 static struct analysis_dialogue_block	*analysis_balance_dialogue = NULL;
 
 static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.					*/
-static struct balance_rep		*analysis_balance_instance = NULL;	/**< The instance currently owning the report dialogue.				*/
+static struct analysis_block	*analysis_balance_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_balance_file = NULL;			/**< The file currently owning the balance dialogue.				*/
 static osbool			analysis_balance_restore = FALSE;		/**< The restore setting for the current Balance dialogue.			*/
 static struct balance_rep	analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.				*/
@@ -186,7 +186,7 @@ void analysis_balance_delete_instance(struct balance_rep *report)
 	if (report != NULL)
 		return;
 
-	if ((report == analysis_balance_instance) && windows_get_open(analysis_balance_window))
+	if ((report->parent == analysis_balance_instance) && windows_get_open(analysis_balance_window))
 		close_dialogue_with_caret(analysis_balance_window);
 
 	heap_free(report);
@@ -205,6 +205,7 @@ void analysis_balance_delete_instance(struct balance_rep *report)
 
 void analysis_balance_open_window(struct analysis_block *parent, wimp_pointer *ptr, int template, osbool restore)
 {
+	struct analysis_block		*template_block;
 	union analysis_report_block	*content;
 
 	/* If the window is already open, another balance report is being edited.  Assume the user wants to lose
@@ -220,7 +221,8 @@ void analysis_balance_open_window(struct analysis_block *parent, wimp_pointer *p
 	 * while the dialogue is open.
 	 */
 
-	content = analysis_get_template_contents(parent, template, REPORT_TYPE_BALANCE);
+	template_block = analysis_get_template(parent, template);
+	content = analysis_get_template_contents(template_block, REPORT_TYPE_BALANCE);
 
 	if (content != NULL) {
 		analysis_copy_balance_template(&(analysis_balance_settings), &(content->balance));
@@ -228,7 +230,7 @@ void analysis_balance_open_window(struct analysis_block *parent, wimp_pointer *p
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_balance_window),
 				windows_get_indirected_title_length(analysis_balance_window),
-				parent->saved_reports[template].name, NULL, NULL, NULL);
+				analysis_get_template_name(template_block, NULL, 0), NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {

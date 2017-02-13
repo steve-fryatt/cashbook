@@ -106,7 +106,7 @@
 static struct analysis_dialogue_block	*analysis_cashflow_dialogue = NULL;
 
 static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.					*/
-static struct cashflow_rep	*analysis_cashflow_instance = NULL		/**< The instance currently owning the report dialogue.				*/
+static struct analysis_block	*analysis_cashflow_instance = NULL		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.				*/
 static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.			*/
 static struct cashflow_rep	analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.				*/
@@ -187,7 +187,7 @@ void analysis_cashflow_delete_instance(struct cashflow_rep *report)
 	if (report == NULL)
 		return;
 
-	if ((report == analysis_cashflow_instance) && windows_get_open(analysis_cashflow_window))
+	if ((report->parent == analysis_cashflow_instance) && windows_get_open(analysis_cashflow_window))
 		close_dialogue_with_caret(analysis_cashflow_window);
 
 	heap_free(report);

@@ -763,32 +763,30 @@ struct analysis_report *analysis_get_template(struct file_block *file, template_
 
 
 /**
- * Return a volatile pointer to a template data block from within a file's
- * saved templates. This is a pointre into a flex heap block, so it will only
- * be valid until an operation occurs to shift the blocks. If the template
- * isn't the type specified, NULL is returned.
+ * Return a volatile pointer to a template data block from within a template,
+ * if that template is of a given type. This is a pointer into a flex heap
+ * block, so it will only be valid until an operation occurs to shift the blocks.
+ * If the template isn't the type specified, NULL is returned.
  * 
- * \param *instance		The analysis instance containing the template of interest.
- * \param template		The number of the requied template.
+ * \param *template		Pointer to the template to use.
  * \param type			The type of template required.
  * \return			Volatile pointer to the template, or NULL.
  */
 
-union analysis_report_block *analysis_get_template_contents(struct analysis_block *instance, template_t template, enum analysis_report_type type)
+union analysis_report_block *analysis_get_template_contents(struct analysis_report *template, enum analysis_report_type type)
 {
-	if (instance == NULL || instance->saved_reports == NULL || !analysis_template_valid(instance, template))
+	if (template == NULL || template->type != type)
 		return NULL;
 
-	if (instance->saved_reports[template].type != type)
-		return NULL;
-
-	return &(instance->saved_reports[template].data);
+	return &(template->data);
 }
+
 
 /**
  * Return the file which owns a template.
  * 
- * \param *pointer		Pointer to return the owning file for.
+ * \param *template		Pointer to the template for which to return
+ *				the owning file.
  * \return			The owning file block, or NULL.
  */
 

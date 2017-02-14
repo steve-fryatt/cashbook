@@ -77,7 +77,6 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
-#include "interest.h"
 #include "presets.h"
 #include "printing.h"
 #include "report.h"
@@ -133,17 +132,12 @@
 #define ACCT_EDIT_BALANCE 10
 #define ACCT_EDIT_PAYIN 12
 #define ACCT_EDIT_CHEQUE 14
-#define ACCT_EDIT_RATE 18
-#define ACCT_EDIT_RATES 19
-#define ACCT_EDIT_OFFSET_IDENT 21
-#define ACCT_EDIT_OFFSET_REC 22
-#define ACCT_EDIT_OFFSET_NAME 23
-#define ACCT_EDIT_ACCNO 27
-#define ACCT_EDIT_SRTCD 29
-#define ACCT_EDIT_ADDR1 31
-#define ACCT_EDIT_ADDR2 32
-#define ACCT_EDIT_ADDR3 33
-#define ACCT_EDIT_ADDR4 34
+#define ACCT_EDIT_ACCNO 18
+#define ACCT_EDIT_SRTCD 20
+#define ACCT_EDIT_ADDR1 22
+#define ACCT_EDIT_ADDR2 23
+#define ACCT_EDIT_ADDR3 24
+#define ACCT_EDIT_ADDR4 25
 
 /* Edit heading window. */
 
@@ -262,10 +256,6 @@ struct account {
 
 	unsigned		next_cheque_num;
 	int			cheque_num_width;
-
-	/* Interest details. (the rates are held in the interest module). */
-
-	acct_t			offset_against;					/* The account against which interest is offset, or NULL_ACCOUNT. */
 
 	/* User-set values used for calculation. */
 
@@ -438,7 +428,6 @@ static void			account_print(osbool text, osbool format, osbool scale, osbool rot
 static void			account_add_to_lists(struct file_block *file, acct_t account);
 static int			account_add_list_display_line(struct file_block *file, int entry);
 static int			account_find_window_entry_from_type(struct file_block *file, enum account_type type);
-static osbool			account_check_account(struct file_block *file, acct_t account);
 
 
 static void			account_start_drag(struct account_window *windat, int line);
@@ -1614,7 +1603,6 @@ static void account_acc_edit_click_handler(wimp_pointer *pointer)
 	case ACCT_EDIT_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(account_acc_edit_window);
-			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			account_refresh_acc_edit_window();
 		}
@@ -1623,25 +1611,13 @@ static void account_acc_edit_click_handler(wimp_pointer *pointer)
 	case ACCT_EDIT_OK:
 		if (account_process_acc_edit_window() && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(account_acc_edit_window);
-			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
 		}
 		break;
 
 	case ACCT_EDIT_DELETE:
 		if (pointer->buttons == wimp_CLICK_SELECT && account_delete_from_edit_window()) {
 			close_dialogue_with_caret(account_acc_edit_window);
-			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
 		}
-		break;
-
-	case ACCT_EDIT_RATES:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			interest_open_window(account_edit_owner->file->interest, account_edit_number);
-
-	case ACCT_EDIT_OFFSET_NAME:
-		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(account_edit_owner->file, ACCOUNT_MENU_ACCOUNTS, NULL,
-					account_acc_edit_window, ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC, pointer);
 		break;
 	}
 }
@@ -1660,22 +1636,15 @@ static osbool account_acc_edit_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		if (account_process_acc_edit_window()) {
 			close_dialogue_with_caret(account_acc_edit_window);
-			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
 		}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(account_acc_edit_window);
-		interest_delete_window(account_edit_owner->file->interest, account_edit_number);
 		break;
 
 	default:
-		if (key->i != ACCT_EDIT_OFFSET_IDENT)
-			return FALSE;
-
-		account_lookup_field(account_edit_owner->file, key->c, ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-				account_acc_edit_window, ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC);
-		break;
+		return FALSE;
 	}
 
 	return TRUE;
@@ -1776,7 +1745,6 @@ static void account_refresh_hdg_edit_window(void)
 static void account_fill_acc_edit_window(struct account_block *block, acct_t account)
 {
 	int	i;
-	rate_t	rate;
 
 	if (block == NULL || block->file == NULL)
 		return;
@@ -1792,12 +1760,6 @@ static void account_fill_acc_edit_window(struct account_block *block, acct_t acc
 
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN) = '\0';
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CHEQUE) = '\0';
-
-		interest_convert_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_RATE),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_RATE));
-
-		account_fill_field(block->file, NULL_ACCOUNT, FALSE, account_acc_edit_window,
-				ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC);
 
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_ACCNO) = '\0';
 		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_SRTCD) = '\0';
@@ -1819,13 +1781,6 @@ static void account_fill_acc_edit_window(struct account_block *block, acct_t acc
 				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_PAYIN));
 		account_get_next_cheque_number(block->file, account, NULL_ACCOUNT, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CHEQUE),
 				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_CHEQUE));
-
-		rate = interest_get_current_rate(block->file->interest, account, date_today());
-		interest_convert_to_string(rate, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_RATE),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_RATE));
-
-		account_fill_field(block->file, block->accounts[account].offset_against, FALSE, account_acc_edit_window,
-				ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC);
 
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_ACCNO, block->accounts[account].account_no);
 		icons_strncpy(account_acc_edit_window, ACCT_EDIT_SRTCD, block->accounts[account].sort_code);
@@ -1944,9 +1899,6 @@ static osbool account_process_acc_edit_window(void)
 		account_edit_owner->accounts[account_edit_number].cheque_num_width = 0;
 		account_edit_owner->accounts[account_edit_number].next_cheque_num = 0;
 	}
-
-	account_edit_owner->accounts[account_edit_number].offset_against = account_find_by_ident(account_edit_owner->file,
-			icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_OFFSET_IDENT), ACCOUNT_FULL);
 
 	strcpy(account_edit_owner->accounts[account_edit_number].account_no, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_ACCNO));
 	strcpy(account_edit_owner->accounts[account_edit_number].sort_code, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_SRTCD));
@@ -2554,7 +2506,6 @@ acct_t account_add(struct file_block *file, char *name, char *ident, enum accoun
 	file->accounts->accounts[new].payin_num_width = 0;
 	file->accounts->accounts[new].next_cheque_num = 0;
 	file->accounts->accounts[new].cheque_num_width = 0;
-	file->accounts->accounts[new].offset_against = NULL_ACCOUNT;
 
 	*file->accounts->accounts[new].account_no = '\0';
 	*file->accounts->accounts[new].sort_code = '\0';
@@ -3290,9 +3241,6 @@ osbool account_used_in_file(struct file_block *file, acct_t account)
 {
 	osbool		found = FALSE;
 
-	if (account_check_account(file, account))
-		found = TRUE;
-
 	if (transact_check_account(file, account))
 		found = TRUE;
 
@@ -3303,31 +3251,6 @@ osbool account_used_in_file(struct file_block *file, acct_t account)
 		found = TRUE;
 
 	return found;
-}
-
-
-/**
- * Check the transactions in a file to see if the given account is used
- * in any of them.
- *
- * \param *file			The file to check.
- * \param account		The account to search for.
- * \return			TRUE if the account is used; FALSE if not.
- */
-
-static osbool account_check_account(struct file_block *file, acct_t account)
-{
-	int	i;
-
-	if (file == NULL || file->accounts == NULL || file->accounts->accounts == NULL)
-		return FALSE;
-
-	for (i = 0; i < file->accounts->account_count; i++) {
-		if (file->accounts->accounts[i].offset_against == account)
-			return TRUE;
-	}
-
-	return FALSE;
 }
 
 
@@ -4024,8 +3947,6 @@ void account_write_file(struct file_block *file, FILE *out)
 				config_write_token_pair(out, "Addr3", file->accounts->accounts[i].address[3]);
 			if (file->accounts->accounts[i].payin_num_width != 0 || file->accounts->accounts[i].next_payin_num != 0)
 				fprintf(out, "PayIn: %x,%x\n", file->accounts->accounts[i].payin_num_width, file->accounts->accounts[i].next_payin_num);
-			if (file->accounts->accounts[i].offset_against != NULL_ACCOUNT)
-				fprintf(out, "Offset: %x\n", file->accounts->accounts[i].offset_against);
 		}
 	}
 
@@ -4143,7 +4064,6 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 					file->accounts->accounts[j].next_cheque_num = 0;
 					file->accounts->accounts[j].payin_num_width = 0;
 					file->accounts->accounts[j].next_payin_num = 0;
-					file->accounts->accounts[j].offset_against = NULL_ACCOUNT;
 
 					file->accounts->accounts[j].account_view = NULL;
 
@@ -4195,8 +4115,6 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 		} else if (account != NULL_ACCOUNT && filing_test_token(in, "PayIn")) {
 			file->accounts->accounts[account].payin_num_width = filing_get_int_field(in);
 			file->accounts->accounts[account].next_payin_num = filing_get_unsigned_field(in);
-		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Offset")) {
-			file->accounts->accounts[account].offset_against = account_get_account_field(in);
 		} else {
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}

@@ -102,10 +102,6 @@ struct file_block
 
 	struct accview_block		*accviews;				/**< Data relating to the shared accview module.		*/
 
-	/* The interest rate manager. */
-
-	struct interest_block		*interest;				/**< Data relating to the interest rate manager.		*/
-
 	/* Budget data. */
 
 	struct budget_block		*budget;				/**< The file's budgeting details.				*/

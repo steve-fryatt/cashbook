@@ -79,7 +79,6 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
-#include "interest.h"
 #include "presets.h"
 #include "report.h"
 #include "sorder.h"
@@ -230,8 +229,6 @@ void filing_load_cashbook_file(char *filename)
 			account_read_acct_file(file, &in);
 		else if (string_nocase_strcmp(in.section, "AccountList") == 0)
 			account_read_list_file(file, &in);
-		else if (string_nocase_strcmp(in.section, "Interest") == 0)
-			interest_read_file(file, &in);
 		else if (string_nocase_strcmp(in.section, "Transactions") == 0)
 			transact_read_file(file, &in);
 		else if (string_nocase_strcmp(in.section, "StandingOrders") == 0)
@@ -352,7 +349,6 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 
 	budget_write_file(file, out);
 	account_write_file(file, out);
-	interest_write_file(file, out);
 	transact_write_file(file, out);
 	sorder_write_file(file, out);
 	preset_write_file(file, out);
@@ -377,7 +373,6 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 	account_build_window_titles(file);
 	sorder_build_window_title(file);
 	preset_build_window_title(file);
-	interest_build_window_title(file);
 
 	hourglass_off();
 }

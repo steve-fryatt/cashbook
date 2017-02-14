@@ -1520,6 +1520,8 @@ Update to fourth stable release.
 
 <subhead title="Test Build">
 
+Release Candidate for version 1.37.
+
 <list>
 <li>Support added for displaying and entering dates in YYYY-MM-DD and MM-DD-YYYY formats in addition to DD-MM-YYYY (ticket&nbsp;#610).
 <li>Fixed problem with &lsquo;Reconcile Mode&rsquo; where the caret didn&rsquo;t advance on keypresses.
@@ -1533,7 +1535,6 @@ Update to fourth stable release.
 <li>Improve error and bounds checks when loading files from disc (ticket&nbsp;#614).
 <li>Fix redraw of lines in <window>preset</window> and <window>standing order</window> windows, so that the correct entry is redrawn after edit dialogues are closed.
 <li>Row numbers are redrawn if and when they are changed (ticket&nbsp;#530).
-<li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 
 </chapter>

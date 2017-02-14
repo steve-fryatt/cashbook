@@ -1637,6 +1637,7 @@ static void account_acc_edit_click_handler(wimp_pointer *pointer)
 	case ACCT_EDIT_RATES:
 		if (pointer->buttons == wimp_CLICK_SELECT)
 			interest_open_window(account_edit_owner->file->interest, account_edit_number);
+		break;
 
 	case ACCT_EDIT_OFFSET_NAME:
 		if (pointer->buttons == wimp_CLICK_ADJUST)

@@ -3307,7 +3307,7 @@ osbool account_used_in_file(struct file_block *file, acct_t account)
 
 
 /**
- * Check the transactions in a file to see if the given account is used
+ * Check the accounts in a file to see if the given account is referenced
  * in any of them.
  *
  * \param *file			The file to check.
@@ -3321,6 +3321,8 @@ static osbool account_check_account(struct file_block *file, acct_t account)
 
 	if (file == NULL || file->accounts == NULL || file->accounts->accounts == NULL)
 		return FALSE;
+
+	/* Check to see if any other accounts offset to this one. */
 
 	for (i = 0; i < file->accounts->account_count; i++) {
 		if (file->accounts->accounts[i].offset_against == account)

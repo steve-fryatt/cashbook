@@ -53,6 +53,7 @@
 #include "oslib/os.h"
 #include "oslib/osword.h"
 #include "oslib/territory.h"
+#include "oslib/types.h"
 
 /* SF-Lib header files. */
 

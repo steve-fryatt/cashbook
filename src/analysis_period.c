@@ -27,6 +27,24 @@
  * Analysis Date Period implementation.
  */
 
+/* ANSI C header files */
+
+#include <stdlib.h>
+
+/* OSLib header files */
+
+#include "oslib/types.h"
+
+/* SF-Lib header files. */
+
+#include "sflib/msgs.h"
+
+/* Application header files */
+
+#include "analysis_period.h"
+
+#include "date.h"
+
 /* Date period management. */
 
 /**

@@ -27,10 +27,11 @@
  * Analysis Date Period interface.
  */
 
-
 #ifndef CASHBOOK_ANALYSIS_PERIOD
 #define CASHBOOK_ANALYSIS_PERIOD
 
+#include "oslib/types.h"
+#include "date.h"
 
 /**
  * Initialise the date period iteration.  Set the state machine so that

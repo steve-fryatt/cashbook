@@ -140,7 +140,7 @@ Entering transactions can be done in two ways. In addition to manual entry, regu
 
 <subhead title="Installation">
 
-<cite>CashBook</cite> is designed to work with RISC&nbsp;OS&nbsp;4 or later; it can be used on RISC&nbsp;OS&nbsp;3, but a copy of the Nested Wimp must be installed. It is 26/32-bit neutral, and should therefore run on all hardware systems as long as the 32-bit Shared C Library is installed. If required, this can be found on the Castle website at <link ref="http://www.iyonix.com/32bit/system.shtml">http://www.iyonix.com/32bit/system.shtml</link>.
+<cite>CashBook</cite> is designed to work with RISC&nbsp;OS&nbsp;4 or later; it can be used on RISC&nbsp;OS&nbsp;3, but a copy of the Nested Wimp must be installed. It is 26/32-bit neutral, and should therefore run on all hardware systems as long as the 32-bit Shared C Library is installed. If required, this can be found in the System Resources on RISC&nbsp;OS Open Ltd&rsquo;s website at <link ref="https://www.riscosopen.org/content/downloads/common">https://www.riscosopen.org/content/downloads/common</link>.
 
 To install, copy the <file>!CashBook</file> application from the archive into a suitable place on your hard disc.  It can be run from a floppy disc, but this is not recommended.  Once installed, double-click on the <file>!CashBook</file> application in the Filer window to load it on to the iconbar.
 

@@ -1537,15 +1537,6 @@ Update to fourth stable release.
 <li>Row numbers are redrawn if and when they are changed (ticket&nbsp;#530).
 </list>
 
-
-<subhead title="Test Build">
-
-Alpha release for feedback and comment.
-
-<list>
-<li>Start to add support for entering interest rate data (incomplete and non-functional).
-</list>
-
 </chapter>
 
 

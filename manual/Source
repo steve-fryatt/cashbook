@@ -140,14 +140,14 @@ Entering transactions can be done in two ways. In addition to manual entry, regu
 
 <subhead title="Installation">
 
-<cite>CashBook</cite> is designed to work with RISC OS 4 or later; it can be used on RISC OS 3, but a copy of the Nested Wimp must be installed. It is 26/32-bit neutral, and should therefore run on all hardware systems as long as the 32-bit Shared C Library is installed. If required, this can be found on the Castle website at <link ref="http://www.iyonix.com/32bit/system.shtml">http://www.iyonix.com/32bit/system.shtml</link>.
+<cite>CashBook</cite> is designed to work with RISC&nbsp;OS&nbsp;4 or later; it can be used on RISC&nbsp;OS&nbsp;3, but a copy of the Nested Wimp must be installed. It is 26/32-bit neutral, and should therefore run on all hardware systems as long as the 32-bit Shared C Library is installed. If required, this can be found on the Castle website at <link ref="http://www.iyonix.com/32bit/system.shtml">http://www.iyonix.com/32bit/system.shtml</link>.
 
 To install, copy the <file>!CashBook</file> application from the archive into a suitable place on your hard disc.  It can be run from a floppy disc, but this is not recommended.  Once installed, double-click on the <file>!CashBook</file> application in the Filer window to load it on to the iconbar.
 
 
 <subhead title="Getting started">
 
-<cite>CashBook</cite> is a multi-file editor which behaves in a similar way to many other RISC OS applications. Double-clicking on its icon in a filer window will load it on to the iconbar, ready for files to be loaded or created. Several different sets of accounts can be worked on at the same time: the only limitations on the number of files loaded, and on the number of transactions, accounts, headings or standing orders in a file, are imposed by memory and processing speed.
+<cite>CashBook</cite> is a multi-file editor which behaves in a similar way to many other RISC&nbsp;OS applications. Double-clicking on its icon in a filer window will load it on to the iconbar, ready for files to be loaded or created. Several different sets of accounts can be worked on at the same time: the only limitations on the number of files loaded, and on the number of transactions, accounts, headings or standing orders in a file, are imposed by memory and processing speed.
 
 In addition to this manual, <cite>CashBook</cite> fully supports interactive help.  To get information on any aspect of the application, simply load a help client and point to the relevant part of a window or dialogue box.
 
@@ -197,7 +197,7 @@ The left-most button on every <cite>CashBook</cite> toolbar (except for the <win
 
 The <window>transaction</window> window contains the main menu in <cite>CashBook</cite>, which allows access to almost all of the application&rsquo;s features. Most of the other windows have their own local menus with options relating to the contents: invariably these contain export and print options.
 
-All of the dialogue boxes in <cite>CashBook</cite> comply with the <cite>RISC OS Style Guide</cite>, and should be familiar in use.  It may be worth remembering that while <mouse>select</mouse> clicks on the default &lsquo;action button&rsquo; (usually at the bottom right, with a label like <icon>Create</icon>, <icon>Update</icon> or similar) will act on the settings in the dialogue and close it, <mouse>adjust</mouse> clicks will use the settings while leaving the dialogue open.
+All of the dialogue boxes in <cite>CashBook</cite> comply with the <cite>RISC&nbsp;OS Style Guide</cite>, and should be familiar in use.  It may be worth remembering that while <mouse>select</mouse> clicks on the default &lsquo;action button&rsquo; (usually at the bottom right, with a label like <icon>Create</icon>, <icon>Update</icon> or similar) will act on the settings in the dialogue and close it, <mouse>adjust</mouse> clicks will use the settings while leaving the dialogue open.
 
 In a similar way, <mouse>select</mouse> clicks on the adjacent <icon>Cancel</icon> button will close the dialogue and forget any changes to the contents, while <mouse>adjust</mouse> clicks will simply restore the contents of the dialogue to the values that were there when it opened.
 
@@ -993,7 +993,7 @@ When printing in standard mode, column headings for tables will be repeated if l
 
 If your printer supports text mode printing, <icon>Fast text printing</icon> can be used to speed up the print job. The printer&rsquo;s internal font will be used, meaning that the outline font settings are ignored. It is no longer possible to scale the print size down to fit on a single page width, and data wider than this may not print correctly (the page width is defined by the printer&rsquo;s default font). Landscape printing is also not available, unless it can be set in the Printers application.
 
-When printing in text mode, the <icon>Use text formatting</icon> option determines whether an attempt is made to use bold and underline styles to produce the same effect as the outline font printing uses; this will depend on the text settings in the RISC OS printer driver and the ability of the target printer.
+When printing in text mode, the <icon>Use text formatting</icon> option determines whether an attempt is made to use bold and underline styles to produce the same effect as the outline font printing uses; this will depend on the text settings in the RISC&nbsp;OS printer driver and the ability of the target printer.
 
 </chapter>
 
@@ -1005,7 +1005,7 @@ When printing in text mode, the <icon>Use text formatting</icon> option determin
 
 <chapter title="Saving and Loading" file="Files">
 
-Saving a cashbook file is done in the usual RISC OS way, by opening the <menu>File &msep; Save</menu> dialogue from the main menu, clicking on the <icon>save file</icon> button in the <window>transaction</window> window toolbar or pressing <key>f3</key>.  Enter a name in the <window>save as</window> dialogue, and drag the file to a directory viewer; if a full path is present, clicking <icon>OK</icon> or pressing <key>return</key> will save to the same location.
+Saving a cashbook file is done in the usual RISC&nbsp;OS way, by opening the <menu>File &msep; Save</menu> dialogue from the main menu, clicking on the <icon>save file</icon> button in the <window>transaction</window> window toolbar or pressing <key>f3</key>.  Enter a name in the <window>save as</window> dialogue, and drag the file to a directory viewer; if a full path is present, clicking <icon>OK</icon> or pressing <key>return</key> will save to the same location.
 
 In addition to using the <window>save as</window> dialogue, a file which has already been saved (and hence has a full pathname showing in the titlebar of the <window>transaction</window> window) can be saved instantly with an <mouse>adjust</mouse> click on the <icon>save file</icon> button or by pressing <key>ctrl-f3</key>.
 
@@ -1178,9 +1178,9 @@ The <icon>General</icon> choices contain a number of options which do not fit in
 
 If <icon>Remember dialogue contents</icon> is ticked, the contents of dialogue boxes will be retained the next time they are opened.  When opening a dialogue from a toolbar button, the contents can be cleared by using an <mouse>adjust</mouse>-click instead of <mouse>select</mouse> (the contents can not be cleared when opening from a menu).  If the option is off, this behaviour is reversed, so that by default dialogue contents are cleared, but can still be retained if an <mouse>adjust</mouse>-click on a toolbar button is used.
 
-The <icon>Desktop interface</icon> section contains a couple of options relating to the general interface. If <icon>RISC OS 5 keyboard</icon> is selected, keys such as <key>home</key> and <key>end</key> follow the <cite>RISC OS 5 Style Guide</cite>; otherwise, they follow the old Acorn guidelines. This option is selected by default on any system running RISC OS 5, but can be overridden manually.  <icon>Support global clipboard</icon> determines whether <cite>CashBook</cite> handles global cut, copy and paste from the <window>transaction</window> window. It should be turned off if system wide support is available (eg. if Select or Adjust&rsquo;s icon selection is on, or if an add-on module like <cite>IcnClipBrd</cite> is present).
+The <icon>Desktop interface</icon> section contains a couple of options relating to the general interface. If <icon>RISC&nbsp;OS&nbsp;5 keyboard</icon> is selected, keys such as <key>home</key> and <key>end</key> follow the <cite>RISC&nbsp;OS&nbsp;5 Style Guide</cite>; otherwise, they follow the old Acorn guidelines. This option is selected by default on any system running RISC&nbsp;OS&nbsp;5, but can be overridden manually.  <icon>Support global clipboard</icon> determines whether <cite>CashBook</cite> handles global cut, copy and paste from the <window>transaction</window> window. It should be turned off if system wide support is available (eg. if Select or Adjust&rsquo;s icon selection is on, or if an add-on module like <cite>IcnClipBrd</cite> is present).
 
-The <icon>Dates</icon> section controls the way in which dates are handled. <icon>Format</icon> controls the format in use for all input and display: the different options can be selected from the pop-up menu to the right of the field. The <icon>Input separators</icon> field contains a list of symbols which can be used to separate the sections of a date on entry.  By default this is <entry>-/\.</entry>, which means that dates can be entered as <entry>DD-MM-YYYY</entry>, <entry>DD/MM/YYYY</entry>, <entry>DD\MM\YYYY</entry> or  <entry>DD.MM.YYYY</entry>.  <icon>Display separator</icon> is the symbol to be used whenever a date is displayed or printed.  The <icon>Use territory calendar info</icon> option tells <cite>CashBook</cite> to get information about the structure of dates (eg. the number of days in each month) from the system. This should usually be left on;  if turned off, <cite>CashBook</cite> uses its own default values.
+The <icon>Dates</icon> section controls the way in which dates are handled. <icon>Format</icon> controls the format in use for all input and display: the different options can be selected from the pop-up menu to the right of the field. The <icon>Input separators</icon> field contains a list of symbols which can be used to separate the sections of a date on entry.  By default this is <entry>-/\.</entry>, which means that dates can be entered as <entry>DD-MM-YYYY</entry>, <entry>DD/MM/YYYY</entry>, <entry>DD\MM\YYYY</entry> or <entry>DD.MM.YYYY</entry> (dependant on the date format selected, of course).  <icon>Display separator</icon> is the symbol to be used whenever a date is displayed or printed.  The <icon>Use territory calendar info</icon> option tells <cite>CashBook</cite> to get information about the structure of dates (eg. the number of days in each month) from the system. This should usually be left on;  if turned off, <cite>CashBook</cite> uses its own default values.
 
 
 <subhead title="Currency choices">
@@ -1236,15 +1236,15 @@ The remainder of the section deals with what <cite>CashBook</cite> views as &lsq
 
 The <icon>Printing</icon> section controls the printing options, including print margins and the default settings.
 
-The <icon>Standard printing</icon> and <icon>Fast text printing</icon> options determine the default mode to be used for print jobs.  Standard uses RISC OS fonts and should work with all but the most elderly of printers; while it will be slower on old hardware, it allows more options for scaling text and fitting it on the page.  Fast text will only work on printers that offer a text mode: this is mainly old dot-matrixes and PostScript devices.  It has the advantage of speed, but is much less flexible in terms of layout and formatting.
+The <icon>Standard printing</icon> and <icon>Fast text printing</icon> options determine the default mode to be used for print jobs.  Standard uses RISC&nbsp;OS fonts and should work with all but the most elderly of printers; while it will be slower on old hardware, it allows more options for scaling text and fitting it on the page.  Fast text will only work on printers that offer a text mode: this is mainly old dot-matrixes and PostScript devices.  It has the advantage of speed, but is much less flexible in terms of layout and formatting.
 
 When printing in standard mode, the text can be placed on the page in either <icon>Portrait</icon> or <icon>Landscape</icon> mode; the latter is useful if there are long lines present.  Ticking <icon>Scale width to fit page</icon> will ensure that print jobs always come out one page wide, by reducing the font size until the widest line fits. Page numbers can be added by ticking <icon>Include page numbers</icon>.
 
 The font used for printing is the one set in the <icon>Fonts</icon> section of the choices.
 
-The <icon>Print margins</icon> should be set to keep the page contents away from the edges of the paper.  They are measured from the edge of the paper, and should be larger than the margins set in the printer drivers; if they are not, a warning will be given whenever a page is printed. The <icon>Gutter<icon> is the space between the footer area containing the page number and the bottom of the main printable area: if page numbering is off, then the footer is not included in the layout and the gutter dimension will not be used.
+The <icon>Print margins</icon> should be set to keep the page contents away from the edges of the paper.  They are measured from the edge of the paper, and should be larger than the margins set in the printer drivers; if they are not, a warning will be given whenever a page is printed. The <icon>Gutter</icon> is the space between the footer area containing the page number and the bottom of the main printable area: if page numbering is off, then the footer is not included in the layout and the gutter dimension will not be used.
 
-For fast text printing, the <icon>Use text formatting</icon> option can be used to include bold and underline formatting on the page.  This depends on support from both the printer itself and from the text mode drivers in the RISC OS printing system.
+For fast text printing, the <icon>Use text formatting</icon> option can be used to include bold and underline formatting on the page.  This depends on support from both the printer itself and from the text mode drivers in the RISC&nbsp;OS printing system.
 
 
 <subhead title="Fonts choices">
@@ -1518,9 +1518,9 @@ Update to fourth stable release.
 </list>
 
 
-<subhead title="Test Build">
+<subhead title="1.37 (23 February 2017)">
 
-Release Candidate for version 1.37.
+Update to fourth stable release.
 
 <list>
 <li>Support added for displaying and entering dates in YYYY-MM-DD and MM-DD-YYYY formats in addition to DD-MM-YYYY (ticket&nbsp;#610).
@@ -1537,24 +1537,36 @@ Release Candidate for version 1.37.
 <li>Row numbers are redrawn if and when they are changed (ticket&nbsp;#530).
 </list>
 
+
+<subhead title="Test Build">
+
+Alpha release for feedback and comment.
+
+<list>
+<li>Start to add support for entering interest rate data (incomplete and non-functional).
+</list>
+
 </chapter>
 
 
 
 
-<chapter title="Future Plans" file="Future">
+<chapter title="Future Developments" file="Future">
 
-<cite>CashBook</cite> is a work in progress so if there is a feature that you think would be useful let me know.
+<cite>CashBook</cite> is a work in progress, so if there is a feature that you think would be useful, please let me know.
 
-Now that a stable version 1.35 is available, the following ideas are under consideration; other suggestions for new features are welcome.
+There is no specific development plan going forward, but the following ideas are under consideration; other suggestions for new features are welcome. Bug reports are always useful, as without them problems might never get fixed!
+
+Currently there are are a number of ideas under consideration, which include:
 
 <list>
-<li>Reporting based on monthly variance.
-<li>Better CSV import, allowing fields to be specified and the format of account names, idents and reconciled flags to be changed.  Allow the option of TSV import.
-<li>QIF import/export, with reconciliation from internet banking records.
-<li>More flexible import options for other accounts data.
+<li>Support for tracking interest rates on accounts, both for saving and borrowing. This would allow some new reporting options, including the analysis of loan repayment periods.
+<li>Improved data import. This would include better CSV file import which isn&rsquo;t tied to data from <cite>Personal Accounts</cite>, and adding support for TSV and QIF imports. Automatic reconciliation of internet banking records would be desirable.
+<li>Improvements to the reporting options, including the generation of data based on monthly variance.
 <li>More flexible standing order date options.
 </list>
+
+Development of <cite>CashBook</cite> remains a spare-time activity, fitted in around work and other hobbies. As a result, implementing new features can take time.
 
 </chapter>
 

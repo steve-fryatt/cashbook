@@ -807,12 +807,13 @@ void analysis_balance_remove_account(struct balance_rep *report, acct_t account)
 /**
  * Remove any references to a report template.
  * 
+ * \param *parent	The analysis instance being updated.
  * \param template	The template to be removed.
  */
 
-void analysis_balance_remove_template(template_t template)
+void analysis_balance_remove_template(struct analysis_block *parent, template_t template)
 {
-	if (analysis_balance_template > template)
+	if (analysis_balance_instance == parent && analysis_balance_template > template)
 		analysis_balance_template--;
 }
 

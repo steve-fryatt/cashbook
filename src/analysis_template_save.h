@@ -64,11 +64,12 @@ void analysis_template_save_open_rename_window(struct file_block *file, int temp
 /**
  * Report that a report template has been deleted, and adjust the
  * dialogue handle accordingly.
- * 
+ *
+ * \param *file			The file from which the template has been deleted.
  * \param template		The deleted template ID.
  */
 
-void analysis_template_save_delete_template(template_t template);
+void analysis_template_save_delete_template(struct file_block *file, template_t template);
 
 
 /**

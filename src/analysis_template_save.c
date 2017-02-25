@@ -464,12 +464,13 @@ static osbool analysis_template_save_process_window(void)
  * Report that a report template has been deleted, and adjust the
  * dialogue handle accordingly.
  *
+ * \param *file			The file from which the template has been deleted.
  * \param template		The deleted template ID.
  */
 
-void analysis_template_save_delete_template(template_t template)
+void analysis_template_save_delete_template(struct file_block *file, template_t template)
 {
-	if (analysis_template_save_template == NULL_TEMPLATE)
+	if (analysis_template_save_file != file || analysis_template_save_template == NULL_TEMPLATE)
 		return;
 
 	if (analysis_template_save_template > template)

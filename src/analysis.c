@@ -65,6 +65,7 @@
 #include "analysis_dialogue.h"
 #include "analysis_lookup.h"
 #include "analysis_period.h"
+#include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "analysis_transaction.h"
 #include "analysis_unreconciled.h"
@@ -129,15 +130,14 @@ struct analysis_block
 {
 	struct file_block		*file;					/**< The parent file.								*/
 
-	struct analysis_report		*saved_reports;				/**< Pointer to an array of saved report templates.				*/
-	int				saved_report_count;			/**< The number of saved report templates.					*/
+	struct analysis_template_block	*templates;				/**< The saved analysis templates.						*/
 
 	/* Analysis Report Content. */
 
-	struct trans_rep		*trans_rep;				/**< Data relating to the transaction report dialogue.		*/
-	struct unrec_rep		*unrec_rep;				/**< Data relating to the unreconciled report dialogue.		*/
-	struct cashflow_rep		*cashflow_rep;				/**< Data relating to the cashflow report dialogue.		*/
-	struct balance_rep		*balance_rep;				/**< Data relating to the balance report dialogue.		*/
+	struct trans_rep		*trans_rep;				/**< Data relating to the transaction report dialogue.				*/
+	struct unrec_rep		*unrec_rep;				/**< Data relating to the unreconciled report dialogue.				*/
+	struct cashflow_rep		*cashflow_rep;				/**< Data relating to the cashflow report dialogue.				*/
+	struct balance_rep		*balance_rep;				/**< Data relating to the balance report dialogue.				*/
 };
 
 /* Report windows. */
@@ -165,12 +165,6 @@ static struct analysis_report	*analysis_create_template(struct analysis_report *
 static void		analysis_copy_template(struct analysis_report *to, struct analysis_report *from);
 
 
-
-/**
- * Test whether a template number is safe to look up in the template data array.
- */
-
-#define analysis_template_valid(instance, template) (((template) != NULL_TEMPLATE) && ((template) >= 0) && ((template) < ((instance)->saved_report_count)))
 
 
 /**
@@ -205,17 +199,17 @@ struct analysis_block *analysis_create_instance(struct file_block *file)
 
 	new->file = file;
 
-	new->saved_reports = NULL;
-	new->saved_report_count = 0;
+	new->templates = NULL;
 
 	new->balance_rep = NULL;
 	new->cashflow_rep = NULL;
 	new->trans_rep = NULL;
 	new->unrec_rep = NULL;
 
-	/* Initialise the saved report data. */
+	/* Set up the saved template data. */
 
-	if (!flexutils_initialise((void **) &(new->saved_reports))) {
+	new->templates = analysis_template_create_instance(new);
+	if (new->templates == NULL) {
 		analysis_delete_instance(new);
 		return NULL;
 	}
@@ -273,8 +267,8 @@ void analysis_delete_instance(struct analysis_block *instance)
 
 	/* Free any saved report data. */
 
-	if (instance->saved_reports != NULL)
-		flexutils_free((void **) &(instance->saved_reports));
+	if (instance->templates != NULL)
+		analysis_template_delete_instance(instance->templates);
 
 	/* Free the report instances. */
 
@@ -372,8 +366,6 @@ static void analysis_find_date_range(struct file_block *file, date_t *start_date
 
 void analysis_remove_account_from_templates(struct file_block *file, acct_t account)
 {
-	template_t	i;
-
 	if (file == NULL || file->analysis == NULL)
 		return;
 
@@ -386,9 +378,7 @@ void analysis_remove_account_from_templates(struct file_block *file, acct_t acco
 
 	/* Now process any saved templates. */
 
-	for (i = 0; i < file->analysis->saved_report_count; i++) {
-		analysis_remove_account_from_template(&(file->analysis->saved_reports[i]), account);
-	}
+	analysis_template_remove_account(file->analysis->templates, account);
 
 	/* Finally, work through any reports in the file. */
 
@@ -701,10 +691,10 @@ void analysis_account_list_to_hex(struct file_block *file, char *list, size_t si
 
 void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template_t template)
 {
-	if (file == NULL || !analysis_template_valid(file->analysis, template))
+	if (file == NULL || file->analysis == NULL)
 		return;
 
-	switch (file->analysis->saved_reports[template].type) {
+	switch (analysis_template_type(file->analysis->templates, template)) {
 	case REPORT_TYPE_TRANS:
 		analysis_transaction_open_window(file->analysis, ptr, template, config_opt_read("RememberValues"));
 		break;
@@ -730,23 +720,27 @@ void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template
 /**
  * Return the number of templates in the given file.
  * 
+ * \FIXME -- This should probably be passed direct on to the templates module when possible.
+ * 
  * \param *file			The file to report on.
  * \return			The number of templates, or 0 on error.
  */
  
 int analysis_get_template_count(struct file_block *file)
 {
-	if (file == NULL)
+	if (file == NULL || file->analysis == NULL)
 		return 0;
 
-	return file->analysis->saved_report_count;
+	return analysis_template_get_count(file->analysis->templates);
 }
 
 
 /**
  * Return a volatile pointer to a template block from within a file's saved
- * templates. This is a pointre into a flex heap block, so it will only
+ * templates. This is a pointer into a flex heap block, so it will only
  * be valid until an operation occurs to shift the blocks.
+ * 
+ * \FIXME -- This should probably be passed direct on to the templates module when possible.
  * 
  * \param *file			The file containing the template of interest.
  * \param template		The number of the requied template.
@@ -755,10 +749,10 @@ int analysis_get_template_count(struct file_block *file)
 
 struct analysis_report *analysis_get_template(struct file_block *file, template_t template)
 {
-	if (file == NULL || file->analysis == NULL || file->analysis->saved_reports == NULL || !analysis_template_valid(file->analysis, template))
+	if (file == NULL || file->analysis == NULL)
 		return NULL;
 
-	return file->analysis->saved_reports + template;
+	return analysis_template_get_report(file->analysis->templates, template);
 }
 
 
@@ -839,6 +833,8 @@ char *analysis_get_template_name(struct analysis_report *template, char *buffer,
 
 /**
  * Find a save template ID based on its name.
+ * 
+ * \FIXME -- This should probably be passed direct on to the templates module when possible.
  *
  * \param *file			The file to search in.
  * \param *name			The name to search for.
@@ -847,24 +843,17 @@ char *analysis_get_template_name(struct analysis_report *template, char *buffer,
 
 template_t analysis_get_template_from_name(struct file_block *file, char *name)
 {
-	template_t	i, found = NULL_TEMPLATE;
-
-	if (file == NULL || file->analysis->saved_report_count <= 0)
+	if (file == NULL || file->analysis == NULL)
 		return NULL_TEMPLATE;
 
-	for (i = 0; i < file->analysis->saved_report_count && found == NULL_TEMPLATE; i++) {
-		if (string_nocase_strcmp(file->analysis->saved_reports[i].name, name) == 0) {
-			found = i;
-			break;
-		}
-	}
-
-	return found;
+	return analysis_template_get_from_name(file->analysis->templates, name);
 }
 
 
 /**
  * Store a report's template into a file.
+ * 
+ * \FIXME -- This should probably be passed direct on to the templates module when possible.
  *
  * \param *file			The file to work on.
  * \param *report		The report to take the template from.
@@ -876,28 +865,10 @@ template_t analysis_get_template_from_name(struct file_block *file, char *name)
 
 void analysis_store_template(struct file_block *file, struct analysis_report *report, template_t template, char *name)
 {
-	if (file == NULL || file->analysis->saved_reports == NULL || report == NULL)
+	if (file == NULL || file->analysis == NULL || report == NULL)
 		return;
 
-	if (template == NULL_TEMPLATE) {
-		if (!flexutils_resize((void **) &(file->analysis->saved_reports), sizeof(struct analysis_report), file->analysis->saved_report_count + 1)) {
-			error_msgs_report_error("NoMemNewTemp");
-			return;
-		}
-
-		template = file->analysis->saved_report_count++;
-	}
-
-	if (!analysis_template_valid(file->analysis, template))
-		return;
-
-	if (name != NULL) {
-		strncpy(report->name, name, ANALYSIS_SAVED_NAME_LEN);
-		report->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
-	}
-
-	analysis_copy_template(file->analysis->saved_reports + template, report);
-	file_set_data_integrity(file, TRUE);
+	analysis_template_store(file->analysis->templates, report, template, name);
 }
 
 
@@ -911,17 +882,10 @@ void analysis_store_template(struct file_block *file, struct analysis_report *re
 
 void analysis_rename_template(struct file_block *file, template_t template, char *name)
 {
-	if (file == NULL || file->analysis->saved_reports == NULL || !analysis_template_valid(file->analysis, template))
+	if (file == NULL || file->analysis == NULL || name == NULL)
 		return;
 
-	/* Copy the new name across into the template. */
-
-	strncpy(file->analysis->saved_reports[template].name, name, ANALYSIS_SAVED_NAME_LEN);
-	file->analysis->saved_reports[template].name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
-
-	/* Mark the file has being modified. */
-
-	file_set_data_integrity(file, TRUE);
+	analysis_template_rename(file->analysis->templates, template, name);
 }
 
 
@@ -966,22 +930,22 @@ static void analysis_delete_template(struct file_block *file, int template)
 
 	switch (type) {
 	case REPORT_TYPE_TRANS:
-		analysis_transaction_remove_template(template);
+		analysis_transaction_remove_template(file->analysis, template);
 		break;
 	case REPORT_TYPE_UNREC:
-		analysis_unreconciled_remove_template(template);
+		analysis_unreconciled_remove_template(file->analysis, template);
 		break;
 	case REPORT_TYPE_CASHFLOW:
-		analysis_cashflow_remove_template(template);
+		analysis_cashflow_remove_template(file->analysis, template);
 		break;
 	case REPORT_TYPE_BALANCE:
-		analysis_balance_remove_template(template);
+		analysis_balance_remove_template(file->analysis, template);
 		break;
 	case REPORT_TYPE_NONE:
 		break;
 	}
 
-	analysis_template_save_delete_template(template);
+	analysis_template_save_delete_template(file, template);
 }
 
 

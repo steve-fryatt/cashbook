@@ -189,7 +189,7 @@ Either the year, or the month and year, can be omitted, in which case the curren
 
 <subhead title="Working with windows and dialogue boxes">
 
-The column widths in the various windows in <cite>CashBook</cite> can be adjusted by dragging the right-hand end of the column title with the mouse. The widths used in individual windows are saved in the cashbook file, with the exception of <link ref="Statement">statement views</link> where all the windows share the same width settings, which are updated whenever a column is adjusted in any window.
+The column widths in the various windows in <cite>CashBook</cite> can be adjusted by dragging the right-hand end of the column title with the mouse. The widths used in individual windows are saved in the cashbook file, with the exception of <link ref="Accounts">statement views</link> where all the windows share the same width settings, which are updated whenever a column is adjusted in any window.
 
 The <window>transaction</window> window, <window>standing order list</window> window and statement view windows can all have their contents sorted on any of the columns of data. Clicking <mouse>select</mouse> on a column heading (away from the drag target at the right-hand end) will sort that column into ascending order, while clicking <mouse>adjust</mouse> will sort into descending order; this can also be achieved through the window&rsquo;s <window>sort</window> dialogue. The column currently being sorted is shown by a small arrow pointing up or down in the selected column&rsquo;s heading.
 

@@ -1725,7 +1725,7 @@ static osbool preset_process_edit_window(void)
 
 static osbool preset_delete_from_edit_window(void)
 {
-	if (error_msgs_report_question ("DeletePreset", "DeletePresetB") == 2)
+	if (error_msgs_report_question ("DeletePreset", "DeletePresetB") == 4)
 		return FALSE;
 
 	return preset_delete(preset_edit_owner->file, preset_edit_number);

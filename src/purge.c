@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -313,7 +313,7 @@ static osbool purge_process_window(void)
 			date_convert_from_string(icons_get_indirected_text_addr(purge_window, PURGE_ICON_DATE), NULL_DATE, 0);
 
 	if (file_get_data_integrity(purge_window_owner->file) == TRUE &&
-			error_msgs_report_question("PurgeFileNotSaved", "PurgeFileNotSavedB") == 2)
+			error_msgs_report_question("PurgeFileNotSaved", "PurgeFileNotSavedB") == 4)
 		return FALSE;
 
 	purge_file(purge_window_owner->file, purge_window_owner->transactions,

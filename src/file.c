@@ -302,16 +302,16 @@ void create_new_file(void)
 
 void delete_file(struct file_block *file)
 {
-	struct file_block	**list;
-	int			button;
-	wimp_pointer		pointer;
-	char			*filename;
+	struct file_block		**list;
+	wimp_error_box_selection	button;
+	wimp_pointer			pointer;
+	char				*filename;
 
 
 	/* First check that the file is saved and, if not, prompt for deletion. */
 
-	if (file->modified == TRUE && (button = error_msgs_report_question("FileNotSaved", "FileNotSavedB")) >= 2) {
-		if (button == 3) {
+	if (file->modified == TRUE && (button = error_msgs_report_question("FileNotSaved", "FileNotSavedB")) >= 4) {
+		if (button == 5) {
 			wimp_get_pointer_info(&pointer);
 
 			filename = (file_check_for_filepath(file)) ? file->filename : NULL;
@@ -326,7 +326,7 @@ void delete_file(struct file_block *file)
 
 	/* If there are any reports in the file with pending print jobs, prompt for deletion. */
 
-	if (report_get_pending_print_jobs(file) && error_msgs_report_question("PendingPrints", "PendingPrintsB") == 2)
+	if (report_get_pending_print_jobs(file) && error_msgs_report_question("PendingPrints", "PendingPrintsB") == 4)
 		return;
 
 	/* Delete the windows. */
@@ -454,7 +454,7 @@ osbool file_check_for_unsaved_data(void)
 
 	/* If any files were modified, allow the user to discard them. */
 
-	if (modified && (error_msgs_report_question("FilesNotSaved", "FilesNotSavedB") == 1))
+	if (modified && (error_msgs_report_question("FilesNotSaved", "FilesNotSavedB") == 3))
 		modified = FALSE;
 
 	/* If there were no unsaved files (or the use chose to discard them),
@@ -462,7 +462,7 @@ osbool file_check_for_unsaved_data(void)
 	 * aborted due to modified files to save 'dialogue box overload'.
 	 */
 
-	if (!modified && pending && (error_msgs_report_question("FPendingPrints", "FPendingPrintsB") == 1))
+	if (!modified && pending && (error_msgs_report_question("FPendingPrints", "FPendingPrintsB") == 3))
 		pending = FALSE;
 
 	/* Return true if anything needs rescuing. */

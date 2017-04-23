@@ -577,7 +577,7 @@ static osbool analysis_process_transaction_window(void)
 static osbool analysis_delete_transaction_window(void)
 {
 	if (analysis_transaction_template >= 0 && analysis_transaction_template < analysis_transaction_file->analysis->saved_report_count &&
-			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 1) {
+			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 3) {
 		analysis_delete_template(analysis_transaction_file, analysis_transaction_template);
 		analysis_transaction_template = NULL_TEMPLATE;
 

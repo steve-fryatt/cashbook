@@ -428,7 +428,7 @@ static osbool analysis_template_save_process_window(void)
 
 	switch (analysis_template_save_current_mode) {
 	case ANALYSIS_SAVE_MODE_SAVE:
-		if (template != NULL_TEMPLATE && error_msgs_report_question("CheckTempOvr", "CheckTempOvrB") == 2)
+		if (template != NULL_TEMPLATE && error_msgs_report_question("CheckTempOvr", "CheckTempOvrB") == 4)
 			return FALSE;
 
 		analysis_store_template(analysis_template_save_file, analysis_template_save_report, template,

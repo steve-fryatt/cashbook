@@ -1650,7 +1650,7 @@ static osbool sorder_process_edit_window(void)
 
 		if (sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date == NULL_DATE &&
 				sorder_edit_owner->sorders[sorder_edit_number].start_date == new_start_date &&
-				(error_msgs_report_question("CheckSODate", "CheckSODateB") == 2))
+				(error_msgs_report_question("CheckSODate", "CheckSODateB") == 4))
 			return FALSE;
 	}
 
@@ -1768,7 +1768,7 @@ static osbool sorder_process_edit_window(void)
 
 static osbool sorder_delete_from_edit_window(void)
 {
-	if (error_msgs_report_question("DeleteSOrder", "DeleteSOrderB") == 2)
+	if (error_msgs_report_question("DeleteSOrder", "DeleteSOrderB") == 4)
 		return FALSE;
 
 	return sorder_delete(sorder_edit_owner->file, sorder_edit_number);
@@ -1787,7 +1787,7 @@ static osbool sorder_stop_from_edit_window(void)
 {
 	int line;
 
-	if (error_msgs_report_question("StopSOrder", "StopSOrderB") == 2)
+	if (error_msgs_report_question("StopSOrder", "StopSOrderB") == 4)
 		return FALSE;
 
 	/* Stop the order */

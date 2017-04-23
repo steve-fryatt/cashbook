@@ -538,7 +538,7 @@ static osbool analysis_process_balance_window(void)
 static osbool analysis_delete_balance_window(void)
 {
 	if (analysis_balance_template >= 0 && analysis_balance_template < analysis_balance_file->analysis->saved_report_count &&
-			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 1) {
+			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 3) {
 		analysis_delete_template(analysis_balance_file, analysis_balance_template);
 		analysis_balance_template = NULL_TEMPLATE;
 

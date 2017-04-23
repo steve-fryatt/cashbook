@@ -541,7 +541,7 @@ static osbool analysis_process_cashflow_window(void)
 static osbool analysis_delete_cashflow_window(void)
 {
 	if (analysis_cashflow_template >= 0 && analysis_cashflow_template < analysis_cashflow_file->analysis->saved_report_count &&
-			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 1) {
+			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 3) {
 		analysis_delete_template(analysis_cashflow_file, analysis_cashflow_template);
 		analysis_cashflow_template = NULL_TEMPLATE;
 

@@ -2035,7 +2035,7 @@ static osbool account_delete_from_edit_window(void)
 		return FALSE;
 	}
 
-	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 2)
+	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 4)
 		return FALSE;
 
 	return account_delete(account_edit_owner->file, account_edit_number);
@@ -2260,7 +2260,7 @@ static osbool account_delete_from_section_window(void)
 	if (account_section_owner == NULL)
 		return FALSE;
 
-	if (error_msgs_report_question("DeleteSection", "DeleteSectionB") == 2)
+	if (error_msgs_report_question("DeleteSection", "DeleteSectionB") == 4)
 		return FALSE;
 
 	/* Delete the heading */
@@ -3549,7 +3549,7 @@ osbool account_cheque_number_available(struct file_block *file, acct_t account)
 
 char *account_get_next_cheque_number(struct file_block *file, acct_t from_account, acct_t to_account, int increment, char *buffer, size_t size)
 {
-	char		format[32], mbuf[1024], bbuf[128];
+	char		format[32];
 	osbool		from_ok, to_ok;
 
 	if (file == NULL || file->accounts == NULL || buffer == NULL) {
@@ -3567,11 +3567,9 @@ char *account_get_next_cheque_number(struct file_block *file, acct_t from_accoun
 	to_ok = (to_account != NULL_ACCOUNT && file->accounts->accounts[to_account].payin_num_width > 0) ? TRUE : FALSE;
 
 	if (from_ok && to_ok) {
-		msgs_param_lookup("ChqOrPayIn", mbuf, sizeof(mbuf),
-				file->accounts->accounts[to_account].name, file->accounts->accounts[from_account].name, NULL, NULL);
-		msgs_lookup("ChqOrPayInB", bbuf, sizeof(bbuf));
-
-		if (error_report_question(mbuf, bbuf) == 1)
+		if (error_msgs_param_report_question("ChqOrPayIn", "ChqOrPayInB",
+				file->accounts->accounts[to_account].name,
+				file->accounts->accounts[from_account].name, NULL, NULL) == 3)
 			to_ok = FALSE;
 		else
 			from_ok = FALSE;

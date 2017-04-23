@@ -554,7 +554,7 @@ static osbool analysis_process_unreconciled_window(void)
 static osbool analysis_delete_unreconciled_window(void)
 {
 	if (analysis_unreconciled_template >= 0 && analysis_unreconciled_template < analysis_unreconciled_file->analysis->saved_report_count &&
-			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 1) {
+			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 3) {
 		analysis_delete_template(analysis_unreconciled_file, analysis_unreconciled_template);
 		analysis_unreconciled_template = NULL_TEMPLATE;
 

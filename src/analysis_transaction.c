@@ -63,6 +63,7 @@
 #include "analysis.h"
 #include "analysis_dialogue.h"
 #include "analysis_lookup.h"
+#include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "budget.h"
 #include "caret.h"
@@ -106,17 +107,53 @@
 #define ANALYSIS_TRANS_OPSUMMARY 37
 #define ANALYSIS_TRANS_OPACCSUMMARY 38
 
+
+/**
+ * Transaction Report dialogue.
+ */
+
+struct analysis_transaction_report {
+	/**
+	 * The parent analysis report instance.
+	 */
+
+	struct analysis_block		*parent;
+
+	date_t				date_from;
+	date_t				date_to;
+	osbool				budget;
+
+	osbool				group;
+	int				period;
+	enum date_period		period_unit;
+	osbool				lock;
+
+	int				from_count;
+	int				to_count;
+	acct_t				from[ANALYSIS_ACC_LIST_LEN];
+	acct_t				to[ANALYSIS_ACC_LIST_LEN];
+	char				ref[TRANSACT_REF_FIELD_LEN];
+	char				desc[TRANSACT_DESCRIPT_FIELD_LEN];
+	amt_t				amount_min;
+	amt_t				amount_max;
+
+	osbool				output_trans;
+	osbool				output_summary;
+	osbool				output_accsummary;
+};
+
+
 static struct analysis_dialogue_block	*analysis_transaction_dialogue = NULL;
 
 static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.				*/
-static struct analysis_block	*analysis_transcation_instance = NULL		/**< The instance currently owning the report dialogue.				*/
+static struct analysis_block	*analysis_transcation_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.			*/
 static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.			*/
 static struct trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.			*/
 static template_t		analysis_transaction_template = NULL_TEMPLATE;	/**< The template which applies to the Transaction dialogue.			*/
 
 /* Static Function Prototypes. */
-
+#if 0
 static void		analysis_transaction_click_handler(wimp_pointer *pointer);
 static osbool		analysis_transaction_keypress_handler(wimp_key *key);
 static void		analysis_refresh_transaction_window(void);
@@ -124,7 +161,7 @@ static void		analysis_fill_transaction_window(struct file_block *file, osbool re
 static osbool		analysis_process_transaction_window(void);
 static osbool		analysis_delete_transaction_window(void);
 static void		analysis_generate_transaction_report(struct file_block *file);
-
+#endif
 
 
 /**
@@ -133,10 +170,11 @@ static void		analysis_generate_transaction_report(struct file_block *file);
 
 void analysis_transaction_initialise(void)
 {
+	analysis_template_set_block_size(sizeof(struct analysis_transaction_report));
 	analysis_transaction_window = templates_create_window("TransRep");
 	ihelp_add_window(analysis_transaction_window, "TransRep", NULL);
-	event_add_window_mouse_event(analysis_transaction_window, analysis_transaction_click_handler);
-	event_add_window_key_event(analysis_transaction_window, analysis_transaction_keypress_handler);
+//	event_add_window_mouse_event(analysis_transaction_window, analysis_transaction_click_handler);
+//	event_add_window_key_event(analysis_transaction_window, analysis_transaction_keypress_handler);
 	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, TRUE);
 	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, TRUE);
@@ -154,11 +192,11 @@ void analysis_transaction_initialise(void)
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct trans_rep *analysis_transaction_create_instance(struct analysis_block *parent)
+struct analysis_transaction_report *analysis_transaction_create_instance(struct analysis_block *parent)
 {
-	struct trans_rep	*new;
+	struct analysis_transaction_report	*new;
 
-	new = heap_alloc(sizeof(struct trans_rep));
+	new = heap_alloc(sizeof(struct analysis_transaction_report));
 	if (new == NULL)
 		return NULL;
 
@@ -191,7 +229,7 @@ struct trans_rep *analysis_transaction_create_instance(struct analysis_block *pa
  * \param *report	Pointer to the report to delete.
  */
 
-void analysis_transaction_delete_instance(struct trans_rep *report)
+void analysis_transaction_delete_instance(struct analysis_transaction_report *report)
 {
 	if (report == NULL)
 		return;
@@ -212,7 +250,7 @@ void analysis_transaction_delete_instance(struct trans_rep *report)
 
 
 
-
+#if 0
 
 
 
@@ -1021,3 +1059,5 @@ static void analysis_copy_transaction_template(struct trans_rep *to, struct tran
 	to->output_summary = from->output_summary;
 	to->output_accsummary = from->output_accsummary;
 }
+#endif
+

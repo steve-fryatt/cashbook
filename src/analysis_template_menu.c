@@ -51,7 +51,8 @@
 #include "global.h"
 #include "analysis_template_menu.h"
 
-#include "analysis.h"
+//#include "analysis.h"
+#include "analysis_template.h"
 
 
 /**

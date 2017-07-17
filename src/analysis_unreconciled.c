@@ -63,6 +63,7 @@
 #include "analysis.h"
 #include "analysis_dialogue.h"
 #include "analysis_lookup.h"
+#include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "budget.h"
 #include "caret.h"
@@ -102,17 +103,43 @@
 #define ANALYSIS_UNREC_TOSPEC 26
 #define ANALYSIS_UNREC_TOSPECPOPUP 27
 
+/* Unreconciled Report dialogue. */
+
+struct analysis_unreconciled_report {
+	/**
+	 * The parent analysis report instance.
+	 */
+
+	struct analysis_block		*parent;
+
+	date_t				date_from;
+	date_t				date_to;
+	osbool				budget;
+
+	osbool				group;
+	int				period;
+	enum date_period		period_unit;
+	osbool				lock;
+
+	int				from_count;
+	int				to_count;
+	acct_t				from[ANALYSIS_ACC_LIST_LEN];
+	acct_t				to[ANALYSIS_ACC_LIST_LEN];
+};
+
+
+
 static struct analysis_dialogue_block	*analysis_unreconciled_dialogue = NULL;
 
 static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.				*/
-static struct analysis_block	*analysis_unreconciled_instance = NULL		/**< The instance currently owning the report dialogue.				*/
+static struct analysis_block	*analysis_unreconciled_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_unreconciled_file = NULL;		/**< The file currently owning the unreconciled dialogue.			*/
 static osbool			analysis_unreconciled_restore = FALSE;		/**< The restore setting for the current Unreconciled dialogue.			*/
 static struct unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.			*/
 static template_t		analysis_unreconciled_template = NULL_TEMPLATE;	/**< The template which applies to the Unreconciled dialogue.			*/
 
 /* Static Function Prototypes. */
-
+#if 0
 static void		analysis_unreconciled_click_handler(wimp_pointer *pointer);
 static osbool		analysis_unreconciled_keypress_handler(wimp_key *key);
 static void		analysis_refresh_unreconciled_window(void);
@@ -120,7 +147,7 @@ static void		analysis_fill_unreconciled_window(struct file_block *file, osbool r
 static osbool		analysis_process_unreconciled_window(void);
 static osbool		analysis_delete_unreconciled_window(void);
 static void		analysis_generate_unreconciled_report(struct file_block *file);
-
+#endif
 
 /**
  * Initialise the Unreconciled Transactions analysis report module.
@@ -128,10 +155,11 @@ static void		analysis_generate_unreconciled_report(struct file_block *file);
 
 void analysis_unreconciled_initialise(void)
 {
+	analysis_template_set_block_size(sizeof(struct analysis_unreconciled_report));
 	analysis_unreconciled_window = templates_create_window("UnrecRep");
 	ihelp_add_window(analysis_unreconciled_window, "UnrecRep", NULL);
-	event_add_window_mouse_event(analysis_unreconciled_window, analysis_unreconciled_click_handler);
-	event_add_window_key_event(analysis_unreconciled_window, analysis_unreconciled_keypress_handler);
+//	event_add_window_mouse_event(analysis_unreconciled_window, analysis_unreconciled_click_handler);
+//	event_add_window_key_event(analysis_unreconciled_window, analysis_unreconciled_keypress_handler);
 	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, FALSE);
 	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, FALSE);
 	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, TRUE);
@@ -150,11 +178,11 @@ void analysis_unreconciled_initialise(void)
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct unrec_rep *analysis_unreconciled_create_instance(struct analysis_block *parent)
+struct analysis_unreconciled_report *analysis_unreconciled_create_instance(struct analysis_block *parent)
 {
-	struct unrec_rep	*new;
+	struct analysis_unreconciled_report	*new;
 
-	new = heap_alloc(sizeof(struct unrec_rep));
+	new = heap_alloc(sizeof(struct analysis_unreconciled_report));
 	if (new == NULL)
 		return NULL;
 
@@ -180,7 +208,7 @@ struct unrec_rep *analysis_unreconciled_create_instance(struct analysis_block *p
  * \param *report	Pointer to the report to delete.
  */
 
-void analysis_unreconciled_delete_instance(struct unrec_rep *report)
+void analysis_unreconciled_delete_instance(struct analysis_unreconciled_report *report)
 {
 	if (report == NULL)
 		return;
@@ -200,7 +228,7 @@ void analysis_unreconciled_delete_instance(struct unrec_rep *report)
 
 
 
-
+#if 0
 
 
 
@@ -891,3 +919,5 @@ static void analysis_copy_unreconciled_template(struct unrec_rep *to, struct unr
 	for (i=0; i<from->to_count; i++)
 		to->to[i] = from->to[i];
 }
+#endif
+

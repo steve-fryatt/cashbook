@@ -36,31 +36,7 @@
 
 /* Balance Report dialogue. */
 
-struct balance_rep {
-	/**
-	 * The parent analysis report instance.
-	 */
-
-	struct analysis_block		*parent;
-
-	date_t				date_from;
-	date_t				date_to;
-	osbool				budget;
-
-	osbool				group;
-	int				period;
-	enum date_period		period_unit;
-	osbool				lock;
-
-	int				accounts_count;
-	int				incoming_count;
-	int				outgoing_count;
-	acct_t				accounts[ANALYSIS_ACC_LIST_LEN];
-	acct_t				incoming[ANALYSIS_ACC_LIST_LEN];
-	acct_t				outgoing[ANALYSIS_ACC_LIST_LEN];
-
-	osbool				tabular;
-};
+struct analysis_balance_report;
 
 
 /**
@@ -79,7 +55,7 @@ void analysis_balance_initialise(void);
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct balance_rep *analysis_balance_create_instance(struct analysis_block *parent);
+struct analysis_balance_report *analysis_balance_create_instance(struct analysis_block *parent);
 
 
 /**
@@ -88,7 +64,7 @@ struct balance_rep *analysis_balance_create_instance(struct analysis_block *pare
  * \param *report	Pointer to the report to delete.
  */
 
-void analysis_balance_delete_instance(struct balance_rep *report);
+void analysis_balance_delete_instance(struct analysis_balance_report *report);
 
 
 /**
@@ -115,7 +91,7 @@ void analysis_balance_open_window(struct analysis_block *parent, wimp_pointer *p
  * \param account	The account to be removed.
  */
 
-void analysis_balance_remove_account(struct balance_rep *report, acct_t account);
+//void analysis_balance_remove_account(struct balance_rep *report, acct_t account);
 
 
 /**
@@ -125,6 +101,6 @@ void analysis_balance_remove_account(struct balance_rep *report, acct_t account)
  * \param template	The template to be removed.
  */
 
-void analysis_balance_remove_template(struct analysis_block *parent, template_t template);
+//void analysis_balance_remove_template(struct analysis_block *parent, template_t template);
 
 #endif

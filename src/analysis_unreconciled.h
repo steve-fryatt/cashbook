@@ -33,28 +33,7 @@
 
 /* Unreconciled Report dialogue. */
 
-struct unrec_rep {
-	/**
-	 * The parent analysis report instance.
-	 */
-
-	struct analysis_block		*parent;
-
-	date_t				date_from;
-	date_t				date_to;
-	osbool				budget;
-
-	osbool				group;
-	int				period;
-	enum date_period		period_unit;
-	osbool				lock;
-
-	int				from_count;
-	int				to_count;
-	acct_t				from[ANALYSIS_ACC_LIST_LEN];
-	acct_t				to[ANALYSIS_ACC_LIST_LEN];
-};
-
+struct analysis_unreconciled_report;
 
 
 /**
@@ -73,7 +52,7 @@ void analysis_unreconciled_initialise(void);
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct unrec_rep *analysis_unreconciled_create_instance(struct analysis_block *parent);
+struct analysis_unreconciled_report *analysis_unreconciled_create_instance(struct analysis_block *parent);
 
 
 /**
@@ -82,7 +61,7 @@ struct unrec_rep *analysis_unreconciled_create_instance(struct analysis_block *p
  * \param *report	Pointer to the report to delete.
  */
 
-void analysis_unreconciled_delete_instance(struct unrec_rep *report);
+void analysis_unreconciled_delete_instance(struct analysis_unreconciled_report *report);
 
 
 
@@ -97,7 +76,7 @@ void analysis_unreconciled_delete_instance(struct unrec_rep *report);
  * \param account	The account to be removed.
  */
 
-void analysis_unreconciled_remove_account(struct unrec_rep *report, acct_t account);
+//void analysis_unreconciled_remove_account(struct unrec_rep *report, acct_t account);
 
 
 /**
@@ -106,6 +85,6 @@ void analysis_unreconciled_remove_account(struct unrec_rep *report, acct_t accou
  * \param template	The template to be removed.
  */
 
-void analysis_unreconciled_remove_template(template_t template);
+//void analysis_unreconciled_remove_template(template_t template);
 
 #endif

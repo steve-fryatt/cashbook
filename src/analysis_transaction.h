@@ -35,35 +35,7 @@
  * Transaction Report dialogue.
  */
 
-struct trans_rep {
-	/**
-	 * The parent analysis report instance.
-	 */
-
-	struct analysis_block		*parent;
-
-	date_t				date_from;
-	date_t				date_to;
-	osbool				budget;
-
-	osbool				group;
-	int				period;
-	enum date_period		period_unit;
-	osbool				lock;
-
-	int				from_count;
-	int				to_count;
-	acct_t				from[ANALYSIS_ACC_LIST_LEN];
-	acct_t				to[ANALYSIS_ACC_LIST_LEN];
-	char				ref[TRANSACT_REF_FIELD_LEN];
-	char				desc[TRANSACT_DESCRIPT_FIELD_LEN];
-	amt_t				amount_min;
-	amt_t				amount_max;
-
-	osbool				output_trans;
-	osbool				output_summary;
-	osbool				output_accsummary;
-};
+struct analysis_transaction_report;
 
 /**
  * Initialise the Transaction analysis report module.
@@ -81,7 +53,7 @@ void analysis_transaction_initialise(void);
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct trans_rep *analysis_transaction_create_instance(struct analysis_block *parent);
+struct analysis_transaction_report *analysis_transaction_create_instance(struct analysis_block *parent);
 
 
 /**
@@ -90,7 +62,7 @@ struct trans_rep *analysis_transaction_create_instance(struct analysis_block *pa
  * \param *report	Pointer to the report to delete.
  */
 
-void analysis_transaction_delete_instance(struct trans_rep *report);
+void analysis_transaction_delete_instance(struct analysis_transaction_report *report);
 
 
 
@@ -115,7 +87,7 @@ void analysis_transaction_delete_instance(struct trans_rep *report);
  * \param account	The account to be removed.
  */
 
-void analysis_transaction_remove_account(struct trans_rep *report, acct_t account);
+//void analysis_transaction_remove_account(struct trans_rep *report, acct_t account);
 
 
 /**
@@ -124,6 +96,6 @@ void analysis_transaction_remove_account(struct trans_rep *report, acct_t accoun
  * \param template	The template to be removed.
  */
 
-void analysis_transaction_remove_template(template_t template);
+//void analysis_transaction_remove_template(template_t template);
 
 #endif

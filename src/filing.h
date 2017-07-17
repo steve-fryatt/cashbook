@@ -64,6 +64,7 @@ struct filing_block;
 #include "account.h"
 #include "currency.h"
 #include "date.h"
+#include "file.h"
 
 /* Function Prototypes. */
 

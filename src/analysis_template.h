@@ -34,11 +34,32 @@
 #include "analysis.h"
 
 /**
+ * The length of a saved report template name.
+ */
+
+#define ANALYSIS_SAVED_NAME_LEN 32
+
+/**
  * Structure holding an instance of the analysis template data.
  */
 
 struct analysis_template_block;
 
+
+/**
+ * Structure holding a saved report.
+ */
+
+struct analysis_report;
+
+
+/**
+ * Allow a analysis client to report the size of its template block.
+ *
+ * \param size			The size of the block.
+ */
+
+void analysis_template_set_block_size(size_t size);
 
 
 /**
@@ -142,4 +163,28 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 
 
 
+
+
+
+/**
+ * Save the Report Template details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void analysis_template_write_file(struct file_block *file, FILE *out);
+
+
+/**
+ * Read Report Template details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool analysis_template_read_file(struct file_block *file, struct filing_block *in);
+
 #endif
+

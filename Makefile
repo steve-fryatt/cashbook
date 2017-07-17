@@ -39,12 +39,15 @@ OBJS = account.o			\
        amenu.o				\
        analysis.o			\
        analysis_balance.o		\
+       analysis_cashflow.o		\
        analysis_dialogue.o		\
        analysis_lookup.o		\
        analysis_period.o		\
        analysis_template.o		\
        analysis_template_menu.o		\
        analysis_template_save.o		\
+       analysis_transaction.o		\
+       analysis_unreconciled.o		\
        budget.o				\
        caret.o				\
        choices.o			\
@@ -74,9 +77,6 @@ OBJS = account.o			\
        transact.o			\
        window.o
 
-#       analysis_cashflow.o		\
-#       analysis_transaction.o		\
-#       analysis_unreconciled.o		\
 
 
 include $(SFTOOLS_MAKE)/CApp

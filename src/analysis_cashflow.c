@@ -63,6 +63,7 @@
 #include "analysis.h"
 #include "analysis_dialogue.h"
 #include "analysis_lookup.h"
+#include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "budget.h"
 #include "caret.h"
@@ -103,17 +104,50 @@
 #define ANALYSIS_CASHFLOW_OUTGOINGPOPUP 29
 #define ANALYSIS_CASHFLOW_TABULAR 30
 
+/* Cashflow Report dialogue. */
+
+struct analysis_cashflow_report {
+	/**
+	 * The parent analysis report instance.
+	 */
+
+	struct analysis_block		*parent;
+
+	date_t				date_from;
+	date_t				date_to;
+	osbool				budget;
+
+	osbool				group;
+	int				period;
+	enum date_period		period_unit;
+	osbool				lock;
+	osbool				empty;
+
+	int				accounts_count;
+	int				incoming_count;
+	int				outgoing_count;
+	acct_t				accounts[ANALYSIS_ACC_LIST_LEN];
+	acct_t				incoming[ANALYSIS_ACC_LIST_LEN];
+	acct_t				outgoing[ANALYSIS_ACC_LIST_LEN];
+
+	osbool				tabular;
+};
+
+
+
+
+
 static struct analysis_dialogue_block	*analysis_cashflow_dialogue = NULL;
 
 static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.					*/
-static struct analysis_block	*analysis_cashflow_instance = NULL		/**< The instance currently owning the report dialogue.				*/
+static struct analysis_block	*analysis_cashflow_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.				*/
 static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.			*/
 static struct cashflow_rep	analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.				*/
 static template_t		analysis_cashflow_template = NULL_TEMPLATE;	/**< The template which applies to the Cashflow dialogue.			*/
 
 /* Static Function Prototypes. */
-
+#if 0
 static void		analysis_cashflow_click_handler(wimp_pointer *pointer);
 static osbool		analysis_cashflow_keypress_handler(wimp_key *key);
 static void		analysis_refresh_cashflow_window(void);
@@ -121,7 +155,7 @@ static void		analysis_fill_cashflow_window(struct file_block *file, osbool resto
 static osbool		analysis_process_cashflow_window(void);
 static osbool		analysis_delete_cashflow_window(void);
 static void		analysis_generate_cashflow_report(struct file_block *file);
-
+#endif
 
 /**
  * Initialise the Cashflow analysis report module.
@@ -129,10 +163,11 @@ static void		analysis_generate_cashflow_report(struct file_block *file);
 
 void analysis_cashflow_initialise(void)
 {
+	analysis_template_set_block_size(sizeof(struct analysis_cashflow_report));
 	analysis_cashflow_window = templates_create_window("CashFlwRep");
 	ihelp_add_window(analysis_cashflow_window, "CashFlwRep", NULL);
-	event_add_window_mouse_event(analysis_cashflow_window, analysis_cashflow_click_handler);
-	event_add_window_key_event(analysis_cashflow_window, analysis_cashflow_keypress_handler);
+//	event_add_window_mouse_event(analysis_cashflow_window, analysis_cashflow_click_handler);
+//	event_add_window_key_event(analysis_cashflow_window, analysis_cashflow_keypress_handler);
 	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, TRUE);
 	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, TRUE);
@@ -149,11 +184,11 @@ void analysis_cashflow_initialise(void)
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct cashflow_rep *analysis_cashflow_create_instance(struct analysis_block *parent)
+struct analysis_cashflow_report *analysis_cashflow_create_instance(struct analysis_block *parent)
 {
-	struct cashflow_rep	*new;
+	struct analysis_cashflow_report	*new;
 
-	new = heap_alloc(sizeof(struct cashflow_rep));
+	new = heap_alloc(sizeof(struct analysis_cashflow_report));
 	if (new == NULL)
 		return NULL;
 
@@ -182,7 +217,7 @@ struct cashflow_rep *analysis_cashflow_create_instance(struct analysis_block *pa
  * \param *report	Pointer to the report to delete.
  */
 
-void analysis_cashflow_delete_instance(struct cashflow_rep *report)
+void analysis_cashflow_delete_instance(struct analysis_cashflow_report *report)
 {
 	if (report == NULL)
 		return;
@@ -192,6 +227,21 @@ void analysis_cashflow_delete_instance(struct cashflow_rep *report)
 
 	heap_free(report);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
 
 
 /**
@@ -868,3 +918,5 @@ static void analysis_copy_cashflow_template(struct cashflow_rep *to, struct cash
 
 	to->tabular = from->tabular;
 }
+#endif
+

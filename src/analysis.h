@@ -32,15 +32,17 @@
 
 struct analysis_block;
 
+
+/**
+ * The different types of analysis report.
+ */
+
+
+
+
 typedef int template_t;
 
 #define NULL_TEMPLATE ((template_t) (-1))
-
-/**
- * The length of a saved report template name.
- */
-
-#define ANALYSIS_SAVED_NAME_LEN 32
 
 /**
  * The length of an account list text field in a dialogue.
@@ -63,14 +65,14 @@ typedef int template_t;
 /**
  * Saved Report Data Union.
  */
-
+/*
 union analysis_report_block {
 	struct trans_rep		transaction;
 	struct unrec_rep		unreconciled;
 	struct cashflow_rep		cashflow;
 	struct balance_rep		balance;
 };
-
+*/
 /**
  * Saved Report Types.
  */
@@ -301,27 +303,6 @@ void analysis_store_template(struct file_block *file, struct analysis_report *re
  */
 
 void analysis_rename_template(struct file_block *file, template_t template, char *name);
-
-
-/**
- * Save the Report Template details from a file to a CashBook file
- *
- * \param *file			The file to write.
- * \param *out			The file handle to write to.
- */
-
-void analysis_write_file(struct file_block *file, FILE *out);
-
-
-/**
- * Read Report Template details from a CashBook file into a file block.
- *
- * \param *file			The file to read in to.
- * \param *in			The filing handle to read in from.
- * \return			TRUE if successful; FALSE on failure.
- */
-
-osbool analysis_read_file(struct file_block *file, struct filing_block *in);
 
 #endif
 

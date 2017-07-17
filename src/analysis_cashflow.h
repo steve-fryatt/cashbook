@@ -33,32 +33,7 @@
 
 /* Cashflow Report dialogue. */
 
-struct cashflow_rep {
-	/**
-	 * The parent analysis report instance.
-	 */
-
-	struct analysis_block		*parent;
-
-	date_t				date_from;
-	date_t				date_to;
-	osbool				budget;
-
-	osbool				group;
-	int				period;
-	enum date_period		period_unit;
-	osbool				lock;
-	osbool				empty;
-
-	int				accounts_count;
-	int				incoming_count;
-	int				outgoing_count;
-	acct_t				accounts[ANALYSIS_ACC_LIST_LEN];
-	acct_t				incoming[ANALYSIS_ACC_LIST_LEN];
-	acct_t				outgoing[ANALYSIS_ACC_LIST_LEN];
-
-	osbool				tabular;
-};
+struct analysis_cashflow_report;
 
 
 /**
@@ -77,7 +52,7 @@ void analysis_cashflow_initialise(void);
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct cashflow_rep *analysis_cashflow_create_instance(struct analysis_block *parent);
+struct analysis_cashflow_report *analysis_cashflow_create_instance(struct analysis_block *parent);
 
 
 /**
@@ -86,7 +61,7 @@ struct cashflow_rep *analysis_cashflow_create_instance(struct analysis_block *pa
  * \param *report	Pointer to the report to delete.
  */
 
-void analysis_cashflow_delete_instance(struct cashflow_rep *report);
+void analysis_cashflow_delete_instance(struct analysis_cashflow_report *report);
 
 
 
@@ -100,7 +75,7 @@ void analysis_cashflow_delete_instance(struct cashflow_rep *report);
  * \param account	The account to be removed.
  */
 
-void analysis_cashflow_remove_account(struct cashflow_rep *report, acct_t account);
+//void analysis_cashflow_remove_account(struct cashflow_rep *report, acct_t account);
 
 
 /**
@@ -109,6 +84,6 @@ void analysis_cashflow_remove_account(struct cashflow_rep *report, acct_t accoun
  * \param template	The template to be removed.
  */
 
-void analysis_cashflow_remove_template(template_t template);
+//void analysis_cashflow_remove_template(template_t template);
 
 #endif

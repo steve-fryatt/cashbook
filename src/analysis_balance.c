@@ -63,6 +63,7 @@
 #include "analysis.h"
 #include "analysis_dialogue.h"
 #include "analysis_lookup.h"
+#include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "budget.h"
 #include "caret.h"
@@ -102,6 +103,36 @@
 #define ANALYSIS_BALANCE_OUTGOINGPOPUP 28
 #define ANALYSIS_BALANCE_TABULAR 29
 
+
+/* Balance Report dialogue. */
+
+struct analysis_balance_report {
+	/**
+	 * The parent analysis report instance.
+	 */
+
+	struct analysis_block		*parent;
+
+	date_t				date_from;
+	date_t				date_to;
+	osbool				budget;
+
+	osbool				group;
+	int				period;
+	enum date_period		period_unit;
+	osbool				lock;
+
+	int				accounts_count;
+	int				incoming_count;
+	int				outgoing_count;
+	acct_t				accounts[ANALYSIS_ACC_LIST_LEN];
+	acct_t				incoming[ANALYSIS_ACC_LIST_LEN];
+	acct_t				outgoing[ANALYSIS_ACC_LIST_LEN];
+
+	osbool				tabular;
+};
+
+
 static struct analysis_dialogue_block	*analysis_balance_dialogue = NULL;
 
 static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.					*/
@@ -112,7 +143,7 @@ static struct balance_rep	analysis_balance_settings;			/**< Saved initial settin
 static template_t		analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.			*/
 
 /* Static Function Prototypes. */
-
+#if 0
 static void		analysis_balance_click_handler(wimp_pointer *pointer);
 static osbool		analysis_balance_keypress_handler(wimp_key *key);
 static void		analysis_refresh_balance_window(void);
@@ -120,7 +151,7 @@ static void		analysis_fill_balance_window(struct analysis_block *parent, osbool 
 static osbool		analysis_process_balance_window(void);
 static osbool		analysis_delete_balance_window(void);
 static void		analysis_generate_balance_report(struct file_block *file);
-
+#endif
 
 
 /**
@@ -129,10 +160,11 @@ static void		analysis_generate_balance_report(struct file_block *file);
 
 void analysis_balance_initialise(void)
 {
+	analysis_template_set_block_size(sizeof(struct analysis_balance_report));
 	analysis_balance_window = templates_create_window("BalanceRep");
 	ihelp_add_window(analysis_balance_window, "BalanceRep", NULL);
-	event_add_window_mouse_event(analysis_balance_window, analysis_balance_click_handler);
-	event_add_window_key_event(analysis_balance_window, analysis_balance_keypress_handler);
+//	event_add_window_mouse_event(analysis_balance_window, analysis_balance_click_handler);
+//	event_add_window_key_event(analysis_balance_window, analysis_balance_keypress_handler);
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, TRUE);
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, TRUE);
@@ -149,11 +181,11 @@ void analysis_balance_initialise(void)
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct balance_rep *analysis_balance_create_instance(struct analysis_block *parent)
+struct analysis_balance_report *analysis_balance_create_instance(struct analysis_block *parent)
 {
-	struct balance_rep	*new;
+	struct analysis_balance_report	*new;
 
-	new = heap_alloc(sizeof(struct balance_rep));
+	new = heap_alloc(sizeof(struct analysis_balance_report));
 	if (new == NULL)
 		return NULL;
 
@@ -181,7 +213,7 @@ struct balance_rep *analysis_balance_create_instance(struct analysis_block *pare
  * \param *report	Pointer to the report to delete.
  */
 
-void analysis_balance_delete_instance(struct balance_rep *report)
+void analysis_balance_delete_instance(struct analysis_balance_report *report)
 {
 	if (report != NULL)
 		return;
@@ -192,6 +224,23 @@ void analysis_balance_delete_instance(struct balance_rep *report)
 	heap_free(report);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
 
 /**
  * Open the Balance Report dialogue box.
@@ -857,3 +906,4 @@ static void analysis_copy_balance_template(struct balance_rep *to, struct balanc
 
 	to->tabular = from->tabular;
 }
+#endif

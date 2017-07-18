@@ -1073,7 +1073,7 @@ void interest_write_file(struct file_block *file, FILE *out)
 	int	i;
 	char	buffer[FILING_MAX_FILE_LINE_LEN];
 
-	if (file == NULL || file->transacts == NULL)
+	if (file == NULL || file->interest == NULL)
 		return;
 
 	fprintf(out, "\n[Interest]\n");
@@ -1108,6 +1108,9 @@ osbool interest_read_file(struct file_block *file, struct filing_block *in)
 {
 	size_t			block_size;
 	rate_t			rate = NULL_RATE;
+
+	if (file == NULL || file->interest == NULL)
+		return FALSE;
 
 #ifdef DEBUG
 	debug_printf("\\GLoading Interest Rates.");

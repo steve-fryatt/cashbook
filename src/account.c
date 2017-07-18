@@ -4067,6 +4067,9 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 	acct_t			account = NULL_ACCOUNT;
 	int			j;
 
+	if (file == NULL || file->accounts == NULL)
+		return FALSE;
+
 #ifdef DEBUG
 	debug_printf("\\GLoading Account Data.");
 #endif
@@ -4227,12 +4230,17 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 	size_t			block_size;
 	int			line = -1, type, entry;
 
+	if (file == NULL || file->accounts == NULL)
+		return FALSE;
+
 	type = filing_get_account_type_suffix(in);
 	if (type == ACCOUNT_NULL) {
 		filing_set_status(in, FILING_STATUS_CORRUPT);
 		return FALSE;
 	}
 	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1)
+		return FALSE;
 
 #ifdef DEBUG
 	debug_printf("\\GLoading Account List Data.");

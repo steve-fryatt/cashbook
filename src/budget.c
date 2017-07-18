@@ -366,6 +366,9 @@ osbool budget_get_limit_postdated(struct file_block *file)
 
 void budget_write_file(struct file_block *file, FILE *out)
 {
+	if (file == NULL || file->budget == NULL)
+		return;
+
 	/* Output the budget data */
 
 	fprintf(out, "\n[Budget]\n");
@@ -387,6 +390,9 @@ void budget_write_file(struct file_block *file, FILE *out)
 
 osbool budget_read_file(struct file_block *file, struct filing_block *in)
 {
+	if (file == NULL || file->budget == NULL)
+		return FALSE;
+
 	do {
 		if (filing_test_token(in, "Start"))
 			file->budget->start = date_get_date_field(in);

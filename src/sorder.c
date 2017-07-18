@@ -2598,6 +2598,9 @@ osbool sorder_read_file(struct file_block *file, struct filing_block *in)
 	sorder_t		sorder = NULL_SORDER;
 	size_t			block_size;
 
+	if (file == NULL || file->sorders == NULL)
+		return FALSE;
+
 #ifdef DEBUG
 	debug_printf("\\GLoading Standing Orders.");
 #endif

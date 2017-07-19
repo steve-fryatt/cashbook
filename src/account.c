@@ -4090,7 +4090,7 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_load_resize((void **) &(file->accounts->accounts), block_size)) {
+				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
@@ -4124,7 +4124,7 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 					#ifdef DEBUG
 					debug_printf("Section block expand to %d", block_size);
 					#endif
-					if (!flexutils_load_resize((void **) &(file->accounts->accounts), block_size)) {
+					if (!flexutils_load_resize(block_size)) {
 						filing_set_status(in, FILING_STATUS_MEMORY);
 						return FALSE;
 					}
@@ -4208,7 +4208,7 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_load_shrink((void **) &(file->accounts->accounts), file->accounts->account_count)) {
+	if (!flexutils_load_shrink(file->accounts->account_count)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}
@@ -4262,7 +4262,7 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_load_resize((void **) &(file->accounts->account_windows[entry].line_data), block_size)) {
+				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
@@ -4278,7 +4278,7 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				if (!flexutils_load_resize((void **) &(file->accounts->account_windows[entry].line_data), block_size)) {
+				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
@@ -4296,7 +4296,7 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_load_shrink((void **) &(file->accounts->account_windows[entry].line_data), file->accounts->account_windows[entry].display_lines)) {
+	if (!flexutils_load_shrink(file->accounts->account_windows[entry].display_lines)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}

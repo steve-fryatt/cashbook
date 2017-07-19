@@ -2310,7 +2310,7 @@ osbool preset_read_file(struct file_block *file, struct filing_block *in)
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_load_resize((void **) &(file->presets->presets), block_size)) {
+				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
@@ -2325,7 +2325,7 @@ osbool preset_read_file(struct file_block *file, struct filing_block *in)
 			file->presets->preset_count++;
 			if (file->presets->preset_count > block_size) {
 				block_size = file->presets->preset_count;
-				if (!flexutils_load_resize((void **) &(file->presets->presets), block_size)) {
+				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
@@ -2358,7 +2358,7 @@ osbool preset_read_file(struct file_block *file, struct filing_block *in)
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_load_shrink((void **) &(file->presets->presets), file->presets->preset_count)) {
+	if (!flexutils_load_shrink(file->presets->preset_count)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}

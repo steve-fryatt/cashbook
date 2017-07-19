@@ -1132,7 +1132,7 @@ osbool interest_read_file(struct file_block *file, struct filing_block *in)
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_load_resize((void **) &(file->interest->rates), block_size)) {
+				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
@@ -1153,7 +1153,7 @@ osbool interest_read_file(struct file_block *file, struct filing_block *in)
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				if (!flexutils_load_resize((void **) &(file->interest->rates), block_size)) {
+				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
@@ -1174,7 +1174,7 @@ osbool interest_read_file(struct file_block *file, struct filing_block *in)
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_load_shrink((void **) &(file->interest->rates), file->interest->rate_count)) {
+	if (!flexutils_load_shrink(file->interest->rate_count)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}

@@ -76,30 +76,28 @@ osbool flexutils_load_initialise(void **anchor, size_t block, size_t *size);
 
 /**
  * Resize a flex block to hold a specified number of objects as part of
- * a load sequence. The size of an object is taken to be that supplied
- * to a previous call to flexutils_load_initialise().
+ * a load sequence. The anchor and size of an object are taken to be as
+ * supplied to a previous call to flexutils_load_initialise().
  *
- * \param **anchor		The flex anchor to be resized.
  * \param new_size		The required number of objects.
  * \return			TRUE if successful; FALSE on an error.
  */
 
-osbool flexutils_load_resize(void **anchor, size_t new_size);
+osbool flexutils_load_resize(size_t new_size);
 
 
 /**
  * At the end of a file load sequence, shrink a flex block down so that
- * it holds only the specified number of objects. The size of an object
- * is taken to be that supplied to a previous call to
- * flexutils_load_initialise(). At the end of this call, that size is
- * discarded: preventing any more calls to flexutils_load_resize().
+ * it holds only the specified number of objects. The anchor and size of
+ * an object are taken to be those supplied to a previous call to
+ * flexutils_load_initialise(). At the end of this call, the anchor and
+ * size are discarded: preventing any more calls to flexutils_load_resize().
  * 
- * \param **anchor		The flex anchor to be shrunk.
  * \param new_size		The maximum required number of objects.
  * \return			TRUE if successful; FALSE on an error.
  */
 
-osbool flexutils_load_shrink(void **anchor, size_t new_size);
+osbool flexutils_load_shrink(size_t new_size);
 
 
 /**

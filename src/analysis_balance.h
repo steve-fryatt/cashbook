@@ -41,9 +41,11 @@ struct analysis_balance_report;
 
 /**
  * Initialise the Balance analysis report module.
+ *
+ * \return		Pointer to the report type record.
  */
 
-void analysis_balance_initialise(void);
+struct analysis_report_details *analysis_balance_initialise(void);
 
 
 /**

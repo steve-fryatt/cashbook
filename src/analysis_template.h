@@ -166,25 +166,37 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 
 
 
+
+
+
+
+
 /**
- * Save the Report Template details from a file to a CashBook file
+ * Save the Report Template details from a saved templates instance to a
+ * CashBook file
  *
- * \param *file			The file to write.
+ * \param *instance		The saved templates instance to write.
  * \param *out			The file handle to write to.
+ * \param *reports		An array of report type definitions.
+ * \param count			The number of report type definitions.
  */
 
-void analysis_template_write_file(struct file_block *file, FILE *out);
+void analysis_template_write_file(struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count);
 
 
 /**
- * Read Report Template details from a CashBook file into a file block.
+ * Read Report Template details from a CashBook file into a saved templates
+ * instance.
  *
- * \param *file			The file to read in to.
+ * \param *file			The file to which the instance belongs.
+ * \param *instance		The saved templates instance to read in to.
  * \param *in			The filing handle to read in from.
+ * \param *reports		An array of report type definitions.
+ * \param count			The number of report type definitions.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool analysis_template_read_file(struct file_block *file, struct filing_block *in);
+osbool analysis_template_read_file(struct file_block *file, struct analysis_template_block *instance, struct filing_block *in, struct analysis_report_details *reports[], size_t count);
 
 #endif
 

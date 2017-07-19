@@ -163,12 +163,21 @@ static osbool		analysis_delete_transaction_window(void);
 static void		analysis_generate_transaction_report(struct file_block *file);
 #endif
 
+static void analysis_transaction_process_file_token(struct file_block *file, void *block, struct filing_block *in);
+
+
+static struct analysis_report_details analysis_transaction_details = {
+	analysis_transaction_process_file_token,
+	NULL,
+};
 
 /**
  * Initialise the Transaction analysis report module.
+ *
+ * \return		Pointer to the report type record.
  */
 
-void analysis_transaction_initialise(void)
+struct analysis_report_details *analysis_transaction_initialise(void)
 {
 	analysis_template_set_block_size(sizeof(struct analysis_transaction_report));
 	analysis_transaction_window = templates_create_window("TransRep");
@@ -180,6 +189,7 @@ void analysis_transaction_initialise(void)
 	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, TRUE);
 	analysis_transaction_dialogue = analysis_dialogue_initialise("TransRep", "TransRep");
 
+	return &analysis_transaction_details;
 }
 
 
@@ -1060,4 +1070,49 @@ static void analysis_copy_transaction_template(struct trans_rep *to, struct tran
 	to->output_accsummary = from->output_accsummary;
 }
 #endif
+
+
+
+
+
+
+static void analysis_transaction_process_file_token(struct file_block *file, void *block, struct filing_block *in)
+{
+	struct analysis_transaction_report *template = block;
+
+	if (in == NULL || template == NULL)
+		return;
+
+	if (filing_test_token(in, "@")) {
+		template->date_from = date_get_date_field(in);
+		template->date_to = date_get_date_field(in);
+		template->budget = filing_get_opt_field(in);
+		template->group = filing_get_opt_field(in);
+		template->period = filing_get_int_field(in);
+		template->period_unit = date_get_period_field(in);
+		template->lock = filing_get_opt_field(in);
+		template->output_trans = filing_get_opt_field(in);
+		template->output_summary = filing_get_opt_field(in);
+		template->output_accsummary = filing_get_opt_field(in);
+		template->amount_min = NULL_CURRENCY;
+		template->amount_max = NULL_CURRENCY;
+		template->from_count = 0;
+		template->to_count = 0;
+		*(template->ref) = '\0';
+		*(template->desc) = '\0';
+	} else if (filing_test_token(in, "From")) {
+		template->from_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->from);
+	} else if (filing_test_token(in, "To")) {
+		template->to_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->to);
+	} else if (filing_test_token(in, "Ref")) {
+		filing_get_text_value(in, template->ref, TRANSACT_REF_FIELD_LEN);
+	} else if (filing_test_token(in, "Amount")) {
+		template->amount_min = currency_get_currency_field(in);
+		template->amount_max = currency_get_currency_field(in);
+	} else if (filing_test_token(in, "Desc")) {
+		filing_get_text_value(in, template->desc, TRANSACT_DESCRIPT_FIELD_LEN);
+	} else {
+		filing_set_status(in, FILING_STATUS_UNEXPECTED);
+	}
+}
 

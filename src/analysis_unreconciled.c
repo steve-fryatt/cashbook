@@ -149,11 +149,18 @@ static osbool		analysis_delete_unreconciled_window(void);
 static void		analysis_generate_unreconciled_report(struct file_block *file);
 #endif
 
+static struct analysis_report_details analysis_unreconciled_details = {
+	NULL,
+	NULL,
+};
+
 /**
  * Initialise the Unreconciled Transactions analysis report module.
+ *
+ * \return		Pointer to the report type record.
  */
 
-void analysis_unreconciled_initialise(void)
+struct analysis_report_details *analysis_unreconciled_initialise(void)
 {
 	analysis_template_set_block_size(sizeof(struct analysis_unreconciled_report));
 	analysis_unreconciled_window = templates_create_window("UnrecRep");
@@ -166,6 +173,8 @@ void analysis_unreconciled_initialise(void)
 	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, TRUE);
 	analysis_unreconciled_dialogue = analysis_dialogue_initialise("UnrecRep", "UnrecRep");
+
+	return &analysis_unreconciled_details;
 }
 
 

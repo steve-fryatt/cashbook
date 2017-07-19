@@ -38,9 +38,11 @@ struct analysis_unreconciled_report;
 
 /**
  * Initialise the Unreconciled Transactions analysis report module.
+ *
+ * \return		Pointer to the report type record.
  */
 
-void analysis_unreconciled_initialise(void);
+struct analysis_report_details *analysis_unreconciled_initialise(void);
 
 
 /**

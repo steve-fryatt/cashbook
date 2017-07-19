@@ -39,6 +39,7 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/heap.h"
 #include "sflib/string.h"
@@ -60,7 +61,12 @@ struct analysis_report {
 	char				name[ANALYSIS_SAVED_NAME_LEN];		/**< The name of the saved report template.					*/
 	enum analysis_report_type	type;					/**< The type of the template.							*/
 
-//	union analysis_report_block	data;					/**< The template-type-specific data.						*/
+	/**
+	 * The *data element is a placeholder, to give a pointer to the
+	 * data location at the end of the struct.
+	 */
+
+	int				*data[1];
 };
 
 
@@ -84,6 +90,13 @@ struct analysis_template_block
 
 static size_t			analysis_template_block_size = 0;
 
+/**
+ * The full size of the block required to hold an analysis template
+ * block and the struct analysis_report header.
+ */
+
+static size_t			analysis_template_full_block_size = 0;
+
 
 
 /**
@@ -105,6 +118,18 @@ void analysis_template_set_block_size(size_t size)
 {
 	if (size > analysis_template_block_size)
 		analysis_template_block_size = size;
+
+	/* Total size is the size of the header struct, plus the size of the
+	 * largest client data struct, less the size of the int *data[1]
+	 * placeholder array at the end of the header struct.
+	 */
+
+	analysis_template_full_block_size = sizeof(struct analysis_report) + analysis_template_block_size - sizeof(int);
+
+	debug_printf("\\BCalculate Template size");
+	debug_printf("Header Block Size: %d less int size of %d", sizeof(struct analysis_report), sizeof(int));
+	debug_printf("Maximum block size: %d", analysis_template_block_size);
+	debug_printf("Total size: %d", analysis_template_full_block_size);
 }
 
 
@@ -324,13 +349,16 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 
 
 /**
- * Save the Report Template details from a file to a CashBook file
+ * Save the Report Template details from a saved templates instance to a
+ * CashBook file
  *
- * \param *file			The file to write.
+ * \param *instance		The saved templates instance to write.
  * \param *out			The file handle to write to.
+ * \param *reports		An array of report type definitions.
+ * \param count			The number of report type definitions.
  */
 
-void analysis_template_write_file(struct file_block *file, FILE *out)
+void analysis_template_write_file(struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count)
 {
 #if 0
 	int	i;
@@ -484,25 +512,32 @@ void analysis_template_write_file(struct file_block *file, FILE *out)
 
 
 /**
- * Read Report Template details from a CashBook file into a file block.
+ * Read Report Template details from a CashBook file into a saved templates
+ * instance.
  *
- * \param *file			The file to read in to.
+ * \param *file			The file to which the instance belongs.
+ * \param *instance		The saved templates instance to read in to.
  * \param *in			The filing handle to read in from.
+ * \param *reports		An array of report type definitions.
+ * \param count			The number of report type definitions.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool analysis_template_read_file(struct file_block *file, struct filing_block *in)
+osbool analysis_template_read_file(struct file_block *file, struct analysis_template_block *instance, struct filing_block *in, struct analysis_report_details *reports[], size_t count)
 {
 	size_t			block_size;
 	template_t		template = NULL_TEMPLATE;
 
+	if (instance == NULL || reports == NULL)
+		return FALSE;
+
 #ifdef DEBUG
 	debug_printf("\\GLoading Analysis Reports.");
 #endif
-#if 0
+
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_load_initialise((void **) &(file->analysis->saved_reports), sizeof(struct analysis_report), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(instance->saved_reports), analysis_template_full_block_size, &block_size)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}
@@ -512,31 +547,41 @@ osbool analysis_template_read_file(struct file_block *file, struct filing_block 
 	do {
 		if (filing_test_token(in, "Entries")) {
 			block_size = filing_get_int_field(in);
-			if (block_size > file->analysis->saved_report_count) {
+			if (block_size > instance->saved_report_count) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
-				if (!flexutils_load_resize((void **) &(file->analysis->saved_reports), block_size)) {
+				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
 			} else {
-				block_size = file->analysis->saved_report_count;
+				block_size = instance->saved_report_count;
 			}
 		} else if (filing_test_token(in, "@")) {
-			file->analysis->saved_report_count++;
-			if (file->analysis->saved_report_count > block_size) {
-				block_size = file->analysis->saved_report_count;
+			instance->saved_report_count++;
+			if (instance->saved_report_count > block_size) {
+				block_size = instance->saved_report_count;
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
-				if (!flexutils_load_resize((void **) &(file->analysis->saved_reports), block_size)) {
+				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
 			}
-			template = file->analysis->saved_report_count - 1;
-			file->analysis->saved_reports[template].type = analysis_get_report_type_field(in);
+			template = instance->saved_report_count - 1;
+			instance->saved_reports[template].file = file;
+			instance->saved_reports[template].type = analysis_get_report_type_field(in);
+			instance->saved_reports[template].name[0] = '\0';
+			debug_printf("Processing template of type %d", instance->saved_reports[template].type);
+
+			if (instance->saved_reports[template].type >= 0 && instance->saved_reports[template].type <= count &&
+					reports[instance->saved_reports[template].type] != NULL &&
+					reports[instance->saved_reports[template].type]->process_file_token != NULL) {
+				reports[instance->saved_reports[template].type]->process_file_token(file, instance->saved_reports[template].data, in);
+			}
+#if 0
 			switch(file->analysis->saved_reports[template].type) {
 			case REPORT_TYPE_TRANS:
 				file->analysis->saved_reports[template].data.transaction.date_from = date_get_date_field(in);
@@ -604,8 +649,18 @@ osbool analysis_template_read_file(struct file_block *file, struct filing_block 
 				filing_set_status(in, FILING_STATUS_UNEXPECTED);
 				break;
 			}
+#endif
 		} else if (template != NULL_TEMPLATE && filing_test_token(in, "Name")) {
-			filing_get_text_value(in, file->analysis->saved_reports[template].name, ANALYSIS_SAVED_NAME_LEN);
+			filing_get_text_value(in, instance->saved_reports[template].name, ANALYSIS_SAVED_NAME_LEN);
+			debug_printf("Processing template %s", instance->saved_reports[template].name);
+		} else if (template != NULL_TEMPLATE &&
+				instance->saved_reports[template].type >= 0 && instance->saved_reports[template].type <= count &&
+				reports[instance->saved_reports[template].type] != NULL &&
+				reports[instance->saved_reports[template].type]->process_file_token != NULL) {
+			reports[instance->saved_reports[template].type]->process_file_token(file, instance->saved_reports[template].data, in);
+
+
+#if 0
 		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_CASHFLOW &&
 				filing_test_token(in, "Accounts")) {
 			file->analysis->saved_reports[template].data.cashflow.accounts_count =
@@ -630,14 +685,6 @@ osbool analysis_template_read_file(struct file_block *file, struct filing_block 
 				filing_test_token(in, "Outgoing")) {
 			file->analysis->saved_reports[template].data.balance.outgoing_count =
 					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.balance.outgoing);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
-				filing_test_token(in, "From")) {
-			file->analysis->saved_reports[template].data.transaction.from_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.transaction.from);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
-				filing_test_token(in, "To")) {
-			file->analysis->saved_reports[template].data.transaction.to_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.transaction.to);
 		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_UNREC &&
 				filing_test_token(in, "From")) {
 			file->analysis->saved_reports[template].data.unreconciled.from_count =
@@ -646,16 +693,7 @@ osbool analysis_template_read_file(struct file_block *file, struct filing_block 
 				filing_test_token(in, "To")) {
 			file->analysis->saved_reports[template].data.unreconciled.to_count =
 					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.unreconciled.to);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
-				filing_test_token(in, "Ref")) {
-			filing_get_text_value(in, file->analysis->saved_reports[template].data.transaction.ref, TRANSACT_REF_FIELD_LEN);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
-				filing_test_token(in, "Amount")) {
-			file->analysis->saved_reports[template].data.transaction.amount_min = currency_get_currency_field(in);
-			file->analysis->saved_reports[template].data.transaction.amount_max = currency_get_currency_field(in);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_TRANS &&
-				filing_test_token(in, "Desc")) {
-			filing_get_text_value(in, file->analysis->saved_reports[template].data.transaction.desc, TRANSACT_DESCRIPT_FIELD_LEN);
+#endif
 		} else {
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
@@ -663,10 +701,10 @@ osbool analysis_template_read_file(struct file_block *file, struct filing_block 
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_load_shrink((void **) &(file->analysis->saved_reports), file->analysis->saved_report_count)) {
+	if (!flexutils_load_shrink(instance->saved_report_count)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}
-#endif
+
 	return TRUE;
 }

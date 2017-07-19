@@ -39,9 +39,11 @@ struct analysis_transaction_report;
 
 /**
  * Initialise the Transaction analysis report module.
+ *
+ * \return		Pointer to the report type record.
  */
 
-void analysis_transaction_initialise(void);
+struct analysis_report_details *analysis_transaction_initialise(void);
 
 
 /**

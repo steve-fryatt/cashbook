@@ -157,11 +157,21 @@ static osbool		analysis_delete_cashflow_window(void);
 static void		analysis_generate_cashflow_report(struct file_block *file);
 #endif
 
+
+
+static struct analysis_report_details analysis_cashflow_details = {
+	NULL,
+	NULL,
+};
+
+
 /**
  * Initialise the Cashflow analysis report module.
+ *
+ * \return		Pointer to the report type record.
  */
 
-void analysis_cashflow_initialise(void)
+struct analysis_report_details *analysis_cashflow_initialise(void)
 {
 	analysis_template_set_block_size(sizeof(struct analysis_cashflow_report));
 	analysis_cashflow_window = templates_create_window("CashFlwRep");
@@ -172,6 +182,8 @@ void analysis_cashflow_initialise(void)
 	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, TRUE);
 	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, TRUE);
 	analysis_cashflow_dialogue = analysis_dialogue_initialise("CashFlwRep", "CashFlwRep");
+
+	return &analysis_cashflow_details;
 }
 
 

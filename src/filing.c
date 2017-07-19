@@ -238,8 +238,8 @@ void filing_load_cashbook_file(char *filename)
 			sorder_read_file(file, &in);
 		else if (string_nocase_strcmp(in.section, "Presets") == 0)
 			preset_read_file(file, &in);
-	//	else if (string_nocase_strcmp(in.section, "Reports") == 0)
-	//		analysis_read_file(file, &in);
+		else if (string_nocase_strcmp(in.section, "Reports") == 0)
+			analysis_read_file(file, &in);
 		else {
 			do {
 				if (*in.section != '\0')
@@ -356,7 +356,7 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 	transact_write_file(file, out);
 	sorder_write_file(file, out);
 	preset_write_file(file, out);
-//	analysis_write_file(file, out);
+	analysis_write_file(file, out);
 
 	/* Close the file and set the type correctly. */
 

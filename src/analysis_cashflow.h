@@ -38,9 +38,11 @@ struct analysis_cashflow_report;
 
 /**
  * Initialise the Cashflow analysis report module.
+ *
+ * \return		Pointer to the report type record.
  */
 
-void analysis_cashflow_initialise(void);
+struct analysis_report_details *analysis_cashflow_initialise(void);
 
 
 /**

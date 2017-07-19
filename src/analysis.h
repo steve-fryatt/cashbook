@@ -79,10 +79,26 @@ union analysis_report_block {
 
 enum analysis_report_type {
 	REPORT_TYPE_NONE = 0,							/**< No report.									*/
-	REPORT_TYPE_TRANS = 1,							/**< Transaction report.							*/
-	REPORT_TYPE_UNREC = 2,							/**< Unreconciled transaction report.						*/
+	REPORT_TYPE_TRANSACTION = 1,						/**< Transaction report.							*/
+	REPORT_TYPE_UNRECONCILED = 2,						/**< Unreconciled transaction report.						*/
 	REPORT_TYPE_CASHFLOW = 3,						/**< Cashflow report.								*/
 	REPORT_TYPE_BALANCE = 4							/**< Balance report.								*/
+};
+
+/**
+ * Details to be supplied by individual report types.
+ */
+
+struct analysis_report_details {
+	/**
+	 * Read a template token in from a saved CashBook file.
+	 */
+	void		(*process_file_token)(struct file_block *file, void *template, struct filing_block *in);
+
+	/**
+	 * Write a template out to a saved CashBook file.
+	 */
+	void		(*write_file_template)(void *template, FILE *out);
 };
 
 /**
@@ -303,6 +319,44 @@ void analysis_store_template(struct file_block *file, struct analysis_report *re
  */
 
 void analysis_rename_template(struct file_block *file, template_t template, char *name);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Save the analysis template details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void analysis_write_file(struct file_block *file, FILE *out);
+
+
+/**
+ * Read analysis template details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool analysis_read_file(struct file_block *file, struct filing_block *in);
 
 #endif
 

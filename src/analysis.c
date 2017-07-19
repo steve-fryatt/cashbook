@@ -137,7 +137,17 @@ static struct analysis_report	analysis_report_template;			/**< New report settin
 
 static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a pointer to this to set all accounts.				*/
 
+/**
+ * The number of analysis report type definitions.
+ */
 
+#define ANALYSIS_REPORT_TYPE_COUNT 5
+
+/**
+ * Details of all of the analysis report types.
+ */
+
+static struct analysis_report_details	*analysis_report_types[ANALYSIS_REPORT_TYPE_COUNT];
 
 
 static void		analysis_find_date_range(struct file_block *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget);
@@ -162,10 +172,11 @@ static void		analysis_copy_template(struct analysis_report *to, struct analysis_
 
 void analysis_initialise(void)
 {
-	analysis_transaction_initialise();
-	analysis_unreconciled_initialise();
-	analysis_cashflow_initialise();
-	analysis_balance_initialise();
+	analysis_report_types[REPORT_TYPE_NONE] = 
+	analysis_report_types[REPORT_TYPE_TRANSACTION] = analysis_transaction_initialise();
+	analysis_report_types[REPORT_TYPE_UNRECONCILED] = analysis_unreconciled_initialise();
+	analysis_report_types[REPORT_TYPE_CASHFLOW] = analysis_cashflow_initialise();
+	analysis_report_types[REPORT_TYPE_BALANCE] = analysis_balance_initialise();
 	analysis_template_save_initialise();
 	analysis_lookup_initialise();
 }
@@ -403,11 +414,11 @@ static void analysis_remove_account_from_template(struct analysis_report *templa
 		return;
 
 //	switch (template->type) {
-//	case REPORT_TYPE_TRANS:
+//	case REPORT_TYPE_TRANSACTION:
 //		analysis_transaction_remove_account(&(template->data.transaction), account);
 //		break;
 
-//	case REPORT_TYPE_UNREC:
+//	case REPORT_TYPE_UNRECONCILED:
 //		analysis_unreconciled_remove_account(&(template->data.unreconciled), account);
 //		break;
 
@@ -680,11 +691,11 @@ void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template
 		return;
 
 	switch (analysis_template_type(file->analysis->templates, template)) {
-	case REPORT_TYPE_TRANS:
+	case REPORT_TYPE_TRANSACTION:
 //		analysis_transaction_open_window(file->analysis, ptr, template, config_opt_read("RememberValues"));
 		break;
 
-	case REPORT_TYPE_UNREC:
+	case REPORT_TYPE_UNRECONCILED:
 //		analysis_unreconciled_open_window(file->analysis, ptr, template, config_opt_read("RememberValues"));
 		break;
 
@@ -914,10 +925,10 @@ static void analysis_delete_template(struct file_block *file, int template)
 	 */
 
 //	switch (type) {
-//	case REPORT_TYPE_TRANS:
+//	case REPORT_TYPE_TRANSACTION:
 //		analysis_transaction_remove_template(file->analysis, template);
 //		break;
-//	case REPORT_TYPE_UNREC:
+//	case REPORT_TYPE_UNRECONCILED:
 //		analysis_unreconciled_remove_template(file->analysis, template);
 //		break;
 //	case REPORT_TYPE_CASHFLOW:
@@ -984,11 +995,11 @@ static void analysis_copy_template(struct analysis_report *to, struct analysis_r
 //	to->file = from->file;
 
 //	switch (from->type) {
-//	case REPORT_TYPE_TRANS:
+//	case REPORT_TYPE_TRANSACTION:
 //		analysis_copy_transaction_template(&(to->data.transaction), &(from->data.transaction));
 //		break;
 
-//	case REPORT_TYPE_UNREC:
+//	case REPORT_TYPE_UNRECONCILED:
 //		analysis_copy_unreconciled_template(&(to->data.unreconciled), &(from->data.unreconciled));
 //		break;
 
@@ -1003,5 +1014,42 @@ static void analysis_copy_template(struct analysis_report *to, struct analysis_r
 //	case REPORT_TYPE_NONE:
 //		break;
 //	}
+}
+
+
+
+
+
+
+/**
+ * Save the analysis template details from a file to a CashBook file
+ *
+ * \param *file			The file to write.
+ * \param *out			The file handle to write to.
+ */
+
+void analysis_write_file(struct file_block *file, FILE *out)
+{
+	if (file == NULL || file->analysis == NULL || file->analysis->templates == NULL)
+		return;
+
+	analysis_template_write_file(file->analysis->templates, out, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
+}
+
+
+/**
+ * Read analysis template details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool analysis_read_file(struct file_block *file, struct filing_block *in)
+{
+	if (file == NULL || file->analysis == NULL || file->analysis->templates == NULL)
+		return FALSE;
+
+	return analysis_template_read_file(file, file->analysis->templates, in, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
 }
 

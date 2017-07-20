@@ -163,12 +163,13 @@ static osbool		analysis_delete_transaction_window(void);
 static void		analysis_generate_transaction_report(struct file_block *file);
 #endif
 
+static void analysis_transaction_write_file_block(struct file_block *file, void *block, FILE *out, char *name);
 static void analysis_transaction_process_file_token(struct file_block *file, void *block, struct filing_block *in);
 
 
 static struct analysis_report_details analysis_transaction_details = {
 	analysis_transaction_process_file_token,
-	NULL,
+	analysis_transaction_write_file_block,
 };
 
 /**
@@ -1075,12 +1076,79 @@ static void analysis_copy_transaction_template(struct trans_rep *to, struct tran
 
 
 
+/**
+ * Write a template to a saved cashbook file.
+ *
+ * \param *file			The handle of the file owning the data.
+ * \param *block		The saved report template block to write.
+ * \param *out			The outgoing file handle.
+ * \param *name			The name of the template.
+ */
+
+static void analysis_transaction_write_file_block(struct file_block *file, void *block, FILE *out, char *name)
+{
+	char					buffer[FILING_MAX_FILE_LINE_LEN];
+	struct analysis_transaction_report	*template = block;
+
+	if (out == NULL || template == NULL || file == NULL)
+		return;
+
+	fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
+			REPORT_TYPE_TRANSACTION,
+			template->date_from,
+			template->date_to,
+			template->budget,
+			template->group,
+			template->period,
+			template->period_unit,
+			template->lock,
+			template->output_trans,
+			template->output_summary,
+			template->output_accsummary);
+
+	if (name != NULL && *name != '\0')
+		config_write_token_pair(out, "Name", name);
+
+	if (template->from_count > 0) {
+		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+				template->from, template->from_count);
+		config_write_token_pair(out, "From", buffer);
+	}
+
+	if (template->to_count > 0) {
+		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+				template->to, template->to_count);
+		config_write_token_pair(out, "To", buffer);
+	}
+
+	if (*(template->ref) != '\0')
+		config_write_token_pair(out, "Ref", template->ref);
+
+	if (template->amount_min != NULL_CURRENCY ||
+			template->amount_max != NULL_CURRENCY) {
+		sprintf(buffer, "%x,%x", template->amount_min, template->amount_max);
+		config_write_token_pair(out, "Amount", buffer);
+	}
+
+	if (*(template->desc) != '\0')
+		config_write_token_pair(out, "Desc", template->desc);
+}
+
+
+/**
+ * Process a token from the saved report template section of a saved
+ * cashbook file.
+ *
+ * \param *file			The handle of the file owning the data.
+ * \param *block		The saved report template block to populate.
+ * \param *in			The incoming file handle.
+ */
 
 static void analysis_transaction_process_file_token(struct file_block *file, void *block, struct filing_block *in)
 {
 	struct analysis_transaction_report *template = block;
 
-	if (in == NULL || template == NULL)
+	if (in == NULL || template == NULL || file == NULL)
 		return;
 
 	if (filing_test_token(in, "@")) {

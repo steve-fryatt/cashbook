@@ -60,13 +60,6 @@ struct analysis_report {
 	struct file_block		*file;					/**< The file to which the template belongs.					*/
 	char				name[ANALYSIS_SAVED_NAME_LEN];		/**< The name of the saved report template.					*/
 	enum analysis_report_type	type;					/**< The type of the template.							*/
-
-	/**
-	 * The *data element is a placeholder, to give a pointer to the
-	 * data location at the end of the struct.
-	 */
-
-	int				*data[1];
 };
 
 
@@ -78,7 +71,7 @@ struct analysis_template_block
 {
 	struct analysis_block		*parent;				/**< The parent analysis instance.						*/
 
-	struct analysis_report		*saved_reports;				/**< Pointer to an array of saved report templates.				*/
+	byte				*saved_reports;				/**< Pointer to an array of saved report templates and their data.		*/
 	int				saved_report_count;			/**< The number of saved report templates.					*/
 };
 
@@ -105,7 +98,17 @@ static size_t			analysis_template_full_block_size = 0;
 
 #define analysis_template_valid(instance, template) (((template) != NULL_TEMPLATE) && ((template) >= 0) && ((template) < ((instance)->saved_report_count)))
 
+/**
+ * Return the address of a template in the template data array.
+ */
 
+#define analysis_template_address(instance, template) (struct analysis_report *)((instance)->saved_reports + ((template) * analysis_template_full_block_size))
+
+/**
+ * Return the address of a template's data in the template data array.
+ */
+
+#define analysis_template_data_address(instance, template) (void *)((instance)->saved_reports + ((template) * analysis_template_full_block_size) + sizeof(struct analysis_report))
 
 
 /**
@@ -119,17 +122,9 @@ void analysis_template_set_block_size(size_t size)
 	if (size > analysis_template_block_size)
 		analysis_template_block_size = size;
 
-	/* Total size is the size of the header struct, plus the size of the
-	 * largest client data struct, less the size of the int *data[1]
-	 * placeholder array at the end of the header struct.
-	 */
+	/* Total size is the size of the header struct, plus the size of the largest client data struct. */
 
-	analysis_template_full_block_size = sizeof(struct analysis_report) + analysis_template_block_size - sizeof(int);
-
-	debug_printf("\\BCalculate Template size");
-	debug_printf("Header Block Size: %d less int size of %d", sizeof(struct analysis_report), sizeof(int));
-	debug_printf("Maximum block size: %d", analysis_template_block_size);
-	debug_printf("Total size: %d", analysis_template_full_block_size);
+	analysis_template_full_block_size = sizeof(struct analysis_report) + analysis_template_block_size;
 }
 
 
@@ -216,7 +211,7 @@ enum analysis_report_type analysis_template_type(struct analysis_template_block 
 	if (instance == NULL || !analysis_template_valid(instance, template))
 		return REPORT_TYPE_NONE;
 
-	return instance->saved_reports[template].type;
+//	return instance->saved_reports[template].type;
 }
 
 
@@ -251,7 +246,7 @@ struct analysis_report *analysis_template_get_report(struct analysis_template_bl
 	if (instance == NULL || !analysis_template_valid(instance, template))
 		return NULL;
 
-	return instance->saved_reports + template;
+//	return instance->saved_reports + template;
 }
 
 
@@ -270,12 +265,12 @@ template_t analysis_template_get_from_name(struct analysis_template_block *insta
 	if (instance == NULL || instance->saved_report_count <= 0)
 		return NULL_TEMPLATE;
 
-	for (i = 0; i < instance->saved_report_count && found == NULL_TEMPLATE; i++) {
-		if (string_nocase_strcmp(instance->saved_reports[i].name, name) == 0) {
-			found = i;
-			break;
-		}
-	}
+//	for (i = 0; i < instance->saved_report_count && found == NULL_TEMPLATE; i++) {
+//		if (string_nocase_strcmp(instance->saved_reports[i].name, name) == 0) {
+//			found = i;
+//			break;
+//		}
+//	}
 
 	return found;
 }
@@ -334,8 +329,8 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 
 	/* Copy the new name across into the template. */
 
-	strncpy(instance->saved_reports[template].name, name, ANALYSIS_SAVED_NAME_LEN);
-	instance->saved_reports[template].name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
+//	strncpy(instance->saved_reports[template].name, name, ANALYSIS_SAVED_NAME_LEN);
+//	instance->saved_reports[template].name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
 
 	/* Mark the file has being modified. */
 
@@ -352,162 +347,36 @@ void analysis_template_rename(struct analysis_template_block *instance, template
  * Save the Report Template details from a saved templates instance to a
  * CashBook file
  *
+ * \param *file			The file to which the instance belongs.
  * \param *instance		The saved templates instance to write.
  * \param *out			The file handle to write to.
  * \param *reports		An array of report type definitions.
  * \param count			The number of report type definitions.
  */
 
-void analysis_template_write_file(struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count)
+void analysis_template_write_file(struct file_block *file, struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count)
 {
-#if 0
-	int	i;
-	char	buffer[FILING_MAX_FILE_LINE_LEN];
+	int			i;
+	struct analysis_report	*template = NULL;
+	void			*data = NULL;
+
+
+	if (file == NULL || instance == NULL || reports == NULL)
+		return FALSE;
+
+	/* Write the section header. */
 
 	fprintf(out, "\n[Reports]\n");
 
-	fprintf(out, "Entries: %x\n", file->analysis->saved_report_count);
+	fprintf(out, "Entries: %x\n", instance->saved_report_count);
 
-	for (i = 0; i < file->analysis->saved_report_count; i++) {
-		switch(file->analysis->saved_reports[i].type) {
-		case REPORT_TYPE_TRANS:
-			fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
-					REPORT_TYPE_TRANS,
-					file->analysis->saved_reports[i].data.transaction.date_from,
-					file->analysis->saved_reports[i].data.transaction.date_to,
-					file->analysis->saved_reports[i].data.transaction.budget,
-					file->analysis->saved_reports[i].data.transaction.group,
-					file->analysis->saved_reports[i].data.transaction.period,
-					file->analysis->saved_reports[i].data.transaction.period_unit,
-					file->analysis->saved_reports[i].data.transaction.lock,
-					file->analysis->saved_reports[i].data.transaction.output_trans,
-					file->analysis->saved_reports[i].data.transaction.output_summary,
-					file->analysis->saved_reports[i].data.transaction.output_accsummary);
-			if (*(file->analysis->saved_reports[i].name) != '\0')
-				config_write_token_pair(out, "Name", file->analysis->saved_reports[i].name);
-			if (file->analysis->saved_reports[i].data.transaction.from_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.transaction.from,
-						file->analysis->saved_reports[i].data.transaction.from_count);
-				config_write_token_pair(out, "From", buffer);
-			}
-			if (file->analysis->saved_reports[i].data.transaction.to_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.transaction.to,
-						file->analysis->saved_reports[i].data.transaction.to_count);
-				config_write_token_pair(out, "To", buffer);
-			}
-			if (*(file->analysis->saved_reports[i].data.transaction.ref) != '\0')
-				config_write_token_pair(out, "Ref", file->analysis->saved_reports[i].data.transaction.ref);
-			if (file->analysis->saved_reports[i].data.transaction.amount_min != NULL_CURRENCY ||
-					file->analysis->saved_reports[i].data.transaction.amount_max != NULL_CURRENCY) {
-				sprintf(buffer, "%x,%x",
-						file->analysis->saved_reports[i].data.transaction.amount_min,
-						file->analysis->saved_reports[i].data.transaction.amount_max);
-				config_write_token_pair(out, "Amount", buffer);
-			}
-			if (*(file->analysis->saved_reports[i].data.transaction.desc) != '\0')
-				config_write_token_pair(out, "Desc", file->analysis->saved_reports[i].data.transaction.desc);
-			break;
+	for (i = 0; i < instance->saved_report_count; i++) {
+		template = analysis_template_address(instance, i);
+		data = analysis_template_data_address(instance, i);
 
-		case REPORT_TYPE_UNREC:
-			fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x\n",
-					REPORT_TYPE_UNREC,
-					file->analysis->saved_reports[i].data.unreconciled.date_from,
-					file->analysis->saved_reports[i].data.unreconciled.date_to,
-					file->analysis->saved_reports[i].data.unreconciled.budget,
-					file->analysis->saved_reports[i].data.unreconciled.group,
-					file->analysis->saved_reports[i].data.unreconciled.period,
-					file->analysis->saved_reports[i].data.unreconciled.period_unit,
-					file->analysis->saved_reports[i].data.unreconciled.lock);
-			if (*(file->analysis->saved_reports[i].name) != '\0')
-				config_write_token_pair(out, "Name", file->analysis->saved_reports[i].name);
-			if (file->analysis->saved_reports[i].data.unreconciled.from_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.unreconciled.from,
-						file->analysis->saved_reports[i].data.unreconciled.from_count);
-				config_write_token_pair(out, "From", buffer);
-			}
-			if (file->analysis->saved_reports[i].data.unreconciled.to_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.unreconciled.to,
-						file->analysis->saved_reports[i].data.unreconciled.to_count);
-				config_write_token_pair(out, "To", buffer);
-			}
-			break;
-
-		case REPORT_TYPE_CASHFLOW:
-			fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
-					REPORT_TYPE_CASHFLOW,
-					file->analysis->saved_reports[i].data.cashflow.date_from,
-					file->analysis->saved_reports[i].data.cashflow.date_to,
-					file->analysis->saved_reports[i].data.cashflow.budget,
-					file->analysis->saved_reports[i].data.cashflow.group,
-					file->analysis->saved_reports[i].data.cashflow.period,
-					file->analysis->saved_reports[i].data.cashflow.period_unit,
-					file->analysis->saved_reports[i].data.cashflow.lock,
-					file->analysis->saved_reports[i].data.cashflow.tabular,
-					file->analysis->saved_reports[i].data.cashflow.empty);
-			if (*(file->analysis->saved_reports[i].name) != '\0')
-				config_write_token_pair(out, "Name", file->analysis->saved_reports[i].name);
-			if (file->analysis->saved_reports[i].data.cashflow.accounts_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.cashflow.accounts,
-						file->analysis->saved_reports[i].data.cashflow.accounts_count);
-				config_write_token_pair(out, "Accounts", buffer);
-			}
-			if (file->analysis->saved_reports[i].data.cashflow.incoming_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.cashflow.incoming,
-						file->analysis->saved_reports[i].data.cashflow.incoming_count);
-				config_write_token_pair(out, "Incoming", buffer);
-			}
-			if (file->analysis->saved_reports[i].data.cashflow.outgoing_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.cashflow.outgoing,
-						file->analysis->saved_reports[i].data.cashflow.outgoing_count);
-				config_write_token_pair(out, "Outgoing", buffer);
-			}
-			break;
-
-		case REPORT_TYPE_BALANCE:
-			fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x\n",
-					REPORT_TYPE_BALANCE,
-					file->analysis->saved_reports[i].data.balance.date_from,
-					file->analysis->saved_reports[i].data.balance.date_to,
-					file->analysis->saved_reports[i].data.balance.budget,
-					file->analysis->saved_reports[i].data.balance.group,
-					file->analysis->saved_reports[i].data.balance.period,
-					file->analysis->saved_reports[i].data.balance.period_unit,
-					file->analysis->saved_reports[i].data.balance.lock,
-					file->analysis->saved_reports[i].data.balance.tabular);
-			if (*(file->analysis->saved_reports[i].name) != '\0')
-				config_write_token_pair(out, "Name", file->analysis->saved_reports[i].name);
-			if (file->analysis->saved_reports[i].data.balance.accounts_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.balance.accounts,
-						file->analysis->saved_reports[i].data.balance.accounts_count);
-				config_write_token_pair(out, "Accounts", buffer);
-			}
-			if (file->analysis->saved_reports[i].data.balance.incoming_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.balance.incoming,
-						file->analysis->saved_reports[i].data.balance.incoming_count);
-				config_write_token_pair(out, "Incoming", buffer);
-			}
-			if (file->analysis->saved_reports[i].data.balance.outgoing_count > 0) {
-				analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
-						file->analysis->saved_reports[i].data.balance.outgoing,
-						file->analysis->saved_reports[i].data.balance.outgoing_count);
-				config_write_token_pair(out, "Outgoing", buffer);
-			}
-			break;
-
-		case REPORT_TYPE_NONE:
-			break;
-		}
+		if (template->type > 0 && template->type < count && reports[template->type] != NULL && reports[template->type]->write_file_template != NULL)
+			reports[template->type]->write_file_template(file, data, out, template->name);
 	}
-#endif
 }
 
 
@@ -526,9 +395,11 @@ void analysis_template_write_file(struct analysis_template_block *instance, FILE
 osbool analysis_template_read_file(struct file_block *file, struct analysis_template_block *instance, struct filing_block *in, struct analysis_report_details *reports[], size_t count)
 {
 	size_t			block_size;
-	template_t		template = NULL_TEMPLATE;
+	struct analysis_report	*template = NULL;
+	void			*data = NULL;
 
-	if (instance == NULL || reports == NULL)
+
+	if (file == NULL || instance == NULL || reports == NULL)
 		return FALSE;
 
 #ifdef DEBUG
@@ -548,9 +419,9 @@ osbool analysis_template_read_file(struct file_block *file, struct analysis_temp
 		if (filing_test_token(in, "Entries")) {
 			block_size = filing_get_int_field(in);
 			if (block_size > instance->saved_report_count) {
-				#ifdef DEBUG
+#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
-				#endif
+#endif
 				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
@@ -562,138 +433,32 @@ osbool analysis_template_read_file(struct file_block *file, struct analysis_temp
 			instance->saved_report_count++;
 			if (instance->saved_report_count > block_size) {
 				block_size = instance->saved_report_count;
-				#ifdef DEBUG
+#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
-				#endif
+#endif
 				if (!flexutils_load_resize(block_size)) {
 					filing_set_status(in, FILING_STATUS_MEMORY);
 					return FALSE;
 				}
 			}
-			template = instance->saved_report_count - 1;
-			instance->saved_reports[template].file = file;
-			instance->saved_reports[template].type = analysis_get_report_type_field(in);
-			instance->saved_reports[template].name[0] = '\0';
-			debug_printf("Processing template of type %d", instance->saved_reports[template].type);
+			template = analysis_template_address(instance, instance->saved_report_count - 1);
+			data = analysis_template_data_address(instance, instance->saved_report_count - 1);
+#ifdef DEBUG
+			debug_printf("Starting to store template %d at 0x%x with data at 0x%x", instance->saved_report_count - 1, template, data);
+#endif
+			template->file = file;
+			template->type = analysis_get_report_type_field(in);
+			template->name[0] = '\0';
 
-			if (instance->saved_reports[template].type >= 0 && instance->saved_reports[template].type <= count &&
-					reports[instance->saved_reports[template].type] != NULL &&
-					reports[instance->saved_reports[template].type]->process_file_token != NULL) {
-				reports[instance->saved_reports[template].type]->process_file_token(file, instance->saved_reports[template].data, in);
-			}
-#if 0
-			switch(file->analysis->saved_reports[template].type) {
-			case REPORT_TYPE_TRANS:
-				file->analysis->saved_reports[template].data.transaction.date_from = date_get_date_field(in);
-				file->analysis->saved_reports[template].data.transaction.date_to = date_get_date_field(in);
-				file->analysis->saved_reports[template].data.transaction.budget = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.transaction.group = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.transaction.period = filing_get_int_field(in);
-				file->analysis->saved_reports[template].data.transaction.period_unit = date_get_period_field(in);
-				file->analysis->saved_reports[template].data.transaction.lock = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.transaction.output_trans = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.transaction.output_summary = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.transaction.output_accsummary = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.transaction.amount_min = NULL_CURRENCY;
-				file->analysis->saved_reports[template].data.transaction.amount_max = NULL_CURRENCY;
-				file->analysis->saved_reports[template].data.transaction.from_count = 0;
-				file->analysis->saved_reports[template].data.transaction.to_count = 0;
-				*(file->analysis->saved_reports[template].data.transaction.ref) = '\0';
-				*(file->analysis->saved_reports[template].data.transaction.desc) = '\0';
-				break;
-
-			case REPORT_TYPE_UNREC:
-				file->analysis->saved_reports[template].data.unreconciled.date_from = date_get_date_field(in);
-				file->analysis->saved_reports[template].data.unreconciled.date_to = date_get_date_field(in);
-				file->analysis->saved_reports[template].data.unreconciled.budget = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.unreconciled.group = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.unreconciled.period = filing_get_int_field(in);
-				file->analysis->saved_reports[template].data.unreconciled.period_unit = date_get_period_field(in);
-				file->analysis->saved_reports[template].data.unreconciled.lock = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.unreconciled.from_count = 0;
-				file->analysis->saved_reports[template].data.unreconciled.to_count = 0;
-				break;
-
-			case REPORT_TYPE_CASHFLOW:
-				file->analysis->saved_reports[template].data.cashflow.date_from = date_get_date_field(in);
-				file->analysis->saved_reports[template].data.cashflow.date_to = date_get_date_field(in);
-				file->analysis->saved_reports[template].data.cashflow.budget = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.cashflow.group = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.cashflow.period = filing_get_int_field(in);
-				file->analysis->saved_reports[template].data.cashflow.period_unit = date_get_period_field(in);
-				file->analysis->saved_reports[template].data.cashflow.lock = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.cashflow.tabular = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.cashflow.empty = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.cashflow.accounts_count = 0;
-				file->analysis->saved_reports[template].data.cashflow.incoming_count = 0;
-				file->analysis->saved_reports[template].data.cashflow.outgoing_count = 0;
-				break;
-
-			case REPORT_TYPE_BALANCE:
-				file->analysis->saved_reports[template].data.balance.date_from = date_get_date_field(in);
-				file->analysis->saved_reports[template].data.balance.date_to = date_get_date_field(in);
-				file->analysis->saved_reports[template].data.balance.budget = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.balance.group = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.balance.period = filing_get_int_field(in);
-				file->analysis->saved_reports[template].data.balance.period_unit = date_get_period_field(in);
-				file->analysis->saved_reports[template].data.balance.lock = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.balance.tabular = filing_get_opt_field(in);
-				file->analysis->saved_reports[template].data.balance.accounts_count = 0;
-				file->analysis->saved_reports[template].data.balance.incoming_count = 0;
-				file->analysis->saved_reports[template].data.balance.outgoing_count = 0;
-				break;
-
-			case REPORT_TYPE_NONE:
-				break;
-			default:
+			if (template->type > 0 && template->type < count && reports[template->type] != NULL && reports[template->type]->process_file_token != NULL)
+				reports[template->type]->process_file_token(file, data, in);
+			else
 				filing_set_status(in, FILING_STATUS_UNEXPECTED);
-				break;
-			}
-#endif
-		} else if (template != NULL_TEMPLATE && filing_test_token(in, "Name")) {
-			filing_get_text_value(in, instance->saved_reports[template].name, ANALYSIS_SAVED_NAME_LEN);
-			debug_printf("Processing template %s", instance->saved_reports[template].name);
-		} else if (template != NULL_TEMPLATE &&
-				instance->saved_reports[template].type >= 0 && instance->saved_reports[template].type <= count &&
-				reports[instance->saved_reports[template].type] != NULL &&
-				reports[instance->saved_reports[template].type]->process_file_token != NULL) {
-			reports[instance->saved_reports[template].type]->process_file_token(file, instance->saved_reports[template].data, in);
-
-
-#if 0
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_CASHFLOW &&
-				filing_test_token(in, "Accounts")) {
-			file->analysis->saved_reports[template].data.cashflow.accounts_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.cashflow.accounts);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_CASHFLOW &&
-				filing_test_token(in, "Incoming")) {
-			file->analysis->saved_reports[template].data.cashflow.incoming_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.cashflow.incoming);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_CASHFLOW &&
-				filing_test_token(in, "Outgoing")) {
-			file->analysis->saved_reports[template].data.cashflow.outgoing_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.cashflow.outgoing);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_BALANCE &&
-				filing_test_token(in, "Accounts")) {
-			file->analysis->saved_reports[template].data.balance.accounts_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.balance.accounts);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_BALANCE &&
-				filing_test_token(in, "Incoming")) {
-			file->analysis->saved_reports[template].data.balance.incoming_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.balance.incoming);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_BALANCE &&
-				filing_test_token(in, "Outgoing")) {
-			file->analysis->saved_reports[template].data.balance.outgoing_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.balance.outgoing);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_UNREC &&
-				filing_test_token(in, "From")) {
-			file->analysis->saved_reports[template].data.unreconciled.from_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.unreconciled.from);
-		} else if (template != NULL_TEMPLATE && file->analysis->saved_reports[template].type == REPORT_TYPE_UNREC &&
-				filing_test_token(in, "To")) {
-			file->analysis->saved_reports[template].data.unreconciled.to_count =
-					analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), file->analysis->saved_reports[template].data.unreconciled.to);
-#endif
+		} else if (template != NULL && filing_test_token(in, "Name")) {
+			filing_get_text_value(in, template->name, ANALYSIS_SAVED_NAME_LEN);
+		} else if (template != NULL && template->type > 0 && template->type < count && reports[template->type] != NULL &&
+				reports[template->type]->process_file_token != NULL) {
+			reports[template->type]->process_file_token(file, data, in);
 		} else {
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
@@ -708,3 +473,4 @@ osbool analysis_template_read_file(struct file_block *file, struct analysis_temp
 
 	return TRUE;
 }
+

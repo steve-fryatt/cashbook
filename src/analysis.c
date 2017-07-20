@@ -1033,7 +1033,7 @@ void analysis_write_file(struct file_block *file, FILE *out)
 	if (file == NULL || file->analysis == NULL || file->analysis->templates == NULL)
 		return;
 
-	analysis_template_write_file(file->analysis->templates, out, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
+	analysis_template_write_file(file, file->analysis->templates, out, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
 }
 
 

@@ -153,10 +153,12 @@ static osbool		analysis_delete_balance_window(void);
 static void		analysis_generate_balance_report(struct file_block *file);
 #endif
 
+static void analysis_balance_write_file_block(struct file_block *file, void *block, FILE *out, char *name);
+static void analysis_balance_process_file_token(struct file_block *file, void *block, struct filing_block *in);
 
 static struct analysis_report_details analysis_balance_details = {
-	NULL,
-	NULL,
+	analysis_balance_process_file_token,
+	analysis_balance_write_file_block,
 };
 
 /**
@@ -916,3 +918,96 @@ static void analysis_copy_balance_template(struct balance_rep *to, struct balanc
 	to->tabular = from->tabular;
 }
 #endif
+
+
+
+/**
+ * Write a template to a saved cashbook file.
+ *
+ * \param *file			The handle of the file owning the data.
+ * \param *block		The saved report template block to write.
+ * \param *out			The outgoing file handle.
+ * \param *name			The name of the template.
+ */
+
+static void analysis_balance_write_file_block(struct file_block *file, void *block, FILE *out, char *name)
+{
+	char				buffer[FILING_MAX_FILE_LINE_LEN];
+	struct analysis_balance_report	*template = block;
+
+	if (out == NULL || template == NULL || file == NULL)
+		return;
+
+	fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x\n",
+			REPORT_TYPE_BALANCE,
+			template->date_from,
+			template->date_to,
+			template->budget,
+			template->group,
+			template->period,
+			template->period_unit,
+			template->lock,
+			template->tabular);
+
+	if (name != NULL && *name != '\0')
+		config_write_token_pair(out, "Name", name);
+
+	if (template->accounts_count > 0) {
+		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+				template->accounts, template->accounts_count);
+		config_write_token_pair(out, "Accounts", buffer);
+	}
+
+	if (template->incoming_count > 0) {
+		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+				template->incoming, template->incoming_count);
+		config_write_token_pair(out, "Incoming", buffer);
+	}
+
+	if (template->outgoing_count > 0) {
+		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+				template->outgoing, template->outgoing_count);
+		config_write_token_pair(out, "Outgoing", buffer);
+	}
+}
+
+
+/**
+ * Process a token from the saved report template section of a saved
+ * cashbook file.
+ *
+ * \param *file			The handle of the file owning the data.
+ * \param *block		The saved report template block to populate.
+ * \param *in			The incoming file handle.
+ */
+
+static void analysis_balance_process_file_token(struct file_block *file, void *block, struct filing_block *in)
+{
+	struct analysis_balance_report *template = block;
+
+	if (in == NULL || template == NULL || file == NULL)
+		return;
+
+	if (filing_test_token(in, "@")) {
+		template->date_from = date_get_date_field(in);
+		template->date_to = date_get_date_field(in);
+		template->budget = filing_get_opt_field(in);
+		template->group = filing_get_opt_field(in);
+		template->period = filing_get_int_field(in);
+		template->period_unit = date_get_period_field(in);
+		template->lock = filing_get_opt_field(in);
+		template->tabular = filing_get_opt_field(in);
+		template->accounts_count = 0;
+		template->incoming_count = 0;
+		template->outgoing_count = 0;
+	} else if (filing_test_token(in, "Accounts")) {
+		template->accounts_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->accounts);
+	} else if (filing_test_token(in, "Incoming")) {
+		template->incoming_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->incoming);
+	} else if (filing_test_token(in, "Outgoing")) {
+		template->outgoing_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->outgoing);
+	} else {
+		filing_set_status(in, FILING_STATUS_UNEXPECTED);
+	}
+}
+

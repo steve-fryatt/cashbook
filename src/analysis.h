@@ -98,8 +98,9 @@ struct analysis_report_details {
 	/**
 	 * Write a template out to a saved CashBook file.
 	 */
-	void		(*write_file_template)(void *template, FILE *out);
+	void		(*write_file_template)(struct file_block *file, void *template, FILE *out, char *name);
 };
+
 
 /**
  * Get a report type field from an input file.

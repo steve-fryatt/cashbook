@@ -175,13 +175,14 @@ void analysis_template_rename(struct analysis_template_block *instance, template
  * Save the Report Template details from a saved templates instance to a
  * CashBook file
  *
+ * \param *file			The file to which the instance belongs.
  * \param *instance		The saved templates instance to write.
  * \param *out			The file handle to write to.
  * \param *reports		An array of report type definitions.
  * \param count			The number of report type definitions.
  */
 
-void analysis_template_write_file(struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count);
+void analysis_template_write_file(struct file_block *file, struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count);
 
 
 /**

@@ -163,6 +163,7 @@ static osbool		analysis_delete_transaction_window(void);
 static void		analysis_generate_transaction_report(struct file_block *file);
 #endif
 
+static void analysis_transaction_copy_template(struct trans_rep *to, struct trans_rep *from);
 static void analysis_transaction_write_file_block(struct file_block *file, void *block, FILE *out, char *name);
 static void analysis_transaction_process_file_token(struct file_block *file, void *block, struct filing_block *in);
 
@@ -170,6 +171,7 @@ static void analysis_transaction_process_file_token(struct file_block *file, voi
 static struct analysis_report_details analysis_transaction_details = {
 	analysis_transaction_process_file_token,
 	analysis_transaction_write_file_block,
+	analysis_transaction_copy_template
 };
 
 /**
@@ -1027,7 +1029,7 @@ void analysis_transaction_remove_template(template_t template)
 
 
 
-
+#endif
 
 
 /**
@@ -1037,43 +1039,40 @@ void analysis_transaction_remove_template(template_t template)
  * \param *from			The template to be copied.
  */
 
-static void analysis_copy_transaction_template(struct trans_rep *to, struct trans_rep *from)
+static void analysis_transaction_copy_template(struct trans_rep *to, struct trans_rep *from)
 {
-	int	i;
+	struct analysis_transaction_report	*a = from, *b = to;
+	int					i;
 
-	if (from == NULL || to == NULL)
+	if (a == NULL || b == NULL)
 		return;
 
-	to->date_from = from->date_from;
-	to->date_to = from->date_to;
-	to->budget = from->budget;
+	b->date_from = a->date_from;
+	b->date_to = a->date_to;
+	b->budget = a->budget;
 
-	to->group = from->group;
-	to->period = from->period;
-	to->period_unit = from->period_unit;
-	to->lock = from->lock;
+	b->group = a->group;
+	b->period = a->period;
+	b->period_unit = a->period_unit;
+	b->lock = a->lock;
 
-	to->from_count = from->from_count;
-	for (i=0; i<from->from_count; i++)
-		to->from[i] = from->from[i];
+	b->from_count = a->from_count;
+	for (i = 0; i < a->from_count; i++)
+		b->from[i] = a->from[i];
 
-	to->to_count = from->to_count;
-	for (i=0; i<from->to_count; i++)
-		to->to[i] = from->to[i];
+	b->to_count = a->to_count;
+	for (i = 0; i < a->to_count; i++)
+		b->to[i] = a->to[i];
 
-	strcpy(to->ref, from->ref);
-	strcpy(to->desc, from->desc);
-	to->amount_min = from->amount_min;
-	to->amount_max = from->amount_max;
+	strcpy(b->ref, a->ref);
+	strcpy(b->desc, a->desc);
+	b->amount_min = a->amount_min;
+	b->amount_max = a->amount_max;
 
-	to->output_trans = from->output_trans;
-	to->output_summary = from->output_summary;
-	to->output_accsummary = from->output_accsummary;
+	b->output_trans = a->output_trans;
+	b->output_summary = a->output_summary;
+	b->output_accsummary = a->output_accsummary;
 }
-#endif
-
-
-
 
 
 /**

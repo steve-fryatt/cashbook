@@ -153,12 +153,14 @@ static osbool		analysis_delete_balance_window(void);
 static void		analysis_generate_balance_report(struct file_block *file);
 #endif
 
+static void analysis_balance_copy_template(struct balance_rep *to, struct balance_rep *from);
 static void analysis_balance_write_file_block(struct file_block *file, void *block, FILE *out, char *name);
 static void analysis_balance_process_file_token(struct file_block *file, void *block, struct filing_block *in);
 
 static struct analysis_report_details analysis_balance_details = {
 	analysis_balance_process_file_token,
 	analysis_balance_write_file_block,
+	analysis_balance_copy_template
 };
 
 /**
@@ -878,7 +880,7 @@ void analysis_balance_remove_template(struct analysis_block *parent, template_t 
 }
 
 
-
+#endif
 
 /**
  * Copy a Balance Report Template from one structure to another.
@@ -887,38 +889,37 @@ void analysis_balance_remove_template(struct analysis_block *parent, template_t 
  * \param *from			The template to be copied.
  */
 
-static void analysis_copy_balance_template(struct balance_rep *to, struct balance_rep *from)
+static void analysis_balance_copy_template(struct balance_rep *to, struct balance_rep *from)
 {
-	int	i;
+	struct analysis_balance_report	*a = from, *b = to;
+	int				i;
 
-	if (from == NULL || to == NULL)
+	if (a == NULL || to == NULL)
 		return;
 
-	to->date_from = from->date_from;
-	to->date_to = from->date_to;
-	to->budget = from->budget;
+	b->date_from = a->date_from;
+	b->date_to = a->date_to;
+	b->budget = a->budget;
 
-	to->group = from->group;
-	to->period = from->period;
-	to->period_unit = from->period_unit;
-	to->lock = from->lock;
+	b->group = a->group;
+	b->period = a->period;
+	b->period_unit = a->period_unit;
+	b->lock = a->lock;
 
-	to->accounts_count = from->accounts_count;
-	for (i=0; i<from->accounts_count; i++)
-		to->accounts[i] = from->accounts[i];
-	to->incoming_count = from->incoming_count;
+	b->accounts_count = a->accounts_count;
+	for (i = 0; i < a->accounts_count; i++)
+		b->accounts[i] = a->accounts[i];
+	b->incoming_count = a->incoming_count;
 
-	for (i=0; i<from->incoming_count; i++)
-		to->incoming[i] = from->incoming[i];
+	for (i = 0; i < a->incoming_count; i++)
+		b->incoming[i] = a->incoming[i];
 
-	to->outgoing_count = from->outgoing_count;
-	for (i=0; i<from->outgoing_count; i++)
-		to->outgoing[i] = from->outgoing[i];
+	b->outgoing_count = a->outgoing_count;
+	for (i = 0; i < a->outgoing_count; i++)
+		b->outgoing[i] = a->outgoing[i];
 
-	to->tabular = from->tabular;
+	b->tabular = a->tabular;
 }
-#endif
-
 
 
 /**

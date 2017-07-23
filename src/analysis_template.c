@@ -445,46 +445,25 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 
 static void analysis_template_copy(struct analysis_report *to, struct analysis_report *from)
 {
+	struct analysis_report_details	*report_details;
+
 	if (from == NULL || to == NULL)
 		return;
 
+	report_details = analysis_get_report_details(from->type);
+	if (report_details == NULL || report_details->copy_template == NULL)
+		return;
+
 #ifdef DEBUG
-	debug_printf("Copy template from 0x%x to 0x%x", from, to);
+	debug_printf("Copy template from 0x%x to 0x%x, using copy function 0x%x", from, to, report_details->copy_template);
 #endif
 
 	strcpy(to->name, from->name);
 	to->type = from->type;
 	to->instance = from->instance;
 
-	
-
-//	analysis_template_data_from_address(
-
-//	switch (from->type) {
-//	case REPORT_TYPE_TRANSACTION:
-//		analysis_copy_transaction_template(&(to->data.transaction), &(from->data.transaction));
-//		break;
-
-//	case REPORT_TYPE_UNRECONCILED:
-//		analysis_copy_unreconciled_template(&(to->data.unreconciled), &(from->data.unreconciled));
-//		break;
-
-//	case REPORT_TYPE_CASHFLOW:
-//		analysis_copy_cashflow_template(&(to->data.cashflow), &(from->data.cashflow));
-//		break;
-
-//	case REPORT_TYPE_BALANCE:
-//		analysis_copy_balance_template(&(to->data.balance), &(from->data.balance));
-//		break;
-
-//	case REPORT_TYPE_NONE:
-//		break;
-//	}
+	report_details->copy_template(analysis_template_data_from_address(to), analysis_template_data_from_address(from));
 }
-
-
-
-
 
 
 /**

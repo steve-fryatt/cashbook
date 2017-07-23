@@ -85,12 +85,6 @@ static wimp_w					analysis_template_save_window = NULL;
 static enum analysis_template_save_mode		analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_NONE;
 
 /**
- * The file currently owning the Save/Rename window.
- */
-
-//static struct file_block			*analysis_template_save_file = NULL;
-
-/**
  * The saved template instance currently owning the Save/Rename window.
  */
 

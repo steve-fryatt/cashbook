@@ -245,10 +245,16 @@ void analysis_template_remove_account(struct analysis_template_block *instance, 
 
 enum analysis_report_type analysis_template_type(struct analysis_template_block *instance, template_t template)
 {
+	struct analysis_report *address;
+
 	if (instance == NULL || !analysis_template_valid(instance, template))
 		return REPORT_TYPE_NONE;
 
-//	return instance->saved_reports[template].type;
+	address = analysis_template_address(instance, template);
+	if (address == NULL)
+		return REPORT_TYPE_NONE;
+
+	return address->type;
 }
 
 
@@ -326,19 +332,6 @@ char *analysis_template_get_name(struct analysis_report *template, char *buffer,
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * Find a saved template ID based on its name.
  *
@@ -349,17 +342,22 @@ char *analysis_template_get_name(struct analysis_report *template, char *buffer,
 
 template_t analysis_template_get_from_name(struct analysis_template_block *instance, char *name)
 {
-	template_t	i, found = NULL_TEMPLATE;
+	template_t		i, found = NULL_TEMPLATE;
+	struct analysis_report	*template;
 
 	if (instance == NULL || instance->saved_report_count <= 0)
 		return NULL_TEMPLATE;
 
-//	for (i = 0; i < instance->saved_report_count && found == NULL_TEMPLATE; i++) {
-//		if (string_nocase_strcmp(instance->saved_reports[i].name, name) == 0) {
-//			found = i;
-//			break;
-//		}
-//	}
+	for (i = 0; i < instance->saved_report_count && found == NULL_TEMPLATE; i++) {
+		template = analysis_template_address(instance, i);
+		if (template == NULL)
+			continue;
+
+		if (string_nocase_strcmp(template->name, name) == 0) {
+			found = i;
+			break;
+		}
+	}
 
 	return found;
 }
@@ -378,6 +376,8 @@ template_t analysis_template_get_from_name(struct analysis_template_block *insta
 
 void analysis_template_store(struct analysis_template_block *instance, struct analysis_report *report, template_t template, char *name)
 {
+	struct file_block *file;
+
 	if (instance == NULL || instance->saved_reports == NULL || report == NULL)
 		return;
 
@@ -399,7 +399,12 @@ void analysis_template_store(struct analysis_template_block *instance, struct an
 	}
 
 //	analysis_copy_template(instance->saved_reports + template, report);
-//	file_set_data_integrity(file, TRUE);
+
+	/* Mark the file has being modified. */
+
+	file = analysis_get_file(instance->parent);
+	if (file != NULL)
+		file_set_data_integrity(file, TRUE);
 }
 
 
@@ -413,6 +418,8 @@ void analysis_template_store(struct analysis_template_block *instance, struct an
 
 void analysis_template_rename(struct analysis_template_block *instance, template_t template, char *name)
 {
+	struct file_block *file;
+
 	if (instance == NULL || instance->saved_reports == NULL || !analysis_template_valid(instance, template))
 		return;
 
@@ -423,9 +430,10 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 
 	/* Mark the file has being modified. */
 
-//	file_set_data_integrity(file, TRUE);
+	file = analysis_get_file(instance->parent);
+	if (file != NULL)
+		file_set_data_integrity(file, TRUE);
 }
-
 
 
 /**
@@ -485,22 +493,21 @@ static void analysis_template_copy(struct analysis_report *to, struct analysis_r
  *
  * \param *instance		The saved templates instance to write.
  * \param *out			The file handle to write to.
- * \param *reports		An array of report type definitions.
- * \param count			The number of report type definitions.
  */
 
-void analysis_template_write_file(struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count)
+void analysis_template_write_file(struct analysis_template_block *instance, FILE *out)
 {
-	int			i;
-	struct file_block	*file;
-	struct analysis_report	*template = NULL;
-	void			*data = NULL;
+	int				i;
+	struct file_block		*file;
+	struct analysis_report		*template = NULL;
+	struct analysis_report_details	*report_details;
+	void				*data = NULL;
 
 
-	if (instance == NULL || reports == NULL)
+	if (instance == NULL)
 		return;
 
-	file = analysis_get_file(instance);
+	file = analysis_get_file(instance->parent);
 	if (file == NULL)
 		return;
 
@@ -514,8 +521,12 @@ void analysis_template_write_file(struct analysis_template_block *instance, FILE
 		template = analysis_template_address(instance, i);
 		data = analysis_template_data_address(instance, i);
 
-		if (template->type > 0 && template->type < count && reports[template->type] != NULL && reports[template->type]->write_file_template != NULL)
-			reports[template->type]->write_file_template(file, data, out, template->name);
+		if (template == NULL)
+			continue;
+
+		report_details = analysis_get_report_details(template->type);
+		if (report_details != NULL && report_details->write_file_template != NULL)
+			report_details->write_file_template(file, data, out, template->name);
 	}
 }
 
@@ -526,23 +537,22 @@ void analysis_template_write_file(struct analysis_template_block *instance, FILE
  *
  * \param *instance		The saved templates instance to read in to.
  * \param *in			The filing handle to read in from.
- * \param *reports		An array of report type definitions.
- * \param count			The number of report type definitions.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool analysis_template_read_file(struct analysis_template_block *instance, struct filing_block *in, struct analysis_report_details *reports[], size_t count)
+osbool analysis_template_read_file(struct analysis_template_block *instance, struct filing_block *in)
 {
-	size_t			block_size;
-	struct file_block	*file;
-	struct analysis_report	*template = NULL;
-	void			*data = NULL;
+	size_t				block_size;
+	struct file_block		*file;
+	struct analysis_report		*template = NULL;
+	struct analysis_report_details	*report_details = NULL;
+	void				*data = NULL;
 
 
-	if (instance == NULL || reports == NULL)
+	if (instance == NULL)
 		return FALSE;
 
-	file = analysis_get_file(instance);
+	file = analysis_get_file(instance->parent);
 	if (file == NULL)
 		return FALSE;
 
@@ -594,15 +604,16 @@ osbool analysis_template_read_file(struct analysis_template_block *instance, str
 			template->type = analysis_get_report_type_field(in);
 			template->name[0] = '\0';
 
-			if (template->type > 0 && template->type < count && reports[template->type] != NULL && reports[template->type]->process_file_token != NULL)
-				reports[template->type]->process_file_token(file, data, in);
+			report_details = analysis_get_report_details(template->type);
+
+			if (report_details != NULL && report_details->process_file_token != NULL)
+				report_details->process_file_token(file, data, in);
 			else
 				filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		} else if (template != NULL && filing_test_token(in, "Name")) {
 			filing_get_text_value(in, template->name, ANALYSIS_SAVED_NAME_LEN);
-		} else if (template != NULL && template->type > 0 && template->type < count && reports[template->type] != NULL &&
-				reports[template->type]->process_file_token != NULL) {
-			reports[template->type]->process_file_token(file, data, in);
+		} else if (template != NULL && data != NULL && report_details != NULL && report_details->process_file_token != NULL) {
+			report_details->process_file_token(file, data, in);
 		} else {
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}

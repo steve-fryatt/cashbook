@@ -52,6 +52,7 @@
 #include "analysis_template_save.h"
 
 #include "analysis.h"
+#include "analysis_template.h"
 #include "analysis_template_menu.h"
 #include "caret.h"
 

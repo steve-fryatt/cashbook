@@ -144,6 +144,12 @@ static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a point
 #define ANALYSIS_REPORT_TYPE_COUNT 5
 
 /**
+ * The size of a buffer used to convert integers into hex strings.
+ */
+
+#define ANALYSIS_HEX_BUFFER_LEN 32
+
+/**
  * Details of all of the analysis report types.
  */
 
@@ -177,6 +183,23 @@ void analysis_initialise(void)
 	analysis_report_types[REPORT_TYPE_BALANCE] = analysis_balance_initialise();
 	analysis_template_save_initialise();
 	analysis_lookup_initialise();
+}
+
+
+/**
+ * Return the report type definition for a report type, or NULL if one
+ * isn't defined.
+ *
+ * \param type			The type of report to look up.
+ * \return			Pointer to the report type definition, or NULL.
+ */
+
+struct analysis_report_details *analysis_get_report_details(enum analysis_report_type type)
+{
+	if (type < 0 || type >= ANALYSIS_REPORT_TYPE_COUNT)
+		return NULL;
+
+	return analysis_report_types[type];
 }
 
 
@@ -251,7 +274,7 @@ struct analysis_block *analysis_create_instance(struct file_block *file)
 /**
  * Delete an analysis report instance, and all of its data.
  *
- * \param *instance	The instance to be deleted.
+ * \param *instance		The instance to be deleted.
  */
 
 void analysis_delete_instance(struct analysis_block *instance)
@@ -288,8 +311,8 @@ void analysis_delete_instance(struct analysis_block *instance)
 /**
  * Return the file instance to which an analysis report instance belongs.
  *
- * \param *instance	The instance to look up.
- * \return		The parent file, or NULL.
+ * \param *instance		The instance to look up.
+ * \return			The parent file, or NULL.
  */
 
 struct file_block *analysis_get_file(struct analysis_block *instance)
@@ -314,8 +337,6 @@ struct analysis_template_block *analysis_get_templates(struct file_block *file)
 
 	return file->analysis->templates;
 }
-
-
 
 
 
@@ -656,23 +677,23 @@ void analysis_account_list_to_idents(struct analysis_block *instance, char *list
 
 int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *array)
 {
-//	char	*copy, *value;
+	char	*copy, *value;
 	int	i = 0;
 
-//	copy = strdup(list);
+	copy = strdup(list);
 
-//	if (copy == NULL)
-//		return 0;
+	if (copy == NULL)
+		return 0;
 
-//	value = strtok(copy, ",");
+	value = strtok(copy, ",");
 
-//	while (value != NULL && i < ANALYSIS_ACC_LIST_LEN) {
-//		array[i++] = strtoul(value, NULL, 16);
+	while (value != NULL && i < ANALYSIS_ACC_LIST_LEN) {
+		array[i++] = strtoul(value, NULL, 16);
 
-//		value = strtok(NULL, ",");
-//	}
+		value = strtok(NULL, ",");
+	}
 
-//	free(copy);
+	free(copy);
 
 	return i;
 }
@@ -690,20 +711,21 @@ int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *ar
 
 void analysis_account_list_to_hex(struct file_block *file, char *list, size_t size, acct_t *array, int len)
 {
-//	char	buffer[32];
-//	int	i;
+	char	buffer[ANALYSIS_HEX_BUFFER_LEN];
+	int	i;
 
-//	*list = '\0';
+	*list = '\0';
 
-//	for (i=0; i<len; i++) {
-//		sprintf(buffer, "%x", array[i]);
+	for (i = 0; i < len; i++) {
+		snprintf(buffer, ANALYSIS_HEX_BUFFER_LEN, "%x", array[i]);
+		buffer[ANALYSIS_HEX_BUFFER_LEN - 1] = '\0';
 
-//		if (strlen(list) > 0 && strlen(list)+1 < size)
-//			strcat(list, ",");
+		if (strlen(list) > 0 && strlen(list) + 1 < size)
+			strcat(list, ",");
 
-//		if (strlen(list) + strlen(buffer) < size)
-//			strcat(list, buffer);
-//	}
+		if (strlen(list) + strlen(buffer) < size)
+			strcat(list, buffer);
+	}
 }
 
 
@@ -946,7 +968,7 @@ void analysis_write_file(struct file_block *file, FILE *out)
 	if (file == NULL || file->analysis == NULL || file->analysis->templates == NULL)
 		return;
 
-	analysis_template_write_file(file->analysis->templates, out, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
+	analysis_template_write_file(file->analysis->templates, out);
 }
 
 
@@ -963,6 +985,6 @@ osbool analysis_read_file(struct file_block *file, struct filing_block *in)
 	if (file == NULL || file->analysis == NULL || file->analysis->templates == NULL)
 		return FALSE;
 
-	return analysis_template_read_file(file->analysis->templates, in, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
+	return analysis_template_read_file(file->analysis->templates, in);
 }
 

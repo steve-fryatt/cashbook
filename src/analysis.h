@@ -122,6 +122,17 @@ void analysis_initialise(void);
 
 
 /**
+ * Return the report type definition for a report type, or NULL if one
+ * isn't defined.
+ *
+ * \param type			The type of report to look up.
+ * \return			Pointer to the report type definition, or NULL.
+ */
+
+struct analysis_report_details *analysis_get_report_details(enum analysis_report_type type);
+
+
+/**
  * Create a new analysis report instance.
  *
  * \param *file			The file to attach the instance to.

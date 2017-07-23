@@ -223,11 +223,9 @@ void analysis_template_rename(struct analysis_template_block *instance, template
  *
  * \param *instance		The saved templates instance to write.
  * \param *out			The file handle to write to.
- * \param *reports		An array of report type definitions.
- * \param count			The number of report type definitions.
  */
 
-void analysis_template_write_file(struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count);
+void analysis_template_write_file(struct analysis_template_block *instance, FILE *out);
 
 
 /**
@@ -236,12 +234,10 @@ void analysis_template_write_file(struct analysis_template_block *instance, FILE
  *
  * \param *instance		The saved templates instance to read in to.
  * \param *in			The filing handle to read in from.
- * \param *reports		An array of report type definitions.
- * \param count			The number of report type definitions.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool analysis_template_read_file(struct analysis_template_block *instance, struct filing_block *in, struct analysis_report_details *reports[], size_t count);
+osbool analysis_template_read_file(struct analysis_template_block *instance, struct filing_block *in);
 
 #endif
 

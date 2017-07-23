@@ -46,6 +46,15 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
 
 
 /**
+ * Test whether the Template List menu contains any entries.
+ *
+ * \return			TRUE if the menu contains entries; else FALSE.
+ */
+
+osbool analysis_template_menu_contains_entries(void);
+
+
+/**
  * Given an index into the menu, return the template that it identifies.
  *
  * \param selection		The selection index to decode.
@@ -53,6 +62,7 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
  */
 
 template_t analysis_template_menu_decode(int selection);
+
 
 /**
  * Destroy any Template List menu which is currently open.

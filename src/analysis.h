@@ -99,6 +99,11 @@ struct analysis_report_details {
 	 * Write a template out to a saved CashBook file.
 	 */
 	void		(*write_file_template)(struct file_block *file, void *template, FILE *out, char *name);
+
+	/**
+	 * Copy a template from one location to another.
+	 */
+	void		(*copy_template)(void *from, void *to);
 };
 
 
@@ -133,6 +138,26 @@ struct analysis_block *analysis_create_instance(struct file_block *file);
  */
 
 void analysis_delete_instance(struct analysis_block *instance);
+
+
+/**
+ * Return the file instance to which an analysis report instance belongs.
+ *
+ * \param *instance	The instance to look up.
+ * \return		The parent file, or NULL.
+ */
+
+struct file_block *analysis_get_file(struct analysis_block *instance);
+
+
+/**
+ * Return the report template instance associated with a given file.
+ *
+ * \param *file			The file to return the instance for.
+ * \return			The template instance, or NULL.
+ */
+
+struct analysis_template_block *analysis_get_templates(struct file_block *file);
 
 
 
@@ -218,29 +243,6 @@ void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template
 
 
 /**
- * Return the number of templates in the given file.
- * 
- * \param *file			The file to report on.
- * \return			The number of templates, or 0 on error.
- */
- 
-int analysis_get_template_count(struct file_block *file);
-
-
-/**
- * Return a volatile pointer to a template block from within a file's saved
- * templates. This is a pointre into a flex heap block, so it will only
- * be valid until an operation occurs to shift the blocks.
- * 
- * \param *file			The file containing the template of interest.
- * \param template		The number of the requied template.
- * \return			Volatile pointer to the template, or NULL.
- */
-
-struct analysis_report *analysis_get_template(struct file_block *file, template_t template);
-
-
-/**
  * Return a volatile pointer to a template data block from within a template,
  * if that template is of a given type. This is a pointer into a flex heap
  * block, so it will only be valid until an operation occurs to shift the blocks.
@@ -263,27 +265,6 @@ union analysis_report_block *analysis_get_template_contents(struct analysis_repo
  */
 
 struct file_block *analysis_get_template_file(struct analysis_report *template);
-
-
-/**
- * Return the name for an analysis template.
- *
- * If a buffer is supplied, the name is copied into that buffer and a
- * pointer to the buffer is returned; if one is not, then a pointer to the
- * name in the template array is returned instead. In the latter case, this
- * pointer will become invalid as soon as any operation is carried
- * out which might shift blocks in the flex heap.
- *
- * \param *template		Pointer to the template to return the name of.
- * \param *buffer		Pointer to a buffer to take the name, or
- *				NULL to return a volatile pointer to the
- *				original data.
- * \param length		Length of the supplied buffer, in bytes, or 0.
- * \return			Pointer to the resulting name string,
- *				either the supplied buffer or the original.
- */
-
-char *analysis_get_template_name(struct analysis_report *template, char *buffer, size_t length);
 
 
 /**

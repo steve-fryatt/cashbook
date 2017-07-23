@@ -88,7 +88,13 @@ static enum analysis_template_save_mode		analysis_template_save_current_mode = A
  * The file currently owning the Save/Rename window.
  */
 
-static struct file_block			*analysis_template_save_file = NULL;
+//static struct file_block			*analysis_template_save_file = NULL;
+
+/**
+ * The saved template instance currently owning the Save/Rename window.
+ */
+
+static struct analysis_template_block		*analysis_template_save_parent = NULL;
 
 /**
  * The report currently owning the Save/Rename window.
@@ -162,22 +168,23 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 	msgs_lookup("SaveRepSave", icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_OK),
 			icons_get_indirected_text_length(analysis_template_save_window, ANALYSIS_SAVE_OK));
 
+	/* Set the pointers up so we can find this lot again and open the window. */
+
+	analysis_template_save_parent = analysis_template_get_instance(template);
+	analysis_template_save_report = template;
+	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_SAVE;
+
 	/* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
 	 * can only be done via this dialogue.  In the (unlikely) event that the Save dialogue is open when the last
 	 * report is deleted, then the popup remains active but no memu will appear...
 	 */
 
-	icons_set_shaded(analysis_template_save_window, ANALYSIS_SAVE_NAMEPOPUP, analysis_get_template_count(analysis_get_template_file(template)) == 0);
+	icons_set_shaded(analysis_template_save_window, ANALYSIS_SAVE_NAMEPOPUP, analysis_template_get_count(analysis_template_save_parent) == 0);
 
 	analysis_template_save_fill_window(template);
 
 	ihelp_set_modifier(analysis_template_save_window, "Sav");
 
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	analysis_template_save_file = analysis_get_template_file(template);
-	analysis_template_save_report = template;
-	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_SAVE;
 
 	windows_open_centred_at_pointer(analysis_template_save_window, ptr);
 	place_dialogue_caret_fallback(analysis_template_save_window, 1, ANALYSIS_SAVE_NAME);
@@ -212,23 +219,25 @@ void analysis_template_save_open_rename_window(struct file_block *file, int temp
 	msgs_lookup("RenRepRen", icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_OK),
 			icons_get_indirected_text_length(analysis_template_save_window, ANALYSIS_SAVE_OK));
 
+	/* Set the pointers up so we can find this lot again and open the window. */
+
+	analysis_template_save_parent = analysis_get_templates(file);
+	analysis_template_save_template = template_number;
+	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_RENAME;
+
 	/* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
-	 * can only be done via this dislogue.  In the (unlikely) event that the Save dialogue is open when the last
-	 * report is deleted, then the popup remains active but no memu will appear...
+	 * can only be done via this dialogue.  In the (unlikely) event that the Save dialogue is open when the last
+	 * report is deleted, then the popup remains active but no menu will appear...
 	 */
 
-	icons_set_shaded(analysis_template_save_window, ANALYSIS_SAVE_NAMEPOPUP, analysis_get_template_count(file) == 0);
+	icons_set_shaded(analysis_template_save_window, ANALYSIS_SAVE_NAMEPOPUP, analysis_template_get_count(analysis_template_save_parent) == 0);
 
-	template = analysis_get_template(file, template_number);
+	// \TODO -- The line above allows for no templates, but here we're assuming that the'res a template?!
+
+	template = analysis_template_get_report(analysis_template_save_parent, template_number);
 	analysis_template_save_fill_window(template);
 
 	ihelp_set_modifier(analysis_template_save_window, "Ren");
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	analysis_template_save_file = file;
-	analysis_template_save_template = template_number;
-	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_RENAME;
 
 	windows_open_centred_at_pointer(analysis_template_save_window, ptr);
 	place_dialogue_caret_fallback(analysis_template_save_window, 1, ANALYSIS_SAVE_NAME);
@@ -300,7 +309,7 @@ static osbool analysis_template_save_keypress_handler(wimp_key *key)
 
 static void analysis_template_save_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	analysis_template_save_menu = analysis_template_menu_build(analysis_template_save_file, TRUE);
+	analysis_template_save_menu = analysis_template_menu_build(analysis_template_get_file(analysis_template_save_parent), TRUE);
 	if (analysis_template_save_menu == NULL)
 		return;
 
@@ -323,18 +332,18 @@ static void analysis_template_save_menu_selection_handler(wimp_w w, wimp_menu *m
 	struct analysis_report	*template;
 	char			*name;
 
-	if (selection->items[0] == -1 || analysis_template_save_file == NULL || analysis_template_save_menu != NULL)
+	if (selection->items[0] == -1 || analysis_template_save_parent == NULL || analysis_template_save_menu != NULL)
 		return;
 
 	template_number = analysis_template_menu_decode(selection->items[0]);
 	if (template_number == NULL_TEMPLATE)
 		return;
 
-	template = analysis_get_template(analysis_template_save_file, template_number);
+	template = analysis_template_get_report(analysis_template_save_parent, template_number);
 	if (template == NULL)
 		return;
 
-	name = analysis_get_template_name(template, NULL, 0);
+	name = analysis_template_get_name(template, NULL, 0);
 	if (name == NULL)
 		return;
 
@@ -376,7 +385,7 @@ static void analysis_template_save_refresh_window(void)
 		break;
 
 	case ANALYSIS_SAVE_MODE_RENAME:
-		template = analysis_get_template(analysis_template_save_file, analysis_template_save_template);
+		template = analysis_template_get_report(analysis_template_save_parent, analysis_template_save_template);
 		analysis_template_save_fill_window(template);
 		break;
 
@@ -400,7 +409,7 @@ static void analysis_template_save_fill_window(struct analysis_report *template)
 {
 	char	*name;
 
-	name = analysis_get_template_name(template, NULL, 0);
+	name = analysis_template_get_name(template, NULL, 0);
 	if (name == NULL)
 		return;
 
@@ -423,7 +432,7 @@ static osbool analysis_template_save_process_window(void)
 	if (*icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_NAME) == '\0')
 		return FALSE;
 
-	template = analysis_get_template_from_name(analysis_template_save_file,
+	template = analysis_template_get_from_name(analysis_template_save_parent,
 			icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_NAME));
 
 	switch (analysis_template_save_current_mode) {
@@ -431,7 +440,7 @@ static osbool analysis_template_save_process_window(void)
 		if (template != NULL_TEMPLATE && error_msgs_report_question("CheckTempOvr", "CheckTempOvrB") == 4)
 			return FALSE;
 
-		analysis_store_template(analysis_template_save_file, analysis_template_save_report, template,
+		analysis_template_store(analysis_template_save_parent, analysis_template_save_report, template,
 				icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_NAME));
 		break;
 
@@ -446,7 +455,7 @@ static osbool analysis_template_save_process_window(void)
 
 		name = icons_get_indirected_text_addr(analysis_template_save_window, ANALYSIS_SAVE_NAME);
 
-		analysis_rename_template(analysis_template_save_file, analysis_template_save_template, name);
+		analysis_template_rename(analysis_template_save_parent, analysis_template_save_template, name);
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_template_save_window), windows_get_indirected_title_length(analysis_template_save_window), name, NULL, NULL, NULL);
 		xwimp_force_redraw_title(analysis_template_save_window);
@@ -470,7 +479,8 @@ static osbool analysis_template_save_process_window(void)
 
 void analysis_template_save_delete_template(struct file_block *file, template_t template)
 {
-	if (analysis_template_save_file != file || analysis_template_save_template == NULL_TEMPLATE)
+	if (analysis_template_get_file(analysis_template_save_parent) != file ||
+			analysis_template_save_template == NULL_TEMPLATE)
 		return;
 
 	if (analysis_template_save_template > template)
@@ -487,7 +497,8 @@ void analysis_template_save_delete_template(struct file_block *file, template_t 
 
 void analysis_template_save_force_close(struct file_block *file)
 {
-	if (analysis_template_save_file == file && windows_get_open(analysis_template_save_window))
+	if (analysis_template_get_file(analysis_template_save_parent) == file &&
+			windows_get_open(analysis_template_save_window))
 		close_dialogue_with_caret(analysis_template_save_window);
 }
 
@@ -520,7 +531,7 @@ void analysis_template_save_force_template_close(struct analysis_report *templat
 void analysis_template_save_force_rename_close(struct file_block *file, template_t template)
 {
 	if (!windows_get_open(analysis_template_save_window) ||
-			analysis_template_save_file != file ||
+			analysis_template_get_file(analysis_template_save_parent) != file ||
 			analysis_template_save_current_mode != ANALYSIS_SAVE_MODE_RENAME ||
 			analysis_template_save_template != NULL_TEMPLATE)
 		return;

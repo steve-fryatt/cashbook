@@ -161,8 +161,6 @@ static void		analysis_set_account_report_flags_from_list(struct file_block *file
 static void		analysis_delete_template(struct file_block *file, int template);
 static struct analysis_report	*analysis_create_template(struct analysis_report *base);
 
-static void		analysis_copy_template(struct analysis_report *to, struct analysis_report *from);
-
 
 
 
@@ -287,6 +285,38 @@ void analysis_delete_instance(struct analysis_block *instance)
 }
 
 
+/**
+ * Return the file instance to which an analysis report instance belongs.
+ *
+ * \param *instance	The instance to look up.
+ * \return		The parent file, or NULL.
+ */
+
+struct file_block *analysis_get_file(struct analysis_block *instance)
+{
+	if (instance == NULL)
+		return NULL;
+
+	return instance->file;
+}
+
+/**
+ * Return the report template instance associated with a given file.
+ *
+ * \param *file			The file to return the instance for.
+ * \return			The template instance, or NULL.
+ */
+
+struct analysis_template_block *analysis_get_templates(struct file_block *file)
+{
+	if (file == NULL || file->analysis == NULL)
+		return NULL;
+
+	return file->analysis->templates;
+}
+
+
+
 
 
 
@@ -304,51 +334,51 @@ void analysis_delete_instance(struct analysis_block *instance)
 
 static void analysis_find_date_range(struct file_block *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget)
 {
-	int		i, transactions;
-	osbool		find_start, find_end;
-	date_t		date;
+//	int		i, transactions;
+//	osbool		find_start, find_end;
+//	date_t		date;
 
-	if (budget) {
-		/* Get the start and end dates from the budget settings. */
+//	if (budget) {
+//		/* Get the start and end dates from the budget settings. */
 
-		budget_get_dates(file, start_date, end_date);
-	} else {
-		/* Get the start and end dates from the icon text. */
+//		budget_get_dates(file, start_date, end_date);
+//	} else {
+//		/* Get the start and end dates from the icon text. */
 
-		*start_date = date1;
-		*end_date = date2;
-	}
+//		*start_date = date1;
+//		*end_date = date2;
+//	}
 
-	find_start = (*start_date == NULL_DATE);
-	find_end = (*end_date == NULL_DATE);
+//	find_start = (*start_date == NULL_DATE);
+//	find_end = (*end_date == NULL_DATE);
 
 	/* If either of the dates wasn't specified, we need to find the earliest and latest dates in the file. */
 
-	if (find_start || find_end) {
-		transactions = transact_get_count(file);
+//	if (find_start || find_end) {
+//		transactions = transact_get_count(file);
 
-		if (find_start)
-			*start_date = (transactions > 0) ? transact_get_date(file, 0) : NULL_DATE;
+//		if (find_start)
+//			*start_date = (transactions > 0) ? transact_get_date(file, 0) : NULL_DATE;
 
-		if (find_end)
-			*end_date = (transactions > 0) ? transact_get_date(file, transactions - 1) : NULL_DATE;
+//		if (find_end)
+//			*end_date = (transactions > 0) ? transact_get_date(file, transactions - 1) : NULL_DATE;
 
-		for (i = 0; i < transactions; i++) {
-			date = transact_get_date(file, i);
+//		for (i = 0; i < transactions; i++) {
+//			date = transact_get_date(file, i);
 
-			if (find_start && date != NULL_DATE && date < *start_date)
-				*start_date = date;
+//			if (find_start && date != NULL_DATE && date < *start_date)
+//				*start_date = date;
 
-			if (find_end && date != NULL_DATE && date > *end_date)
-				*end_date = date;
-		}
-	}
+//			if (find_end && date != NULL_DATE && date > *end_date)
+//				*end_date = date;
+//		}
+//	}
 
-	if (*start_date == NULL_DATE)
-		*start_date = DATE_MIN;
+//	if (*start_date == NULL_DATE)
+//		*start_date = DATE_MIN;
 
-	if (*end_date == NULL_DATE)
-		*end_date = DATE_MAX;
+//	if (*end_date == NULL_DATE)
+//		*end_date = DATE_MAX;
 }
 
 
@@ -393,12 +423,12 @@ void analysis_remove_account_from_templates(struct file_block *file, acct_t acco
 
 static void analysis_remove_account_from_report_template(struct analysis_report *template, void *data)
 {
-	acct_t	*account = data;
+//	acct_t	*account = data;
 
-	if (template == NULL || account == NULL)
-		return;
+//	if (template == NULL || account == NULL)
+//		return;
 
-	analysis_remove_account_from_template(template, *account);
+//	analysis_remove_account_from_template(template, *account);
 }
 
 /**
@@ -450,24 +480,24 @@ static int analysis_remove_account_from_list(acct_t account, acct_t *array, int 
 {
 	int	i = 0, j = 0;
 
-	while (i < *count && j < *count) {
-		/* Skip j on until it finds an account that is to be left in. */
+//	while (i < *count && j < *count) {
+//		/* Skip j on until it finds an account that is to be left in. */
 
-		while (j < *count && array[j] == account)
-			j++;
+//		while (j < *count && array[j] == account)
+//			j++;
 
-		/* If pointers are different, and not pointing to the account, copy down the account. */
-		if (i < j && i < *count && j < *count && array[j] != account)
-			array[i] = array[j];
+//		/* If pointers are different, and not pointing to the account, copy down the account. */
+//		if (i < j && i < *count && j < *count && array[j] != account)
+//			array[i] = array[j];
 
-		/* Increment the pointers if necessary */
-		if (array[i] != account) {
-			i++;
-			j++;
-		}
-	}
+//		/* Increment the pointers if necessary */
+//		if (array[i] != account) {
+//			i++;
+//			j++;
+//		}
+//	}
 
-	*count = i;
+//	*count = i;
 
 	return i;
 }
@@ -483,13 +513,13 @@ static int analysis_remove_account_from_list(acct_t account, acct_t *array, int 
 
 static void analysis_clear_account_report_flags(struct file_block *file, struct analysis_data *data)
 {
-	int	i;
+//	int	i;
 
-	if (file == NULL || data == NULL)
-		return;
+//	if (file == NULL || data == NULL)
+//		return;
 
-	for (i = 0; i < account_get_count(file); i++)
-		data[i].report_flags = ANALYSIS_REPORT_NONE;
+//	for (i = 0; i < account_get_count(file); i++)
+//		data[i].report_flags = ANALYSIS_REPORT_NONE;
 }
 
 
@@ -507,26 +537,26 @@ static void analysis_clear_account_report_flags(struct file_block *file, struct 
 
 static void analysis_set_account_report_flags_from_list(struct file_block *file, struct analysis_data *data, unsigned type, unsigned flags, acct_t *array, int count)
 {
-	int	account, i;
+//	int	account, i;
 
-	for (i = 0; i < count; i++) {
-		account = array[i];
+//	for (i = 0; i < count; i++) {
+//		account = array[i];
 
-		if (account == NULL_ACCOUNT) {
-			/* 'Wildcard': set all the accounts which match the
-			 * given account type.
-			 */
+//		if (account == NULL_ACCOUNT) {
+//			/* 'Wildcard': set all the accounts which match the
+//			 * given account type.
+//			 */
 
-			for (account = 0; account < account_get_count(file); account++)
-				if ((account_get_type(file, account) & type) != 0)
-					data[account].report_flags |= flags;
-		} else {
-			/* Set a specific account. */
+//			for (account = 0; account < account_get_count(file); account++)
+//				if ((account_get_type(file, account) & type) != 0)
+//					data[account].report_flags |= flags;
+//		} else {
+//			/* Set a specific account. */
 
-			if (account < account_get_count(file))
-				data[account].report_flags |= flags;
-		}
-	}
+//			if (account < account_get_count(file))
+//				data[account].report_flags |= flags;
+//		}
+//	}
 }
 
 
@@ -545,30 +575,30 @@ static void analysis_set_account_report_flags_from_list(struct file_block *file,
 
 static int analysis_account_idents_to_list(struct file_block *file, unsigned type, char *list, acct_t *array)
 {
-	char	*copy, *ident;
+//	char	*copy, *ident;
 	int	account, i = 0;
 
-	copy = strdup(list);
+//	copy = strdup(list);
 
-	if (copy == NULL)
-		return 0;
+//	if (copy == NULL)
+//		return 0;
 
-	ident = strtok(copy, ",");
+//	ident = strtok(copy, ",");
 
-	while (ident != NULL && i < ANALYSIS_ACC_LIST_LEN) {
-		if (strcmp(ident, "*") == 0) {
-			array[i++] = NULL_ACCOUNT;
-		} else {
-			account = account_find_by_ident(file, ident, type);
+//	while (ident != NULL && i < ANALYSIS_ACC_LIST_LEN) {
+//		if (strcmp(ident, "*") == 0) {
+//			array[i++] = NULL_ACCOUNT;
+//		} else {
+//			account = account_find_by_ident(file, ident, type);
 
-			if (account != NULL_ACCOUNT)
-				array[i++] = account;
-		}
+//			if (account != NULL_ACCOUNT)
+//				array[i++] = account;
+//		}
 
-		ident = strtok(NULL, ",");
-	}
+//		ident = strtok(NULL, ",");
+//	}
 
-	free(copy);
+//	free(copy);
 
 	return i;
 }
@@ -586,30 +616,30 @@ static int analysis_account_idents_to_list(struct file_block *file, unsigned typ
 
 void analysis_account_list_to_idents(struct analysis_block *instance, char *list, acct_t *array, int len)
 {
-	char	buffer[ACCOUNT_IDENT_LEN];
-	int	account, i;
+//	char	buffer[ACCOUNT_IDENT_LEN];
+//	int	account, i;
 
-	if (instance == NULL || instance->file == NULL)
-		return;
+//	if (instance == NULL || instance->file == NULL)
+//		return;
 
-	*list = '\0';
+//	*list = '\0';
 
-	for (i = 0; i < len; i++) {
-		account = array[i];
+//	for (i = 0; i < len; i++) {
+//		account = array[i];
 
-		if (account != NULL_ACCOUNT)
-			strncpy(buffer, account_get_ident(instance->file, account), ACCOUNT_IDENT_LEN);
-		else
-			strncpy(buffer, "*", ACCOUNT_IDENT_LEN);
+//		if (account != NULL_ACCOUNT)
+//			strncpy(buffer, account_get_ident(instance->file, account), ACCOUNT_IDENT_LEN);
+//		else
+//			strncpy(buffer, "*", ACCOUNT_IDENT_LEN);
 
-		buffer[ACCOUNT_IDENT_LEN - 1] = '\0';
+//		buffer[ACCOUNT_IDENT_LEN - 1] = '\0';
 
-		if (strlen(list) > 0 && strlen(list) + 1 < ANALYSIS_ACC_SPEC_LEN)
-			strcat(list, ",");
+//		if (strlen(list) > 0 && strlen(list) + 1 < ANALYSIS_ACC_SPEC_LEN)
+//			strcat(list, ",");
 
-		if (strlen(list) + strlen(buffer) < ANALYSIS_ACC_SPEC_LEN)
-			strcat(list, buffer);
-	}
+//		if (strlen(list) + strlen(buffer) < ANALYSIS_ACC_SPEC_LEN)
+//			strcat(list, buffer);
+//	}
 }
 
 
@@ -626,23 +656,23 @@ void analysis_account_list_to_idents(struct analysis_block *instance, char *list
 
 int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *array)
 {
-	char	*copy, *value;
+//	char	*copy, *value;
 	int	i = 0;
 
-	copy = strdup(list);
+//	copy = strdup(list);
 
-	if (copy == NULL)
-		return 0;
+//	if (copy == NULL)
+//		return 0;
 
-	value = strtok(copy, ",");
+//	value = strtok(copy, ",");
 
-	while (value != NULL && i < ANALYSIS_ACC_LIST_LEN) {
-		array[i++] = strtoul(value, NULL, 16);
+//	while (value != NULL && i < ANALYSIS_ACC_LIST_LEN) {
+//		array[i++] = strtoul(value, NULL, 16);
 
-		value = strtok(NULL, ",");
-	}
+//		value = strtok(NULL, ",");
+//	}
 
-	free(copy);
+//	free(copy);
 
 	return i;
 }
@@ -660,20 +690,20 @@ int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *ar
 
 void analysis_account_list_to_hex(struct file_block *file, char *list, size_t size, acct_t *array, int len)
 {
-	char	buffer[32];
-	int	i;
+//	char	buffer[32];
+//	int	i;
 
-	*list = '\0';
+//	*list = '\0';
 
-	for (i=0; i<len; i++) {
-		sprintf(buffer, "%x", array[i]);
+//	for (i=0; i<len; i++) {
+//		sprintf(buffer, "%x", array[i]);
 
-		if (strlen(list) > 0 && strlen(list)+1 < size)
-			strcat(list, ",");
+//		if (strlen(list) > 0 && strlen(list)+1 < size)
+//			strcat(list, ",");
 
-		if (strlen(list) + strlen(buffer) < size)
-			strcat(list, buffer);
-	}
+//		if (strlen(list) + strlen(buffer) < size)
+//			strcat(list, buffer);
+//	}
 }
 
 
@@ -714,45 +744,6 @@ void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template
 
 
 /**
- * Return the number of templates in the given file.
- * 
- * \FIXME -- This should probably be passed direct on to the templates module when possible.
- * 
- * \param *file			The file to report on.
- * \return			The number of templates, or 0 on error.
- */
- 
-int analysis_get_template_count(struct file_block *file)
-{
-	if (file == NULL || file->analysis == NULL)
-		return 0;
-
-	return analysis_template_get_count(file->analysis->templates);
-}
-
-
-/**
- * Return a volatile pointer to a template block from within a file's saved
- * templates. This is a pointer into a flex heap block, so it will only
- * be valid until an operation occurs to shift the blocks.
- * 
- * \FIXME -- This should probably be passed direct on to the templates module when possible.
- * 
- * \param *file			The file containing the template of interest.
- * \param template		The number of the requied template.
- * \return			Volatile pointer to the template, or NULL.
- */
-
-struct analysis_report *analysis_get_template(struct file_block *file, template_t template)
-{
-	if (file == NULL || file->analysis == NULL)
-		return NULL;
-
-	return analysis_template_get_report(file->analysis->templates, template);
-}
-
-
-/**
  * Return a volatile pointer to a template data block from within a template,
  * if that template is of a given type. This is a pointer into a flex heap
  * block, so it will only be valid until an operation occurs to shift the blocks.
@@ -782,49 +773,12 @@ union analysis_report_block *analysis_get_template_contents(struct analysis_repo
 
 struct file_block *analysis_get_template_file(struct analysis_report *template)
 {
-	if (template == NULL)
+//	if (template == NULL)
 		return NULL;
 
 //	return template->file;
 }
 
-/**
- * Return the name for an analysis template.
- *
- * If a buffer is supplied, the name is copied into that buffer and a
- * pointer to the buffer is returned; if one is not, then a pointer to the
- * name in the template array is returned instead. In the latter case, this
- * pointer will become invalid as soon as any operation is carried
- * out which might shift blocks in the flex heap.
- *
- * \param *template		Pointer to the template to return the name of.
- * \param *buffer		Pointer to a buffer to take the name, or
- *				NULL to return a volatile pointer to the
- *				original data.
- * \param length		Length of the supplied buffer, in bytes, or 0.
- * \return			Pointer to the resulting name string,
- *				either the supplied buffer or the original.
- */
-
-char *analysis_get_template_name(struct analysis_report *template, char *buffer, size_t length)
-{
-	if (template == NULL) {
-		if (buffer != NULL && length > 0) {
-			*buffer = '\0';
-			return buffer;
-		}
-
-		return NULL;
-	}
-
-//	if (buffer == NULL || length == 0)
-//		return template->name;
-
-//	strncpy(buffer, template->name, length);
-//	buffer[length - 1] = '\0';
-
-	return buffer;
-}
 
 
 /**
@@ -861,10 +815,10 @@ template_t analysis_get_template_from_name(struct file_block *file, char *name)
 
 void analysis_store_template(struct file_block *file, struct analysis_report *report, template_t template, char *name)
 {
-	if (file == NULL || file->analysis == NULL || report == NULL)
-		return;
+//	if (file == NULL || file->analysis == NULL || report == NULL)
+//		return;
 
-	analysis_template_store(file->analysis->templates, report, template, name);
+//	analysis_template_store(file->analysis->templates, report, template, name);
 }
 
 
@@ -878,10 +832,10 @@ void analysis_store_template(struct file_block *file, struct analysis_report *re
 
 void analysis_rename_template(struct file_block *file, template_t template, char *name)
 {
-	if (file == NULL || file->analysis == NULL || name == NULL)
-		return;
+//	if (file == NULL || file->analysis == NULL || name == NULL)
+//		return;
 
-	analysis_template_rename(file->analysis->templates, template, name);
+//	analysis_template_rename(file->analysis->templates, template, name);
 }
 
 
@@ -974,47 +928,6 @@ static struct analysis_report *analysis_create_template(struct analysis_report *
 }
 
 
-/**
- * Copy a Report Template from one structure to another.
- *
- * \param *to			The template structure to take the copy.
- * \param *from			The template to be copied.
- */
-
-static void analysis_copy_template(struct analysis_report *to, struct analysis_report *from)
-{
-//	if (from == NULL || to == NULL)
-		return;
-
-#ifdef DEBUG
-//	debug_printf("Copy template from 0x%x to 0x%x", from, to);
-#endif
-
-//	strcpy(to->name, from->name);
-//	to->type = from->type;
-//	to->file = from->file;
-
-//	switch (from->type) {
-//	case REPORT_TYPE_TRANSACTION:
-//		analysis_copy_transaction_template(&(to->data.transaction), &(from->data.transaction));
-//		break;
-
-//	case REPORT_TYPE_UNRECONCILED:
-//		analysis_copy_unreconciled_template(&(to->data.unreconciled), &(from->data.unreconciled));
-//		break;
-
-//	case REPORT_TYPE_CASHFLOW:
-//		analysis_copy_cashflow_template(&(to->data.cashflow), &(from->data.cashflow));
-//		break;
-
-//	case REPORT_TYPE_BALANCE:
-//		analysis_copy_balance_template(&(to->data.balance), &(from->data.balance));
-//		break;
-
-//	case REPORT_TYPE_NONE:
-//		break;
-//	}
-}
 
 
 
@@ -1033,7 +946,7 @@ void analysis_write_file(struct file_block *file, FILE *out)
 	if (file == NULL || file->analysis == NULL || file->analysis->templates == NULL)
 		return;
 
-	analysis_template_write_file(file, file->analysis->templates, out, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
+	analysis_template_write_file(file->analysis->templates, out, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
 }
 
 
@@ -1050,6 +963,6 @@ osbool analysis_read_file(struct file_block *file, struct filing_block *in)
 	if (file == NULL || file->analysis == NULL || file->analysis->templates == NULL)
 		return FALSE;
 
-	return analysis_template_read_file(file, file->analysis->templates, in, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
+	return analysis_template_read_file(file->analysis->templates, in, analysis_report_types, ANALYSIS_REPORT_TYPE_COUNT);
 }
 

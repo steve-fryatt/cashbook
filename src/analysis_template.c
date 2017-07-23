@@ -57,7 +57,7 @@
  */
 
 struct analysis_report {
-	struct file_block		*file;					/**< The file to which the template belongs.					*/
+	struct analysis_template_block	*instance;				/**< The template store instance to which the template belongs.			*/
 	char				name[ANALYSIS_SAVED_NAME_LEN];		/**< The name of the saved report template.					*/
 	enum analysis_report_type	type;					/**< The type of the template.							*/
 };
@@ -108,8 +108,13 @@ static size_t			analysis_template_full_block_size = 0;
  * Return the address of a template's data in the template data array.
  */
 
-#define analysis_template_data_address(instance, template) (void *)((instance)->saved_reports + ((template) * analysis_template_full_block_size) + sizeof(struct analysis_report))
+#define analysis_template_data_address(instance, template) ((void *)((instance)->saved_reports + ((template) * analysis_template_full_block_size) + sizeof(struct analysis_report)))
 
+/**
+ * Given the top of a template block, return a pointer to the data.
+ */
+
+#define analysis_template_data_from_address(template) ((void*)((byte *)(template)) + sizeof(struct analysis_report))
 
 /**
  * Allow a analysis client to report the size of its template block.
@@ -178,6 +183,38 @@ void analysis_template_delete_instance(struct analysis_template_block *instance)
 
 
 /**
+ * Return the analysis template storage instance owning a report.
+ *
+ * \param *report		The report of interest.
+ * \return			The owning instance, or NULL.
+ */ 
+
+struct analysis_template_block *analysis_template_get_instance(struct analysis_report *report)
+{
+	if (report == NULL)
+		return NULL;
+
+	return report->instance;
+}
+
+
+/**
+ * Return the cashbook file owning a template storage instance.
+ *
+ * \param *instance		The instance of interest.
+ * \return			The owning file, or NULL.
+ */
+
+struct file_block *analysis_template_get_file(struct analysis_template_block *instance)
+{
+	if (instance == NULL || instance->parent == NULL)
+		return NULL;
+
+	return analysis_get_file(instance->parent);
+}
+
+
+/**
  * Remove any references to a given account from all of the saved analysis
  * templates in an instance.
  * 
@@ -232,7 +269,7 @@ int analysis_template_get_count(struct analysis_template_block *instance)
 
 
 /**
- * Return a volatile pointer to a template block from within an instance's
+ * Return a volatile pointer to a report block from within an instance's
  * saved templates. This is a pointer into a flex heap block, so it will
  * only be valid until an operation occurs to shift the blocks.
  * 
@@ -246,8 +283,60 @@ struct analysis_report *analysis_template_get_report(struct analysis_template_bl
 	if (instance == NULL || !analysis_template_valid(instance, template))
 		return NULL;
 
-//	return instance->saved_reports + template;
+	return analysis_template_address(instance, template);
 }
+
+
+/**
+ * Return the name for an analysis template.
+ *
+ * If a buffer is supplied, the name is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * name in the template array is returned instead. In the latter case, this
+ * pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *template		Pointer to the template to return the name of.
+ * \param *buffer		Pointer to a buffer to take the name, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting name string,
+ *				either the supplied buffer or the original.
+ */
+
+char *analysis_template_get_name(struct analysis_report *template, char *buffer, size_t length)
+{
+	if (template == NULL) {
+		if (buffer != NULL && length > 0) {
+			*buffer = '\0';
+			return buffer;
+		}
+
+		return NULL;
+	}
+
+	if (buffer == NULL || length == 0)
+		return template->name;
+
+	strncpy(buffer, template->name, length);
+	buffer[length - 1] = '\0';
+
+	return buffer;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -339,6 +428,53 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 
 
 
+/**
+ * Copy a Report Template from one structure to another.
+ *
+ * \param *to			The template structure to take the copy.
+ * \param *from			The template to be copied.
+ */
+
+static void analysis_template_copy(struct analysis_report *to, struct analysis_report *from)
+{
+	if (from == NULL || to == NULL)
+		return;
+
+#ifdef DEBUG
+	debug_printf("Copy template from 0x%x to 0x%x", from, to);
+#endif
+
+	strcpy(to->name, from->name);
+	to->type = from->type;
+	to->instance = from->instance;
+
+	
+
+//	analysis_template_data_from_address(
+
+//	switch (from->type) {
+//	case REPORT_TYPE_TRANSACTION:
+//		analysis_copy_transaction_template(&(to->data.transaction), &(from->data.transaction));
+//		break;
+
+//	case REPORT_TYPE_UNRECONCILED:
+//		analysis_copy_unreconciled_template(&(to->data.unreconciled), &(from->data.unreconciled));
+//		break;
+
+//	case REPORT_TYPE_CASHFLOW:
+//		analysis_copy_cashflow_template(&(to->data.cashflow), &(from->data.cashflow));
+//		break;
+
+//	case REPORT_TYPE_BALANCE:
+//		analysis_copy_balance_template(&(to->data.balance), &(from->data.balance));
+//		break;
+
+//	case REPORT_TYPE_NONE:
+//		break;
+//	}
+}
+
+
 
 
 
@@ -347,22 +483,26 @@ void analysis_template_rename(struct analysis_template_block *instance, template
  * Save the Report Template details from a saved templates instance to a
  * CashBook file
  *
- * \param *file			The file to which the instance belongs.
  * \param *instance		The saved templates instance to write.
  * \param *out			The file handle to write to.
  * \param *reports		An array of report type definitions.
  * \param count			The number of report type definitions.
  */
 
-void analysis_template_write_file(struct file_block *file, struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count)
+void analysis_template_write_file(struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count)
 {
 	int			i;
+	struct file_block	*file;
 	struct analysis_report	*template = NULL;
 	void			*data = NULL;
 
 
-	if (file == NULL || instance == NULL || reports == NULL)
-		return FALSE;
+	if (instance == NULL || reports == NULL)
+		return;
+
+	file = analysis_get_file(instance);
+	if (file == NULL)
+		return;
 
 	/* Write the section header. */
 
@@ -384,7 +524,6 @@ void analysis_template_write_file(struct file_block *file, struct analysis_templ
  * Read Report Template details from a CashBook file into a saved templates
  * instance.
  *
- * \param *file			The file to which the instance belongs.
  * \param *instance		The saved templates instance to read in to.
  * \param *in			The filing handle to read in from.
  * \param *reports		An array of report type definitions.
@@ -392,14 +531,19 @@ void analysis_template_write_file(struct file_block *file, struct analysis_templ
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool analysis_template_read_file(struct file_block *file, struct analysis_template_block *instance, struct filing_block *in, struct analysis_report_details *reports[], size_t count)
+osbool analysis_template_read_file(struct analysis_template_block *instance, struct filing_block *in, struct analysis_report_details *reports[], size_t count)
 {
 	size_t			block_size;
+	struct file_block	*file;
 	struct analysis_report	*template = NULL;
 	void			*data = NULL;
 
 
-	if (file == NULL || instance == NULL || reports == NULL)
+	if (instance == NULL || reports == NULL)
+		return FALSE;
+
+	file = analysis_get_file(instance);
+	if (file == NULL)
 		return FALSE;
 
 #ifdef DEBUG
@@ -446,7 +590,7 @@ osbool analysis_template_read_file(struct file_block *file, struct analysis_temp
 #ifdef DEBUG
 			debug_printf("Starting to store template %d at 0x%x with data at 0x%x", instance->saved_report_count - 1, template, data);
 #endif
-			template->file = file;
+			template->instance = instance;
 			template->type = analysis_get_report_type_field(in);
 			template->name[0] = '\0';
 

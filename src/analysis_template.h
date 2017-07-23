@@ -82,6 +82,26 @@ void analysis_template_delete_instance(struct analysis_template_block *instance)
 
 
 /**
+ * Return the analysis template storage instance owning a report.
+ *
+ * \param *report		The report of interest.
+ * \return			The owning instance, or NULL.
+ */ 
+
+struct analysis_template_block *analysis_template_get_instance(struct analysis_report *report);
+
+
+/**
+ * Return the cashbook file owning a template storage instance.
+ *
+ * \param *instance		The instance of interest.
+ * \return			The owning file, or NULL.
+ */
+
+struct file_block *analysis_template_get_file(struct analysis_template_block *instance);
+
+
+/**
  * Remove any references to a given account from all of the saved analysis
  * templates in an instance.
  * 
@@ -114,16 +134,42 @@ int analysis_template_get_count(struct analysis_template_block *instance);
 
 
 /**
- * Return a volatile pointer to a template block from within an instance's
+ * Return a volatile pointer to a report block from within an instance's
  * saved templates. This is a pointer into a flex heap block, so it will
  * only be valid until an operation occurs to shift the blocks.
  * 
- * \param *instance		The instance containing the template of interest.
- * \param template		The number of the requied template.
- * \return			Volatile pointer to the template, or NULL.
+ * \param *instance		The instance containing the report of interest.
+ * \param template		The number of the requied report.
+ * \return			Volatile pointer to the report, or NULL.
  */
 
 struct analysis_report *analysis_template_get_report(struct analysis_template_block *instance, template_t template);
+
+
+/**
+ * Return the name for an analysis template.
+ *
+ * If a buffer is supplied, the name is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * name in the template array is returned instead. In the latter case, this
+ * pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *template		Pointer to the template to return the name of.
+ * \param *buffer		Pointer to a buffer to take the name, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting name string,
+ *				either the supplied buffer or the original.
+ */
+
+char *analysis_template_get_name(struct analysis_report *template, char *buffer, size_t length);
+
+
+
+
+
 
 
 /**
@@ -175,21 +221,19 @@ void analysis_template_rename(struct analysis_template_block *instance, template
  * Save the Report Template details from a saved templates instance to a
  * CashBook file
  *
- * \param *file			The file to which the instance belongs.
  * \param *instance		The saved templates instance to write.
  * \param *out			The file handle to write to.
  * \param *reports		An array of report type definitions.
  * \param count			The number of report type definitions.
  */
 
-void analysis_template_write_file(struct file_block *file, struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count);
+void analysis_template_write_file(struct analysis_template_block *instance, FILE *out, struct analysis_report_details *reports[], size_t count);
 
 
 /**
  * Read Report Template details from a CashBook file into a saved templates
  * instance.
  *
- * \param *file			The file to which the instance belongs.
  * \param *instance		The saved templates instance to read in to.
  * \param *in			The filing handle to read in from.
  * \param *reports		An array of report type definitions.
@@ -197,7 +241,7 @@ void analysis_template_write_file(struct file_block *file, struct analysis_templ
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool analysis_template_read_file(struct file_block *file, struct analysis_template_block *instance, struct filing_block *in, struct analysis_report_details *reports[], size_t count);
+osbool analysis_template_read_file(struct analysis_template_block *instance, struct filing_block *in, struct analysis_report_details *reports[], size_t count);
 
 #endif
 

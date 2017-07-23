@@ -144,12 +144,6 @@ static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a point
 #define ANALYSIS_REPORT_TYPE_COUNT 5
 
 /**
- * The size of a buffer used to convert integers into hex strings.
- */
-
-#define ANALYSIS_HEX_BUFFER_LEN 32
-
-/**
  * Details of all of the analysis report types.
  */
 
@@ -661,71 +655,6 @@ void analysis_account_list_to_idents(struct analysis_block *instance, char *list
 //		if (strlen(list) + strlen(buffer) < ANALYSIS_ACC_SPEC_LEN)
 //			strcat(list, buffer);
 //	}
-}
-
-
-/**
- * Convert a textual comma-separated list of hex numbers into a numeric
- * account list array.
- *
- * \param *file			The file to process.
- * \param *list			The textual hex number list to process.
- * \param *array		Pointer to memory to take the numeric list,
- *				with space for ANALYSIS_ACC_LIST_LEN entries.
- * \return			The number of entries added to the list.
- */
-
-int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *array)
-{
-	char	*copy, *value;
-	int	i = 0;
-
-	copy = strdup(list);
-
-	if (copy == NULL)
-		return 0;
-
-	value = strtok(copy, ",");
-
-	while (value != NULL && i < ANALYSIS_ACC_LIST_LEN) {
-		array[i++] = strtoul(value, NULL, 16);
-
-		value = strtok(NULL, ",");
-	}
-
-	free(copy);
-
-	return i;
-}
-
-
-/* Convert a numeric account list array into a textual list of comma-separated
- * hex values.
- *
- * \param *file			The file to process.
- * \param *list			Pointer to the buffer to take the textual list.
- * \param size			The size of the buffer.
- * \param *array		The account list array to be converted.
- * \param len			The number of accounts in the list.
- */
-
-void analysis_account_list_to_hex(struct file_block *file, char *list, size_t size, acct_t *array, int len)
-{
-	char	buffer[ANALYSIS_HEX_BUFFER_LEN];
-	int	i;
-
-	*list = '\0';
-
-	for (i = 0; i < len; i++) {
-		snprintf(buffer, ANALYSIS_HEX_BUFFER_LEN, "%x", array[i]);
-		buffer[ANALYSIS_HEX_BUFFER_LEN - 1] = '\0';
-
-		if (strlen(list) > 0 && strlen(list) + 1 < size)
-			strcat(list, ",");
-
-		if (strlen(list) + strlen(buffer) < size)
-			strcat(list, buffer);
-	}
 }
 
 

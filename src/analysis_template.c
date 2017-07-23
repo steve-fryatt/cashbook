@@ -53,6 +53,12 @@
 
 
 /**
+ * The size of a buffer used to convert integers into hex strings.
+ */
+
+#define ANALYSIS_TEMPLATE_HEX_BUFFER_LEN 32
+
+/**
  * Saved Report.
  */
 
@@ -505,7 +511,7 @@ void analysis_template_write_file(struct analysis_template_block *instance, FILE
 
 		report_details = analysis_get_report_details(template->type);
 		if (report_details != NULL && report_details->write_file_template != NULL)
-			report_details->write_file_template(file, data, out, template->name);
+			report_details->write_file_template(data, out, template->name);
 	}
 }
 
@@ -586,13 +592,13 @@ osbool analysis_template_read_file(struct analysis_template_block *instance, str
 			report_details = analysis_get_report_details(template->type);
 
 			if (report_details != NULL && report_details->process_file_token != NULL)
-				report_details->process_file_token(file, data, in);
+				report_details->process_file_token(data, in);
 			else
 				filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		} else if (template != NULL && filing_test_token(in, "Name")) {
 			filing_get_text_value(in, template->name, ANALYSIS_SAVED_NAME_LEN);
 		} else if (template != NULL && data != NULL && report_details != NULL && report_details->process_file_token != NULL) {
-			report_details->process_file_token(file, data, in);
+			report_details->process_file_token(data, in);
 		} else {
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
@@ -606,5 +612,68 @@ osbool analysis_template_read_file(struct analysis_template_block *instance, str
 	}
 
 	return TRUE;
+}
+
+
+/**
+ * Convert a textual comma-separated list of hex numbers into a numeric
+ * account list array.
+ *
+ * \param *list			The textual hex number list to process.
+ * \param *array		Pointer to memory to take the numeric list,
+ *				with space for ANALYSIS_ACC_LIST_LEN entries.
+ * \return			The number of entries added to the list.
+ */
+
+int analysis_template_account_hex_to_list(char *list, acct_t *array)
+{
+	char	*copy, *value;
+	int	i = 0;
+
+	copy = strdup(list);
+
+	if (copy == NULL)
+		return 0;
+
+	value = strtok(copy, ",");
+
+	while (value != NULL && i < ANALYSIS_ACC_LIST_LEN) {
+		array[i++] = strtoul(value, NULL, 16);
+
+		value = strtok(NULL, ",");
+	}
+
+	free(copy);
+
+	return i;
+}
+
+
+/* Convert a numeric account list array into a textual list of comma-separated
+ * hex values.
+ *
+ * \param *list			Pointer to the buffer to take the textual list.
+ * \param size			The size of the buffer.
+ * \param *array		The account list array to be converted.
+ * \param len			The number of accounts in the list.
+ */
+
+void analysis_template_account_list_to_hex(char *list, size_t size, acct_t *array, int len)
+{
+	char	buffer[ANALYSIS_TEMPLATE_HEX_BUFFER_LEN];
+	int	i;
+
+	*list = '\0';
+
+	for (i = 0; i < len; i++) {
+		snprintf(buffer, ANALYSIS_TEMPLATE_HEX_BUFFER_LEN, "%x", array[i]);
+		buffer[ANALYSIS_TEMPLATE_HEX_BUFFER_LEN - 1] = '\0';
+
+		if (strlen(list) > 0 && strlen(list) + 1 < size)
+			strcat(list, ",");
+
+		if (strlen(list) + strlen(buffer) < size)
+			strcat(list, buffer);
+	}
 }
 

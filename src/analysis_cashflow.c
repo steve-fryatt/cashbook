@@ -158,8 +158,8 @@ static void		analysis_generate_cashflow_report(struct file_block *file);
 #endif
 
 static void analysis_cashflow_copy_template(struct cashflow_rep *to, struct cashflow_rep *from);
-static void analysis_cashflow_write_file_block(struct file_block *file, void *block, FILE *out, char *name);
-static void analysis_cashflow_process_file_token(struct file_block *file, void *block, struct filing_block *in);
+static void analysis_cashflow_write_file_block(void *block, FILE *out, char *name);
+static void analysis_cashflow_process_file_token(void *block, struct filing_block *in);
 
 static struct analysis_report_details analysis_cashflow_details = {
 	analysis_cashflow_process_file_token,
@@ -942,18 +942,17 @@ static void analysis_cashflow_copy_template(struct cashflow_rep *to, struct cash
 /**
  * Write a template to a saved cashbook file.
  *
- * \param *file			The handle of the file owning the data.
  * \param *block		The saved report template block to write.
  * \param *out			The outgoing file handle.
  * \param *name			The name of the template.
  */
 
-static void analysis_cashflow_write_file_block(struct file_block *file, void *block, FILE *out, char *name)
+static void analysis_cashflow_write_file_block(void *block, FILE *out, char *name)
 {
 	char				buffer[FILING_MAX_FILE_LINE_LEN];
 	struct analysis_cashflow_report	*template = block;
 
-	if (out == NULL || template == NULL || file == NULL)
+	if (out == NULL || template == NULL)
 		return;
 
 	fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
@@ -972,19 +971,19 @@ static void analysis_cashflow_write_file_block(struct file_block *file, void *bl
 		config_write_token_pair(out, "Name", name);
 
 	if (template->accounts_count > 0) {
-		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+		analysis_template_account_list_to_hex(buffer, FILING_MAX_FILE_LINE_LEN,
 				template->accounts, template->accounts_count);
 		config_write_token_pair(out, "Accounts", buffer);
 	}
 
 	if (template->incoming_count > 0) {
-		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+		analysis_template_account_list_to_hex(buffer, FILING_MAX_FILE_LINE_LEN,
 				template->incoming, template->incoming_count);
 		config_write_token_pair(out, "Incoming", buffer);
 	}
 
 	if (template->outgoing_count > 0) {
-		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+		analysis_template_account_list_to_hex(buffer, FILING_MAX_FILE_LINE_LEN,
 				template->outgoing, template->outgoing_count);
 		config_write_token_pair(out, "Outgoing", buffer);
 	}
@@ -995,16 +994,15 @@ static void analysis_cashflow_write_file_block(struct file_block *file, void *bl
  * Process a token from the saved report template section of a saved
  * cashbook file.
  *
- * \param *file			The handle of the file owning the data.
  * \param *block		The saved report template block to populate.
  * \param *in			The incoming file handle.
  */
 
-static void analysis_cashflow_process_file_token(struct file_block *file, void *block, struct filing_block *in)
+static void analysis_cashflow_process_file_token(void *block, struct filing_block *in)
 {
 	struct analysis_cashflow_report *template = block;
 
-	if (in == NULL || template == NULL || file == NULL)
+	if (in == NULL || template == NULL)
 		return;
 
 	if (filing_test_token(in, "@")) {
@@ -1021,11 +1019,11 @@ static void analysis_cashflow_process_file_token(struct file_block *file, void *
 		template->incoming_count = 0;
 		template->outgoing_count = 0;
 	} else if (filing_test_token(in, "Accounts")) {
-		template->accounts_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->accounts);
+		template->accounts_count = analysis_template_account_hex_to_list(filing_get_text_value(in, NULL, 0), template->accounts);
 	} else if (filing_test_token(in, "Incoming")) {
-		template->incoming_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->incoming);
+		template->incoming_count = analysis_template_account_hex_to_list(filing_get_text_value(in, NULL, 0), template->incoming);
 	} else if (filing_test_token(in, "Outgoing")) {
-		template->outgoing_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->outgoing);
+		template->outgoing_count = analysis_template_account_hex_to_list(filing_get_text_value(in, NULL, 0), template->outgoing);
 	} else {
 		filing_set_status(in, FILING_STATUS_UNEXPECTED);
 	}

@@ -239,5 +239,31 @@ void analysis_template_write_file(struct analysis_template_block *instance, FILE
 
 osbool analysis_template_read_file(struct analysis_template_block *instance, struct filing_block *in);
 
+
+/**
+ * Convert a textual comma-separated list of hex numbers into a numeric
+ * account list array.
+ *
+ * \param *list			The textual hex number list to process.
+ * \param *array		Pointer to memory to take the numeric list,
+ *				with space for REPORT_ACC_LIST_LEN entries.
+ * \return			The number of entries added to the list.
+ */
+
+int analysis_template_account_hex_to_list(char *list, acct_t *array);
+
+
+/**
+ * Convert a numeric account list array into a textual list of comma-separated
+ * hex values.
+ *
+ * \param *list			Pointer to the buffer to take the textual list.
+ * \param size			The size of the buffer.
+ * \param *array		The account list array to be converted.
+ * \param len			The number of accounts in the list.
+ */
+
+void analysis_template_account_list_to_hex(char *list, size_t size, acct_t *array, int len);
+
 #endif
 

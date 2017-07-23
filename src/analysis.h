@@ -93,12 +93,12 @@ struct analysis_report_details {
 	/**
 	 * Read a template token in from a saved CashBook file.
 	 */
-	void		(*process_file_token)(struct file_block *file, void *template, struct filing_block *in);
+	void		(*process_file_token)(void *template, struct filing_block *in);
 
 	/**
 	 * Write a template out to a saved CashBook file.
 	 */
-	void		(*write_file_template)(struct file_block *file, void *template, FILE *out, char *name);
+	void		(*write_file_template)(void *template, FILE *out, char *name);
 
 	/**
 	 * Copy a template from one location to another.
@@ -212,34 +212,6 @@ void analysis_remove_account_from_templates(struct file_block *file, acct_t acco
  */
 
 void analysis_account_list_to_idents(struct analysis_block *instance, char *list, acct_t *array, int len);
-
-
-/**
- * Convert a textual comma-separated list of hex numbers into a numeric
- * account list array.
- *
- * \param *file			The file to process.
- * \param *list			The textual hex number list to process.
- * \param *array		Pointer to memory to take the numeric list,
- *				with space for REPORT_ACC_LIST_LEN entries.
- * \return			The number of entries added to the list.
- */
-
-int analysis_account_hex_to_list(struct file_block *file, char *list, acct_t *array);
-
-
-/**
- * Convert a numeric account list array into a textual list of comma-separated
- * hex values.
- *
- * \param *file			The file to process.
- * \param *list			Pointer to the buffer to take the textual list.
- * \param size			The size of the buffer.
- * \param *array		The account list array to be converted.
- * \param len			The number of accounts in the list.
- */
-
-void analysis_account_list_to_hex(struct file_block *file, char *list, size_t size, acct_t *array, int len);
 
 
 /**

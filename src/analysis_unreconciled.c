@@ -150,8 +150,8 @@ static void		analysis_generate_unreconciled_report(struct file_block *file);
 #endif
 
 static void analysis_unreconciled_copy_template(struct unrec_rep *to, struct unrec_rep *from);
-static void analysis_unreconciled_write_file_block(struct file_block *file, void *block, FILE *out, char *name);
-static void analysis_unreconciled_process_file_token(struct file_block *file, void *block, struct filing_block *in);
+static void analysis_unreconciled_write_file_block(void *block, FILE *out, char *name);
+static void analysis_unreconciled_process_file_token(void *block, struct filing_block *in);
 
 static struct analysis_report_details analysis_unreconciled_details = {
 	analysis_unreconciled_process_file_token,
@@ -939,18 +939,17 @@ static void analysis_unreconciled_copy_template(struct unrec_rep *to, struct unr
 /**
  * Write a template to a saved cashbook file.
  *
- * \param *file			The handle of the file owning the data.
  * \param *block		The saved report template block to write.
  * \param *out			The outgoing file handle.
  * \param *name			The name of the template.
  */
 
-static void analysis_unreconciled_write_file_block(struct file_block *file, void *block, FILE *out, char *name)
+static void analysis_unreconciled_write_file_block(void *block, FILE *out, char *name)
 {
 	char					buffer[FILING_MAX_FILE_LINE_LEN];
 	struct analysis_unreconciled_report	*template = block;
 
-	if (out == NULL || template == NULL || file == NULL)
+	if (out == NULL || template == NULL)
 		return;
 
 	fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x\n",
@@ -967,13 +966,13 @@ static void analysis_unreconciled_write_file_block(struct file_block *file, void
 		config_write_token_pair(out, "Name", name);
 
 	if (template->from_count > 0) {
-		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+		analysis_template_account_list_to_hex(buffer, FILING_MAX_FILE_LINE_LEN,
 				template->from, template->from_count);
 		config_write_token_pair(out, "From", buffer);
 	}
 
 	if (template->to_count > 0) {
-		analysis_account_list_to_hex(file, buffer, FILING_MAX_FILE_LINE_LEN,
+		analysis_template_account_list_to_hex(buffer, FILING_MAX_FILE_LINE_LEN,
 				template->to, template->to_count);
 		config_write_token_pair(out, "To", buffer);
 	}
@@ -984,16 +983,15 @@ static void analysis_unreconciled_write_file_block(struct file_block *file, void
  * Process a token from the saved report template section of a saved
  * cashbook file.
  *
- * \param *file			The handle of the file owning the data.
  * \param *block		The saved report template block to populate.
  * \param *in			The incoming file handle.
  */
 
-static void analysis_unreconciled_process_file_token(struct file_block *file, void *block, struct filing_block *in)
+static void analysis_unreconciled_process_file_token(void *block, struct filing_block *in)
 {
 	struct analysis_unreconciled_report *template = block;
 
-	if (in == NULL || template == NULL || file == NULL)
+	if (in == NULL || template == NULL)
 		return;
 
 	if (filing_test_token(in, "@")) {
@@ -1007,9 +1005,9 @@ static void analysis_unreconciled_process_file_token(struct file_block *file, vo
 		template->from_count = 0;
 		template->to_count = 0;
 	} else if (filing_test_token(in, "From")) {
-		template->from_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->from);
+		template->from_count = analysis_template_account_hex_to_list(filing_get_text_value(in, NULL, 0), template->from);
 	} else if (filing_test_token(in, "To")) {
-		template->to_count = analysis_account_hex_to_list(file, filing_get_text_value(in, NULL, 0), template->to);
+		template->to_count = analysis_template_account_hex_to_list(filing_get_text_value(in, NULL, 0), template->to);
 	} else {
 		filing_set_status(in, FILING_STATUS_UNEXPECTED);
 	}

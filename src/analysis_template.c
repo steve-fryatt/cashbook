@@ -483,7 +483,7 @@ static void analysis_template_copy(struct analysis_report *to, struct analysis_r
 void analysis_template_write_file(struct analysis_template_block *instance, FILE *out)
 {
 	int				i;
-/	struct analysis_report		*template = NULL;
+	struct analysis_report		*template = NULL;
 	struct analysis_report_details	*report_details;
 	void				*data = NULL;
 

@@ -163,7 +163,7 @@ static osbool		analysis_delete_transaction_window(void);
 static void		analysis_generate_transaction_report(struct file_block *file);
 #endif
 
-static void analysis_transaction_copy_template(struct trans_rep *to, struct trans_rep *from);
+static void analysis_transaction_copy_template(void *to, void *from);
 static void analysis_transaction_write_file_block(void *block, FILE *out, char *name);
 static void analysis_transaction_process_file_token(void *block, struct filing_block *in);
 
@@ -1039,7 +1039,7 @@ void analysis_transaction_remove_template(template_t template)
  * \param *from			The template to be copied.
  */
 
-static void analysis_transaction_copy_template(struct trans_rep *to, struct trans_rep *from)
+static void analysis_transaction_copy_template(void *to, void *from)
 {
 	struct analysis_transaction_report	*a = from, *b = to;
 	int					i;

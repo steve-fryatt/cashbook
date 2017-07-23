@@ -157,7 +157,7 @@ static osbool		analysis_delete_cashflow_window(void);
 static void		analysis_generate_cashflow_report(struct file_block *file);
 #endif
 
-static void analysis_cashflow_copy_template(struct cashflow_rep *to, struct cashflow_rep *from);
+static void analysis_cashflow_copy_template(void *to, void *from);
 static void analysis_cashflow_write_file_block(void *block, FILE *out, char *name);
 static void analysis_cashflow_process_file_token(void *block, struct filing_block *in);
 
@@ -905,7 +905,7 @@ void analysis_cashflow_remove_template(template_t template)
  * \param *from			The template to be copied.
  */
 
-static void analysis_cashflow_copy_template(struct cashflow_rep *to, struct cashflow_rep *from)
+static void analysis_cashflow_copy_template(void *to, void *from)
 {
 	struct analysis_cashflow_report		*a = from, *b = to;
 	int					i;

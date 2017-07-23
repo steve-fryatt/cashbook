@@ -153,7 +153,7 @@ static osbool		analysis_delete_balance_window(void);
 static void		analysis_generate_balance_report(struct file_block *file);
 #endif
 
-static void analysis_balance_copy_template(struct balance_rep *to, struct balance_rep *from);
+static void analysis_balance_copy_template(void *to, void *from);
 static void analysis_balance_write_file_block(void *block, FILE *out, char *name);
 static void analysis_balance_process_file_token(void *block, struct filing_block *in);
 
@@ -889,7 +889,7 @@ void analysis_balance_remove_template(struct analysis_block *parent, template_t 
  * \param *from			The template to be copied.
  */
 
-static void analysis_balance_copy_template(struct balance_rep *to, struct balance_rep *from)
+static void analysis_balance_copy_template(void *to, void *from)
 {
 	struct analysis_balance_report	*a = from, *b = to;
 	int				i;

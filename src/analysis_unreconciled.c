@@ -149,7 +149,7 @@ static osbool		analysis_delete_unreconciled_window(void);
 static void		analysis_generate_unreconciled_report(struct file_block *file);
 #endif
 
-static void analysis_unreconciled_copy_template(struct unrec_rep *to, struct unrec_rep *from);
+static void analysis_unreconciled_copy_template(void *to, void *from);
 static void analysis_unreconciled_write_file_block(void *block, FILE *out, char *name);
 static void analysis_unreconciled_process_file_token(void *block, struct filing_block *in);
 
@@ -909,7 +909,7 @@ void analysis_unreconciled_remove_template(template_t template)
  * \param *from			The template to be copied.
  */
 
-static void analysis_unreconciled_copy_template(struct unrec_rep *to, struct unrec_rep *from)
+static void analysis_unreconciled_copy_template(void *to, void *from)
 {
 	struct analysis_unreconciled_report	*a = from, *b = to;
 	int					i;

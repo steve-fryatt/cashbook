@@ -483,17 +483,12 @@ static void analysis_template_copy(struct analysis_report *to, struct analysis_r
 void analysis_template_write_file(struct analysis_template_block *instance, FILE *out)
 {
 	int				i;
-	struct file_block		*file;
-	struct analysis_report		*template = NULL;
+/	struct analysis_report		*template = NULL;
 	struct analysis_report_details	*report_details;
 	void				*data = NULL;
 
 
 	if (instance == NULL)
-		return;
-
-	file = analysis_get_file(instance->parent);
-	if (file == NULL)
 		return;
 
 	/* Write the section header. */
@@ -528,17 +523,12 @@ void analysis_template_write_file(struct analysis_template_block *instance, FILE
 osbool analysis_template_read_file(struct analysis_template_block *instance, struct filing_block *in)
 {
 	size_t				block_size;
-	struct file_block		*file;
 	struct analysis_report		*template = NULL;
 	struct analysis_report_details	*report_details = NULL;
 	void				*data = NULL;
 
 
 	if (instance == NULL)
-		return FALSE;
-
-	file = analysis_get_file(instance->parent);
-	if (file == NULL)
 		return FALSE;
 
 #ifdef DEBUG

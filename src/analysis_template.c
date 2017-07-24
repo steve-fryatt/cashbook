@@ -96,7 +96,11 @@ static size_t			analysis_template_block_size = 0;
 
 static size_t			analysis_template_full_block_size = 0;
 
+/* Function Prototypes. */
 
+static void analysis_template_copy(struct analysis_report *to, struct analysis_report *from);
+
+/* Macros. */
 
 /**
  * Test whether a template number is safe to look up in the template data array.
@@ -382,7 +386,8 @@ template_t analysis_template_get_from_name(struct analysis_template_block *insta
 
 void analysis_template_store(struct analysis_template_block *instance, struct analysis_report *report, template_t template, char *name)
 {
-	struct file_block *file;
+	struct file_block	*file;
+	struct analysis_report	*destination;
 
 	if (instance == NULL || instance->saved_reports == NULL || report == NULL)
 		return;
@@ -404,7 +409,8 @@ void analysis_template_store(struct analysis_template_block *instance, struct an
 		report->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
 	}
 
-//	analysis_copy_template(instance->saved_reports + template, report);
+	destination = analysis_template_address(instance, template);
+	analysis_template_copy(destination, report);
 
 	/* Mark the file has being modified. */
 
@@ -424,15 +430,18 @@ void analysis_template_store(struct analysis_template_block *instance, struct an
 
 void analysis_template_rename(struct analysis_template_block *instance, template_t template, char *name)
 {
-	struct file_block *file;
+	struct file_block	*file;
+	struct analysis_report	*block;
 
 	if (instance == NULL || instance->saved_reports == NULL || !analysis_template_valid(instance, template))
 		return;
 
 	/* Copy the new name across into the template. */
 
-//	strncpy(instance->saved_reports[template].name, name, ANALYSIS_SAVED_NAME_LEN);
-//	instance->saved_reports[template].name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
+	block = analysis_template_address(instance, template);
+
+	strncpy(block->name, name, ANALYSIS_SAVED_NAME_LEN);
+	block->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
 
 	/* Mark the file has being modified. */
 

@@ -113,6 +113,29 @@ void analysis_template_remove_account(struct analysis_template_block *instance, 
 
 
 /**
+ * Remove any references to a given account from an analysis template.
+ *
+ * \param *report		The report to process.
+ * \param account		The account to be removed.
+ */
+
+void analysis_template_remove_account_from_template(struct analysis_report *report, acct_t account);
+
+
+/**
+ * Remove any references to an account from an account list array.
+ *
+ * \param account		The account to remove, if present.
+ * \param *array		The account list array.
+ * \param *count		Pointer to number of accounts in the array, which
+ *				is updated before return.
+ * \return			The new account count in the array.
+ */
+
+int analysis_template_remove_account_from_list(acct_t account, acct_t *array, int *count);
+
+
+/**
  * Return the type of template which is stored at a given index.
  * 
  * \param *instance		The save report instance to query.
@@ -167,11 +190,6 @@ struct analysis_report *analysis_template_get_report(struct analysis_template_bl
 char *analysis_template_get_name(struct analysis_report *template, char *buffer, size_t length);
 
 
-
-
-
-
-
 /**
  * Find a saved template ID based on its name.
  *
@@ -206,15 +224,6 @@ void analysis_template_store(struct analysis_template_block *instance, struct an
  */
 
 void analysis_template_rename(struct analysis_template_block *instance, template_t template, char *name);
-
-
-
-
-
-
-
-
-
 
 
 /**

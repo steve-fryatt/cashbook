@@ -85,15 +85,6 @@ void analysis_balance_open_window(struct analysis_block *parent, wimp_pointer *p
 
 
 
-/**
- * Remove any references to an account if it appears within a
- * balance report template.
- *
- * \param *report	The transaction report to be processed.
- * \param account	The account to be removed.
- */
-
-//void analysis_balance_remove_account(struct balance_rep *report, acct_t account);
 
 
 /**

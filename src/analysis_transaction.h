@@ -80,18 +80,6 @@ void analysis_transaction_delete_instance(struct analysis_transaction_report *re
 
 
 
-
-/**
- * Remove any references to an account if it appears within a
- * transaction report template.
- *
- * \param *report	The transaction report to be processed.
- * \param account	The account to be removed.
- */
-
-//void analysis_transaction_remove_account(struct trans_rep *report, acct_t account);
-
-
 /**
  * Remove any references to a report template.
  * 

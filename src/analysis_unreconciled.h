@@ -71,17 +71,6 @@ void analysis_unreconciled_delete_instance(struct analysis_unreconciled_report *
 
 
 /**
- * Remove any references to an account if it appears within an
- * unreconciled transaction report template.
- *
- * \param *report	The transaction report to be processed.
- * \param account	The account to be removed.
- */
-
-//void analysis_unreconciled_remove_account(struct unrec_rep *report, acct_t account);
-
-
-/**
  * Remove any references to a report template.
  * 
  * \param template	The template to be removed.

@@ -163,6 +163,7 @@ static osbool		analysis_delete_transaction_window(void);
 static void		analysis_generate_transaction_report(struct file_block *file);
 #endif
 
+static void analysis_transaction_remove_account(void *report, acct_t account);
 static void analysis_transaction_copy_template(void *to, void *from);
 static void analysis_transaction_write_file_block(void *block, FILE *out, char *name);
 static void analysis_transaction_process_file_token(void *block, struct filing_block *in);
@@ -171,7 +172,8 @@ static void analysis_transaction_process_file_token(void *block, struct filing_b
 static struct analysis_report_details analysis_transaction_details = {
 	analysis_transaction_process_file_token,
 	analysis_transaction_write_file_block,
-	analysis_transaction_copy_template
+	analysis_transaction_copy_template,
+	analysis_transaction_remove_account
 };
 
 /**
@@ -994,22 +996,6 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 
 
-/**
- * Remove any references to an account if it appears within a
- * transaction report template.
- *
- * \param *report	The transaction report to be processed.
- * \param account	The account to be removed.
- */
-
-void analysis_transaction_remove_account(struct trans_rep *report, acct_t account)
-{
-	if (report == NULL)
-		return;
-
-	analysis_remove_account_from_list(account, report->from, &(report->from_count));
-	analysis_remove_account_from_list(account, report->to, &(report->to_count));
-}
 
 
 /**
@@ -1024,12 +1010,29 @@ void analysis_transaction_remove_template(template_t template)
 		analysis_transaction_template--;
 }
 
-
-
-
-
-
 #endif
+
+
+
+
+/**
+ * Remove any references to an account if it appears within a
+ * transaction report template.
+ *
+ * \param *report	The transaction report to be processed.
+ * \param account	The account to be removed.
+ */
+
+static void analysis_transaction_remove_account(void *report, acct_t account)
+{
+	struct analysis_transaction_report *rep = report;
+
+	if (rep == NULL)
+		return;
+
+	analysis_template_remove_account_from_list(account, rep->from, &(rep->from_count));
+	analysis_template_remove_account_from_list(account, rep->to, &(rep->to_count));
+}
 
 
 /**

@@ -104,6 +104,11 @@ struct analysis_report_details {
 	 * Copy a template from one location to another.
 	 */
 	void		(*copy_template)(void *from, void *to);
+
+	/**
+	 * Remove all references to an account from a template.
+	 */
+	void		(*remove_account)(void *template, acct_t account);
 };
 
 

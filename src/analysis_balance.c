@@ -153,6 +153,7 @@ static osbool		analysis_delete_balance_window(void);
 static void		analysis_generate_balance_report(struct file_block *file);
 #endif
 
+static void analysis_balance_remove_account(void *report, acct_t account);
 static void analysis_balance_copy_template(void *to, void *from);
 static void analysis_balance_write_file_block(void *block, FILE *out, char *name);
 static void analysis_balance_process_file_token(void *block, struct filing_block *in);
@@ -160,7 +161,8 @@ static void analysis_balance_process_file_token(void *block, struct filing_block
 static struct analysis_report_details analysis_balance_details = {
 	analysis_balance_process_file_token,
 	analysis_balance_write_file_block,
-	analysis_balance_copy_template
+	analysis_balance_copy_template,
+	analysis_balance_remove_account
 };
 
 /**
@@ -847,23 +849,6 @@ static void analysis_generate_balance_report(struct file_block *file)
 
 
 
-/**
- * Remove any references to an account if it appears within a
- * balance report template.
- *
- * \param *report	The transaction report to be processed.
- * \param account	The account to be removed.
- */
-
-void analysis_balance_remove_account(struct balance_rep *report, acct_t account)
-{
-	if (report == NULL)
-		return;
-
-	analysis_remove_account_from_list(account, report->accounts, &(report->accounts_count));
-	analysis_remove_account_from_list(account, report->incoming, &(report->incoming_count));
-	analysis_remove_account_from_list(account, report->outgoing, &(report->outgoing_count));
-}
 
 
 /**
@@ -881,6 +866,28 @@ void analysis_balance_remove_template(struct analysis_block *parent, template_t 
 
 
 #endif
+
+
+/**
+ * Remove any references to an account if it appears within a
+ * balance report template.
+ *
+ * \param *report	The balance report to be processed.
+ * \param account	The account to be removed.
+ */
+
+static void analysis_balance_remove_account(void *report, acct_t account)
+{
+	struct analysis_balance_report *rep = report;
+
+	if (rep == NULL)
+		return;
+
+	analysis_template_remove_account_from_list(account, rep->accounts, &(rep->accounts_count));
+	analysis_template_remove_account_from_list(account, rep->incoming, &(rep->incoming_count));
+	analysis_template_remove_account_from_list(account, rep->outgoing, &(rep->outgoing_count));
+}
+
 
 /**
  * Copy a Balance Report Template from one structure to another.

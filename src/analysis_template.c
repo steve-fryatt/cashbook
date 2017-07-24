@@ -234,14 +234,80 @@ struct file_block *analysis_template_get_file(struct analysis_template_block *in
 
 void analysis_template_remove_account(struct analysis_template_block *instance, acct_t account)
 {
-	template_t template;
+	template_t			i;
+	struct analysis_report		*template = NULL;
+	void				*data = NULL;
 
 	if (instance == NULL)
 		return;
 
-//	for (template = 0; template < file->analysis->saved_report_count; template++) {
-//		analysis_remove_account_from_template(&(file->analysis->saved_reports[template]), account);
-//	}
+	for (i = 0; i < instance->saved_report_count; i++) {
+		template = analysis_template_address(instance, i);
+		analysis_template_remove_account_from_template(template, account);
+	}
+}
+
+
+/**
+ * Remove any references to a given account from an analysis template.
+ *
+ * \param *report		The report to process.
+ * \param account		The account to be removed.
+ */
+
+void analysis_template_remove_account_from_template(struct analysis_report *report, acct_t account)
+{
+	void				*data;
+	struct analysis_report_details	*report_details;
+
+	if (report == NULL)
+		return;
+
+	report_details = analysis_get_report_details(report->type);
+	if (report_details == NULL || report_details->remove_account == NULL)
+		return;
+
+	data = analysis_template_data_from_address(report);
+
+	report_details->remove_account(data, account);
+}
+
+/**
+ * Remove any references to an account from an account list array.
+ *
+ * \param account		The account to remove, if present.
+ * \param *array		The account list array.
+ * \param *count		Pointer to number of accounts in the array, which
+ *				is updated before return.
+ * \return			The new account count in the array.
+ */
+
+int analysis_template_remove_account_from_list(acct_t account, acct_t *array, int *count)
+{
+	int	i = 0, j = 0;
+
+	while (i < *count && j < *count) {
+		/* Skip j on until it finds an account that is to be left in. */
+
+		while (j < *count && array[j] == account)
+			j++;
+
+		/* If pointers are different, and not pointing to the account, copy down the account. */
+
+		if (i < j && i < *count && j < *count && array[j] != account)
+			array[i] = array[j];
+
+		/* Increment the pointers if necessary */
+
+		if (array[i] != account) {
+			i++;
+			j++;
+		}
+	}
+
+	*count = i;
+
+	return i;
 }
 
 
@@ -491,7 +557,7 @@ static void analysis_template_copy(struct analysis_report *to, struct analysis_r
 
 void analysis_template_write_file(struct analysis_template_block *instance, FILE *out)
 {
-	int				i;
+	template_t			i;
 	struct analysis_report		*template = NULL;
 	struct analysis_report_details	*report_details;
 	void				*data = NULL;

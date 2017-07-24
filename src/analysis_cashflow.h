@@ -70,17 +70,6 @@ void analysis_cashflow_delete_instance(struct analysis_cashflow_report *report);
 
 
 /**
- * Remove any references to an account if it appears within a
- * cashflow report template.
- *
- * \param *report	The transaction report to be processed.
- * \param account	The account to be removed.
- */
-
-//void analysis_cashflow_remove_account(struct cashflow_rep *report, acct_t account);
-
-
-/**
  * Remove any references to a report template.
  * 
  * \param template	The template to be removed.

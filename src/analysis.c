@@ -438,83 +438,12 @@ void analysis_remove_account_from_templates(struct file_block *file, acct_t acco
 
 static void analysis_remove_account_from_report_template(struct analysis_report *template, void *data)
 {
-//	acct_t	*account = data;
+	acct_t	*account = data;
 
-//	if (template == NULL || account == NULL)
-//		return;
-
-//	analysis_remove_account_from_template(template, *account);
-}
-
-/**
- * Remove any references to an account from an analysis template.
- *
- * \param *template		The template to process.
- * \param account		The account to be removed.
- */
-
-static void analysis_remove_account_from_template(struct analysis_report *template, acct_t account)
-{
-	if (template == NULL)
+	if (template == NULL || account == NULL)
 		return;
 
-//	switch (template->type) {
-//	case REPORT_TYPE_TRANSACTION:
-//		analysis_transaction_remove_account(&(template->data.transaction), account);
-//		break;
-
-//	case REPORT_TYPE_UNRECONCILED:
-//		analysis_unreconciled_remove_account(&(template->data.unreconciled), account);
-//		break;
-
-//	case REPORT_TYPE_CASHFLOW:
-//		analysis_cashflow_remove_account(&(template->data.cashflow), account);
-//		break;
-
-//	case REPORT_TYPE_BALANCE:
-//		analysis_balance_remove_account(&(template->data.balance), account);
-//		break;
-
-//	case REPORT_TYPE_NONE:
-//		break;
-//	}
-}
-
-
-/**
- * Remove any references to an account from an account list array.
- *
- * \param account		The account to remove, if present.
- * \param *array		The account list array.
- * \param *count		Pointer to number of accounts in the array, which
- *				is updated before return.
- * \return			The new account count in the array.
- */
-
-static int analysis_remove_account_from_list(acct_t account, acct_t *array, int *count)
-{
-	int	i = 0, j = 0;
-
-//	while (i < *count && j < *count) {
-//		/* Skip j on until it finds an account that is to be left in. */
-
-//		while (j < *count && array[j] == account)
-//			j++;
-
-//		/* If pointers are different, and not pointing to the account, copy down the account. */
-//		if (i < j && i < *count && j < *count && array[j] != account)
-//			array[i] = array[j];
-
-//		/* Increment the pointers if necessary */
-//		if (array[i] != account) {
-//			i++;
-//			j++;
-//		}
-//	}
-
-//	*count = i;
-
-	return i;
+	analysis_template_remove_account_from_template(template, *account);
 }
 
 

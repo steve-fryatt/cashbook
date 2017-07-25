@@ -115,9 +115,9 @@ struct analysis_data
 
 struct analysis_block
 {
-	struct file_block		*file;					/**< The parent file.								*/
+	struct file_block			*file;				/**< The parent file.								*/
 
-	struct analysis_template_block	*templates;				/**< The saved analysis templates.						*/
+	struct analysis_template_block		*templates;			/**< The saved analysis templates.						*/
 
 	/* Analysis Report Content. */
 
@@ -148,6 +148,9 @@ static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a point
  */
 
 static struct analysis_report_details	*analysis_report_types[ANALYSIS_REPORT_TYPE_COUNT];
+
+
+
 
 
 static void		analysis_find_date_range(struct file_block *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget);
@@ -407,15 +410,28 @@ static void analysis_find_date_range(struct file_block *file, date_t *start_date
 
 void analysis_remove_account_from_templates(struct file_block *file, acct_t account)
 {
+	struct analysis_report_details *report_details;
+
 	if (file == NULL || file->analysis == NULL)
 		return;
 
 	/* Handle the dialogue boxes. */
 
-//	analysis_transaction_remove_account(file->analysis->trans_rep, account);
-//	analysis_unreconciled_remove_account(file->analysis->unrec_rep, account);
-//	analysis_cashflow_remove_account(file->analysis->cashflow_rep, account);
-//	analysis_balance_remove_account(file->analysis->balance_rep, account);
+	report_details = analysis_get_report_details(REPORT_TYPE_TRANSACTION);
+	if (report_details != NULL && report_details->remove_account != NULL)
+		report_details->remove_account(file->analysis->trans_rep, account);
+
+	report_details = analysis_get_report_details(REPORT_TYPE_UNRECONCILED);
+	if (report_details != NULL && report_details->remove_account != NULL)
+		report_details->remove_account(file->analysis->unrec_rep, account);
+
+	report_details = analysis_get_report_details(REPORT_TYPE_CASHFLOW);
+	if (report_details != NULL && report_details->remove_account != NULL)
+		report_details->remove_account(file->analysis->cashflow_rep, account);
+
+	report_details = analysis_get_report_details(REPORT_TYPE_BALANCE);
+	if (report_details != NULL && report_details->remove_account != NULL)
+		report_details->remove_account(file->analysis->balance_rep, account);
 
 	/* Now process any saved templates. */
 

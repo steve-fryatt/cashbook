@@ -176,6 +176,19 @@ struct file_block *analysis_get_file(struct analysis_block *instance);
 struct analysis_template_block *analysis_get_templates(struct file_block *file);
 
 
+/**
+ * Open a new Analysis Report dialogue box.
+ *
+ * \param *parent	The analysis instance to own the dialogue.
+ * \param *ptr		The current Wimp Pointer details.
+ * \param type		The type of report to open.
+ * \param restore	TRUE to retain the last settings for the file; FALSE to
+ *			use the application defaults.
+ */
+
+void analysis_open_window(struct analysis_block *instance, wimp_pointer *pointer, enum analysis_report_type type, osbool restore);
+
+
 
 
 

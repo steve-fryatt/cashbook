@@ -1435,19 +1435,19 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_ANALYSIS_MONTHREP:
-	//		analysis_transaction_open_window(windat->file->analysis, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			analysis_open_window(windat->file->analysis, &pointer, REPORT_TYPE_TRANSACTION, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_UNREC:
-	//		analysis_unreconciled_open_window(windat->file->analysis, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			analysis_open_window(windat->file->analysis, &pointer, REPORT_TYPE_UNRECONCILED, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_CASHFLOW:
-	//		analysis_cashflow_open_window(windat->file->analysis, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			analysis_open_window(windat->file->analysis, &pointer, REPORT_TYPE_CASHFLOW, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_BALANCE:
-	//		analysis_balance_open_window(windat->file->analysis, &pointer, NULL_TEMPLATE, config_opt_read("RememberValues"));
+			analysis_open_window(windat->file->analysis, &pointer, REPORT_TYPE_BALANCE, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_SOREP:

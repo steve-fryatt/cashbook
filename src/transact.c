@@ -1431,7 +1431,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 		case MAIN_MENU_ANALYSIS_SAVEDREP:
 			template = analysis_template_menu_decode(selection->items[2]);
 			if (template != NULL_TEMPLATE)
-				analysis_open_template(windat->file, &pointer, template);
+				analysis_open_template(windat->file->analysis, &pointer, template, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_MONTHREP:

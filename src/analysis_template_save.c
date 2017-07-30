@@ -216,7 +216,7 @@ void analysis_template_save_open_rename_window(struct file_block *file, int temp
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
-	analysis_template_save_parent = analysis_get_templates(file);
+	analysis_template_save_parent = analysis_get_templates(file->analysis);
 	analysis_template_save_template = template_number;
 	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_RENAME;
 

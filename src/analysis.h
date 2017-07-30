@@ -91,6 +91,22 @@ enum analysis_report_type {
 
 struct analysis_report_details {
 	/**
+	 * Construct a new analysis report instance.
+	 */
+	void*		(*create_instance)(struct analysis_block *parent);
+
+	/**
+	 * Delete an analysis report instance.
+	 */
+	void		(*delete_instance)(void *instance);
+
+	/**
+	 * Open a new analysis report dialogue.
+	 */
+
+	void		(*open_window)(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
+
+	/**
 	 * Read a template token in from a saved CashBook file.
 	 */
 	void		(*process_file_token)(void *template, struct filing_block *in);
@@ -109,6 +125,11 @@ struct analysis_report_details {
 	 * Remove all references to an account from a template.
 	 */
 	void		(*remove_account)(void *template, acct_t account);
+
+	/**
+	 * Remove a template definition.
+	 */
+	// remove_template();
 };
 
 
@@ -167,26 +188,39 @@ struct file_block *analysis_get_file(struct analysis_block *instance);
 
 
 /**
- * Return the report template instance associated with a given file.
+ * Return the report template instance associated with a given analysis instance.
  *
- * \param *file			The file to return the instance for.
+ * \param *instance		The instance to return the templates for.
  * \return			The template instance, or NULL.
  */
 
-struct analysis_template_block *analysis_get_templates(struct file_block *file);
+struct analysis_template_block *analysis_get_templates(struct analysis_block *instance);
 
 
 /**
  * Open a new Analysis Report dialogue box.
  *
- * \param *parent	The analysis instance to own the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param type		The type of report to open.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
+ * \param *parent		The analysis instance to own the dialogue.
+ * \param *pointer		The current Wimp Pointer details.
+ * \param type			The type of report to open.
+ * \param restore		TRUE to retain the last settings for the file; FALSE to
+ *				use the application defaults.
  */
 
 void analysis_open_window(struct analysis_block *instance, wimp_pointer *pointer, enum analysis_report_type type, osbool restore);
+
+
+/**
+ * Open a report from a saved template.
+ *
+ * \param *instance		The analysis instance owning the template.
+ * \param *pointer		The current Wimp Pointer details.
+ * \param selection		The menu selection entry.
+ * \param restore		TRUE to retain the last settings for the file; FALSE to
+ *				use the application defaults.
+ */
+
+void analysis_open_template(struct analysis_block *instance, wimp_pointer *pointer, template_t template, osbool restore);
 
 
 
@@ -230,17 +264,6 @@ void analysis_remove_account_from_templates(struct file_block *file, acct_t acco
  */
 
 void analysis_account_list_to_idents(struct analysis_block *instance, char *list, acct_t *array, int len);
-
-
-/**
- * Open a report from a saved template.
- *
- * \param *file			The file owning the template.
- * \param *ptr			The Wimp pointer details.
- * \param selection		The menu selection entry.
- */
-
-void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template_t template);
 
 
 /**

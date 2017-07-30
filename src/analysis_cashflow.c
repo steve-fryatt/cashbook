@@ -139,7 +139,7 @@ struct analysis_cashflow_report {
 
 static struct analysis_dialogue_block	*analysis_cashflow_dialogue = NULL;
 
-static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.					*/
+//static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.					*/
 static struct analysis_block	*analysis_cashflow_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.				*/
 static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.			*/
@@ -157,16 +157,23 @@ static osbool		analysis_delete_cashflow_window(void);
 static void		analysis_generate_cashflow_report(struct file_block *file);
 #endif
 
+static void *analysis_cashflow_create_instance(struct analysis_block *parent);
+static void analysis_cashflow_delete_instance(void *instance);
+static void analysis_cashflow_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_cashflow_remove_account(void *report, acct_t account);
 static void analysis_cashflow_copy_template(void *to, void *from);
 static void analysis_cashflow_write_file_block(void *block, FILE *out, char *name);
 static void analysis_cashflow_process_file_token(void *block, struct filing_block *in);
 
 static struct analysis_report_details analysis_cashflow_details = {
+	analysis_cashflow_create_instance,
+	analysis_cashflow_delete_instance,
+	analysis_cashflow_open_window,
 	analysis_cashflow_process_file_token,
 	analysis_cashflow_write_file_block,
 	analysis_cashflow_copy_template,
 	analysis_cashflow_remove_account
+	/* remove template */
 };
 
 
@@ -179,13 +186,13 @@ static struct analysis_report_details analysis_cashflow_details = {
 struct analysis_report_details *analysis_cashflow_initialise(void)
 {
 	analysis_template_set_block_size(sizeof(struct analysis_cashflow_report));
-	analysis_cashflow_window = templates_create_window("CashFlwRep");
-	ihelp_add_window(analysis_cashflow_window, "CashFlwRep", NULL);
+//	analysis_cashflow_window = templates_create_window("CashFlwRep");
+//	ihelp_add_window(analysis_cashflow_window, "CashFlwRep", NULL);
 //	event_add_window_mouse_event(analysis_cashflow_window, analysis_cashflow_click_handler);
 //	event_add_window_key_event(analysis_cashflow_window, analysis_cashflow_keypress_handler);
-	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, TRUE);
-	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, TRUE);
-	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, TRUE);
+//	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, TRUE);
+//	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, TRUE);
+//	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, TRUE);
 	analysis_cashflow_dialogue = analysis_dialogue_initialise("CashFlwRep", "CashFlwRep");
 
 	return &analysis_cashflow_details;
@@ -201,7 +208,7 @@ struct analysis_report_details *analysis_cashflow_initialise(void)
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct analysis_cashflow_report *analysis_cashflow_create_instance(struct analysis_block *parent)
+static void *analysis_cashflow_create_instance(struct analysis_block *parent)
 {
 	struct analysis_cashflow_report	*new;
 
@@ -231,18 +238,36 @@ struct analysis_cashflow_report *analysis_cashflow_create_instance(struct analys
 /**
  * Delete a cashflow report data block.
  *
- * \param *report	Pointer to the report to delete.
+ * \param *instance	Pointer to the report to delete.
  */
 
-void analysis_cashflow_delete_instance(struct analysis_cashflow_report *report)
+static void analysis_cashflow_delete_instance(void *instance)
 {
+	struct analysis_cashflow_report *report = instance;
+
 	if (report == NULL)
 		return;
 
-	if ((report->parent == analysis_cashflow_instance) && windows_get_open(analysis_cashflow_window))
-		close_dialogue_with_caret(analysis_cashflow_window);
+	if (report->parent == analysis_cashflow_instance)
+		analysis_dialogue_close(analysis_cashflow_dialogue);
 
 	heap_free(report);
+}
+
+
+/**
+ * Open the Cashflow Report dialogue box.
+ *
+ * \param *parent	The parent analysis instance requesting the dialogue.
+ * \param *ptr		The current Wimp Pointer details.
+ * \param template	The report template to use for the dialogue.
+ * \param restore	TRUE to retain the last settings for the file; FALSE to
+ *			use the application defaults.
+ */
+
+static void analysis_cashflow_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore)
+{
+	debug_printf("Open a cashflow report dialogue with template %d", template);
 }
 
 

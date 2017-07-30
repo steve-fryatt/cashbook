@@ -45,27 +45,6 @@ struct analysis_cashflow_report;
 struct analysis_report_details *analysis_cashflow_initialise(void);
 
 
-/**
- * Construct new cashflow report data block for a file, and return a pointer
- * to the resulting block. The block will be allocated with heap_alloc(), and
- * should be freed after use with heap_free().
- *
- * \param *parent	Pointer to the parent analysis instance.
- * \return		Pointer to the new data block, or NULL on error.
- */
-
-struct analysis_cashflow_report *analysis_cashflow_create_instance(struct analysis_block *parent);
-
-
-/**
- * Delete a cashflow report data block.
- *
- * \param *report	Pointer to the report to delete.
- */
-
-void analysis_cashflow_delete_instance(struct analysis_cashflow_report *report);
-
-
 
 
 

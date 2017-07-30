@@ -48,40 +48,6 @@ struct analysis_balance_report;
 struct analysis_report_details *analysis_balance_initialise(void);
 
 
-/**
- * Construct new balance report data block for a file, and return a pointer
- * to the resulting block. The block will be allocated with heap_alloc(), and
- * should be freed after use with heap_free().
- *
- * \param *parent	Pointer to the parent analysis instance.
- * \return		Pointer to the new data block, or NULL on error.
- */
-
-struct analysis_balance_report *analysis_balance_create_instance(struct analysis_block *parent);
-
-
-/**
- * Delete a balance report data block.
- *
- * \param *report	Pointer to the report to delete.
- */
-
-void analysis_balance_delete_instance(struct analysis_balance_report *report);
-
-
-/**
- * Open the Balance Report dialogue box.
- *
- * \param *parent	The paranet analysis instance owning the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param template	The report template to use for the dialogue.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
- */
-
-void analysis_balance_open_window(struct analysis_block *parent, wimp_pointer *ptr, int template, osbool restore);
-
-
 
 
 

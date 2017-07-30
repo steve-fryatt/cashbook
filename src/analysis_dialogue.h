@@ -45,6 +45,7 @@ struct analysis_dialogue_callback {
 	
 };
 
+
 /**
  * Initialise a new analysis dialogue window.
  *
@@ -54,5 +55,30 @@ struct analysis_dialogue_callback {
  */
 
 struct analysis_dialogue_block *analysis_dialogue_initialise(char *template, char *ihelp);
+
+
+/**
+ * Open a new analysis dialogue.
+ * 
+ * \param *dialogue		The analysis dialogue instance to open.
+ * \param *templates		The analysis templates instance to use.
+ * \param *ptr			The current Wimp Pointer details.
+ * \param template		The report template to use for the dialogue.
+ * \param restore		TRUE to retain the last settings for the file; FALSE to
+ *				use the application defaults.
+ */
+
+void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_template_block *templates, wimp_pointer *pointer, template_t template, osbool restore);
+
+
+/**
+ * Force an analysis dialogue instance to close if it is currently open
+ * on screen.
+ *
+ * \param* dialogue		The dialogue instance to close.
+ */
+
+void analysis_dialogue_close(struct analysis_dialogue_block *dialogue);
+
 
 #endif

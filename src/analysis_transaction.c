@@ -145,7 +145,7 @@ struct analysis_transaction_report {
 
 static struct analysis_dialogue_block	*analysis_transaction_dialogue = NULL;
 
-static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.				*/
+//static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.				*/
 static struct analysis_block	*analysis_transcation_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.			*/
 static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.			*/
@@ -163,6 +163,9 @@ static osbool		analysis_delete_transaction_window(void);
 static void		analysis_generate_transaction_report(struct file_block *file);
 #endif
 
+static void *analysis_transaction_create_instance(struct analysis_block *parent);
+static void analysis_transaction_delete_instance(void *instance);
+static void analysis_transaction_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_transaction_remove_account(void *report, acct_t account);
 static void analysis_transaction_copy_template(void *to, void *from);
 static void analysis_transaction_write_file_block(void *block, FILE *out, char *name);
@@ -170,10 +173,14 @@ static void analysis_transaction_process_file_token(void *block, struct filing_b
 
 
 static struct analysis_report_details analysis_transaction_details = {
+	analysis_transaction_create_instance,
+	analysis_transaction_delete_instance,
+	analysis_transaction_open_window,
 	analysis_transaction_process_file_token,
 	analysis_transaction_write_file_block,
 	analysis_transaction_copy_template,
 	analysis_transaction_remove_account
+	/* remove template */
 };
 
 /**
@@ -185,13 +192,13 @@ static struct analysis_report_details analysis_transaction_details = {
 struct analysis_report_details *analysis_transaction_initialise(void)
 {
 	analysis_template_set_block_size(sizeof(struct analysis_transaction_report));
-	analysis_transaction_window = templates_create_window("TransRep");
-	ihelp_add_window(analysis_transaction_window, "TransRep", NULL);
+//	analysis_transaction_window = templates_create_window("TransRep");
+//	ihelp_add_window(analysis_transaction_window, "TransRep", NULL);
 //	event_add_window_mouse_event(analysis_transaction_window, analysis_transaction_click_handler);
 //	event_add_window_key_event(analysis_transaction_window, analysis_transaction_keypress_handler);
-	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, TRUE);
-	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, TRUE);
-	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, TRUE);
+//	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, TRUE);
+//	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, TRUE);
+//	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, TRUE);
 	analysis_transaction_dialogue = analysis_dialogue_initialise("TransRep", "TransRep");
 
 	return &analysis_transaction_details;
@@ -207,7 +214,7 @@ struct analysis_report_details *analysis_transaction_initialise(void)
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct analysis_transaction_report *analysis_transaction_create_instance(struct analysis_block *parent)
+static void *analysis_transaction_create_instance(struct analysis_block *parent)
 {
 	struct analysis_transaction_report	*new;
 
@@ -241,18 +248,36 @@ struct analysis_transaction_report *analysis_transaction_create_instance(struct 
 /**
  * Delete a transaction report data block.
  *
- * \param *report	Pointer to the report to delete.
+ * \param *instance	Pointer to the report to delete.
  */
 
-void analysis_transaction_delete_instance(struct analysis_transaction_report *report)
+static void analysis_transaction_delete_instance(void *instance)
 {
+	struct analysis_transaction_report *report = instance;
+
 	if (report == NULL)
 		return;
 
-	if ((report->parent == analysis_transcation_instance) && windows_get_open(analysis_transaction_window))
-		close_dialogue_with_caret(analysis_transaction_window);
+	if (report->parent == analysis_transcation_instance)
+		analysis_dialogue_close(analysis_transaction_dialogue);
 
 	heap_free(report);
+}
+
+
+/**
+ * Open the Transaction Report dialogue box.
+ *
+ * \param *parent	The parent analysis instance requesting the dialogue.
+ * \param *ptr		The current Wimp Pointer details.
+ * \param template	The report template to use for the dialogue.
+ * \param restore	TRUE to retain the last settings for the file; FALSE to
+ *			use the application defaults.
+ */
+
+static void analysis_transaction_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore)
+{
+	debug_printf("Open a transaction report dialogue with template %d", template);
 }
 
 

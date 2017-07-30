@@ -38,6 +38,7 @@
 #include "sflib/icons.h"
 #include "sflib/ihelp.h"
 #include "sflib/menus.h"
+#include "sflib/msgs.h"
 #include "sflib/string.h"
 #include "sflib/templates.h"
 #include "sflib/windows.h"
@@ -50,6 +51,8 @@
 #include "account.h"
 #include "account_menu.h"
 #include "analysis.h"
+#include "analysis_template.h"
+#include "caret.h"
 
 
 /**
@@ -66,7 +69,7 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer);
 static osbool analysis_dialogue_keypress_handler(wimp_key *key);
 
 /**
- * Initialise a new analysis dialogue window.
+ * Initialise a new analysis dialogue window instance.
  *
  * \param *template		The name of the template to use for the dialogue.
  * \param *ihelp		The interactive help token to use for the dialogue.
@@ -93,21 +96,25 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(char *template, cha
 /**
  * Open a new analysis dialogue.
  * 
- * 
+ * \param *dialogue		The analysis dialogue instance to open.
+ * \param *templates		The analysis templates instance to use.
+ * \param *ptr			The current Wimp Pointer details.
+ * \param template		The report template to use for the dialogue.
+ * \param restore		TRUE to retain the last settings for the file; FALSE to
+ *				use the application defaults.
  */
 
-void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct file_block *file, wimp_pointer *ptr, template_t template, osbool restore)
+void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_template_block *templates, wimp_pointer *pointer, template_t template, osbool restore)
 {
-#ifdef IGNORE
 	struct analysis_report	*template_block;
 
-	if (dialogue == NULL || file == NULL || ptr == NULL)
+	if (dialogue == NULL || templates == NULL || pointer == NULL)
 		return;
 
 	/* If the window is already open, another balance report is being edited.  Assume the user wants to lose
 	 * any unsaved data and just close the window.
 	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
+	 * We don't use the close_dialogue_with_caret() as the caret is just moving from one dialogue to another.
 	 */
 
 	if (windows_get_open(dialogue->window))
@@ -117,7 +124,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct fil
 	 * while the dialogue is open.
 	 */
 
-	template_block = analysis_get_template(file, template);
+	template_block = analysis_template_get_report(templates, template);
 
 	if (template_block != NULL) {
 //		analysis_copy_balance_template(&(analysis_balance_settings), &(file->saved_reports[template].data.balance));
@@ -125,12 +132,14 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct fil
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(dialogue->window),
 				windows_get_indirected_title_length(dialogue->window),
-				file->saved_reports[template].name, NULL, NULL, NULL);
+				analysis_template_get_name(template_block, NULL, 0), NULL, NULL, NULL);
 
 		restore = TRUE; /* If we use a template, we always want to reset to the template! */
 	} else {
 //		analysis_copy_balance_template(&(analysis_balance_settings), file->balance_rep);
 //		analysis_balance_template = NULL_TEMPLATE;
+
+
 
 		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(dialogue->window),
 				windows_get_indirected_title_length(dialogue->window));
@@ -141,20 +150,34 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct fil
 
 	/* Set the window contents up. */
 
-	analysis_fill_balance_window(file, restore);
+//	analysis_fill_balance_window(file, restore);
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
 //	analysis_balance_file = file;
 //	analysis_balance_restore = restore;
 
-	windows_open_centred_at_pointer(dialogue->window, ptr);
+	windows_open_centred_at_pointer(dialogue->window, pointer);
 //	place_dialogue_caret_fallback(dialogue->window, 4, ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO,
 //			ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_ACCOUNTS);
-#endif
 }
 
 
+/**
+ * Force an analysis dialogue instance to close if it is currently open
+ * on screen.
+ *
+ * \param* dialogue		The dialogue instance to close.
+ */
+
+void analysis_dialogue_close(struct analysis_dialogue_block *dialogue)
+{
+	if (dialogue == NULL)
+		return;
+
+	if (windows_get_open(dialogue->window))
+		close_dialogue_with_caret(dialogue->window);
+}
 
 
 /**

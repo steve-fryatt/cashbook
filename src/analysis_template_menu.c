@@ -127,7 +127,7 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
 	if (file == NULL)
 		return NULL;
 
-	templates = analysis_get_templates(file);
+	templates = analysis_get_templates(file->analysis);
 	if (templates == NULL)
 		return NULL;
 

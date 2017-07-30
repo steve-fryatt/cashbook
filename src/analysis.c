@@ -94,6 +94,12 @@ enum analysis_flags {
 
 
 
+/**
+ * The number of analysis report type definitions.
+ */
+
+#define ANALYSIS_REPORT_TYPE_COUNT 5
+
 
 
 /**
@@ -115,16 +121,23 @@ struct analysis_data
 
 struct analysis_block
 {
-	struct file_block			*file;				/**< The parent file.								*/
+	/**
+	 * The parent file.
+	 */
 
-	struct analysis_template_block		*templates;			/**< The saved analysis templates.						*/
+	struct file_block			*file;
 
-	/* Analysis Report Content. */
+	/**
+	 * The saved analysis templates associated with this instance.
+	 */
 
-	struct analysis_transaction_report	*trans_rep;			/**< Data relating to the transaction report dialogue.				*/
-	struct analysis_unreconciled_report	*unrec_rep;			/**< Data relating to the unreconciled report dialogue.				*/
-	struct analysis_cashflow_report		*cashflow_rep;			/**< Data relating to the cashflow report dialogue.				*/
-	struct analysis_balance_report		*balance_rep;			/**< Data relating to the balance report dialogue.				*/
+	struct analysis_template_block		*templates;
+
+	/**
+	 * The report instances which make up this analysis instance.
+	 */
+
+	void					*reports[ANALYSIS_REPORT_TYPE_COUNT];
 };
 
 /* Report windows. */
@@ -136,12 +149,6 @@ struct analysis_block
 static struct analysis_report	analysis_report_template;			/**< New report settings for passing to the Report module.			*/
 
 static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a pointer to this to set all accounts.				*/
-
-/**
- * The number of analysis report type definitions.
- */
-
-#define ANALYSIS_REPORT_TYPE_COUNT 5
 
 /**
  * Details of all of the analysis report types.
@@ -209,7 +216,9 @@ struct analysis_report_details *analysis_get_report_details(enum analysis_report
 
 struct analysis_block *analysis_create_instance(struct file_block *file)
 {
-	struct analysis_block	*new;
+	enum analysis_report_type	type;
+	struct analysis_block		*new;
+	struct analysis_report_details	*report_details;
 
 	new = heap_alloc(sizeof(struct analysis_block));
 	if (new == NULL)
@@ -219,10 +228,8 @@ struct analysis_block *analysis_create_instance(struct file_block *file)
 
 	new->templates = NULL;
 
-	new->balance_rep = NULL;
-	new->cashflow_rep = NULL;
-	new->trans_rep = NULL;
-	new->unrec_rep = NULL;
+	for (type = 0; type < ANALYSIS_REPORT_TYPE_COUNT; type++)
+		new->reports[type] = NULL;
 
 	/* Set up the saved template data. */
 
@@ -232,36 +239,21 @@ struct analysis_block *analysis_create_instance(struct file_block *file)
 		return NULL;
 	}
 
-	/* Set up the balance report data. */
+	/* Set up the individual reports. */
 
-	new->balance_rep = analysis_balance_create_instance(new);
-	if (new->balance_rep == NULL) {
-		analysis_delete_instance(new);
-		return NULL;
-	}
+	for (type = 0; type < ANALYSIS_REPORT_TYPE_COUNT; type++) {
+		report_details = analysis_get_report_details(type);
 
-	/* Set up the cashflow report data. */
+		if (report_details == NULL || report_details->create_instance == NULL)
+			continue;
 
-	new->cashflow_rep = analysis_cashflow_create_instance(new);
-	if (new->cashflow_rep == NULL) {
-		analysis_delete_instance(new);
-		return NULL;
-	}
+		debug_printf("Initialising instance for report type %d", type);
 
-	/* Set up the transaction report data. */
-
-	new->trans_rep = analysis_transaction_create_instance(new);
-	if (new->trans_rep == NULL) {
-		analysis_delete_instance(new);
-		return NULL;
-	}
-
-	/* Set up the unreconciled report data. */
-
-	new->unrec_rep = analysis_unreconciled_create_instance(new);
-	if (new->unrec_rep == NULL) {
-		analysis_delete_instance(new);
-		return NULL;
+		new->reports[type] = report_details->create_instance(new);
+		if (new->reports[type] == NULL) {
+			analysis_delete_instance(new);
+			return NULL;
+		}
 	}
 
 	return new;
@@ -276,6 +268,9 @@ struct analysis_block *analysis_create_instance(struct file_block *file)
 
 void analysis_delete_instance(struct analysis_block *instance)
 {
+	enum analysis_report_type	type;
+	struct analysis_report_details	*report_details;
+
 	if (instance == NULL)
 		return;
 
@@ -290,14 +285,19 @@ void analysis_delete_instance(struct analysis_block *instance)
 
 	/* Free the report instances. */
 
-	if (instance->balance_rep != NULL)
-		analysis_balance_delete_instance(instance->balance_rep);
-	if (instance->cashflow_rep != NULL)
-		analysis_cashflow_delete_instance(instance->cashflow_rep);
-	if (instance->trans_rep != NULL)
-		analysis_transaction_delete_instance(instance->trans_rep);
-	if (instance->unrec_rep != NULL)
-		analysis_unreconciled_delete_instance(instance->unrec_rep);
+	for (type = 0; type < ANALYSIS_REPORT_TYPE_COUNT; type++) {
+		if (instance->reports[type] == NULL)
+			continue;
+
+		report_details = analysis_get_report_details(type);
+
+		if (report_details == NULL || report_details->delete_instance == NULL)
+			continue;
+
+		debug_printf("Deleting instance for report type %d", type);
+
+		report_details->delete_instance(instance->reports[type]);
+	}
 
 	/* Free the instance data. */
 
@@ -320,37 +320,73 @@ struct file_block *analysis_get_file(struct analysis_block *instance)
 	return instance->file;
 }
 
+
 /**
- * Return the report template instance associated with a given file.
+ * Return the report template instance associated with a given analysis instance.
  *
- * \param *file			The file to return the instance for.
+ * \param *instance		The instance to return the templates for.
  * \return			The template instance, or NULL.
  */
 
-struct analysis_template_block *analysis_get_templates(struct file_block *file)
+struct analysis_template_block *analysis_get_templates(struct analysis_block *instance)
 {
-	if (file == NULL || file->analysis == NULL)
+	if (instance == NULL)
 		return NULL;
 
-	return file->analysis->templates;
+	return instance->templates;
 }
 
 
 /**
  * Open a new Analysis Report dialogue box.
  *
- * \param *parent	The analysis instance to own the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param type		The type of report to open.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
+ * \param *parent		The analysis instance to own the dialogue.
+ * \param *pointer		The current Wimp Pointer details.
+ * \param type			The type of report to open.
+ * \param restore		TRUE to retain the last settings for the file; FALSE to
+ *				use the application defaults.
  */
 
 void analysis_open_window(struct analysis_block *instance, wimp_pointer *pointer, enum analysis_report_type type, osbool restore)
 {
+	struct analysis_report_details *report_details;
 
+	if (instance == NULL || pointer == NULL)
+		return;
+
+	report_details = analysis_get_report_details(type);
+	if (report_details != NULL && report_details->open_window != NULL)
+		report_details->open_window(instance->reports[type], pointer, NULL_TEMPLATE, restore);
 }
 
+
+/**
+ * Open a report from a saved template.
+ *
+ * \param *instance		The analysis instance owning the template.
+ * \param *pointer		The current Wimp Pointer details.
+ * \param selection		The menu selection entry.
+ * \param restore		TRUE to retain the last settings for the file; FALSE to
+ *				use the application defaults.
+ */
+
+void analysis_open_template(struct analysis_block *instance, wimp_pointer *pointer, template_t template, osbool restore)
+{
+	enum analysis_report_type	type;
+	struct analysis_report_details	*report_details;
+
+
+	if (instance == NULL || instance->templates == NULL)
+		return;
+
+	type = analysis_template_type(instance->templates, template);
+	if (type == REPORT_TYPE_NONE)
+		return;
+
+	report_details = analysis_get_report_details(type);
+	if (report_details != NULL && report_details->open_window != NULL)
+		report_details->open_window(instance->reports[type], pointer, template, restore);
+}
 
 
 
@@ -429,28 +465,24 @@ static void analysis_find_date_range(struct file_block *file, date_t *start_date
 
 void analysis_remove_account_from_templates(struct file_block *file, acct_t account)
 {
-	struct analysis_report_details *report_details;
+	enum analysis_report_type	type;
+	struct analysis_report_details	*report_details;
 
 	if (file == NULL || file->analysis == NULL)
 		return;
 
 	/* Handle the dialogue boxes. */
 
-	report_details = analysis_get_report_details(REPORT_TYPE_TRANSACTION);
-	if (report_details != NULL && report_details->remove_account != NULL)
-		report_details->remove_account(file->analysis->trans_rep, account);
+	for (type = 0; type < ANALYSIS_REPORT_TYPE_COUNT; type++) {
+		report_details = analysis_get_report_details(type);
 
-	report_details = analysis_get_report_details(REPORT_TYPE_UNRECONCILED);
-	if (report_details != NULL && report_details->remove_account != NULL)
-		report_details->remove_account(file->analysis->unrec_rep, account);
+		if (report_details == NULL || report_details->remove_account == NULL)
+			continue;
 
-	report_details = analysis_get_report_details(REPORT_TYPE_CASHFLOW);
-	if (report_details != NULL && report_details->remove_account != NULL)
-		report_details->remove_account(file->analysis->cashflow_rep, account);
+		debug_printf("Removing account from report type %d", type);
 
-	report_details = analysis_get_report_details(REPORT_TYPE_BALANCE);
-	if (report_details != NULL && report_details->remove_account != NULL)
-		report_details->remove_account(file->analysis->balance_rep, account);
+		report_details->remove_account(file->analysis->reports[type], account);
+	}
 
 	/* Now process any saved templates. */
 
@@ -619,42 +651,6 @@ void analysis_account_list_to_idents(struct analysis_block *instance, char *list
 //		if (strlen(list) + strlen(buffer) < ANALYSIS_ACC_SPEC_LEN)
 //			strcat(list, buffer);
 //	}
-}
-
-
-/**
- * Open a report from a saved template.
- *
- * \param *file			The file owning the template.
- * \param *ptr			The Wimp pointer details.
- * \param selection		The menu selection entry.
- */
-
-void analysis_open_template(struct file_block *file, wimp_pointer *ptr, template_t template)
-{
-	if (file == NULL || file->analysis == NULL)
-		return;
-
-	switch (analysis_template_type(file->analysis->templates, template)) {
-	case REPORT_TYPE_TRANSACTION:
-//		analysis_transaction_open_window(file->analysis, ptr, template, config_opt_read("RememberValues"));
-		break;
-
-	case REPORT_TYPE_UNRECONCILED:
-//		analysis_unreconciled_open_window(file->analysis, ptr, template, config_opt_read("RememberValues"));
-		break;
-
-	case REPORT_TYPE_CASHFLOW:
-//		analysis_cashflow_open_window(file->analysis, ptr, template, config_opt_read("RememberValues"));
-		break;
-
-	case REPORT_TYPE_BALANCE:
-//		analysis_balance_open_window(file->analysis, ptr, template, config_opt_read("RememberValues"));
-		break;
-
-	case REPORT_TYPE_NONE:
-		break;
-	}
 }
 
 

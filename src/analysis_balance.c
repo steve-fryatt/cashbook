@@ -172,6 +172,15 @@ static struct analysis_report_details analysis_balance_details = {
 	/* remove template */
 };
 
+static struct analysis_dialogue_definition analysis_balance_dialogue_definition = {
+	"BalanceRep",
+	"BalanceRep",
+	ANALYSIS_BALANCE_OK,
+	ANALYSIS_BALANCE_CANCEL,
+	ANALYSIS_BALANCE_DELETE,
+	ANALYSIS_BALANCE_RENAME
+};
+
 /**
  * Initialise the Balance analysis report module.
  *
@@ -188,7 +197,7 @@ struct analysis_report_details *analysis_balance_initialise(void)
 //	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, TRUE);
 //	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS, TRUE);
 //	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, TRUE);
-	analysis_balance_dialogue = analysis_dialogue_initialise("BalanceRep", "BalanceRep");
+	analysis_balance_dialogue = analysis_dialogue_initialise(&analysis_balance_dialogue_definition);
 
 	return &analysis_balance_details;
 }

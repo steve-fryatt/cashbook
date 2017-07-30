@@ -165,7 +165,7 @@ static void		analysis_generate_transaction_report(struct file_block *file);
 
 static void *analysis_transaction_create_instance(struct analysis_block *parent);
 static void analysis_transaction_delete_instance(void *instance);
-static void analysis_transaction_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore);
+static void analysis_transaction_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_transaction_remove_account(void *report, acct_t account);
 static void analysis_transaction_copy_template(void *to, void *from);
 static void analysis_transaction_write_file_block(void *block, FILE *out, char *name);
@@ -181,6 +181,15 @@ static struct analysis_report_details analysis_transaction_details = {
 	analysis_transaction_copy_template,
 	analysis_transaction_remove_account
 	/* remove template */
+};
+
+static struct analysis_dialogue_definition analysis_transaction_dialogue_definition = {
+	"TransRep",
+	"TransRep",
+	ANALYSIS_TRANS_OK,
+	ANALYSIS_TRANS_CANCEL,
+	ANALYSIS_TRANS_DELETE,
+	ANALYSIS_TRANS_RENAME
 };
 
 /**
@@ -199,7 +208,7 @@ struct analysis_report_details *analysis_transaction_initialise(void)
 //	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, TRUE);
 //	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, TRUE);
 //	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, TRUE);
-	analysis_transaction_dialogue = analysis_dialogue_initialise("TransRep", "TransRep");
+	analysis_transaction_dialogue = analysis_dialogue_initialise(&analysis_transaction_dialogue_definition);
 
 	return &analysis_transaction_details;
 }
@@ -268,14 +277,14 @@ static void analysis_transaction_delete_instance(void *instance)
 /**
  * Open the Transaction Report dialogue box.
  *
- * \param *parent	The parent analysis instance requesting the dialogue.
- * \param *ptr		The current Wimp Pointer details.
+ * \param *instance	The transaction report instance to own the dialogue.
+ * \param *pointer	The current Wimp Pointer details.
  * \param template	The report template to use for the dialogue.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  */
 
-static void analysis_transaction_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore)
+static void analysis_transaction_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore)
 {
 	debug_printf("Open a transaction report dialogue with template %d", template);
 }

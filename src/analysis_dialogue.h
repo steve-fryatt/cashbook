@@ -30,31 +30,59 @@
 #ifndef CASHBOOK_ANALYSIS_DIALOGUE
 #define CASHBOOK_ANALYSIS_DIALOGUE
 
+#include "analysis.h"
+
 /**
  * An analysis dialogue definition.
  */
 
 struct analysis_dialogue_block;
 
-struct analysis_dialogue_callback {
-	/**
-	 * Copy a report template from one location to another.
-	 */
+/**
+ * An analysis dialogue contents definition.
+ */
 
-	void (*copy_template)(struct analysis_report *from, struct analysis_report *to);
-	
+struct analysis_dialogue_definition {
+	/**
+	 * The name of the window template to use for the dialogue.
+	 */
+	char		*template_name;
+
+	/**
+	 * The interactive help token prefix to use for the dialogue.
+	 */
+	char		*ihelp_token;
+
+	/**
+	 * The Generate button icon handle.
+	 */
+	wimp_i		generate_button;
+
+	/**
+	 * The Cancel button icon handle.
+	 */
+	wimp_i		cancel_button;
+
+	/**
+	 * The Delete button icon handle.
+	 */
+	wimp_i		delete_button;
+
+	/**
+	 * The Rename button icon handle.
+	 */
+	wimp_i		rename_button;
 };
 
 
 /**
- * Initialise a new analysis dialogue window.
+ * Initialise a new analysis dialogue window instance.
  *
- * \param *template		The name of the template to use for the dialogue.
- * \param *ihelp		The interactive help token to use for the dialogue.
+ * \param *definition		The dialogue definition from the client.
  * \return			Pointer to the dialogue structure, or NULL on failure.
  */
 
-struct analysis_dialogue_block *analysis_dialogue_initialise(char *template, char *ihelp);
+struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dialogue_definition *definition);
 
 
 /**

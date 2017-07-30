@@ -151,7 +151,7 @@ static void		analysis_generate_unreconciled_report(struct file_block *file);
 
 static void *analysis_unreconciled_create_instance(struct analysis_block *parent);
 static void analysis_unreconciled_delete_instance(void *instance);
-static void analysis_unreconciled_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore);
+static void analysis_unreconciled_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_unreconciled_remove_account(void *report, acct_t account);
 static void analysis_unreconciled_copy_template(void *to, void *from);
 static void analysis_unreconciled_write_file_block(void *block, FILE *out, char *name);
@@ -166,6 +166,15 @@ static struct analysis_report_details analysis_unreconciled_details = {
 	analysis_unreconciled_copy_template,
 	analysis_unreconciled_remove_account
 	/* remove template */
+};
+
+static struct analysis_dialogue_definition analysis_unreconciled_dialogue_definition = {
+	"UnrecRep",
+	"UnrecRep",
+	ANALYSIS_UNREC_OK,
+	ANALYSIS_UNREC_CANCEL,
+	ANALYSIS_UNREC_DELETE,
+	ANALYSIS_UNREC_RENAME
 };
 
 /**
@@ -186,7 +195,7 @@ struct analysis_report_details *analysis_unreconciled_initialise(void)
 //	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, TRUE);
 //	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS, TRUE);
 //	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, TRUE);
-	analysis_unreconciled_dialogue = analysis_dialogue_initialise("UnrecRep", "UnrecRep");
+	analysis_unreconciled_dialogue = analysis_dialogue_initialise(&analysis_unreconciled_dialogue_definition);
 
 	return &analysis_unreconciled_details;
 }
@@ -248,14 +257,14 @@ static void analysis_unreconciled_delete_instance(void *instance)
 /**
  * Open the Unreconciled Report dialogue box.
  *
- * \param *parent	The parent analysis instance requesting the dialogue.
- * \param *ptr		The current Wimp Pointer details.
+ * \param *instance	The unreconciled report instance to own the dialogue.
+ * \param *pointer	The current Wimp Pointer details.
  * \param template	The report template to use for the dialogue.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  */
 
-static void analysis_unreconciled_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore)
+static void analysis_unreconciled_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore)
 {
 	debug_printf("Open an unreconciled report dialogue with template %d", template);
 }

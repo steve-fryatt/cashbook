@@ -46,7 +46,7 @@
 /* Application header files */
 
 #include "global.h"
-#include "analysis_lookup.h"
+#include "analysis_dialogue.h"
 
 #include "account.h"
 #include "account_menu.h"
@@ -60,7 +60,8 @@
  */
 
 struct analysis_dialogue_block {
-	wimp_w		window;			/**< The Wimp window handle of the dialogue.		*/
+	struct analysis_dialogue_definition	*definition;		/**< The dialogue definition from the client.		*/
+	wimp_w					window;			/**< The Wimp window handle of the dialogue.		*/
 };
 
 /* Static Function Prototypes. */
@@ -71,21 +72,26 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key);
 /**
  * Initialise a new analysis dialogue window instance.
  *
- * \param *template		The name of the template to use for the dialogue.
- * \param *ihelp		The interactive help token to use for the dialogue.
+ * \param *definition		The dialogue definition from the client.
  * \return			Pointer to the dialogue structure, or NULL on failure.
  */
 
-struct analysis_dialogue_block *analysis_dialogue_initialise(char *template, char *ihelp)
+struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dialogue_definition *definition)
 {
 	struct analysis_dialogue_block	*new;
+
+	if (definition == NULL)
+		return NULL;
 
 	new = heap_alloc(sizeof(struct analysis_dialogue_block));
 	if (new == NULL)
 		return NULL;
 
-	new->window = templates_create_window(template);
-	ihelp_add_window(new->window, ihelp, NULL);
+	new->definition = definition;
+
+	new->window = templates_create_window(definition->template_name);
+	ihelp_add_window(new->window, definition->ihelp_token, NULL);
+	event_add_window_user_data(new->window, new);
 	event_add_window_mouse_event(new->window, analysis_dialogue_click_handler);
 	event_add_window_key_event(new->window, analysis_dialogue_keypress_handler);
 
@@ -188,7 +194,34 @@ void analysis_dialogue_close(struct analysis_dialogue_block *dialogue)
 
 static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 {
-#ifdef IGNORE
+	struct analysis_dialogue_block	*windat;
+
+	windat = event_get_window_user_data(pointer->w);
+	if (pointer == NULL || windat == NULL || windat->definition == NULL)
+		return;
+
+	if (pointer->i == windat->definition->cancel_button) {
+		if (pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(windat->window);
+	//		analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
+		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+	//		analysis_refresh_transaction_window();
+		}
+	} else if (pointer->i == windat->definition->generate_button) {
+		if (/*analysis_process_transaction_window() &&*/ pointer->buttons == wimp_CLICK_SELECT) {
+			close_dialogue_with_caret(windat->window);
+	//		analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
+		}
+	} else if (pointer->i == windat->definition->delete_button) {
+	//	if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_transaction_window())
+	//		close_dialogue_with_caret(analysis_transaction_window);
+	} else if (pointer->i == windat->definition->rename_button) {
+	//	if (pointer->buttons == wimp_CLICK_SELECT && analysis_transaction_template >= 0 && analysis_transaction_template < analysis_transaction_file->saved_report_count)
+	//		analysis_template_save_open_rename_window(analysis_transaction_file, analysis_transaction_template, pointer);
+	} 
+
+
+#if 0
 	switch (pointer->i) {
 	case ANALYSIS_TRANS_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
@@ -256,7 +289,7 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 
 static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 {
-#ifdef IGNORE
+#if 0
 	switch (key->c) {
 	case wimp_KEY_RETURN:
 		if (analysis_process_transaction_window()) {

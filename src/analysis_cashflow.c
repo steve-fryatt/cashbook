@@ -159,7 +159,7 @@ static void		analysis_generate_cashflow_report(struct file_block *file);
 
 static void *analysis_cashflow_create_instance(struct analysis_block *parent);
 static void analysis_cashflow_delete_instance(void *instance);
-static void analysis_cashflow_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore);
+static void analysis_cashflow_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_cashflow_remove_account(void *report, acct_t account);
 static void analysis_cashflow_copy_template(void *to, void *from);
 static void analysis_cashflow_write_file_block(void *block, FILE *out, char *name);
@@ -174,6 +174,15 @@ static struct analysis_report_details analysis_cashflow_details = {
 	analysis_cashflow_copy_template,
 	analysis_cashflow_remove_account
 	/* remove template */
+};
+
+static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition = {
+	"CashFlwRep",
+	"CashFlwRep",
+	ANALYSIS_CASHFLOW_OK,
+	ANALYSIS_CASHFLOW_CANCEL,
+	ANALYSIS_CASHFLOW_DELETE,
+	ANALYSIS_CASHFLOW_RENAME
 };
 
 
@@ -193,7 +202,7 @@ struct analysis_report_details *analysis_cashflow_initialise(void)
 //	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, TRUE);
 //	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, TRUE);
 //	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, TRUE);
-	analysis_cashflow_dialogue = analysis_dialogue_initialise("CashFlwRep", "CashFlwRep");
+	analysis_cashflow_dialogue = analysis_dialogue_initialise(&analysis_cashflow_dialogue_definition);
 
 	return &analysis_cashflow_details;
 }
@@ -258,14 +267,14 @@ static void analysis_cashflow_delete_instance(void *instance)
 /**
  * Open the Cashflow Report dialogue box.
  *
- * \param *parent	The parent analysis instance requesting the dialogue.
- * \param *ptr		The current Wimp Pointer details.
+ * \param *instance	The cashflow report instance to own the dialogue.
+ * \param *pointer	The current Wimp Pointer details.
  * \param template	The report template to use for the dialogue.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  */
 
-static void analysis_cashflow_open_window(struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore)
+static void analysis_cashflow_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore)
 {
 	debug_printf("Open a cashflow report dialogue with template %d", template);
 }

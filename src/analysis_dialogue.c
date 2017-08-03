@@ -187,7 +187,7 @@ void analysis_dialogue_close(struct analysis_dialogue_block *dialogue)
 
 
 /**
- * Process mouse clicks in the Analysis Transaction dialogue.
+ * Process mouse clicks in an analysis dialogue instance's window.
  *
  * \param *pointer		The mouse event block to handle.
  */
@@ -281,7 +281,7 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 
 
 /**
- * Process keypresses in the Analysis Transaction window.
+ * Process keypresses in an analysis dialogue instance's window.
  *
  * \param *key		The keypress event block to handle.
  * \return		TRUE if the event was handled; else FALSE.
@@ -289,20 +289,25 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 
 static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 {
-#if 0
+	struct analysis_dialogue_block	*windat;
+
+	windat = event_get_window_user_data(key->w);
+	if (key == NULL || windat == NULL || windat->definition == NULL)
+		return FALSE;
+
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-		if (analysis_process_transaction_window()) {
-			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
-		}
+	//	if (analysis_process_transaction_window()) {
+			close_dialogue_with_caret(windat->window);
+	//		analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
+	//	}
 		break;
 
 	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(analysis_transaction_window);
-		analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
+		close_dialogue_with_caret(windat->window);
+	//	analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
 		break;
-
+#if 0
 	case wimp_KEY_F1:
 		if (key->i == ANALYSIS_TRANS_FROMSPEC)
 			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
@@ -311,11 +316,11 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
 					ANALYSIS_TRANS_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 		break;
-
+#endif
 	default:
 		return FALSE;
 		break;
 	}
-#endif
+
 	return TRUE;
 }

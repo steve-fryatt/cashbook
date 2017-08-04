@@ -52,6 +52,7 @@
 #include "account_menu.h"
 #include "analysis.h"
 #include "analysis_template.h"
+#include "analysis_template_save.h"
 #include "caret.h"
 
 
@@ -61,7 +62,11 @@
 
 struct analysis_dialogue_block {
 	struct analysis_dialogue_definition	*definition;		/**< The dialogue definition from the client.		*/
+	struct analysis_block			*parent;		/**< The parent analysis instance.			*/
+	template_t				template;		/**< The template associated with the dialogue.		*/
 	wimp_w					window;			/**< The Wimp window handle of the dialogue.		*/
+	osbool					restore;		/**< The restore state for the dialogue.		*/
+	void					*settings_block;	/**< The settings block associated with the dialogue.	*/
 };
 
 /* Static Function Prototypes. */
@@ -83,11 +88,24 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
 	if (definition == NULL)
 		return NULL;
 
+	/* Create the instance. */
+
 	new = heap_alloc(sizeof(struct analysis_dialogue_block));
 	if (new == NULL)
 		return NULL;
 
+	new->settings_block = NULL;
 	new->definition = definition;
+	new->parent = NULL;
+	new->template = NULL_TEMPLATE;
+
+	/* Claim a local template store to hold the live dialogue contents. */
+
+	new->settings_block = heap_alloc(definition->block_size);
+	if (new->settings_block == NULL)
+		return NULL;
+
+	/* Create the dialogue window. */
 
 	new->window = templates_create_window(definition->template_name);
 	ihelp_add_window(new->window, definition->ihelp_token, NULL);
@@ -103,18 +121,28 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  * Open a new analysis dialogue.
  * 
  * \param *dialogue		The analysis dialogue instance to open.
- * \param *templates		The analysis templates instance to use.
+ * \param *parent		The analysis instance to be the parent.
  * \param *ptr			The current Wimp Pointer details.
  * \param template		The report template to use for the dialogue.
  * \param restore		TRUE to retain the last settings for the file; FALSE to
  *				use the application defaults.
  */
 
-void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_template_block *templates, wimp_pointer *pointer, template_t template, osbool restore)
+void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore)
 {
-	struct analysis_report	*template_block;
+	struct analysis_report		*template_block;
+	struct analysis_template_block	*templates;
+	struct analysis_report_details	*report_details;
 
-	if (dialogue == NULL || templates == NULL || pointer == NULL)
+	if (dialogue == NULL || parent == NULL || pointer == NULL)
+		return;
+
+	templates = analysis_get_templates(dialogue->parent);
+	if (templates == NULL)
+		return;
+
+	report_details = analysis_get_report_details(dialogue->definition->type);
+	if (report_details == NULL)
 		return;
 
 	/* If the window is already open, another balance report is being edited.  Assume the user wants to lose
@@ -133,17 +161,21 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 	template_block = analysis_template_get_report(templates, template);
 
 	if (template_block != NULL) {
+//		report_details->copy_template(dialogue->settings_block, to);
 //		analysis_copy_balance_template(&(analysis_balance_settings), &(file->saved_reports[template].data.balance));
-//		analysis_balance_template = template;
+		dialogue->template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(dialogue->window),
 				windows_get_indirected_title_length(dialogue->window),
 				analysis_template_get_name(template_block, NULL, 0), NULL, NULL, NULL);
 
-		restore = TRUE; /* If we use a template, we always want to reset to the template! */
+		/* If we use a template, we always want to reset to the template! */
+
+		restore = TRUE;
 	} else {
+//		report_details->copy_template(dialogue->settings_block, to);
 //		analysis_copy_balance_template(&(analysis_balance_settings), file->balance_rep);
-//		analysis_balance_template = NULL_TEMPLATE;
+		dialogue->template = NULL_TEMPLATE;
 
 
 
@@ -160,8 +192,8 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
-//	analysis_balance_file = file;
-//	analysis_balance_restore = restore;
+	dialogue->parent = parent;
+	dialogue->restore = restore;
 
 	windows_open_centred_at_pointer(dialogue->window, pointer);
 //	place_dialogue_caret_fallback(dialogue->window, 4, ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO,
@@ -203,14 +235,14 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 	if (pointer->i == windat->definition->cancel_button) {
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(windat->window);
-	//		analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
+			analysis_template_save_force_rename_close(windat->parent, windat->template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 	//		analysis_refresh_transaction_window();
 		}
 	} else if (pointer->i == windat->definition->generate_button) {
 		if (/*analysis_process_transaction_window() &&*/ pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(windat->window);
-	//		analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
+			analysis_template_save_force_rename_close(windat->parent, windat->template);
 		}
 	} else if (pointer->i == windat->definition->delete_button) {
 	//	if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_transaction_window())
@@ -299,13 +331,13 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 	//	if (analysis_process_transaction_window()) {
 			close_dialogue_with_caret(windat->window);
-	//		analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
+			analysis_template_save_force_rename_close(windat->parent, windat->template);
 	//	}
 		break;
 
 	case wimp_KEY_ESCAPE:
 		close_dialogue_with_caret(windat->window);
-	//	analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
+		analysis_template_save_force_rename_close(windat->parent, windat->template);
 		break;
 #if 0
 	case wimp_KEY_F1:

@@ -468,13 +468,13 @@ static osbool analysis_template_save_process_window(void)
  * Report that a report template has been deleted, and adjust the
  * dialogue handle accordingly.
  *
- * \param *file			The file from which the template has been deleted.
+ * \param *parent		The analysis instance from which the template has been deleted.
  * \param template		The deleted template ID.
  */
 
-void analysis_template_save_delete_template(struct file_block *file, template_t template)
+void analysis_template_save_delete_template(struct analysis_block *parent, template_t template)
 {
-	if (analysis_template_get_file(analysis_template_save_parent) != file ||
+	if (analysis_template_save_parent != parent ||
 			analysis_template_save_template == NULL_TEMPLATE)
 		return;
 
@@ -488,11 +488,13 @@ void analysis_template_save_delete_template(struct file_block *file, template_t 
 /**
  * Force the closure of the Save / Rename Template dialogue if the file
  * owning it closes.
+ *
+ * \param *parent		The parent analysis instance.
  */
 
-void analysis_template_save_force_close(struct file_block *file)
+void analysis_template_save_force_close(struct analysis_block *parent)
 {
-	if (analysis_template_get_file(analysis_template_save_parent) == file &&
+	if (analysis_template_save_parent == parent &&
 			windows_get_open(analysis_template_save_window))
 		close_dialogue_with_caret(analysis_template_save_window);
 }
@@ -516,17 +518,17 @@ void analysis_template_save_force_template_close(struct analysis_report *templat
 
 
 /**
- * Force the closure of the Rename Template window if it is open to rename a
- * template of a given type.
+ * Force the closure of the Rename Template window if it is open to rename the
+ * given template.
  *
- * \param *file			The file in which the template is held.
+ * \param *parent		The analysis block in which the template is held.
  * \param template		The template which is to be closed.
  */
 
-void analysis_template_save_force_rename_close(struct file_block *file, template_t template)
+void analysis_template_save_force_rename_close(struct analysis_block *parent, template_t template)
 {
 	if (!windows_get_open(analysis_template_save_window) ||
-			analysis_template_get_file(analysis_template_save_parent) != file ||
+			analysis_template_save_parent != parent ||
 			analysis_template_save_current_mode != ANALYSIS_SAVE_MODE_RENAME ||
 			analysis_template_save_template != NULL_TEMPLATE)
 		return;

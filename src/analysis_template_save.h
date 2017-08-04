@@ -65,19 +65,21 @@ void analysis_template_save_open_rename_window(struct file_block *file, int temp
  * Report that a report template has been deleted, and adjust the
  * dialogue handle accordingly.
  *
- * \param *file			The file from which the template has been deleted.
+ * \param *parent		The analysis instance from which the template has been deleted.
  * \param template		The deleted template ID.
  */
 
-void analysis_template_save_delete_template(struct file_block *file, template_t template);
+void analysis_template_save_delete_template(struct analysis_block *parent, template_t template);
 
 
 /**
  * Force the closure of the Save / Rename Template dialogue if the file
  * owning it closes.
+ *
+ * \param *parent		The parent analysis instance.
  */
 
-void analysis_template_save_force_close(struct file_block *file);
+void analysis_template_save_force_close(struct analysis_block *parent);
 
 
 /**
@@ -94,10 +96,10 @@ void analysis_template_save_force_template_close(struct analysis_report *templat
  * Force the closure of the Rename Template window if it is open to rename the
  * given template.
  *
- * \param *file			The file in which the template is held.
+ * \param *parent		The analysis block in which the template is held.
  * \param template		The template which is to be closed.
  */
 
-void analysis_template_save_force_rename_close(struct file_block *file, template_t template);
+void analysis_template_save_force_rename_close(struct analysis_block *parent, template_t template);
 
 #endif

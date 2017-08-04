@@ -184,6 +184,8 @@ static struct analysis_report_details analysis_transaction_details = {
 };
 
 static struct analysis_dialogue_definition analysis_transaction_dialogue_definition = {
+	REPORT_TYPE_TRANSACTION,
+	sizeof(struct analysis_transaction_report),
 	"TransRep",
 	"TransRep",
 	ANALYSIS_TRANS_OK,
@@ -200,7 +202,7 @@ static struct analysis_dialogue_definition analysis_transaction_dialogue_definit
 
 struct analysis_report_details *analysis_transaction_initialise(void)
 {
-	analysis_template_set_block_size(sizeof(struct analysis_transaction_report));
+	analysis_template_set_block_size(analysis_transaction_dialogue_definition.block_size);
 //	analysis_transaction_window = templates_create_window("TransRep");
 //	ihelp_add_window(analysis_transaction_window, "TransRep", NULL);
 //	event_add_window_mouse_event(analysis_transaction_window, analysis_transaction_click_handler);

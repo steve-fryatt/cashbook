@@ -177,6 +177,8 @@ static struct analysis_report_details analysis_cashflow_details = {
 };
 
 static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition = {
+	REPORT_TYPE_CASHFLOW,
+	sizeof(struct analysis_cashflow_report),
 	"CashFlwRep",
 	"CashFlwRep",
 	ANALYSIS_CASHFLOW_OK,
@@ -194,7 +196,7 @@ static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition
 
 struct analysis_report_details *analysis_cashflow_initialise(void)
 {
-	analysis_template_set_block_size(sizeof(struct analysis_cashflow_report));
+	analysis_template_set_block_size(analysis_cashflow_dialogue_definition.block_size);
 //	analysis_cashflow_window = templates_create_window("CashFlwRep");
 //	ihelp_add_window(analysis_cashflow_window, "CashFlwRep", NULL);
 //	event_add_window_mouse_event(analysis_cashflow_window, analysis_cashflow_click_handler);

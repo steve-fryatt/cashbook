@@ -169,6 +169,8 @@ static struct analysis_report_details analysis_unreconciled_details = {
 };
 
 static struct analysis_dialogue_definition analysis_unreconciled_dialogue_definition = {
+	REPORT_TYPE_UNRECONCILED,
+	sizeof(struct analysis_unreconciled_report),
 	"UnrecRep",
 	"UnrecRep",
 	ANALYSIS_UNREC_OK,
@@ -185,7 +187,7 @@ static struct analysis_dialogue_definition analysis_unreconciled_dialogue_defini
 
 struct analysis_report_details *analysis_unreconciled_initialise(void)
 {
-	analysis_template_set_block_size(sizeof(struct analysis_unreconciled_report));
+	analysis_template_set_block_size(analysis_unreconciled_dialogue_definition.block_size);
 //	analysis_unreconciled_window = templates_create_window("UnrecRep");
 //	ihelp_add_window(analysis_unreconciled_window, "UnrecRep", NULL);
 //	event_add_window_mouse_event(analysis_unreconciled_window, analysis_unreconciled_click_handler);

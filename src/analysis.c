@@ -276,7 +276,7 @@ void analysis_delete_instance(struct analysis_block *instance)
 
 	/* Close the template save/rename dialogue. */
 
-	analysis_template_save_force_close(instance->file);
+	analysis_template_save_force_close(instance);
 
 	/* Free any saved report data. */
 
@@ -806,7 +806,7 @@ static void analysis_delete_template(struct file_block *file, int template)
 //		break;
 //	}
 
-//	analysis_template_save_delete_template(file, template);
+//	analysis_template_save_delete_template(file->analysis, template);
 }
 
 

@@ -173,6 +173,8 @@ static struct analysis_report_details analysis_balance_details = {
 };
 
 static struct analysis_dialogue_definition analysis_balance_dialogue_definition = {
+	REPORT_TYPE_BALANCE,
+	sizeof(struct analysis_balance_report),
 	"BalanceRep",
 	"BalanceRep",
 	ANALYSIS_BALANCE_OK,
@@ -189,7 +191,7 @@ static struct analysis_dialogue_definition analysis_balance_dialogue_definition 
 
 struct analysis_report_details *analysis_balance_initialise(void)
 {
-	analysis_template_set_block_size(sizeof(struct analysis_balance_report));
+	analysis_template_set_block_size(analysis_balance_dialogue_definition.block_size);
 //	analysis_balance_window = templates_create_window("BalanceRep");
 //	ihelp_add_window(analysis_balance_window, "BalanceRep", NULL);
 //	event_add_window_mouse_event(analysis_balance_window, analysis_balance_click_handler);
@@ -276,7 +278,7 @@ static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, 
 		return;
 
 	debug_printf("Open a balance report dialogue with template %d", template);
-	analysis_dialogue_open(analysis_balance_dialogue, analysis_get_templates(report->parent), pointer, template, restore);
+	analysis_dialogue_open(analysis_balance_dialogue, report->parent, pointer, template, restore);
 }
 
 

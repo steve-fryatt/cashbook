@@ -44,34 +44,44 @@ struct analysis_dialogue_block;
 
 struct analysis_dialogue_definition {
 	/**
+	 * The type of report to which the dialogue relates.
+	 */
+	enum analysis_report_type	type;
+
+	/**
+	 * The size of the saved report template block.
+	 */
+	size_t				block_size;
+
+	/**
 	 * The name of the window template to use for the dialogue.
 	 */
-	char		*template_name;
+	char				*template_name;
 
 	/**
 	 * The interactive help token prefix to use for the dialogue.
 	 */
-	char		*ihelp_token;
+	char				*ihelp_token;
 
 	/**
 	 * The Generate button icon handle.
 	 */
-	wimp_i		generate_button;
+	wimp_i				generate_button;
 
 	/**
 	 * The Cancel button icon handle.
 	 */
-	wimp_i		cancel_button;
+	wimp_i				cancel_button;
 
 	/**
 	 * The Delete button icon handle.
 	 */
-	wimp_i		delete_button;
+	wimp_i				delete_button;
 
 	/**
 	 * The Rename button icon handle.
 	 */
-	wimp_i		rename_button;
+	wimp_i				rename_button;
 };
 
 
@@ -89,14 +99,14 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  * Open a new analysis dialogue.
  * 
  * \param *dialogue		The analysis dialogue instance to open.
- * \param *templates		The analysis templates instance to use.
+ * \param *parent		The analysis instance to be the parent.
  * \param *ptr			The current Wimp Pointer details.
  * \param template		The report template to use for the dialogue.
  * \param restore		TRUE to retain the last settings for the file; FALSE to
  *				use the application defaults.
  */
 
-void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_template_block *templates, wimp_pointer *pointer, template_t template, osbool restore);
+void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore);
 
 
 /**

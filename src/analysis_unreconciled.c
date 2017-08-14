@@ -106,12 +106,6 @@
 /* Unreconciled Report dialogue. */
 
 struct analysis_unreconciled_report {
-	/**
-	 * The parent analysis report instance.
-	 */
-
-	struct analysis_block		*parent;
-
 	date_t				date_from;
 	date_t				date_to;
 	osbool				budget;
@@ -125,6 +119,21 @@ struct analysis_unreconciled_report {
 	int				to_count;
 	acct_t				from[ANALYSIS_ACC_LIST_LEN];
 	acct_t				to[ANALYSIS_ACC_LIST_LEN];
+};
+
+
+struct analysis_unreconciled_block {
+	/**
+	 * The parent analysis report instance.
+	 */
+
+	struct analysis_block			*parent;
+
+	/**
+	 * The saved instance report settings.
+	 */
+
+	struct analysis_unreconciled_report	saved;
 };
 
 
@@ -161,6 +170,7 @@ static struct analysis_report_details analysis_unreconciled_details = {
 	analysis_unreconciled_create_instance,
 	analysis_unreconciled_delete_instance,
 	analysis_unreconciled_open_window,
+	NULL,
 	analysis_unreconciled_process_file_token,
 	analysis_unreconciled_write_file_block,
 	analysis_unreconciled_copy_template,
@@ -214,23 +224,23 @@ struct analysis_report_details *analysis_unreconciled_initialise(void)
 
 static void *analysis_unreconciled_create_instance(struct analysis_block *parent)
 {
-	struct analysis_unreconciled_report	*new;
+	struct analysis_unreconciled_block	*new;
 
-	new = heap_alloc(sizeof(struct analysis_unreconciled_report));
+	new = heap_alloc(sizeof(struct analysis_unreconciled_block));
 	if (new == NULL)
 		return NULL;
 
 	new->parent = parent;
 
-	new->date_from = NULL_DATE;
-	new->date_to = NULL_DATE;
-	new->budget = FALSE;
-	new->group = FALSE;
-	new->period = 1;
-	new->period_unit = DATE_PERIOD_MONTHS;
-	new->lock = FALSE;
-	new->from_count = 0;
-	new->to_count = 0;
+	new->saved.date_from = NULL_DATE;
+	new->saved.date_to = NULL_DATE;
+	new->saved.budget = FALSE;
+	new->saved.group = FALSE;
+	new->saved.period = 1;
+	new->saved.period_unit = DATE_PERIOD_MONTHS;
+	new->saved.lock = FALSE;
+	new->saved.from_count = 0;
+	new->saved.to_count = 0;
 
 	return new;
 }
@@ -244,7 +254,7 @@ static void *analysis_unreconciled_create_instance(struct analysis_block *parent
 
 static void analysis_unreconciled_delete_instance(void *instance)
 {
-	struct analysis_unreconciled_report *report = instance;
+	struct analysis_unreconciled_block *report = instance;
 
 	if (report == NULL)
 		return;

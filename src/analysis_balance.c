@@ -107,11 +107,6 @@
 /* Balance Report dialogue. */
 
 struct analysis_balance_report {
-	/**
-	 * The parent analysis report instance.
-	 */
-
-	struct analysis_block		*parent;
 
 	date_t				date_from;
 	date_t				date_to;
@@ -132,8 +127,22 @@ struct analysis_balance_report {
 	osbool				tabular;
 };
 
+struct analysis_balance_block {
+	/**
+	 * The parent analysis report instance.
+	 */
+
+	struct analysis_block			*parent;
+
+	/**
+	 * The saved instance report settings.
+	 */
+
+	struct analysis_balance_report		saved;
+};
 
 static struct analysis_dialogue_block	*analysis_balance_dialogue = NULL;
+
 
 //static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.					*/
 static struct analysis_block	*analysis_balance_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
@@ -156,6 +165,7 @@ static void		analysis_generate_balance_report(struct file_block *file);
 static void *analysis_balance_create_instance(struct analysis_block *parent);
 static void analysis_balance_delete_instance(void *instance);
 static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
+static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w window, void *block);
 static void analysis_balance_remove_account(void *report, acct_t account);
 static void analysis_balance_copy_template(void *to, void *from);
 static void analysis_balance_write_file_block(void *block, FILE *out, char *name);
@@ -165,6 +175,7 @@ static struct analysis_report_details analysis_balance_details = {
 	analysis_balance_create_instance,
 	analysis_balance_delete_instance,
 	analysis_balance_open_window,
+	analysis_balance_fill_window,
 	analysis_balance_process_file_token,
 	analysis_balance_write_file_block,
 	analysis_balance_copy_template,
@@ -216,25 +227,25 @@ struct analysis_report_details *analysis_balance_initialise(void)
 
 static void *analysis_balance_create_instance(struct analysis_block *parent)
 {
-	struct analysis_balance_report	*new;
+	struct analysis_balance_block	*new;
 
-	new = heap_alloc(sizeof(struct analysis_balance_report));
+	new = heap_alloc(sizeof(struct analysis_balance_block));
 	if (new == NULL)
 		return NULL;
 
 	new->parent = parent;
 
-	new->date_from = NULL_DATE;
-	new->date_to = NULL_DATE;
-	new->budget = FALSE;
-	new->group = FALSE;
-	new->period = 1;
-	new->period_unit = DATE_PERIOD_MONTHS;
-	new->lock = FALSE;
-	new->accounts_count = 0;
-	new->incoming_count = 0;
-	new->outgoing_count = 0;
-	new->tabular = FALSE;
+	new->saved.date_from = NULL_DATE;
+	new->saved.date_to = NULL_DATE;
+	new->saved.budget = FALSE;
+	new->saved.group = FALSE;
+	new->saved.period = 1;
+	new->saved.period_unit = DATE_PERIOD_MONTHS;
+	new->saved.lock = FALSE;
+	new->saved.accounts_count = 0;
+	new->saved.incoming_count = 0;
+	new->saved.outgoing_count = 0;
+	new->saved.tabular = FALSE;
 
 	return new;
 }
@@ -248,7 +259,7 @@ static void *analysis_balance_create_instance(struct analysis_block *parent)
 
 static void analysis_balance_delete_instance(void *instance)
 {
-	struct analysis_balance_report *report = instance;
+	struct analysis_balance_block *report = instance;
 
 	if (report != NULL)
 		return;
@@ -272,13 +283,13 @@ static void analysis_balance_delete_instance(void *instance)
 
 static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore)
 {
-	struct analysis_balance_report *report = instance;
+	struct analysis_balance_block *report = instance;
 
 	if (report == NULL)
 		return;
 
-	debug_printf("Open a balance report dialogue with template %d", template);
-	analysis_dialogue_open(analysis_balance_dialogue, report->parent, pointer, template, restore);
+	debug_printf("Open a balance report dialogue with template %d, parent=0x%x", template, report->parent);
+	analysis_dialogue_open(analysis_balance_dialogue, report->parent, pointer, template, &(report->saved), restore);
 }
 
 
@@ -488,7 +499,7 @@ static void analysis_refresh_balance_window(void)
 
 	icons_replace_caret_in_window(analysis_balance_window);
 }
-
+#endif
 
 /**
  * Fill the Balance window with values.
@@ -498,79 +509,88 @@ static void analysis_refresh_balance_window(void)
  *				use system defaults.
  */
 
-static void analysis_fill_balance_window(struct analysis_block *parent, osbool restore)
+static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w window, void *block)
 {
-	if (!restore) {
+	struct analysis_balance_report *template = block;
+
+	if (parent == NULL)
+		return;
+
+	if (template == NULL) {
 		/* Set the period icons. */
 
-		*icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM) = '\0';
-		*icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATETO) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_DATEFROM) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_DATETO) = '\0';
 
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_BUDGET, 0);
+		icons_set_selected(window, ANALYSIS_BALANCE_BUDGET, 0);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_GROUP, 0);
+		icons_set_selected(window, ANALYSIS_BALANCE_GROUP, 0);
 
-		icons_strncpy(analysis_balance_window, ANALYSIS_BALANCE_PERIOD, "1");
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, 0);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS, 1);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, 0);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_LOCK, 0);
+		icons_strncpy(window, ANALYSIS_BALANCE_PERIOD, "1");
+		icons_set_selected(window, ANALYSIS_BALANCE_PDAYS, 0);
+		icons_set_selected(window, ANALYSIS_BALANCE_PMONTHS, 1);
+		icons_set_selected(window, ANALYSIS_BALANCE_PYEARS, 0);
+		icons_set_selected(window, ANALYSIS_BALANCE_LOCK, 0);
 
 		/* Set the accounts and format details. */
 
-		*icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS) = '\0';
-		*icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_INCOMING) = '\0';
-		*icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_OUTGOING) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_ACCOUNTS) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_INCOMING) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_OUTGOING) = '\0';
 
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_TABULAR, 0);
+		icons_set_selected(window, ANALYSIS_BALANCE_TABULAR, 0);
 	} else {
 		/* Set the period icons. */
 
-		date_convert_to_string(analysis_balance_settings.date_from,
-				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM),
-				icons_get_indirected_text_length(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM));
-		date_convert_to_string(analysis_balance_settings.date_to,
-				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATETO),
-				icons_get_indirected_text_length(analysis_balance_window, ANALYSIS_BALANCE_DATETO));
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_BUDGET, analysis_balance_settings.budget);
+		date_convert_to_string(template->date_from,
+				icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_DATEFROM),
+				icons_get_indirected_text_length(window, ANALYSIS_BALANCE_DATEFROM));
+		date_convert_to_string(template->date_to,
+				icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_DATETO),
+				icons_get_indirected_text_length(window, ANALYSIS_BALANCE_DATETO));
+		icons_set_selected(window, ANALYSIS_BALANCE_BUDGET, template->budget);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_GROUP, analysis_balance_settings.group);
+		icons_set_selected(window, ANALYSIS_BALANCE_GROUP, template->group);
 
-		icons_printf(analysis_balance_window, ANALYSIS_BALANCE_PERIOD, "%d", analysis_balance_settings.period);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, analysis_balance_settings.period_unit == DATE_PERIOD_DAYS);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS,
-				analysis_balance_settings.period_unit == DATE_PERIOD_MONTHS);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, analysis_balance_settings.period_unit == DATE_PERIOD_YEARS);
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_LOCK, analysis_balance_settings.lock);
+		icons_printf(window, ANALYSIS_BALANCE_PERIOD, "%d", template->period);
+		icons_set_selected(window, ANALYSIS_BALANCE_PDAYS, template->period_unit == DATE_PERIOD_DAYS);
+		icons_set_selected(window, ANALYSIS_BALANCE_PMONTHS,
+				template->period_unit == DATE_PERIOD_MONTHS);
+		icons_set_selected(window, ANALYSIS_BALANCE_PYEARS, template->period_unit == DATE_PERIOD_YEARS);
+		icons_set_selected(window, ANALYSIS_BALANCE_LOCK, template->lock);
 
 		/* Set the accounts and format details. */
 
 		analysis_account_list_to_idents(parent,
-				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS),
-				analysis_balance_settings.accounts, analysis_balance_settings.accounts_count);
+				icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_ACCOUNTS),
+				icons_get_indirected_text_length(window, ANALYSIS_BALANCE_ACCOUNTS),
+				template->accounts, template->accounts_count);
 		analysis_account_list_to_idents(parent,
-				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_INCOMING),
-				analysis_balance_settings.incoming, analysis_balance_settings.incoming_count);
+				icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_INCOMING),
+				icons_get_indirected_text_length(window, ANALYSIS_BALANCE_INCOMING),
+				template->incoming, template->incoming_count);
 		analysis_account_list_to_idents(parent,
-				icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_OUTGOING),
-				analysis_balance_settings.outgoing, analysis_balance_settings.outgoing_count);
+				icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_OUTGOING),
+				icons_get_indirected_text_length(window, ANALYSIS_BALANCE_OUTGOING),
+				template->outgoing, template->outgoing_count);
 
-		icons_set_selected(analysis_balance_window, ANALYSIS_BALANCE_TABULAR, analysis_balance_settings.tabular);
+		icons_set_selected(window, ANALYSIS_BALANCE_TABULAR, template->tabular);
 	}
 
-	icons_set_group_shaded_when_on (analysis_balance_window, ANALYSIS_BALANCE_BUDGET, 4,
+	icons_set_group_shaded_when_on (window, ANALYSIS_BALANCE_BUDGET, 4,
 			ANALYSIS_BALANCE_DATEFROMTXT, ANALYSIS_BALANCE_DATEFROM,
 			ANALYSIS_BALANCE_DATETOTXT, ANALYSIS_BALANCE_DATETO);
 
-	icons_set_group_shaded_when_off (analysis_balance_window, ANALYSIS_BALANCE_GROUP, 6,
+	icons_set_group_shaded_when_off (window, ANALYSIS_BALANCE_GROUP, 6,
 			ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_PTEXT, ANALYSIS_BALANCE_LOCK,
 			ANALYSIS_BALANCE_PDAYS, ANALYSIS_BALANCE_PMONTHS, ANALYSIS_BALANCE_PYEARS);
 }
 
+#if 0
 
 /**
  * Process the contents of the Balance window, store the details and

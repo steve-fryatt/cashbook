@@ -576,40 +576,44 @@ static void analysis_set_account_report_flags_from_list(struct file_block *file,
  * account list array.  The special account ident '*' means 'all', and is
  * stored as the 'wildcard' value (in this context) NULL_ACCOUNT.
  *
- * \param *file			The file to process.
+ * \param *instance		The analysis instance owning the data.
  * \param type			The type(s) of account to process.
  * \param *list			The textual account ident list to process.
- * \param *array		Pointer to memory to take the numeric list,
- *				with space for ANALYSIS_ACC_LIST_LEN entries.
+ * \param *array		Pointer to memory to take the numeric list.
+ * \param length		The number of entries that the list can hold.
  * \return			The number of entries added to the list.
  */
 
-static int analysis_account_idents_to_list(struct file_block *file, unsigned type, char *list, acct_t *array)
+size_t analysis_account_idents_to_list(struct analysis_block *instance, enum account_type type, char *list, acct_t *array, size_t length)
 {
-//	char	*copy, *ident;
-	int	account, i = 0;
+	char	*copy, *ident;
+	acct_t	account;
+	int	i = 0;
 
-//	copy = strdup(list);
+	if (instance == NULL || instance->file == NULL)
+		return 0;
 
-//	if (copy == NULL)
-//		return 0;
+	copy = strdup(list);
 
-//	ident = strtok(copy, ",");
+	if (copy == NULL)
+		return 0;
 
-//	while (ident != NULL && i < ANALYSIS_ACC_LIST_LEN) {
-//		if (strcmp(ident, "*") == 0) {
-//			array[i++] = NULL_ACCOUNT;
-//		} else {
-//			account = account_find_by_ident(file, ident, type);
+	ident = strtok(copy, ",");
 
-//			if (account != NULL_ACCOUNT)
-//				array[i++] = account;
-//		}
+	while (ident != NULL && i < length) {
+		if (strcmp(ident, "*") == 0) {
+			array[i++] = NULL_ACCOUNT;
+		} else {
+			account = account_find_by_ident(instance->file, ident, type);
 
-//		ident = strtok(NULL, ",");
-//	}
+			if (account != NULL_ACCOUNT)
+				array[i++] = account;
+		}
 
-//	free(copy);
+		ident = strtok(NULL, ",");
+	}
+
+	free(copy);
 
 	return i;
 }
@@ -618,39 +622,43 @@ static int analysis_account_idents_to_list(struct file_block *file, unsigned typ
 /* Convert a numeric account list array into a textual list of comma-separated
  * account idents.
  *
- * \param *file			The file to process.
- * \param *list			Pointer to the buffer to take the textual
- *				list, which must be ANALYSIS_ACC_SPEC_LEN long.
+ * \param *instance		The analysis instance owning the data.
+ * \param *list			Pointer to the buffer to take the textual list.
+ * \param length		The size of the buffer.
  * \param *array		The account list array to be converted.
- * \param len			The number of accounts in the list.
+ * \param count			The number of accounts in the list.
  */
 
-void analysis_account_list_to_idents(struct analysis_block *instance, char *list, acct_t *array, int len)
+void analysis_account_list_to_idents(struct analysis_block *instance, char *list, size_t length, acct_t *array, size_t count)
 {
-//	char	buffer[ACCOUNT_IDENT_LEN];
-//	int	account, i;
+	char	buffer[ACCOUNT_IDENT_LEN];
+	acct_t	account;
+	int	i;
 
-//	if (instance == NULL || instance->file == NULL)
-//		return;
+	if (instance == NULL || instance->file == NULL)
+		return;
 
-//	*list = '\0';
+	if (list == NULL || length <= 0)
+		return;
 
-//	for (i = 0; i < len; i++) {
-//		account = array[i];
+	*list = '\0';
 
-//		if (account != NULL_ACCOUNT)
-//			strncpy(buffer, account_get_ident(instance->file, account), ACCOUNT_IDENT_LEN);
-//		else
-//			strncpy(buffer, "*", ACCOUNT_IDENT_LEN);
+	for (i = 0; i < count; i++) {
+		account = array[i];
 
-//		buffer[ACCOUNT_IDENT_LEN - 1] = '\0';
+		if (account != NULL_ACCOUNT)
+			strncpy(buffer, account_get_ident(instance->file, account), ACCOUNT_IDENT_LEN);
+		else
+			strncpy(buffer, "*", ACCOUNT_IDENT_LEN);
 
-//		if (strlen(list) > 0 && strlen(list) + 1 < ANALYSIS_ACC_SPEC_LEN)
-//			strcat(list, ",");
+		buffer[ACCOUNT_IDENT_LEN - 1] = '\0';
 
-//		if (strlen(list) + strlen(buffer) < ANALYSIS_ACC_SPEC_LEN)
-//			strcat(list, buffer);
-//	}
+		if (strlen(list) > 0 && strlen(list) + 1 < length)
+			strcat(list, ",");
+
+		if (strlen(list) + strlen(buffer) < length)
+			strcat(list, buffer);
+	}
 }
 
 

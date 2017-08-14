@@ -113,12 +113,6 @@
  */
 
 struct analysis_transaction_report {
-	/**
-	 * The parent analysis report instance.
-	 */
-
-	struct analysis_block		*parent;
-
 	date_t				date_from;
 	date_t				date_to;
 	osbool				budget;
@@ -140,6 +134,21 @@ struct analysis_transaction_report {
 	osbool				output_trans;
 	osbool				output_summary;
 	osbool				output_accsummary;
+};
+
+
+struct analysis_transaction_block {
+	/**
+	 * The parent analysis report instance.
+	 */
+
+	struct analysis_block			*parent;
+
+	/**
+	 * The saved instance report settings.
+	 */
+
+	struct analysis_transaction_report	saved;
 };
 
 
@@ -176,6 +185,7 @@ static struct analysis_report_details analysis_transaction_details = {
 	analysis_transaction_create_instance,
 	analysis_transaction_delete_instance,
 	analysis_transaction_open_window,
+	NULL,
 	analysis_transaction_process_file_token,
 	analysis_transaction_write_file_block,
 	analysis_transaction_copy_template,
@@ -227,30 +237,30 @@ struct analysis_report_details *analysis_transaction_initialise(void)
 
 static void *analysis_transaction_create_instance(struct analysis_block *parent)
 {
-	struct analysis_transaction_report	*new;
+	struct analysis_transaction_block	*new;
 
-	new = heap_alloc(sizeof(struct analysis_transaction_report));
+	new = heap_alloc(sizeof(struct analysis_transaction_block));
 	if (new == NULL)
 		return NULL;
 
 	new->parent = parent;
 
-	new->date_from = NULL_DATE;
-	new->date_to = NULL_DATE;
-	new->budget = FALSE;
-	new->group = FALSE;
-	new->period = 1;
-	new->period_unit = DATE_PERIOD_MONTHS;
-	new->lock = FALSE;
-	new->from_count = 0;
-	new->to_count = 0;
-	*(new->ref) = '\0';
-	*(new->desc) = '\0';
-	new->amount_min = NULL_CURRENCY;
-	new->amount_max = NULL_CURRENCY;
-	new->output_trans = TRUE;
-	new->output_summary = TRUE;
-	new->output_accsummary = TRUE;
+	new->saved.date_from = NULL_DATE;
+	new->saved.date_to = NULL_DATE;
+	new->saved.budget = FALSE;
+	new->saved.group = FALSE;
+	new->saved.period = 1;
+	new->saved.period_unit = DATE_PERIOD_MONTHS;
+	new->saved.lock = FALSE;
+	new->saved.from_count = 0;
+	new->saved.to_count = 0;
+	*(new->saved.ref) = '\0';
+	*(new->saved.desc) = '\0';
+	new->saved.amount_min = NULL_CURRENCY;
+	new->saved.amount_max = NULL_CURRENCY;
+	new->saved.output_trans = TRUE;
+	new->saved.output_summary = TRUE;
+	new->saved.output_accsummary = TRUE;
 
 	return new;
 }
@@ -264,7 +274,7 @@ static void *analysis_transaction_create_instance(struct analysis_block *parent)
 
 static void analysis_transaction_delete_instance(void *instance)
 {
-	struct analysis_transaction_report *report = instance;
+	struct analysis_transaction_block *report = instance;
 
 	if (report == NULL)
 		return;

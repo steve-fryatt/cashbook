@@ -32,7 +32,13 @@
 #define CASHBOOK_ANALYSIS_TRANSACTION
 
 /**
- * Transaction Report dialogue.
+ * A transaction report instance within a file.
+ */
+
+struct analysis_transaction_block;
+
+/**
+ * A transaction report data set.
  */
 
 struct analysis_transaction_report;

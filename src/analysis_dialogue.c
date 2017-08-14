@@ -124,20 +124,21 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  * \param *parent		The analysis instance to be the parent.
  * \param *ptr			The current Wimp Pointer details.
  * \param template		The report template to use for the dialogue.
+ * \param *settings		The dialogue settings to use when no template available.
  * \param restore		TRUE to retain the last settings for the file; FALSE to
  *				use the application defaults.
  */
 
-void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore)
+void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, wimp_pointer *pointer, template_t template, void *settings, osbool restore)
 {
 	struct analysis_report		*template_block;
 	struct analysis_template_block	*templates;
 	struct analysis_report_details	*report_details;
 
-	if (dialogue == NULL || parent == NULL || pointer == NULL)
+	if (dialogue == NULL || dialogue->definition == NULL || parent == NULL || pointer == NULL)
 		return;
 
-	templates = analysis_get_templates(dialogue->parent);
+	templates = analysis_get_templates(parent);
 	if (templates == NULL)
 		return;
 
@@ -161,8 +162,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 	template_block = analysis_template_get_report(templates, template);
 
 	if (template_block != NULL) {
-//		report_details->copy_template(dialogue->settings_block, to);
-//		analysis_copy_balance_template(&(analysis_balance_settings), &(file->saved_reports[template].data.balance));
+		report_details->copy_template(dialogue->settings_block, analysis_template_get_data(template_block));
 		dialogue->template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(dialogue->window),
@@ -173,11 +173,8 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 		restore = TRUE;
 	} else {
-//		report_details->copy_template(dialogue->settings_block, to);
-//		analysis_copy_balance_template(&(analysis_balance_settings), file->balance_rep);
+		report_details->copy_template(dialogue->settings_block, settings);
 		dialogue->template = NULL_TEMPLATE;
-
-
 
 		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(dialogue->window),
 				windows_get_indirected_title_length(dialogue->window));
@@ -188,7 +185,8 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 	/* Set the window contents up. */
 
-//	analysis_fill_balance_window(file, restore);
+	if (report_details->fill_window != NULL)
+		report_details->fill_window(parent, dialogue->window, dialogue->settings_block);
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 

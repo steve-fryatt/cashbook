@@ -31,7 +31,15 @@
 #ifndef CASHBOOK_ANALYSIS_CASHFLOW
 #define CASHBOOK_ANALYSIS_CASHFLOW
 
-/* Cashflow Report dialogue. */
+/**
+ * A cashflow report instance within a file.
+ */
+
+struct analysis_cashflow_block;
+
+/**
+ * A cashflow report data set.
+ */
 
 struct analysis_cashflow_report;
 

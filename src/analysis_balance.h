@@ -34,7 +34,15 @@
 #include "account.h"
 #include "analysis.h"
 
-/* Balance Report dialogue. */
+/**
+ * A balance report instance within a file.
+ */
+
+struct analysis_balance_block;
+
+/**
+ * A balance report data set.
+ */
 
 struct analysis_balance_report;
 

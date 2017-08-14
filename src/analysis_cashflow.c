@@ -107,12 +107,6 @@
 /* Cashflow Report dialogue. */
 
 struct analysis_cashflow_report {
-	/**
-	 * The parent analysis report instance.
-	 */
-
-	struct analysis_block		*parent;
-
 	date_t				date_from;
 	date_t				date_to;
 	osbool				budget;
@@ -133,6 +127,20 @@ struct analysis_cashflow_report {
 	osbool				tabular;
 };
 
+
+struct analysis_cashflow_block {
+	/**
+	 * The parent analysis report instance.
+	 */
+
+	struct analysis_block			*parent;
+
+	/**
+	 * The saved instance report settings.
+	 */
+
+	struct analysis_cashflow_report		saved;
+};
 
 
 
@@ -169,6 +177,7 @@ static struct analysis_report_details analysis_cashflow_details = {
 	analysis_cashflow_create_instance,
 	analysis_cashflow_delete_instance,
 	analysis_cashflow_open_window,
+	NULL,
 	analysis_cashflow_process_file_token,
 	analysis_cashflow_write_file_block,
 	analysis_cashflow_copy_template,
@@ -221,26 +230,26 @@ struct analysis_report_details *analysis_cashflow_initialise(void)
 
 static void *analysis_cashflow_create_instance(struct analysis_block *parent)
 {
-	struct analysis_cashflow_report	*new;
+	struct analysis_cashflow_block	*new;
 
-	new = heap_alloc(sizeof(struct analysis_cashflow_report));
+	new = heap_alloc(sizeof(struct analysis_cashflow_block));
 	if (new == NULL)
 		return NULL;
 
 	new->parent = parent;
 
-	new->date_from = NULL_DATE;
-	new->date_to = NULL_DATE;
-	new->budget = FALSE;
-	new->group = FALSE;
-	new->period = 1;
-	new->period_unit = DATE_PERIOD_MONTHS;
-	new->lock = FALSE;
-	new->empty = FALSE;
-	new->accounts_count = 0;
-	new->incoming_count = 0;
-	new->outgoing_count = 0;
-	new->tabular = FALSE;
+	new->saved.date_from = NULL_DATE;
+	new->saved.date_to = NULL_DATE;
+	new->saved.budget = FALSE;
+	new->saved.group = FALSE;
+	new->saved.period = 1;
+	new->saved.period_unit = DATE_PERIOD_MONTHS;
+	new->saved.lock = FALSE;
+	new->saved.empty = FALSE;
+	new->saved.accounts_count = 0;
+	new->saved.incoming_count = 0;
+	new->saved.outgoing_count = 0;
+	new->saved.tabular = FALSE;
 
 	return new;
 }
@@ -254,7 +263,7 @@ static void *analysis_cashflow_create_instance(struct analysis_block *parent)
 
 static void analysis_cashflow_delete_instance(void *instance)
 {
-	struct analysis_cashflow_report *report = instance;
+	struct analysis_cashflow_block *report = instance;
 
 	if (report == NULL)
 		return;

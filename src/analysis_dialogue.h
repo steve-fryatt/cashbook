@@ -102,11 +102,12 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  * \param *parent		The analysis instance to be the parent.
  * \param *ptr			The current Wimp Pointer details.
  * \param template		The report template to use for the dialogue.
+ * \param *settings		The dialogue settings to use when no template available.
  * \param restore		TRUE to retain the last settings for the file; FALSE to
  *				use the application defaults.
  */
 
-void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, wimp_pointer *pointer, template_t template, osbool restore);
+void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, wimp_pointer *pointer, template_t template, void *settings, osbool restore);
 
 
 /**

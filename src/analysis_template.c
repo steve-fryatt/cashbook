@@ -370,6 +370,22 @@ struct analysis_report *analysis_template_get_report(struct analysis_template_bl
 
 
 /**
+ * Return the data associated with an analysis template.
+ *
+ * \param *template		Pointer to the template to return the data for.
+ * \return			Pointer to the data, or NULL.
+ */
+
+void *analysis_template_get_data(struct analysis_report *template)
+{
+	if (template == NULL)
+		return NULL;
+
+	return analysis_template_data_from_address(template);
+}
+
+
+/**
  * Return the name for an analysis template.
  *
  * If a buffer is supplied, the name is copied into that buffer and a

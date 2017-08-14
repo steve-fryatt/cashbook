@@ -65,10 +65,6 @@ struct find_block;
 struct goto_block;
 struct printing;
 struct purge_block;
-struct trans_rep;
-struct unrec_rep;
-struct cashflow_rep;
-struct balance_rep;
 
 
 

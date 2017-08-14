@@ -63,17 +63,6 @@ typedef int template_t;
 #include "analysis_unreconciled.h"
 
 /**
- * Saved Report Data Union.
- */
-/*
-union analysis_report_block {
-	struct trans_rep		transaction;
-	struct unrec_rep		unreconciled;
-	struct cashflow_rep		cashflow;
-	struct balance_rep		balance;
-};
-*/
-/**
  * Saved Report Types.
  */
 
@@ -103,8 +92,12 @@ struct analysis_report_details {
 	/**
 	 * Open a new analysis report dialogue.
 	 */
-
 	void		(*open_window)(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
+
+	/**
+	 * Fill an analysis report dialogue.
+	 */
+	void		(*fill_window)(struct analysis_block *parent, wimp_w window, void *template);
 
 	/**
 	 * Read a template token in from a saved CashBook file.
@@ -253,17 +246,33 @@ void analysis_open_template(struct analysis_block *instance, wimp_pointer *point
 void analysis_remove_account_from_templates(struct file_block *file, acct_t account);
 
 
+/**
+ * Convert a textual comma-separated list of account idents into a numeric
+ * account list array.  The special account ident '*' means 'all', and is
+ * stored as the 'wildcard' value (in this context) NULL_ACCOUNT.
+ *
+ * \param *instance		The analysis instance owning the data.
+ * \param type			The type(s) of account to process.
+ * \param *list			The textual account ident list to process.
+ * \param *array		Pointer to memory to take the numeric list.
+ * \param length		The number of entries that the list can hold.
+ * \return			The number of entries added to the list.
+ */
+
+size_t analysis_account_idents_to_list(struct analysis_block *instance, enum account_type type, char *list, acct_t *array, size_t length);
+
+
 /* Convert a numeric account list array into a textual list of comma-separated
  * account idents.
  *
- * \param *file			The file to process.
- * \param *list			Pointer to the buffer to take the textual
- *				list, which must be ANALYSIS_ACC_SPEC_LEN long.
+ * \param *instance		The analysis instance owning the data.
+ * \param *list			Pointer to the buffer to take the textual list.
+ * \param length		The size of the buffer.
  * \param *array		The account list array to be converted.
- * \param len			The number of accounts in the list.
+ * \param count			The number of accounts in the list.
  */
 
-void analysis_account_list_to_idents(struct analysis_block *instance, char *list, acct_t *array, int len);
+void analysis_account_list_to_idents(struct analysis_block *instance, char *list, size_t length, acct_t *array, size_t count);
 
 
 /**

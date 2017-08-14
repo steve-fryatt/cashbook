@@ -31,7 +31,15 @@
 #ifndef CASHBOOK_ANALYSIS_UNRECONCILED
 #define CASHBOOK_ANALYSIS_UNRECONCILED
 
-/* Unreconciled Report dialogue. */
+/**
+ * An unreconciled report instance within a file.
+ */
+
+struct analysis_unreconciled_block;
+
+/**
+ * An unreconciled report data set.
+ */
 
 struct analysis_unreconciled_report;
 

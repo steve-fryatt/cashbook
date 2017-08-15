@@ -183,6 +183,26 @@ static struct analysis_report_details analysis_balance_details = {
 	/* remove template */
 };
 
+static struct analysis_dialogue_icon analysis_dialogue_icon_list[] = {
+	{ANALYSIS_DIALOGUE_ICON_RADIO,		ANALYSIS_BALANCE_PDAYS,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_RADIO,		ANALYSIS_BALANCE_PMONTHS,	ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_RADIO,		ANALYSIS_BALANCE_PYEARS,	ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,	ANALYSIS_BALANCE_BUDGET,	ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,	ANALYSIS_BALANCE_DATEFROMTXT,	ANALYSIS_BALANCE_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,	ANALYSIS_BALANCE_DATEFROM,	ANALYSIS_BALANCE_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,	ANALYSIS_BALANCE_DATETOTXT,	ANALYSIS_BALANCE_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,	ANALYSIS_BALANCE_DATETO,	ANALYSIS_BALANCE_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,	ANALYSIS_BALANCE_GROUP,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,	ANALYSIS_BALANCE_PERIOD,	ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,	ANALYSIS_BALANCE_PTEXT,		ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,	ANALYSIS_BALANCE_LOCK,		ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,	ANALYSIS_BALANCE_PDAYS,		ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,	ANALYSIS_BALANCE_PMONTHS,	ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,	ANALYSIS_BALANCE_PYEARS,	ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_END,		ANALYSIS_DIALOGUE_NO_ICON,	ANALYSIS_DIALOGUE_NO_ICON}
+};
+
+
 static struct analysis_dialogue_definition analysis_balance_dialogue_definition = {
 	REPORT_TYPE_BALANCE,
 	sizeof(struct analysis_balance_report),
@@ -191,7 +211,8 @@ static struct analysis_dialogue_definition analysis_balance_dialogue_definition 
 	ANALYSIS_BALANCE_OK,
 	ANALYSIS_BALANCE_CANCEL,
 	ANALYSIS_BALANCE_DELETE,
-	ANALYSIS_BALANCE_RENAME
+	ANALYSIS_BALANCE_RENAME,
+	analysis_dialogue_icon_list
 };
 
 /**
@@ -203,13 +224,6 @@ static struct analysis_dialogue_definition analysis_balance_dialogue_definition 
 struct analysis_report_details *analysis_balance_initialise(void)
 {
 	analysis_template_set_block_size(analysis_balance_dialogue_definition.block_size);
-//	analysis_balance_window = templates_create_window("BalanceRep");
-//	ihelp_add_window(analysis_balance_window, "BalanceRep", NULL);
-//	event_add_window_mouse_event(analysis_balance_window, analysis_balance_click_handler);
-//	event_add_window_key_event(analysis_balance_window, analysis_balance_keypress_handler);
-//	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PDAYS, TRUE);
-//	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS, TRUE);
-//	event_add_window_icon_radio(analysis_balance_window, ANALYSIS_BALANCE_PYEARS, TRUE);
 	analysis_balance_dialogue = analysis_dialogue_initialise(&analysis_balance_dialogue_definition);
 
 	return &analysis_balance_details;
@@ -288,7 +302,6 @@ static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, 
 	if (report == NULL)
 		return;
 
-	debug_printf("Open a balance report dialogue with template %d, parent=0x%x", template, report->parent);
 	analysis_dialogue_open(analysis_balance_dialogue, report->parent, pointer, template, &(report->saved), restore);
 }
 
@@ -580,14 +593,6 @@ static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w w
 
 		icons_set_selected(window, ANALYSIS_BALANCE_TABULAR, template->tabular);
 	}
-
-	icons_set_group_shaded_when_on (window, ANALYSIS_BALANCE_BUDGET, 4,
-			ANALYSIS_BALANCE_DATEFROMTXT, ANALYSIS_BALANCE_DATEFROM,
-			ANALYSIS_BALANCE_DATETOTXT, ANALYSIS_BALANCE_DATETO);
-
-	icons_set_group_shaded_when_off (window, ANALYSIS_BALANCE_GROUP, 6,
-			ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_PTEXT, ANALYSIS_BALANCE_LOCK,
-			ANALYSIS_BALANCE_PDAYS, ANALYSIS_BALANCE_PMONTHS, ANALYSIS_BALANCE_PYEARS);
 }
 
 #if 0

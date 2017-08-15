@@ -39,6 +39,31 @@
 struct analysis_dialogue_block;
 
 /**
+ * Window Icon Types.
+ */
+
+enum analysis_dialogue_icon_type {
+	ANALYSIS_DIALOGUE_ICON_RADIO = 0x00000001,		/**< A radio icon.				*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_ON = 0x00000002,		/**< Shade icon when target is selected.	*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_OFF = 0x00000004,		/**< Shade icon when target is not selected.	*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_TARGET = 0x00000008,	/**< A target for shading other icons.		*/
+	ANALYSIS_DIALOGUE_ICON_END = 0x80000000			/**< The last entry in the icon sequence.	*/
+};
+
+#define ANALYSIS_DIALOGUE_NO_ICON ((wimp_i) -1)
+
+/**
+ * Window icon definitions.
+ */
+
+struct analysis_dialogue_icon {
+	enum analysis_dialogue_icon_type	type;
+	wimp_i					icon;
+	wimp_i					target;
+};
+
+
+/**
  * An analysis dialogue contents definition.
  */
 
@@ -82,6 +107,11 @@ struct analysis_dialogue_definition {
 	 * The Rename button icon handle.
 	 */
 	wimp_i				rename_button;
+
+	/**
+	 * A list of significant icons in the dialogue.
+	 */
+	struct analysis_dialogue_icon	*icons;
 };
 
 

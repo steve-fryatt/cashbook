@@ -82,7 +82,7 @@ void place_dialogue_caret(wimp_w window, wimp_i icon)
  */
 
 
-void place_dialogue_caret_fallback (wimp_w window, int icons, ...)
+void place_dialogue_caret_fallback(wimp_w window, int icons, ...)
 {
 	int		i;
 	wimp_i		icon;

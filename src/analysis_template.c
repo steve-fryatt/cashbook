@@ -512,8 +512,9 @@ void analysis_template_store(struct analysis_template_block *instance, struct an
 
 void analysis_template_rename(struct analysis_template_block *instance, template_t template, char *name)
 {
-	struct file_block	*file;
-	struct analysis_report	*block;
+	struct file_block		*file;
+	struct analysis_report		*block;
+	struct analysis_report_details	*report_details;
 
 	if (instance == NULL || instance->saved_reports == NULL || !analysis_template_valid(instance, template))
 		return;
@@ -521,9 +522,17 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 	/* Copy the new name across into the template. */
 
 	block = analysis_template_address(instance, template);
+	if (block == NULL)
+		return;
 
 	strncpy(block->name, name, ANALYSIS_SAVED_NAME_LEN);
 	block->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
+
+	/* Inform the owning report. */
+
+	report_details = analysis_get_report_details(block->type);
+	if (report_details != NULL && report_details->rename_template != NULL)
+		report_details->rename_template(instance->parent, template, name);
 
 	/* Mark the file has being modified. */
 

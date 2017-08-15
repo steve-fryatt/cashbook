@@ -189,8 +189,9 @@ static struct analysis_report_details analysis_transaction_details = {
 	analysis_transaction_process_file_token,
 	analysis_transaction_write_file_block,
 	analysis_transaction_copy_template,
-	analysis_transaction_remove_account
-	/* remove template */
+	NULL,
+	analysis_transaction_remove_account,
+	NULL
 };
 
 static struct analysis_dialogue_definition analysis_transaction_dialogue_definition = {

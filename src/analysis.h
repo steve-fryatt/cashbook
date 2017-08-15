@@ -115,6 +115,11 @@ struct analysis_report_details {
 	void		(*copy_template)(void *from, void *to);
 
 	/**
+	 * Rename a template.
+	 */ 
+	void		(*rename_template)(struct analysis_block *parent, template_t template, char *name);
+
+	/**
 	 * Remove all references to an account from a template.
 	 */
 	void		(*remove_account)(void *template, acct_t account);
@@ -122,7 +127,7 @@ struct analysis_report_details {
 	/**
 	 * Remove a template definition.
 	 */
-	// remove_template();
+	void		(*remove_template)(void);
 };
 
 

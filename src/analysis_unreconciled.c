@@ -174,8 +174,9 @@ static struct analysis_report_details analysis_unreconciled_details = {
 	analysis_unreconciled_process_file_token,
 	analysis_unreconciled_write_file_block,
 	analysis_unreconciled_copy_template,
-	analysis_unreconciled_remove_account
-	/* remove template */
+	NULL,
+	analysis_unreconciled_remove_account,
+	NULL
 };
 
 static struct analysis_dialogue_definition analysis_unreconciled_dialogue_definition = {

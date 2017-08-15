@@ -130,10 +130,23 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
  * Force an analysis dialogue instance to close if it is currently open
  * on screen.
  *
- * \param* dialogue		The dialogue instance to close.
+ * \param *dialogue		The dialogue instance to close.
  */
 
 void analysis_dialogue_close(struct analysis_dialogue_block *dialogue);
 
+
+/**
+ * Tidy up after a template being renamed, by updating the window title
+ * if the template belongs to this instance.
+ *
+ * \param *dialogue		The dialogue instance to check.
+ * \param *parent		The parent analysis instance owning the
+ *				renamed report.
+ * \param template		The report being renamed.
+ * \param *name			The new name for the report.
+ */
+
+void analysis_dialogue_rename_template(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, template_t template, char *name);
 
 #endif

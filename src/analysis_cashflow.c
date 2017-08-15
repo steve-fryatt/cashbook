@@ -181,8 +181,9 @@ static struct analysis_report_details analysis_cashflow_details = {
 	analysis_cashflow_process_file_token,
 	analysis_cashflow_write_file_block,
 	analysis_cashflow_copy_template,
-	analysis_cashflow_remove_account
-	/* remove template */
+	NULL,
+	analysis_cashflow_remove_account,
+	NULL
 };
 
 static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition = {

@@ -165,6 +165,7 @@ static void		analysis_generate_balance_report(struct file_block *file);
 static void *analysis_balance_create_instance(struct analysis_block *parent);
 static void analysis_balance_delete_instance(void *instance);
 static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
+static void analysis_balance_rename_template(struct analysis_block *parent, template_t template, char *name);
 static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w window, void *block);
 static void analysis_balance_remove_account(void *report, acct_t account);
 static void analysis_balance_copy_template(void *to, void *from);
@@ -179,8 +180,9 @@ static struct analysis_report_details analysis_balance_details = {
 	analysis_balance_process_file_token,
 	analysis_balance_write_file_block,
 	analysis_balance_copy_template,
-	analysis_balance_remove_account
-	/* remove template */
+	analysis_balance_rename_template,
+	analysis_balance_remove_account,
+	NULL
 };
 
 static struct analysis_dialogue_icon analysis_dialogue_icon_list[] = {
@@ -316,8 +318,21 @@ static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, 
 }
 
 
+/**
+ * Handle the user renaming templates.
+ *
+ * \param *parent	The parent analysis report instance for the rename.
+ * \param template	The template being renamed.
+ * \param *name		The new name for the report.
+ */
 
+static void analysis_balance_rename_template(struct analysis_block *parent, template_t template, char *name)
+{
+	if (parent == NULL || template == NULL_TEMPLATE || name == NULL)
+		return;
 
+	analysis_dialogue_rename_template(analysis_balance_dialogue, parent, template, name);
+}
 
 
 

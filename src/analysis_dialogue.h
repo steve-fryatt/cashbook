@@ -43,11 +43,17 @@ struct analysis_dialogue_block;
  */
 
 enum analysis_dialogue_icon_type {
-	ANALYSIS_DIALOGUE_ICON_RADIO = 0x00000001,		/**< A radio icon.				*/
-	ANALYSIS_DIALOGUE_ICON_SHADE_ON = 0x00000002,		/**< Shade icon when target is selected.	*/
-	ANALYSIS_DIALOGUE_ICON_SHADE_OFF = 0x00000004,		/**< Shade icon when target is not selected.	*/
-	ANALYSIS_DIALOGUE_ICON_SHADE_TARGET = 0x00000008,	/**< A target for shading other icons.		*/
-	ANALYSIS_DIALOGUE_ICON_END = 0x80000000			/**< The last entry in the icon sequence.	*/
+	ANALYSIS_DIALOGUE_ICON_GENERATE		= 0x00000001,		/**< The Generate (or 'OK') button.		*/
+	ANALYSIS_DIALOGUE_ICON_DELETE		= 0x00000002,		/**< The Delete button.				*/
+	ANALYSIS_DIALOGUE_ICON_RENAME		= 0x00000004,		/**< The Rename button.				*/
+	ANALYSIS_DIALOGUE_ICON_CANCEL		= 0x00000008,		/**< The Cancel button.				*/
+	ANALYSIS_DIALOGUE_ICON_RADIO		= 0x00000010,		/**< A radio icon.				*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_ON		= 0x00000020,		/**< Shade icon when target is selected.	*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_OFF	= 0x00000040,		/**< Shade icon when target is not selected.	*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_TARGET	= 0x00000080,		/**< A target for shading other icons.		*/
+	ANALYSIS_DIALOGUE_ICON_REFRESH		= 0x00000100,		/**< The icon requires refreshing.		*/
+	ANALYSIS_DIALOGUE_ICON_HIDDEN		= 0x00000200,		/**< The icon should be hidden when requested.	*/
+	ANALYSIS_DIALOGUE_ICON_END		= 0x80000000		/**< The last entry in the icon sequence.	*/
 };
 
 #define ANALYSIS_DIALOGUE_NO_ICON ((wimp_i) -1)
@@ -87,26 +93,6 @@ struct analysis_dialogue_definition {
 	 * The interactive help token prefix to use for the dialogue.
 	 */
 	char				*ihelp_token;
-
-	/**
-	 * The Generate button icon handle.
-	 */
-	wimp_i				generate_button;
-
-	/**
-	 * The Cancel button icon handle.
-	 */
-	wimp_i				cancel_button;
-
-	/**
-	 * The Delete button icon handle.
-	 */
-	wimp_i				delete_button;
-
-	/**
-	 * The Rename button icon handle.
-	 */
-	wimp_i				rename_button;
 
 	/**
 	 * A list of significant icons in the dialogue.

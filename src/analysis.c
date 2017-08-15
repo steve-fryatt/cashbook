@@ -247,8 +247,6 @@ struct analysis_block *analysis_create_instance(struct file_block *file)
 		if (report_details == NULL || report_details->create_instance == NULL)
 			continue;
 
-		debug_printf("Initialising instance for report type %d", type);
-
 		new->reports[type] = report_details->create_instance(new);
 		if (new->reports[type] == NULL) {
 			analysis_delete_instance(new);
@@ -293,8 +291,6 @@ void analysis_delete_instance(struct analysis_block *instance)
 
 		if (report_details == NULL || report_details->delete_instance == NULL)
 			continue;
-
-		debug_printf("Deleting instance for report type %d", type);
 
 		report_details->delete_instance(instance->reports[type]);
 	}
@@ -478,9 +474,9 @@ void analysis_remove_account_from_templates(struct file_block *file, acct_t acco
 
 		if (report_details == NULL || report_details->remove_account == NULL)
 			continue;
-
+#ifdef DEBUG
 		debug_printf("Removing account from report type %d", type);
-
+#endif
 		report_details->remove_account(file->analysis->reports[type], account);
 	}
 

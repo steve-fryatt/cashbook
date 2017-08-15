@@ -198,10 +198,11 @@ static struct analysis_dialogue_definition analysis_transaction_dialogue_definit
 	sizeof(struct analysis_transaction_report),
 	"TransRep",
 	"TransRep",
-	ANALYSIS_TRANS_OK,
-	ANALYSIS_TRANS_CANCEL,
-	ANALYSIS_TRANS_DELETE,
-	ANALYSIS_TRANS_RENAME
+//	ANALYSIS_TRANS_OK,
+//	ANALYSIS_TRANS_CANCEL,
+//	ANALYSIS_TRANS_DELETE,
+//	ANALYSIS_TRANS_RENAME
+	NULL
 };
 
 /**

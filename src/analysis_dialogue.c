@@ -73,9 +73,13 @@ struct analysis_dialogue_block {
 
 static void analysis_dialogue_click_handler(wimp_pointer *pointer);
 static osbool analysis_dialogue_keypress_handler(wimp_key *key);
+static void analysis_dialogue_refresh(struct analysis_dialogue_block *dialogue);
 static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue);
-static osbool analysis_dialogue_test_icon(struct analysis_dialogue_block *dialogue, wimp_i icon, enum analysis_dialogue_icon_type type);
+static void analysis_dialogue_place_caret(struct analysis_dialogue_block *dialogue);
 static void analysis_dialogue_shade_icons(struct analysis_dialogue_block *dialogue, wimp_i target);
+static void analysis_dialogue_hide_icons(struct analysis_dialogue_block *dialogue, enum analysis_dialogue_icon_type type, osbool hide);
+static void analysis_dialogue_register_radio_icons(struct analysis_dialogue_block *dialogue);
+static struct analysis_dialogue_icon *analysis_dialogue_find_icon(struct analysis_dialogue_block *dialogue, wimp_i icon);
 
 /**
  * Initialise a new analysis dialogue window instance.
@@ -115,21 +119,7 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
 	event_add_window_user_data(new->window, new);
 	event_add_window_mouse_event(new->window, analysis_dialogue_click_handler);
 	event_add_window_key_event(new->window, analysis_dialogue_keypress_handler);
-
-	/* Add event handlers for any radio icons in the dialogue. */
-
-	if (definition->icons != NULL) {
-		int				i;
-		struct analysis_dialogue_icon	*icons = definition->icons;
-
-		for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
-			if (icons[i].icon == ANALYSIS_DIALOGUE_NO_ICON)
-				continue;
-
-			if ((icons[i].type & ANALYSIS_DIALOGUE_ICON_RADIO) != 0)
-				event_add_window_icon_radio(new->window, icons[i].icon, TRUE);
-		}
-	}
+	analysis_dialogue_register_radio_icons(new);
 
 	return new;
 }
@@ -205,14 +195,12 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 	/* Set the window contents up. */
 
-	icons_set_deleted(dialogue->window, dialogue->definition->delete_button, dialogue->settings_block == NULL);
-	icons_set_deleted(dialogue->window, dialogue->definition->rename_button, dialogue->settings_block == NULL);
+	analysis_dialogue_hide_icons(dialogue, ANALYSIS_DIALOGUE_ICON_DELETE | ANALYSIS_DIALOGUE_ICON_RENAME, template_block == NULL);
 
 	analysis_dialogue_fill(dialogue);
 
 	windows_open_centred_at_pointer(dialogue->window, pointer);
-//	place_dialogue_caret_fallback(dialogue->window, 4, ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO,
-//			ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_ACCOUNTS);
+	analysis_dialogue_place_caret(dialogue);
 }
 
 
@@ -243,30 +231,35 @@ void analysis_dialogue_close(struct analysis_dialogue_block *dialogue)
 static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 {
 	struct analysis_dialogue_block	*windat;
+	struct analysis_dialogue_icon	*icon;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (pointer == NULL || windat == NULL || windat->definition == NULL)
 		return;
 
-	if (pointer->i == windat->definition->cancel_button) {
+	icon = analysis_dialogue_find_icon(windat, pointer->i);
+	if (icon == NULL)
+		return;
+
+	if (icon->type & ANALYSIS_DIALOGUE_ICON_CANCEL) {
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(windat->window);
 			analysis_template_save_force_rename_close(windat->parent, windat->template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-	//		analysis_refresh_transaction_window();
+			analysis_dialogue_refresh(windat);
 		}
-	} else if (pointer->i == windat->definition->generate_button) {
+	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_GENERATE) {
 		if (/*analysis_process_transaction_window() &&*/ pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(windat->window);
 			analysis_template_save_force_rename_close(windat->parent, windat->template);
 		}
-	} else if (pointer->i == windat->definition->delete_button) {
-	//	if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_transaction_window())
-	//		close_dialogue_with_caret(analysis_transaction_window);
-	} else if (pointer->i == windat->definition->rename_button) {
-	//	if (pointer->buttons == wimp_CLICK_SELECT && analysis_transaction_template >= 0 && analysis_transaction_template < analysis_transaction_file->saved_report_count)
-	//		analysis_template_save_open_rename_window(analysis_transaction_file, analysis_transaction_template, pointer);
-	} else if (analysis_dialogue_test_icon(windat, pointer->i, ANALYSIS_DIALOGUE_ICON_SHADE_TARGET)) {
+	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_DELETE) {
+		if (pointer->buttons == wimp_CLICK_SELECT /*&& analysis_delete_transaction_window()*/)
+			close_dialogue_with_caret(windat->window);
+	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_RENAME) {
+		if (pointer->buttons == wimp_CLICK_SELECT && windat->template != NULL_TEMPLATE)
+			analysis_template_save_open_rename_window(windat->parent, windat->template, pointer);
+	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_SHADE_TARGET) {
 		analysis_dialogue_shade_icons(windat, pointer->i);
 		icons_replace_caret_in_window(windat->window);
 	}
@@ -368,6 +361,33 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 }
 
 
+/**
+ * Request the client to fill a dialogue, update the shaded icons and then
+ * redraw any fields which require it.
+ *
+ * \param *dialogue		The dialogue instance to refresh.
+ */
+
+static void analysis_dialogue_refresh(struct analysis_dialogue_block *dialogue)
+{
+	int				i;
+	struct analysis_dialogue_icon	*icons;
+
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+		return;
+
+	analysis_dialogue_fill(dialogue);
+
+	icons = dialogue->definition->icons;
+
+	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
+		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_REFRESH))
+			wimp_set_icon_state(dialogue->window, icons[i].icon, 0, 0);
+	}
+
+	icons_replace_caret_in_window(dialogue->window);
+}
+
 
 /**
  * Request the client to fill a dialogue, and update the shaded icons
@@ -399,35 +419,30 @@ static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue)
 
 
 /**
- * Test an icon to see if it is of a given type.
+ * Place the caret into the first available writable icon in a dialogue.
  *
- * \param *dialogue		The dialogue instance to test in.
- * \param icon			The icon to test.
- * \param type			The icon type to test against.
- * \return			TRUE if the icon matches; else FALSE.
+ * \param *dialogue		The dialogue instance to place the caret
+ *				in.
  */
 
-static osbool analysis_dialogue_test_icon(struct analysis_dialogue_block *dialogue, wimp_i icon, enum analysis_dialogue_icon_type type)
+static void analysis_dialogue_place_caret(struct analysis_dialogue_block *dialogue)
 {
 	int				i;
 	struct analysis_dialogue_icon	*icons;
 
-	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
-		return FALSE;
-
-	if (icon == wimp_ICON_WINDOW)
-		return FALSE;
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+		return;
 
 	icons = dialogue->definition->icons;
 
 	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
-		if (icons[i].icon != icon)
-			continue;
-
-		return ((icons[i].type & type) != 0) ? TRUE : FALSE;
+		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_REFRESH) && !icons_get_shaded(dialogue->window, icons[i].icon)) {
+			place_dialogue_caret(dialogue->window, icons[i].icon);
+			return;
+		}
 	}
 
-	return FALSE;
+	place_dialogue_caret(dialogue->window, wimp_ICON_WINDOW);
 }
 
 
@@ -457,10 +472,88 @@ static void analysis_dialogue_shade_icons(struct analysis_dialogue_block *dialog
 		if (target != ANALYSIS_DIALOGUE_NO_ICON && target != icons[i].target)
 			continue;
 
-		if ((icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_ON) != 0)
+		if (icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_ON)
 			icons_set_shaded(dialogue->window, icons[i].icon, icons_get_selected(dialogue->window, icons[i].target));
-		else if ((icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_OFF) != 0)
+		else if (icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_OFF)
 			icons_set_shaded(dialogue->window, icons[i].icon, !icons_get_selected(dialogue->window, icons[i].target));
 	}
+}
+
+
+/**
+ * Set the hidden (deleted) state of any icons with the hide flag.
+ *
+ * \param *dialogue		The dialogue instance to process.
+ * \param type			The type(s) of icon to be affected.
+ * \param hide			TRUE to hide any affected icons; FALSE to show them.
+ */
+
+static void analysis_dialogue_hide_icons(struct analysis_dialogue_block *dialogue, enum analysis_dialogue_icon_type type, osbool hide)
+{
+	int				i;
+	struct analysis_dialogue_icon	*icons;
+
+	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+		return;
+
+	icons = dialogue->definition->icons;
+
+	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
+		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & type))
+			icons_set_deleted(dialogue->window, icons[i].icon, hide);
+	}
+}
+
+
+/**
+ * Register any icons declared as radio icons with the event handler.
+ *
+ * \param *dialogue		The dialogue instance to register.
+ */
+
+static void analysis_dialogue_register_radio_icons(struct analysis_dialogue_block *dialogue)
+{
+	int				i;
+	struct analysis_dialogue_icon	*icons;
+
+	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+		return;
+
+	icons = dialogue->definition->icons;
+
+	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
+		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_RADIO))
+			event_add_window_icon_radio(dialogue->window, icons[i].icon, TRUE);
+	}
+}
+
+
+/**
+ * Find an icon within the dialogue definition, and return its details.
+ *
+ * \param *dialogue		The dialogue instance to search in.
+ * \param icon			The icon to search for.
+ * \return			The icon's definition, or NULL if not found.
+ */
+
+static struct analysis_dialogue_icon *analysis_dialogue_find_icon(struct analysis_dialogue_block *dialogue, wimp_i icon)
+{
+	int				i;
+	struct analysis_dialogue_icon	*icons;
+
+	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+		return NULL;
+
+	if (icon == wimp_ICON_WINDOW)
+		return NULL;
+
+	icons = dialogue->definition->icons;
+
+	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
+		if (icons[i].icon == icon)
+			return &(icons[i]);
+	}
+
+	return NULL;
 }
 

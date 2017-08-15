@@ -183,10 +183,11 @@ static struct analysis_dialogue_definition analysis_unreconciled_dialogue_defini
 	sizeof(struct analysis_unreconciled_report),
 	"UnrecRep",
 	"UnrecRep",
-	ANALYSIS_UNREC_OK,
-	ANALYSIS_UNREC_CANCEL,
-	ANALYSIS_UNREC_DELETE,
-	ANALYSIS_UNREC_RENAME
+//	ANALYSIS_UNREC_OK,
+//	ANALYSIS_UNREC_CANCEL,
+//	ANALYSIS_UNREC_DELETE,
+//	ANALYSIS_UNREC_RENAME
+	NULL
 };
 
 /**

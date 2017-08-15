@@ -190,10 +190,11 @@ static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition
 	sizeof(struct analysis_cashflow_report),
 	"CashFlwRep",
 	"CashFlwRep",
-	ANALYSIS_CASHFLOW_OK,
-	ANALYSIS_CASHFLOW_CANCEL,
-	ANALYSIS_CASHFLOW_DELETE,
-	ANALYSIS_CASHFLOW_RENAME
+//	ANALYSIS_CASHFLOW_OK,
+//	ANALYSIS_CASHFLOW_CANCEL,
+//	ANALYSIS_CASHFLOW_DELETE,
+//	ANALYSIS_CASHFLOW_RENAME
+	NULL
 };
 
 

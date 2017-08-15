@@ -101,7 +101,7 @@ static struct analysis_report			*analysis_template_save_report = NULL;
  * The template currently owning the Save/Rename window.
  */
 
-static int					analysis_template_save_template = NULL_TEMPLATE;
+static template_t				analysis_template_save_template = NULL_TEMPLATE;
 
 /**
  * The active Saved Template menu, if one is open.
@@ -189,12 +189,12 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 /**
  * Open the Rename Template dialogue box.
  *
- * \param *file			The file owning the template.
+ * \param *parent		The analysis instance owning the template.
  * \param template_number	The template to be renamed.
  * \param *ptr			The current Wimp Pointer details.
  */
 
-void analysis_template_save_open_rename_window(struct file_block *file, int template_number, wimp_pointer *ptr)
+void analysis_template_save_open_rename_window(struct analysis_block *parent, int template_number, wimp_pointer *ptr)
 {
 	struct analysis_report	*template;
 
@@ -216,7 +216,7 @@ void analysis_template_save_open_rename_window(struct file_block *file, int temp
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
-	analysis_template_save_parent = analysis_get_templates(file->analysis);
+	analysis_template_save_parent = analysis_get_templates(parent);
 	analysis_template_save_template = template_number;
 	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_RENAME;
 
@@ -452,7 +452,8 @@ static osbool analysis_template_save_process_window(void)
 
 		analysis_template_rename(analysis_template_save_parent, analysis_template_save_template, name);
 
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_template_save_window), windows_get_indirected_title_length(analysis_template_save_window), name, NULL, NULL, NULL);
+		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_template_save_window),
+				windows_get_indirected_title_length(analysis_template_save_window), name, NULL, NULL, NULL);
 		xwimp_force_redraw_title(analysis_template_save_window);
 		break;
 
@@ -474,7 +475,7 @@ static osbool analysis_template_save_process_window(void)
 
 void analysis_template_save_delete_template(struct analysis_block *parent, template_t template)
 {
-	if (analysis_template_save_parent != parent ||
+	if (analysis_template_save_parent != analysis_get_templates(parent) ||
 			analysis_template_save_template == NULL_TEMPLATE)
 		return;
 
@@ -494,7 +495,7 @@ void analysis_template_save_delete_template(struct analysis_block *parent, templ
 
 void analysis_template_save_force_close(struct analysis_block *parent)
 {
-	if (analysis_template_save_parent == parent &&
+	if (analysis_template_save_parent == analysis_get_templates(parent) &&
 			windows_get_open(analysis_template_save_window))
 		close_dialogue_with_caret(analysis_template_save_window);
 }
@@ -528,9 +529,9 @@ void analysis_template_save_force_template_close(struct analysis_report *templat
 void analysis_template_save_force_rename_close(struct analysis_block *parent, template_t template)
 {
 	if (!windows_get_open(analysis_template_save_window) ||
-			analysis_template_save_parent != parent ||
+			analysis_template_save_parent != analysis_get_templates(parent) ||
 			analysis_template_save_current_mode != ANALYSIS_SAVE_MODE_RENAME ||
-			analysis_template_save_template != NULL_TEMPLATE)
+			analysis_template_save_template != template)
 		return;
 
 	close_dialogue_with_caret(analysis_template_save_window);

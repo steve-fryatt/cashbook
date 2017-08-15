@@ -53,12 +53,12 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 /**
  * Open the Rename Template dialogue box.
  *
- * \param *file			The file owning the template.
+ * \param *parent		The analysis instance owning the template.
  * \param template_number	The template to be renamed.
  * \param *ptr			The current Wimp Pointer details.
  */
 
-void analysis_template_save_open_rename_window(struct file_block *file, int template_number, wimp_pointer *ptr);
+void analysis_template_save_open_rename_window(struct analysis_block *parent, int template_number, wimp_pointer *ptr);
 
 
 /**

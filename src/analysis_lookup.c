@@ -48,6 +48,7 @@
 
 #include "account.h"
 #include "account_menu.h"
+#include "analysis.h"
 
 /* Dialogue Icons. */
 
@@ -115,23 +116,23 @@ void analysis_lookup_initialise(void)
  * Open the account lookup window as a menu, allowing an account to be
  * entered into an account list using a graphical interface.
  *
- * \param *file			The file to which the operation relates.
+ * \param *parent		The analysis_instance to which the operation relates.
  * \param window		The window to own the lookup dialogue.
  * \param icon			The icon to own the lookup dialogue.
  * \param account		An account to seed the window, or NULL_ACCOUNT.
  * \param type			The types of account to be accepted.
  */
 
-void analysis_lookup_open_window(struct file_block *file, wimp_w window, wimp_i icon, acct_t account, enum account_type type)
+void analysis_lookup_open_window(struct analysis_block *parent, wimp_w window, wimp_i icon, acct_t account, enum account_type type)
 {
 	wimp_pointer		pointer;
 
-	account_fill_field(file, account, FALSE, analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC);
-
-	analysis_lookup_file = file;
+	analysis_lookup_file = analysis_get_file(parent);
 	analysis_lookup_type = type;
 	analysis_lookup_parent = window;
 	analysis_lookup_icon = icon;
+
+	account_fill_field(analysis_lookup_file, account, FALSE, analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC);
 
 	/* Set the window position and open it on screen. */
 

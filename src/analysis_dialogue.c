@@ -51,6 +51,7 @@
 #include "account.h"
 #include "account_menu.h"
 #include "analysis.h"
+#include "analysis_lookup.h"
 #include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "caret.h"
@@ -288,56 +289,27 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_SHADE_TARGET) {
 		analysis_dialogue_shade_icons(windat, pointer->i);
 		icons_replace_caret_in_window(windat->window);
+	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FROM) {
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+			analysis_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
+	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_TO) {
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+			analysis_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
+	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_IN) {
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+			analysis_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_IN);
+	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_OUT) {
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+			analysis_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_OUT);
+	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FULL) {
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+			analysis_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
 	}
-
-
-#if 0
-	switch (pointer->i) {
-	case ANALYSIS_TRANS_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			analysis_refresh_transaction_window();
-		}
-		break;
-
-	case ANALYSIS_TRANS_OK:
-		if (analysis_process_transaction_window() && pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
-		}
-		break;
-
-	case ANALYSIS_TRANS_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_transaction_window())
-			close_dialogue_with_caret(analysis_transaction_window);
-		break;
-
-	case ANALYSIS_TRANS_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_transaction_template >= 0 && analysis_transaction_template < analysis_transaction_file->saved_report_count)
-			analysis_template_save_open_rename_window(analysis_transaction_file, analysis_transaction_template, pointer);
-		break;
-
-
-
-
-
-
-
-	case ANALYSIS_TRANS_FROMSPECPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
-					ANALYSIS_TRANS_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-		break;
-
-	case ANALYSIS_TRANS_TOSPECPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
-					ANALYSIS_TRANS_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-		break;
-	}
-#endif
 }
 
 
@@ -351,9 +323,14 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 {
 	struct analysis_dialogue_block	*windat;
+	struct analysis_dialogue_icon	*icon;
 
 	windat = event_get_window_user_data(key->w);
 	if (key == NULL || windat == NULL || windat->definition == NULL)
+		return FALSE;
+
+	icon = analysis_dialogue_find_icon(windat, key->i);
+	if (icon == NULL)
 		return FALSE;
 
 	switch (key->c) {
@@ -368,16 +345,31 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 		close_dialogue_with_caret(windat->window);
 		analysis_template_save_force_rename_close(windat->parent, windat->template);
 		break;
-#if 0
+
 	case wimp_KEY_F1:
-		if (key->i == ANALYSIS_TRANS_FROMSPEC)
-			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
-					ANALYSIS_TRANS_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-		else if (key->i == ANALYSIS_TRANS_TOSPEC)
-			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
-					ANALYSIS_TRANS_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
+		if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FROM) {
+			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+				analysis_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
+		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_TO) {
+			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+				analysis_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
+		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_IN) {
+			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+				analysis_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_IN);
+		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_OUT) {
+			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+				analysis_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_OUT);
+		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FULL) {
+			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+				analysis_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_FULL);
+		}
 		break;
-#endif
+
 	default:
 		return FALSE;
 		break;

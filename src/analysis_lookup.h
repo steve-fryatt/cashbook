@@ -44,13 +44,13 @@ void analysis_lookup_initialise(void);
  * Open the account lookup window as a menu, allowing an account to be
  * entered into an account list using a graphical interface.
  *
- * \param *file			The file to which the operation relates.
+ * \param *parent		The analysis_instance to which the operation relates.
  * \param window		The window to own the lookup dialogue.
  * \param icon			The icon to own the lookup dialogue.
  * \param account		An account to seed the window, or NULL_ACCOUNT.
  * \param type			The types of account to be accepted.
  */
 
-void analysis_lookup_open_window(struct file_block *file, wimp_w window, wimp_i icon, acct_t account, enum account_type type);
+void analysis_lookup_open_window(struct analysis_block *parent, wimp_w window, wimp_i icon, acct_t account, enum account_type type);
 
 #endif

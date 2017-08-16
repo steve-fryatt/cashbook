@@ -53,6 +53,11 @@ enum analysis_dialogue_icon_type {
 	ANALYSIS_DIALOGUE_ICON_SHADE_TARGET	= 0x00000080,		/**< A target for shading other icons.		*/
 	ANALYSIS_DIALOGUE_ICON_REFRESH		= 0x00000100,		/**< The icon requires refreshing.		*/
 	ANALYSIS_DIALOGUE_ICON_HIDDEN		= 0x00000200,		/**< The icon should be hidden when requested.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_FROM	= 0x00000400,		/*<< The icon should launch a "From" popup.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_TO		= 0x00000800,		/*<< The icon should launch a "To" popup.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_IN		= 0x00001000,		/*<< The icon should launch a "In" popup.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_OUT	= 0x00002000,		/*<< The icon should launch a "Out" popup.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_FULL	= 0x00004000,		/*<< The icon should launch a "Full" popup.	*/
 	ANALYSIS_DIALOGUE_ICON_END		= 0x80000000		/**< The last entry in the icon sequence.	*/
 };
 

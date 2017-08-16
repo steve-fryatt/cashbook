@@ -127,7 +127,7 @@ struct analysis_report_details {
 	/**
 	 * Remove a template definition.
 	 */
-	void		(*remove_template)(void);
+	void		(*remove_template)(struct analysis_block *parent, template_t template);
 };
 
 
@@ -278,84 +278,6 @@ size_t analysis_account_idents_to_list(struct analysis_block *instance, enum acc
  */
 
 void analysis_account_list_to_idents(struct analysis_block *instance, char *list, size_t length, acct_t *array, size_t count);
-
-
-/**
- * Return a volatile pointer to a template data block from within a template,
- * if that template is of a given type. This is a pointer into a flex heap
- * block, so it will only be valid until an operation occurs to shift the blocks.
- * If the template isn't the type specified, NULL is returned.
- * 
- * \param *template		Pointer to the template to use.
- * \param type			The type of template required.
- * \return			Volatile pointer to the template, or NULL.
- */
-
-union analysis_report_block *analysis_get_template_contents(struct analysis_report *template, enum analysis_report_type type);
-
-
-/**
- * Return the file which owns a template.
- * 
- * \param *template		Pointer to the template for which to return
- *				the owning file.
- * \return			The owning file block, or NULL.
- */
-
-struct file_block *analysis_get_template_file(struct analysis_report *template);
-
-
-/**
- * Find a save template ID based on its name.
- *
- * \param *file			The file to search in.
- * \param *name			The name to search for.
- * \return			The matching template ID, or NULL_TEMPLATE.
- */
-
-template_t analysis_get_template_from_name(struct file_block *file, char *name);
-
-
-/**
- * Store a report's template into a file.
- *
- * \param *file			The file to work on.
- * \param *report		The report to take the template from.
- * \param template		The template pointer to save to, or
- *				NULL_TEMPLATE to add a new entry.
- * \param *name			Pointer to a name to give the template, or
- *				NULL to leave it as-is.
- */
-
-void analysis_store_template(struct file_block *file, struct analysis_report *report, template_t template, char *name);
-
-
-/**
- * Rename a template.
- *
- * \param *filer		The file containing the template.
- * \param template		The template to be renamed.
- * \param *name			Pointer to the new name.
- */
-
-void analysis_rename_template(struct file_block *file, template_t template, char *name);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**

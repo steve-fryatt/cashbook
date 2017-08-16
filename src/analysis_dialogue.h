@@ -144,6 +144,19 @@ void analysis_dialogue_close(struct analysis_dialogue_block *dialogue, struct an
 
 
 /**
+ * Update an analysis dialogue instance's template pointer if a template
+ * is deleted from the parent analysis instance.
+ *
+ * \param *dialogue		The dialogue instance to process.
+ * \param *parent		The analysis instance from which the template
+ *				was deleted.
+ * \param template		The template which was deleted.
+ */
+
+void analysis_dialogue_remove_template(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, template_t template);
+
+
+/**
  * Tidy up after a template being renamed, by updating the window title
  * if the template belongs to this instance.
  *

@@ -171,6 +171,7 @@ static void analysis_balance_delete_instance(void *instance);
 static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_balance_rename_template(struct analysis_block *parent, template_t template, char *name);
 static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_balance_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_balance_remove_account(void *report, acct_t account);
 static void analysis_balance_copy_template(void *to, void *from);
 static void analysis_balance_write_file_block(void *block, FILE *out, char *name);
@@ -186,7 +187,7 @@ static struct analysis_report_details analysis_balance_details = {
 	analysis_balance_copy_template,
 	analysis_balance_rename_template,
 	analysis_balance_remove_account,
-	NULL
+	analysis_balance_remove_template
 };
 
 static struct analysis_dialogue_icon analysis_dialogue_icon_list[] = {
@@ -944,6 +945,8 @@ static void analysis_generate_balance_report(struct file_block *file)
 
 
 
+#endif
+
 
 /**
  * Remove any references to a report template.
@@ -952,14 +955,10 @@ static void analysis_generate_balance_report(struct file_block *file)
  * \param template	The template to be removed.
  */
 
-void analysis_balance_remove_template(struct analysis_block *parent, template_t template)
+static void analysis_balance_remove_template(struct analysis_block *parent, template_t template)
 {
-	if (analysis_balance_instance == parent && analysis_balance_template > template)
-		analysis_balance_template--;
+	analysis_dialogue_remove_template(analysis_balance_dialogue, parent, template);
 }
-
-
-#endif
 
 
 /**

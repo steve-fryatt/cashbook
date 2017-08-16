@@ -237,6 +237,18 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 
 
 /**
+ * Delete a saved report from the file, and adjust any other template
+ * pointers which are currently in use.
+ *
+ * \param *instance		The saved templates instance containing the template.
+ * \param template		The template to be deleted.
+ * \return			TRUE on deletion; FALSE on failure.
+ */
+
+osbool analysis_template_delete(struct analysis_template_block *instance, template_t template);
+
+
+/**
  * Save the Report Template details from a saved templates instance to a
  * CashBook file
  *

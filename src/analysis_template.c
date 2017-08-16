@@ -475,7 +475,7 @@ void analysis_template_store(struct analysis_template_block *instance, struct an
 		return;
 
 	if (template == NULL_TEMPLATE) {
-		if (!flexutils_resize((void **) &(instance->saved_reports), sizeof(struct analysis_report), instance->saved_report_count + 1)) {
+		if (!flexutils_resize((void **) &(instance->saved_reports), analysis_template_full_block_size, instance->saved_report_count + 1)) {
 			error_msgs_report_error("NoMemNewTemp");
 			return;
 		}
@@ -570,6 +570,103 @@ static void analysis_template_copy(struct analysis_report *to, struct analysis_r
 
 	report_details->copy_template(analysis_template_data_from_address(to), analysis_template_data_from_address(from));
 }
+
+
+/**
+ * Delete a saved report from the file, and adjust any other template
+ * pointers which are currently in use.
+ *
+ * \param *instance		The saved templates instance containing the template.
+ * \param template		The template to be deleted.
+ * \return			TRUE on deletion; FALSE on failure.
+ */
+
+osbool analysis_template_delete(struct analysis_template_block *instance, template_t template)
+{
+	enum analysis_report_type	type;
+	struct file_block		*file;
+	struct analysis_report		*block;
+	struct analysis_report_details	*report_details;
+
+	if (instance == NULL || instance->saved_reports == NULL || !analysis_template_valid(instance, template))
+		return FALSE;
+
+	block = analysis_template_address(instance, template);
+	if (block == NULL)
+		return FALSE;
+
+	type = block->type;
+
+	/* First remove the template from the flex block. */
+
+	if (!flexutils_delete_object((void **) &(instance->saved_reports), analysis_template_full_block_size, template)) {
+		error_msgs_report_error("BadDelete");
+		return FALSE;
+	}
+
+	instance->saved_report_count--;
+
+	/* Mark the file has being modified. */
+
+	file = analysis_get_file(instance->parent);
+	if (file != NULL)
+		file_set_data_integrity(file, TRUE);
+
+	/* If the rename template window is open for this template, close it now before the pointer is lost. */
+
+	analysis_template_save_force_rename_close(instance->parent, template);
+
+	/* Update any affected report dialogue. */
+
+	report_details = analysis_get_report_details(type);
+	if (report_details != NULL && report_details->remove_template != NULL)
+		report_details->remove_template(instance->parent, template);
+
+	/* Notify the save/rename dialogue. */
+
+	analysis_template_save_delete_template(instance->parent, template);
+
+	return TRUE;
+}
+
+
+
+/**
+ * Create a new analysis template in the static heap, optionally copying the
+ * contents from an existing template.
+ *
+ * \param *base			Pointer to a template to copy, or NULL to
+ *				create an empty template.
+ * \return			Pointer to the new template, or NULL on failure.
+ */
+
+static struct analysis_report *analysis_create_template(struct analysis_report *base)
+{
+//	struct analysis_report	*new;
+
+//	new = heap_alloc(sizeof(struct analysis_report));
+//	if (new == NULL)
+		return NULL;
+
+//	if (base == NULL) {
+//		*(new->name) = '\0';
+//		new->type = REPORT_TYPE_NONE;
+//		new->file = NULL;
+//	} else {
+//		analysis_copy_template(new, base);
+//	}
+
+//	return new;
+}
+
+
+
+
+
+
+
+
+
 
 
 /**

@@ -33,6 +33,7 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
@@ -227,6 +228,26 @@ void analysis_dialogue_close(struct analysis_dialogue_block *dialogue, struct an
 
 
 /**
+ * Update an analysis dialogue instance's template pointer if a template
+ * is deleted from the parent analysis instance.
+ *
+ * \param *dialogue		The dialogue instance to process.
+ * \param *parent		The analysis instance from which the template
+ *				was deleted.
+ * \param template		The template which was deleted.
+ */
+
+void analysis_dialogue_remove_template(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, template_t template)
+{
+	if (dialogue == NULL || dialogue->parent != parent)
+		return;
+
+	if (dialogue->template != NULL_TEMPLATE && dialogue->template > template)
+		dialogue->template--;
+}
+
+
+/**
  * Tidy up after a template being renamed, by updating the window title
  * if the template belongs to this instance.
  *
@@ -401,8 +422,26 @@ static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue
 
 static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue)
 {
-	return FALSE;
+	struct analysis_template_block	*templates;
+
+	if (dialogue == NULL || dialogue->parent == NULL || dialogue->template == NULL_TEMPLATE)
+		return FALSE;
+
+	templates = analysis_get_templates(dialogue->parent);
+	if (templates == NULL)
+		return FALSE;
+
+	if (error_msgs_report_question("DeleteTemp", "DeleteTempB") != 3)
+		return FALSE;
+
+	if (!analysis_template_delete(templates, dialogue->template))
+		return FALSE;
+
+	dialogue->template = NULL_TEMPLATE;
+
+	return TRUE;
 }
+
 
 /**
  * Request the client to fill a dialogue, update the shaded icons and then

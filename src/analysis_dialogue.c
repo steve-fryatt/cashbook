@@ -74,6 +74,8 @@ struct analysis_dialogue_block {
 
 static void analysis_dialogue_click_handler(wimp_pointer *pointer);
 static osbool analysis_dialogue_keypress_handler(wimp_key *key);
+static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue);
+static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue);
 static void analysis_dialogue_refresh(struct analysis_dialogue_block *dialogue);
 static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue);
 static void analysis_dialogue_place_caret(struct analysis_dialogue_block *dialogue);
@@ -276,12 +278,12 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 			analysis_dialogue_refresh(windat);
 		}
 	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_GENERATE) {
-		if (/*analysis_process_transaction_window() &&*/ pointer->buttons == wimp_CLICK_SELECT) {
+		if (analysis_dialogue_process(windat) && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(windat->window);
 			analysis_template_save_force_rename_close(windat->parent, windat->template);
 		}
 	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_DELETE) {
-		if (pointer->buttons == wimp_CLICK_SELECT /*&& analysis_delete_transaction_window()*/)
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_dialogue_delete(windat))
 			close_dialogue_with_caret(windat->window);
 	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_RENAME) {
 		if (pointer->buttons == wimp_CLICK_SELECT && windat->template != NULL_TEMPLATE)
@@ -335,10 +337,10 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-	//	if (analysis_process_transaction_window()) {
+		if (analysis_dialogue_process(windat)) {
 			close_dialogue_with_caret(windat->window);
 			analysis_template_save_force_rename_close(windat->parent, windat->template);
-	//	}
+		}
 		break;
 
 	case wimp_KEY_ESCAPE:
@@ -378,6 +380,29 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 	return TRUE;
 }
 
+
+/**
+ * Process the contents of a dialogue and return it to the client.
+ *
+ * \param *dialogue		The dialogue instance to process.
+ */
+
+static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue)
+{
+	return FALSE;
+}
+
+
+/**
+ * Delete the template associated with a dialogue.
+ *
+ * \param *dialogue		The dialogue instance to process.
+ */
+
+static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue)
+{
+	return FALSE;
+}
 
 /**
  * Request the client to fill a dialogue, update the shaded icons and then

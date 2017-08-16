@@ -406,6 +406,7 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
  * Process the contents of a dialogue and return it to the client.
  *
  * \param *dialogue		The dialogue instance to process.
+ * \return			TRUE on success; FALSE on failure.
  */
 
 static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue)
@@ -418,6 +419,7 @@ static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue
  * Delete the template associated with a dialogue.
  *
  * \param *dialogue		The dialogue instance to process.
+ * \return			TRUE on success; FALSE on failure.
  */
 
 static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue)

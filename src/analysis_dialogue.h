@@ -131,9 +131,11 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
  * on screen.
  *
  * \param *dialogue		The dialogue instance to close.
+ * \param *parent		If not NULL, only close the dialogue if
+ *				this is the parent analysis instance.
  */
 
-void analysis_dialogue_close(struct analysis_dialogue_block *dialogue);
+void analysis_dialogue_close(struct analysis_dialogue_block *dialogue, struct analysis_block *parent);
 
 
 /**

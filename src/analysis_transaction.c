@@ -281,8 +281,7 @@ static void analysis_transaction_delete_instance(void *instance)
 	if (report == NULL)
 		return;
 
-	if (report->parent == analysis_transcation_instance)
-		analysis_dialogue_close(analysis_transaction_dialogue);
+	analysis_dialogue_close(analysis_transaction_dialogue, report->parent);
 
 	heap_free(report);
 }

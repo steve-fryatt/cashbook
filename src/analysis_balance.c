@@ -141,15 +141,19 @@ struct analysis_balance_block {
 	struct analysis_balance_report		saved;
 };
 
+/**
+ * The dialogue instance used for this report.
+ */
+
 static struct analysis_dialogue_block	*analysis_balance_dialogue = NULL;
 
 
 //static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.					*/
-static struct analysis_block	*analysis_balance_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
+//static struct analysis_block	*analysis_balance_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
 //static struct file_block	*analysis_balance_file = NULL;			/**< The file currently owning the balance dialogue.				*/
-static osbool			analysis_balance_restore = FALSE;		/**< The restore setting for the current Balance dialogue.			*/
-static struct balance_rep	analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.				*/
-static template_t		analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.			*/
+//static osbool			analysis_balance_restore = FALSE;		/**< The restore setting for the current Balance dialogue.			*/
+//static struct balance_rep	analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.				*/
+//static template_t		analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.			*/
 
 /* Static Function Prototypes. */
 #if 0
@@ -287,11 +291,10 @@ static void analysis_balance_delete_instance(void *instance)
 {
 	struct analysis_balance_block *report = instance;
 
-	if (report != NULL)
+	if (report == NULL)
 		return;
 
-	if (report->parent == analysis_balance_instance)
-		analysis_dialogue_close(analysis_balance_dialogue);
+	analysis_dialogue_close(analysis_balance_dialogue, report->parent);
 
 	heap_free(report);
 }

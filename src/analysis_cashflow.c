@@ -271,7 +271,7 @@ static void analysis_cashflow_delete_instance(void *instance)
 		return;
 
 	if (report->parent == analysis_cashflow_instance)
-		analysis_dialogue_close(analysis_cashflow_dialogue);
+		analysis_dialogue_close(analysis_cashflow_dialogue, report->parent);
 
 	heap_free(report);
 }

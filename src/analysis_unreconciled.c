@@ -261,8 +261,7 @@ static void analysis_unreconciled_delete_instance(void *instance)
 	if (report == NULL)
 		return;
 
-	if (report->parent == analysis_unreconciled_instance)
-		analysis_dialogue_close(analysis_unreconciled_dialogue);
+	analysis_dialogue_close(analysis_unreconciled_dialogue, report->parent);
 
 	heap_free(report);
 }

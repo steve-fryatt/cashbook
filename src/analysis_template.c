@@ -48,6 +48,7 @@
 
 #include "analysis_template.h"
 
+#include "analysis_template_save.h"
 #include "file.h"
 #include "flexutils.h"
 

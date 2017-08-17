@@ -104,7 +104,10 @@
 #define ANALYSIS_CASHFLOW_OUTGOINGPOPUP 29
 #define ANALYSIS_CASHFLOW_TABULAR 30
 
-/* Cashflow Report dialogue. */
+
+/**
+ * Cashflow Report Template structure.
+ */
 
 struct analysis_cashflow_report {
 	date_t				date_from;
@@ -127,6 +130,9 @@ struct analysis_cashflow_report {
 	osbool				tabular;
 };
 
+/**
+ * Cashflow Report Instance data.
+ */
 
 struct analysis_cashflow_block {
 	/**
@@ -142,60 +148,90 @@ struct analysis_cashflow_block {
 	struct analysis_cashflow_report		saved;
 };
 
-
-
+/**
+ * The dialogue instance used for this report.
+ */
 
 static struct analysis_dialogue_block	*analysis_cashflow_dialogue = NULL;
 
-//static wimp_w			analysis_cashflow_window = NULL;		/**< The handle of the Cashflow Report window.					*/
-static struct analysis_block	*analysis_cashflow_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
-//static struct file_block	*analysis_cashflow_file = NULL;			/**< The file currently owning the cashflow dialogue.				*/
-static osbool			analysis_cashflow_restore = FALSE;		/**< The restore setting for the current Cashflow dialogue.			*/
-static struct cashflow_rep	analysis_cashflow_settings;			/**< Saved initial settings for the Cashflow dialogue.				*/
-static template_t		analysis_cashflow_template = NULL_TEMPLATE;	/**< The template which applies to the Cashflow dialogue.			*/
-
 /* Static Function Prototypes. */
-#if 0
-static void		analysis_cashflow_click_handler(wimp_pointer *pointer);
-static osbool		analysis_cashflow_keypress_handler(wimp_key *key);
-static void		analysis_refresh_cashflow_window(void);
-static void		analysis_fill_cashflow_window(struct file_block *file, osbool restore);
-static osbool		analysis_process_cashflow_window(void);
-static osbool		analysis_delete_cashflow_window(void);
-static void		analysis_generate_cashflow_report(struct file_block *file);
-#endif
 
 static void *analysis_cashflow_create_instance(struct analysis_block *parent);
 static void analysis_cashflow_delete_instance(void *instance);
 static void analysis_cashflow_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
+static void analysis_cashflow_rename_template(struct analysis_block *parent, template_t template, char *name);
+static void analysis_cashflow_fill_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_process_cashflow_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_cashflow_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_cashflow_remove_account(void *report, acct_t account);
 static void analysis_cashflow_copy_template(void *to, void *from);
 static void analysis_cashflow_write_file_block(void *block, FILE *out, char *name);
 static void analysis_cashflow_process_file_token(void *block, struct filing_block *in);
 
+/* The Cashflow Report definition. */
+
 static struct analysis_report_details analysis_cashflow_details = {
 	analysis_cashflow_create_instance,
 	analysis_cashflow_delete_instance,
 	analysis_cashflow_open_window,
-	NULL,
+	analysis_cashflow_fill_window,
+	analysis_process_cashflow_window,
 	analysis_cashflow_process_file_token,
 	analysis_cashflow_write_file_block,
 	analysis_cashflow_copy_template,
-	NULL,
+	analysis_cashflow_rename_template,
 	analysis_cashflow_remove_account,
-	NULL
+	analysis_cashflow_remove_template
 };
+
+/* The Cashflow Report Dialogue Icon Details. */
+
+static struct analysis_dialogue_icon analysis_cashflow_icon_list[] = {
+	{ANALYSIS_DIALOGUE_ICON_GENERATE,					ANALYSIS_CASHFLOW_OK,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_CANCEL,						ANALYSIS_CASHFLOW_CANCEL,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_DELETE,						ANALYSIS_CASHFLOW_DELETE,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_RENAME,						ANALYSIS_CASHFLOW_RENAME,		ANALYSIS_DIALOGUE_NO_ICON},
+
+	/* Budget Group. */
+
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,					ANALYSIS_CASHFLOW_BUDGET,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,					ANALYSIS_CASHFLOW_DATEFROMTXT,		ANALYSIS_CASHFLOW_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_CASHFLOW_DATEFROM,		ANALYSIS_CASHFLOW_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,					ANALYSIS_CASHFLOW_DATETOTXT,		ANALYSIS_CASHFLOW_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_CASHFLOW_DATETO,		ANALYSIS_CASHFLOW_BUDGET},
+
+	/* Group Period. */
+
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,					ANALYSIS_CASHFLOW_GROUP,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_CASHFLOW_PERIOD,		ANALYSIS_CASHFLOW_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,					ANALYSIS_CASHFLOW_PTEXT,		ANALYSIS_CASHFLOW_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,					ANALYSIS_CASHFLOW_LOCK,			ANALYSIS_CASHFLOW_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_CASHFLOW_PDAYS,		ANALYSIS_CASHFLOW_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_CASHFLOW_PMONTHS,		ANALYSIS_CASHFLOW_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_CASHFLOW_PYEARS,		ANALYSIS_CASHFLOW_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,					ANALYSIS_CASHFLOW_EMPTY,		ANALYSIS_CASHFLOW_GROUP},
+
+	/* Account Fields. */
+
+	{ANALYSIS_DIALOGUE_ICON_POPUP_FULL | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_CASHFLOW_ACCOUNTS,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_FULL,					ANALYSIS_CASHFLOW_ACCOUNTSPOPUP,	ANALYSIS_CASHFLOW_ACCOUNTS},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_IN | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_CASHFLOW_INCOMING,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_IN,					ANALYSIS_CASHFLOW_INCOMINGPOPUP,	ANALYSIS_CASHFLOW_INCOMING},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_OUT | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_CASHFLOW_OUTGOING,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_OUT,					ANALYSIS_CASHFLOW_OUTGOINGPOPUP,	ANALYSIS_CASHFLOW_OUTGOING},
+
+	{ANALYSIS_DIALOGUE_ICON_END,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_DIALOGUE_NO_ICON}
+};
+
+/* The Cashflow Report Dialogue Definition. */
 
 static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition = {
 	REPORT_TYPE_CASHFLOW,
 	sizeof(struct analysis_cashflow_report),
 	"CashFlwRep",
 	"CashFlwRep",
-//	ANALYSIS_CASHFLOW_OK,
-//	ANALYSIS_CASHFLOW_CANCEL,
-//	ANALYSIS_CASHFLOW_DELETE,
-//	ANALYSIS_CASHFLOW_RENAME
-	NULL
+	"CflRepTitle",
+	analysis_cashflow_icon_list
 };
 
 
@@ -208,13 +244,6 @@ static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition
 struct analysis_report_details *analysis_cashflow_initialise(void)
 {
 	analysis_template_set_block_size(analysis_cashflow_dialogue_definition.block_size);
-//	analysis_cashflow_window = templates_create_window("CashFlwRep");
-//	ihelp_add_window(analysis_cashflow_window, "CashFlwRep", NULL);
-//	event_add_window_mouse_event(analysis_cashflow_window, analysis_cashflow_click_handler);
-//	event_add_window_key_event(analysis_cashflow_window, analysis_cashflow_keypress_handler);
-//	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, TRUE);
-//	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, TRUE);
-//	event_add_window_icon_radio(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, TRUE);
 	analysis_cashflow_dialogue = analysis_dialogue_initialise(&analysis_cashflow_dialogue_definition);
 
 	return &analysis_cashflow_details;
@@ -270,8 +299,7 @@ static void analysis_cashflow_delete_instance(void *instance)
 	if (report == NULL)
 		return;
 
-	if (report->parent == analysis_cashflow_instance)
-		analysis_dialogue_close(analysis_cashflow_dialogue, report->parent);
+	analysis_dialogue_close(analysis_cashflow_dialogue, report->parent);
 
 	heap_free(report);
 }
@@ -289,382 +317,176 @@ static void analysis_cashflow_delete_instance(void *instance)
 
 static void analysis_cashflow_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore)
 {
-	debug_printf("Open a cashflow report dialogue with template %d", template);
+	struct analysis_cashflow_block *report = instance;
+
+	if (report == NULL)
+		return;
+
+	analysis_dialogue_open(analysis_cashflow_dialogue, report->parent, pointer, template, &(report->saved), restore);
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0
-
-
 /**
- * Open the Cashflow Report dialogue box.
+ * Handle the user renaming templates.
  *
- * \param *parent	The paranet analysis instance owning the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param template	The report template to use for the dialogue.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
+ * \param *parent	The parent analysis report instance for the rename.
+ * \param template	The template being renamed.
+ * \param *name		The new name for the report.
  */
 
-void analysis_cashflow_open_window(struct analysis_block *parent, wimp_pointer *ptr, int template, osbool restore)
+static void analysis_cashflow_rename_template(struct analysis_block *parent, template_t template, char *name)
 {
-	osbool		template_mode;
+	if (parent == NULL || template == NULL_TEMPLATE || name == NULL)
+		return;
 
-	/* If the window is already open, another cashflow report is being edited.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(analysis_cashflow_window))
-		wimp_close_window(analysis_cashflow_window);
-
-	/* Copy the settings block contents into a static place that won't shift about on the flex heap
-	 * while the dialogue is open.
-	 */
-
-	template_mode = (template >= 0 && template < file->analysis->saved_report_count);
-
-	if (template_mode) {
-		analysis_copy_cashflow_template(&(analysis_cashflow_settings), &(file->analysis->saved_reports[template].data.cashflow));
-		analysis_cashflow_template = template;
-
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window),
-				windows_get_indirected_title_length(analysis_cashflow_window),
-				file->analysis->saved_reports[template].name, NULL, NULL, NULL);
-
-		restore = TRUE; /* If we use a template, we always want to reset to the template! */
-	} else {
-		analysis_copy_cashflow_template(&(analysis_cashflow_settings), file->cashflow_rep);
-		analysis_cashflow_template = NULL_TEMPLATE;
-
-		msgs_lookup ("CflRepTitle", windows_get_indirected_title_addr(analysis_cashflow_window),
-				windows_get_indirected_title_length(analysis_cashflow_window));
-	}
-
-	icons_set_deleted(analysis_cashflow_window, ANALYSIS_CASHFLOW_DELETE, !template_mode);
-	icons_set_deleted(analysis_cashflow_window, ANALYSIS_CASHFLOW_RENAME, !template_mode);
-
-	/* Set the window contents up. */
-
-	analysis_fill_cashflow_window(file, restore);
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	analysis_cashflow_file = file;
-	analysis_cashflow_restore = restore;
-
-	windows_open_centred_at_pointer(analysis_cashflow_window, ptr);
-	place_dialogue_caret_fallback(analysis_cashflow_window, 4, ANALYSIS_CASHFLOW_DATEFROM, ANALYSIS_CASHFLOW_DATETO,
-			ANALYSIS_CASHFLOW_PERIOD, ANALYSIS_CASHFLOW_ACCOUNTS);
-}
-
-
-/**
- * Process mouse clicks in the Analysis Cashflow dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void analysis_cashflow_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case ANALYSIS_CASHFLOW_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_cashflow_window);
-			analysis_template_save_force_rename_close(analysis_cashflow_file, analysis_cashflow_template);
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			analysis_refresh_cashflow_window();
-		}
-		break;
-
-	case ANALYSIS_CASHFLOW_OK:
-		if (analysis_process_cashflow_window() && pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_cashflow_window);
-			analysis_template_save_force_rename_close(analysis_cashflow_file, analysis_cashflow_template);
-		}
-		break;
-
-	case ANALYSIS_CASHFLOW_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_cashflow_window())
-			close_dialogue_with_caret(analysis_cashflow_window);
-		break;
-
-	case ANALYSIS_CASHFLOW_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_cashflow_template >= 0 && analysis_cashflow_template < analysis_cashflow_file->analysis->saved_report_count)
-			analysis_template_save_open_rename_window(analysis_cashflow_file, analysis_cashflow_template, pointer);
-		break;
-
-	case ANALYSIS_CASHFLOW_BUDGET:
-		icons_set_group_shaded_when_on(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, 4,
-				ANALYSIS_CASHFLOW_DATEFROMTXT, ANALYSIS_CASHFLOW_DATEFROM,
-				ANALYSIS_CASHFLOW_DATETOTXT, ANALYSIS_CASHFLOW_DATETO);
-		icons_replace_caret_in_window(analysis_cashflow_window);
-		break;
-
-	case ANALYSIS_CASHFLOW_GROUP:
-		icons_set_group_shaded_when_off(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, 7,
-				ANALYSIS_CASHFLOW_PERIOD, ANALYSIS_CASHFLOW_PTEXT, ANALYSIS_CASHFLOW_LOCK,
-				ANALYSIS_CASHFLOW_PDAYS, ANALYSIS_CASHFLOW_PMONTHS, ANALYSIS_CASHFLOW_PYEARS,
-				ANALYSIS_CASHFLOW_EMPTY);
-
-		icons_replace_caret_in_window(analysis_cashflow_window);
-		break;
-
-	case ANALYSIS_CASHFLOW_ACCOUNTSPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_cashflow_file, analysis_cashflow_window,
-					ANALYSIS_CASHFLOW_ACCOUNTS, NULL_ACCOUNT, ACCOUNT_FULL);
-		break;
-
-	case ANALYSIS_CASHFLOW_INCOMINGPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_cashflow_file, analysis_cashflow_window,
-					ANALYSIS_CASHFLOW_INCOMING, NULL_ACCOUNT, ACCOUNT_IN);
-		break;
-
-	case ANALYSIS_CASHFLOW_OUTGOINGPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_cashflow_file, analysis_cashflow_window,
-					ANALYSIS_CASHFLOW_OUTGOING, NULL_ACCOUNT, ACCOUNT_OUT);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Analysis Cashflow window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool analysis_cashflow_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (analysis_process_cashflow_window()) {
-			close_dialogue_with_caret(analysis_cashflow_window);
-			analysis_template_save_force_rename_close(analysis_cashflow_file, analysis_cashflow_template);
-		}
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(analysis_cashflow_window);
-		analysis_template_save_force_rename_close(analysis_cashflow_file, analysis_cashflow_template);
-		break;
-
-	case wimp_KEY_F1:
-		if (key->i == ANALYSIS_CASHFLOW_ACCOUNTS)
-			analysis_lookup_open_window(analysis_cashflow_file, analysis_cashflow_window,
-					ANALYSIS_CASHFLOW_ACCOUNTS, NULL_ACCOUNT, ACCOUNT_FULL);
-		else if (key->i == ANALYSIS_CASHFLOW_INCOMING)
-			analysis_lookup_open_window(analysis_cashflow_file, analysis_cashflow_window,
-					ANALYSIS_CASHFLOW_INCOMING, NULL_ACCOUNT, ACCOUNT_IN);
-		else if (key->i == ANALYSIS_CASHFLOW_OUTGOING)
-			analysis_lookup_open_window(analysis_cashflow_file, analysis_cashflow_window,
-					ANALYSIS_CASHFLOW_OUTGOING, NULL_ACCOUNT, ACCOUNT_OUT);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the current Cashflow window.
- */
-
-static void analysis_refresh_cashflow_window(void)
-{
-	analysis_fill_cashflow_window(analysis_cashflow_file, analysis_cashflow_restore);
-	icons_redraw_group(analysis_cashflow_window, 6,
-			ANALYSIS_CASHFLOW_DATEFROM, ANALYSIS_CASHFLOW_DATETO, ANALYSIS_CASHFLOW_PERIOD,
-			ANALYSIS_CASHFLOW_ACCOUNTS, ANALYSIS_CASHFLOW_INCOMING, ANALYSIS_CASHFLOW_OUTGOING);
-
-	icons_replace_caret_in_window(analysis_cashflow_window);
+	analysis_dialogue_rename_template(analysis_cashflow_dialogue, parent, template, name);
 }
 
 
 /**
  * Fill the Cashflow window with values.
  *
- * \param: *find_data		Saved settings to use if restore == FALSE.
- * \param: restore		TRUE to keep the supplied settings; FALSE to
- *				use system defaults.
+ * \param *parent		The parent analysis instance.
+ * \param window		The handle of the window to be processed.
+ * \param *block		The template data to put into the window, or
+ *				NULL to use the defaults.
  */
 
-static void analysis_fill_cashflow_window(struct file_block *file, osbool restore)
+static void analysis_cashflow_fill_window(struct analysis_block *parent, wimp_w window, void *block)
 {
-	if (!restore) {
+	struct analysis_cashflow_report *template = block;
+
+	if (parent == NULL || window == NULL)
+		return;
+
+	if (template == NULL) {
 		/* Set the period icons. */
 
-		*icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM) = '\0';
-		*icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_DATEFROM) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_DATETO) = '\0';
 
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, 0);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_BUDGET, 0);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, 0);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_GROUP, 0);
 
-		icons_strncpy(analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD, "1");
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, 0);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, 1);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, 0);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK, 0);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY, 0);
+		icons_strncpy(window, ANALYSIS_CASHFLOW_PERIOD, "1");
+		icons_set_selected(window, ANALYSIS_CASHFLOW_PDAYS, 0);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_PMONTHS, 1);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_PYEARS, 0);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_LOCK, 0);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_EMPTY, 0);
 
 		/* Set the accounts and format details. */
 
-		*icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS) = '\0';
-		*icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING) = '\0';
-		*icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_ACCOUNTS) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_INCOMING) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_OUTGOING) = '\0';
 
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR, 0);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_TABULAR, 0);
 	} else {
 		/* Set the period icons. */
 
-		date_convert_to_string(analysis_cashflow_settings.date_from,
-				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM),
-				icons_get_indirected_text_length(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM));
-		date_convert_to_string(analysis_cashflow_settings.date_to,
-				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO),
-				icons_get_indirected_text_length(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO));
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, analysis_cashflow_settings.budget);
+		date_convert_to_string(template->date_from,
+				icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_DATEFROM),
+				icons_get_indirected_text_length(window, ANALYSIS_CASHFLOW_DATEFROM));
+		date_convert_to_string(template->date_to,
+				icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_DATETO),
+				icons_get_indirected_text_length(window, ANALYSIS_CASHFLOW_DATETO));
+		icons_set_selected(window, ANALYSIS_CASHFLOW_BUDGET, template->budget);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, analysis_cashflow_settings.group);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_GROUP, template->group);
 
-		icons_printf(analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD, "%d", analysis_cashflow_settings.period);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS, analysis_cashflow_settings.period_unit == DATE_PERIOD_DAYS);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS, analysis_cashflow_settings.period_unit == DATE_PERIOD_MONTHS);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS, analysis_cashflow_settings.period_unit == DATE_PERIOD_YEARS);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK, analysis_cashflow_settings.lock);
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY, analysis_cashflow_settings.empty);
+		icons_printf(window, ANALYSIS_CASHFLOW_PERIOD, "%d", template->period);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_PDAYS, template->period_unit == DATE_PERIOD_DAYS);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_PMONTHS, template->period_unit == DATE_PERIOD_MONTHS);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_PYEARS, template->period_unit == DATE_PERIOD_YEARS);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_LOCK, template->lock);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_EMPTY, template->empty);
 
 		/* Set the accounts and format details. */
 
-		analysis_account_list_to_idents(file,
-				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS),
-				analysis_cashflow_settings.accounts, analysis_cashflow_settings.accounts_count);
-		analysis_account_list_to_idents(file,
-				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING),
-				analysis_cashflow_settings.incoming, analysis_cashflow_settings.incoming_count);
-		analysis_account_list_to_idents(file,
-				icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING),
-				analysis_cashflow_settings.outgoing, analysis_cashflow_settings.outgoing_count);
+		analysis_account_list_to_idents(parent,
+				icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_ACCOUNTS),
+				icons_get_indirected_text_length(window, ANALYSIS_CASHFLOW_ACCOUNTS),
+				template->accounts, template->accounts_count);
+		analysis_account_list_to_idents(parent,
+				icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_INCOMING),
+				icons_get_indirected_text_length(window, ANALYSIS_CASHFLOW_INCOMING),
+				template->incoming, template->incoming_count);
+		analysis_account_list_to_idents(parent,
+				icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_OUTGOING),
+				icons_get_indirected_text_length(window, ANALYSIS_CASHFLOW_OUTGOING),
+				template->outgoing, template->outgoing_count);
 
-		icons_set_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR, analysis_cashflow_settings.tabular);
+		icons_set_selected(window, ANALYSIS_CASHFLOW_TABULAR, template->tabular);
 	}
-
-	icons_set_group_shaded_when_on(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET, 4,
-			ANALYSIS_CASHFLOW_DATEFROMTXT, ANALYSIS_CASHFLOW_DATEFROM,
-			ANALYSIS_CASHFLOW_DATETOTXT, ANALYSIS_CASHFLOW_DATETO);
-
-	icons_set_group_shaded_when_off(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP, 7,
-			ANALYSIS_CASHFLOW_PERIOD, ANALYSIS_CASHFLOW_PTEXT, ANALYSIS_CASHFLOW_LOCK,
-			ANALYSIS_CASHFLOW_PDAYS, ANALYSIS_CASHFLOW_PMONTHS, ANALYSIS_CASHFLOW_PYEARS,
-			ANALYSIS_CASHFLOW_EMPTY);
 }
 
 
 /**
- * Process the contents of the Cashflow window, store the details and
- * generate a report from them.
+ * Process the contents of the Cashflow window,.
  *
- * \return			TRUE if the operation completed OK; FALSE if there
- *				was an error.
+ *
+ * \param *parent		The parent analysis instance.
+ * \param window		The handle of the window to be processed.
+ * \param *block		The template to store the contents in.
  */
 
-static osbool analysis_process_cashflow_window(void)
+static void analysis_process_cashflow_window(struct analysis_block *parent, wimp_w window, void *block)
 {
+	struct analysis_cashflow_report *template = block;
+
+	if (parent == NULL || template == NULL || window == NULL)
+		return;
+
 	/* Read the date settings. */
 
-	analysis_cashflow_file->cashflow_rep->date_from =
-			date_convert_from_string(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATEFROM), NULL_DATE, 0);
-	analysis_cashflow_file->cashflow_rep->date_to =
-			date_convert_from_string(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_DATETO), NULL_DATE, 0);
-	analysis_cashflow_file->cashflow_rep->budget = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_BUDGET);
+	template->date_from =
+			date_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_DATEFROM), NULL_DATE, 0);
+	template->date_to =
+			date_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_DATETO), NULL_DATE, 0);
+	template->budget = icons_get_selected(window, ANALYSIS_CASHFLOW_BUDGET);
 
 	/* Read the grouping settings. */
 
-	analysis_cashflow_file->cashflow_rep->group = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_GROUP);
-	analysis_cashflow_file->cashflow_rep->period = atoi(icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_PERIOD));
+	template->group = icons_get_selected(window, ANALYSIS_CASHFLOW_GROUP);
+	template->period = atoi(icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_PERIOD));
 
-	if (icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PDAYS))
-		analysis_cashflow_file->cashflow_rep->period_unit = DATE_PERIOD_DAYS;
-	else if (icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PMONTHS))
-		analysis_cashflow_file->cashflow_rep->period_unit = DATE_PERIOD_MONTHS;
-	else if (icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_PYEARS))
-		analysis_cashflow_file->cashflow_rep->period_unit = DATE_PERIOD_YEARS;
+	if (icons_get_selected(window, ANALYSIS_CASHFLOW_PDAYS))
+		template->period_unit = DATE_PERIOD_DAYS;
+	else if (icons_get_selected(window, ANALYSIS_CASHFLOW_PMONTHS))
+		template->period_unit = DATE_PERIOD_MONTHS;
+	else if (icons_get_selected(window, ANALYSIS_CASHFLOW_PYEARS))
+		template->period_unit = DATE_PERIOD_YEARS;
 	else
-		analysis_cashflow_file->cashflow_rep->period_unit = DATE_PERIOD_MONTHS;
+		template->period_unit = DATE_PERIOD_MONTHS;
 
-	analysis_cashflow_file->cashflow_rep->lock = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_LOCK);
-	analysis_cashflow_file->cashflow_rep->empty = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_EMPTY);
+	template->lock = icons_get_selected(window, ANALYSIS_CASHFLOW_LOCK);
+	template->empty = icons_get_selected(window, ANALYSIS_CASHFLOW_EMPTY);
 
 	/* Read the account and heading settings. */
 
-	analysis_cashflow_file->cashflow_rep->accounts_count =
-			analysis_account_idents_to_list(analysis_cashflow_file, ACCOUNT_FULL,
-			icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_ACCOUNTS),
-			analysis_cashflow_file->cashflow_rep->accounts);
-	analysis_cashflow_file->cashflow_rep->incoming_count =
-			analysis_account_idents_to_list(analysis_cashflow_file, ACCOUNT_IN,
-			icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_INCOMING),
-			analysis_cashflow_file->cashflow_rep->incoming);
-	analysis_cashflow_file->cashflow_rep->outgoing_count =
-			analysis_account_idents_to_list(analysis_cashflow_file, ACCOUNT_OUT,
-			icons_get_indirected_text_addr(analysis_cashflow_window, ANALYSIS_CASHFLOW_OUTGOING),
-			analysis_cashflow_file->cashflow_rep->outgoing);
+	template->accounts_count =
+			analysis_account_idents_to_list(parent, ACCOUNT_FULL,
+			icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_ACCOUNTS),
+			template->accounts, ANALYSIS_ACC_LIST_LEN);
+	template->incoming_count =
+			analysis_account_idents_to_list(parent, ACCOUNT_IN,
+			icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_INCOMING),
+			template->incoming, ANALYSIS_ACC_LIST_LEN);
+	template->outgoing_count =
+			analysis_account_idents_to_list(parent, ACCOUNT_OUT,
+			icons_get_indirected_text_addr(window, ANALYSIS_CASHFLOW_OUTGOING),
+			template->outgoing, ANALYSIS_ACC_LIST_LEN);
 
-	analysis_cashflow_file->cashflow_rep->tabular = icons_get_selected(analysis_cashflow_window, ANALYSIS_CASHFLOW_TABULAR);
-
-	/* Run the report. */
-
-	analysis_generate_cashflow_report(analysis_cashflow_file);
-
-	return TRUE;
+	template->tabular = icons_get_selected(window, ANALYSIS_CASHFLOW_TABULAR);
 }
 
-
-/**
- * Delete the template used in the current Cashflow window.
- *
- * \return			TRUE if the template was deleted; else FALSE.
- */
-
-static osbool analysis_delete_cashflow_window(void)
-{
-	if (analysis_cashflow_template >= 0 && analysis_cashflow_template < analysis_cashflow_file->analysis->saved_report_count &&
-			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 3) {
-		analysis_delete_template(analysis_cashflow_file, analysis_cashflow_template);
-		analysis_cashflow_template = NULL_TEMPLATE;
-
-		return TRUE;
-	} else {
-		return FALSE;
-	}
-}
-
+#if 0
 
 /**
  * Generate a cashflow report based on the settings in the given file.
@@ -914,21 +736,20 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 
 
 
+
+#endif
+
 /**
  * Remove any references to a report template.
  * 
+ * \param *parent	The analysis instance being updated.
  * \param template	The template to be removed.
  */
 
-void analysis_cashflow_remove_template(template_t template)
+static void analysis_cashflow_remove_template(struct analysis_block *parent, template_t template)
 {
-	if (analysis_cashflow_template > template)
-		analysis_cashflow_template--;
+	analysis_dialogue_remove_template(analysis_cashflow_dialogue, parent, template);
 }
-
-
-
-#endif
 
 
 /**

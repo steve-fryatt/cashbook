@@ -104,7 +104,9 @@
 #define ANALYSIS_BALANCE_TABULAR 29
 
 
-/* Balance Report dialogue. */
+/**
+ * Balance Report Template structure.
+ */
 
 struct analysis_balance_report {
 
@@ -127,6 +129,10 @@ struct analysis_balance_report {
 	osbool				tabular;
 };
 
+/**
+ * Balance Report Instance data.
+ */
+
 struct analysis_balance_block {
 	/**
 	 * The parent analysis report instance.
@@ -148,40 +154,28 @@ struct analysis_balance_block {
 static struct analysis_dialogue_block	*analysis_balance_dialogue = NULL;
 
 
-//static wimp_w			analysis_balance_window = NULL;			/**< The handle of the Balance Report window.					*/
-//static struct analysis_block	*analysis_balance_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
-//static struct file_block	*analysis_balance_file = NULL;			/**< The file currently owning the balance dialogue.				*/
-//static osbool			analysis_balance_restore = FALSE;		/**< The restore setting for the current Balance dialogue.			*/
-//static struct balance_rep	analysis_balance_settings;			/**< Saved initial settings for the Balance dialogue.				*/
-//static template_t		analysis_balance_template = NULL_TEMPLATE;	/**< The template which applies to the Balance dialogue.			*/
-
 /* Static Function Prototypes. */
-#if 0
-static void		analysis_balance_click_handler(wimp_pointer *pointer);
-static osbool		analysis_balance_keypress_handler(wimp_key *key);
-static void		analysis_refresh_balance_window(void);
-static void		analysis_fill_balance_window(struct analysis_block *parent, osbool restore);
-static osbool		analysis_process_balance_window(void);
-static osbool		analysis_delete_balance_window(void);
-static void		analysis_generate_balance_report(struct file_block *file);
-#endif
 
 static void *analysis_balance_create_instance(struct analysis_block *parent);
 static void analysis_balance_delete_instance(void *instance);
 static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_balance_rename_template(struct analysis_block *parent, template_t template, char *name);
 static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_process_balance_window(struct analysis_block *parent, wimp_w window, void *block);
 static void analysis_balance_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_balance_remove_account(void *report, acct_t account);
 static void analysis_balance_copy_template(void *to, void *from);
 static void analysis_balance_write_file_block(void *block, FILE *out, char *name);
 static void analysis_balance_process_file_token(void *block, struct filing_block *in);
 
+/* The Balance Report definition. */
+
 static struct analysis_report_details analysis_balance_details = {
 	analysis_balance_create_instance,
 	analysis_balance_delete_instance,
 	analysis_balance_open_window,
 	analysis_balance_fill_window,
+	analysis_process_balance_window,
 	analysis_balance_process_file_token,
 	analysis_balance_write_file_block,
 	analysis_balance_copy_template,
@@ -190,50 +184,55 @@ static struct analysis_report_details analysis_balance_details = {
 	analysis_balance_remove_template
 };
 
-static struct analysis_dialogue_icon analysis_dialogue_icon_list[] = {
-	{ANALYSIS_DIALOGUE_ICON_GENERATE,					ANALYSIS_BALANCE_OK,		ANALYSIS_DIALOGUE_NO_ICON},
-	{ANALYSIS_DIALOGUE_ICON_CANCEL,						ANALYSIS_BALANCE_CANCEL,	ANALYSIS_DIALOGUE_NO_ICON},
-	{ANALYSIS_DIALOGUE_ICON_DELETE,						ANALYSIS_BALANCE_DELETE,	ANALYSIS_DIALOGUE_NO_ICON},
-	{ANALYSIS_DIALOGUE_ICON_RENAME,						ANALYSIS_BALANCE_RENAME,	ANALYSIS_DIALOGUE_NO_ICON},
+/* The Balance Report Dialogue Icon Details. */
+
+static struct analysis_dialogue_icon analysis_balance_icon_list[] = {
+	{ANALYSIS_DIALOGUE_ICON_GENERATE,					ANALYSIS_BALANCE_OK,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_CANCEL,						ANALYSIS_BALANCE_CANCEL,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_DELETE,						ANALYSIS_BALANCE_DELETE,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_RENAME,						ANALYSIS_BALANCE_RENAME,		ANALYSIS_DIALOGUE_NO_ICON},
 
 	/* Budget Group. */
 
-	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,					ANALYSIS_BALANCE_BUDGET,	ANALYSIS_DIALOGUE_NO_ICON},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,					ANALYSIS_BALANCE_DATEFROMTXT,	ANALYSIS_BALANCE_BUDGET},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_DATEFROM,	ANALYSIS_BALANCE_BUDGET},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,					ANALYSIS_BALANCE_DATETOTXT,	ANALYSIS_BALANCE_BUDGET},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_DATETO,	ANALYSIS_BALANCE_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,					ANALYSIS_BALANCE_BUDGET,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,					ANALYSIS_BALANCE_DATEFROMTXT,		ANALYSIS_BALANCE_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_DATEFROM,		ANALYSIS_BALANCE_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,					ANALYSIS_BALANCE_DATETOTXT,		ANALYSIS_BALANCE_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_DATETO,		ANALYSIS_BALANCE_BUDGET},
 
 	/* Group Period. */
 
-	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,					ANALYSIS_BALANCE_GROUP,		ANALYSIS_DIALOGUE_NO_ICON},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_PERIOD,	ANALYSIS_BALANCE_GROUP},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,					ANALYSIS_BALANCE_PTEXT,		ANALYSIS_BALANCE_GROUP},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,					ANALYSIS_BALANCE_LOCK,		ANALYSIS_BALANCE_GROUP},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_BALANCE_PDAYS,		ANALYSIS_BALANCE_GROUP},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_BALANCE_PMONTHS,	ANALYSIS_BALANCE_GROUP},
-	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_BALANCE_PYEARS,	ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,					ANALYSIS_BALANCE_GROUP,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_PERIOD,		ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,					ANALYSIS_BALANCE_PTEXT,			ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,					ANALYSIS_BALANCE_LOCK,			ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_BALANCE_PDAYS,			ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_BALANCE_PMONTHS,		ANALYSIS_BALANCE_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_BALANCE_PYEARS,		ANALYSIS_BALANCE_GROUP},
 
 	/* Account Fields. */
 
-	{ANALYSIS_DIALOGUE_ICON_POPUP_FULL | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_ACCOUNTS,	ANALYSIS_DIALOGUE_NO_ICON},
-	{ANALYSIS_DIALOGUE_ICON_POPUP_FULL,					ANALYSIS_BALANCE_ACCOUNTSPOPUP,	ANALYSIS_BALANCE_ACCOUNTS},
-	{ANALYSIS_DIALOGUE_ICON_POPUP_IN | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_INCOMING,	ANALYSIS_DIALOGUE_NO_ICON},
-	{ANALYSIS_DIALOGUE_ICON_POPUP_IN,					ANALYSIS_BALANCE_INCOMINGPOPUP,	ANALYSIS_BALANCE_INCOMING},
-	{ANALYSIS_DIALOGUE_ICON_POPUP_OUT | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_OUTGOING,	ANALYSIS_DIALOGUE_NO_ICON},
-	{ANALYSIS_DIALOGUE_ICON_POPUP_OUT,					ANALYSIS_BALANCE_OUTGOINGPOPUP,	ANALYSIS_BALANCE_OUTGOING},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_FULL | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_ACCOUNTS,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_FULL,					ANALYSIS_BALANCE_ACCOUNTSPOPUP,		ANALYSIS_BALANCE_ACCOUNTS},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_IN | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_INCOMING,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_IN,					ANALYSIS_BALANCE_INCOMINGPOPUP,		ANALYSIS_BALANCE_INCOMING},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_OUT | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_BALANCE_OUTGOING,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_OUT,					ANALYSIS_BALANCE_OUTGOINGPOPUP,		ANALYSIS_BALANCE_OUTGOING},
 
-	{ANALYSIS_DIALOGUE_ICON_END,						ANALYSIS_DIALOGUE_NO_ICON,	ANALYSIS_DIALOGUE_NO_ICON}
+	{ANALYSIS_DIALOGUE_ICON_END,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_DIALOGUE_NO_ICON}
 };
 
+/* The Balance Report Dialogue Definition. */
 
 static struct analysis_dialogue_definition analysis_balance_dialogue_definition = {
 	REPORT_TYPE_BALANCE,
 	sizeof(struct analysis_balance_report),
 	"BalanceRep",
 	"BalanceRep",
-	analysis_dialogue_icon_list
+	"BalRepTitle",
+	analysis_balance_icon_list
 };
+
 
 /**
  * Initialise the Balance analysis report module.
@@ -342,223 +341,20 @@ static void analysis_balance_rename_template(struct analysis_block *parent, temp
 }
 
 
-
-
-
-
-
-
-
-#if 0
-
-/**
- * Open the Balance Report dialogue box.
- *
- * \param *parent	The parent analysis instance owning the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param template	The report template to use for the dialogue.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
- */
-
-void analysis_balance_open_window(struct analysis_block *parent, wimp_pointer *ptr, int template, osbool restore)
-{
-	struct analysis_block		*template_block;
-	union analysis_report_block	*content;
-
-	/* If the window is already open, another balance report is being edited.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(analysis_balance_window))
-		wimp_close_window(analysis_balance_window);
-
-	/* Copy the settings block contents into a static place that won't shift about on the flex heap
-	 * while the dialogue is open.
-	 */
-
-	template_block = analysis_get_template(parent, template);
-	content = analysis_get_template_contents(template_block, REPORT_TYPE_BALANCE);
-
-	if (content != NULL) {
-		analysis_copy_balance_template(&(analysis_balance_settings), &(content->balance));
-		analysis_balance_template = template;
-
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_balance_window),
-				windows_get_indirected_title_length(analysis_balance_window),
-				analysis_get_template_name(template_block, NULL, 0), NULL, NULL, NULL);
-
-		restore = TRUE; /* If we use a template, we always want to reset to the template! */
-	} else {
-		analysis_copy_balance_template(&(analysis_balance_settings), parent->balance_rep);
-		analysis_balance_template = NULL_TEMPLATE;
-
-		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(analysis_balance_window),
-				windows_get_indirected_title_length(analysis_balance_window));
-	}
-
-	icons_set_deleted(analysis_balance_window, ANALYSIS_BALANCE_DELETE, content != NULL);
-	icons_set_deleted(analysis_balance_window, ANALYSIS_BALANCE_RENAME, content != NULL);
-
-	/* Set the window contents up. */
-
-	analysis_fill_balance_window(parent, restore);
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	analysis_balance_instance = parent;
-	analysis_balance_restore = restore;
-
-	windows_open_centred_at_pointer(analysis_balance_window, ptr);
-	place_dialogue_caret_fallback(analysis_balance_window, 4, ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO,
-			ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_ACCOUNTS);
-}
-
-
-/**
- * Process mouse clicks in the Analysis Balance dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void analysis_balance_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case ANALYSIS_BALANCE_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_balance_window);
-			analysis_template_save_force_rename_close(analysis_balance_file, analysis_balance_template);
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			analysis_refresh_balance_window();
-		}
-		break;
-
-	case ANALYSIS_BALANCE_OK:
-		if (analysis_process_balance_window() && pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_balance_window);
-			analysis_template_save_force_rename_close(analysis_balance_file, analysis_balance_template);
-		}
-		break;
-
-	case ANALYSIS_BALANCE_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_balance_window())
-			close_dialogue_with_caret(analysis_balance_window);
-		break;
-
-	case ANALYSIS_BALANCE_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_balance_template >= 0 && analysis_balance_template < analysis_balance_file->analysis->saved_report_count)
-			analysis_template_save_open_rename_window(analysis_balance_file, analysis_balance_template, pointer);
-		break;
-
-	case ANALYSIS_BALANCE_BUDGET:
-		icons_set_group_shaded_when_on(analysis_balance_window, ANALYSIS_BALANCE_BUDGET, 4,
-				ANALYSIS_BALANCE_DATEFROMTXT, ANALYSIS_BALANCE_DATEFROM,
-				ANALYSIS_BALANCE_DATETOTXT, ANALYSIS_BALANCE_DATETO);
-		icons_replace_caret_in_window(analysis_balance_window);
-		break;
-
-	case ANALYSIS_BALANCE_GROUP:
-		icons_set_group_shaded_when_off(analysis_balance_window, ANALYSIS_BALANCE_GROUP, 6,
-				ANALYSIS_BALANCE_PERIOD, ANALYSIS_BALANCE_PTEXT, ANALYSIS_BALANCE_LOCK,
-				ANALYSIS_BALANCE_PDAYS, ANALYSIS_BALANCE_PMONTHS, ANALYSIS_BALANCE_PYEARS);
-
-		icons_replace_caret_in_window(analysis_balance_window);
-		break;
-
-	case ANALYSIS_BALANCE_ACCOUNTSPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_balance_file, analysis_balance_window,
-					ANALYSIS_BALANCE_ACCOUNTS, NULL_ACCOUNT, ACCOUNT_FULL);
-		break;
-
-	case ANALYSIS_BALANCE_INCOMINGPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_balance_file, analysis_balance_window,
-					ANALYSIS_BALANCE_INCOMING, NULL_ACCOUNT, ACCOUNT_IN);
-		break;
-
-	case ANALYSIS_BALANCE_OUTGOINGPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_balance_file, analysis_balance_window,
-					ANALYSIS_BALANCE_OUTGOING, NULL_ACCOUNT, ACCOUNT_OUT);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Analysis Balance window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool analysis_balance_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (analysis_process_balance_window()) {
-			close_dialogue_with_caret(analysis_balance_window);
-			analysis_template_save_force_rename_close(analysis_balance_file, analysis_balance_template);
-		}
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(analysis_balance_window);
-		analysis_template_save_force_rename_close(analysis_balance_file, analysis_balance_template);
-		break;
-
-	case wimp_KEY_F1:
-		if (key->i == ANALYSIS_BALANCE_ACCOUNTS)
-			analysis_lookup_open_window(analysis_balance_file, analysis_balance_window,
-					ANALYSIS_BALANCE_ACCOUNTS, NULL_ACCOUNT, ACCOUNT_FULL);
-		else if (key->i == ANALYSIS_BALANCE_INCOMING)
-			analysis_lookup_open_window(analysis_balance_file, analysis_balance_window,
-					ANALYSIS_BALANCE_INCOMING, NULL_ACCOUNT, ACCOUNT_IN);
-		else if (key->i == ANALYSIS_BALANCE_OUTGOING)
-			analysis_lookup_open_window(analysis_balance_file, analysis_balance_window,
-					ANALYSIS_BALANCE_OUTGOING, NULL_ACCOUNT, ACCOUNT_OUT);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the current Balance window.
- */
-
-static void analysis_refresh_balance_window(void)
-{
-	analysis_fill_balance_window(analysis_balance_file, analysis_balance_restore);
-	icons_redraw_group (analysis_balance_window, 6,
-			ANALYSIS_BALANCE_DATEFROM, ANALYSIS_BALANCE_DATETO, ANALYSIS_BALANCE_PERIOD,
-			ANALYSIS_BALANCE_ACCOUNTS, ANALYSIS_BALANCE_INCOMING, ANALYSIS_BALANCE_OUTGOING);
-
-	icons_replace_caret_in_window(analysis_balance_window);
-}
-#endif
-
 /**
  * Fill the Balance window with values.
  *
- * \param: *find_data		Saved settings to use if restore == FALSE.
- * \param: restore		TRUE to keep the supplied settings; FALSE to
- *				use system defaults.
+ * \param *parent		The parent analysis instance.
+ * \param window		The handle of the window to be processed.
+ * \param *block		The template data to put into the window, or
+ *				NULL to use the defaults.
  */
 
 static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w window, void *block)
 {
 	struct analysis_balance_report *template = block;
 
-	if (parent == NULL)
+	if (parent == NULL || window == NULL)
 		return;
 
 	if (template == NULL) {
@@ -627,85 +423,62 @@ static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w w
 	}
 }
 
-#if 0
 
 /**
- * Process the contents of the Balance window, store the details and
- * generate a report from them.
+ * Process the contents of the Balance window,.
  *
- * \return			TRUE if the operation completed OK; FALSE if there
- *				was an error.
+ *
+ * \param *parent		The parent analysis instance.
+ * \param window		The handle of the window to be processed.
+ * \param *block		The template to store the contents in.
  */
 
-static osbool analysis_process_balance_window(void)
+static void analysis_process_balance_window(struct analysis_block *parent, wimp_w window, void *block)
 {
+	struct analysis_balance_report *template = block;
+
+	if (parent == NULL || template == NULL || window == NULL)
+		return;
+
 	/* Read the date settings. */
 
-	analysis_balance_file->balance_rep->date_from =
-			date_convert_from_string(icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATEFROM), NULL_DATE, 0);
-	analysis_balance_file->balance_rep->date_to =
-			date_convert_from_string(icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_DATETO), NULL_DATE, 0);
-	analysis_balance_file->balance_rep->budget = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_BUDGET);
+	template->date_from = date_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_DATEFROM), NULL_DATE, 0);
+	template->date_to = date_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_DATETO), NULL_DATE, 0);
+	template->budget = icons_get_selected(window, ANALYSIS_BALANCE_BUDGET);
 
 	/* Read the grouping settings. */
 
-	analysis_balance_file->balance_rep->group = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_GROUP);
-	analysis_balance_file->balance_rep->period = atoi(icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_PERIOD));
+	template->group = icons_get_selected(window, ANALYSIS_BALANCE_GROUP);
+	template->period = atoi(icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_PERIOD));
 
-	if (icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_PDAYS))
-		analysis_balance_file->balance_rep->period_unit = DATE_PERIOD_DAYS;
-	else if (icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_PMONTHS))
-		analysis_balance_file->balance_rep->period_unit = DATE_PERIOD_MONTHS;
-	else if (icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_PYEARS))
- 		 analysis_balance_file->balance_rep->period_unit = DATE_PERIOD_YEARS;
+	if (icons_get_selected(window, ANALYSIS_BALANCE_PDAYS))
+		template->period_unit = DATE_PERIOD_DAYS;
+	else if (icons_get_selected(window, ANALYSIS_BALANCE_PMONTHS))
+		template->period_unit = DATE_PERIOD_MONTHS;
+	else if (icons_get_selected(window, ANALYSIS_BALANCE_PYEARS))
+ 		 template->period_unit = DATE_PERIOD_YEARS;
 	else
-		analysis_balance_file->balance_rep->period_unit = DATE_PERIOD_MONTHS;
+		template->period_unit = DATE_PERIOD_MONTHS;
 
-	analysis_balance_file->balance_rep->lock = icons_get_selected (analysis_balance_window, ANALYSIS_BALANCE_LOCK);
+	template->lock = icons_get_selected (window, ANALYSIS_BALANCE_LOCK);
 
 	/* Read the account and heading settings. */
 
-	analysis_balance_file->balance_rep->accounts_count =
-			analysis_account_idents_to_list(analysis_balance_file, ACCOUNT_FULL,
-			icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_ACCOUNTS),
-			analysis_balance_file->balance_rep->accounts);
-	analysis_balance_file->balance_rep->incoming_count =
-			analysis_account_idents_to_list(analysis_balance_file, ACCOUNT_IN,
-			icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_INCOMING),
-			analysis_balance_file->balance_rep->incoming);
-	analysis_balance_file->balance_rep->outgoing_count =
-			analysis_account_idents_to_list(analysis_balance_file, ACCOUNT_OUT,
-			icons_get_indirected_text_addr(analysis_balance_window, ANALYSIS_BALANCE_OUTGOING),
-			analysis_balance_file->balance_rep->outgoing);
+	template->accounts_count = analysis_account_idents_to_list(parent, ACCOUNT_FULL,
+			icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_ACCOUNTS),
+			template->accounts, ANALYSIS_ACC_LIST_LEN);
+	template->incoming_count = analysis_account_idents_to_list(parent, ACCOUNT_IN,
+			icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_INCOMING),
+			template->incoming, ANALYSIS_ACC_LIST_LEN);
+	template->outgoing_count = analysis_account_idents_to_list(parent, ACCOUNT_OUT,
+			icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_OUTGOING),
+			template->outgoing, ANALYSIS_ACC_LIST_LEN);
 
-	analysis_balance_file->balance_rep->tabular = icons_get_selected(analysis_balance_window, ANALYSIS_BALANCE_TABULAR);
-
-	/* Run the report. */
-
-	analysis_generate_balance_report(analysis_balance_file);
-
-	return TRUE;
+	template->tabular = icons_get_selected(window, ANALYSIS_BALANCE_TABULAR);
 }
 
 
-/**
- * Delete the template used in the current Balance window.
- *
- * \return			TRUE if the template was deleted; else FALSE.
- */
-
-static osbool analysis_delete_balance_window(void)
-{
-	if (analysis_balance_template >= 0 && analysis_balance_template < analysis_balance_file->analysis->saved_report_count &&
-			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 3) {
-		analysis_delete_template(analysis_balance_file, analysis_balance_template);
-		analysis_balance_template = NULL_TEMPLATE;
-
-		return TRUE;
-	} else {
-		return FALSE;
-	}
-}
+#if 0
 
 
 /**

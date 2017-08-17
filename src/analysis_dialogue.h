@@ -48,16 +48,18 @@ enum analysis_dialogue_icon_type {
 	ANALYSIS_DIALOGUE_ICON_RENAME		= 0x00000004,		/**< The Rename button.				*/
 	ANALYSIS_DIALOGUE_ICON_CANCEL		= 0x00000008,		/**< The Cancel button.				*/
 	ANALYSIS_DIALOGUE_ICON_RADIO		= 0x00000010,		/**< A radio icon.				*/
-	ANALYSIS_DIALOGUE_ICON_SHADE_ON		= 0x00000020,		/**< Shade icon when target is selected.	*/
-	ANALYSIS_DIALOGUE_ICON_SHADE_OFF	= 0x00000040,		/**< Shade icon when target is not selected.	*/
-	ANALYSIS_DIALOGUE_ICON_SHADE_TARGET	= 0x00000080,		/**< A target for shading other icons.		*/
-	ANALYSIS_DIALOGUE_ICON_REFRESH		= 0x00000100,		/**< The icon requires refreshing.		*/
-	ANALYSIS_DIALOGUE_ICON_HIDDEN		= 0x00000200,		/**< The icon should be hidden when requested.	*/
-	ANALYSIS_DIALOGUE_ICON_POPUP_FROM	= 0x00000400,		/*<< The icon should launch a "From" popup.	*/
-	ANALYSIS_DIALOGUE_ICON_POPUP_TO		= 0x00000800,		/*<< The icon should launch a "To" popup.	*/
-	ANALYSIS_DIALOGUE_ICON_POPUP_IN		= 0x00001000,		/*<< The icon should launch a "In" popup.	*/
-	ANALYSIS_DIALOGUE_ICON_POPUP_OUT	= 0x00002000,		/*<< The icon should launch a "Out" popup.	*/
-	ANALYSIS_DIALOGUE_ICON_POPUP_FULL	= 0x00004000,		/*<< The icon should launch a "Full" popup.	*/
+	ANALYSIS_DIALOGUE_ICON_RADIO_PASS	= 0x00000020,		/**< A radio icon which passes events on.	*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_ON		= 0x00000040,		/**< Shade icon when target is selected.	*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_OFF	= 0x00000080,		/**< Shade icon when target is not selected.	*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_OR		= 0x00000100,		/**< Include this condition with the previous.	*/
+	ANALYSIS_DIALOGUE_ICON_SHADE_TARGET	= 0x00000200,		/**< A target for shading other icons.		*/
+	ANALYSIS_DIALOGUE_ICON_REFRESH		= 0x00000400,		/**< The icon requires refreshing.		*/
+	ANALYSIS_DIALOGUE_ICON_HIDDEN		= 0x00000800,		/**< The icon should be hidden when requested.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_FROM	= 0x00001000,		/*<< The icon should launch a "From" popup.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_TO		= 0x00002000,		/*<< The icon should launch a "To" popup.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_IN		= 0x00004000,		/*<< The icon should launch a "In" popup.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_OUT	= 0x00008000,		/*<< The icon should launch a "Out" popup.	*/
+	ANALYSIS_DIALOGUE_ICON_POPUP_FULL	= 0x00010000,		/*<< The icon should launch a "Full" popup.	*/
 	ANALYSIS_DIALOGUE_ICON_END		= 0x80000000		/**< The last entry in the icon sequence.	*/
 };
 
@@ -100,6 +102,11 @@ struct analysis_dialogue_definition {
 	char				*ihelp_token;
 
 	/**
+	 * The token to use for the window title.
+	 */
+	char				*title_token;
+
+	/**
 	 * A list of significant icons in the dialogue.
 	 */
 	struct analysis_dialogue_icon	*icons;
@@ -124,6 +131,8 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  * \param *ptr			The current Wimp Pointer details.
  * \param template		The report template to use for the dialogue.
  * \param *settings		The dialogue settings to use when no template available.
+ *				These are assumed to belong to the file instance, and will
+ *				be updated if the Generate button is clicked.
  * \param restore		TRUE to retain the last settings for the file; FALSE to
  *				use the application defaults.
  */

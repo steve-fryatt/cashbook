@@ -103,7 +103,10 @@
 #define ANALYSIS_UNREC_TOSPEC 26
 #define ANALYSIS_UNREC_TOSPECPOPUP 27
 
-/* Unreconciled Report dialogue. */
+
+/**
+ * Unreconciled Report Template structure.
+ */
 
 struct analysis_unreconciled_report {
 	date_t				date_from;
@@ -121,6 +124,9 @@ struct analysis_unreconciled_report {
 	acct_t				to[ANALYSIS_ACC_LIST_LEN];
 };
 
+/**
+ * Unreconciled Report Instance data.
+ */
 
 struct analysis_unreconciled_block {
 	/**
@@ -137,59 +143,106 @@ struct analysis_unreconciled_block {
 };
 
 
+/**
+ * The dialogue instance used for this report.
+ */
 
 static struct analysis_dialogue_block	*analysis_unreconciled_dialogue = NULL;
 
-//static wimp_w			analysis_unreconciled_window = NULL;		/**< The handle of the Unreconciled Report window.				*/
-static struct analysis_block	*analysis_unreconciled_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
-//static struct file_block	*analysis_unreconciled_file = NULL;		/**< The file currently owning the unreconciled dialogue.			*/
-static osbool			analysis_unreconciled_restore = FALSE;		/**< The restore setting for the current Unreconciled dialogue.			*/
-static struct unrec_rep		analysis_unreconciled_settings;			/**< Saved initial settings for the Unreconciled dialogue.			*/
-static template_t		analysis_unreconciled_template = NULL_TEMPLATE;	/**< The template which applies to the Unreconciled dialogue.			*/
-
 /* Static Function Prototypes. */
-#if 0
-static void		analysis_unreconciled_click_handler(wimp_pointer *pointer);
-static osbool		analysis_unreconciled_keypress_handler(wimp_key *key);
-static void		analysis_refresh_unreconciled_window(void);
-static void		analysis_fill_unreconciled_window(struct file_block *file, osbool restore);
-static osbool		analysis_process_unreconciled_window(void);
-static osbool		analysis_delete_unreconciled_window(void);
-static void		analysis_generate_unreconciled_report(struct file_block *file);
-#endif
 
 static void *analysis_unreconciled_create_instance(struct analysis_block *parent);
 static void analysis_unreconciled_delete_instance(void *instance);
 static void analysis_unreconciled_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
+static void analysis_unreconciled_rename_template(struct analysis_block *parent, template_t template, char *name);
+static void analysis_unreconciled_fill_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_process_unreconciled_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_unreconciled_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_unreconciled_remove_account(void *report, acct_t account);
 static void analysis_unreconciled_copy_template(void *to, void *from);
 static void analysis_unreconciled_write_file_block(void *block, FILE *out, char *name);
 static void analysis_unreconciled_process_file_token(void *block, struct filing_block *in);
 
+/* The Unreconciled Report definition. */
+
 static struct analysis_report_details analysis_unreconciled_details = {
 	analysis_unreconciled_create_instance,
 	analysis_unreconciled_delete_instance,
 	analysis_unreconciled_open_window,
-	NULL,
+	analysis_unreconciled_fill_window,
+	analysis_process_unreconciled_window,
 	analysis_unreconciled_process_file_token,
 	analysis_unreconciled_write_file_block,
 	analysis_unreconciled_copy_template,
-	NULL,
+	analysis_unreconciled_rename_template,
 	analysis_unreconciled_remove_account,
-	NULL
+	analysis_unreconciled_remove_template
 };
+
+/* The Unreconciled Report Dialogue Icon Details. */
+
+static struct analysis_dialogue_icon analysis_unreconciled_icon_list[] = {
+	{ANALYSIS_DIALOGUE_ICON_GENERATE,										ANALYSIS_UNREC_OK,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_CANCEL,											ANALYSIS_UNREC_CANCEL,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_DELETE,											ANALYSIS_UNREC_DELETE,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_RENAME,											ANALYSIS_UNREC_RENAME,			ANALYSIS_DIALOGUE_NO_ICON},
+
+	/* Budget Group. */
+
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,										ANALYSIS_UNREC_BUDGET,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,										ANALYSIS_UNREC_DATEFROMTXT,		ANALYSIS_UNREC_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,						ANALYSIS_UNREC_DATEFROM,		ANALYSIS_UNREC_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,										ANALYSIS_UNREC_DATETOTXT,		ANALYSIS_UNREC_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,						ANALYSIS_UNREC_DATETO,			ANALYSIS_UNREC_BUDGET},
+
+	/* Group Period. */
+
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,										ANALYSIS_UNREC_GROUP,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_REFRESH,						ANALYSIS_UNREC_PERIOD,			ANALYSIS_UNREC_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPDATE},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPACC},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,										ANALYSIS_UNREC_PTEXT,			ANALYSIS_UNREC_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPDATE},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPACC},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,										ANALYSIS_UNREC_LOCK,			ANALYSIS_UNREC_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPDATE},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPACC},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,						ANALYSIS_UNREC_PDAYS,			ANALYSIS_UNREC_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPDATE},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPACC},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,						ANALYSIS_UNREC_PMONTHS,			ANALYSIS_UNREC_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPDATE},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPACC},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,						ANALYSIS_UNREC_PYEARS,			ANALYSIS_UNREC_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPDATE},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_SHADE_OR,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_UNREC_GROUPACC},
+
+	/* Group Type. */
+
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET | ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO_PASS,	ANALYSIS_UNREC_GROUPACC,		ANALYSIS_UNREC_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET | ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO_PASS,	ANALYSIS_UNREC_GROUPDATE,		ANALYSIS_UNREC_GROUP},
+
+	/* Account Fields. */
+
+	{ANALYSIS_DIALOGUE_ICON_POPUP_FROM | ANALYSIS_DIALOGUE_ICON_REFRESH,						ANALYSIS_UNREC_FROMSPEC,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_FROM,										ANALYSIS_UNREC_FROMSPECPOPUP,		ANALYSIS_UNREC_FROMSPEC},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_TO | ANALYSIS_DIALOGUE_ICON_REFRESH,						ANALYSIS_UNREC_TOSPEC,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_TO,										ANALYSIS_UNREC_TOSPECPOPUP,		ANALYSIS_UNREC_TOSPEC},
+
+	{ANALYSIS_DIALOGUE_ICON_END,											ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_DIALOGUE_NO_ICON}
+};
+
+/* The Unreconciled Report Dialogue Definition. */
 
 static struct analysis_dialogue_definition analysis_unreconciled_dialogue_definition = {
 	REPORT_TYPE_UNRECONCILED,
 	sizeof(struct analysis_unreconciled_report),
 	"UnrecRep",
 	"UnrecRep",
-//	ANALYSIS_UNREC_OK,
-//	ANALYSIS_UNREC_CANCEL,
-//	ANALYSIS_UNREC_DELETE,
-//	ANALYSIS_UNREC_RENAME
-	NULL
+	"UrcRepTitle",
+	analysis_unreconciled_icon_list
 };
+
 
 /**
  * Initialise the Unreconciled Transactions analysis report module.
@@ -200,15 +253,6 @@ static struct analysis_dialogue_definition analysis_unreconciled_dialogue_defini
 struct analysis_report_details *analysis_unreconciled_initialise(void)
 {
 	analysis_template_set_block_size(analysis_unreconciled_dialogue_definition.block_size);
-//	analysis_unreconciled_window = templates_create_window("UnrecRep");
-//	ihelp_add_window(analysis_unreconciled_window, "UnrecRep", NULL);
-//	event_add_window_mouse_event(analysis_unreconciled_window, analysis_unreconciled_click_handler);
-//	event_add_window_key_event(analysis_unreconciled_window, analysis_unreconciled_keypress_handler);
-//	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, FALSE);
-//	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, FALSE);
-//	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, TRUE);
-//	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS, TRUE);
-//	event_add_window_icon_radio(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, TRUE);
 	analysis_unreconciled_dialogue = analysis_dialogue_initialise(&analysis_unreconciled_dialogue_definition);
 
 	return &analysis_unreconciled_details;
@@ -279,381 +323,172 @@ static void analysis_unreconciled_delete_instance(void *instance)
 
 static void analysis_unreconciled_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore)
 {
-	debug_printf("Open an unreconciled report dialogue with template %d", template);
+	struct analysis_unreconciled_block *report = instance;
+
+	if (report == NULL)
+		return;
+
+	analysis_dialogue_open(analysis_unreconciled_dialogue, report->parent, pointer, template, &(report->saved), restore);
 }
 
 
-
-
-
-
-
-
-
-
-#if 0
-
-
-
 /**
- * Open the Unreconciled Report dialogue box.
+ * Handle the user renaming templates.
  *
- * \param *parent	The paranet analysis instance owning the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param template	The report template to use for the dialogue.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
+ * \param *parent	The parent analysis report instance for the rename.
+ * \param template	The template being renamed.
+ * \param *name		The new name for the report.
  */
 
-void analysis_unreconciled_open_window(struct analysis_block *parent, wimp_pointer *ptr, int template, osbool restore)
+static void analysis_unreconciled_rename_template(struct analysis_block *parent, template_t template, char *name)
 {
-	osbool		template_mode;
+	if (parent == NULL || template == NULL_TEMPLATE || name == NULL)
+		return;
 
-	/* If the window is already open, another unreconciled report is being edited.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(analysis_unreconciled_window))
-		wimp_close_window(analysis_unreconciled_window);
-
-	/* Copy the settings block contents into a static place that won't shift about on the flex heap
-	 * while the dialogue is open.
-	 */
-
-	template_mode = (template >= 0 && template < file->analysis->saved_report_count);
-
-	if (template_mode) {
-		analysis_copy_unreconciled_template(&(analysis_unreconciled_settings), &(file->analysis->saved_reports[template].data.unreconciled));
-		analysis_unreconciled_template = template;
-
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window),
-				windows_get_indirected_title_length(analysis_unreconciled_window),
-				file->analysis->saved_reports[template].name, NULL, NULL, NULL);
-
-		restore = TRUE; /* If we use a template, we always want to reset to the template! */
-	} else {
-		analysis_copy_unreconciled_template(&(analysis_unreconciled_settings), file->unrec_rep);
-		analysis_unreconciled_template = NULL_TEMPLATE;
-
-		msgs_lookup("UrcRepTitle", windows_get_indirected_title_addr(analysis_unreconciled_window),
-				windows_get_indirected_title_length(analysis_unreconciled_window));
-	}
-
-	icons_set_deleted(analysis_unreconciled_window, ANALYSIS_UNREC_DELETE, !template_mode);
-	icons_set_deleted(analysis_unreconciled_window, ANALYSIS_UNREC_RENAME, !template_mode);
-
-	/* Set the window contents up. */
-
-	analysis_fill_unreconciled_window(file, restore);
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	analysis_unreconciled_file = file;
-	analysis_unreconciled_restore = restore;
-
-	windows_open_centred_at_pointer(analysis_unreconciled_window, ptr);
-	place_dialogue_caret_fallback(analysis_unreconciled_window, 4, ANALYSIS_UNREC_DATEFROM, ANALYSIS_UNREC_DATETO,
-			ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_FROMSPEC);
-}
-
-
-/**
- * Process mouse clicks in the Analysis Unreconciled dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void analysis_unreconciled_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case ANALYSIS_UNREC_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_unreconciled_window);
-			analysis_template_save_force_rename_close(analysis_unreconciled_file, analysis_unreconciled_template);
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			analysis_refresh_unreconciled_window();
-		}
-		break;
-
-	case ANALYSIS_UNREC_OK:
-		if (analysis_process_unreconciled_window() && pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_unreconciled_window);
-			analysis_template_save_force_rename_close(analysis_unreconciled_file, analysis_unreconciled_template);
-		}
-		break;
-
-	case ANALYSIS_UNREC_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_unreconciled_window())
-			close_dialogue_with_caret(analysis_unreconciled_window);
-		break;
-
-	case ANALYSIS_UNREC_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_unreconciled_template >= 0 &&
-				analysis_unreconciled_template < analysis_unreconciled_file->analysis->saved_report_count)
-			analysis_template_save_open_rename_window (analysis_unreconciled_file, analysis_unreconciled_template, pointer);
-		break;
-
-	case ANALYSIS_UNREC_BUDGET:
-		icons_set_group_shaded_when_on(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, 4,
-				ANALYSIS_UNREC_DATEFROMTXT, ANALYSIS_UNREC_DATEFROM,
-				ANALYSIS_UNREC_DATETOTXT, ANALYSIS_UNREC_DATETO);
-		icons_replace_caret_in_window(analysis_unreconciled_window);
-		break;
-
-	case ANALYSIS_UNREC_GROUP:
-		icons_set_group_shaded_when_off(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, 2,
-				ANALYSIS_UNREC_GROUPACC, ANALYSIS_UNREC_GROUPDATE);
-
-		icons_set_group_shaded(analysis_unreconciled_window,
-				!(icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP) &&
-				icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE)), 6,
-				ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_PTEXT, ANALYSIS_UNREC_LOCK,
-				ANALYSIS_UNREC_PDAYS, ANALYSIS_UNREC_PMONTHS, ANALYSIS_UNREC_PYEARS);
-
-		icons_replace_caret_in_window(analysis_unreconciled_window);
-		break;
-
-	case ANALYSIS_UNREC_GROUPACC:
-	case ANALYSIS_UNREC_GROUPDATE:
-		icons_set_group_shaded(analysis_unreconciled_window,
-				!(icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUP) &&
-				icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE)), 6,
-				ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_PTEXT, ANALYSIS_UNREC_LOCK,
-				ANALYSIS_UNREC_PDAYS, ANALYSIS_UNREC_PMONTHS, ANALYSIS_UNREC_PYEARS);
-
-		icons_replace_caret_in_window(analysis_unreconciled_window);
-		break;
-
-	case ANALYSIS_UNREC_FROMSPECPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_unreconciled_file, analysis_unreconciled_window,
-					ANALYSIS_UNREC_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-		break;
-
-	case ANALYSIS_UNREC_TOSPECPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_unreconciled_file, analysis_unreconciled_window,
-					ANALYSIS_UNREC_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Analysis Unreconciled window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool analysis_unreconciled_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (analysis_process_unreconciled_window()) {
-			close_dialogue_with_caret(analysis_unreconciled_window);
-			analysis_template_save_force_rename_close(analysis_unreconciled_file, analysis_unreconciled_template);
-		}
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(analysis_unreconciled_window);
-		analysis_template_save_force_rename_close(analysis_unreconciled_file, analysis_unreconciled_template);
-		break;
-
-	case wimp_KEY_F1:
-		if (key->i == ANALYSIS_UNREC_FROMSPEC)
-			analysis_lookup_open_window(analysis_unreconciled_file, analysis_unreconciled_window,
-					ANALYSIS_UNREC_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-		else if (key->i == ANALYSIS_UNREC_TOSPEC)
-			analysis_lookup_open_window(analysis_unreconciled_file, analysis_unreconciled_window,
-					ANALYSIS_UNREC_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the current Unreconciled window.
- */
-
-static void analysis_refresh_unreconciled_window(void)
-{
-	analysis_fill_unreconciled_window(analysis_unreconciled_file, analysis_unreconciled_restore);
-	icons_redraw_group(analysis_unreconciled_window, 5,
-			ANALYSIS_UNREC_DATEFROM, ANALYSIS_UNREC_DATETO, ANALYSIS_UNREC_PERIOD,
-			ANALYSIS_UNREC_FROMSPEC, ANALYSIS_UNREC_TOSPEC);
-
-	icons_replace_caret_in_window(analysis_unreconciled_window);
+	analysis_dialogue_rename_template(analysis_unreconciled_dialogue, parent, template, name);
 }
 
 
 /**
  * Fill the Unreconciled window with values.
  *
- * \param: *find_data		Saved settings to use if restore == FALSE.
- * \param: restore		TRUE to keep the supplied settings; FALSE to
- *				use system defaults.
+ * \param *parent		The parent analysis instance.
+ * \param window		The handle of the window to be processed.
+ * \param *block		The template data to put into the window, or
+ *				NULL to use the defaults.
  */
 
-static void analysis_fill_unreconciled_window(struct file_block *file, osbool restore)
+static void analysis_unreconciled_fill_window(struct analysis_block *parent, wimp_w window, void *block)
 {
-	if (!restore) {
+	struct analysis_unreconciled_report *template = block;
+
+	if (parent == NULL || window == NULL)
+		return;
+
+	if (template == NULL) {
 		/* Set the period icons. */
 
-		*icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM) = '\0';
-		*icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_UNREC_DATEFROM) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_UNREC_DATETO) = '\0';
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, 0);
+		icons_set_selected(window, ANALYSIS_UNREC_BUDGET, 0);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, 0);
+		icons_set_selected(window, ANALYSIS_UNREC_GROUP, 0);
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, 1);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, 0);
+		icons_set_selected(window, ANALYSIS_UNREC_GROUPACC, 1);
+		icons_set_selected(window, ANALYSIS_UNREC_GROUPDATE, 0);
 
-		icons_strncpy(analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD, "1");
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, 0);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS, 1);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, 0);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_LOCK, 0);
+		icons_strncpy(window, ANALYSIS_UNREC_PERIOD, "1");
+		icons_set_selected(window, ANALYSIS_UNREC_PDAYS, 0);
+		icons_set_selected(window, ANALYSIS_UNREC_PMONTHS, 1);
+		icons_set_selected(window, ANALYSIS_UNREC_PYEARS, 0);
+		icons_set_selected(window, ANALYSIS_UNREC_LOCK, 0);
 
 		/* Set the from and to spec fields. */
 
-		*icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC) = '\0';
-		*icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_UNREC_FROMSPEC) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_UNREC_TOSPEC) = '\0';
 	} else {
 		/* Set the period icons. */
 
-		date_convert_to_string(analysis_unreconciled_settings.date_from,
-				icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM),
-				icons_get_indirected_text_length(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM));
-		date_convert_to_string(analysis_unreconciled_settings.date_to,
-				icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO),
-				icons_get_indirected_text_length(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO));
+		date_convert_to_string(template->date_from,
+				icons_get_indirected_text_addr(window, ANALYSIS_UNREC_DATEFROM),
+				icons_get_indirected_text_length(window, ANALYSIS_UNREC_DATEFROM));
+		date_convert_to_string(template->date_to,
+				icons_get_indirected_text_addr(window, ANALYSIS_UNREC_DATETO),
+				icons_get_indirected_text_length(window, ANALYSIS_UNREC_DATETO));
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, analysis_unreconciled_settings.budget);
+		icons_set_selected(window, ANALYSIS_UNREC_BUDGET, template->budget);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, analysis_unreconciled_settings.group);
+		icons_set_selected(window, ANALYSIS_UNREC_GROUP, template->group);
 
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC, analysis_unreconciled_settings.period_unit == DATE_PERIOD_NONE);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE, analysis_unreconciled_settings.period_unit != DATE_PERIOD_NONE);
+		icons_set_selected(window, ANALYSIS_UNREC_GROUPACC, template->period_unit == DATE_PERIOD_NONE);
+		icons_set_selected(window, ANALYSIS_UNREC_GROUPDATE, template->period_unit != DATE_PERIOD_NONE);
 
-		icons_printf(analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD, "%d", analysis_unreconciled_settings.period);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS, analysis_unreconciled_settings.period_unit == DATE_PERIOD_DAYS);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS,
-				analysis_unreconciled_settings.period_unit == DATE_PERIOD_MONTHS ||
-				analysis_unreconciled_settings.period_unit == DATE_PERIOD_NONE);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS, analysis_unreconciled_settings.period_unit == DATE_PERIOD_YEARS);
-		icons_set_selected(analysis_unreconciled_window, ANALYSIS_UNREC_LOCK, analysis_unreconciled_settings.lock);
+		icons_printf(window, ANALYSIS_UNREC_PERIOD, "%d", template->period);
+		icons_set_selected(window, ANALYSIS_UNREC_PDAYS, template->period_unit == DATE_PERIOD_DAYS);
+		icons_set_selected(window, ANALYSIS_UNREC_PMONTHS,
+				template->period_unit == DATE_PERIOD_MONTHS ||
+				template->period_unit == DATE_PERIOD_NONE);
+		icons_set_selected(window, ANALYSIS_UNREC_PYEARS, template->period_unit == DATE_PERIOD_YEARS);
+		icons_set_selected(window, ANALYSIS_UNREC_LOCK, template->lock);
 
 		/* Set the from and to spec fields. */
 
-		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC),
-				analysis_unreconciled_settings.from, analysis_unreconciled_settings.from_count);
-		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC),
-				analysis_unreconciled_settings.to, analysis_unreconciled_settings.to_count);
+		analysis_account_list_to_idents(parent,
+				icons_get_indirected_text_addr(window, ANALYSIS_UNREC_FROMSPEC),
+				icons_get_indirected_text_length(window, ANALYSIS_UNREC_FROMSPEC),
+				template->from, template->from_count);
+		analysis_account_list_to_idents(parent,
+				icons_get_indirected_text_addr(window, ANALYSIS_UNREC_TOSPEC),
+				icons_get_indirected_text_length(window, ANALYSIS_UNREC_TOSPEC),
+				template->to, template->to_count);
 	}
-
-	icons_set_group_shaded_when_on(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET, 4,
-			ANALYSIS_UNREC_DATEFROMTXT, ANALYSIS_UNREC_DATEFROM,
-			ANALYSIS_UNREC_DATETOTXT, ANALYSIS_UNREC_DATETO);
-
-	icons_set_group_shaded_when_off(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP, 2,
-			ANALYSIS_UNREC_GROUPACC, ANALYSIS_UNREC_GROUPDATE);
-
-	icons_set_group_shaded(analysis_unreconciled_window,
-			!(icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUP) &&
-			icons_get_selected (analysis_unreconciled_window, ANALYSIS_UNREC_GROUPDATE)), 6,
-			ANALYSIS_UNREC_PERIOD, ANALYSIS_UNREC_PTEXT, ANALYSIS_UNREC_LOCK,
-			ANALYSIS_UNREC_PDAYS, ANALYSIS_UNREC_PMONTHS, ANALYSIS_UNREC_PYEARS);
 }
 
 
 /**
- * Process the contents of the Unreconciled window, store the details and
- * generate a report from them.
+ * Process the contents of the Unreconciled window,.
  *
- * \return			TRUE if the operation completed OK; FALSE if there
- *				was an error.
+ *
+ * \param *parent		The parent analysis instance.
+ * \param window		The handle of the window to be processed.
+ * \param *block		The template to store the contents in.
  */
 
-static osbool analysis_process_unreconciled_window(void)
+static void analysis_process_unreconciled_window(struct analysis_block *parent, wimp_w window, void *block)
 {
+	struct analysis_unreconciled_report *template = block;
+
+	if (parent == NULL || template == NULL || window == NULL)
+		return;
+
 	/* Read the date settings. */
 
-	analysis_unreconciled_file->unrec_rep->date_from =
-			date_convert_from_string(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATEFROM), NULL_DATE, 0);
-	analysis_unreconciled_file->unrec_rep->date_to =
-			date_convert_from_string(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_DATETO), NULL_DATE, 0);
-	analysis_unreconciled_file->unrec_rep->budget = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_BUDGET);
+	template->date_from =
+			date_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_UNREC_DATEFROM), NULL_DATE, 0);
+	template->date_to =
+			date_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_UNREC_DATETO), NULL_DATE, 0);
+	template->budget = icons_get_selected(window, ANALYSIS_UNREC_BUDGET);
 
 	/* Read the grouping settings. */
 
-	analysis_unreconciled_file->unrec_rep->group = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUP);
-	analysis_unreconciled_file->unrec_rep->period = atoi(icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_PERIOD));
+	template->group = icons_get_selected(window, ANALYSIS_UNREC_GROUP);
+	template->period = atoi(icons_get_indirected_text_addr(window, ANALYSIS_UNREC_PERIOD));
 
-	if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_GROUPACC))
-		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_NONE;
-	else if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PDAYS))
-		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_DAYS;
-	else if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PMONTHS))
-		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_MONTHS;
-	else if (icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_PYEARS))
-		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_YEARS;
+	if (icons_get_selected(window, ANALYSIS_UNREC_GROUPACC))
+		template->period_unit = DATE_PERIOD_NONE;
+	else if (icons_get_selected(window, ANALYSIS_UNREC_PDAYS))
+		template->period_unit = DATE_PERIOD_DAYS;
+	else if (icons_get_selected(window, ANALYSIS_UNREC_PMONTHS))
+		template->period_unit = DATE_PERIOD_MONTHS;
+	else if (icons_get_selected(window, ANALYSIS_UNREC_PYEARS))
+		template->period_unit = DATE_PERIOD_YEARS;
 	else
-		analysis_unreconciled_file->unrec_rep->period_unit = DATE_PERIOD_MONTHS;
+		template->period_unit = DATE_PERIOD_MONTHS;
 
-	analysis_unreconciled_file->unrec_rep->lock = icons_get_selected(analysis_unreconciled_window, ANALYSIS_UNREC_LOCK);
+	template->lock = icons_get_selected(window, ANALYSIS_UNREC_LOCK);
 
 	/* Read the account and heading settings. */
 
-	analysis_unreconciled_file->unrec_rep->from_count =
-			analysis_account_idents_to_list(analysis_unreconciled_file, ACCOUNT_FULL | ACCOUNT_IN,
-			icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_FROMSPEC),
-			analysis_unreconciled_file->unrec_rep->from);
-	analysis_unreconciled_file->unrec_rep->to_count =
-			analysis_account_idents_to_list(analysis_unreconciled_file, ACCOUNT_FULL | ACCOUNT_OUT,
-			icons_get_indirected_text_addr(analysis_unreconciled_window, ANALYSIS_UNREC_TOSPEC),
-			analysis_unreconciled_file->unrec_rep->to);
-
-	/* Run the report. */
-
-	analysis_generate_unreconciled_report(analysis_unreconciled_file);
-
-	return TRUE;
+	template->from_count =
+			analysis_account_idents_to_list(parent, ACCOUNT_FULL | ACCOUNT_IN,
+			icons_get_indirected_text_addr(window, ANALYSIS_UNREC_FROMSPEC),
+			template->from, ANALYSIS_ACC_LIST_LEN);
+	template->to_count =
+			analysis_account_idents_to_list(parent, ACCOUNT_FULL | ACCOUNT_OUT,
+			icons_get_indirected_text_addr(window, ANALYSIS_UNREC_TOSPEC),
+			template->to, ANALYSIS_ACC_LIST_LEN);
 }
 
 
-/**
- * Delete the template used in the current Transaction window.
- *
- * \return			TRUE if the template was deleted; else FALSE.
- */
 
-static osbool analysis_delete_unreconciled_window(void)
-{
-	if (analysis_unreconciled_template >= 0 && analysis_unreconciled_template < analysis_unreconciled_file->analysis->saved_report_count &&
-			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 3) {
-		analysis_delete_template(analysis_unreconciled_file, analysis_unreconciled_template);
-		analysis_unreconciled_template = NULL_TEMPLATE;
+#if 0
 
-		return TRUE;
-	} else {
-		return FALSE;
-	}
-}
 
 
 /**
@@ -912,8 +747,7 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 
 
 
-
-
+#endif
 
 
 
@@ -921,18 +755,14 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 /**
  * Remove any references to a report template.
  * 
+ * \param *parent	The analysis instance being updated.
  * \param template	The template to be removed.
  */
 
-void analysis_unreconciled_remove_template(template_t template)
+static void analysis_unreconciled_remove_template(struct analysis_block *parent, template_t template)
 {
-	if (analysis_unreconciled_template > template)
-		analysis_unreconciled_template--;
+	analysis_dialogue_remove_template(analysis_unreconciled_dialogue, parent, template);
 }
-
-#endif
-
-
 
 
 /**

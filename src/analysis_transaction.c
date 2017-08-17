@@ -109,7 +109,7 @@
 
 
 /**
- * Transaction Report dialogue.
+ * Transaction Report Template structure.
  */
 
 struct analysis_transaction_report {
@@ -136,6 +136,9 @@ struct analysis_transaction_report {
 	osbool				output_accsummary;
 };
 
+/**
+ * Transaction Report Instance data.
+ */
 
 struct analysis_transaction_block {
 	/**
@@ -152,59 +155,96 @@ struct analysis_transaction_block {
 };
 
 
+/**
+ * The dialogue instance used for this report.
+ */
+
 static struct analysis_dialogue_block	*analysis_transaction_dialogue = NULL;
 
-//static wimp_w			analysis_transaction_window = NULL;		/**< The handle of the Transaction Report window.				*/
-static struct analysis_block	*analysis_transcation_instance = NULL;		/**< The instance currently owning the report dialogue.				*/
-//static struct file_block	*analysis_transaction_file = NULL;		/**< The file currently owning the transaction dialogue.			*/
-static osbool			analysis_transaction_restore = FALSE;		/**< The restore setting for the current Transaction dialogue.			*/
-static struct trans_rep		analysis_transaction_settings;			/**< Saved initial settings for the Transaction dialogue.			*/
-static template_t		analysis_transaction_template = NULL_TEMPLATE;	/**< The template which applies to the Transaction dialogue.			*/
-
 /* Static Function Prototypes. */
-#if 0
-static void		analysis_transaction_click_handler(wimp_pointer *pointer);
-static osbool		analysis_transaction_keypress_handler(wimp_key *key);
-static void		analysis_refresh_transaction_window(void);
-static void		analysis_fill_transaction_window(struct file_block *file, osbool restore);
-static osbool		analysis_process_transaction_window(void);
-static osbool		analysis_delete_transaction_window(void);
-static void		analysis_generate_transaction_report(struct file_block *file);
-#endif
 
 static void *analysis_transaction_create_instance(struct analysis_block *parent);
 static void analysis_transaction_delete_instance(void *instance);
 static void analysis_transaction_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
+static void analysis_transaction_rename_template(struct analysis_block *parent, template_t template, char *name);
+static void analysis_transaction_fill_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_process_transaction_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_transaction_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_transaction_remove_account(void *report, acct_t account);
 static void analysis_transaction_copy_template(void *to, void *from);
 static void analysis_transaction_write_file_block(void *block, FILE *out, char *name);
 static void analysis_transaction_process_file_token(void *block, struct filing_block *in);
 
+/* The Transaction Report definition. */
 
 static struct analysis_report_details analysis_transaction_details = {
 	analysis_transaction_create_instance,
 	analysis_transaction_delete_instance,
 	analysis_transaction_open_window,
-	NULL,
+	analysis_transaction_fill_window,
+	analysis_process_transaction_window,
 	analysis_transaction_process_file_token,
 	analysis_transaction_write_file_block,
 	analysis_transaction_copy_template,
-	NULL,
+	analysis_transaction_rename_template,
 	analysis_transaction_remove_account,
-	NULL
+	analysis_transaction_remove_template
 };
+
+/* The Transaction Report Dialogue Icon Details. */
+
+static struct analysis_dialogue_icon analysis_transaction_icon_list[] = {
+	{ANALYSIS_DIALOGUE_ICON_GENERATE,					ANALYSIS_TRANS_OK,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_CANCEL,						ANALYSIS_TRANS_CANCEL,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_DELETE,						ANALYSIS_TRANS_DELETE,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_RENAME,						ANALYSIS_TRANS_RENAME,			ANALYSIS_DIALOGUE_NO_ICON},
+
+	/* Budget Group. */
+
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,					ANALYSIS_TRANS_BUDGET,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,					ANALYSIS_TRANS_DATEFROMTXT,		ANALYSIS_TRANS_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_TRANS_DATEFROM,		ANALYSIS_TRANS_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON,					ANALYSIS_TRANS_DATETOTXT,		ANALYSIS_TRANS_BUDGET},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_ON | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_TRANS_DATETO,			ANALYSIS_TRANS_BUDGET},
+
+	/* Group Period. */
+
+	{ANALYSIS_DIALOGUE_ICON_SHADE_TARGET,					ANALYSIS_TRANS_GROUP,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_TRANS_PERIOD,			ANALYSIS_TRANS_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,					ANALYSIS_TRANS_PTEXT,			ANALYSIS_TRANS_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF,					ANALYSIS_TRANS_LOCK,			ANALYSIS_TRANS_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_TRANS_PDAYS,			ANALYSIS_TRANS_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_TRANS_PMONTHS,			ANALYSIS_TRANS_GROUP},
+	{ANALYSIS_DIALOGUE_ICON_SHADE_OFF | ANALYSIS_DIALOGUE_ICON_RADIO,	ANALYSIS_TRANS_PYEARS,			ANALYSIS_TRANS_GROUP},
+
+	/* Account Fields. */
+
+	{ANALYSIS_DIALOGUE_ICON_POPUP_FROM | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_TRANS_FROMSPEC,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_FROM,					ANALYSIS_TRANS_FROMSPECPOPUP,		ANALYSIS_TRANS_FROMSPEC},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_TO | ANALYSIS_DIALOGUE_ICON_REFRESH,	ANALYSIS_TRANS_TOSPEC,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_POPUP_TO,					ANALYSIS_TRANS_TOSPECPOPUP,		ANALYSIS_TRANS_TOSPEC},
+
+	/* Filter Fields. */
+
+	{ANALYSIS_DIALOGUE_ICON_REFRESH,					ANALYSIS_TRANS_REFSPEC,			ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_REFRESH,					ANALYSIS_TRANS_DESCSPEC,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_REFRESH,					ANALYSIS_TRANS_AMTLOSPEC,		ANALYSIS_DIALOGUE_NO_ICON},
+	{ANALYSIS_DIALOGUE_ICON_REFRESH,					ANALYSIS_TRANS_AMTHISPEC,		ANALYSIS_DIALOGUE_NO_ICON},
+
+	{ANALYSIS_DIALOGUE_ICON_END,						ANALYSIS_DIALOGUE_NO_ICON,		ANALYSIS_DIALOGUE_NO_ICON}
+};
+
+/* The Transaction Report Dialogue Definition. */
 
 static struct analysis_dialogue_definition analysis_transaction_dialogue_definition = {
 	REPORT_TYPE_TRANSACTION,
 	sizeof(struct analysis_transaction_report),
 	"TransRep",
 	"TransRep",
-//	ANALYSIS_TRANS_OK,
-//	ANALYSIS_TRANS_CANCEL,
-//	ANALYSIS_TRANS_DELETE,
-//	ANALYSIS_TRANS_RENAME
-	NULL
+	"TrnRepTitle",
+	analysis_transaction_icon_list
 };
+
 
 /**
  * Initialise the Transaction analysis report module.
@@ -215,13 +255,6 @@ static struct analysis_dialogue_definition analysis_transaction_dialogue_definit
 struct analysis_report_details *analysis_transaction_initialise(void)
 {
 	analysis_template_set_block_size(analysis_transaction_dialogue_definition.block_size);
-//	analysis_transaction_window = templates_create_window("TransRep");
-//	ihelp_add_window(analysis_transaction_window, "TransRep", NULL);
-//	event_add_window_mouse_event(analysis_transaction_window, analysis_transaction_click_handler);
-//	event_add_window_key_event(analysis_transaction_window, analysis_transaction_keypress_handler);
-//	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, TRUE);
-//	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, TRUE);
-//	event_add_window_icon_radio(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, TRUE);
 	analysis_transaction_dialogue = analysis_dialogue_initialise(&analysis_transaction_dialogue_definition);
 
 	return &analysis_transaction_details;
@@ -299,394 +332,198 @@ static void analysis_transaction_delete_instance(void *instance)
 
 static void analysis_transaction_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore)
 {
-	debug_printf("Open a transaction report dialogue with template %d", template);
+	struct analysis_transaction_block *report = instance;
+
+	if (report == NULL)
+		return;
+
+	analysis_dialogue_open(analysis_transaction_dialogue, report->parent, pointer, template, &(report->saved), restore);
 }
 
 
-
-
-
-
-
-
-
-
-
-#if 0
-
-
-
-
 /**
- * Open the Transaction Report dialogue box.
+ * Handle the user renaming templates.
  *
- * \param *parent	The paranet analysis instance owning the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param template	The report template to use for the dialogue.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
+ * \param *parent	The parent analysis report instance for the rename.
+ * \param template	The template being renamed.
+ * \param *name		The new name for the report.
  */
 
-void analysis_transaction_open_window(struct analysis_block *parent, wimp_pointer *ptr, int template, osbool restore)
+static void analysis_transaction_rename_template(struct analysis_block *parent, template_t template, char *name)
 {
-	osbool		template_mode;
+	if (parent == NULL || template == NULL_TEMPLATE || name == NULL)
+		return;
 
-	/* If the window is already open, another transction report is being edited.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(analysis_transaction_window))
-		wimp_close_window(analysis_transaction_window);
-
-	/* Copy the settings block contents into a static place that won't shift about on the flex heap
-	 * while the dialogue is open.
-	 */
-
-	template_mode = (template >= 0 && template < file->analysis->saved_report_count);
-
-	if (template_mode) {
-		analysis_copy_transaction_template(&(analysis_transaction_settings), &(file->analysis->saved_reports[template].data.transaction));
-		analysis_transaction_template = template;
-
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(analysis_transaction_window),
-				windows_get_indirected_title_length(analysis_transaction_window),
-				file->analysis->saved_reports[template].name, NULL, NULL, NULL);
-
-		restore = TRUE; /* If we use a template, we always want to reset to the template! */
-	} else {
-		analysis_copy_transaction_template(&(analysis_transaction_settings), file->trans_rep);
-		analysis_transaction_template = NULL_TEMPLATE;
-
-		msgs_lookup("TrnRepTitle", windows_get_indirected_title_addr(analysis_transaction_window),
-				windows_get_indirected_title_length(analysis_transaction_window));
-	}
-
-	icons_set_deleted(analysis_transaction_window, ANALYSIS_TRANS_DELETE, !template_mode);
-	icons_set_deleted(analysis_transaction_window, ANALYSIS_TRANS_RENAME, !template_mode);
-
-	/* Set the window contents up. */
-
-	analysis_fill_transaction_window(file, restore);
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	analysis_transaction_file = file;
-	analysis_transaction_restore = restore;
-
-	windows_open_centred_at_pointer(analysis_transaction_window, ptr);
-	place_dialogue_caret_fallback(analysis_transaction_window, 4, ANALYSIS_TRANS_DATEFROM, ANALYSIS_TRANS_DATETO,
-			ANALYSIS_TRANS_PERIOD, ANALYSIS_TRANS_FROMSPEC);
-}
-
-
-/**
- * Process mouse clicks in the Analysis Transaction dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void analysis_transaction_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case ANALYSIS_TRANS_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			analysis_refresh_transaction_window();
-		}
-		break;
-
-	case ANALYSIS_TRANS_OK:
-		if (analysis_process_transaction_window() && pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
-		}
-		break;
-
-	case ANALYSIS_TRANS_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_delete_transaction_window())
-			close_dialogue_with_caret(analysis_transaction_window);
-		break;
-
-	case ANALYSIS_TRANS_RENAME:
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_transaction_template >= 0 && analysis_transaction_template < analysis_transaction_file->analysis->saved_report_count)
-			analysis_template_save_open_rename_window(analysis_transaction_file, analysis_transaction_template, pointer);
-		break;
-
-	case ANALYSIS_TRANS_BUDGET:
-		icons_set_group_shaded_when_on(analysis_transaction_window, ANALYSIS_TRANS_BUDGET, 4,
-				ANALYSIS_TRANS_DATEFROMTXT, ANALYSIS_TRANS_DATEFROM,
-				ANALYSIS_TRANS_DATETOTXT, ANALYSIS_TRANS_DATETO);
-		icons_replace_caret_in_window(analysis_transaction_window);
-		break;
-
-	case ANALYSIS_TRANS_GROUP:
-		icons_set_group_shaded_when_off(analysis_transaction_window, ANALYSIS_TRANS_GROUP, 6,
-				ANALYSIS_TRANS_PERIOD, ANALYSIS_TRANS_PTEXT,
-				ANALYSIS_TRANS_PDAYS, ANALYSIS_TRANS_PMONTHS, ANALYSIS_TRANS_PYEARS,
-				ANALYSIS_TRANS_LOCK);
-		icons_replace_caret_in_window(analysis_transaction_window);
-		break;
-
-	case ANALYSIS_TRANS_FROMSPECPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
-					ANALYSIS_TRANS_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-		break;
-
-	case ANALYSIS_TRANS_TOSPECPOPUP:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
-					ANALYSIS_TRANS_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Analysis Transaction window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool analysis_transaction_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (analysis_process_transaction_window()) {
-			close_dialogue_with_caret(analysis_transaction_window);
-			analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
-		}
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(analysis_transaction_window);
-		analysis_template_save_force_rename_close(analysis_transaction_file, analysis_transaction_template);
-		break;
-
-	case wimp_KEY_F1:
-		if (key->i == ANALYSIS_TRANS_FROMSPEC)
-			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
-					ANALYSIS_TRANS_FROMSPEC, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-		else if (key->i == ANALYSIS_TRANS_TOSPEC)
-			analysis_lookup_open_window(analysis_transaction_file, analysis_transaction_window,
-					ANALYSIS_TRANS_TOSPEC, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the current Transaction window.
- */
-
-static void analysis_refresh_transaction_window(void)
-{
-	analysis_fill_transaction_window(analysis_transaction_file, analysis_transaction_restore);
-	icons_redraw_group(analysis_transaction_window, 9,
-			ANALYSIS_TRANS_DATEFROM, ANALYSIS_TRANS_DATETO, ANALYSIS_TRANS_PERIOD,
-			ANALYSIS_TRANS_FROMSPEC, ANALYSIS_TRANS_TOSPEC,
-			ANALYSIS_TRANS_REFSPEC, ANALYSIS_TRANS_DESCSPEC,
-			ANALYSIS_TRANS_AMTLOSPEC, ANALYSIS_TRANS_AMTHISPEC);
-
-	icons_replace_caret_in_window(analysis_transaction_window);
+	analysis_dialogue_rename_template(analysis_transaction_dialogue, parent, template, name);
 }
 
 
 /**
  * Fill the Transaction window with values.
  *
- * \param: *find_data		Saved settings to use if restore == FALSE.
- * \param: restore		TRUE to keep the supplied settings; FALSE to
- *				use system defaults.
+ * \param *parent		The parent analysis instance.
+ * \param window		The handle of the window to be processed.
+ * \param *block		The template data to put into the window, or
+ *				NULL to use the defaults.
  */
 
-static void analysis_fill_transaction_window(struct file_block *file, osbool restore)
+static void analysis_transaction_fill_window(struct analysis_block *parent, wimp_w window, void *block)
 {
-	if (!restore) {
+	struct analysis_transaction_report *template = block;
+
+	if (parent == NULL || window == NULL)
+		return;
+
+	if (template == NULL) {
 		/* Set the period icons. */
 
-		*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM) = '\0';
-		*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATETO) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DATEFROM) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DATETO) = '\0';
 
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_BUDGET, 0);
+		icons_set_selected(window, ANALYSIS_TRANS_BUDGET, 0);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_GROUP, 0);
+		icons_set_selected(window, ANALYSIS_TRANS_GROUP, 0);
 
-		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_PERIOD, "1");
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, 0);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, 1);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, 0);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_LOCK, 0);
+		icons_strncpy(window, ANALYSIS_TRANS_PERIOD, "1");
+		icons_set_selected(window, ANALYSIS_TRANS_PDAYS, 0);
+		icons_set_selected(window, ANALYSIS_TRANS_PMONTHS, 1);
+		icons_set_selected(window, ANALYSIS_TRANS_PYEARS, 0);
+		icons_set_selected(window, ANALYSIS_TRANS_LOCK, 0);
 
 		/* Set the include icons. */
 
-		*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC) = '\0';
-		*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_TOSPEC) = '\0';
-		*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_REFSPEC) = '\0';
-		*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC) = '\0';
-		*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC) = '\0';
-		*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_FROMSPEC) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_TOSPEC) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_REFSPEC) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTLOSPEC) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTHISPEC) = '\0';
+		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DESCSPEC) = '\0';
 
 		/* Set the output icons. */
 
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPTRANS, 1);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY, 1);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY, 1);
+		icons_set_selected(window, ANALYSIS_TRANS_OPTRANS, 1);
+		icons_set_selected(window, ANALYSIS_TRANS_OPSUMMARY, 1);
+		icons_set_selected(window, ANALYSIS_TRANS_OPACCSUMMARY, 1);
 	} else {
 		/* Set the period icons. */
 
-		date_convert_to_string(analysis_transaction_settings.date_from,
-				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM),
-				icons_get_indirected_text_length(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM));
-		date_convert_to_string(analysis_transaction_settings.date_to,
-				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATETO),
-				icons_get_indirected_text_length(analysis_transaction_window, ANALYSIS_TRANS_DATETO));
+		date_convert_to_string(template->date_from,
+				icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DATEFROM),
+				icons_get_indirected_text_length(window, ANALYSIS_TRANS_DATEFROM));
+		date_convert_to_string(template->date_to,
+				icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DATETO),
+				icons_get_indirected_text_length(window, ANALYSIS_TRANS_DATETO));
 
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_BUDGET, analysis_transaction_settings.budget);
+		icons_set_selected(window, ANALYSIS_TRANS_BUDGET, template->budget);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_GROUP, analysis_transaction_settings.group);
+		icons_set_selected(window, ANALYSIS_TRANS_GROUP, template->group);
 
-		icons_printf(analysis_transaction_window, ANALYSIS_TRANS_PERIOD, "%d", analysis_transaction_settings.period);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PDAYS, analysis_transaction_settings.period_unit == DATE_PERIOD_DAYS);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS, analysis_transaction_settings.period_unit == DATE_PERIOD_MONTHS);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_PYEARS, analysis_transaction_settings.period_unit == DATE_PERIOD_YEARS);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_LOCK, analysis_transaction_settings.lock);
+		icons_printf(window, ANALYSIS_TRANS_PERIOD, "%d", template->period);
+		icons_set_selected(window, ANALYSIS_TRANS_PDAYS, template->period_unit == DATE_PERIOD_DAYS);
+		icons_set_selected(window, ANALYSIS_TRANS_PMONTHS, template->period_unit == DATE_PERIOD_MONTHS);
+		icons_set_selected(window, ANALYSIS_TRANS_PYEARS, template->period_unit == DATE_PERIOD_YEARS);
+		icons_set_selected(window, ANALYSIS_TRANS_LOCK, template->lock);
 
 		/* Set the include icons. */
 
-		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC),
-				analysis_transaction_settings.from, analysis_transaction_settings.from_count);
-		analysis_account_list_to_idents(file, icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
-				analysis_transaction_settings.to, analysis_transaction_settings.to_count);
-		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_REFSPEC, analysis_transaction_settings.ref);
-		currency_convert_to_string(analysis_transaction_settings.amount_min,
-				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC),
-				icons_get_indirected_text_length(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC));
-		currency_convert_to_string(analysis_transaction_settings.amount_max,
-				icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC),
-				icons_get_indirected_text_length(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC));
-		icons_strncpy(analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC, analysis_transaction_settings.desc);
+		analysis_account_list_to_idents(parent,
+				icons_get_indirected_text_addr(window, ANALYSIS_TRANS_FROMSPEC),
+				icons_get_indirected_text_length(window, ANALYSIS_TRANS_FROMSPEC),
+				template->from, template->from_count);
+		analysis_account_list_to_idents(parent,
+				icons_get_indirected_text_addr(window, ANALYSIS_TRANS_TOSPEC),
+				icons_get_indirected_text_length(window, ANALYSIS_TRANS_TOSPEC),
+				template->to, template->to_count);
+		icons_strncpy(window, ANALYSIS_TRANS_REFSPEC, template->ref);
+		currency_convert_to_string(template->amount_min,
+				icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTLOSPEC),
+				icons_get_indirected_text_length(window, ANALYSIS_TRANS_AMTLOSPEC));
+		currency_convert_to_string(template->amount_max,
+				icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTHISPEC),
+				icons_get_indirected_text_length(window, ANALYSIS_TRANS_AMTHISPEC));
+		icons_strncpy(window, ANALYSIS_TRANS_DESCSPEC, template->desc);
 
 		/* Set the output icons. */
 
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPTRANS, analysis_transaction_settings.output_trans);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY, analysis_transaction_settings.output_summary);
-		icons_set_selected(analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY, analysis_transaction_settings.output_accsummary);
+		icons_set_selected(window, ANALYSIS_TRANS_OPTRANS, template->output_trans);
+		icons_set_selected(window, ANALYSIS_TRANS_OPSUMMARY, template->output_summary);
+		icons_set_selected(window, ANALYSIS_TRANS_OPACCSUMMARY, template->output_accsummary);
 	}
-
-	icons_set_group_shaded_when_on(analysis_transaction_window, ANALYSIS_TRANS_BUDGET, 4,
-			ANALYSIS_TRANS_DATEFROMTXT, ANALYSIS_TRANS_DATEFROM,
-			ANALYSIS_TRANS_DATETOTXT, ANALYSIS_TRANS_DATETO);
-
-	icons_set_group_shaded_when_off(analysis_transaction_window, ANALYSIS_TRANS_GROUP, 6,
-			ANALYSIS_TRANS_PERIOD, ANALYSIS_TRANS_PTEXT,
-			ANALYSIS_TRANS_PDAYS, ANALYSIS_TRANS_PMONTHS, ANALYSIS_TRANS_PYEARS,
-			ANALYSIS_TRANS_LOCK);
 }
 
 
 /**
- * Process the contents of the Transaction window, store the details and
- * generate a report from them.
+ * Process the contents of the Transaction window,.
  *
- * \return			TRUE if the operation completed OK; FALSE if there
- *				was an error.
+ *
+ * \param *parent		The parent analysis instance.
+ * \param window		The handle of the window to be processed.
+ * \param *block		The template to store the contents in.
  */
 
-static osbool analysis_process_transaction_window(void)
+static void analysis_process_transaction_window(struct analysis_block *parent, wimp_w window, void *block)
 {
+	struct analysis_transaction_report *template = block;
+
+	if (parent == NULL || template == NULL || window == NULL)
+		return;
+
 	/* Read the date settings. */
 
-	analysis_transaction_file->trans_rep->date_from =
-			date_convert_from_string(icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATEFROM), NULL_DATE, 0);
-	analysis_transaction_file->trans_rep->date_to =
-			date_convert_from_string(icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DATETO), NULL_DATE, 0);
-	analysis_transaction_file->trans_rep->budget = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_BUDGET);
+	template->date_from =
+			date_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DATEFROM), NULL_DATE, 0);
+	template->date_to =
+			date_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DATETO), NULL_DATE, 0);
+	template->budget = icons_get_selected(window, ANALYSIS_TRANS_BUDGET);
 
 	/* Read the grouping settings. */
 
-	analysis_transaction_file->trans_rep->group = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_GROUP);
-	analysis_transaction_file->trans_rep->period = atoi(icons_get_indirected_text_addr (analysis_transaction_window, ANALYSIS_TRANS_PERIOD));
+	template->group = icons_get_selected(window, ANALYSIS_TRANS_GROUP);
+	template->period = atoi(icons_get_indirected_text_addr (window, ANALYSIS_TRANS_PERIOD));
 
-	if (icons_get_selected	(analysis_transaction_window, ANALYSIS_TRANS_PDAYS))
-		analysis_transaction_file->trans_rep->period_unit = DATE_PERIOD_DAYS;
-	else if (icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_PMONTHS))
-		analysis_transaction_file->trans_rep->period_unit = DATE_PERIOD_MONTHS;
-	else if (icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_PYEARS))
-		analysis_transaction_file->trans_rep->period_unit = DATE_PERIOD_YEARS;
+	if (icons_get_selected	(window, ANALYSIS_TRANS_PDAYS))
+		template->period_unit = DATE_PERIOD_DAYS;
+	else if (icons_get_selected(window, ANALYSIS_TRANS_PMONTHS))
+		template->period_unit = DATE_PERIOD_MONTHS;
+	else if (icons_get_selected(window, ANALYSIS_TRANS_PYEARS))
+		template->period_unit = DATE_PERIOD_YEARS;
 	else
-		analysis_transaction_file->trans_rep->period_unit = DATE_PERIOD_MONTHS;
+		template->period_unit = DATE_PERIOD_MONTHS;
 
-	analysis_transaction_file->trans_rep->lock = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_LOCK);
+	template->lock = icons_get_selected(window, ANALYSIS_TRANS_LOCK);
 
 	/* Read the account and heading settings. */
 
-	analysis_transaction_file->trans_rep->from_count =
-			analysis_account_idents_to_list(analysis_transaction_file, ACCOUNT_FULL | ACCOUNT_IN,
-			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_FROMSPEC),
-			analysis_transaction_file->trans_rep->from);
-	analysis_transaction_file->trans_rep->to_count =
-			analysis_account_idents_to_list(analysis_transaction_file, ACCOUNT_FULL | ACCOUNT_OUT,
-			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_TOSPEC),
-			analysis_transaction_file->trans_rep->to);
-	strcpy(analysis_transaction_file->trans_rep->ref,
-			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_REFSPEC));
-	strcpy(analysis_transaction_file->trans_rep->desc,
-			icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_DESCSPEC));
-	analysis_transaction_file->trans_rep->amount_min = (*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC) == '\0') ?
-			NULL_CURRENCY : currency_convert_from_string(icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTLOSPEC));
+	template->from_count =
+			analysis_account_idents_to_list(parent, ACCOUNT_FULL | ACCOUNT_IN,
+			icons_get_indirected_text_addr(window, ANALYSIS_TRANS_FROMSPEC),
+			template->from, ANALYSIS_ACC_LIST_LEN);
+	template->to_count =
+			analysis_account_idents_to_list(parent, ACCOUNT_FULL | ACCOUNT_OUT,
+			icons_get_indirected_text_addr(window, ANALYSIS_TRANS_TOSPEC),
+			template->to, ANALYSIS_ACC_LIST_LEN);
+	strcpy(template->ref,
+			icons_get_indirected_text_addr(window, ANALYSIS_TRANS_REFSPEC));
+	strcpy(template->desc,
+			icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DESCSPEC));
+	template->amount_min = (*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTLOSPEC) == '\0') ?
+			NULL_CURRENCY : currency_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTLOSPEC));
 
-	analysis_transaction_file->trans_rep->amount_max = (*icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC) == '\0') ?
-			NULL_CURRENCY : currency_convert_from_string(icons_get_indirected_text_addr(analysis_transaction_window, ANALYSIS_TRANS_AMTHISPEC));
+	template->amount_max = (*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTHISPEC) == '\0') ?
+			NULL_CURRENCY : currency_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTHISPEC));
 
 	/* Read the output options. */
 
-	analysis_transaction_file->trans_rep->output_trans = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_OPTRANS);
- 	analysis_transaction_file->trans_rep->output_summary = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_OPSUMMARY);
-	analysis_transaction_file->trans_rep->output_accsummary = icons_get_selected(analysis_transaction_window, ANALYSIS_TRANS_OPACCSUMMARY);
-
-	/* Run the report. */
-
-	analysis_generate_transaction_report(analysis_transaction_file);
-
-	return TRUE;
+	template->output_trans = icons_get_selected(window, ANALYSIS_TRANS_OPTRANS);
+ 	template->output_summary = icons_get_selected(window, ANALYSIS_TRANS_OPSUMMARY);
+	template->output_accsummary = icons_get_selected(window, ANALYSIS_TRANS_OPACCSUMMARY);
 }
 
-
-/**
- * Delete the template used in the current Transaction window.
- *
- * \return			TRUE if the template was deleted; else FALSE.
- */
-
-static osbool analysis_delete_transaction_window(void)
-{
-	if (analysis_transaction_template >= 0 && analysis_transaction_template < analysis_transaction_file->analysis->saved_report_count &&
-			error_msgs_report_question("DeleteTemp", "DeleteTempB") == 3) {
-		analysis_delete_template(analysis_transaction_file, analysis_transaction_template);
-		analysis_transaction_template = NULL_TEMPLATE;
-
-		return TRUE;
-	} else {
-		return FALSE;
-	}
-}
-
+#if 0
 
 /**
  * Generate a transaction report based on the settings in the given file.
@@ -1028,38 +865,21 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#endif
 
 
 
 /**
  * Remove any references to a report template.
  * 
+ * \param *parent	The analysis instance being updated.
  * \param template	The template to be removed.
  */
 
-void analysis_transaction_remove_template(template_t template)
+static void analysis_transaction_remove_template(struct analysis_block *parent, template_t template)
 {
-	if (analysis_transaction_template > template)
-		analysis_transaction_template--;
+	analysis_dialogue_remove_template(analysis_transaction_dialogue, parent, template);
 }
-
-#endif
-
-
 
 
 /**

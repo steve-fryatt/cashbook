@@ -63,12 +63,13 @@
  */
 
 struct analysis_dialogue_block {
-	struct analysis_dialogue_definition	*definition;		/**< The dialogue definition from the client.		*/
-	struct analysis_block			*parent;		/**< The parent analysis instance.			*/
-	template_t				template;		/**< The template associated with the dialogue.		*/
-	wimp_w					window;			/**< The Wimp window handle of the dialogue.		*/
-	osbool					restore;		/**< The restore state for the dialogue.		*/
-	void					*settings_block;	/**< The settings block associated with the dialogue.	*/
+	struct analysis_dialogue_definition	*definition;		/**< The dialogue definition from the client.			*/
+	struct analysis_block			*parent;		/**< The parent analysis instance.				*/
+	template_t				template;		/**< The template associated with the dialogue.			*/
+	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
+	osbool					restore;		/**< The restore state for the dialogue.			*/
+	void					*dialogue_settings;	/**< The settings block associated with the dialogue.		*/
+	void					*file_settings;		/**< The settings block associated with the file instance.	*/
 };
 
 /* Static Function Prototypes. */
@@ -105,15 +106,16 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
 	if (new == NULL)
 		return NULL;
 
-	new->settings_block = NULL;
+	new->dialogue_settings = NULL;
+	new->file_settings = NULL;
 	new->definition = definition;
 	new->parent = NULL;
 	new->template = NULL_TEMPLATE;
 
 	/* Claim a local template store to hold the live dialogue contents. */
 
-	new->settings_block = heap_alloc(definition->block_size);
-	if (new->settings_block == NULL)
+	new->dialogue_settings = heap_alloc(definition->block_size);
+	if (new->dialogue_settings == NULL)
 		return NULL;
 
 	/* Create the dialogue window. */
@@ -137,6 +139,8 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  * \param *ptr			The current Wimp Pointer details.
  * \param template		The report template to use for the dialogue.
  * \param *settings		The dialogue settings to use when no template available.
+ *				These are assumed to belong to the file instance, and will
+ *				be updated if the Generate button is clicked.
  * \param restore		TRUE to retain the last settings for the file; FALSE to
  *				use the application defaults.
  */
@@ -174,7 +178,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 	template_block = analysis_template_get_report(templates, template);
 
 	if (template_block != NULL) {
-		report_details->copy_template(dialogue->settings_block, analysis_template_get_data(template_block));
+		report_details->copy_template(dialogue->dialogue_settings, analysis_template_get_data(template_block));
 		dialogue->template = template;
 
 		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(dialogue->window),
@@ -185,10 +189,10 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 		restore = TRUE;
 	} else {
-		report_details->copy_template(dialogue->settings_block, settings);
+		report_details->copy_template(dialogue->dialogue_settings, settings);
 		dialogue->template = NULL_TEMPLATE;
 
-		msgs_lookup("BalRepTitle", windows_get_indirected_title_addr(dialogue->window),
+		msgs_lookup(dialogue->definition->title_token, windows_get_indirected_title_addr(dialogue->window),
 				windows_get_indirected_title_length(dialogue->window));
 	}
 
@@ -196,6 +200,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 	dialogue->parent = parent;
 	dialogue->restore = restore;
+	dialogue->file_settings = settings;
 
 	/* Set the window contents up. */
 
@@ -411,7 +416,21 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 
 static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue)
 {
-	return FALSE;
+	struct analysis_report_details	*report_details;
+
+	if (dialogue == NULL || dialogue->definition == NULL || dialogue->parent == NULL || dialogue->window == NULL)
+		return FALSE;
+
+	report_details = analysis_get_report_details(dialogue->definition->type);
+	if (report_details == NULL)
+		return FALSE;
+
+	/* Request the client to read the data from the dialogue. */
+
+	if (report_details->read_window != NULL)
+		report_details->read_window(dialogue->parent, dialogue->window, dialogue->file_settings);
+
+	return TRUE;
 }
 
 
@@ -494,7 +513,7 @@ static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue)
 	/* Request the client to fill the dialogue. */
 
 	if (report_details->fill_window != NULL)
-		report_details->fill_window(dialogue->parent, dialogue->window, (dialogue->restore) ? dialogue->settings_block : NULL);
+		report_details->fill_window(dialogue->parent, dialogue->window, (dialogue->restore) ? dialogue->dialogue_settings : NULL);
 
 	/* Update any shaded icons after the update. */
 
@@ -543,6 +562,9 @@ static void analysis_dialogue_shade_icons(struct analysis_dialogue_block *dialog
 {
 	int				i;
 	struct analysis_dialogue_icon	*icons;
+	osbool				include = FALSE;
+	osbool				shaded = FALSE;
+	wimp_i				icon = ANALYSIS_DIALOGUE_NO_ICON;
 
 	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
@@ -550,16 +572,35 @@ static void analysis_dialogue_shade_icons(struct analysis_dialogue_block *dialog
 	icons = dialogue->definition->icons;
 
 	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
-		if (icons[i].icon == ANALYSIS_DIALOGUE_NO_ICON || icons[i].target == ANALYSIS_DIALOGUE_NO_ICON)
+		if (icons[i].target == ANALYSIS_DIALOGUE_NO_ICON)
 			continue;
 
-		if (target != ANALYSIS_DIALOGUE_NO_ICON && target != icons[i].target)
-			continue;
+		/* Reset the shaded state if this isn't an OR clause. */
 
-		if (icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_ON)
-			icons_set_shaded(dialogue->window, icons[i].icon, icons_get_selected(dialogue->window, icons[i].target));
-		else if (icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_OFF)
-			icons_set_shaded(dialogue->window, icons[i].icon, !icons_get_selected(dialogue->window, icons[i].target));
+		if (!(icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_OR)) {
+			icon = icons[i].icon;
+			shaded = FALSE;
+			include = FALSE;
+		}
+
+		if (target == ANALYSIS_DIALOGUE_NO_ICON || target == icons[i].target)
+			include = TRUE;
+
+		/* Update the state based on the icon. */
+
+		if (icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_ON) {
+			shaded = shaded || icons_get_selected(dialogue->window, icons[i].target);
+		} else if (icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_OFF) {
+			shaded = shaded || !icons_get_selected(dialogue->window, icons[i].target);
+		} else {
+			icon = ANALYSIS_DIALOGUE_NO_ICON;
+			shaded = FALSE;
+		}
+
+		/* If the next icon isn't an AND clause, this is the end: update the icon. */
+
+		if (!(icons[i + 1].type & ANALYSIS_DIALOGUE_ICON_SHADE_OR) && (icon != ANALYSIS_DIALOGUE_NO_ICON) && include)
+			icons_set_shaded(dialogue->window, icon, shaded);
 	}
 }
 
@@ -608,6 +649,8 @@ static void analysis_dialogue_register_radio_icons(struct analysis_dialogue_bloc
 	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
 		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_RADIO))
 			event_add_window_icon_radio(dialogue->window, icons[i].icon, TRUE);
+		else if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_RADIO_PASS))
+			event_add_window_icon_radio(dialogue->window, icons[i].icon, FALSE);
 	}
 }
 

@@ -100,6 +100,11 @@ struct analysis_report_details {
 	void		(*fill_window)(struct analysis_block *parent, wimp_w window, void *template);
 
 	/**
+	 * Read the values from an analysis report dialogue.
+	 */
+	void		(*read_window)(struct analysis_block *parent, wimp_w window, void *template);
+
+	/**
 	 * Read a template token in from a saved CashBook file.
 	 */
 	void		(*process_file_token)(void *template, struct filing_block *in);

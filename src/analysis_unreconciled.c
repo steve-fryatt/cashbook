@@ -166,6 +166,7 @@ static void analysis_unreconciled_process_file_token(void *block, struct filing_
 /* The Unreconciled Report definition. */
 
 static struct analysis_report_details analysis_unreconciled_details = {
+	"URWinT", "URTitle",
 	analysis_unreconciled_create_instance,
 	analysis_unreconciled_delete_instance,
 	analysis_unreconciled_open_window,

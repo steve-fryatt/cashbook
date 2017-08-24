@@ -434,30 +434,24 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 	struct report			*report = NULL;
 	char				*filename, title[ANALYSIS_MAX_TITLE_LEN], name[ANALYSIS_SAVED_NAME_LEN];
 
-
-//	osbool			group, lock, tabular;
-//	int			i, acc, items, unit, period, total;
-//	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
-//	date_t			start_date, end_date, next_start, next_end;
-//	acct_t			from, to;
-//	amt_t			amount;
-//	struct report		*report;
-//	struct analysis_report	*template;
-//	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	/* Identify the report type. */
 
 	report_details = analysis_get_report_details(type);
 	if (report_details == NULL || instance == NULL || instance->file == NULL || instance->templates == NULL || settings == NULL)
 		return;
 
+	hourglass_on();
+
+	/* Claim the necessary report scratch space. */
+
 	data = analysis_data_claim(instance->file);
 	if (data == NULL) {
+		hourglass_off();
 		error_msgs_report_info("NoMemReport");
 		return;
 	}
 
-	hourglass_on();
-
-	/* Start to output the report details. */
+	/* Create a new report template to save with the report. */
 
 	if (template != NULL_TEMPLATE) {
 		report_template = analysis_template_get_report(instance->templates, template);
@@ -480,9 +474,10 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 		return;
 	}
 
-//	msgs_lookup("BRWinT", line, sizeof(line));
-//	report = report_open(file, line, template);
-	report = report_open(instance->file, "Test Report", new_template);
+	/* Create the new report for writing to. */
+
+	msgs_lookup(report_details->report_window_token, title, ANALYSIS_MAX_TITLE_LEN);
+	report = report_open(instance->file, title, new_template);
 
 	if (report == NULL) {
 		if (data != NULL)
@@ -494,9 +489,11 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 		return;
 	}
 
+	/* Construct the report title. */
+
 	filename = file_get_leafname(instance->file, NULL, 0);
-	if (name == NULL)
-		msgs_param_lookup("BRTitle", title, ANALYSIS_MAX_TITLE_LEN, filename, NULL, NULL, NULL);
+	if (name == NULL || *name == '\0')
+		msgs_param_lookup(report_details->report_title_token, title, ANALYSIS_MAX_TITLE_LEN, filename, NULL, NULL, NULL);
 	else
 		msgs_param_lookup("GRTitle", title, ANALYSIS_MAX_TITLE_LEN, name, filename, NULL, NULL);
 

@@ -171,6 +171,7 @@ static void analysis_cashflow_process_file_token(void *block, struct filing_bloc
 /* The Cashflow Report definition. */
 
 static struct analysis_report_details analysis_cashflow_details = {
+	"CRWinT", "CRTitle",
 	analysis_cashflow_create_instance,
 	analysis_cashflow_delete_instance,
 	analysis_cashflow_open_window,

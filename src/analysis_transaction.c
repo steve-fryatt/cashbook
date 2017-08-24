@@ -178,6 +178,7 @@ static void analysis_transaction_process_file_token(void *block, struct filing_b
 /* The Transaction Report definition. */
 
 static struct analysis_report_details analysis_transaction_details = {
+	"TRWinT", "TRTitle",
 	analysis_transaction_create_instance,
 	analysis_transaction_delete_instance,
 	analysis_transaction_open_window,

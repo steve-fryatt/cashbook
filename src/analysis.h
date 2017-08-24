@@ -81,6 +81,10 @@ enum analysis_report_type {
  */
 
 struct analysis_report_details {
+	char		*report_window_token;
+
+	char		*report_title_token;
+
 	/**
 	 * Construct a new analysis report instance.
 	 */

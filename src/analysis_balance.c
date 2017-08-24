@@ -174,6 +174,7 @@ static void analysis_balance_process_file_token(void *block, struct filing_block
 /* The Balance Report definition. */
 
 static struct analysis_report_details analysis_balance_details = {
+	"BRWinT", "BRTitle",
 	analysis_balance_create_instance,
 	analysis_balance_delete_instance,
 	analysis_balance_open_window,

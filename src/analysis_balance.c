@@ -61,8 +61,10 @@
 #include "account.h"
 #include "account_menu.h"
 #include "analysis.h"
+#include "analysis_data.h"
 #include "analysis_dialogue.h"
 #include "analysis_lookup.h"
+#include "analysis_period.h"
 #include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "budget.h"
@@ -161,7 +163,8 @@ static void analysis_balance_delete_instance(void *instance);
 static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_balance_rename_template(struct analysis_block *parent, template_t template, char *name);
 static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w window, void *block);
-static void analysis_process_balance_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_balance_process_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_balance_generate(struct analysis_block *parent, struct report *report, void *template, struct analysis_data_block *scratch);
 static void analysis_balance_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_balance_remove_account(void *report, acct_t account);
 static void analysis_balance_copy_template(void *to, void *from);
@@ -175,7 +178,8 @@ static struct analysis_report_details analysis_balance_details = {
 	analysis_balance_delete_instance,
 	analysis_balance_open_window,
 	analysis_balance_fill_window,
-	analysis_process_balance_window,
+	analysis_balance_process_window,
+	analysis_balance_generate,
 	analysis_balance_process_file_token,
 	analysis_balance_write_file_block,
 	analysis_balance_copy_template,
@@ -433,7 +437,7 @@ static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w w
  * \param *block		The template to store the contents in.
  */
 
-static void analysis_process_balance_window(struct analysis_block *parent, wimp_w window, void *block)
+static void analysis_balance_process_window(struct analysis_block *parent, wimp_w window, void *block)
 {
 	struct analysis_balance_report *template = block;
 
@@ -475,6 +479,166 @@ static void analysis_process_balance_window(struct analysis_block *parent, wimp_
 			template->outgoing, ANALYSIS_ACC_LIST_LEN);
 
 	template->tabular = icons_get_selected(window, ANALYSIS_BALANCE_TABULAR);
+}
+
+
+static void analysis_balance_generate(struct analysis_block *parent, struct report *report, void *template, struct analysis_data_block *scratch)
+{
+	struct analysis_balance_report	*settings = template;
+	struct file_block		*file;
+
+	osbool			group, lock, tabular;
+	int			items, unit, period, total;
+	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
+	date_t			start_date, end_date, next_start, next_end;
+	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+	acct_t			acc;
+	amt_t			amount;
+
+	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL)
+		return;
+
+	file = analysis_get_file(parent);
+	if (file == NULL)
+		return;
+
+	/* Read the date settings. */
+
+	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget);
+
+	/* Read the grouping settings. */
+
+	group = settings->group;
+	unit = settings->period_unit;
+	lock = settings->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
+	period = (group) ? settings->period : 0;
+
+	/* Read the include list. */
+
+	if (settings->accounts_count == 0 && settings->incoming_count == 0 && settings->outgoing_count == 0) {
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, ANALYSIS_DATA_INCLUDE, NULL, 1);
+	} else {
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL, ANALYSIS_DATA_INCLUDE, settings->accounts, settings->accounts_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_IN, ANALYSIS_DATA_INCLUDE, settings->incoming, settings->incoming_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_OUT, ANALYSIS_DATA_INCLUDE, settings->outgoing, settings->outgoing_count);
+	}
+
+	tabular = settings->tabular;
+
+	/* Count the number of accounts and headings to be included.  If this comes to more than the number of tab
+	 * stops available (including 2 for account name and total), force the tabular format option off.
+	 */
+
+	items = analysis_data_count_matches(scratch, ANALYSIS_DATA_INCLUDE);
+
+	if ((items + 2) > REPORT_TAB_STOPS)
+		tabular = FALSE;
+
+	/* Output report heading */
+
+	file_get_leafname(file, b1, sizeof(b1));
+//	if (*analysis_report_template.name != '\0')
+//		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
+//	else
+		msgs_param_lookup("BRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
+	report_write_line(report, 0, line);
+
+	date_convert_to_string(start_date, b1, sizeof(b1));
+	date_convert_to_string(end_date, b2, sizeof(b2));
+	date_convert_to_string(date_today(), b3, sizeof(b3));
+	msgs_param_lookup("BRHeader", line, sizeof(line), b1, b2, b3, NULL);
+	report_write_line(report, 0, line);
+
+	/* Start to output the report. */
+
+	if (tabular) {
+		report_write_line(report, 0, "");
+		msgs_lookup("BRDate", b1, sizeof(b1));
+		sprintf(line, "\\k\\b%s", b1);
+
+		for (acc_group = 0; acc_group < groups; acc_group++) {
+			entries = account_get_list_length(file, sequence[acc_group]);
+
+			for (group_line = 0; group_line < entries; group_line++) {
+				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+					if (analsys_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
+						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
+						strcat(line, b1);
+					}
+				}
+			}
+		}
+		msgs_lookup("BRTotal", b1, sizeof(b1));
+		sprintf(b2, "\\t\\r\\b%s", b1);
+		strcat(line, b2);
+
+		report_write_line(report, 1, line);
+	}
+
+	analysis_period_initialise(start_date, end_date, period, unit, lock);
+
+	while (analysis_period_get_next_dates(&next_start, &next_end, date_text, sizeof(date_text))) {
+		analysis_data_calculate_balances(scratch, next_end);
+
+		/* Print the transaction summaries. */
+
+		if (tabular) {
+			sprintf(line, "\\k%s", date_text);
+
+			total = 0;
+
+
+			for (acc_group = 0; acc_group < groups; acc_group++) {
+				entries = account_get_list_length(file, sequence[acc_group]);
+
+				for (group_line = 0; group_line < entries; group_line++) {
+					if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+						if (analsys_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
+							amount = analysis_data_get_total(scratch, acc);
+
+							total += amount;
+							currency_flexible_convert_to_string(amount, b1, sizeof(b1), TRUE);
+							sprintf(b2, "\\t\\d\\r%s", b1);
+							strcat(line, b2);
+						}
+					}
+				}
+			}
+			currency_flexible_convert_to_string(total, b1, sizeof(b1), TRUE);
+			sprintf(b2, "\\t\\d\\r%s", b1);
+			strcat(line, b2);
+			report_write_line(report, 1, line);
+		} else {
+			report_write_line(report, 0, "");
+			if (group) {
+				sprintf(line, "\\u%s", date_text);
+				report_write_line(report, 0, line);
+			}
+
+			total = 0;
+
+			for (acc_group = 0; acc_group < groups; acc_group++) {
+				entries = account_get_list_length(file, sequence[acc_group]);
+
+				for (group_line = 0; group_line < entries; group_line++) {
+					if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
+						amount = analysis_data_get_total(scratch, acc);
+
+						if (amount != 0 && analsys_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
+							total += amount;
+							currency_flexible_convert_to_string(amount, b1, sizeof(b1), TRUE);
+							sprintf(line, "\\i%s\\t\\d\\r%s", account_get_name(file, acc), b1);
+							report_write_line(report, 2, line);
+						}
+					}
+				}
+			}
+			msgs_lookup("BRTotal", b1, sizeof(b1));
+			currency_flexible_convert_to_string(total, b2, sizeof(b2), TRUE);
+			sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
+			report_write_line(report, 2, line);
+		}
+	}
 }
 
 

@@ -59,6 +59,7 @@ typedef int template_t;
 #include "account.h"
 #include "analysis_balance.h"
 #include "analysis_cashflow.h"
+#include "analysis_data.h"
 #include "analysis_transaction.h"
 #include "analysis_unreconciled.h"
 
@@ -73,6 +74,7 @@ enum analysis_report_type {
 	REPORT_TYPE_CASHFLOW = 3,						/**< Cashflow report.								*/
 	REPORT_TYPE_BALANCE = 4							/**< Balance report.								*/
 };
+
 
 /**
  * Details to be supplied by individual report types.
@@ -103,6 +105,11 @@ struct analysis_report_details {
 	 * Read the values from an analysis report dialogue.
 	 */
 	void		(*read_window)(struct analysis_block *parent, wimp_w window, void *template);
+
+	/**
+	 * Run an analysis report.
+	 */
+	void		(*run_report)(struct analysis_block *parent, struct report *report, void *template, struct analysis_data_block *scratch);
 
 	/**
 	 * Read a template token in from a saved CashBook file.
@@ -226,25 +233,6 @@ void analysis_open_window(struct analysis_block *instance, wimp_pointer *pointer
 void analysis_open_template(struct analysis_block *instance, wimp_pointer *pointer, template_t template, osbool restore);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * Remove an account from all of the report templates in a file (pending
  * deletion).
@@ -254,6 +242,32 @@ void analysis_open_template(struct analysis_block *instance, wimp_pointer *point
  */
 
 void analysis_remove_account_from_templates(struct file_block *file, acct_t account);
+
+
+/**
+ * Run a report, using supplied template data.
+ *
+ * \param *instance		The analysis instance owning the report.
+ * \param type			The type of report to run.
+ * \param *template		The template data
+ */
+
+void analysis_run_report(struct analysis_block *instance, enum analysis_report_type type, void *template);
+
+
+/**
+ * Establish and return the range of dates to report over, based on the values
+ * in a dialogue box and the data in the file concerned.
+ *
+ * \param *instance		The analysis instance to own the report.
+ * \param *start_date		Return the date to start the report from.
+ * \param *end_date		Return the date to end the report at.
+ * \param date1			The start date entered in the dialogue, or NULL_DATE.
+ * \param date2			The end date entered in the dialogue, or NULL_DATE.
+ * \param budget		TRUE to report on the budget period; else FALSE.
+ */
+
+void analysis_find_date_range(struct analysis_block *instance, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget);
 
 
 /**

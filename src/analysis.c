@@ -62,6 +62,7 @@
 #include "account_menu.h"
 #include "analysis_balance.h"
 #include "analysis_cashflow.h"
+#include "analysis_data.h"
 #include "analysis_dialogue.h"
 #include "analysis_lookup.h"
 #include "analysis_period.h"
@@ -78,42 +79,11 @@
 #include "report.h"
 #include "transact.h"
 
-
-
-
-
-
-
-
-enum analysis_flags {
-	ANALYSIS_REPORT_NONE = 0,
-	ANALYSIS_REPORT_FROM = 0x0001,
-	ANALYSIS_REPORT_TO = 0x0002,
-	ANALYSIS_REPORT_INCLUDE = 0x0004
-};
-
-
-
 /**
  * The number of analysis report type definitions.
  */
 
 #define ANALYSIS_REPORT_TYPE_COUNT 5
-
-
-
-/**
- * Analysis Scratch Data
- *
- * Data associated with an individual account during report generation.
- */
-
-struct analysis_data
-{
-	int				report_total;				/**< Running total for the account.						*/
-	int				report_balance;				/**< Balance for the account.							*/
-	enum analysis_flags		report_flags;				/**< Flags associated with the account.						*/
-};
 
 /**
  * The analysis report details in a file.
@@ -140,15 +110,8 @@ struct analysis_block
 	void					*reports[ANALYSIS_REPORT_TYPE_COUNT];
 };
 
-/* Report windows. */
+//static struct analysis_report		analysis_report_template;			/**< New report settings for passing to the Report module.			*/
 
-
-
-
-
-static struct analysis_report	analysis_report_template;			/**< New report settings for passing to the Report module.			*/
-
-static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a pointer to this to set all accounts.				*/
 
 /**
  * Details of all of the analysis report types.
@@ -157,14 +120,9 @@ static acct_t			analysis_wildcard_account_list = NULL_ACCOUNT;	/**< Pass a point
 static struct analysis_report_details	*analysis_report_types[ANALYSIS_REPORT_TYPE_COUNT];
 
 
+/* Static Function Prototypes. */
 
-
-
-static void		analysis_find_date_range(struct file_block *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget);
-static void		analysis_remove_account_from_report_template(struct analysis_report *template, void *data);
-static void		analysis_clear_account_report_flags(struct file_block *file, struct analysis_data *data);
-static void		analysis_set_account_report_flags_from_list(struct file_block *file, struct analysis_data *data, unsigned type, unsigned flags, acct_t *array, int count);
-
+static void analysis_remove_account_from_report_template(struct analysis_report *template, void *data);
 
 
 
@@ -384,68 +342,6 @@ void analysis_open_template(struct analysis_block *instance, wimp_pointer *point
 
 
 /**
- * Establish and return the range of dates to report over, based on the values
- * in a dialogue box and the data in the file concerned.
- *
- * \param *file			The file to run the report on.
- * \param *start_date		Return the date to start the report from.
- * \param *end_date		Return the date to end the report at.
- * \param date1			The start date entered in the dialogue, or NULL_DATE.
- * \param date2			The end date entered in the dialogue, or NULL_DATE.
- * \param budget		TRUE to report on the budget period; else FALSE.
- */
-
-static void analysis_find_date_range(struct file_block *file, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget)
-{
-//	int		i, transactions;
-//	osbool		find_start, find_end;
-//	date_t		date;
-
-//	if (budget) {
-//		/* Get the start and end dates from the budget settings. */
-
-//		budget_get_dates(file, start_date, end_date);
-//	} else {
-//		/* Get the start and end dates from the icon text. */
-
-//		*start_date = date1;
-//		*end_date = date2;
-//	}
-
-//	find_start = (*start_date == NULL_DATE);
-//	find_end = (*end_date == NULL_DATE);
-
-	/* If either of the dates wasn't specified, we need to find the earliest and latest dates in the file. */
-
-//	if (find_start || find_end) {
-//		transactions = transact_get_count(file);
-
-//		if (find_start)
-//			*start_date = (transactions > 0) ? transact_get_date(file, 0) : NULL_DATE;
-
-//		if (find_end)
-//			*end_date = (transactions > 0) ? transact_get_date(file, transactions - 1) : NULL_DATE;
-
-//		for (i = 0; i < transactions; i++) {
-//			date = transact_get_date(file, i);
-
-//			if (find_start && date != NULL_DATE && date < *start_date)
-//				*start_date = date;
-
-//			if (find_end && date != NULL_DATE && date > *end_date)
-//				*end_date = date;
-//		}
-//	}
-
-//	if (*start_date == NULL_DATE)
-//		*start_date = DATE_MIN;
-
-//	if (*end_date == NULL_DATE)
-//		*end_date = DATE_MAX;
-}
-
-
-/**
  * Remove an account from all of the report templates in a file (pending
  * deletion).
  *
@@ -504,60 +400,167 @@ static void analysis_remove_account_from_report_template(struct analysis_report 
 }
 
 
+
+
+
+
+
+
+
+
+
 /**
- * Clear all the account report flags in a file, to allow them to be re-set
- * for a new report.
+ * Run a report, using supplied template data.
  *
- * \param *file			The file to which the data belongs.
- * \param *data			The data to be cleared.
+ * \param *instance		The analysis instance owning the report.
+ * \param type			The type of report to run.
+ * \param *template		The template data
  */
 
-static void analysis_clear_account_report_flags(struct file_block *file, struct analysis_data *data)
+void analysis_run_report(struct analysis_block *instance, enum analysis_report_type type, void *template)
 {
-//	int	i;
+	struct analysis_report_details	*report_details;
+	struct analysis_data_block	*data = NULL;
+	struct report			*report = NULL;
 
-//	if (file == NULL || data == NULL)
+
+//	osbool			group, lock, tabular;
+//	int			i, acc, items, unit, period, total;
+//	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
+//	date_t			start_date, end_date, next_start, next_end;
+//	acct_t			from, to;
+//	amt_t			amount;
+//	struct report		*report;
+//	struct analysis_report	*template;
+//	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
+
+	report_details = analysis_get_report_details(type);
+	if (report_details == NULL || instance == NULL || instance->file == NULL || template == NULL)
+		return;
+
+	data = analysis_data_claim(instance->file);
+	if (data == NULL) {
+		error_msgs_report_info("NoMemReport");
+		return;
+	}
+
+	hourglass_on();
+
+	/* Start to output the report details. */
+
+//	analysis_copy_balance_template(&(analysis_report_template.data.balance), file->balance_rep);
+//	if (analysis_balance_template == NULL_TEMPLATE)
+//		*(analysis_report_template.name) = '\0';
+//	else
+//		strcpy(analysis_report_template.name, file->analysis->saved_reports[analysis_balance_template].name);
+//	analysis_report_template.type = REPORT_TYPE_BALANCE;
+//	analysis_report_template.file = file;
+
+//	template = analysis_create_template(&analysis_report_template);
+//	if (template == NULL) {
+//		if (data != NULL)
+//			analysis_data_free(data);
+//		hourglass_off();
+//		error_msgs_report_info("NoMemReport");
 //		return;
+//	}
 
-//	for (i = 0; i < account_get_count(file); i++)
-//		data[i].report_flags = ANALYSIS_REPORT_NONE;
+//	msgs_lookup("BRWinT", line, sizeof(line));
+//	report = report_open(file, line, template);
+	report = report_open(instance->file, "Test Report", NULL);
+
+	if (report == NULL) {
+		if (data != NULL)
+			analysis_data_free(data);
+		hourglass_off();
+///		error_msgs_report_info("???");
+		return;
+	}
+
+	/* Sort the file data, ready for the report. */
+
+	transact_sort_file_data(instance->file);
+
+	/* Run the report. */
+
+	report_details->run_report(instance, report, template, data);
+
+	/* Close the report. */
+
+	report_close(report);
+
+	/* Free the account scratch space. */
+
+	if (data != NULL)
+		analysis_data_free(data);
+
+	hourglass_off();
 }
 
 
 /**
- * Set the specified report flags for all accounts that match the list given.
- * The account NULL_ACCOUNT will set all the acounts that match the given type.
+ * Establish and return the range of dates to report over, based on the values
+ * in a dialogue box and the data in the file concerned.
  *
- * \param *file			The file to process.
- * \param *data			The data to be set.
- * \param type			The type(s) of account to match for NULL_ACCOUNT.
- * \param flags			The report flags to set for matching accounts.
- * \param *array		The account list array to use.
- * \param count			The number of accounts in the account list.
+ * \param *instance		The analysis instance to own the report.
+ * \param *start_date		Return the date to start the report from.
+ * \param *end_date		Return the date to end the report at.
+ * \param date1			The start date entered in the dialogue, or NULL_DATE.
+ * \param date2			The end date entered in the dialogue, or NULL_DATE.
+ * \param budget		TRUE to report on the budget period; else FALSE.
  */
 
-static void analysis_set_account_report_flags_from_list(struct file_block *file, struct analysis_data *data, unsigned type, unsigned flags, acct_t *array, int count)
+void analysis_find_date_range(struct analysis_block *instance, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget)
 {
-//	int	account, i;
+	tran_t			i;
+	int			transactions;
+	osbool			find_start, find_end;
+	date_t			date;
 
-//	for (i = 0; i < count; i++) {
-//		account = array[i];
+	if (instance == NULL || instance->file == NULL || start_date == NULL || end_date == NULL)
+		return;
 
-//		if (account == NULL_ACCOUNT) {
-//			/* 'Wildcard': set all the accounts which match the
-//			 * given account type.
-//			 */
+	if (budget) {
+		/* Get the start and end dates from the budget settings. */
 
-//			for (account = 0; account < account_get_count(file); account++)
-//				if ((account_get_type(file, account) & type) != 0)
-//					data[account].report_flags |= flags;
-//		} else {
-//			/* Set a specific account. */
+		budget_get_dates(instance->file, start_date, end_date);
+	} else {
+		/* Get the start and end dates from the icon text. */
 
-//			if (account < account_get_count(file))
-//				data[account].report_flags |= flags;
-//		}
-//	}
+		*start_date = date1;
+		*end_date = date2;
+	}
+
+	find_start = (*start_date == NULL_DATE);
+	find_end = (*end_date == NULL_DATE);
+
+	/* If either of the dates wasn't specified, we need to find the earliest and latest dates in the file. */
+
+	if (find_start || find_end) {
+		transactions = transact_get_count(instance->file);
+
+		if (find_start)
+			*start_date = (transactions > 0) ? transact_get_date(instance->file, 0) : NULL_DATE;
+
+		if (find_end)
+			*end_date = (transactions > 0) ? transact_get_date(instance->file, transactions - 1) : NULL_DATE;
+
+		for (i = 0; i < transactions; i++) {
+			date = transact_get_date(instance->file, i);
+
+			if (find_start && date != NULL_DATE && date < *start_date)
+				*start_date = date;
+
+			if (find_end && date != NULL_DATE && date > *end_date)
+				*end_date = date;
+		}
+	}
+
+	if (*start_date == NULL_DATE)
+		*start_date = DATE_MIN;
+
+	if (*end_date == NULL_DATE)
+		*end_date = DATE_MAX;
 }
 
 
@@ -650,13 +653,6 @@ void analysis_account_list_to_idents(struct analysis_block *instance, char *list
 			strcat(list, buffer);
 	}
 }
-
-
-
-
-
-
-
 
 
 /**

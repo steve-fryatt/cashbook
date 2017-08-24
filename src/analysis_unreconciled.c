@@ -171,6 +171,7 @@ static struct analysis_report_details analysis_unreconciled_details = {
 	analysis_unreconciled_open_window,
 	analysis_unreconciled_fill_window,
 	analysis_process_unreconciled_window,
+	NULL,
 	analysis_unreconciled_process_file_token,
 	analysis_unreconciled_write_file_block,
 	analysis_unreconciled_copy_template,

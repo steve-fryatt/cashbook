@@ -176,6 +176,7 @@ static struct analysis_report_details analysis_cashflow_details = {
 	analysis_cashflow_open_window,
 	analysis_cashflow_fill_window,
 	analysis_process_cashflow_window,
+	NULL,
 	analysis_cashflow_process_file_token,
 	analysis_cashflow_write_file_block,
 	analysis_cashflow_copy_template,

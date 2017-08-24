@@ -40,6 +40,7 @@ OBJS = account.o			\
        analysis.o			\
        analysis_balance.o		\
        analysis_cashflow.o		\
+       analysis_data.o			\
        analysis_dialogue.o		\
        analysis_lookup.o		\
        analysis_period.o		\

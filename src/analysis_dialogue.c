@@ -430,6 +430,10 @@ static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue
 	if (report_details->read_window != NULL)
 		report_details->read_window(dialogue->parent, dialogue->window, dialogue->file_settings);
 
+	/* Run the report itself */
+
+	analysis_run_report(dialogue->parent, dialogue->definition->type, dialogue->file_settings);
+
 	return TRUE;
 }
 

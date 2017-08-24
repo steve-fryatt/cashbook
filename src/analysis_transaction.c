@@ -183,6 +183,7 @@ static struct analysis_report_details analysis_transaction_details = {
 	analysis_transaction_open_window,
 	analysis_transaction_fill_window,
 	analysis_process_transaction_window,
+	NULL,
 	analysis_transaction_process_file_token,
 	analysis_transaction_write_file_block,
 	analysis_transaction_copy_template,

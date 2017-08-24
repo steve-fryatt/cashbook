@@ -44,25 +44,14 @@
 struct analysis_data_block;
 
 /**
- * Flags used by the analysis scratch space. */
+ * Flags used by the analysis scratch space.
+ */
 
 enum analysis_data_flags {
 	ANALYSIS_DATA_NONE	= 0x0000,
 	ANALYSIS_DATA_FROM	= 0x0001,
 	ANALYSIS_DATA_TO	= 0x0002,
 	ANALYSIS_DATA_INCLUDE	= 0x0004
-};
-
-/**
- * Analysis Scratch Data
- *
- * Data associated with an individual account during report generation.
- */
-
-struct analysis_data {
-	amt_t				report_total;			/**< Running total for the account.						*/
-	amt_t				report_balance;			/**< Balance for the account.							*/
-	enum analysis_data_flags	report_flags;			/**< Flags associated with the account.						*/
 };
 
 
@@ -119,7 +108,7 @@ void analysis_data_set_flags_from_account_list(struct analysis_data_block *block
  * \return			TRUE if the flags match; otherwise FALSE.
  */
 
-osbool analsys_data_test_account(struct analysis_data_block *block, acct_t account, enum analysis_data_flags flags);
+osbool analysis_data_test_account(struct analysis_data_block *block, acct_t account, enum analysis_data_flags flags);
 
 
 /**
@@ -134,6 +123,17 @@ amt_t analysis_data_get_total(struct analysis_data_block *block, acct_t account)
 
 
 /**
+ * Update the balance for an account in a scratch data block, using the
+ * current total, and return the new balance.
+ *
+ * \param *block		The scratch data instance to process.
+ * \param account		The account for which to update and return the balance.
+ * \return			The calculated account balance.
+ */
+
+amt_t analysis_data_update_balance(struct analysis_data_block *block, acct_t account);
+
+/**
  * Count the number of entries in a scratch data block with a given flag
  * combination set.
  *
@@ -146,15 +146,48 @@ int analysis_data_count_matches(struct analysis_data_block *block, enum analysis
 
 
 /**
+ * Zero the report totals in a scratch data block.
+ *
+ * \param *block		The scratch data block to process.
+ */
+
+void analysis_data_zero_totals(struct analysis_data_block *block);
+
+
+/**
+ * Reset the remaining balances in a scratch data block.
+ *
+ * \param *block		The scratch data block to process.
+ */
+
+void analysis_data_initialise_balances(struct analysis_data_block *block);
+
+
+/**
  * Calculate the account balances on a given date.
  *
  * \param *block		The scratch data instance to process.
- * \param target_date		The date on which to calculate the balances,
+ * \param start_date		The first date to include in the balances,
  *				or NULL_DATE.
+ * \param end_date		The last date to include in the balances,
+ *				or NULL_DATE.
+ * \param opening		TRUE to include opening balances, FALSE to
+ *				omit and start from zero.
+ * \return			The number of transactions included in the
+ *				returned totals.
  */
 
-void analysis_data_calculate_balances(struct analysis_data_block *block, date_t target_date);
+int analysis_data_calculate_balances(struct analysis_data_block *block, date_t start_date, date_t end_date, osbool opening);
 
+
+/**
+ * Add a transaction's details to an analysis scratch space.
+ *
+ * \param *block		The scratch data instance to process.
+ * \param transaction		The transaction to add.
+ */
+
+void analysis_data_add_transaction(struct analysis_data_block *block, tran_t transaction);
 
 #endif
 

@@ -29,29 +29,19 @@
 
 /* ANSI C header files */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* OSLib header files */
 
-#include "oslib/hourglass.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
-#include "sflib/debug.h"
-#include "sflib/errors.h"
-#include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
-#include "sflib/ihelp.h"
-#include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
-#include "sflib/templates.h"
-#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -59,18 +49,14 @@
 #include "analysis_transaction.h"
 
 #include "account.h"
-#include "account_menu.h"
 #include "analysis.h"
+#include "analysis_data.h"
 #include "analysis_dialogue.h"
-#include "analysis_lookup.h"
+#include "analysis_period.h"
 #include "analysis_template.h"
-#include "analysis_template_save.h"
-#include "budget.h"
-#include "caret.h"
 #include "currency.h"
 #include "date.h"
 #include "file.h"
-#include "flexutils.h"
 #include "report.h"
 #include "transact.h"
 
@@ -168,7 +154,8 @@ static void analysis_transaction_delete_instance(void *instance);
 static void analysis_transaction_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_transaction_rename_template(struct analysis_block *parent, template_t template, char *name);
 static void analysis_transaction_fill_window(struct analysis_block *parent, wimp_w window, void *block);
-static void analysis_process_transaction_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_transaction_process_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_transaction_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title);
 static void analysis_transaction_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_transaction_remove_account(void *report, acct_t account);
 static void analysis_transaction_copy_template(void *to, void *from);
@@ -183,8 +170,8 @@ static struct analysis_report_details analysis_transaction_details = {
 	analysis_transaction_delete_instance,
 	analysis_transaction_open_window,
 	analysis_transaction_fill_window,
-	analysis_process_transaction_window,
-	NULL,
+	analysis_transaction_process_window,
+	analysis_transaction_generate,
 	analysis_transaction_process_file_token,
 	analysis_transaction_write_file_block,
 	analysis_transaction_copy_template,
@@ -467,7 +454,7 @@ static void analysis_transaction_fill_window(struct analysis_block *parent, wimp
  * \param *block		The template to store the contents in.
  */
 
-static void analysis_process_transaction_window(struct analysis_block *parent, wimp_w window, void *block)
+static void analysis_transaction_process_window(struct analysis_block *parent, wimp_w window, void *block)
 {
 	struct analysis_transaction_report *template = block;
 
@@ -525,19 +512,22 @@ static void analysis_process_transaction_window(struct analysis_block *parent, w
 	template->output_accsummary = icons_get_selected(window, ANALYSIS_TRANS_OPACCSUMMARY);
 }
 
-#if 0
 
 /**
- * Generate a transaction report based on the settings in the given file.
+ * Generate a transaction report.
  *
- * \param *file			The file to generate the report for.
+ * \param *parent		The parent analysis instance.
+ * \param *template		The template data to use for the report.
+ * \param *report		The report to write to.
+ * \param *scratch		The scratch space to use to build the report.
+ * \param *title		Pointer to the report title.
  */
 
-static void analysis_generate_transaction_report(struct file_block *file)
+static void analysis_transaction_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title)
 {
-	struct report		*report;
-	struct analysis_data	*data = NULL;
-	struct analysis_report	*template;
+	struct analysis_transaction_report	*settings = template;
+	struct file_block			*file;
+
 	osbool			group, lock, output_trans, output_summary, output_accsummary;
 	int			i, found, total, unit, period,
 				total_days, period_days, period_limit, entries, account;
@@ -547,99 +537,53 @@ static void analysis_generate_transaction_report(struct file_block *file)
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
 	char			*match_ref, *match_desc;
 
+	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
+		return;
+
+	file = analysis_get_file(parent);
 	if (file == NULL)
 		return;
 
-	if (!flexutils_allocate((void **) &data, sizeof(struct analysis_data), account_get_count(file))) {
-		error_msgs_report_info("NoMemReport");
-		return;
-	}
-
-	hourglass_on();
-
-	transact_sort_file_data(file);
-
 	/* Read the date settings. */
 
-	analysis_find_date_range(file, &start_date, &end_date,
-			file->trans_rep->date_from, file->trans_rep->date_to, file->trans_rep->budget);
+	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget);
 
 	total_days = date_count_days(start_date, end_date);
 
 	/* Read the grouping settings. */
 
-	group = file->trans_rep->group;
-	unit = file->trans_rep->period_unit;
-	lock = file->trans_rep->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
-	period = (group) ? file->trans_rep->period : 0;
+	group = settings->group;
+	unit = settings->period_unit;
+	lock = settings->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
+	period = (group) ? settings->period : 0;
 
 	/* Read the include list. */
 
-	analysis_clear_account_report_flags(file, data);
-
-	if (file->trans_rep->from_count == 0 && file->trans_rep->to_count == 0) {
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM,
-				&analysis_wildcard_account_list, 1);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO,
-				&analysis_wildcard_account_list, 1);
+	if (settings->from_count == 0 && settings->to_count == 0) {
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_DATA_FROM, NULL, 1);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_DATA_TO, NULL, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM,
-				file->trans_rep->from, file->trans_rep->from_count);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO,
-				file->trans_rep->to, file->trans_rep->to_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_DATA_FROM,
+				settings->from, settings->from_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_DATA_TO,
+				settings->to, settings->to_count);
 	}
 
-	min_amount = file->trans_rep->amount_min;
-	max_amount = file->trans_rep->amount_max;
+	min_amount = settings->amount_min;
+	max_amount = settings->amount_max;
 
-	match_ref = (*(file->trans_rep->ref) == '\0') ? NULL : file->trans_rep->ref;
-	match_desc = (*(file->trans_rep->desc) == '\0') ? NULL : file->trans_rep->desc;
+	match_ref = (*(settings->ref) == '\0') ? NULL : settings->ref;
+	match_desc = (*(settings->desc) == '\0') ? NULL : settings->desc;
 
 	/* Read the output options. */
 
-	output_trans = file->trans_rep->output_trans;
-	output_summary = file->trans_rep->output_summary;
-	output_accsummary = file->trans_rep->output_accsummary;
-
-	/* Open a new report for output. */
-
-	analysis_copy_transaction_template(&(analysis_report_template.data.transaction), file->trans_rep);
-	if (analysis_transaction_template == NULL_TEMPLATE)
-		*(analysis_report_template.name) = '\0';
-	else
-		strcpy(analysis_report_template.name, file->analysis->saved_reports[analysis_transaction_template].name);
-	analysis_report_template.type = REPORT_TYPE_TRANS;
-	analysis_report_template.file = file;
-
-	template = analysis_create_template(&analysis_report_template);
-	if (template == NULL) {
-		if (data != NULL)
-			flexutils_free((void **) &data);
-		hourglass_off();
-		error_msgs_report_info("NoMemReport");
-		return;
-	}
-
-	msgs_lookup("TRWinT", line, sizeof (line));
-	report = report_open(file, line, template);
-
-	if (report == NULL) {
-		if (data != NULL)
-			flexutils_free((void **) &data);
-		if (template != NULL)
-			heap_free(template);
-		hourglass_off();
-		return;
-	}
+	output_trans = settings->output_trans;
+	output_summary = settings->output_summary;
+	output_accsummary = settings->output_accsummary;
 
 	/* Output report heading */
 
-	file_get_leafname(file, b1, sizeof(b1));
-	if (*analysis_report_template.name != '\0')
-		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
-	else
-		msgs_param_lookup("TRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
-	report_write_line(report, 0, line);
+	report_write_line(report, 0, title);
 
 	date_convert_to_string(start_date, b1, sizeof(b1));
 	date_convert_to_string(end_date, b2, sizeof(b2));
@@ -647,25 +591,16 @@ static void analysis_generate_transaction_report(struct file_block *file)
 	msgs_param_lookup("TRHeader", line, sizeof(line), b1, b2, b3, NULL);
 	report_write_line(report, 0, line);
 
-	analysis_period_initialise(start_date, end_date, period, unit, lock);
-
 	/* Initialise the heading remainder values for the report. */
 
-	for (i = 0; i < account_get_count(file); i++) {
-		enum account_type type = account_get_type(file, i);
-	
-		if (type & ACCOUNT_OUT)
-			data[i].report_balance = account_get_budget_amount(file, i);
-		else if (type & ACCOUNT_IN)
-			data[i].report_balance = -account_get_budget_amount(file, i);
-	}
+	analysis_data_initialise_balances(scratch);
+
+	/* Process the report time groups. */
+
+	analysis_period_initialise(start_date, end_date, period, unit, lock);
 
 	while (analysis_period_get_next_dates(&next_start, &next_end, date_text, sizeof(date_text))) {
-
-		/* Zero the heading totals for the report. */
-
-		for (i = 0; i < account_get_count(file); i++)
-			data[i].report_total = 0;
+		analysis_data_zero_totals(scratch);
 
 		/* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
 
@@ -679,10 +614,8 @@ static void analysis_generate_transaction_report(struct file_block *file)
 		
 			if ((next_start == NULL_DATE || date >= next_start) &&
 					(next_end == NULL_DATE || date <= next_end) &&
-					(((from != NULL_ACCOUNT) &&
-					((data[from].report_flags & ANALYSIS_REPORT_FROM) != 0)) ||
-					((to != NULL_ACCOUNT) &&
-					((data[to].report_flags & ANALYSIS_REPORT_TO) != 0))) &&
+					(analysis_data_test_account(scratch, from, ANALYSIS_DATA_FROM) ||
+							analysis_data_test_account(scratch, to, ANALYSIS_DATA_TO)) &&
 					((min_amount == NULL_CURRENCY) || (amount >= min_amount)) &&
 					((max_amount == NULL_CURRENCY) || (amount <= max_amount)) &&
 					((match_ref == NULL) || string_wildcard_compare(match_ref, transact_get_reference(file, i, NULL, 0), TRUE)) &&
@@ -704,11 +637,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 				/* Update the totals and output the transaction to the report file. */
 
-				if (from != NULL_ACCOUNT)
-					data[from].report_total -= amount;
-
-				if (to != NULL_ACCOUNT)
-					data[to].report_total += amount;
+				analysis_data_add_transaction(scratch, i);
 
 				if (output_trans) {
 					date_convert_to_string(date, b1, sizeof(b1));
@@ -743,9 +672,11 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 			for (i = 0; i < entries; i++) {
 				if ((account = account_get_list_entry_account(file, ACCOUNT_FULL, i)) != NULL_ACCOUNT) {
-					if (data[account].report_total != 0) {
-						total += data[account].report_total;
-						currency_convert_to_string(data[account].report_total, b1, sizeof(b1));
+					amount = analysis_data_get_total(scratch, account);
+
+					if (amount != 0) {
+						total += amount;
+						currency_convert_to_string(amount, b1, sizeof(b1));
 						sprintf(line, "\\k\\i%s\\t\\d\\r%s", account_get_name(file, account), b1);
 						report_write_line(report, 2, line);
 					}
@@ -769,7 +700,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 				report_write_line(report, 0, "");
 			msgs_lookup("TROutgoings", b1, sizeof(b1));
 			sprintf(line, "\\i%s", b1);
-			if (file->trans_rep->budget){
+			if (settings->budget){
 				msgs_lookup("TRSummExtra", b1, sizeof(b1));
 				strcat(line, b1);
 			}
@@ -779,21 +710,22 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 			for (i = 0; i < entries; i++) {
 				if ((account = account_get_list_entry_account(file, ACCOUNT_OUT, i)) != NULL_ACCOUNT) {
-					if (data[account].report_total != 0) {
-						total += data[account].report_total;
-						currency_convert_to_string(data[account].report_total, b1, sizeof(b1));
+					amount = analysis_data_get_total(scratch, account);
+
+					if (amount != 0) {
+						total += amount;
+						currency_convert_to_string(amount, b1, sizeof(b1));
 						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
-						if (file->trans_rep->budget) {
+						if (settings->budget) {
 							period_days = date_count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
 							currency_convert_to_string(period_limit, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							currency_convert_to_string(period_limit - data[account].report_total, b1, sizeof(b1));
+							currency_convert_to_string(period_limit - amount, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							data[i].report_balance -= data[account].report_total;
-							currency_convert_to_string(data[account].report_balance, b1, sizeof(b1));
+							currency_convert_to_string(analysis_data_update_balance(scratch, amount), b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 						}
@@ -815,7 +747,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 			report_write_line(report, 0, "");
 			msgs_lookup("TRIncomings", b1, sizeof(b1));
 			sprintf(line, "\\i%s", b1);
-			if (file->trans_rep->budget) {
+			if (settings->budget) {
 				msgs_lookup("TRSummExtra", b1, sizeof(b1));
 				strcat(line, b1);
 			}
@@ -826,21 +758,22 @@ static void analysis_generate_transaction_report(struct file_block *file)
 
 			for (i = 0; i < entries; i++) {
 				if ((account = account_get_list_entry_account(file, ACCOUNT_IN, i)) != NULL_ACCOUNT) {
-					if (data[account].report_total != 0) {
-						total += data[account].report_total;
-						currency_convert_to_string(-data[account].report_total, b1, sizeof(b1));
+					amount = analysis_data_get_total(scratch, account);
+
+					if (amount != 0) {
+						total += amount;
+						currency_convert_to_string(-amount, b1, sizeof(b1));
 						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
-						if (file->trans_rep->budget) {
+						if (settings->budget) {
 							period_days = date_count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
 							currency_convert_to_string(period_limit, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							currency_convert_to_string(period_limit - data[account].report_total, b1, sizeof(b1));
+							currency_convert_to_string(period_limit - amount, b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
-							data[i].report_balance -= data[account].report_total;
-							currency_convert_to_string(data[account].report_balance, b1, sizeof(b1));
+							currency_convert_to_string(analysis_data_update_balance(scratch, amount), b1, sizeof(b1));
 							sprintf(b2, "\\t\\d\\r%s", b1);
 							strcat(line, b2);
 						}
@@ -856,19 +789,7 @@ static void analysis_generate_transaction_report(struct file_block *file)
 			report_write_line(report, 2, line);
 		}
 	}
-
-	report_close(report);
-
-	if (data != NULL)
-		flexutils_free((void **) &data);
-
-	hourglass_off();
 }
-
-
-
-#endif
-
 
 
 /**

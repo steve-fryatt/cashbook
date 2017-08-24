@@ -80,6 +80,17 @@
 
 
 /**
+ * Analysis scratch data, associated with an individual account during
+ * report generation.
+ */
+
+struct analysis_data {
+	amt_t				report_total;			/**< Running total for the account.						*/
+	amt_t				report_balance;			/**< Balance for the account.							*/
+	enum analysis_data_flags	report_flags;			/**< Flags associated with the account.						*/
+};
+
+/**
  * An analysis scratch data set.
  */
 
@@ -220,7 +231,7 @@ void analysis_data_set_flags_from_account_list(struct analysis_data_block *block
  * \return			TRUE if the flags match; otherwise FALSE.
  */
 
-osbool analsys_data_test_account(struct analysis_data_block *block, acct_t account, enum analysis_data_flags flags)
+osbool analysis_data_test_account(struct analysis_data_block *block, acct_t account, enum analysis_data_flags flags)
 {
 	if (block == NULL || block->data == NULL)
 		return FALSE;
@@ -251,6 +262,29 @@ amt_t analysis_data_get_total(struct analysis_data_block *block, acct_t account)
 	return block->data[account].report_total;
 }
 
+
+/**
+ * Update the balance for an account in a scratch data block, using the
+ * current total, and return the new balance.
+ *
+ * \param *block		The scratch data instance to process.
+ * \param account		The account for which to update and return the balance.
+ * \return			The calculated account balance.
+ */
+
+amt_t analysis_data_update_balance(struct analysis_data_block *block, acct_t account)
+{
+	if (block == NULL || block->data == NULL)
+		return 0;
+
+	if (account == NULL_ACCOUNT || account < 0 || account >= block->count)
+		return 0;
+
+	block->data[account].report_balance -= block->data[account].report_total;
+	return block->data[account].report_balance;
+}
+
+
 /**
  * Count the number of entries in a scratch data block with a given flag
  * combination set.
@@ -277,19 +311,33 @@ int analysis_data_count_matches(struct analysis_data_block *block, enum analysis
 
 
 /**
- * Calculate the account balances on a given date.
+ * Zero the report totals in a scratch data block.
  *
- * \param *block		The scratch data instance to process.
- * \param target_date		The date on which to calculate the balances,
- *				or NULL_DATE.
+ * \param *block		The scratch data block to process.
  */
 
-void analysis_data_calculate_balances(struct analysis_data_block *block, date_t target_date)
+void analysis_data_zero_totals(struct analysis_data_block *block)
 {
-	int		transaction_count;
-	acct_t		account, from, to;
-	tran_t		transaction;
-	amt_t		amount;
+	acct_t account;
+
+	if (block == NULL || block->data == NULL)
+		return;
+
+	for (account = 0; account < block->count; account++)
+		block->data[account].report_total = 0;
+}
+
+
+/**
+ * Reset the remaining balances in a scratch data block.
+ *
+ * \param *block		The scratch data block to process.
+ */
+
+void analysis_data_initialise_balances(struct analysis_data_block *block)
+{
+	acct_t			account;
+	enum account_type	type;
 
 	if (block == NULL || block->file == NULL || block->data == NULL)
 		return;
@@ -299,8 +347,50 @@ void analysis_data_calculate_balances(struct analysis_data_block *block, date_t 
 	if (block->count != account_get_count(block->file))
 		return;
 
+	/* Reset the values. */
+
+	for (account = 0; account < block->count; account++){
+		type = account_get_type(block->file, account);
+	
+		if (type & ACCOUNT_OUT)
+			block->data[account].report_balance = account_get_budget_amount(block->file, account);
+		else if (type & ACCOUNT_IN)
+			block->data[account].report_balance = -account_get_budget_amount(block->file, account);
+	}
+}
+
+
+/**
+ * Calculate the account balances on a given date.
+ *
+ * \param *block		The scratch data instance to process.
+ * \param start_date		The first date to include in the balances,
+ *				or NULL_DATE.
+ * \param end_date		The last date to include in the balances,
+ *				or NULL_DATE.
+ * \param opening		TRUE to include opening balances, FALSE to
+ *				omit and start from zero.
+ * \return			The number of transactions included in the
+ *				returned totals.
+ */
+
+int analysis_data_calculate_balances(struct analysis_data_block *block, date_t start_date, date_t end_date, osbool opening)
+{
+	int		transaction_count, transactions_found = 0;
+	date_t		date;
+	acct_t		account;
+	tran_t		transaction;
+
+	if (block == NULL || block->file == NULL || block->data == NULL)
+		return 0;
+
+	/* Check that the accounts in the file haven't changed. */
+
+	if (block->count != account_get_count(block->file))
+		return 0;
+
 	for (account = 0; account < block->count; account++)
-		block->data[account].report_total = account_get_opening_balance(block->file, account);
+		block->data[account].report_total = (opening == TRUE) ? account_get_opening_balance(block->file, account) : 0;
 
 	/* Scan through the transactions, adding the values up for those occurring before the end of the current
 	 * period and outputting them to the screen.
@@ -309,17 +399,42 @@ void analysis_data_calculate_balances(struct analysis_data_block *block, date_t 
 	transaction_count = transact_get_count(block->file);
 
 	for (transaction = 0; transaction < transaction_count; transaction++) {
-		if (target_date == NULL_DATE || transact_get_date(block->file, transaction) <= target_date) {
-			from = transact_get_from(block->file, transaction);
-			to = transact_get_to(block->file, transaction);
-			amount = transact_get_amount(block->file, transaction);
-		
-			if (from != NULL_ACCOUNT && from >= 0 && from < block->count)
-				block->data[from].report_total -= amount;
+		date = transact_get_date(block->file, transaction);
 
-			if (to != NULL_ACCOUNT && to >= 0 && to < block->count)
-				block->data[to].report_total += amount;
+		if ((start_date == NULL_DATE || date >= start_date) && (end_date == NULL_DATE || date <= end_date)) {
+			analysis_data_add_transaction(block, transaction);
+
+			transactions_found++;
 		}
 	}
+
+	return transactions_found;
+}
+
+
+/**
+ * Add a transaction's details to an analysis scratch space.
+ *
+ * \param *block		The scratch data instance to process.
+ * \param transaction		The transaction to add.
+ */
+
+void analysis_data_add_transaction(struct analysis_data_block *block, tran_t transaction)
+{
+	acct_t	from, to;
+	amt_t	amount;
+
+	if (block == NULL || block->file == NULL || block->data == NULL)
+		return;
+
+	from = transact_get_from(block->file, transaction);
+	to = transact_get_to(block->file, transaction);
+	amount = transact_get_amount(block->file, transaction);
+
+	if (from != NULL_ACCOUNT && from >= 0 && from < block->count)
+		block->data[from].report_total -= amount;
+
+	if (to != NULL_ACCOUNT && to >= 0 && to < block->count)
+		block->data[to].report_total += amount;
 }
 

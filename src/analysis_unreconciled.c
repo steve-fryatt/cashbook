@@ -29,29 +29,18 @@
 
 /* ANSI C header files */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* OSLib header files */
 
-#include "oslib/hourglass.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
-#include "sflib/debug.h"
-#include "sflib/errors.h"
-#include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
-#include "sflib/ihelp.h"
-#include "sflib/menus.h"
 #include "sflib/msgs.h"
-#include "sflib/string.h"
-#include "sflib/templates.h"
-#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -59,18 +48,14 @@
 #include "analysis_unreconciled.h"
 
 #include "account.h"
-#include "account_menu.h"
 #include "analysis.h"
+#include "analysis_data.h"
 #include "analysis_dialogue.h"
-#include "analysis_lookup.h"
+#include "analysis_period.h"
 #include "analysis_template.h"
-#include "analysis_template_save.h"
-#include "budget.h"
-#include "caret.h"
 #include "currency.h"
 #include "date.h"
 #include "file.h"
-#include "flexutils.h"
 #include "report.h"
 #include "transact.h"
 
@@ -156,7 +141,8 @@ static void analysis_unreconciled_delete_instance(void *instance);
 static void analysis_unreconciled_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_unreconciled_rename_template(struct analysis_block *parent, template_t template, char *name);
 static void analysis_unreconciled_fill_window(struct analysis_block *parent, wimp_w window, void *block);
-static void analysis_process_unreconciled_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_unreconciled_process_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_unreconciled_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title);
 static void analysis_unreconciled_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_unreconciled_remove_account(void *report, acct_t account);
 static void analysis_unreconciled_copy_template(void *to, void *from);
@@ -171,8 +157,8 @@ static struct analysis_report_details analysis_unreconciled_details = {
 	analysis_unreconciled_delete_instance,
 	analysis_unreconciled_open_window,
 	analysis_unreconciled_fill_window,
-	analysis_process_unreconciled_window,
-	NULL,
+	analysis_unreconciled_process_window,
+	analysis_unreconciled_generate,
 	analysis_unreconciled_process_file_token,
 	analysis_unreconciled_write_file_block,
 	analysis_unreconciled_copy_template,
@@ -442,7 +428,7 @@ static void analysis_unreconciled_fill_window(struct analysis_block *parent, wim
  * \param *block		The template to store the contents in.
  */
 
-static void analysis_process_unreconciled_window(struct analysis_block *parent, wimp_w window, void *block)
+static void analysis_unreconciled_process_window(struct analysis_block *parent, wimp_w window, void *block)
 {
 	struct analysis_unreconciled_report *template = block;
 
@@ -488,19 +474,21 @@ static void analysis_process_unreconciled_window(struct analysis_block *parent, 
 }
 
 
-
-#if 0
-
-
-
 /**
- * Generate an unreconciled report based on the settings in the given file.
+ * Generate an unreconciled transaction report.
  *
- * \param *file			The file to generate the report for.
+ * \param *parent		The parent analysis instance.
+ * \param *template		The template data to use for the report.
+ * \param *report		The report to write to.
+ * \param *scratch		The scratch space to use to build the report.
+ * \param *title		Pointer to the report title.
  */
 
-static void analysis_generate_unreconciled_report(struct file_block *file)
+static void analysis_unreconciled_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title)
 {
+	struct analysis_unreconciled_report	*settings = template;
+	struct file_block			*file;
+
 	osbool			group, lock;
 	int			i, acc, found, unit, period, tot_in, tot_out, entries;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
@@ -509,83 +497,43 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 	acct_t			from, to;
 	enum transact_flags	flags;
 	amt_t			amount;
-	struct report		*report;
-	struct analysis_data	*data = NULL;
-	struct analysis_report	*template;
 	int			acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
+	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
+		return;
+
+	file = analysis_get_file(parent);
 	if (file == NULL)
 		return;
 
-	if (!flexutils_allocate((void **) &data, sizeof(struct analysis_data), account_get_count(file))) {
-		error_msgs_report_info("NoMemReport");
-		return;
-	}
-
-	hourglass_on();
-
-	transact_sort_file_data(file);
-
 	/* Read the date settings. */
 
-	analysis_find_date_range(file, &start_date, &end_date, file->unrec_rep->date_from, file->unrec_rep->date_to, file->unrec_rep->budget);
+	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget);
 
 	/* Read the grouping settings. */
 
-	group = file->unrec_rep->group;
-	unit = file->unrec_rep->period_unit;
-	lock = file->unrec_rep->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
-	period = (group) ? file->unrec_rep->period : 0;
+	group = settings->group;
+	unit = settings->period_unit;
+	lock = settings->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
+	period = (group) ? settings->period : 0;
 
 	/* Read the include list. */
 
-	analysis_clear_account_report_flags(file, data);
-
-	if (file->unrec_rep->from_count == 0 && file->unrec_rep->to_count == 0) {
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM, &analysis_wildcard_account_list, 1);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO, &analysis_wildcard_account_list, 1);
+	if (settings->from_count == 0 && settings->to_count == 0) {
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_DATA_FROM, NULL, 1);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_DATA_TO, NULL, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_REPORT_FROM, file->unrec_rep->from, file->unrec_rep->from_count);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_REPORT_TO, file->unrec_rep->to, file->unrec_rep->to_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_IN, ANALYSIS_DATA_FROM, settings->from, settings->from_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_OUT, ANALYSIS_DATA_TO, settings->to, settings->to_count);
 	}
 
 	/* Start to output the report details. */
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 
-	analysis_copy_unreconciled_template(&(analysis_report_template.data.unreconciled), file->unrec_rep);
-	if (analysis_unreconciled_template == NULL_TEMPLATE)
-		*(analysis_report_template.name) = '\0';
-	else
-		strcpy(analysis_report_template.name, file->analysis->saved_reports[analysis_unreconciled_template].name);
-	analysis_report_template.type = REPORT_TYPE_UNREC;
-	analysis_report_template.file = file;
-
-	template = analysis_create_template(&analysis_report_template);
-	if (template == NULL) {
-		if (data != NULL)
-			flexutils_free((void **) &data);
-		hourglass_off();
-		error_msgs_report_info("NoMemReport");
-		return;
-	}
-
-	msgs_lookup("URWinT", line, sizeof(line));
-	report = report_open(file, line, template);
-
-	if (report == NULL) {
-		hourglass_off();
-		return;
-	}
-
 	/* Output report heading */
 
-	file_get_leafname(file, b1, sizeof(b1));
-	if (*analysis_report_template.name != '\0')
-		msgs_param_lookup("GRTitle", line, sizeof (line), analysis_report_template.name, b1, NULL, NULL);
-	else
-		msgs_param_lookup("URTitle", line, sizeof (line), b1, NULL, NULL, NULL);
-	report_write_line(report, 0, line);
+	report_write_line(report, 0, title);
 
 	date_convert_to_string(start_date, b1, sizeof(b1));
 	date_convert_to_string(end_date, b2, sizeof(b2));
@@ -619,9 +567,9 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 
 						if ((start_date == NULL_DATE || date >= start_date) &&
 								(end_date == NULL_DATE || date <= end_date) &&
-								((from == acc && (data[acc].report_flags & ANALYSIS_REPORT_FROM) != 0 &&
+								(((from == acc) && analysis_data_test_account(scratch, acc, ANALYSIS_DATA_FROM) &&
 								(flags & TRANS_REC_FROM) == 0) ||
-								(to == acc && (data[acc].report_flags & ANALYSIS_REPORT_TO) != 0 &&
+								((to == acc) && analysis_data_test_account(scratch, acc, ANALYSIS_DATA_TO) &&
 								(flags & TRANS_REC_TO) == 0))) {
 							if (found == 0) {
 								report_write_line(report, 0, "");
@@ -700,12 +648,8 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 
 				if ((next_start == NULL_DATE || date >= next_start) &&
 						(next_end == NULL_DATE || date <= next_end) &&
-						(((flags & TRANS_REC_FROM) == 0 &&
-						(from != NULL_ACCOUNT) &&
-						(data[from].report_flags & ANALYSIS_REPORT_FROM) != 0) ||
-						((flags & TRANS_REC_TO) == 0 &&
-						(to != NULL_ACCOUNT) &&
-						(data[to].report_flags & ANALYSIS_REPORT_TO) != 0))) {
+						((((flags & TRANS_REC_FROM) == 0) && analysis_data_test_account(scratch, from, ANALYSIS_DATA_FROM)) ||
+						(((flags & TRANS_REC_TO) == 0) && analysis_data_test_account(scratch, to, ANALYSIS_DATA_TO)))) {
 					if (found == 0) {
 						report_write_line(report, 0, "");
 
@@ -738,20 +682,7 @@ static void analysis_generate_unreconciled_report(struct file_block *file)
 			}
 		}
 	}
-
-	report_close(report);
-
-	if (data != NULL)
-		flexutils_free((void **) &data);
-
-	hourglass_off();
 }
-
-
-
-#endif
-
-
 
 
 /**

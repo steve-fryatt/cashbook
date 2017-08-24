@@ -29,29 +29,18 @@
 
 /* ANSI C header files */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* OSLib header files */
 
-#include "oslib/hourglass.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
-#include "sflib/debug.h"
-#include "sflib/errors.h"
-#include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
-#include "sflib/ihelp.h"
-#include "sflib/menus.h"
 #include "sflib/msgs.h"
-#include "sflib/string.h"
-#include "sflib/templates.h"
-#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -59,20 +48,14 @@
 #include "analysis_balance.h"
 
 #include "account.h"
-#include "account_menu.h"
 #include "analysis.h"
 #include "analysis_data.h"
 #include "analysis_dialogue.h"
-#include "analysis_lookup.h"
 #include "analysis_period.h"
 #include "analysis_template.h"
-#include "analysis_template_save.h"
-#include "budget.h"
-#include "caret.h"
 #include "currency.h"
 #include "date.h"
 #include "file.h"
-#include "flexutils.h"
 #include "report.h"
 #include "transact.h"
 
@@ -495,8 +478,8 @@ static void analysis_balance_process_window(struct analysis_block *parent, wimp_
 
 static void analysis_balance_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title)
 {
-	struct analysis_balance_report	*settings = template;
-	struct file_block		*file;
+	struct analysis_balance_report		*settings = template;
+	struct file_block			*file;
 
 	osbool			group, lock, tabular;
 	int			items, unit, period, total;
@@ -567,7 +550,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 			for (group_line = 0; group_line < entries; group_line++) {
 				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
-					if (analsys_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
+					if (analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
 						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
 						strcat(line, b1);
 					}
@@ -581,10 +564,12 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 		report_write_line(report, 1, line);
 	}
 
+	/* Process the report time groups. */
+
 	analysis_period_initialise(start_date, end_date, period, unit, lock);
 
 	while (analysis_period_get_next_dates(&next_start, &next_end, date_text, sizeof(date_text))) {
-		analysis_data_calculate_balances(scratch, next_end);
+		analysis_data_calculate_balances(scratch, NULL_DATE, next_end, TRUE);
 
 		/* Print the transaction summaries. */
 
@@ -599,7 +584,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 				for (group_line = 0; group_line < entries; group_line++) {
 					if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
-						if (analsys_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
+						if (analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
 							amount = analysis_data_get_total(scratch, acc);
 
 							total += amount;
@@ -630,7 +615,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 					if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 						amount = analysis_data_get_total(scratch, acc);
 
-						if (amount != 0 && analsys_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
+						if (amount != 0 && analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
 							total += amount;
 							currency_flexible_convert_to_string(amount, b1, sizeof(b1), TRUE);
 							sprintf(line, "\\i%s\\t\\d\\r%s", account_get_name(file, acc), b1);

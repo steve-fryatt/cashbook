@@ -29,29 +29,18 @@
 
 /* ANSI C header files */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* OSLib header files */
 
-#include "oslib/hourglass.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
-#include "sflib/debug.h"
-#include "sflib/errors.h"
-#include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
-#include "sflib/ihelp.h"
-#include "sflib/menus.h"
 #include "sflib/msgs.h"
-#include "sflib/string.h"
-#include "sflib/templates.h"
-#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -59,18 +48,14 @@
 #include "analysis_cashflow.h"
 
 #include "account.h"
-#include "account_menu.h"
 #include "analysis.h"
+#include "analysis_data.h"
 #include "analysis_dialogue.h"
-#include "analysis_lookup.h"
+#include "analysis_period.h"
 #include "analysis_template.h"
-#include "analysis_template_save.h"
-#include "budget.h"
-#include "caret.h"
 #include "currency.h"
 #include "date.h"
 #include "file.h"
-#include "flexutils.h"
 #include "report.h"
 #include "transact.h"
 
@@ -161,7 +146,8 @@ static void analysis_cashflow_delete_instance(void *instance);
 static void analysis_cashflow_open_window(void *instance, wimp_pointer *pointer, template_t template, osbool restore);
 static void analysis_cashflow_rename_template(struct analysis_block *parent, template_t template, char *name);
 static void analysis_cashflow_fill_window(struct analysis_block *parent, wimp_w window, void *block);
-static void analysis_process_cashflow_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_cashflow_process_window(struct analysis_block *parent, wimp_w window, void *block);
+static void analysis_cashflow_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title);
 static void analysis_cashflow_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_cashflow_remove_account(void *report, acct_t account);
 static void analysis_cashflow_copy_template(void *to, void *from);
@@ -176,8 +162,8 @@ static struct analysis_report_details analysis_cashflow_details = {
 	analysis_cashflow_delete_instance,
 	analysis_cashflow_open_window,
 	analysis_cashflow_fill_window,
-	analysis_process_cashflow_window,
-	NULL,
+	analysis_cashflow_process_window,
+	analysis_cashflow_generate,
 	analysis_cashflow_process_file_token,
 	analysis_cashflow_write_file_block,
 	analysis_cashflow_copy_template,
@@ -438,7 +424,7 @@ static void analysis_cashflow_fill_window(struct analysis_block *parent, wimp_w 
  * \param *block		The template to store the contents in.
  */
 
-static void analysis_process_cashflow_window(struct analysis_block *parent, wimp_w window, void *block)
+static void analysis_cashflow_process_window(struct analysis_block *parent, wimp_w window, void *block)
 {
 	struct analysis_cashflow_report *template = block;
 
@@ -488,114 +474,73 @@ static void analysis_process_cashflow_window(struct analysis_block *parent, wimp
 	template->tabular = icons_get_selected(window, ANALYSIS_CASHFLOW_TABULAR);
 }
 
-#if 0
 
 /**
- * Generate a cashflow report based on the settings in the given file.
+ * Generate a cashflow report.
  *
- * \param *file			The file to generate the report for.
+ * \param *parent		The parent analysis instance.
+ * \param *template		The template data to use for the report.
+ * \param *report		The report to write to.
+ * \param *scratch		The scratch space to use to build the report.
+ * \param *title		Pointer to the report title.
  */
 
-static void analysis_generate_cashflow_report(struct file_block *file)
+static void analysis_cashflow_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title)
 {
+	struct analysis_cashflow_report		*settings = template;
+	struct file_block			*file;
+
 	osbool			group, lock, tabular;
-	int			i, acc, items, found, unit, period, show_blank, total;
+	int			items, found, unit, period, show_blank, total;
 	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
-	date_t			start_date, end_date, next_start, next_end, date;
-	acct_t			from, to;
+	date_t			start_date, end_date, next_start, next_end;
+	acct_t			acc;
 	amt_t			amount;
-	struct report		*report;
-	struct analysis_data	*data = NULL;
-	struct analysis_report	*template;
 	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
+	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
+		return;
+
+	file = analysis_get_file(parent);
 	if (file == NULL)
 		return;
 
-	if (!flexutils_allocate((void **) &data, sizeof(struct analysis_data), account_get_count(file))) {
-		error_msgs_report_info("NoMemReport");
-		return;
-	}
-
-	hourglass_on();
-
-	transact_sort_file_data(file);
-
 	/* Read the date settings. */
 
-	analysis_find_date_range(file, &start_date, &end_date, file->cashflow_rep->date_from, file->cashflow_rep->date_to, file->cashflow_rep->budget);
+	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget);
 
 	/* Read the grouping settings. */
 
-	group = file->cashflow_rep->group;
-	unit = file->cashflow_rep->period_unit;
-	lock = file->cashflow_rep->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
-	period = (group) ? file->cashflow_rep->period : 0;
-	show_blank = file->cashflow_rep->empty;
+	group = settings->group;
+	unit = settings->period_unit;
+	lock = settings->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
+	period = (group) ? settings->period : 0;
+	show_blank = settings->empty;
 
 	/* Read the include list. */
 
-	analysis_clear_account_report_flags(file, data);
-
-	if (file->cashflow_rep->accounts_count == 0 && file->cashflow_rep->incoming_count == 0 &&
-			file->cashflow_rep->outgoing_count == 0) {
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, &analysis_wildcard_account_list, 1);
+	if (settings->accounts_count == 0 && settings->incoming_count == 0 && settings->outgoing_count == 0) {
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, ANALYSIS_DATA_INCLUDE, NULL, 1);
 	} else {
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_FULL, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep->accounts, file->cashflow_rep->accounts_count);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_IN, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep->incoming, file->cashflow_rep->incoming_count);
-		analysis_set_account_report_flags_from_list(file, data, ACCOUNT_OUT, ANALYSIS_REPORT_INCLUDE, file->cashflow_rep->outgoing, file->cashflow_rep->outgoing_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL, ANALYSIS_DATA_INCLUDE, settings->accounts, settings->accounts_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_IN, ANALYSIS_DATA_INCLUDE, settings->incoming, settings->incoming_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_OUT, ANALYSIS_DATA_INCLUDE, settings->outgoing, settings->outgoing_count);
 	}
 
-	tabular = file->cashflow_rep->tabular;
+	tabular = settings->tabular;
 
 	/* Count the number of accounts and headings to be included.  If this comes to more than the number of tab
 	 * stops available (including 2 for account name and total), force the tabular format option off.
 	 */
 
-	items = 0;
-
-	for (i = 0; i < account_get_count(file); i++)
-		if ((data[i].report_flags & ANALYSIS_REPORT_INCLUDE) != 0)
-			items++;
+	items = analysis_data_count_matches(scratch, ANALYSIS_DATA_INCLUDE);
 
 	if ((items + 2) > REPORT_TAB_STOPS)
 		tabular = FALSE;
 
-	/* Start to output the report details. */
-
-	analysis_copy_cashflow_template(&(analysis_report_template.data.cashflow), file->cashflow_rep);
-	if (analysis_cashflow_template == NULL_TEMPLATE)
-		*(analysis_report_template.name) = '\0';
-	else
-		strcpy(analysis_report_template.name, file->analysis->saved_reports[analysis_cashflow_template].name);
-	analysis_report_template.type = REPORT_TYPE_CASHFLOW;
-	analysis_report_template.file = file;
-
-	template = analysis_create_template(&analysis_report_template);
-	if (template == NULL) {
-		if (data != NULL)
-			flexutils_free((void **) &data);
-		hourglass_off();
-		error_msgs_report_info("NoMemReport");
-		return;
-	}
-
-	msgs_lookup("CRWinT", line, sizeof(line));
-	report = report_open(file, line, template);
-
-	if (report == NULL) {
-		hourglass_off();
-		return;
-	}
-
 	/* Output report heading */
 
-	file_get_leafname(file, b1, sizeof(b1));
-	if (*analysis_report_template.name != '\0')
-		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
-	else
-		msgs_param_lookup("CRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
-	report_write_line(report, 0, line);
+	report_write_line(report, 0, title);
 
 	date_convert_to_string(start_date, b1, sizeof(b1));
 	date_convert_to_string(end_date, b2, sizeof(b2));
@@ -615,7 +560,7 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 
 			for (group_line = 0; group_line < entries; group_line++) {
 				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
-					if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
+					if (analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
 						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
 						strcat(line, b1);
 					}
@@ -629,35 +574,12 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 		report_write_line(report, 1, line);
 	}
 
+	/* Process the report time groups. */
+
 	analysis_period_initialise(start_date, end_date, period, unit, lock);
 
 	while (analysis_period_get_next_dates(&next_start, &next_end, date_text, sizeof(date_text))) {
-		/* Zero the heading totals for the report. */
-
-		for (i = 0; i < account_get_count(file); i++)
-			data[i].report_total = 0;
-
-		/* Scan through the transactions, adding the values up for those in range and outputting them to the screen. */
-
-		found = 0;
-
-		for (i = 0; i < transact_get_count(file); i++) {
-			date = transact_get_date(file, i);
-
-			if ((next_start == NULL_DATE || date >= next_start) && (next_end == NULL_DATE || date <= next_end)) {
-				from = transact_get_from(file, i);
-				to = transact_get_to(file, i);
-				amount = transact_get_amount(file, i);
-
-				if (from != NULL_ACCOUNT)
-					data[from].report_total -= amount;
-
-				if (to != NULL_ACCOUNT)
-					data[to].report_total += amount;
-
-				found++;
-			}
-		}
+		found = analysis_data_calculate_balances(scratch, next_start, next_end, FALSE);
 
 		/* Print the transaction summaries. */
 
@@ -672,9 +594,11 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 
 					for (group_line = 0; group_line < entries; group_line++) {
 						if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
-							if ((data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
-								total += data[acc].report_total;
-								currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
+							if (analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
+								amount = analysis_data_get_total(scratch, acc);
+
+								total += amount;
+								currency_flexible_convert_to_string(amount, b1, sizeof(b1), TRUE);
 								sprintf(b2, "\\t\\d\\r%s", b1);
 								strcat(line, b2);
 							}
@@ -700,9 +624,11 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 
 					for (group_line = 0; group_line < entries; group_line++) {
 						if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
-							if (data[acc].report_total != 0 && (data[acc].report_flags & ANALYSIS_REPORT_INCLUDE) != 0) {
-								total += data[acc].report_total;
-								currency_flexible_convert_to_string(data[acc].report_total, b1, sizeof(b1), TRUE);
+							amount = analysis_data_get_total(scratch, acc);
+
+							if (amount != 0 && analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
+								total += amount;
+								currency_flexible_convert_to_string(amount, b1, sizeof(b1), TRUE);
 								sprintf(line, "\\i%s\\t\\d\\r%s", account_get_name(file, acc), b1);
 								report_write_line(report, 2, line);
 							}
@@ -716,30 +642,8 @@ static void analysis_generate_cashflow_report(struct file_block *file)
 			}
 		}
 	}
-
-	report_close(report);
-
-	if (data != NULL)
-		flexutils_free((void **) &data);
-
-	hourglass_off();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#endif
 
 /**
  * Remove any references to a report template.

@@ -164,7 +164,7 @@ static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, 
 static void analysis_balance_rename_template(struct analysis_block *parent, template_t template, char *name);
 static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w window, void *block);
 static void analysis_balance_process_window(struct analysis_block *parent, wimp_w window, void *block);
-static void analysis_balance_generate(struct analysis_block *parent, struct report *report, void *template, struct analysis_data_block *scratch);
+static void analysis_balance_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title);
 static void analysis_balance_remove_template(struct analysis_block *parent, template_t template);
 static void analysis_balance_remove_account(void *report, acct_t account);
 static void analysis_balance_copy_template(void *to, void *from);
@@ -489,9 +489,10 @@ static void analysis_balance_process_window(struct analysis_block *parent, wimp_
  * \param *template		The template data to use for the report.
  * \param *report		The report to write to.
  * \param *scratch		The scratch space to use to build the report.
+ * \param *title		Pointer to the report title.
  */
 
-static void analysis_balance_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch)
+static void analysis_balance_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title)
 {
 	struct analysis_balance_report	*settings = template;
 	struct file_block		*file;
@@ -504,7 +505,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 	acct_t			acc;
 	amt_t			amount;
 
-	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL)
+	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
 		return;
 
 	file = analysis_get_file(parent);
@@ -545,12 +546,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 	/* Output report heading */
 
-	file_get_leafname(file, b1, sizeof(b1));
-//	if (*analysis_report_template.name != '\0')
-//		msgs_param_lookup("GRTitle", line, sizeof(line), analysis_report_template.name, b1, NULL, NULL);
-//	else
-		msgs_param_lookup("BRTitle", line, sizeof(line), b1, NULL, NULL, NULL);
-	report_write_line(report, 0, line);
+	report_write_line(report, 0, title);
 
 	date_convert_to_string(start_date, b1, sizeof(b1));
 	date_convert_to_string(end_date, b2, sizeof(b2));

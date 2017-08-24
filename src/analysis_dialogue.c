@@ -432,7 +432,7 @@ static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue
 
 	/* Run the report itself */
 
-	analysis_run_report(dialogue->parent, dialogue->definition->type, dialogue->file_settings);
+	analysis_run_report(dialogue->parent, dialogue->definition->type, dialogue->file_settings, dialogue->template);
 
 	return TRUE;
 }

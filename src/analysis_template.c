@@ -237,7 +237,6 @@ void analysis_template_remove_account(struct analysis_template_block *instance, 
 {
 	template_t			i;
 	struct analysis_report		*template = NULL;
-	void				*data = NULL;
 
 	if (instance == NULL)
 		return;
@@ -631,43 +630,49 @@ osbool analysis_template_delete(struct analysis_template_block *instance, templa
 }
 
 
-
 /**
- * Create a new analysis template in the static heap, optionally copying the
- * contents from an existing template.
+ * Create a new analysis template in the static heap, using data from
+ * a report's settings
  *
- * \param *base			Pointer to a template to copy, or NULL to
- *				create an empty template.
+ * \param *parent		Pointer to the analysis template instance
+ *				own the new template.
+ * \param *name			Pointer to the name of the new template, or
+ *				NULL to leave empty.
+ * \param type			The type of template data to be copied.
+ * \param *data			Pointer to the data to be copied into the
+ *				new template.
  * \return			Pointer to the new template, or NULL on failure.
  */
 
-static struct analysis_report *analysis_create_template(struct analysis_report *base)
+struct analysis_report *analysis_template_create_new(struct analysis_template_block *parent, char *name, enum analysis_report_type type, void *data)
 {
-//	struct analysis_report	*new;
+	struct analysis_report		*new;
+	struct analysis_report_details	*report_details;
 
-//	new = heap_alloc(sizeof(struct analysis_report));
-//	if (new == NULL)
+	if (parent == NULL || data == NULL)
 		return NULL;
 
-//	if (base == NULL) {
-//		*(new->name) = '\0';
-//		new->type = REPORT_TYPE_NONE;
-//		new->file = NULL;
-//	} else {
-//		analysis_copy_template(new, base);
-//	}
+	report_details = analysis_get_report_details(type);
+	if (report_details == NULL || report_details->copy_template == NULL)
+		return NULL;
 
-//	return new;
+	new = heap_alloc(analysis_template_full_block_size);
+	if (new == NULL)
+		return NULL;
+
+	new->instance = parent;
+	new->type = type;
+	if (name != NULL) {
+		strncpy(new->name, name, ANALYSIS_SAVED_NAME_LEN);
+		new->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
+	} else {
+		new->name[0] = '\0';
+	}
+
+	report_details->copy_template(analysis_template_data_from_address(new), data);
+
+	return new;
 }
-
-
-
-
-
-
-
-
-
 
 
 /**

@@ -2325,7 +2325,7 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 {
 	struct report		*report;
 	int			i, entry;
-	char			line[4096], buffer[256], numbuf1[64], numbuf2[64], numbuf3[64], numbuf4[64];
+	char			line[4096], buffer[256], numbuf1[64], numbuf2[64], numbuf3[64], numbuf4[64], *filename;
 	struct account_window	*window;
 	date_t			start, finish;
 
@@ -2345,18 +2345,18 @@ static void account_print(osbool text, osbool format, osbool scale, osbool rotat
 
 	/* Output the page title. */
 
-	file_get_leafname(account_print_owner->file, numbuf1, sizeof(numbuf1));
+	filename = file_get_leafname(account_print_owner->file, NULL, 0);
 	switch (window->type) {
 	case ACCOUNT_FULL:
-		msgs_param_lookup("AcclistTitleAcc", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
+		msgs_param_lookup("AcclistTitleAcc", buffer, sizeof(buffer), filename, NULL, NULL, NULL);
 		break;
 
 	case ACCOUNT_IN:
-		msgs_param_lookup("AcclistTitleHIn", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
+		msgs_param_lookup("AcclistTitleHIn", buffer, sizeof(buffer), filename, NULL, NULL, NULL);
 		break;
 
 	case ACCOUNT_OUT:
-		msgs_param_lookup("AcclistTitleHOut", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
+		msgs_param_lookup("AcclistTitleHOut", buffer, sizeof(buffer), filename, NULL, NULL, NULL);
 		break;
 
 	default:

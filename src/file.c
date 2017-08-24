@@ -82,6 +82,12 @@
 #include "transact.h"
 #include "window.h"
 
+/**
+ * The maximum length allocated for building default filenames.
+ */
+
+#define FILE_DEFAULT_NAME_BUFFER_LEN 15
+
 /* ==================================================================================================================
  * Global variables.
  */
@@ -100,9 +106,13 @@ static date_t			file_last_update_date = NULL_DATE;
 
 /* The handle of the SaveAs dialogue of last resort. */
 
-static struct saveas_block	*file_saveas_file = NULL;			/**< The Save File saveas data handle.			*/
+static struct saveas_block	*file_saveas_file = NULL;
 
+/* Buffer to hold temporary default filenames. */
 
+static char			file_default_name_buffer[FILE_DEFAULT_NAME_BUFFER_LEN];
+
+/* Static Function Prototypes. */
 
 static osbool	file_save_file(char *filename, osbool selection, void *data);
 
@@ -550,23 +560,44 @@ char *file_get_pathname(struct file_block *file, char *path, size_t len)
 
 /**
  * Return a leaf-name string for the current file, using the <Untitled n>
- * format if the file hasn't been saved.
+ * format if the file hasn't been saved. If a buffer is supplied, the
+ * name is copied into this; otherwise a pointer to a transient string
+ * is returned.
  *
  * \param *file		The file to build a leafname for.
- * \param *leaf		The buffer to return the leafname in.
- * \param len		The length of the supplied buffer.
- * \return		A pointer to the supplied buffer.
+ * \param *leaf		The buffer to return the leafname in, or NULL
+ *			if a transient copy is required.
+ * \param len		The length of the supplied buffer, or 0 for NULL.
+ * \return		A pointer to the leafname.
  */
 
 char *file_get_leafname(struct file_block *file, char *leaf, size_t len)
 {
+	/* There needs to be a valid file block. */
+
+	if (file == NULL) {
+		if (leaf != NULL && len > 0)
+			*leaf = '\0';
+		return leaf;
+	}
+
+	/* If no buffer is supplied, return a pointer to the original string. */
+
+	if (leaf == NULL && len == 0) {
+		if (*(file->filename) != '\0') {
+			return string_find_leafname(file->filename);
+		} else {
+			file_get_default_title(file, file_default_name_buffer, FILE_DEFAULT_NAME_BUFFER_LEN);
+			return file_default_name_buffer;
+		}
+	}
+
+	/* If the bffer wasn't valid, return nothing. */
+
 	if (leaf == NULL || len <= 0)
 		return leaf;
 
-	if (file == NULL) {
-		*leaf = '\0';
-		return leaf;
-	}
+	/* Copy the name into the supplied buffer. */
 
 	if (*(file->filename) != '\0') {
 		strncpy(leaf, string_find_leafname(file->filename), len);
@@ -591,7 +622,7 @@ char *file_get_leafname(struct file_block *file, char *leaf, size_t len)
 
 static char *file_get_default_title(struct file_block *file, char *name, size_t len)
 {
-	char	number[WINDOW_TITLE_LENGTH];
+	char	number[FILE_DEFAULT_NAME_BUFFER_LEN];
 
 	if (name == NULL || len <= 0)
 		return name;
@@ -601,8 +632,8 @@ static char *file_get_default_title(struct file_block *file, char *name, size_t 
 	if (file == NULL)
 		return name;
 
-	snprintf(number, WINDOW_TITLE_LENGTH, "%d", file->untitled_count);
-	number[WINDOW_TITLE_LENGTH - 1] = '\0';
+	snprintf(number, FILE_DEFAULT_NAME_BUFFER_LEN, "%d", file->untitled_count);
+	number[FILE_DEFAULT_NAME_BUFFER_LEN - 1] = '\0';
 	msgs_param_lookup("DefTitle", name, len, number, NULL, NULL, NULL);
 
 	return name;

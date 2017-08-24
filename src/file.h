@@ -113,12 +113,15 @@ char *file_get_pathname(struct file_block *file, char *path, size_t len);
 
 /**
  * Return a leaf-name string for the current file, using the <Untitled n>
- * format if the file hasn't been saved.
+ * format if the file hasn't been saved. If a buffer is supplied, the
+ * name is copied into this; otherwise a pointer to a transient string
+ * is returned.
  *
  * \param *file		The file to build a leafname for.
- * \param *leaf		The buffer to return the leafname in.
- * \param len		The length of the supplied buffer.
- * \return		A pointer to the supplied buffer.
+ * \param *leaf		The buffer to return the leafname in, or NULL
+ *			if a transient copy is required.
+ * \param len		The length of the supplied buffer, or 0 for NULL.
+ * \return		A pointer to the leafname.
  */
 
 char *file_get_leafname(struct file_block *file, char *leaf, size_t len);

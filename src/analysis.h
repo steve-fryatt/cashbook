@@ -109,7 +109,7 @@ struct analysis_report_details {
 	/**
 	 * Run an analysis report.
 	 */
-	void		(*run_report)(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch);
+	void		(*run_report)(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch, char *title);
 
 	/**
 	 * Read a template token in from a saved CashBook file.
@@ -249,11 +249,11 @@ void analysis_remove_account_from_templates(struct file_block *file, acct_t acco
  *
  * \param *instance		The analysis instance owning the report.
  * \param type			The type of report to run.
- * \param *template		The template data
+ * \param *settings		The template data for the report.
+ * \param template		The template on which the report is based, or NULL_TEMPLATE.
  */
 
-void analysis_run_report(struct analysis_block *instance, enum analysis_report_type type, void *template);
-
+void analysis_run_report(struct analysis_block *instance, enum analysis_report_type type, void *settings, template_t template);
 
 /**
  * Establish and return the range of dates to report over, based on the values

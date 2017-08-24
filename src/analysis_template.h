@@ -249,6 +249,23 @@ osbool analysis_template_delete(struct analysis_template_block *instance, templa
 
 
 /**
+ * Create a new analysis template in the static heap, using data from
+ * a report's settings
+ *
+ * \param *parent		Pointer to the analysis template instance
+ *				own the new template.
+ * \param *name			Pointer to the name of the new template, or
+ *				NULL to leave empty.
+ * \param type			The type of template data to be copied.
+ * \param *data			Pointer to the data to be copied into the
+ *				new template.
+ * \return			Pointer to the new template, or NULL on failure.
+ */
+
+struct analysis_report *analysis_template_create_new(struct analysis_template_block *parent, char *name, enum analysis_report_type type, void *data);
+
+
+/**
  * Save the Report Template details from a saved templates instance to a
  * CashBook file
  *

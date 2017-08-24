@@ -86,6 +86,12 @@
 #define ANALYSIS_REPORT_TYPE_COUNT 5
 
 /**
+ * The maximum space allocated for a report title.
+ */
+
+#define ANALYSIS_MAX_TITLE_LEN 1024
+
+/**
  * The analysis report details in a file.
  */
 
@@ -409,19 +415,24 @@ static void analysis_remove_account_from_report_template(struct analysis_report 
 
 
 
+
+
 /**
  * Run a report, using supplied template data.
  *
  * \param *instance		The analysis instance owning the report.
  * \param type			The type of report to run.
- * \param *template		The template data
+ * \param *settings		The template data for the report.
+ * \param template		The template on which the report is based, or NULL_TEMPLATE.
  */
 
-void analysis_run_report(struct analysis_block *instance, enum analysis_report_type type, void *template)
+void analysis_run_report(struct analysis_block *instance, enum analysis_report_type type, void *settings, template_t template)
 {
 	struct analysis_report_details	*report_details;
+	struct analysis_report		*report_template = NULL, *new_template = NULL;
 	struct analysis_data_block	*data = NULL;
 	struct report			*report = NULL;
+	char				*filename, title[ANALYSIS_MAX_TITLE_LEN], name[ANALYSIS_SAVED_NAME_LEN];
 
 
 //	osbool			group, lock, tabular;
@@ -435,7 +446,7 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 //	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	report_details = analysis_get_report_details(type);
-	if (report_details == NULL || instance == NULL || instance->file == NULL || template == NULL)
+	if (report_details == NULL || instance == NULL || instance->file == NULL || instance->templates == NULL || settings == NULL)
 		return;
 
 	data = analysis_data_claim(instance->file);
@@ -448,34 +459,46 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 
 	/* Start to output the report details. */
 
-//	analysis_copy_balance_template(&(analysis_report_template.data.balance), file->balance_rep);
-//	if (analysis_balance_template == NULL_TEMPLATE)
-//		*(analysis_report_template.name) = '\0';
-//	else
-//		strcpy(analysis_report_template.name, file->analysis->saved_reports[analysis_balance_template].name);
-//	analysis_report_template.type = REPORT_TYPE_BALANCE;
-//	analysis_report_template.file = file;
+	if (template != NULL_TEMPLATE) {
+		report_template = analysis_template_get_report(instance->templates, template);
 
-//	template = analysis_create_template(&analysis_report_template);
-//	if (template == NULL) {
-//		if (data != NULL)
-//			analysis_data_free(data);
-//		hourglass_off();
-//		error_msgs_report_info("NoMemReport");
-//		return;
-//	}
+		if (report_template != NULL)
+			analysis_template_get_name(report_template, name, ANALYSIS_SAVED_NAME_LEN);
+		else
+			name[0] = '\0';
+	} else {
+		name[0] = '\0';
+	}
+
+	new_template = analysis_template_create_new(instance->templates, name, type, settings);
+
+	if (new_template == NULL) {
+		if (data != NULL)
+			analysis_data_free(data);
+		hourglass_off();
+		error_msgs_report_info("NoMemReport");
+		return;
+	}
 
 //	msgs_lookup("BRWinT", line, sizeof(line));
 //	report = report_open(file, line, template);
-	report = report_open(instance->file, "Test Report", NULL);
+	report = report_open(instance->file, "Test Report", new_template);
 
 	if (report == NULL) {
 		if (data != NULL)
 			analysis_data_free(data);
+		if (new_template != NULL)
+			heap_free(new_template);
 		hourglass_off();
-///		error_msgs_report_info("???");
+		error_msgs_report_info("NoMemReport");
 		return;
 	}
+
+	filename = file_get_leafname(instance->file, NULL, 0);
+	if (name == NULL)
+		msgs_param_lookup("BRTitle", title, ANALYSIS_MAX_TITLE_LEN, filename, NULL, NULL, NULL);
+	else
+		msgs_param_lookup("GRTitle", title, ANALYSIS_MAX_TITLE_LEN, name, filename, NULL, NULL);
 
 	/* Sort the file data, ready for the report. */
 
@@ -483,7 +506,7 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 
 	/* Run the report. */
 
-	report_details->run_report(instance, template, report, data);
+	report_details->run_report(instance, settings, report, data, title);
 
 	/* Close the report. */
 

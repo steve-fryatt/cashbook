@@ -1908,8 +1908,7 @@ static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate
 
 	/* Output the page title. */
 
-	file_get_leafname(sorder_print_owner->file, numbuf1, sizeof (numbuf1));
-	msgs_param_lookup("SOrderTitle", buffer, sizeof (buffer), numbuf1, NULL, NULL, NULL);
+	msgs_param_lookup("SOrderTitle", buffer, sizeof(buffer), file_get_leafname(sorder_print_owner->file, NULL, 0), NULL, NULL, NULL);
 	sprintf(line, "\\b\\u%s", buffer);
 	report_write_line(report, 0, line);
 	report_write_line(report, 0, "");
@@ -2441,8 +2440,7 @@ void sorder_full_report(struct file_block *file)
 
 	hourglass_on();
 
-	file_get_leafname(file, numbuf1, sizeof(numbuf1));
-	msgs_param_lookup("SORTitle", line, sizeof(line), numbuf1, NULL, NULL, NULL);
+	msgs_param_lookup("SORTitle", line, sizeof(line), file_get_leafname(file, NULL, 0), NULL, NULL, NULL);
 	report_write_line(report, 0, line);
 
 	date_convert_to_string(date_today(), numbuf1, sizeof(numbuf1));

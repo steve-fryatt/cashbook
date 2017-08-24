@@ -1493,9 +1493,10 @@ static void accview_print(osbool text, osbool format, osbool scale, osbool rotat
 
 	/* Output the page title. */
 
-	file_get_leafname(accview_print_view->file, numbuf1, sizeof(numbuf1));
 	msgs_param_lookup("AccviewTitle", buffer, sizeof(buffer),
-			account_get_name(accview_print_view->file, accview_print_view->account), numbuf1, NULL, NULL);
+			account_get_name(accview_print_view->file, accview_print_view->account),
+			file_get_leafname(accview_print_view->file, NULL, 0),
+			NULL, NULL);
 	sprintf(line, "\\b\\u%s", buffer);
 	report_write_line(report, 1, line);
 	report_write_line(report, 1, "");

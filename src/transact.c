@@ -4445,8 +4445,7 @@ static void transact_print(osbool text, osbool format, osbool scale, osbool rota
 
 	/* Output the page title. */
 
-	file_get_leafname(transact_print_owner->file, numbuf1, sizeof(numbuf1));
-	msgs_param_lookup("TransTitle", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
+	msgs_param_lookup("TransTitle", buffer, sizeof(buffer), file_get_leafname(transact_print_owner->file, NULL, 0), NULL, NULL, NULL);
 	sprintf(line, "\\b\\u%s", buffer);
 	report_write_line(report, 1, line);
 	report_write_line(report, 1, "");

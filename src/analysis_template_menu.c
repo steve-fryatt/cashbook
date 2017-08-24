@@ -122,7 +122,6 @@ wimp_menu *analysis_template_menu_build(struct file_block *file, osbool standalo
 	int				line, width;
 	struct analysis_template_block	*templates;
 	struct analysis_report		*template;
-	char				*name;
 
 	if (file == NULL)
 		return NULL;

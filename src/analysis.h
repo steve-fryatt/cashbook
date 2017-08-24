@@ -109,7 +109,7 @@ struct analysis_report_details {
 	/**
 	 * Run an analysis report.
 	 */
-	void		(*run_report)(struct analysis_block *parent, struct report *report, void *template, struct analysis_data_block *scratch);
+	void		(*run_report)(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch);
 
 	/**
 	 * Read a template token in from a saved CashBook file.

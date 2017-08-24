@@ -483,7 +483,7 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 
 	/* Run the report. */
 
-	report_details->run_report(instance, report, template, data);
+	report_details->run_report(instance, template, report, data);
 
 	/* Close the report. */
 

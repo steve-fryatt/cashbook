@@ -482,7 +482,16 @@ static void analysis_balance_process_window(struct analysis_block *parent, wimp_
 }
 
 
-static void analysis_balance_generate(struct analysis_block *parent, struct report *report, void *template, struct analysis_data_block *scratch)
+/**
+ * Generate a balance report.
+ *
+ * \param *parent		The parent analysis instance.
+ * \param *template		The template data to use for the report.
+ * \param *report		The report to write to.
+ * \param *scratch		The scratch space to use to build the report.
+ */
+
+static void analysis_balance_generate(struct analysis_block *parent, void *template, struct report *report, struct analysis_data_block *scratch)
 {
 	struct analysis_balance_report	*settings = template;
 	struct file_block		*file;

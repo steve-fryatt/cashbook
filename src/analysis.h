@@ -269,9 +269,10 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
  * \param date1			The start date entered in the dialogue, or NULL_DATE.
  * \param date2			The end date entered in the dialogue, or NULL_DATE.
  * \param budget		TRUE to report on the budget period; else FALSE.
+ * \param *report		Report handle to write date info to, or NULL for none.
  */
 
-void analysis_find_date_range(struct analysis_block *instance, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget);
+void analysis_find_date_range(struct analysis_block *instance, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget, struct report *report);
 
 
 /**

@@ -534,7 +534,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 	date_t			start_date, end_date, next_start, next_end, date;
 	acct_t			from, to;
 	amt_t			min_amount, max_amount, amount;
-	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
+	char			line[2048], b1[1024], b2[1024], date_text[1024];
 	char			*match_ref, *match_desc;
 
 	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
@@ -543,12 +543,6 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 	file = analysis_get_file(parent);
 	if (file == NULL)
 		return;
-
-	/* Read the date settings. */
-
-	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget);
-
-	total_days = date_count_days(start_date, end_date);
 
 	/* Read the grouping settings. */
 
@@ -585,11 +579,11 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 	report_write_line(report, 0, title);
 
-	date_convert_to_string(start_date, b1, sizeof(b1));
-	date_convert_to_string(end_date, b2, sizeof(b2));
-	date_convert_to_string(date_today(), b3, sizeof(b3));
-	msgs_param_lookup("TRHeader", line, sizeof(line), b1, b2, b3, NULL);
-	report_write_line(report, 0, line);
+	/* Read the date settings and output their details. */
+
+	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget, report);
+
+	total_days = date_count_days(start_date, end_date);
 
 	/* Initialise the heading remainder values for the report. */
 

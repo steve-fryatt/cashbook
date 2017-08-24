@@ -332,12 +332,12 @@ PRYear:%0
 # General reports
 
 GRTitle:\b\u%0 Report for %1
+GRHeader:Report for period between %0 and %1, generated on %2
 
 # Transaction reports
 
 TRWinT:Transaction Report
 TRTitle:\b\uTransaction Report for %0
-TRHeader:Report for period between %0 and %1, generated on %2
 TRHeadings:\k\b\rNo\t\bDate\t\bFrom\t\bTo\t\bReference\t\b\rAmount\t\bDescription
 TRAccounts:\k\bAccounts\t\b\rTotal
 TROutgoings:\k\bOutgoings\t\b\rTotal
@@ -349,7 +349,6 @@ TRTotal:Total
 
 URWinT:Unreconciled Transaction Report
 URTitle:\b\uUnreconciled Transaction Report for %0
-URHeader:Report for period between %0 and %1, generated on %2
 URHeadings:\k\b\rNo\t\bDate\t\bFrom\t\s\t\bTo\t\s\t\bReference\t\b\rAmount\t\bDescription
 URTotalIn:Unreconciled incoming
 URTotalOut:Unreconciled outgoing
@@ -359,7 +358,6 @@ URTotal:Total unreconciled
 
 CRWinT:Cashflow Report
 CRTitle:\b\uCashflow report for %0
-CRHeader:Report for period between %0 and %1, generated on %2
 CRDate:Date
 CRTotal:Total
 
@@ -367,7 +365,6 @@ CRTotal:Total
 
 BRWinT:Balance Report
 BRTitle:\b\uBalance report for %0
-BRHeader:Report for period between %0 and %1, generated on %2
 BRDate:Date
 BRTotal:Total
 

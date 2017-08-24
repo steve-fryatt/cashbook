@@ -492,7 +492,7 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 
 	osbool			group, lock, tabular;
 	int			items, found, unit, period, show_blank, total;
-	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024];
+	char			line[2048], b1[1024], b2[1024], date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
 	acct_t			acc;
 	amt_t			amount;
@@ -504,10 +504,6 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 	file = analysis_get_file(parent);
 	if (file == NULL)
 		return;
-
-	/* Read the date settings. */
-
-	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget);
 
 	/* Read the grouping settings. */
 
@@ -542,11 +538,9 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 
 	report_write_line(report, 0, title);
 
-	date_convert_to_string(start_date, b1, sizeof(b1));
-	date_convert_to_string(end_date, b2, sizeof(b2));
-	date_convert_to_string(date_today (), b3, sizeof(b3));
-	msgs_param_lookup("CRHeader", line, sizeof(line), b1, b2, b3, NULL);
-	report_write_line(report, 0, line);
+	/* Read the date settings and output their details. */
+
+	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget, report);
 
 	/* Start to output the report. */
 

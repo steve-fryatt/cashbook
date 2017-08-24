@@ -491,7 +491,7 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 
 	osbool			group, lock;
 	int			i, acc, found, unit, period, tot_in, tot_out, entries;
-	char			line[2048], b1[1024], b2[1024], b3[1024], date_text[1024],
+	char			line[2048], b1[1024], b2[1024], date_text[1024],
 				rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
 	date_t			start_date, end_date, next_start, next_end, date;
 	acct_t			from, to;
@@ -505,10 +505,6 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 	file = analysis_get_file(parent);
 	if (file == NULL)
 		return;
-
-	/* Read the date settings. */
-
-	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget);
 
 	/* Read the grouping settings. */
 
@@ -535,11 +531,11 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 
 	report_write_line(report, 0, title);
 
-	date_convert_to_string(start_date, b1, sizeof(b1));
-	date_convert_to_string(end_date, b2, sizeof(b2));
-	date_convert_to_string(date_today(), b3, sizeof(b3));
-	msgs_param_lookup("URHeader", line, sizeof(line), b1, b2, b3, NULL);
-	report_write_line(report, 0, line);
+	/* Read the date settings and output their details. */
+
+	analysis_find_date_range(parent, &start_date, &end_date, settings->date_from, settings->date_to, settings->budget, report);
+
+	/* Run the report itself. */
 
 	if (group && unit == DATE_PERIOD_NONE) {
 		/* We are doing a grouped-by-account report.
@@ -657,7 +653,7 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 							sprintf(line, "\\u%s", date_text);
 							report_write_line(report, 0, line);
 						}
-						msgs_param_lookup("URHeadings", line, sizeof(line), NULL, NULL, NULL, NULL);
+						msgs_lookup("URHeadings", line, sizeof(line));
 						report_write_line(report, 1, line);
 					}
 

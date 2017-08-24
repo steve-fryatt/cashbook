@@ -528,14 +528,16 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
  * \param date1			The start date entered in the dialogue, or NULL_DATE.
  * \param date2			The end date entered in the dialogue, or NULL_DATE.
  * \param budget		TRUE to report on the budget period; else FALSE.
+ * \param *report		Report handle to write date info to, or NULL for none.
  */
 
-void analysis_find_date_range(struct analysis_block *instance, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget)
+void analysis_find_date_range(struct analysis_block *instance, date_t *start_date, date_t *end_date, date_t date1, date_t date2, osbool budget, struct report *report)
 {
 	tran_t			i;
 	int			transactions;
 	osbool			find_start, find_end;
 	date_t			date;
+	char			text1[DATE_FIELD_LEN], text2[DATE_FIELD_LEN], text3[DATE_FIELD_LEN], line[REPORT_MAX_LINE_LEN];
 
 	if (instance == NULL || instance->file == NULL || start_date == NULL || end_date == NULL)
 		return;
@@ -576,11 +578,23 @@ void analysis_find_date_range(struct analysis_block *instance, date_t *start_dat
 		}
 	}
 
+	/* Update the returned dates. */
+
 	if (*start_date == NULL_DATE)
 		*start_date = DATE_MIN;
 
 	if (*end_date == NULL_DATE)
 		*end_date = DATE_MAX;
+
+	/* If we have a report handle, output the date range info. */
+
+	if (report != NULL) {
+		date_convert_to_string((start_date != NULL) ? *start_date : DATE_MIN, text1, DATE_FIELD_LEN);
+		date_convert_to_string((end_date != NULL) ? *end_date : DATE_MAX, text2, DATE_FIELD_LEN);
+		date_convert_to_string(date_today(), text3, DATE_FIELD_LEN);
+		msgs_param_lookup("GRHeader", line, REPORT_MAX_LINE_LEN, text1, text2, text3, NULL);
+		report_write_line(report, 0, line);
+	}
 }
 
 

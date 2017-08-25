@@ -1544,6 +1544,7 @@ Update to fourth stable release.
 Alpha release for feedback and comment.
 
 <list>
+<li>Re-implemented analysis report system to make it modular and enable additional reports to be added.
 <li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 

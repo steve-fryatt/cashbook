@@ -58,7 +58,7 @@ TransTitle:Transaction list: %0
 TransactNoMem:There was not enough memory to open the transaction window.
 NoMemNewTrans:There was not enough memory to add a new transaction.
 
-# Cheque and Payin slip number insertion
+# Cheque and Pay-In slip number insertion
 
 ChqOrPayIn:Do you wish to use the pay-in slip number for %0 or the cheque number for %1?
 ChqOrPayInB:Cheque,Pay-in
@@ -936,7 +936,7 @@ Help.MainMenu.0301:\Sgo to a numbered transaction.
 Help.MainMenu.0302:\Sopen the transaction sort dialogue, to update or change the sort details.
 Help.MainMenu.0303/Help.TransactTB.ListSO:\Sopen the standing order list \w.
 Help.MainMenu.0304/Help.SOrderMenu.02/Help.TransactTB.NewSO/Help.SOrderTB.NewSO:\Screate a new standing order.
-Help.MainMenu.0305/Help.TransactTB.Preset:\Sopen the preset transcation list \w.
+Help.MainMenu.0305/Help.TransactTB.Preset:\Sopen the preset transaction list \w.
 Help.MainMenu.0306/Help.PresetMenu.02/Help.TransactTB.NewPreset/Help.PresetTB.NewPreset:\Screate a new preset transaction.
 Help.MainMenu.0307/Help.TransactTB.Reconcile:\Stoggle reconcile mode on and off.
 Help.MainMenu.04:\Rset up and perform analysis on the information in the file.
@@ -949,7 +949,7 @@ Help.MainMenu.0404:\Screate a cashflow report.
 Help.MainMenu.0405:\Screate a balance report.
 Help.MainMenu.0406/Help.SOrderMenu.06:\Screate a full standing order report.
 
-Help.DateMenu.00:\Sinsert the current date into the trasnaction.
+Help.DateMenu.00:\Sinsert the current date into the transaction.
 Help.DateMenu.??:\Sinsert this preset into the transaction.
 
 Help.AccountMenu.??:\Rselect from a list of accounts or analysis headings.

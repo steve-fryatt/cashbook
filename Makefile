@@ -75,6 +75,7 @@ OBJS = account.o			\
        sorder.o				\
        sort.o				\
        sort_dialogue.o			\
+       stringbuild.o			\
        transact.o			\
        window.o
 

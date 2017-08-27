@@ -57,6 +57,7 @@
 #include "date.h"
 #include "file.h"
 #include "report.h"
+#include "stringbuild.h"
 #include "transact.h"
 
 /* Balance Report window. */
@@ -483,7 +484,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 	osbool			group, lock, tabular;
 	int			items, unit, period, total;
-	char			line[2048], b1[1024], b2[1024], date_text[1024];
+	char			date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
 	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 	acct_t			acc;
@@ -506,11 +507,15 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 	/* Read the include list. */
 
 	if (settings->accounts_count == 0 && settings->incoming_count == 0 && settings->outgoing_count == 0) {
-		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT, ANALYSIS_DATA_INCLUDE, NULL, 1);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT,
+				ANALYSIS_DATA_INCLUDE, NULL, 1);
 	} else {
-		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL, ANALYSIS_DATA_INCLUDE, settings->accounts, settings->accounts_count);
-		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_IN, ANALYSIS_DATA_INCLUDE, settings->incoming, settings->incoming_count);
-		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_OUT, ANALYSIS_DATA_INCLUDE, settings->outgoing, settings->outgoing_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_FULL, ANALYSIS_DATA_INCLUDE,
+				settings->accounts, settings->accounts_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_IN, ANALYSIS_DATA_INCLUDE,
+				settings->incoming, settings->incoming_count);
+		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_OUT, ANALYSIS_DATA_INCLUDE,
+				settings->outgoing, settings->outgoing_count);
 	}
 
 	tabular = settings->tabular;
@@ -536,8 +541,11 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 	if (tabular) {
 		report_write_line(report, 0, "");
-		msgs_lookup("BRDate", b1, sizeof(b1));
-		sprintf(line, "\\k\\b%s", b1);
+
+		stringbuild_reset();
+
+		stringbuild_add_string("\\k\\b");
+		stringbuild_add_message("BRDate");
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
 			entries = account_get_list_length(file, sequence[acc_group]);
@@ -545,17 +553,16 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 			for (group_line = 0; group_line < entries; group_line++) {
 				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					if (analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
-						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
-						strcat(line, b1);
+						stringbuild_add_string("\\t\\r\\b");
+						stringbuild_add_string(account_get_name(file, acc));
 					}
 				}
 			}
 		}
-		msgs_lookup("BRTotal", b1, sizeof(b1));
-		sprintf(b2, "\\t\\r\\b%s", b1);
-		strcat(line, b2);
+		stringbuild_add_string("\\t\\r\\b");
+		stringbuild_add_message("BRTotal");
 
-		report_write_line(report, 1, line);
+		stringbuild_report_line(report, 1);
 	}
 
 	/* Process the report time groups. */
@@ -568,7 +575,10 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 		/* Print the transaction summaries. */
 
 		if (tabular) {
-			sprintf(line, "\\k%s", date_text);
+			stringbuild_reset();
+
+			stringbuild_add_string("\\k");
+			stringbuild_add_string(date_text);
 
 			total = 0;
 
@@ -582,22 +592,22 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 							amount = analysis_data_get_total(scratch, acc);
 
 							total += amount;
-							currency_flexible_convert_to_string(amount, b1, sizeof(b1), TRUE);
-							sprintf(b2, "\\t\\d\\r%s", b1);
-							strcat(line, b2);
+							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_currency(amount, TRUE);
 						}
 					}
 				}
 			}
-			currency_flexible_convert_to_string(total, b1, sizeof(b1), TRUE);
-			sprintf(b2, "\\t\\d\\r%s", b1);
-			strcat(line, b2);
-			report_write_line(report, 1, line);
+			stringbuild_add_string("\\t\\d\\r");
+			stringbuild_add_currency(total, TRUE);
+			stringbuild_report_line(report, 1);
 		} else {
 			report_write_line(report, 0, "");
 			if (group) {
-				sprintf(line, "\\u%s", date_text);
-				report_write_line(report, 0, line);
+				stringbuild_reset();
+				stringbuild_add_string("\\u");
+				stringbuild_add_string(date_text);
+				stringbuild_report_line(report, 0);
 			}
 
 			total = 0;
@@ -611,17 +621,22 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 						if (amount != 0 && analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
 							total += amount;
-							currency_flexible_convert_to_string(amount, b1, sizeof(b1), TRUE);
-							sprintf(line, "\\i%s\\t\\d\\r%s", account_get_name(file, acc), b1);
-							report_write_line(report, 2, line);
+							stringbuild_reset();
+							stringbuild_add_string("\\i");
+							stringbuild_add_string(account_get_name(file, acc));
+							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_currency(amount, TRUE);
+							stringbuild_report_line(report, 2);
 						}
 					}
 				}
 			}
-			msgs_lookup("BRTotal", b1, sizeof(b1));
-			currency_flexible_convert_to_string(total, b2, sizeof(b2), TRUE);
-			sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-			report_write_line(report, 2, line);
+			stringbuild_reset();
+			stringbuild_add_string("\\i\\b");
+			stringbuild_add_message("BRTotal");
+			stringbuild_add_string("\\t\\d\\r\\b");
+			stringbuild_add_currency(total, TRUE);
+			stringbuild_report_line(report, 2);
 		}
 	}
 }

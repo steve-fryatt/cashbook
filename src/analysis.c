@@ -75,8 +75,8 @@
 #include "currency.h"
 #include "date.h"
 #include "file.h"
-//#include "flexutils.h"
 #include "report.h"
+#include "stringbuild.h"
 #include "transact.h"
 
 /**
@@ -90,6 +90,12 @@
  */
 
 #define ANALYSIS_MAX_TITLE_LEN 1024
+
+/**
+ * The maximum space allocated for a report line.
+ */
+
+#define ANALYSIS_MAX_LINE_LEN 2048
 
 /**
  * The analysis report details in a file.
@@ -433,6 +439,7 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 	struct analysis_data_block	*data = NULL;
 	struct report			*report = NULL;
 	char				*filename, title[ANALYSIS_MAX_TITLE_LEN], name[ANALYSIS_SAVED_NAME_LEN];
+	char				report_line[ANALYSIS_MAX_LINE_LEN];
 
 	/* Identify the report type. */
 
@@ -440,9 +447,14 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 	if (report_details == NULL || instance == NULL || instance->file == NULL || instance->templates == NULL || settings == NULL)
 		return;
 
+	/* Initialise the stringbuilder for the client to use. */
+
+	if (!stringbuild_initialise(report_line, ANALYSIS_MAX_LINE_LEN))
+		return;
+
 	hourglass_on();
 
-	/* Claim the necessary report scratch space. */
+	/* Claim the necessary report scratch space for the client to use. */
 
 	data = analysis_data_claim(instance->file);
 	if (data == NULL) {
@@ -513,6 +525,10 @@ void analysis_run_report(struct analysis_block *instance, enum analysis_report_t
 
 	if (data != NULL)
 		analysis_data_free(data);
+
+	/* Terminate the stringbuilder. */
+
+	stringbuild_cancel();
 
 	hourglass_off();
 }

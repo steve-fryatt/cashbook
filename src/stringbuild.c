@@ -29,6 +29,8 @@
 
 /* ANSI C header files */
 
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
 /* OSLib header files */
@@ -202,7 +204,35 @@ void stringbuild_add_string(char *string)
 
 
 /**
- * Add a strig looked up from the application messages to the end of the
+ * Add a string to the end of the current line, using the standard printf()
+ * syntax and functionality.
+ *
+ * \param *cntrl_string		A standard printf() formatting string.
+ * \param ...			Additional printf() parameters as required.
+ * \return			The number of characters written, or <0 for error.
+ */
+
+int stringbuild_add_printf(char *cntrl_string, ...)
+{
+	int		chars_written;
+	va_list		ap;
+
+	va_start(ap, cntrl_string);
+	chars_written = vsnprintf(stringbuild_ptr, stringbuild_remaining(), cntrl_string, ap);
+
+	if (chars_written >= 0) {
+		stringbuild_ptr += chars_written;
+	} else {
+		while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
+			stringbuild_ptr++;
+	}
+
+	return chars_written;
+}
+
+
+/**
+ * Add a string looked up from the application messages to the end of the
  * current line.
  *
  * \param *token		Pointer to the token of the message to

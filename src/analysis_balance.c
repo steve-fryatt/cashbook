@@ -483,12 +483,12 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 	struct file_block			*file;
 
 	osbool			group, lock, tabular;
-	int			items, unit, period, total;
+	int			items, unit, period;
 	char			date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
 	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 	acct_t			acc;
-	amt_t			amount;
+	amt_t			amount, total;
 
 	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
 		return;
@@ -553,8 +553,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 			for (group_line = 0; group_line < entries; group_line++) {
 				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					if (analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
-						stringbuild_add_string("\\t\\r\\b");
-						stringbuild_add_string(account_get_name(file, acc));
+						stringbuild_add_printf("\\t\\r\\b%s", account_get_name(file, acc));
 					}
 				}
 			}
@@ -577,8 +576,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 		if (tabular) {
 			stringbuild_reset();
 
-			stringbuild_add_string("\\k");
-			stringbuild_add_string(date_text);
+			stringbuild_add_printf("\\k%s", date_text);
 
 			total = 0;
 
@@ -605,8 +603,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 			report_write_line(report, 0, "");
 			if (group) {
 				stringbuild_reset();
-				stringbuild_add_string("\\u");
-				stringbuild_add_string(date_text);
+				stringbuild_add_printf("\\u%s", date_text);
 				stringbuild_report_line(report, 0);
 			}
 
@@ -622,9 +619,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 						if (amount != 0 && analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
 							total += amount;
 							stringbuild_reset();
-							stringbuild_add_string("\\i");
-							stringbuild_add_string(account_get_name(file, acc));
-							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_printf("\\i%s\\t\\d\\r", account_get_name(file, acc));
 							stringbuild_add_currency(amount, TRUE);
 							stringbuild_report_line(report, 2);
 						}

@@ -90,7 +90,19 @@ void stringbuild_add_string(char *string);
 
 
 /**
- * Add a strig looked up from the application messages to the end of the
+ * Add a string to the end of the current line, using the standard printf()
+ * syntax and functionality.
+ *
+ * \param *cntrl_string		A standard printf() formatting string.
+ * \param ...			Additional printf() parameters as required.
+ * \return			The number of characters written, or <0 for error.
+ */
+
+int stringbuild_add_printf(char *cntrl_string, ...);
+
+
+/**
+ * Add a string looked up from the application messages to the end of the
  * current line.
  *
  * \param *token		Pointer to the token of the message to

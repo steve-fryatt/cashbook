@@ -122,5 +122,14 @@ void stringbuild_add_message(char *token);
 
 void stringbuild_add_currency(amt_t value, osbool print_zeros);
 
+
+/**
+ * Add a date value to the end of the current line.
+ *
+ * \param value			The date to be converted.
+ */
+
+void stringbuild_add_date(date_t date);
+
 #endif
 

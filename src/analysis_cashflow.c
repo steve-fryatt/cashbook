@@ -57,6 +57,7 @@
 #include "date.h"
 #include "file.h"
 #include "report.h"
+#include "stringbuild.h"
 #include "transact.h"
 
 /* Cashflow Report window. */
@@ -491,11 +492,11 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 	struct file_block			*file;
 
 	osbool			group, lock, tabular;
-	int			items, found, unit, period, show_blank, total;
-	char			line[2048], b1[1024], b2[1024], date_text[1024];
+	int			items, found, unit, period, show_blank;
+	char			date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
 	acct_t			acc;
-	amt_t			amount;
+	amt_t			amount, total;
 	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
@@ -546,8 +547,11 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 
 	if (tabular) {
 		report_write_line(report, 0, "");
-		msgs_lookup("CRDate", b1, sizeof(b1));
-		sprintf(line, "\\k\\b%s", b1);
+
+		stringbuild_reset();
+
+		stringbuild_add_string("\\k\\b");
+		stringbuild_add_message("CRDate");
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
 			entries = account_get_list_length(file, sequence[acc_group]);
@@ -555,17 +559,15 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 			for (group_line = 0; group_line < entries; group_line++) {
 				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					if (analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
-						sprintf(b1, "\\t\\r\\b%s", account_get_name(file, acc));
-						strcat(line, b1);
+						stringbuild_add_printf("\\t\\r\\b%s", account_get_name(file, acc));
 					}
 				}
 			}
 		}
-		msgs_lookup("CRTotal", b1, sizeof(b1));
-		sprintf(b2, "\\t\\r\\b%s", b1);
-		strcat(line, b2);
+		stringbuild_add_string("\\t\\r\\b");
+		stringbuild_add_message("CRTotal");
 
-		report_write_line(report, 1, line);
+		stringbuild_report_line(report, 1);
 	}
 
 	/* Process the report time groups. */
@@ -579,7 +581,9 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 
 		if (found > 0 || show_blank) {
 			if (tabular) {
-				sprintf(line, "\\k%s", date_text);
+				stringbuild_reset();
+
+				stringbuild_add_printf("\\k%s", date_text);
 
 				total = 0;
 
@@ -592,23 +596,23 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 								amount = analysis_data_get_total(scratch, acc);
 
 								total += amount;
-								currency_flexible_convert_to_string(amount, b1, sizeof(b1), TRUE);
-								sprintf(b2, "\\t\\d\\r%s", b1);
-								strcat(line, b2);
+
+								stringbuild_add_string("\\t\\d\\r");
+								stringbuild_add_currency(amount, TRUE);
 							}
 						}
 					}
 				}
 
-				currency_flexible_convert_to_string(total, b1, sizeof(b1), TRUE);
-				sprintf(b2, "\\t\\d\\r%s", b1);
-				strcat(line, b2);
-				report_write_line(report, 1, line);
+				stringbuild_add_string("\\t\\d\\r");
+				stringbuild_add_currency(total, TRUE);
+				stringbuild_report_line(report, 1);
 			} else {
 				report_write_line(report, 0, "");
 				if (group) {
-					sprintf(line, "\\u%s", date_text);
-					report_write_line(report, 0, line);
+					stringbuild_reset();
+					stringbuild_add_printf("\\u%s", date_text);
+					stringbuild_report_line(report, 0);
 				}
 
 				total = 0;
@@ -622,17 +626,21 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 
 							if (amount != 0 && analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
 								total += amount;
-								currency_flexible_convert_to_string(amount, b1, sizeof(b1), TRUE);
-								sprintf(line, "\\i%s\\t\\d\\r%s", account_get_name(file, acc), b1);
-								report_write_line(report, 2, line);
+
+								stringbuild_reset();
+								stringbuild_add_printf("\\i%s\\t\\d\\r", account_get_name(file, acc));
+								stringbuild_add_currency(amount, TRUE);
+								stringbuild_report_line(report, 2);
 							}
 						}
 					}
 				}
-				msgs_lookup("CRTotal", b1, sizeof(b1));
-				currency_flexible_convert_to_string(total, b2, sizeof(b2), TRUE);
-				sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-				report_write_line(report, 2, line);
+				stringbuild_reset();
+				stringbuild_add_string("\\i\\b");
+				stringbuild_add_message("CRTotal");
+				stringbuild_add_string("\\t\\d\\r\\b");
+				stringbuild_add_currency(total, TRUE);
+				stringbuild_report_line(report, 2);
 			}
 		}
 	}

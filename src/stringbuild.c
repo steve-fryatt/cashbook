@@ -51,7 +51,7 @@
 
 //#include "account.h"
 #include "currency.h"
-//#include "date.h"
+#include "date.h"
 #include "report.h"
 //#include "transact.h"
 
@@ -265,6 +265,24 @@ void stringbuild_add_currency(amt_t value, osbool print_zeros)
 		return;
 
 	currency_flexible_convert_to_string(value, stringbuild_ptr, stringbuild_remaining(), print_zeros);
+
+	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
+		stringbuild_ptr++;
+}
+
+
+/**
+ * Add a date value to the end of the current line.
+ *
+ * \param value			The date to be converted.
+ */
+
+void stringbuild_add_date(date_t date)
+{
+	if (stringbuild_remaining() <= 0)
+		return;
+
+	date_convert_to_string(date, stringbuild_ptr, stringbuild_remaining());
 
 	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
 		stringbuild_ptr++;

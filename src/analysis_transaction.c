@@ -58,6 +58,7 @@
 #include "date.h"
 #include "file.h"
 #include "report.h"
+#include "stringbuild.h"
 #include "transact.h"
 
 /* Transaction Report window. */
@@ -534,7 +535,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 	date_t			start_date, end_date, next_start, next_end, date;
 	acct_t			from, to;
 	amt_t			min_amount, max_amount, amount;
-	char			line[2048], b1[1024], b2[1024], date_text[1024];
+	char			date_text[1024];
 	char			*match_ref, *match_desc;
 
 	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
@@ -618,12 +619,15 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 					report_write_line(report, 0, "");
 
 					if (group == TRUE) {
-						sprintf(line, "\\u%s", date_text);
-						report_write_line(report, 0, line);
+						stringbuild_reset();
+						stringbuild_add_printf("\\u%s", date_text);
+						stringbuild_report_line(report, 0);
 					}
+
 					if (output_trans) {
-						msgs_lookup("TRHeadings", line, sizeof(line));
-						report_write_line(report, 1, line);
+						stringbuild_reset();
+						stringbuild_add_message("TRHeadings");
+						stringbuild_report_line(report, 1);
 					}
 				}
 
@@ -634,17 +638,18 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 				analysis_data_add_transaction(scratch, i);
 
 				if (output_trans) {
-					date_convert_to_string(date, b1, sizeof(b1));
-					currency_convert_to_string(amount, b2, sizeof(b2));
-
-					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
-							transact_get_transaction_number(i), b1,
+					stringbuild_reset();
+					stringbuild_add_printf("\\k\\d\\r%d\\t",
+							transact_get_transaction_number(i));
+					stringbuild_add_date(date);
+					stringbuild_add_printf("\t%s\\t%s\\t%s\\t\\d\\r",
 							account_get_name(file, from),
 							account_get_name(file, to),
-							transact_get_reference(file, i, NULL, 0), b2,
+							transact_get_reference(file, i, NULL, 0));
+					stringbuild_add_currency(amount, TRUE);
+					stringbuild_add_printf("\\t%s",
 							transact_get_description(file, i, NULL, 0));
-
-					report_write_line(report, 1, line);
+					stringbuild_report_line(report, 1);
 				}
 			}
 		}
@@ -656,11 +661,15 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 			total = 0;
 
-			if (output_trans) /* Only output blank line if there are transactions above. */
+			/* Only output blank line if there are transactions above. */
+
+			if (output_trans)
 				report_write_line(report, 0, "");
-			msgs_lookup("TRAccounts", b1, sizeof(b1));
-			sprintf(line, "\\i%s", b1);
-			report_write_line(report, 2, line);
+
+			stringbuild_reset();
+			stringbuild_add_string("\\i");
+			stringbuild_add_message("TRAccounts");
+			stringbuild_report_line(report, 2);
 
 			entries = account_get_list_length(file, ACCOUNT_FULL);
 
@@ -670,17 +679,21 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 					if (amount != 0) {
 						total += amount;
-						currency_convert_to_string(amount, b1, sizeof(b1));
-						sprintf(line, "\\k\\i%s\\t\\d\\r%s", account_get_name(file, account), b1);
-						report_write_line(report, 2, line);
+
+						stringbuild_reset();
+						stringbuild_add_printf("\\k\\i%s\\t\\d\\r", account_get_name(file, account));
+						stringbuild_add_currency(amount, TRUE);
+						stringbuild_report_line(report, 2);
 					}
 				}
 			}
 
-			msgs_lookup("TRTotal", b1, sizeof (b1));
-			currency_convert_to_string(total, b2, sizeof(b2));
-			sprintf(line, "\\i\\k\\b%s\\t\\d\\r\\b%s", b1, b2);
-			report_write_line(report, 2, line);
+			stringbuild_reset();
+			stringbuild_add_string("\\i\\k\\b");
+			stringbuild_add_message("TRTotal");
+			stringbuild_add_string("\\t\\d\\r\\b");
+			stringbuild_add_currency(total, TRUE);
+			stringbuild_report_line(report, 2);
 		}
 
 		/* Print the transaction summaries. */
@@ -690,15 +703,17 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 			total = 0;
 
-			if (output_trans || output_accsummary) /* Only output blank line if there is something above. */
+			/* Only output blank line if there is something above. */
+
+			if (output_trans || output_accsummary)
 				report_write_line(report, 0, "");
-			msgs_lookup("TROutgoings", b1, sizeof(b1));
-			sprintf(line, "\\i%s", b1);
-			if (settings->budget){
-				msgs_lookup("TRSummExtra", b1, sizeof(b1));
-				strcat(line, b1);
-			}
-			report_write_line(report, 2, line);
+
+			stringbuild_reset();
+			stringbuild_add_string("\\i");
+			stringbuild_add_message("TROutgoings");
+			if (settings->budget)
+				stringbuild_add_message("TRSummExtra");
+			stringbuild_report_line(report, 2);
 
 			entries = account_get_list_length(file, ACCOUNT_OUT);
 
@@ -708,45 +723,49 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 					if (amount != 0) {
 						total += amount;
-						currency_convert_to_string(amount, b1, sizeof(b1));
-						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
+
+						stringbuild_reset();
+						stringbuild_add_printf("\\i\\k%s\\t\\d\\r", account_get_name(file, account));
+						stringbuild_add_currency(amount, TRUE);
+
 						if (settings->budget) {
 							period_days = date_count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
-							currency_convert_to_string(period_limit, b1, sizeof(b1));
-							sprintf(b2, "\\t\\d\\r%s", b1);
-							strcat(line, b2);
-							currency_convert_to_string(period_limit - amount, b1, sizeof(b1));
-							sprintf(b2, "\\t\\d\\r%s", b1);
-							strcat(line, b2);
-							currency_convert_to_string(analysis_data_update_balance(scratch, amount), b1, sizeof(b1));
-							sprintf(b2, "\\t\\d\\r%s", b1);
-							strcat(line, b2);
+
+							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_currency(period_limit, TRUE);
+
+							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_currency(period_limit - amount, TRUE);
+
+							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_currency(analysis_data_update_balance(scratch, amount), TRUE);
 						}
 
-						report_write_line(report, 2, line);
+						stringbuild_report_line(report, 2);
 					}
 				}
 			}
 
-			msgs_lookup("TRTotal", b1, sizeof(b1));
-			currency_convert_to_string(total, b2, sizeof(b2));
-			sprintf(line, "\\i\\k\\b%s\\t\\d\\r\\b%s", b1, b2);
-			report_write_line(report, 2, line);
+			stringbuild_reset();
+			stringbuild_add_string("\\i\\k\\b");
+			stringbuild_add_message("TRTotal");
+			stringbuild_add_string("\\t\\d\\r\\b");
+			stringbuild_add_currency(total, TRUE);
+			stringbuild_report_line(report, 2);
 
 			/* Summarise the incomings. */
 
 			total = 0;
 
 			report_write_line(report, 0, "");
-			msgs_lookup("TRIncomings", b1, sizeof(b1));
-			sprintf(line, "\\i%s", b1);
-			if (settings->budget) {
-				msgs_lookup("TRSummExtra", b1, sizeof(b1));
-				strcat(line, b1);
-			}
 
-			report_write_line(report, 2, line);
+			stringbuild_reset();
+			stringbuild_add_string("\\i");
+			stringbuild_add_message("TRIncomings");
+			if (settings->budget)
+				stringbuild_add_message("TRSummExtra");
+			stringbuild_report_line(report, 2);
 
 			entries = account_get_list_length(file, ACCOUNT_IN);
 
@@ -756,31 +775,36 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 					if (amount != 0) {
 						total += amount;
-						currency_convert_to_string(-amount, b1, sizeof(b1));
-						sprintf(line, "\\i\\k%s\\t\\d\\r%s", account_get_name(file, account), b1);
+
+						stringbuild_reset();
+						stringbuild_add_printf("\\i\\k%s\\t\\d\\r", account_get_name(file, account));
+						stringbuild_add_currency(-amount, TRUE);
+
 						if (settings->budget) {
 							period_days = date_count_days(next_start, next_end);
 							period_limit = account_get_budget_amount(file, account) * period_days / total_days;
-							currency_convert_to_string(period_limit, b1, sizeof(b1));
-							sprintf(b2, "\\t\\d\\r%s", b1);
-							strcat(line, b2);
-							currency_convert_to_string(period_limit - amount, b1, sizeof(b1));
-							sprintf(b2, "\\t\\d\\r%s", b1);
-							strcat(line, b2);
-							currency_convert_to_string(analysis_data_update_balance(scratch, amount), b1, sizeof(b1));
-							sprintf(b2, "\\t\\d\\r%s", b1);
-							strcat(line, b2);
+
+							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_currency(period_limit, TRUE);
+
+							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_currency(period_limit - amount, TRUE);
+
+							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_currency(analysis_data_update_balance(scratch, amount), TRUE);
 						}
 
-						report_write_line(report, 2, line);
+						stringbuild_report_line(report, 2);
 					}
 				}
 			}
 
-			msgs_lookup("TRTotal", b1, sizeof(b1));
-			currency_convert_to_string(-total, b2, sizeof(b2));
-			sprintf(line, "\\i\\k\\b%s\\t\\d\\r\\b%s", b1, b2);
-			report_write_line(report, 2, line);
+			stringbuild_reset();
+			stringbuild_add_string("\\i\\k\\b");
+			stringbuild_add_message("TRTotal");
+			stringbuild_add_string("\\t\\d\\r\\b");
+			stringbuild_add_currency(-total, TRUE);
+			stringbuild_report_line(report, 2);
 		}
 	}
 }

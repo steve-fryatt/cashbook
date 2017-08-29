@@ -57,6 +57,7 @@
 #include "date.h"
 #include "file.h"
 #include "report.h"
+#include "stringbuild.h"
 #include "transact.h"
 
 
@@ -490,13 +491,12 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 	struct file_block			*file;
 
 	osbool			group, lock;
-	int			i, acc, found, unit, period, tot_in, tot_out, entries;
-	char			line[2048], b1[1024], b2[1024], date_text[1024],
-				rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
+	int			i, acc, found, unit, period, entries;
+	char			date_text[1024], rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
 	date_t			start_date, end_date, next_start, next_end, date;
 	acct_t			from, to;
 	enum transact_flags	flags;
-	amt_t			amount;
+	amt_t			amount, total_in, total_out,;
 	int			acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
@@ -551,8 +551,8 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 			for (group_line = 0; group_line < entries; group_line++) {
 				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					found = 0;
-					tot_in = 0;
-					tot_out = 0;
+					total_in = 0;
+					total_out = 0;
 
 					for (i = 0; i < transact_get_count(file); i++) {
 						date = transact_get_date(file, i);
@@ -581,9 +581,9 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 							found++;
 
 							if (from == acc)
-								tot_out -= amount;
+								total_out -= amount;
 							else if (to == acc)
-								tot_in += amount;
+								total_in += amount;
 
 							/* Output the transaction to the report. */
 
@@ -607,17 +607,17 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 						report_write_line(report, 2, "");
 
 						msgs_lookup("URTotalIn", b1, sizeof(b1));
-						currency_flexible_convert_to_string(tot_in, b2, sizeof(b2), TRUE);
+						currency_flexible_convert_to_string(total_in, b2, sizeof(b2), TRUE);
 						sprintf(line, "\\i%s\\t\\d\\r%s", b1, b2);
 						report_write_line(report, 2, line);
 
 						msgs_lookup("URTotalOut", b1, sizeof(b1));
-						currency_flexible_convert_to_string(tot_out, b2, sizeof(b2), TRUE);
+						currency_flexible_convert_to_string(total_out, b2, sizeof(b2), TRUE);
 						sprintf(line, "\\i%s\\t\\d\\r%s", b1, b2);
 						report_write_line(report, 2, line);
 
 						msgs_lookup("URTotal", b1, sizeof(b1));
-						currency_flexible_convert_to_string(tot_in+tot_out, b2, sizeof(b2), TRUE);
+						currency_flexible_convert_to_string(total_in+total_out, b2, sizeof(b2), TRUE);
 						sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
 						report_write_line(report, 2, line);
 					}

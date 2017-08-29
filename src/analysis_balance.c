@@ -590,6 +590,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 							amount = analysis_data_get_total(scratch, acc);
 
 							total += amount;
+
 							stringbuild_add_string("\\t\\d\\r");
 							stringbuild_add_currency(amount, TRUE);
 						}
@@ -618,6 +619,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 						if (amount != 0 && analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
 							total += amount;
+
 							stringbuild_reset();
 							stringbuild_add_printf("\\i%s\\t\\d\\r", account_get_name(file, acc));
 							stringbuild_add_currency(amount, TRUE);

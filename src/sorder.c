@@ -75,7 +75,7 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
-#include "printing.h"
+#include "print_dialogue.h"
 #include "sort.h"
 #include "sort_dialogue.h"
 #include "report.h"
@@ -1874,7 +1874,7 @@ static void sorder_open_print_window(struct file_block *file, wimp_pointer *ptr,
 		return;
 
 	sorder_print_owner = file->sorders;
-	printing_open_simple_window(file, ptr, restore, "PrintSOrder", sorder_print);
+	print_dialogue_open_simple_window(file, ptr, restore, "PrintSOrder", sorder_print);
 }
 
 

@@ -22,7 +22,7 @@
  */
 
 /**
- * \file: printing_protocol.c
+ * \file: print_protocol.c
  *
  * RISC OS Print Protocol Implementation.
  */
@@ -46,7 +46,7 @@
 
 /* Application header files */
 
-#include "printing_protocol.h"
+#include "print_protocol.h"
 
 /* This code deals with a "RISC OS 2" subset of the printer driver protocol.  We can start print jobs off via
  * the correct set of codes, but all printing is done immediately and the queue mechanism is ignored.
@@ -57,29 +57,29 @@
 
 /* Print protocol negotiations. */
 
-static void			(*printing_protocol_callback_start) (char *) = NULL;	/**< Callback to launch the print process.							*/
-static void			(*printing_protocol_callback_cancel) (void) = NULL;	/**< Callback to clean up if the process fails part-way.					*/
+static void			(*print_protocol_callback_start) (char *) = NULL;	/**< Callback to launch the print process.							*/
+static void			(*print_protocol_callback_cancel) (void) = NULL;	/**< Callback to clean up if the process fails part-way.					*/
 
-static osbool			printing_protocol_text_mode;				/**< TRUE if the current print job is in text mode.						*/
+static osbool			print_protocol_text_mode;				/**< TRUE if the current print job is in text mode.						*/
 
 /* Static Function Prototypes. */
 
-static osbool		printing_protocol_handle_bounced_message_print_save(wimp_message *message);
-static osbool		printing_protocol_handle_message_print_error(wimp_message *message);
-static osbool		printing_protocol_handle_message_print_file(wimp_message *message);
+static osbool		print_protocol_handle_bounced_message_print_save(wimp_message *message);
+static osbool		print_protocol_handle_message_print_error(wimp_message *message);
+static osbool		print_protocol_handle_message_print_file(wimp_message *message);
 
 
 /**
  * Initialise the printing protocol system.
  */
 
-void printing_protocol_initialise(void)
+void print_protocol_initialise(void)
 {
 	/* Register the Wimp message handlers. */
 
-	event_add_message_handler(message_PRINT_ERROR, EVENT_MESSAGE_INCOMING, printing_protocol_handle_message_print_error);
-	event_add_message_handler(message_PRINT_FILE, EVENT_MESSAGE_INCOMING, printing_protocol_handle_message_print_file);
-	event_add_message_handler(message_PRINT_SAVE, EVENT_MESSAGE_ACKNOWLEDGE, printing_protocol_handle_bounced_message_print_save);
+	event_add_message_handler(message_PRINT_ERROR, EVENT_MESSAGE_INCOMING, print_protocol_handle_message_print_error);
+	event_add_message_handler(message_PRINT_FILE, EVENT_MESSAGE_INCOMING, print_protocol_handle_message_print_file);
+	event_add_message_handler(message_PRINT_SAVE, EVENT_MESSAGE_ACKNOWLEDGE, print_protocol_handle_bounced_message_print_save);
 }
 
 
@@ -96,7 +96,7 @@ void printing_protocol_initialise(void)
  * \return			TRUE if process started OK; FALSE on error.
  */
 
-osbool printing_protocol_send_start_print_save(void (*callback_print) (char *), void (*callback_cancel) (void), osbool text_print)
+osbool print_protocol_send_start_print_save(void (*callback_print) (char *), void (*callback_cancel) (void), osbool text_print)
 {
 	wimp_full_message_data_xfer	datasave;
 	os_error			*error;
@@ -105,8 +105,8 @@ osbool printing_protocol_send_start_print_save(void (*callback_print) (char *), 
 	debug_printf("Sending Message_PrintFile");
 	#endif
 
-	printing_protocol_callback_start = callback_print;
-	printing_protocol_text_mode = text_print;
+	print_protocol_callback_start = callback_print;
+	print_protocol_text_mode = text_print;
 
 	/* Set up and send Message_PrintSave. */
 
@@ -139,19 +139,19 @@ osbool printing_protocol_send_start_print_save(void (*callback_print) (char *), 
  * \return			TRUE to claim the message.
  */
 
-static osbool printing_protocol_handle_bounced_message_print_save(wimp_message *message)
+static osbool print_protocol_handle_bounced_message_print_save(wimp_message *message)
 {
 	#ifdef DEBUG
 	debug_printf("Message_PrintSave bounced");
 	#endif
 
-	if (!printing_protocol_text_mode)
-		printing_protocol_callback_start("");
+	if (!print_protocol_text_mode)
+		print_protocol_callback_start("");
 	else
 		error_msgs_report_error("NoPManager");
 
-	if (printing_protocol_callback_cancel != NULL)
-		printing_protocol_callback_cancel();
+	if (print_protocol_callback_cancel != NULL)
+		print_protocol_callback_cancel();
 
 	return TRUE;
 }
@@ -164,7 +164,7 @@ static osbool printing_protocol_handle_bounced_message_print_save(wimp_message *
  * \return			TRUE to claim the message.
  */
 
-static osbool printing_protocol_handle_message_print_error(wimp_message *message)
+static osbool print_protocol_handle_message_print_error(wimp_message *message)
 {
 	pdriver_full_message_print_error	*print_error = (pdriver_full_message_print_error *) message;
 
@@ -179,8 +179,8 @@ static osbool printing_protocol_handle_message_print_error(wimp_message *message
 	else
 		error_report_error(print_error->errmess);
 
-	if (printing_protocol_callback_cancel != NULL)
-		printing_protocol_callback_cancel();
+	if (print_protocol_callback_cancel != NULL)
+		print_protocol_callback_cancel();
 
 	return TRUE;
 }
@@ -193,7 +193,7 @@ static osbool printing_protocol_handle_message_print_error(wimp_message *message
  * \return			TRUE to claim the message.
  */
 
-static osbool printing_protocol_handle_message_print_file(wimp_message *message)
+static osbool print_protocol_handle_message_print_file(wimp_message *message)
 {
 	char				filename[256];
 	int				length;
@@ -204,7 +204,7 @@ static osbool printing_protocol_handle_message_print_file(wimp_message *message)
 	debug_printf("Received Message_PrintFile");
 	#endif
 
-	if (printing_protocol_text_mode) {
+	if (print_protocol_text_mode) {
 		/* Text mode printing.  Find the filename for the Print-temp file. */
 
 		xos_read_var_val("Printer$Temp", filename, sizeof(filename), 0, os_VARTYPE_STRING, &length, NULL, NULL);
@@ -212,7 +212,7 @@ static osbool printing_protocol_handle_message_print_file(wimp_message *message)
 
 		/* Call the printing function with the PrintTemp filename. */
 
-		printing_protocol_callback_start(filename);
+		print_protocol_callback_start(filename);
 
 		/* Set up the Message_DataLoad and send it to Printers.  File size and file type are read from the actual file
 		 * on disc, using OS_File.
@@ -237,7 +237,7 @@ static osbool printing_protocol_handle_message_print_file(wimp_message *message)
 		if (error != NULL)
 			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		else
-			printing_protocol_callback_start("");
+			print_protocol_callback_start("");
 	}
 
 	return TRUE;

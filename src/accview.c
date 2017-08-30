@@ -68,7 +68,7 @@
 #include "edit.h"
 #include "file.h"
 #include "flexutils.h"
-#include "printing.h"
+#include "print_dialogue.h"
 #include "report.h"
 #include "sort.h"
 #include "sort_dialogue.h"
@@ -1454,7 +1454,7 @@ static void accview_open_print_window(struct accview_window *view, wimp_pointer 
 
 	accview_print_view = view;
 
-	printing_open_advanced_window(view->file, ptr, restore, "PrintAccview", accview_print);
+	print_dialogue_open_advanced_window(view->file, ptr, restore, "PrintAccview", accview_print);
 }
 
 

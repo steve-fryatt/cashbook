@@ -22,20 +22,20 @@
  */
 
 /**
- * \file: printing_protocol.h
+ * \file: print_protocol.h
  *
  * RISC OS Print Protocol Interface.
  */
 
-#ifndef CASHBOOK_PRINTING_PROTOCOL
-#define CASHBOOK_PRINTING_PROTOCOL
+#ifndef CASHBOOK_PRINT_PROTOCOL
+#define CASHBOOK_PRINT_PROTOCOL
 
 
 /**
  * Initialise the printing protocol system.
  */
 
-void printing_protocol_initialise(void);
+void print_protocol_initialise(void);
 
 
 /**
@@ -51,7 +51,7 @@ void printing_protocol_initialise(void);
  * \return			TRUE if process started OK; FALSE on error.
  */
 
-osbool printing_protocol_send_start_print_save(void (*callback_print) (char *), void (*callback_cancel) (void), osbool text_print);
+osbool print_protocol_send_start_print_save(void (*callback_print) (char *), void (*callback_cancel) (void), osbool text_print);
 
 #endif
 

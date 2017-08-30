@@ -79,7 +79,7 @@
 #include "flexutils.h"
 #include "interest.h"
 #include "presets.h"
-#include "printing.h"
+#include "print_dialogue.h"
 #include "report.h"
 #include "sorder.h"
 #include "transact.h"
@@ -2304,9 +2304,9 @@ static void account_open_print_window(struct file_block *file, enum account_type
 	account_print_type = type;
 
 	if (type & ACCOUNT_FULL)
-		printing_open_simple_window(file, ptr, restore, "PrintAcclistAcc", account_print);
+		print_dialogue_open_simple_window(file, ptr, restore, "PrintAcclistAcc", account_print);
 	else if (type & ACCOUNT_IN || type & ACCOUNT_OUT)
-		printing_open_simple_window(file, ptr, restore, "PrintAcclistHead", account_print);
+		print_dialogue_open_simple_window(file, ptr, restore, "PrintAcclistHead", account_print);
 }
 
 

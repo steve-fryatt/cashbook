@@ -68,8 +68,8 @@ OBJS = account.o			\
        main.o				\
        presets.o			\
        preset_menu.o			\
-       printing.o			\
-       printing_protocol.o		\
+       print_dialogue.o			\
+       print_protocol.o			\
        purge.o				\
        refdesc_menu.o			\
        report.o				\

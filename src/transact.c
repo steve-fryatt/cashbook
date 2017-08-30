@@ -86,7 +86,7 @@
 #include "goto.h"
 #include "presets.h"
 #include "preset_menu.h"
-#include "printing.h"
+#include "print_dialogue.h"
 #include "purge.h"
 #include "refdesc_menu.h"
 #include "report.h"
@@ -4406,7 +4406,7 @@ static void transact_open_print_window(struct file_block *file, wimp_pointer *pt
 
 	transact_print_owner = file->transacts;
 
-	printing_open_advanced_window(file, ptr, clear, "PrintTransact", transact_print);
+	print_dialogue_open_advanced_window(file, ptr, clear, "PrintTransact", transact_print);
 }
 
 

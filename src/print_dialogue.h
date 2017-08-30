@@ -22,20 +22,27 @@
  */
 
 /**
- * \file: printing.h
+ * \file: print_dialogue.h
  *
  * Print Dialogue Interface.
  */
 
-#ifndef CASHBOOK_PRINTING
-#define CASHBOOK_PRINTING
+#ifndef CASHBOOK_PRINT_DIALOGUE
+#define CASHBOOK_PRINT_DIALOGUE
 
+#include "global.h"
+
+/**
+ * A Print Dialogue Definition.
+ */
+
+struct print_dialogue_block;
 
 /**
  * Initialise the printing system.
  */
 
-void printing_initialise(void);
+void print_dialogue_initialise(void);
 
 
 /**
@@ -46,7 +53,7 @@ void printing_initialise(void);
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct printing *printing_create(void);
+struct print_dialogue_block *print_dialogue_create(void);
 
 
 /**
@@ -55,7 +62,7 @@ struct printing *printing_create(void);
  * \param *print	Pointer to the printing window data to delete.
  */
 
-void printing_delete(struct printing *print);
+void print_dialogue_delete(struct print_dialogue_block *print);
 
 
 /**
@@ -65,7 +72,7 @@ void printing_delete(struct printing *print);
  * \param *file			The file data block of interest.
  */
 
-void printing_force_windows_closed(struct file_block *file);
+void print_dialogue_force_windows_closed(struct file_block *file);
 
 
 /**
@@ -80,7 +87,7 @@ void printing_force_windows_closed(struct file_block *file);
  *			in the affermative.
  */
 
-void printing_open_simple_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
+void print_dialogue_open_simple_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
 		void (callback) (osbool, osbool, osbool, osbool, osbool));
 
 
@@ -96,7 +103,7 @@ void printing_open_simple_window(struct file_block *file, wimp_pointer *ptr, osb
  *			in the affermative.
  */
 
-void printing_open_advanced_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
+void print_dialogue_open_advanced_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
 		void (callback) (osbool, osbool, osbool, osbool, osbool, date_t, date_t));
 
 #endif

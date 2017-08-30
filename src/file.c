@@ -75,7 +75,7 @@
 #include "goto.h"
 #include "interest.h"
 #include "presets.h"
-#include "printing.h"
+#include "print_dialogue.h"
 #include "purge.h"
 #include "report.h"
 #include "sorder.h"
@@ -196,7 +196,7 @@ struct file_block *build_new_file_block(void)
 
 	/* Set up the print data. */
 
-	new->print = printing_create();
+	new->print = print_dialogue_create();
 	if (new->print == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");
@@ -376,7 +376,7 @@ void delete_file(struct file_block *file)
 	/* Do the same for any file-related dialogues that are open. */
 
 	report_force_windows_closed(file);
-	printing_force_windows_closed(file);
+	print_dialogue_force_windows_closed(file);
 	filing_force_windows_closed(file);
 
 	/* Delink the block from the list of open files. */
@@ -398,7 +398,7 @@ void delete_file(struct file_block *file)
 	if (file->go_to != NULL)
 		goto_delete(file->go_to);
 	if (file->print != NULL)
-		printing_delete(file->print);
+		print_dialogue_delete(file->print);
 	if (file->purge != NULL)
 		purge_delete(file->purge);
 

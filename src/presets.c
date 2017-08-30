@@ -71,7 +71,7 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
-#include "printing.h"
+#include "print_dialogue.h"
 #include "sort.h"
 #include "sort_dialogue.h"
 #include "report.h"
@@ -1789,7 +1789,7 @@ static void preset_open_print_window(struct file_block *file, wimp_pointer *ptr,
 		return;
 
 	preset_print_owner = file->presets;
-	printing_open_simple_window(file, ptr, restore, "PrintPreset", preset_print);
+	print_dialogue_open_simple_window(file, ptr, restore, "PrintPreset", preset_print);
 }
 
 

@@ -63,7 +63,6 @@ struct report;
 struct budget_block;
 struct find_block;
 struct goto_block;
-struct printing;
 struct purge_block;
 
 
@@ -122,7 +121,7 @@ struct file_block
 
 	struct goto_block		*go_to;					/**< Data relating to the goto module.				*/
 	struct find_block		*find;					/**< Data relating to the find module.				*/
-	struct printing			*print;					/**< Data relating to the print dialogues.			*/
+	struct print_dialogue_block	*print;					/**< Data relating to the print dialogues.			*/
 	struct purge_block		*purge;					/**< Data relating to the purge module.				*/
 
 	/* Pointer to the next file in the list. */

@@ -89,8 +89,8 @@
 #include "iconbar.h"
 #include "interest.h"
 #include "presets.h"
-#include "printing.h"
-#include "printing_protocol.h"
+#include "print_dialogue.h"
+#include "print_protocol.h"
 #include "purge.h"
 #include "report.h"
 #include "sorder.h"
@@ -338,8 +338,8 @@ static void main_initialise(void)
 	amenu_initialise();
 	ihelp_initialise();
 	url_initialise();
-	printing_initialise();
-	printing_protocol_initialise();
+	print_dialogue_initialise();
+	print_protocol_initialise();
 	report_initialise(sprites);
 
 	templates_close();

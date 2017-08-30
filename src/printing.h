@@ -24,7 +24,7 @@
 /**
  * \file: printing.h
  *
- * Low-level printing implementation.
+ * Print Dialogue Interface.
  */
 
 #ifndef CASHBOOK_PRINTING
@@ -56,22 +56,6 @@ struct printing *printing_create(void);
  */
 
 void printing_delete(struct printing *print);
-
-
-/**
- * Send a Message_PrintSave to start the printing process off with the
- * RISC OS printer driver.
- *
- * \param *callback_print	Callback function to start the printing once
- *				negotiations have completed successfully.
- * \param *callback_cancel	Callback function to terminate printing
- *				if things fail at any stage.
- * \param *text_print		TRUE to print as text; FALSE to print in
- *				graphics mode.
- * \return			TRUE if process started OK; FALSE on error.
- */
-
-osbool printing_send_start_print_save(void (*callback_print) (char *), void (*callback_cancel) (void), osbool text_print);
 
 
 /**

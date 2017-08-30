@@ -252,6 +252,30 @@ void stringbuild_add_message(char *token)
 
 
 /**
+ * Add a string looked up from the application messages to the end of the
+ * current line, allowing for paramater substitution.
+ *
+ * \param *token		Pointer to the token of the message to
+ *				be added.
+ * \param *a			Pointer to parameter %0, or NULL.
+ * \param *b			Pointer to parameter %1, or NULL.
+ * \param *c			Pointer to parameter %2, or NULL.
+ * \param *d			Pointer to parameter %3, or NULL.
+ */
+
+void stringbuild_add_message_param(char *token, char *a, char *b, char *c, char *d)
+{
+	if (stringbuild_remaining() <= 0)
+		return;
+
+	msgs_param_lookup(token, stringbuild_ptr, stringbuild_remaining(), a, b, c, d);
+
+	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
+		stringbuild_ptr++;
+}
+
+
+/**
  * Add a currency value to the end of the current line.
  *
  * \param value			The value to be converted.

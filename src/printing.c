@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -24,7 +24,7 @@
 /**
  * \file: printing.c
  *
- * Low-level printing implementation.
+ * Print Dialogue Implementation.
  */
 
 /* ANSI C header files */
@@ -61,6 +61,20 @@
 
 #include "caret.h"
 #include "date.h"
+#include "stringbuild.h"
+
+
+/**
+ * The maximum space allocated for a print line.
+ */
+
+#define PRINT_MAX_LINE_LEN 4096
+
+/**
+ * The maximum length of a message token.
+ */
+
+#define PRINT_MAX_TOKEN_LEN 64
 
 /* This code deals with a "RISC OS 2" subset of the printer driver protocol.  We can start print jobs off via
  * the correct set of codes, but all printing is done immediately and the queue mechanism is ignored.
@@ -119,13 +133,6 @@ enum printing_window {
 	PRINTING_WINDOW_ADVANCED						/**< The Advanced Print window is open.								*/
 };
 
-/* Print protocol negotiations. */
-
-static void			(*printing_callback_start) (char *) = NULL;	/**< Callback to launch the print process.							*/
-static void			(*printing_callback_cancel) (void) = NULL;	/**< Callback to clean up if the process fails part-way.					*/
-
-static osbool			printing_text_mode;				/**< TRUE if the current print job is in text mode.						*/
-
 
 static wimp_w			printing_simple_window = NULL;			/**< The Simple Print window handle.								*/
 static wimp_w			printing_advanced_window = NULL;		/**< The Advanced Print window handle.								*/
@@ -137,22 +144,21 @@ static enum printing_window	printing_window_open = PRINTING_WINDOW_NONE;	/**< Wh
 /* Simple print window handling. */
 
 static void			(*printing_simple_callback) (osbool, osbool, osbool, osbool, osbool);
-static char			printing_simple_title_token[64];		/**< The message token for the Simple Print window title.					*/
-static struct file_block	*printing_simple_file = NULL;			/**< The file currently owning the Simple Print window.						*/
-static osbool			printing_simple_restore;			/**< The current restore setting for the Simple Print window.					*/
+static char			printing_simple_title_token[PRINT_MAX_TOKEN_LEN];	/**< The message token for the Simple Print window title.				*/
+static char			printing_simple_report_token[PRINT_MAX_TOKEN_LEN];	/**< The message token for the Simple Print report title.				*/
+static struct file_block	*printing_simple_file = NULL;				/**< The file currently owning the Simple Print window.					*/
+static osbool			printing_simple_restore;				/**< The current restore setting for the Simple Print window.				*/
 
 /* Date-range print window handling. */
 
 static void			(*printing_advanced_callback) (osbool, osbool, osbool, osbool, osbool, date_t, date_t);
-static char			printing_advanced_title_token[64];		/**< The message token for the Advanced Print window title.					*/
-static struct file_block	*printing_advanced_file = NULL;			/**< The file currently owning the Advanced Print window.					*/
-static osbool			printing_advanced_restore;			/**< The current restore setting for the Advanced Print window.					*/
+static char			printing_advanced_title_token[PRINT_MAX_TOKEN_LEN];	/**< The message token for the Advanced Print window title.				*/
+static char			printing_advanced_report_token[PRINT_MAX_TOKEN_LEN];	/**< The message token for the Advanced Print window report.				*/
+static struct file_block	*printing_advanced_file = NULL;				/**< The file currently owning the Advanced Print window.				*/
+static osbool			printing_advanced_restore;				/**< The current restore setting for the Advanced Print window.				*/
 
+/* Static Function Prototypes. */
 
-
-static osbool		printing_handle_bounced_message_print_save(wimp_message *message);
-static osbool		printing_handle_message_print_error(wimp_message *message);
-static osbool		printing_handle_message_print_file(wimp_message *message);
 static osbool		printing_handle_message_set_printer(wimp_message *message);
 
 static void		printing_simple_click_handler(wimp_pointer *pointer);
@@ -196,9 +202,6 @@ void printing_initialise(void)
 
 	event_add_message_handler(message_PRINT_INIT, EVENT_MESSAGE_INCOMING, printing_handle_message_set_printer);
 	event_add_message_handler(message_SET_PRINTER, EVENT_MESSAGE_INCOMING, printing_handle_message_set_printer);
-	event_add_message_handler(message_PRINT_ERROR, EVENT_MESSAGE_INCOMING, printing_handle_message_print_error);
-	event_add_message_handler(message_PRINT_FILE, EVENT_MESSAGE_INCOMING, printing_handle_message_print_file);
-	event_add_message_handler(message_PRINT_SAVE, EVENT_MESSAGE_ACKNOWLEDGE, printing_handle_bounced_message_print_save);
 }
 
 
@@ -240,167 +243,6 @@ void printing_delete(struct printing *print)
 {
 	if (print != NULL)
 		heap_free(print);
-}
-
-
-/**
- * Send a Message_PrintSave to start the printing process off with the
- * RISC OS printer driver.
- *
- * \param *callback_print	Callback function to start the printing once
- *				negotiations have completed successfully.
- * \param *callback_cancel	Callback function to terminate printing
- *				if things fail at any stage.
- * \param *text_print		TRUE to print as text; FALSE to print in
- *				graphics mode.
- * \return			TRUE if process started OK; FALSE on error.
- */
-
-osbool printing_send_start_print_save(void (*callback_print) (char *), void (*callback_cancel) (void), osbool text_print)
-{
-	wimp_full_message_data_xfer	datasave;
-	os_error			*error;
-
-	#ifdef DEBUG
-	debug_printf("Sending Message_PrintFile");
-	#endif
-
-	printing_callback_start = callback_print;
-	printing_text_mode = text_print;
-
-	/* Set up and send Message_PrintSave. */
-
-	datasave.size = WORDALIGN(45 + strlen (""));
-	datasave.your_ref = 0;
-	datasave.action = message_PRINT_SAVE;
-
-	datasave.w = NULL;
-	datasave.i = 0;
-	datasave.pos.x = 0;
-	datasave.pos.y = 0;
-	datasave.est_size = 0;
-	datasave.file_type = 0;
-	*datasave.file_name = '\0';
-
-	error = xwimp_send_message(wimp_USER_MESSAGE_RECORDED, (wimp_message *) &datasave, wimp_BROADCAST);
-	if (error != NULL) {
-		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Process a bounced Message_PrintSave.
- *
- * \param *message		The Wimp message block.
- * \return			TRUE to claim the message.
- */
-
-static osbool printing_handle_bounced_message_print_save(wimp_message *message)
-{
-	#ifdef DEBUG
-	debug_printf("Message_PrintSave bounced");
-	#endif
-
-	if (!printing_text_mode)
-		printing_callback_start("");
-	else
-		error_msgs_report_error("NoPManager");
-
-	if (printing_callback_cancel != NULL)
-		printing_callback_cancel();
-
-	return TRUE;
-}
-
-
-/**
- * Process a Message_PrinterError.
- *
- * \param *message		The Wimp message block.
- * \return			TRUE to claim the message.
- */
-
-static osbool printing_handle_message_print_error(wimp_message *message)
-{
-	pdriver_full_message_print_error	*print_error = (pdriver_full_message_print_error *) message;
-
-	#ifdef DEBUG
-	debug_printf("Received Message_PrintError");
-	#endif
-
-	/* If the message block size is 20, this is a RISC OS 2 style Message_PrintBusy. */
-
-	if (print_error->size == 20)
-		error_msgs_report_error("PrintBusy");
-	else
-		error_report_error(print_error->errmess);
-
-	if (printing_callback_cancel != NULL)
-		printing_callback_cancel();
-
-	return TRUE;
-}
-
-
-/**
- * Process a Message_PrintFile.
- *
- * \param *message		The Wimp message block.
- * \return			TRUE to claim the message.
- */
-
-static osbool printing_handle_message_print_file(wimp_message *message)
-{
-	char				filename[256];
-	int				length;
-	wimp_full_message_data_xfer	*print_file = (wimp_full_message_data_xfer *) message;
-	os_error			*error;
-
-	#ifdef DEBUG
-	debug_printf("Received Message_PrintFile");
-	#endif
-
-	if (printing_text_mode) {
-		/* Text mode printing.  Find the filename for the Print-temp file. */
-
-		xos_read_var_val("Printer$Temp", filename, sizeof(filename), 0, os_VARTYPE_STRING, &length, NULL, NULL);
-		*(filename+length) = '\0';
-
-		/* Call the printing function with the PrintTemp filename. */
-
-		printing_callback_start(filename);
-
-		/* Set up the Message_DataLoad and send it to Printers.  File size and file type are read from the actual file
-		 * on disc, using OS_File.
-		 */
-
-		print_file->your_ref = print_file->my_ref;
-		print_file->action = message_DATA_LOAD;
-
-		osfile_read_stamped_no_path(filename, NULL, NULL, &(print_file->est_size), NULL, &(print_file->file_type));
-		strcpy(print_file->file_name, filename);
-
-		print_file->size = WORDALIGN(45 + strlen (filename));
-
-		error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) print_file, print_file->sender);
-		if (error != NULL)
-			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-	} else {
-		print_file->your_ref = print_file->my_ref;
-		print_file->action = message_WILL_PRINT;
-
-		error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) print_file, print_file->sender);
-		if (error != NULL)
-			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		else
-			printing_callback_start("");
-	}
-
-	return TRUE;
 }
 
 
@@ -551,7 +393,7 @@ static osbool printing_simple_keypress_handler(wimp_key *key)
 		break;
 
 	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret (printing_simple_window);
+		close_dialogue_with_caret(printing_simple_window);
 		printing_window_open = PRINTING_WINDOW_NONE;
 		break;
 
@@ -596,7 +438,8 @@ static void printing_fill_simple_window(struct printing *print_data, osbool rest
 		name = buffer;
 	}
 
-	msgs_param_lookup(printing_simple_title_token, windows_get_indirected_title_addr(printing_simple_window), 64, name, NULL, NULL, NULL);
+	msgs_param_lookup(printing_simple_title_token, windows_get_indirected_title_addr(printing_simple_window),
+			windows_get_indirected_title_length(printing_simple_window), name, NULL, NULL, NULL);
 
 	if (!restore) {
 		icons_set_selected(printing_simple_window, SIMPLE_PRINT_STANDARD, !config_opt_read ("PrintText"));
@@ -634,6 +477,8 @@ static void printing_fill_simple_window(struct printing *print_data, osbool rest
 
 static void printing_process_simple_window(void)
 {
+	char print_line[PRINT_MAX_LINE_LEN];
+
 	#ifdef DEBUG
 	debug_printf("\\BProcessing the Simple Print window");
 	#endif
@@ -646,11 +491,16 @@ static void printing_process_simple_window(void)
 	printing_simple_file->print->text_format = icons_get_selected(printing_simple_window, SIMPLE_PRINT_TEXTFORMAT);
 	printing_simple_file->print->page_numbers = icons_get_selected(printing_simple_window, SIMPLE_PRINT_PNUM);
 
+	if (!stringbuild_initialise(print_line, PRINT_MAX_LINE_LEN))
+		return;
+
 	printing_simple_callback(printing_simple_file->print->text,
 			printing_simple_file->print->text_format,
 			printing_simple_file->print->fit_width,
 			printing_simple_file->print->rotate,
 			printing_simple_file->print->page_numbers);
+
+	stringbuild_cancel();
 }
 
 
@@ -798,7 +648,8 @@ static void printing_fill_advanced_window(struct printing *print_data, osbool re
 		name = buffer;
 	}
 
-	msgs_param_lookup(printing_advanced_title_token, windows_get_indirected_title_addr(printing_advanced_window), 64, name, NULL, NULL, NULL);
+	msgs_param_lookup(printing_advanced_title_token, windows_get_indirected_title_addr(printing_advanced_window),
+			windows_get_indirected_title_length(printing_advanced_window), name, NULL, NULL, NULL);
 
 	if (!restore) {
 		icons_set_selected(printing_advanced_window, DATE_PRINT_STANDARD, !config_opt_read ("PrintText"));
@@ -844,6 +695,8 @@ static void printing_fill_advanced_window(struct printing *print_data, osbool re
 
 static void printing_process_advanced_window(void)
 {
+	char print_line[PRINT_MAX_LINE_LEN];
+
 	#ifdef DEBUG
 	debug_printf("\\BProcessing the Advanced Print window");
 	#endif
@@ -861,6 +714,9 @@ static void printing_process_advanced_window(void)
 	printing_advanced_file->print->to = date_convert_from_string(icons_get_indirected_text_addr(printing_advanced_window, DATE_PRINT_TO),
 			NULL_DATE, 0);
 
+	if (!stringbuild_initialise(print_line, PRINT_MAX_LINE_LEN))
+		return;
+
 	printing_advanced_callback(printing_advanced_file->print->text,
 			printing_advanced_file->print->text_format,
 			printing_advanced_file->print->fit_width,
@@ -868,5 +724,7 @@ static void printing_process_advanced_window(void)
 			printing_advanced_file->print->page_numbers,
 			printing_advanced_file->print->from,
 			printing_advanced_file->print->to);
+
+	stringbuild_cancel();
 }
 

@@ -80,6 +80,7 @@
 #include "fontlist.h"
 #include "flexutils.h"
 #include "printing.h"
+#include "printing_protocol.h"
 #include "transact.h"
 #include "window.h"
 
@@ -486,7 +487,7 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 
 	report_print_report->print_pending++;
 
-	printing_send_start_print_save(report_start_print_job, report_cancel_print_job, report_print_opt_text);
+	printing_protocol_send_start_print_save(report_start_print_job, report_cancel_print_job, report_print_opt_text);
 }
 
 
@@ -1411,7 +1412,7 @@ static void report_open_print_window(struct report *report, wimp_pointer *ptr, o
 		return;
 
 	report_print_report = report;
-	printing_open_simple_window (report->file, ptr, restore, "PrintReport", report_print_window_closed);
+	printing_open_simple_window(report->file, ptr, restore, "PrintReport", report_print_window_closed);
 }
 
 
@@ -1447,7 +1448,7 @@ static void report_print_window_closed(osbool text, osbool format, osbool scale,
 
 	report_print_report->print_pending++;
 
-	printing_send_start_print_save(report_start_print_job, report_cancel_print_job, report_print_opt_text);
+	printing_protocol_send_start_print_save(report_start_print_job, report_cancel_print_job, report_print_opt_text);
 }
 
 

@@ -90,6 +90,7 @@
 #include "interest.h"
 #include "presets.h"
 #include "printing.h"
+#include "printing_protocol.h"
 #include "purge.h"
 #include "report.h"
 #include "sorder.h"
@@ -338,6 +339,7 @@ static void main_initialise(void)
 	ihelp_initialise();
 	url_initialise();
 	printing_initialise();
+	printing_protocol_initialise();
 	report_initialise(sprites);
 
 	templates_close();

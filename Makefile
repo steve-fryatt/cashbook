@@ -69,6 +69,7 @@ OBJS = account.o			\
        presets.o			\
        preset_menu.o			\
        printing.o			\
+       printing_protocol.o		\
        purge.o				\
        refdesc_menu.o			\
        report.o				\
@@ -78,7 +79,5 @@ OBJS = account.o			\
        stringbuild.o			\
        transact.o			\
        window.o
-
-
 
 include $(SFTOOLS_MAKE)/CApp

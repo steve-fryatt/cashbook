@@ -530,9 +530,10 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 	struct file_block			*file;
 
 	osbool			group, lock, output_trans, output_summary, output_accsummary;
-	int			i, found, total, unit, period,
+	int			found, total, unit, period,
 				total_days, period_days, period_limit, entries, account;
 	date_t			start_date, end_date, next_start, next_end, date;
+	tran_t			i;
 	acct_t			from, to;
 	amt_t			min_amount, max_amount, amount;
 	char			date_text[1024];
@@ -642,7 +643,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 					stringbuild_add_printf("\\k\\d\\r%d\\t",
 							transact_get_transaction_number(i));
 					stringbuild_add_date(date);
-					stringbuild_add_printf("\t%s\\t%s\\t%s\\t\\d\\r",
+					stringbuild_add_printf("\\t%s\\t%s\\t%s\\t\\d\\r",
 							account_get_name(file, from),
 							account_get_name(file, to),
 							transact_get_reference(file, i, NULL, 0));

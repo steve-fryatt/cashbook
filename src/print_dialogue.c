@@ -76,13 +76,7 @@
 
 #define PRINT_MAX_TOKEN_LEN 64
 
-/* This code deals with a "RISC OS 2" subset of the printer driver protocol.  We can start print jobs off via
- * the correct set of codes, but all printing is done immediately and the queue mechanism is ignored.
- *
- * This really needs to be addressed in a future version.
- */
-
-/* Simple print dialogue */
+/* Simple Print Dialogue Icons */
 
 #define PRINT_DIALOGUE_SIMPLE_OK 0
 #define PRINT_DIALOGUE_SIMPLE_CANCEL 1
@@ -94,7 +88,7 @@
 #define PRINT_DIALOGUE_SIMPLE_TEXTFORMAT 7
 #define PRINT_DIALOGUE_SIMPLE_PNUM 8
 
-/* Date-range print dailogue */
+/* Advanced Print Dialogue Icons */
 
 #define PRINT_DIALOGUE_ADVANCED_OK 0
 #define PRINT_DIALOGUE_ADVANCED_CANCEL 1

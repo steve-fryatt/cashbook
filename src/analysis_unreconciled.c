@@ -491,12 +491,13 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 	struct file_block			*file;
 
 	osbool			group, lock;
-	int			i, acc, found, unit, period, entries;
-	char			date_text[1024], rec_char[REC_FIELD_LEN], r1[REC_FIELD_LEN], r2[REC_FIELD_LEN];
+	int			acc, found, unit, period, entries;
+	char			date_text[1024], rec_char[REC_FIELD_LEN];
 	date_t			start_date, end_date, next_start, next_end, date;
+	tran_t			i;
 	acct_t			from, to;
 	enum transact_flags	flags;
-	amt_t			amount, total_in, total_out,;
+	amt_t			amount, total_in, total_out;
 	int			acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
 
 	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
@@ -571,11 +572,14 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 								report_write_line(report, 0, "");
 
 								if (group == TRUE) {
-									sprintf(line, "\\u%s", account_get_name(file, acc));
-									report_write_line(report, 0, line);
+									stringbuild_reset();
+									stringbuild_add_printf("\\u%s", account_get_name(file, acc));
+									stringbuild_report_line(report, 0);
 								}
-								msgs_lookup("URHeadings", line, sizeof(line));
-								report_write_line(report, 1, line);
+
+								stringbuild_reset();
+								stringbuild_add_message("URHeadings");
+								stringbuild_report_line(report, 1);
 							}
 
 							found++;
@@ -587,39 +591,52 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 
 							/* Output the transaction to the report. */
 
-							strcpy(r1, (flags & TRANS_REC_FROM) ? rec_char : "");
-							strcpy(r2, (flags & TRANS_REC_TO) ? rec_char : "");
-							date_convert_to_string(date, b1, sizeof(b1));
-							currency_convert_to_string(amount, b2, sizeof(b2));
+							stringbuild_reset();
 
-							sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
-									transact_get_transaction_number(i), b1,
-									r1, account_get_name(file, from),
-									r2, account_get_name(file, to),
-									transact_get_reference(file, i, NULL, 0), b2,
+							stringbuild_add_printf("\\k\\d\\r%d\\t",
+									transact_get_transaction_number(i));
+							stringbuild_add_date(date);
+							stringbuild_add_string("\\t");
+							if (flags & TRANS_REC_FROM)
+								stringbuild_add_string(rec_char);
+							stringbuild_add_printf("\\t%s\\t",
+									account_get_name(file, from));
+							if (flags & TRANS_REC_TO)
+								stringbuild_add_string(rec_char);
+							stringbuild_add_printf("\\t%s\\t%s\\t\\d\\r",
+								account_get_name(file, to),
+								transact_get_reference(file, i, NULL, 0));
+							stringbuild_add_currency(amount, TRUE);
+							stringbuild_add_printf("\\t%s",
 									transact_get_description(file, i, NULL, 0));
 
-							report_write_line(report, 1, line);
+							stringbuild_report_line(report, 1);
 						}
 					}
 
 					if (found != 0) {
 						report_write_line(report, 2, "");
 
-						msgs_lookup("URTotalIn", b1, sizeof(b1));
-						currency_flexible_convert_to_string(total_in, b2, sizeof(b2), TRUE);
-						sprintf(line, "\\i%s\\t\\d\\r%s", b1, b2);
-						report_write_line(report, 2, line);
+						stringbuild_reset();
+						stringbuild_add_string("\\i");
+						stringbuild_add_message("URTotalIn");
+						stringbuild_add_string("\\t\\d\\r");
+						stringbuild_add_currency(total_in, TRUE);
+						stringbuild_report_line(report, 2);
 
-						msgs_lookup("URTotalOut", b1, sizeof(b1));
-						currency_flexible_convert_to_string(total_out, b2, sizeof(b2), TRUE);
-						sprintf(line, "\\i%s\\t\\d\\r%s", b1, b2);
-						report_write_line(report, 2, line);
+						stringbuild_reset();
+						stringbuild_add_string("\\i");
+						stringbuild_add_message("URTotalOut");
+						stringbuild_add_string("\\t\\d\\r");
+						stringbuild_add_currency(total_out, TRUE);
+						stringbuild_report_line(report, 2);
 
-						msgs_lookup("URTotal", b1, sizeof(b1));
-						currency_flexible_convert_to_string(total_in+total_out, b2, sizeof(b2), TRUE);
-						sprintf(line, "\\i\\b%s\\t\\d\\r\\b%s", b1, b2);
-						report_write_line(report, 2, line);
+						stringbuild_reset();
+						stringbuild_add_string("\\i");
+						stringbuild_add_message("URTotal");
+						stringbuild_add_string("\\t\\d\\r");
+						stringbuild_add_currency(total_in + total_out, TRUE);
+						stringbuild_report_line(report, 2);
 					}
 				}
 			}
@@ -650,30 +667,40 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 						report_write_line(report, 0, "");
 
 						if (group == TRUE) {
-							sprintf(line, "\\u%s", date_text);
-							report_write_line(report, 0, line);
+							stringbuild_reset();
+							stringbuild_add_printf("\\u%s", date_text);
+							stringbuild_report_line(report, 0);
 						}
-						msgs_lookup("URHeadings", line, sizeof(line));
-						report_write_line(report, 1, line);
+
+						stringbuild_reset();
+						stringbuild_add_message("URHeadings");
+						stringbuild_report_line(report, 1);
 					}
 
 					found++;
 
 					/* Output the transaction to the report. */
 
-					strcpy(r1, (flags & TRANS_REC_FROM) ? rec_char : "");
-					strcpy(r2, (flags & TRANS_REC_TO) ? rec_char : "");
-					date_convert_to_string(date, b1, sizeof(b1));
-					currency_convert_to_string(amount, b2, sizeof(b2));
+					stringbuild_reset();
 
-					sprintf(line, "\\k\\d\\r%d\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t\\d\\r%s\\t%s",
-							 transact_get_transaction_number(i), b1,
-							r1, account_get_name(file, from),
-							r2, account_get_name(file, to),
-							transact_get_reference(file, i, NULL, 0), b2,
+					stringbuild_add_printf("\\k\\d\\r%d\\t",
+							transact_get_transaction_number(i));
+					stringbuild_add_date(date);
+					stringbuild_add_string("\\t");
+					if (flags & TRANS_REC_FROM)
+						stringbuild_add_string(rec_char);
+					stringbuild_add_printf("\\t%s\\t",
+							account_get_name(file, from));
+					if (flags & TRANS_REC_TO)
+						stringbuild_add_string(rec_char);
+					stringbuild_add_printf("\\t%s\\t%s\\t\\d\\r",
+						account_get_name(file, to),
+						transact_get_reference(file, i, NULL, 0));
+					stringbuild_add_currency(amount, TRUE);
+					stringbuild_add_printf("\\t%s",
 							transact_get_description(file, i, NULL, 0));
 
-					report_write_line(report, 1, line);
+					stringbuild_report_line(report, 1);
 				}
 			}
 		}

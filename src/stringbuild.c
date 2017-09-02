@@ -39,9 +39,7 @@
 
 /* SF-Lib header files. */
 
-//#include "sflib/config.h"
-//#include "sflib/heap.h"
-//#include "sflib/icons.h"
+#include "sflib/icons.h"
 #include "sflib/msgs.h"
 
 /* Application header files */
@@ -49,11 +47,9 @@
 #include "global.h"
 #include "stringbuild.h"
 
-//#include "account.h"
 #include "currency.h"
 #include "date.h"
 #include "report.h"
-//#include "transact.h"
 
 
 /* Global Variables. */
@@ -307,6 +303,25 @@ void stringbuild_add_date(date_t date)
 		return;
 
 	date_convert_to_string(date, stringbuild_ptr, stringbuild_remaining());
+
+	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
+		stringbuild_ptr++;
+}
+
+
+/**
+ * Add an icon's contents to the end of the current line.
+ *
+ * \param window		The window containing the icon.
+ * \param icon			The icon to copy text from.
+ */
+
+void stringbuild_add_icon(wimp_w window, wimp_i icon)
+{
+	if (stringbuild_remaining() <= 0)
+		return;
+
+	icons_copy_text(window, icon, stringbuild_ptr, stringbuild_remaining());
 
 	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
 		stringbuild_ptr++;

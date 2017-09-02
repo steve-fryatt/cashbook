@@ -82,6 +82,7 @@
 #include "print_dialogue.h"
 #include "report.h"
 #include "sorder.h"
+#include "stringbuild.h"
 #include "transact.h"
 #include "window.h"
 
@@ -356,11 +357,6 @@ static struct account_block	*account_section_owner = NULL;			/**< The file ownin
 static int			account_section_entry = -1;			/**< The entry owning the Section Edit window.				*/
 static int			account_section_line = -1;			/**< The line being edited by the Section Edit window.			*/
 
-/* Account List Print Window. */
-
-static struct account_block	*account_print_owner = NULL;			/**< The file owning the Account List Print window.			*/
-static enum account_type	account_print_type = ACCOUNT_NULL;		/**< The type of account owning the Account List Print window.		*/
-
 /* Account List Window. */
 
 static wimp_window		*account_window_def = NULL;			/**< The definition for the Accounts List Window.			*/
@@ -430,8 +426,8 @@ static void			account_refresh_section_window(void);
 static void			account_fill_section_window(struct account_block *block, int entry, int line);
 static osbool			account_process_section_window(void);
 static osbool			account_delete_from_section_window(void);
-static void			account_open_print_window(struct file_block *file, enum account_type type, wimp_pointer *ptr, osbool restore);
-static void			account_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
+static void			account_open_print_window(struct account_window *window, wimp_pointer *ptr, osbool restore);
+static void			account_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 
 
@@ -916,7 +912,7 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCOUNT_PANE_PRINT:
-			account_open_print_window(windat->instance->file, windat->type, pointer, config_opt_read("RememberValues"));
+			account_open_print_window(windat, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case ACCOUNT_PANE_ADDACCT:
@@ -930,7 +926,7 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 		switch (pointer->i) {
 		case ACCOUNT_PANE_PRINT:
-			account_open_print_window(windat->instance->file, windat->type, pointer, !config_opt_read("RememberValues"));
+			account_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
 			break;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
@@ -1054,7 +1050,7 @@ static void account_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCLIST_MENU_PRINT:
-		account_open_print_window(windat->instance->file, windat->type, &pointer, config_opt_read("RememberValues"));
+		account_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
 		break;
  	}
 }
@@ -2287,26 +2283,28 @@ static osbool account_delete_from_section_window(void)
 /**
  * Open the Account Print dialogue for a given account list window.
  *
- * \param *file			The file to own the dialogue.
+ * \param *window		The account list window to be printed.
  * \param *ptr			The current Wimp pointer position.
  * \param restore		TRUE to retain the previous settings; FALSE to
  *				return to defaults.
  */
 
-static void account_open_print_window(struct file_block *file, enum account_type type, wimp_pointer *ptr, osbool restore)
+static void account_open_print_window(struct account_window *window, wimp_pointer *ptr, osbool restore)
 {
-	if (file == NULL || file->accounts == NULL)
+	if (window == NULL || window->instance == NULL || window->instance->file == NULL)
 		return;
 
-	/* Set the pointers up so we can find this lot again and open the window. */
+	/* Open the print dialogue box. */
 
-	account_print_owner = file->accounts;
-	account_print_type = type;
-
-	if (type & ACCOUNT_FULL)
-		print_dialogue_open_simple_window(file, ptr, restore, "PrintAcclistAcc", account_print);
-	else if (type & ACCOUNT_IN || type & ACCOUNT_OUT)
-		print_dialogue_open_simple_window(file, ptr, restore, "PrintAcclistHead", account_print);
+	if (window->type & ACCOUNT_FULL) {
+		print_dialogue_open_simple(window->instance->file->print, ptr, restore,
+				"PrintAcclistAcc", "PrintTitleAcclistAcc",
+				account_print, window);
+	} else if (window->type & ACCOUNT_IN || window->type & ACCOUNT_OUT) {
+		print_dialogue_open_simple(window->instance->file->print, ptr, restore,
+				"PrintAcclistHead", "PrintTitleAcclistHead",
+				account_print, window);
+	}
 }
 
 
@@ -2314,6 +2312,8 @@ static void account_open_print_window(struct file_block *file, enum account_type
  * Send the contents of the Account Window to the printer, via the reporting
  * system.
  *
+ * \param *report		The report handle to use for output.
+ * \param *data			The account window structure to be printed.
  * \param text			TRUE to print in text format; FALSE for graphics.
  * \param format		TRUE to apply text formatting in text mode.
  * \param scale			TRUE to scale width in graphics mode.
@@ -2321,154 +2321,167 @@ static void account_open_print_window(struct file_block *file, enum account_type
  * \param pagenum		TRUE to include page numbers in graphics mode.
  */
 
-static void account_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
+static void account_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
-	struct report		*report;
-	int			i, entry;
-	char			line[4096], buffer[256], numbuf1[64], numbuf2[64], numbuf3[64], numbuf4[64], *filename;
-	struct account_window	*window;
+	struct account_window	*window = data;
+	struct account_block	*instance;
+	int			i;
+	char			*filename, date_buffer[DATE_FIELD_LEN];
 	date_t			start, finish;
 
-	if (account_print_owner == NULL)
+	if (report == NULL || window == NULL)
 		return;
 
-	msgs_lookup((account_print_type & ACCOUNT_FULL) ? "PrintTitleAcclistAcc" : "PrintTitleAcclistHead", buffer, sizeof(buffer));
-	report = report_open(account_print_owner->file, buffer, NULL);
-
-	if (report == NULL)
+	instance = window->instance;
+	if (instance == NULL || instance->file == NULL)
 		return;
 
 	hourglass_on();
 
-	entry = account_find_window_entry_from_type(account_print_owner->file, account_print_type);
-	window = &(account_print_owner->account_windows[entry]);
-
 	/* Output the page title. */
 
-	filename = file_get_leafname(account_print_owner->file, NULL, 0);
+	stringbuild_reset();
+	stringbuild_add_string("\\b\\u");
+
+	filename = file_get_leafname(window->instance->file, NULL, 0);
+
 	switch (window->type) {
 	case ACCOUNT_FULL:
-		msgs_param_lookup("AcclistTitleAcc", buffer, sizeof(buffer), filename, NULL, NULL, NULL);
+		stringbuild_add_message_param("AcclistTitleAcc", filename, NULL, NULL, NULL);
 		break;
 
 	case ACCOUNT_IN:
-		msgs_param_lookup("AcclistTitleHIn", buffer, sizeof(buffer), filename, NULL, NULL, NULL);
+		stringbuild_add_message_param("AcclistTitleHIn", filename, NULL, NULL, NULL);
 		break;
 
 	case ACCOUNT_OUT:
-		msgs_param_lookup("AcclistTitleHOut", buffer, sizeof(buffer), filename, NULL, NULL, NULL);
+		stringbuild_add_message_param("AcclistTitleHOut", filename, NULL, NULL, NULL);
 		break;
 
 	default:
 		break;
 	}
-	snprintf(line, sizeof(line), "\\b\\u%s", buffer);
-	report_write_line(report, 0, line);
 
-	budget_get_dates(account_print_owner->file, &start, &finish);
+	stringbuild_report_line(report, 0);
+
+	/* Output budget title. */
+
+	budget_get_dates(instance->file, &start, &finish);
 
 	if (start != NULL_DATE || finish != NULL_DATE) {
-		*line = '\0';
-		msgs_lookup("AcclistBudgetTitle", buffer, sizeof(buffer));
-		strcat(line, buffer);
+		stringbuild_reset();
+
+		stringbuild_add_message("AcclistBudgetTitle");
 
 		if (start != NULL_DATE) {
-			date_convert_to_string(start, numbuf1, sizeof(numbuf1));
-			msgs_param_lookup("AcclistBudgetFrom", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
-			strcat(line, buffer);
+			date_convert_to_string(start, date_buffer, DATE_FIELD_LEN);
+			stringbuild_add_message_param("AcclistBudgetFrom", date_buffer, NULL, NULL, NULL);
 		}
 
 		if (finish != NULL_DATE) {
-			date_convert_to_string(finish, numbuf1, sizeof(numbuf1));
-			msgs_param_lookup("AcclistBudgetTo", buffer, sizeof(buffer), numbuf1, NULL, NULL, NULL);
-			strcat(line, buffer);
+			date_convert_to_string(finish, date_buffer, DATE_FIELD_LEN);
+			stringbuild_add_message_param("AcclistBudgetTo", date_buffer, NULL, NULL, NULL);
 		}
 
-		strcat(line, ".");
+		stringbuild_add_string(".");
 
-		report_write_line(report, 0, line);
+		stringbuild_report_line(report, 0);
 	}
 
 	report_write_line(report, 0, "");
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	*line = '\0';
-	snprintf(buffer, sizeof(buffer), "\\k\\b\\u%s\\t\\s\\t", icons_copy_text(window->account_pane, 0, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s\\t", icons_copy_text(window->account_pane, 1, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s\\t", icons_copy_text(window->account_pane, 2, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s\\t", icons_copy_text(window->account_pane, 3, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	snprintf(buffer, sizeof(buffer), "\\b\\u\\r%s", icons_copy_text(window->account_pane, 4, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
+	stringbuild_reset();
 
-	report_write_line(report, 0, line);
+	stringbuild_add_string("\\k\\b\\u");
+	stringbuild_add_icon(window->account_pane, ACCOUNT_PANE_NAME);
+	stringbuild_add_string("\\t\\s\\t\\b\\u\\r");
+	stringbuild_add_icon(window->account_pane, ACCOUNT_PANE_STATEMENT);
+	stringbuild_add_string("\\t\\b\\u\\r");
+	stringbuild_add_icon(window->account_pane, ACCOUNT_PANE_CURRENT);
+	stringbuild_add_string("\\t\\b\\u\\r");
+	stringbuild_add_icon(window->account_pane, ACCOUNT_PANE_FINAL);
+	stringbuild_add_string("\\t\\b\\u\\r");
+	stringbuild_add_icon(window->account_pane, ACCOUNT_PANE_BUDGET);
+	stringbuild_add_string("\\t\\b\\u\\r");
+
+	stringbuild_report_line(report, 0);
 
 	/* Output the account data as a set of delimited lines. */
 	/* Output the transaction data as a set of delimited lines. */
 
-	for (i=0; i < window->display_lines; i++) {
-		*line = '\0';
+	for (i = 0; i < window->display_lines; i++) {
+		stringbuild_reset();
 
 		if (window->line_data[i].type == ACCOUNT_LINE_DATA) {
-			account_build_name_pair(account_print_owner->file, window->line_data[i].account, buffer, sizeof(buffer));
+			stringbuild_add_printf("\\k%s\\t%s\\t\\r",
+					account_get_ident(instance->file, window->line_data[i].account),
+					account_get_name(instance->file, window->line_data[i].account));
 
 			switch (window->type) {
 			case ACCOUNT_FULL:
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].statement_balance, numbuf1, sizeof(numbuf1));
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].current_balance, numbuf2, sizeof(numbuf2));
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].trial_balance, numbuf3, sizeof(numbuf3));
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].budget_balance, numbuf4, sizeof(numbuf4));
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].statement_balance, FALSE);
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].current_balance, FALSE);
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].trial_balance, FALSE);
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_balance, FALSE);
 				break;
 
 			case ACCOUNT_IN:
-				currency_convert_to_string(-account_print_owner->accounts[window->line_data[i].account].future_balance, numbuf1, sizeof(numbuf1));
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].budget_amount, numbuf2, sizeof(numbuf2));
-				currency_convert_to_string(-account_print_owner->accounts[window->line_data[i].account].budget_balance, numbuf3, sizeof(numbuf3));
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].budget_result, numbuf4, sizeof(numbuf4));
+				stringbuild_add_currency(-instance->accounts[window->line_data[i].account].future_balance, FALSE);
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_amount, FALSE);
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(-instance->accounts[window->line_data[i].account].budget_balance, FALSE);
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_result, FALSE);
 				break;
 
 			case ACCOUNT_OUT:
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].future_balance, numbuf1, sizeof(numbuf1));
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].budget_amount, numbuf2, sizeof(numbuf2));
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].budget_balance, numbuf3, sizeof(numbuf3));
-				currency_convert_to_string(account_print_owner->accounts[window->line_data[i].account].budget_result, numbuf4, sizeof(numbuf4));
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].future_balance, FALSE);
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_amount, FALSE);
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_balance, FALSE);
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_result, FALSE);
 				break;
 
 			default:
 				break;
 			}
-			snprintf(line, sizeof(line), "\\k%s\\t%s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s",
-					account_get_ident(account_print_owner->file, window->line_data[i].account),
-			account_get_name(account_print_owner->file, window->line_data[i].account),
-					numbuf1, numbuf2, numbuf3, numbuf4);
 		} else if (window->line_data[i].type == ACCOUNT_LINE_HEADER) {
-			snprintf(line, sizeof(line), "\\k\\u%s", window->line_data[i].heading);
+			stringbuild_add_printf("\\k\\u%s", window->line_data[i].heading);
 		} else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER) {
-			currency_convert_to_string(window->line_data[i].total[ACCOUNT_NUM_COLUMN_STATEMENT], numbuf1, sizeof(numbuf1));
-			currency_convert_to_string(window->line_data[i].total[ACCOUNT_NUM_COLUMN_CURRENT], numbuf2, sizeof(numbuf2));
-			currency_convert_to_string(window->line_data[i].total[ACCOUNT_NUM_COLUMN_FINAL], numbuf3, sizeof(numbuf3));
-			currency_convert_to_string(window->line_data[i].total[ACCOUNT_NUM_COLUMN_BUDGET], numbuf4, sizeof(numbuf4));
-
-			snprintf(line, sizeof(line), "\\k%s\\t\\s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s\\t\\r\\b%s",
-					window->line_data[i].heading, numbuf1, numbuf2, numbuf3, numbuf4);
+			stringbuild_add_printf("\\k%s\\t\\s\\t\\r\\b", window->line_data[i].heading);
+			stringbuild_add_currency(window->line_data[i].total[ACCOUNT_NUM_COLUMN_STATEMENT], FALSE);
+			stringbuild_add_string("\\t\\r\\b");
+			stringbuild_add_currency(window->line_data[i].total[ACCOUNT_NUM_COLUMN_CURRENT], FALSE);
+			stringbuild_add_string("\\t\\r\\b");
+			stringbuild_add_currency(window->line_data[i].total[ACCOUNT_NUM_COLUMN_FINAL], FALSE);
+			stringbuild_add_string("\\t\\r\\b");
+			stringbuild_add_currency(window->line_data[i].total[ACCOUNT_NUM_COLUMN_BUDGET], FALSE);
 		}
 
-		report_write_line(report, 0, line);
+		stringbuild_report_line(report, 0);
 	}
 
 	/* Output the grand total line, taking the text from the window icons. */
 
-	icons_copy_text(window->account_footer, 0, buffer, sizeof(buffer));
-	snprintf(line, sizeof(line), "\\k\\u%s\\t\\s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s", buffer,
+	stringbuild_reset();
+
+	stringbuild_add_string("\\k\\u");
+	stringbuild_add_icon(window->account_footer, ACCOUNT_FOOTER_NAME);
+	stringbuild_add_printf("\\t\\s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s",
 			window->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT],
 			window->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT],
 			window->footer_icon[ACCOUNT_NUM_COLUMN_FINAL],
 			window->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET]);
-	report_write_line(report, 0, line);
+
+	stringbuild_report_line(report, 0);
 
 	hourglass_off();
 

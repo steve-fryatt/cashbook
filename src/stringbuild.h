@@ -146,5 +146,15 @@ void stringbuild_add_currency(amt_t value, osbool print_zeros);
 
 void stringbuild_add_date(date_t date);
 
+
+/**
+ * Add an icon's contents to the end of the current line.
+ *
+ * \param window		The window containing the icon.
+ * \param icon			The icon to copy text from.
+ */
+
+void stringbuild_add_icon(wimp_w window, wimp_i icon);
+
 #endif
 

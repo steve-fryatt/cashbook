@@ -1,4 +1,4 @@
-/* Copyright 2003-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -50,10 +50,11 @@ void print_dialogue_initialise(void);
  * resulting block. The block will be allocated with heap_alloc(), and should
  * be freed after use with heap_free().
  *
+ * \param *file		The file to own the block.
  * \return		Pointer to the new data block, or NULL on error.
  */
 
-struct print_dialogue_block *print_dialogue_create(void);
+struct print_dialogue_block *print_dialogue_create(struct file_block *file);
 
 
 /**
@@ -78,33 +79,39 @@ void print_dialogue_force_windows_closed(struct file_block *file);
 /**
  * Open the Simple Print dialoge box, as used by a number of print routines.
  *
- * \param *file		The file owning the dialogue.
+ * \param *instance	The print dialogue instance to own the dialogue.
  * \param *ptr		The current Wimp Pointer details.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
- * \param *title	The Message Trans token for the dialogue title.
+ * \param *title	The MessageTrans token for the dialogue title.
+ * \param *report	The MessageTrans token for the report title, or NULL
+ *			if the client doesn't need a report. 
  * \param callback	The function to call when the user closes the dialogue
  *			in the affermative.
+ * \param *data		Data to be passed to the callback function.
  */
 
-void print_dialogue_open_simple_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
-		void (callback) (osbool, osbool, osbool, osbool, osbool));
+void print_dialogue_open_simple(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool restore, char *title, char *report,
+		void (callback) (struct report *, void *, osbool, osbool, osbool, osbool, osbool), void *data);
 
 
 /**
- * Open the Simple Print dialoge box, as used by a number of print routines.
+ * Open the Advanced Print dialoge box, as used by a number of print routines.
  *
- * \param *file		The file owning the dialogue.
+ * \param *instance	The print dialogue instance to own the dialogue.
  * \param *ptr		The current Wimp Pointer details.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  * \param *title	The Message Trans token for the dialogue title.
+ * \param *report	The MessageTrans token for the report title, or NULL
+ *			if the client doesn't need a report. 
  * \param callback	The function to call when the user closes the dialogue
  *			in the affermative.
+ * \param *data		Data to be passed to the callback function.
  */
 
-void print_dialogue_open_advanced_window(struct file_block *file, wimp_pointer *ptr, osbool restore, char *title,
-		void (callback) (osbool, osbool, osbool, osbool, osbool, date_t, date_t));
+void print_dialogue_open_advanced(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool restore, char *title, char *report,
+		void (callback) (struct report *, void *, osbool, osbool, osbool, osbool, osbool, date_t, date_t), void *data);
 
 #endif
 

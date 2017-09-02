@@ -196,7 +196,7 @@ struct file_block *build_new_file_block(void)
 
 	/* Set up the print data. */
 
-	new->print = print_dialogue_create();
+	new->print = print_dialogue_create(new);
 	if (new->print == NULL) {
 		delete_file(new);
 		error_msgs_report_error("NoMemNewFile");

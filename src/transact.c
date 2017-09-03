@@ -5107,11 +5107,13 @@ osbool transact_check_account(struct file_block *file, acct_t account)
 
 static void transact_prepare_fileinfo(struct file_block *file)
 {
-	file_get_pathname(file, icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_FILENAME), 255);
+	file_get_pathname(file, icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_FILENAME),
+			icons_get_indirected_text_length(transact_fileinfo_window, FILEINFO_ICON_FILENAME));
 
 	if (file_check_for_filepath(file))
 		territory_convert_standard_date_and_time(territory_CURRENT, (os_date_and_time const *) file->datestamp,
-				icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_DATE), 30);
+				icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_DATE),
+				icons_get_indirected_text_length(transact_fileinfo_window, FILEINFO_ICON_DATE));
 	else
 		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_DATE, "UnSaved");
 

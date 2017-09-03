@@ -496,10 +496,10 @@ static void analysis_transaction_process_window(struct analysis_block *parent, w
 			analysis_account_idents_to_list(parent, ACCOUNT_FULL | ACCOUNT_OUT,
 			icons_get_indirected_text_addr(window, ANALYSIS_TRANS_TOSPEC),
 			template->to, ANALYSIS_ACC_LIST_LEN);
-	strcpy(template->ref,
-			icons_get_indirected_text_addr(window, ANALYSIS_TRANS_REFSPEC));
-	strcpy(template->desc,
-			icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DESCSPEC));
+	strncpy(template->ref, icons_get_indirected_text_addr(window, ANALYSIS_TRANS_REFSPEC), TRANSACT_REF_FIELD_LEN);
+	template->ref[TRANSACT_REF_FIELD_LEN - 1] = '\0';
+	strncpy(template->desc, icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DESCSPEC), TRANSACT_DESCRIPT_FIELD_LEN);
+	template->desc[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
 	template->amount_min = (*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTLOSPEC) == '\0') ?
 			NULL_CURRENCY : currency_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTLOSPEC));
 
@@ -876,8 +876,10 @@ static void analysis_transaction_copy_template(void *to, void *from)
 	for (i = 0; i < a->to_count; i++)
 		b->to[i] = a->to[i];
 
-	strcpy(b->ref, a->ref);
-	strcpy(b->desc, a->desc);
+	strncpy(b->ref, a->ref, TRANSACT_REF_FIELD_LEN);
+	b->ref[TRANSACT_REF_FIELD_LEN - 1] = '\0';
+	strncpy(b->desc, a->desc, TRANSACT_DESCRIPT_FIELD_LEN);
+	b->desc[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
 	b->amount_min = a->amount_min;
 	b->amount_max = a->amount_max;
 

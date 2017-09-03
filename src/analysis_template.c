@@ -564,7 +564,9 @@ static void analysis_template_copy(struct analysis_report *to, struct analysis_r
 	debug_printf("Copy template from 0x%x to 0x%x, using copy function 0x%x", from, to, report_details->copy_template);
 #endif
 
-	strcpy(to->name, from->name);
+	strncpy(to->name, from->name, ANALYSIS_SAVED_NAME_LEN);
+	to->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
+
 	to->type = from->type;
 	to->instance = from->instance;
 

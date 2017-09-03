@@ -2325,7 +2325,7 @@ static void account_print(struct report *report, void *data, osbool text, osbool
 {
 	struct account_window	*window = data;
 	struct account_block	*instance;
-	int			i;
+	int			line;
 	char			*filename, date_buffer[DATE_FIELD_LEN];
 	date_t			start, finish;
 
@@ -2362,7 +2362,7 @@ static void account_print(struct report *report, void *data, osbool text, osbool
 		break;
 	}
 
-	stringbuild_report_line(report, 0);
+	stringbuild_report_line(report, 1);
 
 	/* Output budget title. */
 
@@ -2385,10 +2385,10 @@ static void account_print(struct report *report, void *data, osbool text, osbool
 
 		stringbuild_add_string(".");
 
-		stringbuild_report_line(report, 0);
+		stringbuild_report_line(report, 1);
 	}
 
-	report_write_line(report, 0, "");
+	report_write_line(report, 1, "");
 
 	/* Output the headings line, taking the text from the window icons. */
 
@@ -2404,66 +2404,65 @@ static void account_print(struct report *report, void *data, osbool text, osbool
 	stringbuild_add_icon(window->account_pane, ACCOUNT_PANE_FINAL);
 	stringbuild_add_string("\\t\\b\\u\\r");
 	stringbuild_add_icon(window->account_pane, ACCOUNT_PANE_BUDGET);
-	stringbuild_add_string("\\t\\b\\u\\r");
 
 	stringbuild_report_line(report, 0);
 
 	/* Output the account data as a set of delimited lines. */
 	/* Output the transaction data as a set of delimited lines. */
 
-	for (i = 0; i < window->display_lines; i++) {
+	for (line = 0; line < window->display_lines; line++) {
 		stringbuild_reset();
 
-		if (window->line_data[i].type == ACCOUNT_LINE_DATA) {
+		if (window->line_data[line].type == ACCOUNT_LINE_DATA) {
 			stringbuild_add_printf("\\k%s\\t%s\\t\\r",
-					account_get_ident(instance->file, window->line_data[i].account),
-					account_get_name(instance->file, window->line_data[i].account));
+					account_get_ident(instance->file, window->line_data[line].account),
+					account_get_name(instance->file, window->line_data[line].account));
 
 			switch (window->type) {
 			case ACCOUNT_FULL:
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].statement_balance, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].statement_balance, FALSE);
 				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].current_balance, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].current_balance, FALSE);
 				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].trial_balance, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].trial_balance, FALSE);
 				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_balance, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].budget_balance, FALSE);
 				break;
 
 			case ACCOUNT_IN:
-				stringbuild_add_currency(-instance->accounts[window->line_data[i].account].future_balance, FALSE);
+				stringbuild_add_currency(-instance->accounts[window->line_data[line].account].future_balance, FALSE);
 				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_amount, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].budget_amount, FALSE);
 				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(-instance->accounts[window->line_data[i].account].budget_balance, FALSE);
+				stringbuild_add_currency(-instance->accounts[window->line_data[line].account].budget_balance, FALSE);
 				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_result, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].budget_result, FALSE);
 				break;
 
 			case ACCOUNT_OUT:
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].future_balance, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].future_balance, FALSE);
 				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_amount, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].budget_amount, FALSE);
 				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_balance, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].budget_balance, FALSE);
 				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[window->line_data[i].account].budget_result, FALSE);
+				stringbuild_add_currency(instance->accounts[window->line_data[line].account].budget_result, FALSE);
 				break;
 
 			default:
 				break;
 			}
-		} else if (window->line_data[i].type == ACCOUNT_LINE_HEADER) {
-			stringbuild_add_printf("\\k\\u%s", window->line_data[i].heading);
-		} else if (window->line_data[i].type == ACCOUNT_LINE_FOOTER) {
-			stringbuild_add_printf("\\k%s\\t\\s\\t\\r\\b", window->line_data[i].heading);
-			stringbuild_add_currency(window->line_data[i].total[ACCOUNT_NUM_COLUMN_STATEMENT], FALSE);
+		} else if (window->line_data[line].type == ACCOUNT_LINE_HEADER) {
+			stringbuild_add_printf("\\k\\u%s", window->line_data[line].heading);
+		} else if (window->line_data[line].type == ACCOUNT_LINE_FOOTER) {
+			stringbuild_add_printf("\\k%s\\t\\s\\t\\r\\b", window->line_data[line].heading);
+			stringbuild_add_currency(window->line_data[line].total[ACCOUNT_NUM_COLUMN_STATEMENT], FALSE);
 			stringbuild_add_string("\\t\\r\\b");
-			stringbuild_add_currency(window->line_data[i].total[ACCOUNT_NUM_COLUMN_CURRENT], FALSE);
+			stringbuild_add_currency(window->line_data[line].total[ACCOUNT_NUM_COLUMN_CURRENT], FALSE);
 			stringbuild_add_string("\\t\\r\\b");
-			stringbuild_add_currency(window->line_data[i].total[ACCOUNT_NUM_COLUMN_FINAL], FALSE);
+			stringbuild_add_currency(window->line_data[line].total[ACCOUNT_NUM_COLUMN_FINAL], FALSE);
 			stringbuild_add_string("\\t\\r\\b");
-			stringbuild_add_currency(window->line_data[i].total[ACCOUNT_NUM_COLUMN_BUDGET], FALSE);
+			stringbuild_add_currency(window->line_data[line].total[ACCOUNT_NUM_COLUMN_BUDGET], FALSE);
 		}
 
 		stringbuild_report_line(report, 0);

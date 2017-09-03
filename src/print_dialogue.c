@@ -61,6 +61,7 @@
 
 #include "caret.h"
 #include "date.h"
+#include "report.h"
 #include "stringbuild.h"
 
 
@@ -787,12 +788,19 @@ static void print_dialogue_process_advanced_window(void)
 
 static struct report *print_dialogue_create_report(void)
 {
+	struct report	*report;
+
 	char report_title[PRINT_MAX_TITLE_LEN];
 
 	if (print_dialogue_current_instance == NULL || *print_dialogue_report_title_token == '\0')
 		return NULL;
 
 	msgs_lookup(print_dialogue_report_title_token, report_title, PRINT_MAX_TITLE_LEN);
-	return report_open(print_dialogue_current_instance->file, report_title, NULL);
+	report = report_open(print_dialogue_current_instance->file, report_title, NULL);
+
+	if (report == NULL)
+		error_msgs_report_error("PrintMemFail");
+
+	return report;
 }
 

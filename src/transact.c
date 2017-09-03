@@ -92,6 +92,7 @@
 #include "report.h"
 #include "sorder.h"
 #include "sort_dialogue.h"
+#include "stringbuild.h"
 #include "transact.h"
 #include "window.h"
 
@@ -352,10 +353,6 @@ static struct sort_dialogue_icon transact_sort_directions[] = {				/**< Details 
 
 static struct sort_callback	transact_sort_callbacks;
 
-/* Transaction Print Window. */
-
-static struct transact_block	*transact_print_owner = NULL;			/**< The instance currently owning the transaction print window.			*/
-
 /* File Info Window. */
 
 static wimp_w			transact_fileinfo_window = NULL;		/**< The handle of the file info window.						*/
@@ -423,8 +420,8 @@ static osbool			transact_process_sort_window(enum sort_type order, void *data);
 static int			transact_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void			transact_sort_swap(int index1, int index2, void *data);
 
-static void			transact_open_print_window(struct file_block *file, wimp_pointer *ptr, int clear);
-static void			transact_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
+static void			transact_open_print_window(struct transact_block *windat, wimp_pointer *ptr, osbool restore);
+static void			transact_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
 
 static void			transact_start_direct_save(struct transact_block *windat);
 static osbool			transact_save_file(char *filename, osbool selection, void *data);
@@ -1009,7 +1006,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_PRINT:
-			transact_open_print_window(file, pointer, config_opt_read("RememberValues"));
+			transact_open_print_window(windat, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case TRANSACT_PANE_ACCOUNTS:
@@ -1071,7 +1068,7 @@ static void transact_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_PRINT:
-			transact_open_print_window(file, pointer, !config_opt_read("RememberValues"));
+			transact_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
 			break;
 
 		case TRANSACT_PANE_FIND:
@@ -1161,7 +1158,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 
 	else if (key->c == wimp_KEY_PRINT) {
 		wimp_get_pointer_info(&pointer);
-		transact_open_print_window(file, &pointer, config_opt_read("RememberValues"));
+		transact_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
 	} else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F1) {
 		wimp_get_pointer_info(&pointer);
 		transact_prepare_fileinfo(file);
@@ -1347,7 +1344,7 @@ static void transact_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wi
 			break;
 
 		case MAIN_MENU_FILE_PRINT:
-			transact_open_print_window(windat->file, &pointer, config_opt_read("RememberValues"));
+			transact_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
 			break;
 		}
 		break;
@@ -4399,14 +4396,12 @@ void transact_purge(struct file_block *file, date_t cutoff)
  * \param restore		TRUE to restore the current settings; else FALSE.
  */
 
-static void transact_open_print_window(struct file_block *file, wimp_pointer *ptr, int clear)
+static void transact_open_print_window(struct transact_block *windat, wimp_pointer *ptr, osbool restore)
 {
-	if (file == NULL || file->transacts == NULL)
+	if (windat == NULL || windat->file == NULL)
 		return;
 
-	transact_print_owner = file->transacts;
-
-	print_dialogue_open_advanced_window(file, ptr, clear, "PrintTransact", transact_print);
+	print_dialogue_open_advanced(windat->file->print, ptr, restore, "PrintTransact", "PrintTitleTransact", transact_print, windat);
 }
 
 
@@ -4414,6 +4409,8 @@ static void transact_open_print_window(struct file_block *file, wimp_pointer *pt
  * Send the contents of the Transaction Window to the printer, via the reporting
  * system.
  *
+ * \param *report		The report handle to use for output.
+ * \param *data			The transaction window structure to be printed.
  * \param text			TRUE to print in text format; FALSE for graphics.
  * \param format		TRUE to apply text formatting in text mode.
  * \param scale			TRUE to scale width in graphics mode.
@@ -4423,97 +4420,99 @@ static void transact_open_print_window(struct file_block *file, wimp_pointer *pt
  * \param to			The date to print to.
  */
 
-static void transact_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
+static void transact_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
 {
-	struct report		*report;
-	int			i, t;
-	char			line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+	struct transact_block	*windat = data;
+	int			line;
+	tran_t			transaction;
+	char			rec_char[REC_FIELD_LEN];
 
-	if (transact_print_owner == NULL || transact_print_owner->file == NULL)
+	if (report == NULL || windat == NULL)
 		return;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
-	msgs_lookup("PrintTitleTransact", buffer, sizeof(buffer));
-	report = report_open(transact_print_owner->file, buffer, NULL);
-
-	if (report == NULL) {
-		error_msgs_report_error("PrintMemFail");
-		return;
-	}
 
 	hourglass_on();
 
 	/* Output the page title. */
 
-	msgs_param_lookup("TransTitle", buffer, sizeof(buffer), file_get_leafname(transact_print_owner->file, NULL, 0), NULL, NULL, NULL);
-	sprintf(line, "\\b\\u%s", buffer);
-	report_write_line(report, 1, line);
+	stringbuild_reset();
+
+	stringbuild_add_string("\\b\\u");
+	stringbuild_add_message_param("TransTitle",
+			file_get_leafname(windat->file, NULL, 0),
+			NULL, NULL, NULL);
+
+	stringbuild_report_line(report, 1);
+
 	report_write_line(report, 1, "");
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(transact_print_owner->transaction_pane, TRANSACT_PANE_ROW, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(transact_print_owner->transaction_pane, TRANSACT_PANE_DATE, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(transact_print_owner->transaction_pane, TRANSACT_PANE_FROM, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(transact_print_owner->transaction_pane, TRANSACT_PANE_TO, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(transact_print_owner->transaction_pane, TRANSACT_PANE_REFERENCE, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\r\\u%s\\t", icons_copy_text(transact_print_owner->transaction_pane, TRANSACT_PANE_AMOUNT, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(transact_print_owner->transaction_pane, TRANSACT_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
+	stringbuild_reset();
 
-	report_write_line(report, 0, line);
+	stringbuild_add_string("\\k\\b\\u");
+	stringbuild_add_icon(windat->transaction_pane, TRANSACT_PANE_ROW);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(windat->transaction_pane, TRANSACT_PANE_DATE);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(windat->transaction_pane, TRANSACT_PANE_FROM);
+	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u");
+	stringbuild_add_icon(windat->transaction_pane, TRANSACT_PANE_TO);
+	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u");
+	stringbuild_add_icon(windat->transaction_pane, TRANSACT_PANE_REFERENCE);
+	stringbuild_add_string("\\t\\b\\u\\r");
+	stringbuild_add_icon(windat->transaction_pane, TRANSACT_PANE_AMOUNT);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(windat->transaction_pane, TRANSACT_PANE_DESCRIPTION);
+
+	stringbuild_report_line(report, 0);
 
 	/* Output the transaction data as a set of delimited lines. */
 
-	for (i=0; i < transact_print_owner->trans_count; i++) {
-		if ((from == NULL_DATE || transact_print_owner->transactions[i].date >= from) &&
-				(to == NULL_DATE || transact_print_owner->transactions[i].date <= to)) {
-			*line = '\0';
+	for (line = 0; line < windat->trans_count; line++) {
+		transaction = windat->transactions[line].sort_index;
 
-			t = transact_print_owner->transactions[i].sort_index;
+		if ((from == NULL_DATE || windat->transactions[transaction].date >= from) &&
+				(to == NULL_DATE || windat->transactions[transaction].date <= to)) {
+			stringbuild_reset();
 
-			date_convert_to_string(transact_print_owner->transactions[t].date, numbuf1, sizeof(numbuf1));
-			sprintf(buffer, "\\k\\d\\r%d\\t%s\\t", transact_get_transaction_number(t), numbuf1);
-			strcat(line, buffer);
+			/* Line and Date Fields. */
 
-			sprintf(buffer, "%s\\t", account_get_ident(transact_print_owner->file, transact_print_owner->transactions[t].from));
-			strcat(line, buffer);
+			stringbuild_add_printf("\\k\\d\\r%d\\t", transact_get_transaction_number(transaction));
+			stringbuild_add_date(windat->transactions[transaction].date);
 
-			strcpy(numbuf1, (transact_print_owner->transactions[t].flags & TRANS_REC_FROM) ? rec_char : "");
-			sprintf(buffer, "%s\\t", numbuf1);
-			strcat(line, buffer);
+			/* From Field. */
 
-			sprintf(buffer, "%s\\t", account_get_name(transact_print_owner->file, transact_print_owner->transactions[t].from));
-			strcat(line, buffer);
+			stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->transactions[transaction].from));
 
-			sprintf(buffer, "%s\\t", account_get_ident(transact_print_owner->file, transact_print_owner->transactions[t].to));
-			strcat(line, buffer);
+			if (transact_get_flags(windat->file, windat->transactions[transaction].from) & TRANS_REC_FROM)
+				stringbuild_add_string(rec_char);
 
-			strcpy(numbuf1, (transact_print_owner->transactions[t].flags & TRANS_REC_TO) ? rec_char : "");
-			sprintf(buffer, "%s\\t", numbuf1);
-			strcat(line, buffer);
+			stringbuild_add_printf("\\t%s", account_get_name(windat->file, windat->transactions[transaction].from));
 
-			sprintf(buffer, "%s\\t", account_get_name(transact_print_owner->file, transact_print_owner->transactions[t].to));
-			strcat(line, buffer);
+			/* To Field. */
 
-			sprintf(buffer, "%s\\t", transact_print_owner->transactions[t].reference);
-			strcat(line, buffer);
+			stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->transactions[transaction].to));
 
-			currency_convert_to_string(transact_print_owner->transactions[t].amount, numbuf1, sizeof(numbuf1));
-			sprintf(buffer, "\\r%s\\t", numbuf1);
-			strcat(line, buffer);
+			if (transact_get_flags(windat->file, windat->transactions[transaction].to) & TRANS_REC_FROM)
+				stringbuild_add_string(rec_char);
 
-			sprintf(buffer, "%s\\t", transact_print_owner->transactions[t].description);
-			strcat(line, buffer);
+			stringbuild_add_printf("\\t%s", account_get_name(windat->file, windat->transactions[transaction].to));
 
-			report_write_line(report, 0, line);
+			/* Reference Field. */
+
+			stringbuild_add_printf("\\t%s\\t\\r", windat->transactions[transaction].reference);
+
+			/* Amount Field. */
+
+			stringbuild_add_currency(windat->transactions[transaction].amount, FALSE);
+
+			/* Description Field. */
+
+			stringbuild_add_printf("\\t%s", windat->transactions[transaction].description);
+
+			stringbuild_report_line(report, 0);
 		}
 	}
 

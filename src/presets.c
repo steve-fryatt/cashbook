@@ -74,6 +74,7 @@
 #include "print_dialogue.h"
 #include "sort.h"
 #include "sort_dialogue.h"
+#include "stringbuild.h"
 #include "report.h"
 #include "window.h"
 
@@ -268,10 +269,6 @@ static struct sort_dialogue_icon preset_sort_directions[] = {				/**< Details of
 
 static struct sort_callback	preset_sort_callbacks;
 
-/* Preset Print Window. */
-
-static struct preset_block	*preset_print_owner = NULL;			/**< The file currently owning the preset print window.			*/
-
 /* Preset List Window. */
 
 static wimp_window		*preset_window_def = NULL;			/**< The definition for the Preset Window.				*/
@@ -312,8 +309,8 @@ static osbool		preset_delete_from_edit_window(void);
 static void		preset_open_sort_window(struct preset_block *windat, wimp_pointer *ptr);
 static osbool		preset_process_sort_window(enum sort_type order, void *data);
 
-static void		preset_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
-static void		preset_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
+static void		preset_open_print_window(struct preset_block *windat, wimp_pointer *ptr, osbool restore);
+static void		preset_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 static int		preset_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void		preset_sort_swap(int index1, int index2, void *data);
@@ -695,7 +692,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case PRESET_PANE_PRINT:
-			preset_open_print_window(file, pointer, config_opt_read("RememberValues"));
+			preset_open_print_window(windat, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case PRESET_PANE_ADDPRESET:
@@ -709,7 +706,7 @@ static void preset_pane_click_handler(wimp_pointer *pointer)
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 		switch (pointer->i) {
 		case PRESET_PANE_PRINT:
-			preset_open_print_window(file, pointer, !config_opt_read("RememberValues"));
+			preset_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
 			break;
 
 		case PRESET_PANE_SORT:
@@ -820,7 +817,7 @@ static void preset_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 		break;
 
 	case PRESET_MENU_PRINT:
-		preset_open_print_window(windat->file, &pointer, config_opt_read("RememberValues"));
+		preset_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
 		break;
 	}
 }
@@ -1777,19 +1774,18 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
 /**
  * Open the Preset Print dialogue for a given preset list window.
  *
- * \param *file			The file to own the dialogue.
+ * \param *windat		The preset window to own the dialogue.
  * \param *ptr			The current Wimp pointer position.
  * \param restore		TRUE to retain the previous settings; FALSE to
  *				return to defaults.
  */
 
-static void preset_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore)
+static void preset_open_print_window(struct preset_block *windat, wimp_pointer *ptr, osbool restore)
 {
-	if (file == NULL || file->presets == NULL)
+	if (windat == NULL || windat->file == NULL)
 		return;
 
-	preset_print_owner = file->presets;
-	print_dialogue_open_simple_window(file, ptr, restore, "PrintPreset", preset_print);
+	print_dialogue_open_simple(windat->file->print, ptr, restore, "PrintPreset", "PrintTitlePreset", preset_print, windat);
 }
 
 
@@ -1797,6 +1793,8 @@ static void preset_open_print_window(struct file_block *file, wimp_pointer *ptr,
  * Send the contents of the Preset Window to the printer, via the reporting
  * system.
  *
+ * \param *report		The report handle to use for output.
+ * \param *data			The preset window structure to be printed.
  * \param text			TRUE to print in text format; FALSE for graphics.
  * \param format		TRUE to apply text formatting in text mode.
  * \param scale			TRUE to scale width in graphics mode.
@@ -1804,93 +1802,96 @@ static void preset_open_print_window(struct file_block *file, wimp_pointer *ptr,
  * \param pagenum		TRUE to include page numbers in graphics mode.
  */
 
-static void preset_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
+static void preset_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
-	struct report		*report;
-	int			i, t;
-	char			line[1024], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+	struct preset_block	*windat = data;
+	int			line;
+	preset_t		preset;
+	char			rec_char[REC_FIELD_LEN];
+
+	if (report == NULL || windat == NULL)
+		return;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
-	msgs_lookup("PrintTitlePreset", buffer, sizeof(buffer));
-	report = report_open(preset_print_owner->file, buffer, NULL);
-
-	if (report == NULL) {
-		error_msgs_report_error("PrintMemFail");
-		return;
-	}
 
 	hourglass_on();
 
 	/* Output the page title. */
 
-	msgs_param_lookup("PresetTitle", buffer, sizeof(buffer), file_get_leafname(preset_print_owner->file, NULL, 0), NULL, NULL, NULL);
-	sprintf(line, "\\b\\u%s", buffer);
-	report_write_line(report, 0, line);
-	report_write_line(report, 0, "");
+	stringbuild_reset();
+
+	stringbuild_add_string("\\b\\u");
+	stringbuild_add_message_param("PresetTitle",
+			file_get_leafname(windat->file, NULL, 0),
+			NULL, NULL, NULL);
+
+	stringbuild_report_line(report, 1);
+
+	report_write_line(report, 1, "");
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u%s\\t", icons_copy_text(preset_print_owner->preset_pane, PRESET_PANE_KEY, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(preset_print_owner->preset_pane, PRESET_PANE_NAME, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(preset_print_owner->preset_pane, PRESET_PANE_FROM, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(preset_print_owner->preset_pane, PRESET_PANE_TO, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(preset_print_owner->preset_pane, PRESET_PANE_AMOUNT, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(preset_print_owner->preset_pane, PRESET_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
+	stringbuild_reset();
 
-	report_write_line(report, 0, line);
+	stringbuild_add_string("\\k\\b\\u");
+	stringbuild_add_icon(windat->preset_pane, PRESET_PANE_KEY);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(windat->preset_pane, PRESET_PANE_NAME);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(windat->preset_pane, PRESET_PANE_FROM);
+	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u");
+	stringbuild_add_icon(windat->preset_pane, PRESET_PANE_TO);
+	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u\\r");
+	stringbuild_add_icon(windat->preset_pane, PRESET_PANE_AMOUNT);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(windat->preset_pane, PRESET_PANE_DESCRIPTION);
+
+	stringbuild_report_line(report, 0);
 
 	/* Output the standing order data as a set of delimited lines. */
 
-	for (i=0; i < preset_print_owner->preset_count; i++) {
-		t = preset_print_owner->presets[i].sort_index;
+	for (line = 0; line < windat->preset_count; line++) {
+		preset = windat->presets[line].sort_index;
 
-		*line = '\0';
+		stringbuild_reset();
 
-		/* The tab after the first field is in the second, as the %c can be zero in which case the
-		 * first string will end there and then.
-		 */
+		/* The Key column. */ 
 
-		sprintf(buffer, "\\k%c", preset_print_owner->presets[t].action_key);
-		strcat(line, buffer);
+		stringbuild_add_printf("\\k%c", windat->presets[preset].action_key);
 
-		sprintf(buffer, "\\t%s\\t", preset_print_owner->presets[t].name);
-		strcat(line, buffer);
+		/* The %c can be zero, in which case the string will end there and then. */
 
-		sprintf(buffer, "%s\\t", account_get_ident(preset_print_owner->file, preset_print_owner->presets[t].from));
-		strcat(line, buffer);
+		/* The Name column. */
 
-		strcpy(numbuf1, (preset_print_owner->presets[t].flags & TRANS_REC_FROM) ? rec_char : "");
-		sprintf(buffer, "%s\\t", numbuf1);
-		strcat(line, buffer);
+		stringbuild_add_printf("\\t%s", windat->presets[preset].name);
 
-		sprintf(buffer, "%s\\t", account_get_name(preset_print_owner->file, preset_print_owner->presets[t].from));
-		strcat(line, buffer);
+		/* The From column. */
 
-		sprintf(buffer, "%s\\t", account_get_ident(preset_print_owner->file, preset_print_owner->presets[t].to));
-		strcat(line, buffer);
+		stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->presets[preset].from));
 
-		strcpy(numbuf1, (preset_print_owner->presets[t].flags & TRANS_REC_TO) ? rec_char : "");
-		sprintf(buffer, "%s\\t", numbuf1);
-		strcat(line, buffer);
+		if (windat->presets[preset].flags & TRANS_REC_FROM)
+			stringbuild_add_string(rec_char);
 
-		sprintf(buffer, "%s\\t", account_get_name(preset_print_owner->file, preset_print_owner->presets[t].to));
-		strcat(line, buffer);
+		stringbuild_add_printf("\\t%s", account_get_name(windat->file, windat->presets[preset].from));
 
-		currency_convert_to_string(preset_print_owner->presets[t].amount, numbuf1, sizeof(numbuf1));
-		sprintf(buffer, "\\r%s\\t", numbuf1);
-		strcat(line, buffer);
+		/* The To column. */
 
-		sprintf(buffer, "%s", preset_print_owner->presets[t].description);
-		strcat(line, buffer);
+		stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->presets[preset].to));
 
-		report_write_line(report, 0, line);
+		if (windat->presets[preset].flags & TRANS_REC_TO)
+			stringbuild_add_string(rec_char);
+
+		stringbuild_add_printf("\\t%s\\r\\s", account_get_name(windat->file, windat->presets[preset].to));
+
+		/* The Amount column. */
+
+		stringbuild_add_currency(windat->presets[preset].amount, FALSE);
+
+		/* The Description column. */
+
+		stringbuild_add_printf("\\t%s", windat->presets[preset].description);
+
+		stringbuild_report_line(report, 0);
 	}
 
 	hourglass_off();

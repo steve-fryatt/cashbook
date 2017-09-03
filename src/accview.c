@@ -72,6 +72,7 @@
 #include "report.h"
 #include "sort.h"
 #include "sort_dialogue.h"
+#include "stringbuild.h"
 #include "transact.h"
 #include "window.h"
 
@@ -247,10 +248,6 @@ static struct sort_dialogue_icon accview_sort_directions[] = {				/**< Details o
 
 static struct sort_callback	accview_sort_callbacks;
 
-/* Account View Print Window. */
-
-static struct accview_window	*accview_print_view = NULL;			/**< The view currently owning the account view print window.		*/
-
 /* Account View Window. */
 
 static wimp_window		*accview_window_def = NULL;			/**< The definition for the Account View Window.			*/
@@ -284,7 +281,7 @@ static void			accview_open_sort_window(struct accview_window *view, wimp_pointer
 static osbool			accview_process_sort_window(enum sort_type order, void *data);
 
 static void			accview_open_print_window(struct accview_window *view, wimp_pointer *ptr, osbool restore);
-static void			accview_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
+static void			accview_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
 
 static int			accview_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void			accview_sort_swap(int index1, int index2, void *data);
@@ -1449,12 +1446,10 @@ static osbool accview_process_sort_window(enum sort_type order, void *data)
 
 static void accview_open_print_window(struct accview_window *view, wimp_pointer *ptr, osbool restore)
 {
-	if (view == NULL)
+	if (view == NULL || view->file == NULL)
 		return;
 
-	accview_print_view = view;
-
-	print_dialogue_open_advanced_window(view->file, ptr, restore, "PrintAccview", accview_print);
+	print_dialogue_open_advanced(view->file->print, ptr, restore, "PrintAccview", "PrintTitleAccview", accview_print, view);
 }
 
 
@@ -1462,6 +1457,8 @@ static void accview_open_print_window(struct accview_window *view, wimp_pointer 
  * Send the contents of the Account List Window to the printer, via the reporting
  * system.
  *
+ * \param *report		The report handle to use for output.
+ * \param *data			The account view window structure to be printed.
  * \param text			TRUE to print in text format; FALSE for graphics.
  * \param format		TRUE to apply text formatting in text mode.
  * \param scale			TRUE to scale width in graphics mode.
@@ -1471,119 +1468,110 @@ static void accview_open_print_window(struct accview_window *view, wimp_pointer 
  * \param to			The date to print to.
  */
 
-static void accview_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
+static void accview_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
 {
-	struct report		*report;
-	int			i, transaction = 0;
+	struct accview_window	*view = data;
+	int			line;
+	tran_t			transaction = 0;
 	enum accview_direction	transaction_direction;
 	date_t			transaction_date;
 	acct_t			transaction_account;
-	char			line[4096], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+	char			rec_char[REC_FIELD_LEN];
+
+	if (report == NULL || view == NULL)
+		return;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
-	msgs_lookup("PrintTitleAccview", buffer, sizeof(buffer));
-	report = report_open(accview_print_view->file, buffer, NULL);
-
-	if (report == NULL) {
-		error_msgs_report_error("PrintMemFail");
-		return;
-	}
 
 	hourglass_on();
 
 	/* Output the page title. */
 
-	msgs_param_lookup("AccviewTitle", buffer, sizeof(buffer),
-			account_get_name(accview_print_view->file, accview_print_view->account),
-			file_get_leafname(accview_print_view->file, NULL, 0),
+	stringbuild_reset();
+
+	stringbuild_add_string("\\b\\u");
+	stringbuild_add_message_param("AccviewTitle",
+			account_get_name(view->file, view->account),
+			file_get_leafname(view->file, NULL, 0),
 			NULL, NULL);
-	sprintf(line, "\\b\\u%s", buffer);
-	report_write_line(report, 1, line);
+
+	stringbuild_report_line(report, 1);
+
 	report_write_line(report, 1, "");
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_ROW, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_DATE, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_FROMTO, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_REFERENCE, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_PAYMENTS, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_RECEIPTS, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_BALANCE, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(accview_print_view->accview_pane, ACCVIEW_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
+	stringbuild_reset();
 
-	report_write_line(report, 0, line);
+	stringbuild_add_string("\\k\\b\\u\\r");
+	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_ROW);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_DATE);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_FROMTO);
+	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u");
+	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_REFERENCE);
+	stringbuild_add_string("\\t\\b\\u\\r");
+	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_PAYMENTS);
+	stringbuild_add_string("\\t\\b\\u\\r");
+	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_RECEIPTS);
+	stringbuild_add_string("\\t\\b\\u\\r");
+	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_BALANCE);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_DESCRIPTION);
+
+	stringbuild_report_line(report, 0);
 
 	/* Output the transaction data as a set of delimited lines. */
 
-	for (i=0; i < accview_print_view->display_lines; i++) {
-		transaction = (accview_print_view->line_data)[(accview_print_view->line_data)[i].sort_index].transaction;
+	for (line = 0; line < view->display_lines; line++) {
+		transaction = (view->line_data)[(view->line_data)[line].sort_index].transaction;
 
-		transaction_direction = accview_get_transaction_direction(accview_print_view, transaction);
-		transaction_date = transact_get_date(accview_print_view->file, transaction);
+		transaction_direction = accview_get_transaction_direction(view, transaction);
+		transaction_date = transact_get_date(view->file, transaction);
 
 		if ((from == NULL_DATE || transaction_date >= from) && (to == NULL_DATE || transaction_date <= to)) {
-			*line = '\0';
+			stringbuild_reset();
 
-			date_convert_to_string(transaction_date, numbuf1, sizeof(numbuf1));
-			sprintf(buffer, "\\k\\d\\r%d\\t%s\\t", transact_get_transaction_number(transaction), numbuf1);
-			strcat(line, buffer);
-
-			if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
-				transaction_account = transact_get_to(accview_print_view->file, transaction);
-
-				sprintf(buffer, "%s\\t", account_get_ident(accview_print_view->file, transaction_account));
-				strcat(line, buffer);
-
-				strcpy(numbuf1, (transact_get_flags(accview_print_view->file, transaction) & TRANS_REC_FROM) ? rec_char : "");
-				sprintf(buffer, "%s\\t", numbuf1);
-				strcat(line, buffer);
-
-				sprintf(buffer, "%s\\t", account_get_name(accview_print_view->file, transaction_account));
-				strcat(line, buffer);
-			} else {
-				transaction_account = transact_get_from(accview_print_view->file, transaction);
-
-				sprintf(buffer, "%s\\t", account_get_ident(accview_print_view->file, transaction_account));
-				strcat(line, buffer);
-
-				strcpy(numbuf1, (transact_get_flags(accview_print_view->file, transaction) & TRANS_REC_TO) ? rec_char : "");
-				sprintf(buffer, "%s\\t", numbuf1);
-				strcat(line, buffer);
-
-				sprintf(buffer, "%s\\t", account_get_name(accview_print_view->file, transaction_account));
-				strcat(line, buffer);
-			}
-
-			sprintf(buffer, "%s\\t", transact_get_reference(accview_print_view->file, transaction, NULL, 0));
-			strcat(line, buffer);
+			stringbuild_add_printf("\\k\\d\\r%d\\t", transact_get_transaction_number(transaction));
+			stringbuild_add_date(transaction_date);
 
 			if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
-				currency_convert_to_string(transact_get_amount(accview_print_view->file, transaction), numbuf1, sizeof(numbuf1));
-				sprintf(buffer, "\\r%s\\t\\r\\t", numbuf1);
+				transaction_account = transact_get_to(view->file, transaction);
+
+				stringbuild_add_printf("\\t%s\\t", account_get_ident(view->file, transaction_account));
+
+				if (transact_get_flags(view->file, transaction) & TRANS_REC_FROM)
+					stringbuild_add_string(rec_char);
+
+				stringbuild_add_printf("\\t%s\\t", account_get_name(view->file, transaction_account));
 			} else {
-				currency_convert_to_string(transact_get_amount(accview_print_view->file, transaction), numbuf1, sizeof(numbuf1));
-				sprintf(buffer, "\\r\\t\\r%s\\t", numbuf1);
+				transaction_account = transact_get_from(view->file, transaction);
+
+				stringbuild_add_printf("\\t%s\\t", account_get_ident(view->file, transaction_account));
+
+				if (transact_get_flags(view->file, transaction) & TRANS_REC_TO)
+					stringbuild_add_string(rec_char);
+
+				stringbuild_add_printf("\\t%s\\t", account_get_name(view->file, transaction_account));
 			}
-			strcat(line, buffer);
 
-			currency_convert_to_string(accview_print_view->line_data[i].balance, numbuf1, sizeof(numbuf1));
-			sprintf(buffer, "\\r%s\\t", numbuf1);
-			strcat(line, buffer);
+			stringbuild_add_printf("%s\\t\\r", transact_get_reference(view->file, transaction, NULL, 0));
 
-			sprintf(buffer, "%s\\t", transact_get_description(accview_print_view->file, transaction, NULL, 0));
-			strcat(line, buffer);
+			if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
+				stringbuild_add_currency(transact_get_amount(view->file, transaction), FALSE);
+				stringbuild_add_string("\\t\\r");
+			} else {
+				stringbuild_add_string("\\t\\r");
+				stringbuild_add_currency(transact_get_amount(view->file, transaction), FALSE);
+			}
 
-			report_write_line(report, 0, line);
+			stringbuild_add_string("\\t\\r");
+			stringbuild_add_currency(view->line_data[transaction].balance, FALSE);
+
+			stringbuild_add_printf("\\t%s", transact_get_description(view->file, transaction, NULL, 0));
+
+			stringbuild_report_line(report, 0);
 		}
 	}
 

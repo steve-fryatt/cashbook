@@ -78,6 +78,7 @@
 #include "print_dialogue.h"
 #include "sort.h"
 #include "sort_dialogue.h"
+#include "stringbuild.h"
 #include "report.h"
 #include "transact.h"
 #include "window.h"
@@ -284,10 +285,6 @@ static struct sort_dialogue_icon sorder_sort_directions[] = {				/**< Details of
 
 static struct sort_callback	sorder_sort_callbacks;
 
-/* Standing Order Print Window. */
-
-static struct sorder_block	*sorder_print_owner = NULL;			/**< The instance currently owning the standing order print window.		*/
-
 /* Standing Order List Window. */
 
 static wimp_window		*sorder_window_def = NULL;			/**< The definition for the Standing Order Window.			*/
@@ -330,8 +327,8 @@ static osbool			sorder_stop_from_edit_window(void);
 static void			sorder_open_sort_window(struct sorder_block *windat, wimp_pointer *ptr);
 static osbool			sorder_process_sort_window(enum sort_type order, void *data);
 
-static void			sorder_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore);
-static void			sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
+static void			sorder_open_print_window(struct sorder_block *windat, wimp_pointer *ptr, osbool restore);
+static void			sorder_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
 
 static int			sorder_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void			sorder_sort_swap(int index1, int index2, void *data);
@@ -710,7 +707,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case SORDER_PANE_PRINT:
-			sorder_open_print_window(file, pointer, config_opt_read("RememberValues"));
+			sorder_open_print_window(windat, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case SORDER_PANE_ADDSORDER:
@@ -724,7 +721,7 @@ static void sorder_pane_click_handler(wimp_pointer *pointer)
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 		switch (pointer->i) {
 		case SORDER_PANE_PRINT:
-			sorder_open_print_window(file, pointer, !config_opt_read("RememberValues"));
+			sorder_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
 			break;
 
 		case SORDER_PANE_SORT:
@@ -834,7 +831,7 @@ static void sorder_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp
 		break;
 
 	case SORDER_MENU_PRINT:
-		sorder_open_print_window(windat->file, &pointer, config_opt_read("RememberValues"));
+		sorder_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
 		break;
 
 	case SORDER_MENU_FULLREP:
@@ -1863,18 +1860,17 @@ static osbool sorder_process_sort_window(enum sort_type order, void *data)
 /**
  * Open the Standing Order Print dialogue for a given standing order list window.
  *
- * \param *file			The file to own the dialogue.
+ * \param *file			The standing order window to own the dialogue.
  * \param *ptr			The current Wimp pointer position.
  * \param restore		TRUE to restore the current settings; else FALSE.
  */
 
-static void sorder_open_print_window(struct file_block *file, wimp_pointer *ptr, osbool restore)
+static void sorder_open_print_window(struct sorder_block *windat, wimp_pointer *ptr, osbool restore)
 {
-	if (file == NULL || file->sorders == NULL)
+	if (windat == NULL || windat->file == NULL)
 		return;
 
-	sorder_print_owner = file->sorders;
-	print_dialogue_open_simple_window(file, ptr, restore, "PrintSOrder", sorder_print);
+	print_dialogue_open_simple(windat->file->print, ptr, restore, "PrintSOrder", "PrintTitleSOrder", sorder_print, windat);
 }
 
 
@@ -1882,6 +1878,8 @@ static void sorder_open_print_window(struct file_block *file, wimp_pointer *ptr,
  * Send the contents of the Standing Order Window to the printer, via the reporting
  * system.
  *
+ * \param *report		The report handle to use for output.
+ * \param *data			The standing order window structure to be printed.
  * \param text			TRUE to print in text format; FALSE for graphics.
  * \param format		TRUE to apply text formatting in text mode.
  * \param scale			TRUE to scale width in graphics mode.
@@ -1889,93 +1887,97 @@ static void sorder_open_print_window(struct file_block *file, wimp_pointer *ptr,
  * \param pagenum		TRUE to include page numbers in graphics mode.
  */
 
-static void sorder_print(osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
+static void sorder_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
 {
-	struct report		*report;
-	int			i, t;
-	char			line[1024], buffer[256], numbuf1[256], rec_char[REC_FIELD_LEN];
+	struct sorder_block	*windat = data;
+	int			line;
+	sorder_t		sorder;
+	char			rec_char[REC_FIELD_LEN];
+
+	if (report == NULL || windat == NULL)
+		return;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
-	msgs_lookup("PrintTitleSOrder", buffer, sizeof (buffer));
-	report = report_open(sorder_print_owner->file, buffer, NULL);
-
-	if (report == NULL) {
-		error_msgs_report_error("PrintMemFail");
-		return;
-	}
 
 	hourglass_on();
 
 	/* Output the page title. */
 
-	msgs_param_lookup("SOrderTitle", buffer, sizeof(buffer), file_get_leafname(sorder_print_owner->file, NULL, 0), NULL, NULL, NULL);
-	sprintf(line, "\\b\\u%s", buffer);
-	report_write_line(report, 0, line);
-	report_write_line(report, 0, "");
+	stringbuild_reset();
+
+	stringbuild_add_string("\\b\\u");
+	stringbuild_add_message_param("SOrderTitle",
+			file_get_leafname(windat->file, NULL, 0),
+			NULL, NULL, NULL);
+
+	stringbuild_report_line(report, 1);
+
+	report_write_line(report, 1, "");
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	*line = '\0';
-	sprintf(buffer, "\\k\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_FROM, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t\\s\\t\\s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_TO, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_AMOUNT, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_DESCRIPTION, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u%s\\t", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_NEXTDATE, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
-	sprintf(buffer, "\\b\\u\\r%s", icons_copy_text(sorder_print_owner->sorder_pane, SORDER_PANE_LEFT, numbuf1, sizeof(numbuf1)));
-	strcat(line, buffer);
+	stringbuild_reset();
 
-	report_write_line(report, 0, line);
+	stringbuild_add_string("\\k\\b\\u");
+	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_FROM);
+	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u");
+	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_TO);
+	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u\\r");
+	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_AMOUNT);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_DESCRIPTION);
+	stringbuild_add_string("\\t\\b\\u");
+	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_NEXTDATE);
+	stringbuild_add_string("\\t\\b\\u\\r");
+	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_LEFT);
+
+	stringbuild_report_line(report, 0);
 
 	/* Output the standing order data as a set of delimited lines. */
 
-	for (i=0; i < sorder_print_owner->sorder_count; i++) {
-		t = sorder_print_owner->sorders[i].sort_index;
+	for (line = 0; line < windat->sorder_count; line++) {
+		sorder = windat->sorders[line].sort_index;
 
-		*line = '\0';
+		stringbuild_reset();
 
-		sprintf(buffer, "\\k%s\\t", account_get_ident(sorder_print_owner->file, sorder_print_owner->sorders[t].from));
-		strcat(line, buffer);
+		/* The From column. */
 
-		strcpy(numbuf1, (sorder_print_owner->sorders[t].flags & TRANS_REC_FROM) ? rec_char : "");
-		sprintf(buffer, "%s\\t", numbuf1);
-		strcat(line, buffer);
+		stringbuild_add_printf("\\k%s\\t", account_get_ident(windat->file, windat->sorders[sorder].from));
 
-		sprintf(buffer, "%s\\t", account_get_name(sorder_print_owner->file, sorder_print_owner->sorders[t].from));
-		strcat(line, buffer);
+		if (windat->sorders[sorder].flags & TRANS_REC_FROM)
+			stringbuild_add_string(rec_char);
 
-		sprintf(buffer, "%s\\t", account_get_ident(sorder_print_owner->file, sorder_print_owner->sorders[t].to));
-		strcat(line, buffer);
+		stringbuild_add_printf("\\t%s", account_get_name(windat->file, windat->sorders[sorder].from));
 
-		strcpy(numbuf1, (sorder_print_owner->sorders[t].flags & TRANS_REC_TO) ? rec_char : "");
-		sprintf(buffer, "%s\\t", numbuf1);
-		strcat(line, buffer);
+		/* The To column. */
 
-		sprintf(buffer, "%s\\t", account_get_name(sorder_print_owner->file, sorder_print_owner->sorders[t].to));
-		strcat(line, buffer);
+		stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->sorders[sorder].to));
 
-		currency_convert_to_string(sorder_print_owner->sorders[t].normal_amount, numbuf1, sizeof(numbuf1));
-		sprintf(buffer, "\\r%s\\t", numbuf1);
-		strcat(line, buffer);
+		if (windat->sorders[sorder].flags & TRANS_REC_TO)
+			stringbuild_add_string(rec_char);
 
-		sprintf(buffer, "%s\\t", sorder_print_owner->sorders[t].description);
-		strcat(line, buffer);
+		stringbuild_add_printf("\\t%s\\t\\r", account_get_name(windat->file, windat->sorders[sorder].to));
 
-		if (sorder_print_owner->sorders[t].adjusted_next_date != NULL_DATE)
-			date_convert_to_string(sorder_print_owner->sorders[t].adjusted_next_date, numbuf1, sizeof(numbuf1));
+		/* The Amount column. */
+
+		stringbuild_add_currency(windat->sorders[sorder].normal_amount, FALSE);
+
+		/* The Description column. */
+
+		stringbuild_add_printf("\\t%s\\t", windat->sorders[sorder].description);
+
+		/* The Next Date column. */
+
+		if (windat->sorders[sorder].adjusted_next_date != NULL_DATE)
+			stringbuild_add_date(windat->sorders[sorder].adjusted_next_date);
 		else
-			msgs_lookup("SOrderStopped", numbuf1, sizeof(numbuf1));
-		sprintf(buffer, "%s\\t", numbuf1);
-		strcat(line, buffer);
+			stringbuild_add_message("SOrderStopped");
 
-		sprintf(buffer, "\\r%d", sorder_print_owner->sorders[t].left);
-		strcat(line, buffer);
+		/* The Left column. */
 
-		report_write_line(report, 0, line);
+		stringbuild_add_printf("\\t\\r%d", windat->sorders[sorder].left);
+
+		stringbuild_report_line(report, 0);
 	}
 
 	hourglass_off();

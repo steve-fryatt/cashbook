@@ -461,8 +461,12 @@ static void report_close_and_calculate(struct report *report)
 
 	/* Set up the display details. */
 
-	strcpy(report->font_normal, config_str_read("ReportFontNormal"));
-	strcpy(report->font_bold, config_str_read("ReportFontBold"));
+	strncpy(report->font_normal, config_str_read("ReportFontNormal"), REPORT_MAX_FONT_NAME);
+	report->font_normal[REPORT_MAX_FONT_NAME - 1] = '\0';
+
+	strncpy(report->font_bold, config_str_read("ReportFontBold"), REPORT_MAX_FONT_NAME);
+	report->font_bold[REPORT_MAX_FONT_NAME - 1] = '\0';
+
 	report->font_size = config_int_read("ReportFontSize") * 16;
 	report->line_spacing = config_int_read("ReportFontLinespace");
 	report->width = report_reflow_content(report);

@@ -328,7 +328,7 @@ static void			sorder_open_sort_window(struct sorder_block *windat, wimp_pointer 
 static osbool			sorder_process_sort_window(enum sort_type order, void *data);
 
 static void			sorder_open_print_window(struct sorder_block *windat, wimp_pointer *ptr, osbool restore);
-static void			sorder_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
+static struct report		*sorder_print(struct report *report, void *data);
 
 static int			sorder_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void			sorder_sort_swap(int index1, int index2, void *data);
@@ -1880,14 +1880,10 @@ static void sorder_open_print_window(struct sorder_block *windat, wimp_pointer *
  *
  * \param *report		The report handle to use for output.
  * \param *data			The standing order window structure to be printed.
- * \param text			TRUE to print in text format; FALSE for graphics.
- * \param format		TRUE to apply text formatting in text mode.
- * \param scale			TRUE to scale width in graphics mode.
- * \param rotate		TRUE to print landscape in grapics mode.
- * \param pagenum		TRUE to include page numbers in graphics mode.
+ * \return			Pointer to the report, or NULL on failure.
  */
 
-static void sorder_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
+static struct report *sorder_print(struct report *report, void *data)
 {
 	struct sorder_block	*windat = data;
 	int			line;
@@ -1895,7 +1891,7 @@ static void sorder_print(struct report *report, void *data, osbool text, osbool 
 	char			rec_char[REC_FIELD_LEN];
 
 	if (report == NULL || windat == NULL)
-		return;
+		return NULL;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 
@@ -1982,7 +1978,7 @@ static void sorder_print(struct report *report, void *data, osbool text, osbool 
 
 	hourglass_off();
 
-	report_close_and_print(report, text, format, scale, rotate, pagenum);
+	return report;
 }
 
 

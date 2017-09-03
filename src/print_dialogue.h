@@ -92,7 +92,7 @@ void print_dialogue_force_windows_closed(struct file_block *file);
  */
 
 void print_dialogue_open_simple(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool restore, char *title, char *report,
-		void (callback) (struct report *, void *, osbool, osbool, osbool, osbool, osbool), void *data);
+		struct report* (callback) (struct report *, void *), void *data);
 
 
 /**
@@ -111,7 +111,7 @@ void print_dialogue_open_simple(struct print_dialogue_block *instance, wimp_poin
  */
 
 void print_dialogue_open_advanced(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool restore, char *title, char *report,
-		void (callback) (struct report *, void *, osbool, osbool, osbool, osbool, osbool, date_t, date_t), void *data);
+		struct report* (callback) (struct report *, void *, date_t, date_t), void *data);
 
 #endif
 

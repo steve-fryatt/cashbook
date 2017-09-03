@@ -238,7 +238,7 @@ static void			report_fill_format_window(struct report *report);
 static void			report_process_format_window(void);
 
 static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
-static void			report_print_window_closed(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
+static struct report		*report_print_window_closed(struct report *report, void *data);
 
 static osbool			report_save_text(char *filename, osbool selection, void *data);
 static osbool			report_save_csv(char *filename, osbool selection, void *data);
@@ -1405,23 +1405,19 @@ static void report_open_print_window(struct report *report, wimp_pointer *ptr, o
  *
  * \param *report		Printing-system supplied report handle, which should be NULL.
  * \param *data			The report to be printed.
- * \param text			TRUE to use text mode printing.
- * \param format		TRUE to use formatted text mode printing.
- * \param scale			TRUE to scale graphics printing to the page width.
- * \param rotate		TRUE to rotate graphics printing into Landscape mode.
- * \param pagenum		TRUE to include page numbers in graphics printing.
+ * \return			Pointer to the report to print, or NULL on failure.
  */
 
-static void report_print_window_closed(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
+static struct report *report_print_window_closed(struct report *report, void *data)
 {
 	#ifdef DEBUG
 	debug_printf("Report print received data from simple print window");
 	#endif
 
 	if (report != NULL || data == NULL)
-		return;
+		return NULL;
 
-	report_print(data, text, format, scale, rotate, pagenum);
+	return data;
 }
 
 

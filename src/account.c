@@ -427,7 +427,7 @@ static void			account_fill_section_window(struct account_block *block, int entry
 static osbool			account_process_section_window(void);
 static osbool			account_delete_from_section_window(void);
 static void			account_open_print_window(struct account_window *window, wimp_pointer *ptr, osbool restore);
-static void			account_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum);
+static struct report		*account_print(struct report *report, void *data);
 
 
 
@@ -2314,14 +2314,10 @@ static void account_open_print_window(struct account_window *window, wimp_pointe
  *
  * \param *report		The report handle to use for output.
  * \param *data			The account window structure to be printed.
- * \param text			TRUE to print in text format; FALSE for graphics.
- * \param format		TRUE to apply text formatting in text mode.
- * \param scale			TRUE to scale width in graphics mode.
- * \param rotate		TRUE to print landscape in grapics mode.
- * \param pagenum		TRUE to include page numbers in graphics mode.
+ * \return			Pointer to the report, or NULL on failure.
  */
 
-static void account_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum)
+static struct report *account_print(struct report *report, void *data)
 {
 	struct account_window	*window = data;
 	struct account_block	*instance;
@@ -2330,11 +2326,11 @@ static void account_print(struct report *report, void *data, osbool text, osbool
 	date_t			start, finish;
 
 	if (report == NULL || window == NULL)
-		return;
+		return NULL;
 
 	instance = window->instance;
 	if (instance == NULL || instance->file == NULL)
-		return;
+		return NULL;
 
 	hourglass_on();
 
@@ -2484,7 +2480,7 @@ static void account_print(struct report *report, void *data, osbool text, osbool
 
 	hourglass_off();
 
-	report_close_and_print(report, text, format, scale, rotate, pagenum);
+	return report;
 }
 
 

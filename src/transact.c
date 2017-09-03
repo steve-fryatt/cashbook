@@ -421,7 +421,7 @@ static int			transact_sort_compare(enum sort_type type, int index1, int index2, 
 static void			transact_sort_swap(int index1, int index2, void *data);
 
 static void			transact_open_print_window(struct transact_block *windat, wimp_pointer *ptr, osbool restore);
-static void			transact_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to);
+static struct report		*transact_print(struct report *report, void *data, date_t from, date_t to);
 
 static void			transact_start_direct_save(struct transact_block *windat);
 static osbool			transact_save_file(char *filename, osbool selection, void *data);
@@ -4411,16 +4411,12 @@ static void transact_open_print_window(struct transact_block *windat, wimp_point
  *
  * \param *report		The report handle to use for output.
  * \param *data			The transaction window structure to be printed.
- * \param text			TRUE to print in text format; FALSE for graphics.
- * \param format		TRUE to apply text formatting in text mode.
- * \param scale			TRUE to scale width in graphics mode.
- * \param rotate		TRUE to print landscape in grapics mode.
- * \param pagenum		TRUE to include page numbers in graphics mode.
  * \param from			The date to print from.
  * \param to			The date to print to.
+ * \return			Pointer to the report, or NULL on failure.
  */
 
-static void transact_print(struct report *report, void *data, osbool text, osbool format, osbool scale, osbool rotate, osbool pagenum, date_t from, date_t to)
+static struct report *transact_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct transact_block	*windat = data;
 	int			line;
@@ -4428,7 +4424,7 @@ static void transact_print(struct report *report, void *data, osbool text, osboo
 	char			rec_char[REC_FIELD_LEN];
 
 	if (report == NULL || windat == NULL)
-		return;
+		return NULL;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
 
@@ -4518,7 +4514,7 @@ static void transact_print(struct report *report, void *data, osbool text, osboo
 
 	hourglass_off();
 
-	report_close_and_print(report, text, format, scale, rotate, pagenum);
+	return report;
 }
 
 

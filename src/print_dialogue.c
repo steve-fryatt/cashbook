@@ -155,7 +155,7 @@ static void				*print_dialogue_client_data = NULL;				/**< Client data to be pas
 
 /* Simple print window handling. */
 
-static void			(*print_dialogue_simple_callback) (struct report *, void *, osbool, osbool, osbool, osbool, osbool);
+static struct report*		(*print_dialogue_simple_callback) (struct report *, void *);
 //static char			print_dialogue_simple_title_token[PRINT_MAX_TOKEN_LEN];			/**< The message token for the Simple Print window title.			*/
 //static char			print_dialogue_simple_report_token[PRINT_MAX_TOKEN_LEN];		/**< The message token for the Simple Print report title.			*/
 //static struct file_block	*print_dialogue_simple_file = NULL;					/**< The file currently owning the Simple Print window.				*/
@@ -163,7 +163,7 @@ static void			(*print_dialogue_simple_callback) (struct report *, void *, osbool
 
 /* Date-range print window handling. */
 
-static void			(*print_dialogue_advanced_callback) (struct report *, void *, osbool, osbool, osbool, osbool, osbool, date_t, date_t);
+static struct report*		(*print_dialogue_advanced_callback) (struct report *, void *, date_t, date_t);
 //static char			print_dialogue_advanced_title_token[PRINT_MAX_TOKEN_LEN];		/**< The message token for the Advanced Print window title.			*/
 //static char			print_dialogue_advanced_report_token[PRINT_MAX_TOKEN_LEN];		/**< The message token for the Advanced Print window report.			*/
 //static struct file_block	*print_dialogue_advanced_file = NULL;					/**< The file currently owning the Advanced Print window.			*/
@@ -332,7 +332,7 @@ void print_dialogue_force_windows_closed(struct file_block *file)
  */
 
 void print_dialogue_open_simple(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool restore, char *title, char *report,
-		void (callback) (struct report *, void *, osbool, osbool, osbool, osbool, osbool), void *data)
+		struct report* (callback) (struct report *, void *), void *data)
 {
 	if (instance == NULL)
 		return;
@@ -371,7 +371,7 @@ void print_dialogue_open_simple(struct print_dialogue_block *instance, wimp_poin
  */
 
 void print_dialogue_open_advanced(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool restore, char *title, char *report,
-		void (callback) (struct report *, void *, osbool, osbool, osbool, osbool, osbool, date_t, date_t), void *data)
+		struct report* (callback) (struct report *, void *, date_t, date_t), void *data)
 {
 	if (instance == NULL)
 		return;
@@ -630,7 +630,7 @@ static void print_dialogue_fill_simple_window(struct print_dialogue_block *print
 static void print_dialogue_process_simple_window(void)
 {
 	char		print_line[PRINT_MAX_LINE_LEN];
-	struct report	*report;
+	struct report	*report_in, *report_out;
 
 	#ifdef DEBUG
 	debug_printf("\\BProcessing the Simple Print window");
@@ -647,16 +647,22 @@ static void print_dialogue_process_simple_window(void)
 	if (!stringbuild_initialise(print_line, PRINT_MAX_LINE_LEN))
 		return;
 
-	report = print_dialogue_create_report();
+	report_in = print_dialogue_create_report();
 
-	print_dialogue_simple_callback(report, print_dialogue_client_data,
+	report_out = print_dialogue_simple_callback(report_in, print_dialogue_client_data);
+
+	stringbuild_cancel();
+
+	if (report_in != NULL && report_out == NULL)
+		report_delete(report_in);
+
+	if (report_out != NULL)
+		report_close_and_print(report_out,
 			print_dialogue_current_instance->text,
 			print_dialogue_current_instance->text_format,
 			print_dialogue_current_instance->fit_width,
 			print_dialogue_current_instance->rotate,
 			print_dialogue_current_instance->page_numbers);
-
-	stringbuild_cancel();
 }
 
 
@@ -742,7 +748,7 @@ static void print_dialogue_fill_advanced_window(struct print_dialogue_block *pri
 static void print_dialogue_process_advanced_window(void)
 {
 	char		print_line[PRINT_MAX_LINE_LEN];
-	struct report	*report;
+	struct report	*report_in, *report_out;
 
 	#ifdef DEBUG
 	debug_printf("\\BProcessing the Advanced Print window");
@@ -764,18 +770,24 @@ static void print_dialogue_process_advanced_window(void)
 	if (!stringbuild_initialise(print_line, PRINT_MAX_LINE_LEN))
 		return;
 
-	report = print_dialogue_create_report();
+	report_in = print_dialogue_create_report();
 
-	print_dialogue_advanced_callback(report, print_dialogue_client_data,
-			print_dialogue_current_instance->text,
-			print_dialogue_current_instance->text_format,
-			print_dialogue_current_instance->fit_width,
-			print_dialogue_current_instance->rotate,
-			print_dialogue_current_instance->page_numbers,
+	report_out = print_dialogue_advanced_callback(report_in, print_dialogue_client_data,
 			print_dialogue_current_instance->from,
 			print_dialogue_current_instance->to);
 
 	stringbuild_cancel();
+
+	if (report_in != NULL && report_out == NULL)
+		report_delete(report_in);
+
+	if (report_out != NULL)
+		report_close_and_print(report_out,
+			print_dialogue_current_instance->text,
+			print_dialogue_current_instance->text_format,
+			print_dialogue_current_instance->fit_width,
+			print_dialogue_current_instance->rotate,
+			print_dialogue_current_instance->page_numbers);
 }
 
 

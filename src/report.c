@@ -214,6 +214,9 @@ static struct saveas_block	*report_saveas_csv = NULL;			/**< The Save CSV saveas
 static struct saveas_block	*report_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.								*/
 
 
+
+static void			report_close_and_calculate(struct report *report);
+
 static int			report_reflow_content(struct report *report);
 static osbool			report_find_fonts(struct report *report, font_f *normal, font_f *bold);
 
@@ -243,6 +246,7 @@ static osbool			report_save_tsv(char *filename, osbool selection, void *data);
 static void			report_export_text(struct report *report, char *filename, osbool formatting);
 static void			report_export_delimited(struct report *report, char *filename, enum filing_delimit_type format, int filetype);
 
+static void			report_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum);
 static void			report_start_print_job(char *filename);
 static void			report_cancel_print_job(void);
 static void			report_print_as_graphic(struct report *report, osbool fit_width, osbool rotate, osbool pagenum);
@@ -356,9 +360,7 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 
 void report_close(struct report *report)
 {
-	int			linespace;
 	wimp_window_state	parent;
-	struct file_block	*file;
 
 	#ifdef DEBUG
 	debug_printf("\\GClosing report");
@@ -370,30 +372,11 @@ void report_close(struct report *report)
 		return;
 	}
 
-	file = report->file;
-
-	/* Update the data block. */
-
-	flex_extend((flex_ptr) &(report->data), report->data_size);
-	flex_extend((flex_ptr) &(report->line_ptr), sizeof(int) * report->lines);
-
-	report->flags |= REPORT_STATUS_CLOSED;
-
-	/* Set up the display details. */
-
-	strcpy (report->font_normal, config_str_read("ReportFontNormal"));
-	strcpy (report->font_bold, config_str_read("ReportFontBold"));
-	report->font_size = config_int_read("ReportFontSize") * 16;
-	report->line_spacing = config_int_read("ReportFontLinespace");
-	report->width = report_reflow_content(report);
+	report_close_and_calculate(report);
 
 	/* Set up the window title */
 
 	report_window_def->title_data.indirected_text.text = report->window_title;
-
-	/* Size the window. */
-
-	font_convertto_os(1000 * (report->font_size / 16) * report->line_spacing / 100, 0, &linespace, NULL);
 
 	#ifdef DEBUG
 	debug_printf("Report window width: %d", report->width);
@@ -401,14 +384,12 @@ void report_close(struct report *report)
 
 	/* Position the window and open it. */
 
-	transact_get_window_state(file, &parent);
-
-	report->height = report->lines * linespace + REPORT_BOTTOM_MARGIN;
+	transact_get_window_state(report->file, &parent);
 
 	window_set_initial_area(report_window_def,
 			(report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH,
 			(report->height > REPORT_MIN_HEIGHT) ? report->height : REPORT_MIN_HEIGHT,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(report->file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
 	report->window = wimp_create_window(report_window_def);
@@ -439,8 +420,6 @@ void report_close(struct report *report)
 
 void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum)
 {
-	int		linespace;
-
 	#ifdef DEBUG
 	debug_printf("\\GClosing report and starting printing");
 	#endif
@@ -451,43 +430,48 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 		return;
 	}
 
-	/* Update the data block. */
+	report_close_and_calculate(report);
+
+	report_print(report, text, textformat, fitwidth, rotate, pagenum);
+}
+
+
+/**
+ * Close a report, if it is still open, reflow its contents and calculate
+ * its dimensions.
+ *
+ * \param *report		The report to process.
+ */
+
+static void report_close_and_calculate(struct report *report)
+{
+	int	linespace;
+
+	if (report == NULL || (report->flags & REPORT_STATUS_CLOSED))
+		return;
+
+	/* Mark the report as closed. */
+
+	report->flags |= REPORT_STATUS_CLOSED;
+
+	/* Update the data block to the required size. */
 
 	flex_extend((flex_ptr) &(report->data), report->data_size);
 	flex_extend((flex_ptr) &(report->line_ptr), sizeof(int) * report->lines);
 
-	report->flags |= REPORT_STATUS_CLOSED;
-
 	/* Set up the display details. */
 
-	strcpy (report->font_normal, config_str_read("ReportFontNormal"));
-	strcpy (report->font_bold, config_str_read("ReportFontBold"));
+	strcpy(report->font_normal, config_str_read("ReportFontNormal"));
+	strcpy(report->font_bold, config_str_read("ReportFontBold"));
 	report->font_size = config_int_read("ReportFontSize") * 16;
 	report->line_spacing = config_int_read("ReportFontLinespace");
 	report->width = report_reflow_content(report);
 	font_convertto_os(1000 * (report->font_size / 16) * report->line_spacing / 100, 0, &linespace, NULL);
 	report->height = report->lines * linespace + REPORT_BOTTOM_MARGIN;
-
-	/* There isn't a window. */
+	
+	/* For now, there isn't a window. */
 
 	report->window = NULL;
-
-	/* Set up the details needed by the print system and go.
-	 * This hijacks the same process used by the Report Print dialogue in process_report_print_window(), setting
-	 * up the same variables and launching the same Wimp messages.
-	 */
-
-	report_print_report = report;
-
-	report_print_opt_text = text;
-	report_print_opt_textformat = textformat;
-	report_print_opt_fitwidth = fitwidth;
-	report_print_opt_rotate = rotate;
-	report_print_opt_pagenum = pagenum;
-
-	report_print_report->print_pending++;
-
-	print_protocol_send_start_print_save(report_start_print_job, report_cancel_print_job, report_print_opt_text);
 }
 
 
@@ -1437,25 +1421,9 @@ static void report_print_window_closed(struct report *report, void *data, osbool
 	if (report != NULL || data == NULL)
 		return;
 
-	report_print_report = data;
-
-	/* Extract the information. */
-
-	report_print_opt_text = text;
-	report_print_opt_textformat = format;
-	report_print_opt_fitwidth = scale;
-	report_print_opt_rotate = rotate;
-	report_print_opt_pagenum = pagenum;
-
-	/* Start the print dialogue process.
-	 * This process is also used by the direct report print function
-	 * report_close_and_print(), so the two probably can't co-exist.
-	 */
-
-	report_print_report->print_pending++;
-
-	print_protocol_send_start_print_save(report_start_print_job, report_cancel_print_job, report_print_opt_text);
+	report_print(data, text, format, scale, rotate, pagenum);
 }
+
 
 
 
@@ -1712,6 +1680,40 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 	osfile_set_type(filename, (bits) filetype);
 
 	hourglass_off();
+}
+
+
+/**
+ * Send a report off to the printing system.
+ *
+ * \param *data			The report to be printed.
+ * \param text			TRUE to use text mode printing.
+ * \param textformat		TRUE to use formatted text mode printing.
+ * \param fitwidth		TRUE to scale graphics printing to the page width.
+ * \param rotate		TRUE to rotate graphics printing into Landscape mode.
+ * \param pagenum		TRUE to include page numbers in graphics printing.
+ */
+
+static void report_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum)
+{
+	report_print_report = report;
+
+	/* Extract the information. */
+
+	report_print_opt_text = text;
+	report_print_opt_textformat = textformat;
+	report_print_opt_fitwidth = fitwidth;
+	report_print_opt_rotate = rotate;
+	report_print_opt_pagenum = pagenum;
+
+	/* Start the print dialogue process.
+	 * This process is also used by the direct report print function
+	 * report_close_and_print(), so the two probably can't co-exist.
+	 */
+
+	report_print_report->print_pending++;
+
+	print_protocol_send_start_print_save(report_start_print_job, report_cancel_print_job, report_print_opt_text);
 }
 
 

@@ -58,6 +58,7 @@ OBJS = account.o			\
        date.o				\
        edit.o				\
        file.o				\
+       file_info.o			\
        filing.o				\
        find.o				\
        flexutils.o			\

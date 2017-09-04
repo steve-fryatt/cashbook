@@ -80,6 +80,7 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
+#include "file_info.h"
 #include "filing.h"
 #include "find.h"
 #include "flexutils.h"
@@ -193,15 +194,6 @@
 #define TRANS_SORT_ASCENDING 10
 #define TRANS_SORT_DESCENDING 11
 #define TRANS_SORT_ROW 12
-
-#define FILEINFO_ICON_FILENAME 1
-#define FILEINFO_ICON_MODIFIED 3
-#define FILEINFO_ICON_DATE 5
-#define FILEINFO_ICON_ACCOUNTS 9
-#define FILEINFO_ICON_TRANSACT 11
-#define FILEINFO_ICON_HEADINGS 13
-#define FILEINFO_ICON_SORDERS 15
-#define FILEINFO_ICON_PRESETS 17
 
 /* Transaction Window details. */
 
@@ -353,10 +345,6 @@ static struct sort_dialogue_icon transact_sort_directions[] = {				/**< Details 
 
 static struct sort_callback	transact_sort_callbacks;
 
-/* File Info Window. */
-
-static wimp_w			transact_fileinfo_window = NULL;		/**< The handle of the file info window.						*/
-
 /* Transaction List Window. */
 
 static wimp_window		*transact_window_def = NULL;			/**< The definition for the Transaction List Window.					*/
@@ -430,8 +418,6 @@ static osbool			transact_save_tsv(char *filename, osbool selection, void *data);
 static void			transact_export_delimited(struct transact_block *windat, char *filename, enum filing_delimit_type format, int filetype);
 static osbool			transact_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
-static void			transact_prepare_fileinfo(struct file_block *file);
-
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -454,10 +440,6 @@ void transact_initialise(osspriteop_area *sprites)
 	ihelp_add_window(sort_window, "SortTrans", NULL);
 	transact_sort_dialogue = sort_dialogue_create(sort_window, transact_sort_columns, transact_sort_directions,
 			TRANS_SORT_OK, TRANS_SORT_CANCEL, transact_process_sort_window);
-
-	transact_fileinfo_window = templates_create_window("FileInfo");
-	ihelp_add_window(transact_fileinfo_window, "FileInfo", NULL);
-	templates_link_menu_dialogue("file_info", transact_fileinfo_window);
 
 	transact_window_def = templates_load_window("Transact");
 	transact_window_def->icon_count = 0;
@@ -1134,6 +1116,7 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 {
 	struct transact_block	*windat;
 	struct file_block	*file;
+	wimp_w			window;
 	wimp_pointer		pointer;
 	char			*filename;
 
@@ -1161,8 +1144,8 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 		transact_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
 	} else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F1) {
 		wimp_get_pointer_info(&pointer);
-		transact_prepare_fileinfo(file);
-		menus_create_standard_menu((wimp_menu *) transact_fileinfo_window, &pointer);
+		window = file_info_prepare_dialogue(file);
+		menus_create_standard_menu((wimp_menu *) window, &pointer);
 	} else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F2) {
 		delete_file(file);
 	} else if (key->c == wimp_KEY_F3) {
@@ -1479,7 +1462,7 @@ static void transact_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp
 	case MAIN_MENU_SUB_FILE:
 		switch (warning->selection.items[1]) {
 		case MAIN_MENU_FILE_INFO:
-			transact_prepare_fileinfo(windat->file);
+			file_info_prepare_dialogue(windat->file);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 
@@ -5098,33 +5081,3 @@ osbool transact_check_account(struct file_block *file, acct_t account)
 	return found;
 }
 
-
-/**
- * Calculate the details of a file, and fill the file info dialogue.
- *
- * \param *file			The file to display data for.
- */
-
-static void transact_prepare_fileinfo(struct file_block *file)
-{
-	file_get_pathname(file, icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_FILENAME),
-			icons_get_indirected_text_length(transact_fileinfo_window, FILEINFO_ICON_FILENAME));
-
-	if (file_check_for_filepath(file))
-		territory_convert_standard_date_and_time(territory_CURRENT, (os_date_and_time const *) file->datestamp,
-				icons_get_indirected_text_addr(transact_fileinfo_window, FILEINFO_ICON_DATE),
-				icons_get_indirected_text_length(transact_fileinfo_window, FILEINFO_ICON_DATE));
-	else
-		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_DATE, "UnSaved");
-
-	if (file_get_data_integrity(file))
-		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_MODIFIED, "Yes");
-	else
-		icons_msgs_lookup(transact_fileinfo_window, FILEINFO_ICON_MODIFIED, "No");
-
-	icons_printf(transact_fileinfo_window, FILEINFO_ICON_TRANSACT, "%d", transact_get_count(file));
-	icons_printf(transact_fileinfo_window, FILEINFO_ICON_SORDERS, "%d", sorder_get_count(file));
-	icons_printf(transact_fileinfo_window, FILEINFO_ICON_PRESETS, "%d", preset_get_count(file));
-	icons_printf(transact_fileinfo_window, FILEINFO_ICON_ACCOUNTS, "%d", account_count_type_in_file(file, ACCOUNT_FULL));
-	icons_printf(transact_fileinfo_window, FILEINFO_ICON_HEADINGS, "%d", account_count_type_in_file(file, ACCOUNT_IN | ACCOUNT_OUT));
-}

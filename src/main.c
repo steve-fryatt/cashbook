@@ -83,6 +83,7 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
+#include "file_info.h"
 #include "filing.h"
 #include "find.h"
 #include "goto.h"
@@ -332,6 +333,7 @@ static void main_initialise(void)
 	accview_initialise(sprites);
 	sorder_initialise(sprites);
 	preset_initialise(sprites);
+	file_info_initialise();
 	filing_initialise();
 	dataxfer_initialise(main_task_handle, &main_memory_handlers);
 	clipboard_initialise();

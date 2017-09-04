@@ -986,7 +986,10 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 			/* Next date field */
 
-			window_plot_date_field(SORDER_ICON_NEXTDATE, windat->sorders[t].adjusted_next_date, wimp_COLOUR_BLACK);
+			if (windat->sorders[t].adjusted_next_date != NULL_DATE)
+				window_plot_date_field(SORDER_ICON_NEXTDATE, windat->sorders[t].adjusted_next_date, wimp_COLOUR_BLACK);
+			else
+				window_plot_message_field(SORDER_ICON_NEXTDATE, "SOrderStopped", wimp_COLOUR_BLACK);
 
 			/* Left field */
 

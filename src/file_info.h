@@ -24,7 +24,7 @@
 /**
  * \file: file_info.h
  *
- * File Information window implementation.
+ * File Information window interface.
  */
 
 #ifndef CASHBOOK_FILE_INFO

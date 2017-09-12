@@ -81,20 +81,9 @@
 #include "flexutils.h"
 #include "print_dialogue.h"
 #include "print_protocol.h"
+#include "report_format.h"
 #include "transact.h"
 #include "window.h"
-
-
-/* Report format dialogue. */
-
-#define REPORT_FORMAT_OK 13
-#define REPORT_FORMAT_CANCEL 12
-#define REPORT_FORMAT_NFONT 1
-#define REPORT_FORMAT_NFONTMENU 2
-#define REPORT_FORMAT_BFONT 4
-#define REPORT_FORMAT_BFONTMENU 5
-#define REPORT_FORMAT_FONTSIZE 7
-#define REPORT_FORMAT_FONTSPACE 10
 
 /* Report view menu */
 
@@ -114,12 +103,6 @@
  */
 
 #define REPORT_TAB_BARS 5
-
-/**
- * The maximum length of a font name.
- */
-
-#define REPORT_MAX_FONT_NAME 128
 
 enum report_page_area {
 	REPORT_PAGE_NONE   = 0,
@@ -191,7 +174,6 @@ struct report {
 };
 
 
-struct report			*report_format_report = NULL;			/**< The report to which the currently open Report Format window belongs.			*/
 struct report			*report_print_report = NULL;			/**< The report to which the currently open Report Print dialogie belongs.			*/
 
 static osbool			report_print_opt_text;				/**< TRUE if the current report is to be printed text format; FALSE to print graphically.	*/
@@ -203,11 +185,6 @@ static osbool			report_print_opt_pagenum;			/**< TRUE if the graphics format pri
 wimp_window			*report_window_def = NULL;			/**< The definition for the Report View window.							*/
 
 static wimp_menu		*report_view_menu = NULL;			/**< The Report View window menu handle.							*/
-
-static wimp_w			report_format_window = NULL;			/**< Window handle of the Report Format window.							*/
-
-static wimp_menu		*report_format_font_menu = NULL;		/**< The font menu handle.									*/
-static wimp_i			report_format_font_icon = -1;			/**< The pop-up icon which opened the font menu.						*/
 
 static struct saveas_block	*report_saveas_text = NULL;			/**< The Save Text saveas data handle.								*/
 static struct saveas_block	*report_saveas_csv = NULL;			/**< The Save CSV saveas data handle.								*/
@@ -228,14 +205,7 @@ static void			report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_m
 static void			report_view_redraw_handler(wimp_draw *redraw);
 
 static void			report_open_format_window(struct report *report, wimp_pointer *ptr);
-static void			report_format_click_handler(wimp_pointer *pointer);
-static osbool			report_format_keypress_handler(wimp_key *key);
-static void			report_format_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
-static void			report_format_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
-static void			report_format_menu_close_handler(wimp_w w, wimp_menu *menu);
-static void			report_refresh_format_window(void);
-static void			report_fill_format_window(struct report *report);
-static void			report_process_format_window(void);
+static void			report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing);
 
 static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
 static struct report		*report_print_window_closed(struct report *report, void *data);
@@ -263,18 +233,6 @@ static enum report_page_area	report_get_page_areas(osbool rotate, os_box *body, 
 
 void report_initialise(osspriteop_area *sprites)
 {
-	/* Report Format Window. */
-
-	report_format_window = templates_create_window("RepFormat");
-	ihelp_add_window (report_format_window, "RepFormat", NULL);
-	event_add_window_mouse_event(report_format_window, report_format_click_handler);
-	event_add_window_key_event(report_format_window, report_format_keypress_handler);
-	event_add_window_menu_prepare(report_format_window, report_format_menu_prepare_handler);
-	event_add_window_menu_selection(report_format_window, report_format_menu_selection_handler);
-	event_add_window_menu_close(report_format_window, report_format_menu_close_handler);
-	event_add_window_icon_popup(report_format_window, REPORT_FORMAT_NFONTMENU, report_format_font_menu, -1, NULL);
-	event_add_window_icon_popup(report_format_window, REPORT_FORMAT_BFONTMENU, report_format_font_menu, -1, NULL);
-
 	/* Report View Window. */
 
 	report_window_def = templates_load_window("Report");
@@ -506,7 +464,11 @@ void report_delete(struct report *report)
 		report->window = NULL;
 	}
 
-	/* Free the flex bloxks. */
+	/* Close any related dialogues. */
+
+	report_format_force_close(report);
+
+	/* Free the flex blocks. */
 
 	if (report->data != NULL)
 		flexutils_free((void **) &(report->data));
@@ -1081,6 +1043,30 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 
 /**
+ * Force the readraw of all the open reports associated with a file.
+ *
+ * \param *file			The file on which to force a redraw.
+ */
+
+void report_redraw_all(struct file_block *file)
+{
+	struct report *report;
+
+	if (file == NULL)
+		return;
+
+	report = file->reports;
+
+	while (report != NULL) {
+		if (report->window != NULL)
+			windows_redraw(report->window);
+
+		report = report->next;
+	}
+}
+
+
+/**
  * Open the Report Format dialogue for a given report view.
  *
  * \param *report		The report to own the dialogue.
@@ -1089,176 +1075,11 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 {
-	/* If the window is already open, another report format is being edited.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(report_format_window))
-		wimp_close_window(report_format_window);
-
-	/* Set the window contents up. */
-
-	report_fill_format_window(report);
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	report_format_report = report;
-
-	windows_open_centred_at_pointer(report_format_window, ptr);
-	place_dialogue_caret(report_format_window, REPORT_FORMAT_FONTSIZE);
-}
-
-
-/**
- * Process mouse clicks in the Report Format dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void report_format_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case REPORT_FORMAT_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(report_format_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			report_refresh_format_window();
-		break;
-
-	case REPORT_FORMAT_OK:
-		report_process_format_window();
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(report_format_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Report Format window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool report_format_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		report_process_format_window();
-		close_dialogue_with_caret(report_format_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret (report_format_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Process menu prepare events in the Report Format window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- * \param *pointer	The pointer position, or NULL for a re-open.
- */
-
-static void report_format_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
-{
-	report_format_font_menu = fontlist_build();
-	report_format_font_icon = pointer->i;
-	event_set_menu_block(report_format_font_menu);
-	ihelp_add_menu(report_format_font_menu, "FontMenu");
-}
-
-
-/**
- * Process menu selection events in the Report Format window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- * \param *selection	The menu selection details.
- */
-
-static void report_format_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
-{
-	char	*font;
-
-	font = fontlist_decode(selection);
-	if (font == NULL)
+	if (report == NULL || ptr == NULL)
 		return;
 
-	switch (report_format_font_icon) {
-	case REPORT_FORMAT_NFONTMENU:
-		icons_printf(report_format_window, REPORT_FORMAT_NFONT, "%s", font);
-		wimp_set_icon_state(report_format_window, REPORT_FORMAT_NFONT, 0, 0);
-		break;
-
-	case REPORT_FORMAT_BFONTMENU:
-		icons_printf(report_format_window, REPORT_FORMAT_BFONT, "%s", font);
-		wimp_set_icon_state(report_format_window, REPORT_FORMAT_BFONT, 0, 0);
-		break;
-	}
-
-	heap_free(font);
-}
-
-
-/**
- * Process menu close events in the Report Format window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- */
-
-static void report_format_menu_close_handler(wimp_w w, wimp_menu *menu)
-{
-	fontlist_destroy();
-	report_format_font_menu = NULL;
-	report_format_font_icon = -1;
-	ihelp_remove_menu(report_format_font_menu);
-}
-
-
-/**
- * Refresh the contents of the Report Format window.
- */
-
-static void report_refresh_format_window(void)
-{
-	report_fill_format_window(report_format_report);
-	icons_redraw_group(report_format_window, 4, REPORT_FORMAT_NFONT, REPORT_FORMAT_BFONT,
-			REPORT_FORMAT_FONTSIZE, REPORT_FORMAT_FONTSPACE);
-	icons_replace_caret_in_window(report_format_window);
-}
-
-
-/**
- * Update the contents of the Report Format window to reflect the current
- * settings of the given report.
- *
- * \param *report		The report to use.
- */
-
-static void report_fill_format_window(struct report *report)
-{
-	if (report == NULL)
-		return;
-
-	icons_printf(report_format_window, REPORT_FORMAT_NFONT, "%s", report->font_normal);
-	icons_printf(report_format_window, REPORT_FORMAT_BFONT, "%s", report->font_bold);
-
-	icons_printf(report_format_window, REPORT_FORMAT_FONTSIZE, "%d", report->font_size / 16);
-	icons_printf(report_format_window, REPORT_FORMAT_FONTSPACE, "%d", report->line_spacing);
+	report_format_open_window(ptr, report, report_process_format_window,
+			report->font_normal, report->font_bold, report->font_size, report->line_spacing);
 }
 
 
@@ -1266,34 +1087,41 @@ static void report_fill_format_window(struct report *report)
  * Take the contents of an updated report format window and process the data.
  */
 
-static void report_process_format_window(void)
+static void report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing)
 {
 	int			linespace, new_xextent, new_yextent, visible_xextent, visible_yextent, new_xscroll, new_yscroll;
 	os_box			extent;
 	wimp_window_state	state;
 
+	if (report == NULL)
+		return;
+
 	/* Extract the information. */
 
-	strcpy(report_format_report->font_normal, icons_get_indirected_text_addr(report_format_window, REPORT_FORMAT_NFONT));
-	strcpy(report_format_report->font_bold, icons_get_indirected_text_addr(report_format_window, REPORT_FORMAT_BFONT));
-	report_format_report->font_size = atoi (icons_get_indirected_text_addr(report_format_window, REPORT_FORMAT_FONTSIZE)) * 16;
-	report_format_report->line_spacing = atoi(icons_get_indirected_text_addr(report_format_window, REPORT_FORMAT_FONTSPACE));
+	strncpy(report->font_normal, normal, REPORT_MAX_FONT_NAME);
+	report->font_normal[REPORT_MAX_FONT_NAME - 1] = '\0';
+
+	strncpy(report->font_bold, bold, REPORT_MAX_FONT_NAME);
+	report->font_bold[REPORT_MAX_FONT_NAME - 1] = '\0';
+
+	report->font_size = size;
+	report->line_spacing = spacing;
 
 	/* Tidy up and redraw the windows */
 
-	report_format_report->width = report_reflow_content(report_format_report);
-	font_convertto_os(1000 * (report_format_report->font_size / 16) * report_format_report->line_spacing / 100, 0,
+	report->width = report_reflow_content(report);
+	font_convertto_os(1000 * (report->font_size / 16) * report->line_spacing / 100, 0,
 			&linespace, NULL);
-	report_format_report->height = report_format_report->lines * linespace + REPORT_BOTTOM_MARGIN;
+	report->height = report->lines * linespace + REPORT_BOTTOM_MARGIN;
 
 	/* Calculate the next window extents. */
 
-	new_xextent = (report_format_report->width > REPORT_MIN_WIDTH) ? report_format_report->width : REPORT_MIN_WIDTH;
-	new_yextent = (report_format_report->height > REPORT_MIN_HEIGHT) ? -report_format_report->height : -REPORT_MIN_HEIGHT;
+	new_xextent = (report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH;
+	new_yextent = (report->height > REPORT_MIN_HEIGHT) ? -report->height : -REPORT_MIN_HEIGHT;
 
 	/* Get the current window details, and find the extent of the bottom and right of the visible area. */
 
-	state.w = report_format_report->window;
+	state.w = report->window;
 	wimp_get_window_state(&state);
 
 	visible_xextent = state.xscroll + (state.visible.x1 - state.visible.x0);
@@ -1341,47 +1169,9 @@ static void report_process_format_window(void)
 	extent.x1 = new_xextent;
 	extent.y1 = 0;
 	extent.y0 = new_yextent;
-	wimp_set_extent(report_format_report->window, &extent);
+	wimp_set_extent(report->window, &extent);
 
-	windows_redraw(report_format_report->window);
-}
-
-
-/**
- * Force the readraw of all the open reports associated with a file.
- *
- * \param *file			The file on which to force a redraw.
- */
-
-void report_redraw_all(struct file_block *file)
-{
-	struct report *report;
-
-	if (file == NULL)
-		return;
-
-	report = file->reports;
-
-	while (report != NULL) {
-		if (report->window != NULL)
-			windows_redraw(report->window);
-
-		report = report->next;
-	}
-}
-
-
-/**
- * Force the closure of any Report Format windows which are open and relate
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void report_force_windows_closed(struct file_block *file)
-{
-	if (report_format_report != NULL && report_format_report->file == file && windows_get_open(report_format_window))
-		close_dialogue_with_caret(report_format_window);
+	windows_redraw(report->window);
 }
 
 

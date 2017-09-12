@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -24,7 +24,7 @@
 /**
  * \file: report.h
  *
- * High-level report generator implementation.
+ * High-level report generator interface.
  */
 
 #ifndef CASHBOOK_REPORT
@@ -64,6 +64,10 @@
 #define REPORT_BLOCK_SIZE 10240
 #define REPORT_LINE_SIZE 250
 
+/**
+ * The maximum length of a report line.
+ */
+
 #define REPORT_MAX_LINE_LEN 1000
 
 /**
@@ -71,6 +75,12 @@
  */
 
 #define REPORT_TAB_STOPS 20
+
+/**
+ * The maximum length of a font name.
+ */
+
+#define REPORT_MAX_FONT_NAME 128
 
 /* Layout details */
 
@@ -184,15 +194,6 @@ osbool report_get_pending_print_jobs(struct file_block *file);
  */
 
 void report_redraw_all(struct file_block *file);
-
-
-/* Force the closure of any Report Format windows which are open and relate
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void report_force_windows_closed(struct file_block *file);
 
 
 /**

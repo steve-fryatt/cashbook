@@ -1467,7 +1467,7 @@ static void accview_open_print_window(struct accview_window *view, wimp_pointer 
 static struct report *accview_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct accview_window	*view = data;
-	int			line;
+	int			line, sort;
 	tran_t			transaction = 0;
 	enum accview_direction	transaction_direction;
 	date_t			transaction_date;
@@ -1521,7 +1521,8 @@ static struct report *accview_print(struct report *report, void *data, date_t fr
 	/* Output the transaction data as a set of delimited lines. */
 
 	for (line = 0; line < view->display_lines; line++) {
-		transaction = (view->line_data)[(view->line_data)[line].sort_index].transaction;
+		sort = view->line_data[line].sort_index;
+		transaction = view->line_data[sort].transaction;
 
 		transaction_direction = accview_get_transaction_direction(view, transaction);
 		transaction_date = transact_get_date(view->file, transaction);
@@ -1563,7 +1564,7 @@ static struct report *accview_print(struct report *report, void *data, date_t fr
 			}
 
 			stringbuild_add_string("\\t\\r");
-			stringbuild_add_currency(view->line_data[transaction].balance, FALSE);
+			stringbuild_add_currency(view->line_data[sort].balance, FALSE);
 
 			stringbuild_add_printf("\\t%s", transact_get_description(view->file, transaction, NULL, 0));
 

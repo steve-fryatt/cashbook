@@ -1877,7 +1877,7 @@ static struct report *preset_print(struct report *report, void *data)
 		if (windat->presets[preset].flags & TRANS_REC_TO)
 			stringbuild_add_string(rec_char);
 
-		stringbuild_add_printf("\\t%s\\r\\s", account_get_name(windat->file, windat->presets[preset].to));
+		stringbuild_add_printf("\\t%s\\t\\r", account_get_name(windat->file, windat->presets[preset].to));
 
 		/* The Amount column. */
 

@@ -480,17 +480,6 @@ void account_adjust_sorder_trial(struct file_block *file, acct_t account, amt_t 
 
 
 /**
- * Check if an account is used in anywhere in a file.
- *
- * \param *file			The file to check.
- * \param account		The account to check for.
- * \return			TRUE if the account is found; else FALSE.
- */
-
-int account_used_in_file(struct file_block *file, acct_t account);
-
-
-/**
  * Count the number of accounts of a given type in a file.
  *
  * \param *file			The account to use.

@@ -434,7 +434,8 @@ static struct report		*account_print(struct report *report, void *data);
 static void			account_add_to_lists(struct file_block *file, acct_t account);
 static int			account_add_list_display_line(struct file_block *file, int entry);
 static int			account_find_window_entry_from_type(struct file_block *file, enum account_type type);
-static osbool			account_check_account(struct file_block *file, acct_t account);
+static osbool			account_used_in_file(struct account_block *instance, acct_t account);
+static osbool			account_check_account(struct account_block *instance, acct_t account);
 
 
 static void			account_start_drag(struct account_window *windat, int line);
@@ -2026,7 +2027,7 @@ static osbool account_process_hdg_edit_window(void)
 
 static osbool account_delete_from_edit_window(void)
 {
-	if (account_used_in_file(account_edit_owner->file, account_edit_number)) {
+	if (account_used_in_file(account_edit_owner, account_edit_number)) {
 		error_msgs_report_info("CantDelAcct");
 		return FALSE;
 	}
@@ -2670,7 +2671,7 @@ osbool account_delete(struct file_block *file, acct_t account)
 	debug_printf("Trying to delete account %d", account);
 	#endif
 
-	if (account_used_in_file(file, account))
+	if (account_used_in_file(file->accounts, account))
 		return FALSE;
 
 	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
@@ -2736,7 +2737,7 @@ void account_purge(struct file_block *file, osbool accounts, osbool headings)
 		return;
 
 	for (account = 0; account < file->accounts->account_count; account++) {
-		if (!account_used_in_file(file, account) &&
+		if (!account_used_in_file(file->accounts, account) &&
 				((accounts && ((account_get_type(file, account) & ACCOUNT_FULL) != 0)) ||
 				(headings && ((account_get_type(file, account) & (ACCOUNT_IN | ACCOUNT_OUT)) != 0)))) {
 #ifdef DEBUG
@@ -3290,28 +3291,29 @@ amt_t account_get_budget_amount(struct file_block *file, acct_t account)
 /**
  * Check if an account is used in anywhere in a file.
  *
- * \param *file			The file to check.
+ * \param *instance		The accounts instance to check.
  * \param account		The account to check for.
  * \return			TRUE if the account is found; else FALSE.
  */
 
-osbool account_used_in_file(struct file_block *file, acct_t account)
+static osbool account_used_in_file(struct account_block *instance, acct_t account)
 {
-	osbool		found = FALSE;
+	if (instance == NULL || instance->file == NULL)
+		return FALSE;
 
-	if (account_check_account(file, account))
-		found = TRUE;
+	if (account_check_account(instance, account))
+		return TRUE;
 
-	if (transact_check_account(file, account))
-		found = TRUE;
+	if (transact_check_account(instance->file, account))
+		return TRUE;
 
-	if (sorder_check_account(file, account))
-		found = TRUE;
+	if (sorder_check_account(instance->file, account))
+		return TRUE;
 
-	if (preset_check_account(file, account))
-		found = TRUE;
+	if (preset_check_account(instance->file, account))
+		return TRUE;
 
-	return found;
+	return FALSE;
 }
 
 
@@ -3319,22 +3321,22 @@ osbool account_used_in_file(struct file_block *file, acct_t account)
  * Check the accounts in a file to see if the given account is referenced
  * in any of them.
  *
- * \param *file			The file to check.
+ * \param *instance		The accounts instance to check.
  * \param account		The account to search for.
  * \return			TRUE if the account is used; FALSE if not.
  */
 
-static osbool account_check_account(struct file_block *file, acct_t account)
+static osbool account_check_account(struct account_block *instance, acct_t account)
 {
 	int	i;
 
-	if (file == NULL || file->accounts == NULL || file->accounts->accounts == NULL)
+	if (instance == NULL || instance->accounts == NULL)
 		return FALSE;
 
 	/* Check to see if any other accounts offset to this one. */
 
-	for (i = 0; i < file->accounts->account_count; i++) {
-		if (file->accounts->accounts[i].offset_against == account)
+	for (i = 0; i < instance->account_count; i++) {
+		if (instance->accounts[i].offset_against == account)
 			return TRUE;
 	}
 

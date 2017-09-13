@@ -5069,15 +5069,14 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
 osbool transact_check_account(struct file_block *file, acct_t account)
 {
 	int		i;
-	osbool		found = FALSE;
 
 	if (file == NULL || file->transacts == NULL)
 		return FALSE;
 
-	for (i = 0; i < file->transacts->trans_count && !found; i++)
+	for (i = 0; i < file->transacts->trans_count; i++)
 		if (file->transacts->transactions[i].from == account || file->transacts->transactions[i].to == account)
-			found = TRUE;
+			return TRUE;
 
-	return found;
+	return FALSE;
 }
 

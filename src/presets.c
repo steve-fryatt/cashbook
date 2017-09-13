@@ -2487,15 +2487,14 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 osbool preset_check_account(struct file_block *file, acct_t account)
 {
 	int		i;
-	osbool		found = FALSE;
 
 	if (file == NULL || file->presets == NULL)
 		return FALSE;
 
-	for (i = 0; i < file->presets->preset_count && !found; i++)
+	for (i = 0; i < file->presets->preset_count; i++)
 		if (file->presets->presets[i].from == account || file->presets->presets[i].to == account)
-			found = TRUE;
+			return TRUE;
 
-	return found;
+	return FALSE;
 }
 

@@ -2808,16 +2808,15 @@ static void sorder_export_delimited(struct sorder_block *windat, char *filename,
 osbool sorder_check_account(struct file_block *file, int account)
 {
 	int		i;
-	osbool		found = FALSE;
 
 	if (file == NULL || file->sorders == NULL)
 		return FALSE;
 
-	for (i = 0; i < file->sorders->sorder_count && !found; i++)
+	for (i = 0; i < file->sorders->sorder_count; i++)
 		if (file->sorders->sorders[i].from == account || file->sorders->sorders[i].to == account)
-			found = TRUE;
+			return TRUE;
 
-	return found;
+	return FALSE;
 }
 
 

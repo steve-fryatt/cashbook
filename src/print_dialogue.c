@@ -590,14 +590,14 @@ static void print_dialogue_fill_simple_window(struct print_dialogue_block *print
 	windows_title_msgs_param_lookup(print_dialogue_simple_window, print_dialogue_window_title_token, name, NULL, NULL, NULL);
 
 	if (!restore) {
-		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_STANDARD, !config_opt_read ("PrintText"));
-		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_PORTRAIT, !config_opt_read ("PrintRotate"));
-		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_LANDSCAPE, config_opt_read ("PrintRotate"));
-		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_SCALE, config_opt_read ("PrintFitWidth"));
-		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_PNUM, config_opt_read ("PrintPageNumbers"));
+		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_STANDARD, !config_opt_read("PrintText"));
+		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_PORTRAIT, !config_opt_read("PrintRotate"));
+		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_LANDSCAPE, config_opt_read("PrintRotate"));
+		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_SCALE, config_opt_read("PrintFitWidth"));
+		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_PNUM, config_opt_read("PrintPageNumbers"));
 
-		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_FASTTEXT, config_opt_read ("PrintText"));
-		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_TEXTFORMAT, config_opt_read ("PrintTextFormat"));
+		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_FASTTEXT, config_opt_read("PrintText"));
+		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_TEXTFORMAT, config_opt_read("PrintTextFormat"));
 	} else {
 		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_STANDARD, !print_data->text);
 		icons_set_selected(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_PORTRAIT, !print_data->rotate);
@@ -698,14 +698,14 @@ static void print_dialogue_fill_advanced_window(struct print_dialogue_block *pri
 	windows_title_msgs_param_lookup(print_dialogue_advanced_window, print_dialogue_window_title_token, name, NULL, NULL, NULL);
 
 	if (!restore) {
-		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_STANDARD, !config_opt_read ("PrintText"));
-		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_PORTRAIT, !config_opt_read ("PrintRotate"));
-		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_LANDSCAPE, config_opt_read ("PrintRotate"));
-		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_SCALE, config_opt_read ("PrintFitWidth"));
-		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_PNUM, config_opt_read ("PrintPageNumbers"));
+		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_STANDARD, !config_opt_read("PrintText"));
+		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_PORTRAIT, !config_opt_read("PrintRotate"));
+		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_LANDSCAPE, config_opt_read("PrintRotate"));
+		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_SCALE, config_opt_read("PrintFitWidth"));
+		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_PNUM, config_opt_read("PrintPageNumbers"));
 
-		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_FASTTEXT, config_opt_read ("PrintText"));
-		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_TEXTFORMAT, config_opt_read ("PrintTextFormat"));
+		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_FASTTEXT, config_opt_read("PrintText"));
+		icons_set_selected(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_TEXTFORMAT, config_opt_read("PrintTextFormat"));
 
 		*icons_get_indirected_text_addr(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_FROM) = '\0';
 		*icons_get_indirected_text_addr(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_TO) = '\0';

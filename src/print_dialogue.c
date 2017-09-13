@@ -87,6 +87,7 @@
 
 #define PRINT_DIALOGUE_SIMPLE_OK 0
 #define PRINT_DIALOGUE_SIMPLE_CANCEL 1
+#define PRINT_DIALOGUE_SIMPLE_REPORT 9
 #define PRINT_DIALOGUE_SIMPLE_STANDARD 2
 #define PRINT_DIALOGUE_SIMPLE_PORTRAIT 3
 #define PRINT_DIALOGUE_SIMPLE_LANDSCAPE 4
@@ -99,6 +100,7 @@
 
 #define PRINT_DIALOGUE_ADVANCED_OK 0
 #define PRINT_DIALOGUE_ADVANCED_CANCEL 1
+#define PRINT_DIALOGUE_ADVANCED_REPORT 13
 #define PRINT_DIALOGUE_ADVANCED_STANDARD 2
 #define PRINT_DIALOGUE_ADVANCED_PORTRAIT 3
 #define PRINT_DIALOGUE_ADVANCED_LANDSCAPE 4
@@ -155,19 +157,11 @@ static void				*print_dialogue_client_data = NULL;				/**< Client data to be pas
 
 /* Simple print window handling. */
 
-static struct report*		(*print_dialogue_simple_callback) (struct report *, void *);
-//static char			print_dialogue_simple_title_token[PRINT_MAX_TOKEN_LEN];			/**< The message token for the Simple Print window title.			*/
-//static char			print_dialogue_simple_report_token[PRINT_MAX_TOKEN_LEN];		/**< The message token for the Simple Print report title.			*/
-//static struct file_block	*print_dialogue_simple_file = NULL;					/**< The file currently owning the Simple Print window.				*/
-//static osbool			print_dialogue_simple_restore;						/**< The current restore setting for the Simple Print window.			*/
+static struct report*			(*print_dialogue_simple_callback) (struct report *, void *);
 
 /* Date-range print window handling. */
 
-static struct report*		(*print_dialogue_advanced_callback) (struct report *, void *, date_t, date_t);
-//static char			print_dialogue_advanced_title_token[PRINT_MAX_TOKEN_LEN];		/**< The message token for the Advanced Print window title.			*/
-//static char			print_dialogue_advanced_report_token[PRINT_MAX_TOKEN_LEN];		/**< The message token for the Advanced Print window report.			*/
-//static struct file_block	*print_dialogue_advanced_file = NULL;					/**< The file currently owning the Advanced Print window.			*/
-//static osbool			print_dialogue_advanced_restore;					/**< The current restore setting for the Advanced Print window.			*/
+static struct report*			(*print_dialogue_advanced_callback) (struct report *, void *, date_t, date_t);
 
 /* Static Function Prototypes. */
 
@@ -182,13 +176,14 @@ static osbool		print_dialogue_keypress_handler(wimp_key *key);
 
 static void		print_dialogue_refresh_simple_window(void);
 static void		print_dialogue_fill_simple_window(struct print_dialogue_block *print_data, osbool restore);
-static void		print_dialogue_process_simple_window(void);
+static void		print_dialogue_process_simple_window(osbool direct);
 
 static void		print_dialogue_refresh_advanced_window(void);
 static void		print_dialogue_fill_advanced_window(struct print_dialogue_block *print_data, osbool restore);
-static void		print_dialogue_process_advanced_window(void);
+static void		print_dialogue_process_advanced_window(osbool direct);
 
 static struct report	*print_dialogue_create_report(void);
+static void		print_dialogue_process_report(struct print_dialogue_block *instance, struct report *report, osbool direct);
 
 
 /**
@@ -463,7 +458,8 @@ static void print_dialogue_simple_click_handler(wimp_pointer *pointer)
 		break;
 
 	case PRINT_DIALOGUE_SIMPLE_OK:
-		print_dialogue_process_simple_window();
+	case PRINT_DIALOGUE_SIMPLE_REPORT:
+		print_dialogue_process_simple_window(pointer->i == PRINT_DIALOGUE_SIMPLE_OK);
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(print_dialogue_simple_window);
 			print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
@@ -500,7 +496,8 @@ static void print_dialogue_advanced_click_handler(wimp_pointer *pointer)
 		break;
 
 	case PRINT_DIALOGUE_ADVANCED_OK:
-		print_dialogue_process_advanced_window();
+	case PRINT_DIALOGUE_ADVANCED_REPORT:
+		print_dialogue_process_advanced_window(pointer->i == PRINT_DIALOGUE_ADVANCED_REPORT);
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(print_dialogue_advanced_window);
 			print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
@@ -534,10 +531,10 @@ static osbool print_dialogue_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		switch (print_dialogue_window_open) {
 		case PRINTING_DIALOGUE_TYPE_SIMPLE:
-			print_dialogue_process_simple_window();
+			print_dialogue_process_simple_window(TRUE);
 			break;
 		case PRINTING_DIALOGUE_TYPE_ADVANCED:
-			print_dialogue_process_advanced_window();
+			print_dialogue_process_advanced_window(TRUE);
 			break;
 		case PRINTING_DIALOGUE_TYPE_NONE:
 			break;
@@ -623,15 +620,19 @@ static void print_dialogue_fill_simple_window(struct print_dialogue_block *print
 			PRINT_DIALOGUE_SIMPLE_TEXTFORMAT);
 
 	icons_set_shaded(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_OK, error != NULL);
+
+	icons_set_shaded(print_dialogue_simple_window, PRINT_DIALOGUE_SIMPLE_REPORT, *print_dialogue_report_title_token == '\0');
 }
 
 
 /**
  * Process the contents of the Simple Print window, store the details and
  * call the supplied callback function with the details.
+ *
+ * \param direct		TRUE if the report should be printed direct.
  */
 
-static void print_dialogue_process_simple_window(void)
+static void print_dialogue_process_simple_window(osbool direct)
 {
 	char		print_line[PRINT_MAX_LINE_LEN];
 	struct report	*report_in, *report_out;
@@ -660,13 +661,7 @@ static void print_dialogue_process_simple_window(void)
 	if (report_in != NULL && report_out == NULL)
 		report_delete(report_in);
 
-	if (report_out != NULL)
-		report_close_and_print(report_out,
-			print_dialogue_current_instance->text,
-			print_dialogue_current_instance->text_format,
-			print_dialogue_current_instance->fit_width,
-			print_dialogue_current_instance->rotate,
-			print_dialogue_current_instance->page_numbers);
+	print_dialogue_process_report(print_dialogue_current_instance, report_out, direct);
 }
 
 
@@ -741,15 +736,19 @@ static void print_dialogue_fill_advanced_window(struct print_dialogue_block *pri
 			PRINT_DIALOGUE_ADVANCED_TEXTFORMAT);
 
 	icons_set_shaded(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_OK, error != NULL);
+
+	icons_set_shaded(print_dialogue_advanced_window, PRINT_DIALOGUE_ADVANCED_REPORT, *print_dialogue_report_title_token == '\0');
 }
 
 
 /**
  * Process the contents of the Advanced Print window, store the details and
  * call the supplied callback function with the details.
+ *
+ * \param direct		TRUE if the report should be printed direct.
  */
 
-static void print_dialogue_process_advanced_window(void)
+static void print_dialogue_process_advanced_window(osbool direct)
 {
 	char		print_line[PRINT_MAX_LINE_LEN];
 	struct report	*report_in, *report_out;
@@ -785,13 +784,7 @@ static void print_dialogue_process_advanced_window(void)
 	if (report_in != NULL && report_out == NULL)
 		report_delete(report_in);
 
-	if (report_out != NULL)
-		report_close_and_print(report_out,
-			print_dialogue_current_instance->text,
-			print_dialogue_current_instance->text_format,
-			print_dialogue_current_instance->fit_width,
-			print_dialogue_current_instance->rotate,
-			print_dialogue_current_instance->page_numbers);
+	print_dialogue_process_report(print_dialogue_current_instance, report_out, direct);
 }
 
 
@@ -818,5 +811,27 @@ static struct report *print_dialogue_create_report(void)
 		error_msgs_report_error("PrintMemFail");
 
 	return report;
+}
+
+
+/**
+ * Process a report returned from a client.
+ *
+ * \param *instance		The dialogue instance in use.
+ * \param *report		The report to be processed.
+ * \param direct		TRUE if the report should be printed direct.
+ */
+
+static void print_dialogue_process_report(struct print_dialogue_block *instance, struct report *report, osbool direct)
+{
+	if (instance == NULL || report == NULL)
+		return;
+
+	if (direct == TRUE) {
+		report_close_and_print(report, instance->text, instance->text_format,
+				instance->fit_width, instance->rotate, instance->page_numbers);
+	} else {
+		report_close(report);
+	}
 }
 

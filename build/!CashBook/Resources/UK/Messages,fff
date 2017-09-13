@@ -894,6 +894,7 @@ Help.SimplePrint.Scale/Help.DatePrint.Scale/Help.Choices3.Scale:\Stoggle scaling
 Help.SimplePrint.FastText/Help.DatePrint.FastText/Help.Choices3.FastText:\Sprint using a printer's fast text mode instead of outline fonts.
 Help.SimplePrint.TextForm/Help.DatePrint.TextForm/Help.Choices3.TextForm:\Stoggle the use effects (bold and underline) with fast text printing.
 Help.SimplePrint.Print/Help.DatePrint.Print:\Sstart the print job.
+Help.SimplePrint.Report/Help.DatePrint.Report:\Ssend the print job to a report.
 Help.SimplePrint.Cancel/Help.DatePrint.Cancel:\Scancel the print job.
 
 Help.DatePrint.From:\Tdate of the first transaction to include in the print job.

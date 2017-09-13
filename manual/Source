@@ -975,6 +975,8 @@ To print the contents of a window, select <menu>Print...</menu> from the window&
 
 When printing the <window>transaction</window> window or statement view contents, there is an option to restrict the printed dates to a given range: enter dates in the <icon>from</icon> and/or <icon>to</icon> fields as required. If either is left blank, the first and last dates in the file are used respectively. Clicking on <icon>Print</icon> will start the print job.
 
+Instead of sending the print job direct to the printer, it is also possible to send it to a <link ref="Report">report viewer</link> by clicking on <icon>Report</icon>. The resulting report can then be processed further in the same way that any <link ref="Report">analysis report</link> can be.
+
 The default options for printing, including the choice between standard and fast text, are set in the <icon>Printing</icon> section of the <link ref="Config">choices window</link>.
 
 
@@ -1545,6 +1547,7 @@ Alpha release for feedback and comment.
 
 <list>
 <li>Re-implemented analysis report system to make it modular and enable additional reports to be added.
+<li>Allow print jobs to be sent to a report window instead of direct to a printer (ticket&nbsp;#300).
 <li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 

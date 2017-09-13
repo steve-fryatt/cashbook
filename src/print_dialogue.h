@@ -67,16 +67,6 @@ void print_dialogue_delete(struct print_dialogue_block *print);
 
 
 /**
- * Force the closure of any printing windows which are open and relate
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void print_dialogue_force_windows_closed(struct file_block *file);
-
-
-/**
  * Open the Simple Print dialoge box, as used by a number of print routines.
  *
  * \param *instance	The print dialogue instance to own the dialogue.

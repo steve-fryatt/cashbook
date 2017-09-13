@@ -257,8 +257,24 @@ struct print_dialogue_block *print_dialogue_create(struct file_block *file)
 
 void print_dialogue_delete(struct print_dialogue_block *print)
 {
-	if (print != NULL)
-		heap_free(print);
+	if (print == NULL)
+		return;
+
+	/* Close any related dialogues. */
+
+	if (print == print_dialogue_current_instance) {
+		if (windows_get_open(print_dialogue_simple_window))
+			close_dialogue_with_caret(print_dialogue_simple_window);
+
+		if (windows_get_open(print_dialogue_advanced_window))
+			close_dialogue_with_caret(print_dialogue_advanced_window);
+
+		print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
+	}
+
+	/* Free the memory. */
+
+	heap_free(print);
 }
 
 
@@ -287,27 +303,6 @@ static osbool print_dialogue_handle_message_set_printer(wimp_message *message)
 	}
 
 	return TRUE;
-}
-
-
-/* Force the closure of any printing windows which are open and relate
- * to the given file.
- *
- * \param *file			The file data block of interest.
- */
-
-void print_dialogue_force_windows_closed(struct file_block *file)
-{
-	if (print_dialogue_current_instance == NULL || print_dialogue_current_instance->file != file)
-		return;
-
-	if (windows_get_open(print_dialogue_simple_window))
-		close_dialogue_with_caret(print_dialogue_simple_window);
-
-	if (windows_get_open(print_dialogue_advanced_window))
-		close_dialogue_with_caret(print_dialogue_advanced_window);
-
-	print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
 }
 
 

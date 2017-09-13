@@ -375,7 +375,6 @@ void delete_file(struct file_block *file)
 
 	/* Do the same for any file-related dialogues that are open. */
 
-	print_dialogue_force_windows_closed(file);
 	filing_force_windows_closed(file);
 
 	/* Delink the block from the list of open files. */

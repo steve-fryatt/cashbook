@@ -492,7 +492,7 @@ static void print_dialogue_advanced_click_handler(wimp_pointer *pointer)
 
 	case PRINT_DIALOGUE_ADVANCED_OK:
 	case PRINT_DIALOGUE_ADVANCED_REPORT:
-		print_dialogue_process_advanced_window(pointer->i == PRINT_DIALOGUE_ADVANCED_REPORT);
+		print_dialogue_process_advanced_window(pointer->i == PRINT_DIALOGUE_ADVANCED_OK);
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(print_dialogue_advanced_window);
 			print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;

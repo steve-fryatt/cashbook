@@ -936,7 +936,8 @@ static void analysis_transaction_write_file_block(void *block, FILE *out, char *
 
 	if (template->amount_min != NULL_CURRENCY ||
 			template->amount_max != NULL_CURRENCY) {
-		sprintf(buffer, "%x,%x", template->amount_min, template->amount_max);
+		snprintf(buffer, FILING_MAX_FILE_LINE_LEN, "%x,%x", template->amount_min, template->amount_max);
+		buffer[FILING_MAX_FILE_LINE_LEN - 1] = '\0';
 		config_write_token_pair(out, "Amount", buffer);
 	}
 

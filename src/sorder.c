@@ -1736,11 +1736,11 @@ static osbool sorder_process_edit_window(void)
 
 	/* Store the reference. */
 
-	strcpy(sorder_edit_owner->sorders[sorder_edit_number].reference, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_REF));
+	icons_copy_text(sorder_edit_window, SORDER_EDIT_REF, sorder_edit_owner->sorders[sorder_edit_number].reference, TRANSACT_REF_FIELD_LEN);
 
 	/* Store the description. */
 
-	strcpy(sorder_edit_owner->sorders[sorder_edit_number].description, icons_get_indirected_text_addr(sorder_edit_window, SORDER_EDIT_DESC));
+	icons_copy_text(sorder_edit_window, SORDER_EDIT_DESC, sorder_edit_owner->sorders[sorder_edit_number].description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	if (config_opt_read("AutoSortSOrders")) {
 		sorder_sort(sorder_edit_owner);

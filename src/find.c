@@ -543,8 +543,8 @@ static osbool find_process_window(void)
 	if (*icons_get_indirected_text_addr(find_window, FIND_ICON_TOREC) != '\0')
 		find_window_owner->reconciled |= TRANS_REC_TO;
 	find_window_owner->amount = currency_convert_from_string(icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT));
-	strcpy(find_window_owner->ref, icons_get_indirected_text_addr(find_window, FIND_ICON_REF));
-	strcpy(find_window_owner->desc, icons_get_indirected_text_addr(find_window, FIND_ICON_DESC));
+	icons_copy_text(find_window, FIND_ICON_REF, find_window_owner->ref, TRANSACT_REF_FIELD_LEN);
+	icons_copy_text(find_window, FIND_ICON_DESC, find_window_owner->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	/* Read find logic. */
 

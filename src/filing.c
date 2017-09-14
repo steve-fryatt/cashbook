@@ -374,7 +374,7 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 
 	file_set_data_integrity(file, FALSE);
 	
-	strncpy(file->filename, filename);
+	strncpy(file->filename, filename, FILE_MAX_FILENAME);
 	file->filename[FILE_MAX_FILENAME - 1] = '\0';
 
 	transact_build_window_title(file);

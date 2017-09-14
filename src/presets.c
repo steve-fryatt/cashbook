@@ -2221,7 +2221,7 @@ enum transact_field preset_apply(struct file_block *file, preset_t preset, date_
 	/* Update the description. */
 
 	if (*(file->presets->presets[preset].description) != '\0' && strcmp(description, file->presets->presets[preset].description) != 0) {
-		strncpy(description, file->presets->presets[preset].descriptionTRANSACT_DESCRIPT_FIELD_LEN);
+		strncpy(description, file->presets->presets[preset].description, TRANSACT_DESCRIPT_FIELD_LEN);
 		description[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
 		changed |= TRANSACT_FIELD_DESC;
 	}

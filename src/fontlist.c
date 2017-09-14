@@ -120,7 +120,7 @@ char *fontlist_decode(wimp_selection *selection)
 	if ((c = strchr(sub, '\\')) != NULL)
 		*c = '\0';
 
-	length = strlen(sub) + 1
+	length = strlen(sub) + 1;
 	font = heap_alloc(length);
 
 	if (font != NULL) {

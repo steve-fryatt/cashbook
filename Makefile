@@ -74,7 +74,7 @@ OBJS = account.o			\
        purge.o				\
        refdesc_menu.o			\
        report.o				\
-       report_format.o			\
+       report_format_dialogue.o		\
        sorder.o				\
        sort.o				\
        sort_dialogue.o			\

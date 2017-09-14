@@ -81,7 +81,7 @@
 #include "flexutils.h"
 #include "print_dialogue.h"
 #include "print_protocol.h"
-#include "report_format.h"
+#include "report_format_dialogue.h"
 #include "transact.h"
 #include "window.h"
 
@@ -466,7 +466,7 @@ void report_delete(struct report *report)
 
 	/* Close any related dialogues. */
 
-	report_format_force_close(report);
+	report_format_dialogue_force_close(report);
 
 	/* Free the flex blocks. */
 
@@ -1078,7 +1078,7 @@ static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 	if (report == NULL || ptr == NULL)
 		return;
 
-	report_format_open_window(ptr, report, report_process_format_window,
+	report_format_dialogue_open(ptr, report, report_process_format_window,
 			report->font_normal, report->font_bold, report->font_size, report->line_spacing);
 }
 

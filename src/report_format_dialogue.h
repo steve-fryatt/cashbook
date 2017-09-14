@@ -22,19 +22,19 @@
  */
 
 /**
- * \file: report_format.h
+ * \file: report_format_dialogue.h
  *
  * High-level report format dialogue interface.
  */
 
-#ifndef CASHBOOK_REPORT_FORMAT
-#define CASHBOOK_REPORT_FORMAT
+#ifndef CASHBOOK_REPORT_FORMAT_DIALOGUE
+#define CASHBOOK_REPORT_FORMAT_DIALOGUE
 
 /**
  * Initialise the report format dialogue.
  */
 
-void report_format_initialise(void);
+void report_format_dialogue_initialise(void);
 
 
 /**
@@ -49,7 +49,7 @@ void report_format_initialise(void);
  * \param spacing		The initial line spacing.
  */
 
-void report_format_open_window(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int),
+void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int),
 		char *normal, char *bold, int size, int spacing);
 
 
@@ -60,7 +60,7 @@ void report_format_open_window(wimp_pointer *ptr, struct report *report, void (*
  * \param *report		The report to be closed.
  */
 
-void report_format_force_close(struct report *report);
+void report_format_dialogue_force_close(struct report *report);
 
 #endif
 

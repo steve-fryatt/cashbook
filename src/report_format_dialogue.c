@@ -29,41 +29,20 @@
 
 /* ANSI C header files */
 
-#include <math.h>
 #include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 /* Acorn C header files */
-
-#include "flex.h"
 
 /* OSLib header files */
 
 #include "oslib/wimp.h"
-#include "oslib/font.h"
-#include "oslib/hourglass.h"
-#include "oslib/osfile.h"
-#include "oslib/pdriver.h"
-#include "oslib/os.h"
-#include "oslib/osfile.h"
-#include "oslib/osfind.h"
-#include "oslib/colourtrans.h"
 
 /* SF-Lib header files. */
 
-#include "sflib/config.h"
-#include "sflib/dataxfer.h"
-#include "sflib/debug.h"
-#include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/ihelp.h"
-#include "sflib/menus.h"
-#include "sflib/msgs.h"
-#include "sflib/saveas.h"
-#include "sflib/string.h"
 #include "sflib/templates.h"
 #include "sflib/windows.h"
 
@@ -72,18 +51,9 @@
 #include "global.h"
 #include "report_format_dialogue.h"
 
-#include "analysis.h"
-#include "analysis_template_save.h"
 #include "caret.h"
-#include "file.h"
-#include "filing.h"
 #include "fontlist.h"
-#include "flexutils.h"
-#include "print_dialogue.h"
-#include "print_protocol.h"
 #include "report.h"
-#include "transact.h"
-#include "window.h"
 
 /* Dialogue Icons. */
 
@@ -405,10 +375,10 @@ static void report_format_dialogue_process(void)
 
 	/* Extract the information. */
 
-	strcpy(report_format_dialogue_initial_normal, icons_get_indirected_text_addr(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_NFONT));
+	icons_copy_text(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_NFONT, report_format_dialogue_initial_normal, REPORT_MAX_FONT_NAME);
 	report_format_dialogue_initial_normal[REPORT_MAX_FONT_NAME - 1] = '\0';
 
-	strcpy(report_format_dialogue_initial_bold, icons_get_indirected_text_addr(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_BFONT));
+	icons_copy_text(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_BFONT, report_format_dialogue_initial_bold, REPORT_MAX_FONT_NAME);
 	report_format_dialogue_initial_bold[REPORT_MAX_FONT_NAME - 1] = '\0';
 
 	report_format_dialogue_initial_size = atoi(icons_get_indirected_text_addr(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_FONTSIZE)) * 16;
@@ -416,6 +386,8 @@ static void report_format_dialogue_process(void)
 
 	/* Call the client back. */
 
-	report_format_dialogue_callback(report_format_dialogue_report, report_format_dialogue_initial_normal, report_format_dialogue_initial_bold, report_format_dialogue_initial_size, report_format_dialogue_initial_spacing);
+	report_format_dialogue_callback(report_format_dialogue_report,
+			report_format_dialogue_initial_normal, report_format_dialogue_initial_bold, 
+			report_format_dialogue_initial_size, report_format_dialogue_initial_spacing);
 }
 

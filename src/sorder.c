@@ -2737,7 +2737,7 @@ static void sorder_export_delimited(struct sorder_block *windat, char *filename,
 {
 	FILE			*out;
 	int			i, t;
-	char			buffer[256];
+	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
 	out = fopen(filename, "w");
 
@@ -2750,17 +2750,17 @@ static void sorder_export_delimited(struct sorder_block *windat, char *filename,
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_FROM, buffer, sizeof(buffer));
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_FROM, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_TO, buffer, sizeof(buffer));
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_TO, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_AMOUNT, buffer, sizeof(buffer));
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_AMOUNT, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_DESCRIPTION, buffer, sizeof(buffer));
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_DESCRIPTION, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_NEXTDATE, buffer, sizeof(buffer));
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_NEXTDATE, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_LEFT, buffer, sizeof(buffer));
+	icons_copy_text(windat->sorder_pane, SORDER_PANE_LEFT, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the standing order data as a set of delimited lines. */
@@ -2768,24 +2768,25 @@ static void sorder_export_delimited(struct sorder_block *windat, char *filename,
 	for (i=0; i < windat->sorder_count; i++) {
 		t = windat->sorders[i].sort_index;
 
-		account_build_name_pair(windat->file, windat->sorders[t].from, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->sorders[t].from, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->sorders[t].to, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->sorders[t].to, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(windat->sorders[t].normal_amount, buffer, sizeof(buffer));
+		currency_convert_to_string(windat->sorders[t].normal_amount, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		filing_output_delimited_field(out, windat->sorders[t].description, format, DELIMIT_NONE);
 
 		if (windat->sorders[t].adjusted_next_date != NULL_DATE)
-			date_convert_to_string(windat->sorders[t].adjusted_next_date, buffer, sizeof(buffer));
+			date_convert_to_string(windat->sorders[t].adjusted_next_date, buffer, FILING_DELIMITED_FIELD_LEN);
 		else
-			msgs_lookup("SOrderStopped", buffer, sizeof(buffer));
+			msgs_lookup("SOrderStopped", buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		sprintf(buffer, "%d", windat->sorders[t].left);
+		snprintf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", windat->sorders[t].left);
+		buffer[FILING_DELIMITED_FIELD_LEN - 1] = '\0';
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 	}
 

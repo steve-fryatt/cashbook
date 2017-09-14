@@ -4370,7 +4370,7 @@ static void account_export_delimited(struct account_window *windat, char *filena
 {
 	FILE			*out;
 	int			i;
-	char			buffer[256];
+	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
 	if (windat == NULL)
 		return;
@@ -4386,55 +4386,55 @@ static void account_export_delimited(struct account_window *windat, char *filena
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(windat->account_pane, 0, buffer, sizeof(buffer));
+	icons_copy_text(windat->account_pane, ACCOUNT_PANE_NAME, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->account_pane, 1, buffer, sizeof(buffer));
+	icons_copy_text(windat->account_pane, ACCOUNT_PANE_STATEMENT, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->account_pane, 2, buffer, sizeof(buffer));
+	icons_copy_text(windat->account_pane, ACCOUNT_PANE_CURRENT, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->account_pane, 3, buffer, sizeof(buffer));
+	icons_copy_text(windat->account_pane, ACCOUNT_PANE_FINAL, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->account_pane, 4, buffer, sizeof(buffer));
+	icons_copy_text(windat->account_pane, ACCOUNT_PANE_BUDGET, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the transaction data as a set of delimited lines. */
 
 	for (i = 0; i < windat->display_lines; i++) {
 		if (windat->line_data[i].type == ACCOUNT_LINE_DATA) {
-			account_build_name_pair(windat->instance->file, windat->line_data[i].account, buffer, sizeof(buffer));
+			account_build_name_pair(windat->instance->file, windat->line_data[i].account, buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 			switch (windat->type) {
 			case ACCOUNT_FULL:
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].statement_balance, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].statement_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].current_balance, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].current_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].trial_balance, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].trial_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_balance, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 				break;
 
 			case ACCOUNT_IN:
-				currency_convert_to_string(-windat->instance->accounts[windat->line_data[i].account].future_balance, buffer, sizeof(buffer));
+				currency_convert_to_string(-windat->instance->accounts[windat->line_data[i].account].future_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_amount, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_amount, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(-windat->instance->accounts[windat->line_data[i].account].budget_balance, buffer, sizeof(buffer));
+				currency_convert_to_string(-windat->instance->accounts[windat->line_data[i].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_result, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_result, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 				break;
 
 			case ACCOUNT_OUT:
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].future_balance, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].future_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_amount, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_amount, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_balance, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_result, buffer, sizeof(buffer));
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_result, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 				break;
 
@@ -4446,23 +4446,23 @@ static void account_export_delimited(struct account_window *windat, char *filena
 		} else if (windat->line_data[i].type == ACCOUNT_LINE_FOOTER) {
 			filing_output_delimited_field(out, windat->line_data[i].heading, format, DELIMIT_NONE);
 
-			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_STATEMENT], buffer, sizeof(buffer));
+			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_STATEMENT], buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_CURRENT], buffer, sizeof(buffer));
+			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_CURRENT], buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_FINAL], buffer, sizeof(buffer));
+			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_FINAL], buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_BUDGET], buffer, sizeof(buffer));
+			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_BUDGET], buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 		}
 	}
 
 	/* Output the grand total line, taking the text from the window icons. */
 
-	icons_copy_text(windat->account_footer, 0, buffer, sizeof(buffer));
+	icons_copy_text(windat->account_footer, ACCOUNT_FOOTER_NAME, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 	filing_output_delimited_field(out, windat->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT], format, DELIMIT_NUM);
 	filing_output_delimited_field(out, windat->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT], format, DELIMIT_NUM);

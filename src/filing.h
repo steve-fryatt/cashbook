@@ -38,6 +38,12 @@
 
 #define FILING_MAX_FILE_LINE_LEN 1024
 
+/**
+ * The length of a field in a delimited file export.
+ */
+
+#define FILING_DELIMITED_FIELD_LEN 256
+
 enum filing_delimit_type {
 	DELIMIT_TAB,								/**< Fields delimited by tabs.							*/
 	DELIMIT_COMMA,								/**< Fields delimited by commas; text quoted when whitespace requires.		*/

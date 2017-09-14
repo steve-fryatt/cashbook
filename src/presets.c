@@ -2418,7 +2418,7 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 {
 	FILE			*out;
 	int			i, t;
-	char			buffer[256];
+	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
 	out = fopen(filename, "w");
 
@@ -2431,17 +2431,17 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(windat->preset_pane, PRESET_PANE_KEY, buffer, sizeof(buffer));
+	icons_copy_text(windat->preset_pane, PRESET_PANE_KEY, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_NAME, buffer, sizeof(buffer));
+	icons_copy_text(windat->preset_pane, PRESET_PANE_NAME, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_FROM, buffer, sizeof(buffer));
+	icons_copy_text(windat->preset_pane, PRESET_PANE_FROM, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_TO, buffer, sizeof(buffer));
+	icons_copy_text(windat->preset_pane, PRESET_PANE_TO, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_AMOUNT, buffer, sizeof(buffer));
+	icons_copy_text(windat->preset_pane, PRESET_PANE_AMOUNT, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->preset_pane, PRESET_PANE_DESCRIPTION, buffer, sizeof(buffer));
+	icons_copy_text(windat->preset_pane, PRESET_PANE_DESCRIPTION, buffer, FILING_DELIMITED_FIELD_LEN);
 	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
 
 	/* Output the preset data as a set of delimited lines. */
@@ -2449,18 +2449,19 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 	for (i = 0; i < windat->preset_count; i++) {
 		t = windat->presets[i].sort_index;
 
-		sprintf(buffer, "%c", windat->presets[t].action_key);
+		snprintf(buffer, FILING_DELIMITED_FIELD_LEN, "%c", windat->presets[t].action_key);
+		buffer[FILING_DELIMITED_FIELD_LEN - 1] = '\0';
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		filing_output_delimited_field(out, windat->presets[t].name, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->presets[t].from, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->presets[t].from, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->presets[t].to, buffer, sizeof(buffer));
+		account_build_name_pair(windat->file, windat->presets[t].to, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(windat->presets[t].amount, buffer, sizeof(buffer));
+		currency_convert_to_string(windat->presets[t].amount, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		filing_output_delimited_field(out, windat->presets[t].description, format, DELIMIT_LAST);

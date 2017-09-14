@@ -496,10 +496,8 @@ static void analysis_transaction_process_window(struct analysis_block *parent, w
 			analysis_account_idents_to_list(parent, ACCOUNT_FULL | ACCOUNT_OUT,
 			icons_get_indirected_text_addr(window, ANALYSIS_TRANS_TOSPEC),
 			template->to, ANALYSIS_ACC_LIST_LEN);
-	strncpy(template->ref, icons_get_indirected_text_addr(window, ANALYSIS_TRANS_REFSPEC), TRANSACT_REF_FIELD_LEN);
-	template->ref[TRANSACT_REF_FIELD_LEN - 1] = '\0';
-	strncpy(template->desc, icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DESCSPEC), TRANSACT_DESCRIPT_FIELD_LEN);
-	template->desc[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+	icons_copy_text(window, ANALYSIS_TRANS_REFSPEC, template->ref, TRANSACT_REF_FIELD_LEN);
+	icons_copy_text(window, ANALYSIS_TRANS_DESCSPEC, template->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 	template->amount_min = (*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTLOSPEC) == '\0') ?
 			NULL_CURRENCY : currency_convert_from_string(icons_get_indirected_text_addr(window, ANALYSIS_TRANS_AMTLOSPEC));
 

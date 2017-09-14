@@ -301,7 +301,9 @@ void filing_load_cashbook_file(char *filename)
 
 	/* Tidy up, create the transaction window and open it up. */
 
-	strcpy(file->filename, filename);
+	strncpy(file->filename, filename, FILE_MAX_FILENAME);
+	file->filename[FILE_MAX_FILENAME - 1] = '\0';
+
 	sorder_process(file);
 	transact_sort_file_data(file);
 	account_recalculate_all(file);
@@ -371,7 +373,9 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 	/* Update the modified flag and filename for the file block and refresh the window title. */
 
 	file_set_data_integrity(file, FALSE);
-	strcpy(file->filename, filename);
+	
+	strncpy(file->filename, filename);
+	file->filename[FILE_MAX_FILENAME - 1] = '\0';
 
 	transact_build_window_title(file);
 	account_build_window_titles(file);

@@ -2275,13 +2275,15 @@ void sorder_process(struct file_block *file)
 			else
 				amount = file->sorders->sorders[order].normal_amount;
 
-			/* Reference and description are copied out of the block first as pointers are passed in to transact_add_raw_entry ()
+			/* Reference and description are copied out of the block first as pointers are passed in to transact_add_raw_entry()
 			 * and the act of adding the transaction will move the flex block and invalidate those pointers before they
 			 * get used.
 			 */
 
-			strcpy(ref, file->sorders->sorders[order].reference);
-			strcpy(desc, file->sorders->sorders[order].description);
+			strncpy(ref, file->sorders->sorders[order].reference, TRANSACT_REF_FIELD_LEN);
+			ref[TRANSACT_REF_FIELD_LEN - 1] = '\0';
+			strncpy(desc, file->sorders->sorders[order].description, TRANSACT_DESCRIPT_FIELD_LEN);
+			desc[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
 
 			transact_add_raw_entry(file, file->sorders->sorders[order].adjusted_next_date,
 					file->sorders->sorders[order].from, file->sorders->sorders[order].to,

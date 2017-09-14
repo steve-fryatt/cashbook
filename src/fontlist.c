@@ -100,6 +100,7 @@ char *fontlist_decode(wimp_selection *selection)
 {
 	int	size;
 	char	*name, *sub, *c, *font;
+	size_t	length;
 
 	font_decode_menu(0, fontlist_menu, (byte *) selection, 0, 0, NULL, &size);
 	name = heap_alloc(size);
@@ -119,10 +120,13 @@ char *fontlist_decode(wimp_selection *selection)
 	if ((c = strchr(sub, '\\')) != NULL)
 		*c = '\0';
 
-	font = heap_alloc(strlen(sub) + 1);
+	length = strlen(sub) + 1
+	font = heap_alloc(length);
 
-	if (font != NULL)
-		strcpy(font, sub);
+	if (font != NULL) {
+		strncpy(font, sub, length);
+		font[length - 1] = '\0';
+	}
 
 	heap_free(name);
 

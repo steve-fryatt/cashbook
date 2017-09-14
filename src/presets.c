@@ -2206,7 +2206,8 @@ enum transact_field preset_apply(struct file_block *file, preset_t preset, date_
 		account_get_next_cheque_number(file, *from, *to, 1, reference, TRANSACT_REF_FIELD_LEN);
 		changed |= TRANSACT_FIELD_REF;
 	} else if (*(file->presets->presets[preset].reference) != '\0' && strcmp(reference, file->presets->presets[preset].reference) != 0) {
-		strcpy(reference, file->presets->presets[preset].reference);
+		strncpy(reference, file->presets->presets[preset].reference, TRANSACT_REF_FIELD_LEN);
+		reference[TRANSACT_REF_FIELD_LEN - 1] = '\0';
 		changed |= TRANSACT_FIELD_REF;
 	}
 
@@ -2220,7 +2221,8 @@ enum transact_field preset_apply(struct file_block *file, preset_t preset, date_
 	/* Update the description. */
 
 	if (*(file->presets->presets[preset].description) != '\0' && strcmp(description, file->presets->presets[preset].description) != 0) {
-		strcpy(description, file->presets->presets[preset].description);
+		strncpy(description, file->presets->presets[preset].descriptionTRANSACT_DESCRIPT_FIELD_LEN);
+		description[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
 		changed |= TRANSACT_FIELD_DESC;
 	}
 

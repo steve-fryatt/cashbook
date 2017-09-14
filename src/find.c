@@ -618,8 +618,10 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 		find_params.to = new_params->to;
 		find_params.reconciled = new_params->reconciled;
 		find_params.amount = new_params->amount;
-		strcpy(find_params.ref, new_params->ref);
-		strcpy(find_params.desc, new_params->desc);
+		strncpy(find_params.ref, new_params->ref, TRANSACT_REF_FIELD_LEN);
+		find_params.ref[TRANSACT_REF_FIELD_LEN - 1] = '\0';
+		strncpy(find_params.desc, new_params->desc, TRANSACT_DESCRIPT_FIELD_LEN);
+		find_params.desc[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
 
 		find_params.logic = new_params->logic;
 		find_params.case_sensitive = new_params->case_sensitive;
@@ -640,12 +642,14 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 	if ((!find_params.whole_text) && (*(find_params.ref) != '\0'))
 		snprintf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", find_params.ref);
 	else
-		strcpy(ref, find_params.ref);
+		strncpy(ref, find_params.ref, TRANSACT_REF_FIELD_LEN + 2);
+	ref[TRANSACT_REF_FIELD_LEN + 1] = '\0';
 
 	if ((!find_params.whole_text) && (*(find_params.desc) != '\0'))
 		snprintf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", find_params.desc);
 	else
-		strcpy(desc, find_params.desc);
+		strncpy(desc, find_params.desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
+	desc[TRANSACT_DESCRIPT_FIELD_LEN + 1] = '\0';
 
 	/* If the search needs to change direction, do so now. */
 

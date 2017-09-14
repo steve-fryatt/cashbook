@@ -1637,8 +1637,7 @@ static osbool preset_process_edit_window(void)
 
 	/* Store the name. */
 
-	strcpy(preset_edit_owner->presets[preset_edit_number].name,
-			icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_NAME));
+	icons_copy_text(preset_edit_window, PRESET_EDIT_NAME, preset_edit_owner->presets[preset_edit_number].name, PRESET_NAME_LEN);
 
 	/* Store the key. */
 
@@ -1674,15 +1673,14 @@ static osbool preset_process_edit_window(void)
 
 	/* Store the reference. */
 
-	strcpy(preset_edit_owner->presets[preset_edit_number].reference, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_REF));
+	icons_copy_text(preset_edit_window, PRESET_EDIT_REF, preset_edit_owner->presets[preset_edit_number].reference, TRANSACT_REF_FIELD_LEN);
 
 	if (icons_get_selected(preset_edit_window, PRESET_EDIT_CHEQUE))
 		preset_edit_owner->presets[preset_edit_number].flags |= TRANS_TAKE_CHEQUE;
 
 	/* Store the description. */
 
-	strcpy(preset_edit_owner->presets[preset_edit_number].description,
-		icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_DESC));
+	icons_copy_text(preset_edit_window, PRESET_EDIT_DESC, preset_edit_owner->presets[preset_edit_number].description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	/* Store the caret target. */
 

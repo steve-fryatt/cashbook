@@ -99,6 +99,17 @@
 #include "transact.h"
 #include "window.h"
 
+/**
+ * The size of buffer allocated to resource filename processing.
+ */
+
+#define MAIN_FILENAME_BUFFER_LEN 1024
+
+/**
+ * The size of buffer allocated to the task name.
+ */
+
+#define MAIN_TASKNAME_BUFFER_LEN 64
 
 static void		main_poll_loop(void);
 static void		main_initialise(void);
@@ -184,20 +195,22 @@ static void main_poll_loop(void)
 
 static void main_initialise(void)
 {
-	static char			task_name[255];
-	char				resources[255], res_temp[255];
+	static char			task_name[MAIN_TASKNAME_BUFFER_LEN];
+	char				resources[MAIN_FILENAME_BUFFER_LEN], res_temp[MAIN_FILENAME_BUFFER_LEN];
 	osspriteop_area			*sprites;
 
 	wimp_version_no			wimp_version;
 
 	hourglass_on();
 
-	strcpy(resources, "<CashBook$Dir>.Resources");
-	resources_find_path(resources, sizeof(resources));
+	strncpy(resources, "<CashBook$Dir>.Resources", MAIN_FILENAME_BUFFER_LEN);
+	resources[MAIN_FILENAME_BUFFER_LEN - 1] = '\0';
+	resources_find_path(resources, MAIN_FILENAME_BUFFER_LEN);
 
 	/* Load the messages file. */
 
-	snprintf(res_temp, sizeof(res_temp), "%s.Messages", resources);
+	snprintf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Messages", resources);
+	res_temp[MAIN_FILENAME_BUFFER_LEN - 1] = '\0';
 	msgs_initialise(res_temp);
 
 	/* Initialise the error message system. */
@@ -206,7 +219,7 @@ static void main_initialise(void)
 
 	/* Initialise with the Wimp. */
 
-	msgs_lookup("TaskName", task_name, sizeof(task_name));
+	msgs_lookup("TaskName", task_name, MAIN_TASKNAME_BUFFER_LEN);
 	main_task_handle = wimp_initialise(wimp_VERSION_RO38, task_name, NULL, &wimp_version);
 
 	if (tasks_test_for_duplicate(task_name, main_task_handle, "DupTask", "DupTaskB"))
@@ -313,10 +326,12 @@ static void main_initialise(void)
 	if (sprites == NULL)
 		error_msgs_report_fatal("NoSprites");
 
-	sprintf (res_temp, "%s.Menus", resources);
+	sprintf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Menus", resources);
+	res_temp[MAIN_FILENAME_BUFFER_LEN - 1] = '\0';
 	templates_load_menus(res_temp);
 
-	snprintf(res_temp, sizeof(res_temp), "%s.Templates", resources);
+	snprintf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Templates", resources);
+	res_temp[MAIN_FILENAME_BUFFER_LEN - 1] = '\0';
 	templates_open(res_temp);
 
 	saveas_initialise("SaveAs", NULL);

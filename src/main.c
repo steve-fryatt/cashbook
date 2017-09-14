@@ -326,7 +326,7 @@ static void main_initialise(void)
 	if (sprites == NULL)
 		error_msgs_report_fatal("NoSprites");
 
-	sprintf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Menus", resources);
+	snprintf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Menus", resources);
 	res_temp[MAIN_FILENAME_BUFFER_LEN - 1] = '\0';
 	templates_load_menus(res_temp);
 

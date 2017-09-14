@@ -608,7 +608,8 @@ void report_write_line(struct report *report, int bar, char *text)
 	if ((report->flags & REPORT_STATUS_MEMERR) == 0 && (report->flags & REPORT_STATUS_CLOSED) == 0 &&
 			len <= (report->block_size - report->data_size) && report->lines < report->max_lines) {
 		*(report->data + report->data_size) = (char) bar;
-		strcpy(report->data + report->data_size + REPORT_BAR_BYTES, copy);
+		strncpy(report->data + report->data_size + REPORT_BAR_BYTES, copy, report->block_size - (report->data_size + REPORT_BAR_BYTES));
+		*(report->data + report->block_size - 1) = '\0';
 		(report->line_ptr)[report->lines] = report->data_size;
 
 		report->lines++;
@@ -2000,7 +2001,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 	os_error	*error;
 	font_f		font;
 	int		bar, tab = 0, indent, total, width;
-	char		*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN+10];
+	char		*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN + 10];
 
 
 	column = report->data + report->line_ptr[line];
@@ -2028,10 +2029,11 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 		}
 
 		if (*flags & REPORT_FLAG_UNDER) {
-			*(buffer+0) = font_COMMAND_UNDERLINE;
-			*(buffer+1) = 230;
-			*(buffer+2) = 18;
-			strcpy (buffer+3, column);
+			buffer[0] = font_COMMAND_UNDERLINE;
+			buffer[1] = 230;
+			buffer[2] = 18;
+			strncpy(buffer + 3, column, REPORT_MAX_LINE_LEN + 7);
+			buffer[REPORT_MAX_LINE_LEN + 6] = '\0';
 			paint = buffer;
 		} else {
 			paint = column;

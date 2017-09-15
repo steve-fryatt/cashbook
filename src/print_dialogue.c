@@ -29,8 +29,6 @@
 
 /* ANSI C header files */
 
-#include <string.h>
-
 /* Acorn C header files */
 
 /* OSLib header files */
@@ -51,6 +49,7 @@
 #include "sflib/icons.h"
 #include "sflib/ihelp.h"
 #include "sflib/msgs.h"
+#include "sflib/string.h"
 #include "sflib/templates.h"
 #include "sflib/windows.h"
 
@@ -416,19 +415,15 @@ static osbool print_dialogue_open(struct print_dialogue_block *instance, osbool 
 	print_dialogue_current_restore = restore;
 	print_dialogue_client_data = data;
 
-	if (title != NULL) {
-		strncpy(print_dialogue_window_title_token, title, PRINT_MAX_TOKEN_LEN);
-		print_dialogue_report_title_token[PRINT_MAX_TOKEN_LEN - 1] = '\0';
-	} else {
+	if (title != NULL)
+		string_copy(print_dialogue_window_title_token, title, PRINT_MAX_TOKEN_LEN);
+	else
 		*print_dialogue_window_title_token = '\0';
-	}
 
-	if (report != NULL) {
-		strncpy(print_dialogue_report_title_token, report, PRINT_MAX_TOKEN_LEN);
-		print_dialogue_report_title_token[PRINT_MAX_TOKEN_LEN - 1] = '\0';
-	} else {
+	if (report != NULL)
+		string_copy(print_dialogue_report_title_token, report, PRINT_MAX_TOKEN_LEN);
+	else
 		*print_dialogue_report_title_token = '\0';
-	}
 
 	return TRUE;
 }

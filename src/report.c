@@ -98,6 +98,10 @@
 
 #define REPORT_EXPORT_LINE_LENGTH 256
 
+#define REPORT_PRINT_TITLE_LENGTH 1024
+
+#define REPORT_PRINT_BUFFER_LENGTH 10
+
 /**
  * The number of tab bars which can be defined.
  */
@@ -290,8 +294,7 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->max_lines = 0;
 
 	new->window = NULL;
-	strncpy(new->window_title, title, WINDOW_TITLE_LENGTH);
-	new->window_title[WINDOW_TITLE_LENGTH - 1] = '\0';
+	string_copy(new->window_title, title, WINDOW_TITLE_LENGTH);
 
 	if (flex_alloc((flex_ptr) &(new->data), REPORT_BLOCK_SIZE))
 		new->block_size = REPORT_BLOCK_SIZE;
@@ -419,12 +422,8 @@ static void report_close_and_calculate(struct report *report)
 
 	/* Set up the display details. */
 
-	strncpy(report->font_normal, config_str_read("ReportFontNormal"), REPORT_MAX_FONT_NAME);
-	report->font_normal[REPORT_MAX_FONT_NAME - 1] = '\0';
-
-	strncpy(report->font_bold, config_str_read("ReportFontBold"), REPORT_MAX_FONT_NAME);
-	report->font_bold[REPORT_MAX_FONT_NAME - 1] = '\0';
-
+	string_copy(report->font_normal, config_str_read("ReportFontNormal"), REPORT_MAX_FONT_NAME);
+	string_copy(report->font_bold, config_str_read("ReportFontBold"), REPORT_MAX_FONT_NAME);
 	report->font_size = config_int_read("ReportFontSize") * 16;
 	report->line_spacing = config_int_read("ReportFontLinespace");
 	report->width = report_reflow_content(report);
@@ -596,10 +595,10 @@ void report_write_line(struct report *report, int bar, char *text)
 
 	if (report->lines >= report->max_lines) {
 		#ifdef DEBUG
-		debug_printf("Extending line pointer block to %d...", ((report->max_lines + REPORT_LINE_SIZE) * sizeof (int)));
+		debug_printf("Extending line pointer block to %d...", ((report->max_lines + REPORT_LINE_SIZE) * sizeof(int)));
 		#endif
 
-		if (flex_extend((flex_ptr) &(report->line_ptr), (sizeof (int) * (report->max_lines + REPORT_LINE_SIZE))))
+		if (flex_extend((flex_ptr) &(report->line_ptr), (sizeof(int) * (report->max_lines + REPORT_LINE_SIZE))))
 			report->max_lines += REPORT_LINE_SIZE;
 		else
 			report->flags |= REPORT_STATUS_MEMERR;
@@ -608,8 +607,7 @@ void report_write_line(struct report *report, int bar, char *text)
 	if ((report->flags & REPORT_STATUS_MEMERR) == 0 && (report->flags & REPORT_STATUS_CLOSED) == 0 &&
 			len <= (report->block_size - report->data_size) && report->lines < report->max_lines) {
 		*(report->data + report->data_size) = (char) bar;
-		strncpy(report->data + report->data_size + REPORT_BAR_BYTES, copy, report->block_size - (report->data_size + REPORT_BAR_BYTES));
-		*(report->data + report->block_size - 1) = '\0';
+		string_copy(report->data + report->data_size + REPORT_BAR_BYTES, copy, report->block_size - (report->data_size + REPORT_BAR_BYTES));
 		(report->line_ptr)[report->lines] = report->data_size;
 
 		report->lines++;
@@ -1099,12 +1097,8 @@ static void report_process_format_window(struct report *report, char *normal, ch
 
 	/* Extract the information. */
 
-	strncpy(report->font_normal, normal, REPORT_MAX_FONT_NAME);
-	report->font_normal[REPORT_MAX_FONT_NAME - 1] = '\0';
-
-	strncpy(report->font_bold, bold, REPORT_MAX_FONT_NAME);
-	report->font_bold[REPORT_MAX_FONT_NAME - 1] = '\0';
-
+	string_copy(report->font_normal, normal, REPORT_MAX_FONT_NAME);
+	string_copy(report->font_bold, bold, REPORT_MAX_FONT_NAME);
 	report->font_size = size;
 	report->line_spacing = spacing;
 
@@ -1326,8 +1320,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 		do {
 			flags = column;
 			column += REPORT_FLAG_BYTES;
-			string_ctrl_strncpy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
-			buffer[REPORT_EXPORT_LINE_LENGTH - 1] = '\0';
+			string_ctrl_copy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
 
 			escape = (*flags & REPORT_FLAG_BOLD) ? 0x01 : 0x00;
 			if (*flags & REPORT_FLAG_UNDER)
@@ -1443,8 +1436,7 @@ static void report_export_delimited(struct report *report, char *filename, enum 
       {
 		flags = column;
 		column += REPORT_FLAG_BYTES;
-		string_ctrl_strncpy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
-		buffer[REPORT_EXPORT_LINE_LENGTH - 1] = '\0';
+		string_ctrl_copy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
 
 		/* Find the next field. */
 
@@ -1560,7 +1552,8 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	os_box				p_rect, f_rect, rect, body = {0, 0, 0, 0}, footer = {0, 0, 0, 0};
 	os_hom_trfm			p_trfm;
 	os_coord			p_pos, f_pos;
-	char				title[1024], b0[10], b1[10], b2[10], b3[10];
+	char				title[REPORT_PRINT_TITLE_LENGTH];
+	char				b0[REPORT_PRINT_BUFFER_LENGTH], b1[REPORT_PRINT_BUFFER_LENGTH], b2[REPORT_PRINT_BUFFER_LENGTH], b3[REPORT_PRINT_BUFFER_LENGTH];
 	pdriver_features		features;
 	font_f				font_n = 0, font_b = 0;
 	osbool				more;
@@ -1602,7 +1595,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	/* Start a print job. */
 
-	msgs_param_lookup("PJobTitle", title, sizeof(title), report->window_title, NULL, NULL, NULL);
+	msgs_param_lookup("PJobTitle", title, REPORT_PRINT_TITLE_LENGTH, report->window_title, NULL, NULL, NULL);
 	error = xpdriver_select_jobw(out, title, NULL);
 	if (error != NULL) {
 		report_handle_print_error(error, out, font_n, font_b);
@@ -1740,10 +1733,10 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	pages_y = page_y;
 
 	if (pages_x == 1) {
-		snprintf(b1, sizeof(b1), "%d", pages_y);
+		string_printf(b1, REPORT_PRINT_BUFFER_LENGTH, "%d", pages_y);
 	} else {
-		snprintf(b2, sizeof(b2), "%d", pages_x);
-		snprintf(b3, sizeof(b3), "%d", pages_y);
+		string_printf(b2, REPORT_PRINT_BUFFER_LENGTH, "%d", pages_x);
+		string_printf(b3, REPORT_PRINT_BUFFER_LENGTH, "%d", pages_y);
 	}
 
 	/* Set up the transformation matrix scale the page and rotate it as required. */
@@ -1889,14 +1882,14 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 					break;
 
 				case REPORT_PAGE_FOOTER:
-					snprintf(b0, sizeof(b0), "%d", page_y);
+					string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y);
 					if (pages_x == 1) {
-						snprintf(b0, sizeof(b0), "%d", page_y + 1);
-						msgs_param_lookup("Page1", title, sizeof(title), b0, b1, NULL, NULL);
+						string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y + 1);
+						msgs_param_lookup("Page1", title, REPORT_PRINT_TITLE_LENGTH, b0, b1, NULL, NULL);
 					} else {
-						snprintf(b0, sizeof(b0), "%d", page_x + 1);
-						snprintf(b1, sizeof(b1), "%d", page_y + 1);
-						msgs_param_lookup("Page2", title, sizeof(title), b0, b1, b2, b3);
+						string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_x + 1);
+						string_printf(b1, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y + 1);
+						msgs_param_lookup("Page2", title, REPORT_PRINT_TITLE_LENGTH, b0, b1, b2, b3);
 					}
 
 					error = xfont_scan_string(font_n, title, font_KERN | font_GIVEN_FONT,
@@ -2032,8 +2025,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 			buffer[0] = font_COMMAND_UNDERLINE;
 			buffer[1] = 230;
 			buffer[2] = 18;
-			strncpy(buffer + 3, column, REPORT_MAX_LINE_LEN + 7);
-			buffer[REPORT_MAX_LINE_LEN + 6] = '\0';
+			string_copy(buffer + 3, column, REPORT_MAX_LINE_LEN + 7);
 			paint = buffer;
 		} else {
 			paint = column;

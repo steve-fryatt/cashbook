@@ -43,6 +43,7 @@
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/general.h"
+#include "sflib/string.h"
 
 /* Application header files */
 
@@ -222,8 +223,7 @@ static osbool print_protocol_handle_message_print_file(wimp_message *message)
 		print_file->action = message_DATA_LOAD;
 
 		osfile_read_stamped_no_path(filename, NULL, NULL, &(print_file->est_size), NULL, &(print_file->file_type));
-		strncpy(print_file->file_name, filename, 212);
-		print_file->file_name[212 - 1] = '\0';
+		string_copy(print_file->file_name, filename, 212);
 
 		print_file->size = WORDALIGN(45 + strlen (filename));
 

@@ -690,11 +690,9 @@ void analysis_account_list_to_idents(struct analysis_block *instance, char *list
 		account = array[i];
 
 		if (account != NULL_ACCOUNT)
-			strncpy(buffer, account_get_ident(instance->file, account), ACCOUNT_IDENT_LEN);
+			string_copy(buffer, account_get_ident(instance->file, account), ACCOUNT_IDENT_LEN);
 		else
-			strncpy(buffer, "*", ACCOUNT_IDENT_LEN);
-
-		buffer[ACCOUNT_IDENT_LEN - 1] = '\0';
+			string_copy(buffer, "*", ACCOUNT_IDENT_LEN);
 
 		if (strlen(list) > 0 && strlen(list) + 1 < length)
 			strcat(list, ",");

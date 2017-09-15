@@ -301,8 +301,7 @@ void filing_load_cashbook_file(char *filename)
 
 	/* Tidy up, create the transaction window and open it up. */
 
-	strncpy(file->filename, filename, FILE_MAX_FILENAME);
-	file->filename[FILE_MAX_FILENAME - 1] = '\0';
+	string_copy(file->filename, filename, FILE_MAX_FILENAME);
 
 	sorder_process(file);
 	transact_sort_file_data(file);
@@ -374,8 +373,7 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 
 	file_set_data_integrity(file, FALSE);
 	
-	strncpy(file->filename, filename, FILE_MAX_FILENAME);
-	file->filename[FILE_MAX_FILENAME - 1] = '\0';
+	string_copy(file->filename, filename, FILE_MAX_FILENAME);
 
 	transact_build_window_title(file);
 	account_build_window_titles(file);
@@ -534,9 +532,8 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 				import_count++;
 			}
 
-			snprintf(log, FILING_LOG_LINE_LENGTH, "%s\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'",
+			string_printf(log, FILING_LOG_LINE_LENGTH, "%s\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'\\t'%s'",
 					b1, date, raw_from, raw_to, ref, amount, description);
-			log[FILING_LOG_LINE_LENGTH - 1] = '\0';
 			report_write_line(file->import_report, 0, log);
 		}
 
@@ -556,11 +553,8 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 
 	report_write_line(file->import_report, 0, "");
 
-	snprintf(b1, FILING_TEMP_BUF_LENGTH, "%d", import_count);
-	b1[FILING_TEMP_BUF_LENGTH - 1] = '\0';
-
-	snprintf(b2, FILING_TEMP_BUF_LENGTH, "%d", reject_count);
-	b2[FILING_TEMP_BUF_LENGTH - 1] = '\0';
+	string_printf(b1, FILING_TEMP_BUF_LENGTH, "%d", import_count);
+	string_printf(b2, FILING_TEMP_BUF_LENGTH, "%d", reject_count);
 
 	msgs_param_lookup("IRTotals", log, FILING_LOG_LINE_LENGTH, b1, b2, NULL, NULL);
 	report_write_line(file->import_report, 0, log);

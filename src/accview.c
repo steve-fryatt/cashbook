@@ -1385,10 +1385,8 @@ static void accview_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 	if (icon == wimp_ICON_WINDOW)
 		return;
 
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, accview_window_def->icons[icon].data.indirected_text.validation, 'N')) {
-		snprintf(buffer, IHELP_INAME_LEN, "Col%d", icon);
-		buffer[IHELP_INAME_LEN - 1] = '\0';
-	}
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, accview_window_def->icons[icon].data.indirected_text.validation, 'N'))
+		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 
 
@@ -2299,8 +2297,7 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 			transaction = (view->line_data)[(view->line_data)[i].sort_index].transaction;
 			transaction_direction = accview_get_transaction_direction(view, transaction);
 
-			snprintf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
-			buffer[FILING_DELIMITED_FIELD_LEN - 1] = '\0';
+			string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 			date_convert_to_string(transact_get_date(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);

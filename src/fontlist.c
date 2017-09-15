@@ -1,4 +1,4 @@
-/* Copyright 2011-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2011-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -34,6 +34,7 @@
 #include "oslib/wimp.h"
 
 #include "sflib/heap.h"
+#include "sflib/string.h"
 
 #include "fontlist.h"
 
@@ -123,10 +124,8 @@ char *fontlist_decode(wimp_selection *selection)
 	length = strlen(sub) + 1;
 	font = heap_alloc(length);
 
-	if (font != NULL) {
-		strncpy(font, sub, length);
-		font[length - 1] = '\0';
-	}
+	if (font != NULL)
+		string_copy(font, sub, length);
 
 	heap_free(name);
 

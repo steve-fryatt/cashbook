@@ -417,8 +417,7 @@ char *analysis_template_get_name(struct analysis_report *template, char *buffer,
 	if (buffer == NULL || length == 0)
 		return template->name;
 
-	strncpy(buffer, template->name, length);
-	buffer[length - 1] = '\0';
+	string_copy(buffer, template->name, length);
 
 	return buffer;
 }
@@ -486,10 +485,8 @@ void analysis_template_store(struct analysis_template_block *instance, struct an
 	if (!analysis_template_valid(instance, template))
 		return;
 
-	if (name != NULL) {
-		strncpy(report->name, name, ANALYSIS_SAVED_NAME_LEN);
-		report->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
-	}
+	if (name != NULL)
+		string_copy(report->name, name, ANALYSIS_SAVED_NAME_LEN);
 
 	destination = analysis_template_address(instance, template);
 	analysis_template_copy(destination, report);
@@ -525,8 +522,7 @@ void analysis_template_rename(struct analysis_template_block *instance, template
 	if (block == NULL)
 		return;
 
-	strncpy(block->name, name, ANALYSIS_SAVED_NAME_LEN);
-	block->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
+	string_copy(block->name, name, ANALYSIS_SAVED_NAME_LEN);
 
 	/* Inform the owning report. */
 
@@ -564,8 +560,7 @@ static void analysis_template_copy(struct analysis_report *to, struct analysis_r
 	debug_printf("Copy template from 0x%x to 0x%x, using copy function 0x%x", from, to, report_details->copy_template);
 #endif
 
-	strncpy(to->name, from->name, ANALYSIS_SAVED_NAME_LEN);
-	to->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
+	string_copy(to->name, from->name, ANALYSIS_SAVED_NAME_LEN);
 
 	to->type = from->type;
 	to->instance = from->instance;
@@ -664,12 +659,10 @@ struct analysis_report *analysis_template_create_new(struct analysis_template_bl
 
 	new->instance = parent;
 	new->type = type;
-	if (name != NULL) {
-		strncpy(new->name, name, ANALYSIS_SAVED_NAME_LEN);
-		new->name[ANALYSIS_SAVED_NAME_LEN - 1] = '\0';
-	} else {
+	if (name != NULL)
+		string_copy(new->name, name, ANALYSIS_SAVED_NAME_LEN);
+	else
 		new->name[0] = '\0';
-	}
 
 	report_details->copy_template(analysis_template_data_from_address(new), data);
 
@@ -861,8 +854,7 @@ void analysis_template_account_list_to_hex(char *list, size_t size, acct_t *arra
 	*list = '\0';
 
 	for (i = 0; i < len; i++) {
-		snprintf(buffer, ANALYSIS_TEMPLATE_HEX_BUFFER_LEN, "%x", array[i]);
-		buffer[ANALYSIS_TEMPLATE_HEX_BUFFER_LEN - 1] = '\0';
+		string_printf(buffer, ANALYSIS_TEMPLATE_HEX_BUFFER_LEN, "%x", array[i]);
 
 		if (strlen(list) > 0 && strlen(list) + 1 < size)
 			strcat(list, ",");

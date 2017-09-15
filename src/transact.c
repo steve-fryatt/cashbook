@@ -798,7 +798,7 @@ static void transact_window_close_handler(wimp_close *close)
 	if (pointer.buttons == wimp_CLICK_ADJUST && file_check_for_filepath(windat->file)) {
 		pathcopy = strdup(windat->file->filename);
 		if (pathcopy != NULL) {
-			snprintf(buffer, sizeof(buffer), "%%Filer_OpenDir %s", string_find_pathname(pathcopy));
+			string_printf(buffer, sizeof(buffer), "%%Filer_OpenDir %s", string_find_pathname(pathcopy));
 			xos_cli(buffer);
 			free(pathcopy);
 		}
@@ -2183,10 +2183,8 @@ static void transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
 	if (icon == wimp_ICON_WINDOW)
 		return;
 
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, transact_window_def->icons[icon].data.indirected_text.validation, 'N')) {
-		snprintf(buffer, IHELP_INAME_LEN, "Col%d", icon);
-		buffer[IHELP_INAME_LEN - 1] = '\0';
-	}
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, transact_window_def->icons[icon].data.indirected_text.validation, 'N'))
+		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 
 
@@ -2405,10 +2403,8 @@ void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, a
 	file->transacts->transactions[new].from = from;
 	file->transacts->transactions[new].to = to;
 	file->transacts->transactions[new].flags = flags;
-	strncpy(file->transacts->transactions[new].reference, (ref != NULL) ? ref : "", TRANSACT_REF_FIELD_LEN);
-	file->transacts->transactions[new].reference[TRANSACT_REF_FIELD_LEN - 1] = '\0';
-	strncpy(file->transacts->transactions[new].description, (description != NULL) ? description : "", TRANSACT_DESCRIPT_FIELD_LEN);
-	file->transacts->transactions[new].description[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+	string_copy(file->transacts->transactions[new].reference, (ref != NULL) ? ref : "", TRANSACT_REF_FIELD_LEN);
+	string_copy(file->transacts->transactions[new].description, (description != NULL) ? description : "", TRANSACT_DESCRIPT_FIELD_LEN);
 	file->transacts->transactions[new].sort_index = new;
 
 	file_set_data_integrity(file, TRUE);
@@ -2635,8 +2631,7 @@ char *transact_get_reference(struct file_block *file, tran_t transaction, char *
 	if (buffer == NULL || length == 0)
 		return file->transacts->transactions[transaction].reference;
 
-	strncpy(buffer, file->transacts->transactions[transaction].reference, length);
-	buffer[length - 1] = '\0';
+	string_copy(buffer, file->transacts->transactions[transaction].reference, length);
 
 	return buffer;
 }
@@ -2675,8 +2670,7 @@ char *transact_get_description(struct file_block *file, tran_t transaction, char
 	if (buffer == NULL || length == 0)
 		return file->transacts->transactions[transaction].description;
 
-	strncpy(buffer, file->transacts->transactions[transaction].description, length);
-	buffer[length - 1] = '\0';
+	string_copy(buffer, file->transacts->transactions[transaction].description, length);
 
 	return buffer;
 }
@@ -3355,8 +3349,7 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 		if (strcmp(file->transacts->transactions[transaction].reference, new_text) == 0)
 			break;
 
-		strncpy(file->transacts->transactions[transaction].reference, new_text, TRANSACT_REF_FIELD_LEN);
-		file->transacts->transactions[transaction].reference[TRANSACT_REF_FIELD_LEN - 1] = '\0';
+		string_copy(file->transacts->transactions[transaction].reference, new_text, TRANSACT_REF_FIELD_LEN);
 		changed = TRUE;
 		break;
 
@@ -3364,8 +3357,7 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 		if (strcmp(file->transacts->transactions[transaction].description, new_text) == 0)
 			break;
 
-		strncpy(file->transacts->transactions[transaction].description, new_text, TRANSACT_DESCRIPT_FIELD_LEN);
-		file->transacts->transactions[transaction].description[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+		string_copy(file->transacts->transactions[transaction].description, new_text, TRANSACT_DESCRIPT_FIELD_LEN);
 		changed = TRUE;
 		break;
 
@@ -3421,8 +3413,7 @@ static osbool transact_edit_get_field(struct edit_data *data)
 		if (data->type != EDIT_FIELD_DISPLAY || data->display.text == NULL || data->display.length == 0)
 			return FALSE;
 
-		snprintf(data->display.text, data->display.length, "%d", transact_get_transaction_number(t));
-		data->display.text[data->display.length - 1] = '\0';
+		string_printf(data->display.text, data->display.length, "%d", transact_get_transaction_number(t));
 		break;
 	case TRANSACT_ICON_DATE:
 		if (data->type != EDIT_FIELD_DATE)
@@ -3454,15 +3445,13 @@ static osbool transact_edit_get_field(struct edit_data *data)
 		if (data->type != EDIT_FIELD_TEXT || data->display.text == NULL || data->display.length == 0)
 			return FALSE;
 
-		strncpy(data->text.text, windat->transactions[t].reference, data->text.length);
-		data->display.text[data->display.length - 1] = '\0';
+		string_copy(data->text.text, windat->transactions[t].reference, data->text.length);
 		break;
 	case TRANSACT_ICON_DESCRIPTION:
 		if (data->type != EDIT_FIELD_TEXT || data->display.text == NULL || data->display.length == 0)
 			return FALSE;
 
-		strncpy(data->text.text, windat->transactions[t].description, data->text.length);
-		data->display.text[data->display.length - 1] = '\0';
+		string_copy(data->text.text, windat->transactions[t].description, data->text.length);
 		break;
 	}
 
@@ -3565,13 +3554,11 @@ static osbool transact_edit_put_field(struct edit_data *data)
 		changed = TRUE;
 		break;
 	case TRANSACT_ICON_REFERENCE:
-		strncpy(windat->transactions[transaction].reference, data->text.text, TRANSACT_REF_FIELD_LEN);
-		windat->transactions[transaction].reference[TRANSACT_REF_FIELD_LEN - 1] = '\0';
+		string_copy(windat->transactions[transaction].reference, data->text.text, TRANSACT_REF_FIELD_LEN);
 		changed = TRUE;
 		break;
 	case TRANSACT_ICON_DESCRIPTION:
-		strncpy(windat->transactions[transaction].description, data->text.text, TRANSACT_DESCRIPT_FIELD_LEN);
-		windat->transactions[transaction].description[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+		string_copy(windat->transactions[transaction].description, data->text.text, TRANSACT_DESCRIPT_FIELD_LEN);
 		changed = TRUE;
 		break;
 	}
@@ -3793,8 +3780,7 @@ static char *transact_complete_description(struct file_block *file, int line, ch
 
 		if (*(file->transacts->transactions[t].description) != '\0' &&
 				string_nocase_strstr(file->transacts->transactions[t].description, buffer) == file->transacts->transactions[t].description) {
-			strncpy(buffer, file->transacts->transactions[t].description, length);
-			buffer[length - 1] = '\0';
+			string_copy(buffer, file->transacts->transactions[t].description, length);
 			break;
 		}
 	}
@@ -4784,8 +4770,7 @@ static void transact_export_delimited(struct transact_block *windat, char *filen
 	for (i=0; i < windat->trans_count; i++) {
 		t = windat->transactions[i].sort_index;
 
-		snprintf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", transact_get_transaction_number(t));
-		buffer[FILING_DELIMITED_FIELD_LEN - 1] = '\0';
+		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", transact_get_transaction_number(t));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		date_convert_to_string(windat->transactions[t].date, buffer, FILING_DELIMITED_FIELD_LEN);

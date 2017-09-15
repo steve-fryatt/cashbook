@@ -484,8 +484,7 @@ static void refdesc_menu_add_entry(struct refdesc_menu_link **entries, int *coun
 	 * heap allocation.
 	 */
 
-	strncpy((*entries)[(*count)].name, new, TRANSACT_DESCRIPT_FIELD_LEN);
-	(*entries)[(*count)].name[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+	string_copy((*entries)[(*count)].name, new, TRANSACT_DESCRIPT_FIELD_LEN);
 	(*count)++;
 
 	/* Extend the block *after* the copy, in anticipation of the next

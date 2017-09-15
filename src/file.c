@@ -29,7 +29,6 @@
 
 /* ANSI C header files */
 
-#include <string.h>
 #include <stdlib.h>
 
 /* Acorn C header files */
@@ -545,12 +544,10 @@ char *file_get_pathname(struct file_block *file, char *path, size_t len)
 		return path;
 	}
 
-	if (*(file->filename) != '\0') {
-		strncpy(path, file->filename, len);
-		path[len - 1] = '\0';
-	} else {
+	if (*(file->filename) != '\0')
+		string_copy(path, file->filename, len);
+	else
 		file_get_default_title(file, path, len);
-	}
 
 	return path;
 }
@@ -597,12 +594,10 @@ char *file_get_leafname(struct file_block *file, char *leaf, size_t len)
 
 	/* Copy the name into the supplied buffer. */
 
-	if (*(file->filename) != '\0') {
-		strncpy(leaf, string_find_leafname(file->filename), len);
-		leaf[len - 1] = '\0';
-	} else {
+	if (*(file->filename) != '\0')
+		string_copy(leaf, string_find_leafname(file->filename), len);
+	else
 		file_get_default_title(file, leaf, len);
-	}
 
 	return leaf;
 }
@@ -630,8 +625,7 @@ static char *file_get_default_title(struct file_block *file, char *name, size_t 
 	if (file == NULL)
 		return name;
 
-	snprintf(number, FILE_DEFAULT_NAME_BUFFER_LEN, "%d", file->untitled_count);
-	number[FILE_DEFAULT_NAME_BUFFER_LEN - 1] = '\0';
+	string_printf(number, FILE_DEFAULT_NAME_BUFFER_LEN, "%d", file->untitled_count);
 	msgs_param_lookup("DefTitle", name, len, number, NULL, NULL, NULL);
 
 	return name;

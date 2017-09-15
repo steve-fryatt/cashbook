@@ -316,15 +316,13 @@ static osbool analysis_lookup_process_window(void)
 	 */
 
 	if (*icon == '\0') {
-		snprintf(ident, ACCOUNT_IDENT_LEN + 1, "%s", account_get_ident(analysis_lookup_file, account));
+		string_printf(ident, ACCOUNT_IDENT_LEN + 1, "%s", account_get_ident(analysis_lookup_file, account));
 	} else {
 		if (index < max_len)
-			snprintf(ident, ACCOUNT_IDENT_LEN + 1, "%s,", account_get_ident(analysis_lookup_file, account));
+			string_printf(ident, ACCOUNT_IDENT_LEN + 1, "%s,", account_get_ident(analysis_lookup_file, account));
 		else
-			snprintf(ident, ACCOUNT_IDENT_LEN + 1, ",%s", account_get_ident(analysis_lookup_file, account));
+			string_printf(ident, ACCOUNT_IDENT_LEN + 1, ",%s", account_get_ident(analysis_lookup_file, account));
 	}
-
-	ident[ACCOUNT_IDENT_LEN] = '\0';
 
 	icons_insert_text(analysis_lookup_parent, analysis_lookup_icon, index, ident, strlen(ident));
 	icons_replace_caret_in_window(analysis_lookup_parent);

@@ -174,8 +174,7 @@ wimp_menu *account_list_menu_build(struct file_block *file)
 			 * well move while the menu is open.  The account number is also stored, to allow the account to be found.
 			 */
 
-			strncpy(account_list_menu_entry_link[line].name, name, ACCOUNT_NAME_LEN);
-			account_list_menu_entry_link[line].name[ACCOUNT_NAME_LEN - 1] = '\0';
+			string_copy(account_list_menu_entry_link[line].name, name, ACCOUNT_NAME_LEN);
 			account_list_menu_entry_link[line].account = account;
 
 			if (strlen(account_list_menu_entry_link[line].name) > width)

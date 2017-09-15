@@ -29,7 +29,6 @@
 
 /* ANSI C header files */
 
-#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -44,6 +43,7 @@
 
 #include "sflib/general.h"
 #include "sflib/msgs.h"
+#include "sflib/string.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -373,7 +373,7 @@ void window_plot_int_field(wimp_i field, int number, wimp_colour colour)
 	icon->flags &= ~wimp_ICON_FG_COLOUR;
 	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
 
-	snprintf(icon->data.indirected_text.text, icon->data.indirected_text.size, "%d", number);
+	string_printf(icon->data.indirected_text.text, icon->data.indirected_text.size, "%d", number);
 
 	wimp_plot_icon(icon);
 }
@@ -394,7 +394,7 @@ void window_plot_char_field(wimp_i field, char character, wimp_colour colour)
 	icon->flags &= ~wimp_ICON_FG_COLOUR;
 	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
 
-	snprintf(icon->data.indirected_text.text, icon->data.indirected_text.size, "%c", character);
+	string_printf(icon->data.indirected_text.text, icon->data.indirected_text.size, "%c", character);
 
 	wimp_plot_icon(icon);
 }
@@ -416,7 +416,7 @@ void window_plot_reconciled_field(wimp_i field, osbool reconciled, wimp_colour c
 	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
 
 	if (reconciled)
-		strncpy(icon->data.indirected_text.text, window_reconciled_symbol, icon->data.indirected_text.size);
+		string_copy(icon->data.indirected_text.text, window_reconciled_symbol, icon->data.indirected_text.size);
 	else
 		*(icon->data.indirected_text.text) = '\0';
 

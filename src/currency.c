@@ -1,4 +1,4 @@
-/* Copyright 2003-2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -41,8 +41,9 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/debug.h"
 #include "sflib/config.h"
+#include "sflib/debug.h"
+#include "sflib/string.h"
 
 /* Application header files */
 
@@ -171,13 +172,11 @@ char *currency_flexible_convert_to_string(amt_t value, char *buffer, size_t leng
 	 */
 
 	places = currency_decimal_places + 1;
-	snprintf(conversion, CURRENCY_FORMAT_LENGTH, "%%0%1dd", places + ((value < 0) ? 1 : 0));
-	conversion[CURRENCY_FORMAT_LENGTH - 1] = '\0';
+	string_printf(conversion, CURRENCY_FORMAT_LENGTH, "%%0%1dd", places + ((value < 0) ? 1 : 0));
 
 	/* Print the number to the buffer and find the end. */
 
-	snprintf(buffer, length, conversion, value);
-	buffer[length - 1] = '\0';
+	string_printf(buffer, length, conversion, value);
 	size = strlen(buffer);
 	end = buffer + size;
 
@@ -258,8 +257,7 @@ amt_t currency_convert_from_string(char *string)
 	 * to skip the leading '-' or '('.
 	 */
 
-	snprintf(copy, CURRENCY_MAX_CONVERSION_LENGTH, "0%s", (negative) ? string + 1 : string);
-	copy[CURRENCY_MAX_CONVERSION_LENGTH - 1] = '\0';
+	string_printf(copy, CURRENCY_MAX_CONVERSION_LENGTH, "0%s", (negative) ? string + 1 : string);
 
 	/* Get the part of the string before the decimal place. If there isn't
 	 * one, then return with an invalid amount.

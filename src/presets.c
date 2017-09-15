@@ -1194,10 +1194,8 @@ static void preset_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 	if (icon == wimp_ICON_WINDOW)
 		return;
 
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, preset_window_def->icons[icon].data.indirected_text.validation, 'N')) {
-		snprintf(buffer, IHELP_INAME_LEN, "Col%d", icon);
-		buffer[IHELP_INAME_LEN - 1] = '\0';
-	}
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, preset_window_def->icons[icon].data.indirected_text.validation, 'N'))
+		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 
 
@@ -1307,8 +1305,7 @@ char *preset_get_name(struct file_block *file, preset_t preset, char *buffer, si
 	if (buffer == NULL || length == 0)
 		return file->presets->presets[preset].name;
 
-	strncpy(buffer, file->presets->presets[preset].name, length);
-	buffer[length - 1] = '\0';
+	string_copy(buffer, file->presets->presets[preset].name, length);
 
 	return buffer;
 }
@@ -1601,8 +1598,7 @@ static osbool preset_process_edit_window(void)
 
 	/* Test that the preset has been given a name, and reject the data if not. */
 
-	string_ctrl_strncpy(copyname, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_NAME), PRESET_NAME_LEN);
-	copyname[PRESET_NAME_LEN - 1] = '\0';
+	string_ctrl_copy(copyname, icons_get_indirected_text_addr(preset_edit_window, PRESET_EDIT_NAME), PRESET_NAME_LEN);
 
 	if (*string_strip_surrounding_whitespace(copyname) == '\0') {
 		error_msgs_report_error("NoPresetName");
@@ -2206,8 +2202,7 @@ enum transact_field preset_apply(struct file_block *file, preset_t preset, date_
 		account_get_next_cheque_number(file, *from, *to, 1, reference, TRANSACT_REF_FIELD_LEN);
 		changed |= TRANSACT_FIELD_REF;
 	} else if (*(file->presets->presets[preset].reference) != '\0' && strcmp(reference, file->presets->presets[preset].reference) != 0) {
-		strncpy(reference, file->presets->presets[preset].reference, TRANSACT_REF_FIELD_LEN);
-		reference[TRANSACT_REF_FIELD_LEN - 1] = '\0';
+		string_copy(reference, file->presets->presets[preset].reference, TRANSACT_REF_FIELD_LEN);
 		changed |= TRANSACT_FIELD_REF;
 	}
 
@@ -2221,8 +2216,7 @@ enum transact_field preset_apply(struct file_block *file, preset_t preset, date_
 	/* Update the description. */
 
 	if (*(file->presets->presets[preset].description) != '\0' && strcmp(description, file->presets->presets[preset].description) != 0) {
-		strncpy(description, file->presets->presets[preset].description, TRANSACT_DESCRIPT_FIELD_LEN);
-		description[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+		string_copy(description, file->presets->presets[preset].description, TRANSACT_DESCRIPT_FIELD_LEN);
 		changed |= TRANSACT_FIELD_DESC;
 	}
 
@@ -2449,8 +2443,7 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 	for (i = 0; i < windat->preset_count; i++) {
 		t = windat->presets[i].sort_index;
 
-		snprintf(buffer, FILING_DELIMITED_FIELD_LEN, "%c", windat->presets[t].action_key);
-		buffer[FILING_DELIMITED_FIELD_LEN - 1] = '\0';
+		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%c", windat->presets[t].action_key);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 		filing_output_delimited_field(out, windat->presets[t].name, format, DELIMIT_NONE);

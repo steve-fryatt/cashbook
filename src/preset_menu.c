@@ -245,11 +245,10 @@ static wimp_menu *preset_menu_build(struct file_block *file)
 
 			line++;
 
-			strncpy(preset_menu_entry_link[line].name, name, PRESET_NAME_LEN);
-			preset_menu_entry_link[line].name[PRESET_NAME_LEN - 1] = '\0';
+			string_copy(preset_menu_entry_link[line].name, name, PRESET_NAME_LEN);
 			preset_menu_entry_link[line].preset = preset;
 
-			if (strlen (preset_menu_entry_link[line].name) > width)
+			if (strlen(preset_menu_entry_link[line].name) > width)
 				width = strlen (preset_menu_entry_link[line].name);
 
 			/* Set the menu and icon flags up. */

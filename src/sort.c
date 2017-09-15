@@ -41,6 +41,7 @@
 /* SF-Lib header files. */
 
 #include "sflib/heap.h"
+#include "sflib/string.h"
 
 /* Application header files */
 
@@ -183,8 +184,7 @@ void sort_write_as_text(struct sort_block *instance, char *buffer, size_t length
 	if (instance == NULL || buffer == NULL || length <= 0)
 		return;
 
-	snprintf(buffer, length, "%x", instance->type);
-	buffer[length - 1] = '\0';
+	string_printf(buffer, length, "%x", instance->type);
 }
 
 

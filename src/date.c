@@ -245,8 +245,7 @@ void date_initialise(void)
 
 	date_sep_out = *config_str_read("DateSepOut");
 
-	strncpy(date_sep_in, config_str_read("DateSepIn"), DATE_SEP_LENGTH);
-	date_sep_in[DATE_SEP_LENGTH - 1] = '\0';
+	string_copy(date_sep_in, config_str_read("DateSepIn"), DATE_SEP_LENGTH);
 
 	/* Set the date format. */
 
@@ -289,16 +288,15 @@ char *date_convert_to_string(date_t date, char *buffer, size_t length)
 
 	switch (date_active_format) {
 	case DATE_FORMAT_DMY:
-		snprintf(buffer, length, "%02d%c%02d%c%04d", day, date_sep_out, month, date_sep_out, year);
+		string_printf(buffer, length, "%02d%c%02d%c%04d", day, date_sep_out, month, date_sep_out, year);
 		break;
 	case DATE_FORMAT_YMD:
-		snprintf(buffer, length, "%04d%c%02d%c%02d", year, date_sep_out, month, date_sep_out, day);
+		string_printf(buffer, length, "%04d%c%02d%c%02d", year, date_sep_out, month, date_sep_out, day);
 		break;
 	case DATE_FORMAT_MDY:
-		snprintf(buffer, length, "%02d%c%02d%c%04d", month, date_sep_out, day, date_sep_out, year);
+		string_printf(buffer, length, "%02d%c%02d%c%04d", month, date_sep_out, day, date_sep_out, year);
 		break;
 	}
-	buffer[length - 1] = '\0';
 
 	return buffer;
 }
@@ -438,8 +436,7 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 
 	/* Take a copy of the string, so that we can parse it with strtok(). */
 
-	strncpy(date, string, DATE_CONVERT_BUFFER_LEN);
-	date[DATE_CONVERT_BUFFER_LEN - 1] = '\0';
+	string_copy(date, string, DATE_CONVERT_BUFFER_LEN);
 
 	/* Split the string up into fields at the separators. */
 

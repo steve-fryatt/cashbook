@@ -1217,10 +1217,8 @@ static void sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord
 	if (icon == wimp_ICON_WINDOW)
 		return;
 
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, sorder_window_def->icons[icon].data.indirected_text.validation, 'N')) {
-		snprintf(buffer, IHELP_INAME_LEN, "Col%d", icon);
-		buffer[IHELP_INAME_LEN - 1] = '\0';
-	}
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, sorder_window_def->icons[icon].data.indirected_text.validation, 'N'))
+		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 
 
@@ -2280,10 +2278,8 @@ void sorder_process(struct file_block *file)
 			 * get used.
 			 */
 
-			strncpy(ref, file->sorders->sorders[order].reference, TRANSACT_REF_FIELD_LEN);
-			ref[TRANSACT_REF_FIELD_LEN - 1] = '\0';
-			strncpy(desc, file->sorders->sorders[order].description, TRANSACT_DESCRIPT_FIELD_LEN);
-			desc[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+			string_copy(ref, file->sorders->sorders[order].reference, TRANSACT_REF_FIELD_LEN);
+			string_copy(desc, file->sorders->sorders[order].description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 			transact_add_raw_entry(file, file->sorders->sorders[order].adjusted_next_date,
 					file->sorders->sorders[order].from, file->sorders->sorders[order].to,

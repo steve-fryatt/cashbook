@@ -203,14 +203,12 @@ static void main_initialise(void)
 
 	hourglass_on();
 
-	strncpy(resources, "<CashBook$Dir>.Resources", MAIN_FILENAME_BUFFER_LEN);
-	resources[MAIN_FILENAME_BUFFER_LEN - 1] = '\0';
+	string_copy(resources, "<CashBook$Dir>.Resources", MAIN_FILENAME_BUFFER_LEN);
 	resources_find_path(resources, MAIN_FILENAME_BUFFER_LEN);
 
 	/* Load the messages file. */
 
-	snprintf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Messages", resources);
-	res_temp[MAIN_FILENAME_BUFFER_LEN - 1] = '\0';
+	string_printf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Messages", resources);
 	msgs_initialise(res_temp);
 
 	/* Initialise the error message system. */
@@ -326,12 +324,10 @@ static void main_initialise(void)
 	if (sprites == NULL)
 		error_msgs_report_fatal("NoSprites");
 
-	snprintf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Menus", resources);
-	res_temp[MAIN_FILENAME_BUFFER_LEN - 1] = '\0';
+	string_printf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Menus", resources);
 	templates_load_menus(res_temp);
 
-	snprintf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Templates", resources);
-	res_temp[MAIN_FILENAME_BUFFER_LEN - 1] = '\0';
+	string_printf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Templates", resources);
 	templates_open(res_temp);
 
 	saveas_initialise("SaveAs", NULL);

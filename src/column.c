@@ -47,6 +47,7 @@
 #include "sflib/event.h"
 #include "sflib/general.h"
 #include "sflib/heap.h"
+#include "sflib/string.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -791,9 +792,9 @@ void column_update_sort_indicator(struct column_block *instance, wimp_icon *indi
 	length = indicator->data.indirected_sprite.size;
 
 	if (sort_order & SORT_ASCENDING)
-		strncpy(sprite, "sortarrd", length);
+		string_copy(sprite, "sortarrd", length);
 	else if (sort_order & SORT_DESCENDING)
-		strncpy(sprite, "sortarru", length);
+		string_copy(sprite, "sortarru", length);
 
 	/* Place the icon in the correct location. */
 

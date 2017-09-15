@@ -29,9 +29,6 @@
 
 /* ANSI C header files */
 
-#include <string.h>
-#include <stdio.h>
-
 /* Acorn C header files */
 
 /* OSLib header files */
@@ -46,7 +43,6 @@
 #include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/ihelp.h"
-#include "sflib/msgs.h"
 #include "sflib/string.h"
 #include "sflib/templates.h"
 #include "sflib/windows.h"
@@ -96,6 +92,8 @@
 #define FOUND_ICON_NEXT 2
 #define FOUND_ICON_NEW 3
 #define FOUND_ICON_INFO 4
+
+#define FIND_MESSAGE_BUFFER_LENGTH 64
 
 /**
  * Search logic options.
@@ -607,7 +605,7 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 	enum find_direction	direction;
 	enum transact_field	result;
 	wimp_pointer		pointer;
-	char			buf1[64], buf2[64], ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
+	char			buf1[FIND_MESSAGE_BUFFER_LENGTH], buf2[FIND_MESSAGE_BUFFER_LENGTH], ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
 
 	/* If new parameters are being supplied, take copies. */
 
@@ -618,10 +616,8 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 		find_params.to = new_params->to;
 		find_params.reconciled = new_params->reconciled;
 		find_params.amount = new_params->amount;
-		strncpy(find_params.ref, new_params->ref, TRANSACT_REF_FIELD_LEN);
-		find_params.ref[TRANSACT_REF_FIELD_LEN - 1] = '\0';
-		strncpy(find_params.desc, new_params->desc, TRANSACT_DESCRIPT_FIELD_LEN);
-		find_params.desc[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+		string_copy(find_params.ref, new_params->ref, TRANSACT_REF_FIELD_LEN);
+		string_copy(find_params.desc, new_params->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
 		find_params.logic = new_params->logic;
 		find_params.case_sensitive = new_params->case_sensitive;
@@ -640,16 +636,14 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 	/* Take local copies of the two text fields, and add bracketing wildcards as necessary. */
 
 	if ((!find_params.whole_text) && (*(find_params.ref) != '\0'))
-		snprintf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", find_params.ref);
+		string_printf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", find_params.ref);
 	else
-		strncpy(ref, find_params.ref, TRANSACT_REF_FIELD_LEN + 2);
-	ref[TRANSACT_REF_FIELD_LEN + 1] = '\0';
+		string_copy(ref, find_params.ref, TRANSACT_REF_FIELD_LEN + 2);
 
 	if ((!find_params.whole_text) && (*(find_params.desc) != '\0'))
-		snprintf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", find_params.desc);
+		string_printf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", find_params.desc);
 	else
-		strncpy(desc, find_params.desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
-	desc[TRANSACT_DESCRIPT_FIELD_LEN + 1] = '\0';
+		string_copy(desc, find_params.desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
 
 	/* If the search needs to change direction, do so now. */
 
@@ -690,10 +684,10 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 
 	transact_place_caret(find_window_owner->file, line, result);
 
-	transact_get_column_name(find_window_owner->file, result, buf1, sizeof(buf1));
-	snprintf(buf2, sizeof(buf2), "%d", transact_get_transaction_number(line));
+	transact_get_column_name(find_window_owner->file, result, buf1, FIND_MESSAGE_BUFFER_LENGTH);
+	string_printf(buf2, FIND_MESSAGE_BUFFER_LENGTH, "%d", transact_get_transaction_number(line));
 
-	msgs_param_lookup("Found", icons_get_indirected_text_addr(find_result_window, FOUND_ICON_INFO), 64, buf1, buf2, NULL, NULL);
+	icons_msgs_param_lookup(find_result_window, FOUND_ICON_INFO, "Found", buf1, buf2, NULL, NULL);
 
 	if (!windows_get_open(find_result_window)) {
 		wimp_get_pointer_info(&pointer);

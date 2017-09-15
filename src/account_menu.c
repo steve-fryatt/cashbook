@@ -501,9 +501,8 @@ static wimp_menu *account_menu_build(struct file_block *file, enum account_menu_
 					 */
 
 
-					strncpy(account_menu_entry_group[line].name, name, ACCOUNT_SECTION_LEN);
-					account_menu_entry_group[line].name[ACCOUNT_SECTION_LEN - 1] = '\0';
-					
+					string_copy(account_menu_entry_group[line].name, name, ACCOUNT_SECTION_LEN);
+
 					if (strlen(account_menu_entry_group[line].name) > width)
 						width = strlen(account_menu_entry_group[line].name);
 
@@ -666,9 +665,8 @@ static wimp_menu *account_menu_build_submenu(wimp_message_menu_warning *submenu)
 				continue;
 			}
 
-			strncpy(account_menu_entry_link[line].name, name, ACCOUNT_NAME_LEN);
-			account_menu_entry_link[line].name[ACCOUNT_NAME_LEN - 1] = '\0';
-			
+			string_copy(account_menu_entry_link[line].name, name, ACCOUNT_NAME_LEN);
+
 			if (strlen(account_menu_entry_link[line].name) > width)
 				width = strlen(account_menu_entry_link[line].name);
 			account_menu_entry_link[line].account = account;

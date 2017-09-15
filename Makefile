@@ -34,6 +34,7 @@ HTMLHELP := manual.html
 
 OBJS = account.o			\
        account_list_menu.o		\
+       account_section_dialogue.o	\
        account_menu.o			\
        accview.o			\
        amenu.o				\

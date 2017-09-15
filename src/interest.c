@@ -954,10 +954,8 @@ static void interest_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
 	if (icon == wimp_ICON_WINDOW)
 		return;
 
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, interest_window_def->icons[icon].data.indirected_text.validation, 'N')) {
-		snprintf(buffer, IHELP_INAME_LEN, "Col%d", icon);
-		buffer[IHELP_INAME_LEN - 1] = '\0';
-	}
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, interest_window_def->icons[icon].data.indirected_text.validation, 'N'))
+		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 
 
@@ -1012,13 +1010,11 @@ char *interest_convert_to_string(rate_t rate, char *buffer, size_t length)
 	 */
 
 	places = interest_decimal_places + 1;
-	snprintf(conversion, INTEREST_FORMAT_LENGTH, "%%0%1dd", places + ((rate < 0) ? 1 : 0));
-	conversion[INTEREST_FORMAT_LENGTH - 1] = '\0';
+	string_printf(conversion, INTEREST_FORMAT_LENGTH, "%%0%1dd", places + ((rate < 0) ? 1 : 0));
 
 	/* Print the number to the buffer and find the end. */
 
-	snprintf(buffer, length, conversion, rate);
-	buffer[length - 1] = '\0';
+	string_printf(buffer, length, conversion, rate);
 	size = strlen(buffer);
 	end = buffer + size;
 

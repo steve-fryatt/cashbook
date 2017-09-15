@@ -874,10 +874,8 @@ static void analysis_transaction_copy_template(void *to, void *from)
 	for (i = 0; i < a->to_count; i++)
 		b->to[i] = a->to[i];
 
-	strncpy(b->ref, a->ref, TRANSACT_REF_FIELD_LEN);
-	b->ref[TRANSACT_REF_FIELD_LEN - 1] = '\0';
-	strncpy(b->desc, a->desc, TRANSACT_DESCRIPT_FIELD_LEN);
-	b->desc[TRANSACT_DESCRIPT_FIELD_LEN - 1] = '\0';
+	string_copy(b->ref, a->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(b->desc, a->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 	b->amount_min = a->amount_min;
 	b->amount_max = a->amount_max;
 
@@ -936,8 +934,7 @@ static void analysis_transaction_write_file_block(void *block, FILE *out, char *
 
 	if (template->amount_min != NULL_CURRENCY ||
 			template->amount_max != NULL_CURRENCY) {
-		snprintf(buffer, FILING_MAX_FILE_LINE_LEN, "%x,%x", template->amount_min, template->amount_max);
-		buffer[FILING_MAX_FILE_LINE_LEN - 1] = '\0';
+		string_printf(buffer, FILING_MAX_FILE_LINE_LEN, "%x,%x", template->amount_min, template->amount_max);
 		config_write_token_pair(out, "Amount", buffer);
 	}
 

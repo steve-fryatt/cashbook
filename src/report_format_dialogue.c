@@ -29,8 +29,6 @@
 
 /* ANSI C header files */
 
-#include <string.h>
-
 /* Acorn C header files */
 
 /* OSLib header files */
@@ -43,6 +41,7 @@
 #include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/ihelp.h"
+#include "sflib/string.h"
 #include "sflib/templates.h"
 #include "sflib/windows.h"
 
@@ -169,11 +168,8 @@ void report_format_dialogue_initialise(void)
 void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int),
 		char *normal, char *bold, int size, int spacing)
 {
-	strncpy(report_format_dialogue_initial_normal, bold, REPORT_MAX_FONT_NAME);
-	report_format_dialogue_initial_normal[REPORT_MAX_FONT_NAME - 1] = '\0';
-
-	strncpy(report_format_dialogue_initial_bold, bold, REPORT_MAX_FONT_NAME);
-	report_format_dialogue_initial_bold[REPORT_MAX_FONT_NAME - 1] = '\0';
+	string_copy(report_format_dialogue_initial_normal, bold, REPORT_MAX_FONT_NAME);
+	string_copy(report_format_dialogue_initial_bold, bold, REPORT_MAX_FONT_NAME);
 
 	report_format_dialogue_initial_size = size;
 	report_format_dialogue_initial_spacing = spacing;

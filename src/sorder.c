@@ -175,6 +175,14 @@
 #define SORDER_TOOLBAR_HEIGHT 132
 #define MIN_SORDER_ENTRIES 10
 
+/* Buffers used in the standing order report. */
+
+#define SORDER_REPORT_LINE_LENGTH 1024
+#define SORDER_REPORT_BUF1_LENGTH 256
+#define SORDER_REPORT_BUF2_LENGTH 32
+#define SORDER_REPORT_BUF3_LENGTH 32
+
+
 /* Standing Order Window column mapping. */
 
 static struct column_map sorder_columns[] = {
@@ -2425,117 +2433,140 @@ void sorder_trial(struct file_block *file)
 void sorder_full_report(struct file_block *file)
 {
 	struct report	*report;
-	int			i;
-	char			line[1024], buffer[256], numbuf1[256], numbuf2[32], numbuf3[32];
+	sorder_t	sorder;
+	char		line[SORDER_REPORT_LINE_LENGTH], numbuf1[SORDER_REPORT_BUF1_LENGTH], numbuf2[SORDER_REPORT_BUF2_LENGTH], numbuf3[SORDER_REPORT_BUF3_LENGTH];
 
 	if (file == NULL || file->sorders == NULL)
 		return;
 
-	msgs_lookup("SORWinT", buffer, sizeof(buffer));
-	report = report_open(file, buffer, NULL);
-
-	if (report == NULL)
+	if (!stringbuild_initialise(line, SORDER_REPORT_LINE_LENGTH))
 		return;
+
+	msgs_lookup("SORWinT", line, SORDER_REPORT_LINE_LENGTH);
+	report = report_open(file, line, NULL);
+
+	if (report == NULL) {
+		stringbuild_cancel();
+		return;
+	}
 
 	hourglass_on();
 
-	msgs_param_lookup("SORTitle", line, sizeof(line), file_get_leafname(file, NULL, 0), NULL, NULL, NULL);
-	report_write_line(report, 0, line);
+	stringbuild_reset();
+	stringbuild_add_message_param("SORTitle", file_get_leafname(file, NULL, 0), NULL, NULL, NULL);
+	stringbuild_report_line(report, 0);
 
-	date_convert_to_string(date_today(), numbuf1, sizeof(numbuf1));
-	msgs_param_lookup("SORHeader", line, sizeof(line), numbuf1, NULL, NULL, NULL);
-	report_write_line(report, 0, line);
+	stringbuild_reset();
+	date_convert_to_string(date_today(), numbuf1, SORDER_REPORT_BUF1_LENGTH);
+	stringbuild_add_message_param("SORHeader", numbuf1, NULL, NULL, NULL);
+	stringbuild_report_line(report, 0);
 
-	snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorders->sorder_count);
-	msgs_param_lookup("SORCount", line, sizeof(line), numbuf1, NULL, NULL, NULL);
-	report_write_line(report, 0, line);
+	stringbuild_reset();
+	string_printf(numbuf1, SORDER_REPORT_BUF1_LENGTH, "%d", file->sorders->sorder_count);
+	stringbuild_add_message_param("SORCount", numbuf1, NULL, NULL, NULL);
+	stringbuild_report_line(report, 0);
 
 	/* Output the data for each of the standing orders in turn. */
 
-	for (i=0; i < file->sorders->sorder_count; i++) {
+	for (sorder = 0; sorder < file->sorders->sorder_count; sorder++) {
 		report_write_line(report, 0, ""); /* Separate each entry with a blank line. */
 
-		snprintf(numbuf1, sizeof(numbuf1), "%d", i+1);
-		msgs_param_lookup("SORNumber", line, sizeof(line), numbuf1, NULL, NULL, NULL);
-		report_write_line(report, 0, line);
+		stringbuild_reset();
+		string_printf(numbuf1, SORDER_REPORT_BUF1_LENGTH, "%d", sorder + 1);
+		stringbuild_add_message_param("SORNumber", numbuf1, NULL, NULL, NULL);
+		stringbuild_report_line(report, 0);
 
-		msgs_param_lookup("SORFrom", line, sizeof(line), account_get_name(file, file->sorders->sorders[i].from), NULL, NULL, NULL);
-		report_write_line(report, 0, line);
+		stringbuild_reset();
+		stringbuild_add_message_param("SORFrom", account_get_name(file, file->sorders->sorders[sorder].from), NULL, NULL, NULL);
+		stringbuild_report_line(report, 0);
 
-		msgs_param_lookup("SORTo", line, sizeof(line), account_get_name(file, file->sorders->sorders[i].to), NULL, NULL, NULL);
-		report_write_line(report, 0, line);
+		stringbuild_reset();
+		stringbuild_add_message_param("SORTo", account_get_name(file, file->sorders->sorders[sorder].to), NULL, NULL, NULL);
+		stringbuild_report_line(report, 0);
 
-		msgs_param_lookup("SORRef", line, sizeof(line), file->sorders->sorders[i].reference, NULL, NULL, NULL);
-		report_write_line(report, 0, line);
+		stringbuild_reset();
+		stringbuild_add_message_param("SORRef", file->sorders->sorders[sorder].reference, NULL, NULL, NULL);
+		stringbuild_report_line(report, 0);
 
-		currency_convert_to_string(file->sorders->sorders[i].normal_amount, numbuf1, sizeof(numbuf1));
-		msgs_param_lookup("SORAmount", line, sizeof(line), numbuf1, NULL, NULL, NULL);
-		report_write_line(report, 0, line);
+		stringbuild_reset();
+		currency_convert_to_string(file->sorders->sorders[sorder].normal_amount, numbuf1, SORDER_REPORT_BUF1_LENGTH);
+		stringbuild_add_message_param("SORAmount", numbuf1, NULL, NULL, NULL);
+		stringbuild_report_line(report, 0);
 
-		if (file->sorders->sorders[i].normal_amount != file->sorders->sorders[i].first_amount) {
-			currency_convert_to_string(file->sorders->sorders[i].first_amount, numbuf1, sizeof(numbuf1));
-			msgs_param_lookup("SORFirst", line, sizeof(line), numbuf1, NULL, NULL, NULL);
-			report_write_line(report, 0, line);
+		if (file->sorders->sorders[sorder].normal_amount != file->sorders->sorders[sorder].first_amount) {
+			stringbuild_reset();
+			currency_convert_to_string(file->sorders->sorders[sorder].first_amount, numbuf1, SORDER_REPORT_BUF1_LENGTH);
+			stringbuild_add_message_param("SORFirst", numbuf1, NULL, NULL, NULL);
+			stringbuild_report_line(report, 0);
 		}
 
-		if (file->sorders->sorders[i].normal_amount != file->sorders->sorders[i].last_amount) {
-			currency_convert_to_string(file->sorders->sorders[i].last_amount, numbuf1, sizeof(numbuf1));
-			msgs_param_lookup("SORFirst", line, sizeof(line), numbuf1, NULL, NULL, NULL);
-			report_write_line(report, 0, line);
+		if (file->sorders->sorders[sorder].normal_amount != file->sorders->sorders[sorder].last_amount) {
+			stringbuild_reset();
+			currency_convert_to_string(file->sorders->sorders[sorder].last_amount, numbuf1, SORDER_REPORT_BUF1_LENGTH);
+			stringbuild_add_message_param("SORFirst", numbuf1, NULL, NULL, NULL);
+			stringbuild_report_line(report, 0);
 		}
 
-		msgs_param_lookup("SORDesc", line, sizeof(line), file->sorders->sorders[i].description, NULL, NULL, NULL);
-		report_write_line(report, 0, line);
+		stringbuild_reset();
+		stringbuild_add_message_param("SORDesc", file->sorders->sorders[sorder].description, NULL, NULL, NULL);
+		stringbuild_report_line(report, 0);
 
-		snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorders->sorders[i].number);
-		snprintf(numbuf2, sizeof(numbuf2), "%d", file->sorders->sorders[i].number - file->sorders->sorders[i].left);
-		snprintf(numbuf3, sizeof(numbuf3), "%d", file->sorders->sorders[i].left);
-		msgs_param_lookup("SORCounts", line, sizeof(line), numbuf1, numbuf2, numbuf3, NULL);
-		report_write_line(report, 0, line);
+		stringbuild_reset();
+		string_printf(numbuf1, SORDER_REPORT_BUF1_LENGTH, "%d", file->sorders->sorders[sorder].number);
+		string_printf(numbuf2, SORDER_REPORT_BUF2_LENGTH, "%d", file->sorders->sorders[sorder].number - file->sorders->sorders[sorder].left);
+		string_printf(numbuf3, SORDER_REPORT_BUF3_LENGTH, "%d", file->sorders->sorders[sorder].left);
+		stringbuild_add_message_param("SORCounts", numbuf1, numbuf2, numbuf3, NULL);
+		stringbuild_report_line(report, 0);
 
-		date_convert_to_string(file->sorders->sorders[i].start_date, numbuf1, sizeof(numbuf1));
-		msgs_param_lookup("SORStart", line, sizeof(line), numbuf1, NULL, NULL, NULL);
-		report_write_line(report, 0, line);
+		stringbuild_reset();
+		date_convert_to_string(file->sorders->sorders[sorder].start_date, numbuf1, SORDER_REPORT_BUF1_LENGTH);
+		stringbuild_add_message_param("SORStart", numbuf1, NULL, NULL, NULL);
+		stringbuild_report_line(report, 0);
 
-		snprintf(numbuf1, sizeof(numbuf1), "%d", file->sorders->sorders[i].period);
-		*numbuf2 = '\0';
-		switch (file->sorders->sorders[i].period_unit) {
+		stringbuild_reset();
+		string_printf(numbuf1, SORDER_REPORT_BUF1_LENGTH, "%d", file->sorders->sorders[sorder].period);
+		switch (file->sorders->sorders[sorder].period_unit) {
 		case DATE_PERIOD_DAYS:
-			msgs_lookup("SOrderDays", numbuf2, sizeof(numbuf2));
+			msgs_lookup("SOrderDays", numbuf2, SORDER_REPORT_BUF2_LENGTH);
 			break;
 
 		case DATE_PERIOD_MONTHS:
-			msgs_lookup("SOrderMonths", numbuf2, sizeof(numbuf2));
+			msgs_lookup("SOrderMonths", numbuf2, SORDER_REPORT_BUF2_LENGTH);
 			break;
 
 		case DATE_PERIOD_YEARS:
-			msgs_lookup("SOrderYears", numbuf2, sizeof(numbuf2));
+			msgs_lookup("SOrderYears", numbuf2, SORDER_REPORT_BUF2_LENGTH);
 			break;
 
 		default:
 			*numbuf2 = '\0';
 			break;
 		}
-		msgs_param_lookup("SOREvery", line, sizeof(line), numbuf1, numbuf2, NULL, NULL);
-		report_write_line(report, 0, line);
+		stringbuild_add_message_param("SOREvery", numbuf1, numbuf2, NULL, NULL);
+		stringbuild_report_line(report, 0);
 
-		if (file->sorders->sorders[i].flags & TRANS_SKIP_FORWARD) {
-			msgs_lookup("SORAvoidFwd", line, sizeof(line));
-			report_write_line(report, 0, line);
-		} else if (file->sorders->sorders[i].flags & TRANS_SKIP_BACKWARD) {
-			msgs_lookup("SORAvoidBack", line, sizeof(line));
-			report_write_line(report, 0, line);
+		if (file->sorders->sorders[sorder].flags & TRANS_SKIP_FORWARD) {
+			stringbuild_reset();
+			stringbuild_add_message("SORAvoidFwd");
+			stringbuild_report_line(report, 0);
+		} else if (file->sorders->sorders[sorder].flags & TRANS_SKIP_BACKWARD) {
+			stringbuild_reset();
+			stringbuild_add_message("SORAvoidBack");
+			stringbuild_report_line(report, 0);
 		}
 
-		if (file->sorders->sorders[i].adjusted_next_date != NULL_DATE)
-			date_convert_to_string(file->sorders->sorders[i].adjusted_next_date, numbuf1, sizeof(numbuf1));
+		stringbuild_reset();
+		if (file->sorders->sorders[sorder].adjusted_next_date != NULL_DATE)
+			date_convert_to_string(file->sorders->sorders[sorder].adjusted_next_date, numbuf1, SORDER_REPORT_BUF1_LENGTH);
 		else
-			msgs_lookup("SOrderStopped", numbuf1, sizeof(numbuf1));
-		msgs_param_lookup("SORNext", line, sizeof(line), numbuf1, NULL, NULL, NULL);
-		report_write_line(report, 0, line);
+			msgs_lookup("SOrderStopped", numbuf1, SORDER_REPORT_BUF1_LENGTH);
+		stringbuild_add_message_param("SORNext", numbuf1, NULL, NULL, NULL);
+		stringbuild_report_line(report, 0);
 	}
 
 	/* Close the report. */
+
+	stringbuild_cancel();
 
 	report_close(report);
 
@@ -2781,8 +2812,7 @@ static void sorder_export_delimited(struct sorder_block *windat, char *filename,
 			msgs_lookup("SOrderStopped", buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		snprintf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", windat->sorders[t].left);
-		buffer[FILING_DELIMITED_FIELD_LEN - 1] = '\0';
+		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", windat->sorders[t].left);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 	}
 

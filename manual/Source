@@ -1548,6 +1548,7 @@ Alpha release for feedback and comment.
 <list>
 <li>Re-implemented analysis report system to make it modular and enable additional reports to be added.
 <li>Tidy up print dialogue and print protocol implementation.
+<li>Remove all unbounded string operations from source code.
 <li>Allow print jobs to be sent to a report window instead of direct to a printer (ticket&nbsp;#300).
 <li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>

@@ -44,6 +44,7 @@ void account_section_dialogue_initialise(void);
  *
  * \param *ptr			The current Wimp pointer position.
  * \param *window		The account list window to own the dialogue.
+ * \param line			The line in the list associated with the dialogue, or -1.
  * \param *update_callback	The callback function to use to return new values.
  * \param *delete_callback	The callback function to use to request deletion.
  * \param *name			The initial name to use for the section.

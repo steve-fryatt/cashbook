@@ -372,10 +372,7 @@ static void report_format_dialogue_process(void)
 	/* Extract the information. */
 
 	icons_copy_text(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_NFONT, report_format_dialogue_initial_normal, REPORT_MAX_FONT_NAME);
-	report_format_dialogue_initial_normal[REPORT_MAX_FONT_NAME - 1] = '\0';
-
 	icons_copy_text(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_BFONT, report_format_dialogue_initial_bold, REPORT_MAX_FONT_NAME);
-	report_format_dialogue_initial_bold[REPORT_MAX_FONT_NAME - 1] = '\0';
 
 	report_format_dialogue_initial_size = atoi(icons_get_indirected_text_addr(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_FONTSIZE)) * 16;
 	report_format_dialogue_initial_spacing = atoi(icons_get_indirected_text_addr(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_FONTSPACE));

@@ -94,7 +94,6 @@
 #include "print_protocol.h"
 #include "purge.h"
 #include "report.h"
-#include "report_format_dialogue.h"
 #include "sorder.h"
 #include "transact.h"
 #include "window.h"
@@ -355,7 +354,6 @@ static void main_initialise(void)
 	print_dialogue_initialise();
 	print_protocol_initialise();
 	report_initialise(sprites);
-	report_format_dialogue_initialise();
 
 	templates_close();
 

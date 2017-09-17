@@ -65,6 +65,9 @@
 #include "global.h"
 #include "account.h"
 
+#include "account_account_dialogue.h"
+#include "account_heading_dialogue.h"
+#include "account_idnum.h"
 #include "account_menu.h"
 #include "account_section_dialogue.h"
 #include "accview.h"
@@ -122,42 +125,6 @@
 #define ACCOUNT_FOOTER_CURRENT 2
 #define ACCOUNT_FOOTER_FINAL 3
 #define ACCOUNT_FOOTER_BUDGET 4
-
-/* Accounr heading window. */
-
-#define ACCT_EDIT_OK 0
-#define ACCT_EDIT_CANCEL 1
-#define ACCT_EDIT_DELETE 2
-
-#define ACCT_EDIT_NAME 4
-#define ACCT_EDIT_IDENT 6
-#define ACCT_EDIT_CREDIT 8
-#define ACCT_EDIT_BALANCE 10
-#define ACCT_EDIT_PAYIN 12
-#define ACCT_EDIT_CHEQUE 14
-#define ACCT_EDIT_RATE 18
-#define ACCT_EDIT_RATES 19
-#define ACCT_EDIT_OFFSET_IDENT 21
-#define ACCT_EDIT_OFFSET_REC 22
-#define ACCT_EDIT_OFFSET_NAME 23
-#define ACCT_EDIT_ACCNO 27
-#define ACCT_EDIT_SRTCD 29
-#define ACCT_EDIT_ADDR1 31
-#define ACCT_EDIT_ADDR2 32
-#define ACCT_EDIT_ADDR3 33
-#define ACCT_EDIT_ADDR4 34
-
-/* Edit heading window. */
-
-#define HEAD_EDIT_OK 0
-#define HEAD_EDIT_CANCEL 1
-#define HEAD_EDIT_DELETE 2
-
-#define HEAD_EDIT_NAME 4
-#define HEAD_EDIT_IDENT 6
-#define HEAD_EDIT_INCOMING 7
-#define HEAD_EDIT_OUTGOING 8
-#define HEAD_EDIT_BUDGET 10
 
 /* AccList menu */
 
@@ -247,13 +214,10 @@ struct account {
 
 	struct accview_window	*account_view;
 
-	/* Cheque tracking data. */
+	/* Cheque and Paying In Numbers. */
 
-	unsigned		next_payin_num;
-	int			payin_num_width;
-
-	unsigned		next_cheque_num;
-	int			cheque_num_width;
+	struct account_idnum	cheque_number;
+	struct account_idnum	payin_number;
 
 	/* Interest details. (the rates are held in the interest module). */
 
@@ -330,17 +294,6 @@ struct account_block {
 	date_t			last_full_recalc;				/**< The last time a full recalculation was done on the file.	*/
 };
 
-
-/* Account Edit Window. */
-
-static wimp_w			account_acc_edit_window = NULL;
-
-/* Heading Edit Window. */
-
-static wimp_w			account_hdg_edit_window = NULL;
-static struct account_block	*account_edit_owner = NULL;
-static acct_t			account_edit_number = NULL_ACCOUNT;
-
 /* Account List Window. */
 
 static wimp_window		*account_window_def = NULL;			/**< The definition for the Accounts List Window.			*/
@@ -392,21 +345,32 @@ static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_co
 
 
 
-static void			account_acc_edit_click_handler(wimp_pointer *pointer);
-static void			account_hdg_edit_click_handler(wimp_pointer *pointer);
-static osbool			account_acc_edit_keypress_handler(wimp_key *key);
-static osbool			account_hdg_edit_keypress_handler(wimp_key *key);
-static void			account_refresh_acc_edit_window(void);
-static void			account_refresh_hdg_edit_window(void);
-static void			account_fill_acc_edit_window(struct account_block *block, acct_t account);
-static void			account_fill_hdg_edit_window(struct account_block *block, acct_t account, enum account_type type);
-static osbool			account_process_acc_edit_window(void);
-static osbool			account_process_hdg_edit_window(void);
-static osbool			account_delete_from_edit_window (void);
+//static void			account_acc_edit_click_handler(wimp_pointer *pointer);
+//static void			account_hdg_edit_click_handler(wimp_pointer *pointer);
+//static osbool			account_acc_edit_keypress_handler(wimp_key *key);
+//static osbool			account_hdg_edit_keypress_handler(wimp_key *key);
+//static void			account_refresh_acc_edit_window(void);
+//static void			account_refresh_hdg_edit_window(void);
+//static void			account_fill_acc_edit_window(struct account_block *block, acct_t account);
+//static void			account_fill_hdg_edit_window(struct account_block *block, acct_t account, enum account_type type);
+//static osbool			account_process_acc_edit_window(void);
+//static osbool			account_process_hdg_edit_window(void);
+//static osbool			account_delete_from_edit_window (void);
+
+
+
+
+
+
+static osbool			account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
+						amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
+						acct_t offset_against, char *account_num, char *sort_code, char **address);
+static osbool			account_process_heading_edit_window(struct account_block *instance, acct_t account, char* name, char *ident, enum account_type type);
+static osbool			account_delete_from_edit_window(struct account_block *instance, acct_t account);
 
 
 static void			account_open_section_edit_window(struct account_window *window, int line, wimp_pointer *ptr);
-static osbool			account_process_section_edit_window(struct account_window *window, int line, char* name, enum account_line_type type);
+static osbool			account_process_section_edit_window(struct account_window *window, int line, char* name, amt_t budget, enum account_line_type type);
 static osbool			account_delete_from_section_edit_window(struct account_window *window, int line);
 
 static void			account_open_print_window(struct account_window *window, wimp_pointer *ptr, osbool restore);
@@ -444,18 +408,6 @@ static void			account_export_delimited(struct account_window *windat, char *file
 
 void account_initialise(osspriteop_area *sprites)
 {
-	account_acc_edit_window = templates_create_window("EditAccount");
-	ihelp_add_window(account_acc_edit_window, "EditAccount", NULL);
-	event_add_window_mouse_event(account_acc_edit_window, account_acc_edit_click_handler);
-	event_add_window_key_event(account_acc_edit_window, account_acc_edit_keypress_handler);
-
-	account_hdg_edit_window = templates_create_window("EditHeading");
-	ihelp_add_window(account_hdg_edit_window, "EditHeading", NULL);
-	event_add_window_mouse_event(account_hdg_edit_window, account_hdg_edit_click_handler);
-	event_add_window_key_event(account_hdg_edit_window, account_hdg_edit_keypress_handler);
-	event_add_window_icon_radio(account_hdg_edit_window, HEAD_EDIT_INCOMING, TRUE);
-	event_add_window_icon_radio(account_hdg_edit_window, HEAD_EDIT_OUTGOING, TRUE);
-
 	account_window_def = templates_load_window("Account");
 	account_window_def->icon_count = 0;
 
@@ -474,6 +426,8 @@ void account_initialise(osspriteop_area *sprites)
 
 	/* Initialise subsidiary parts of the account system. */
 
+	account_account_dialogue_initialise();
+	account_heading_dialogue_initialise();
 	account_section_dialogue_initialise();
 }
 
@@ -1493,369 +1447,44 @@ static void account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 }
 
 
-/**
- * Open the Account Edit dialogue for a given account list window.
- *
- * If account == NULL_ACCOUNT, type determines the type of the new account
- * to be created.  Otherwise, type is ignored and the type derived from the
- * account data block.
- *
- * \param *file			The file to own the dialogue.
- * \param account		The account to edit, or NULL_ACCOUNT for add new.
- * \param type			The type of new account to create if account
- *				is NULL_ACCOUNT.
- * \param *ptr			The current Wimp pointer position.
- */
-
-void account_open_edit_window(struct file_block *file, acct_t account, enum account_type type, wimp_pointer *ptr)
-{
-	wimp_w		win = NULL;
-
-	if (file == NULL || file->accounts == NULL)
-		return;
-
-	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(account_acc_edit_window))
-		wimp_close_window(account_acc_edit_window);
-
-	if (windows_get_open(account_hdg_edit_window))
-		wimp_close_window(account_hdg_edit_window);
-
-	account_section_dialogue_force_close(NULL);
-
-	/* Select the window to use and set the contents up. */
-
-	if (account == NULL_ACCOUNT) {
-		if (type & ACCOUNT_FULL) {
-			account_fill_acc_edit_window(file->accounts, account);
-			win = account_acc_edit_window;
-
-			msgs_lookup("NewAcct", windows_get_indirected_title_addr(win), 50);
-			icons_msgs_lookup(win, ACCT_EDIT_OK, "NewAcctAct");
-		} else if (type & ACCOUNT_IN || type & ACCOUNT_OUT) {
-			account_fill_hdg_edit_window(file->accounts, account, type);
-			win = account_hdg_edit_window;
-
-			msgs_lookup("NewHdr", windows_get_indirected_title_addr(win), 50);
-			icons_msgs_lookup(win, HEAD_EDIT_OK, "NewAcctAct");
-		}
-	} else if (account_valid(file->accounts, account)) {
-		if (file->accounts->accounts[account].type & ACCOUNT_FULL) {
-			account_fill_acc_edit_window(file->accounts, account);
-			win = account_acc_edit_window;
-
-			msgs_lookup("EditAcct", windows_get_indirected_title_addr(win), 50);
-			icons_msgs_lookup(win, ACCT_EDIT_OK, "EditAcctAct");
-		} else if (file->accounts->accounts[account].type & ACCOUNT_IN || file->accounts->accounts[account].type & ACCOUNT_OUT) {
-			account_fill_hdg_edit_window(file->accounts, account, type);
-			win = account_hdg_edit_window;
-
-			msgs_lookup("EditHdr", windows_get_indirected_title_addr(win), 50);
-			icons_msgs_lookup(win, HEAD_EDIT_OK, "EditAcctAct");
-		}
-	} else {
-		return;
-	}
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	if (win != NULL) {
-		account_edit_owner = file->accounts;
-		account_edit_number = account;
-
-		windows_open_centred_at_pointer(win, ptr);
-		if (win == account_acc_edit_window)
-			place_dialogue_caret(win, ACCT_EDIT_NAME);
-		else
-			place_dialogue_caret(win, HEAD_EDIT_NAME);
-	}
-}
-
-
-/**
- * Process mouse clicks in the Account Edit dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void account_acc_edit_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case ACCT_EDIT_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(account_acc_edit_window);
-			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			account_refresh_acc_edit_window();
-		}
-		break;
-
-	case ACCT_EDIT_OK:
-		if (account_process_acc_edit_window() && pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(account_acc_edit_window);
-			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
-		}
-		break;
-
-	case ACCT_EDIT_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && account_delete_from_edit_window()) {
-			close_dialogue_with_caret(account_acc_edit_window);
-			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
-		}
-		break;
-
-	case ACCT_EDIT_RATES:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			interest_open_window(account_edit_owner->file->interest, account_edit_number);
-		break;
-
-	case ACCT_EDIT_OFFSET_NAME:
-		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(account_edit_owner->file, ACCOUNT_MENU_ACCOUNTS, NULL,
-					account_acc_edit_window, ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC, pointer);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Account Edit window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool account_acc_edit_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (account_process_acc_edit_window()) {
-			close_dialogue_with_caret(account_acc_edit_window);
-			interest_delete_window(account_edit_owner->file->interest, account_edit_number);
-		}
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(account_acc_edit_window);
-		interest_delete_window(account_edit_owner->file->interest, account_edit_number);
-		break;
-
-	default:
-		if (key->i != ACCT_EDIT_OFFSET_IDENT)
-			return FALSE;
-
-		account_lookup_field(account_edit_owner->file, key->c, ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-				account_acc_edit_window, ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC);
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Process mouse clicks in the Heading Edit dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void account_hdg_edit_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case HEAD_EDIT_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(account_hdg_edit_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_refresh_hdg_edit_window();
-		break;
-
-	case HEAD_EDIT_OK:
-		if (account_process_hdg_edit_window() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(account_hdg_edit_window);
-		break;
-
-	case HEAD_EDIT_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && account_delete_from_edit_window())
-			close_dialogue_with_caret(account_hdg_edit_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Heading Edit window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool account_hdg_edit_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (account_process_hdg_edit_window())
-			close_dialogue_with_caret(account_hdg_edit_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(account_hdg_edit_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the Account Edit window.
- */
-
-static void account_refresh_acc_edit_window(void)
-{
-	account_fill_acc_edit_window(account_edit_owner, account_edit_number);
-	icons_redraw_group(account_acc_edit_window, 10, ACCT_EDIT_NAME, ACCT_EDIT_IDENT, ACCT_EDIT_CREDIT, ACCT_EDIT_BALANCE,
-			ACCT_EDIT_ACCNO, ACCT_EDIT_SRTCD,
-			ACCT_EDIT_ADDR1, ACCT_EDIT_ADDR2, ACCT_EDIT_ADDR3, ACCT_EDIT_ADDR4);
-	icons_replace_caret_in_window(account_acc_edit_window);
-}
-
-
-/**
- * Refresh the contents of the Heading Edit window.
- */
-
-static void account_refresh_hdg_edit_window(void)
-{
-	account_fill_hdg_edit_window(account_edit_owner, account_edit_number, ACCOUNT_NULL);
-	icons_redraw_group(account_hdg_edit_window, 3, HEAD_EDIT_NAME, HEAD_EDIT_IDENT, HEAD_EDIT_BUDGET);
-	icons_replace_caret_in_window(account_hdg_edit_window);
-}
-
-
-/**
- * Update the contents of the Account Edit window to reflect the current
- * settings of the given file and account.
- *
- * \param *block		The accounts instance to use.
- * \param account		The account to display, or NULL_ACCOUNT for none.
- */
-
-static void account_fill_acc_edit_window(struct account_block *block, acct_t account)
-{
-	int	i;
-	rate_t	rate;
-
-	if (block == NULL || block->file == NULL)
-		return;
-
-	if (account == NULL_ACCOUNT) {
-		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_NAME) = '\0';
-		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_IDENT) = '\0';
-
-		currency_convert_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_CREDIT));
-		currency_convert_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_BALANCE));
-
-		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN) = '\0';
-		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CHEQUE) = '\0';
-
-		interest_convert_to_string(0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_RATE),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_RATE));
-
-		account_fill_field(block->file, NULL_ACCOUNT, FALSE, account_acc_edit_window,
-				ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC);
-
-		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_ACCNO) = '\0';
-		*icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_SRTCD) = '\0';
-
-		for (i = ACCT_EDIT_ADDR1; i < (ACCT_EDIT_ADDR1 + ACCOUNT_ADDR_LINES); i++)
-			 *icons_get_indirected_text_addr(account_acc_edit_window, i) = '\0';
-
-		icons_set_deleted(account_acc_edit_window, ACCT_EDIT_DELETE, 1);
-	} else if (account_valid(block, account)) {
-		icons_strncpy(account_acc_edit_window, ACCT_EDIT_NAME, block->accounts[account].name);
-		icons_strncpy(account_acc_edit_window, ACCT_EDIT_IDENT, block->accounts[account].ident);
-
-		currency_convert_to_string(block->accounts[account].credit_limit, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CREDIT),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_CREDIT));
-		currency_convert_to_string(block->accounts[account].opening_balance, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_BALANCE),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_BALANCE));
-
-		account_get_next_cheque_number(block->file, NULL_ACCOUNT, account, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_PAYIN),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_PAYIN));
-		account_get_next_cheque_number(block->file, account, NULL_ACCOUNT, 0, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_CHEQUE),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_CHEQUE));
-
-		rate = interest_get_current_rate(block->file->interest, account, date_today());
-		interest_convert_to_string(rate, icons_get_indirected_text_addr(account_acc_edit_window, ACCT_EDIT_RATE),
-				icons_get_indirected_text_length(account_acc_edit_window, ACCT_EDIT_RATE));
-
-		account_fill_field(block->file, block->accounts[account].offset_against, FALSE, account_acc_edit_window,
-				ACCT_EDIT_OFFSET_IDENT, ACCT_EDIT_OFFSET_NAME, ACCT_EDIT_OFFSET_REC);
-
-		icons_strncpy(account_acc_edit_window, ACCT_EDIT_ACCNO, block->accounts[account].account_no);
-		icons_strncpy(account_acc_edit_window, ACCT_EDIT_SRTCD, block->accounts[account].sort_code);
-
-		for (i = ACCT_EDIT_ADDR1; i < (ACCT_EDIT_ADDR1 + ACCOUNT_ADDR_LINES); i++)
-			icons_strncpy(account_acc_edit_window, i, block->accounts[account].address[i-ACCT_EDIT_ADDR1]);
-
-		icons_set_deleted(account_acc_edit_window, ACCT_EDIT_DELETE, 0);
-	}
-}
-
-
-/**
- * Update the contents of the Heading Edit window to reflect the current
- * settings of the given file and account.
- *
- * \param *block		The accounts instance to use.
- * \param account		The account to display, or NULL_ACCOUNT for none.
- * \param type			The type of heading, if account is NULL_ACCOUNT.
- */
-
-static void account_fill_hdg_edit_window(struct account_block *block, acct_t account, enum account_type type)
-{
-	if (block == NULL)
-		return;
-
-	if (account == NULL_ACCOUNT) {
-		*icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_NAME) = '\0';
-		*icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_IDENT) = '\0';
-
-		currency_convert_to_string(0, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET),
-				icons_get_indirected_text_length(account_hdg_edit_window, HEAD_EDIT_BUDGET));
-
-		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_INCOMING, 0);
-		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_OUTGOING, 0);
-		icons_set_selected(account_hdg_edit_window, HEAD_EDIT_INCOMING, (type & ACCOUNT_IN) || (type == ACCOUNT_NULL));
-		icons_set_selected(account_hdg_edit_window, HEAD_EDIT_OUTGOING, (type & ACCOUNT_OUT));
-
-		icons_set_deleted(account_hdg_edit_window, HEAD_EDIT_DELETE, 1);
-	} else if (account_valid(block, account)) {
-		icons_strncpy(account_hdg_edit_window, HEAD_EDIT_NAME, block->accounts[account].name);
-		icons_strncpy(account_hdg_edit_window, HEAD_EDIT_IDENT, block->accounts[account].ident);
-
-		currency_convert_to_string(block->accounts[account].budget_amount, icons_get_indirected_text_addr(account_hdg_edit_window, HEAD_EDIT_BUDGET),
-				icons_get_indirected_text_length(account_hdg_edit_window, HEAD_EDIT_BUDGET));
-
-		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_INCOMING, 1);
-		icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_OUTGOING, 1);
-		icons_set_selected(account_hdg_edit_window, HEAD_EDIT_INCOMING, (block->accounts[account].type & ACCOUNT_IN));
-		icons_set_selected(account_hdg_edit_window, HEAD_EDIT_OUTGOING, (block->accounts[account].type & ACCOUNT_OUT));
-
-		icons_set_deleted(account_hdg_edit_window, HEAD_EDIT_DELETE, 0);
-	}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -1996,28 +1625,115 @@ static osbool account_process_hdg_edit_window(void)
 }
 
 
+
+
+
+
+
+
+
+
 /**
- * Delete the account associated with the currently open Account or Heading
- * Edit window.
+ * Open the Account Edit dialogue for a given account list window.
  *
- * \return			TRUE if deleted; else FALSE.
+ * If account == NULL_ACCOUNT, type determines the type of the new account
+ * to be created.  Otherwise, type is ignored and the type derived from the
+ * account data block.
+ *
+ * \param *file			The file to own the dialogue.
+ * \param account		The account to edit, or NULL_ACCOUNT for add new.
+ * \param type			The type of new account to create if account
+ *				is NULL_ACCOUNT.
+ * \param *ptr			The current Wimp pointer position.
  */
 
-static osbool account_delete_from_edit_window(void)
+void account_open_edit_window(struct file_block *file, acct_t account, enum account_type type, wimp_pointer *ptr)
 {
-	if (account_used_in_file(account_edit_owner, account_edit_number)) {
-		error_msgs_report_info("CantDelAcct");
-		return FALSE;
+	wimp_w		win = NULL;
+	struct account	*data;
+	rate_t		rate;
+
+	if (file == NULL || file->accounts == NULL)
+		return;
+
+	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
+	 * any unsaved data and just close the window.
+	 *
+	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
+	 */
+
+	account_account_dialogue_force_close(NULL);
+	account_heading_dialogue_force_close(NULL);
+	account_section_dialogue_force_close(NULL);
+
+	/* Select the window to use and set the contents up. */
+
+	if (account == NULL_ACCOUNT) {
+		if (type & ACCOUNT_FULL) {
+			account_account_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_account_edit_window, account_delete_from_edit_window,
+					"", "", 0, 0, NULL, NULL, 0, NULL_ACCOUNT, "", "", NULL);
+		} else if (type & ACCOUNT_IN || type & ACCOUNT_OUT) {
+			account_heading_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_heading_edit_window, account_delete_from_edit_window,
+					"", "", type);
+		}
+	} else if (account_valid(file->accounts, account)) {
+		data = &(file->accounts->accounts[account]);
+
+		if (data->type & ACCOUNT_FULL) {
+			rate = interest_get_current_rate(block->file->interest, account, date_today());
+			account_account_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_account_edit_window, account_delete_from_edit_window,
+					data->name, data->ident, data->credit_limit, data->opening_balance,
+					&(data->cheque_number), &(data->payin_number), rate, data->offset_against,
+					data->account_no, data->sort_code, data->address);
+		} else if (data->type & ACCOUNT_IN || data->type & ACCOUNT_OUT) {
+			account_heading_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_heading_edit_window, account_delete_from_edit_window,
+					data->name, data->ident, data->type);
+		}
 	}
-
-	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 4)
-		return FALSE;
-
-	return account_delete(account_edit_owner->file, account_edit_number);
 }
 
 
 
+
+
+static osbool account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
+		amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
+		acct_t offset_against, char *account_num, char *sort_code, char **address)
+{
+
+
+}
+
+
+static osbool account_process_heading_edit_window(struct account_block *instance, acct_t account, char* name, char *ident, amt_t budget, enum account_type type)
+{
+
+
+}
+
+/**
+ * Delete the account associated with the currently open Account or
+ * Heading Edit window.
+ *
+ * \param *instance		The accounts instance owning the account.
+ * \param account		The account to be deleted.
+ * \return			TRUE if deleted; else FALSE.
+ */
+
+static osbool account_delete_from_edit_window(struct account_block *instance, acct_t account)
+{
+	if (instance == NULL || instance->file == NULL || account == NULL_ACCOUNT)
+		return FALSE;
+
+	/* Check that the account isn't in use. */
+
+	if (account_used_in_file(instance, account)) {
+		error_msgs_report_info("CantDelAcct");
+		return FALSE;
+	}
+
+	return account_delete(instance->file, account);
+}
 
 
 
@@ -2037,13 +1753,11 @@ static void account_open_section_edit_window(struct account_window *window, int 
 	if (window == NULL)
 		return;
 
-	/* Close any other edit dialogues relating to account list windows. */
+	/* Close any other edit dialogues relating to this account list window. */
 
-	if (windows_get_open(account_acc_edit_window))
-		wimp_close_window(account_acc_edit_window);
-
-	if (windows_get_open(account_hdg_edit_window))
-		wimp_close_window(account_hdg_edit_window);
+	account_account_dialogue_force_close(NULL);
+	account_heading_dialogue_force_close(NULL);
+	account_section_dialogue_force_close(NULL);
 
 	/* Open the dialogue box. */
 
@@ -2420,11 +2134,9 @@ acct_t account_add(struct file_block *file, char *name, char *ident, enum accoun
 	file->accounts->accounts[new].opening_balance = 0;
 	file->accounts->accounts[new].credit_limit = 0;
 	file->accounts->accounts[new].budget_amount = 0;
-	file->accounts->accounts[new].next_payin_num = 0;
-	file->accounts->accounts[new].payin_num_width = 0;
-	file->accounts->accounts[new].next_cheque_num = 0;
-	file->accounts->accounts[new].cheque_num_width = 0;
 	file->accounts->accounts[new].offset_against = NULL_ACCOUNT;
+	account_idnum_initialise(&(file->accounts->accounts[new].cheque_number));
+	account_idnum_initialise(&(file->accounts->accounts[new].payin_number));
 
 	*file->accounts->accounts[new].account_no = '\0';
 	*file->accounts->accounts[new].sort_code = '\0';
@@ -3422,19 +3134,15 @@ char *account_get_next_cheque_number(struct file_block *file, acct_t from_accoun
 	char		format[32];
 	osbool		from_ok, to_ok;
 
-	if (file == NULL || file->accounts == NULL || buffer == NULL) {
-		if (buffer != NULL)
-			*buffer = '\0';
-
+	if (file == NULL || file->accounts == NULL)
 		return buffer;
-	}
 
-	/* Test which of the two accounts have an auto-reference attached.  If
-	 * both do, the user needs to be asked which one to use in the transaction.
-	 */
+	/* Check which accounts have active ID numbers. */
 
-	from_ok = (from_account != NULL_ACCOUNT && file->accounts->accounts[from_account].cheque_num_width > 0) ? TRUE: FALSE;
-	to_ok = (to_account != NULL_ACCOUNT && file->accounts->accounts[to_account].payin_num_width > 0) ? TRUE : FALSE;
+	from_ok = ((from_account != NULL_ACCOUNT) && account_idnum_active(&(file->accounts->accounts[from_account].cheque_number)));
+	to_ok = ((to_account != NULL_ACCOUNT) && account_idnum_active(&(file->accounts->accounts[from_account].payin_number)));
+
+	/* If both have, we need to ask the user which to use. */
 
 	if (from_ok && to_ok) {
 		if (error_msgs_param_report_question("ChqOrPayIn", "ChqOrPayInB",
@@ -3447,17 +3155,12 @@ char *account_get_next_cheque_number(struct file_block *file, acct_t from_accoun
 
 	/* Now process the reference. */
 
-	if (from_ok) {
-		snprintf(format, sizeof(format), "%%0%dd", file->accounts->accounts[from_account].cheque_num_width);
-		snprintf(buffer, size, format, file->accounts->accounts[from_account].next_cheque_num);
-		file->accounts->accounts[from_account].next_cheque_num += increment;
-	} else if (to_ok) {
-		snprintf(format, sizeof(format), "%%0%dd", file->accounts->accounts[to_account].payin_num_width);
-		snprintf(buffer, size, format, file->accounts->accounts[to_account].next_payin_num);
-		file->accounts->accounts[to_account].next_payin_num += increment;
-	} else {
-		*buffer = '\0';
-	}
+	if (from_ok)
+		account_idnum_get_next(&(file->accounts->accounts[from_account].cheque_number), buffer, size, increment);
+	else if (to_ok)
+		account_idnum_get_next(&(file->accounts->accounts[from_account].payin_number), buffer, size, increment);
+	else if (buffer != NULL && size > 0)
+		buffer[0] = '\0';
 
 	return buffer;
 }
@@ -3850,8 +3553,9 @@ static void account_recalculate_windows(struct file_block *file)
 
 void account_write_file(struct file_block *file, FILE *out)
 {
-	int	i, j;
-	char	buffer[FILING_MAX_FILE_LINE_LEN];
+	int		i, j, width;
+	unsigned	next_id;
+	char		buffer[FILING_MAX_FILE_LINE_LEN];
 
 	if (file == NULL || file->accounts == NULL)
 		return;
@@ -3874,11 +3578,15 @@ void account_write_file(struct file_block *file, FILE *out)
 		/* Deleted accounts are skipped, as these can be filled in at load. */
 
 		if (file->accounts->accounts[i].type != ACCOUNT_NULL) {
+			account_idnum_get(&(file->accounts->accounts[i].cheque_number), &width, &next_id)
+
 			fprintf(out, "@: %x,%s,%x,%x,%x,%x,%x,%x\n",
 					i, file->accounts->accounts[i].ident, file->accounts->accounts[i].type,
 					file->accounts->accounts[i].opening_balance, file->accounts->accounts[i].credit_limit,
-					file->accounts->accounts[i].budget_amount, file->accounts->accounts[i].cheque_num_width,
-					file->accounts->accounts[i].next_cheque_num);
+					file->accounts->accounts[i].budget_amount, next_id, width);
+
+			account_idnum_get(&(file->accounts->accounts[i].payin_number), &width, &next_id)
+
 			if (*(file->accounts->accounts[i].name) != '\0')
 				config_write_token_pair(out, "Name", file->accounts->accounts[i].name);
 			if (*(file->accounts->accounts[i].account_no) != '\0')
@@ -3893,8 +3601,8 @@ void account_write_file(struct file_block *file, FILE *out)
 				config_write_token_pair(out, "Addr2", file->accounts->accounts[i].address[2]);
 			if (*(file->accounts->accounts[i].address[3]) != '\0')
 				config_write_token_pair(out, "Addr3", file->accounts->accounts[i].address[3]);
-			if (file->accounts->accounts[i].payin_num_width != 0 || file->accounts->accounts[i].next_payin_num != 0)
-				fprintf(out, "PayIn: %x,%x\n", file->accounts->accounts[i].payin_num_width, file->accounts->accounts[i].next_payin_num);
+			if (width != 0 || next_id != 0)
+				fprintf(out, "PayIn: %x,%x\n", width, next_id);
 			if (file->accounts->accounts[i].offset_against != NULL_ACCOUNT)
 				fprintf(out, "Offset: %x\n", file->accounts->accounts[i].offset_against);
 		}
@@ -4013,11 +3721,9 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 					file->accounts->accounts[j].opening_balance = 0;
 					file->accounts->accounts[j].credit_limit = 0;
 					file->accounts->accounts[j].budget_amount = 0;
-					file->accounts->accounts[j].cheque_num_width = 0;
-					file->accounts->accounts[j].next_cheque_num = 0;
-					file->accounts->accounts[j].payin_num_width = 0;
-					file->accounts->accounts[j].next_payin_num = 0;
 					file->accounts->accounts[j].offset_against = NULL_ACCOUNT;
+					account_idnum_initialise(&(file->accounts->accounts[j].cheque_number));
+					account_idnum_initialise(&(file->accounts->accounts[j].payin_number));
 
 					file->accounts->accounts[j].account_view = NULL;
 
@@ -4042,8 +3748,8 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 			file->accounts->accounts[account].opening_balance = currency_get_currency_field(in);
 			file->accounts->accounts[account].credit_limit = currency_get_currency_field(in);
 			file->accounts->accounts[account].budget_amount = currency_get_currency_field(in);
-			file->accounts->accounts[account].cheque_num_width = filing_get_int_field(in);
-			file->accounts->accounts[account].next_cheque_num = filing_get_unsigned_field(in);
+			account_idnum_set(&(file->accounts->accounts[account].cheque_number),
+					filing_get_int_field(in), filing_get_unsigned_field(in));
 
 			*(file->accounts->accounts[account].name) = '\0';
 			*(file->accounts->accounts[account].account_no) = '\0';
@@ -4067,8 +3773,8 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Addr3")) {
 			filing_get_text_value(in, file->accounts->accounts[account].address[3], ACCOUNT_ADDR_LEN);
 		} else if (account != NULL_ACCOUNT && filing_test_token(in, "PayIn")) {
-			file->accounts->accounts[account].payin_num_width = filing_get_int_field(in);
-			file->accounts->accounts[account].next_payin_num = filing_get_unsigned_field(in);
+			account_idnum_set(&(file->accounts->accounts[account].payin_number),
+					filing_get_int_field(in), filing_get_unsigned_field(in));
 		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Offset")) {
 			file->accounts->accounts[account].offset_against = account_get_account_field(in);
 		} else {

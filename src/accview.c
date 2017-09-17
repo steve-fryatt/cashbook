@@ -774,11 +774,11 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCVIEW_PANE_PRINT:
-			accview_open_print_window(windat, pointer, config_opt_read ("RememberValues"));
+			accview_open_print_window(windat, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case ACCVIEW_PANE_EDIT:
-			account_open_edit_window(file, account, -1, pointer);
+			account_open_edit_window(windat->file, account, ACCOUNT_NULL, pointer);
 			break;
 
 		case ACCVIEW_PANE_GOTOEDIT:
@@ -792,7 +792,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 		switch (pointer->i) {
 		case ACCVIEW_PANE_PRINT:
-			accview_open_print_window(windat, pointer, !config_opt_read ("RememberValues"));
+			accview_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
 			break;
 
 		case ACCVIEW_PANE_SORT:
@@ -934,7 +934,7 @@ static void accview_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCVIEW_MENU_EDITACCT:
-		account_open_edit_window(windat->file, windat->account, -1, &pointer);
+		account_open_edit_window(windat->file, windat->account, ACCOUNT_NULL, &pointer);
 		break;
 
 	case ACCVIEW_MENU_PRINT:

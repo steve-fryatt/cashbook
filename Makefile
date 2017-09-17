@@ -33,6 +33,9 @@ HTMLHELP := manual.html
 # CCFLAGS := -DDEBUG
 
 OBJS = account.o			\
+       account_account_dialogue.o	\
+       account_heading_dialogue.o	\
+       account_idnum.o			\
        account_list_menu.o		\
        account_section_dialogue.o	\
        account_menu.o			\

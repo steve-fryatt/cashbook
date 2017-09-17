@@ -250,6 +250,10 @@ void report_initialise(osspriteop_area *sprites)
 	report_saveas_text = saveas_create_dialogue(FALSE, "file_fff", report_save_text);
 	report_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", report_save_csv);
 	report_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", report_save_tsv);
+
+	/* Initialise subsidiary parts of the report system. */
+
+	report_format_dialogue_initialise();
 }
 
 

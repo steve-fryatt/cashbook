@@ -30,5 +30,51 @@
 #ifndef CASHBOOK_ACCOUNT_SECTION_DIALOGUE
 #define CASHBOOK_ACCOUNT_SECTION_DIALOGUE
 
+#include "account.h"
+
+/**
+ * Initialise the account section edit dialogue.
+ */
+
+void account_section_dialogue_initialise(void);
+
+
+/**
+ * Open the Section Edit dialogue for a given account list window.
+ *
+ * \param *ptr			The current Wimp pointer position.
+ * \param *window		The account list window to own the dialogue.
+ * \param *update_callback	The callback function to use to return new values.
+ * \param *delete_callback	The callback function to use to request deletion.
+ * \param *name			The initial name to use for the section.
+ * \param type			The initial header/footer setting for the section.
+ */
+
+void account_section_dialogue_open(wimp_pointer *ptr, struct account_window *window, int line,
+		osbool (*update_callback)(struct account_window *, int, char *, enum account_line_type),
+		osbool (*delete_callback)(struct account_window *, int), char *name, enum account_line_type type);
+
+
+/**
+ * Force the closure of the account section edit dialogue if it relates
+ * to a given accounts list instance.
+ *
+ * \param *parent		The parent of the dialogue to be closed,
+ *				or NULL to force close.
+ */
+
+void account_section_dialogue_force_close(struct account_window *parent);
+
+
+/**
+ * Check whether the Edit Section dialogue is open for a given accounts
+ * list instance.
+ *
+ * \param *parent		The accounts list instance to check.
+ * \return			TRUE if the dialogue is open; else FALSE.
+ */
+
+osbool account_section_dialogue_is_open(struct account_window *parent);
+
 #endif
 

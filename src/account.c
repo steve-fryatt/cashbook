@@ -66,6 +66,7 @@
 #include "account.h"
 
 #include "account_menu.h"
+#include "account_section_dialogue.h"
 #include "accview.h"
 #include "analysis.h"
 #include "budget.h"
@@ -157,16 +158,6 @@
 #define HEAD_EDIT_INCOMING 7
 #define HEAD_EDIT_OUTGOING 8
 #define HEAD_EDIT_BUDGET 10
-
-/* Edit section window. */
-
-#define SECTION_EDIT_OK 2
-#define SECTION_EDIT_CANCEL 3
-#define SECTION_EDIT_DELETE 4
-
-#define SECTION_EDIT_TITLE 0
-#define SECTION_EDIT_HEADER 5
-#define SECTION_EDIT_FOOTER 6
 
 /* AccList menu */
 
@@ -350,13 +341,6 @@ static wimp_w			account_hdg_edit_window = NULL;
 static struct account_block	*account_edit_owner = NULL;
 static acct_t			account_edit_number = NULL_ACCOUNT;
 
-/* Section Edit Window. */
-
-static wimp_w			account_section_window = NULL;			/**< The handle of the Section Edit window.				*/
-static struct account_block	*account_section_owner = NULL;			/**< The file owning the Section Edit window.				*/
-static int			account_section_entry = -1;			/**< The entry owning the Section Edit window.				*/
-static int			account_section_line = -1;			/**< The line being edited by the Section Edit window.			*/
-
 /* Account List Window. */
 
 static wimp_window		*account_window_def = NULL;			/**< The definition for the Accounts List Window.			*/
@@ -419,13 +403,12 @@ static void			account_fill_hdg_edit_window(struct account_block *block, acct_t a
 static osbool			account_process_acc_edit_window(void);
 static osbool			account_process_hdg_edit_window(void);
 static osbool			account_delete_from_edit_window (void);
-static void			account_open_section_window(struct file_block *file, int entry, int line, wimp_pointer *ptr);
-static void			account_section_click_handler(wimp_pointer *pointer);
-static osbool			account_section_keypress_handler(wimp_key *key);
-static void			account_refresh_section_window(void);
-static void			account_fill_section_window(struct account_block *block, int entry, int line);
-static osbool			account_process_section_window(void);
-static osbool			account_delete_from_section_window(void);
+
+
+static void			account_open_section_edit_window(struct account_window *window, int line, wimp_pointer *ptr);
+static osbool			account_process_section_edit_window(struct account_window *window, int line, char* name, enum account_line_type type);
+static osbool			account_delete_from_section_edit_window(struct account_window *window, int line);
+
 static void			account_open_print_window(struct account_window *window, wimp_pointer *ptr, osbool restore);
 static struct report		*account_print(struct report *report, void *data);
 
@@ -473,13 +456,6 @@ void account_initialise(osspriteop_area *sprites)
 	event_add_window_icon_radio(account_hdg_edit_window, HEAD_EDIT_INCOMING, TRUE);
 	event_add_window_icon_radio(account_hdg_edit_window, HEAD_EDIT_OUTGOING, TRUE);
 
-	account_section_window = templates_create_window("EditAccSect");
-	ihelp_add_window(account_section_window, "EditAccSect", NULL);
-	event_add_window_mouse_event(account_section_window, account_section_click_handler);
-	event_add_window_key_event(account_section_window, account_section_keypress_handler);
-	event_add_window_icon_radio(account_section_window, SECTION_EDIT_HEADER, TRUE);
-	event_add_window_icon_radio(account_section_window, SECTION_EDIT_FOOTER, TRUE);
-
 	account_window_def = templates_load_window("Account");
 	account_window_def->icon_count = 0;
 
@@ -495,6 +471,10 @@ void account_initialise(osspriteop_area *sprites)
 
 	account_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_save_csv);
 	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_save_tsv);
+
+	/* Initialise subsidiary parts of the account system. */
+
+	account_section_dialogue_initialise();
 }
 
 
@@ -800,8 +780,7 @@ static void account_delete_window(struct account_window *windat)
 			close_dialogue_with_caret(account_hdg_edit_window);
 	}
 
-	if (account_section_owner == windat->instance && windows_get_open(account_section_window))
-		close_dialogue_with_caret(account_section_window);
+	account_section_dialogue_force_close(windat);
 
 	/* Delete the window, if it exists. */
 
@@ -881,7 +860,7 @@ static void account_window_click_handler(wimp_pointer *pointer)
 
 		case ACCOUNT_LINE_HEADER:
 		case ACCOUNT_LINE_FOOTER:
-			account_open_section_window(windat->instance->file, windat->entry, line, pointer);
+			account_open_section_edit_window(windat, line, pointer);
 			break;
 		default:
 			break;
@@ -921,7 +900,7 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCOUNT_PANE_ADDSECT:
-			account_open_section_window(windat->instance->file, windat->entry, -1, pointer);
+			account_open_section_edit_window(windat, -1, pointer);
 			break;
 		}
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
@@ -1039,7 +1018,7 @@ static void account_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCLIST_MENU_EDITSECT:
-		account_open_section_window(windat->instance->file, windat->entry, account_window_menu_line, &pointer);
+		account_open_section_edit_window(windat, account_window_menu_line, &pointer);
 		break;
 
 	case ACCLIST_MENU_NEWACCT:
@@ -1047,7 +1026,7 @@ static void account_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 		break;
 
 	case ACCLIST_MENU_NEWHEADER:
-		account_open_section_window(windat->instance->file, windat->entry, -1, &pointer);
+		account_open_section_edit_window(windat, -1, &pointer);
 		break;
 
 	case ACCLIST_MENU_PRINT:
@@ -1547,8 +1526,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 	if (windows_get_open(account_hdg_edit_window))
 		wimp_close_window(account_hdg_edit_window);
 
-	if (windows_get_open(account_section_window))
-		wimp_close_window(account_section_window);
+	account_section_dialogue_force_close(NULL);
 
 	/* Select the window to use and set the contents up. */
 
@@ -1592,9 +1570,9 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 
 		windows_open_centred_at_pointer(win, ptr);
 		if (win == account_acc_edit_window)
-			place_dialogue_caret (win, ACCT_EDIT_NAME);
+			place_dialogue_caret(win, ACCT_EDIT_NAME);
 		else
-			place_dialogue_caret (win, HEAD_EDIT_NAME);
+			place_dialogue_caret(win, HEAD_EDIT_NAME);
 	}
 }
 
@@ -2039,29 +2017,27 @@ static osbool account_delete_from_edit_window(void)
 }
 
 
+
+
+
+
+
+
+
 /**
  * Open the Section Edit dialogue for a given account list window.
  *
- * If account == NULL_ACCOUNT, type determines the type of the new account
- * to be created.  Otherwise, type is ignored and the type derived from the
- * account data block.
- *
- * \param *file			The file to own the dialogue.
- * \param entry			The entry of the window owning the dialogue.
+ * \param *window		The account window to own the dialogue.
  * \param line			The line to be editied, or -1 for none.
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void account_open_section_window(struct file_block *file, int entry, int line, wimp_pointer *ptr)
+static void account_open_section_edit_window(struct account_window *window, int line, wimp_pointer *ptr)
 {
-	if (file == NULL || file->accounts == NULL)
+	if (window == NULL)
 		return;
 
-	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
+	/* Close any other edit dialogues relating to account list windows. */
 
 	if (windows_get_open(account_acc_edit_window))
 		wimp_close_window(account_acc_edit_window);
@@ -2069,177 +2045,52 @@ static void account_open_section_window(struct file_block *file, int entry, int 
 	if (windows_get_open(account_hdg_edit_window))
 		wimp_close_window(account_hdg_edit_window);
 
-	if (windows_get_open(account_section_window))
-		wimp_close_window(account_section_window);
+	/* Open the dialogue box. */
 
-	/* Select the window to use and set the contents up. */
-
-	if (line == -1) {
-		account_fill_section_window(file->accounts, entry, line);
-
-		msgs_lookup("NewSect", windows_get_indirected_title_addr(account_section_window), 50);
-		icons_msgs_lookup(account_section_window, SECTION_EDIT_OK, "NewAcctAct");
-	} else {
-		account_fill_section_window(file->accounts, entry, line);
-
-		msgs_lookup("EditSect", windows_get_indirected_title_addr(account_section_window), 50);
-		icons_msgs_lookup(account_section_window, SECTION_EDIT_OK, "EditAcctAct");
-	}
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	account_section_owner = file->accounts;
-	account_section_entry = entry;
-	account_section_line = line;
-
-	windows_open_centred_at_pointer(account_section_window, ptr);
-	place_dialogue_caret(account_section_window, SECTION_EDIT_TITLE);
+	account_section_dialogue_open(ptr, window, line, account_process_section_edit_window, account_delete_from_section_edit_window,
+			(line == -1) ? "" : window->line_data[line].heading,
+			(line == -1) ? ACCOUNT_LINE_HEADER : window->line_data[line].type);
 }
 
 
 /**
- * Process mouse clicks in the Section Edit dialogue.
+ * Process data associated with the currently open Section Edit window.
  *
- * \param *pointer		The mouse event block to handle.
+ * \param *window		The Account List window holding the section.
+ * \param line			The selected section to be updated, or -1.
+ * \param *name			The new name for the section.
+ * \param type			The new type of section.
+ * \return			TRUE if processed; else FALSE.
  */
 
-static void account_section_click_handler(wimp_pointer *pointer)
+static osbool account_process_section_edit_window(struct account_window *window, int line, char* name, enum account_line_type type)
 {
-	switch (pointer->i) {
-	case SECTION_EDIT_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(account_section_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_refresh_section_window();
-		break;
-
-	case SECTION_EDIT_OK:
-		if (account_process_section_window() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(account_section_window);
-		break;
-
-	case SECTION_EDIT_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && account_delete_from_section_window())
-			close_dialogue_with_caret(account_section_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Section Edit window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool account_section_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (account_process_section_window())
-			close_dialogue_with_caret(account_section_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(account_section_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the Section Edit window.
- */
-
-static void account_refresh_section_window(void)
-{
-	account_fill_section_window(account_section_owner, account_section_entry, account_section_line);
-	icons_redraw_group(account_section_window, 1, SECTION_EDIT_TITLE);
-	icons_replace_caret_in_window(account_section_window);
-}
-
-
-/**
- * Update the contents of the Section Edit window to reflect the current
- * settings of the given file and section.
- *
- * \param *block		The accounts instance to use.
- * \param entry			The window entry owning the dialogue.
- * \param line			The line to be displayed, or -1 for none.
- */
-
-static void account_fill_section_window(struct account_block *block, int entry, int line)
-{
-	if (block == NULL)
-		return;
-
-	if (line == -1) {
-		*icons_get_indirected_text_addr(account_section_window, SECTION_EDIT_TITLE) = '\0';
-
-		icons_set_selected(account_section_window, SECTION_EDIT_HEADER, 1);
-		icons_set_selected(account_section_window, SECTION_EDIT_FOOTER, 0);
-	} else {
-		icons_strncpy(account_section_window, SECTION_EDIT_TITLE, block->account_windows[entry].line_data[line].heading);
-
-		icons_set_selected(account_section_window, SECTION_EDIT_HEADER,
-				(block->account_windows[entry].line_data[line].type == ACCOUNT_LINE_HEADER));
-		icons_set_selected(account_section_window, SECTION_EDIT_FOOTER,
-				(block->account_windows[entry].line_data[line].type == ACCOUNT_LINE_FOOTER));
-	}
-
-	icons_set_deleted(account_section_window, SECTION_EDIT_DELETE, line == -1);
-}
-
-
-/**
- * Take the contents of an updated Section Edit window and process the data.
- *
- * \return			TRUE if the data was valid; FALSE otherwise.
- */
-
-static osbool account_process_section_window(void)
-{
-	if (account_section_owner == NULL)
+	if (window == NULL)
 		return FALSE;
 
-	/* If the section doesn't exsit, create it.  Otherwise, copy the standard fields back from the window into
-	 * memory.
-	 */
+	/* If the section doesn't exsit, create space for it. */
 
-	if (account_section_line == -1) {
-		account_section_line = account_add_list_display_line(account_section_owner->file, account_section_entry);
+	if (line == -1) {
+		line = account_add_list_display_line(window->instance->file, window->entry);
 
-		if (account_section_line == -1) {
+		if (line == -1) {
 			error_msgs_report_error("NoMemNewSect");
 			return FALSE;
 		}
 	}
 
-	strcpy(account_section_owner->account_windows[account_section_entry].line_data[account_section_line].heading,
-			icons_get_indirected_text_addr(account_section_window, SECTION_EDIT_TITLE));
+	/* Update the line details. */
 
-	if (icons_get_selected(account_section_window, SECTION_EDIT_HEADER))
-		account_section_owner->account_windows[account_section_entry].line_data[account_section_line].type = ACCOUNT_LINE_HEADER;
-	else if (icons_get_selected(account_section_window, SECTION_EDIT_FOOTER))
-		account_section_owner->account_windows[account_section_entry].line_data[account_section_line].type = ACCOUNT_LINE_FOOTER;
-	else
-		account_section_owner->account_windows[account_section_entry].line_data[account_section_line].type = ACCOUNT_LINE_BLANK;
+	string_copy(window->line_data[line].heading, name, ACCOUNT_SECTION_LEN);
+	window->line_data[line].type = type;
 
 	/* Tidy up and redraw the windows */
 
-	account_recalculate_all(account_section_owner->file);
-	account_set_window_extent(account_section_owner->account_windows + account_section_entry);
-	windows_open(account_section_owner->account_windows[account_section_entry].account_window);
-	account_force_window_redraw(account_section_owner->file, account_section_entry,
-			account_section_line, account_section_line, wimp_ICON_WINDOW);
-	file_set_data_integrity(account_section_owner->file, TRUE);
+	account_recalculate_all(window->instance->file);
+	account_set_window_extent(window);
+	windows_open(window->account_window);
+	account_force_window_redraw(window->instance->file, window->entry, line, line, wimp_ICON_WINDOW);
+	file_set_data_integrity(window->instance->file, TRUE);
 
 	return TRUE;
 }
@@ -2249,36 +2100,45 @@ static osbool account_process_section_window(void)
  * Delete the section associated with the currently open Section Edit
  * window.
  *
+ * \param *window		The Account List window holding the section.
+ * \param line			The selected line to be deleted.
  * \return			TRUE if deleted; else FALSE.
  */
 
-static osbool account_delete_from_section_window(void)
+static osbool account_delete_from_section_edit_window(struct account_window *window, int line)
 {
-	if (account_section_owner == NULL)
-		return FALSE;
-
-	if (error_msgs_report_question("DeleteSection", "DeleteSectionB") == 4)
+	if (window == NULL || line == -1)
 		return FALSE;
 
 	/* Delete the heading */
 
-	if (!flexutils_delete_object((void **) &(account_section_owner->account_windows[account_section_entry].line_data), sizeof(struct account_redraw), account_section_line)) {
+	if (!flexutils_delete_object((void **) &(window->line_data), sizeof(struct account_redraw), line)) {
 		error_msgs_report_error("BadDelete");
 		return FALSE;
 	}
 
-	account_section_owner->account_windows[account_section_entry].display_lines--;
+	window->display_lines--;
 
 	/* Update the accounts display window. */
 
-	account_set_window_extent(account_section_owner->account_windows + account_section_entry);
-	windows_open(account_section_owner->account_windows[account_section_entry].account_window);
-	account_force_window_redraw(account_section_owner->file, account_section_entry,
-			account_section_line, account_section_owner->account_windows[account_section_entry].display_lines, wimp_ICON_WINDOW);
-	file_set_data_integrity(account_section_owner->file, TRUE);
+	account_set_window_extent(window);
+	windows_open(window->account_window);
+	account_force_window_redraw(window->instance->file, window->entry, line, window->display_lines, wimp_ICON_WINDOW);
+	file_set_data_integrity(window->instance->file, TRUE);
 
 	return TRUE;
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -3390,7 +3250,7 @@ static void account_start_drag(struct account_window *windat, int line)
 	 * the data moving beneath them.
 	 */
 
-	if (windows_get_open(account_acc_edit_window) || windows_get_open(account_hdg_edit_window) || windows_get_open (account_section_window))
+	if (windows_get_open(account_acc_edit_window) || windows_get_open(account_hdg_edit_window) || account_section_dialogue_is_open(windat))
 		return;
 
 	/* Get the basic information about the window. */

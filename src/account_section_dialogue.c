@@ -55,7 +55,6 @@
 
 #include "account.h"
 #include "caret.h"
-#include "fontlist.h"
 
 /* Edit section window. */
 

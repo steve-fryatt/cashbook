@@ -56,6 +56,11 @@ struct account_block;
  */
 
 #define ACCOUNT_SECTION_LEN 52
+#define ACCOUNT_NO_LEN 32
+#define ACCOUNT_SRTCD_LEN 15
+#define ACCOUNT_ADDR_LEN 64
+
+#define ACCOUNT_ADDR_LINES 4
 
 #define NULL_ACCOUNT ((acct_t) -1)
 

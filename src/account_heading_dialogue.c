@@ -55,7 +55,6 @@
 
 #include "account.h"
 #include "caret.h"
-#include "fontlist.h"
 
 /* Edit section window. */
 
@@ -70,15 +69,15 @@
 
 /* Edit heading window. */
 
-#define HEAD_EDIT_OK 0
-#define HEAD_EDIT_CANCEL 1
-#define HEAD_EDIT_DELETE 2
+#define ACCOUNT_HEADING_DIALOGUE_OK 0
+#define ACCOUNT_HEADING_DIALOGUE_CANCEL 1
+#define ACCOUNT_HEADING_DIALOGUE_DELETE 2
 
-#define HEAD_EDIT_NAME 4
-#define HEAD_EDIT_IDENT 6
-#define HEAD_EDIT_INCOMING 7
-#define HEAD_EDIT_OUTGOING 8
-#define HEAD_EDIT_BUDGET 10
+#define ACCOUNT_HEADING_DIALOGUE_NAME 4
+#define ACCOUNT_HEADING_DIALOGUE_IDENT 6
+#define ACCOUNT_HEADING_DIALOGUE_INCOMING 7
+#define ACCOUNT_HEADING_DIALOGUE_OUTGOING 8
+#define ACCOUNT_HEADING_DIALOGUE_BUDGET 10
 
 
 /* Global Variables */
@@ -157,8 +156,8 @@ void account_heading_dialogue_initialise(void)
 	ihelp_add_window(account_heading_dialogue_window, "EditHeading", NULL);
 	event_add_window_mouse_event(account_heading_dialogue_window, account_heading_dialogue_click_handler);
 	event_add_window_key_event(account_heading_dialogue_window, account_heading_dialogue_keypress_handler);
-	event_add_window_icon_radio(account_heading_dialogue_window, HEAD_EDIT_INCOMING, TRUE);
-	event_add_window_icon_radio(account_heading_dialogue_window, HEAD_EDIT_OUTGOING, TRUE);
+	event_add_window_icon_radio(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, TRUE);
+	event_add_window_icon_radio(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, TRUE);
 }
 
 
@@ -176,9 +175,9 @@ void account_heading_dialogue_initialise(void)
  * \param type			The initial incoming/outgoing type for the heading.
  */
 
-void account_heading_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acc_t account,
-		osbool (*update_callback)(struct account_block *, acc_t, char *, char *, amt_t, enum account_type),
-		osbool (*delete_callback)(struct account_block *, acc_t), char *name, char *ident, amt_t budget, enum account_type type)
+void account_heading_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acct_t account,
+		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, enum account_type),
+		osbool (*delete_callback)(struct account_block *, acct_t), char *name, char *ident, amt_t budget, enum account_type type)
 {
 	string_copy(account_heading_dialogue_initial_name, name, ACCOUNT_NAME_LEN);
 	string_copy(account_heading_dialogue_initial_ident, ident, ACCOUNT_IDENT_LEN);
@@ -204,30 +203,30 @@ void account_heading_dialogue_open(wimp_pointer *ptr, struct account_block *owne
 
 	account_heading_dialogue_fill();
 
-	if (line == -1) {
+	if (account == NULL_ACCOUNT) {
 		windows_title_msgs_lookup(account_heading_dialogue_window, "NewHdr");
-		icons_msgs_lookup(account_heading_dialogue_window, HEAD_EDIT_OK, "NewAcctAct");
+		icons_msgs_lookup(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OK, "NewAcctAct");
 	} else {
 		windows_title_msgs_lookup(account_heading_dialogue_window, "EditHdr");
-		icons_msgs_lookup(account_heading_dialogue_window, HEAD_EDIT_OK, "EditAcctAct");
+		icons_msgs_lookup(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OK, "EditAcctAct");
 	}
 
 	/* Open the window. */
 
 	windows_open_centred_at_pointer(account_heading_dialogue_window, ptr);
-	place_dialogue_caret(account_heading_dialogue_window, HEAD_EDIT_NAME);
+	place_dialogue_caret(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_NAME);
 }
 
 
 /**
  * Force the closure of the account section edit dialogue if it relates
- * to a given accounts list instance.
+ * to a given accounts instance.
  *
  * \param *parent		The parent of the dialogue to be closed,
  *				or NULL to force close.
  */
 
-void account_heading_dialogue_force_close(struct account_window *parent)
+void account_heading_dialogue_force_close(struct account_block *parent)
 {
 	if (account_heading_dialogue_is_open(parent))
 		close_dialogue_with_caret(account_heading_dialogue_window);
@@ -236,13 +235,13 @@ void account_heading_dialogue_force_close(struct account_window *parent)
 
 /**
  * Check whether the Edit Section dialogue is open for a given accounts
- * list instance.
+ * instance.
  *
  * \param *parent		The accounts list instance to check.
  * \return			TRUE if the dialogue is open; else FALSE.
  */
 
-osbool account_heading_dialogue_is_open(struct account_window *parent)
+osbool account_heading_dialogue_is_open(struct account_block *parent)
 {
 	return ((account_heading_dialogue_owner == parent || parent == NULL) && windows_get_open(account_heading_dialogue_window)) ? TRUE : FALSE;
 }
@@ -257,19 +256,19 @@ osbool account_heading_dialogue_is_open(struct account_window *parent)
 static void account_heading_dialogue_click_handler(wimp_pointer *pointer)
 {
 	switch (pointer->i) {
-	case HEAD_EDIT_CANCEL:
+	case ACCOUNT_HEADING_DIALOGUE_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT)
 			close_dialogue_with_caret(account_heading_dialogue_window);
 		else if (pointer->buttons == wimp_CLICK_ADJUST)
 			account_heading_dialogue_refresh();
 		break;
 
-	case HEAD_EDIT_OK:
+	case ACCOUNT_HEADING_DIALOGUE_OK:
 		if (account_heading_dialogue_process() && pointer->buttons == wimp_CLICK_SELECT)
 			close_dialogue_with_caret(account_heading_dialogue_window);
 		break;
 
-	case HEAD_EDIT_DELETE:
+	case ACCOUNT_HEADING_DIALOGUE_DELETE:
 		if (pointer->buttons == wimp_CLICK_SELECT && account_heading_dialogue_delete())
 			close_dialogue_with_caret(account_heading_dialogue_window);
 		break;
@@ -312,7 +311,7 @@ static osbool account_heading_dialogue_keypress_handler(wimp_key *key)
 static void account_heading_dialogue_refresh(void)
 {
 	account_heading_dialogue_fill();
-	icons_redraw_group(account_heading_dialogue_window, 3, HEAD_EDIT_NAME, HEAD_EDIT_IDENT, HEAD_EDIT_BUDGET);
+	icons_redraw_group(account_heading_dialogue_window, 3, ACCOUNT_HEADING_DIALOGUE_NAME, ACCOUNT_HEADING_DIALOGUE_IDENT, ACCOUNT_HEADING_DIALOGUE_BUDGET);
 	icons_replace_caret_in_window(account_heading_dialogue_window);
 }
 
@@ -324,20 +323,20 @@ static void account_heading_dialogue_refresh(void)
 
 static void account_heading_dialogue_fill(void)
 {
-	icons_strncpy(account_heading_dialogue_window, HEAD_EDIT_NAME, account_heading_dialogue_initial_name);
-	icons_strncpy(account_heading_dialogue_window, HEAD_EDIT_IDENT, account_heading_dialogue_initial_ident);
+	icons_strncpy(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_NAME, account_heading_dialogue_initial_name);
+	icons_strncpy(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_IDENT, account_heading_dialogue_initial_ident);
 
 	currency_convert_to_string(account_heading_dialogue_initial_budget,
-			icons_get_indirected_text_addr(account_heading_dialogue_window, HEAD_EDIT_BUDGET),
-			icons_get_indirected_text_length(account_heading_dialogue_window, HEAD_EDIT_BUDGET));
+			icons_get_indirected_text_addr(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_BUDGET),
+			icons_get_indirected_text_length(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_BUDGET));
 
-	icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_INCOMING, (account_heading_dialogue_account != NULL_ACCOUNT));
-	icons_set_selected(account_hdg_edit_window, HEAD_EDIT_INCOMING, (account_heading_dialogue_initial_type & ACCOUNT_IN));
+	icons_set_shaded(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (account_heading_dialogue_account != NULL_ACCOUNT));
+	icons_set_selected(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (account_heading_dialogue_initial_type & ACCOUNT_IN));
 
-	icons_set_shaded(account_hdg_edit_window, HEAD_EDIT_OUTGOING, (account_heading_dialogue_account != NULL_ACCOUNT));
-	icons_set_selected(account_hdg_edit_window, HEAD_EDIT_OUTGOING, (account_heading_dialogue_initial_type & ACCOUNT_OUT));
+	icons_set_shaded(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (account_heading_dialogue_account != NULL_ACCOUNT));
+	icons_set_selected(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (account_heading_dialogue_initial_type & ACCOUNT_OUT));
 
-	icons_set_deleted(account_hdg_edit_window, HEAD_EDIT_DELETE, (account_heading_dialogue_account == NULL_ACCOUNT));
+	icons_set_deleted(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_DELETE, (account_heading_dialogue_account == NULL_ACCOUNT));
 }
 
 
@@ -354,15 +353,15 @@ static osbool account_heading_dialogue_process(void)
 
 	/* Extract the information from the dialogue. */
 
-	icons_copy_text(account_heading_dialogue_window, HEAD_EDIT_NAME, account_heading_dialogue_initial_name, ACCOUNT_NAME_LEN);
-	icons_copy_text(account_heading_dialogue_window, HEAD_EDIT_IDENT, account_heading_dialogue_initial_ident, ACCOUNT_IDENT_LEN);
+	icons_copy_text(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_NAME, account_heading_dialogue_initial_name, ACCOUNT_NAME_LEN);
+	icons_copy_text(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_IDENT, account_heading_dialogue_initial_ident, ACCOUNT_IDENT_LEN);
 
 	account_heading_dialogue_initial_budget =
-			currency_convert_from_string(icons_get_indirected_text_addr(account_heading_dialogue_window, HEAD_EDIT_BUDGET));
+			currency_convert_from_string(icons_get_indirected_text_addr(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_BUDGET));
 
-	if (icons_get_selected(account_heading_dialogue_window, HEAD_EDIT_INCOMING))
+	if (icons_get_selected(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_INCOMING))
 		account_heading_dialogue_initial_type = ACCOUNT_IN;
-	else if (icons_get_selected(account_heading_dialogue_window, HEAD_EDIT_OUTGOING))
+	else if (icons_get_selected(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING))
 		account_heading_dialogue_initial_type = ACCOUNT_OUT;
 	else
 		account_heading_dialogue_initial_type = ACCOUNT_NULL;

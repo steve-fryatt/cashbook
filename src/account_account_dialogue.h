@@ -31,6 +31,8 @@
 #define CASHBOOK_ACCOUNT_ACCOUNT_DIALOGUE
 
 #include "account.h"
+#include "account_idnum.h"
+#include "interest.h"
 
 /**
  * Initialise the Account Edit dialogue.
@@ -60,35 +62,35 @@ void account_account_dialogue_initialise(void);
  * \param **address		The initial address details to use for the account, or NULL.
  */
 
-void account_account_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acc_t account,
-		osbool (*update_callback)(struct account_block *, acc_t, char *, char *, enum account_type),
-		osbool (*delete_callback)(struct account_block *, acc_t),
+void account_account_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acct_t account,
+		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, amt_t, struct account_idnum *, struct account_idnum *, acct_t, char *, char *, char *[ACCOUNT_ADDR_LEN]),
+		osbool (*delete_callback)(struct account_block *, acct_t),
 		char *name, char *ident, amt_t credit_limit, amt_t opening_balance,
 		struct account_idnum *cheque_number, struct account_idnum *payin_number,
 		rate_t interest_rate, acct_t offset_against,
-		char *account_num, char *sort_code, char **address);
+		char *account_num, char *sort_code, char *address[ACCOUNT_ADDR_LEN]);
 
 
 /**
  * Force the closure of the account section edit dialogue if it relates
- * to a given accounts list instance.
+ * to a given accounts instance.
  *
  * \param *parent		The parent of the dialogue to be closed,
  *				or NULL to force close.
  */
 
-void account_account_dialogue_force_close(struct account_window *parent);
+void account_account_dialogue_force_close(struct account_block *parent);
 
 
 /**
  * Check whether the Edit Section dialogue is open for a given accounts
- * list instance.
+ * instance.
  *
  * \param *parent		The accounts list instance to check.
  * \return			TRUE if the dialogue is open; else FALSE.
  */
 
-osbool account_account_dialogue_is_open(struct account_window *parent);
+osbool account_account_dialogue_is_open(struct account_block *parent);
 
 #endif
 

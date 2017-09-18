@@ -43,7 +43,7 @@
 struct account_idnum {
 	unsigned	next_id;		/**< The next ID number in the sequence.	*/
 	int		width;			/**< The display width of the ID number.	*/
-}
+};
 
 
 /**
@@ -59,11 +59,21 @@ void account_idnum_initialise(struct account_idnum *block);
  * Set an Account ID Number instance using details copied from another
  * instance.
  *
- * \param *block		The ID Number instance to initialise.
+ * \param *block		The ID Number instance to set.
  * \param *from			The ID Number instance to copy from.
  */
 
 void account_idnum_copy(struct account_idnum *block, struct account_idnum *from);
+
+
+/**
+ * Set an Account ID Number instance using a textual number.
+ *
+ * \param *block		The ID Number instance to set.
+ * \param *value		Pointer to a string representing the new value.
+ */
+
+void account_idnum_set_from_string(struct account_idnum *block, char *value);
 
 
 /**

@@ -72,7 +72,7 @@ void account_idnum_initialise(struct account_idnum *block)
  * Set an Account ID Number instance using details copied from another
  * instance.
  *
- * \param *block		The ID Number instance to initialise.
+ * \param *block		The ID Number instance to set.
  * \param *from			The ID Number instance to copy from.
  */
 
@@ -88,6 +88,31 @@ void account_idnum_copy(struct account_idnum *block, struct account_idnum *from)
 
 	block->next_id = from->next_id;
 	block->width = from->width;
+}
+
+
+/**
+ * Set an Account ID Number instance using a textual number.
+ *
+ * \param *block		The ID Number instance to set.
+ * \param *value		Pointer to a string representing the new value.
+ */
+
+void account_idnum_set_from_string(struct account_idnum *block, char *value)
+{
+	size_t len;
+
+	if (block == NULL || value == NULL)
+		return;
+
+	len = strlen(value);
+
+	if (len > 0) {
+		block->width = len;
+		block->next_id = atoi(value);
+	} else {
+		account_idnum_initialise(block);
+	}
 }
 
 

@@ -58,17 +58,7 @@
 #include "caret.h"
 #include "interest.h"
 
-/* Edit section window. */
-
-#define ACCOUNT_ACCOUNT_DIALOGUE_OK 2
-#define ACCOUNT_ACCOUNT_DIALOGUE_CANCEL 3
-#define ACCOUNT_ACCOUNT_DIALOGUE_DELETE 4
-
-#define ACCOUNT_ACCOUNT_DIALOGUE_TITLE 0
-#define ACCOUNT_ACCOUNT_DIALOGUE_HEADER 5
-#define ACCOUNT_ACCOUNT_DIALOGUE_FOOTER 6
-
-/* Accounr heading window. */
+/* Window Icons. */
 
 #define ACCOUNT_ACCOUNT_DIALOGUE_OK 0
 #define ACCOUNT_ACCOUNT_DIALOGUE_CANCEL 1
@@ -174,7 +164,7 @@ static char			account_account_dialogue_initial_address[ACCOUNT_ADDR_LINES][ACCOU
  */
 
 static osbool			(*account_account_dialogue_update_callback)(struct account_block *, acct_t, char *, char *, amt_t, amt_t,
-						struct account_idnum *, struct account_idnum *, acct_t, char *, char *, char *[ACCOUNT_ADDR_LEN]);
+						struct account_idnum *, struct account_idnum *, acct_t, char *, char *, char [][ACCOUNT_ADDR_LEN]);
 
 /**
  * Callback function to request the deletion of a heading.
@@ -239,12 +229,12 @@ void account_account_dialogue_initialise(void)
  */
 
 void account_account_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acct_t account,
-		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, amt_t, struct account_idnum *, struct account_idnum *, acct_t, char *, char *, char *[ACCOUNT_ADDR_LEN]),
+		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, amt_t, struct account_idnum *, struct account_idnum *, acct_t, char *, char *, char [][ACCOUNT_ADDR_LEN]),
 		osbool (*delete_callback)(struct account_block *, acct_t),
 		char *name, char *ident, amt_t credit_limit, amt_t opening_balance,
 		struct account_idnum *cheque_number, struct account_idnum *payin_number,
 		rate_t interest_rate, acct_t offset_against,
-		char *account_num, char *sort_code, char *address[ACCOUNT_ADDR_LEN])
+		char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN])
 {
 	int i;
 
@@ -494,10 +484,10 @@ static osbool account_account_dialogue_process(void)
 			currency_convert_from_string(icons_get_indirected_text_addr(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_BALANCE));
 
 	account_idnum_set_from_string(&account_account_dialogue_initial_cheque_number,
-			account_acc_edit_window, ACCOUNT_ACCOUNT_DIALOGUE_CHEQUE));
+			icons_get_indirected_text_addr(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_CHEQUE));
 
 	account_idnum_set_from_string(&account_account_dialogue_initial_payin_number,
-			account_acc_edit_window, ACCOUNT_ACCOUNT_DIALOGUE_PAYIN));
+			icons_get_indirected_text_addr(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_PAYIN));
 
 //	account_edit_owner->accounts[account_edit_number].offset_against = account_find_by_ident(account_edit_owner->file,
 //			icons_get_indirected_text_addr(account_acc_edit_window, ACCOUNT_ACCOUNT_DIALOGUE_OFFSET_IDENT), ACCOUNT_FULL);

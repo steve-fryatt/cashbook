@@ -56,18 +56,7 @@
 #include "account.h"
 #include "caret.h"
 
-/* Edit section window. */
-
-#define ACCOUNT_HEADING_DIALOGUE_OK 2
-#define ACCOUNT_HEADING_DIALOGUE_CANCEL 3
-#define ACCOUNT_HEADING_DIALOGUE_DELETE 4
-
-#define ACCOUNT_HEADING_DIALOGUE_TITLE 0
-#define ACCOUNT_HEADING_DIALOGUE_HEADER 5
-#define ACCOUNT_HEADING_DIALOGUE_FOOTER 6
-
-
-/* Edit heading window. */
+/* Window Icons. */
 
 #define ACCOUNT_HEADING_DIALOGUE_OK 0
 #define ACCOUNT_HEADING_DIALOGUE_CANCEL 1
@@ -187,7 +176,7 @@ void account_heading_dialogue_open(wimp_pointer *ptr, struct account_block *owne
 
 	account_heading_dialogue_update_callback = update_callback;
 	account_heading_dialogue_delete_callback = delete_callback;
-	account_heading_dialogue_owner = window;
+	account_heading_dialogue_owner = owner;
 	account_heading_dialogue_account = account;
 
 	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
@@ -330,13 +319,13 @@ static void account_heading_dialogue_fill(void)
 			icons_get_indirected_text_addr(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_BUDGET),
 			icons_get_indirected_text_length(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_BUDGET));
 
-	icons_set_shaded(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (account_heading_dialogue_account != NULL_ACCOUNT));
-	icons_set_selected(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (account_heading_dialogue_initial_type & ACCOUNT_IN));
+	icons_set_shaded(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (account_heading_dialogue_account != NULL_ACCOUNT));
+	icons_set_selected(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (account_heading_dialogue_initial_type & ACCOUNT_IN));
 
-	icons_set_shaded(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (account_heading_dialogue_account != NULL_ACCOUNT));
-	icons_set_selected(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (account_heading_dialogue_initial_type & ACCOUNT_OUT));
+	icons_set_shaded(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (account_heading_dialogue_account != NULL_ACCOUNT));
+	icons_set_selected(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (account_heading_dialogue_initial_type & ACCOUNT_OUT));
 
-	icons_set_deleted(account_hdg_edit_window, ACCOUNT_HEADING_DIALOGUE_DELETE, (account_heading_dialogue_account == NULL_ACCOUNT));
+	icons_set_deleted(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_DELETE, (account_heading_dialogue_account == NULL_ACCOUNT));
 }
 
 

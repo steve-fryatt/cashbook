@@ -30,6 +30,7 @@
 /* ANSI C header files */
 
 #include <stddef.h>
+#include <string.h>
 
 /* Acorn C header files */
 
@@ -61,7 +62,7 @@
 void account_idnum_initialise(struct account_idnum *block)
 {
 	if (block == NULL)
-		return NULL;
+		return;
 
 	block->next_id = 0;
 	block->width = 0;
@@ -203,7 +204,7 @@ char *account_idnum_get_next(struct account_idnum *block, char *buffer, size_t l
 	/* Generate the required ID number in the buffer. */
 
 	string_printf(format, ACCOUNT_IDNUM_FORMAT_LENGTH, "%%0%dd", block->width);
-	string_printf(buffer, size, format, block->next_id);
+	string_printf(buffer, length, format, block->next_id);
 
 	block->next_id += increment;
 

@@ -63,12 +63,12 @@ void account_account_dialogue_initialise(void);
  */
 
 void account_account_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acct_t account,
-		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, amt_t, struct account_idnum *, struct account_idnum *, acct_t, char *, char *, char *[ACCOUNT_ADDR_LEN]),
+		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, amt_t, struct account_idnum *, struct account_idnum *, acct_t, char *, char *, char [][ACCOUNT_ADDR_LEN]),
 		osbool (*delete_callback)(struct account_block *, acct_t),
 		char *name, char *ident, amt_t credit_limit, amt_t opening_balance,
 		struct account_idnum *cheque_number, struct account_idnum *payin_number,
 		rate_t interest_rate, acct_t offset_against,
-		char *account_num, char *sort_code, char *address[ACCOUNT_ADDR_LEN]);
+		char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
 
 
 /**

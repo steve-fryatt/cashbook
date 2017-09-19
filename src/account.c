@@ -359,7 +359,7 @@ static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_co
 
 static osbool			account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
 						amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
-						acct_t offset_against, char *account_num, char *sort_code, char *address[ACCOUNT_ADDR_LEN]);
+						acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
 static osbool			account_process_heading_edit_window(struct account_block *instance, acct_t account, char* name, char *ident, amt_t budget, enum account_type type);
 static osbool			account_delete_from_edit_window(struct account_block *instance, acct_t account);
 
@@ -1547,7 +1547,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 
 static osbool account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
 		amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
-		acct_t offset_against, char *account_num, char *sort_code, char *address[ACCOUNT_ADDR_LEN])
+		acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN])
 {
 	int	i;
 	acct_t	check_ident;

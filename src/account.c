@@ -1514,12 +1514,12 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 
 		if (data->type & ACCOUNT_FULL) {
 			rate = interest_get_current_rate(file->interest, account, date_today());
-			account_account_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_account_edit_window, account_delete_from_edit_window,
+			account_account_dialogue_open(ptr, file->accounts, account, account_process_account_edit_window, account_delete_from_edit_window,
 					data->name, data->ident, data->credit_limit, data->opening_balance,
 					&(data->cheque_number), &(data->payin_number), rate, data->offset_against,
 					data->account_no, data->sort_code, data->address);
 		} else if (data->type & ACCOUNT_IN || data->type & ACCOUNT_OUT) {
-			account_heading_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_heading_edit_window, account_delete_from_edit_window,
+			account_heading_dialogue_open(ptr, file->accounts, account, account_process_heading_edit_window, account_delete_from_edit_window,
 					data->name, data->ident, data->budget_amount, data->type);
 		}
 	}
@@ -1558,7 +1558,7 @@ static osbool account_process_account_edit_window(struct account_block *instance
 
 	check_ident = account_find_by_ident(instance->file, ident, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT);
 
-	if (check_ident != NULL_ACCOUNT && check_ident != account) {
+	if ((check_ident != NULL_ACCOUNT) && (check_ident != account)) {
 		error_msgs_report_error("UsedAcctIdent");
 		return FALSE;
 	}
@@ -1627,7 +1627,7 @@ static osbool account_process_heading_edit_window(struct account_block *instance
 
 	check_ident = account_find_by_ident(instance->file, ident, ACCOUNT_FULL | type);
 
-	if (check_ident != NULL_ACCOUNT && check_ident != account) {
+	if ((check_ident != NULL_ACCOUNT) && (check_ident != account)) {
 		error_msgs_report_error("UsedAcctIdent");
 		return FALSE;
 	}

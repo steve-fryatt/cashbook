@@ -198,7 +198,7 @@ char *account_idnum_get_next(struct account_idnum *block, char *buffer, size_t l
 
 	buffer[0] = '\0';
 
-	if (block == NULL)
+	if (block == NULL || !account_idnum_active(block))
 		return buffer;
 
 	/* Generate the required ID number in the buffer. */

@@ -82,9 +82,24 @@
 #define ACCOUNT_ACCOUNT_DIALOGUE_ADDR3 33
 #define ACCOUNT_ACCOUNT_DIALOGUE_ADDR4 34
 
+/**
+ * The number of address line icons.
+ */
+
+#define ACCOUNT_ACCOUNT_DIALOGUE_ADDR_LINES 4
 
 /* Global Variables */
 
+/**
+ * The icons which make up the address field.
+ */
+
+static const wimp_i		account_account_dialogue_address_icons[] = {
+		ACCOUNT_ACCOUNT_DIALOGUE_ADDR1,
+		ACCOUNT_ACCOUNT_DIALOGUE_ADDR2,
+		ACCOUNT_ACCOUNT_DIALOGUE_ADDR3,
+		ACCOUNT_ACCOUNT_DIALOGUE_ADDR4,
+};
 
 /**
  * The handle of the Account Edit window.
@@ -452,8 +467,8 @@ static void account_account_dialogue_fill(void)
 	icons_strncpy(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_ACCNO, account_account_dialogue_initial_account_num);
 	icons_strncpy(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_SRTCD, account_account_dialogue_initial_sort_code);
 
-	for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
-		icons_strncpy(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_ADDR1 + i, account_account_dialogue_initial_address[i]);
+	for (i = 0; (i < ACCOUNT_ADDR_LINES) && (i < ACCOUNT_ACCOUNT_DIALOGUE_ADDR_LINES); i++)
+		icons_strncpy(account_account_dialogue_window, account_account_dialogue_address_icons[i], account_account_dialogue_initial_address[i]);
 
 	icons_set_deleted(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_DELETE, (account_account_dialogue_account == NULL_ACCOUNT));
 }
@@ -495,8 +510,8 @@ static osbool account_account_dialogue_process(void)
 	icons_copy_text(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_ACCNO, account_account_dialogue_initial_account_num, ACCOUNT_NO_LEN);
 	icons_copy_text(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_SRTCD, account_account_dialogue_initial_sort_code, ACCOUNT_SRTCD_LEN);
 
-	for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
-		icons_copy_text(account_account_dialogue_window, ACCOUNT_ACCOUNT_DIALOGUE_ADDR1 + i, account_account_dialogue_initial_address[i], ACCOUNT_ADDR_LEN);
+	for (i = 0; (i < ACCOUNT_ADDR_LINES) && (i < ACCOUNT_ACCOUNT_DIALOGUE_ADDR_LINES); i++)
+		icons_copy_text(account_account_dialogue_window, account_account_dialogue_address_icons[i], account_account_dialogue_initial_address[i], ACCOUNT_ADDR_LEN);
 
 	/* Call the client back. */
 

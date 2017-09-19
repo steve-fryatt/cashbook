@@ -337,26 +337,6 @@ static void			account_force_window_redraw(struct file_block *file, int entry, in
 static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
-
-
-
-//static void			account_acc_edit_click_handler(wimp_pointer *pointer);
-//static void			account_hdg_edit_click_handler(wimp_pointer *pointer);
-//static osbool			account_acc_edit_keypress_handler(wimp_key *key);
-//static osbool			account_hdg_edit_keypress_handler(wimp_key *key);
-//static void			account_refresh_acc_edit_window(void);
-//static void			account_refresh_hdg_edit_window(void);
-//static void			account_fill_acc_edit_window(struct account_block *block, acct_t account);
-//static void			account_fill_hdg_edit_window(struct account_block *block, acct_t account, enum account_type type);
-//static osbool			account_process_acc_edit_window(void);
-//static osbool			account_process_hdg_edit_window(void);
-//static osbool			account_delete_from_edit_window (void);
-
-
-
-
-
-
 static osbool			account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
 						amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
 						acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
@@ -1436,37 +1416,6 @@ static void account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * Open the Account Edit dialogue for a given account list window.
  *
@@ -1684,10 +1633,6 @@ static osbool account_delete_from_edit_window(struct account_block *instance, ac
 }
 
 
-
-
-
-
 /**
  * Open the Section Edit dialogue for a given account list window.
  *
@@ -1790,17 +1735,6 @@ static osbool account_delete_from_section_edit_window(struct account_window *win
 
 	return TRUE;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**
@@ -2622,7 +2556,7 @@ void account_toggle_reconcile_icon(wimp_w window, wimp_i icon)
 	else
 		*icons_get_indirected_text_addr(window, icon) = '\0';
 
-	wimp_set_icon_state (window, icon, 0, 0);
+	wimp_set_icon_state(window, icon, 0, 0);
 }
 
 

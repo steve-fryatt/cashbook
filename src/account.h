@@ -90,8 +90,6 @@ enum account_line_type {
 	ACCOUNT_LINE_FOOTER							/**< Section Footer line type.				*/
 };
 
-struct account_window;
-
 /**
  * Get an account field from an input file.
  */

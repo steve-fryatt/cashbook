@@ -38,6 +38,7 @@
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
 #include "oslib/osfile.h"
+#include "oslib/osspriteop.h"
 #include "oslib/wimp.h"
 #include "oslib/dragasprite.h"
 #include "oslib/wimpspriteop.h"
@@ -140,8 +141,6 @@
 
 /* Account window details */
 
-#define ACCOUNT_WINDOWS 3
-
 #define ACCOUNT_COLUMNS 6
 #define ACCOUNT_TOOLBAR_HEIGHT 132
 #define ACCOUNT_FOOTER_HEIGHT 36
@@ -196,7 +195,7 @@ struct account_redraw {
  * Account Window data structure -- implementation.
  */
 
-struct account_window {
+struct account_list_window {
 	struct account_block	*instance;					/**< The instance owning the block (for reverse lookup).	*/
 	int			entry;						/**< The array index of the block (for reverse lookup).		*/
 
@@ -252,30 +251,30 @@ static struct saveas_block	*account_saveas_tsv = NULL;			/**< The Save TSV savea
 
 
 
-/* \TODO -- These entries should probably become struct account_window * pointers? */
+/* \TODO -- These entries should probably become struct account_list_window * pointers? */
 
 
 /* Account List Window drags. */
 
 static osbool			account_dragging_sprite = FALSE;		/**< True if the account line drag is using a sprite.			*/
-static struct account_window	*account_dragging_owner = NULL;			/**< The window of the account list in which the drag occurs.		*/
+static struct account_list_window	*account_dragging_owner = NULL;			/**< The window of the account list in which the drag occurs.		*/
 static int			account_dragging_start_line = -1;		/**< The line where an account entry drag was started.			*/
 
 
-static void			account_delete_window(struct account_window *window);
-static void			account_close_window_handler(wimp_close *close);
-static void			account_window_click_handler(wimp_pointer *pointer);
-static void			account_pane_click_handler(wimp_pointer *pointer);
-static void			account_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
-static void			account_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
-static void			account_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
-static void			account_window_menu_close_handler(wimp_w w, wimp_menu *menu);
-static void			account_window_scroll_handler(wimp_scroll *scroll);
-static void			account_window_redraw_handler(wimp_draw *redraw);
-static void			account_adjust_window_columns(void *data, wimp_i icon, int width);
-static void			account_set_window_extent(struct account_window *windat);
+static void			account_list_window_delete(struct account_list_window *window);
+static void			account_list_window_close_handler(wimp_close *close);
+static void			account_list_window_click_handler(wimp_pointer *pointer);
+static void			account_list_window_pane_click_handler(wimp_pointer *pointer);
+static void			account_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void			account_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+static void			account_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
+static void			account_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
+static void			account_list_window_scroll_handler(wimp_scroll *scroll);
+static void			account_list_window_redraw_handler(wimp_draw *redraw);
+static void			account_list_window_adjust_columns(void *data, wimp_i icon, int width);
+static void			account_list_window_set_extent(struct account_list_window *windat);
 static void			account_build_window_title(struct file_block *file, int entry);
-static void			account_force_window_redraw(struct file_block *file, int entry, int from, int to, wimp_i column);
+static void			account_list_window_force_redraw(struct account_list_window *windat, int from, int to, wimp_i column);
 static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
@@ -286,25 +285,25 @@ static osbool			account_process_heading_edit_window(struct account_block *instan
 static osbool			account_delete_from_edit_window(struct account_block *instance, acct_t account);
 
 
-static void			account_open_section_edit_window(struct account_window *window, int line, wimp_pointer *ptr);
-static osbool			account_process_section_edit_window(struct account_window *window, int line, char* name, enum account_line_type type);
-static osbool			account_delete_from_section_edit_window(struct account_window *window, int line);
+static void			account_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr);
+static osbool			account_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type);
+static osbool			account_delete_from_section_edit_window(struct account_list_window *window, int line);
 
-static void			account_open_print_window(struct account_window *window, wimp_pointer *ptr, osbool restore);
+static void			account_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore);
 static struct report		*account_print(struct report *report, void *data);
 
-static void			account_start_drag(struct account_window *windat, int line);
+static void			account_start_drag(struct account_list_window *windat, int line);
 static void			account_terminate_drag(wimp_dragged *drag, void *data);
 
 static osbool			account_save_csv(char *filename, osbool selection, void *data);
 static osbool			account_save_tsv(char *filename, osbool selection, void *data);
-static void			account_export_delimited(struct account_window *windat, char *filename, enum filing_delimit_type format, int filetype);
+static void			account_export_delimited(struct account_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
 
 
 
 
 /**
- * Initialise the Account List Window.
+ * Initialise the Account List Window system.
  */
 
 void account_list_window_initialise(osspriteop_area *sprites)
@@ -327,58 +326,124 @@ void account_list_window_initialise(osspriteop_area *sprites)
 }
 
 
-
 /**
- * Create and open an Accounts List window for the given file and account type.
+ * Create a new Account List Window instance.
  *
- * \param *file			The file to open a window for.
- * \param type			The type of account to open a window for.
+ * \param *parent		The parent accounts instance.
+ * \param type			The type of account that the instance contains.
+ * \param entry			The instance's "entry" value.
+ * \return			Pointer to the new instance, or NULL.
  */
 
-void account_open_window(struct file_block *file, enum account_type type)
+struct account_list_window *account_list_window_create_instance(struct account_block *parent, enum account_type type, int entry)
 {
-	int			entry, tb_type, height;
-	os_error		*error;
-	wimp_window_state	parent;
-	struct account_window	*window;
+	struct account_list_window	*new;
 
-	/* Find the window block to use. */
+	new = heap_alloc(sizeof(struct account_list_window));
+	if (new == NULL)
+		return NULL;
 
-	entry = account_find_window_entry_from_type(file, type);
+	new->instance = parent;
+	new->entry = entry;
+	new->type = type;
 
-	if (entry == -1)
+	new->account_window = NULL;
+	new->account_pane = NULL;
+	new->account_footer = NULL;
+	new->columns = NULL;
+
+	new->display_lines = 0;
+	new->line_data = NULL;
+
+	/* Blank out the footer icons. */
+
+	*new->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT] = '\0';
+	*new->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT] = '\0';
+	*new->footer_icon[ACCOUNT_NUM_COLUMN_FINAL] = '\0';
+	*new->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET] = '\0';
+
+	new->columns = column_create_instance(ACCOUNT_COLUMNS, account_columns, account_extra_columns, wimp_ICON_WINDOW);
+	if (new->account_windows[i].columns == NULL) {
+		account_list_window_delete_instance(new);
+		return NULL;
+	}
+
+	column_set_minimum_widths(new->columns, config_str_read("LimAccountCols"));
+	column_init_window(new->columns, 0, FALSE, config_str_read("AccountCols"));
+
+	/* Set the initial lines up */
+
+	if (!flexutils_initialise((void **) &(new->account_windows[i].line_data))) {
+		account_list_window_delete_instance(new);
+		return NULL;
+	}
+
+	return new;
+}
+
+
+/**
+ * Destroy an Account List Window instance.
+ *
+ * \param *windat		The instance to be deleted.
+ */
+
+void account_list_window_delete_instance(struct account_list_window *windat)
+{
+	if (windat == NULL)
 		return;
 
-	window = &(file->accounts->account_windows[entry]);
+	if (windat->line_data != NULL)
+		flexutils_free((void **) &(windat->line_data));
+
+	column_delete_instance(windat->columns);
+
+	account_list_window_delete(windat);
+
+	heap_free(windat);
+}
+
+
+/**
+ * Create and open an Accounts List window for the given instance.
+ *
+ * \param *windat		The instance to open a window for.
+ */
+
+void account_list_window_open(struct account_list_window *windat)
+{
+	int			tb_type, height;
+	os_error		*error;
+	wimp_window_state	parent;
+
 
 	/* Create or re-open the window. */
 
-	if (window->account_window != NULL) {
-		windows_open(window->account_window);
+	if (windat->account_window != NULL) {
+		windows_open(windat->account_window);
 		return;
 	}
 
 	/* Set the main window extent and create it. */
 
-	*(window->window_title) = '\0';
-	account_list_window_def->title_data.indirected_text.text = window->window_title;
+	*(windat->window_title) = '\0';
+	account_list_window_def->title_data.indirected_text.text = windat->window_title;
 
-	height =  (window->display_lines > MIN_ACCOUNT_ENTRIES) ? window->display_lines : MIN_ACCOUNT_ENTRIES;
+	height =  (windat->display_lines > MIN_ACCOUNT_ENTRIES) ? windat->display_lines : MIN_ACCOUNT_ENTRIES;
 
 	/* Find the position to open the window at. */
 
 	transact_get_window_state(file, &parent);
 
-	window_set_initial_area(account_list_window_def, column_get_window_width(window->columns),
+	window_set_initial_area(account_list_window_def, column_get_window_width(windat->columns),
 			(height * WINDOW_ROW_HEIGHT) + ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT + 2,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
-	error = xwimp_create_window (account_list_window_def, &(window->account_window));
+	error = xwimp_create_window(account_list_window_def, &(windat->account_window));
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		error_report_info("Main window");
-		account_delete_window(window);
+		account_list_window_delete(windat);
 		return;
 	}
 
@@ -387,31 +452,29 @@ void account_open_window(struct file_block *file, enum account_type type)
 	tb_type = (type == ACCOUNT_FULL) ? ACCOUNT_PANE_ACCOUNT : ACCOUNT_PANE_HEADING;
 
 	windows_place_as_toolbar(account_list_window_def, account_list_window_pane_def[tb_type], ACCOUNT_TOOLBAR_HEIGHT-4);
-	columns_place_heading_icons(window->columns, account_list_window_pane_def[tb_type]);
+	columns_place_heading_icons(windat->columns, account_list_window_pane_def[tb_type]);
 
-	error = xwimp_create_window(account_list_window_pane_def[tb_type], &(window->account_pane));
+	error = xwimp_create_window(account_list_window_pane_def[tb_type], &(windat->account_pane));
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		error_report_info("Toolbar");
-		account_delete_window(window);
+		account_list_window_delete(windat);
 		return;
 	}
 
 	/* Create the footer pane. */
 
 	windows_place_as_footer(account_list_window_def, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
-	columns_place_footer_icons(window->columns, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
+	columns_place_footer_icons(windat->columns, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
 
-	account_foot_def->icons[ACCOUNT_FOOTER_STATEMENT].data.indirected_text.text = window->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT];
-	account_foot_def->icons[ACCOUNT_FOOTER_CURRENT].data.indirected_text.text = window->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT];
-	account_foot_def->icons[ACCOUNT_FOOTER_FINAL].data.indirected_text.text = window->footer_icon[ACCOUNT_NUM_COLUMN_FINAL];
-	account_foot_def->icons[ACCOUNT_FOOTER_BUDGET].data.indirected_text.text = window->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET];
+	account_foot_def->icons[ACCOUNT_FOOTER_STATEMENT].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT];
+	account_foot_def->icons[ACCOUNT_FOOTER_CURRENT].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT];
+	account_foot_def->icons[ACCOUNT_FOOTER_FINAL].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_FINAL];
+	account_foot_def->icons[ACCOUNT_FOOTER_BUDGET].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET];
 
-	error = xwimp_create_window(account_foot_def, &(window->account_footer));
+	error = xwimp_create_window(account_foot_def, &(windat->account_footer));
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		error_report_info("Footer bar");
-		account_delete_window(window);
+		account_list_window_delete(windat);
 		return;
 	}
 
@@ -421,58 +484,58 @@ void account_open_window(struct file_block *file, enum account_type type)
 
 	/* Open the window. */
 
-	if (type == ACCOUNT_FULL) {
-		ihelp_add_window(window->account_window , "AccList", account_decode_window_help);
-		ihelp_add_window(window->account_pane , "AccListTB", NULL);
-		ihelp_add_window(window->account_footer , "AccListFB", NULL);
+	if (windat->type == ACCOUNT_FULL) {
+		ihelp_add_window(windat->account_window , "AccList", account_decode_window_help);
+		ihelp_add_window(windat->account_pane , "AccListTB", NULL);
+		ihelp_add_window(windat->account_footer , "AccListFB", NULL);
 	} else {
-		ihelp_add_window(window->account_window , "HeadList", account_decode_window_help);
-		ihelp_add_window(window->account_pane , "HeadListTB", NULL);
-		ihelp_add_window(window->account_footer , "HeadListFB", NULL);
+		ihelp_add_window(windat->account_window , "HeadList", account_decode_window_help);
+		ihelp_add_window(windat->account_pane , "HeadListTB", NULL);
+		ihelp_add_window(windat->account_footer , "HeadListFB", NULL);
 	}
 
-	windows_open(window->account_window);
-	windows_open_nested_as_toolbar(window->account_pane, window->account_window, ACCOUNT_TOOLBAR_HEIGHT-4);
-	windows_open_nested_as_footer(window->account_footer, window->account_window, ACCOUNT_FOOTER_HEIGHT);
+	windows_open(windat->account_window);
+	windows_open_nested_as_toolbar(windat->account_pane, windat->account_window, ACCOUNT_TOOLBAR_HEIGHT - 4);
+	windows_open_nested_as_footer(windat->account_footer, windat->account_window, ACCOUNT_FOOTER_HEIGHT);
 
 	/* Register event handlers for the two windows. */
 	/* \TODO -- Should this be all three windows?   */
 
-	event_add_window_user_data(window->account_window, window);
-	event_add_window_menu(window->account_window, account_window_menu);
-	event_add_window_close_event(window->account_window, account_close_window_handler);
-	event_add_window_mouse_event(window->account_window, account_window_click_handler);
-	event_add_window_scroll_event(window->account_window, account_window_scroll_handler);
-	event_add_window_redraw_event(window->account_window, account_window_redraw_handler);
-	event_add_window_menu_prepare(window->account_window, account_window_menu_prepare_handler);
-	event_add_window_menu_selection(window->account_window, account_window_menu_selection_handler);
-	event_add_window_menu_warning(window->account_window, account_window_menu_warning_handler);
-	event_add_window_menu_close(window->account_window, account_window_menu_close_handler);
+	event_add_window_user_data(windat->account_window, windat);
+	event_add_window_menu(windat->account_window, account_window_menu);
+	event_add_window_close_event(windat->account_window, account_list_window_close_handler);
+	event_add_window_mouse_event(windat->account_window, account_list_window_click_handler);
+	event_add_window_scroll_event(windat->account_window, account_list_window_scroll_handler);
+	event_add_window_redraw_event(windat->account_window, account_list_window_redraw_handler);
+	event_add_window_menu_prepare(windat->account_window, account_list_window_menu_prepare_handler);
+	event_add_window_menu_selection(windat->account_window, account_list_window_menu_selection_handler);
+	event_add_window_menu_warning(windat->account_window, account_list_window_menu_warning_handler);
+	event_add_window_menu_close(windat->account_window, account_list_window_menu_close_handler);
 
-	event_add_window_user_data(window->account_pane, window);
-	event_add_window_menu(window->account_pane, account_window_menu);
-	event_add_window_mouse_event(window->account_pane, account_pane_click_handler);
-	event_add_window_menu_prepare(window->account_pane, account_window_menu_prepare_handler);
-	event_add_window_menu_selection(window->account_pane, account_window_menu_selection_handler);
-	event_add_window_menu_warning(window->account_pane, account_window_menu_warning_handler);
-	event_add_window_menu_close(window->account_pane, account_window_menu_close_handler);
+	event_add_window_user_data(windat->account_pane, windat);
+	event_add_window_menu(windat->account_pane, account_window_menu);
+	event_add_window_mouse_event(windat->account_pane, account_list_window_pane_click_handler);
+	event_add_window_menu_prepare(windat->account_pane, account_list_window_menu_prepare_handler);
+	event_add_window_menu_selection(windat->account_pane, account_list_window_menu_selection_handler);
+	event_add_window_menu_warning(windat->account_pane, account_list_window_menu_warning_handler);
+	event_add_window_menu_close(windat->account_pane, account_list_window_menu_close_handler);
 }
 
 
 /**
  * Close and delete an Accounts List Window associated with the given
- * account window block.
+ * instance.
  *
  * \param *windat		The window to delete.
  */
 
-static void account_delete_window(struct account_window *windat)
+static void account_list_window_delete(struct account_list_window *windat)
 {
 	if (windat == NULL)
 		return;
 
 	#ifdef DEBUG
-	debug_printf ("\\RDeleting accounts window");
+	debug_printf ("\\RDeleting accounts list window");
 	#endif
 
 	/* Close any dialogues which belong to this window. */
@@ -511,9 +574,9 @@ static void account_delete_window(struct account_window *windat)
  * \param *close		The Wimp Close data block.
  */
 
-static void account_close_window_handler(wimp_close *close)
+static void account_list_window_close_handler(wimp_close *close)
 {
-	struct account_window	*windat;
+	struct account_list_window	*windat;
 
 	#ifdef DEBUG
 	debug_printf ("\\RClosing Accounts List window");
@@ -521,19 +584,19 @@ static void account_close_window_handler(wimp_close *close)
 
 	windat = event_get_window_user_data(close->w);
 	if (windat != NULL)
-		account_delete_window(windat);
+		account_list_window_delete(windat);
 }
 
 
 /**
- * Process mouse clicks in the Accounts List window.
+ * Process mouse clicks in an Accounts List Window.
  *
  * \param *pointer		The mouse event block to handle.
  */
 
-static void account_window_click_handler(wimp_pointer *pointer)
+static void account_list_window_click_handler(wimp_pointer *pointer)
 {
-	struct account_window	*windat;
+	struct account_list_window	*windat;
 	int			line;
 	wimp_window_state	window;
 
@@ -571,14 +634,14 @@ static void account_window_click_handler(wimp_pointer *pointer)
 
 
 /**
- * Process mouse clicks in the Accounts List pane.
+ * Process mouse clicks in an Accounts List Window pane.
  *
  * \param *pointer		The mouse event block to handle.
  */
 
-static void account_pane_click_handler(wimp_pointer *pointer)
+static void account_list_window_pane_click_handler(wimp_pointer *pointer)
 {
-	struct account_window		*windat;
+	struct account_list_window		*windat;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL)
@@ -610,22 +673,22 @@ static void account_pane_click_handler(wimp_pointer *pointer)
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimAccountCols"));
-		column_start_drag(windat->columns, pointer, windat, windat->account_window, account_adjust_window_columns);
+		column_start_drag(windat->columns, pointer, windat, windat->account_window, account_list_window_adjust_columns);
 	}
 }
 
 
 /**
- * Process menu prepare events in the Accounts List window.
+ * Process menu prepare events in an Accounts List window.
  *
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
  * \param *pointer	The pointer position, or NULL for a re-open.
  */
 
-static void account_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+static void account_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	struct account_window	*windat;
+	struct account_list_window	*windat;
 	int			line;
 	wimp_window_state	window;
 	enum account_line_type	data;
@@ -683,16 +746,16 @@ static void account_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 
 
 /**
- * Process menu selection events in the Accounts List window.
+ * Process menu selection events in an Accounts List Window.
  *
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
  * \param *selection	The menu selection details.
  */
 
-static void account_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
+static void account_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	struct account_window	*windat;
+	struct account_list_window	*windat;
 	wimp_pointer		pointer;
 //	osbool			data;
 
@@ -736,16 +799,16 @@ static void account_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wim
 
 
 /**
- * Process submenu warning events in the Accounts List window.
+ * Process submenu warning events in an Accounts List Window.
  *
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
  * \param *warning	The submenu warning message data.
  */
 
-static void account_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
+static void account_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-	struct account_window	*windat;
+	struct account_list_window	*windat;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL)
@@ -766,13 +829,13 @@ static void account_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_
 
 
 /**
- * Process menu close events in the Accounts List window.
+ * Process menu close events in an Accounts List Window.
  *
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
  */
 
-static void account_window_menu_close_handler(wimp_w w, wimp_menu *menu)
+static void account_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
 	account_window_menu_line = -1;
 	ihelp_remove_menu(account_window_menu);
@@ -780,12 +843,12 @@ static void account_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 
 /**
- * Process scroll events in the Accounts List window.
+ * Process scroll events in an Accounts List Window.
  *
  * \param *scroll		The scroll event block to handle.
  */
 
-static void account_window_scroll_handler(wimp_scroll *scroll)
+static void account_list_window_scroll_handler(wimp_scroll *scroll)
 {
 	window_process_scroll_effect(scroll, ACCOUNT_TOOLBAR_HEIGHT + ACCOUNT_FOOTER_HEIGHT);
 
@@ -796,17 +859,17 @@ static void account_window_scroll_handler(wimp_scroll *scroll)
 
 
 /**
- * Process redraw events in the Account View window.
+ * Process redraw events in an Account View Window.
  *
  * \param *redraw		The draw event block to handle.
  */
 
-static void account_window_redraw_handler(wimp_draw *redraw)
+static void account_list_window_redraw_handler(wimp_draw *redraw)
 {
 	int			ox, oy, top, base, y, shade_overdrawn_col, icon_fg_col, width;
 	char			icon_buffer[AMOUNT_FIELD_LEN];
 	osbool			more, shade_overdrawn;
-	struct account_window	*windat;
+	struct account_list_window	*windat;
 	struct account_block	*instance;
 
 	windat = event_get_window_user_data(redraw->w);
@@ -968,9 +1031,9 @@ static void account_window_redraw_handler(wimp_draw *redraw)
  * \param width			The new width for the group.
  */
 
-static void account_adjust_window_columns(void *data, wimp_i icon, int width)
+static void account_list_window_adjust_columns(void *data, wimp_i icon, int width)
 {
-	struct account_window	*windat = (struct account_window *) data;
+	struct account_list_window	*windat = (struct account_list_window *) data;
 	int			new_extent;
 	wimp_window_info	window;
 
@@ -1011,12 +1074,81 @@ static void account_adjust_window_columns(void *data, wimp_i icon, int width)
 
 
 /**
- * Set the extent of an account window for the specified file.
+ * Add an account to the end of an Account List Window.
+ *
+ * \param *windat		The Account List Window instance to add
+ *				the account to.
+ * \param account		The account to add.
+ */
+
+void account_list_window_add_account(struct account_list_window *windat, acct_t account)
+{
+	int line;
+
+	if (windat == NULL)
+		return;
+
+	line = account_list_window_add_line(windat);
+
+	if (line == -1) {
+		error_msgs_report_error("NoMemLinkAcct");
+		return;
+	}
+
+	windat->line_data[line].type = ACCOUNT_LINE_DATA;
+	windat->line_data[line].account = account;
+
+	/* If the target window is open, change the extent as necessary. */
+
+	account_list_window_set_extent(windat);
+}
+
+
+/**
+ * Remove an account from an Account List Window instance.
+ *
+ * \param *windat		The Account List Window instance.
+ * \param account		The account to remove.
+ */
+
+void account_list_window_remove_account(struct account_list_window *windat, acct_t account)
+{
+	int line;
+
+	if (windat == NULL)
+		return;
+
+	for (line = windat->display_lines - 1; line >= 0; line--) {
+		if (windat->line_data[line].type == ACCOUNT_LINE_DATA && windat->line_data[line].account == account) {
+			#ifdef DEBUG
+			debug_printf("Deleting entry type %x", windat->line_data[line].type);
+			#endif
+
+			if (!flexutils_delete_object((void **) &(windat->line_data), sizeof(struct account_redraw), line)) {
+				error_msgs_report_error("BadDelete");
+				continue;
+			}
+
+			windat->display_lines--;
+			line--; /* Take into account that the array has just shortened. */
+		}
+	}
+
+	account_list_window_set_extent(windat);
+	if (windat->account_window != NULL) {
+		windows_open(windat->account_window);
+		account_list_window_force_redraw(windat, 0, windat->display_lines, wimp_ICON_WINDOW);
+	}
+}
+
+
+/**
+ * Set the extent of an Accounts List Window for the specified instance.
  *
  * \param *windat		The window to be updated.
  */
 
-static void account_set_window_extent(struct account_window *windat)
+static void account_list_window_set_extent(struct account_list_window *windat)
 {
 	int	lines;
 
@@ -1073,41 +1205,56 @@ static void account_build_window_title(struct file_block *file, int entry)
 
 
 /**
+ * Force the complete redraw of an Account List Window.
+ *
+ * \param *windat		The window instance to redraw.
+ */
+
+void account_list_window_redraw_all(struct account_list_window *windat)
+{
+	if (windat == NULL)
+		return;
+
+	account_list_window_force_redraw(windat, 0, windat->display_lines - 1, wimp_ICON_WINDOW);
+}
+
+
+/**
  * Force a redraw of the Account List window, for the given range of
  * lines.
  *
- * \param *file			The file owning the window.
- * \param entry			The account list window to be redrawn.
+ * \param *windat		The Account List Window instance to redraw.
  * \param from			The first line to redraw, inclusive.
  * \param to			The last line to redraw, inclusive.
  * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
  */
 
-static void account_force_window_redraw(struct file_block *file, int entry, int from, int to, wimp_i column)
+static void account_list_window_force_redraw(struct account_list_window *windat, int from, int to, wimp_i column)
 {
 	wimp_window_info	window;
 
-	if (file == NULL || file->accounts == NULL || file->accounts->account_windows[entry].account_window == NULL)
+	if (windat == NULL)
 		return;
 
-	window.w = file->accounts->account_windows[entry].account_window;
+	window.w = windat->account_window;
 	if (xwimp_get_window_info_header_only(&window) != NULL)
 		return;
 
 	if (column != wimp_ICON_WINDOW) {
 		window.extent.x0 = window.extent.x1;
 		window.extent.x1 = 0;
-		column_get_heading_xpos(file->accounts->account_windows[entry].columns, column, &(window.extent.x0), &(window.extent.x1));
+		column_get_heading_xpos(windat->columns, column, &(window.extent.x0), &(window.extent.x1));
 	}
 
 	window.extent.y1 = WINDOW_ROW_TOP(ACCOUNT_TOOLBAR_HEIGHT, from);
 	window.extent.y0 = WINDOW_ROW_BASE(ACCOUNT_TOOLBAR_HEIGHT, to);
 
-	wimp_force_redraw(file->accounts->account_windows[entry].account_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
+	wimp_force_redraw(windat->account_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
 
 	/* Force a redraw of the three total icons in the footer. */
 
-	icons_redraw_group(file->accounts->account_windows[entry].account_footer, 4, 1, 2, 3, 4);
+	icons_redraw_group(windat->account_footer, 4, ACCOUNT_FOOTER_STATEMENT, ACCOUNT_FOOTER_CURRENT,
+			ACCOUNT_FOOTER_FINAL, ACCOUNT_FOOTER_BUDGET);
 }
 
 
@@ -1127,7 +1274,7 @@ static void account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 	int				xpos;
 	wimp_i				icon;
 	wimp_window_state		window;
-	struct account_window		*windat;
+	struct account_list_window		*windat;
 
 	*buffer = '\0';
 
@@ -1376,7 +1523,7 @@ static osbool account_delete_from_edit_window(struct account_block *instance, ac
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void account_open_section_edit_window(struct account_window *window, int line, wimp_pointer *ptr)
+static void account_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr)
 {
 	if (window == NULL)
 		return;
@@ -1405,7 +1552,7 @@ static void account_open_section_edit_window(struct account_window *window, int 
  * \return			TRUE if processed; else FALSE.
  */
 
-static osbool account_process_section_edit_window(struct account_window *window, int line, char* name, enum account_line_type type)
+static osbool account_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type)
 {
 	if (window == NULL)
 		return FALSE;
@@ -1413,7 +1560,7 @@ static osbool account_process_section_edit_window(struct account_window *window,
 	/* If the section doesn't exsit, create space for it. */
 
 	if (line == -1) {
-		line = account_add_list_display_line(window->instance->file, window->entry);
+		line = account_list_window_add_line(window->instance->file, window->entry);
 
 		if (line == -1) {
 			error_msgs_report_error("NoMemNewSect");
@@ -1429,9 +1576,9 @@ static osbool account_process_section_edit_window(struct account_window *window,
 	/* Tidy up and redraw the windows */
 
 	account_recalculate_all(window->instance->file);
-	account_set_window_extent(window);
+	account_list_window_set_extent(window);
 	windows_open(window->account_window);
-	account_force_window_redraw(window->instance->file, window->entry, line, line, wimp_ICON_WINDOW);
+	account_list_window_force_redraw(window, line, line, wimp_ICON_WINDOW);
 	file_set_data_integrity(window->instance->file, TRUE);
 
 	return TRUE;
@@ -1447,7 +1594,7 @@ static osbool account_process_section_edit_window(struct account_window *window,
  * \return			TRUE if deleted; else FALSE.
  */
 
-static osbool account_delete_from_section_edit_window(struct account_window *window, int line)
+static osbool account_delete_from_section_edit_window(struct account_list_window *window, int line)
 {
 	if (window == NULL || line == -1)
 		return FALSE;
@@ -1463,9 +1610,9 @@ static osbool account_delete_from_section_edit_window(struct account_window *win
 
 	/* Update the accounts display window. */
 
-	account_set_window_extent(window);
+	account_list_window_set_extent(window);
 	windows_open(window->account_window);
-	account_force_window_redraw(window->instance->file, window->entry, line, window->display_lines, wimp_ICON_WINDOW);
+	account_list_window_force_redraw(window, line, window->display_lines, wimp_ICON_WINDOW);
 	file_set_data_integrity(window->instance->file, TRUE);
 
 	return TRUE;
@@ -1481,7 +1628,7 @@ static osbool account_delete_from_section_edit_window(struct account_window *win
  *				return to defaults.
  */
 
-static void account_open_print_window(struct account_window *window, wimp_pointer *ptr, osbool restore)
+static void account_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore)
 {
 	if (window == NULL || window->instance == NULL || window->instance->file == NULL)
 		return;
@@ -1511,7 +1658,7 @@ static void account_open_print_window(struct account_window *window, wimp_pointe
 
 static struct report *account_print(struct report *report, void *data)
 {
-	struct account_window	*window = data;
+	struct account_list_window	*window = data;
 	struct account_block	*instance;
 	int			line;
 	char			*filename, date_buffer[DATE_FIELD_LEN];
@@ -1677,34 +1824,33 @@ static struct report *account_print(struct report *report, void *data)
 
 
 /**
- * Create a new display line block at the end of the given list, fill it with
- * blank data and return the number.
+ * Create a new display line block at the end of the given Account List
+ * Window instance, fill it with blank data and return the number.
  *
- * \param *file			The file containing the list.
- * \param entry			The list to add an entry to.
+ * \param *windat		The Account List Window instance to update.
  * \return			The new line, or -1 on failure.
  */
 
-static int account_add_list_display_line(struct file_block *file, int entry)
+static int account_list_window_add_line(struct account_list_window *windat)
 {
 	int	line;
 
-	if (file == NULL || file->accounts == NULL)
+	if (windat == NULL)
 		return -1;
 
-	if (!flexutils_resize((void **) &(file->accounts->account_windows[entry].line_data), sizeof(struct account_redraw), file->accounts->account_windows[entry].display_lines + 1))
+	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct account_redraw), windat->display_lines + 1))
 		return -1;
 
-	line = file->accounts->account_windows[entry].display_lines++;
+	line = windat->display_lines++;
 
 	#ifdef DEBUG
 	debug_printf("Creating new display line %d", line);
 	#endif
 
-	file->accounts->account_windows[entry].line_data[line].type = ACCOUNT_LINE_BLANK;
-	file->accounts->account_windows[entry].line_data[line].account = NULL_ACCOUNT;
+	windat->line_data[line].type = ACCOUNT_LINE_BLANK;
+	windat->line_data[line].account = NULL_ACCOUNT;
 
-	*file->accounts->account_windows[entry].line_data[line].heading = '\0';
+	windat->line_data[line].heading[0] = '\0';
 
 	return line;
 }
@@ -1838,7 +1984,7 @@ char *account_get_list_entry_text(struct file_block *file, enum account_type typ
  * \param line			The line of the Account list being dragged.
  */
 
-static void account_start_drag(struct account_window *windat, int line)
+static void account_start_drag(struct account_list_window *windat, int line)
 {
 	wimp_window_state	window;
 	wimp_auto_scroll_info	auto_scroll;
@@ -1977,7 +2123,7 @@ static void account_terminate_drag(wimp_dragged *drag, void *data)
 
 	account_recalculate_all(account_dragging_owner->instance->file);
 	file_set_data_integrity(account_dragging_owner->instance->file, TRUE);
-	account_force_window_redraw(account_dragging_owner->instance->file, account_dragging_owner->entry, 0, account_dragging_owner->display_lines - 1, wimp_ICON_WINDOW);
+	account_list_window_force_redraw(account_dragging_owner, 0, account_dragging_owner->display_lines - 1, wimp_ICON_WINDOW);
 
 	#ifdef DEBUG
 	debug_printf("Move account from line %d to line %d", account_dragging_start_line, line);
@@ -2239,7 +2385,7 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 
 static osbool account_save_csv(char *filename, osbool selection, void *data)
 {
-	struct account_window *windat = data;
+	struct account_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -2260,7 +2406,7 @@ static osbool account_save_csv(char *filename, osbool selection, void *data)
 
 static osbool account_save_tsv(char *filename, osbool selection, void *data)
 {
-	struct account_window *windat = data;
+	struct account_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -2280,7 +2426,7 @@ static osbool account_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void account_export_delimited(struct account_window *windat, char *filename, enum filing_delimit_type format, int filetype)
+static void account_export_delimited(struct account_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	int			i;

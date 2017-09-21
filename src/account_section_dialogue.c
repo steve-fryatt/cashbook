@@ -53,10 +53,10 @@
 #include "global.h"
 #include "account_section_dialogue.h"
 
-#include "account.h"
+#include "account_list_window.h"
 #include "caret.h"
 
-/* Edit section window. */
+/* Window Icon Details. */
 
 #define ACCOUNT_SECTION_DIALOGUE_OK 2
 #define ACCOUNT_SECTION_DIALOGUE_CANCEL 3
@@ -73,52 +73,52 @@
  * The handle of the Section Edit window.
  */
 
-static wimp_w			account_section_dialogue_window = NULL;
+static wimp_w account_section_dialogue_window = NULL;
 
 /**
  * The starting name for the section.
  */
 
-static char			account_section_dialogue_initial_name[ACCOUNT_SECTION_LEN];
+static char account_section_dialogue_initial_name[ACCOUNT_SECTION_LEN];
 
 /**
  * The starting type for the section.
  */
 
-static enum account_line_type	account_section_dialogue_initial_type;
+static enum account_line_type account_section_dialogue_initial_type;
 
 /**
  * Callback function to return updated settings.
  */
 
-static osbool			(*account_section_dialogue_update_callback)(struct account_window *, int, char *, enum account_line_type);
+static osbool (*account_section_dialogue_update_callback)(struct account_list_window *, int, char *, enum account_line_type);
 
 /**
  * Callback function to request the deletion of a section.
  */
 
-static osbool			(*account_section_dialogue_delete_callback)(struct account_window *, int);
+static osbool (*account_section_dialogue_delete_callback)(struct account_list_window *, int);
 
 /**
  * The account list to which the currently open Section Edit window belongs.
  */
 
-static struct account_window	*account_section_dialogue_owner = NULL;
+static struct account_list_window *account_section_dialogue_owner = NULL;
 
 /**
  * The line in the account list being edited by the Section Edit window.
  */
 
-static int			account_section_dialogue_line = -1;
+static int account_section_dialogue_line = -1;
 
 /* Static Function Prototypes. */
 
-static void			account_section_dialogue_click_handler(wimp_pointer *pointer);
-static osbool			account_section_dialogue_keypress_handler(wimp_key *key);
-static void			account_section_dialogue_refresh(void);
-static void			account_section_dialogue_fill(void);
-static osbool			account_section_dialogue_process(void);
-static osbool			account_section_dialogue_delete(void);
+static void account_section_dialogue_click_handler(wimp_pointer *pointer);
+static osbool account_section_dialogue_keypress_handler(wimp_key *key);
+static void account_section_dialogue_refresh(void);
+static void account_section_dialogue_fill(void);
+static osbool account_section_dialogue_process(void);
+static osbool account_section_dialogue_delete(void);
 
 
 /**
@@ -148,9 +148,9 @@ void account_section_dialogue_initialise(void)
  * \param type			The initial header/footer setting for the section.
  */
 
-void account_section_dialogue_open(wimp_pointer *ptr, struct account_window *window, int line,
-		osbool (*update_callback)(struct account_window *, int, char *, enum account_line_type),
-		osbool (*delete_callback)(struct account_window *, int), char *name, enum account_line_type type)
+void account_section_dialogue_open(wimp_pointer *ptr, struct account_list_window *window, int line,
+		osbool (*update_callback)(struct account_list_window *, int, char *, enum account_line_type),
+		osbool (*delete_callback)(struct account_list_window *, int), char *name, enum account_line_type type)
 {
 	string_copy(account_section_dialogue_initial_name, name, ACCOUNT_SECTION_LEN);
 
@@ -197,7 +197,7 @@ void account_section_dialogue_open(wimp_pointer *ptr, struct account_window *win
  *				or NULL to force close.
  */
 
-void account_section_dialogue_force_close(struct account_window *parent)
+void account_section_dialogue_force_close(struct account_list_window *parent)
 {
 	if (account_section_dialogue_is_open(parent))
 		close_dialogue_with_caret(account_section_dialogue_window);
@@ -212,7 +212,7 @@ void account_section_dialogue_force_close(struct account_window *parent)
  * \return			TRUE if the dialogue is open; else FALSE.
  */
 
-osbool account_section_dialogue_is_open(struct account_window *parent)
+osbool account_section_dialogue_is_open(struct account_list_window *parent)
 {
 	return ((account_section_dialogue_owner == parent || parent == NULL) && windows_get_open(account_section_dialogue_window)) ? TRUE : FALSE;
 }

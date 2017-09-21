@@ -38,6 +38,7 @@
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
 #include "oslib/osfile.h"
+#include "oslib/osspriteop.h"
 #include "oslib/wimp.h"
 #include "oslib/dragasprite.h"
 #include "oslib/wimpspriteop.h"
@@ -68,6 +69,7 @@
 #include "account_account_dialogue.h"
 #include "account_heading_dialogue.h"
 #include "account_idnum.h"
+#include "account_list_window.h"
 #include "account_menu.h"
 #include "account_section_dialogue.h"
 #include "accview.h"
@@ -90,82 +92,97 @@
 #include "transact.h"
 #include "window.h"
 
+/**
+ * The number of Account List Windows.
+ */ 
+
+#define ACCOUNT_LIST_WINDOWS 3
+
+/**
+ * The type of account held in the Account List Windows.
+ */
+
+static const enum account_type account_list_types[ACCOUNT_LIST_WINDOWS] = {
+	ACCOUNT_FULL,
+	ACCOUNT_IN,
+	ACCOUNT_OUT
+};
+
 
 /**
  * Account data structure -- implementation.
  */
 
 struct account {
-	char			name[ACCOUNT_NAME_LEN];
-	char			ident[ACCOUNT_IDENT_LEN];
+	char				name[ACCOUNT_NAME_LEN];
+	char				ident[ACCOUNT_IDENT_LEN];
 
-	char			account_no[ACCOUNT_NO_LEN];
-	char			sort_code[ACCOUNT_SRTCD_LEN];
-	char			address[ACCOUNT_ADDR_LINES][ACCOUNT_ADDR_LEN];
+	char				account_no[ACCOUNT_NO_LEN];
+	char				sort_code[ACCOUNT_SRTCD_LEN];
+	char				address[ACCOUNT_ADDR_LINES][ACCOUNT_ADDR_LEN];
 
-	enum account_type	type;						/**< The type of account being defined.				*/
+	enum account_type		type;					/**< The type of account being defined.				*/
 	//unsigned category;
 
 	/* Pointer to account view window data. */
 
-	struct accview_window	*account_view;
+	struct accview_window		*account_view;
 
 	/* Cheque and Paying In Numbers. */
 
-	struct account_idnum	cheque_number;
-	struct account_idnum	payin_number;
+	struct account_idnum		cheque_number;
+	struct account_idnum		payin_number;
 
 	/* Interest details. (the rates are held in the interest module). */
 
-	acct_t			offset_against;					/* The account against which interest is offset, or NULL_ACCOUNT. */
+	acct_t				offset_against;				/* The account against which interest is offset, or NULL_ACCOUNT. */
 
 	/* User-set values used for calculation. */
 
-	amt_t			opening_balance;				/* The opening balance for accounts, from which everything else is calculated. */
-	amt_t			credit_limit;					/* Credit limit for accounts. */
-	amt_t			budget_amount;					/* Budgeted amount for headings. */
+	amt_t				opening_balance;			/* The opening balance for accounts, from which everything else is calculated. */
+	amt_t				credit_limit;				/* Credit limit for accounts. */
+	amt_t				budget_amount;				/* Budgeted amount for headings. */
 
 	/* Calculated values for both accounts and headings. */
 
-	amt_t			statement_balance;				/* Reconciled statement balance. */
-	amt_t			current_balance;				/* Balance up to today's date. */
-	amt_t			future_balance;					/* Balance including all transactions. */
-	amt_t			budget_balance;					/* Balance including all transactions betwen budget dates. */
+	amt_t				statement_balance;			/* Reconciled statement balance. */
+	amt_t				current_balance;			/* Balance up to today's date. */
+	amt_t				future_balance;				/* Balance including all transactions. */
+	amt_t				budget_balance;				/* Balance including all transactions betwen budget dates. */
 
-	amt_t			sorder_trial;					/* Difference applied to account from standing orders in trial period. */
+	amt_t				sorder_trial;				/* Difference applied to account from standing orders in trial period. */
 
 	/* Subsequent calculated values for accounts. */
 
-	amt_t			trial_balance;					/* Balance including all transactions & standing order trial. */
-	amt_t			available_balance;				/* Balance available, taking into account credit limit. */
+	amt_t				trial_balance;				/* Balance including all transactions & standing order trial. */
+	amt_t				available_balance;			/* Balance available, taking into account credit limit. */
 
 	/* Subsequent calculated values for headings. */
 
-	amt_t			budget_result;
+	amt_t				budget_result;
 };
 
 struct account_block {
-	struct file_block	*file;						/**< The file owning the block.					*/
+	struct file_block		*file;					/**< The file owning the block.					*/
 
 	/* The account list windows. */
 
-	struct account_window	account_windows[ACCOUNT_WINDOWS];
+	struct account__list_window	*account_windows[ACCOUNT_LIST_WINDOWS];
 
 	/* Account Data. */
 
-	struct account		*accounts;					/**< The account data for the defined accounts			*/
-	int			account_count;					/**< The number of accounts defined in the file.		*/
+	struct account			*accounts;				/**< The account data for the defined accounts			*/
+	int				account_count;				/**< The number of accounts defined in the file.		*/
 
 	/* Recalculation data. */
 
-	date_t			last_full_recalc;				/**< The last time a full recalculation was done on the file.	*/
+	date_t				last_full_recalc;			/**< The last time a full recalculation was done on the file.	*/
 };
 
 
 
 
 static void			account_add_to_lists(struct file_block *file, acct_t account);
-static int			account_add_list_display_line(struct file_block *file, int entry);
 static int			account_find_window_entry_from_type(struct file_block *file, enum account_type type);
 static osbool			account_used_in_file(struct account_block *instance, acct_t account);
 static osbool			account_check_account(struct account_block *instance, acct_t account);
@@ -222,67 +239,10 @@ struct account_block *account_create_instance(struct file_block *file)
 
 	/* Initialise the account and heading windows. */
 
-	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
-		new->account_windows[i].instance = new;
-		new->account_windows[i].entry = i;
-
-		new->account_windows[i].account_window = NULL;
-		new->account_windows[i].account_pane = NULL;
-		new->account_windows[i].account_footer = NULL;
-		new->account_windows[i].columns = NULL;
-
-		new->account_windows[i].display_lines = 0;
-		new->account_windows[i].line_data = NULL;
-
-		/* Blank out the footer icons. */
-
-		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT] = '\0';
-		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_CURRENT] = '\0';
-		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_FINAL] = '\0';
-		*new->account_windows[i].footer_icon[ACCOUNT_NUM_COLUMN_BUDGET] = '\0';
-
-		/* Set the individual windows to the type of account they will hold.
-		 *
-		 * \TODO -- Ick! Is there really no better way to do this? 
-		 */
-
-		switch (i) {
-		case 0:
-			new->account_windows[i].type = ACCOUNT_FULL;
-			break;
-
-		case 1:
-			new->account_windows[i].type = ACCOUNT_IN;
-			break;
-
-		case 2:
-			new->account_windows[i].type = ACCOUNT_OUT;
-			break;
-		}
-
-		/* If there was a memory failure, we only want to initialise the block enough
-		 * that it can be destroyed again. However, we do need to initialise all of
-		 * the blocks so that everything is set to NULL that needs to be.
-		 */
-
-		if (mem_fail == TRUE)
-			continue;
-
-		new->account_windows[i].columns = column_create_instance(ACCOUNT_COLUMNS, account_columns, account_extra_columns, wimp_ICON_WINDOW);
-		if (new->account_windows[i].columns == NULL) {
+	for (i = 0; i < ACCOUNT_LIST_WINDOWS; i++) {
+		new->account_windows[i] = account_list_window_create_instance(new, account_list_types[i], i);
+		if (new->account_windows[i] == NULL)
 			mem_fail = TRUE;
-			continue;
-		}
-
-		column_set_minimum_widths(new->account_windows[i].columns, config_str_read("LimAccountCols"));
-		column_init_window(new->account_windows[i].columns, 0, FALSE, config_str_read("AccountCols"));
-
-		/* Set the initial lines up */
-
-		if (!flexutils_initialise((void **) &(new->account_windows[i].line_data))) {
-			mem_fail = TRUE;
-			continue;
-		}
 	}
 
 	/* Set up the account data structures. */
@@ -312,14 +272,8 @@ void account_delete_instance(struct account_block *block)
 
 	/* Step through the account list windows. */
 
-	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
-		if (block->account_windows[i].line_data != NULL)
-			flexutils_free((void **) &(block->account_windows[i].line_data));
-
-		column_delete_instance(block->account_windows[i].columns);
-
-		account_delete_window(&(block->account_windows[i]));
-	}
+	for (i = 0; i < ACCOUNT_LIST_WINDOWS; i++)
+		account_list_window_delete_instance(block->account_list[i]);
 
 	/* Step through the accounts and their account view windows. */
 
@@ -339,6 +293,57 @@ void account_delete_instance(struct account_block *block)
 }
 
 
+
+
+
+/**
+ * Create and open an Accounts List window for the given file and account type.
+ *
+ * \param *file			The file to open a window for.
+ * \param type			The type of account to open a window for.
+ */
+
+void account_open_window(struct file_block *file, enum account_type type)
+{
+	int			entry;
+
+
+	entry = account_find_window_entry_from_type(file, type);
+
+	if (entry != -1)
+		account_list_window_open(file->accounts->account_windows + entry);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Recreate the titles of all the account list and account view
  * windows associated with a file.
@@ -354,7 +359,7 @@ void account_build_window_titles(struct file_block *file)
 	if (file == NULL || file->accounts == NULL)
 		return;
 
-	for (entry = 0; entry < ACCOUNT_WINDOWS; entry++)
+	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++)
 		account_build_window_title(file, entry);
 
 	for (account = 0; account < file->accounts->account_count; account++)
@@ -370,13 +375,13 @@ void account_build_window_titles(struct file_block *file)
 
 void account_redraw_all(struct file_block *file)
 {
-	int	i;
+	int	entry;
 
 	if (file == NULL || file->accounts == NULL)
 		return;
 
-	for (i = 0; i < ACCOUNT_WINDOWS; i++)
-		account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines, wimp_ICON_WINDOW);
+	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++)
+		account_list_window_redraw_all(file->accounts->account_windows + entry);
 }
 
 
@@ -478,19 +483,7 @@ static void account_add_to_lists(struct file_block *file, acct_t account)
 	if (entry == -1)
 		return;
 
-	line = account_add_list_display_line(file, entry);
-
-	if (line == -1) {
-		error_msgs_report_error("NoMemLinkAcct");
-		return;
-	}
-
-	file->accounts->account_windows[entry].line_data[line].type = ACCOUNT_LINE_DATA;
-	file->accounts->account_windows[entry].line_data[line].account = account;
-
-	/* If the target window is open, change the extent as necessary. */
-
-	account_set_window_extent(file->accounts->account_windows + entry);
+	account_list_window_add_account(file->accounts->account_windows + entry, acct_t account)
 }
 
 
@@ -504,7 +497,7 @@ static void account_add_to_lists(struct file_block *file, acct_t account)
 
 osbool account_delete(struct file_block *file, acct_t account)
 {
-	int	i, j;
+	int	entry;
 
 	if (file == NULL || file->accounts == NULL || !account_valid(file->accounts, account))
 		return FALSE;
@@ -518,30 +511,8 @@ osbool account_delete(struct file_block *file, acct_t account)
 	if (account_used_in_file(file->accounts, account))
 		return FALSE;
 
-	for (i = 0; i < ACCOUNT_WINDOWS; i++) {
-		for (j = file->accounts->account_windows[i].display_lines-1; j >= 0; j--) {
-			if (file->accounts->account_windows[i].line_data[j].type == ACCOUNT_LINE_DATA &&
-					file->accounts->account_windows[i].line_data[j].account == account) {
-				#ifdef DEBUG
-				debug_printf("Deleting entry type %x", file->accounts->account_windows[i].line_data[j].type);
-				#endif
-
-				if (!flexutils_delete_object((void **) &(file->accounts->account_windows[i].line_data), sizeof(struct account_redraw), j)) {
-					error_msgs_report_error("BadDelete");
-					continue;
-				}
-
-				file->accounts->account_windows[i].display_lines--;
-				j--; /* Take into account that the array has just shortened. */
-			}
-		}
-
-		account_set_window_extent(file->accounts->account_windows + i);
-		if (file->accounts->account_windows[i].account_window != NULL) {
-			windows_open(file->accounts->account_windows[i].account_window);
-			account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines, wimp_ICON_WINDOW);
-		}
-	}
+	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++)
+		account_list_window_remove_account(file->accounts->account_windows, account)
 
 	/* Close the account view window. */
 
@@ -626,7 +597,7 @@ static int account_find_window_entry_from_type(struct file_block *file, enum acc
 
 	/* Find the window block to use. */
 
-	for (i = 0; i < ACCOUNT_WINDOWS; i++)
+	for (i = 0; i < ACCOUNT_LIST_WINDOWS; i++)
 		if (file->accounts->account_windows[i].type == type)
 			entry = i;
 
@@ -1345,7 +1316,7 @@ void account_remove_transaction(struct file_block *file, tran_t transaction)
 
 void account_restore_transaction(struct file_block *file, int transaction)
 {
-	int			i;
+	int			entry;
 	date_t			budget_start, budget_finish, transaction_date;
 	acct_t			transaction_account;
 	enum transact_flags	transaction_flags;
@@ -1397,9 +1368,7 @@ void account_restore_transaction(struct file_block *file, int transaction)
 	/* Calculate the accounts windows data and force a redraw of the windows that are open. */
 
 	account_recalculate_windows(file);
-
-	for (i = 0; i < ACCOUNT_WINDOWS; i++)
-		account_force_window_redraw(file, i, 0, file->accounts->account_windows[i].display_lines, wimp_ICON_WINDOW);
+	account_redraw_all(file);
 }
 
 
@@ -1470,7 +1439,7 @@ void account_write_file(struct file_block *file, FILE *out)
 
 	/* Output the Accounts Windows data. */
 
-	for (j = 0; j < ACCOUNT_WINDOWS; j++) {
+	for (j = 0; j < ACCOUNT_LIST_WINDOWS; j++) {
 		fprintf(out, "\n[AccountList:%x]\n", file->accounts->account_windows[j].type);
 
 		fprintf(out, "Entries: %x\n", file->accounts->account_windows[j].display_lines);

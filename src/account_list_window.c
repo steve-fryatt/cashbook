@@ -238,14 +238,14 @@ static wimp_window		*account_list_window_pane_def[ACCOUNT_LIST_WINDOW_PANES] = {
  *
  */
 
-static wimp_window		*account_foot_def = NULL;			/**< The definition for the Accounts List Footer pane.			*/
-static wimp_menu		*account_window_menu = NULL;			/**< The Accounts List Window menu handle.				*/
-static int			account_window_menu_line = -1;			/**< The line over which the Accounts List Window Menu was opened.	*/
+static wimp_window		*account_list_window_footer_def = NULL;			/**< The definition for the Accounts List Footer pane.			*/
+static wimp_menu		*account_list_window_menu = NULL;			/**< The Accounts List Window menu handle.				*/
+static int			account_list_window_menu_line = -1;			/**< The line over which the Accounts List Window Menu was opened.	*/
 
 /* SaveAs Dialogue Handles. */
 
-static struct saveas_block	*account_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
-static struct saveas_block	*account_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
+static struct saveas_block	*account_list_window_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
+static struct saveas_block	*account_list_window_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 
 
@@ -255,9 +255,9 @@ static struct saveas_block	*account_saveas_tsv = NULL;			/**< The Save TSV savea
 
 /* Account List Window drags. */
 
-static osbool			account_dragging_sprite = FALSE;		/**< True if the account line drag is using a sprite.			*/
-static struct account_list_window	*account_dragging_owner = NULL;			/**< The window of the account list in which the drag occurs.		*/
-static int			account_dragging_start_line = -1;		/**< The line where an account entry drag was started.			*/
+static osbool			account_list_window_dragging_sprite = FALSE;		/**< True if the account line drag is using a sprite.			*/
+static struct account_list_window	*account_list_window_dragging_owner = NULL;			/**< The window of the account list in which the drag occurs.		*/
+static int			account_list_window_dragging_start_line = -1;		/**< The line where an account entry drag was started.			*/
 
 
 static void			account_list_window_delete(struct account_list_window *window);
@@ -313,12 +313,12 @@ void account_list_window_initialise(osspriteop_area *sprites)
 	account_list_window_pane_def[ACCOUNT_PANE_HEADING] = templates_load_window("AccountHTB");
 	account_list_window_pane_def[ACCOUNT_PANE_HEADING]->sprite_area = sprites;
 
-	account_foot_def = templates_load_window("AccountTot");
+	account_list_window_footer_def = templates_load_window("AccountTot");
 
-	account_window_menu = templates_get_menu("AccountListMenu");
+	account_list_window_menu = templates_get_menu("AccountListMenu");
 
-	account_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_list_window_save_csv);
-	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_list_window_save_tsv);
+	account_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_list_window_save_csv);
+	account_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_list_window_save_tsv);
 }
 
 
@@ -443,7 +443,7 @@ void account_list_window_open(struct account_list_window *windat)
 
 	/* Create the toolbar pane. */
 
-	tb_type = (type == ACCOUNT_FULL) ? ACCOUNT_PANE_ACCOUNT : ACCOUNT_PANE_HEADING;
+	tb_type = (windat->type == ACCOUNT_FULL) ? ACCOUNT_PANE_ACCOUNT : ACCOUNT_PANE_HEADING;
 
 	windows_place_as_toolbar(account_list_window_def, account_list_window_pane_def[tb_type], ACCOUNT_TOOLBAR_HEIGHT-4);
 	columns_place_heading_icons(windat->columns, account_list_window_pane_def[tb_type]);
@@ -457,15 +457,15 @@ void account_list_window_open(struct account_list_window *windat)
 
 	/* Create the footer pane. */
 
-	windows_place_as_footer(account_list_window_def, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
-	columns_place_footer_icons(windat->columns, account_foot_def, ACCOUNT_FOOTER_HEIGHT);
+	windows_place_as_footer(account_list_window_def, account_list_window_footer_def, ACCOUNT_FOOTER_HEIGHT);
+	columns_place_footer_icons(windat->columns, account_list_window_footer_def, ACCOUNT_FOOTER_HEIGHT);
 
-	account_foot_def->icons[ACCOUNT_FOOTER_STATEMENT].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT];
-	account_foot_def->icons[ACCOUNT_FOOTER_CURRENT].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT];
-	account_foot_def->icons[ACCOUNT_FOOTER_FINAL].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_FINAL];
-	account_foot_def->icons[ACCOUNT_FOOTER_BUDGET].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET];
+	account_list_window_footer_def->icons[ACCOUNT_FOOTER_STATEMENT].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_STATEMENT];
+	account_list_window_footer_def->icons[ACCOUNT_FOOTER_CURRENT].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_CURRENT];
+	account_list_window_footer_def->icons[ACCOUNT_FOOTER_FINAL].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_FINAL];
+	account_list_window_footer_def->icons[ACCOUNT_FOOTER_BUDGET].data.indirected_text.text = windat->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET];
 
-	error = xwimp_create_window(account_foot_def, &(windat->account_footer));
+	error = xwimp_create_window(account_list_window_footer_def, &(windat->account_footer));
 	if (error != NULL) {
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		account_list_window_delete(windat);
@@ -496,7 +496,7 @@ void account_list_window_open(struct account_list_window *windat)
 	/* \TODO -- Should this be all three windows?   */
 
 	event_add_window_user_data(windat->account_window, windat);
-	event_add_window_menu(windat->account_window, account_window_menu);
+	event_add_window_menu(windat->account_window, account_list_window_menu);
 	event_add_window_close_event(windat->account_window, account_list_window_close_handler);
 	event_add_window_mouse_event(windat->account_window, account_list_window_click_handler);
 	event_add_window_scroll_event(windat->account_window, account_list_window_scroll_handler);
@@ -507,7 +507,7 @@ void account_list_window_open(struct account_list_window *windat)
 	event_add_window_menu_close(windat->account_window, account_list_window_menu_close_handler);
 
 	event_add_window_user_data(windat->account_pane, windat);
-	event_add_window_menu(windat->account_pane, account_window_menu);
+	event_add_window_menu(windat->account_pane, account_list_window_menu);
 	event_add_window_mouse_event(windat->account_pane, account_list_window_pane_click_handler);
 	event_add_window_menu_prepare(windat->account_pane, account_list_window_menu_prepare_handler);
 	event_add_window_menu_selection(windat->account_pane, account_list_window_menu_selection_handler);
@@ -692,7 +692,7 @@ static void account_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, 
 		return;
 
 	if (pointer != NULL) {
-		account_window_menu_line = -1;
+		account_list_window_menu_line = -1;
 
 		if (w == windat->account_window) {
 			window.w = w;
@@ -701,41 +701,41 @@ static void account_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, 
 			line = window_calculate_click_row(&(pointer->pos), &window, ACCOUNT_TOOLBAR_HEIGHT, windat->display_lines);
 
 			if (line != -1)
-				account_window_menu_line = line;
+				account_list_window_menu_line = line;
 		}
 
-		data = (account_window_menu_line == -1) ? ACCOUNT_LINE_BLANK : windat->line_data[account_window_menu_line].type;
+		data = (account_list_window_menu_line == -1) ? ACCOUNT_LINE_BLANK : windat->line_data[account_list_window_menu_line].type;
 
-		saveas_initialise_dialogue(account_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
-		saveas_initialise_dialogue(account_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(account_list_window_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(account_list_window_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 
 		switch (windat->type) {
 		case ACCOUNT_FULL:
-			msgs_lookup("AcclistMenuTitleAcc", account_window_menu->title_data.text, 12);
-			msgs_lookup("AcclistMenuViewAcc", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_VIEWACCT), 20);
-			msgs_lookup("AcclistMenuEditAcc", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_EDITACCT), 20);
-			msgs_lookup("AcclistMenuNewAcc", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_NEWACCT), 20);
-			ihelp_add_menu(account_window_menu, "AccListMenu");
+			msgs_lookup("AcclistMenuTitleAcc", account_list_window_menu->title_data.text, 12);
+			msgs_lookup("AcclistMenuViewAcc", menus_get_indirected_text_addr(account_list_window_menu, ACCLIST_MENU_VIEWACCT), 20);
+			msgs_lookup("AcclistMenuEditAcc", menus_get_indirected_text_addr(account_list_window_menu, ACCLIST_MENU_EDITACCT), 20);
+			msgs_lookup("AcclistMenuNewAcc", menus_get_indirected_text_addr(account_list_window_menu, ACCLIST_MENU_NEWACCT), 20);
+			ihelp_add_menu(account_list_window_menu, "AccListMenu");
 			break;
 
 		case ACCOUNT_IN:
 		case ACCOUNT_OUT:
-			msgs_lookup("AcclistMenuTitleHead", account_window_menu->title_data.text, 12);
-			msgs_lookup("AcclistMenuViewHead", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_VIEWACCT), 20);
-			msgs_lookup("AcclistMenuEditHead", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_EDITACCT), 20);
-			msgs_lookup("AcclistMenuNewHead", menus_get_indirected_text_addr(account_window_menu, ACCLIST_MENU_NEWACCT), 20);
-			ihelp_add_menu(account_window_menu, "HeadListMenu");
+			msgs_lookup("AcclistMenuTitleHead", account_list_window_menu->title_data.text, 12);
+			msgs_lookup("AcclistMenuViewHead", menus_get_indirected_text_addr(account_list_window_menu, ACCLIST_MENU_VIEWACCT), 20);
+			msgs_lookup("AcclistMenuEditHead", menus_get_indirected_text_addr(account_list_window_menu, ACCLIST_MENU_EDITACCT), 20);
+			msgs_lookup("AcclistMenuNewHead", menus_get_indirected_text_addr(account_list_window_menu, ACCLIST_MENU_NEWACCT), 20);
+			ihelp_add_menu(account_list_window_menu, "HeadListMenu");
 			break;
 		default:
 			break;
 		}
 	} else {
-		data = (account_window_menu_line == -1) ? ACCOUNT_LINE_BLANK : windat->line_data[account_window_menu_line].type;
+		data = (account_list_window_menu_line == -1) ? ACCOUNT_LINE_BLANK : windat->line_data[account_list_window_menu_line].type;
 	}
 
-	menus_shade_entry(account_window_menu, ACCLIST_MENU_VIEWACCT, account_window_menu_line == -1 || data != ACCOUNT_LINE_DATA);
-	menus_shade_entry(account_window_menu, ACCLIST_MENU_EDITACCT, account_window_menu_line == -1 || data != ACCOUNT_LINE_DATA);
-	menus_shade_entry(account_window_menu, ACCLIST_MENU_EDITSECT, account_window_menu_line == -1 || (data != ACCOUNT_LINE_HEADER && data != ACCOUNT_LINE_FOOTER));
+	menus_shade_entry(account_list_window_menu, ACCLIST_MENU_VIEWACCT, account_list_window_menu_line == -1 || data != ACCOUNT_LINE_DATA);
+	menus_shade_entry(account_list_window_menu, ACCLIST_MENU_EDITACCT, account_list_window_menu_line == -1 || data != ACCOUNT_LINE_DATA);
+	menus_shade_entry(account_list_window_menu, ACCLIST_MENU_EDITSECT, account_list_window_menu_line == -1 || (data != ACCOUNT_LINE_HEADER && data != ACCOUNT_LINE_FOOTER));
 }
 
 
@@ -760,21 +760,21 @@ static void account_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu
 // \TODO -- Not sure what this is for, but the logic of the ? looks to be
 // inverted and the result certainly isn't an osbool!
 
-//	data = (account_window_menu_line != -1) ? ACCOUNT_LINE_BLANK : windat->line_data[account_window_menu_line].type;
+//	data = (account_list_window_menu_line != -1) ? ACCOUNT_LINE_BLANK : windat->line_data[account_list_window_menu_line].type;
 
 	wimp_get_pointer_info(&pointer);
 
 	switch (selection->items[0]){
 	case ACCLIST_MENU_VIEWACCT:
-		accview_open_window(windat->instance->file, windat->line_data[account_window_menu_line].account);
+		accview_open_window(windat->instance->file, windat->line_data[account_list_window_menu_line].account);
 		break;
 
 	case ACCLIST_MENU_EDITACCT:
-		account_open_edit_window(windat->instance->file, windat->line_data[account_window_menu_line].account, ACCOUNT_NULL, &pointer);
+		account_open_edit_window(windat->instance->file, windat->line_data[account_list_window_menu_line].account, ACCOUNT_NULL, &pointer);
 		break;
 
 	case ACCLIST_MENU_EDITSECT:
-		account_list_window_open_section_edit_window(windat, account_window_menu_line, &pointer);
+		account_list_window_open_section_edit_window(windat, account_list_window_menu_line, &pointer);
 		break;
 
 	case ACCLIST_MENU_NEWACCT:
@@ -810,12 +810,12 @@ static void account_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, 
 
 	switch (warning->selection.items[0]) {
 	case ACCLIST_MENU_EXPCSV:
-		saveas_prepare_dialogue(account_saveas_csv);
+		saveas_prepare_dialogue(account_list_window_saveas_csv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
 	case ACCLIST_MENU_EXPTSV:
-		saveas_prepare_dialogue(account_saveas_tsv);
+		saveas_prepare_dialogue(account_list_window_saveas_tsv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -831,8 +831,8 @@ static void account_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, 
 
 static void account_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
-	account_window_menu_line = -1;
-	ihelp_remove_menu(account_window_menu);
+	account_list_window_menu_line = -1;
+	ihelp_remove_menu(account_list_window_menu);
 }
 
 
@@ -1764,10 +1764,10 @@ static void account_list_window_start_drag(struct account_list_window *windat, i
 	 *          if a suitable sprite were to be created.
 	 */
 
-	account_dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+	account_list_window_dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
                        osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
 
-	if (FALSE && account_dragging_sprite) {
+	if (FALSE && account_list_window_dragging_sprite) {
 		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
 				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
 				"", &(drag.initial), &(drag.bbox));
@@ -1789,8 +1789,8 @@ static void account_list_window_start_drag(struct account_list_window *windat, i
 		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
 	}
 
-	account_dragging_owner = windat;
-	account_dragging_start_line = line;
+	account_list_window_dragging_owner = windat;
+	account_list_window_dragging_start_line = line;
 
 	event_set_drag_handler(account_list_window_terminate_drag, NULL, NULL);
 }
@@ -1811,7 +1811,7 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 	int				line;
 	struct account_redraw		block;
 
-	if (account_dragging_owner == NULL)
+	if (account_list_window_dragging_owner == NULL)
 		return;
 
 	/* Terminate the drag and end the autoscroll. */
@@ -1819,14 +1819,14 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
 		wimp_auto_scroll(0, NULL);
 
-	if (account_dragging_sprite)
+	if (account_list_window_dragging_sprite)
 		dragasprite_stop();
 
 	/* Get the line at which the drag ended. */
 
 	wimp_get_pointer_info(&pointer);
 
-	window.w = account_dragging_owner->account_window;
+	window.w = account_list_window_dragging_owner->account_window;
 	wimp_get_window_state(&window);
 
 	line = ((window.visible.y1 - pointer.pos.y) - window.yscroll - ACCOUNT_TOOLBAR_HEIGHT) / WINDOW_ROW_HEIGHT;
@@ -1834,33 +1834,34 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 	if (line < 0)
 		line = 0;
 
-	if (line >= account_dragging_owner->display_lines)
-		line = account_dragging_owner->display_lines - 1;
+	if (line >= account_list_window_dragging_owner->display_lines)
+		line = account_list_window_dragging_owner->display_lines - 1;
 
 	/* Move the blocks around. */
 
-	block =  account_dragging_owner->line_data[account_dragging_start_line];
+	block =  account_list_window_dragging_owner->line_data[account_list_window_dragging_start_line];
 
-	if (line < account_dragging_start_line) {
-		memmove(&(account_dragging_owner->line_data[line + 1]), &(account_dragging_owner->line_data[line]),
-				(account_dragging_start_line - line) * sizeof(struct account_redraw));
+	if (line < account_list_window_dragging_start_line) {
+		memmove(&(account_list_window_dragging_owner->line_data[line + 1]), &(account_list_window_dragging_owner->line_data[line]),
+				(account_list_window_dragging_start_line - line) * sizeof(struct account_redraw));
 
-		account_dragging_owner->line_data[line] = block;
-	} else if (line > account_dragging_start_line) {
-		memmove(&(account_dragging_owner->line_data[account_dragging_start_line]), &(account_dragging_owner->line_data[account_dragging_start_line + 1]),
-				(line - account_dragging_start_line) * sizeof(struct account_redraw));
+		account_list_window_dragging_owner->line_data[line] = block;
+	} else if (line > account_list_window_dragging_start_line) {
+		memmove(&(account_list_window_dragging_owner->line_data[account_list_window_dragging_start_line]),
+				&(account_list_window_dragging_owner->line_data[account_list_window_dragging_start_line + 1]),
+				(line - account_list_window_dragging_start_line) * sizeof(struct account_redraw));
 
-		account_dragging_owner->line_data[line] = block;
+		account_list_window_dragging_owner->line_data[line] = block;
 	}
 
 	/* Tidy up and redraw the windows */
 
-	account_recalculate_all(account_dragging_owner->instance->file);
-	file_set_data_integrity(account_dragging_owner->instance->file, TRUE);
-	account_list_window_force_redraw(account_dragging_owner, 0, account_dragging_owner->display_lines - 1, wimp_ICON_WINDOW);
+	account_recalculate_all(account_list_window_dragging_owner->instance->file);
+	file_set_data_integrity(account_list_window_dragging_owner->instance->file, TRUE);
+	account_list_window_force_redraw(account_list_window_dragging_owner, 0, account_list_window_dragging_owner->display_lines - 1, wimp_ICON_WINDOW);
 
 	#ifdef DEBUG
-	debug_printf("Move account from line %d to line %d", account_dragging_start_line, line);
+	debug_printf("Move account from line %d to line %d", account_list_window_dragging_start_line, line);
 	#endif
 }
 

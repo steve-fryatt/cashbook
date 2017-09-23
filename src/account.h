@@ -384,6 +384,16 @@ void account_toggle_reconcile_icon(wimp_w window, wimp_i icon);
 
 
 /**
+ * Return the file associated with an accounts instance.
+ *
+ * \param *instance	The accounts instance to query.
+ * \return		The associated file, or NULL.
+ */
+
+struct file_block *account_get_file(struct account_block *instance);
+
+
+/**
  * Return the account view handle for an account.
  *
  * \param *file		The file containing the account.

@@ -260,41 +260,43 @@ static struct account_list_window	*account_list_window_dragging_owner = NULL;			
 static int			account_list_window_dragging_start_line = -1;		/**< The line where an account entry drag was started.			*/
 
 
-static void			account_list_window_delete(struct account_list_window *window);
-static void			account_list_window_close_handler(wimp_close *close);
-static void			account_list_window_click_handler(wimp_pointer *pointer);
-static void			account_list_window_pane_click_handler(wimp_pointer *pointer);
-static void			account_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
-static void			account_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
-static void			account_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
-static void			account_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
-static void			account_list_window_scroll_handler(wimp_scroll *scroll);
-static void			account_list_window_redraw_handler(wimp_draw *redraw);
-static void			account_list_window_adjust_columns(void *data, wimp_i icon, int width);
-static void			account_list_window_set_extent(struct account_list_window *windat);
-static void			account_list_window_force_redraw(struct account_list_window *windat, int from, int to, wimp_i column);
-static void			account_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+static void account_list_window_delete(struct account_list_window *window);
+static void account_list_window_close_handler(wimp_close *close);
+static void account_list_window_click_handler(wimp_pointer *pointer);
+static void account_list_window_pane_click_handler(wimp_pointer *pointer);
+static void account_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void account_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+static void account_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
+static void account_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
+static void account_list_window_scroll_handler(wimp_scroll *scroll);
+static void account_list_window_redraw_handler(wimp_draw *redraw);
+static void account_list_window_adjust_columns(void *data, wimp_i icon, int width);
+static void account_list_window_set_extent(struct account_list_window *windat);
+static void account_list_window_force_redraw(struct account_list_window *windat, int from, int to, wimp_i column);
+static void account_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
-static void			account_list_window_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr);
-static osbool			account_list_window_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type);
-static osbool			account_list_window_delete_from_section_edit_window(struct account_list_window *window, int line);
+static void account_list_window_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr);
+static osbool account_list_window_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type);
+static osbool account_list_window_delete_from_section_edit_window(struct account_list_window *window, int line);
 
-static void			account_list_window_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore);
-static struct report		*account_list_window_print(struct report *report, void *data);
+static void account_list_window_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore);
+static struct report *account_list_window_print(struct report *report, void *data);
 
-static void			account_list_window_start_drag(struct account_list_window *windat, int line);
-static void			account_list_window_terminate_drag(wimp_dragged *drag, void *data);
+static int account_list_window_add_line(struct account_list_window *windat);
 
-static osbool			account_list_window_save_csv(char *filename, osbool selection, void *data);
-static osbool			account_list_window_save_tsv(char *filename, osbool selection, void *data);
-static void			account_list_window_export_delimited(struct account_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
+static void account_list_window_start_drag(struct account_list_window *windat, int line);
+static void account_list_window_terminate_drag(wimp_dragged *drag, void *data);
+
+static osbool account_list_window_save_csv(char *filename, osbool selection, void *data);
+static osbool account_list_window_save_tsv(char *filename, osbool selection, void *data);
+static void account_list_window_export_delimited(struct account_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
 
 /**
  * Test whether an account number is safe to look up in the account data array.
  */
 
-#define account_list_window_line_valid(windat, line) ((((line) >= 0) && ((line) < ((windat)->display_lines)))
+#define account_list_window_line_valid(windat, line) (((line) >= 0) && ((line) < ((windat)->display_lines)))
 
 
 
@@ -2166,7 +2168,7 @@ static void account_list_window_export_delimited(struct account_list_window *win
 
 	/* Output the transaction data as a set of delimited lines. */
 
-	for (i = 0; i < windat->display_lines; i++) {
+	for (line = 0; line < windat->display_lines; line++) {
 		if (windat->line_data[line].type == ACCOUNT_LINE_DATA) {
 			account_build_name_pair(windat->instance->file, windat->line_data[line].account, buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);

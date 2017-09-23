@@ -878,17 +878,17 @@ static void account_list_window_scroll_handler(wimp_scroll *scroll)
 
 static void account_list_window_redraw_handler(wimp_draw *redraw)
 {
-	int			ox, oy, top, base, y, shade_overdrawn_col, icon_fg_col, width;
-	char			icon_buffer[AMOUNT_FIELD_LEN];
-	osbool			more, shade_overdrawn;
+	int				ox, oy, top, base, y, shade_overdrawn_col, icon_fg_col, width;
+	char				icon_buffer[AMOUNT_FIELD_LEN];
+	osbool				more, shade_overdrawn;
+	struct file_block		*file;
 	struct account_list_window	*windat;
-	struct account_block	*instance;
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->columns == NULL)
 		return;
 
-	instance = windat->instance;
+	file = account_get_file(windat->instance);
 
 	shade_overdrawn = config_opt_read("ShadeAccounts");
 	shade_overdrawn_col = config_int_read("ShadeAccountsColour");
@@ -939,8 +939,8 @@ static void account_list_window_redraw_handler(wimp_draw *redraw)
 
 			switch (windat->line_data[y].type) {
 			case ACCOUNT_LINE_DATA:
-				window_plot_text_field(ACCOUNT_ICON_IDENT, instance->accounts[windat->line_data[y].account].ident, wimp_COLOUR_BLACK);
-				window_plot_text_field(ACCOUNT_ICON_NAME, instance->accounts[windat->line_data[y].account].name, wimp_COLOUR_BLACK);
+				window_plot_text_field(ACCOUNT_ICON_IDENT, account_get_ident(file, windat->line_data[y].account), wimp_COLOUR_BLACK);
+				window_plot_text_field(ACCOUNT_ICON_NAME, account_get_ident(file, windat->line_data[y].account), wimp_COLOUR_BLACK);
 
 				switch (windat->type) {
 				case ACCOUNT_FULL:
@@ -2193,8 +2193,13 @@ static void account_list_window_export_delimited(struct account_list_window *win
 	FILE			*out;
 	int			line;
 	char			buffer[FILING_DELIMITED_FIELD_LEN];
+	struct file_block	*file;
 
-	if (windat == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = account_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	out = fopen(filename, "w");
@@ -2223,7 +2228,7 @@ static void account_list_window_export_delimited(struct account_list_window *win
 
 	for (line = 0; line < windat->display_lines; line++) {
 		if (windat->line_data[line].type == ACCOUNT_LINE_DATA) {
-			account_build_name_pair(windat->instance->file, windat->line_data[line].account, buffer, FILING_DELIMITED_FIELD_LEN);
+			account_build_name_pair(file, windat->line_data[line].account, buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 			switch (windat->type) {

@@ -167,7 +167,7 @@ struct account_block {
 
 	/* The account list windows. */
 
-	struct account__list_window	*account_windows[ACCOUNT_LIST_WINDOWS];
+	struct account_list_window	*account_windows[ACCOUNT_LIST_WINDOWS];
 
 	/* Account Data. */
 
@@ -182,13 +182,18 @@ struct account_block {
 
 
 
-static void			account_add_to_lists(struct file_block *file, acct_t account);
-static int			account_find_window_entry_from_type(struct file_block *file, enum account_type type);
-static osbool			account_used_in_file(struct account_block *instance, acct_t account);
-static osbool			account_check_account(struct account_block *instance, acct_t account);
+static osbool account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
+		amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
+		acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
+static osbool account_process_heading_edit_window(struct account_block *instance, acct_t account, char* name, char *ident, amt_t budget, enum account_type type);
+static osbool account_delete_from_edit_window(struct account_block *instance, acct_t account);
+static void account_add_to_lists(struct file_block *file, acct_t account);
+static int account_find_window_entry_from_type(struct file_block *file, enum account_type type);
+static osbool account_used_in_file(struct account_block *instance, acct_t account);
+static osbool account_check_account(struct account_block *instance, acct_t account);
 
 
-static void			account_recalculate_windows(struct file_block *file);
+static void			account_recalculate_windows(struct account_block *instance);
 
 /**
  * Test whether an account number is safe to look up in the account data array.
@@ -221,7 +226,7 @@ void account_initialise(osspriteop_area *sprites)
 struct account_block *account_create_instance(struct file_block *file)
 {
 	struct account_block	*new;
-	int			i;
+	int			entry;
 	osbool			mem_fail = FALSE;
 
 	new = heap_alloc(sizeof(struct account_block));
@@ -239,9 +244,9 @@ struct account_block *account_create_instance(struct file_block *file)
 
 	/* Initialise the account and heading windows. */
 
-	for (i = 0; i < ACCOUNT_LIST_WINDOWS; i++) {
-		new->account_windows[i] = account_list_window_create_instance(new, account_list_types[i], i);
-		if (new->account_windows[i] == NULL)
+	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++) {
+		new->account_windows[entry] = account_list_window_create_instance(new, account_list_types[entry], entry);
+		if (new->account_windows[entry] == NULL)
 			mem_fail = TRUE;
 	}
 
@@ -264,7 +269,7 @@ struct account_block *account_create_instance(struct file_block *file)
 
 void account_delete_instance(struct account_block *block)
 {
-	int	i;
+	int	entry;
 	acct_t	account;
 
 	if (block == NULL)
@@ -272,8 +277,8 @@ void account_delete_instance(struct account_block *block)
 
 	/* Step through the account list windows. */
 
-	for (i = 0; i < ACCOUNT_LIST_WINDOWS; i++)
-		account_list_window_delete_instance(block->account_list[i]);
+	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++)
+		account_list_window_delete_instance(block->account_windows[entry]);
 
 	/* Step through the accounts and their account view windows. */
 
@@ -293,9 +298,6 @@ void account_delete_instance(struct account_block *block)
 }
 
 
-
-
-
 /**
  * Create and open an Accounts List window for the given file and account type.
  *
@@ -311,37 +313,8 @@ void account_open_window(struct file_block *file, enum account_type type)
 	entry = account_find_window_entry_from_type(file, type);
 
 	if (entry != -1)
-		account_list_window_open(file->accounts->account_windows + entry);
+		account_list_window_open(file->accounts->account_windows[entry]);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**
@@ -360,7 +333,7 @@ void account_build_window_titles(struct file_block *file)
 		return;
 
 	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++)
-		account_build_window_title(file, entry);
+		account_list_window_build_title(file->accounts->account_windows[entry]);
 
 	for (account = 0; account < file->accounts->account_count; account++)
 		accview_build_window_title(file, account);
@@ -381,7 +354,321 @@ void account_redraw_all(struct file_block *file)
 		return;
 
 	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++)
-		account_list_window_redraw_all(file->accounts->account_windows + entry);
+		account_list_window_redraw_all(file->accounts->account_windows[entry]);
+}
+
+
+/**
+ * Open the Account Edit dialogue for a given account list window.
+ *
+ * If account == NULL_ACCOUNT, type determines the type of the new account
+ * to be created.  Otherwise, type is ignored and the type derived from the
+ * account data block.
+ *
+ * \param *file			The file to own the dialogue.
+ * \param account		The account to edit, or NULL_ACCOUNT for add new.
+ * \param type			The type of new account to create if account
+ *				is NULL_ACCOUNT.
+ * \param *ptr			The current Wimp pointer position.
+ */
+
+void account_open_edit_window(struct file_block *file, acct_t account, enum account_type type, wimp_pointer *ptr)
+{
+	struct account	*data;
+	rate_t		rate;
+
+	if (file == NULL || file->accounts == NULL)
+		return;
+
+	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
+	 * any unsaved data and just close the window.
+	 *
+	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
+	 */
+
+	account_account_dialogue_force_close(NULL);
+	account_heading_dialogue_force_close(NULL);
+	account_section_dialogue_force_close(NULL);
+
+	/* Select the window to use and set the contents up. */
+
+	if (account == NULL_ACCOUNT) {
+		if (type & ACCOUNT_FULL) {
+			account_account_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_account_edit_window, account_delete_from_edit_window,
+					"", "", NULL_CURRENCY, NULL_CURRENCY, NULL, NULL, NULL_RATE, NULL_ACCOUNT, "", "", NULL);
+		} else if (type & ACCOUNT_IN || type & ACCOUNT_OUT) {
+			account_heading_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_heading_edit_window, account_delete_from_edit_window,
+					"", "", NULL_CURRENCY, type);
+		}
+	} else if (account_valid(file->accounts, account)) {
+		data = &(file->accounts->accounts[account]);
+
+		if (data->type & ACCOUNT_FULL) {
+			rate = interest_get_current_rate(file->interest, account, date_today());
+			account_account_dialogue_open(ptr, file->accounts, account, account_process_account_edit_window, account_delete_from_edit_window,
+					data->name, data->ident, data->credit_limit, data->opening_balance,
+					&(data->cheque_number), &(data->payin_number), rate, data->offset_against,
+					data->account_no, data->sort_code, data->address);
+		} else if (data->type & ACCOUNT_IN || data->type & ACCOUNT_OUT) {
+			account_heading_dialogue_open(ptr, file->accounts, account, account_process_heading_edit_window, account_delete_from_edit_window,
+					data->name, data->ident, data->budget_amount, data->type);
+		}
+	}
+}
+
+
+/**
+ * Take the contents of an updated Account Edit window and process the data.
+ *
+ * \param *instance		The accounts instance to which the account belongs.
+ * \param account		The account number of the account, or NULL_ACCOUNT
+ *				for a new one.
+ * \param *name			The name of the account.
+ * \param *ident		The ident of the account.
+ * \param credit_limit		The credit limit for the aaccount.
+ * \param opening_balance	The opening balance for the account.
+ * \param *cheque_number	The cheque number details for the account.
+ * \param *payin_number		The paying in slip number details for the account.
+ * \param offset_against	The account to offset this account against.
+ * \param *account_num		The account number of the account.
+ * \param *sort_code		The sort code of this account.
+ * \param **address		The address details of this account.
+ * \return			TRUE if the data was valid; FALSE otherwise.
+ */
+
+static osbool account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
+		amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
+		acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN])
+{
+	int	i;
+	acct_t	check_ident;
+
+	/* Check that the ident is valid and unused. As a full account,
+	 * we need to check all full accounts and also all headers.
+	 */
+
+	check_ident = account_find_by_ident(instance->file, ident, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT);
+
+	if ((check_ident != NULL_ACCOUNT) && (check_ident != account)) {
+		error_msgs_report_error("UsedAcctIdent");
+		return FALSE;
+	}
+
+	/* If the account doesn't exist, create it. */
+
+	if (account == NULL_ACCOUNT) {
+		account = account_add(instance->file, name, ident, ACCOUNT_FULL);
+
+		if (account == NULL_ACCOUNT)
+			return FALSE;
+	} else {
+		string_copy(instance->accounts[account].name, name, ACCOUNT_NAME_LEN);
+		string_copy(instance->accounts[account].ident, ident, ACCOUNT_IDENT_LEN);
+	}
+
+	/* Store the remaining data. */
+
+	instance->accounts[account].credit_limit = credit_limit;
+	instance->accounts[account].opening_balance = opening_balance;
+	instance->accounts[account].opening_balance = opening_balance;
+
+	account_idnum_copy(&(instance->accounts[account].cheque_number), cheque_number);
+	account_idnum_copy(&(instance->accounts[account].payin_number), payin_number);
+
+	string_copy(instance->accounts[account].account_no, account_num, ACCOUNT_NO_LEN);
+	string_copy(instance->accounts[account].sort_code, sort_code, ACCOUNT_SRTCD_LEN);
+
+	for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
+		string_copy(instance->accounts[account].address[i], address[i], ACCOUNT_ADDR_LEN);
+
+	/* Tidy up and redraw the windows */
+
+	sorder_trial(instance->file);
+	account_recalculate_all(instance->file);
+	accview_recalculate(instance->file, account, 0);
+	transact_redraw_all(instance->file);
+	accview_redraw_all(instance->file);
+	file_set_data_integrity(instance->file, TRUE);
+
+	return TRUE;
+}
+
+
+/**
+ * Take the contents of an updated Heading Edit window and process the data.
+ *
+ * \param *instance		The accounts instance to which the heading belongs.
+ * \param account		The account number of the heading, or NULL_ACCOUNT
+ *				for a new one.
+ * \param *name			The name of the heading.
+ * \param *ident		The ident of the heading.
+ * \param budget		The budget amount for the heading.
+ * \param type			The incoming/outgoing type of the heading.
+ * \return			TRUE if the data was valid; FALSE otherwise.
+ */
+
+static osbool account_process_heading_edit_window(struct account_block *instance, acct_t account, char *name, char *ident, amt_t budget, enum account_type type)
+{
+	acct_t check_ident;
+
+	/* Check that the ident is valid and unused. As a header, we need
+	 * to check all full accounts and also any headers in the same
+	 * category as this one.
+	 */
+
+	check_ident = account_find_by_ident(instance->file, ident, ACCOUNT_FULL | type);
+
+	if ((check_ident != NULL_ACCOUNT) && (check_ident != account)) {
+		error_msgs_report_error("UsedAcctIdent");
+		return FALSE;
+	}
+
+	/* If the heading doesn't exist, create it. */
+
+	if (account == NULL_ACCOUNT) {
+		account = account_add(instance->file, name, ident, type);
+
+		if (account == NULL_ACCOUNT)
+			return FALSE;
+	} else {
+		string_copy(instance->accounts[account].name, name, ACCOUNT_NAME_LEN);
+		string_copy(instance->accounts[account].ident, ident, ACCOUNT_IDENT_LEN);
+	}
+
+	/* Store the remaining data. */
+
+	instance->accounts[account].budget_amount = budget;
+
+	/* Tidy up and redraw the windows */
+
+	account_recalculate_all(instance->file);
+	transact_redraw_all(instance->file);
+	accview_redraw_all(instance->file);
+	file_set_data_integrity(instance->file, TRUE);
+
+	return TRUE;
+}
+
+
+/**
+ * Delete the account associated with the currently open Account or
+ * Heading Edit window.
+ *
+ * \param *instance		The accounts instance owning the account.
+ * \param account		The account to be deleted.
+ * \return			TRUE if deleted; else FALSE.
+ */
+
+static osbool account_delete_from_edit_window(struct account_block *instance, acct_t account)
+{
+	if (instance == NULL || instance->file == NULL || account == NULL_ACCOUNT)
+		return FALSE;
+
+	/* Check that the account isn't in use. */
+
+	if (account_used_in_file(instance, account)) {
+		error_msgs_report_info("CantDelAcct");
+		return FALSE;
+	}
+
+	return account_delete(instance->file, account);
+}
+
+
+/**
+ * Find the number of entries in the account window of a given account type.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \return			The number of entries, or 0.
+ */
+
+int account_get_list_length(struct file_block *file, enum account_type type)
+{
+	int	entry;
+
+	if (file == NULL || file->accounts == NULL)
+		return 0;
+
+	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1)
+		return 0;
+
+	return account_list_window_get_length(file->accounts->account_windows[entry]);
+}
+
+
+/**
+ * Return the  type of a given line of an account list window.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \param line			The line to return the details for.
+ * \return			The type of data on that line.
+ */
+
+enum account_line_type account_get_list_entry_type(struct file_block *file, enum account_type type, int line)
+{
+	int	entry;
+
+	if (file == NULL || file->accounts == NULL)
+		return ACCOUNT_LINE_BLANK;
+
+	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1)
+		return ACCOUNT_LINE_BLANK;
+
+	return account_list_window_get_entry_type(file->accounts->account_windows[entry], line);
+}
+
+
+/**
+ * Return the account on a given line of an account list window.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \param line			The line to return the details for.
+ * \return			The account on that line, or NULL_ACCOUNT if the
+ *				line isn't an account.
+ */
+
+acct_t account_get_list_entry_account(struct file_block *file, enum account_type type, int line)
+{
+	int	entry;
+
+	if (file == NULL || file->accounts == NULL)
+		return NULL_ACCOUNT;
+
+	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1)
+		return NULL_ACCOUNT;
+
+	return account_list_window_get_entry_account(file->accounts->account_windows[entry], line);
+}
+
+
+/**
+ * Return the text on a given line of an account list window.
+ *
+ * \param *file			The file to use.
+ * \param type			The type of account window to query.
+ * \param line			The line to return the details for.
+ * \return			A volatile pointer to the text on the line,
+ *				or NULL.
+ */
+
+char *account_get_list_entry_text(struct file_block *file, enum account_type type, int line)
+{
+	int	entry;
+
+	if (file == NULL || file->accounts == NULL)
+		return NULL;
+
+	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1)
+		return NULL;
+
+	return account_list_window_get_entry_text(file->accounts->account_windows[entry], line);
 }
 
 
@@ -398,7 +685,7 @@ void account_redraw_all(struct file_block *file)
 
 acct_t account_add(struct file_block *file, char *name, char *ident, enum account_type type)
 {
-	acct_t		new = NULL_ACCOUNT;
+	acct_t		new = NULL_ACCOUNT, search;
 	int		i;
 
 	if (file == NULL || file->accounts == NULL)
@@ -411,9 +698,9 @@ acct_t account_add(struct file_block *file, char *name, char *ident, enum accoun
 
 	/* First, look for deleted accounts and re-use the first one found. */
 
-	for (i = 0; i < file->accounts->account_count; i++) {
-		if (file->accounts->accounts[i].type == ACCOUNT_NULL) {
-			new = i;
+	for (search = 0; search < file->accounts->account_count; search++) {
+		if (file->accounts->accounts[search].type == ACCOUNT_NULL) {
+			new = search;
 			#ifdef DEBUG
 			debug_printf("Found empty account: %d", new);
 			#endif
@@ -451,7 +738,7 @@ acct_t account_add(struct file_block *file, char *name, char *ident, enum accoun
 
 	*file->accounts->accounts[new].account_no = '\0';
 	*file->accounts->accounts[new].sort_code = '\0';
-	for (i=0; i<ACCOUNT_ADDR_LINES; i++)
+	for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
 		*file->accounts->accounts[new].address[i] = '\0';
 
 	file->accounts->accounts[new].account_view = NULL;
@@ -473,7 +760,7 @@ acct_t account_add(struct file_block *file, char *name, char *ident, enum accoun
 
 static void account_add_to_lists(struct file_block *file, acct_t account)
 {
-	int	entry, line;
+	int	entry;
 
 	if (file == NULL || file->accounts == NULL || !account_valid(file->accounts, account))
 		return;
@@ -483,7 +770,7 @@ static void account_add_to_lists(struct file_block *file, acct_t account)
 	if (entry == -1)
 		return;
 
-	account_list_window_add_account(file->accounts->account_windows + entry, acct_t account)
+	account_list_window_add_account(file->accounts->account_windows[entry], account);
 }
 
 
@@ -512,7 +799,7 @@ osbool account_delete(struct file_block *file, acct_t account)
 		return FALSE;
 
 	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++)
-		account_list_window_remove_account(file->accounts->account_windows, account)
+		account_list_window_remove_account(file->accounts->account_windows[entry], account);
 
 	/* Close the account view window. */
 
@@ -590,18 +877,19 @@ int account_get_count(struct file_block *file)
 
 static int account_find_window_entry_from_type(struct file_block *file, enum account_type type)
 {
-	int	i, entry = -1;
+	int	entry;
 
 	if (file == NULL || file->accounts == NULL)
-		return entry;
+		return -1;
 
 	/* Find the window block to use. */
 
-	for (i = 0; i < ACCOUNT_LIST_WINDOWS; i++)
-		if (file->accounts->account_windows[i].type == type)
-			entry = i;
+	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++) {
+		if (type == account_list_types[entry])
+			return entry;
+	}
 
-	return entry;
+	return -1;
 }
 
 
@@ -1235,7 +1523,7 @@ void account_recalculate_all(struct file_block *file)
 
 	/* Calculate the accounts windows data and force a redraw of the windows that are open. */
 
-	account_recalculate_windows(file);
+	account_recalculate_windows(file->accounts);
 	account_redraw_all(file);
 
 	hourglass_off();
@@ -1316,7 +1604,6 @@ void account_remove_transaction(struct file_block *file, tran_t transaction)
 
 void account_restore_transaction(struct file_block *file, int transaction)
 {
-	int			entry;
 	date_t			budget_start, budget_finish, transaction_date;
 	acct_t			transaction_account;
 	enum transact_flags	transaction_flags;
@@ -1367,10 +1654,28 @@ void account_restore_transaction(struct file_block *file, int transaction)
 
 	/* Calculate the accounts windows data and force a redraw of the windows that are open. */
 
-	account_recalculate_windows(file);
+	account_recalculate_windows(file->accounts);
 	account_redraw_all(file);
 }
 
+
+/**
+ * Recalculate the data in the account list windows (totals, sub-totals,
+ * budget totals, etc) and refresh the display.
+ *
+ * \param *instance		The accounst instance to recalculate.
+ */
+
+static void account_recalculate_windows(struct account_block *instance)
+{
+	int	entry;
+
+	if (instance == NULL)
+		return;
+
+	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++)
+		account_list_window_recalculate(instance->account_windows[entry]);
+}
 
 
 /**
@@ -1382,9 +1687,9 @@ void account_restore_transaction(struct file_block *file, int transaction)
 
 void account_write_file(struct file_block *file, FILE *out)
 {
-	int		i, j, width;
+	int		entry, width;
+	acct_t		account;
 	unsigned	next_id;
-	char		buffer[FILING_MAX_FILE_LINE_LEN];
 
 	if (file == NULL || file->accounts == NULL)
 		return;
@@ -1402,61 +1707,45 @@ void account_write_file(struct file_block *file, FILE *out)
 
 	accview_write_file(file, out);
 
-	for (i = 0; i < file->accounts->account_count; i++) {
+	for (account = 0; account < file->accounts->account_count; account++) {
 
 		/* Deleted accounts are skipped, as these can be filled in at load. */
 
-		if (file->accounts->accounts[i].type != ACCOUNT_NULL) {
-			account_idnum_get(&(file->accounts->accounts[i].cheque_number), &width, &next_id);
+		if (file->accounts->accounts[account].type != ACCOUNT_NULL) {
+			account_idnum_get(&(file->accounts->accounts[account].cheque_number), &width, &next_id);
 
 			fprintf(out, "@: %x,%s,%x,%x,%x,%x,%x,%x\n",
-					i, file->accounts->accounts[i].ident, file->accounts->accounts[i].type,
-					file->accounts->accounts[i].opening_balance, file->accounts->accounts[i].credit_limit,
-					file->accounts->accounts[i].budget_amount, next_id, width);
+					account, file->accounts->accounts[account].ident, file->accounts->accounts[account].type,
+					file->accounts->accounts[account].opening_balance, file->accounts->accounts[account].credit_limit,
+					file->accounts->accounts[account].budget_amount, next_id, width);
 
-			account_idnum_get(&(file->accounts->accounts[i].payin_number), &width, &next_id);
+			account_idnum_get(&(file->accounts->accounts[account].payin_number), &width, &next_id);
 
-			if (*(file->accounts->accounts[i].name) != '\0')
-				config_write_token_pair(out, "Name", file->accounts->accounts[i].name);
-			if (*(file->accounts->accounts[i].account_no) != '\0')
-				config_write_token_pair(out, "AccNo", file->accounts->accounts[i].account_no);
-			if (*(file->accounts->accounts[i].sort_code) != '\0')
-				config_write_token_pair(out, "SortCode", file->accounts->accounts[i].sort_code);
-			if (*(file->accounts->accounts[i].address[0]) != '\0')
-				config_write_token_pair(out, "Addr0", file->accounts->accounts[i].address[0]);
-			if (*(file->accounts->accounts[i].address[1]) != '\0')
-				config_write_token_pair(out, "Addr1", file->accounts->accounts[i].address[1]);
-			if (*(file->accounts->accounts[i].address[2]) != '\0')
-				config_write_token_pair(out, "Addr2", file->accounts->accounts[i].address[2]);
-			if (*(file->accounts->accounts[i].address[3]) != '\0')
-				config_write_token_pair(out, "Addr3", file->accounts->accounts[i].address[3]);
+			if (*(file->accounts->accounts[account].name) != '\0')
+				config_write_token_pair(out, "Name", file->accounts->accounts[account].name);
+			if (*(file->accounts->accounts[account].account_no) != '\0')
+				config_write_token_pair(out, "AccNo", file->accounts->accounts[account].account_no);
+			if (*(file->accounts->accounts[account].sort_code) != '\0')
+				config_write_token_pair(out, "SortCode", file->accounts->accounts[account].sort_code);
+			if (*(file->accounts->accounts[account].address[0]) != '\0')
+				config_write_token_pair(out, "Addr0", file->accounts->accounts[account].address[0]);
+			if (*(file->accounts->accounts[account].address[1]) != '\0')
+				config_write_token_pair(out, "Addr1", file->accounts->accounts[account].address[1]);
+			if (*(file->accounts->accounts[account].address[2]) != '\0')
+				config_write_token_pair(out, "Addr2", file->accounts->accounts[account].address[2]);
+			if (*(file->accounts->accounts[account].address[3]) != '\0')
+				config_write_token_pair(out, "Addr3", file->accounts->accounts[account].address[3]);
 			if (width != 0 || next_id != 0)
 				fprintf(out, "PayIn: %x,%x\n", width, next_id);
-			if (file->accounts->accounts[i].offset_against != NULL_ACCOUNT)
-				fprintf(out, "Offset: %x\n", file->accounts->accounts[i].offset_against);
+			if (file->accounts->accounts[account].offset_against != NULL_ACCOUNT)
+				fprintf(out, "Offset: %x\n", file->accounts->accounts[account].offset_against);
 		}
 	}
 
 	/* Output the Accounts Windows data. */
 
-	for (j = 0; j < ACCOUNT_LIST_WINDOWS; j++) {
-		fprintf(out, "\n[AccountList:%x]\n", file->accounts->account_windows[j].type);
-
-		fprintf(out, "Entries: %x\n", file->accounts->account_windows[j].display_lines);
-
-		column_write_as_text(file->accounts->account_windows[j].columns, buffer, FILING_MAX_FILE_LINE_LEN);
-		fprintf(out, "WinColumns: %s\n", buffer);
-
-		for (i = 0; i < file->accounts->account_windows[j].display_lines; i++) {
-			fprintf(out, "@: %x,%x\n", file->accounts->account_windows[j].line_data[i].type,
-					file->accounts->account_windows[j].line_data[i].account);
-
-			if ((file->accounts->account_windows[j].line_data[i].type == ACCOUNT_LINE_HEADER ||
-					file->accounts->account_windows[j].line_data[i].type == ACCOUNT_LINE_FOOTER) &&
-					*(file->accounts->account_windows[j].line_data[i].heading) != '\0')
-				config_write_token_pair (out, "Heading", file->accounts->account_windows[j].line_data[i].heading);
-		}
-	}
+	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++)
+		account_list_window_write_file(file->accounts->account_windows[entry], out);
 }
 
 
@@ -1621,4 +1910,32 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 	return TRUE;
 }
 
+
+/**
+ * Read account list details from a CashBook file into a file block.
+ *
+ * \param *file			The file to read in to.
+ * \param *in			The filing handle to read in from.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool account_read_list_file(struct file_block *file, struct filing_block *in)
+{
+	int type, entry;
+
+	if (file == NULL || file->accounts == NULL)
+		return FALSE;
+
+	type = filing_get_account_type_suffix(in);
+	if (type == ACCOUNT_NULL) {
+		filing_set_status(in, FILING_STATUS_CORRUPT);
+		return FALSE;
+	}
+
+	entry = account_find_window_entry_from_type(file, type);
+	if (entry == -1)
+		return FALSE;
+
+	return account_list_window_read_file(file->accounts->account_windows[entry], in);
+}
 

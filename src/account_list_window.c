@@ -273,32 +273,29 @@ static void			account_list_window_scroll_handler(wimp_scroll *scroll);
 static void			account_list_window_redraw_handler(wimp_draw *redraw);
 static void			account_list_window_adjust_columns(void *data, wimp_i icon, int width);
 static void			account_list_window_set_extent(struct account_list_window *windat);
-static void			account_build_window_title(struct file_block *file, int entry);
 static void			account_list_window_force_redraw(struct account_list_window *windat, int from, int to, wimp_i column);
-static void			account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+static void			account_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 
-static osbool			account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
-						amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
-						acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
-static osbool			account_process_heading_edit_window(struct account_block *instance, acct_t account, char* name, char *ident, amt_t budget, enum account_type type);
-static osbool			account_delete_from_edit_window(struct account_block *instance, acct_t account);
+static void			account_list_window_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr);
+static osbool			account_list_window_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type);
+static osbool			account_list_window_delete_from_section_edit_window(struct account_list_window *window, int line);
 
+static void			account_list_window_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore);
+static struct report		*account_list_window_print(struct report *report, void *data);
 
-static void			account_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr);
-static osbool			account_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type);
-static osbool			account_delete_from_section_edit_window(struct account_list_window *window, int line);
+static void			account_list_window_start_drag(struct account_list_window *windat, int line);
+static void			account_list_window_terminate_drag(wimp_dragged *drag, void *data);
 
-static void			account_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore);
-static struct report		*account_print(struct report *report, void *data);
+static osbool			account_list_window_save_csv(char *filename, osbool selection, void *data);
+static osbool			account_list_window_save_tsv(char *filename, osbool selection, void *data);
+static void			account_list_window_export_delimited(struct account_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
 
-static void			account_start_drag(struct account_list_window *windat, int line);
-static void			account_terminate_drag(wimp_dragged *drag, void *data);
+/**
+ * Test whether an account number is safe to look up in the account data array.
+ */
 
-static osbool			account_save_csv(char *filename, osbool selection, void *data);
-static osbool			account_save_tsv(char *filename, osbool selection, void *data);
-static void			account_export_delimited(struct account_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
-
+#define account_list_window_line_valid(windat, line) ((((line) >= 0) && ((line) < ((windat)->display_lines)))
 
 
 
@@ -321,8 +318,8 @@ void account_list_window_initialise(osspriteop_area *sprites)
 
 	account_window_menu = templates_get_menu("AccountListMenu");
 
-	account_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_save_csv);
-	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_save_tsv);
+	account_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_list_window_save_csv);
+	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_list_window_save_tsv);
 }
 
 
@@ -363,7 +360,7 @@ struct account_list_window *account_list_window_create_instance(struct account_b
 	*new->footer_icon[ACCOUNT_NUM_COLUMN_BUDGET] = '\0';
 
 	new->columns = column_create_instance(ACCOUNT_COLUMNS, account_columns, account_extra_columns, wimp_ICON_WINDOW);
-	if (new->account_windows[i].columns == NULL) {
+	if (new->columns == NULL) {
 		account_list_window_delete_instance(new);
 		return NULL;
 	}
@@ -373,7 +370,7 @@ struct account_list_window *account_list_window_create_instance(struct account_b
 
 	/* Set the initial lines up */
 
-	if (!flexutils_initialise((void **) &(new->account_windows[i].line_data))) {
+	if (!flexutils_initialise((void **) &(new->line_data))) {
 		account_list_window_delete_instance(new);
 		return NULL;
 	}
@@ -480,16 +477,16 @@ void account_list_window_open(struct account_list_window *windat)
 
 	/* Set the title */
 
-	account_build_window_title(file, entry);
+	account_list_window_build_title(windat);
 
 	/* Open the window. */
 
 	if (windat->type == ACCOUNT_FULL) {
-		ihelp_add_window(windat->account_window , "AccList", account_decode_window_help);
+		ihelp_add_window(windat->account_window , "AccList", account_list_window_decode_help);
 		ihelp_add_window(windat->account_pane , "AccListTB", NULL);
 		ihelp_add_window(windat->account_footer , "AccListFB", NULL);
 	} else {
-		ihelp_add_window(windat->account_window , "HeadList", account_decode_window_help);
+		ihelp_add_window(windat->account_window , "HeadList", account_list_window_decode_help);
 		ihelp_add_window(windat->account_pane , "HeadListTB", NULL);
 		ihelp_add_window(windat->account_footer , "HeadListFB", NULL);
 	}
@@ -622,13 +619,13 @@ static void account_list_window_click_handler(wimp_pointer *pointer)
 
 		case ACCOUNT_LINE_HEADER:
 		case ACCOUNT_LINE_FOOTER:
-			account_open_section_edit_window(windat, line, pointer);
+			account_list_window_open_section_edit_window(windat, line, pointer);
 			break;
 		default:
 			break;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && line != -1) {
-		account_start_drag(windat, line);
+		account_list_window_start_drag(windat, line);
 	}
 }
 
@@ -654,7 +651,7 @@ static void account_list_window_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCOUNT_PANE_PRINT:
-			account_open_print_window(windat, pointer, config_opt_read("RememberValues"));
+			account_list_window_open_print_window(windat, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case ACCOUNT_PANE_ADDACCT:
@@ -662,13 +659,13 @@ static void account_list_window_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case ACCOUNT_PANE_ADDSECT:
-			account_open_section_edit_window(windat, -1, pointer);
+			account_list_window_open_section_edit_window(windat, -1, pointer);
 			break;
 		}
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 		switch (pointer->i) {
 		case ACCOUNT_PANE_PRINT:
-			account_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
+			account_list_window_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
 			break;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
@@ -780,7 +777,7 @@ static void account_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu
 		break;
 
 	case ACCLIST_MENU_EDITSECT:
-		account_open_section_edit_window(windat, account_window_menu_line, &pointer);
+		account_list_window_open_section_edit_window(windat, account_window_menu_line, &pointer);
 		break;
 
 	case ACCLIST_MENU_NEWACCT:
@@ -788,11 +785,11 @@ static void account_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu
 		break;
 
 	case ACCLIST_MENU_NEWHEADER:
-		account_open_section_edit_window(windat, -1, &pointer);
+		account_list_window_open_section_edit_window(windat, -1, &pointer);
 		break;
 
 	case ACCLIST_MENU_PRINT:
-		account_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
+		account_list_window_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
 		break;
  	}
 }
@@ -1135,9 +1132,10 @@ void account_list_window_remove_account(struct account_list_window *windat, acct
 	}
 
 	account_list_window_set_extent(windat);
+
 	if (windat->account_window != NULL) {
 		windows_open(windat->account_window);
-		account_list_window_force_redraw(windat, 0, windat->display_lines, wimp_ICON_WINDOW);
+		account_list_window_force_redraw(windat, 0, windat->display_lines - 1, wimp_ICON_WINDOW);
 	}
 }
 
@@ -1163,44 +1161,45 @@ static void account_list_window_set_extent(struct account_list_window *windat)
 			column_get_window_width(windat->columns));
 }
 
+
 /**
- * Recreate the title of the specified Account window connected to the
- * given file.
+ * Recreate the title of an Account List Window.
  *
- * \param *file			The file to rebuild the title for.
- * \param entry			The entry of the window to to be updated.
+ * \param *windat		The window instance to update
  */
 
-static void account_build_window_title(struct file_block *file, int entry)
+void account_list_window_build_title(struct account_list_window *windat)
 {
-	char	name[WINDOW_TITLE_LENGTH];
+	char	*token, name[WINDOW_TITLE_LENGTH];
 
-	if (file == NULL || file->accounts == NULL || file->accounts->account_windows[entry].account_window == NULL)
+	if (windat == NULL)
 		return;
 
 	file_get_leafname(file, name, WINDOW_TITLE_LENGTH);
 
-	switch (file->accounts->account_windows[entry].type) {
+	switch (windat->type) {
 	case ACCOUNT_FULL:
-		msgs_param_lookup("AcclistTitleAcc", file->accounts->account_windows[entry].window_title, WINDOW_TITLE_LENGTH,
-				name, NULL, NULL, NULL);
+		token = "AcclistTitleAcc";
 		break;
 
 	case ACCOUNT_IN:
-		msgs_param_lookup("AcclistTitleHIn", file->accounts->account_windows[entry].window_title, WINDOW_TITLE_LENGTH,
-				name, NULL, NULL, NULL);
+		token = "AcclistTitleHIn";
 		break;
 
 	case ACCOUNT_OUT:
-		msgs_param_lookup("AcclistTitleHOut", file->accounts->account_windows[entry].window_title, WINDOW_TITLE_LENGTH,
-				name, NULL, NULL, NULL);
+		token = "AcclistTitleHOut";
 		break;
 
 	default:
+		token = NULL;
 		break;
 	}
 
-	wimp_force_redraw_title(file->accounts->account_windows[entry].account_window);
+	if (token == NULL)
+		return;
+
+	msgs_param_lookup(token, windat->window_title, WINDOW_TITLE_LENGTH, name, NULL, NULL, NULL);
+	wimp_force_redraw_title(windat->account_window);
 }
 
 
@@ -1269,7 +1268,7 @@ static void account_list_window_force_redraw(struct account_list_window *windat,
  * \param buttons		The current mouse button state.
  */
 
-static void account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
+static void account_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
 	int				xpos;
 	wimp_i				icon;
@@ -1299,223 +1298,6 @@ static void account_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coor
 
 
 /**
- * Open the Account Edit dialogue for a given account list window.
- *
- * If account == NULL_ACCOUNT, type determines the type of the new account
- * to be created.  Otherwise, type is ignored and the type derived from the
- * account data block.
- *
- * \param *file			The file to own the dialogue.
- * \param account		The account to edit, or NULL_ACCOUNT for add new.
- * \param type			The type of new account to create if account
- *				is NULL_ACCOUNT.
- * \param *ptr			The current Wimp pointer position.
- */
-
-void account_open_edit_window(struct file_block *file, acct_t account, enum account_type type, wimp_pointer *ptr)
-{
-	struct account	*data;
-	rate_t		rate;
-
-	if (file == NULL || file->accounts == NULL)
-		return;
-
-	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	account_account_dialogue_force_close(NULL);
-	account_heading_dialogue_force_close(NULL);
-	account_section_dialogue_force_close(NULL);
-
-	/* Select the window to use and set the contents up. */
-
-	if (account == NULL_ACCOUNT) {
-		if (type & ACCOUNT_FULL) {
-			account_account_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_account_edit_window, account_delete_from_edit_window,
-					"", "", NULL_CURRENCY, NULL_CURRENCY, NULL, NULL, NULL_RATE, NULL_ACCOUNT, "", "", NULL);
-		} else if (type & ACCOUNT_IN || type & ACCOUNT_OUT) {
-			account_heading_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_heading_edit_window, account_delete_from_edit_window,
-					"", "", NULL_CURRENCY, type);
-		}
-	} else if (account_valid(file->accounts, account)) {
-		data = &(file->accounts->accounts[account]);
-
-		if (data->type & ACCOUNT_FULL) {
-			rate = interest_get_current_rate(file->interest, account, date_today());
-			account_account_dialogue_open(ptr, file->accounts, account, account_process_account_edit_window, account_delete_from_edit_window,
-					data->name, data->ident, data->credit_limit, data->opening_balance,
-					&(data->cheque_number), &(data->payin_number), rate, data->offset_against,
-					data->account_no, data->sort_code, data->address);
-		} else if (data->type & ACCOUNT_IN || data->type & ACCOUNT_OUT) {
-			account_heading_dialogue_open(ptr, file->accounts, account, account_process_heading_edit_window, account_delete_from_edit_window,
-					data->name, data->ident, data->budget_amount, data->type);
-		}
-	}
-}
-
-
-/**
- * Take the contents of an updated Account Edit window and process the data.
- *
- * \param *instance		The accounts instance to which the account belongs.
- * \param account		The account number of the account, or NULL_ACCOUNT
- *				for a new one.
- * \param *name			The name of the account.
- * \param *ident		The ident of the account.
- * \param credit_limit		The credit limit for the aaccount.
- * \param opening_balance	The opening balance for the account.
- * \param *cheque_number	The cheque number details for the account.
- * \param *payin_number		The paying in slip number details for the account.
- * \param offset_against	The account to offset this account against.
- * \param *account_num		The account number of the account.
- * \param *sort_code		The sort code of this account.
- * \param **address		The address details of this account.
- * \return			TRUE if the data was valid; FALSE otherwise.
- */
-
-static osbool account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
-		amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
-		acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN])
-{
-	int	i;
-	acct_t	check_ident;
-
-	/* Check that the ident is valid and unused. As a full account,
-	 * we need to check all full accounts and also all headers.
-	 */
-
-	check_ident = account_find_by_ident(instance->file, ident, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT);
-
-	if ((check_ident != NULL_ACCOUNT) && (check_ident != account)) {
-		error_msgs_report_error("UsedAcctIdent");
-		return FALSE;
-	}
-
-	/* If the account doesn't exist, create it. */
-
-	if (account == NULL_ACCOUNT) {
-		account = account_add(instance->file, name, ident, ACCOUNT_FULL);
-
-		if (account == NULL_ACCOUNT)
-			return FALSE;
-	} else {
-		string_copy(instance->accounts[account].name, name, ACCOUNT_NAME_LEN);
-		string_copy(instance->accounts[account].ident, ident, ACCOUNT_IDENT_LEN);
-	}
-
-	/* Store the remaining data. */
-
-	instance->accounts[account].credit_limit = credit_limit;
-	instance->accounts[account].opening_balance = opening_balance;
-	instance->accounts[account].opening_balance = opening_balance;
-
-	account_idnum_copy(&(instance->accounts[account].cheque_number), cheque_number);
-	account_idnum_copy(&(instance->accounts[account].payin_number), payin_number);
-
-	string_copy(instance->accounts[account].account_no, account_num, ACCOUNT_NO_LEN);
-	string_copy(instance->accounts[account].sort_code, sort_code, ACCOUNT_SRTCD_LEN);
-
-	for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
-		string_copy(instance->accounts[account].address[i], address[i], ACCOUNT_ADDR_LEN);
-
-	/* Tidy up and redraw the windows */
-
-	sorder_trial(instance->file);
-	account_recalculate_all(instance->file);
-	accview_recalculate(instance->file, account, 0);
-	transact_redraw_all(instance->file);
-	accview_redraw_all(instance->file);
-	file_set_data_integrity(instance->file, TRUE);
-
-	return TRUE;
-}
-
-
-/**
- * Take the contents of an updated Heading Edit window and process the data.
- *
- * \param *instance		The accounts instance to which the heading belongs.
- * \param account		The account number of the heading, or NULL_ACCOUNT
- *				for a new one.
- * \param *name			The name of the heading.
- * \param *ident		The ident of the heading.
- * \param budget		The budget amount for the heading.
- * \param type			The incoming/outgoing type of the heading.
- * \return			TRUE if the data was valid; FALSE otherwise.
- */
-
-static osbool account_process_heading_edit_window(struct account_block *instance, acct_t account, char *name, char *ident, amt_t budget, enum account_type type)
-{
-	acct_t check_ident;
-
-	/* Check that the ident is valid and unused. As a header, we need
-	 * to check all full accounts and also any headers in the same
-	 * category as this one.
-	 */
-
-	check_ident = account_find_by_ident(instance->file, ident, ACCOUNT_FULL | type);
-
-	if ((check_ident != NULL_ACCOUNT) && (check_ident != account)) {
-		error_msgs_report_error("UsedAcctIdent");
-		return FALSE;
-	}
-
-	/* If the heading doesn't exist, create it. */
-
-	if (account == NULL_ACCOUNT) {
-		account = account_add(instance->file, name, ident, type);
-
-		if (account == NULL_ACCOUNT)
-			return FALSE;
-	} else {
-		string_copy(instance->accounts[account].name, name, ACCOUNT_NAME_LEN);
-		string_copy(instance->accounts[account].ident, ident, ACCOUNT_IDENT_LEN);
-	}
-
-	/* Store the remaining data. */
-
-	instance->accounts[account].budget_amount = budget;
-
-	/* Tidy up and redraw the windows */
-
-	account_recalculate_all(instance->file);
-	transact_redraw_all(instance->file);
-	accview_redraw_all(instance->file);
-	file_set_data_integrity(instance->file, TRUE);
-
-	return TRUE;
-}
-
-
-/**
- * Delete the account associated with the currently open Account or
- * Heading Edit window.
- *
- * \param *instance		The accounts instance owning the account.
- * \param account		The account to be deleted.
- * \return			TRUE if deleted; else FALSE.
- */
-
-static osbool account_delete_from_edit_window(struct account_block *instance, acct_t account)
-{
-	if (instance == NULL || instance->file == NULL || account == NULL_ACCOUNT)
-		return FALSE;
-
-	/* Check that the account isn't in use. */
-
-	if (account_used_in_file(instance, account)) {
-		error_msgs_report_info("CantDelAcct");
-		return FALSE;
-	}
-
-	return account_delete(instance->file, account);
-}
-
-
-/**
  * Open the Section Edit dialogue for a given account list window.
  *
  * \param *window		The account window to own the dialogue.
@@ -1523,7 +1305,7 @@ static osbool account_delete_from_edit_window(struct account_block *instance, ac
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void account_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr)
+static void account_list_window_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr)
 {
 	if (window == NULL)
 		return;
@@ -1536,7 +1318,7 @@ static void account_open_section_edit_window(struct account_list_window *window,
 
 	/* Open the dialogue box. */
 
-	account_section_dialogue_open(ptr, window, line, account_process_section_edit_window, account_delete_from_section_edit_window,
+	account_section_dialogue_open(ptr, window, line, account_list_window_process_section_edit_window, account_list_window_delete_from_section_edit_window,
 			(line == -1) ? "" : window->line_data[line].heading,
 			(line == -1) ? ACCOUNT_LINE_HEADER : window->line_data[line].type);
 }
@@ -1552,7 +1334,7 @@ static void account_open_section_edit_window(struct account_list_window *window,
  * \return			TRUE if processed; else FALSE.
  */
 
-static osbool account_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type)
+static osbool account_list_window_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type)
 {
 	if (window == NULL)
 		return FALSE;
@@ -1594,7 +1376,7 @@ static osbool account_process_section_edit_window(struct account_list_window *wi
  * \return			TRUE if deleted; else FALSE.
  */
 
-static osbool account_delete_from_section_edit_window(struct account_list_window *window, int line)
+static osbool account_list_window_delete_from_section_edit_window(struct account_list_window *window, int line)
 {
 	if (window == NULL || line == -1)
 		return FALSE;
@@ -1612,7 +1394,7 @@ static osbool account_delete_from_section_edit_window(struct account_list_window
 
 	account_list_window_set_extent(window);
 	windows_open(window->account_window);
-	account_list_window_force_redraw(window, line, window->display_lines, wimp_ICON_WINDOW);
+	account_list_window_force_redraw(window, line, window->display_lines - 1, wimp_ICON_WINDOW);
 	file_set_data_integrity(window->instance->file, TRUE);
 
 	return TRUE;
@@ -1628,7 +1410,7 @@ static osbool account_delete_from_section_edit_window(struct account_list_window
  *				return to defaults.
  */
 
-static void account_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore)
+static void account_list_window_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore)
 {
 	if (window == NULL || window->instance == NULL || window->instance->file == NULL)
 		return;
@@ -1638,11 +1420,11 @@ static void account_open_print_window(struct account_list_window *window, wimp_p
 	if (window->type & ACCOUNT_FULL) {
 		print_dialogue_open_simple(window->instance->file->print, ptr, restore,
 				"PrintAcclistAcc", "PrintTitleAcclistAcc",
-				account_print, window);
+				account_list_window_print, window);
 	} else if (window->type & ACCOUNT_IN || window->type & ACCOUNT_OUT) {
 		print_dialogue_open_simple(window->instance->file->print, ptr, restore,
 				"PrintAcclistHead", "PrintTitleAcclistHead",
-				account_print, window);
+				account_list_window_print, window);
 	}
 }
 
@@ -1656,7 +1438,7 @@ static void account_open_print_window(struct account_list_window *window, wimp_p
  * \return			Pointer to the report, or NULL on failure.
  */
 
-static struct report *account_print(struct report *report, void *data)
+static struct report *account_list_window_print(struct report *report, void *data)
 {
 	struct account_list_window	*window = data;
 	struct account_block	*instance;
@@ -1856,135 +1638,89 @@ static int account_list_window_add_line(struct account_list_window *windat)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
- * Find the number of entries in the account window of a given account type.
+ * Find the number of entries in the given Account List Window instance.
  *
- * \param *file			The file to use.
- * \param type			The type of account window to query.
+ * \param *windat		The Account List Window instance to query.
  * \return			The number of entries, or 0.
  */
 
-int account_get_list_length(struct file_block *file, enum account_type type)
+int account_list_window_get_length(struct account_list_window *windat)
 {
-	int	entry;
-
-	if (file == NULL || file->accounts == NULL)
+	if (windat == NULL)
 		return 0;
 
-	entry = account_find_window_entry_from_type(file, type);
-	if (entry == -1)
-		return 0;
-
-	return file->accounts->account_windows[entry].display_lines;
+	return windat->display_lines;
 }
 
 
 /**
- * Return the  type of a given line of an account list window.
+ * Return the type of a given line in an Account List Window instance.
  *
- * \param *file			The file to use.
- * \param type			The type of account window to query.
+ * \param *windat		The Account List Window instance to query.
  * \param line			The line to return the details for.
  * \return			The type of data on that line.
  */
 
-enum account_line_type account_get_list_entry_type(struct file_block *file, enum account_type type, int line)
+enum account_line_type account_list_window_get_entry_type(struct account_list_window *windat, int line)
 {
-	int	entry;
-
-	if (file == NULL || file->accounts == NULL || line < 0)
+	if (windat == NULL || !account_list_window_line_valid(windat, line))
 		return ACCOUNT_LINE_BLANK;
 
-	entry = account_find_window_entry_from_type(file, type);
-	if (entry == -1 || line >= file->accounts->account_windows[entry].display_lines)
-		return ACCOUNT_LINE_BLANK;
-
-	return file->accounts->account_windows[entry].line_data[line].type;
+	return windat->line_data[line].type;
 }
 
 
 /**
- * Return the account on a given line of an account list window.
+ * Return the account on a given line of an Account List Window instance.
  *
- * \param *file			The file to use.
- * \param type			The type of account window to query.
+ * \param *windat		The Account List Window instance to query.
  * \param line			The line to return the details for.
  * \return			The account on that line, or NULL_ACCOUNT if the
  *				line isn't an account.
  */
 
-acct_t account_get_list_entry_account(struct file_block *file, enum account_type type, int line)
+acct_t account_list_window_get_entry_account(struct account_list_window *windat, int line)
 {
-	int	entry;
+	if (windat == NULL || !account_list_window_line_valid(windat, line))
+		return ACCOUNT_LINE_BLANK;
 
-	if (file == NULL || file->accounts == NULL || line < 0)
+	if (windat->line_data[line].type != ACCOUNT_LINE_DATA)
 		return NULL_ACCOUNT;
 
-	entry = account_find_window_entry_from_type(file, type);
-	if (entry == -1 || line >= file->accounts->account_windows[entry].display_lines)
-		return NULL_ACCOUNT;
-
-	if (file->accounts->account_windows[entry].line_data[line].type != ACCOUNT_LINE_DATA)
-		return NULL_ACCOUNT;
-
-	return file->accounts->account_windows[entry].line_data[line].account;
+	return windat->line_data[line].account;
 }
 
 
 /**
- * Return the text on a given line of an account list window.
+ * Return the text on a given line of an Account List Window instance.
  *
- * \param *file			The file to use.
- * \param type			The type of account window to query.
+ * \param *windat		The Account List Window instance to query.
  * \param line			The line to return the details for.
  * \return			A volatile pointer to the text on the line,
  *				or NULL.
  */
 
-char *account_get_list_entry_text(struct file_block *file, enum account_type type, int line)
+char *account_list_window_get_entry_text(struct account_list_window *windat, int line)
 {
-	int	entry;
+	if (windat == NULL || !account_list_window_line_valid(windat, line))
+		return ACCOUNT_LINE_BLANK;
 
-	if (file == NULL || file->accounts == NULL || line < 0)
-		return NULL;
+	if (windat->line_data[line].type == ACCOUNT_LINE_DATA)
+		return account_get_name(file, windat->line_data[line].account);
 
-	entry = account_find_window_entry_from_type(file, type);
-	if (entry == -1 || line >= file->accounts->account_windows[entry].display_lines)
-		return NULL;
-
-	if (file->accounts->account_windows[entry].line_data[line].type == ACCOUNT_LINE_DATA)
-		return account_get_name(file, file->accounts->account_windows[entry].line_data[line].account);
-
-	return file->accounts->account_windows[entry].line_data[line].heading;
+	return windat->line_data[line].heading;
 }
 
 
-
-
-
 /**
- * Start an account window drag, to re-order the entries in the window.
+ * Start an account list window drag, to re-order the entries in the window.
  *
- * \param *file			The file owning the Account List being dragged.
- * \param entry			The entry of the Account List being dragged.
+ * \param *windat		The Account List Window being dragged.
  * \param line			The line of the Account list being dragged.
  */
 
-static void account_start_drag(struct account_list_window *windat, int line)
+static void account_list_window_start_drag(struct account_list_window *windat, int line)
 {
 	wimp_window_state	window;
 	wimp_auto_scroll_info	auto_scroll;
@@ -2059,18 +1795,19 @@ static void account_start_drag(struct account_list_window *windat, int line)
 	account_dragging_owner = windat;
 	account_dragging_start_line = line;
 
-	event_set_drag_handler(account_terminate_drag, NULL, NULL);
+	event_set_drag_handler(account_list_window_terminate_drag, NULL, NULL);
 }
 
 
 /**
- * Handle drag-end events relating to column dragging.
+ * Handle drag-end events relating to dragging rows of an Account List
+ * Window instance.
  *
  * \param *drag			The Wimp drag end data.
  * \param *data			Unused client data sent via Event Lib.
  */
 
-static void account_terminate_drag(wimp_dragged *drag, void *data)
+static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 {
 	wimp_pointer			pointer;
 	wimp_window_state		window;
@@ -2132,184 +1869,156 @@ static void account_terminate_drag(wimp_dragged *drag, void *data)
 
 
 /**
- * Recalculate the data in the account list windows (totals, sub-totals,
- * budget totals, etc) and refresh the display.
+ * Recalculate the data in the the given Account List window instance
+ * (totals, sub-totals, budget totals, etc) and refresh the display.
  *
- * \param *file		The file to recalculate.
+ * \param *windat		The Account List Window instance to
+ *				recalculate.
  */
 
-static void account_recalculate_windows(struct file_block *file)
+void account_list_window_recalculate(struct account_list_window *windat)
 {
-	int	entry, i, j, sub_total[ACCOUNT_NUM_COLUMNS], total[ACCOUNT_NUM_COLUMNS];
+	int line, column, sub_total[ACCOUNT_NUM_COLUMNS], total[ACCOUNT_NUM_COLUMNS];
+
+	if (windat == NULL)
+		return;
+
+	/* Reset the totals. */
+
+	for (column = 0; column < ACCOUNT_NUM_COLUMNS; column++) {
+		sub_total[column] = 0;
+		total[column] = 0;
+	}
+
+	/* Add up the line data. */
+
+	for (line = 0; line < windat->display_lines; line++) {
+		switch (windat->line_data[line].type) {
+		case ACCOUNT_LINE_DATA:
+			switch (windat->type) {
+			case ACCOUNT_FULL:
+				sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[windat->line_data[line].account].statement_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[windat->line_data[line].account].current_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[windat->line_data[line].account].trial_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[windat->line_data[line].account].budget_balance;
+
+				total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[windat->line_data[line].account].statement_balance;
+				total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[windat->line_data[line].account].current_balance;
+				total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[windat->line_data[line].account].trial_balance;
+				total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[windat->line_data[line].account].budget_balance;
+				break;
+
+			case ACCOUNT_IN:
+				if (file->accounts->accounts[windat->line_data[line].account].budget_amount != NULL_CURRENCY) {
+					file->accounts->accounts[windat->line_data[line].account].budget_result =
+							-file->accounts->accounts[windat->line_data[line].account].budget_amount -
+							file->accounts->accounts[windat->line_data[line].account].budget_balance;
+				} else {
+					file->accounts->accounts[windat->line_data[line].account].budget_result = NULL_CURRENCY;
+				}
+
+				sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] -= file->accounts->accounts[windat->line_data[line].account].future_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[windat->line_data[line].account].budget_amount;
+				sub_total[ACCOUNT_NUM_COLUMN_FINAL] -= file->accounts->accounts[windat->line_data[line].account].budget_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[windat->line_data[line].account].budget_result;
+
+				total[ACCOUNT_NUM_COLUMN_STATEMENT] -= file->accounts->accounts[windat->line_data[line].account].future_balance;
+				total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[windat->line_data[line].account].budget_amount;
+				total[ACCOUNT_NUM_COLUMN_FINAL] -= file->accounts->accounts[windat->line_data[line].account].budget_balance;
+				total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[windat->line_data[line].account].budget_result;
+				break;
+
+			case ACCOUNT_OUT:
+				if (file->accounts->accounts[windat->line_data[line].account].budget_amount != NULL_CURRENCY) {
+					file->accounts->accounts[windat->line_data[line].account].budget_result =
+							file->accounts->accounts[windat->line_data[line].account].budget_amount -
+							file->accounts->accounts[windat->line_data[line].account].budget_balance;
+				} else {
+					file->accounts->accounts[windat->line_data[line].account].budget_result = NULL_CURRENCY;
+				}
+
+				sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[windat->line_data[line].account].future_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[windat->line_data[line].account].budget_amount;
+				sub_total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[windat->line_data[line].account].budget_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[windat->line_data[line].account].budget_result;
+
+				total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[windat->line_data[line].account].future_balance;
+				total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[windat->line_data[line].account].budget_amount;
+				total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[windat->line_data[line].account].budget_balance;
+				total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[windat->line_data[line].account].budget_result;
+				break;
+			}
+			break;
+
+		case ACCOUNT_LINE_HEADER:
+			for (column = 0; column < ACCOUNT_NUM_COLUMNS; column++)
+				sub_total[column] = 0;
+			break;
+
+		case ACCOUNT_LINE_FOOTER:
+			for (column = 0; column < ACCOUNT_NUM_COLUMNS; column++)
+				windat->line_data[line].total[column] = sub_total[column];
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	for (column = 0; column < ACCOUNT_NUM_COLUMNS; column++)
+		currency_convert_to_string(total[column], windat->footer_icon[column], AMOUNT_FIELD_LEN);
+}
+
+
+/**
+ * Save an Account List Window's details to a CashBook file
+ *
+ * \param *windat		The Account List Window instance to write
+ * \param *out			The file handle to write to.
+ */
+
+void account_list_window_write_file(struct account_list_window *windat, FILE *out)
+{
+	int		line;
+	char		buffer[FILING_MAX_FILE_LINE_LEN];
 
 	if (file == NULL || file->accounts == NULL)
 		return;
 
-	/* Calculate the full accounts details. */
+	/* Output the Accounts Windows data. */
 
-	entry = account_find_window_entry_from_type(file, ACCOUNT_FULL);
 
-	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++) {
-		sub_total[i] = 0;
-		total[i] = 0;
+	fprintf(out, "\n[AccountList:%x]\n", windat->type);
+
+	fprintf(out, "Entries: %x\n", windat->display_lines);
+
+	column_write_as_text(windat->columns, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "WinColumns: %s\n", buffer);
+
+	for (line = 0; line < windat->display_lines; line++) {
+		fprintf(out, "@: %x,%x\n", windat->line_data[line].type, windat->line_data[line].account);
+
+		if ((windat->line_data[line].type == ACCOUNT_LINE_HEADER || windat->line_data[line].type == ACCOUNT_LINE_FOOTER) &&
+				*(windat->line_data[line].heading) != '\0')
+			config_write_token_pair(out, "Heading", windat->line_data[line].heading);
 	}
-
-	for (i = 0; i < file->accounts->account_windows[entry].display_lines; i++) {
-		switch (file->accounts->account_windows[entry].line_data[i].type) {
-		case ACCOUNT_LINE_DATA:
-			sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].statement_balance;
-			sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].current_balance;
-			sub_total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].trial_balance;
-			sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-
-			total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].statement_balance;
-			total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].current_balance;
-			total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].trial_balance;
-			total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			break;
-
-		case ACCOUNT_LINE_HEADER:
-			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
-				sub_total[j] = 0;
-			break;
-
-		case ACCOUNT_LINE_FOOTER:
-			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
-				file->accounts->account_windows[entry].line_data[i].total[j] = sub_total[j];
-			break;
-
-		default:
-			break;
-		}
-	}
-
-	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++)
-		currency_convert_to_string(total[i], file->accounts->account_windows[entry].footer_icon[i], AMOUNT_FIELD_LEN);
-
-	/* Calculate the incoming account details. */
-
-	entry = account_find_window_entry_from_type(file, ACCOUNT_IN);
-
-	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++) {
-		sub_total[i] = 0;
-		total[i] = 0;
-	}
-
-	for (i = 0; i < file->accounts->account_windows[entry].display_lines; i++) {
-		switch (file->accounts->account_windows[entry].line_data[i].type) {
-		case ACCOUNT_LINE_DATA:
-			if (file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount != NULL_CURRENCY) {
-				file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result =
-						-file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount -
-						file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			} else {
-				file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result = NULL_CURRENCY;
-			}
-
-			sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
-			sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
-			sub_total[ACCOUNT_NUM_COLUMN_FINAL] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
-
-			total[ACCOUNT_NUM_COLUMN_STATEMENT] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
-			total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
-			total[ACCOUNT_NUM_COLUMN_FINAL] -= file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
-			break;
-
-		case ACCOUNT_LINE_HEADER:
-			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
-				sub_total[j] = 0;
-			break;
-
-		case ACCOUNT_LINE_FOOTER:
-			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
-				file->accounts->account_windows[entry].line_data[i].total[j] = sub_total[j];
-			break;
-
-		default:
-			break;
-		}
-	}
-
-	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++)
-		currency_convert_to_string(total[i], file->accounts->account_windows[entry].footer_icon[i], AMOUNT_FIELD_LEN);
-
-	/* Calculate the outgoing account details. */
-
-	entry = account_find_window_entry_from_type(file, ACCOUNT_OUT);
-
-	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++) {
-		sub_total[i] = 0;
-		total[i] = 0;
-	}
-
-	for (i = 0; i < file->accounts->account_windows[entry].display_lines; i++) {
-		switch (file->accounts->account_windows[entry].line_data[i].type) {
-		case ACCOUNT_LINE_DATA:
-			if (file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount != NULL_CURRENCY) {
-				file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result =
-						file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount -
-						file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			} else {
-				file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result = NULL_CURRENCY;
-			}
-
-			sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
-			sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
-			sub_total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
-
-			total[ACCOUNT_NUM_COLUMN_STATEMENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].future_balance;
-			total[ACCOUNT_NUM_COLUMN_CURRENT] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_amount;
-			total[ACCOUNT_NUM_COLUMN_FINAL] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_balance;
-			total[ACCOUNT_NUM_COLUMN_BUDGET] += file->accounts->accounts[file->accounts->account_windows[entry].line_data[i].account].budget_result;
-			break;
-
-		case ACCOUNT_LINE_HEADER:
-			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
-				sub_total[j] = 0;
-			break;
-
-		case ACCOUNT_LINE_FOOTER:
-			for (j = 0; j < ACCOUNT_NUM_COLUMNS; j++)
-				file->accounts->account_windows[entry].line_data[i].total[j] = sub_total[j];
-			break;
-
-		default:
-			break;
-		}
-	}
-
-	for (i = 0; i < ACCOUNT_NUM_COLUMNS; i++)
-		currency_convert_to_string(total[i], file->accounts->account_windows[entry].footer_icon[i], AMOUNT_FIELD_LEN);
 }
 
 
-
 /**
- * Read account list details from a CashBook file into a file block.
+ * Read account list details from a CashBook file into an Account List
+ * Window instance.
  *
- * \param *file			The file to read in to.
- * \param *in			The filing handle to read in from.
+ * \param *windat		The Account List Window instance to populate.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool account_read_list_file(struct file_block *file, struct filing_block *in)
+osbool account_list_window_read_file(struct account_list_window *windat, struct filing_block *in)
 {
 	size_t			block_size;
-	int			line = -1, type, entry;
+	int			line = -1;
 
-	if (file == NULL || file->accounts == NULL)
-		return FALSE;
-
-	type = filing_get_account_type_suffix(in);
-	if (type == ACCOUNT_NULL) {
-		filing_set_status(in, FILING_STATUS_CORRUPT);
-		return FALSE;
-	}
-	entry = account_find_window_entry_from_type(file, type);
-	if (entry == -1)
+	if (windat == NULL)
 		return FALSE;
 
 #ifdef DEBUG
@@ -2318,7 +2027,7 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_load_initialise((void **) &(file->accounts->account_windows[entry].line_data), sizeof(struct account_redraw), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(windat->line_data), sizeof(struct account_redraw), &block_size)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}
@@ -2328,7 +2037,7 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 	do {
 		if (filing_test_token(in, "Entries")) {
 			block_size = filing_get_int_field(in);
-			if (block_size > file->accounts->account_windows[entry].display_lines) {
+			if (block_size > windat->display_lines) {
 				#ifdef DEBUG
 				debug_printf("Section block pre-expand to %d", block_size);
 				#endif
@@ -2337,14 +2046,14 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 					return FALSE;
 				}
 			} else {
-				block_size = file->accounts->account_windows[entry].display_lines;
+				block_size = windat->display_lines;
 			}
 		} else if (filing_test_token(in, "WinColumns")) {
-			column_init_window(file->accounts->account_windows[entry].columns, 0, TRUE, filing_get_text_value(in, NULL, 0));
+			column_init_window(windat->columns, 0, TRUE, filing_get_text_value(in, NULL, 0));
 		} else if (filing_test_token(in, "@")) {
-			file->accounts->account_windows[entry].display_lines++;
-			if (file->accounts->account_windows[entry].display_lines > block_size) {
-				block_size = file->accounts->account_windows[entry].display_lines;
+			windat->display_lines++;
+			if (windat->display_lines > block_size) {
+				block_size = windat->display_lines;
 				#ifdef DEBUG
 				debug_printf("Section block expand to %d", block_size);
 				#endif
@@ -2353,12 +2062,12 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 					return FALSE;
 				}
 			}
-			line = file->accounts->account_windows[entry].display_lines - 1;
-			*(file->accounts->account_windows[entry].line_data[line].heading) = '\0';
-			file->accounts->account_windows[entry].line_data[line].type = account_get_account_line_type_field(in);
-			file->accounts->account_windows[entry].line_data[line].account = account_get_account_field(in);
+			line = windat->display_lines - 1;
+			*(windat->line_data[line].heading) = '\0';
+			windat->line_data[line].type = account_get_account_line_type_field(in);
+			windat->line_data[line].account = account_get_account_field(in);
 		} else if (line != -1 && filing_test_token(in, "Heading")) {
-			filing_get_text_value(in, file->accounts->account_windows[entry].line_data[line].heading, ACCOUNT_SECTION_LEN);
+			filing_get_text_value(in, windat->line_data[line].heading, ACCOUNT_SECTION_LEN);
 		} else {
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}
@@ -2366,7 +2075,7 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
 
 	/* Shrink the flex block back down to the minimum required. */
 
-	if (!flexutils_load_shrink(file->accounts->account_windows[entry].display_lines)) {
+	if (!flexutils_load_shrink(windat->display_lines)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}
@@ -2383,14 +2092,14 @@ osbool account_read_list_file(struct file_block *file, struct filing_block *in)
  * \param *data			Pointer to the window block for the save target.
  */
 
-static osbool account_save_csv(char *filename, osbool selection, void *data)
+static osbool account_list_window_save_csv(char *filename, osbool selection, void *data)
 {
 	struct account_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
 
-	account_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
+	account_list_window_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
 
 	return TRUE;
 }
@@ -2404,14 +2113,14 @@ static osbool account_save_csv(char *filename, osbool selection, void *data)
  * \param *data			Pointer to the window block for the save target.
  */
 
-static osbool account_save_tsv(char *filename, osbool selection, void *data)
+static osbool account_list_window_save_tsv(char *filename, osbool selection, void *data)
 {
 	struct account_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
 
-	account_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
+	account_list_window_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
 
 	return TRUE;
 }
@@ -2426,10 +2135,10 @@ static osbool account_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void account_export_delimited(struct account_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
+static void account_list_window_export_delimited(struct account_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
-	int			i;
+	int			line;
 	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
 	if (windat == NULL)
@@ -2460,62 +2169,62 @@ static void account_export_delimited(struct account_list_window *windat, char *f
 	/* Output the transaction data as a set of delimited lines. */
 
 	for (i = 0; i < windat->display_lines; i++) {
-		if (windat->line_data[i].type == ACCOUNT_LINE_DATA) {
-			account_build_name_pair(windat->instance->file, windat->line_data[i].account, buffer, FILING_DELIMITED_FIELD_LEN);
+		if (windat->line_data[line].type == ACCOUNT_LINE_DATA) {
+			account_build_name_pair(windat->instance->file, windat->line_data[line].account, buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
 			switch (windat->type) {
 			case ACCOUNT_FULL:
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].statement_balance, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].statement_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].current_balance, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].current_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].trial_balance, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].trial_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 				break;
 
 			case ACCOUNT_IN:
-				currency_convert_to_string(-windat->instance->accounts[windat->line_data[i].account].future_balance, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(-windat->instance->accounts[windat->line_data[line].account].future_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_amount, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_amount, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(-windat->instance->accounts[windat->line_data[i].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(-windat->instance->accounts[windat->line_data[line].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_result, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_result, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 				break;
 
 			case ACCOUNT_OUT:
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].future_balance, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].future_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_amount, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_amount, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[i].account].budget_result, buffer, FILING_DELIMITED_FIELD_LEN);
+				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_result, buffer, FILING_DELIMITED_FIELD_LEN);
 				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 				break;
 
 			default:
 				break;
 			}
-		} else if (windat->line_data[i].type == ACCOUNT_LINE_HEADER) {
-			filing_output_delimited_field(out, windat->line_data[i].heading, format, DELIMIT_LAST);
-		} else if (windat->line_data[i].type == ACCOUNT_LINE_FOOTER) {
-			filing_output_delimited_field(out, windat->line_data[i].heading, format, DELIMIT_NONE);
+		} else if (windat->line_data[line].type == ACCOUNT_LINE_HEADER) {
+			filing_output_delimited_field(out, windat->line_data[line].heading, format, DELIMIT_LAST);
+		} else if (windat->line_data[line].type == ACCOUNT_LINE_FOOTER) {
+			filing_output_delimited_field(out, windat->line_data[line].heading, format, DELIMIT_NONE);
 
-			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_STATEMENT], buffer, FILING_DELIMITED_FIELD_LEN);
+			currency_convert_to_string(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_STATEMENT], buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_CURRENT], buffer, FILING_DELIMITED_FIELD_LEN);
+			currency_convert_to_string(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_CURRENT], buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_FINAL], buffer, FILING_DELIMITED_FIELD_LEN);
+			currency_convert_to_string(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_FINAL], buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			currency_convert_to_string(windat->line_data[i].total[ACCOUNT_NUM_COLUMN_BUDGET], buffer, FILING_DELIMITED_FIELD_LEN);
+			currency_convert_to_string(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_BUDGET], buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 		}
 	}

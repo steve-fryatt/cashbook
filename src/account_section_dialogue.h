@@ -30,7 +30,7 @@
 #ifndef CASHBOOK_ACCOUNT_SECTION_DIALOGUE
 #define CASHBOOK_ACCOUNT_SECTION_DIALOGUE
 
-#include "account.h"
+#include "account_list_window.h"
 
 /**
  * Initialise the account section edit dialogue.
@@ -51,9 +51,9 @@ void account_section_dialogue_initialise(void);
  * \param type			The initial header/footer setting for the section.
  */
 
-void account_section_dialogue_open(wimp_pointer *ptr, struct account_window *window, int line,
-		osbool (*update_callback)(struct account_window *, int, char *, enum account_line_type),
-		osbool (*delete_callback)(struct account_window *, int), char *name, enum account_line_type type);
+void account_section_dialogue_open(wimp_pointer *ptr, struct account_list_window *window, int line,
+		osbool (*update_callback)(struct account_list_window *, int, char *, enum account_line_type),
+		osbool (*delete_callback)(struct account_list_window *, int), char *name, enum account_line_type type);
 
 
 /**
@@ -64,7 +64,7 @@ void account_section_dialogue_open(wimp_pointer *ptr, struct account_window *win
  *				or NULL to force close.
  */
 
-void account_section_dialogue_force_close(struct account_window *parent);
+void account_section_dialogue_force_close(struct account_list_window *parent);
 
 
 /**
@@ -75,7 +75,7 @@ void account_section_dialogue_force_close(struct account_window *parent);
  * \return			TRUE if the dialogue is open; else FALSE.
  */
 
-osbool account_section_dialogue_is_open(struct account_window *parent);
+osbool account_section_dialogue_is_open(struct account_list_window *parent);
 
 #endif
 

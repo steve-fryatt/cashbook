@@ -197,7 +197,6 @@ struct account_redraw {
 
 struct account_list_window {
 	struct account_block	*instance;					/**< The instance owning the block (for reverse lookup).	*/
-	int			entry;						/**< The array index of the block (for reverse lookup).		*/
 
 	/* Account window handle and title details. */
 
@@ -328,11 +327,10 @@ void account_list_window_initialise(osspriteop_area *sprites)
  *
  * \param *parent		The parent accounts instance.
  * \param type			The type of account that the instance contains.
- * \param entry			The instance's "entry" value.
  * \return			Pointer to the new instance, or NULL.
  */
 
-struct account_list_window *account_list_window_create_instance(struct account_block *parent, enum account_type type, int entry)
+struct account_list_window *account_list_window_create_instance(struct account_block *parent, enum account_type type)
 {
 	struct account_list_window	*new;
 
@@ -341,7 +339,6 @@ struct account_list_window *account_list_window_create_instance(struct account_b
 		return NULL;
 
 	new->instance = parent;
-	new->entry = entry;
 	new->type = type;
 
 	new->account_window = NULL;
@@ -1342,7 +1339,7 @@ static osbool account_list_window_process_section_edit_window(struct account_lis
 	/* If the section doesn't exsit, create space for it. */
 
 	if (line == -1) {
-		line = account_list_window_add_line(window->instance->file, window->entry);
+		line = account_list_window_add_line(window);
 
 		if (line == -1) {
 			error_msgs_report_error("NoMemNewSect");

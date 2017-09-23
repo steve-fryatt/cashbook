@@ -47,11 +47,10 @@ void account_list_window_initialise(osspriteop_area *sprites);
  *
  * \param *parent		The parent accounts instance.
  * \param type			The type of account that the instance contains.
- * \param entry			The instance's "entry" value.
  * \return			Pointer to the new instance, or NULL.
  */
 
-struct account_list_window *account_list_window_create_instance(struct account_block *parent, enum account_type type, int entry);
+struct account_list_window *account_list_window_create_instance(struct account_block *parent, enum account_type type);
 
 
 /**

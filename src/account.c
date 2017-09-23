@@ -245,7 +245,7 @@ struct account_block *account_create_instance(struct file_block *file)
 	/* Initialise the account and heading windows. */
 
 	for (entry = 0; entry < ACCOUNT_LIST_WINDOWS; entry++) {
-		new->account_windows[entry] = account_list_window_create_instance(new, account_list_types[entry], entry);
+		new->account_windows[entry] = account_list_window_create_instance(new, account_list_types[entry]);
 		if (new->account_windows[entry] == NULL)
 			mem_fail = TRUE;
 	}

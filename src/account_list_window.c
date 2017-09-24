@@ -180,14 +180,23 @@ static struct column_extra account_extra_columns[] = {
 	{wimp_ICON_WINDOW, 0, 0}
 };
 
+enum account_list_window_overdrawn {
+	ACCOUNT_LIST_WINDOW_OVERDRAWN_NONE	= 0x00,
+	ACCOUNT_LIST_WINDOW_OVERDRAWN_STATEMENT	= 0x01,
+	ACCOUNT_LIST_WINDOW_OVERDRAWN_CURRENT	= 0x02,
+	ACCOUNT_LIST_WINDOW_OVERDRAWN_FUTURE	= 0x04,
+	ACCOUNT_LIST_WINDOW_OVERDRAWN_BUDGET	= 0x08
+};
+
 /* Account window line redraw data struct */
 
 struct account_redraw {
-	enum account_line_type	type;						/* Type of line (account, header, footer, blank, etc).		*/
+	enum account_line_type			type;				/* Type of line (account, header, footer, blank, etc).		*/
 
-	acct_t			account;					/* Number of account.						*/
-	amt_t			total[ACCOUNT_NUM_COLUMNS];			/* Balance totals for section.					*/
-	char			heading[ACCOUNT_SECTION_LEN];			/* Heading for section.						*/
+	acct_t					account;			/* Number of account.						*/
+	amt_t					total[ACCOUNT_NUM_COLUMNS];	/* Balance totals for section.					*/
+	char					heading[ACCOUNT_SECTION_LEN];	/* Heading for section.						*/
+	enum account_list_window_overdrawn	overdrawn;			/* Flags showing the overdrawn state of the line		*/
 };
 
 
@@ -940,70 +949,44 @@ static void account_list_window_redraw_handler(wimp_draw *redraw)
 			switch (windat->line_data[y].type) {
 			case ACCOUNT_LINE_DATA:
 				window_plot_text_field(ACCOUNT_ICON_IDENT, account_get_ident(file, windat->line_data[y].account), wimp_COLOUR_BLACK);
-				window_plot_text_field(ACCOUNT_ICON_NAME, account_get_ident(file, windat->line_data[y].account), wimp_COLOUR_BLACK);
+				window_plot_text_field(ACCOUNT_ICON_NAME, account_get_name(file, windat->line_data[y].account), wimp_COLOUR_BLACK);
 
-				switch (windat->type) {
-				case ACCOUNT_FULL:
-					if (shade_overdrawn &&
-							(instance->accounts[windat->line_data[y].account].statement_balance <
-							-instance->accounts[windat->line_data[y].account].credit_limit))
-						icon_fg_col = shade_overdrawn_col;
-					else
-						icon_fg_col = wimp_COLOUR_BLACK;
+				/* Statement Column. */
 
-					window_plot_currency_field(ACCOUNT_ICON_STATEMENT, instance->accounts[windat->line_data[y].account].statement_balance, icon_fg_col);
+				if (shade_overdrawn && (windat->line_data[y].overdrawn & ACCOUNT_LIST_WINDOW_OVERDRAWN_STATEMENT))
+					icon_fg_col = shade_overdrawn_col;
+				else
+					icon_fg_col = wimp_COLOUR_BLACK;
 
-					if (shade_overdrawn &&
-							(instance->accounts[windat->line_data[y].account].current_balance <
-							-instance->accounts[windat->line_data[y].account].credit_limit))
-						icon_fg_col = shade_overdrawn_col;
-					else
-						icon_fg_col = wimp_COLOUR_BLACK;
+				window_plot_currency_field(ACCOUNT_ICON_STATEMENT, windat->line_data[y].total[ACCOUNT_NUM_COLUMN_STATEMENT], icon_fg_col);
 
-					window_plot_currency_field(ACCOUNT_ICON_CURRENT, instance->accounts[windat->line_data[y].account].current_balance, icon_fg_col);
+				/* Current Column. */
 
-					if (shade_overdrawn &&
-							(instance->accounts[windat->line_data[y].account].trial_balance < 0))
-						icon_fg_col = shade_overdrawn_col;
-					else
-						icon_fg_col = wimp_COLOUR_BLACK;
+				if (shade_overdrawn && (windat->line_data[y].overdrawn & ACCOUNT_LIST_WINDOW_OVERDRAWN_CURRENT))
+					icon_fg_col = shade_overdrawn_col;
+				else
+					icon_fg_col = wimp_COLOUR_BLACK;
 
-					window_plot_currency_field(ACCOUNT_ICON_FINAL, instance->accounts[windat->line_data[y].account].trial_balance, icon_fg_col);
+				window_plot_currency_field(ACCOUNT_ICON_CURRENT, windat->line_data[y].total[ACCOUNT_NUM_COLUMN_CURRENT], icon_fg_col);
 
-					window_plot_currency_field(ACCOUNT_ICON_BUDGET, instance->accounts[windat->line_data[y].account].budget_balance, wimp_COLOUR_BLACK);
-					break;
+				/* Future Column. */
 
-				case ACCOUNT_IN:
-					if (shade_overdrawn &&
-							(-instance->accounts[windat->line_data[y].account].budget_balance <
-							instance->accounts[windat->line_data[y].account].budget_amount))
-						icon_fg_col = shade_overdrawn_col;
-					else
-						icon_fg_col = wimp_COLOUR_BLACK;
+				if (shade_overdrawn && ((windat->line_data[y].overdrawn & ACCOUNT_LIST_WINDOW_OVERDRAWN_FUTURE) ||
+						(windat->line_data[y].overdrawn & ACCOUNT_LIST_WINDOW_OVERDRAWN_BUDGET)))
+					icon_fg_col = shade_overdrawn_col;
+				else
+					icon_fg_col = wimp_COLOUR_BLACK;
 
-					window_plot_currency_field(ACCOUNT_ICON_STATEMENT, -instance->accounts[windat->line_data[y].account].future_balance, wimp_COLOUR_BLACK);
-					window_plot_currency_field(ACCOUNT_ICON_CURRENT, instance->accounts[windat->line_data[y].account].budget_amount, wimp_COLOUR_BLACK);
-					window_plot_currency_field(ACCOUNT_ICON_FINAL, -instance->accounts[windat->line_data[y].account].budget_balance, icon_fg_col);
-					window_plot_currency_field(ACCOUNT_ICON_BUDGET, instance->accounts[windat->line_data[y].account].budget_result, icon_fg_col);
-					break;
+				window_plot_currency_field(ACCOUNT_ICON_FINAL, windat->line_data[y].total[ACCOUNT_NUM_COLUMN_FINAL], icon_fg_col);
 
-				case ACCOUNT_OUT:
-					if (shade_overdrawn &&
-							(instance->accounts[windat->line_data[y].account].budget_balance >
-							instance->accounts[windat->line_data[y].account].budget_amount))
-						icon_fg_col = shade_overdrawn_col;
-					else
-						icon_fg_col = wimp_COLOUR_BLACK;
+				/* Budget Column. */
 
-					window_plot_currency_field(ACCOUNT_ICON_STATEMENT, instance->accounts[windat->line_data[y].account].future_balance, wimp_COLOUR_BLACK);
-					window_plot_currency_field(ACCOUNT_ICON_CURRENT, instance->accounts[windat->line_data[y].account].budget_amount, wimp_COLOUR_BLACK);
-					window_plot_currency_field(ACCOUNT_ICON_FINAL, instance->accounts[windat->line_data[y].account].budget_balance, icon_fg_col);
-					window_plot_currency_field(ACCOUNT_ICON_BUDGET, instance->accounts[windat->line_data[y].account].budget_result, icon_fg_col);
-					break;
+				if (shade_overdrawn && (windat->line_data[y].overdrawn & ACCOUNT_LIST_WINDOW_OVERDRAWN_BUDGET))
+					icon_fg_col = shade_overdrawn_col;
+				else
+					icon_fg_col = wimp_COLOUR_BLACK;
 
-				default:
-					break;
-				}
+				window_plot_currency_field(ACCOUNT_ICON_BUDGET, windat->line_data[y].total[ACCOUNT_NUM_COLUMN_BUDGET], icon_fg_col);
 				break;
 
 			case ACCOUNT_LINE_HEADER:
@@ -1575,41 +1558,13 @@ static struct report *account_list_window_print(struct report *report, void *dat
 			stringbuild_add_printf("\\k%s\\t%s\\t\\r",
 					account_get_ident(file, windat->line_data[line].account),
 					account_get_name(file, windat->line_data[line].account));
-
-			switch (windat->type) {
-			case ACCOUNT_FULL:
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].statement_balance, FALSE);
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].current_balance, FALSE);
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].trial_balance, FALSE);
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].budget_balance, FALSE);
-				break;
-
-			case ACCOUNT_IN:
-				stringbuild_add_currency(-instance->accounts[windat->line_data[line].account].future_balance, FALSE);
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].budget_amount, FALSE);
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(-instance->accounts[windat->line_data[line].account].budget_balance, FALSE);
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].budget_result, FALSE);
-				break;
-
-			case ACCOUNT_OUT:
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].future_balance, FALSE);
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].budget_amount, FALSE);
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].budget_balance, FALSE);
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(instance->accounts[windat->line_data[line].account].budget_result, FALSE);
-				break;
-
-			default:
-				break;
-			}
+			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_STATEMENT], FALSE);
+			stringbuild_add_string("\\t\\r");
+			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_CURRENT], FALSE);
+			stringbuild_add_string("\\t\\r");
+			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_FINAL], FALSE);
+			stringbuild_add_string("\\t\\r");
+			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_BUDGET], FALSE);
 		} else if (windat->line_data[line].type == ACCOUNT_LINE_HEADER) {
 			stringbuild_add_printf("\\k\\u%s", windat->line_data[line].heading);
 		} else if (windat->line_data[line].type == ACCOUNT_LINE_FOOTER) {
@@ -1932,6 +1887,7 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 void account_list_window_recalculate(struct account_list_window *windat)
 {
 	int line, column, sub_total[ACCOUNT_NUM_COLUMNS], total[ACCOUNT_NUM_COLUMNS];
+	amt_t statement_balance, current_balance, future_balance, budget_amount, budget_balance, trial_balance, budget_result, credit_limit;
 
 	if (windat == NULL)
 		return;
@@ -1946,59 +1902,90 @@ void account_list_window_recalculate(struct account_list_window *windat)
 	/* Add up the line data. */
 
 	for (line = 0; line < windat->display_lines; line++) {
+		windat->line_data[line].overdrawn = ACCOUNT_LIST_WINDOW_OVERDRAWN_NONE;
+
 		switch (windat->line_data[line].type) {
 		case ACCOUNT_LINE_DATA:
+			if (!account_get_data(windat->instance, windat->line_data[line].account,
+					&statement_balance, &current_balance, &future_balance, &credit_limit,
+					&budget_amount, &budget_balance, &trial_balance, NULL))
+				continue;
+
 			switch (windat->type) {
 			case ACCOUNT_FULL:
-				sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += windat->accounts[windat->line_data[line].account].statement_balance;
-				sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += windat->accounts[windat->line_data[line].account].current_balance;
-				sub_total[ACCOUNT_NUM_COLUMN_FINAL] += windat->accounts[windat->line_data[line].account].trial_balance;
-				sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += windat->accounts[windat->line_data[line].account].budget_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += statement_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += current_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_FINAL] += trial_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += budget_balance;
 
-				total[ACCOUNT_NUM_COLUMN_STATEMENT] += windat->accounts[windat->line_data[line].account].statement_balance;
-				total[ACCOUNT_NUM_COLUMN_CURRENT] += windat->accounts[windat->line_data[line].account].current_balance;
-				total[ACCOUNT_NUM_COLUMN_FINAL] += windat->accounts[windat->line_data[line].account].trial_balance;
-				total[ACCOUNT_NUM_COLUMN_BUDGET] += windat->accounts[windat->line_data[line].account].budget_balance;
+				total[ACCOUNT_NUM_COLUMN_STATEMENT] += statement_balance;
+				total[ACCOUNT_NUM_COLUMN_CURRENT] += current_balance;
+				total[ACCOUNT_NUM_COLUMN_FINAL] += trial_balance;
+				total[ACCOUNT_NUM_COLUMN_BUDGET] += budget_balance;
+
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_STATEMENT] = statement_balance;
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_CURRENT] = current_balance;
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_FINAL] = trial_balance;
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_BUDGET] = budget_balance;
+
+				if (statement_balance < -credit_limit)
+					windat->line_data[line].overdrawn |= ACCOUNT_LIST_WINDOW_OVERDRAWN_STATEMENT;
+
+				if (current_balance < -credit_limit)
+					windat->line_data[line].overdrawn |= ACCOUNT_LIST_WINDOW_OVERDRAWN_CURRENT;
+
+				if (trial_balance < 0)
+					windat->line_data[line].overdrawn |= ACCOUNT_LIST_WINDOW_OVERDRAWN_FUTURE;
 				break;
 
 			case ACCOUNT_IN:
-				if (windat->accounts[windat->line_data[line].account].budget_amount != NULL_CURRENCY) {
-					windat->accounts[windat->line_data[line].account].budget_result =
-							-windat->accounts[windat->line_data[line].account].budget_amount -
-							windat->accounts[windat->line_data[line].account].budget_balance;
-				} else {
-					windat->accounts[windat->line_data[line].account].budget_result = NULL_CURRENCY;
-				}
+				if (budget_amount != NULL_CURRENCY)
+					budget_result = -budget_amount - budget_balance;
+				else
+					budget_result = NULL_CURRENCY;
 
-				sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] -= windat->accounts[windat->line_data[line].account].future_balance;
-				sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += windat->accounts[windat->line_data[line].account].budget_amount;
-				sub_total[ACCOUNT_NUM_COLUMN_FINAL] -= windat->accounts[windat->line_data[line].account].budget_balance;
-				sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += windat->accounts[windat->line_data[line].account].budget_result;
+				sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] -= future_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += budget_amount;
+				sub_total[ACCOUNT_NUM_COLUMN_FINAL] -= budget_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += budget_result;
 
-				total[ACCOUNT_NUM_COLUMN_STATEMENT] -= windat->accounts[windat->line_data[line].account].future_balance;
-				total[ACCOUNT_NUM_COLUMN_CURRENT] += windat->accounts[windat->line_data[line].account].budget_amount;
-				total[ACCOUNT_NUM_COLUMN_FINAL] -= windat->accounts[windat->line_data[line].account].budget_balance;
-				total[ACCOUNT_NUM_COLUMN_BUDGET] += windat->accounts[windat->line_data[line].account].budget_result;
+				total[ACCOUNT_NUM_COLUMN_STATEMENT] -= future_balance;
+				total[ACCOUNT_NUM_COLUMN_CURRENT] += budget_amount;
+				total[ACCOUNT_NUM_COLUMN_FINAL] -= budget_balance;
+				total[ACCOUNT_NUM_COLUMN_BUDGET] += budget_result;
+
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_STATEMENT] = -future_balance;
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_CURRENT] = budget_amount;
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_FINAL] = -budget_balance;
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_BUDGET] = budget_result;
+
+				if (-budget_balance < budget_amount)
+					windat->line_data[line].overdrawn |= ACCOUNT_LIST_WINDOW_OVERDRAWN_BUDGET;
 				break;
 
 			case ACCOUNT_OUT:
-				if (windat->accounts[windat->line_data[line].account].budget_amount != NULL_CURRENCY) {
-					windat->accounts[windat->line_data[line].account].budget_result =
-							windat->accounts[windat->line_data[line].account].budget_amount -
-							windat->accounts[windat->line_data[line].account].budget_balance;
-				} else {
-					windat->accounts[windat->line_data[line].account].budget_result = NULL_CURRENCY;
-				}
+				if (budget_amount != NULL_CURRENCY)
+					budget_result = budget_amount - budget_balance;
+				else
+					budget_result = NULL_CURRENCY;
 
-				sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += windat->accounts[windat->line_data[line].account].future_balance;
-				sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += windat->accounts[windat->line_data[line].account].budget_amount;
-				sub_total[ACCOUNT_NUM_COLUMN_FINAL] += windat->accounts[windat->line_data[line].account].budget_balance;
-				sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += windat->accounts[windat->line_data[line].account].budget_result;
+				sub_total[ACCOUNT_NUM_COLUMN_STATEMENT] += future_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_CURRENT] += budget_amount;
+				sub_total[ACCOUNT_NUM_COLUMN_FINAL] += budget_balance;
+				sub_total[ACCOUNT_NUM_COLUMN_BUDGET] += budget_result;
 
-				total[ACCOUNT_NUM_COLUMN_STATEMENT] += windat->accounts[windat->line_data[line].account].future_balance;
-				total[ACCOUNT_NUM_COLUMN_CURRENT] += windat->accounts[windat->line_data[line].account].budget_amount;
-				total[ACCOUNT_NUM_COLUMN_FINAL] += windat->accounts[windat->line_data[line].account].budget_balance;
-				total[ACCOUNT_NUM_COLUMN_BUDGET] += windat->accounts[windat->line_data[line].account].budget_result;
+				total[ACCOUNT_NUM_COLUMN_STATEMENT] += future_balance;
+				total[ACCOUNT_NUM_COLUMN_CURRENT] += budget_amount;
+				total[ACCOUNT_NUM_COLUMN_FINAL] += budget_balance;
+				total[ACCOUNT_NUM_COLUMN_BUDGET] += budget_result;
+
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_STATEMENT] = future_balance;
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_CURRENT] = budget_amount;
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_FINAL] = budget_balance;
+				windat->line_data[line].total[ACCOUNT_NUM_COLUMN_BUDGET] = budget_result;
+
+				if (budget_balance > budget_amount)
+					windat->line_data[line].overdrawn |= ACCOUNT_LIST_WINDOW_OVERDRAWN_BUDGET;
 				break;
 			}
 			break;
@@ -2231,43 +2218,17 @@ static void account_list_window_export_delimited(struct account_list_window *win
 			account_build_name_pair(file, windat->line_data[line].account, buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-			switch (windat->type) {
-			case ACCOUNT_FULL:
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].statement_balance, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].current_balance, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].trial_balance, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
-				break;
+			currency_convert_to_string(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_STATEMENT], buffer, FILING_DELIMITED_FIELD_LEN);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			case ACCOUNT_IN:
-				currency_convert_to_string(-windat->instance->accounts[windat->line_data[line].account].future_balance, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_amount, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(-windat->instance->accounts[windat->line_data[line].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_result, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
-				break;
+			currency_convert_to_string(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_CURRENT], buffer, FILING_DELIMITED_FIELD_LEN);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			case ACCOUNT_OUT:
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].future_balance, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_amount, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_balance, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				currency_convert_to_string(windat->instance->accounts[windat->line_data[line].account].budget_result, buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
-				break;
+			currency_convert_to_string(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_FINAL], buffer, FILING_DELIMITED_FIELD_LEN);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			default:
-				break;
-			}
+			currency_convert_to_string(windat->line_data[line].total[ACCOUNT_NUM_COLUMN_BUDGET], buffer, FILING_DELIMITED_FIELD_LEN);
+			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 		} else if (windat->line_data[line].type == ACCOUNT_LINE_HEADER) {
 			filing_output_delimited_field(out, windat->line_data[line].heading, format, DELIMIT_LAST);
 		} else if (windat->line_data[line].type == ACCOUNT_LINE_FOOTER) {

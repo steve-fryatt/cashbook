@@ -156,10 +156,6 @@ struct account {
 
 	amt_t				trial_balance;				/* Balance including all transactions & standing order trial. */
 	amt_t				available_balance;			/* Balance available, taking into account credit limit. */
-
-	/* Subsequent calculated values for headings. */
-
-	amt_t				budget_result;
 };
 
 struct account_block {

@@ -257,11 +257,6 @@ static struct saveas_block	*account_list_window_saveas_csv = NULL;			/**< The Sa
 static struct saveas_block	*account_list_window_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 
-
-
-/* \TODO -- These entries should probably become struct account_list_window * pointers? */
-
-
 /* Account List Window drags. */
 
 static osbool			account_list_window_dragging_sprite = FALSE;		/**< True if the account line drag is using a sprite.			*/

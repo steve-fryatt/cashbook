@@ -33,7 +33,12 @@
 #include "oslib/osspriteop.h"
 #include "account.h"
 
+/**
+ * An Account List Window instance.
+ */
+
 struct account_list_window;
+
 
 /**
  * Initialise the Account List Window.

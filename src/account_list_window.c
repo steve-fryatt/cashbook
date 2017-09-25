@@ -2088,6 +2088,8 @@ void account_list_window_recalculate(struct account_list_window *windat)
 				if (budget_balance > budget_amount)
 					windat->line_data[line].overdrawn |= ACCOUNT_LIST_WINDOW_OVERDRAWN_BUDGET;
 				break;
+			default:
+				break;
 			}
 			break;
 

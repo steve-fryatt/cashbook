@@ -1155,6 +1155,9 @@ osbool account_get_data(struct account_block *instance, acct_t account,
 	if (future_balance != NULL)
 		*future_balance = instance->accounts[account].future_balance;
 
+	if (credit_limit != NULL)
+		*credit_limit = instance->accounts[account].credit_limit;
+
 	if (budget_amount != NULL)
 		*budget_amount = instance->accounts[account].budget_amount;
 

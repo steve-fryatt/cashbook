@@ -185,7 +185,7 @@
 
 /* Standing Order Window column mapping. */
 
-static struct column_map sorder_columns[] = {
+static struct column_map sorder_columns[SORDER_COLUMNS] = {
 	{SORDER_ICON_FROM, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
 	{SORDER_ICON_FROM_REC, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
 	{SORDER_ICON_FROM_NAME, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},

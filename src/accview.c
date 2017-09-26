@@ -145,7 +145,7 @@
 
 /* Account View window column mapping. */
 
-static struct column_map accview_columns[] = {
+static struct column_map accview_columns[ACCVIEW_COLUMNS] = {
 	{ACCVIEW_ICON_ROW, ACCVIEW_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
 	{ACCVIEW_ICON_DATE, ACCVIEW_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
 	{ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},

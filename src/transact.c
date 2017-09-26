@@ -206,7 +206,7 @@
 
 /* Transaction Window column mapping. */
 
-static struct column_map transact_columns[] = {
+static struct column_map transact_columns[TRANSACT_COLUMNS] = {
 	{TRANSACT_ICON_ROW, TRANSACT_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
 	{TRANSACT_ICON_DATE, TRANSACT_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
 	{TRANSACT_ICON_FROM, TRANSACT_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},

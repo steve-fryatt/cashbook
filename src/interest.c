@@ -119,7 +119,7 @@
 
 /* Interest Rate Window column mapping. */
 
-static struct column_map interest_columns[] = {
+static struct column_map interest_columns[INTEREST_COLUMNS] = {
 	{INTEREST_ICON_DATE, INTEREST_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
 	{INTEREST_ICON_RATE, INTEREST_PANE_RATE, wimp_ICON_WINDOW, SORT_RATE},
 	{INTEREST_ICON_BALANCE, INTEREST_PANE_BALANCE, wimp_ICON_WINDOW, SORT_BALANCE},

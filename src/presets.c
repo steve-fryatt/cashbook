@@ -167,7 +167,7 @@
 
 /* Preset Window column mapping. */
 
-static struct column_map preset_columns[] = {
+static struct column_map preset_columns[PRESET_COLUMNS] = {
 	{PRESET_ICON_KEY, PRESET_PANE_KEY, wimp_ICON_WINDOW, SORT_CHAR},
 	{PRESET_ICON_NAME, PRESET_PANE_NAME, wimp_ICON_WINDOW, SORT_NAME},
 	{PRESET_ICON_FROM, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},

@@ -1277,7 +1277,7 @@ void account_list_window_build_title(struct account_list_window *windat)
 	struct file_block	*file;
 	char			*token, name[WINDOW_TITLE_LENGTH];
 
-	if (windat == NULL || windat->instance == NULL)
+	if (windat == NULL || windat->instance == NULL || windat->account_window == NULL)
 		return;
 
 	file = account_get_file(windat->instance);

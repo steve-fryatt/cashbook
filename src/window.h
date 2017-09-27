@@ -184,6 +184,21 @@ int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int tool
 
 
 /**
+ * Calculate a window's plot area from the readrw clip rectangle, and
+ * plot the background colour into the window.
+ *
+ * \param *redraw		The Wimp Redraw data block.
+ * \param toolbar_height	The height of the window's toolbar, in OS Units.
+ * \param background		The Wimp colour to plot the background.
+ * \param *top			Pointer to variable to take the first redraw
+ *				line, or NULL.
+ * \param *base			Pointer to variable to take the last redraw
+ *				line, or NULL.
+ */
+
+void window_plot_background(wimp_draw *redraw, int toolbar_height, wimp_colour background, int *top, int *base);
+
+/**
  * Initialise a window template for use by the icon plotting interface.
  * 
  * It is assumed that all of the icons in the template have valid indirection

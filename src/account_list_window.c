@@ -988,7 +988,7 @@ static void account_list_window_scroll_handler(wimp_scroll *scroll)
 
 static void account_list_window_redraw_handler(wimp_draw *redraw)
 {
-	int				ox, oy, top, base, y, shade_overdrawn_col, icon_fg_col, width;
+	int				top, base, y, shade_overdrawn_col, icon_fg_col;
 	char				icon_buffer[AMOUNT_FIELD_LEN];
 	osbool				more, shade_overdrawn;
 	struct file_block		*file;
@@ -1005,36 +1005,20 @@ static void account_list_window_redraw_handler(wimp_draw *redraw)
 
 	more = wimp_redraw_window(redraw);
 
-	ox = redraw->box.x0 - redraw->xscroll;
-	oy = redraw->box.y1 - redraw->yscroll;
-
 	/* Set the horizontal positions of the icons for the account lines. */
 
 	columns_place_table_icons_horizontally(windat->columns, account_list_window_def, icon_buffer, AMOUNT_FIELD_LEN);
-	width = column_get_window_width(windat->columns);
 
 	window_set_icon_templates(account_list_window_def);
 
 	/* Perform the redraw. */
 
 	while (more) {
-		/* Calculate the rows to redraw. */
-
-		top = WINDOW_REDRAW_TOP(ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
-		if (top < 0)
-			top = 0;
-
-		base = WINDOW_REDRAW_BASE(ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
+		window_plot_background(redraw, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, &top, &base);
 
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
-			/* Plot out the background with a filled white rectangle. */
-
-			wimp_set_colour(wimp_COLOUR_WHITE);
-			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, y));
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, y));
-
 			/* Place the icons in the current row. */
 
 			columns_place_table_icons_vertically(windat->columns, account_list_window_def,

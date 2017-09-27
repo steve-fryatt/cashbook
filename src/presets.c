@@ -891,7 +891,7 @@ static void preset_window_scroll_handler(wimp_scroll *scroll)
 static void preset_window_redraw_handler(wimp_draw *redraw)
 {
 	struct preset_block	*windat;
-	int			ox, oy, top, base, y, t, width;
+	int			top, base, y, t;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -903,36 +903,19 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 	columns_place_table_icons_horizontally(windat->columns, preset_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	width = column_get_window_width(windat->columns);
-
 	window_set_icon_templates(preset_window_def);
 
 	/* Perform the redraw. */
 
 	more = wimp_redraw_window(redraw);
 
-	ox = redraw->box.x0 - redraw->xscroll;
-	oy = redraw->box.y1 - redraw->yscroll;
-
 	while (more) {
-		/* Calculate the rows to redraw. */
-
-		top = WINDOW_REDRAW_TOP(PRESET_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
-		if (top < 0)
-			top = 0;
-
-		base = WINDOW_REDRAW_BASE(PRESET_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
+		window_plot_background(redraw, PRESET_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, &top, &base);
 
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
 			t = (y < windat->preset_count) ? windat->presets[y].sort_index : 0;
-
-			/* Plot out the background with a filled white rectangle. */
-
-			wimp_set_colour(wimp_COLOUR_WHITE);
-			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(PRESET_TOOLBAR_HEIGHT, y));
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(PRESET_TOOLBAR_HEIGHT, y));
 
 			/* Place the icons in the current row. */
 

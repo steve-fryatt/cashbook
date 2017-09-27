@@ -680,7 +680,7 @@ static void interest_window_redraw_handler(wimp_draw *redraw)
 	/* Perform the redraw. */
 
 	while (more) {
-		window_plot_background(redraw, INTEREST_TOOLBAR_HEIGHT, wimp_COLOUR_VERY_LIGHT_GREY, &top, &base);
+		window_plot_background(redraw, INTEREST_TOOLBAR_HEIGHT, wimp_COLOUR_VERY_LIGHT_GREY, -1, &top, &base);
 
 		/* Redraw the data into the window. */
 

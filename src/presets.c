@@ -780,6 +780,8 @@ static void preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 	}
 
 	menus_shade_entry(preset_window_menu, PRESET_MENU_EDIT, preset_window_menu_line == -1);
+
+	preset_force_window_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
 }
 
 
@@ -862,6 +864,12 @@ static void preset_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_m
 
 static void preset_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
+	struct preset_block	*windat;
+
+	windat = event_get_window_user_data(w);
+	if (windat != NULL)
+		preset_force_window_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
+
 	preset_window_menu_line = -1;
 }
 
@@ -910,7 +918,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 	more = wimp_redraw_window(redraw);
 
 	while (more) {
-		window_plot_background(redraw, PRESET_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, &top, &base);
+		window_plot_background(redraw, PRESET_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, preset_window_menu_line, &top, &base);
 
 		/* Redraw the data into the window. */
 

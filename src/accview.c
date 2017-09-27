@@ -891,6 +891,8 @@ static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 	}
 
 	menus_shade_entry(accview_window_menu, ACCVIEW_MENU_FINDTRANS, accview_window_menu_line == -1);
+
+	accview_force_window_redraw(windat, accview_window_menu_line, accview_window_menu_line, wimp_ICON_WINDOW);
 }
 
 
@@ -983,6 +985,12 @@ static void accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_
 
 static void accview_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
+	struct accview_window	*windat;
+
+	windat = event_get_window_user_data(w);
+	if (windat != NULL)
+		accview_force_window_redraw(windat, accview_window_menu_line, accview_window_menu_line, wimp_ICON_WINDOW);
+
 	accview_window_menu_line = -1;
 	ihelp_remove_menu(accview_window_menu);
 }
@@ -1053,7 +1061,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	/* Perform the redraw. */
 
 	while (more) {
-		window_plot_background(redraw, ACCVIEW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, &top, &base);
+		window_plot_background(redraw, ACCVIEW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, accview_window_menu_line, &top, &base);
 
 		/* Redraw the data into the window. */
 

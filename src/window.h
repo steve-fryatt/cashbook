@@ -98,7 +98,7 @@
  * Calculate the top of a row in a table view.
  */
 
-#define WINDOW_ROW_TOP(toolbar, y) ((-(y) * WINDOW_ROW_HEIGHT) - (toolbar))
+#define WINDOW_ROW_TOP(toolbar, y) ((-(y) * WINDOW_ROW_HEIGHT) - (toolbar) + WINDOW_ROW_GUTTER)
 
 /**
  * Calculate the base of an icon in a table view.
@@ -190,13 +190,14 @@ int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int tool
  * \param *redraw		The Wimp Redraw data block.
  * \param toolbar_height	The height of the window's toolbar, in OS Units.
  * \param background		The Wimp colour to plot the background.
+ * \param selection		The currently-selected line, or -1 for none.
  * \param *top			Pointer to variable to take the first redraw
  *				line, or NULL.
  * \param *base			Pointer to variable to take the last redraw
  *				line, or NULL.
  */
 
-void window_plot_background(wimp_draw *redraw, int toolbar_height, wimp_colour background, int *top, int *base);
+void window_plot_background(wimp_draw *redraw, int toolbar_height, wimp_colour background, int selection, int *top, int *base);
 
 /**
  * Initialise a window template for use by the icon plotting interface.

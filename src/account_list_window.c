@@ -865,6 +865,8 @@ static void account_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, 
 	menus_shade_entry(account_list_window_menu, ACCOUNT_LIST_WINDOW_MENU_VIEWACCT, account_list_window_menu_line == -1 || data != ACCOUNT_LINE_DATA);
 	menus_shade_entry(account_list_window_menu, ACCOUNT_LIST_WINDOW_MENU_EDITACCT, account_list_window_menu_line == -1 || data != ACCOUNT_LINE_DATA);
 	menus_shade_entry(account_list_window_menu, ACCOUNT_LIST_WINDOW_MENU_EDITSECT, account_list_window_menu_line == -1 || (data != ACCOUNT_LINE_HEADER && data != ACCOUNT_LINE_FOOTER));
+
+	account_list_window_force_redraw(windat, account_list_window_menu_line, account_list_window_menu_line, wimp_ICON_WINDOW);
 }
 
 
@@ -959,6 +961,12 @@ static void account_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, 
 
 static void account_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
+	struct account_list_window	*windat;
+
+	windat = event_get_window_user_data(w);
+	if (windat != NULL)
+		account_list_window_force_redraw(windat, account_list_window_menu_line, account_list_window_menu_line, wimp_ICON_WINDOW);
+
 	account_list_window_menu_line = -1;
 	ihelp_remove_menu(account_list_window_menu);
 }
@@ -1014,7 +1022,7 @@ static void account_list_window_redraw_handler(wimp_draw *redraw)
 	/* Perform the redraw. */
 
 	while (more) {
-		window_plot_background(redraw, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, &top, &base);
+		window_plot_background(redraw, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, account_list_window_menu_line, &top, &base);
 
 		/* Redraw the data into the window. */
 

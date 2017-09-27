@@ -802,6 +802,8 @@ static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 	}
 
 	menus_shade_entry(sorder_window_menu, SORDER_MENU_EDIT, sorder_window_menu_line == -1);
+
+	sorder_force_window_redraw(windat, sorder_window_menu_line, sorder_window_menu_line, wimp_ICON_WINDOW);
 }
 
 
@@ -888,6 +890,12 @@ static void sorder_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_m
 
 static void sorder_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
+	struct sorder_block	*windat;
+
+	windat = event_get_window_user_data(w);
+	if (windat != NULL)
+		sorder_force_window_redraw(windat, sorder_window_menu_line, sorder_window_menu_line, wimp_ICON_WINDOW);
+
 	sorder_window_menu_line = -1;
 }
 
@@ -936,7 +944,7 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	/* Perform the redraw. */
 
 	while (more) {
-		window_plot_background(redraw, SORDER_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, &top, &base);
+		window_plot_background(redraw, SORDER_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, sorder_window_menu_line, &top, &base);
 
 		/* Redraw the data into the window. */
 

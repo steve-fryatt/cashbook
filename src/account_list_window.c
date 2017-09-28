@@ -996,7 +996,7 @@ static void account_list_window_scroll_handler(wimp_scroll *scroll)
 
 static void account_list_window_redraw_handler(wimp_draw *redraw)
 {
-	int				top, base, y, shade_overdrawn_col, icon_fg_col;
+	int				top, base, y, select, shade_overdrawn_col, icon_fg_col;
 	char				icon_buffer[AMOUNT_FIELD_LEN];
 	osbool				more, shade_overdrawn;
 	struct file_block		*file;
@@ -1011,7 +1011,12 @@ static void account_list_window_redraw_handler(wimp_draw *redraw)
 	shade_overdrawn = config_opt_read("ShadeAccounts");
 	shade_overdrawn_col = config_int_read("ShadeAccountsColour");
 
-	more = wimp_redraw_window(redraw);
+	/* Identify if there is a selected line to highlight. */
+
+	if (redraw->w == event_get_current_menu_window())
+		select = account_list_window_menu_line;
+	else
+		select = -1;
 
 	/* Set the horizontal positions of the icons for the account lines. */
 
@@ -1021,8 +1026,10 @@ static void account_list_window_redraw_handler(wimp_draw *redraw)
 
 	/* Perform the redraw. */
 
+	more = wimp_redraw_window(redraw);
+
 	while (more) {
-		window_plot_background(redraw, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, account_list_window_menu_line, &top, &base);
+		window_plot_background(redraw, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
 
 		/* Redraw the data into the window. */
 

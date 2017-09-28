@@ -925,7 +925,7 @@ static void sorder_window_scroll_handler(wimp_scroll *scroll)
 static void sorder_window_redraw_handler(wimp_draw *redraw)
 {
 	struct sorder_block	*windat;
-	int			top, base, y, t;
+	int			top, base, y, select, t;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -933,7 +933,12 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
 		return;
 
-	more = wimp_redraw_window(redraw);
+	/* Identify if there is a selected line to highlight. */
+
+	if (redraw->w == event_get_current_menu_window())
+		select = sorder_window_menu_line;
+	else
+		select = -1;
 
 	/* Set the horizontal positions of the icons. */
 
@@ -943,8 +948,10 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 
 	/* Perform the redraw. */
 
+	more = wimp_redraw_window(redraw);
+
 	while (more) {
-		window_plot_background(redraw, SORDER_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, sorder_window_menu_line, &top, &base);
+		window_plot_background(redraw, SORDER_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
 
 		/* Redraw the data into the window. */
 

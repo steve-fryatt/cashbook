@@ -899,13 +899,20 @@ static void preset_window_scroll_handler(wimp_scroll *scroll)
 static void preset_window_redraw_handler(wimp_draw *redraw)
 {
 	struct preset_block	*windat;
-	int			top, base, y, t;
+	int			top, base, y, select, t;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
 		return;
+
+	/* Identify if there is a selected line to highlight. */
+
+	if (redraw->w == event_get_current_menu_window())
+		select = preset_window_menu_line;
+	else
+		select = -1;
 
 	/* Set the horizontal positions of the icons. */
 
@@ -918,7 +925,7 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 	more = wimp_redraw_window(redraw);
 
 	while (more) {
-		window_plot_background(redraw, PRESET_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, preset_window_menu_line, &top, &base);
+		window_plot_background(redraw, PRESET_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
 
 		/* Redraw the data into the window. */
 

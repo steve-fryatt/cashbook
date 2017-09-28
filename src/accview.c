@@ -1025,7 +1025,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	acct_t			account, transaction_account;
 	date_t			transaction_date;
 	enum account_type	account_type;
-	int			top, base, y, credit_limit;
+	int			top, base, y, select, credit_limit;
 	tran_t			transaction;
 	wimp_colour		shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
@@ -1050,7 +1050,12 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	shade_overdrawn = (account_type & ACCOUNT_FULL) && config_opt_read ("ShadeOverdrawn");
 	shade_overdrawn_col = config_int_read ("ShadeOverdrawnColour");
 
-	more = wimp_redraw_window (redraw);
+	/* Identify if there is a selected line to highlight. */
+
+	if (redraw->w == event_get_current_menu_window())
+		select = accview_window_menu_line;
+	else
+		select = -1;
 
 	/* Set the horizontal positions of the icons for the account lines. */
 
@@ -1060,8 +1065,10 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 	/* Perform the redraw. */
 
+	more = wimp_redraw_window (redraw);
+
 	while (more) {
-		window_plot_background(redraw, ACCVIEW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, accview_window_menu_line, &top, &base);
+		window_plot_background(redraw, ACCVIEW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
 
 		/* Redraw the data into the window. */
 

@@ -1551,6 +1551,7 @@ Alpha release for feedback and comment.
 <li>Remove all unbounded string operations from source code.
 <li>Allow print jobs to be sent to a report window instead of direct to a printer (ticket&nbsp;#300).
 <li>Highlight the line over which <mouse>menu</mouse> was clicked when menus can operate on items in a window.
+<li>Fix bug which caused previous dates to be ignored when entering transactions.
 <li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 

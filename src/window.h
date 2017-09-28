@@ -86,7 +86,7 @@
  * Calculate the last row to be included in a redraw operation.
  */
 
-#define WINDOW_REDRAW_BASE(toolbar, y) (((WINDOW_ROW_HEIGHT * 1.5) + (y) - (toolbar)) / WINDOW_ROW_HEIGHT)
+#define WINDOW_REDRAW_BASE(toolbar, y) (((y) - (toolbar) - 2) / WINDOW_ROW_HEIGHT)
 
 /**
  * Calculate the base of a row in a table view.

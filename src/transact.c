@@ -206,7 +206,7 @@
 
 /* Transaction Window column mapping. */
 
-static struct column_map transact_columns[] = {
+static struct column_map transact_columns[TRANSACT_COLUMNS] = {
 	{TRANSACT_ICON_ROW, TRANSACT_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
 	{TRANSACT_ICON_DATE, TRANSACT_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
 	{TRANSACT_ICON_FROM, TRANSACT_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
@@ -1553,7 +1553,7 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 static void transact_window_redraw_handler(wimp_draw *redraw)
 {
 	struct transact_block	*windat;
-	int			ox, oy, top, base, y, width, entry_line;
+	int			top, base, y, entry_line;
 	tran_t			t;
 	wimp_colour		shade_rec_col, icon_fg_col;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
@@ -1565,17 +1565,12 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 
 	more = wimp_redraw_window(redraw);
 
-	ox = redraw->box.x0 - redraw->xscroll;
-	oy = redraw->box.y1 - redraw->yscroll;
-
 	shade_rec = config_opt_read("ShadeReconciled");
 	shade_rec_col = config_int_read("ShadeReconciledColour");
 
 	/* Set the horizontal positions of the icons. */
 
 	columns_place_table_icons_horizontally(windat->columns, transact_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-
-	width = column_get_window_width(windat->columns);
 	entry_line = edit_get_line(windat->edit_line);
 
 	window_set_icon_templates(transact_window_def);
@@ -1583,13 +1578,7 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 	/* Perform the redraw. */
 
 	while (more) {
-		/* Calculate the rows to redraw. */
-
-		top = WINDOW_REDRAW_TOP(TRANSACT_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
-		if (top < 0)
-			top = 0;
-
-		base = WINDOW_REDRAW_BASE(TRANSACT_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
+		window_plot_background(redraw, TRANSACT_TOOLBAR_HEIGHT, wimp_COLOUR_VERY_LIGHT_GREY, -1, &top, &base);
 
 		/* Redraw the data into the window. */
 
@@ -1605,12 +1594,6 @@ static void transact_window_redraw_handler(wimp_draw *redraw)
 				icon_fg_col = shade_rec_col;
 			else
 				icon_fg_col = wimp_COLOUR_BLACK;
-
-			/* Plot out the background with a filled grey rectangle. */
-
-			wimp_set_colour(wimp_COLOUR_VERY_LIGHT_GREY);
-			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(TRANSACT_TOOLBAR_HEIGHT, y));
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(TRANSACT_TOOLBAR_HEIGHT, y));
 
 			/* We don't need to plot the current edit line, as that has real icons in it. */
 

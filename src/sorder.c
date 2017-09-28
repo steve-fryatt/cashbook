@@ -185,7 +185,7 @@
 
 /* Standing Order Window column mapping. */
 
-static struct column_map sorder_columns[] = {
+static struct column_map sorder_columns[SORDER_COLUMNS] = {
 	{SORDER_ICON_FROM, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
 	{SORDER_ICON_FROM_REC, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
 	{SORDER_ICON_FROM_NAME, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
@@ -802,6 +802,8 @@ static void sorder_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 	}
 
 	menus_shade_entry(sorder_window_menu, SORDER_MENU_EDIT, sorder_window_menu_line == -1);
+
+	sorder_force_window_redraw(windat, sorder_window_menu_line, sorder_window_menu_line, wimp_ICON_WINDOW);
 }
 
 
@@ -888,6 +890,12 @@ static void sorder_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_m
 
 static void sorder_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
+	struct sorder_block	*windat;
+
+	windat = event_get_window_user_data(w);
+	if (windat != NULL)
+		sorder_force_window_redraw(windat, sorder_window_menu_line, sorder_window_menu_line, wimp_ICON_WINDOW);
+
 	sorder_window_menu_line = -1;
 }
 
@@ -917,7 +925,7 @@ static void sorder_window_scroll_handler(wimp_scroll *scroll)
 static void sorder_window_redraw_handler(wimp_draw *redraw)
 {
 	struct sorder_block	*windat;
-	int			ox, oy, top, base, y, t, width;
+	int			top, base, y, select, t;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -925,40 +933,30 @@ static void sorder_window_redraw_handler(wimp_draw *redraw)
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
 		return;
 
-	more = wimp_redraw_window(redraw);
+	/* Identify if there is a selected line to highlight. */
 
-	ox = redraw->box.x0 - redraw->xscroll;
-	oy = redraw->box.y1 - redraw->yscroll;
+	if (redraw->w == event_get_current_menu_window())
+		select = sorder_window_menu_line;
+	else
+		select = -1;
 
 	/* Set the horizontal positions of the icons. */
 
 	columns_place_table_icons_horizontally(windat->columns, sorder_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	width = column_get_window_width(windat->columns);
-
 	window_set_icon_templates(sorder_window_def);
 
 	/* Perform the redraw. */
 
+	more = wimp_redraw_window(redraw);
+
 	while (more) {
-		/* Calculate the rows to redraw. */
-
-		top = WINDOW_REDRAW_TOP(SORDER_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
-		if (top < 0)
-			top = 0;
-
-		base = WINDOW_REDRAW_BASE(SORDER_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
+		window_plot_background(redraw, SORDER_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
 
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
 			t = (y < windat->sorder_count) ? windat->sorders[y].sort_index : 0;
-
-			/* Plot out the background with a filled white rectangle. */
-
-			wimp_set_colour(wimp_COLOUR_WHITE);
-			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(SORDER_TOOLBAR_HEIGHT, y));
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(SORDER_TOOLBAR_HEIGHT, y));
 
 			/* Place the icons in the current row. */
 

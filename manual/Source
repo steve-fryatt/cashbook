@@ -195,7 +195,7 @@ The <window>transaction</window> window, <window>standing order list</window> wi
 
 The left-most button on every <cite>CashBook</cite> toolbar (except for the <window>transaction</window> window toolbar) is an upwards-pointing black arrow: the <icon>parent window</icon> button. Clicking on this will bring the <window>transaction</window> window belonging to the window in question to the front, which can be useful if there are a lot of other windows on the screen.
 
-The <window>transaction</window> window contains the main menu in <cite>CashBook</cite>, which allows access to almost all of the application&rsquo;s features. Most of the other windows have their own local menus with options relating to the contents: invariably these contain export and print options.
+The <window>transaction</window> window contains the main menu in <cite>CashBook</cite>, which allows access to almost all of the application&rsquo;s features. Most of the other windows have their own local menus with options relating to the contents: invariably these contain export and print options. If entries in a menu relate to the line of the window over which the mouse was clicked, the line will be highlighted whilst the menu is open.
 
 All of the dialogue boxes in <cite>CashBook</cite> comply with the <cite>RISC&nbsp;OS Style Guide</cite>, and should be familiar in use.  It may be worth remembering that while <mouse>select</mouse> clicks on the default &lsquo;action button&rsquo; (usually at the bottom right, with a label like <icon>Create</icon>, <icon>Update</icon> or similar) will act on the settings in the dialogue and close it, <mouse>adjust</mouse> clicks will use the settings while leaving the dialogue open.
 
@@ -1550,6 +1550,8 @@ Alpha release for feedback and comment.
 <li>Tidy up print dialogue and print protocol implementation.
 <li>Remove all unbounded string operations from source code.
 <li>Allow print jobs to be sent to a report window instead of direct to a printer (ticket&nbsp;#300).
+<li>Highlight the line over which <mouse>menu</mouse> was clicked when menus can operate on items in a window.
+<li>Fix bug which caused previous dates to be ignored when entering transactions.
 <li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 

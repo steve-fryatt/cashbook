@@ -119,7 +119,7 @@
 
 /* Interest Rate Window column mapping. */
 
-static struct column_map interest_columns[] = {
+static struct column_map interest_columns[INTEREST_COLUMNS] = {
 	{INTEREST_ICON_DATE, INTEREST_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
 	{INTEREST_ICON_RATE, INTEREST_PANE_RATE, wimp_ICON_WINDOW, SORT_RATE},
 	{INTEREST_ICON_BALANCE, INTEREST_PANE_BALANCE, wimp_ICON_WINDOW, SORT_BALANCE},
@@ -661,7 +661,7 @@ static void interest_window_scroll_handler(wimp_scroll *scroll)
 static void interest_window_redraw_handler(wimp_draw *redraw)
 {
 	struct interest_block	*windat;
-	int			ox, oy, top, base, y, r, width;
+	int			top, base, y, r;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -671,39 +671,22 @@ static void interest_window_redraw_handler(wimp_draw *redraw)
 
 	more = wimp_redraw_window(redraw);
 
-	ox = redraw->box.x0 - redraw->xscroll;
-	oy = redraw->box.y1 - redraw->yscroll;
-
 	/* Set the horizontal positions of the icons. */
 
 	columns_place_table_icons_horizontally(windat->columns, interest_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-
-	width = column_get_window_width(windat->columns);
 
 	window_set_icon_templates(interest_window_def);
 
 	/* Perform the redraw. */
 
 	while (more) {
-		/* Calculate the rows to redraw. */
-
-		top = WINDOW_REDRAW_TOP(INTEREST_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
-		if (top < 0)
-			top = 0;
-
-		base = WINDOW_REDRAW_BASE(INTEREST_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
+		window_plot_background(redraw, INTEREST_TOOLBAR_HEIGHT, wimp_COLOUR_VERY_LIGHT_GREY, -1, &top, &base);
 
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
 	//		r = (y < windat->sorder_count) ? windat->sorders[y].sort_index : 0;
 			r = y;
-
-			/* Plot out the background with a filled white rectangle. */
-
-			wimp_set_colour(wimp_COLOUR_VERY_LIGHT_GREY);
-			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(INTEREST_TOOLBAR_HEIGHT, y));
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(INTEREST_TOOLBAR_HEIGHT, y));
 
 			/* Place the icons in the current row. */
 

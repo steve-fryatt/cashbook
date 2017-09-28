@@ -299,6 +299,63 @@ int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int tool
 
 
 /**
+ * Calculate a window's plot area from the readrw clip rectangle, and
+ * plot the background colour into the window.
+ *
+ * \param *redraw		The Wimp Redraw data block.
+ * \param toolbar_height	The height of the window's toolbar, in OS Units.
+ * \param background		The Wimp colour to plot the background.
+ * \param selection		The currently-selected line, or -1 for none.
+ * \param *top			Pointer to variable to take the first redraw
+ *				line, or NULL.
+ * \param *base			Pointer to variable to take the last redraw
+ *				line, or NULL.
+ */
+
+void window_plot_background(wimp_draw *redraw, int toolbar_height, wimp_colour background, int selection, int *top, int *base)
+{
+	int oy, s0 = 0, s1 = 0;
+
+	oy = redraw->box.y1 - redraw->yscroll;
+
+	/* Calculate the top row for redraw. */
+
+	if (top != NULL) {
+		*top = WINDOW_REDRAW_TOP(toolbar_height, oy - redraw->clip.y1);
+		if (*top < 0)
+			*top = 0;
+	}
+
+	/* Calculate the bottom row for redraw. */
+
+	if (base != NULL)
+		*base = WINDOW_REDRAW_BASE(toolbar_height, oy - redraw->clip.y0);
+
+	/* Calculate the Y position of any selection bar. */
+
+	if (selection != -1) {
+		s0 = oy + WINDOW_ROW_BASE(toolbar_height, selection);
+		s1 = oy + WINDOW_ROW_TOP(toolbar_height, selection) - 2;
+	}
+
+	/* Redraw the background, if it isn't completely hidden by the selection bar. */
+
+	if (s1 < redraw->clip.y1 || s0 > redraw->clip.y0) {
+		wimp_set_colour(background);
+		os_plot(os_MOVE_TO, redraw->clip.x0, redraw->clip.y1);
+		os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, redraw->clip.x1, redraw->clip.y0);
+	}
+
+	/* Plot the selection bar. */
+
+	if (selection != -1) {
+		wimp_set_colour(wimp_COLOUR_ORANGE);
+		os_plot(os_MOVE_TO, redraw->clip.x0, s1);
+		os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, redraw->clip.x1, s0);
+	}
+}
+
+/**
  * Initialise a window template for use by the icon plotting interface.
  * 
  * It is assumed that all of the icons in the template have valid indirection

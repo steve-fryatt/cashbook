@@ -167,7 +167,7 @@
 
 /* Preset Window column mapping. */
 
-static struct column_map preset_columns[] = {
+static struct column_map preset_columns[PRESET_COLUMNS] = {
 	{PRESET_ICON_KEY, PRESET_PANE_KEY, wimp_ICON_WINDOW, SORT_CHAR},
 	{PRESET_ICON_NAME, PRESET_PANE_NAME, wimp_ICON_WINDOW, SORT_NAME},
 	{PRESET_ICON_FROM, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
@@ -780,6 +780,8 @@ static void preset_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 	}
 
 	menus_shade_entry(preset_window_menu, PRESET_MENU_EDIT, preset_window_menu_line == -1);
+
+	preset_force_window_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
 }
 
 
@@ -862,6 +864,12 @@ static void preset_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_m
 
 static void preset_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
+	struct preset_block	*windat;
+
+	windat = event_get_window_user_data(w);
+	if (windat != NULL)
+		preset_force_window_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
+
 	preset_window_menu_line = -1;
 }
 
@@ -891,7 +899,7 @@ static void preset_window_scroll_handler(wimp_scroll *scroll)
 static void preset_window_redraw_handler(wimp_draw *redraw)
 {
 	struct preset_block	*windat;
-	int			ox, oy, top, base, y, t, width;
+	int			top, base, y, select, t;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 
@@ -899,11 +907,16 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
 		return;
 
+	/* Identify if there is a selected line to highlight. */
+
+	if (redraw->w == event_get_current_menu_window())
+		select = preset_window_menu_line;
+	else
+		select = -1;
+
 	/* Set the horizontal positions of the icons. */
 
 	columns_place_table_icons_horizontally(windat->columns, preset_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-
-	width = column_get_window_width(windat->columns);
 
 	window_set_icon_templates(preset_window_def);
 
@@ -911,28 +924,13 @@ static void preset_window_redraw_handler(wimp_draw *redraw)
 
 	more = wimp_redraw_window(redraw);
 
-	ox = redraw->box.x0 - redraw->xscroll;
-	oy = redraw->box.y1 - redraw->yscroll;
-
 	while (more) {
-		/* Calculate the rows to redraw. */
-
-		top = WINDOW_REDRAW_TOP(PRESET_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
-		if (top < 0)
-			top = 0;
-
-		base = WINDOW_REDRAW_BASE(PRESET_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
+		window_plot_background(redraw, PRESET_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
 
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
 			t = (y < windat->preset_count) ? windat->presets[y].sort_index : 0;
-
-			/* Plot out the background with a filled white rectangle. */
-
-			wimp_set_colour(wimp_COLOUR_WHITE);
-			os_plot(os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(PRESET_TOOLBAR_HEIGHT, y));
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(PRESET_TOOLBAR_HEIGHT, y));
 
 			/* Place the icons in the current row. */
 

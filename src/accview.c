@@ -145,7 +145,7 @@
 
 /* Account View window column mapping. */
 
-static struct column_map accview_columns[] = {
+static struct column_map accview_columns[ACCVIEW_COLUMNS] = {
 	{ACCVIEW_ICON_ROW, ACCVIEW_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
 	{ACCVIEW_ICON_DATE, ACCVIEW_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
 	{ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
@@ -891,6 +891,8 @@ static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 	}
 
 	menus_shade_entry(accview_window_menu, ACCVIEW_MENU_FINDTRANS, accview_window_menu_line == -1);
+
+	accview_force_window_redraw(windat, accview_window_menu_line, accview_window_menu_line, wimp_ICON_WINDOW);
 }
 
 
@@ -983,6 +985,12 @@ static void accview_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_
 
 static void accview_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
+	struct accview_window	*windat;
+
+	windat = event_get_window_user_data(w);
+	if (windat != NULL)
+		accview_force_window_redraw(windat, accview_window_menu_line, accview_window_menu_line, wimp_ICON_WINDOW);
+
 	accview_window_menu_line = -1;
 	ihelp_remove_menu(accview_window_menu);
 }
@@ -1017,7 +1025,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	acct_t			account, transaction_account;
 	date_t			transaction_date;
 	enum account_type	account_type;
-	int			ox, oy, top, base, y, width, credit_limit;
+	int			top, base, y, select, credit_limit;
 	tran_t			transaction;
 	wimp_colour		shade_budget_col, shade_overdrawn_col, icon_fg_col, icon_fg_balance_col;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
@@ -1042,39 +1050,29 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 	shade_overdrawn = (account_type & ACCOUNT_FULL) && config_opt_read ("ShadeOverdrawn");
 	shade_overdrawn_col = config_int_read ("ShadeOverdrawnColour");
 
-	more = wimp_redraw_window (redraw);
+	/* Identify if there is a selected line to highlight. */
 
-	ox = redraw->box.x0 - redraw->xscroll;
-	oy = redraw->box.y1 - redraw->yscroll;
+	if (redraw->w == event_get_current_menu_window())
+		select = accview_window_menu_line;
+	else
+		select = -1;
 
 	/* Set the horizontal positions of the icons for the account lines. */
 
 	columns_place_table_icons_horizontally(windat->columns, accview_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	width = column_get_window_width(windat->columns);
-
 	window_set_icon_templates(accview_window_def);
 
 	/* Perform the redraw. */
 
+	more = wimp_redraw_window (redraw);
+
 	while (more) {
-		/* Calculate the rows to redraw. */
-
-		top = WINDOW_REDRAW_TOP(ACCVIEW_TOOLBAR_HEIGHT, oy - redraw->clip.y1);
-		if (top < 0)
-			top = 0;
-
-		base = WINDOW_REDRAW_BASE(ACCVIEW_TOOLBAR_HEIGHT, oy - redraw->clip.y0);
+		window_plot_background(redraw, ACCVIEW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
 
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
-			/* Plot out the background with a filled white rectangle. */
-
-			wimp_set_colour (wimp_COLOUR_WHITE);
-			os_plot (os_MOVE_TO, ox, oy + WINDOW_ROW_TOP(ACCVIEW_TOOLBAR_HEIGHT, y));
-			os_plot (os_PLOT_RECTANGLE + os_PLOT_TO, ox + width, oy + WINDOW_ROW_BASE(ACCVIEW_TOOLBAR_HEIGHT, y));
-
 			/* Place the icons in the current row. */
 
 			columns_place_table_icons_vertically(windat->columns, accview_window_def,

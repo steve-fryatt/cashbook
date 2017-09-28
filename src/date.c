@@ -424,7 +424,7 @@ date_t date_convert_from_string(char *string, date_t base_date, int month_days)
 	 * system.
 	 */
 
-	if (base_date != NULL_DATE)
+	if (base_date == NULL_DATE)
 		base_date = date_today();
  
 	base_month = date_get_month_from_date(base_date);

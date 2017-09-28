@@ -86,7 +86,7 @@
  * Calculate the last row to be included in a redraw operation.
  */
 
-#define WINDOW_REDRAW_BASE(toolbar, y) (((WINDOW_ROW_HEIGHT * 1.5) + (y) - (toolbar)) / WINDOW_ROW_HEIGHT)
+#define WINDOW_REDRAW_BASE(toolbar, y) (((y) - (toolbar) - 2) / WINDOW_ROW_HEIGHT)
 
 /**
  * Calculate the base of a row in a table view.
@@ -98,7 +98,7 @@
  * Calculate the top of a row in a table view.
  */
 
-#define WINDOW_ROW_TOP(toolbar, y) ((-(y) * WINDOW_ROW_HEIGHT) - (toolbar))
+#define WINDOW_ROW_TOP(toolbar, y) ((-(y) * WINDOW_ROW_HEIGHT) - (toolbar) + WINDOW_ROW_GUTTER)
 
 /**
  * Calculate the base of an icon in a table view.
@@ -182,6 +182,22 @@ void window_set_extent(wimp_w window, int lines, int pane_height, int width);
 
 int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int toolbar_height, int max_lines);
 
+
+/**
+ * Calculate a window's plot area from the readrw clip rectangle, and
+ * plot the background colour into the window.
+ *
+ * \param *redraw		The Wimp Redraw data block.
+ * \param toolbar_height	The height of the window's toolbar, in OS Units.
+ * \param background		The Wimp colour to plot the background.
+ * \param selection		The currently-selected line, or -1 for none.
+ * \param *top			Pointer to variable to take the first redraw
+ *				line, or NULL.
+ * \param *base			Pointer to variable to take the last redraw
+ *				line, or NULL.
+ */
+
+void window_plot_background(wimp_draw *redraw, int toolbar_height, wimp_colour background, int selection, int *top, int *base);
 
 /**
  * Initialise a window template for use by the icon plotting interface.

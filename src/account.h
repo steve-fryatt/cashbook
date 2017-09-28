@@ -90,8 +90,6 @@ enum account_line_type {
 	ACCOUNT_LINE_FOOTER							/**< Section Footer line type.				*/
 };
 
-struct account_window;
-
 /**
  * Get an account field from an input file.
  */
@@ -383,6 +381,38 @@ void account_fill_field(struct file_block *file, acct_t account, osbool reconcil
  */
 
 void account_toggle_reconcile_icon(wimp_w window, wimp_i icon);
+
+
+/**
+ * Return the file associated with an accounts instance.
+ *
+ * \param *instance	The accounts instance to query.
+ * \return		The associated file, or NULL.
+ */
+
+struct file_block *account_get_file(struct account_block *instance);
+
+
+/**
+ * Return data associated with an account of header from a given
+ * accounts instance.
+ *
+ * \param *instance		The accounts instance to query.
+ * \param account		The account to query.
+ * \param *statement_balance	Pointer to variable to hold the statement balance, or NULL.
+ * \param *current_balance	Pointer to variable to hold the current balance, or NULL.
+ * \param *future_balance	Pointer to variable to hold the future balance, or NULL.
+ * \param *credit_limit		Pointer to variable to hold the credit limit, or NULL.
+ * \param *budget_amount	Pointer to variable to hold the budget amount, or NULL.
+ * \param *budget_balance	Pointer to variable to hold the budget balance, or NULL.
+ * \param *trial_balance	Pointer to variable to hold the trial balance, or NULL.
+ * \param *available_balance	Pointer to variable to hold the available balance, or NULL.
+ * \return			TRUE if succesful; FALSE if returned values undefined.
+ */
+
+osbool account_get_data(struct account_block *instance, acct_t account,
+		amt_t *statement_balance, amt_t *current_balance, amt_t *future_balance, amt_t *credit_limit,
+		amt_t *budget_amount, amt_t *budget_balance, amt_t *trial_balance, amt_t *available_balance);
 
 
 /**

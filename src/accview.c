@@ -2253,10 +2253,11 @@ static osbool accview_save_tsv(char *filename, osbool selection, void *data)
 
 static void accview_export_delimited(struct accview_window *view, char *filename, enum filing_delimit_type format, int filetype)
 {
-	FILE				*out;
-	enum accview_direction		transaction_direction;
-	int				i, transaction = 0;
-	char				buffer[FILING_DELIMITED_FIELD_LEN];
+	FILE			*out;
+	enum accview_direction	transaction_direction;
+	int			line;
+	tran_t			transaction;
+	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
 	if (view == NULL || view->file == NULL || view->account == NULL_ACCOUNT)
 		return;
@@ -2275,8 +2276,8 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 	columns_export_heading_names(view->columns, view->accview_pane, out, format, buffer, FILING_DELIMITED_FIELD_LEN);
 
 	/* Output the transaction data as a set of delimited lines. */
-	for (i = 0; i < view->display_lines; i++) {
-		transaction = (view->line_data)[(view->line_data)[i].sort_index].transaction;
+	for (line = 0; line < view->display_lines; line++) {
+		transaction = (view->line_data)[(view->line_data)[line].sort_index].transaction;
 		transaction_direction = accview_get_transaction_direction(view, transaction);
 
 		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
@@ -2304,7 +2305,7 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 		}
 
-		currency_convert_to_string(view->line_data[i].balance, buffer, FILING_DELIMITED_FIELD_LEN);
+		currency_convert_to_string(view->line_data[line].balance, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		filing_output_delimited_field(out, transact_get_description(view->file, transaction, buffer, FILING_DELIMITED_FIELD_LEN),

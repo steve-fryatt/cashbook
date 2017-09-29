@@ -2761,7 +2761,8 @@ static osbool sorder_save_tsv(char *filename, osbool selection, void *data)
 static void sorder_export_delimited(struct sorder_block *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
-	int			i, t;
+	int			line;
+	sorder_t		sorder;
 	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
 	if (windat == NULL || windat->file == NULL)
@@ -2782,27 +2783,27 @@ static void sorder_export_delimited(struct sorder_block *windat, char *filename,
 
 	/* Output the standing order data as a set of delimited lines. */
 
-	for (i=0; i < windat->sorder_count; i++) {
-		t = windat->sorders[i].sort_index;
+	for (line = 0; line < windat->sorder_count; line++) {
+		sorder = windat->sorders[line].sort_index;
 
-		account_build_name_pair(windat->file, windat->sorders[t].from, buffer, FILING_DELIMITED_FIELD_LEN);
+		account_build_name_pair(windat->file, windat->sorders[sorder].from, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->sorders[t].to, buffer, FILING_DELIMITED_FIELD_LEN);
+		account_build_name_pair(windat->file, windat->sorders[sorder].to, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(windat->sorders[t].normal_amount, buffer, FILING_DELIMITED_FIELD_LEN);
+		currency_convert_to_string(windat->sorders[sorder].normal_amount, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-		filing_output_delimited_field(out, windat->sorders[t].description, format, DELIMIT_NONE);
+		filing_output_delimited_field(out, windat->sorders[sorder].description, format, DELIMIT_NONE);
 
-		if (windat->sorders[t].adjusted_next_date != NULL_DATE)
-			date_convert_to_string(windat->sorders[t].adjusted_next_date, buffer, FILING_DELIMITED_FIELD_LEN);
+		if (windat->sorders[sorder].adjusted_next_date != NULL_DATE)
+			date_convert_to_string(windat->sorders[sorder].adjusted_next_date, buffer, FILING_DELIMITED_FIELD_LEN);
 		else
 			msgs_lookup("SOrderStopped", buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", windat->sorders[t].left);
+		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", windat->sorders[sorder].left);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 	}
 

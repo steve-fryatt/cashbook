@@ -2408,9 +2408,10 @@ static osbool preset_save_tsv(char *filename, osbool selection, void *data)
 
 static void preset_export_delimited(struct preset_block *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
-	FILE			*out;
-	int			i, t;
-	char			buffer[FILING_DELIMITED_FIELD_LEN];
+	FILE		*out;
+	int		line;
+	preset_t	preset;
+	char		buffer[FILING_DELIMITED_FIELD_LEN];
 
 	if (windat == NULL || windat->file == NULL)
 		return;
@@ -2430,24 +2431,24 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 
 	/* Output the preset data as a set of delimited lines. */
 
-	for (i = 0; i < windat->preset_count; i++) {
-		t = windat->presets[i].sort_index;
+	for (line = 0; line < windat->preset_count; line++) {
+		preset = windat->presets[line].sort_index;
 
-		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%c", windat->presets[t].action_key);
+		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%c", windat->presets[preset].action_key);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		filing_output_delimited_field(out, windat->presets[t].name, format, DELIMIT_NONE);
+		filing_output_delimited_field(out, windat->presets[preset].name, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->presets[t].from, buffer, FILING_DELIMITED_FIELD_LEN);
+		account_build_name_pair(windat->file, windat->presets[preset].from, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->presets[t].to, buffer, FILING_DELIMITED_FIELD_LEN);
+		account_build_name_pair(windat->file, windat->presets[preset].to, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(windat->presets[t].amount, buffer, FILING_DELIMITED_FIELD_LEN);
+		currency_convert_to_string(windat->presets[preset].amount, buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-		filing_output_delimited_field(out, windat->presets[t].description, format, DELIMIT_LAST);
+		filing_output_delimited_field(out, windat->presets[preset].description, format, DELIMIT_LAST);
 	}
 
 	/* Close the file and set the type correctly. */

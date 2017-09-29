@@ -4733,20 +4733,7 @@ static void transact_export_delimited(struct transact_block *windat, char *filen
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_ROW, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_DATE, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_FROM, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_TO, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_REFERENCE, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_AMOUNT, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->transaction_pane, TRANSACT_PANE_DESCRIPTION, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
+	columns_export_heading_names(windat->columns, windat->transaction_pane, out, format, buffer, FILING_DELIMITED_FIELD_LEN);
 
 	/* Output the transaction data as a set of delimited lines. */
 

@@ -47,6 +47,7 @@
 #include "sflib/event.h"
 #include "sflib/general.h"
 #include "sflib/heap.h"
+#include "sflib/icons.h"
 #include "sflib/string.h"
 #include "sflib/windows.h"
 
@@ -55,6 +56,7 @@
 #include "global.h"
 #include "column.h"
 
+#include "filing.h"
 #include "window.h"
 
 /**
@@ -515,6 +517,43 @@ void columns_place_footer_icons(struct column_block *instance, wimp_window *defi
 		if (column == -1)
 			break;
 		definition->icons[icon].extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
+	}
+}
+
+
+/**
+ * Export the column heading names to a delimited file.
+ *
+ * \param *instance		The column instance to be processed.
+ * \param window		The handle of the window holding the heading icons.
+ * \param *out			The handle of the file to export to.
+ * \param format		The format of the file to export.
+ * \param *buffer		Pointer to a buffer to use to build the data.
+ * \param length		The length of the supplied buffer.
+ */
+
+void columns_export_heading_names(struct column_block *instance, wimp_w window, FILE *out, enum filing_delimit_type format, char *buffer, size_t length)
+{
+	int				column;
+	wimp_i				icon;
+//	enum filing_delimit_flags	flags;
+
+	if (instance == NULL || window == NULL)
+		return;
+
+	/* Position the heading icons. */
+
+	for (column = 0; column < instance->columns; column++) {
+		icon = instance->map[column].heading;
+		if (icon == wimp_ICON_WINDOW)
+			continue;
+
+		column = column_get_rightmost_in_heading_group(instance, icon);
+		if (column == -1)
+			break;
+
+		icons_copy_text(window, icon, buffer, length);
+		filing_output_delimited_field(out, buffer, format, ((column + 1) >= instance->columns) ? DELIMIT_LAST : DELIMIT_NONE);
 	}
 }
 

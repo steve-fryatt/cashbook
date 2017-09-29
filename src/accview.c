@@ -2257,7 +2257,9 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 	enum accview_direction		transaction_direction;
 	int				i, transaction = 0;
 	char				buffer[FILING_DELIMITED_FIELD_LEN];
-	struct file_block		*file;
+
+	if (view == NULL || view->file == NULL || view->account == NULL_ACCOUNT)
+		return;
 
 	out = fopen(filename, "w");
 
@@ -2268,64 +2270,45 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 
 	hourglass_on();
 
-	if (view != NULL && view->account != NULL_ACCOUNT) {
-		file = view->file;
+	/* Output the headings line, taking the text from the window icons. */
 
-		/* Output the headings line, taking the text from the window icons. */
+	columns_export_heading_names(view->columns, view->accview_pane, out, format, buffer, FILING_DELIMITED_FIELD_LEN);
 
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_ROW, buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_DATE, buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_FROMTO, buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_REFERENCE, buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_PAYMENTS, buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_RECEIPTS, buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_BALANCE, buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-		icons_copy_text(view->accview_pane, ACCVIEW_PANE_DESCRIPTION, buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
+	/* Output the transaction data as a set of delimited lines. */
+	for (i = 0; i < view->display_lines; i++) {
+		transaction = (view->line_data)[(view->line_data)[i].sort_index].transaction;
+		transaction_direction = accview_get_transaction_direction(view, transaction);
 
-		/* Output the transaction data as a set of delimited lines. */
-		for (i = 0; i < view->display_lines; i++) {
-			transaction = (view->line_data)[(view->line_data)[i].sort_index].transaction;
-			transaction_direction = accview_get_transaction_direction(view, transaction);
+		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-			string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
+		date_convert_to_string(transact_get_date(view->file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
+
+		if (transaction_direction == ACCVIEW_DIRECTION_FROM)
+			account_build_name_pair(view->file, transact_get_to(view->file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
+		else
+			account_build_name_pair(view->file, transact_get_from(view->file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
+
+		filing_output_delimited_field(out, transact_get_reference(view->file, transaction, buffer, FILING_DELIMITED_FIELD_LEN),
+				format, DELIMIT_NONE);
+
+		if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
+			currency_convert_to_string(transact_get_amount(view->file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-
-			date_convert_to_string(transact_get_date(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
-			filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-
-			if (transaction_direction == ACCVIEW_DIRECTION_FROM)
-				account_build_name_pair(file, transact_get_to(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
-			else
-				account_build_name_pair(file, transact_get_from(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
-			filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-
-			filing_output_delimited_field(out, transact_get_reference(file, transaction, buffer, FILING_DELIMITED_FIELD_LEN),
-					format, DELIMIT_NONE);
-
-			if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
-				currency_convert_to_string(transact_get_amount(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-				filing_output_delimited_field(out, "", format, DELIMIT_NUM);
-			} else {
-				currency_convert_to_string(transact_get_amount(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
-				filing_output_delimited_field(out, "", format, DELIMIT_NUM);
-				filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-			}
-
-			currency_convert_to_string(view->line_data[i].balance, buffer, FILING_DELIMITED_FIELD_LEN);
+			filing_output_delimited_field(out, "", format, DELIMIT_NUM);
+		} else {
+			currency_convert_to_string(transact_get_amount(view->file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
+			filing_output_delimited_field(out, "", format, DELIMIT_NUM);
 			filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-
-			filing_output_delimited_field(out, transact_get_description(file, transaction, buffer, FILING_DELIMITED_FIELD_LEN),
-					format, DELIMIT_LAST);
 		}
+
+		currency_convert_to_string(view->line_data[i].balance, buffer, FILING_DELIMITED_FIELD_LEN);
+		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
+
+		filing_output_delimited_field(out, transact_get_description(view->file, transaction, buffer, FILING_DELIMITED_FIELD_LEN),
+				format, DELIMIT_LAST);
 	}
 
 	/* Close the file and set the type correctly. */

@@ -2764,6 +2764,9 @@ static void sorder_export_delimited(struct sorder_block *windat, char *filename,
 	int			i, t;
 	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
+	if (windat == NULL || windat->file == NULL)
+		return;
+
 	out = fopen(filename, "w");
 
 	if (out == NULL) {
@@ -2775,18 +2778,7 @@ static void sorder_export_delimited(struct sorder_block *windat, char *filename,
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_FROM, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_TO, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_AMOUNT, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_DESCRIPTION, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_NEXTDATE, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->sorder_pane, SORDER_PANE_LEFT, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
+	columns_export_heading_names(windat->columns, windat->sorder_pane, out, format, buffer, FILING_DELIMITED_FIELD_LEN);
 
 	/* Output the standing order data as a set of delimited lines. */
 

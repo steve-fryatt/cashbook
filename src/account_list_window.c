@@ -2302,16 +2302,7 @@ static void account_list_window_export_delimited(struct account_list_window *win
 
 	/* Output the headings line, taking the text from the window icons. */
 
-	icons_copy_text(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_NAME, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_STATEMENT, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_CURRENT, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_FINAL, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-	icons_copy_text(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_BUDGET, buffer, FILING_DELIMITED_FIELD_LEN);
-	filing_output_delimited_field(out, buffer, format, DELIMIT_LAST);
+	columns_export_heading_names(windat->columns, windat->account_pane, out, format, buffer, FILING_DELIMITED_FIELD_LEN);
 
 	/* Output the transaction data as a set of delimited lines. */
 

@@ -27,12 +27,12 @@
  * Window column support code.
  */
 
-#include <stddef.h>
-#include "sort.h"
-
 #ifndef CASHBOOK_COLUMN
 #define CASHBOOK_COLUMN
 
+#include <stddef.h>
+#include "filing.h"
+#include "sort.h"
 
 #define COLUMN_SORT_SPRITE_LEN 12
 
@@ -221,6 +221,20 @@ void columns_place_heading_icons(struct column_block *instance, wimp_window *def
  */
 
 void columns_place_footer_icons(struct column_block *instance, wimp_window *definition, int height);
+
+
+/**
+ * Export the column heading names to a delimited file.
+ *
+ * \param *instance		The column instance to be processed.
+ * \param window		The handle of the window holding the heading icons.
+ * \param *out			The handle of the file to export to.
+ * \param format		The format of the file to export.
+ * \param *buffer		Pointer to a buffer to use to build the data.
+ * \param length		The length of the supplied buffer.
+ */
+
+void columns_export_heading_names(struct column_block *instance, wimp_w window, FILE *out, enum filing_delimit_type format, char *buffer, size_t length);
 
 
 /**

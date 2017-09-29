@@ -30,6 +30,9 @@
 #ifndef CASHBOOK_PRESETS
 #define CASHBOOK_PRESETS
 
+#include "file.h"
+#include "date.h"
+
 /**
  *  A preset number.
  */

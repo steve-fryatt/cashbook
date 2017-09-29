@@ -1920,20 +1920,7 @@ static struct report *sorder_print(struct report *report, void *data)
 	/* Output the headings line, taking the text from the window icons. */
 
 	stringbuild_reset();
-
-	stringbuild_add_string("\\k\\b\\u");
-	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_FROM);
-	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u");
-	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_TO);
-	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u\\r");
-	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_AMOUNT);
-	stringbuild_add_string("\\t\\b\\u");
-	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_DESCRIPTION);
-	stringbuild_add_string("\\t\\b\\u");
-	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_NEXTDATE);
-	stringbuild_add_string("\\t\\b\\u\\r");
-	stringbuild_add_icon(windat->sorder_pane, SORDER_PANE_LEFT);
-
+	columns_print_heading_names(windat->columns, windat->sorder_pane/*, report, 0*/);
 	stringbuild_report_line(report, 0);
 
 	/* Output the standing order data as a set of delimited lines. */

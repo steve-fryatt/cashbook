@@ -57,6 +57,8 @@
 #include "column.h"
 
 #include "filing.h"
+#include "report.h"
+#include "stringbuild.h"
 #include "window.h"
 
 /**
@@ -539,13 +541,13 @@ void columns_place_footer_icons(struct column_block *instance, wimp_window *defi
 
 void columns_export_heading_names(struct column_block *instance, wimp_w window, FILE *out, enum filing_delimit_type format, char *buffer, size_t length)
 {
-	int				column;
-	wimp_i				icon;
+	int	column;
+	wimp_i	icon;
 
 	if (instance == NULL || window == NULL)
 		return;
 
-	/* Position the heading icons. */
+	/* Write out the column heading names, using the icon text. */
 
 	for (column = 0; column < instance->columns; column++) {
 		icon = instance->map[column].heading;
@@ -558,6 +560,73 @@ void columns_export_heading_names(struct column_block *instance, wimp_w window, 
 
 		icons_copy_text(window, icon, buffer, length);
 		filing_output_delimited_field(out, buffer, format, column_is_rightmost(instance, column) ? DELIMIT_LAST : DELIMIT_NONE);
+	}
+}
+
+
+/**
+ * Send the column heading names to a stringbuild line. Note that this function
+ * expects a stringbuild instance to be set up and ready to use.
+ *
+ * \param *instance		The column instance to be processed.
+ * \param window		The handle of the window holding the heading icons.
+ */
+
+void columns_print_heading_names(struct column_block *instance, wimp_w window)
+{
+	wimp_icon_state		state;
+	int			column;
+	wimp_i			icon = wimp_ICON_WINDOW;
+	osbool			first = TRUE;
+
+	if (instance == NULL || window == NULL)
+		return;
+
+	/* Write out the column heading names, using the icon text. */
+
+	for (column = 0; column < instance->columns; column++) {
+		/* If the column has the same heading as the previous
+		 * one, just output an overflow field.
+		 */
+
+		if (instance->map[column].heading == icon && icon != wimp_ICON_WINDOW) {
+			stringbuild_add_string("\\t\\s");
+			continue;
+		}
+
+		/* Find the next heading icon. */
+
+		icon = instance->map[column].heading;
+		if (icon == wimp_ICON_WINDOW)
+			continue;
+
+		/* The first field starts with a "keep together" flag, all
+		 * the rest start with a tab.
+		 */
+
+		if (first == TRUE)
+			stringbuild_add_string("\\k");
+		else
+			stringbuild_add_string("\\t");
+
+		first = FALSE;
+
+		/* Headings are Bold and Underlined. */
+
+		stringbuild_add_string("\\b\\u");
+
+		/* If the icon is right-aligned, so is the heading. */
+
+		state.w = window;
+		state.i = icon;
+		wimp_get_icon_state(&state);
+
+		if (state.icon.flags & wimp_ICON_RJUSTIFIED)
+			stringbuild_add_string("\\r");
+
+		/* Copy the icon text for the heading. */
+
+		stringbuild_add_icon(window, icon);
 	}
 }
 

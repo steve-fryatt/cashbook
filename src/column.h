@@ -238,6 +238,17 @@ void columns_export_heading_names(struct column_block *instance, wimp_w window, 
 
 
 /**
+ * Send the column heading names to a stringbuild line. Note that this function
+ * expects a stringbuild instance to be set up and ready to use.
+ *
+ * \param *instance		The column instance to be processed.
+ * \param window		The handle of the window holding the heading icons.
+ */
+
+void columns_print_heading_names(struct column_block *instance, wimp_w window);
+
+
+/**
  * Create a column width configuration string from an array of column widths.
  *
  * \param *instance		The column instance to be processed.

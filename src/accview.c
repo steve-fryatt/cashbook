@@ -1494,24 +1494,7 @@ static struct report *accview_print(struct report *report, void *data, date_t fr
 	/* Output the headings line, taking the text from the window icons. */
 
 	stringbuild_reset();
-
-	stringbuild_add_string("\\k\\b\\u\\r");
-	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_ROW);
-	stringbuild_add_string("\\t\\b\\u");
-	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_DATE);
-	stringbuild_add_string("\\t\\b\\u");
-	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_FROMTO);
-	stringbuild_add_string("\\t\\s\\t\\s\\t\\b\\u");
-	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_REFERENCE);
-	stringbuild_add_string("\\t\\b\\u\\r");
-	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_PAYMENTS);
-	stringbuild_add_string("\\t\\b\\u\\r");
-	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_RECEIPTS);
-	stringbuild_add_string("\\t\\b\\u\\r");
-	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_BALANCE);
-	stringbuild_add_string("\\t\\b\\u");
-	stringbuild_add_icon(view->accview_pane, ACCVIEW_PANE_DESCRIPTION);
-
+	columns_print_heading_names(view->columns, view->accview_pane/*, report, 0*/);
 	stringbuild_report_line(report, 0);
 
 	/* Output the transaction data as a set of delimited lines. */

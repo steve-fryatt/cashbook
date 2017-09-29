@@ -1634,22 +1634,10 @@ static struct report *account_list_window_print(struct report *report, void *dat
 	/* Output the headings line, taking the text from the window icons. */
 
 	stringbuild_reset();
-
-	stringbuild_add_string("\\k\\b\\u");
-	stringbuild_add_icon(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_NAME);
-	stringbuild_add_string("\\t\\s\\t\\b\\u\\r");
-	stringbuild_add_icon(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_STATEMENT);
-	stringbuild_add_string("\\t\\b\\u\\r");
-	stringbuild_add_icon(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_CURRENT);
-	stringbuild_add_string("\\t\\b\\u\\r");
-	stringbuild_add_icon(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_FINAL);
-	stringbuild_add_string("\\t\\b\\u\\r");
-	stringbuild_add_icon(windat->account_pane, ACCOUNT_LIST_WINDOW_PANE_BUDGET);
-
+	columns_print_heading_names(windat->columns, windat->account_pane/*, report, 0*/);
 	stringbuild_report_line(report, 0);
 
 	/* Output the account data as a set of delimited lines. */
-	/* Output the transaction data as a set of delimited lines. */
 
 	for (line = 0; line < windat->display_lines; line++) {
 		stringbuild_reset();

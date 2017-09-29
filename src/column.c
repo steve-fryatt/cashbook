@@ -1163,3 +1163,4 @@ static int column_get_rightmost_in_footer_group(struct column_block *instance, w
 
 	return match;
 }
+

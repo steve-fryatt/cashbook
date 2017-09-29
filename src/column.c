@@ -101,6 +101,11 @@ static int		column_get_leftmost_in_heading_group(struct column_block *instance, 
 static int		column_get_rightmost_in_heading_group(struct column_block *instance, wimp_i heading);
 static int		column_get_rightmost_in_footer_group(struct column_block *instance, wimp_i footer);
 
+/**
+ * Return TRUE if the given column is the right-most in the given instance.
+ */
+
+#define column_is_rightmost(instance, column) ((((column) + 1) >= (instance)->columns) ? TRUE : FALSE)
 
 /**
  * Create a new column definition instance.
@@ -536,7 +541,6 @@ void columns_export_heading_names(struct column_block *instance, wimp_w window, 
 {
 	int				column;
 	wimp_i				icon;
-//	enum filing_delimit_flags	flags;
 
 	if (instance == NULL || window == NULL)
 		return;
@@ -553,7 +557,7 @@ void columns_export_heading_names(struct column_block *instance, wimp_w window, 
 			break;
 
 		icons_copy_text(window, icon, buffer, length);
-		filing_output_delimited_field(out, buffer, format, ((column + 1) >= instance->columns) ? DELIMIT_LAST : DELIMIT_NONE);
+		filing_output_delimited_field(out, buffer, format, column_is_rightmost(instance, column) ? DELIMIT_LAST : DELIMIT_NONE);
 	}
 }
 

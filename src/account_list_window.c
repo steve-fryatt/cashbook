@@ -1566,15 +1566,19 @@ static struct report *account_list_window_print(struct report *report, void *dat
 {
 	struct account_list_window	*windat = data;
 	struct file_block		*file;
-	int				line;
+	int				line, column;
 	char				*filename, date_buffer[DATE_FIELD_LEN];
 	date_t				start, finish;
+	wimp_i				columns[ACCOUNT_LIST_WINDOW_COLUMNS];
 
 	if (report == NULL || windat->instance == NULL)
 		return NULL;
 
 	file = account_get_file(windat->instance);
 	if (file == NULL)
+		return NULL;
+
+	if (!column_get_icons(windat->columns, columns, ACCOUNT_LIST_WINDOW_COLUMNS, FALSE))
 		return NULL;
 
 	hourglass_on();
@@ -1642,28 +1646,85 @@ static struct report *account_list_window_print(struct report *report, void *dat
 	for (line = 0; line < windat->display_lines; line++) {
 		stringbuild_reset();
 
-		if (windat->line_data[line].type == ACCOUNT_LINE_DATA) {
-			stringbuild_add_printf("\\k%s\\t%s\\t\\r",
-					account_get_ident(file, windat->line_data[line].account),
-					account_get_name(file, windat->line_data[line].account));
-			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_STATEMENT], FALSE);
-			stringbuild_add_string("\\t\\r");
-			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_CURRENT], FALSE);
-			stringbuild_add_string("\\t\\r");
-			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL], FALSE);
-			stringbuild_add_string("\\t\\r");
-			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET], FALSE);
-		} else if (windat->line_data[line].type == ACCOUNT_LINE_HEADER) {
-			stringbuild_add_printf("\\k\\u%s", windat->line_data[line].heading);
-		} else if (windat->line_data[line].type == ACCOUNT_LINE_FOOTER) {
-			stringbuild_add_printf("\\k%s\\t\\s\\t\\r\\b", windat->line_data[line].heading);
-			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_STATEMENT], FALSE);
-			stringbuild_add_string("\\t\\r\\b");
-			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_CURRENT], FALSE);
-			stringbuild_add_string("\\t\\r\\b");
-			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL], FALSE);
-			stringbuild_add_string("\\t\\r\\b");
-			stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET], FALSE);
+		for (column = 0; column < ACCOUNT_LIST_WINDOW_COLUMNS; column++) {
+			if (column == 0)
+				stringbuild_add_string("\\k");
+			else
+				stringbuild_add_string("\\t");
+
+			switch (windat->line_data[line].type) {
+			case ACCOUNT_LINE_DATA:
+				switch (columns[column]) {
+				case ACCOUNT_LIST_WINDOW_IDENT:
+					stringbuild_add_string(account_get_ident(file, windat->line_data[line].account));
+					break;
+				case ACCOUNT_LIST_WINDOW_NAME:
+					stringbuild_add_string(account_get_name(file, windat->line_data[line].account));
+					break;
+				case ACCOUNT_LIST_WINDOW_STATEMENT:
+					stringbuild_add_string("\\r");
+					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_STATEMENT], FALSE);
+					break;
+				case ACCOUNT_LIST_WINDOW_CURRENT:
+					stringbuild_add_string("\\r");
+					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_CURRENT], FALSE);
+					break;
+				case ACCOUNT_LIST_WINDOW_FINAL:
+					stringbuild_add_string("\\r");
+					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL], FALSE);
+					break;
+				case ACCOUNT_LIST_WINDOW_BUDGET:
+					stringbuild_add_string("\\r");
+					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET], FALSE);
+					break;
+				default:
+					stringbuild_add_string("\\s");
+					break;
+				}
+				break;
+
+			case ACCOUNT_LINE_FOOTER:
+				switch (columns[column]) {
+				case ACCOUNT_LIST_WINDOW_IDENT:
+					stringbuild_add_string(windat->line_data[line].heading);
+					break;
+				case ACCOUNT_LIST_WINDOW_STATEMENT:
+					stringbuild_add_string("\\r\\b");
+					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_STATEMENT], FALSE);
+					break;
+				case ACCOUNT_LIST_WINDOW_CURRENT:
+					stringbuild_add_string("\\r\\b");
+					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_CURRENT], FALSE);
+					break;
+				case ACCOUNT_LIST_WINDOW_FINAL:
+					stringbuild_add_string("\\r\\b");
+					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL], FALSE);
+					break;
+				case ACCOUNT_LIST_WINDOW_BUDGET:
+					stringbuild_add_string("\\r\\b");
+					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET], FALSE);
+					break;
+				default:
+					stringbuild_add_string("\\s");
+					break;
+				}
+				break;
+
+			case ACCOUNT_LINE_HEADER:
+				switch (columns[column]) {
+				case ACCOUNT_LIST_WINDOW_IDENT:
+					stringbuild_add_printf("\\u%s", windat->line_data[line].heading);
+					break;
+				default:
+					stringbuild_add_string("\\s");
+					break;
+				}
+				break;
+
+			default:
+				stringbuild_add_string("\\s");
+				break;
+			}
 		}
 
 		stringbuild_report_line(report, 0);
@@ -1673,13 +1734,38 @@ static struct report *account_list_window_print(struct report *report, void *dat
 
 	stringbuild_reset();
 
-	stringbuild_add_string("\\k\\u");
-	stringbuild_add_icon(windat->account_footer, ACCOUNT_LIST_WINDOW_FOOT_NAME);
-	stringbuild_add_printf("\\t\\s\\t\\r%s\\t\\r%s\\t\\r%s\\t\\r%s",
-			windat->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_STATEMENT],
-			windat->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_CURRENT],
-			windat->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL],
-			windat->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET]);
+	for (column = 0; column < ACCOUNT_LIST_WINDOW_COLUMNS; column++) {
+		if (column == 0)
+			stringbuild_add_string("\\k");
+		else
+			stringbuild_add_string("\\t");
+
+		switch (columns[column]) {
+		case ACCOUNT_LIST_WINDOW_IDENT:
+			stringbuild_add_string("\\b\\u");
+			stringbuild_add_icon(windat->account_footer, ACCOUNT_LIST_WINDOW_FOOT_NAME);
+			break;
+		case ACCOUNT_LIST_WINDOW_STATEMENT:
+			stringbuild_add_string("\\r\\b\\u");
+			stringbuild_add_string(windat->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_STATEMENT]);
+			break;
+		case ACCOUNT_LIST_WINDOW_CURRENT:
+			stringbuild_add_string("\\r\\b\\u");
+			stringbuild_add_string(windat->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_CURRENT]);
+			break;
+		case ACCOUNT_LIST_WINDOW_FINAL:
+			stringbuild_add_string("\\r\\b\\u");
+			stringbuild_add_string(windat->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL]);
+			break;
+		case ACCOUNT_LIST_WINDOW_BUDGET:
+			stringbuild_add_string("\\r\\b\\u");
+			stringbuild_add_string(windat->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET]);
+			break;
+		default:
+			stringbuild_add_string("\\s");
+			break;
+		}
+	}
 
 	stringbuild_report_line(report, 0);
 

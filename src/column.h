@@ -250,6 +250,20 @@ void columns_print_heading_names(struct column_block *instance, wimp_w window);
 
 
 /**
+ * Return details of the field or heading icons associated with a column
+ * instance.
+ *
+ * \param *instance		The column instance to query.
+ * \param icons[]		Pointer to an array to hold the column icon handles.
+ * \param length		The size of the supplied array.
+ * \param headings		TRUE to return heading icons; FALSE to return field icons.
+ * \return			TRUE if successful; otherwise false.
+ */
+
+osbool column_get_icons(struct column_block *instance, wimp_i icons[], size_t length, osbool headings);
+
+
+/**
  * Create a column width configuration string from an array of column widths.
  *
  * \param *instance		The column instance to be processed.

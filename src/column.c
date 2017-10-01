@@ -485,6 +485,7 @@ void columns_place_heading_icons(struct column_block *instance, wimp_window *def
 		column = column_get_rightmost_in_heading_group(instance, icon);
 		if (column == -1)
 			break;
+
 		definition->icons[icon].extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
 	}
 }
@@ -523,6 +524,7 @@ void columns_place_footer_icons(struct column_block *instance, wimp_window *defi
 		column = column_get_rightmost_in_footer_group(instance, icon);
 		if (column == -1)
 			break;
+
 		definition->icons[icon].extent.x1 = instance->position[column] + instance->width[column] + COLUMN_HEADING_MARGIN;
 	}
 }
@@ -629,6 +631,64 @@ void columns_print_heading_names(struct column_block *instance, wimp_w window)
 
 		stringbuild_add_icon(window, icon);
 	}
+}
+
+
+/**
+ * Return details of the field or heading icons associated with a column
+ * instance.
+ *
+ * \param *instance		The column instance to query.
+ * \param icons[]		Pointer to an array to hold the column icon handles.
+ * \param length		The size of the supplied array.
+ * \param headings		TRUE to return heading icons; FALSE to return field icons.
+ * \return			TRUE if successful; otherwise false.
+ */
+
+osbool column_get_icons(struct column_block *instance, wimp_i icons[], size_t length, osbool headings)
+{
+	int	column, i;
+	wimp_i	icon;
+
+	/* If no buffer is supplied, there's nothing to do. */
+
+	if (icons == NULL || length == 0)
+		return FALSE;
+
+	/* If no instance is supplied, blank the buffer and return. */
+
+	if (instance == NULL) {
+		for (i = 0; i < length; i++)
+			icons[i] = wimp_ICON_WINDOW;
+		return FALSE;
+	}
+
+	/* Fill the buffer with details of the column icons. */
+
+	i = 0;
+
+	for (column = 0; (column < instance->columns) && (i < length); column++) {
+		if (headings == FALSE) {
+			icons[i++] = instance->map[column].field;
+		} else {
+			icon = instance->map[column].heading;
+			icons[i++] = icon;
+
+			if (icon == wimp_ICON_WINDOW)
+				continue;
+
+			column = column_get_rightmost_in_heading_group(instance, icon);
+			if (column == -1)
+				break;
+		}
+	}
+
+	/* Pad the rest of the buffer with blank fields. */
+
+	for (; i < length; i++)
+		icons[i] = wimp_ICON_WINDOW;
+
+	return TRUE;
 }
 
 

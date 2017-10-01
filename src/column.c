@@ -539,7 +539,8 @@ void columns_place_footer_icons(struct column_block *instance, wimp_window *defi
  * \param length		The length of the supplied buffer.
  */
 
-void columns_export_heading_names(struct column_block *instance, wimp_w window, FILE *out, enum filing_delimit_type format, char *buffer, size_t length)
+void columns_export_heading_names(struct column_block *instance, wimp_w window, FILE *out, enum filing_delimit_type format,
+		char *buffer, size_t length)
 {
 	int	column;
 	wimp_i	icon;
@@ -1034,7 +1035,7 @@ int column_get_window_width(struct column_block *instance)
  *
  * \param *instance		The column instance to test the position against.
  * \param xpos			The X position from the left margin, in OS units.
- * \return			The iocn of the column into which the location falls.
+ * \return			The icon of the column into which the location falls.
  */
 
 wimp_i column_find_icon_from_xpos(struct column_block *instance, int xpos)

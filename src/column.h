@@ -55,10 +55,10 @@
  */
 
 struct column_map {
-	wimp_i			field;					/**< The icon relating to the column in the main data table window.					*/
-	wimp_i			heading;				/**< The icon relating to the column heading in the table heading pane.					*/
-	wimp_i			footer;					/**< The icon relating to the column footer in the table footer pane.					*/
-	enum sort_type		sort;					/**< The sort order relating to the column.								*/
+	wimp_i			field;		/**< The icon relating to the column in the main data table window.	*/
+	wimp_i			heading;	/**< The icon relating to the column heading in the table heading pane.	*/
+	wimp_i			footer;		/**< The icon relating to the column footer in the table footer pane.	*/
+	enum sort_type		sort;		/**< The sort order relating to the column.				*/
 };
 
 
@@ -68,9 +68,9 @@ struct column_map {
  */
 
 struct column_extra {
-	wimp_i			icon;					/**< The additional icon in the main data table window.							*/
-	int			left;					/**< The column from which the icon spans on the left.							*/
-	int			right;					/**< The column to which the icon spans on the right.							*/
+	wimp_i			icon;		/**< The additional icon in the main data table window.			*/
+	int			left;		/**< The column from which the icon spans on the left.			*/
+	int			right;		/**< The column to which the icon spans on the right.			*/
 };
 
 

@@ -279,6 +279,7 @@ static void main_initialise(void)
 	config_str_init("ReportFontBold", "Homerton.Bold");				/**< Bold weight font name for reporting and printing.			*/
 	config_int_init("ReportFontSize", 12);						/**< Report and print font size (points).				*/
 	config_int_init("ReportFontLinespace", 130);					/**< Report and print linespacing (percent of font size).		*/
+	config_opt_init("ReportShowGrid", FALSE);					/**< Display a grid around data in a report.				*/
 
 	config_opt_init("PrintFitWidth", TRUE);						/**< Fit printout to one page width when PrintText == FALSE.		*/
 	config_opt_init("PrintRotate", FALSE);						/**< Print Landscape when PrintText == FALSE.				*/

@@ -807,7 +807,7 @@ In addition to these general reports, the standing order report allows a list of
 
 The report viewer is used to display completed reports on screen, and allows the results to be printed or saved out in a number of different formats.  Depending on the report, the CSV output is suitable for importing into a spreadsheet or graphing package for further manipulation.
 
-The fonts used in a report can be changed using the <window>report format</window> dialogue, by clicking <mouse>menu</mouse> over the <window>report</window> window and selecting <menu>Format...</menu>.  Two fonts can be specified, for the normal and bold text respectively.  The font size can be specified in points, and the line spacing as a percentage of the point size.  Default values, to be used for new all new reports, can be set in the <icon>Fonts</icon> section of the <window>choices</window> dialogue.
+The fonts and formatting used in a report can be changed using the <window>report format</window> dialogue, by clicking <mouse>menu</mouse> over the <window>report</window> window and selecting <menu>Format...</menu>.  Two fonts can be specified, for the normal and bold text respectively.  The font size can be specified in points, and the line spacing as a percentage of the point size.  Default values, to be used for new all new reports, can be set in the <icon>Fonts</icon> section of the <window>choices</window> dialogue. If <icon>Show grid</icon> is on, borders will be plotted around tabular data.
 
 The report can be printed from the <window>print report</window> dialogue, opened by selecting <menu>Print...</menu> from the <window>report</window> window menu.  The standard <link ref="Printing">printing options</link> are available, allowing the information to be rotated and scaled to best fit the paper or to be printed using fast text output if the hardware supports this.
 
@@ -1249,11 +1249,11 @@ The <icon>Print margins</icon> should be set to keep the page contents away from
 For fast text printing, the <icon>Use text formatting</icon> option can be used to include bold and underline formatting on the page.  This depends on support from both the printer itself and from the text mode drivers in the RISC&nbsp;OS printing system.
 
 
-<subhead title="Fonts choices">
+<subhead title="Report choices">
 
-The <icon>Fonts</icon> section of the choices allows the default font details to be set for the <window>report</window> window.  The fonts are also used for printing in standard mode.
+The <icon>Reports</icon> section of the choices allows the default font and display details to be set for the <window>report</window> window.  The settings are also used for printing in standard mode.
 
-<icon>Normal font</icon> and <icon>Bold font</icon> are the fonts used for normal and bold text respectively.  The <icon>Font size</icon> for both can be set in points, and the <icon>Line spacing</icon> is given as a percentage of the font size.
+<icon>Normal font</icon> and <icon>Bold font</icon> are the fonts used for normal and bold text respectively.  The <icon>Font size</icon> for both can be set in points, and the <icon>Line spacing</icon> is given as a percentage of the font size. The use of a grid around tabular data can be controlled with the <icon>Show grid</icon> option.
 
 </chapter>
 
@@ -1552,6 +1552,7 @@ Alpha release for feedback and comment.
 <li>Allow print jobs to be sent to a report window instead of direct to a printer (ticket&nbsp;#300).
 <li>Highlight the line over which <mouse>menu</mouse> was clicked when menus can operate on items in a window.
 <li>Fix bug which caused previous dates to be ignored when entering transactions.
+<li>Allow a grid to be plotted around tables in reports and printed output.
 <li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 

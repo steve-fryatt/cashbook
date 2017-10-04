@@ -176,7 +176,7 @@ void report_format_dialogue_initialise(void)
 void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int, osbool),
 		char *normal, char *bold, int size, int spacing, osbool grid)
 {
-	string_copy(report_format_dialogue_initial_normal, bold, REPORT_MAX_FONT_NAME);
+	string_copy(report_format_dialogue_initial_normal, normal, REPORT_MAX_FONT_NAME);
 	string_copy(report_format_dialogue_initial_bold, bold, REPORT_MAX_FONT_NAME);
 
 	report_format_dialogue_initial_size = size;

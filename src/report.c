@@ -436,7 +436,7 @@ static void report_close_and_calculate(struct report *report)
 	string_copy(report->font_bold, config_str_read("ReportFontBold"), REPORT_MAX_FONT_NAME);
 	report->font_size = config_int_read("ReportFontSize") * 16;
 	report->font_spacing = config_int_read("ReportFontLinespace");
-	report->show_grid = TRUE;
+	report->show_grid = config_opt_read("ReportShowGrid");
 	report_calculate_dimensions(report);
 
 	/* For now, there isn't a window. */

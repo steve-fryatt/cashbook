@@ -152,6 +152,7 @@
 #define CHOICE_ICON_BFONTMENU 7
 #define CHOICE_ICON_FONTSIZE 9
 #define CHOICE_ICON_FONTSPACE 12
+#define CHOICE_ICON_SHOWGRID 14
 
 /* Transaction pane icons. */
 
@@ -717,6 +718,8 @@ static void choices_set_window(void)
 			config_int_read("ReportFontSize"));
 	icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE, "%d",
 			config_int_read("ReportFontLinespace"));
+	icons_set_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_SHOWGRID,
+			config_opt_read("ReportShowGrid"));
 
 	/* Set the transaction pane up. */
 
@@ -868,6 +871,8 @@ static void choices_read_window(void)
 			atoi(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSIZE)));
 	config_int_set("ReportFontLinespace",
                   atoi(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE)));
+	config_opt_set("ReportShowGrid",
+			icons_get_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_SHOWGRID));
 
 	/* Read the transaction pane. */
 

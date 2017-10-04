@@ -786,6 +786,7 @@ Help.RepFormat.BFont:\Tfont used for bold text in the report.
 Help.RepFormat.BFontMenu:\Schange the font used for bold text in the report.
 Help.RepFormat.Size:\Tfont size for the report, in points.
 Help.RepFormat.Spacing:\Tline spacing for the report, as a percentage of the font size.
+Help.RepFormat.Grid:\Stoggle the display of a grid around the results.
 Help.RepFormat.Update:\Schange the font settings used in the report.
 
 Help.AccEnter:\Taccount ident entry window, which allows account idents to be typed into fields easily.

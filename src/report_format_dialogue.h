@@ -47,10 +47,11 @@ void report_format_dialogue_initialise(void);
  * \param *bold			The initial bold font name.
  * \param size			The initial font size.
  * \param spacing		The initial line spacing.
+ * \param grid			The initial grid setting.
  */
 
-void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int),
-		char *normal, char *bold, int size, int spacing);
+void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int, osbool),
+		char *normal, char *bold, int size, int spacing, osbool grid);
 
 
 /**

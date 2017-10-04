@@ -124,13 +124,13 @@ struct report_print_pagination {
 /* Report status flags. */
 
 enum report_status {
-	REPORT_STATUS_NONE = 0x00,						/**< No status flags set.				*/
+	REPORT_STATUS_NONE = 0x00,						/**< No status flags set.					*/
 	REPORT_STATUS_MEMERR = 0x01,						/**< A memory allocation error has occurred, so stop allowing writes. */
-	REPORT_STATUS_CLOSED = 0x02						/**< The report has been closed to writing.		*/
+	REPORT_STATUS_CLOSED = 0x02						/**< The report has been closed to writing.			*/
 };
 
 struct report {
-	struct file_block	*file;						/**< The file that the report belongs to.		*/
+	struct file_block	*file;						/**< The file that the report belongs to.			*/
 
 	wimp_w			window;
 	char			window_title[WINDOW_TITLE_LENGTH];
@@ -142,35 +142,42 @@ struct report {
 
 	/* Tab details */
 
-	int			font_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in OS units for outline fonts.	*/
-	int			text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in characters for ASCII text.	*/
+	int			font_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in OS units for outline fonts.		*/
+	int			text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in characters for ASCII text.		*/
 
-	int			font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Tab stops in OS units for outline fonts.		*/
+	int			font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Tab stops in OS units for outline fonts.			*/
 
 	/* Font data */
 
-	char			font_normal[REPORT_MAX_FONT_NAME];		/**< Name of 'normal' outline font.			*/
-	char			font_bold[REPORT_MAX_FONT_NAME];		/**< Name of bold outline font.				*/
-	int			font_size;					/**< Font size in 1/16 points.				*/
-	int			line_spacing;					/**< Line spacing in percent.				*/
+	char			font_normal[REPORT_MAX_FONT_NAME];		/**< Name of 'normal' outline font.				*/
+	char			font_bold[REPORT_MAX_FONT_NAME];		/**< Name of bold outline font.					*/
+	int			font_size;					/**< Font size in 1/16 points.					*/
+	int			font_spacing;					/**< Line spacing in percent.					*/
+
+	/* Display options. */
+
+	osbool			show_grid;					/**< TRUE if a grid table is to be plotted.			*/
 
 	/* Report content */
 
-	int			lines;						/**< The number of lines in the report.			*/
-	int			max_lines;					/**< The size of the line pointer block.		*/
+	int			lines;						/**< The number of lines in the report.				*/
+	int			max_lines;					/**< The size of the line pointer block.			*/
 
-	int			width;						/**< The displayed width of the report data.		*/
-	int			height;						/**< The displayed height of the report data.		*/
+	int			width;						/**< The displayed width of the report data in OS Units.	*/
+	int			height;						/**< The displayed height of the report data in OS Units.	*/
 
-	int			block_size;					/**< The size of the data block.			*/
-	int			data_size;					/**< The size of the data in the block.			*/
+	int			linespace;					/**< The height allocated to a line of text, in OS Units.	*/
+	int			rulespace;					/**< The height allocated to a horizontal rule, in OS Units.	*/
 
-	char			*data;						/**< The data block itself (flex block).		*/
-	int			*line_ptr;					/**< The line pointer block (flex block).		*/
+	int			block_size;					/**< The size of the data block.				*/
+	int			data_size;					/**< The size of the data in the block.				*/
+
+	char			*data;						/**< The data block itself (flex block).			*/
+	int			*line_ptr;					/**< The line pointer block (flex block).			*/
 
 	/* Report template details. */
 
-	struct analysis_report	*template;					/**< Pointer to an analysis report template.		*/
+	struct analysis_report	*template;					/**< Pointer to an analysis report template.			*/
 
 	/* Pointer to the next report in the list. */
 
@@ -198,6 +205,7 @@ static struct saveas_block	*report_saveas_tsv = NULL;			/**< The Save TSV saveas
 
 static void			report_close_and_calculate(struct report *report);
 
+static void			report_calculate_dimensions(struct report *report);
 static int			report_reflow_content(struct report *report);
 static osbool			report_find_fonts(struct report *report, font_f *normal, font_f *bold);
 
@@ -209,7 +217,7 @@ static void			report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_m
 static void			report_view_redraw_handler(wimp_draw *redraw);
 
 static void			report_open_format_window(struct report *report, wimp_pointer *ptr);
-static void			report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing);
+static void			report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing, osbool grid);
 
 static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
 static struct report		*report_print_window_closed(struct report *report, void *data);
@@ -410,8 +418,6 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 
 static void report_close_and_calculate(struct report *report)
 {
-	int	linespace;
-
 	if (report == NULL || (report->flags & REPORT_STATUS_CLOSED))
 		return;
 
@@ -429,11 +435,10 @@ static void report_close_and_calculate(struct report *report)
 	string_copy(report->font_normal, config_str_read("ReportFontNormal"), REPORT_MAX_FONT_NAME);
 	string_copy(report->font_bold, config_str_read("ReportFontBold"), REPORT_MAX_FONT_NAME);
 	report->font_size = config_int_read("ReportFontSize") * 16;
-	report->line_spacing = config_int_read("ReportFontLinespace");
-	report->width = report_reflow_content(report);
-	font_convertto_os(1000 * (report->font_size / 16) * report->line_spacing / 100, 0, &linespace, NULL);
-	report->height = report->lines * linespace + REPORT_BOTTOM_MARGIN;
-	
+	report->font_spacing = config_int_read("ReportFontLinespace");
+	report->show_grid = TRUE;
+	report_calculate_dimensions(report);
+
 	/* For now, there isn't a window. */
 
 	report->window = NULL;
@@ -619,6 +624,24 @@ void report_write_line(struct report *report, int bar, char *text)
 	}
 
 	free(copy);
+}
+
+
+/**
+ * Recalculate the page dimensions for a report.
+ *
+ * \param *report		The report to recalculate.
+ */
+
+static void report_calculate_dimensions(struct report *report)
+{
+	if (report == NULL)
+		return;
+
+	report->width = report_reflow_content(report);
+	font_convertto_os(1000 * (report->font_size / 16) * report->font_spacing / 100, 0, &(report->linespace), NULL);
+	report->rulespace = (report->show_grid) ? REPORT_RULE_SPACE : 0;
+	report->height = report->lines * (report->linespace + report->rulespace) + REPORT_BOTTOM_MARGIN;
 }
 
 
@@ -1002,7 +1025,7 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 static void report_view_redraw_handler(wimp_draw *redraw)
 {
-	int		ox, oy, top, base, y, linespace;
+	int		ox, oy, top, base, x, y, linespace;
 	font_f		font_n, font_b;
 	struct report	*report;
 	osbool		more;
@@ -1016,12 +1039,12 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 	report_find_fonts(report, &font_n, &font_b);
 
-	font_convertto_os(1000 * (report->font_size / 16) * report->line_spacing / 100, 0, &linespace, NULL);
-
 	more = wimp_redraw_window(redraw);
 
 	ox = redraw->box.x0 - redraw->xscroll;
 	oy = redraw->box.y1 - redraw->yscroll;
+
+	linespace = report->linespace + report->rulespace;
 
 	while (more) {
 		top = (oy - redraw->clip.y1) / linespace;
@@ -1030,11 +1053,24 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 		base = (linespace + (linespace / 2) + oy - redraw->clip.y0 ) / linespace;
 
+		/* Draw Grid. */
+
+		if (report->show_grid) {
+			wimp_set_colour(wimp_COLOUR_BLACK);
+
+			for (y = top; y < report->lines && y <= base; y++) {
+				os_plot(os_MOVE_TO, ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1));
+				os_plot(os_PLOT_TO, ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
+			}
+		}
+
+		/* Plot Text. */
+
 		wimp_set_font_colours(wimp_COLOUR_WHITE, wimp_COLOUR_BLACK);
 
 		for (y = top; y < report->lines && y <= base; y++)
 			report_plot_line(report, y, ox + REPORT_LEFT_MARGIN,
-					oy - linespace * (y+1) + REPORT_BASELINE_OFFSET,
+					oy - linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace,
 					font_n, font_b);
 
 		more = wimp_get_rectangle(redraw);
@@ -1082,7 +1118,7 @@ static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 		return;
 
 	report_format_dialogue_open(ptr, report, report_process_format_window,
-			report->font_normal, report->font_bold, report->font_size, report->line_spacing);
+			report->font_normal, report->font_bold, report->font_size, report->font_spacing, report->show_grid);
 }
 
 
@@ -1090,9 +1126,9 @@ static void report_open_format_window(struct report *report, wimp_pointer *ptr)
  * Take the contents of an updated report format window and process the data.
  */
 
-static void report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing)
+static void report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing, osbool grid)
 {
-	int			linespace, new_xextent, new_yextent, visible_xextent, visible_yextent, new_xscroll, new_yscroll;
+	int			new_xextent, new_yextent, visible_xextent, visible_yextent, new_xscroll, new_yscroll;
 	os_box			extent;
 	wimp_window_state	state;
 
@@ -1104,14 +1140,12 @@ static void report_process_format_window(struct report *report, char *normal, ch
 	string_copy(report->font_normal, normal, REPORT_MAX_FONT_NAME);
 	string_copy(report->font_bold, bold, REPORT_MAX_FONT_NAME);
 	report->font_size = size;
-	report->line_spacing = spacing;
+	report->font_spacing = spacing;
+	report->show_grid = grid;
 
 	/* Tidy up and redraw the windows */
 
-	report->width = report_reflow_content(report);
-	font_convertto_os(1000 * (report->font_size / 16) * report->line_spacing / 100, 0,
-			&linespace, NULL);
-	report->height = report->lines * linespace + REPORT_BOTTOM_MARGIN;
+	report_calculate_dimensions(report);
 
 	/* Calculate the next window extents. */
 
@@ -1580,12 +1614,12 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	/* Find the fonts we will use and size the header and footer accordingly. */
 
 	report_find_fonts(report, &font_n, &font_b);
-	font_convertto_os((1000 * report->font_size) * report->line_spacing / 1600, 0, &linespace, NULL);
+	linespace = report->linespace + report->rulespace;
 
 	/* Establish the page dimensions. */
 
 	header_height = 0;
-	footer_height = (pagenum) ? (1000 * report->font_size) * report->line_spacing / 1600 : 0;
+	footer_height = (pagenum) ? (1000 * report->font_size) * report->font_spacing / 1600 : 0;
 
 	areas = report_get_page_areas(rotate, &body, NULL, &footer, header_height, footer_height);
 
@@ -1877,7 +1911,8 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 						else
 							line = pages[page_y].first_line + y;
 						error = report_plot_line(report, line, REPORT_LEFT_MARGIN,
-								- linespace * (y+1) + REPORT_BASELINE_OFFSET, font_n, font_b);
+								-linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace,
+								font_n, font_b);
 						if (error != NULL) {
 							report_handle_print_error(error, out, font_n, font_b);
 							return;

@@ -170,10 +170,6 @@ struct report {
 	int			linespace;					/**< The height allocated to a line of text, in OS Units.	*/
 	int			rulespace;					/**< The height allocated to a horizontal rule, in OS Units.	*/
 
-//	int			block_size;					/**< The size of the data block.				*/
-//	int			data_size;					/**< The size of the data in the block.				*/
-
-//	char			*data;						/**< The data block itself (flex block).			*/
 	int			*line_ptr;					/**< The line pointer block (flex block).			*/
 
 	struct report_textdump_block	*content;

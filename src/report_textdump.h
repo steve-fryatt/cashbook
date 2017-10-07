@@ -62,7 +62,6 @@
 
 #include <stdlib.h>
 #include "oslib/types.h"
-#include "flex.h"
 
 /**
  * A Report Textdump instance handle.

@@ -82,6 +82,7 @@
 #include "print_dialogue.h"
 #include "print_protocol.h"
 #include "report_format_dialogue.h"
+#include "report_textdump.h"
 #include "transact.h"
 #include "window.h"
 
@@ -169,11 +170,13 @@ struct report {
 	int			linespace;					/**< The height allocated to a line of text, in OS Units.	*/
 	int			rulespace;					/**< The height allocated to a horizontal rule, in OS Units.	*/
 
-	int			block_size;					/**< The size of the data block.				*/
-	int			data_size;					/**< The size of the data in the block.				*/
+//	int			block_size;					/**< The size of the data block.				*/
+//	int			data_size;					/**< The size of the data in the block.				*/
 
-	char			*data;						/**< The data block itself (flex block).			*/
+//	char			*data;						/**< The data block itself (flex block).			*/
 	int			*line_ptr;					/**< The line pointer block (flex block).			*/
+
+	struct report_textdump_block	*content;
 
 	/* Report template details. */
 
@@ -297,21 +300,17 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->print_pending = 0;
 
 	new->lines = 0;
-	new->data_size = 0;
 
-	new->data = NULL;
 	new->line_ptr = NULL;
 
-	new->block_size = 0;
+	new->content = report_textdump_create(0, 0, '\0');
+	if (new->content == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
 	new->max_lines = 0;
 
 	new->window = NULL;
 	string_copy(new->window_title, title, WINDOW_TITLE_LENGTH);
-
-	if (flex_alloc((flex_ptr) &(new->data), REPORT_BLOCK_SIZE))
-		new->block_size = REPORT_BLOCK_SIZE;
-	else
-		new->flags |= REPORT_STATUS_MEMERR;
 
 	if (flex_alloc((flex_ptr) &(new->line_ptr), sizeof(int) * REPORT_LINE_SIZE))
 		new->max_lines = REPORT_LINE_SIZE;
@@ -427,7 +426,7 @@ static void report_close_and_calculate(struct report *report)
 
 	/* Update the data block to the required size. */
 
-	flex_extend((flex_ptr) &(report->data), report->data_size);
+	report_textdump_close(report->content);
 	flex_extend((flex_ptr) &(report->line_ptr), sizeof(int) * report->lines);
 
 	/* Set up the display details. */
@@ -478,8 +477,7 @@ void report_delete(struct report *report)
 
 	/* Free the flex blocks. */
 
-	if (report->data != NULL)
-		flexutils_free((void **) &(report->data));
+	report_textdump_destroy(report->content);
 
 	if (report->line_ptr != NULL)
 		flexutils_free((void **) &(report->line_ptr));
@@ -522,19 +520,29 @@ void report_delete(struct report *report)
 
 void report_write_line(struct report *report, int bar, char *text)
 {
-	int	len;
-	char	*c, *copy, *flag;
+	char		*c, *copy, *flag;
+	unsigned	offset;
 
 	#ifdef DEBUG
 	debug_printf("Print line: %s", text);
 	#endif
 
+	if ((report->flags & REPORT_STATUS_MEMERR) || (report->flags & REPORT_STATUS_CLOSED))
+		return;
+
 	/* Parse the string */
 
-	copy = malloc(strlen(text) + (REPORT_TAB_STOPS * REPORT_FLAG_BYTES) + 1);
+	copy = malloc(strlen(text) + REPORT_BAR_BYTES + (REPORT_TAB_STOPS * REPORT_FLAG_BYTES) + 1);
+	if (copy == NULL) {
+		report->flags |= REPORT_STATUS_MEMERR;
+		return;
+	}
+
 	c = copy;
 
-	bar = (bar >= 0 && bar < REPORT_TAB_BARS) ? bar : 0;
+	/* Store the bar information at the start of the row. */
+
+	*c++ = (char) (bar >= 0 && bar < REPORT_TAB_BARS) ? bar : 0;
 
 	flag = c++;
 	*flag = REPORT_FLAG_NOTNULL;
@@ -588,20 +596,6 @@ void report_write_line(struct report *report, int bar, char *text)
 	/* Now that we have a string containing /n for tabs and all the flag bytes in the correct places, allocate memory
 	 * from the flex block and proceed to dump it in there.
 	 */
-
-	len = strlen(copy) + REPORT_BAR_BYTES + 1; /* Add in the terminator and the tab bar marker. */
-
-	if (len > (report->block_size - report->data_size)) {
-		#ifdef DEBUG
-		debug_printf("Extending data block...");
-		#endif
-
-		if (flex_extend((flex_ptr) &(report->data), report->block_size + REPORT_BLOCK_SIZE))
-			report->block_size += REPORT_BLOCK_SIZE;
-		else
-			report->flags |= REPORT_STATUS_MEMERR;
-	}
-
 	if (report->lines >= report->max_lines) {
 		#ifdef DEBUG
 		debug_printf("Extending line pointer block to %d...", ((report->max_lines + REPORT_LINE_SIZE) * sizeof(int)));
@@ -613,14 +607,12 @@ void report_write_line(struct report *report, int bar, char *text)
 			report->flags |= REPORT_STATUS_MEMERR;
 	}
 
-	if ((report->flags & REPORT_STATUS_MEMERR) == 0 && (report->flags & REPORT_STATUS_CLOSED) == 0 &&
-			len <= (report->block_size - report->data_size) && report->lines < report->max_lines) {
-		*(report->data + report->data_size) = (char) bar;
-		string_copy(report->data + report->data_size + REPORT_BAR_BYTES, copy, report->block_size - (report->data_size + REPORT_BAR_BYTES));
-		(report->line_ptr)[report->lines] = report->data_size;
-
+	offset = report_textdump_store(report->content, copy);
+	if (offset != REPORT_TEXTDUMP_NULL) {
+		report->line_ptr[report->lines] = offset;
 		report->lines++;
-		report->data_size += len;
+	} else {
+		report->flags |= REPORT_STATUS_MEMERR;
 	}
 
 	free(copy);
@@ -660,7 +652,7 @@ static int report_reflow_content(struct report *report)
 			width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 			t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], t_width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 			i, j, line, bar, tab, total;
-	char		*column, *flags;
+	char		*content_base, *column, *flags;
 	font_f		font, font_n, font_b;
 
 	#ifdef DEBUG
@@ -689,11 +681,13 @@ static int report_reflow_content(struct report *report)
 
 	report_find_fonts(report, &font_n, &font_b);
 
+	content_base = report_textdump_get_base(report->content);
+
 	/* Work through the report, line by line, getting the maximum column widths. */
 
 	for (line = 0; line < report->lines; line++) {
 		tab = 0;
-		column = report->data + report->line_ptr[line];
+		column = content_base + report->line_ptr[line];
 		bar = (int) *column;
 		column += REPORT_BAR_BYTES;
 
@@ -1336,7 +1330,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 {
 	FILE	*out;
 	int	i, j, bar, tab, indent, width, overrun, escape;
-	char	*column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	char	*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
 
 
 	out = fopen(filename, "w");
@@ -1348,10 +1342,12 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 	hourglass_on();
 
+	content_base = report_textdump_get_base(report->content);
+
 	for (i = 0; i < report->lines; i++) {
 		tab = 0;
 		overrun = 0;
-		column = report->data + report->line_ptr[i];
+		column = content_base + report->line_ptr[i];
 		bar = (int) *column;
 		column += REPORT_BAR_BYTES;
 
@@ -1454,7 +1450,7 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 {
 	FILE	*out;
 	int	i, tab, delimit;
-	char	*column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	char	*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
 
 	out = fopen(filename, "w");
 
@@ -1463,35 +1459,35 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 		return;
 	}
 
-  
 	hourglass_on();
+
+	content_base = report_textdump_get_base(report->content);
 
 	for (i = 0; i < report->lines; i++) {
 		tab = 0;
-		column = report->data + report->line_ptr[i] + REPORT_BAR_BYTES;
+		column = content_base + report->line_ptr[i] + REPORT_BAR_BYTES;
 
-      do
-      {
-		flags = column;
-		column += REPORT_FLAG_BYTES;
-		string_ctrl_copy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
+		do {
+			flags = column;
+			column += REPORT_FLAG_BYTES;
+			string_ctrl_copy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
 
-		/* Find the next field. */
+			/* Find the next field. */
 
-		while (*column != '\0' && *column != '\n')
+			while (*column != '\0' && *column != '\n')
+				column++;
+
+			/* Output the actual field data. */
+
+			delimit = (*column == '\0') ? DELIMIT_LAST : 0;
+
+			if (*flags & REPORT_FLAG_NUMERIC)
+				delimit |= DELIMIT_NUM;
+
+			filing_output_delimited_field(out, buffer, format, delimit);
+
 			column++;
-
-		/* Output the actual field data. */
-
-		delimit = (*column == '\0') ? DELIMIT_LAST : 0;
-
-		if (*flags & REPORT_FLAG_NUMERIC)
-			delimit |= DELIMIT_NUM;
-
-		filing_output_delimited_field(out, buffer, format, delimit);
-
-		column++;
-		tab++;
+			tab++;
 		} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
 	}
 
@@ -1592,6 +1588,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	os_coord			p_pos, f_pos;
 	char				title[REPORT_PRINT_TITLE_LENGTH];
 	char				b0[REPORT_PRINT_BUFFER_LENGTH], b1[REPORT_PRINT_BUFFER_LENGTH], b2[REPORT_PRINT_BUFFER_LENGTH], b3[REPORT_PRINT_BUFFER_LENGTH];
+	char				*content_base;
 	pdriver_features		features;
 	font_f				font_n = 0, font_b = 0;
 	osbool				more;
@@ -1735,6 +1732,8 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	 *          pagination array...
 	 */
 
+	content_base = report_textdump_get_base(report->content);
+
 	for (y = 0; y < report->lines; y++) {
 		if (lines <= 0) {
 			#ifdef DEBUG
@@ -1750,8 +1749,8 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			pages[page_y - 1].line_count = (header == -1) ? 0 : 1;
 		}
 
-		if ((*(report->data + report->line_ptr[y] + REPORT_BAR_BYTES) & REPORT_FLAG_KEEPTOGETHER) &&
-				((*(report->data + report->line_ptr[y]) == bar) || (header == -1))) {
+		if ((*(content_base + report->line_ptr[y] + REPORT_BAR_BYTES) & REPORT_FLAG_KEEPTOGETHER) &&
+				((*(content_base + report->line_ptr[y]) == bar) || (header == -1))) {
 			if (header == -1)
 				header = y;
 		} else {
@@ -1762,7 +1761,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 		debug_printf("Line %d has header %d", y, header);
 		#endif
 
-		bar = *(report->data + report->line_ptr[y]);
+		bar = *(content_base + report->line_ptr[y]);
 
 		pages[page_y - 1].line_count++;
 		lines --;
@@ -2033,10 +2032,11 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 	os_error	*error;
 	font_f		font;
 	int		bar, tab = 0, indent, total, width;
-	char		*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN + 10];
+	char		*content_base, *column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN + 10];
 
+	content_base = report_textdump_get_base(report->content);
 
-	column = report->data + report->line_ptr[line];
+	column = content_base + report->line_ptr[line];
 	bar = (int) *column;
 	column += REPORT_BAR_BYTES;
 

@@ -86,7 +86,7 @@ struct report_textdump_block;
  * \return			The block handle, or NULL on failure.
  */
 
-struct report_textdump_block *report_textdump_create(unsigned allocation, unsigned hash, char terminator);
+struct report_textdump_block *report_textdump_create(size_t allocation, size_t hash, char terminator);
 
 
 /**

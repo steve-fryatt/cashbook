@@ -64,9 +64,9 @@ struct report_textdump_block {
 	byte			*text;					/**< The general text string dump.					*/
 	unsigned		*hash;					/**< The hash table, or NULL if none.					*/
 	unsigned		free;					/**< Offset to the first free character in the text dump.		*/
-	unsigned		size;					/**< The current claimed size of the text dump.				*/
-	unsigned		allocation;				/**< The allocation block size of the text dump.			*/
-	unsigned		hashes;					/**< The size of the hash table, or 0 if none.				*/
+	size_t			size;					/**< The current claimed size of the text dump.				*/
+	size_t			allocation;				/**< The allocation block size of the text dump.			*/
+	size_t			hashes;					/**< The size of the hash table, or 0 if none.				*/
 	char			terminator;				/**< The terminating character for strings added to the text dump.	*/
 };
 
@@ -94,7 +94,7 @@ static int	report_textdump_make_hash(struct report_textdump_block *handle, char 
  * \return			The block handle, or NULL on failure.
  */
 
-struct report_textdump_block *report_textdump_create(unsigned allocation, unsigned hash, char terminator)
+struct report_textdump_block *report_textdump_create(size_t allocation, size_t hash, char terminator)
 {
 	struct report_textdump_block	*new;
 	int				i;

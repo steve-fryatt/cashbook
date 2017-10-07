@@ -97,7 +97,7 @@ static int	report_textdump_make_hash(struct report_textdump_block *handle, char 
 struct report_textdump_block *report_textdump_create(unsigned allocation, unsigned hash, char terminator)
 {
 	struct report_textdump_block	*new;
-	int			i;
+	int				i;
 
 	/* Terminators must be \0 if hashing is to be used! */
 

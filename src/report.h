@@ -58,10 +58,6 @@
 #define REPORT_FLAG_KEEPTOGETHER 0x40 /* The row is part of a keep-together block, the first line of which is to be repeated on page breaks. */
 #define REPORT_FLAG_NOTNULL      0x80 /* Used to prevent the flag byte being a null terminator. */
 
-/* Memory management */
-
-#define REPORT_BLOCK_SIZE 10240
-#define REPORT_LINE_SIZE 250
 
 /**
  * The maximum length of a report line.

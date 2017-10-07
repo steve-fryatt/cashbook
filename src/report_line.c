@@ -56,7 +56,7 @@
  * The default allocation block size.
  */
 
-#define REPORT_LINE_ALLOCATION 10240
+#define REPORT_LINE_ALLOCATION 250
 
 /**
  * A line in a report.

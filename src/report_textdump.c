@@ -68,6 +68,7 @@ struct report_textdump_block {
 	size_t			allocation;				/**< The allocation block size of the text dump.			*/
 	size_t			hashes;					/**< The size of the hash table, or 0 if none.				*/
 	char			terminator;				/**< The terminating character for strings added to the text dump.	*/
+	osbool			open;					/**< TRUE if the block is still open for additions; otherwise FALSE.	*/
 };
 
 /**
@@ -116,6 +117,8 @@ struct report_textdump_block *report_textdump_create(size_t allocation, size_t h
 
 	new->hashes = hash;
 	new->hash = NULL;
+
+	new->open = TRUE;
 
 	new->terminator = terminator;
 
@@ -191,6 +194,8 @@ void report_textdump_clear(struct report_textdump_block *handle)
 
 	if (flex_extend((flex_ptr) &(handle->text), handle->allocation * sizeof(byte)) == 1)
 		handle->size = handle->allocation;
+
+	handle->open = TRUE;
 }
 
 
@@ -203,8 +208,11 @@ void report_textdump_clear(struct report_textdump_block *handle)
 
 void report_textdump_close(struct report_textdump_block *handle)
 {
+	if (handle == NULL || handle->text == NULL || handle->open == FALSE)
+		return;
 
-
+	if (flex_extend((flex_ptr) &(handle->text), handle->free * sizeof(byte)) == 1)
+		handle->size = handle->free;
 }
 
 
@@ -257,7 +265,7 @@ unsigned report_textdump_store(struct report_textdump_block *handle, char *text)
 	unsigned	offset;
 	int		hash = -1;
 
-	if (handle == NULL || text == NULL)
+	if (handle == NULL || text == NULL || handle->open == FALSE)
 		return REPORT_TEXTDUMP_NULL;
 
 	if (handle->hash != NULL) {

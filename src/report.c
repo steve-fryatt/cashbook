@@ -82,6 +82,7 @@
 #include "print_dialogue.h"
 #include "print_protocol.h"
 #include "report_format_dialogue.h"
+#include "report_line.h"
 #include "report_textdump.h"
 #include "transact.h"
 #include "window.h"
@@ -161,8 +162,8 @@ struct report {
 
 	/* Report content */
 
-	int			lines;						/**< The number of lines in the report.				*/
-	int			max_lines;					/**< The size of the line pointer block.			*/
+//	int			lines;						/**< The number of lines in the report.				*/
+//	int			max_lines;					/**< The size of the line pointer block.			*/
 
 	int			width;						/**< The displayed width of the report data in OS Units.	*/
 	int			height;						/**< The displayed height of the report data in OS Units.	*/
@@ -170,9 +171,10 @@ struct report {
 	int			linespace;					/**< The height allocated to a line of text, in OS Units.	*/
 	int			rulespace;					/**< The height allocated to a horizontal rule, in OS Units.	*/
 
-	int			*line_ptr;					/**< The line pointer block (flex block).			*/
+//	int			*line_ptr;					/**< The line pointer block (flex block).			*/
 
 	struct report_textdump_block	*content;
+	struct report_line_block	*lines;
 
 	/* Report template details. */
 
@@ -295,23 +297,17 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
 
-	new->lines = 0;
-
-	new->line_ptr = NULL;
 
 	new->content = report_textdump_create(0, 0, '\0');
 	if (new->content == NULL)
 		new->flags |= REPORT_STATUS_MEMERR;
 
-	new->max_lines = 0;
+	new->lines = report_line_create(0);
+	if (new->lines == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
 
 	new->window = NULL;
 	string_copy(new->window_title, title, WINDOW_TITLE_LENGTH);
-
-	if (flex_alloc((flex_ptr) &(new->line_ptr), sizeof(int) * REPORT_LINE_SIZE))
-		new->max_lines = REPORT_LINE_SIZE;
-	else
-		new->flags |= REPORT_STATUS_MEMERR;
 
 	new->template = template;
 
@@ -423,7 +419,7 @@ static void report_close_and_calculate(struct report *report)
 	/* Update the data block to the required size. */
 
 	report_textdump_close(report->content);
-	flex_extend((flex_ptr) &(report->line_ptr), sizeof(int) * report->lines);
+	report_line_close(report->lines);
 
 	/* Set up the display details. */
 
@@ -474,9 +470,7 @@ void report_delete(struct report *report)
 	/* Free the flex blocks. */
 
 	report_textdump_destroy(report->content);
-
-	if (report->line_ptr != NULL)
-		flexutils_free((void **) &(report->line_ptr));
+	report_line_destroy(report->lines);
 
 	if (report->template != NULL)
 		heap_free(report->template);
@@ -528,7 +522,7 @@ void report_write_line(struct report *report, int bar, char *text)
 
 	/* Parse the string */
 
-	copy = malloc(strlen(text) + REPORT_BAR_BYTES + (REPORT_TAB_STOPS * REPORT_FLAG_BYTES) + 1);
+	copy = malloc(strlen(text) + (REPORT_TAB_STOPS * REPORT_FLAG_BYTES) + 1);
 	if (copy == NULL) {
 		report->flags |= REPORT_STATUS_MEMERR;
 		return;
@@ -536,9 +530,9 @@ void report_write_line(struct report *report, int bar, char *text)
 
 	c = copy;
 
-	/* Store the bar information at the start of the row. */
+	/* Identify the tab bar to be used. */
 
-	*c++ = (char) (bar >= 0 && bar < REPORT_TAB_BARS) ? bar : 0;
+	bar = (bar >= 0 && bar < REPORT_TAB_BARS) ? bar : 0;
 
 	flag = c++;
 	*flag = REPORT_FLAG_NOTNULL;
@@ -589,24 +583,13 @@ void report_write_line(struct report *report, int bar, char *text)
 
 	*c = '\0';
 
-	/* Now that we have a string containing /n for tabs and all the flag bytes in the correct places, allocate memory
-	 * from the flex block and proceed to dump it in there.
-	 */
-	if (report->lines >= report->max_lines) {
-		#ifdef DEBUG
-		debug_printf("Extending line pointer block to %d...", ((report->max_lines + REPORT_LINE_SIZE) * sizeof(int)));
-		#endif
-
-		if (flex_extend((flex_ptr) &(report->line_ptr), (sizeof(int) * (report->max_lines + REPORT_LINE_SIZE))))
-			report->max_lines += REPORT_LINE_SIZE;
-		else
-			report->flags |= REPORT_STATUS_MEMERR;
-	}
+	/* Store the line in the report. */
 
 	offset = report_textdump_store(report->content, copy);
+
 	if (offset != REPORT_TEXTDUMP_NULL) {
-		report->line_ptr[report->lines] = offset;
-		report->lines++;
+		if (!report_line_add(report->lines, offset, bar))
+			report->flags |= REPORT_STATUS_MEMERR;
 	} else {
 		report->flags |= REPORT_STATUS_MEMERR;
 	}
@@ -629,7 +612,7 @@ static void report_calculate_dimensions(struct report *report)
 	report->width = report_reflow_content(report);
 	font_convertto_os(1000 * (report->font_size / 16) * report->font_spacing / 100, 0, &(report->linespace), NULL);
 	report->rulespace = (report->show_grid) ? REPORT_RULE_SPACE : 0;
-	report->height = report->lines * (report->linespace + report->rulespace) + REPORT_BOTTOM_MARGIN;
+	report->height = report_line_get_count(report->lines) * (report->linespace + report->rulespace) + REPORT_BOTTOM_MARGIN;
 }
 
 
@@ -647,9 +630,11 @@ static int report_reflow_content(struct report *report)
 	int		width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS],
 			width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 			t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], t_width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
-			i, j, line, bar, tab, total;
+			i, j, bar, tab, total;
+	unsigned	line, offset;
 	char		*content_base, *column, *flags;
 	font_f		font, font_n, font_b;
+	size_t		line_count;
 
 	#ifdef DEBUG
 	debug_printf("\\GFormatting report");
@@ -681,11 +666,18 @@ static int report_reflow_content(struct report *report)
 
 	/* Work through the report, line by line, getting the maximum column widths. */
 
-	for (line = 0; line < report->lines; line++) {
+	line_count = report_line_get_count(report->lines);
+
+	debug_printf("Lines: %d", line_count);
+
+	for (line = 0; line < line_count; line++) {
+		if (!report_line_get_info(report->lines, line, &offset, &bar))
+			continue;
+
 		tab = 0;
-		column = content_base + report->line_ptr[line];
-		bar = (int) *column;
-		column += REPORT_BAR_BYTES;
+		column = content_base + offset;
+
+		debug_printf("Relowing line %d, offset=%d, base=%d, column=%d", line, offset, content_base, column);
 
 		/* Process the next line. do {} while is used, as we don't know if the last tab has been reached until we get
 		 * there.
@@ -1015,7 +1007,7 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 static void report_view_redraw_handler(wimp_draw *redraw)
 {
-	int		ox, oy, top, base, x, y, linespace;
+	int		ox, oy, top, base, x, y, linespace, line_count;
 	font_f		font_n, font_b;
 	struct report	*report;
 	osbool		more;
@@ -1035,6 +1027,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	oy = redraw->box.y1 - redraw->yscroll;
 
 	linespace = report->linespace + report->rulespace;
+	line_count = report_line_get_count(report->lines);
 
 	while (more) {
 		top = (oy - redraw->clip.y1) / linespace;
@@ -1048,7 +1041,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 		if (report->show_grid) {
 			wimp_set_colour(wimp_COLOUR_BLACK);
 
-			for (y = top; y < report->lines && y <= base; y++) {
+			for (y = top; y < line_count && y <= base; y++) {
 				os_plot(os_MOVE_TO, ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1));
 				os_plot(os_PLOT_TO, ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
 			}
@@ -1058,7 +1051,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 		wimp_set_font_colours(wimp_COLOUR_WHITE, wimp_COLOUR_BLACK);
 
-		for (y = top; y < report->lines && y <= base; y++)
+		for (y = top; y < line_count && y <= base; y++)
 			report_plot_line(report, y, ox + REPORT_LEFT_MARGIN,
 					oy - linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace,
 					font_n, font_b);
@@ -1324,9 +1317,11 @@ static osbool report_save_tsv(char *filename, osbool selection, void *data)
 
 static void report_export_text(struct report *report, char *filename, osbool formatting)
 {
-	FILE	*out;
-	int	i, j, bar, tab, indent, width, overrun, escape;
-	char	*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	FILE		*out;
+	int		i, j, bar, tab, indent, width, overrun, escape;
+	char		*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	unsigned	offset;
+	size_t		line_count;
 
 
 	out = fopen(filename, "w");
@@ -1339,13 +1334,15 @@ static void report_export_text(struct report *report, char *filename, osbool for
 	hourglass_on();
 
 	content_base = report_textdump_get_base(report->content);
+	line_count = report_line_get_count(report->lines);
 
-	for (i = 0; i < report->lines; i++) {
+	for (i = 0; i < line_count; i++) {
+		if (!report_line_get_info(report->lines, i, &offset, &bar))
+			continue;
+
 		tab = 0;
 		overrun = 0;
-		column = content_base + report->line_ptr[i];
-		bar = (int) *column;
-		column += REPORT_BAR_BYTES;
+		column = content_base + offset;
 
 		do {
 			flags = column;
@@ -1444,9 +1441,11 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 static void report_export_delimited(struct report *report, char *filename, enum filing_delimit_type format, int filetype)
 {
-	FILE	*out;
-	int	i, tab, delimit;
-	char	*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	FILE		*out;
+	int		i, tab, delimit;
+	char		*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	size_t		line_count;
+	unsigned	offset;
 
 	out = fopen(filename, "w");
 
@@ -1458,10 +1457,14 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 	hourglass_on();
 
 	content_base = report_textdump_get_base(report->content);
+	line_count = report_line_get_count(report->lines);
 
-	for (i = 0; i < report->lines; i++) {
+	for (i = 0; i < line_count; i++) {
+		if (!report_line_get_info(report->lines, i, &offset, NULL))
+			continue;
+
 		tab = 0;
-		column = content_base + report->line_ptr[i] + REPORT_BAR_BYTES;
+		column = content_base + offset;
 
 		do {
 			flags = column;
@@ -1595,6 +1598,9 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	double				scaling;
 	struct report_print_pagination	*pages;
 	enum report_page_area		areas, area;
+	size_t				line_count;
+	unsigned			data_offset;
+	int				data_bar;
 
 	hourglass_on();
 
@@ -1608,6 +1614,8 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	report_find_fonts(report, &font_n, &font_b);
 	linespace = report->linespace + report->rulespace;
+
+	line_count = report_line_get_count(report->lines);
 
 	/* Establish the page dimensions. */
 
@@ -1703,7 +1711,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	 * This is just for allocating the pagination memory.
 	 */
 
-	while ((pages_y * lines_per_page) < (report->lines + pages_y))
+	while ((pages_y * lines_per_page) < (line_count + pages_y))
 		pages_y++;
 
 	#ifdef DEBUG
@@ -1730,7 +1738,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	content_base = report_textdump_get_base(report->content);
 
-	for (y = 0; y < report->lines; y++) {
+	for (y = 0; y < line_count; y++) {
 		if (lines <= 0) {
 			#ifdef DEBUG
 			debug_printf("Page %d starts at line %d, repeating heading from line %d", page_y, y, header);
@@ -1745,8 +1753,10 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			pages[page_y - 1].line_count = (header == -1) ? 0 : 1;
 		}
 
-		if ((*(content_base + report->line_ptr[y] + REPORT_BAR_BYTES) & REPORT_FLAG_KEEPTOGETHER) &&
-				((*(content_base + report->line_ptr[y]) == bar) || (header == -1))) {
+		data_offset = 0;
+		report_line_get_info(report->lines, y, &data_offset, &data_bar);
+
+		if ((*(content_base + data_offset) & REPORT_FLAG_KEEPTOGETHER) && ((data_bar == bar) || (header == -1))) {
 			if (header == -1)
 				header = y;
 		} else {
@@ -1757,7 +1767,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 		debug_printf("Line %d has header %d", y, header);
 		#endif
 
-		bar = *(content_base + report->line_ptr[y]);
+		bar = data_bar;
 
 		pages[page_y - 1].line_count++;
 		lines --;
@@ -1900,7 +1910,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 					/* Redraw the data to the printer. */
 
-					for (y = top; (pages[page_y].first_line + y) < report->lines && y <= base; y++) {
+					for (y = top; (pages[page_y].first_line + y) < line_count && y <= base; y++) {
 						if (y < 0)
 							line = pages[page_y].header_line;
 						else
@@ -2029,12 +2039,14 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 	font_f		font;
 	int		bar, tab = 0, indent, total, width;
 	char		*content_base, *column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN + 10];
+	unsigned	offset;
 
 	content_base = report_textdump_get_base(report->content);
 
-	column = content_base + report->line_ptr[line];
-	bar = (int) *column;
-	column += REPORT_BAR_BYTES;
+	offset = 0;
+	report_line_get_info(report->lines, line, &offset, &bar);
+
+	column = content_base + offset;
 
 	do {
 		flags = column;

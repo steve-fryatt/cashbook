@@ -80,6 +80,7 @@ OBJS = account.o			\
        refdesc_menu.o			\
        report.o				\
        report_format_dialogue.o		\
+       report_line.o			\
        report_textdump.o		\
        sorder.o				\
        sort.o				\

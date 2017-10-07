@@ -48,7 +48,6 @@
 /* Report formatting flags. */
 
 #define REPORT_FLAG_BYTES 1 /* The length of the formatting flag data. */
-#define REPORT_BAR_BYTES  1 /* The length of the tab bar data.         */
 
 #define REPORT_FLAG_INDENT       0x01 /* The item is indented into the column. */
 #define REPORT_FLAG_BOLD         0x02 /* The item is in bold. */

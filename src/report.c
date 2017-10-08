@@ -81,6 +81,7 @@
 #include "flexutils.h"
 #include "print_dialogue.h"
 #include "print_protocol.h"
+#include "report_cell.h"
 #include "report_format_dialogue.h"
 #include "report_line.h"
 #include "report_textdump.h"

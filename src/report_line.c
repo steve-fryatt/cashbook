@@ -94,7 +94,7 @@ struct report_line_block *report_line_create(size_t allocation)
 
 	/* Claim the memory for the dump itself. */
 
-	if (!flexutils_allocate((void **) &(new->lines), sizeof(struct report_line_block), new->allocation)) {
+	if (!flexutils_allocate((void **) &(new->lines), sizeof(struct report_line_data), new->allocation)) {
 		heap_free(new);
 		return NULL;
 	}
@@ -134,7 +134,7 @@ void report_line_clear(struct report_line_block *handle)
 
 	handle->line_count = 0;
 
-	if (flexutils_resize((void **) &(handle->lines), sizeof(struct report_line_block), handle->allocation))
+	if (flexutils_resize((void **) &(handle->lines), sizeof(struct report_line_data), handle->allocation))
 		handle->size = handle->allocation;
 }
 
@@ -151,8 +151,10 @@ void report_line_close(struct report_line_block *handle)
 	if (handle == NULL || handle->lines == NULL)
 		return;
 
-	if (flexutils_resize((void **) &(handle->lines), sizeof(struct report_line_block), handle->line_count))
+	if (flexutils_resize((void **) &(handle->lines), sizeof(struct report_line_data), handle->line_count))
 		handle->size = handle->line_count;
+
+	debug_printf("Line data: %d records, using %dKb", handle->line_count, handle->line_count * sizeof (struct report_line_data) / 1024);
 }
 
 
@@ -160,30 +162,34 @@ void report_line_close(struct report_line_block *handle)
  * Add a line to a report line data block.
  *
  * \param *handle		The block to add to.
- * \param offset		The offset of the line data in the data store.
+ * \param first_cell		The offset of the first cell's data in the cell store.
+ * \param cell_count		The number of cells in the line.
  * \param tab_bar		The tab bar which applies to the line.
  * \param flags			The flags associated with the line.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool report_line_add(struct report_line_block *handle, unsigned offset, int tab_bar, enum report_line_flags flags)
+osbool report_line_add(struct report_line_block *handle, unsigned first_cell, size_t cell_count, int tab_bar, enum report_line_flags flags)
 {
+	unsigned new;
+
 	if (handle == NULL || handle->lines == NULL)
 		return FALSE;
 
 	if (handle->line_count >= handle->size) {
-		if (!flexutils_resize((void **) &(handle->lines), sizeof(struct report_line_block), handle->size + handle->allocation))
+		if (!flexutils_resize((void **) &(handle->lines), sizeof(struct report_line_data), handle->size + handle->allocation))
 			return FALSE;
 
 		handle->size += handle->allocation;
 	}
 
-	handle->lines[handle->line_count].flags = flags;
-	handle->lines[handle->line_count].offset = offset;
-	handle->lines[handle->line_count].tab_bar = tab_bar;
-	handle->lines[handle->line_count].ypos = 0;
+	new = handle->line_count++;
 
-	handle->line_count++;
+	handle->lines[new].flags = flags;
+	handle->lines[new].first_cell = first_cell;
+	handle->lines[new].cell_count = cell_count;
+	handle->lines[new].tab_bar = tab_bar;
+	handle->lines[new].ypos = 0;
 
 	return TRUE;
 }

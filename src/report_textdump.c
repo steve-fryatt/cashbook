@@ -213,6 +213,8 @@ void report_textdump_close(struct report_textdump_block *handle)
 
 	if (flex_extend((flex_ptr) &(handle->text), handle->free * sizeof(byte)) == 1)
 		handle->size = handle->free;
+
+	debug_printf("Content data: %dKb", handle->free / 1024);
 }
 
 

@@ -170,6 +170,7 @@ struct report {
 	int			rulespace;					/**< The height allocated to a horizontal rule, in OS Units.	*/
 
 	struct report_textdump_block	*content;
+	struct report_cell_block	*cells;
 	struct report_line_block	*lines;
 
 	/* Report template details. */
@@ -201,6 +202,8 @@ static struct saveas_block	*report_saveas_tsv = NULL;			/**< The Save TSV saveas
 
 
 static void			report_close_and_calculate(struct report *report);
+static osbool			report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int *tab_stop, unsigned *first_cell_offset);
+
 
 static void			report_calculate_dimensions(struct report *report);
 static int			report_reflow_content(struct report *report);
@@ -294,8 +297,12 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->print_pending = 0;
 
 
-	new->content = report_textdump_create(0, 0, '\0');
+	new->content = report_textdump_create(0, 200, '\0');
 	if (new->content == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
+	new->cells = report_cell_create(0);
+	if (new->cells == NULL)
 		new->flags |= REPORT_STATUS_MEMERR;
 
 	new->lines = report_line_create(0);
@@ -415,6 +422,7 @@ static void report_close_and_calculate(struct report *report)
 	/* Update the data block to the required size. */
 
 	report_textdump_close(report->content);
+	report_cell_close(report->cells);
 	report_line_close(report->lines);
 
 	/* Set up the display details. */
@@ -466,6 +474,7 @@ void report_delete(struct report *report)
 	/* Free the flex blocks. */
 
 	report_textdump_destroy(report->content);
+	report_cell_destroy(report->cells);
 	report_line_destroy(report->lines);
 
 	if (report->template != NULL)
@@ -506,9 +515,11 @@ void report_delete(struct report *report)
 
 void report_write_line(struct report *report, int bar, char *text)
 {
-	char			*c, *copy, *flag;
-	unsigned		offset;
+	char			*c, *copy;
+	unsigned		first_cell_offset;
+	int			tab_stop;
 	enum report_line_flags	line_flags;
+	enum report_cell_flags	cell_flags;
 
 	#ifdef DEBUG
 	debug_printf("Print line: %s", text);
@@ -517,58 +528,60 @@ void report_write_line(struct report *report, int bar, char *text)
 	if ((report->flags & REPORT_STATUS_MEMERR) || (report->flags & REPORT_STATUS_CLOSED))
 		return;
 
-	/* Parse the string */
+	/* Allocate a buffer to hold the copied string. */
 
-	copy = malloc(strlen(text) + (REPORT_TAB_STOPS * REPORT_FLAG_BYTES) + 1);
+	copy = malloc(strlen(text) + 1);
 	if (copy == NULL) {
 		report->flags |= REPORT_STATUS_MEMERR;
 		return;
 	}
 
-	c = copy;
-
-	/* Identify the tab bar to be used. */
-
 	bar = (bar >= 0 && bar < REPORT_TAB_BARS) ? bar : 0;
-
-	flag = c++;
-	*flag = REPORT_FLAG_NOTNULL;
+	tab_stop = 0;
 
 	line_flags = REPORT_LINE_FLAGS_NONE;
+	cell_flags = REPORT_CELL_FLAGS_NONE;
 
-	while (*text != '\0') {
+	first_cell_offset = REPORT_CELL_NULL;
+
+	c = copy;
+
+	while ((*text != '\0') && !(report->flags & REPORT_STATUS_MEMERR)) {
 		if (*text == '\\') {
 			text++;
 
 			switch (*text++) {
 			case 't':
-				*c++ = '\n';
-				flag = c++;
-				*flag = REPORT_FLAG_NOTNULL;
+				*c++ = '\0';
+
+				report_add_cell(report, copy, cell_flags, &tab_stop, &first_cell_offset);
+
+				c = copy;
+				cell_flags = REPORT_CELL_FLAGS_NONE;
 				break;
 
 			case 'i':
-				*flag |= REPORT_FLAG_INDENT;
+				cell_flags |= REPORT_CELL_FLAGS_INDENT;
 				break;
 
 			case 'b':
-				*flag |= REPORT_FLAG_BOLD;
+				cell_flags |= REPORT_CELL_FLAGS_BOLD;
 				break;
 
 			case 'u':
-				*flag |= REPORT_FLAG_UNDER;
+				cell_flags |= REPORT_CELL_FLAGS_UNDERLINE;
 				break;
 
 			case 'r':
-				*flag |= REPORT_FLAG_RIGHT;
+				cell_flags |= REPORT_CELL_FLAGS_RIGHT;
 				break;
 
 			case 'd':
-				*flag |= REPORT_FLAG_NUMERIC;
+				cell_flags |= REPORT_CELL_FLAGS_NUMERIC;
 				break;
 
 			case 's':
-				*flag |= REPORT_FLAG_SPILL;
+				cell_flags |= REPORT_CELL_FLAGS_SPILL;
 				break;
 
 			case 'k':
@@ -582,18 +595,58 @@ void report_write_line(struct report *report, int bar, char *text)
 
 	*c = '\0';
 
+	report_add_cell(report, copy, cell_flags, &tab_stop, &first_cell_offset);
+
 	/* Store the line in the report. */
 
-	offset = report_textdump_store(report->content, copy);
-
-	if (offset != REPORT_TEXTDUMP_NULL) {
-		if (!report_line_add(report->lines, offset, bar, line_flags))
+	if (first_cell_offset != REPORT_CELL_NULL) {
+		if (!report_line_add(report->lines, first_cell_offset, tab_stop, bar, line_flags))
 			report->flags |= REPORT_STATUS_MEMERR;
 	} else {
 		report->flags |= REPORT_STATUS_MEMERR;
 	}
 
 	free(copy);
+}
+
+
+/**
+ * Add a cell to a report.
+ *
+ * \param *report		The report to add the cell to.
+ * \param *text			Pointer to the text to be stored in the cell.
+ * \param flags			The flags to be applied to the cell.
+ * \param *tab_stop		Pointer to a variable holding the cell's tab
+ *				stop, to be updated on return.
+ * \param *first_cell_offset	Pointer to a variable holding the first cell offet,
+ *				to be updated on return.
+ */
+
+static osbool report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int *tab_stop, unsigned *first_cell_offset)
+{
+	unsigned content_offset, cell_offset;
+
+	if (*tab_stop >= REPORT_TAB_STOPS)
+		return FALSE;
+
+	content_offset = report_textdump_store(report->content, text);
+	if (content_offset == REPORT_TEXTDUMP_NULL) {
+		report->flags |= REPORT_STATUS_MEMERR;
+		return FALSE;
+	}
+
+	cell_offset = report_cell_add(report->cells, content_offset, *tab_stop, flags);
+	if (cell_offset == REPORT_CELL_NULL) {
+		report->flags |= REPORT_STATUS_MEMERR;
+		return FALSE;
+	}
+
+	if (*first_cell_offset == REPORT_CELL_NULL)
+		*first_cell_offset = cell_offset;
+
+	*tab_stop = *tab_stop + 1;
+
+	return TRUE;
 }
 
 
@@ -630,11 +683,12 @@ static int report_reflow_content(struct report *report)
 				width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 				t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], t_width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 				i, j, tab, total;
-	unsigned		line;
-	char			*content_base, *column, *flags;
+	unsigned		line, cell;
+	char			*content_base, *content;
 	font_f			font, font_n, font_b;
 	size_t			line_count;
 	struct report_line_data	*line_data;
+	struct report_cell_data	*cell_data;
 
 	#ifdef DEBUG
 	debug_printf("\\GFormatting report");
@@ -674,79 +728,67 @@ static int report_reflow_content(struct report *report)
 			continue;
 
 		tab = 0;
-		column = content_base + line_data->offset;
 
-		/* Process the next line. do {} while is used, as we don't know if the last tab has been reached until we get
-		 * there.
-		 */
+		for (cell = 0; cell < line_data->cell_count; cell++) {
+			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
+			if (cell_data == NULL || cell_data->tab_stop > REPORT_TAB_STOPS)
+				continue;
 
-		do {
-			flags = column;
-			column += REPORT_FLAG_BYTES;
-
-			/* The flags that are looked at are bold, which affects the font, and indent, which affects the width.
-			 * Underline and right don't affect the column width, so these are ignored with the formatting.
-			 *
-			 * Right flags are noted to allow the column widths and tab stops to be sorted out later.
-			 */
+			content = content_base + cell_data->offset;
 
 			/* Outline font width. */
 
-			font = (*flags & REPORT_FLAG_BOLD) ? font_b : font_n;
+			font = (cell_data->flags & REPORT_CELL_FLAGS_BOLD) ? font_b : font_n;
 
-			font_scan_string(font, column, font_KERN | font_GIVEN_FONT, 0x7fffffff, 0x7fffffff,
+			font_scan_string(font, content, font_KERN | font_GIVEN_FONT, 0x7fffffff, 0x7fffffff,
 					NULL, NULL, 0, NULL, &total, NULL, NULL);
-			font_convertto_os(total, 0, &(width[tab]), NULL);
+			font_convertto_os(total, 0, &(width[cell_data->tab_stop]), NULL);
 
 			/* ASCII text column width. */
 
-			t_width[tab] = string_ctrl_strlen(column);
+			t_width[cell_data->tab_stop] = string_ctrl_strlen(content);
 
 			/* If the column is indented, add the indent to the column widths. */
 
-			if (*flags & REPORT_FLAG_INDENT) {
-				width[tab] += REPORT_COLUMN_INDENT;
-				t_width[tab] += REPORT_TEXT_COLUMN_INDENT;
+			if (cell_data->flags & REPORT_CELL_FLAGS_INDENT) {
+				width[cell_data->tab_stop] += REPORT_COLUMN_INDENT;
+				t_width[cell_data->tab_stop] += REPORT_TEXT_COLUMN_INDENT;
 			}
 
 			/* If the column is right aligned, record the fact. */
 
-			if (*flags & REPORT_FLAG_RIGHT)
-				right[line_data->tab_bar][tab] = TRUE;
+			if (cell_data->flags & REPORT_CELL_FLAGS_RIGHT)
+				right[line_data->tab_bar][cell_data->tab_stop] = TRUE;
 
 			/* If the column is a spill column, the width is carried over from the width of the preceeding column, minus the
 			 * inter-column gap.  The previous column is then zeroed.
 			 */
 
-			if ((*flags & REPORT_FLAG_SPILL) && tab > 0) {
-				width[tab] = width[tab-1] - REPORT_COLUMN_SPACE;
-				width[tab-1] = 0;
+			if ((cell_data->flags & REPORT_CELL_FLAGS_SPILL) && (cell_data->tab_stop > 0)) {
+				width[cell_data->tab_stop] = width[cell_data->tab_stop - 1] - REPORT_COLUMN_SPACE;
+				width[cell_data->tab_stop - 1] = 0;
 
-				t_width[tab] = t_width[tab-1] - REPORT_TEXT_COLUMN_SPACE;
-				t_width[tab-1] = 0;
+				t_width[cell_data->tab_stop] = t_width[cell_data->tab_stop - 1] - REPORT_TEXT_COLUMN_SPACE;
+				t_width[cell_data->tab_stop - 1] = 0;
 			}
 
-			/* Skip past the text to the next \n or \0, then increment the tab stop. */
-
-			while (*column != '\0' && *column != '\n')
-				column++;
-			column++;
-			tab++;
-		} while (tab < REPORT_TAB_STOPS && *(column - 1) != '\0');
+			if (cell_data->tab_stop > tab)
+				tab = cell_data->tab_stop;
+		}
 
 		/* Update the tally of maximum column widths. */
 
-		for (i=0; i<tab; i++) {
+		for (i = 0; i <= tab; i++) {
 			if (width[i] > width1[line_data->tab_bar][i]) /* All column widths are noted here... */
 				width1[line_data->tab_bar][i] = width[i];
 
-			if (width[i] > width2[line_data->tab_bar][i] && i < (tab-1)) /* ...but here only for non-end column (which can spill over). */
+			if (width[i] > width2[line_data->tab_bar][i] && i < tab) /* ...but here only for non-end column (which can spill over). */
 				width2[line_data->tab_bar][i] = width[i];
 
 			if (t_width[i] > t_width1[line_data->tab_bar][i]) /* All column widths are noted here... */
 				t_width1[line_data->tab_bar][i] = t_width[i];
 
-			if (t_width[i] > t_width2[line_data->tab_bar][i] && i < (tab-1)) /* ...but here only those for non-end column. */
+			if (t_width[i] > t_width2[line_data->tab_bar][i] && i < tab) /* ...but here only those for non-end column. */
 				t_width2[line_data->tab_bar][i] = t_width[i];
 		}
 	}
@@ -1315,11 +1357,11 @@ static osbool report_save_tsv(char *filename, osbool selection, void *data)
 static void report_export_text(struct report *report, char *filename, osbool formatting)
 {
 	FILE			*out;
-	int			i, j, tab, indent, width, overrun, escape;
-	char			*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	int			line, cell, j, indent, width, overrun, escape;
+	char			*content_base, *content, buffer[REPORT_EXPORT_LINE_LENGTH];
 	size_t			line_count;
 	struct report_line_data	*line_data;
-
+	struct report_cell_data	*cell_data;
 
 	out = fopen(filename, "w");
 
@@ -1333,29 +1375,31 @@ static void report_export_text(struct report *report, char *filename, osbool for
 	content_base = report_textdump_get_base(report->content);
 	line_count = report_line_get_count(report->lines);
 
-	for (i = 0; i < line_count; i++) {
-		line_data = report_line_get_info(report->lines, i);
+	for (line = 0; line < line_count; line++) {
+		line_data = report_line_get_info(report->lines, line);
 		if (line_data == NULL)
 			continue;
 
-		tab = 0;
 		overrun = 0;
-		column = content_base + line_data->offset;
 
-		do {
-			flags = column;
-			column += REPORT_FLAG_BYTES;
-			string_ctrl_copy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
+		for (cell = 0; cell < line_data->cell_count; cell++) {
+			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
+			if (cell_data == NULL || cell_data->tab_stop > REPORT_TAB_STOPS)
+				continue;
 
-			escape = (*flags & REPORT_FLAG_BOLD) ? 0x01 : 0x00;
-			if (*flags & REPORT_FLAG_UNDER)
+			content = content_base + cell_data->offset;
+
+			string_copy(buffer, content, REPORT_EXPORT_LINE_LENGTH);
+
+			escape = (cell_data->flags & REPORT_CELL_FLAGS_BOLD) ? 0x01 : 0x00;
+			if (cell_data->flags & REPORT_CELL_FLAGS_UNDERLINE)
 				escape |= 0x08;
 
-			indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_TEXT_COLUMN_INDENT : 0;
+			indent = (cell_data->flags & REPORT_CELL_FLAGS_INDENT) ? REPORT_TEXT_COLUMN_INDENT : 0;
 			width = strlen(buffer);
 
-			if (*flags & REPORT_FLAG_RIGHT)
-				indent = report->text_width[line_data->tab_bar][tab] - width;
+			if (cell_data->flags & REPORT_CELL_FLAGS_RIGHT)
+				indent = report->text_width[line_data->tab_bar][cell_data->tab_stop] - width;
 
 			/* Output the indent spaces. */
 
@@ -1380,41 +1424,33 @@ static void report_export_text(struct report *report, char *filename, osbool for
 				fputc((char) 0x80, out);
 			}
 
-			/* Find the next field. */
+			/* If there is another cell after this, pad out with spaces. */
 
-			while (*column != '\0' && *column != '\n')
-				column++;
-
-			/* If there is another field, pad out with spaces. */
-
-			if (*column != '\0') {
+			if ((cell + 1) < line_data->cell_count) {
 				/* Check the actual width against that allocated.  If it is more,
 				 * note the amount that spills into the next column, taking into
 				 * account the width of the inter column gap.
 				 */
 
-				if ((width+indent) > report->text_width[line_data->tab_bar][tab])
-					overrun += (width+indent) - report->text_width[line_data->tab_bar][tab] - REPORT_TEXT_COLUMN_SPACE;
+				if ((width + indent) > report->text_width[line_data->tab_bar][cell_data->tab_stop])
+					overrun += (width + indent) - report->text_width[line_data->tab_bar][cell_data->tab_stop] - REPORT_TEXT_COLUMN_SPACE;
 
 				/* Pad out the required number of spaces, taking into account any
 				 * overspill from earlier columns.
 				 */
 
-				for (j = 0; j < (report->text_width[line_data->tab_bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
+				for (j = 0; j < (report->text_width[line_data->tab_bar][cell_data->tab_stop] - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
 					fputc(' ', out);
 
 				/* Reduce the overspill record by the amount of free space in this column. */
 
-				if ((width+indent) < report->text_width[line_data->tab_bar][tab]) {
-					overrun -= report->text_width[line_data->tab_bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
+				if ((width+indent) < report->text_width[line_data->tab_bar][cell_data->tab_stop]) {
+					overrun -= report->text_width[line_data->tab_bar][cell_data->tab_stop] - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
 					if (overrun < 0)
 						overrun = 0;
 				}
 			}
-
-			column++;
-			tab++;
-		} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+		}
 
 		fputc('\n', out);
 	}
@@ -1439,11 +1475,13 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 static void report_export_delimited(struct report *report, char *filename, enum filing_delimit_type format, int filetype)
 {
-	FILE			*out;
-	int			i, tab, delimit;
-	char			*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
-	size_t			line_count;
-	struct report_line_data	*line_data;
+	FILE				*out;
+	int				line, cell;
+	char				*content_base, *content;
+	size_t				line_count;
+	enum filing_delimit_flags	delimit_flags;
+	struct report_line_data		*line_data;
+	struct report_cell_data		*cell_data;
 
 	out = fopen(filename, "w");
 
@@ -1457,36 +1495,27 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 	content_base = report_textdump_get_base(report->content);
 	line_count = report_line_get_count(report->lines);
 
-	for (i = 0; i < line_count; i++) {
-		line_data = report_line_get_info(report->lines, i);
+	for (line = 0; line < line_count; line++) {
+		line_data = report_line_get_info(report->lines, line);
 		if (line_data == NULL)
 			continue;
 
-		tab = 0;
-		column = content_base + line_data->offset;
+		for (cell = 0; cell < line_data->cell_count; cell++) {
+			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
+			if (cell_data == NULL || cell_data->tab_stop > REPORT_TAB_STOPS)
+				continue;
 
-		do {
-			flags = column;
-			column += REPORT_FLAG_BYTES;
-			string_ctrl_copy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
-
-			/* Find the next field. */
-
-			while (*column != '\0' && *column != '\n')
-				column++;
+			content = content_base + cell_data->offset;
 
 			/* Output the actual field data. */
 
-			delimit = (*column == '\0') ? DELIMIT_LAST : 0;
+			delimit_flags = ((cell + 1) >= line_data->cell_count) ? DELIMIT_LAST : 0;
 
-			if (*flags & REPORT_FLAG_NUMERIC)
-				delimit |= DELIMIT_NUM;
+			if (cell_data->flags & REPORT_CELL_FLAGS_NUMERIC)
+				delimit_flags |= DELIMIT_NUM;
 
-			filing_output_delimited_field(out, buffer, format, delimit);
-
-			column++;
-			tab++;
-		} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+			filing_output_delimited_field(out, content, format, delimit_flags);
+		}
 	}
 
 	/* Close the file and set the type correctly. */
@@ -2033,9 +2062,10 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 {
 	os_error		*error;
 	font_f			font;
-	int			tab = 0, indent, total, width;
-	char			*content_base, *column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN + 10];
+	int			cell, indent, total, width;
+	char			*content_base, *content, *paint, buffer[REPORT_MAX_LINE_LEN + 10];
 	struct report_line_data	*line_data;
+	struct report_cell_data	*cell_data;
 
 	content_base = report_textdump_get_base(report->content);
 
@@ -2043,17 +2073,18 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 	if (line_data == NULL)
 		return NULL;
 
-	column = content_base + line_data->offset;
+	for (cell = 0; cell < line_data->cell_count; cell++) {
+		cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
+		if (cell_data == NULL || cell_data->tab_stop > REPORT_TAB_STOPS)
+			continue;
 
-	do {
-		flags = column;
-		column += REPORT_FLAG_BYTES;
+		content = content_base + cell_data->offset;
 
-		font = (*flags & REPORT_FLAG_BOLD) ? bold : normal;
-		indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_COLUMN_INDENT : 0;
+		font = (cell_data->flags & REPORT_CELL_FLAGS_BOLD) ? bold : normal;
+		indent = (cell_data->flags & REPORT_CELL_FLAGS_INDENT) ? REPORT_COLUMN_INDENT : 0;
 
-		if (*flags & REPORT_FLAG_RIGHT) {
-			error = xfont_scan_string(font, column, font_KERN | font_GIVEN_FONT,
+		if (cell_data->flags & REPORT_CELL_FLAGS_RIGHT) {
+			error = xfont_scan_string(font, content, font_KERN | font_GIVEN_FONT,
 					0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL, &total, NULL, NULL);
 			if (error != NULL)
 				return error;
@@ -2062,29 +2093,24 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 			if (error != NULL)
 				return error;
 
-			indent = report->font_width[line_data->tab_bar][tab] - width;
+			indent = report->font_width[line_data->tab_bar][cell_data->tab_stop] - width;
 		}
 
-		if (*flags & REPORT_FLAG_UNDER) {
+		if (cell_data->flags & REPORT_CELL_FLAGS_UNDERLINE) {
 			buffer[0] = font_COMMAND_UNDERLINE;
 			buffer[1] = 230;
 			buffer[2] = 18;
-			string_copy(buffer + 3, column, REPORT_MAX_LINE_LEN + 7);
+			string_copy(buffer + 3, content, REPORT_MAX_LINE_LEN + 7);
 			paint = buffer;
 		} else {
-			paint = column;
+			paint = content;
 		}
 
 		error = xfont_paint(font, paint, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
-				x + report->font_tab[line_data->tab_bar][tab] + indent, y, NULL, NULL, 0);
+				x + report->font_tab[line_data->tab_bar][cell_data->tab_stop] + indent, y, NULL, NULL, 0);
 		if (error != NULL)
 			return error;
-
-		while (*column != '\0' && *column != '\n')
-			column++;
-		column++;
-		tab++;
-	} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+	}
 
 	return NULL;
 }

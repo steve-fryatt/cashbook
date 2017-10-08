@@ -44,21 +44,6 @@
  * Static constants
  */
 
-
-/* Report formatting flags. */
-
-#define REPORT_FLAG_BYTES 1 /* The length of the formatting flag data. */
-
-#define REPORT_FLAG_INDENT       0x01 /* The item is indented into the column. */
-#define REPORT_FLAG_BOLD         0x02 /* The item is in bold. */
-#define REPORT_FLAG_UNDER        0x04 /* The item is underlined. */
-#define REPORT_FLAG_RIGHT        0x08 /* The item is right aligned. */
-#define REPORT_FLAG_NUMERIC      0x10 /* The item is numeric. */
-#define REPORT_FLAG_SPILL        0x20 /* The column is spill from adjacent columns on the left. */
-//#define REPORT_FLAG_KEEPTOGETHER 0x40 /* The row is part of a keep-together block, the first line of which is to be repeated on page breaks. */
-#define REPORT_FLAG_NOTNULL      0x80 /* Used to prevent the flag byte being a null terminator. */
-
-
 /**
  * The maximum length of a report line.
  */

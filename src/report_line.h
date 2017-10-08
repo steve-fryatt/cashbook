@@ -49,7 +49,8 @@ enum report_line_flags {
 
 struct report_line_data {
 	enum report_line_flags	flags;					/**< Flags relating to the report line.					*/
-	unsigned		offset;					/**< Offset of the line data in the text dump block.			*/
+	unsigned		first_cell;				/**< Offset of the line's first cell in the cell data block.		*/
+	size_t			cell_count;				/**< The number of cells in the line.					*/
 	int			tab_bar;				/**< The tab bar which relates to the line.				*/
 	int			ypos;					/**< The vertical position of the line in the window, in OS Units.	*/
 };
@@ -105,13 +106,14 @@ void report_line_close(struct report_line_block *handle);
  * Add a line to a report line data block.
  *
  * \param *handle		The block to add to.
- * \param offset		The offset of the line data in the data store.
+ * \param first_cell		The offset of the first cell's data in the cell store.
+ * \param cell_count		The number of cells in the line.
  * \param tab_bar		The tab bar which applies to the line.
  * \param flags			The flags associated with the line.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool report_line_add(struct report_line_block *handle, unsigned offset, int tab_bar, enum report_line_flags flags);
+osbool report_line_add(struct report_line_block *handle, unsigned first_cell, size_t cell_count, int tab_bar, enum report_line_flags flags);
 
 
 /**

@@ -94,7 +94,7 @@ struct report_cell_block *report_cell_create(size_t allocation)
 
 	/* Claim the memory for the dump itself. */
 
-	if (!flexutils_allocate((void **) &(new->cells), sizeof(struct report_cell_block), new->allocation)) {
+	if (!flexutils_allocate((void **) &(new->cells), sizeof(struct report_cell_data), new->allocation)) {
 		heap_free(new);
 		return NULL;
 	}
@@ -134,7 +134,7 @@ void report_cell_clear(struct report_cell_block *handle)
 
 	handle->cell_count = 0;
 
-	if (flexutils_resize((void **) &(handle->cells), sizeof(struct report_cell_block), handle->allocation))
+	if (flexutils_resize((void **) &(handle->cells), sizeof(struct report_cell_data), handle->allocation))
 		handle->size = handle->allocation;
 }
 
@@ -151,8 +151,10 @@ void report_cell_close(struct report_cell_block *handle)
 	if (handle == NULL || handle->cells == NULL)
 		return;
 
-	if (flexutils_resize((void **) &(handle->cells), sizeof(struct report_cell_block), handle->cell_count))
+	if (flexutils_resize((void **) &(handle->cells), sizeof(struct report_cell_data), handle->cell_count))
 		handle->size = handle->cell_count;
+
+	debug_printf("Cell data: %d records, using %dKb", handle->cell_count, handle->cell_count * sizeof (struct report_cell_data) / 1024);
 }
 
 
@@ -163,28 +165,30 @@ void report_cell_close(struct report_cell_block *handle)
  * \param offset		The offset of the cell data in the data store.
  * \param tab_stop		The tab stop which applies to the cell.
  * \param flags			The flags associated with the cell.
- * \return			TRUE if successful; FALSE on failure.
+ * \return			The cell's offset, or REPORT_CELL_NULL on failure.
  */
 
-osbool report_cell_add(struct report_cell_block *handle, unsigned offset, int tab_stop, enum report_cell_flags flags)
+unsigned report_cell_add(struct report_cell_block *handle, unsigned offset, int tab_stop, enum report_cell_flags flags)
 {
+	unsigned new;
+
 	if (handle == NULL || handle->cells == NULL)
-		return FALSE;
+		return REPORT_CELL_NULL;
 
 	if (handle->cell_count >= handle->size) {
-		if (!flexutils_resize((void **) &(handle->cells), sizeof(struct report_cell_block), handle->size + handle->allocation))
-			return FALSE;
+		if (!flexutils_resize((void **) &(handle->cells), sizeof(struct report_cell_data), handle->size + handle->allocation))
+			return REPORT_CELL_NULL;
 
 		handle->size += handle->allocation;
 	}
 
-	handle->cells[handle->cell_count].flags = flags;
-	handle->cells[handle->cell_count].offset = offset;
-	handle->cells[handle->cell_count].tab_stop = tab_stop;
+	new = handle->cell_count++;
 
-	handle->cell_count++;
+	handle->cells[new].flags = flags;
+	handle->cells[new].offset = offset;
+	handle->cells[new].tab_stop = tab_stop;
 
-	return TRUE;
+	return new;
 }
 
 

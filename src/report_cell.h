@@ -36,15 +36,15 @@
  */
 
 enum report_cell_flags {
-	REPORT_CELL_FLAGS_NONE	= 0x0000,		/**< No column flags are set.											*/
+	REPORT_CELL_FLAGS_NONE		= 0x0000,		/**< No column flags are set.											*/
 	REPORT_CELL_FLAGS_INDENT	= 0x0001,
-	REPORT_CELL_FLAGS_BOLD	= 0x0002,
+	REPORT_CELL_FLAGS_BOLD		= 0x0002,
 	REPORT_CELL_FLAGS_ITALIC	= 0x0004,
 	REPORT_CELL_FLAGS_UNDERLINE	= 0x0008,
 	REPORT_CELL_FLAGS_CENTRE	= 0x0010,
-	REPORT_CELL_FLAGS_RIGHT	= 0x0020,
+	REPORT_CELL_FLAGS_RIGHT		= 0x0020,
 	REPORT_CELL_FLAGS_NUMERIC	= 0x0040,
-	REPORT_CELL_FLAGS_SPILL	= 0x0080,
+	REPORT_CELL_FLAGS_SPILL		= 0x0080,
 	REPORT_CELL_FLAGS_RULE_BEFORE	= 0x0100
 };
 
@@ -65,6 +65,13 @@ struct report_cell_data {
  */
 
 struct report_cell_block;
+
+
+/**
+ * 'NULL' value for use with the unsigned cell block offsets.
+ */
+
+#define REPORT_CELL_NULL 0xffffffff
 
 
 /**
@@ -113,10 +120,10 @@ void report_cell_close(struct report_cell_block *handle);
  * \param offset		The offset of the cell data in the data store.
  * \param tab_stop		The tab stop which applies to the cell.
  * \param flags			The flags associated with the cell.
- * \return			TRUE if successful; FALSE on failure.
+ * \return			The cell's offset, or REPORT_CELL_NULL on failure.
  */
 
-osbool report_cell_add(struct report_cell_block *handle, unsigned offset, int tab_stop, enum report_cell_flags flags);
+unsigned report_cell_add(struct report_cell_block *handle, unsigned offset, int tab_stop, enum report_cell_flags flags);
 
 
 /**

@@ -36,10 +36,10 @@
  */
 
 enum report_line_flags {
-	REPORT_LINE_FLAGS_NONE		= 0x00,
+	REPORT_LINE_FLAGS_NONE		= 0x00,		/**< No line flags are set.											*/
 	REPORT_LINE_FLAGS_RULE_BELOW	= 0x01,
 	REPORT_LINE_FLAGS_RULE_ABOVE	= 0x02,
-	REPORT_LINE_FLAGS_KEEP_TOGETHER	= 0x04
+	REPORT_LINE_FLAGS_KEEP_TOGETHER	= 0x04		/**< The row is part of a keep-together block, the first line of which is to be repeated on page breaks.	*/
 };
 
 

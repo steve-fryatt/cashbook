@@ -56,12 +56,6 @@
 
 #define REPORT_TAB_STOPS 20
 
-/**
- * The maximum length of a font name.
- */
-
-#define REPORT_MAX_FONT_NAME 128
-
 /* Layout details */
 
 #define REPORT_BASELINE_OFFSET 4

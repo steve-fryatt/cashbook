@@ -33,6 +33,7 @@
 
 /* OSLib header files */
 
+#include "oslib/font.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib header files. */
@@ -91,13 +92,13 @@ static wimp_i			report_format_dialogue_font_icon = -1;
  * The starting normal font name.
  */
 
-static char			report_format_dialogue_initial_normal[REPORT_MAX_FONT_NAME];
+static char			report_format_dialogue_initial_normal[font_NAME_LIMIT];
 
 /**
  * The starting bold font name.
  */
 
-static char			report_format_dialogue_initial_bold[REPORT_MAX_FONT_NAME];
+static char			report_format_dialogue_initial_bold[font_NAME_LIMIT];
 
 /**
  * The staring font size.
@@ -176,8 +177,8 @@ void report_format_dialogue_initialise(void)
 void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int, osbool),
 		char *normal, char *bold, int size, int spacing, osbool grid)
 {
-	string_copy(report_format_dialogue_initial_normal, normal, REPORT_MAX_FONT_NAME);
-	string_copy(report_format_dialogue_initial_bold, bold, REPORT_MAX_FONT_NAME);
+	string_copy(report_format_dialogue_initial_normal, normal, font_NAME_LIMIT);
+	string_copy(report_format_dialogue_initial_bold, bold, font_NAME_LIMIT);
 
 	report_format_dialogue_initial_size = size;
 	report_format_dialogue_initial_spacing = spacing;
@@ -383,8 +384,8 @@ static void report_format_dialogue_process(void)
 
 	/* Extract the information. */
 
-	icons_copy_text(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_NFONT, report_format_dialogue_initial_normal, REPORT_MAX_FONT_NAME);
-	icons_copy_text(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_BFONT, report_format_dialogue_initial_bold, REPORT_MAX_FONT_NAME);
+	icons_copy_text(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_NFONT, report_format_dialogue_initial_normal, font_NAME_LIMIT);
+	icons_copy_text(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_BFONT, report_format_dialogue_initial_bold, font_NAME_LIMIT);
 
 	report_format_dialogue_initial_size = atoi(icons_get_indirected_text_addr(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_FONTSIZE)) * 16;
 	report_format_dialogue_initial_spacing = atoi(icons_get_indirected_text_addr(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_FONTSPACE));

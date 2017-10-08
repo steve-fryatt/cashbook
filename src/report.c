@@ -82,6 +82,7 @@
 #include "print_dialogue.h"
 #include "print_protocol.h"
 #include "report_cell.h"
+#include "report_fonts.h"
 #include "report_format_dialogue.h"
 #include "report_line.h"
 #include "report_textdump.h"
@@ -152,10 +153,7 @@ struct report {
 
 	/* Font data */
 
-	char			font_normal[REPORT_MAX_FONT_NAME];		/**< Name of 'normal' outline font.				*/
-	char			font_bold[REPORT_MAX_FONT_NAME];		/**< Name of bold outline font.					*/
-	int			font_size;					/**< Font size in 1/16 points.					*/
-	int			font_spacing;					/**< Line spacing in percent.					*/
+	struct report_fonts_block	*fonts;
 
 	/* Display options. */
 
@@ -207,7 +205,6 @@ static osbool			report_add_cell(struct report *report, char *text, enum report_c
 
 static void			report_calculate_dimensions(struct report *report);
 static int			report_reflow_content(struct report *report);
-static osbool			report_find_fonts(struct report *report, font_f *normal, font_f *bold);
 
 static void			report_view_close_window_handler(wimp_close *close);
 static void			report_view_redraw_handler(wimp_draw *redraw);
@@ -232,8 +229,8 @@ static void			report_print(struct report *report, osbool text, osbool textformat
 static void			report_start_print_job(char *filename);
 static void			report_cancel_print_job(void);
 static void			report_print_as_graphic(struct report *report, osbool fit_width, osbool rotate, osbool pagenum);
-static void			report_handle_print_error(os_error *error, os_fw file, font_f f1, font_f f2);
-static os_error			*report_plot_line(struct report *report, unsigned int line, int x, int y, font_f normal, font_f bold);
+static void			report_handle_print_error(os_error *error, os_fw file, struct report_fonts_block *fonts);
+static os_error			*report_plot_line(struct report *report, unsigned int line, int x, int y);
 static enum report_page_area	report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer, unsigned header_size, unsigned footer_size);
 
 
@@ -295,6 +292,10 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 
 	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
+
+	new->fonts = report_fonts_create();
+	if (new->fonts == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
 
 	new->content = report_textdump_create(0, 200, '\0');
 	if (new->content == NULL)
@@ -426,10 +427,9 @@ static void report_close_and_calculate(struct report *report)
 
 	/* Set up the display details. */
 
-	string_copy(report->font_normal, config_str_read("ReportFontNormal"), REPORT_MAX_FONT_NAME);
-	string_copy(report->font_bold, config_str_read("ReportFontBold"), REPORT_MAX_FONT_NAME);
-	report->font_size = config_int_read("ReportFontSize") * 16;
-	report->font_spacing = config_int_read("ReportFontLinespace");
+	report_fonts_set_faces(report->fonts, config_str_read("ReportFontNormal"), config_str_read("ReportFontBold"), NULL, NULL);
+	report_fonts_set_size(report->fonts, config_int_read("ReportFontSize") * 16, config_int_read("ReportFontLinespace"));
+
 	report->show_grid = config_opt_read("ReportShowGrid");
 	report_calculate_dimensions(report);
 
@@ -475,6 +475,7 @@ void report_delete(struct report *report)
 	report_textdump_destroy(report->content);
 	report_cell_destroy(report->cells);
 	report_line_destroy(report->lines);
+	report_fonts_destroy(report->fonts);
 
 	if (report->template != NULL)
 		heap_free(report->template);
@@ -661,7 +662,7 @@ static void report_calculate_dimensions(struct report *report)
 		return;
 
 	report->width = report_reflow_content(report);
-	font_convertto_os(1000 * (report->font_size / 16) * report->font_spacing / 100, 0, &(report->linespace), NULL);
+	report->linespace = report_fonts_get_linespace(report->fonts);
 	report->rulespace = (report->show_grid) ? REPORT_RULE_SPACE : 0;
 	report->height = report_line_get_count(report->lines) * (report->linespace + report->rulespace) + REPORT_BOTTOM_MARGIN;
 }
@@ -684,7 +685,6 @@ static int report_reflow_content(struct report *report)
 				i, j, tab, total;
 	unsigned		line, cell;
 	char			*content_base, *content;
-	font_f			font, font_n, font_b;
 	size_t			line_count;
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data;
@@ -713,7 +713,7 @@ static int report_reflow_content(struct report *report)
 
 	/* Find the font to be used by the report. */
 
-	report_find_fonts(report, &font_n, &font_b);
+	report_fonts_find(report->fonts);
 
 	content_base = report_textdump_get_base(report->content);
 
@@ -737,11 +737,7 @@ static int report_reflow_content(struct report *report)
 
 			/* Outline font width. */
 
-			font = (cell_data->flags & REPORT_CELL_FLAGS_BOLD) ? font_b : font_n;
-
-			font_scan_string(font, content, font_KERN | font_GIVEN_FONT, 0x7fffffff, 0x7fffffff,
-					NULL, NULL, 0, NULL, &total, NULL, NULL);
-			font_convertto_os(total, 0, &(width[cell_data->tab_stop]), NULL);
+			report_fonts_get_string_width(report->fonts, content, cell_data->flags, &(width[cell_data->tab_stop]));
 
 			/* ASCII text column width. */
 
@@ -792,8 +788,7 @@ static int report_reflow_content(struct report *report)
 		}
 	}
 
-	font_lose_font(font_n);
-	font_lose_font(font_b);
+	report_fonts_lose(report->fonts);
 
 	/* Go through the columns, storing the widths into the report data block.  If right alignment has been used, we
 	 * must record the widest width; if not, we can get away with the widest non-end-column width.
@@ -843,36 +838,6 @@ static int report_reflow_content(struct report *report)
 	total += (REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN);
 
 	return total;
-}
-
-
-/**
- * Look up the fonts needed for a report, returning font handles for the two.
- * If the specified fonts don't exist then fall back to Homerton.
- *
- * \param *report		The report to look fonts up for.
- * \param *normal		Return the font handle for the normal font.
- * \param *bold			Return the font handle for the bold font.
- * \return			TRUE if successful; else FALSE.
- */
-
-static osbool report_find_fonts(struct report *report, font_f *normal, font_f *bold)
-{
-	os_error	*error, *e1 = NULL, *e2 = NULL;
-
-	if (normal != NULL) {
-		error = xfont_find_font(report->font_normal, report->font_size, report->font_size, 0, 0, normal, NULL, NULL);
-		if (error != NULL)
-			e1 = xfont_find_font("Homerton.Medium", report->font_size, report->font_size, 0, 0, normal, NULL, NULL);
-	}
-
-	if (bold != NULL) {
-		error = xfont_find_font (report->font_bold, report->font_size, report->font_size, 0, 0, bold, NULL, NULL);
-		if (error != NULL)
-			e2 = xfont_find_font ("Homerton.Bold", report->font_size, report->font_size, 0, 0, bold, NULL, NULL);
-	}
-
-	return (e1 != NULL || e2 != NULL) ? TRUE : FALSE;
 }
 
 
@@ -1046,7 +1011,6 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 static void report_view_redraw_handler(wimp_draw *redraw)
 {
 	int		ox, oy, top, base, x, y, linespace, line_count;
-	font_f		font_n, font_b;
 	struct report	*report;
 	osbool		more;
 
@@ -1057,7 +1021,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 	/* Find the required font, set it and calculate the font size from the linespacing in points. */
 
-	report_find_fonts(report, &font_n, &font_b);
+	report_fonts_find(report->fonts);
 
 	more = wimp_redraw_window(redraw);
 
@@ -1091,14 +1055,12 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 		for (y = top; y < line_count && y <= base; y++)
 			report_plot_line(report, y, ox + REPORT_LEFT_MARGIN,
-					oy - linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace,
-					font_n, font_b);
+					oy - linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace);
 
 		more = wimp_get_rectangle(redraw);
 	}
 
-	font_lose_font(font_n);
-	font_lose_font(font_b);
+	report_fonts_lose(report->fonts);
 }
 
 
@@ -1135,11 +1097,17 @@ void report_redraw_all(struct file_block *file)
 
 static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 {
+	char	normal[font_NAME_LIMIT], bold[font_NAME_LIMIT];
+	int	size, spacing;
+
 	if (report == NULL || ptr == NULL)
 		return;
 
+	report_fonts_get_faces(report->fonts, normal, bold, NULL, NULL, font_NAME_LIMIT);
+	report_fonts_get_size(report->fonts, &size, &spacing);
+
 	report_format_dialogue_open(ptr, report, report_process_format_window,
-			report->font_normal, report->font_bold, report->font_size, report->font_spacing, report->show_grid);
+			normal, bold, size, spacing, report->show_grid);
 }
 
 
@@ -1158,10 +1126,9 @@ static void report_process_format_window(struct report *report, char *normal, ch
 
 	/* Extract the information. */
 
-	string_copy(report->font_normal, normal, REPORT_MAX_FONT_NAME);
-	string_copy(report->font_bold, bold, REPORT_MAX_FONT_NAME);
-	report->font_size = size;
-	report->font_spacing = spacing;
+	report_fonts_set_faces(report->fonts, normal, bold, NULL, NULL);
+	report_fonts_set_size(report->fonts, size, spacing);
+
 	report->show_grid = grid;
 
 	/* Tidy up and redraw the windows */
@@ -1615,11 +1582,11 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	char				title[REPORT_PRINT_TITLE_LENGTH];
 	char				b0[REPORT_PRINT_BUFFER_LENGTH], b1[REPORT_PRINT_BUFFER_LENGTH], b2[REPORT_PRINT_BUFFER_LENGTH], b3[REPORT_PRINT_BUFFER_LENGTH];
 	pdriver_features		features;
-	font_f				font_n = 0, font_b = 0;
 	osbool				more;
 	int				width, offset;
 	int				pages_x, pages_y, lines_per_page, trim, page_x, page_y, lines, header;
 	int				top, base, y, linespace, bar;
+	int				font_size, font_linespace;
 	unsigned int			footer_width, footer_height, header_height, page_width, page_height, scale, page_xstart, line;
 	double				scaling;
 	struct report_print_pagination	*pages;
@@ -1637,15 +1604,18 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	/* Find the fonts we will use and size the header and footer accordingly. */
 
-	report_find_fonts(report, &font_n, &font_b);
-	linespace = report->linespace + report->rulespace;
+	report_fonts_find(report->fonts);
+
+	linespace = report_fonts_get_linespace(report->fonts) + report->rulespace;
 
 	line_count = report_line_get_count(report->lines);
 
 	/* Establish the page dimensions. */
 
+	report_fonts_get_size(report->fonts, &font_size, &font_linespace);
+
 	header_height = 0;
-	footer_height = (pagenum) ? (1000 * report->font_size) * report->font_spacing / 1600 : 0;
+	footer_height = (pagenum) ? (1000 * font_size) * font_linespace / 1600 : 0;
 
 	areas = report_get_page_areas(rotate, &body, NULL, &footer, header_height, footer_height);
 
@@ -1653,7 +1623,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	error = xosfind_openoutw(osfind_NO_PATH, "printer:", NULL, &out);
 	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
+		report_handle_print_error(error, out, report->fonts);
 		return;
 	}
 
@@ -1662,16 +1632,18 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	msgs_param_lookup("PJobTitle", title, REPORT_PRINT_TITLE_LENGTH, report->window_title, NULL, NULL, NULL);
 	error = xpdriver_select_jobw(out, title, NULL);
 	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
+		report_handle_print_error(error, out, report->fonts);
 		return;
 	}
 
 	/* Declare the fonts we are using, if required. */
 
 	if (features & pdriver_FEATURE_DECLARE_FONT) {
-		xpdriver_declare_font(font_n, 0, pdriver_KERNED);
-		xpdriver_declare_font(font_b, 0, pdriver_KERNED);
-		xpdriver_declare_font(0, 0, 0);
+		error = report_fonts_declare(report->fonts);
+		if (error != NULL) {
+			report_handle_print_error(error, out, report->fonts);
+			return;
+		}
 	}
 
 	/* Calculate the page size, positions, transformations etc. */
@@ -1683,7 +1655,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	error = xfont_convertto_os(page_width, page_height, (int *) &page_width, (int *) &page_height);
 	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
+		report_handle_print_error(error, out, report->fonts);
 		return;
 	}
 
@@ -1812,7 +1784,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	error = xfont_convertto_os(footer_width, footer_height, (int *) &footer_width, (int *) &footer_height);
 	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
+		report_handle_print_error(error, out, report->fonts);
 		return;
 	}
 
@@ -1873,7 +1845,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			if (rotate) {
 				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1) + trim) * scaling, 0, (int *) &offset, NULL);
 				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
+					report_handle_print_error(error, out, report->fonts);
 					return;
 				}
 
@@ -1882,7 +1854,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			} else {
 				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1) + trim) * scaling, 0, (int *) &offset, NULL);
 				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
+					report_handle_print_error(error, out, report->fonts);
 					return;
 				}
 
@@ -1894,14 +1866,14 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 			error = xpdriver_give_rectangle(REPORT_PAGE_BODY, &p_rect, &p_trfm, &p_pos, os_COLOUR_WHITE);
 			if (error != NULL) {
-				report_handle_print_error(error, out, font_n, font_b);
+				report_handle_print_error(error, out, report->fonts);
 				return;
 			}
 
 			if (areas & REPORT_PAGE_FOOTER) {
 				error = xpdriver_give_rectangle(REPORT_PAGE_FOOTER, &f_rect, &p_trfm, &f_pos, os_COLOUR_WHITE);
 				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
+					report_handle_print_error(error, out, report->fonts);
 					return;
 				}
 			}
@@ -1920,15 +1892,9 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 						top = -1;
 					base = (linespace + (linespace / 2) - rect.y0 ) / linespace;
 
-					error = xcolourtrans_set_font_colours(font_n, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
+					error = report_fonts_set_colour(report->fonts, os_COLOUR_BLACK, os_COLOUR_WHITE);
 					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
-						return;
-					}
-
-					error = xcolourtrans_set_font_colours(font_b, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
-					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
+						report_handle_print_error(error, out, report->fonts);
 						return;
 					}
 
@@ -1940,10 +1906,9 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 						else
 							line = pages[page_y].first_line + y;
 						error = report_plot_line(report, line, REPORT_LEFT_MARGIN,
-								-linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace,
-								font_n, font_b);
+								-linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace);
 						if (error != NULL) {
-							report_handle_print_error(error, out, font_n, font_b);
+							report_handle_print_error(error, out, report->fonts);
 							return;
 						}
 					}
@@ -1960,23 +1925,15 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 						msgs_param_lookup("Page2", title, REPORT_PRINT_TITLE_LENGTH, b0, b1, b2, b3);
 					}
 
-					error = xfont_scan_string(font_n, title, font_KERN | font_GIVEN_FONT,
-							0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL, &width, NULL, NULL);
+					error = report_fonts_get_string_width(report->fonts, title, REPORT_CELL_FLAGS_NONE, &width);
 					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
+						report_handle_print_error(error, out, report->fonts);
 						return;
 					}
 
-					error = xfont_convertto_os(width, 0, &width, NULL);
+					error = report_fonts_paint_text(report->fonts, title, (footer_width - width) / 2, 4, REPORT_CELL_FLAGS_NONE);
 					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
-						return;
-					}
-
-					error = xfont_paint(font_n, title, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
-							(footer_width - width) / 2, 4, NULL, NULL, 0);
-					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
+						report_handle_print_error(error, out, report->fonts);
 						return;
 					}
 					break;
@@ -1987,7 +1944,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 				error = xpdriver_get_rectangle(&rect, &more, (int *) &area);
 				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
+					report_handle_print_error(error, out, report->fonts);
 					return;
 				}
 			}
@@ -2001,7 +1958,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	error = xpdriver_end_jobw(out);
 
 	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
+		report_handle_print_error(error, out, report->fonts);
 		return;
 	}
 
@@ -2009,8 +1966,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	xosfind_closew(out);
 
-	font_lose_font(font_n);
-	font_lose_font(font_b);
+	report_fonts_lose(report->fonts);
 
 	free(pages);
 
@@ -2023,22 +1979,18 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
  *
  * \param *error	The OS error block rescribing the error.
  * \param file		The print output file handle.
- * \param f1		The first font handle.
- * \param f2		The second font handle.
+ * \param *fonts	The Report Fonts instance in use.
  */
 
-static void report_handle_print_error(os_error *error, os_fw file, font_f f1, font_f f2)
+static void report_handle_print_error(os_error *error, os_fw file, struct report_fonts_block *fonts)
 {
 	if (file != 0) {
 		xpdriver_abort_jobw(file);
 		xosfind_closew(file);
 	}
 
-	if (f1 != 0)
-		font_lose_font(f1);
-
-	if (f2 != 0)
-		font_lose_font(f2);
+	if (fonts != NULL)
+		report_fonts_lose(fonts);
 
 	hourglass_off();
 	error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -2052,16 +2004,13 @@ static void report_handle_print_error(os_error *error, os_fw file, font_f f1, fo
  * \param line		The line to be printed.
  * \param x		The x coordinate to plot at.
  * \param y		The y coordinate to plot at.
- * \param normal	The font handle for the normal font face.
- * \param bold		The font handle for the bold font face.
  * \return		Pointer to an error block, or NULL for success.
  */
 
-static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y, font_f normal, font_f bold)
+static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y)
 {
 	os_error		*error;
-	font_f			font;
-	int			cell, indent, total, width;
+	int			cell, indent, width;
 	char			*content_base, *content, *paint, buffer[REPORT_MAX_LINE_LEN + 10];
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data;
@@ -2079,16 +2028,10 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 
 		content = content_base + cell_data->offset;
 
-		font = (cell_data->flags & REPORT_CELL_FLAGS_BOLD) ? bold : normal;
 		indent = (cell_data->flags & REPORT_CELL_FLAGS_INDENT) ? REPORT_COLUMN_INDENT : 0;
 
 		if (cell_data->flags & REPORT_CELL_FLAGS_RIGHT) {
-			error = xfont_scan_string(font, content, font_KERN | font_GIVEN_FONT,
-					0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL, &total, NULL, NULL);
-			if (error != NULL)
-				return error;
-
-			error = xfont_convertto_os(total, 0, &width, NULL);
+			error = report_fonts_get_string_width(report->fonts, content, cell_data->flags, &width);
 			if (error != NULL)
 				return error;
 
@@ -2105,8 +2048,8 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 			paint = content;
 		}
 
-		error = xfont_paint(font, paint, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
-				x + report->font_tab[line_data->tab_bar][cell_data->tab_stop] + indent, y, NULL, NULL, 0);
+		error = report_fonts_paint_text(report->fonts, paint,
+				x + report->font_tab[line_data->tab_bar][cell_data->tab_stop] + indent, y, cell_data->flags);
 		if (error != NULL)
 			return error;
 	}

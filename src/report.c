@@ -163,16 +163,11 @@ struct report {
 
 	/* Report content */
 
-//	int			lines;						/**< The number of lines in the report.				*/
-//	int			max_lines;					/**< The size of the line pointer block.			*/
-
 	int			width;						/**< The displayed width of the report data in OS Units.	*/
 	int			height;						/**< The displayed height of the report data in OS Units.	*/
 
 	int			linespace;					/**< The height allocated to a line of text, in OS Units.	*/
 	int			rulespace;					/**< The height allocated to a horizontal rule, in OS Units.	*/
-
-//	int			*line_ptr;					/**< The line pointer block (flex block).			*/
 
 	struct report_textdump_block	*content;
 	struct report_line_block	*lines;

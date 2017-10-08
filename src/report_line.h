@@ -107,10 +107,11 @@ void report_line_close(struct report_line_block *handle);
  * \param *handle		The block to add to.
  * \param offset		The offset of the line data in the data store.
  * \param tab_bar		The tab bar which applies to the line.
+ * \param flags			The flags associated with the line.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool report_line_add(struct report_line_block *handle, unsigned offset, int tab_bar);
+osbool report_line_add(struct report_line_block *handle, unsigned offset, int tab_bar, enum report_line_flags flags);
 
 
 /**

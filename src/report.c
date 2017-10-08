@@ -510,8 +510,9 @@ void report_delete(struct report *report)
 
 void report_write_line(struct report *report, int bar, char *text)
 {
-	char		*c, *copy, *flag;
-	unsigned	offset;
+	char			*c, *copy, *flag;
+	unsigned		offset;
+	enum report_line_flags	line_flags;
 
 	#ifdef DEBUG
 	debug_printf("Print line: %s", text);
@@ -536,6 +537,8 @@ void report_write_line(struct report *report, int bar, char *text)
 
 	flag = c++;
 	*flag = REPORT_FLAG_NOTNULL;
+
+	line_flags = REPORT_LINE_FLAGS_NONE;
 
 	while (*text != '\0') {
 		if (*text == '\\') {
@@ -573,7 +576,7 @@ void report_write_line(struct report *report, int bar, char *text)
 				break;
 
 			case 'k':
-				*flag |= REPORT_FLAG_KEEPTOGETHER;
+				line_flags |= REPORT_LINE_FLAGS_KEEP_TOGETHER;
 				break;
 			}
 		} else {
@@ -588,7 +591,7 @@ void report_write_line(struct report *report, int bar, char *text)
 	offset = report_textdump_store(report->content, copy);
 
 	if (offset != REPORT_TEXTDUMP_NULL) {
-		if (!report_line_add(report->lines, offset, bar))
+		if (!report_line_add(report->lines, offset, bar, line_flags))
 			report->flags |= REPORT_STATUS_MEMERR;
 	} else {
 		report->flags |= REPORT_STATUS_MEMERR;
@@ -1587,7 +1590,6 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	os_coord			p_pos, f_pos;
 	char				title[REPORT_PRINT_TITLE_LENGTH];
 	char				b0[REPORT_PRINT_BUFFER_LENGTH], b1[REPORT_PRINT_BUFFER_LENGTH], b2[REPORT_PRINT_BUFFER_LENGTH], b3[REPORT_PRINT_BUFFER_LENGTH];
-	char				*content_base;
 	pdriver_features		features;
 	font_f				font_n = 0, font_b = 0;
 	osbool				more;
@@ -1735,8 +1737,6 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	 *          pagination array...
 	 */
 
-	content_base = report_textdump_get_base(report->content);
-
 	for (y = 0; y < line_count; y++) {
 		if (lines <= 0) {
 			#ifdef DEBUG
@@ -1756,7 +1756,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 		if (line_data == NULL)
 			continue;
 
-		if ((*(content_base + line_data->offset) & REPORT_FLAG_KEEPTOGETHER) && ((line_data->tab_bar == bar) || (header == -1))) {
+		if ((line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER) && ((line_data->tab_bar == bar) || (header == -1))) {
 			if (header == -1)
 				header = y;
 		} else {

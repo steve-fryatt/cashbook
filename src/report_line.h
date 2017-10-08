@@ -126,7 +126,7 @@ size_t report_line_get_count(struct report_line_block *handle);
 
 /**
  * Return details about a line held in a report line data block. The data
- * returned is tranient, and not guaracteed to remain valid if the flex
+ * returned is transient, and not guaracteed to remain valid if the flex
  * heap shifts.
  *
  * \param *handle		The block to query.

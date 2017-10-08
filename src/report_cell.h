@@ -36,16 +36,16 @@
  */
 
 enum report_cell_flags {
-	REPORT_CELL_FLAGS_NONE		= 0x0000,		/**< No column flags are set.											*/
-	REPORT_CELL_FLAGS_INDENT	= 0x0001,
-	REPORT_CELL_FLAGS_BOLD		= 0x0002,
-	REPORT_CELL_FLAGS_ITALIC	= 0x0004,
-	REPORT_CELL_FLAGS_UNDERLINE	= 0x0008,
-	REPORT_CELL_FLAGS_CENTRE	= 0x0010,
-	REPORT_CELL_FLAGS_RIGHT		= 0x0020,
-	REPORT_CELL_FLAGS_NUMERIC	= 0x0040,
-	REPORT_CELL_FLAGS_SPILL		= 0x0080,
-	REPORT_CELL_FLAGS_RULE_BEFORE	= 0x0100
+	REPORT_CELL_FLAGS_NONE		= 0x0000,		/**< No column flags are set.						*/
+	REPORT_CELL_FLAGS_INDENT	= 0x0001,		/**< The cell contents should be indented from the left.		*/
+	REPORT_CELL_FLAGS_BOLD		= 0x0002,		/**< The cell contents should be presented in a bold font.		*/
+	REPORT_CELL_FLAGS_ITALIC	= 0x0004,		/**< The cell contents should be presented in an italic font.		*/
+	REPORT_CELL_FLAGS_UNDERLINE	= 0x0008,		/**< The cell contents should be underlined.				*/
+	REPORT_CELL_FLAGS_CENTRE	= 0x0010,		/**< The cell contents should be centred.				*/ 
+	REPORT_CELL_FLAGS_RIGHT		= 0x0020,		/**< The cell contents should be right aligned.				*/
+	REPORT_CELL_FLAGS_NUMERIC	= 0x0040,		/**< The cell contents should be treated as numeric.			*/ 
+	REPORT_CELL_FLAGS_SPILL		= 0x0080,		/**< The cell is used for spill from cells to the left.			*/
+	REPORT_CELL_FLAGS_RULE_BEFORE	= 0x0100		/**< The cell should have a vertical rule to its left.			*/
 };
 
 
@@ -54,8 +54,8 @@ enum report_cell_flags {
  */
 
 struct report_cell_data {
-	enum report_cell_flags	flags;					/**< Flags relating to the report line.					*/
-	unsigned		offset;					/**< Offset of the column cell data in the text dump block.		*/
+	enum report_cell_flags	flags;					/**< Flags relating to the report line.				*/
+	unsigned		offset;					/**< Offset of the column cell data in the text dump block.	*/
 	int			tab_stop;				/**< The tab stop in which the cell is located.			*/
 };
 

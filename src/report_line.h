@@ -31,6 +31,29 @@
 #ifndef CASHBOOK_REPORT_LINE
 #define CASHBOOK_REPORT_LINE
 
+/**
+ * Flags relating to a line in a report.
+ */
+
+enum report_line_flags {
+	REPORT_LINE_FLAGS_NONE		= 0x00,
+	REPORT_LINE_FLAGS_RULE_BELOW	= 0x01,
+	REPORT_LINE_FLAGS_RULE_ABOVE	= 0x02,
+	REPORT_LINE_FLAGS_KEEP_TOGETHER	= 0x04
+};
+
+
+/**
+ * A line in a report.
+ */
+
+struct report_line_data {
+	enum report_line_flags	flags;					/**< Flags relating to the report line.					*/
+	unsigned		offset;					/**< Offset of the line data in the text dump block.			*/
+	int			tab_bar;				/**< The tab bar which relates to the line.				*/
+	int			ypos;					/**< The vertical position of the line in the window, in OS Units.	*/
+};
+
 
 /**
  * A Report Line instance handle.
@@ -101,16 +124,16 @@ size_t report_line_get_count(struct report_line_block *handle);
 
 
 /**
- * Return details about a line held in a report line data block.
+ * Return details about a line held in a report line data block. The data
+ * returned is tranient, and not guaracteed to remain valid if the flex
+ * heap shifts.
  *
  * \param *handle		The block to query.
  * \param line			The line to query.
- * \param *offset		Pointer to variable to take the line data offset.
- * \param *tab_bar		Pointer to variable to take the line's tab bar.
- * \return			TRUE on success; FALSE on failure.
+ * \return			Pointer to the line data block, or NULL.
  */
 
-osbool report_line_get_info(struct report_line_block *handle, unsigned line, unsigned *offset, int *tab_bar);
+struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line);
 
 #endif
 

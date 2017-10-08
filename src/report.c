@@ -626,15 +626,16 @@ static void report_calculate_dimensions(struct report *report)
 
 static int report_reflow_content(struct report *report)
 {
-	osbool		right[REPORT_TAB_BARS][REPORT_TAB_STOPS];
-	int		width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS],
-			width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
-			t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], t_width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
-			i, j, bar, tab, total;
-	unsigned	line, offset;
-	char		*content_base, *column, *flags;
-	font_f		font, font_n, font_b;
-	size_t		line_count;
+	osbool			right[REPORT_TAB_BARS][REPORT_TAB_STOPS];
+	int			width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS],
+				width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
+				t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], t_width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
+				i, j, tab, total;
+	unsigned		line;
+	char			*content_base, *column, *flags;
+	font_f			font, font_n, font_b;
+	size_t			line_count;
+	struct report_line_data	*line_data;
 
 	#ifdef DEBUG
 	debug_printf("\\GFormatting report");
@@ -668,16 +669,13 @@ static int report_reflow_content(struct report *report)
 
 	line_count = report_line_get_count(report->lines);
 
-	debug_printf("Lines: %d", line_count);
-
 	for (line = 0; line < line_count; line++) {
-		if (!report_line_get_info(report->lines, line, &offset, &bar))
+		line_data = report_line_get_info(report->lines, line);
+		if (line_data == NULL)
 			continue;
 
 		tab = 0;
-		column = content_base + offset;
-
-		debug_printf("Relowing line %d, offset=%d, base=%d, column=%d", line, offset, content_base, column);
+		column = content_base + line_data->offset;
 
 		/* Process the next line. do {} while is used, as we don't know if the last tab has been reached until we get
 		 * there.
@@ -715,7 +713,7 @@ static int report_reflow_content(struct report *report)
 			/* If the column is right aligned, record the fact. */
 
 			if (*flags & REPORT_FLAG_RIGHT)
-				right[bar][tab] = TRUE;
+				right[line_data->tab_bar][tab] = TRUE;
 
 			/* If the column is a spill column, the width is carried over from the width of the preceeding column, minus the
 			 * inter-column gap.  The previous column is then zeroed.
@@ -740,17 +738,17 @@ static int report_reflow_content(struct report *report)
 		/* Update the tally of maximum column widths. */
 
 		for (i=0; i<tab; i++) {
-			if (width[i] > width1[bar][i]) /* All column widths are noted here... */
-				width1[bar][i] = width[i];
+			if (width[i] > width1[line_data->tab_bar][i]) /* All column widths are noted here... */
+				width1[line_data->tab_bar][i] = width[i];
 
-			if (width[i] > width2[bar][i] && i < (tab-1)) /* ...but here only for non-end column (which can spill over). */
-				width2[bar][i] = width[i];
+			if (width[i] > width2[line_data->tab_bar][i] && i < (tab-1)) /* ...but here only for non-end column (which can spill over). */
+				width2[line_data->tab_bar][i] = width[i];
 
-			if (t_width[i] > t_width1[bar][i]) /* All column widths are noted here... */
-				t_width1[bar][i] = t_width[i];
+			if (t_width[i] > t_width1[line_data->tab_bar][i]) /* All column widths are noted here... */
+				t_width1[line_data->tab_bar][i] = t_width[i];
 
-			if (t_width[i] > t_width2[bar][i] && i < (tab-1)) /* ...but here only those for non-end column. */
-				t_width2[bar][i] = t_width[i];
+			if (t_width[i] > t_width2[line_data->tab_bar][i] && i < (tab-1)) /* ...but here only those for non-end column. */
+				t_width2[line_data->tab_bar][i] = t_width[i];
 		}
 	}
 
@@ -1317,11 +1315,11 @@ static osbool report_save_tsv(char *filename, osbool selection, void *data)
 
 static void report_export_text(struct report *report, char *filename, osbool formatting)
 {
-	FILE		*out;
-	int		i, j, bar, tab, indent, width, overrun, escape;
-	char		*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
-	unsigned	offset;
-	size_t		line_count;
+	FILE			*out;
+	int			i, j, tab, indent, width, overrun, escape;
+	char			*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	size_t			line_count;
+	struct report_line_data	*line_data;
 
 
 	out = fopen(filename, "w");
@@ -1337,12 +1335,13 @@ static void report_export_text(struct report *report, char *filename, osbool for
 	line_count = report_line_get_count(report->lines);
 
 	for (i = 0; i < line_count; i++) {
-		if (!report_line_get_info(report->lines, i, &offset, &bar))
+		line_data = report_line_get_info(report->lines, i);
+		if (line_data == NULL)
 			continue;
 
 		tab = 0;
 		overrun = 0;
-		column = content_base + offset;
+		column = content_base + line_data->offset;
 
 		do {
 			flags = column;
@@ -1357,7 +1356,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 			width = strlen(buffer);
 
 			if (*flags & REPORT_FLAG_RIGHT)
-				indent = report->text_width[bar][tab] - width;
+				indent = report->text_width[line_data->tab_bar][tab] - width;
 
 			/* Output the indent spaces. */
 
@@ -1395,20 +1394,20 @@ static void report_export_text(struct report *report, char *filename, osbool for
 				 * account the width of the inter column gap.
 				 */
 
-				if ((width+indent) > report->text_width[bar][tab])
-					overrun += (width+indent) - report->text_width[bar][tab] - REPORT_TEXT_COLUMN_SPACE;
+				if ((width+indent) > report->text_width[line_data->tab_bar][tab])
+					overrun += (width+indent) - report->text_width[line_data->tab_bar][tab] - REPORT_TEXT_COLUMN_SPACE;
 
 				/* Pad out the required number of spaces, taking into account any
 				 * overspill from earlier columns.
 				 */
 
-				for (j = 0; j < (report->text_width[bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
+				for (j = 0; j < (report->text_width[line_data->tab_bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
 					fputc(' ', out);
 
 				/* Reduce the overspill record by the amount of free space in this column. */
 
-				if ((width+indent) < report->text_width[bar][tab]) {
-					overrun -= report->text_width[bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
+				if ((width+indent) < report->text_width[line_data->tab_bar][tab]) {
+					overrun -= report->text_width[line_data->tab_bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
 					if (overrun < 0)
 						overrun = 0;
 				}
@@ -1441,11 +1440,11 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 static void report_export_delimited(struct report *report, char *filename, enum filing_delimit_type format, int filetype)
 {
-	FILE		*out;
-	int		i, tab, delimit;
-	char		*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
-	size_t		line_count;
-	unsigned	offset;
+	FILE			*out;
+	int			i, tab, delimit;
+	char			*content_base, *column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	size_t			line_count;
+	struct report_line_data	*line_data;
 
 	out = fopen(filename, "w");
 
@@ -1460,11 +1459,12 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 	line_count = report_line_get_count(report->lines);
 
 	for (i = 0; i < line_count; i++) {
-		if (!report_line_get_info(report->lines, i, &offset, NULL))
+		line_data = report_line_get_info(report->lines, i);
+		if (line_data == NULL)
 			continue;
 
 		tab = 0;
-		column = content_base + offset;
+		column = content_base + line_data->offset;
 
 		do {
 			flags = column;
@@ -1599,8 +1599,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	struct report_print_pagination	*pages;
 	enum report_page_area		areas, area;
 	size_t				line_count;
-	unsigned			data_offset;
-	int				data_bar;
+	struct report_line_data		*line_data;
 
 	hourglass_on();
 
@@ -1753,10 +1752,11 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			pages[page_y - 1].line_count = (header == -1) ? 0 : 1;
 		}
 
-		data_offset = 0;
-		report_line_get_info(report->lines, y, &data_offset, &data_bar);
+		line_data = report_line_get_info(report->lines, y);
+		if (line_data == NULL)
+			continue;
 
-		if ((*(content_base + data_offset) & REPORT_FLAG_KEEPTOGETHER) && ((data_bar == bar) || (header == -1))) {
+		if ((*(content_base + line_data->offset) & REPORT_FLAG_KEEPTOGETHER) && ((line_data->tab_bar == bar) || (header == -1))) {
 			if (header == -1)
 				header = y;
 		} else {
@@ -1767,7 +1767,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 		debug_printf("Line %d has header %d", y, header);
 		#endif
 
-		bar = data_bar;
+		bar = line_data->tab_bar;
 
 		pages[page_y - 1].line_count++;
 		lines --;
@@ -2035,18 +2035,19 @@ static void report_handle_print_error(os_error *error, os_fw file, font_f f1, fo
 
 static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y, font_f normal, font_f bold)
 {
-	os_error	*error;
-	font_f		font;
-	int		bar, tab = 0, indent, total, width;
-	char		*content_base, *column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN + 10];
-	unsigned	offset;
+	os_error		*error;
+	font_f			font;
+	int			tab = 0, indent, total, width;
+	char			*content_base, *column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN + 10];
+	struct report_line_data	*line_data;
 
 	content_base = report_textdump_get_base(report->content);
 
-	offset = 0;
-	report_line_get_info(report->lines, line, &offset, &bar);
+	line_data = report_line_get_info(report->lines, line);
+	if (line_data == NULL)
+		return NULL;
 
-	column = content_base + offset;
+	column = content_base + line_data->offset;
 
 	do {
 		flags = column;
@@ -2065,7 +2066,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 			if (error != NULL)
 				return error;
 
-			indent = report->font_width[bar][tab] - width;
+			indent = report->font_width[line_data->tab_bar][tab] - width;
 		}
 
 		if (*flags & REPORT_FLAG_UNDER) {
@@ -2079,7 +2080,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 		}
 
 		error = xfont_paint(font, paint, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
-				x + report->font_tab[bar][tab] + indent, y, NULL, NULL, 0);
+				x + report->font_tab[line_data->tab_bar][tab] + indent, y, NULL, NULL, 0);
 		if (error != NULL)
 			return error;
 

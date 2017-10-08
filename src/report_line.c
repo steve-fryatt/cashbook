@@ -58,15 +58,6 @@
 
 #define REPORT_LINE_ALLOCATION 250
 
-/**
- * A line in a report.
- */
-
-struct report_line_data {
-	unsigned		offset;					/**< Offset of the line data in the text dump block.			*/
-	int			tab_bar;				/**< The tab bar which relates to the line.				*/
-	int			ypos;					/**< The vertical position of the line in the window, in OS Units.	*/
-};
 
 /**
  * A Report Line instance data block.
@@ -186,6 +177,7 @@ osbool report_line_add(struct report_line_block *handle, unsigned offset, int ta
 		handle->size += handle->allocation;
 	}
 
+	handle->lines[handle->line_count].flags = REPORT_LINE_FLAGS_NONE;
 	handle->lines[handle->line_count].offset = offset;
 	handle->lines[handle->line_count].tab_bar = tab_bar;
 	handle->lines[handle->line_count].ypos = 0;
@@ -213,29 +205,23 @@ size_t report_line_get_count(struct report_line_block *handle)
 
 
 /**
- * Return details about a line held in a report line data block.
+ * Return details about a line held in a report line data block. The data
+ * returned is tranient, and not guaracteed to remain valid if the flex
+ * heap shifts.
  *
  * \param *handle		The block to query.
  * \param line			The line to query.
- * \param *offset		Pointer to variable to take the line data offset.
- * \param *tab_bar		Pointer to variable to take the line's tab bar.
- * \return			TRUE on success; FALSE on failure.
+ * \return			Pointer to the line data block, or NULL.
  */
 
-osbool report_line_get_info(struct report_line_block *handle, unsigned line, unsigned *offset, int *tab_bar)
+struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line)
 {
 	if (handle == NULL || handle->lines == NULL)
-		return FALSE;
+		return NULL;
 
 	if (line >= handle->line_count)
-		return FALSE;
+		return NULL;
 
-	if (offset != NULL)
-		*offset = handle->lines[line].offset;
-
-	if (tab_bar != NULL)
-		*tab_bar = handle->lines[line].tab_bar;
-
-	return TRUE;
+	return handle->lines + line;
 }
 

@@ -1662,19 +1662,19 @@ static struct report *account_list_window_print(struct report *report, void *dat
 					stringbuild_add_string(account_get_name(file, windat->line_data[line].account));
 					break;
 				case ACCOUNT_LIST_WINDOW_STATEMENT:
-					stringbuild_add_string("\\r");
+					stringbuild_add_string("\\r\\d");
 					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_STATEMENT], FALSE);
 					break;
 				case ACCOUNT_LIST_WINDOW_CURRENT:
-					stringbuild_add_string("\\r");
+					stringbuild_add_string("\\r\\d");
 					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_CURRENT], FALSE);
 					break;
 				case ACCOUNT_LIST_WINDOW_FINAL:
-					stringbuild_add_string("\\r");
+					stringbuild_add_string("\\r\\d");
 					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL], FALSE);
 					break;
 				case ACCOUNT_LIST_WINDOW_BUDGET:
-					stringbuild_add_string("\\r");
+					stringbuild_add_string("\\r\\d");
 					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET], FALSE);
 					break;
 				default:
@@ -1689,19 +1689,19 @@ static struct report *account_list_window_print(struct report *report, void *dat
 					stringbuild_add_string(windat->line_data[line].heading);
 					break;
 				case ACCOUNT_LIST_WINDOW_STATEMENT:
-					stringbuild_add_string("\\r\\b");
+					stringbuild_add_string("\\r\\b\\d");
 					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_STATEMENT], FALSE);
 					break;
 				case ACCOUNT_LIST_WINDOW_CURRENT:
-					stringbuild_add_string("\\r\\b");
+					stringbuild_add_string("\\r\\b\\d");
 					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_CURRENT], FALSE);
 					break;
 				case ACCOUNT_LIST_WINDOW_FINAL:
-					stringbuild_add_string("\\r\\b");
+					stringbuild_add_string("\\r\\b\\d");
 					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL], FALSE);
 					break;
 				case ACCOUNT_LIST_WINDOW_BUDGET:
-					stringbuild_add_string("\\r\\b");
+					stringbuild_add_string("\\r\\b\\d");
 					stringbuild_add_currency(windat->line_data[line].total[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET], FALSE);
 					break;
 				default:

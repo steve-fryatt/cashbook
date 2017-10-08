@@ -296,7 +296,6 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
 
-
 	new->content = report_textdump_create(0, 200, '\0');
 	if (new->content == NULL)
 		new->flags |= REPORT_STATUS_MEMERR;

@@ -178,7 +178,7 @@ osbool report_line_add(struct report_line_block *handle, unsigned offset, int ta
 		handle->size += handle->allocation;
 	}
 
-	handle->lines[handle->line_count].flags = REPORT_LINE_FLAGS_NONE;
+	handle->lines[handle->line_count].flags = flags;
 	handle->lines[handle->line_count].offset = offset;
 	handle->lines[handle->line_count].tab_bar = tab_bar;
 	handle->lines[handle->line_count].ypos = 0;

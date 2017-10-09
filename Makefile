@@ -83,6 +83,7 @@ OBJS = account.o			\
        report_cell.o			\
        report_fonts.o			\
        report_line.o			\
+       report_tabs.o			\
        report_textdump.o		\
        sorder.o				\
        sort.o				\

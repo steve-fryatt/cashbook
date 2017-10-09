@@ -85,6 +85,7 @@
 #include "report_fonts.h"
 #include "report_format_dialogue.h"
 #include "report_line.h"
+#include "report_tabs.h"
 #include "report_textdump.h"
 #include "transact.h"
 #include "window.h"
@@ -150,6 +151,8 @@ struct report {
 	int			text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in characters for ASCII text.		*/
 
 	int			font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Tab stops in OS units for outline fonts.			*/
+
+	struct report_tabs_block	*tabs;
 
 	/* Font data */
 
@@ -292,6 +295,10 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 
 	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
+
+	new->tabs = report_tabs_create();
+	if (new->tabs == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
 
 	new->fonts = report_fonts_create();
 	if (new->fonts == NULL)
@@ -476,6 +483,7 @@ void report_delete(struct report *report)
 	report_cell_destroy(report->cells);
 	report_line_destroy(report->lines);
 	report_fonts_destroy(report->fonts);
+	report_tabs_destroy(report->tabs);
 
 	if (report->template != NULL)
 		heap_free(report->template);

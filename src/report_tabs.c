@@ -84,7 +84,7 @@ struct report_tabs_bar {
 struct report_tabs_block {
 	size_t			bar_count;
 
-	struct report_tabs_bar	*bars;
+	struct report_tabs_bar	*bars[];
 };
 
 /* Static Function Prototypes. */

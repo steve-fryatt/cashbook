@@ -203,7 +203,7 @@ static struct saveas_block	*report_saveas_tsv = NULL;			/**< The Save TSV saveas
 
 
 static void			report_close_and_calculate(struct report *report);
-static osbool			report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int *tab_stop, unsigned *first_cell_offset);
+static osbool			report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int *tab_stop, unsigned *first_cell_offset);
 
 
 static void			report_calculate_dimensions(struct report *report);
@@ -431,6 +431,7 @@ static void report_close_and_calculate(struct report *report)
 	report_textdump_close(report->content);
 	report_cell_close(report->cells);
 	report_line_close(report->lines);
+	report_tabs_close(report->tabs);
 
 	/* Set up the display details. */
 
@@ -517,11 +518,11 @@ void report_delete(struct report *report)
  *	     heading, repeated on subsequent pages.
  *
  * \param *report		The report to write to.
- * \param bar			The tab bar to use.
+ * \param tab_bar		The tab bar to use.
  * \param *text			The line of text to write.
  */
 
-void report_write_line(struct report *report, int bar, char *text)
+void report_write_line(struct report *report, int tab_bar, char *text)
 {
 	char			*c, *copy;
 	unsigned		first_cell_offset;
@@ -544,7 +545,7 @@ void report_write_line(struct report *report, int bar, char *text)
 		return;
 	}
 
-	bar = (bar >= 0 && bar < REPORT_TAB_BARS) ? bar : 0;
+	tab_bar = (tab_bar>= 0 && tab_bar < REPORT_TAB_BARS) ? tab_bar : 0;
 	tab_stop = 0;
 
 	line_flags = REPORT_LINE_FLAGS_NONE;
@@ -562,7 +563,7 @@ void report_write_line(struct report *report, int bar, char *text)
 			case 't':
 				*c++ = '\0';
 
-				report_add_cell(report, copy, cell_flags, &tab_stop, &first_cell_offset);
+				report_add_cell(report, copy, cell_flags, tab_bar, &tab_stop, &first_cell_offset);
 
 				c = copy;
 				cell_flags = REPORT_CELL_FLAGS_NONE;
@@ -603,12 +604,12 @@ void report_write_line(struct report *report, int bar, char *text)
 
 	*c = '\0';
 
-	report_add_cell(report, copy, cell_flags, &tab_stop, &first_cell_offset);
+	report_add_cell(report, copy, cell_flags, tab_bar, &tab_stop, &first_cell_offset);
 
 	/* Store the line in the report. */
 
 	if (first_cell_offset != REPORT_CELL_NULL) {
-		if (!report_line_add(report->lines, first_cell_offset, tab_stop, bar, line_flags))
+		if (!report_line_add(report->lines, first_cell_offset, tab_stop, tab_bar, line_flags))
 			report->flags |= REPORT_STATUS_MEMERR;
 	} else {
 		report->flags |= REPORT_STATUS_MEMERR;
@@ -624,13 +625,14 @@ void report_write_line(struct report *report, int bar, char *text)
  * \param *report		The report to add the cell to.
  * \param *text			Pointer to the text to be stored in the cell.
  * \param flags			The flags to be applied to the cell.
+ * \param tab_bar		The tab bar to which the cell belongs.
  * \param *tab_stop		Pointer to a variable holding the cell's tab
  *				stop, to be updated on return.
  * \param *first_cell_offset	Pointer to a variable holding the first cell offet,
  *				to be updated on return.
  */
 
-static osbool report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int *tab_stop, unsigned *first_cell_offset)
+static osbool report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int *tab_stop, unsigned *first_cell_offset)
 {
 	unsigned content_offset, cell_offset;
 
@@ -651,6 +653,8 @@ static osbool report_add_cell(struct report *report, char *text, enum report_cel
 
 	if (*first_cell_offset == REPORT_CELL_NULL)
 		*first_cell_offset = cell_offset;
+
+	report_tabs_set_stop_flags(report->tabs, tab_bar, *tab_stop, REPORT_TABS_STOP_FLAGS_NONE);
 
 	*tab_stop = *tab_stop + 1;
 

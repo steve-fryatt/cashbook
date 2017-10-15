@@ -36,6 +36,17 @@
 #include "report_cell.h"
 
 /**
+ * Flags relating to a tab stop in a report tab bar.
+ */
+
+enum report_tabs_stop_flags {
+	REPORT_TABS_STOP_FLAGS_NONE		= 0x0000,	/**< No tab stop flags are set.						*/
+	REPORT_TABS_STOP_FLAGS_RULE_BEFORE	= 0x0001,	/**< The tab stop should have a vertical rule to its left.		*/
+	REPORT_TABS_STOP_FLAGS_RULE_AFTER	= 0x0002	/**< The tab stop should have a vertical rule to its right.		*/
+};
+
+
+/**
  * A Report Tabs instance handle.
  */
 
@@ -59,6 +70,28 @@ struct report_tabs_block *report_tabs_create(void);
 
 void report_tabs_destroy(struct report_tabs_block *handle);
 
+
+/**
+ * Close a Report Tabs instance, so that its allocation shrinks to
+ * occupy only the space used by bars that it contains.
+ *
+ * \param *handle		The block to be closed.
+ */
+
+void report_tabs_close(struct report_tabs_block *handle);
+
+
+/**
+ * Update the flags for a tab stop within a tab bar.
+ *
+ * \param *handle		The Report Tabs instance holding the bar.
+ * \param bar			The bar containing the stop to update.
+ * \param stop			The stop to updatre the flags for.
+ * \param flags			The new flag settings.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+ 
+osbool report_tabs_set_stop_flags(struct report_tabs_block *handle, int bar, int stop, enum report_tabs_stop_flags flags);
 
 #endif
 

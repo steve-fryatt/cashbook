@@ -690,10 +690,9 @@ static void report_calculate_dimensions(struct report *report)
 
 static int report_reflow_content(struct report *report)
 {
-	osbool			right[REPORT_TAB_BARS][REPORT_TAB_STOPS];
 	int			width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS],
-				width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
-				t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], t_width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
+				width1[REPORT_TAB_BARS][REPORT_TAB_STOPS],
+				t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 				i, j, tab, total;
 	unsigned		line, cell;
 	char			*content_base, *content;
@@ -709,17 +708,8 @@ static int report_reflow_content(struct report *report)
 
 	for (i = 0; i < REPORT_TAB_BARS; i++) {
 		for (j = 0; j < REPORT_TAB_STOPS; j++) {
-			right[i][j]  = FALSE;		/* Flag to mark if anything in a column has been right-aligned. */
-
-							/* These are in OS units, for on screen rendering. */
-
-			width1[i][j] = 0;		/* Tally of the maximum widths of the columns. */
-			width2[i][j] = 0;		/* Tally of the maximum widths of the columns, ignoring end column objects in each row. */
-
-							/* These two are in characters, for ASCII formatting. */
-
-			t_width1[i][j] = 0;		/* Tally of the maximum widths of the columns. */
-			t_width2[i][j] = 0;		/* Tally of the maximum widths of the columns, ignoring end column objects in each row. */
+			width1[i][j] = 0;		/* Tally of the maximum widths of the columns in OS Units. */
+			t_width1[i][j] = 0;		/* Tally of the maximum widths of the columns in ASCII characters. */
 		}
 	}
 
@@ -762,11 +752,6 @@ static int report_reflow_content(struct report *report)
 				t_width[cell_data->tab_stop] += REPORT_TEXT_COLUMN_INDENT;
 			}
 
-			/* If the column is right aligned, record the fact. */
-
-			if (cell_data->flags & REPORT_CELL_FLAGS_RIGHT)
-				right[line_data->tab_bar][cell_data->tab_stop] = TRUE;
-
 			/* If the column is a spill column, the width is carried over from the width of the preceeding column, minus the
 			 * inter-column gap.  The previous column is then zeroed.
 			 */
@@ -789,14 +774,14 @@ static int report_reflow_content(struct report *report)
 			if (width[i] > width1[line_data->tab_bar][i]) /* All column widths are noted here... */
 				width1[line_data->tab_bar][i] = width[i];
 
-			if (width[i] > width2[line_data->tab_bar][i] && i < tab) /* ...but here only for non-end column (which can spill over). */
-				width2[line_data->tab_bar][i] = width[i];
+	//		if (width[i] > width2[line_data->tab_bar][i] && i < tab) /* ...but here only for non-end column (which can spill over). */
+	//			width2[line_data->tab_bar][i] = width[i];
 
 			if (t_width[i] > t_width1[line_data->tab_bar][i]) /* All column widths are noted here... */
 				t_width1[line_data->tab_bar][i] = t_width[i];
 
-			if (t_width[i] > t_width2[line_data->tab_bar][i] && i < tab) /* ...but here only those for non-end column. */
-				t_width2[line_data->tab_bar][i] = t_width[i];
+	//		if (t_width[i] > t_width2[line_data->tab_bar][i] && i < tab) /* ...but here only those for non-end column. */
+	//			t_width2[line_data->tab_bar][i] = t_width[i];
 		}
 	}
 
@@ -808,8 +793,8 @@ static int report_reflow_content(struct report *report)
 
 	for (i = 0; i < REPORT_TAB_BARS; i++) {
 		for (j = 0; j < REPORT_TAB_STOPS; j++) {
-			report->font_width[i][j] = (right[i][j]) ? width1[i][j] : width2[i][j];
-			report->text_width[i][j] = (right[i][j]) ? t_width1[i][j] : t_width2[i][j];
+			report->font_width[i][j] = width1[i][j];
+			report->text_width[i][j] = t_width1[i][j];
 		}
 	}
 

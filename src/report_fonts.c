@@ -108,10 +108,10 @@ struct report_fonts_block *report_fonts_create(void)
 
 	/* Set up the font faces. */
 
-	report_fonts_initialise_face(&new->normal, "Homerton.Medium");
-	report_fonts_initialise_face(&new->bold, "Homerton.Bold");
-	report_fonts_initialise_face(&new->italic, "Homerton.Medium.Oblique");
-	report_fonts_initialise_face(&new->bold_italic, "Homerton.Bold.Oblique");
+	report_fonts_initialise_face(&(new->normal), "Homerton.Medium");
+	report_fonts_initialise_face(&(new->bold), "Homerton.Bold");
+	report_fonts_initialise_face(&(new->italic), "Homerton.Medium.Oblique");
+	report_fonts_initialise_face(&(new->bold_italic), "Homerton.Bold.Oblique");
 
 	new->size = 12 * 16;
 	new->linespace = 130;
@@ -155,16 +155,16 @@ void report_fonts_set_faces(struct report_fonts_block *handle, char *normal, cha
 		return;
 
 	if (normal != NULL)
-		report_fonts_set_face(&handle->normal, normal);
+		report_fonts_set_face(&(handle->normal), normal);
 
 	if (bold != NULL)
-		report_fonts_set_face(&handle->bold, bold);
+		report_fonts_set_face(&(handle->bold), bold);
 
 	if (italic != NULL)
-		report_fonts_set_face(&handle->italic, italic);
+		report_fonts_set_face(&(handle->italic), italic);
 
 	if (bold_italic != NULL)
-		report_fonts_set_face(&handle->bold_italic, bold_italic);
+		report_fonts_set_face(&(handle->bold_italic), bold_italic);
 }
 
 
@@ -189,16 +189,16 @@ void report_fonts_get_faces(struct report_fonts_block *handle, char *normal, cha
 		return;
 
 	if (normal != NULL)
-		report_fonts_get_face(&handle->normal, normal, length);
+		report_fonts_get_face(&(handle->normal), normal, length);
 
 	if (bold != NULL)
-		report_fonts_get_face(&handle->bold, bold, length);
+		report_fonts_get_face(&(handle->bold), bold, length);
 
 	if (italic != NULL)
-		report_fonts_get_face(&handle->italic, italic, length);
+		report_fonts_get_face(&(handle->italic), italic, length);
 
 	if (bold_italic != NULL)
-		report_fonts_get_face(&handle->bold_italic, bold_italic, length);
+		report_fonts_get_face(&(handle->bold_italic), bold_italic, length);
 }
 
 
@@ -279,19 +279,19 @@ os_error *report_fonts_find(struct report_fonts_block *handle)
 	if (handle == NULL)
 		return NULL;
 
-	error = report_fonts_find_face(&handle->normal, handle->size);
+	error = report_fonts_find_face(&(handle->normal), handle->size);
 	if (error != NULL)
 		return error;
 
-	error = report_fonts_find_face(&handle->bold, handle->size);
+	error = report_fonts_find_face(&(handle->bold), handle->size);
 	if (error != NULL)
 		return error;
 
-	error = report_fonts_find_face(&handle->italic, handle->size);
+	error = report_fonts_find_face(&(handle->italic), handle->size);
 	if (error != NULL)
 		return error;
 
-	error = report_fonts_find_face(&handle->bold_italic, handle->size);
+	error = report_fonts_find_face(&(handle->bold_italic), handle->size);
 	if (error != NULL)
 		return error;
 
@@ -310,10 +310,10 @@ void report_fonts_lose(struct report_fonts_block *handle)
 	if (handle == NULL)
 		return;
 
-	report_fonts_lose_face(&handle->normal);
-	report_fonts_lose_face(&handle->bold);
-	report_fonts_lose_face(&handle->italic);
-	report_fonts_lose_face(&handle->bold_italic);
+	report_fonts_lose_face(&(handle->normal));
+	report_fonts_lose_face(&(handle->bold));
+	report_fonts_lose_face(&(handle->italic));
+	report_fonts_lose_face(&(handle->bold_italic));
 }
 
 
@@ -434,19 +434,19 @@ os_error *report_fonts_declare(struct report_fonts_block *handle)
 	if (handle == NULL)
 		return NULL;
 
-	error = report_fonts_declare_face(&handle->normal);
+	error = report_fonts_declare_face(&(handle->normal));
 	if (error != NULL)
 		return error;
 
-	error = report_fonts_declare_face(&handle->bold);
+	error = report_fonts_declare_face(&(handle->bold));
 	if (error != NULL)
 		return error;
 
-	error = report_fonts_declare_face(&handle->italic);
+	error = report_fonts_declare_face(&(handle->italic));
 	if (error != NULL)
 		return error;
 
-	error = report_fonts_declare_face(&handle->bold_italic);
+	error = report_fonts_declare_face(&(handle->bold_italic));
 	if (error != NULL)
 		return error;
 
@@ -470,19 +470,19 @@ os_error *report_fonts_set_colour(struct report_fonts_block *handle,os_colour fi
 	if (handle == NULL)
 		return NULL;
 
-	error = report_fonts_set_face_colour(&handle->normal, fill, bg_hint);
+	error = report_fonts_set_face_colour(&(handle->normal), fill, bg_hint);
 	if (error != NULL)
 		return error;
 
-	error = report_fonts_set_face_colour(&handle->bold, fill, bg_hint);
+	error = report_fonts_set_face_colour(&(handle->bold), fill, bg_hint);
 	if (error != NULL)
 		return error;
 
-	error = report_fonts_set_face_colour(&handle->italic, fill, bg_hint);
+	error = report_fonts_set_face_colour(&(handle->italic), fill, bg_hint);
 	if (error != NULL)
 		return error;
 
-	error = report_fonts_set_face_colour(&handle->bold_italic, fill, bg_hint);
+	error = report_fonts_set_face_colour(&(handle->bold_italic), fill, bg_hint);
 	if (error != NULL)
 		return error;
 

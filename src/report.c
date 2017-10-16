@@ -774,14 +774,8 @@ static int report_reflow_content(struct report *report)
 			if (width[i] > width1[line_data->tab_bar][i]) /* All column widths are noted here... */
 				width1[line_data->tab_bar][i] = width[i];
 
-	//		if (width[i] > width2[line_data->tab_bar][i] && i < tab) /* ...but here only for non-end column (which can spill over). */
-	//			width2[line_data->tab_bar][i] = width[i];
-
 			if (t_width[i] > t_width1[line_data->tab_bar][i]) /* All column widths are noted here... */
 				t_width1[line_data->tab_bar][i] = t_width[i];
-
-	//		if (t_width[i] > t_width2[line_data->tab_bar][i] && i < tab) /* ...but here only those for non-end column. */
-	//			t_width2[line_data->tab_bar][i] = t_width[i];
 		}
 	}
 

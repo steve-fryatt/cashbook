@@ -424,8 +424,7 @@ static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop)
 
 	/* Update the stop count to reflect the requested stop. */
 
-	if (stop >= handle->stop_count)
-		handle->stop_count = stop + 1;
+	handle->stop_count = stop + 1;
 
 	debug_printf("Stops extended to include stop %d", stop);
 

@@ -194,7 +194,7 @@ unsigned report_cell_add(struct report_cell_block *handle, unsigned offset, int 
 
 /**
  * Return details about a line held in a report line data block. The data
- * returned is tranient, and not guaracteed to remain valid if the flex
+ * returned is transient, and not guaranteed to remain valid if the flex
  * heap shifts.
  *
  * \param *handle		The block to query.

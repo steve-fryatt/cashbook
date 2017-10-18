@@ -1019,11 +1019,8 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	line_count = report_line_get_count(report->lines);
 
 	while (more) {
-		top = (oy - redraw->clip.y1) / linespace;
-		if (top < 0)
-			top = 0;
-
-		base = (linespace + (linespace / 2) + oy - redraw->clip.y0 ) / linespace;
+		top = report_line_find_from_ypos(report->lines, redraw->clip.y1 - oy);
+		base = report_line_find_from_ypos(report->lines, redraw->clip.y0 - oy);
 
 		/* Draw Grid. */
 

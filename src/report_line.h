@@ -138,5 +138,16 @@ size_t report_line_get_count(struct report_line_block *handle);
 
 struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line);
 
+
+/**
+ * Find a line based on a redraw position on the y axis.
+ *
+ * \param *handle		The block to query.
+ * \param ypos			The Y axis coordinate to look up.
+ * \return			The line number.
+ */
+
+unsigned report_line_find_from_ypos(struct report_line_block *handle, int ypos);
+
 #endif
 

@@ -193,9 +193,8 @@ void report_tabs_close(struct report_tabs_block *handle)
 		}
 	}
 
-	flexutils_resize((void **) &(handle->bars), sizeof(struct report_tabs_bar *), bars);
-
-	handle->bar_allocation = bars;
+	if (flexutils_resize((void **) &(handle->bars), sizeof(struct report_tabs_bar *), bars))
+		handle->bar_allocation = bars;
 
 	debug_printf("Tab Bar data: %d bars, using %dKb", bars, data_size / 1024);
 }

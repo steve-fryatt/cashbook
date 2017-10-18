@@ -206,8 +206,7 @@ static void			report_close_and_calculate(struct report *report);
 static osbool			report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int *tab_stop, unsigned *first_cell_offset);
 
 
-static void			report_calculate_dimensions(struct report *report);
-static int			report_reflow_content(struct report *report);
+static void			report_reflow_content(struct report *report);
 
 static void			report_view_close_window_handler(wimp_close *close);
 static void			report_view_redraw_handler(wimp_draw *redraw);
@@ -439,7 +438,7 @@ static void report_close_and_calculate(struct report *report)
 	report_fonts_set_size(report->fonts, config_int_read("ReportFontSize") * 16, config_int_read("ReportFontLinespace"));
 
 	report->show_grid = config_opt_read("ReportShowGrid");
-	report_calculate_dimensions(report);
+	report_reflow_content(report);
 
 	/* For now, there isn't a window. */
 
@@ -663,24 +662,6 @@ static osbool report_add_cell(struct report *report, char *text, enum report_cel
 
 
 /**
- * Recalculate the page dimensions for a report.
- *
- * \param *report		The report to recalculate.
- */
-
-static void report_calculate_dimensions(struct report *report)
-{
-	if (report == NULL)
-		return;
-
-	report->width = report_reflow_content(report);
-	report->linespace = report_fonts_get_linespace(report->fonts);
-	report->rulespace = (report->show_grid) ? REPORT_RULE_SPACE : 0;
-	report->height = report_line_get_count(report->lines) * (report->linespace + report->rulespace) + REPORT_BOTTOM_MARGIN;
-}
-
-
-/**
  * Reflow the text in a report to suit the current content and display settings.
  *
  * \param *report		The report to reflow.
@@ -688,17 +669,21 @@ static void report_calculate_dimensions(struct report *report)
  *				to contain the report.
  */
 
-static int report_reflow_content(struct report *report)
+static void report_reflow_content(struct report *report)
 {
 	int			width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS],
 				width1[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 				t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS],
 				i, j, tab, total;
+	int			line_space, rule_space, ypos;
 	unsigned		line, cell;
 	char			*content_base, *content;
 	size_t			line_count;
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data;
+
+	if (report == NULL)
+		return;
 
 	#ifdef DEBUG
 	debug_printf("\\GFormatting report");
@@ -717,16 +702,24 @@ static int report_reflow_content(struct report *report)
 
 	report_fonts_find(report->fonts);
 
+	line_space = report_fonts_get_linespace(report->fonts);
+	rule_space = (report->show_grid) ? REPORT_RULE_SPACE : 0;
+
 	content_base = report_textdump_get_base(report->content);
 
 	/* Work through the report, line by line, getting the maximum column widths. */
 
 	line_count = report_line_get_count(report->lines);
 
+	ypos = 0;
+
 	for (line = 0; line < line_count; line++) {
 		line_data = report_line_get_info(report->lines, line);
 		if (line_data == NULL)
 			continue;
+
+		ypos += (line_space + rule_space);
+		line_data->ypos = -ypos;
 
 		tab = 0;
 
@@ -828,7 +821,10 @@ static int report_reflow_content(struct report *report)
 
 	total += (REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN);
 
-	return total;
+	report->width = total;
+	report->linespace = line_space;
+	report->rulespace = rule_space;
+	report->height = ypos + REPORT_BOTTOM_MARGIN;
 }
 
 
@@ -1045,8 +1041,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 		wimp_set_font_colours(wimp_COLOUR_WHITE, wimp_COLOUR_BLACK);
 
 		for (y = top; y < line_count && y <= base; y++)
-			report_plot_line(report, y, ox + REPORT_LEFT_MARGIN,
-					oy - linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace);
+			report_plot_line(report, y, ox + REPORT_LEFT_MARGIN, oy);
 
 		more = wimp_get_rectangle(redraw);
 	}
@@ -1124,7 +1119,7 @@ static void report_process_format_window(struct report *report, char *normal, ch
 
 	/* Tidy up and redraw the windows */
 
-	report_calculate_dimensions(report);
+	report_reflow_content(report);
 
 	/* Calculate the next window extents. */
 
@@ -1597,7 +1592,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	report_fonts_find(report->fonts);
 
-	linespace = report_fonts_get_linespace(report->fonts) + report->rulespace;
+	linespace = report->linespace + report->rulespace;
 
 	line_count = report_line_get_count(report->lines);
 
@@ -1896,8 +1891,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 							line = pages[page_y].header_line;
 						else
 							line = pages[page_y].first_line + y;
-						error = report_plot_line(report, line, REPORT_LEFT_MARGIN,
-								-linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace);
+						error = report_plot_line(report, line, REPORT_LEFT_MARGIN, 0);
 						if (error != NULL) {
 							report_handle_print_error(error, out, report->fonts);
 							return;
@@ -1993,8 +1987,8 @@ static void report_handle_print_error(os_error *error, os_fw file, struct report
  *
  * \param *report	The report to use.
  * \param line		The line to be printed.
- * \param x		The x coordinate to plot at.
- * \param y		The y coordinate to plot at.
+ * \param x		The x coordinate origin to plot from.
+ * \param y		The y coordinate origin to plot from.
  * \return		Pointer to an error block, or NULL for success.
  */
 
@@ -2040,7 +2034,8 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 		}
 
 		error = report_fonts_paint_text(report->fonts, paint,
-				x + report->font_tab[line_data->tab_bar][cell_data->tab_stop] + indent, y, cell_data->flags);
+				x + report->font_tab[line_data->tab_bar][cell_data->tab_stop] + indent,
+				y + line_data->ypos + REPORT_BASELINE_OFFSET, cell_data->flags);
 		if (error != NULL)
 			return error;
 	}

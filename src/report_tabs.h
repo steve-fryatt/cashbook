@@ -45,12 +45,32 @@ enum report_tabs_stop_flags {
 	REPORT_TABS_STOP_FLAGS_RULE_AFTER	= 0x0002	/**< The tab stop should have a vertical rule to its right.		*/
 };
 
+/**
+ * The width of a cell being used to carry overspill from the left.
+ */
+
+#define REPORT_TABS_SPILL_WIDTH (-1)
 
 /**
  * A Report Tabs instance handle.
  */
 
 struct report_tabs_block;
+
+
+/**
+ * A single tab stop definition.
+ */
+
+struct report_tabs_stop {
+	enum report_tabs_stop_flags	flags;
+
+	int				font_width;
+	int				font_left;
+
+	int				text_width;
+	int				text_left;
+};
 
 
 /**
@@ -92,6 +112,63 @@ void report_tabs_close(struct report_tabs_block *handle);
  */
  
 osbool report_tabs_set_stop_flags(struct report_tabs_block *handle, int bar, int stop, enum report_tabs_stop_flags flags);
+
+
+/**
+ * Reset the tab stop columns in a Report Tabs instance.
+ *
+ * \param *handle		The Report Tabs instance to reset.
+ */
+
+void report_tabs_reset_columns(struct report_tabs_block *handle);
+
+
+/**
+ * Prepare to update the tab stops for a line of a report.
+ *
+ * \param *handle		The Report Tabs instance to prepare.
+ * \param bar			The tab bar to be updated.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool report_tabs_start_line_format(struct report_tabs_block *handle, int bar);
+
+
+/**
+ * Update the widths of a cell in a line as part of a Report Tabs instance
+ * formatting operation.
+ *
+ * \param *handle		The Report Tabs instance to be updated.
+ * \param stop			The tab stop to be updated.
+ * \param font_width		The width of the current cell, in OS Units,
+ *				or REPORT_TABS_SPILL_WIDTH for spill.
+ * \param text_width		The width of the current cell, in characters,
+ *				or REPORT_TABS_SPILL_WIDTH for spill.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool report_tabs_set_cell_width(struct report_tabs_block *handle, int stop, int font_width, int text_width);
+
+
+/**
+ * End the formatting of a line in a Report Tabs instance.
+ *
+ * \param *handle		The Report Tabs instance being updated.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool report_tabs_end_line_format(struct report_tabs_block *handle);
+
+
+/**
+ * Calculate the column positions of all the bars in a Report Tabs instance.
+ *
+ * \param *handle		The instance to recalculate.
+ * \return			The width, in OS Units, of the widest bar
+ *				when in font mode.
+ */
+
+int report_tabs_calculate_columns(struct report_tabs_block *handle);
 
 #endif
 

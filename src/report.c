@@ -147,10 +147,10 @@ struct report {
 
 	/* Tab details */
 
-	int			font_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in OS units for outline fonts.		*/
-	int			text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in characters for ASCII text.		*/
+//	int			font_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in OS units for outline fonts.		*/
+//	int			text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in characters for ASCII text.		*/
 
-	int			font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Tab stops in OS units for outline fonts.			*/
+//	int			font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Tab stops in OS units for outline fonts.			*/
 
 	struct report_tabs_block	*tabs;
 
@@ -671,10 +671,7 @@ static osbool report_add_cell(struct report *report, char *text, enum report_cel
 
 static void report_reflow_content(struct report *report)
 {
-	int			width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS],
-				width1[REPORT_TAB_BARS][REPORT_TAB_STOPS],
-				t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS],
-				i, j, tab, total;
+	int			font_width, text_width;
 	int			line_space, rule_space, ypos;
 	unsigned		line, cell;
 	char			*content_base, *content;
@@ -691,12 +688,7 @@ static void report_reflow_content(struct report *report)
 
 	/* Reset the flags used to keep track of items. */
 
-	for (i = 0; i < REPORT_TAB_BARS; i++) {
-		for (j = 0; j < REPORT_TAB_STOPS; j++) {
-			width1[i][j] = 0;		/* Tally of the maximum widths of the columns in OS Units. */
-			t_width1[i][j] = 0;		/* Tally of the maximum widths of the columns in ASCII characters. */
-		}
-	}
+	report_tabs_reset_columns(report->tabs);
 
 	/* Find the font to be used by the report. */
 
@@ -721,110 +713,43 @@ static void report_reflow_content(struct report *report)
 		ypos += (line_space + rule_space);
 		line_data->ypos = -ypos;
 
-		tab = 0;
+		report_tabs_start_line_format(report->tabs, line_data->tab_bar);
 
 		for (cell = 0; cell < line_data->cell_count; cell++) {
 			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
-			if (cell_data == NULL || cell_data->tab_stop > REPORT_TAB_STOPS)
+			if (cell_data == NULL || cell_data->offset == REPORT_TEXTDUMP_NULL)
 				continue;
 
-			content = content_base + cell_data->offset;
+			if (cell_data->flags & REPORT_CELL_FLAGS_SPILL) {
+				font_width = REPORT_TABS_SPILL_WIDTH;
+				text_width = REPORT_TABS_SPILL_WIDTH;
+			} else {
+				content = content_base + cell_data->offset;
 
-			/* Outline font width. */
+				report_fonts_get_string_width(report->fonts, content, cell_data->flags, &font_width);
+				text_width = string_ctrl_strlen(content);
 
-			report_fonts_get_string_width(report->fonts, content, cell_data->flags, &(width[cell_data->tab_stop]));
+				/* If the column is indented, add the indent to the column widths. */
 
-			/* ASCII text column width. */
-
-			t_width[cell_data->tab_stop] = string_ctrl_strlen(content);
-
-			/* If the column is indented, add the indent to the column widths. */
-
-			if (cell_data->flags & REPORT_CELL_FLAGS_INDENT) {
-				width[cell_data->tab_stop] += REPORT_COLUMN_INDENT;
-				t_width[cell_data->tab_stop] += REPORT_TEXT_COLUMN_INDENT;
+				if (cell_data->flags & REPORT_CELL_FLAGS_INDENT) {
+					font_width += REPORT_COLUMN_INDENT;
+					text_width += REPORT_TEXT_COLUMN_INDENT;
+				}
 			}
 
-			/* If the column is a spill column, the width is carried over from the width of the preceeding column, minus the
-			 * inter-column gap.  The previous column is then zeroed.
-			 */
-
-			if ((cell_data->flags & REPORT_CELL_FLAGS_SPILL) && (cell_data->tab_stop > 0)) {
-				width[cell_data->tab_stop] = width[cell_data->tab_stop - 1] - REPORT_COLUMN_SPACE;
-				width[cell_data->tab_stop - 1] = 0;
-
-				t_width[cell_data->tab_stop] = t_width[cell_data->tab_stop - 1] - REPORT_TEXT_COLUMN_SPACE;
-				t_width[cell_data->tab_stop - 1] = 0;
-			}
-
-			if (cell_data->tab_stop > tab)
-				tab = cell_data->tab_stop;
+			report_tabs_set_cell_width(report->tabs, cell_data->tab_stop, font_width, text_width);
 		}
 
-		/* Update the tally of maximum column widths. */
-
-		for (i = 0; i <= tab; i++) {
-			if (width[i] > width1[line_data->tab_bar][i]) /* All column widths are noted here... */
-				width1[line_data->tab_bar][i] = width[i];
-
-			if (t_width[i] > t_width1[line_data->tab_bar][i]) /* All column widths are noted here... */
-				t_width1[line_data->tab_bar][i] = t_width[i];
-		}
+		report_tabs_end_line_format(report->tabs);
 	}
 
 	report_fonts_lose(report->fonts);
 
-	/* Go through the columns, storing the widths into the report data block.  If right alignment has been used, we
-	 * must record the widest width; if not, we can get away with the widest non-end-column width.
-	 */
+	report->width = report_tabs_calculate_columns(report->tabs) + REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN;
+	report->height = ypos + REPORT_BOTTOM_MARGIN;
 
-	for (i = 0; i < REPORT_TAB_BARS; i++) {
-		for (j = 0; j < REPORT_TAB_STOPS; j++) {
-			report->font_width[i][j] = width1[i][j];
-			report->text_width[i][j] = t_width1[i][j];
-		}
-	}
-
-	/* Now set the tab stops up.  The first is at zero, then add each column width on and include the
-	 * inter-column gap.
-	 */
-
-	for (i = 0; i < REPORT_TAB_BARS; i++) {
-		report->font_tab[i][0] = 0;
-
-		#ifdef DEBUG
-		debug_printf("Set tab bar %d (tab 0 = 0)", i);
-		#endif
-
-		for (j = 1; j  < REPORT_TAB_STOPS; j++) {
-			report->font_tab[i][j] = report->font_tab[i][j-1] + report->font_width[i][j-1] + REPORT_COLUMN_SPACE;
-
-			#ifdef DEBUG
-			debug_printf ("tab %d = %d", j, report->font_tab[i][j]);
-			#endif
-		}
-	}
-
-	/* Finally, work out how wide the window needs to be.  This is done by taking each tab stop and adding on the
-	 * widest entry in that column.
-	 */
-
-	total = 0;
-
-	for (i = 0; i < REPORT_TAB_BARS; i++) {
-		for (j = 0; j < REPORT_TAB_STOPS; j++) {
-			if (width1[i][j] > 0 && report->font_tab[i][j] + width1[i][j] > total) {
-				total = report->font_tab[i][j] + width1[i][j];
-			}
-		}
-	}
-
-	total += (REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN);
-
-	report->width = total;
 	report->linespace = line_space;
 	report->rulespace = rule_space;
-	report->height = ypos + REPORT_BOTTOM_MARGIN;
 }
 
 

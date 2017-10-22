@@ -55,29 +55,18 @@
 #include "flexutils.h"
 #include "report_cell.h"
 
-/**
- * A single tab stop definition.
- */
-
-struct report_tabs_stop {
-	enum report_tabs_stop_flags	flags;
-
-	int				font_width;
-	int				font_left;
-
-	int				text_width;
-};
-
 
 /**
  * A tab bar definition.
  */
 
 struct report_tabs_bar {
+	struct report_tabs_block	*parent;
+
 	size_t				stop_allocation;
 	size_t				stop_count;
 
-	struct report_tabs_stop	*stops;
+	struct report_tabs_stop		*stops;
 };
 
 
@@ -86,9 +75,22 @@ struct report_tabs_bar {
  */
 
 struct report_tabs_block {
-	size_t				bar_allocation;
+	osbool				closed;				/**< If TRUE, the instance is closed to adding new bars or stops.	*/
 
-	struct report_tabs_bar		**bars;
+	/* Storage for the tab bars. */
+
+	size_t				bar_allocation;			/**< The size of the bar reference array.				*/
+
+	struct report_tabs_bar		**bars;				/**< Array holding the bar references.					*/
+
+	/* Storage for the formatting information. */
+
+	struct report_tabs_bar		line_bar_handle;		/**< The bar that's currently active in a reflow action.		*/
+
+	size_t				line_allocation;
+
+	int				*line_font_width;
+	int				*line_text_width;
 };
 
 /**
@@ -106,11 +108,14 @@ struct report_tabs_block {
 /* Static Function Prototypes. */
 
 static struct report_tabs_bar *report_tabs_get_bar(struct report_tabs_block *handle, int bar);
-static struct report_tabs_bar *report_tabs_create_bar(void);
+static struct report_tabs_bar *report_tabs_create_bar(struct report_tabs_block *parent);
 static void report_tabs_destroy_bar(struct report_tabs_bar *handle);
 static size_t report_tabs_close_bar(struct report_tabs_bar *handle);
+static void report_tabs_reset_bar_columns(struct report_tabs_bar *handle);
 static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop);
 static void report_tabs_initialise_stop(struct report_tabs_stop *stop);
+static void report_tabs_zero_stop(struct report_tabs_stop *stop);
+static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle);
 
 
 /**
@@ -128,8 +133,15 @@ struct report_tabs_block *report_tabs_create(void)
 	if (new == NULL)
 		return NULL;
 
+	new->closed = FALSE;
+
 	new->bar_allocation = REPORT_TABS_BAR_BLOCK_SIZE;
 	new->bars = NULL;
+
+	new->line_bar_handle = NULL;
+	new->line_allocation = 0;
+	new->line_font_width = NULL;
+	new->line_text_width = NULL;
 
 	if (!flexutils_allocate((void **) &(new->bars), sizeof(struct report_tabs_bar *), new->bar_allocation)) {
 		report_tabs_destroy(new);
@@ -161,9 +173,12 @@ void report_tabs_destroy(struct report_tabs_block *handle)
 	for (bar = 0; bar < handle->bar_allocation; bar++)
 		report_tabs_destroy_bar(handle->bars[bar]);
 
-	/* Free the tab bar reference array. */
+	/* Free the tab bar reference and column size arrays. */
 
 	flexutils_free((void **) &(handle->bars));
+
+	flexutils_free((void **) &(handle->line_font_width));
+	flexutils_free((void **) &(handle->line_text_width));
 
 	/* Free the instance. */
 
@@ -180,15 +195,24 @@ void report_tabs_destroy(struct report_tabs_block *handle)
 
 void report_tabs_close(struct report_tabs_block *handle)
 {
-	size_t	bars = 0, data_size = 0;
+	size_t	bars = 0, stops, total_stops = 0;
 	int	bar;
 
 	if (handle == NULL || handle->bars == NULL)
 		return;
 
+	handle->closed = TRUE;
+
+	handle->line_allocation = 0;
+
 	for (bar = 0; bar < handle->bar_allocation; bar++) {
 		if (handle->bars[bar] != NULL) {
-			data_size += report_tabs_close_bar(handle->bars[bar]);
+			stops = report_tabs_close_bar(handle->bars[bar]);
+			if (stops > handle->line_allocation)
+				handle->line_allocation = stops;
+
+			total_stops += stops;
+
 			bars = bar + 1;
 		}
 	}
@@ -196,7 +220,7 @@ void report_tabs_close(struct report_tabs_block *handle)
 	if (flexutils_resize((void **) &(handle->bars), sizeof(struct report_tabs_bar *), bars))
 		handle->bar_allocation = bars;
 
-	debug_printf("Tab Bar data: %d bars, using %dKb", bars, data_size / 1024);
+	debug_printf("Tab Bar data: %d bars, using %dKb", bars, total_stops * sizeof(struct report_tabs_stop) / 1024);
 }
 
 
@@ -239,6 +263,176 @@ osbool report_tabs_set_stop_flags(struct report_tabs_block *handle, int bar, int
 
 
 /**
+ * Reset the tab stop columns in a Report Tabs instance.
+ *
+ * \param *handle		The Report Tabs instance to reset.
+ */
+
+void report_tabs_reset_columns(struct report_tabs_block *handle)
+{
+	int bar;
+
+	if (handle == NULL || handle->bars == NULL)
+		return;
+
+	for (bar = 0; bar < handle->bar_allocation; bar++)
+		report_tabs_reset_bar_columns(handle->bars[bar]);
+}
+
+
+/**
+ * Prepare to update the tab stops for a line of a report.
+ *
+ * \param *handle		The Report Tabs instance to prepare.
+ * \param bar			The tab bar to be updated.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool report_tabs_start_line_format(struct report_tabs_block *handle, int bar)
+{
+	int i;
+
+	if (handle == NULL || handle->bars == NULL)
+		return FALSE;
+
+	handle->line_bar_handle = report_tabs_get_bar(handle, bar);
+
+	if (handle->line_bar_handle == NULL)
+		return FALSE;
+
+	/* Ensure that memory is allocated for the line widths. */
+
+	if (handle->line_font_width == NULL && !flexutils_allocate((void **) &(handle->line_font_width), sizeof(int), handle->line_allocation))
+		return FALSE;
+
+	if (handle->line_text_width == NULL && !flexutils_allocate((void **) &(handle->line_text_width), sizeof(int), handle->line_allocation))
+		return FALSE;
+
+	/* Set up the initial data for the line. */
+
+	for (i = 0; i < handle->line_allocation; i++) {
+		handle->line_font_width[i] = 0;
+		handle->line_text_width[i] = 0;
+	}
+}
+
+
+/**
+ * Update the widths of a cell in a line as part of a Report Tabs instance
+ * formatting operation.
+ *
+ * \param *handle		The Report Tabs instance to be updated.
+ * \param stop			The tab stop to be updated.
+ * \param font_width		The width of the current cell, in OS Units,
+ *				or REPORT_TABS_SPILL_WIDTH for spill.
+ * \param text_width		The width of the current cell, in characters,
+ *				or REPORT_TABS_SPILL_WIDTH for spill.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool report_tabs_set_cell_width(struct report_tabs_block *handle, int stop, int font_width, int text_width)
+{
+	struct report_tabs_bar	*bar_handle;
+
+	if (handle == NULL || handle->bars == NULL || handle->line_bar_handle == NULL)
+		return FALSE;
+
+	if (!report_tabs_check_stop(handle->line_bar_handle, stop))
+		return FALSE;
+
+	if (handle->line_font_width != NULL && stop >= 0 && stop < handle->line_allocation)
+		handle->line_font_width[stop] = font_width;
+
+	if (handle->line_text_width != NULL && stop >= 0 && stop < handle->line_allocation)
+		handle->line_text_width[stop] = text_width;
+
+	return TRUE;
+}
+
+
+/**
+ * End the formatting of a line in a Report Tabs instance.
+ *
+ * \param *handle		The Report Tabs instance being updated.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool report_tabs_end_line_format(struct report_tabs_block *handle)
+{
+	int	stop;
+
+	if (handle == NULL || handle->bars == NULL ||
+			handle->line_bar_handle == NULL || handle->line_bar_handle->stops == NULL)
+		return FALSE;
+
+	/* If the column is a spill column, the width is carried over from the width of the
+	 * preceeding column, minus the inter-column gap.  The previous column is then zeroed.
+	 */
+
+	for (stop = 0; stop < handle->line_bar_handle->stop_count; stop++) {
+		if (handle->line_font_width[stop] == REPORT_TABS_SPILL_WIDTH) {
+			if (stop > 0) {
+				handle->line_font_width[stop] = handle->line_font_width[stop - 1] - REPORT_COLUMN_SPACE;
+				handle->line_font_width[stop - 1] = 0;
+			} else {
+				handle->line_font_width[stop] = 0;
+			}
+		}
+
+		if (handle->line_text_width[stop] == REPORT_TABS_SPILL_WIDTH) {
+			if (stop > 0) {
+				handle->line_text_width[stop] = handle->line_text_width[stop - 1] - REPORT_TEXT_COLUMN_SPACE;
+				handle->line_text_width[stop - 1] = 0;
+			} else {
+				handle->line_text_width[stop] = 0;
+			}
+		}
+	}
+
+	/* Update the maximum column widths. */
+
+	for (stop = 0; stop < handle->line_bar_handle->stop_count; stop++) {
+		if (handle->line_font_width[stop] > handle->line_bar_handle->stops[stop].font_width)
+			handle->line_bar_handle->stops[stop].font_width = handle->line_font_width[stop];
+
+		if (handle->line_text_width[stop] > handle->line_bar_handle->stops[stop].text_width)
+			handle->line_bar_handle->stops[stop].text_width = handle->line_text_width[stop];
+	}
+
+	/* Release the bar at the end of the line. */
+
+	handle->line_bar_handle = NULL;
+
+	return TRUE;
+}
+
+
+/**
+ * Calculate the column positions of all the bars in a Report Tabs instance.
+ *
+ * \param *handle		The instance to recalculate.
+ * \return			The width, in OS Units, of the widest bar
+ *				when in font mode.
+ */
+
+int report_tabs_calculate_columns(struct report_tabs_block *handle)
+{
+	int bar, width, max_width = 0;
+
+	if (handle == NULL || handle->bars == NULL)
+		return 0;
+
+	for (bar = 0; bar < handle->bar_allocation; bar++) {
+		width = report_tabs_calculate_bar_columns(handle->bars[bar]);
+		if (width > max_width)
+			max_width = width;
+	}
+
+	return max_width;
+}
+
+
+/**
  * Return the block handle for a tab bar with a given index.
  *
  * \param *handle		The Report Tabs instance holding the bar.
@@ -262,7 +456,7 @@ static struct report_tabs_bar *report_tabs_get_bar(struct report_tabs_block *han
 
 	/* If the bar index falls outside the current range, allocate more space. */
 
-	if (bar >= handle->bar_allocation) {
+	if ((bar >= handle->bar_allocation) && (closed == FALSE)) {
 		extend = ((bar / (int) REPORT_TABS_BAR_BLOCK_SIZE) + 1) * REPORT_TABS_BAR_BLOCK_SIZE;
 
 		debug_printf("Bar %d is outside existing range; extending to %d", handle->bar_allocation, extend);
@@ -285,9 +479,9 @@ static struct report_tabs_bar *report_tabs_get_bar(struct report_tabs_block *han
 
 	bar_handle = handle->bars[bar];
 
-	if (bar_handle == NULL) {
+	if ((bar_handle == NULL) && (closed == FALSE)) {
 		debug_printf("Bar %d doesn't yet exist", bar);
-		bar_handle = report_tabs_create_bar();
+		bar_handle = report_tabs_create_bar(handle);
 		handle->bars[bar] = bar_handle;
 	}
 
@@ -298,10 +492,11 @@ static struct report_tabs_bar *report_tabs_get_bar(struct report_tabs_block *han
 /**
  * Initialise a Report Tabs Bar block.
  *
+ * \param *parent		The parent Report Tabs instance.
  * \return			The block handle, or NULL on failure.
  */
 
-static struct report_tabs_bar *report_tabs_create_bar(void)
+static struct report_tabs_bar *report_tabs_create_bar(struct report_tabs_block *parent)
 {
 	struct report_tabs_bar	*new;
 	int			i;
@@ -311,6 +506,8 @@ static struct report_tabs_bar *report_tabs_create_bar(void)
 		return NULL;
 
 	debug_printf("Claimed bar block");
+
+	new->parent = parent;
 
 	new->stop_allocation = REPORT_TABS_STOP_BLOCK_SIZE;
 	new->stop_count = 0;
@@ -355,7 +552,7 @@ static void report_tabs_destroy_bar(struct report_tabs_bar *handle)
  * reducing the stop count to the defined stops.
  *
  * \param *handle		The block handle of the tab bar.
- * \return			The amount of memory used.
+ * \return			The number of tab stops defined.
  */
 
 static size_t report_tabs_close_bar(struct report_tabs_bar *handle)
@@ -369,7 +566,25 @@ static size_t report_tabs_close_bar(struct report_tabs_bar *handle)
 
 	debug_printf("Tab Stop data: %d stops, using %dKb", handle->stop_count, handle->stop_count * sizeof (struct report_tabs_stop) / 1024);
 
-	return handle->stop_count * sizeof (struct report_tabs_stop);
+	return handle->stop_count;
+}
+
+
+/**
+ * Reset the tab stop columns in a Report Tabs Bar instance.
+ *
+ * \param *handle		The Report Tabs Bar instance to reset.
+ */
+
+static void report_tabs_reset_bar_columns(struct report_tabs_bar *handle)
+{
+	int stop;
+
+	if (handle == NULL || handle->stops == NULL)
+		return;
+
+	for (stop = 0; stop < handle->stop_count; stop++)
+		report_tabs_zero_stop(handle->stops + stop);
 }
 
 
@@ -399,6 +614,9 @@ static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop)
 
 	if (stop < handle->stop_count)
 		return TRUE;
+
+	if ((handle->parent == NULL) || (handle->parent->closed == TRUE))
+		return FALSE;
 
 	debug_printf("Stop %d doesn't yet exist.", stop);
 
@@ -445,8 +663,61 @@ static void report_tabs_initialise_stop(struct report_tabs_stop *stop)
 		return;
 
 	stop->flags = REPORT_TABS_STOP_FLAGS_NONE;
+	report_tabs_zero_stop(stop);
+}
+
+
+/**
+ * Zero the data in a tab stop structure.
+ *
+ * \param *stop			Pointer to the tab stop to initialise.
+ */
+
+static void report_tabs_zero_stop(struct report_tabs_stop *stop)
+{
+	if (stop == NULL)
+		return;
+
 	stop->font_width = 0;
 	stop->font_left = 0;
 	stop->text_width = 0;
+	stop->text_left = 0;
+}
+
+
+
+
+
+
+/**
+ * Calculate the column positions for a tab bar.
+ *
+ * \param *handle		The bar to calculate the positions for.
+ * \return			The width, in OS Units, of the bar in font mode.
+ */
+
+static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle)
+{
+	int stop, width = 0;
+
+	if (handle == NULL || handle->stops == NULL || handle->stop_count == 0)
+		return 0;
+
+	handle->stops[0].font_left = 0;
+	handle->stops[0].text_left = 0;
+
+	debug_printf("Set tab bar %d (tab 0 = 0)", i);
+
+	for (stop = 1; stop < handle->stop_count; stop++) {
+		handle->stops[stop].font_left = handle->stops[stop - 1].font_left + handle->stops[stop - 1].font_width + REPORT_COLUMN_SPACE;
+		handle->stops[stop].text_left = handle->stops[stop - 1].text_left + handle->stops[stop - 1].text_width + REPORT_TEXT_COLUMN_SPACE;
+
+		debug_printf("tab %d = %d", stop, handle->stops[stop].font_left);
+
+		if ((handle->stops[stop].font_width > 0) && ((handle->stops[stop].font_left + handle->stops[stop].font_width) > width))
+			width = handle->stops[stop].font_left + handle->stops[stop].font_width;
+	}
+
+	return width;
 }
 

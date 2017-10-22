@@ -699,7 +699,7 @@ static void report_reflow_content(struct report *report)
 
 	content_base = report_textdump_get_base(report->content);
 
-	/* Work through the report, line by line, getting the maximum column widths. */
+	/* Work through the report, line by line, calculating the column positions. */
 
 	line_count = report_line_get_count(report->lines);
 
@@ -713,7 +713,10 @@ static void report_reflow_content(struct report *report)
 		ypos += (line_space + rule_space);
 		line_data->ypos = -ypos;
 
-		report_tabs_start_line_format(report->tabs, line_data->tab_bar);
+		if (!report_tabs_start_line_format(report->tabs, line_data->tab_bar)) {
+			report->flags |= REPORT_STATUS_MEMERR;
+			continue;
+		}
 
 		for (cell = 0; cell < line_data->cell_count; cell++) {
 			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
@@ -743,7 +746,11 @@ static void report_reflow_content(struct report *report)
 		report_tabs_end_line_format(report->tabs);
 	}
 
+	/* Lose the fonts used in the report. */
+
 	report_fonts_lose(report->fonts);
+
+	/* Set the dimensions of the report. */
 
 	report->width = report_tabs_calculate_columns(report->tabs) + REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN;
 	report->height = ypos + REPORT_BOTTOM_MARGIN;

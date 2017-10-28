@@ -101,8 +101,6 @@
 
 /* Report export details */
 
-#define REPORT_EXPORT_LINE_LENGTH 256
-
 #define REPORT_PRINT_TITLE_LENGTH 1024
 
 #define REPORT_PRINT_BUFFER_LENGTH 10
@@ -1238,8 +1236,8 @@ static osbool report_save_tsv(char *filename, osbool selection, void *data)
 static void report_export_text(struct report *report, char *filename, osbool formatting)
 {
 	FILE			*out;
-	int			line, cell, j, indent, width, overrun, escape;
-	char			*content_base, *content, buffer[REPORT_EXPORT_LINE_LENGTH];
+	int			line, cell, j, indent, width, column, escape;
+	char			*content_base, *content;
 	size_t			line_count;
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data;
@@ -1262,27 +1260,32 @@ static void report_export_text(struct report *report, char *filename, osbool for
 		if (line_data == NULL)
 			continue;
 
-		overrun = 0;
+		column = 0;
 
 		for (cell = 0; cell < line_data->cell_count; cell++) {
 			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
-			if (cell_data == NULL)
+			if (cell_data == NULL || cell_data->offset == REPORT_TEXTDUMP_NULL)
 				continue;
 
 			tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, cell_data->tab_stop);
 			if (tab_stop == NULL)
 				continue;
 
-			content = content_base + cell_data->offset;
+			/* Pad out with spaces to the desired column position. */
 
-			string_copy(buffer, content, REPORT_EXPORT_LINE_LENGTH);
+			while (column < tab_stop->text_left) {
+				fputc(' ', out);
+				column++;
+			}
+
+			content = content_base + cell_data->offset;
 
 			escape = (cell_data->flags & REPORT_CELL_FLAGS_BOLD) ? 0x01 : 0x00;
 			if (cell_data->flags & REPORT_CELL_FLAGS_UNDERLINE)
 				escape |= 0x08;
 
 			indent = (cell_data->flags & REPORT_CELL_FLAGS_INDENT) ? REPORT_TEXT_COLUMN_INDENT : 0;
-			width = strlen(buffer);
+			width = strlen(content);
 
 			if (cell_data->flags & REPORT_CELL_FLAGS_RIGHT)
 				indent = tab_stop->text_width - width;
@@ -1291,6 +1294,8 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 			for (j = 0; j < indent; j++)
 				fputc(' ', out);
+
+			column += (indent + width);
 
 			/* Output fancy text formatting codes (used when printing formatted text) */
 
@@ -1301,40 +1306,13 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 			/* Output the actual field data. */
 
-			fprintf(out, "%s", buffer);
+			fprintf(out, "%s", content);
 
 			/* Output fancy text formatting codes (used when printing formatted text) */
 
 			if (formatting && escape != 0) {
 				fputc((char) 27, out);
 				fputc((char) 0x80, out);
-			}
-
-			/* If there is another cell after this, pad out with spaces. */
-
-			if ((cell + 1) < line_data->cell_count) {
-				/* Check the actual width against that allocated.  If it is more,
-				 * note the amount that spills into the next column, taking into
-				 * account the width of the inter column gap.
-				 */
-
-				if ((width + indent) > tab_stop->text_width)
-					overrun += (width + indent) - tab_stop->text_width - REPORT_TEXT_COLUMN_SPACE;
-
-				/* Pad out the required number of spaces, taking into account any
-				 * overspill from earlier columns.
-				 */
-
-				for (j = 0; j < (tab_stop->text_width - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
-					fputc(' ', out);
-
-				/* Reduce the overspill record by the amount of free space in this column. */
-
-				if ((width+indent) < tab_stop->text_width) {
-					overrun -= tab_stop->text_width - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
-					if (overrun < 0)
-						overrun = 0;
-				}
 			}
 		}
 

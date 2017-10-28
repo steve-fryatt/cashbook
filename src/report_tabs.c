@@ -85,7 +85,7 @@ struct report_tabs_block {
 
 	/* Storage for the formatting information. */
 
-	struct report_tabs_bar		line_bar_handle;		/**< The bar that's currently active in a reflow action.		*/
+	struct report_tabs_bar		*line_bar_handle;		/**< The bar that's currently active in a reflow action.		*/
 
 	size_t				line_allocation;
 
@@ -105,6 +105,15 @@ struct report_tabs_block {
 
 #define REPORT_TABS_STOP_BLOCK_SIZE 10
 
+/**
+ * The horizontal space between columns in OS Units.
+ */
+
+#define REPORT_TABS_COLUMN_SPACE 20
+
+// \TODO -- Where?
+#define REPORT_TEXT_COLUMN_SPACE 1
+
 /* Static Function Prototypes. */
 
 static struct report_tabs_bar *report_tabs_get_bar(struct report_tabs_block *handle, int bar);
@@ -116,6 +125,7 @@ static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop);
 static void report_tabs_initialise_stop(struct report_tabs_stop *stop);
 static void report_tabs_zero_stop(struct report_tabs_stop *stop);
 static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle);
+static struct report_tabs_stop *report_tabs_bar_get_stop(struct report_tabs_bar *handle, int stop);
 
 
 /**
@@ -314,6 +324,8 @@ osbool report_tabs_start_line_format(struct report_tabs_block *handle, int bar)
 		handle->line_font_width[i] = 0;
 		handle->line_text_width[i] = 0;
 	}
+
+	return TRUE;
 }
 
 
@@ -332,8 +344,6 @@ osbool report_tabs_start_line_format(struct report_tabs_block *handle, int bar)
 
 osbool report_tabs_set_cell_width(struct report_tabs_block *handle, int stop, int font_width, int text_width)
 {
-	struct report_tabs_bar	*bar_handle;
-
 	if (handle == NULL || handle->bars == NULL || handle->line_bar_handle == NULL)
 		return FALSE;
 
@@ -372,7 +382,7 @@ osbool report_tabs_end_line_format(struct report_tabs_block *handle)
 	for (stop = 0; stop < handle->line_bar_handle->stop_count; stop++) {
 		if (handle->line_font_width[stop] == REPORT_TABS_SPILL_WIDTH) {
 			if (stop > 0) {
-				handle->line_font_width[stop] = handle->line_font_width[stop - 1] - REPORT_COLUMN_SPACE;
+				handle->line_font_width[stop] = handle->line_font_width[stop - 1] - REPORT_TABS_COLUMN_SPACE;
 				handle->line_font_width[stop - 1] = 0;
 			} else {
 				handle->line_font_width[stop] = 0;
@@ -433,6 +443,26 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle)
 
 
 /**
+ * Return a transient pointer to a tab bar stop.
+ *
+ * \param *handle		The Report Tabs instance holding the bar.
+ * \param bar			The bar holding the required stop.
+ * \param stop			The required stop.
+ * \return			Transient pointer to the stop data, or NULL.
+ */
+
+struct report_tabs_stop *report_tabs_get_stop(struct report_tabs_block *handle, int bar, int stop)
+{
+	struct report_tabs_bar	*bar_handle = NULL;
+
+	bar_handle = report_tabs_get_bar(handle, bar);
+	if (bar_handle == NULL)
+		return NULL;
+
+	return report_tabs_bar_get_stop(bar_handle, stop);
+}
+
+/**
  * Return the block handle for a tab bar with a given index.
  *
  * \param *handle		The Report Tabs instance holding the bar.
@@ -456,7 +486,7 @@ static struct report_tabs_bar *report_tabs_get_bar(struct report_tabs_block *han
 
 	/* If the bar index falls outside the current range, allocate more space. */
 
-	if ((bar >= handle->bar_allocation) && (closed == FALSE)) {
+	if ((bar >= handle->bar_allocation) && (handle->closed == FALSE)) {
 		extend = ((bar / (int) REPORT_TABS_BAR_BLOCK_SIZE) + 1) * REPORT_TABS_BAR_BLOCK_SIZE;
 
 		debug_printf("Bar %d is outside existing range; extending to %d", handle->bar_allocation, extend);
@@ -479,7 +509,7 @@ static struct report_tabs_bar *report_tabs_get_bar(struct report_tabs_block *han
 
 	bar_handle = handle->bars[bar];
 
-	if ((bar_handle == NULL) && (closed == FALSE)) {
+	if ((bar_handle == NULL) && (handle->closed == FALSE)) {
 		debug_printf("Bar %d doesn't yet exist", bar);
 		bar_handle = report_tabs_create_bar(handle);
 		handle->bars[bar] = bar_handle;
@@ -706,10 +736,10 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle)
 	handle->stops[0].font_left = 0;
 	handle->stops[0].text_left = 0;
 
-	debug_printf("Set tab bar %d (tab 0 = 0)", i);
+	debug_printf("Set tab 0 = 0");
 
 	for (stop = 1; stop < handle->stop_count; stop++) {
-		handle->stops[stop].font_left = handle->stops[stop - 1].font_left + handle->stops[stop - 1].font_width + REPORT_COLUMN_SPACE;
+		handle->stops[stop].font_left = handle->stops[stop - 1].font_left + handle->stops[stop - 1].font_width + REPORT_TABS_COLUMN_SPACE;
 		handle->stops[stop].text_left = handle->stops[stop - 1].text_left + handle->stops[stop - 1].text_width + REPORT_TEXT_COLUMN_SPACE;
 
 		debug_printf("tab %d = %d", stop, handle->stops[stop].font_left);
@@ -719,5 +749,22 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle)
 	}
 
 	return width;
+}
+
+
+/**
+ * Return a transient pointer to a tab stop.
+ *
+ * \param *handle		The bar holding the stop.
+ * \param stop			The stop to return.
+ * \return			Pointer to a transient stop block, or NULL.
+ */
+
+static struct report_tabs_stop *report_tabs_bar_get_stop(struct report_tabs_bar *handle, int stop)
+{
+	if (handle == NULL || handle->stops == NULL || stop < 0 || stop >= handle->stop_count)
+		return NULL;
+
+	return handle->stops + stop;
 }
 

@@ -170,5 +170,17 @@ osbool report_tabs_end_line_format(struct report_tabs_block *handle);
 
 int report_tabs_calculate_columns(struct report_tabs_block *handle);
 
+
+/**
+ * Return a transient pointer to a tab bar stop.
+ *
+ * \param *handle		The Report Tabs instance holding the bar.
+ * \param bar			The bar holding the required stop.
+ * \param stop			The required stop.
+ * \return			Transient pointer to the stop data, or NULL.
+ */
+
+struct report_tabs_stop *report_tabs_get_stop(struct report_tabs_block *handle, int bar, int stop);
+
 #endif
 

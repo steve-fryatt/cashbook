@@ -1243,6 +1243,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 	size_t			line_count;
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data;
+	struct report_tabs_stop	*tab_stop;
 
 	out = fopen(filename, "w");
 
@@ -1265,7 +1266,11 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 		for (cell = 0; cell < line_data->cell_count; cell++) {
 			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
-			if (cell_data == NULL || cell_data->tab_stop > REPORT_TAB_STOPS)
+			if (cell_data == NULL)
+				continue;
+
+			tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, cell_data->tab_stop);
+			if (tab_stop == NULL)
 				continue;
 
 			content = content_base + cell_data->offset;
@@ -1280,7 +1285,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 			width = strlen(buffer);
 
 			if (cell_data->flags & REPORT_CELL_FLAGS_RIGHT)
-				indent = report->text_width[line_data->tab_bar][cell_data->tab_stop] - width;
+				indent = tab_stop->text_width - width;
 
 			/* Output the indent spaces. */
 
@@ -1313,20 +1318,20 @@ static void report_export_text(struct report *report, char *filename, osbool for
 				 * account the width of the inter column gap.
 				 */
 
-				if ((width + indent) > report->text_width[line_data->tab_bar][cell_data->tab_stop])
-					overrun += (width + indent) - report->text_width[line_data->tab_bar][cell_data->tab_stop] - REPORT_TEXT_COLUMN_SPACE;
+				if ((width + indent) > tab_stop->text_width)
+					overrun += (width + indent) - tab_stop->text_width - REPORT_TEXT_COLUMN_SPACE;
 
 				/* Pad out the required number of spaces, taking into account any
 				 * overspill from earlier columns.
 				 */
 
-				for (j = 0; j < (report->text_width[line_data->tab_bar][cell_data->tab_stop] - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
+				for (j = 0; j < (tab_stop->text_width - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
 					fputc(' ', out);
 
 				/* Reduce the overspill record by the amount of free space in this column. */
 
-				if ((width+indent) < report->text_width[line_data->tab_bar][cell_data->tab_stop]) {
-					overrun -= report->text_width[line_data->tab_bar][cell_data->tab_stop] - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
+				if ((width+indent) < tab_stop->text_width) {
+					overrun -= tab_stop->text_width - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
 					if (overrun < 0)
 						overrun = 0;
 				}
@@ -1928,6 +1933,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 	char			*content_base, *content, *paint, buffer[REPORT_MAX_LINE_LEN + 10];
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data;
+	struct report_tabs_stop	*tab_stop;
 
 	content_base = report_textdump_get_base(report->content);
 
@@ -1937,7 +1943,11 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 
 	for (cell = 0; cell < line_data->cell_count; cell++) {
 		cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
-		if (cell_data == NULL || cell_data->tab_stop > REPORT_TAB_STOPS)
+		if (cell_data == NULL)
+			continue;
+
+		tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, cell_data->tab_stop);
+		if (tab_stop == NULL)
 			continue;
 
 		content = content_base + cell_data->offset;
@@ -1949,7 +1959,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 			if (error != NULL)
 				return error;
 
-			indent = report->font_width[line_data->tab_bar][cell_data->tab_stop] - width;
+			indent = tab_stop->font_width - width;
 		}
 
 		if (cell_data->flags & REPORT_CELL_FLAGS_UNDERLINE) {
@@ -1963,7 +1973,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 		}
 
 		error = report_fonts_paint_text(report->fonts, paint,
-				x + report->font_tab[line_data->tab_bar][cell_data->tab_stop] + indent,
+				x + tab_stop->font_left + indent,
 				y + line_data->ypos + REPORT_BASELINE_OFFSET, cell_data->flags);
 		if (error != NULL)
 			return error;

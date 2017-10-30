@@ -191,7 +191,7 @@ static struct saveas_block	*report_saveas_tsv = NULL;			/**< The Save TSV saveas
 
 
 static void			report_close_and_calculate(struct report *report);
-static osbool			report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int *tab_stop, unsigned *first_cell_offset);
+static osbool			report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int tab_stop, unsigned *first_cell_offset);
 
 
 static void			report_reflow_content(struct report *report);
@@ -513,7 +513,7 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 {
 	char			*c, *copy;
 	unsigned		first_cell_offset;
-	int			tab_stop;
+	int			tab_stop, cell_count;
 	enum report_line_flags	line_flags;
 	enum report_cell_flags	cell_flags;
 
@@ -533,6 +533,7 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 	}
 
 	tab_stop = 0;
+	cell_count = 0;
 
 	line_flags = REPORT_LINE_FLAGS_NONE;
 	cell_flags = REPORT_CELL_FLAGS_NONE;
@@ -549,7 +550,10 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 			case 't':
 				*c++ = '\0';
 
-				report_add_cell(report, copy, cell_flags, tab_bar, &tab_stop, &first_cell_offset);
+				if (report_add_cell(report, copy, cell_flags, tab_bar, tab_stop, &first_cell_offset))
+					cell_count++;
+
+				tab_stop++;
 
 				c = copy;
 				cell_flags = REPORT_CELL_FLAGS_NONE;
@@ -590,16 +594,13 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 
 	*c = '\0';
 
-	report_add_cell(report, copy, cell_flags, tab_bar, &tab_stop, &first_cell_offset);
+	if (report_add_cell(report, copy, cell_flags, tab_bar, tab_stop, &first_cell_offset))
+		cell_count++;
 
 	/* Store the line in the report. */
 
-	if (first_cell_offset != REPORT_CELL_NULL) {
-		if (!report_line_add(report->lines, first_cell_offset, tab_stop, tab_bar, line_flags))
-			report->flags |= REPORT_STATUS_MEMERR;
-	} else {
+	if (!report_line_add(report->lines, first_cell_offset, cell_count, tab_bar, line_flags))
 		report->flags |= REPORT_STATUS_MEMERR;
-	}
 
 	free(copy);
 }
@@ -612,36 +613,42 @@ void report_write_line(struct report *report, int tab_bar, char *text)
  * \param *text			Pointer to the text to be stored in the cell.
  * \param flags			The flags to be applied to the cell.
  * \param tab_bar		The tab bar to which the cell belongs.
- * \param *tab_stop		Pointer to a variable holding the cell's tab
- *				stop, to be updated on return.
+ * \param tab_stop		The tab stop to which the cell belongs.
  * \param *first_cell_offset	Pointer to a variable holding the first cell offet,
  *				to be updated on return.
+ * \return			TRUE if a cell was added; otherwise FALSE.
  */
 
-static osbool report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int *tab_stop, unsigned *first_cell_offset)
+static osbool report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int tab_stop, unsigned *first_cell_offset)
 {
 	unsigned content_offset, cell_offset;
 
-	content_offset = report_textdump_store(report->content, text);
-	if (content_offset == REPORT_TEXTDUMP_NULL) {
-		report->flags |= REPORT_STATUS_MEMERR;
-		return FALSE;
+	if (text != NULL && *text != '\0') {
+		content_offset = report_textdump_store(report->content, text);
+		if (content_offset == REPORT_TEXTDUMP_NULL) {
+			report->flags |= REPORT_STATUS_MEMERR;
+			return FALSE;
+		}
+	} else {
+		content_offset = REPORT_TEXTDUMP_NULL;
 	}
 
-	cell_offset = report_cell_add(report->cells, content_offset, *tab_stop, flags);
-	if (cell_offset == REPORT_CELL_NULL) {
-		report->flags |= REPORT_STATUS_MEMERR;
-		return FALSE;
+	if (content_offset != REPORT_TEXTDUMP_NULL || flags != REPORT_CELL_FLAGS_NONE) {
+		cell_offset = report_cell_add(report->cells, content_offset, tab_stop, flags);
+		if (cell_offset == REPORT_CELL_NULL) {
+			report->flags |= REPORT_STATUS_MEMERR;
+			return FALSE;
+		}
+	} else {
+		cell_offset = REPORT_CELL_NULL;
 	}
 
 	if (*first_cell_offset == REPORT_CELL_NULL)
 		*first_cell_offset = cell_offset;
 
-	report_tabs_set_stop_flags(report->tabs, tab_bar, *tab_stop, REPORT_TABS_STOP_FLAGS_NONE);
+	report_tabs_set_stop_flags(report->tabs, tab_bar, tab_stop, REPORT_TABS_STOP_FLAGS_NONE);
 
-	*tab_stop = *tab_stop + 1;
-
-	return TRUE;
+	return (cell_offset == REPORT_CELL_NULL) ? FALSE : TRUE;
 }
 
 

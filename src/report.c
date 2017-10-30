@@ -105,11 +105,6 @@
 
 #define REPORT_PRINT_BUFFER_LENGTH 10
 
-/**
- * The number of tab bars which can be defined.
- */
-
-#define REPORT_TAB_BARS 5
 
 enum report_page_area {
 	REPORT_PAGE_NONE   = 0,
@@ -537,7 +532,6 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 		return;
 	}
 
-	tab_bar = (tab_bar>= 0 && tab_bar < REPORT_TAB_BARS) ? tab_bar : 0;
 	tab_stop = 0;
 
 	line_flags = REPORT_LINE_FLAGS_NONE;

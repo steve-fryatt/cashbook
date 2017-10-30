@@ -145,11 +145,6 @@ struct report {
 
 	/* Tab details */
 
-//	int			font_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in OS units for outline fonts.		*/
-//	int			text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in characters for ASCII text.		*/
-
-//	int			font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Tab stops in OS units for outline fonts.			*/
-
 	struct report_tabs_block	*tabs;
 
 	/* Font data */
@@ -632,9 +627,6 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 static osbool report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int *tab_stop, unsigned *first_cell_offset)
 {
 	unsigned content_offset, cell_offset;
-
-	if (*tab_stop >= REPORT_TAB_STOPS)
-		return FALSE;
 
 	content_offset = report_textdump_store(report->content, text);
 	if (content_offset == REPORT_TEXTDUMP_NULL) {
@@ -1366,7 +1358,7 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 
 		for (cell = 0; cell < line_data->cell_count; cell++) {
 			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
-			if (cell_data == NULL || cell_data->tab_stop > REPORT_TAB_STOPS)
+			if (cell_data == NULL)
 				continue;
 
 			content = content_base + cell_data->offset;

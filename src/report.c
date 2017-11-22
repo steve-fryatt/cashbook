@@ -82,6 +82,7 @@
 #include "print_dialogue.h"
 #include "print_protocol.h"
 #include "report_cell.h"
+#include "report_draw.h"
 #include "report_fonts.h"
 #include "report_format_dialogue.h"
 #include "report_line.h"
@@ -923,6 +924,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	int		ox, oy, top, base, x, y, linespace, line_count;
 	struct report	*report;
 	osbool		more;
+	os_error	*error;
 
 	report = event_get_window_user_data(redraw->w);
 
@@ -951,17 +953,18 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 			wimp_set_colour(wimp_COLOUR_BLACK);
 
 			for (y = top; y < line_count && y <= base; y++) {
-				os_plot(os_MOVE_TO, ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1));
-				os_plot(os_PLOT_TO, ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
+				report_draw_line(ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1),
+						ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
 			}
 		}
 
 		/* Plot Text. */
 
-		wimp_set_font_colours(wimp_COLOUR_WHITE, wimp_COLOUR_BLACK);
-
-		for (y = top; y < line_count && y <= base; y++)
-			report_plot_line(report, y, ox + REPORT_LEFT_MARGIN, oy);
+		for (y = top; y < line_count && y <= base; y++) {
+			error = report_plot_line(report, y, ox + REPORT_LEFT_MARGIN, oy);
+			if (error != NULL)
+				debug_printf("Redraw error: %s", error->errmess);
+		}
 
 		more = wimp_get_rectangle(redraw);
 	}
@@ -1921,6 +1924,15 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 		if (tab_stop == NULL)
 			continue;
 
+		error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+		if (error != NULL)
+			return error;
+
+		error = report_draw_box(x + tab_stop->font_left, y + line_data->ypos,
+				x + tab_stop->font_left + tab_stop->font_width, y + line_data->ypos + report->linespace);
+		if (error != NULL)
+			return error;
+
 		content = content_base + cell_data->offset;
 
 		indent = (cell_data->flags & REPORT_CELL_FLAGS_INDENT) ? REPORT_COLUMN_INDENT : 0;
@@ -1942,6 +1954,10 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 		} else {
 			paint = content;
 		}
+
+		error = report_fonts_set_colour(report->fonts, os_COLOUR_BLACK, os_COLOUR_WHITE);
+		if (error != NULL)
+			return error;
 
 		error = report_fonts_paint_text(report->fonts, paint,
 				x + tab_stop->font_left + indent,

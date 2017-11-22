@@ -198,7 +198,7 @@ os_error *report_fonts_declare(struct report_fonts_block *handle);
  * \return			A pointer to an OS Error block, or NULL on success.
  */
 
-os_error *report_fonts_set_colour(struct report_fonts_block *handle,os_colour fill, os_colour bg_hint);
+os_error *report_fonts_set_colour(struct report_fonts_block *handle, os_colour fill, os_colour bg_hint);
 
 #endif
 

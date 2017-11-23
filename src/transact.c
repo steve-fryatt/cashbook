@@ -869,9 +869,9 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 				}
 			}
 		} else if (pointer->i == TRANSACT_ICON_FROM_REC || pointer->i == TRANSACT_ICON_FROM_NAME) {
-			icons_put_caret_at_end (pointer->w, TRANSACT_ICON_FROM);
+			icons_put_caret_at_end(pointer->w, TRANSACT_ICON_FROM);
 		} else if (pointer->i == TRANSACT_ICON_TO_REC || pointer->i == TRANSACT_ICON_TO_NAME) {
-			icons_put_caret_at_end (pointer->w, TRANSACT_ICON_TO);
+			icons_put_caret_at_end(pointer->w, TRANSACT_ICON_TO);
 		}
 	}
 
@@ -2724,7 +2724,6 @@ static tran_t transact_find_edit_line_by_transaction(struct transact_block *wind
 static void transact_place_edit_line_by_transaction(struct transact_block *windat, tran_t transaction)
 {
 	int		i, line;
-	wimp_caret	caret;
 
 	if (windat == NULL)
 		return;
@@ -2742,9 +2741,6 @@ static void transact_place_edit_line_by_transaction(struct transact_block *winda
 
 	transact_place_edit_line(windat, line);
 
-	wimp_get_caret_position(&caret);
-	if (caret.w == windat->transaction_window)
-		icons_put_caret_at_end(windat->transaction_window, TRANSACT_ICON_DATE);
 	transact_find_edit_line_vertically(windat);
 }
 

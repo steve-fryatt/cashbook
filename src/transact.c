@@ -869,9 +869,9 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 				}
 			}
 		} else if (pointer->i == TRANSACT_ICON_FROM_REC || pointer->i == TRANSACT_ICON_FROM_NAME) {
-			icons_put_caret_at_end (pointer->w, TRANSACT_ICON_FROM);
+			icons_put_caret_at_end(pointer->w, TRANSACT_ICON_FROM);
 		} else if (pointer->i == TRANSACT_ICON_TO_REC || pointer->i == TRANSACT_ICON_TO_NAME) {
-			icons_put_caret_at_end (pointer->w, TRANSACT_ICON_TO);
+			icons_put_caret_at_end(pointer->w, TRANSACT_ICON_TO);
 		}
 	}
 

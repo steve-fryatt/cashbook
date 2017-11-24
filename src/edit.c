@@ -964,7 +964,8 @@ static void edit_process_clipboard_keypress(struct edit_block *instance, wimp_ke
 		break;
 
 	case 24: /* Ctrl-X */
-		clipboard_cut_from_icon(key);
+		if (clipboard_cut_from_icon(key))
+			edit_process_field_keypress(field, key);
 		break;
 	}
 }

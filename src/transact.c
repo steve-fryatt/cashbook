@@ -74,7 +74,6 @@
 #include "analysis_template_menu.h"
 #include "budget.h"
 #include "caret.h"
-#include "clipboard.h"
 #include "column.h"
 #include "currency.h"
 #include "date.h"
@@ -1126,19 +1125,10 @@ static osbool transact_window_keypress_handler(wimp_key *key)
 
 	file = windat->file;
 
-	/* The global clipboard keys. */
+	/* Keyboard shortcuts */
 
-	if (key->c == 3) /* Ctrl- C */
-		clipboard_copy_from_icon(key);
-	else if (key->c == 18) /* Ctrl-R */
+	if (key->c == 18) /* Ctrl-R */
 		account_recalculate_all(file);
-	else if (key->c == 22) /* Ctrl-V */
-		clipboard_paste_to_icon(key);
-	else if (key->c == 24) /* Ctrl-X */
-		clipboard_cut_from_icon(key);
-
-	/* Other keyboard shortcuts */
-
 	else if (key->c == wimp_KEY_PRINT) {
 		wimp_get_pointer_info(&pointer);
 		transact_open_print_window(windat, &pointer, config_opt_read("RememberValues"));

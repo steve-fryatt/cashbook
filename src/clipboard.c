@@ -87,7 +87,7 @@ void clipboard_initialise(void)
  * process if necessary.
  *
  * \param *key			A Wimp Key block, indicating the icon to copy.
- * \return			TRUE if successful; else FALSE.
+ * \return			TRUE if a value was copied; else FALSE.
  */
 
 osbool clipboard_copy_from_icon(wimp_key *key)
@@ -95,7 +95,7 @@ osbool clipboard_copy_from_icon(wimp_key *key)
 	wimp_icon_state		icon;
 
 	if (!config_opt_read("GlobalClipboardSupport"))
-		return TRUE;
+		return FALSE;
 
 	icon.w = key->w;
 	icon.i = key->i;
@@ -110,7 +110,7 @@ osbool clipboard_copy_from_icon(wimp_key *key)
  * process if necessary.
  *
  * \param *key			A Wimp Key block, indicating the icon to cut.
- * \return			TRUE if successful; else FALSE.
+ * \return			TRUE if a value was cut; else FALSE.
  */
 
 osbool clipboard_cut_from_icon(wimp_key *key)
@@ -118,7 +118,7 @@ osbool clipboard_cut_from_icon(wimp_key *key)
 	wimp_icon_state		icon;
 
 	if (!config_opt_read("GlobalClipboardSupport"))
-		return TRUE;
+		return FALSE;
 
 	icon.w = key->w;
 	icon.i = key->i;
@@ -141,7 +141,7 @@ osbool clipboard_cut_from_icon(wimp_key *key)
  * is started.
  *
  * \param *key			A Wimp Key block, indicating the icon to paste.
- * \return			TRUE if successful; else FALSE.
+ * \return			TRUE if a value was pasted immediately; else FALSE.
  */
 
 osbool clipboard_paste_to_icon(wimp_key *key)
@@ -153,7 +153,7 @@ osbool clipboard_paste_to_icon(wimp_key *key)
 	*/
 
 	if (!config_opt_read("GlobalClipboardSupport"))
-		return TRUE;
+		return FALSE;
 
 	if (clipboard_data != NULL) {
 		icons_insert_text(key->w, key->i, key->index, clipboard_data, clipboard_length);

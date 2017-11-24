@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -60,6 +60,7 @@
 
 #include "account.h"
 #include "accview.h"
+#include "clipboard.h"
 #include "column.h"
 #include "currency.h"
 #include "date.h"
@@ -216,7 +217,9 @@ static osbool			edit_create_field_icon(struct edit_icon *icon, int line, wimp_co
 static void			edit_move_caret_up_down(struct edit_block *instance, int direction);
 static void			edit_move_caret_forward(struct edit_block *instance, wimp_key *key);
 static void			edit_move_caret_back(struct edit_block *instance);
+static void			edit_process_clipboard_keypress(struct edit_block *instance, wimp_key *key);
 static void			edit_process_content_keypress(struct edit_block *instance, wimp_key *key);
+static void			edit_process_field_keypress(struct edit_field *field, wimp_key *key);
 static void			edit_process_text_field_keypress(struct edit_field *field, wimp_key *key);
 static void			edit_process_date_field_keypress(struct edit_field *field, wimp_key *key);
 static void			edit_process_currency_field_keypress(struct edit_field *field, wimp_key *key);
@@ -235,6 +238,7 @@ static osbool			edit_callback_auto_sort(struct edit_field *field);
 static osbool			edit_callback_insert_preset(struct edit_block *instance, int line, wimp_key_no key);
 static int			edit_sum_field_text(char *text, size_t length);
 static struct edit_field	*edit_find_caret(struct edit_block *instance);
+static struct edit_field	*edit_find_icon(struct edit_block *instance, wimp_i i);
 static struct edit_field	*edit_find_last_field(struct edit_field *field);
 static struct edit_field	*edit_find_next_field(struct edit_field *field);
 static struct edit_field	*edit_find_previous_field(struct edit_field *field);
@@ -751,7 +755,11 @@ osbool edit_process_keypress(struct edit_block *instance, wimp_key *key)
 	if (instance == NULL || instance->file == NULL || instance->parent != key->w || instance != edit_active_instance)
 		return FALSE;
 
-	if (key->c == wimp_KEY_CONTROL + wimp_KEY_F10) {
+	if (key->c == 3 || key->c == 22 || key->c == 24)
+		/* Ctrl- C, Ctrl-V or Ctrl-X handle the clipboard. */
+		edit_process_clipboard_keypress(instance, key);
+
+	else if (key->c == wimp_KEY_CONTROL + wimp_KEY_F10) {
 		/* Ctrl-F10 deletes the whole line. */
 
 		edit_delete_line_content(instance);
@@ -928,6 +936,41 @@ static void edit_move_caret_back(struct edit_block *instance)
 
 
 /**
+ * Process a global clipboard keypress in an icon.
+ *
+ * \param *instance		The edit line instance accepting the keypress.
+ * \param *key			The Wimp's key event data block.
+ */
+
+static void edit_process_clipboard_keypress(struct edit_block *instance, wimp_key *key)
+{
+	struct edit_field	*field;
+
+	if (instance == NULL || instance->parent != key->w || instance != edit_active_instance)
+		return;
+
+	field = edit_find_icon(instance, key->i);
+	if (field == NULL)
+		return;
+
+	switch (key->c) {
+	case 3: /* Ctrl- C */
+		clipboard_copy_from_icon(key);
+		break;
+
+	case 22: /* Ctrl-V */
+		if (clipboard_paste_to_icon(key))
+			edit_process_field_keypress(field, key);
+		break;
+
+	case 24: /* Ctrl-X */
+		clipboard_cut_from_icon(key);
+		break;
+	}
+}
+
+
+/**
  * Process possible content-editing keypresses in the edit line.
  *
  * \param *instance		The edit line instance accepting the keypress.
@@ -938,26 +981,30 @@ static void edit_process_content_keypress(struct edit_block *instance, wimp_key 
 {
 	struct edit_field	*field;
 
-
 	if (instance == NULL || instance->parent != key->w || instance != edit_active_instance)
 		return;
 
 	/* Find the field which owns the caret icon. If a field isn't found, return. */
 
-	field = instance->fields;
-
-	while (field != NULL) {
-		if (field->icon != NULL && field->icon->icon == key->i)
-			break;
-
-		field = field->next;
-	}
-
+	field = edit_find_icon(instance, key->i);
 	if (field == NULL)
 		return;
 
 	/* Process the keypress for the field. */
 
+	edit_process_field_keypress(field, key);
+}
+
+
+/**
+ * Process a content-editing keypress in an edit field.
+ *
+ * \param *field		The edit line field taking the keypress.
+ * \param *key			The Wimp's key event data block.
+ */
+
+static void edit_process_field_keypress(struct edit_field *field, wimp_key *key)
+{
 	switch (field->type) {
 	case EDIT_FIELD_TEXT:
 		edit_process_text_field_keypress(field, key);
@@ -1681,16 +1728,31 @@ static int edit_sum_field_text(char *text, size_t length)
 static struct edit_field *edit_find_caret(struct edit_block *instance)
 {
 	wimp_caret		caret;
+
+	wimp_get_caret_position(&caret);
+
+	return edit_find_icon(instance, caret.i);
+}
+
+
+/**
+ * Find the field in an instance which contains the given icon.
+ *
+ * \param *instance		The edit line to search.
+ * \param i			The icon to search for.
+ * \return			The field containing the icon, or NULL.
+ */
+
+static struct edit_field *edit_find_icon(struct edit_block *instance, wimp_i i)
+{
 	struct edit_icon	*icon;
 
 	if (instance == NULL)
 		return NULL;
 
-	wimp_get_caret_position(&caret);
-
 	icon = instance->icons;
 
-	while (icon != NULL && icon->icon != caret.i)
+	while (icon != NULL && icon->icon != i)
 		icon = icon->next;
 
 	if (icon == NULL)

@@ -52,10 +52,10 @@ IconSprites <CashBook$Dir>.!Sprites
 
 RMEnsure WindowManager 3.98 Error CashBook requires the Nested Window Manager.
 
-| Ensure that the Castle Shared C Library is present.
+| Ensure that the Castle Shared C Library is present, with C99 support.
 
 RMEnsure SharedCLibrary 5.17 RMLoad System:Modules.CLib
-RMEnsure SharedCLibrary 5.34 Error CashBook requires version 5.34 or later of the Shared C Library.
+RMEnsure SharedCLibrary 5.43 Error CashBook requires version 5.43 or later of the Shared C Library.
 
 | Allocate memory and run CashBook
 

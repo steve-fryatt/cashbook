@@ -64,10 +64,13 @@ osbool clipboard_cut_from_icon(wimp_key *key);
  * is started.
  *
  * \param *key			A Wimp Key block, indicating the icon to paste.
+ * \param *callback		A callback function to be called after d delayed
+ *				paste from another application.
+ * \param *data			Data to be passed to the callback function.
  * \return			TRUE if a value was pasted immediately; else FALSE.
  */
 
-osbool clipboard_paste_to_icon(wimp_key *key);
+osbool clipboard_paste_to_icon(wimp_key *key, void (*callback)(void *), void *data);
 
 #endif
 

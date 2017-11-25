@@ -218,6 +218,7 @@ static void			edit_move_caret_up_down(struct edit_block *instance, int direction
 static void			edit_move_caret_forward(struct edit_block *instance, wimp_key *key);
 static void			edit_move_caret_back(struct edit_block *instance);
 static void			edit_process_clipboard_keypress(struct edit_block *instance, wimp_key *key);
+static void			edit_process_clipboard_callback(void *data);
 static void			edit_process_content_keypress(struct edit_block *instance, wimp_key *key);
 static void			edit_process_field_keypress(struct edit_field *field, wimp_key *key);
 static void			edit_process_text_field_keypress(struct edit_field *field, wimp_key *key);
@@ -959,7 +960,7 @@ static void edit_process_clipboard_keypress(struct edit_block *instance, wimp_ke
 		break;
 
 	case 22: /* Ctrl-V */
-		if (clipboard_paste_to_icon(key))
+		if (clipboard_paste_to_icon(key, edit_process_clipboard_callback, field))
 			edit_process_field_keypress(field, key);
 		break;
 
@@ -968,6 +969,31 @@ static void edit_process_clipboard_keypress(struct edit_block *instance, wimp_ke
 			edit_process_field_keypress(field, key);
 		break;
 	}
+}
+
+
+/**
+ * Callback function to process delayed clipboard paste completion.
+ *
+ * \param *data			Supplied callback data, giving the field into
+ *				which the paste took place.
+ */
+
+static void edit_process_clipboard_callback(void *data)
+{
+	struct edit_field	*field = data;
+	wimp_key		key;
+
+	if (field == NULL)
+		return;
+
+	/* The only thing required in the key block is the key code, and for
+	 * a clipboard paste we can assume that it was Ctrl-V to save having
+	 * to retain the poll block contents across a Wimp_Poll.
+	 */
+
+	key.c = 22;
+	edit_process_field_keypress(field, &key);
 }
 
 

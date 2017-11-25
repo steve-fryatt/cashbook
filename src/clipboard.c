@@ -65,6 +65,9 @@
 static char		*clipboard_data = NULL;					/**< Clipboard data help by CashBook, or NULL for none.			*/
 static size_t		clipboard_length = 0;					/**< The length of the clipboard held by CashBook.			*/
 
+static void		(*clipboard_paste_callback)(void *) = NULL;		/**< Callback to report a delated paste operation.			*/
+static void		*clipboard_paste_data = NULL;				/**< Data to pass to the paste callback.				*/
+
 static osbool		clipboard_receive_data(void *data, size_t data_size, bits type, void *context);
 static osbool		clipboard_store_text(char *text, size_t len);
 static osbool		clipboard_message_claimentity(wimp_message *message);
@@ -87,7 +90,7 @@ void clipboard_initialise(void)
  * process if necessary.
  *
  * \param *key			A Wimp Key block, indicating the icon to copy.
- * \return			TRUE if successful; else FALSE.
+ * \return			TRUE if a value was copied; else FALSE.
  */
 
 osbool clipboard_copy_from_icon(wimp_key *key)
@@ -95,7 +98,7 @@ osbool clipboard_copy_from_icon(wimp_key *key)
 	wimp_icon_state		icon;
 
 	if (!config_opt_read("GlobalClipboardSupport"))
-		return TRUE;
+		return FALSE;
 
 	icon.w = key->w;
 	icon.i = key->i;
@@ -110,7 +113,7 @@ osbool clipboard_copy_from_icon(wimp_key *key)
  * process if necessary.
  *
  * \param *key			A Wimp Key block, indicating the icon to cut.
- * \return			TRUE if successful; else FALSE.
+ * \return			TRUE if a value was cut; else FALSE.
  */
 
 osbool clipboard_cut_from_icon(wimp_key *key)
@@ -118,7 +121,7 @@ osbool clipboard_cut_from_icon(wimp_key *key)
 	wimp_icon_state		icon;
 
 	if (!config_opt_read("GlobalClipboardSupport"))
-		return TRUE;
+		return FALSE;
 
 	icon.w = key->w;
 	icon.i = key->i;
@@ -141,25 +144,31 @@ osbool clipboard_cut_from_icon(wimp_key *key)
  * is started.
  *
  * \param *key			A Wimp Key block, indicating the icon to paste.
- * \return			TRUE if successful; else FALSE.
+ * \param *callback		A callback function to be called after d delayed
+ *				paste from another application.
+ * \param *data			Data to be passed to the callback function.
+ * \return			TRUE if a value was pasted immediately; else FALSE.
  */
 
-osbool clipboard_paste_to_icon(wimp_key *key)
+osbool clipboard_paste_to_icon(wimp_key *key, void (*callback)(void *), void *data)
 {
 	bits	types[] = {0xfff, -1};
 
-	/* Test to see if we own the clipboard ourselves.  If so, use it directly; if not, send out a
-	* Message_DataRequest.
-	*/
+	/* Test to see if we own the clipboard ourselves.  If so, use it directly;
+	 * if not, send out a Message_DataRequest.
+	 */
 
 	if (!config_opt_read("GlobalClipboardSupport"))
-		return TRUE;
+		return FALSE;
 
 	if (clipboard_data != NULL) {
 		icons_insert_text(key->w, key->i, key->index, clipboard_data, clipboard_length);
 	} else {
 		if (!dataxfer_request_clipboard(key->w, key->i, key->pos, types, clipboard_receive_data, NULL))
 			return FALSE;
+
+		clipboard_paste_callback = callback;
+		clipboard_paste_data = data;
 	}
 
 	return TRUE;
@@ -182,6 +191,12 @@ static osbool clipboard_receive_data(void *data, size_t data_size, bits type, vo
 	icons_insert_text(caret.w, caret.i, caret.index, data, data_size);
 
 	heap_free(data);
+
+	if (clipboard_paste_callback != NULL)
+		clipboard_paste_callback(clipboard_paste_data);
+
+	clipboard_paste_callback = NULL;
+	clipboard_paste_data = NULL;
 
 	return TRUE;
 }

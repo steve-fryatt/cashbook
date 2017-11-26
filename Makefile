@@ -84,6 +84,7 @@ OBJS = account.o			\
        report_draw.o			\
        report_fonts.o			\
        report_line.o			\
+       report_page.o			\
        report_tabs.o			\
        report_textdump.o		\
        sorder.o				\

@@ -86,6 +86,7 @@
 #include "report_fonts.h"
 #include "report_format_dialogue.h"
 #include "report_line.h"
+#include "report_page.h"
 #include "report_tabs.h"
 #include "report_textdump.h"
 #include "transact.h"
@@ -162,6 +163,8 @@ struct report {
 	struct report_textdump_block	*content;
 	struct report_cell_block	*cells;
 	struct report_line_block	*lines;
+
+	struct report_page_block	*pages;
 
 	/* Report template details. */
 
@@ -304,6 +307,10 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	if (new->lines == NULL)
 		new->flags |= REPORT_STATUS_MEMERR;
 
+	new->pages = report_page_create(0);
+	if (new->pages == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
 	new->window = NULL;
 	string_copy(new->window_title, title, WINDOW_TITLE_LENGTH);
 
@@ -420,6 +427,7 @@ static void report_close_and_calculate(struct report *report)
 	report_cell_close(report->cells);
 	report_line_close(report->lines);
 	report_tabs_close(report->tabs);
+	report_page_close(report->pages);
 
 	/* Set up the display details. */
 
@@ -473,6 +481,7 @@ void report_delete(struct report *report)
 	report_line_destroy(report->lines);
 	report_fonts_destroy(report->fonts);
 	report_tabs_destroy(report->tabs);
+	report_page_destroy(report->pages);
 
 	if (report->template != NULL)
 		heap_free(report->template);

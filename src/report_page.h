@@ -31,6 +31,27 @@
 #ifndef CASHBOOK_REPORT_PAGE
 #define CASHBOOK_REPORT_PAGE
 
+#include "oslib/os.h"
+#include "oslib/types.h"
+
+/**
+ * Np page
+ */
+
+#define REPORT_PAGE_NONE ((unsigned) 0xffffffffu)
+
+/**
+ * Flags representing the areas of a report page.
+ */
+
+enum report_page_area {
+	REPORT_PAGE_AREA_NONE   = 0,
+	REPORT_PAGE_AREA_BODY   = 1,
+	REPORT_PAGE_AREA_HEADER = 2,
+	REPORT_PAGE_AREA_FOOTER = 4
+};
+
+
 /**
  * Flags relating to a line in a report.
  */
@@ -142,14 +163,30 @@ void report_page_close(struct report_page_block *handle);
 
 
 /**
- * Find a line based on a redraw position on the y axis.
+ * Find a page based on a redraw position on the X axis.
+ *
+ * \param *handle		The block to query.
+ * \param ypos			The X axis coordinate to look up.
+ * \return			The line number.
+ */
+
+unsigned report_page_find_from_xpos(struct report_page_block *handle, int xpos);
+
+
+/**
+ * Find a page based on a redraw position on the Y axis.
  *
  * \param *handle		The block to query.
  * \param ypos			The Y axis coordinate to look up.
  * \return			The line number.
  */
 
-//unsigned report_line_find_from_ypos(struct report_line_block *handle, int ypos);
+unsigned report_page_find_from_ypos(struct report_page_block *handle, int ypos);
+
+
+osbool report_page_get_outline(struct report_page_block *handle, int x, int y, os_box *area);
+
+osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, int *y);
 
 #endif
 

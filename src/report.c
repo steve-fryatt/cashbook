@@ -108,12 +108,6 @@
 #define REPORT_PRINT_BUFFER_LENGTH 10
 
 
-enum report_page_area {
-	REPORT_PAGE_NONE   = 0,
-	REPORT_PAGE_BODY   = 1,
-	REPORT_PAGE_HEADER = 2,
-	REPORT_PAGE_FOOTER = 4
-};
 
 struct report_print_pagination {
 	int		header_line;						/**< A line to repeat as a header at the top of the page, or -1 for none.			*/
@@ -151,6 +145,8 @@ struct report {
 	/* Display options. */
 
 	osbool			show_grid;					/**< TRUE if a grid table is to be plotted.			*/
+
+	osbool			show_pages;					/**< TRUE if page display is enabled.				*/
 
 	/* Report content */
 
@@ -206,6 +202,10 @@ static void			report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_p
 static void			report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void			report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void			report_view_redraw_handler(wimp_draw *redraw);
+static void			report_view_redraw_flat_handler(struct report *report, wimp_draw *redraw, int ox, int oy);
+static void			report_view_redraw_page_handler(struct report *report, wimp_draw *redraw, int ox, int oy);
+
+
 
 static void			report_open_format_window(struct report *report, wimp_pointer *ptr);
 static void			report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing, osbool grid);
@@ -227,6 +227,8 @@ static void			report_handle_print_error(os_error *error, os_fw file, struct repo
 static os_error			*report_plot_line(struct report *report, unsigned int line, int x, int y);
 static enum report_page_area	report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer, unsigned header_size, unsigned footer_size);
 
+static void report_set_window_extent(struct report *report);
+static osbool report_get_window_extent(struct report *report, int *x, int *y);
 
 /**
  * Initialise the reporting system.
@@ -287,6 +289,9 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
 
+	new->show_grid = FALSE;
+	new->show_pages = TRUE;
+
 	new->tabs = report_tabs_create();
 	if (new->tabs == NULL)
 		new->flags |= REPORT_STATUS_MEMERR;
@@ -330,6 +335,7 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 void report_close(struct report *report)
 {
 	wimp_window_state	parent;
+	int			xextent, yextent;
 
 	#ifdef DEBUG
 	debug_printf("\\GClosing report");
@@ -355,9 +361,12 @@ void report_close(struct report *report)
 
 	transact_get_window_state(report->file, &parent);
 
-	window_set_initial_area(report_window_def,
-			(report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH,
-			(report->height > REPORT_MIN_HEIGHT) ? report->height : REPORT_MIN_HEIGHT,
+	if (!report_get_window_extent(report, &xextent, &yextent)) {
+		xextent = REPORT_MIN_WIDTH;
+		yextent = REPORT_MIN_HEIGHT;
+	}
+
+	window_set_initial_area(report_window_def, xextent, yextent,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(report->file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
@@ -930,10 +939,9 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 static void report_view_redraw_handler(wimp_draw *redraw)
 {
-	int		ox, oy, top, base, x, y, linespace, line_count;
+	int		ox, oy;
 	struct report	*report;
 	osbool		more;
-	os_error	*error;
 
 	report = event_get_window_user_data(redraw->w);
 
@@ -949,31 +957,11 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	ox = redraw->box.x0 - redraw->xscroll;
 	oy = redraw->box.y1 - redraw->yscroll;
 
-	linespace = report->linespace + report->rulespace;
-	line_count = report_line_get_count(report->lines);
-
 	while (more) {
-		top = report_line_find_from_ypos(report->lines, redraw->clip.y1 - oy);
-		base = report_line_find_from_ypos(report->lines, redraw->clip.y0 - oy);
-
-		/* Draw Grid. */
-
-		if (report->show_grid) {
-			wimp_set_colour(wimp_COLOUR_BLACK);
-
-			for (y = top; y < line_count && y <= base; y++) {
-				report_draw_line(ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1),
-						ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
-			}
-		}
-
-		/* Plot Text. */
-
-		for (y = top; y < line_count && y <= base; y++) {
-			error = report_plot_line(report, y, ox + REPORT_LEFT_MARGIN, oy);
-			if (error != NULL)
-				debug_printf("Redraw error: %s", error->errmess);
-		}
+		if (report->show_pages)
+			report_view_redraw_page_handler(report, redraw, ox, oy);
+		else
+			report_view_redraw_flat_handler(report, redraw, ox, oy);
 
 		more = wimp_get_rectangle(redraw);
 	}
@@ -981,6 +969,94 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	report_fonts_lose(report->fonts);
 }
 
+
+/**
+ * Handle the redraw of a rectangle in the flat display mode.
+ *
+ * \param *report		The report to be redrawn.
+ * \param *redraw		The Wimp Redraw Event data block.
+ * \param ox			The X redraw origin.
+ * \param oy			The Y redraw origin.
+ */
+
+static void report_view_redraw_flat_handler(struct report *report, wimp_draw *redraw, int ox, int oy)
+{
+	int top, base, y, linespace, line_count;
+	os_error	*error;
+
+	line_count = report_line_get_count(report->lines);
+	linespace = report->linespace + report->rulespace;
+
+	top = report_line_find_from_ypos(report->lines, redraw->clip.y1 - oy);
+	base = report_line_find_from_ypos(report->lines, redraw->clip.y0 - oy);
+
+	/* Plot the background. */
+
+	wimp_set_colour(wimp_COLOUR_WHITE);
+	os_plot(os_MOVE_TO, redraw->clip.x0, redraw->clip.y1);
+	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, redraw->clip.x1, redraw->clip.y0);
+
+	/* Draw Grid. */
+
+	if (report->show_grid) {
+		wimp_set_colour(wimp_COLOUR_BLACK);
+
+		for (y = top; y < line_count && y <= base; y++) {
+			report_draw_line(ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1),
+					ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
+		}
+	}
+
+	/* Plot Text. */
+
+	for (y = top; y < line_count && y <= base; y++) {
+		error = report_plot_line(report, y, ox + REPORT_LEFT_MARGIN, oy);
+		if (error != NULL)
+			debug_printf("Redraw error: %s", error->errmess);
+	}
+}
+
+
+/**
+ * Handle the redraw of a rectangle in the page display mode.
+ *
+ * \param *report		The report to be redrawn.
+ * \param *redraw		The Wimp Redraw Event data block.
+ * \param ox			The X redraw origin.
+ * \param oy			The Y redraw origin.
+ */
+
+static void report_view_redraw_page_handler(struct report *report, wimp_draw *redraw, int ox, int oy)
+{
+	int	x0, y0, x1, y1, x, y;
+	os_box	outline;
+
+	/* Identify the range of pages covered. */
+
+	x0 = report_page_find_from_xpos(report->pages, redraw->clip.x0 - ox);
+	y0 = report_page_find_from_ypos(report->pages, redraw->clip.y1 - oy);
+	x1 = report_page_find_from_xpos(report->pages, redraw->clip.x1 - ox);
+	y1 = report_page_find_from_ypos(report->pages, redraw->clip.y0 - oy);
+
+	debug_printf("Redraw pages %d,%d to %d,%d", x0, y0, x1, y1);
+
+	/* Plot the background. */
+
+	wimp_set_colour(wimp_COLOUR_LIGHT_GREY);
+	os_plot(os_MOVE_TO, redraw->clip.x0, redraw->clip.y1);
+	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, redraw->clip.x1, redraw->clip.y0);
+
+	for (x = x0; x <= x1; x++) {
+		for (y = y0; y <= y1; y++) {
+			if (!report_page_get_outline(report->pages, x, y, &outline))
+				continue;
+
+			wimp_set_colour(wimp_COLOUR_WHITE);
+			os_plot(os_MOVE_TO, ox + outline.x0, oy + outline.y1);
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + outline.x1, oy + outline.y0);
+		}
+	}
+}
 
 /**
  * Force the readraw of all the open reports associated with a file.
@@ -1035,10 +1111,6 @@ static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 
 static void report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing, osbool grid)
 {
-	int			new_xextent, new_yextent, visible_xextent, visible_yextent, new_xscroll, new_yscroll;
-	os_box			extent;
-	wimp_window_state	state;
-
 	if (report == NULL)
 		return;
 
@@ -1053,65 +1125,18 @@ static void report_process_format_window(struct report *report, char *normal, ch
 
 	report_reflow_content(report);
 
-	/* Calculate the next window extents. */
+	/* Calculate the new window extents. */
 
-	new_xextent = (report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH;
-	new_yextent = (report->height > REPORT_MIN_HEIGHT) ? -report->height : -REPORT_MIN_HEIGHT;
+	report_set_window_extent(report);
 
-	/* Get the current window details, and find the extent of the bottom and right of the visible area. */
-
-	state.w = report->window;
-	wimp_get_window_state(&state);
-
-	visible_xextent = state.xscroll + (state.visible.x1 - state.visible.x0);
-	visible_yextent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-	if (new_xextent < visible_xextent || new_yextent > visible_yextent) {
-		/* Calculate the required new scroll offsets.
-		 *
-		 * Start with the x scroll.  If this is less than zero, the window is too wide and will need shrinking down.
-		 * Otherwise, just set the new scroll offset.
-		 */
-
-		new_xscroll = new_xextent - (state.visible.x1 - state.visible.x0);
-
-		if (new_xscroll < 0) {
-			state.visible.x1 += new_xscroll;
-			state.xscroll = 0;
-		} else {
-			state.xscroll = new_xscroll;
-		}
-
-		/* Now do the y scroll.  If this is greater than zero, the current window is too deep and will need
-		 * shrinking down.  Otherwise, just set the new scroll offset.
-		 */
-
-		new_yscroll = new_yextent - (state.visible.y0 - state.visible.y1);
-
-		if (new_yscroll > 0) {
-			state.visible.y0 += new_yscroll;
-			state.yscroll = 0;
-		} else {
-			state.yscroll = new_yscroll;
-		}
-
-		wimp_open_window((wimp_open *) &state);
-	}
-
-	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-	 * exist.
-	 */
-
-	extent.x0 = 0;
-	extent.x1 = new_xextent;
-	extent.y1 = 0;
-	extent.y0 = new_yextent;
-	wimp_set_extent(report->window, &extent);
+	/* Redraw the window. */
 
 	windows_redraw(report->window);
 }
+
+
+
+
 
 
 /**
@@ -1501,7 +1526,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	/* Get the printer driver settings. */
 
-	error = xpdriver_info (NULL, NULL, NULL, &features, NULL, NULL, NULL, NULL);
+	error = xpdriver_info(NULL, NULL, NULL, &features, NULL, NULL, NULL, NULL);
 	if (error != NULL)
 		return;
 
@@ -1767,14 +1792,14 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 			/* Pass the page details to the printer driver and start to draw the page. */
 
-			error = xpdriver_give_rectangle(REPORT_PAGE_BODY, &p_rect, &p_trfm, &p_pos, os_COLOUR_WHITE);
+			error = xpdriver_give_rectangle(REPORT_PAGE_AREA_BODY, &p_rect, &p_trfm, &p_pos, os_COLOUR_WHITE);
 			if (error != NULL) {
 				report_handle_print_error(error, out, report->fonts);
 				return;
 			}
 
-			if (areas & REPORT_PAGE_FOOTER) {
-				error = xpdriver_give_rectangle(REPORT_PAGE_FOOTER, &f_rect, &p_trfm, &f_pos, os_COLOUR_WHITE);
+			if (areas & REPORT_PAGE_AREA_FOOTER) {
+				error = xpdriver_give_rectangle(REPORT_PAGE_AREA_FOOTER, &f_rect, &p_trfm, &f_pos, os_COLOUR_WHITE);
 				if (error != NULL) {
 					report_handle_print_error(error, out, report->fonts);
 					return;
@@ -1787,7 +1812,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 			while (more) {
 				switch (area) {
-				case REPORT_PAGE_BODY:
+				case REPORT_PAGE_AREA_BODY:
 					/* Calculate the rows to redraw. */
 
 					top = -rect.y1 / linespace;
@@ -1816,7 +1841,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 					}
 					break;
 
-				case REPORT_PAGE_FOOTER:
+				case REPORT_PAGE_AREA_FOOTER:
 					string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y);
 					if (pages_x == 1) {
 						string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y + 1);
@@ -1978,7 +2003,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 	return NULL;
 }
 
-
+#if 0
 /**
  * Read the current printer page size, and work out from the configured margins
  * where on the page the printed body, header and footer will go.
@@ -1996,7 +2021,7 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 {
 	os_error			*error;
 	osbool				margin_fail = FALSE;
-	enum report_page_area		areas = REPORT_PAGE_NONE;
+	enum report_page_area		areas = REPORT_PAGE_AREA_NONE;
 	int				page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
 	int				margin_left, margin_right, margin_top, margin_bottom;
 
@@ -2006,7 +2031,7 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 
 	error = xpdriver_page_size(&page_xsize, &page_ysize, &page_left, &page_bottom, &page_right, &page_top);
 	if (error != NULL)
-		return REPORT_PAGE_NONE;
+		return REPORT_PAGE_AREA_NONE;
 
 	margin_left = page_left;
 
@@ -2045,7 +2070,7 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 	}
 
 	if (body != NULL) {
-		areas |= REPORT_PAGE_BODY;
+		areas |= REPORT_PAGE_AREA_BODY;
 
 		if (rotate) {
 			body->x0 = page_bottom;
@@ -2067,7 +2092,7 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 			header->y0 = header->y1 - (header_size * ((rotate) ? -1 : 1));
 			body->y1 = header->y0 - (config_int_read("PrintMarginInternal") * ((rotate) ? -1 : 1));
 
-			areas |= REPORT_PAGE_HEADER;
+			areas |= REPORT_PAGE_AREA_HEADER;
 		}
 
 		if (footer != NULL && footer_size > 0) {
@@ -2078,7 +2103,7 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 			footer->y1 = footer->y0 + (footer_size * ((rotate) ? -1 : 1));
 			body->y0 = footer->y1 + (config_int_read("PrintMarginInternal") * ((rotate) ? -1 : 1));
 
-			areas |= REPORT_PAGE_FOOTER;
+			areas |= REPORT_PAGE_AREA_FOOTER;
 		}
 	}
 
@@ -2087,7 +2112,7 @@ static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, 
 
 	return areas;
 }
-
+#endif
 
 /**
  * Call a callback function to process the template stored in every currently
@@ -2112,5 +2137,95 @@ void report_process_all_templates(struct file_block *file, void (*callback)(stru
 
 		report = report->next;
 	}
+}
+
+
+
+
+
+
+
+
+
+
+static void report_set_window_extent(struct report *report)
+{
+	int			new_xextent, new_yextent, visible_xextent, visible_yextent, new_xscroll, new_yscroll;
+	os_box			extent;
+	wimp_window_state	state;
+
+	if (report == NULL)
+		return;
+
+	if (!report_get_window_extent(report, &new_xextent, &new_yextent))
+		return;
+
+	/* Get the current window details, and find the extent of the bottom and right of the visible area. */
+
+	state.w = report->window;
+	wimp_get_window_state(&state);
+
+	visible_xextent = state.xscroll + (state.visible.x1 - state.visible.x0);
+	visible_yextent = state.yscroll + (state.visible.y0 - state.visible.y1);
+
+	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
+
+	if (new_xextent < visible_xextent || new_yextent > visible_yextent) {
+		/* Calculate the required new scroll offsets.
+		 *
+		 * Start with the x scroll.  If this is less than zero, the window is too wide and will need shrinking down.
+		 * Otherwise, just set the new scroll offset.
+		 */
+
+		new_xscroll = new_xextent - (state.visible.x1 - state.visible.x0);
+
+		if (new_xscroll < 0) {
+			state.visible.x1 += new_xscroll;
+			state.xscroll = 0;
+		} else {
+			state.xscroll = new_xscroll;
+		}
+
+		/* Now do the y scroll.  If this is greater than zero, the current window is too deep and will need
+		 * shrinking down.  Otherwise, just set the new scroll offset.
+		 */
+
+		new_yscroll = new_yextent - (state.visible.y0 - state.visible.y1);
+
+		if (new_yscroll > 0) {
+			state.visible.y0 += new_yscroll;
+			state.yscroll = 0;
+		} else {
+			state.yscroll = new_yscroll;
+		}
+
+		wimp_open_window((wimp_open *) &state);
+	}
+
+	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
+	 * exist.
+	 */
+
+	extent.x0 = 0;
+	extent.x1 = new_xextent;
+	extent.y1 = 0;
+	extent.y0 = new_yextent;
+	wimp_set_extent(report->window, &extent);
+}
+
+static osbool report_get_window_extent(struct report *report, int *x, int *y)
+{
+	if (report == NULL)
+		return FALSE;
+
+	if (!report->show_pages || !report_page_get_layout_extent(report->pages, x, y)) {
+		if (x != NULL)
+			*x = (report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH;
+
+		if (y != NULL)
+			*y = (report->height > REPORT_MIN_HEIGHT) ? -report->height : -REPORT_MIN_HEIGHT;
+	}
+
+	return TRUE;
 }
 

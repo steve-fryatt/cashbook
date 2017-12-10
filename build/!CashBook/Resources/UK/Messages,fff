@@ -1012,8 +1012,9 @@ Help.ReportMenu.00:\Schange the report font and formatting.
 Help.ReportMenu.01:\Rsave the report as spaced ASCII text.
 Help.ReportMenu.02:\Rexport the report as a comma separated values file, for use in spreadsheets.
 Help.ReportMenu.03:\Rexport the report as a tab separated values file, for use in wordprocessors.
-Help.ReportMenu.04:\Sprint the report.
-Help.ReportMenu.05:\Ssave this report definition as a template for future use.
+Help.ReportMenu.04:\Sselect whether the display shows the printed page layout of the report.
+Help.ReportMenu.05:\Sprint the report.
+Help.ReportMenu.06:\Ssave this report definition as a template for future use.
 
 Help.RepListMenu.??:\Schoose this existing report name.
 

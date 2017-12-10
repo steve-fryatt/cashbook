@@ -281,6 +281,7 @@ menu(ReportViewMenu, "Report")
 		}
 		dotted;
 	}
+	item("Show pages");
 	item("Print...") {
 		dotted;
 	}

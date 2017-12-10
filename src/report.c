@@ -98,8 +98,9 @@
 #define REPVIEW_MENU_SAVETEXT 1
 #define REPVIEW_MENU_EXPCSV 2
 #define REPVIEW_MENU_EXPTSV 3
-#define REPVIEW_MENU_PRINT 4
-#define REPVIEW_MENU_TEMPLATE 5
+#define REPVIEW_MENU_SHOWPAGES 4
+#define REPVIEW_MENU_PRINT 5
+#define REPVIEW_MENU_TEMPLATE 6
 
 /* Report export details */
 
@@ -225,8 +226,9 @@ static void			report_cancel_print_job(void);
 static void			report_print_as_graphic(struct report *report, osbool fit_width, osbool rotate, osbool pagenum);
 static void			report_handle_print_error(os_error *error, os_fw file, struct report_fonts_block *fonts);
 static os_error			*report_plot_line(struct report *report, unsigned int line, int x, int y);
-static enum report_page_area	report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer, unsigned header_size, unsigned footer_size);
 
+
+static void report_toggle_page_view(struct report *report);
 static void report_set_window_extent(struct report *report);
 static osbool report_get_window_extent(struct report *report, int *x, int *y);
 
@@ -852,6 +854,7 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	saveas_initialise_dialogue(report_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, report);
 
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template == NULL);
+	menus_tick_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, report->show_pages == TRUE);
 }
 
 
@@ -878,6 +881,10 @@ static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 	switch (selection->items[0]){
 	case REPVIEW_MENU_FORMAT:
 		report_open_format_window(report, &pointer);
+		break;
+
+	case REPVIEW_MENU_SHOWPAGES:
+		report_toggle_page_view(report);
 		break;
 
 	case REPVIEW_MENU_PRINT:
@@ -1545,7 +1552,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	header_height = 0;
 	footer_height = (pagenum) ? (1000 * font_size) * font_linespace / 1600 : 0;
 
-	areas = report_get_page_areas(rotate, &body, NULL, &footer, header_height, footer_height);
+	areas = REPORT_PAGE_AREA_NONE; //report_get_page_areas(rotate, &body, NULL, &footer, header_height, footer_height);
 
 	/* Open a printout file. */
 
@@ -2145,7 +2152,20 @@ void report_process_all_templates(struct file_block *file, void (*callback)(stru
 
 
 
+static void report_toggle_page_view(struct report *report)
+{
+	if (report == NULL)
+		return;
 
+	// \TODO -- We need to check that there's a page view available.
+
+	report->show_pages = !report->show_pages;
+
+	report_set_window_extent(report);
+
+	if (report->window != NULL)
+		windows_redraw(report->window);
+}
 
 
 static void report_set_window_extent(struct report *report)
@@ -2154,7 +2174,7 @@ static void report_set_window_extent(struct report *report)
 	os_box			extent;
 	wimp_window_state	state;
 
-	if (report == NULL)
+	if (report == NULL || report->window == NULL)
 		return;
 
 	if (!report_get_window_extent(report, &new_xextent, &new_yextent))

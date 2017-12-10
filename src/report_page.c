@@ -39,12 +39,15 @@
 
 /* SFLib Header files. */
 
+#include "sflib/config.h"
 #include "sflib/debug.h"
+#include "sflib/errors.h"
 #include "sflib/heap.h"
 
 /* OSLib Header files. */
 
 #include "oslib/os.h"
+#include "oslib/pdriver.h"
 #include "oslib/types.h"
 
 /* Application header files. */
@@ -90,6 +93,10 @@ struct report_page_block {
 	osbool			paginated;		/**< TRUE if there is pagination data; FALSE if not.		*/
 };
 
+/* Static Function Prototypes. */
+
+static os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, unsigned header_size, unsigned footer_size);
+
 
 /**
  * Initialise a report page data block
@@ -116,7 +123,7 @@ struct report_page_block *report_page_create(size_t allocation)
 
 	new->paginated = FALSE;
 
-	/* Claim the memory for the dump itself. */
+	/* Claim the memory for the pages themselves. */
 
 	if (!flexutils_allocate((void **) &(new->pages), sizeof(struct report_page_data), new->allocation)) {
 		heap_free(new);
@@ -127,9 +134,11 @@ struct report_page_block *report_page_create(size_t allocation)
 
 	new->page_layout.x = 2;
 	new->page_layout.y = 4;
-	new->page_size.x = 2000;
-	new->page_size.y = 3000;
+//	new->page_size.x = 2000;
+//	new->page_size.y = 3000;
 	new->paginated = TRUE;
+
+	report_page_calculate_areas(new, FALSE, 0, 0);
 
 	return new;
 }
@@ -186,7 +195,7 @@ void report_page_close(struct report_page_block *handle)
 	if (flexutils_resize((void **) &(handle->pages), sizeof(struct report_page_data), handle->page_count))
 		handle->size = handle->page_count;
 
-	debug_printf("Page data: %d records, using %dKb", handle->page_count, handle->page_count * sizeof (struct report_page_data) / 1024);
+	debug_printf("Page data: %d records, using %dKb", handle->page_count, handle->page_count * sizeof(struct report_page_data) / 1024);
 }
 
 #if 0
@@ -366,16 +375,14 @@ osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, i
  * Read the current printer page size, and work out from the configured margins
  * where on the page the printed body, header and footer will go.
  *
- * \param rotate		TRUE to rotate the page to Landscape format; else FALSE.
- * \param *body			Structure to return the body area, or NULL for none.
- * \param *header		Structure to return the header area, or NULL for none.
- * \param *footer		Structure to return the footer area, or NULL for none.
+ * \param *handle		The page block to update.
+ * \param landscape		TRUE to rotate the page to Landscape format; else FALSE.
  * \param header_size		The required height of the header, in millipoints.
  * \param footer_size		The required height of the footer, in millipoints.
- * \return			Flagword indicating which areas were set up.
+ * \return			Pointer to an error block on failure, or NULL on success.
  */
 
-static void report_page_calculate_areas(osbool rotate, os_box *body, os_box *header, os_box *footer, unsigned header_size, unsigned footer_size)
+static os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, unsigned header_size, unsigned footer_size)
 {
 	os_error			*error;
 	osbool				margin_fail = FALSE;
@@ -384,9 +391,9 @@ static void report_page_calculate_areas(osbool rotate, os_box *body, os_box *hea
 	int				margin_left, margin_right, margin_top, margin_bottom;
 
 	if (handle == NULL)
-		return;
+		return NULL;
 
-	report->active_areas = REPORT_PAGE_AREA_NONE;
+	handle->active_areas = REPORT_PAGE_AREA_NONE;
 
 	/* Get the page dimensions, and set up the print margins.  If the margins are bigger than the print
 	 * borders, the print borders are increased to match.
@@ -394,7 +401,10 @@ static void report_page_calculate_areas(osbool rotate, os_box *body, os_box *hea
 
 	error = xpdriver_page_size(&page_xsize, &page_ysize, &page_left, &page_bottom, &page_right, &page_top);
 	if (error != NULL)
-		return REPORT_PAGE_AREA_NONE;
+		return error;
+
+	handle->page_size.x = page_xsize / 400;
+	handle->page_size.y = page_ysize / 400;
 
 	margin_left = page_left;
 
@@ -432,48 +442,46 @@ static void report_page_calculate_areas(osbool rotate, os_box *body, os_box *hea
 		margin_fail = TRUE;
 	}
 
-	if (body != NULL) {
-		areas |= REPORT_PAGE_AREA_BODY;
+	areas |= REPORT_PAGE_AREA_BODY;
 
-		if (rotate) {
-			body->x0 = page_bottom;
-			body->x1 = page_top;
-			body->y0 = page_right;
-			body->y1 = page_left;
-		} else {
-			body->x0 = page_left;
-			body->x1 = page_right;
-			body->y0 = page_bottom;
-			body->y1 = page_top;
-		}
+	if (landscape) {
+		handle->body.x0 = page_bottom;
+		handle->body.x1 = page_top;
+		handle->body.y0 = page_right;
+		handle->body.y1 = page_left;
+	} else {
+		handle->body.x0 = page_left;
+		handle->body.x1 = page_right;
+		handle->body.y0 = page_bottom;
+		handle->body.y1 = page_top;
+	}
 
-		if (header != NULL && header_size > 0) {
-			header->x0 = body->x0;
-			header->x1 = body->x1;
-			header->y1 = body->y1;
+	if (header_size > 0) {
+		handle->header.x0 = handle->body.x0;
+		handle->header.x1 = handle->body.x1;
+		handle->header.y1 = handle->body.y1;
 
-			header->y0 = header->y1 - (header_size * ((rotate) ? -1 : 1));
-			body->y1 = header->y0 - (config_int_read("PrintMarginInternal") * ((rotate) ? -1 : 1));
+		handle->header.y0 = handle->header.y1 - (header_size * ((landscape) ? -1 : 1));
+		handle->body.y1 = handle->header.y0 - (config_int_read("PrintMarginInternal") * ((landscape) ? -1 : 1));
 
-			areas |= REPORT_PAGE_AREA_HEADER;
-		}
+		areas |= REPORT_PAGE_AREA_HEADER;
+	}
 
-		if (footer != NULL && footer_size > 0) {
-			footer->x0 = body->x0;
-			footer->x1 = body->x1;
-			footer->y0 = body->y0;
+	if (footer_size > 0) {
+		handle->footer.x0 = handle->body.x0;
+		handle->footer.x1 = handle->body.x1;
+		handle->footer.y0 = handle->body.y0;
 
-			footer->y1 = footer->y0 + (footer_size * ((rotate) ? -1 : 1));
-			body->y0 = footer->y1 + (config_int_read("PrintMarginInternal") * ((rotate) ? -1 : 1));
+		handle->footer.y1 = handle->footer.y0 + (footer_size * ((landscape) ? -1 : 1));
+		handle->body.y0 = handle->footer.y1 + (config_int_read("PrintMarginInternal") * ((landscape) ? -1 : 1));
 
-			areas |= REPORT_PAGE_AREA_FOOTER;
-		}
+		areas |= REPORT_PAGE_AREA_FOOTER;
 	}
 
 	if (margin_fail)
 		error_msgs_report_error("BadPrintMargins");
 
-	return areas;
+	return NULL;
 }
 
 

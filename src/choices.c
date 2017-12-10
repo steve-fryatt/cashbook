@@ -911,7 +911,7 @@ static void choices_read_window(void)
 
 	/* Redraw windows as required. */
 
-	file_redraw_all();
+	file_process_all(file_redraw_windows);
 }
 
 

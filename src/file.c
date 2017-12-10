@@ -99,10 +99,6 @@ static struct file_block	*file_list = NULL;
 
 static int			file_untitled_count = 0;
 
-/* The last date on which all the files were updated. */
-
-static date_t			file_last_update_date = NULL_DATE;
-
 /* The handle of the SaveAs dialogue of last resort. */
 
 static struct saveas_block	*file_saveas_file = NULL;
@@ -656,24 +652,6 @@ int file_get_next_open_offset(struct file_block *file)
 
 
 /**
- * Redraw the windows associated with all open files.
- */
-
-void file_redraw_all(void)
-{
-	struct file_block	*list = file_list;
-
-	/* Work through all the loaded files and force redraws of each one. */
-
-	while (list != NULL) {
-		file_redraw_windows(list);
-
-		list = list->next;
-	}
-}
-
-
-/**
  * Redraw all the windows connected with a given file.
  *
  * \param *file		The file to redraw the windows for.
@@ -692,53 +670,45 @@ void file_redraw_windows(struct file_block *file)
 
 
 /**
- * Process any open files on a change of date: adding any new standing
- * orders and recalculate all the files on a change of day.
+ * Process a file for a change of date: add any new standing orders and
+ * recalculate all the accounts
+ *
+ * \param *file		The file to be processed.
  */
 
-void file_process_date_change(void)
+void file_process_date_change(struct file_block *file)
 {
-	date_t			today;
-	struct file_block	*file;
-
-
-#ifdef DEBUG
-	debug_printf("\\YChecking for daily update");
-#endif
-
-	/* Get today's date and check if an update has already happened
-	 * today. If one has, there's nothing more to do.
-	 */
-
-	today = date_today();
-
-	if (today == file_last_update_date)
+	if (file == NULL)
 		return;
 
-	hourglass_on();
+	sorder_process(file);
+	account_recalculate_all(file);
+	transact_set_window_extent(file);
+}
 
-	/* Iterate through the open files, running the date-dependent
-	 * updates on each.
-	 */
 
-	file = file_list;
+/**
+ * Call a callback function, passing each file block pointer in turn.
+ *
+ * \param *callback	The function to be called for each file.
+ */
 
-	while (file != NULL) {
-#ifdef DEBUG
-		debug_printf("Updating file...");
-#endif
+void file_process_all(void (*callback)(struct file_block *))
+{
+	struct file_block	*list = file_list;
 
-		sorder_process(file);
-		account_recalculate_all(file);
-		transact_set_window_extent(file);
+	/* If no function has been supplied, there's nothing to do! */
 
-		file = file->next;
+	if (callback == NULL)
+		return;
+
+	/* Work through all the loaded files, and process each one. */
+
+	while (list != NULL) {
+		callback(list);
+
+		list = list->next;
 	}
 
-	/* Record the date of this update. */
-
-	file_last_update_date = today;
-
-	hourglass_off();
 }
 

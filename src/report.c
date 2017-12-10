@@ -843,6 +843,7 @@ static void report_view_close_window_handler(wimp_close *close)
 static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
 	struct report	*report;
+	osbool		paginated;
 
 	report = event_get_window_user_data(w);
 
@@ -853,8 +854,11 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	saveas_initialise_dialogue(report_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, report);
 	saveas_initialise_dialogue(report_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, report);
 
+	paginated = report_page_paginated(report->pages);
+
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template == NULL);
-	menus_tick_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, report->show_pages == TRUE);
+	menus_shade_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, paginated == FALSE);
+	menus_tick_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, (paginated == TRUE) && (report->show_pages == TRUE));
 }
 
 
@@ -948,7 +952,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 {
 	int		ox, oy;
 	struct report	*report;
-	osbool		more;
+	osbool		paginated, more;
 
 	report = event_get_window_user_data(redraw->w);
 
@@ -958,6 +962,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	/* Find the required font, set it and calculate the font size from the linespacing in points. */
 
 	report_fonts_find(report->fonts);
+	paginated = report_page_paginated(report->pages);
 
 	more = wimp_redraw_window(redraw);
 
@@ -965,7 +970,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	oy = redraw->box.y1 - redraw->yscroll;
 
 	while (more) {
-		if (report->show_pages)
+		if (paginated && report->show_pages)
 			report_view_redraw_page_handler(report, redraw, ox, oy);
 		else
 			report_view_redraw_flat_handler(report, redraw, ox, oy);
@@ -2152,12 +2157,18 @@ void report_process_all_templates(struct file_block *file, void (*callback)(stru
 
 
 
+
+/**
+ * Toggle the state of page view on a report, subject to the necessary
+ * pagination data being available.
+ *
+ * \param *report		The report view to toggle.
+ */
+
 static void report_toggle_page_view(struct report *report)
 {
 	if (report == NULL)
 		return;
-
-	// \TODO -- We need to check that there's a page view available.
 
 	report->show_pages = !report->show_pages;
 
@@ -2167,6 +2178,13 @@ static void report_toggle_page_view(struct report *report)
 		windows_redraw(report->window);
 }
 
+
+/**
+ * Update the extent of a report view window, to take account of its
+ * current content and settings.
+ *
+ * \param *report		The report to update.
+ */
 
 static void report_set_window_extent(struct report *report)
 {
@@ -2233,17 +2251,29 @@ static void report_set_window_extent(struct report *report)
 	wimp_set_extent(report->window, &extent);
 }
 
+
+/**
+ * Calculate the required window dimensions for a report in OS Units,
+ * taking into account the content and selected view mode.
+ *
+ * \param *report		The report to calculate for.
+ * \param *x			Pointer to variable to take X dimension.
+ * \param *y			Pointer to variable to take Y dimension.
+ * \return			TRUE if values have been returned.
+ */
+
 static osbool report_get_window_extent(struct report *report, int *x, int *y)
 {
 	if (report == NULL)
 		return FALSE;
 
 	if (!report->show_pages || !report_page_get_layout_extent(report->pages, x, y)) {
+		debug_printf("Failed to get paginated extent.");
 		if (x != NULL)
 			*x = (report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH;
 
 		if (y != NULL)
-			*y = (report->height > REPORT_MIN_HEIGHT) ? -report->height : -REPORT_MIN_HEIGHT;
+			*y = (report->height > REPORT_MIN_HEIGHT) ? report->height : REPORT_MIN_HEIGHT;
 	}
 
 	return TRUE;

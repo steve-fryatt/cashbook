@@ -130,16 +130,6 @@ struct report_page_block *report_page_create(size_t allocation)
 		return NULL;
 	}
 
-	/* Set up some data for debugging purposes. */
-
-	new->page_layout.x = 2;
-	new->page_layout.y = 4;
-//	new->page_size.x = 2000;
-//	new->page_size.y = 3000;
-	new->paginated = TRUE;
-
-	report_page_calculate_areas(new, FALSE, 0, 0);
-
 	return new;
 }
 
@@ -196,6 +186,19 @@ void report_page_close(struct report_page_block *handle)
 		handle->size = handle->page_count;
 
 	debug_printf("Page data: %d records, using %dKb", handle->page_count, handle->page_count * sizeof(struct report_page_data) / 1024);
+}
+
+
+/**
+ * Report whether a page data block contains valid pagination data.
+ *
+ * \param *handle		The block to test.
+ * \return			TRUE if the data is valid; FALSE if not.
+ */
+
+osbool report_page_paginated(struct report_page_block *handle)
+{
+	return (handle == NULL) ? FALSE : handle->paginated;
 }
 
 #if 0

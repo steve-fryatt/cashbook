@@ -126,6 +126,18 @@ void report_page_close(struct report_page_block *handle);
 
 
 /**
+ * Report whether a page data block contains valid pagination data.
+ *
+ * \param *handle		The block to test.
+ * \return			TRUE if the data is valid; FALSE if not.
+ */
+
+osbool report_page_paginated(struct report_page_block *handle);
+
+
+
+
+/**
  * Add a line to a report line data block.
  *
  * \param *handle		The block to add to.

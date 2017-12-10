@@ -80,6 +80,8 @@ struct report_page_block {
 
 	os_coord		page_layout;		/**< The number of pages in the report.				*/
 
+	int			column;			/**< The current column number whilst paginating.		*/
+
 	os_coord		page_size;		/**< The size of a page, in OS Units.				*/
 	os_box			margins;		/**< The location of the print margins.				*/
 
@@ -95,7 +97,6 @@ struct report_page_block {
 
 /* Static Function Prototypes. */
 
-static os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, unsigned header_size, unsigned footer_size);
 
 
 /**
@@ -116,8 +117,12 @@ struct report_page_block *report_page_create(size_t allocation)
 	new->allocation = (allocation == 0) ? REPORT_PAGE_ALLOCATION : allocation;
 
 	new->pages = NULL;
-	new->page_count = 0;
 	new->size = new->allocation;
+
+	new->page_count = 0;
+	new->page_layout.x = 0;
+	new->page_layout.y = 0;
+	new->column = 0;
 
 	new->active_areas = REPORT_PAGE_AREA_NONE;
 
@@ -164,6 +169,13 @@ void report_page_clear(struct report_page_block *handle)
 		return;
 
 	handle->page_count = 0;
+	handle->page_layout.x = 0;
+	handle->page_layout.y = 0;
+	handle->column = 0;
+
+	handle->active_areas = REPORT_PAGE_AREA_NONE;
+
+	handle->paginated = FALSE;
 
 	if (flexutils_resize((void **) &(handle->pages), sizeof(struct report_page_data), handle->allocation))
 		handle->size = handle->allocation;
@@ -172,7 +184,8 @@ void report_page_clear(struct report_page_block *handle)
 
 /**
  * Close a report page data block, so that its allocation shrinks to
- * occupy only the space used by data.
+ * occupy only the space used by data. This will also mark the data
+ * as being valid.
  *
  * \param *handle		The block to be closed.
  */
@@ -185,7 +198,11 @@ void report_page_close(struct report_page_block *handle)
 	if (flexutils_resize((void **) &(handle->pages), sizeof(struct report_page_data), handle->page_count))
 		handle->size = handle->page_count;
 
+	if (handle->page_count > 0)
+		handle->paginated = TRUE;
+
 	debug_printf("Page data: %d records, using %dKb", handle->page_count, handle->page_count * sizeof(struct report_page_data) / 1024);
+	debug_printf("Page layout: x=%d, y=%d", handle->page_layout.x, handle->page_layout.y);
 }
 
 
@@ -200,6 +217,48 @@ osbool report_page_paginated(struct report_page_block *handle)
 {
 	return (handle == NULL) ? FALSE : handle->paginated;
 }
+
+
+osbool report_page_new_row(struct report_page_block *handle)
+{
+	if (handle == NULL)
+		return FALSE;
+
+	handle->page_layout.y++;
+	handle->column = 0;
+
+	return TRUE;
+}
+
+osbool report_page_add(struct report_page_block *handle)
+{
+	unsigned new;
+
+	if (handle == NULL || handle->pages == NULL)
+		return FALSE;
+
+	/* Check and increase the memory allocation if required. */
+
+	if (handle->page_count >= handle->size) {
+		if (!flexutils_resize((void **) &(handle->pages), sizeof(struct report_page_data), handle->size + handle->allocation))
+			return FALSE;
+
+		handle->size += handle->page_layout.x + handle->allocation;
+	}
+
+	/* Set up the new pages. */
+
+	new = handle->page_count++;
+
+	handle->pages[new].position.x = ++handle->column;
+	handle->pages[new].position.y = handle->page_layout.y;
+
+	if (handle->column > handle->page_layout.x)
+		handle->page_layout.x = handle->column;
+
+	return TRUE;
+}
+
 
 #if 0
 /**
@@ -385,7 +444,7 @@ osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, i
  * \return			Pointer to an error block on failure, or NULL on success.
  */
 
-static os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, unsigned header_size, unsigned footer_size)
+os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, unsigned header_size, unsigned footer_size)
 {
 	os_error			*error;
 	osbool				margin_fail = FALSE;

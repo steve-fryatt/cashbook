@@ -302,6 +302,7 @@ PrintTitleAcclistHead:Headings
 PrintTitleTransact:Transactions
 PrintTitleAccview:Account
 
+PrintPgFail:The report could not be assembled into pages.
 PrintBusy:The printer is currently in use.
 NoPManager:The Printers application must be loaded for text mode printing.
 NoPDriver:A printer driver must be present for graphics mode printing.

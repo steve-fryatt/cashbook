@@ -69,8 +69,8 @@ enum report_page_area {
  */
 
 struct report_page_data {
-	int			xpos;					/**< The X position of the page, in terms of pages.			*/
-	int			ypos;					/**< The Y position of the page, in terms of pages.			*/
+	os_coord		position;				/**< The X,Y position of the page, in terms of pages.			*/
+
 //	enum report_line_flags	flags;					/**< Flags relating to the report line.					*/
 //	unsigned		first_cell;				/**< Offset of the line's first cell in the cell data block.		*/
 //	size_t			cell_count;				/**< The number of cells in the line.					*/
@@ -134,8 +134,9 @@ void report_page_close(struct report_page_block *handle);
 
 osbool report_page_paginated(struct report_page_block *handle);
 
+osbool report_page_new_row(struct report_page_block *handle);
 
-
+osbool report_page_add(struct report_page_block *handle);
 
 /**
  * Add a line to a report line data block.
@@ -199,6 +200,19 @@ unsigned report_page_find_from_ypos(struct report_page_block *handle, int ypos);
 osbool report_page_get_outline(struct report_page_block *handle, int x, int y, os_box *area);
 
 osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, int *y);
+
+/**
+ * Read the current printer page size, and work out from the configured margins
+ * where on the page the printed body, header and footer will go.
+ *
+ * \param *handle		The page block to update.
+ * \param landscape		TRUE to rotate the page to Landscape format; else FALSE.
+ * \param header_size		The required height of the header, in millipoints.
+ * \param footer_size		The required height of the footer, in millipoints.
+ * \return			Pointer to an error block on failure, or NULL on success.
+ */
+
+os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, unsigned header_size, unsigned footer_size);
 
 #endif
 

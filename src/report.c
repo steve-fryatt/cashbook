@@ -87,6 +87,7 @@
 #include "report_format_dialogue.h"
 #include "report_line.h"
 #include "report_page.h"
+#include "report_region.h"
 #include "report_tabs.h"
 #include "report_textdump.h"
 #include "transact.h"
@@ -162,6 +163,7 @@ struct report {
 	struct report_line_block	*lines;
 
 	struct report_page_block	*pages;
+	struct report_region_block	*regions;
 
 	/* Report template details. */
 
@@ -228,6 +230,7 @@ static void			report_handle_print_error(os_error *error, os_fw file, struct repo
 static os_error			*report_plot_line(struct report *report, unsigned int line, int x, int y);
 
 
+static void report_paginate(struct report *report);
 static void report_toggle_page_view(struct report *report);
 static void report_set_window_extent(struct report *report);
 static osbool report_get_window_extent(struct report *report, int *x, int *y);
@@ -316,6 +319,10 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 
 	new->pages = report_page_create(0);
 	if (new->pages == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
+	new->regions = report_region_create(0);
+	if (new->regions == NULL)
 		new->flags |= REPORT_STATUS_MEMERR;
 
 	new->window = NULL;
@@ -412,6 +419,12 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 
 	report_close_and_calculate(report);
 
+	if (!report_page_paginated(report->pages)) {
+		error_msgs_report_error("PrintPgFail");
+		report_delete(report);
+		return;
+	}
+
 	report_print(report, text, textformat, fitwidth, rotate, pagenum);
 }
 
@@ -438,7 +451,6 @@ static void report_close_and_calculate(struct report *report)
 	report_cell_close(report->cells);
 	report_line_close(report->lines);
 	report_tabs_close(report->tabs);
-	report_page_close(report->pages);
 
 	/* Set up the display details. */
 
@@ -447,6 +459,10 @@ static void report_close_and_calculate(struct report *report)
 
 	report->show_grid = config_opt_read("ReportShowGrid");
 	report_reflow_content(report);
+
+	/* Try to paginate the report. */
+
+	report_paginate(report);
 
 	/* For now, there isn't a window. */
 
@@ -493,6 +509,7 @@ void report_delete(struct report *report)
 	report_fonts_destroy(report->fonts);
 	report_tabs_destroy(report->tabs);
 	report_page_destroy(report->pages);
+	report_region_destroy(report->regions);
 
 	if (report->template != NULL)
 		heap_free(report->template);
@@ -2153,7 +2170,51 @@ void report_process_all_templates(struct file_block *file, void (*callback)(stru
 
 
 
+static void report_paginate(struct report *report)
+{
+	if (report == NULL)
+		return;
 
+	/* Reset any existing pagination. */
+
+	report_page_clear(report->pages);
+	report_region_clear(report->regions);
+
+	/* Identify the page size. */
+
+	// \TODO -- There's a problem here, as we don't know whether the
+	// report is landspace or portrait until we try to print it!
+	// Assume portrait for now...
+
+	if (report_page_calculate_areas(report->pages, FALSE, 0, 0) != NULL)
+		return;
+
+	debug_printf("We have a page size!");
+
+	report_page_new_row(report->pages);
+
+	report_page_add(report->pages);
+	report_page_add(report->pages);
+	report_page_add(report->pages);
+	report_page_add(report->pages);
+
+	report_page_new_row(report->pages);
+
+	report_page_add(report->pages);
+	report_page_add(report->pages);
+	report_page_add(report->pages);
+	report_page_add(report->pages);
+
+	report_page_new_row(report->pages);
+
+	report_page_add(report->pages);
+	report_page_add(report->pages);
+	report_page_add(report->pages);
+	report_page_add(report->pages);
+
+	report_page_close(report->pages);
+	report_region_close(report->regions);
+}
 
 
 
@@ -2204,11 +2265,11 @@ static void report_set_window_extent(struct report *report)
 	wimp_get_window_state(&state);
 
 	visible_xextent = state.xscroll + (state.visible.x1 - state.visible.x0);
-	visible_yextent = state.yscroll + (state.visible.y0 - state.visible.y1);
+	visible_yextent = (state.visible.y1 - state.visible.y0) - state.yscroll;
 
 	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
 
-	if (new_xextent < visible_xextent || new_yextent > visible_yextent) {
+	if (new_xextent < visible_xextent || new_yextent < visible_yextent) {
 		/* Calculate the required new scroll offsets.
 		 *
 		 * Start with the x scroll.  If this is less than zero, the window is too wide and will need shrinking down.
@@ -2224,17 +2285,17 @@ static void report_set_window_extent(struct report *report)
 			state.xscroll = new_xscroll;
 		}
 
-		/* Now do the y scroll.  If this is greater than zero, the current window is too deep and will need
+		/* Now do the y scroll.  If this is less than zero, the current window is too deep and will need
 		 * shrinking down.  Otherwise, just set the new scroll offset.
 		 */
 
-		new_yscroll = new_yextent - (state.visible.y0 - state.visible.y1);
+		new_yscroll = new_yextent - (state.visible.y1 - state.visible.y0);
 
-		if (new_yscroll > 0) {
-			state.visible.y0 += new_yscroll;
+		if (new_yscroll < 0) {
+			state.visible.y0 -= new_yscroll;
 			state.yscroll = 0;
 		} else {
-			state.yscroll = new_yscroll;
+			state.yscroll = -new_yscroll;
 		}
 
 		wimp_open_window((wimp_open *) &state);
@@ -2247,7 +2308,7 @@ static void report_set_window_extent(struct report *report)
 	extent.x0 = 0;
 	extent.x1 = new_xextent;
 	extent.y1 = 0;
-	extent.y0 = new_yextent;
+	extent.y0 = -new_yextent;
 	wimp_set_extent(report->window, &extent);
 }
 

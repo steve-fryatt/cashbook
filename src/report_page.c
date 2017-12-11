@@ -219,6 +219,13 @@ osbool report_page_paginated(struct report_page_block *handle)
 }
 
 
+/**
+ * Start a new row of pages in the page output.
+ *
+ * \param *handle		The block to add a row to.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
 osbool report_page_new_row(struct report_page_block *handle)
 {
 	if (handle == NULL)
@@ -229,6 +236,14 @@ osbool report_page_new_row(struct report_page_block *handle)
 
 	return TRUE;
 }
+
+
+/**
+ * Add a page to the page output.
+ *
+ * \param *handle		The block to add the page to.
+ * \return			TRUE if successful; FALSE on failure.
+ */
 
 osbool report_page_add(struct report_page_block *handle)
 {
@@ -261,42 +276,6 @@ osbool report_page_add(struct report_page_block *handle)
 
 
 #if 0
-/**
- * Add a line to a report line data block.
- *
- * \param *handle		The block to add to.
- * \param first_cell		The offset of the first cell's data in the cell store.
- * \param cell_count		The number of cells in the line.
- * \param tab_bar		The tab bar which applies to the line.
- * \param flags			The flags associated with the line.
- * \return			TRUE if successful; FALSE on failure.
- */
-
-osbool report_line_add(struct report_line_block *handle, unsigned first_cell, size_t cell_count, int tab_bar, enum report_line_flags flags)
-{
-	unsigned new;
-
-	if (handle == NULL || handle->lines == NULL)
-		return FALSE;
-
-	if (handle->line_count >= handle->size) {
-		if (!flexutils_resize((void **) &(handle->lines), sizeof(struct report_line_data), handle->size + handle->allocation))
-			return FALSE;
-
-		handle->size += handle->allocation;
-	}
-
-	new = handle->line_count++;
-
-	handle->lines[new].flags = flags;
-	handle->lines[new].first_cell = first_cell;
-	handle->lines[new].cell_count = cell_count;
-	handle->lines[new].tab_bar = tab_bar;
-	handle->lines[new].ypos = 0;
-
-	return TRUE;
-}
-
 
 /**
  * Return the number of lines held in a report line data block.

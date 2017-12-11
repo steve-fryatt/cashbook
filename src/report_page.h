@@ -134,22 +134,25 @@ void report_page_close(struct report_page_block *handle);
 
 osbool report_page_paginated(struct report_page_block *handle);
 
-osbool report_page_new_row(struct report_page_block *handle);
-
-osbool report_page_add(struct report_page_block *handle);
 
 /**
- * Add a line to a report line data block.
+ * Start a new row of pages in the page output.
  *
- * \param *handle		The block to add to.
- * \param first_cell		The offset of the first cell's data in the cell store.
- * \param cell_count		The number of cells in the line.
- * \param tab_bar		The tab bar which applies to the line.
- * \param flags			The flags associated with the line.
+ * \param *handle		The block to add a row to.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-//osbool report_line_add(struct report_line_block *handle, unsigned first_cell, size_t cell_count, int tab_bar, enum report_line_flags flags);
+osbool report_page_new_row(struct report_page_block *handle);
+
+
+/**
+ * Add a page to the page output.
+ *
+ * \param *handle		The block to add the page to.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool report_page_add(struct report_page_block *handle);
 
 
 /**

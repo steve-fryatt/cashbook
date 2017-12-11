@@ -164,43 +164,38 @@ void report_region_close(struct report_region_block *handle)
 	debug_printf("Region data: %d records, using %dKb", handle->region_count, handle->region_count * sizeof (struct report_region_data) / 1024);
 }
 
-#if 0
+
 /**
- * Add a line to a report line data block.
+ * Add a region to a report region data block.
  *
  * \param *handle		The block to add to.
- * \param first_cell		The offset of the first cell's data in the cell store.
- * \param cell_count		The number of cells in the line.
- * \param tab_bar		The tab bar which applies to the line.
- * \param flags			The flags associated with the line.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool report_line_add(struct report_line_block *handle, unsigned first_cell, size_t cell_count, int tab_bar, enum report_line_flags flags)
+osbool report_region_add(struct report_region_block *handle)
 {
 	unsigned new;
 
-	if (handle == NULL || handle->lines == NULL)
+	if (handle == NULL || handle->regions == NULL)
 		return FALSE;
 
-	if (handle->line_count >= handle->size) {
-		if (!flexutils_resize((void **) &(handle->lines), sizeof(struct report_line_data), handle->size + handle->allocation))
+	if (handle->region_count >= handle->size) {
+		if (!flexutils_resize((void **) &(handle->regions), sizeof(struct report_region_data), handle->size + handle->allocation))
 			return FALSE;
 
 		handle->size += handle->allocation;
 	}
 
-	new = handle->line_count++;
+	new = handle->region_count++;
 
-	handle->lines[new].flags = flags;
-	handle->lines[new].first_cell = first_cell;
-	handle->lines[new].cell_count = cell_count;
-	handle->lines[new].tab_bar = tab_bar;
-	handle->lines[new].ypos = 0;
+	handle->regions[new].position.x0 = 0;
+	handle->regions[new].position.y0 = 0;
+	handle->regions[new].position.x1 = 0;
+	handle->regions[new].position.y1 = 0;
 
 	return TRUE;
 }
-
+#if 0
 
 /**
  * Return the number of lines held in a report line data block.

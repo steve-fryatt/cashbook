@@ -45,8 +45,7 @@
  */
 
 struct report_region_data {
-	int			xpos;					/**< The X position of the page, in terms of pages.			*/
-	int			ypos;					/**< The Y position of the page, in terms of pages.			*/
+	os_box			position;				/**< The position of the region on the page, in OS Units from top left.	*/
 //	enum report_line_flags	flags;					/**< Flags relating to the report line.					*/
 //	unsigned		first_cell;				/**< Offset of the line's first cell in the cell data block.		*/
 //	size_t			cell_count;				/**< The number of cells in the line.					*/
@@ -103,17 +102,13 @@ void report_region_close(struct report_region_block *handle);
 
 
 /**
- * Add a line to a report line data block.
+ * Add a region to a report region data block.
  *
  * \param *handle		The block to add to.
- * \param first_cell		The offset of the first cell's data in the cell store.
- * \param cell_count		The number of cells in the line.
- * \param tab_bar		The tab bar which applies to the line.
- * \param flags			The flags associated with the line.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-//osbool report_line_add(struct report_line_block *handle, unsigned first_cell, size_t cell_count, int tab_bar, enum report_line_flags flags);
+osbool report_region_add(struct report_region_block *handle);
 
 
 /**

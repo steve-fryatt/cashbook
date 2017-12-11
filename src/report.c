@@ -146,6 +146,8 @@ struct report {
 
 	/* Display options. */
 
+	osbool			landscape;					/**< TRUE if the report is to be shown in landscape format.	*/
+
 	osbool			show_grid;					/**< TRUE if a grid table is to be plotted.			*/
 
 	osbool			show_pages;					/**< TRUE if page display is enabled.				*/
@@ -299,6 +301,7 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
 
+	new->landscape = FALSE;
 	new->show_grid = FALSE;
 	new->show_pages = TRUE;
 
@@ -2226,7 +2229,11 @@ static void report_repaginate_all(struct file_block *file)
 }
 
 
-
+/**
+ * Repaginate a report.
+ *
+ * \param *report		The handle of the report to be repaginated.
+ */
 
 static void report_paginate(struct report *report)
 {
@@ -2238,16 +2245,10 @@ static void report_paginate(struct report *report)
 	report_page_clear(report->pages);
 	report_region_clear(report->regions);
 
-	/* Identify the page size. */
+	/* Identify the page size. If this fails, there's no point continuing. */
 
-	// \TODO -- There's a problem here, as we don't know whether the
-	// report is landspace or portrait until we try to print it!
-	// Assume portrait for now...
-
-	if (report_page_calculate_areas(report->pages, FALSE, 0, 0) != NULL)
+	if (report_page_calculate_areas(report->pages, report->landscape, 0, 0) != NULL)
 		return;
-
-	debug_printf("We have a page size!");
 
 	report_page_new_row(report->pages);
 

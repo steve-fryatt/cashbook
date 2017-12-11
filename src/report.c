@@ -229,7 +229,8 @@ static void			report_print_as_graphic(struct report *report, osbool fit_width, o
 static void			report_handle_print_error(os_error *error, os_fw file, struct report_fonts_block *fonts);
 static os_error			*report_plot_line(struct report *report, unsigned int line, int x, int y);
 
-
+static osbool report_handle_message_set_printer(wimp_message *message);
+static void report_repaginate_all(struct file_block *file);
 static void report_paginate(struct report *report);
 static void report_toggle_page_view(struct report *report);
 static void report_set_window_extent(struct report *report);
@@ -260,6 +261,10 @@ void report_initialise(osspriteop_area *sprites)
 	/* Initialise subsidiary parts of the report system. */
 
 	report_format_dialogue_initialise();
+
+	/* Register the Wimp message handlers. */
+
+	event_add_message_handler(message_SET_PRINTER, EVENT_MESSAGE_INCOMING, report_handle_message_set_printer);
 }
 
 
@@ -2167,6 +2172,59 @@ void report_process_all_templates(struct file_block *file, void (*callback)(stru
 		report = report->next;
 	}
 }
+
+
+
+/**
+ * Process a Message_SetPrinter, which requires us to repaginate any open
+ * reports.
+ *
+ * \param *message		The Wimp message block.
+ * \return			TRUE to claim the message.
+ */
+
+static osbool report_handle_message_set_printer(wimp_message *message)
+{
+	#ifdef DEBUG
+	debug_printf("Message_SetPrinter received.");
+	#endif
+
+	hourglass_on();
+
+	file_process_all(report_repaginate_all);
+
+	hourglass_off();
+
+	return TRUE;
+}
+
+
+/**
+ * Repaginate all of the reports in a file.
+ *
+ * \param *file			The file to be processed.
+ */
+
+static void report_repaginate_all(struct file_block *file)
+{
+	struct report	*report;
+
+	if (file == NULL)
+		return;
+
+	report = file->reports;
+
+	while (report != NULL) {
+		report_paginate(report);
+		report_set_window_extent(report);
+
+		if (report->window != NULL)
+			windows_redraw(report->window);
+
+		report = report->next;
+	}
+}
+
 
 
 

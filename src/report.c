@@ -2247,7 +2247,7 @@ static void report_paginate(struct report *report)
 
 	/* Identify the page size. If this fails, there's no point continuing. */
 
-	if (report_page_calculate_areas(report->pages, report->landscape, 0, 0) != NULL)
+	if (report_page_calculate_areas(report->pages, report->landscape, repprt->width, 0, 0) != NULL)
 		return;
 
 	report_page_new_row(report->pages);

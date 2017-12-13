@@ -418,12 +418,13 @@ osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, i
  *
  * \param *handle		The page block to update.
  * \param landscape		TRUE to rotate the page to Landscape format; else FALSE.
- * \param header_size		The required height of the header, in millipoints.
- * \param footer_size		The required height of the footer, in millipoints.
+ * \param body_width		The required width of the page body, in OS Units, or zero.
+ * \param header_size		The required height of the header, in OS Units, or zero.
+ * \param footer_size		The required height of the footer, in OS Units, or zero.
  * \return			Pointer to an error block on failure, or NULL on success.
  */
 
-os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, unsigned header_size, unsigned footer_size)
+os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, int body_width, int header_size, int footer_size)
 {
 	os_error			*error;
 	osbool				margin_fail = FALSE;
@@ -486,15 +487,15 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 	areas |= REPORT_PAGE_AREA_BODY;
 
 	if (landscape) {
-		handle->body.x0 = page_bottom;
-		handle->body.x1 = page_top;
-		handle->body.y0 = page_right;
-		handle->body.y1 = page_left;
+		handle->body.x0 = page_bottom / 400;
+		handle->body.x1 = page_top / 400;
+		handle->body.y0 = page_right / 400;
+		handle->body.y1 = page_left / 400;
 	} else {
-		handle->body.x0 = page_left;
-		handle->body.x1 = page_right;
-		handle->body.y0 = page_bottom;
-		handle->body.y1 = page_top;
+		handle->body.x0 = page_left / 400;
+		handle->body.x1 = page_right / 400;
+		handle->body.y0 = page_bottom / 400;
+		handle->body.y1 = page_top / 400;
 	}
 
 	if (header_size > 0) {

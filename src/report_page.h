@@ -71,6 +71,9 @@ enum report_page_area {
 struct report_page_data {
 	os_coord		position;				/**< The X,Y position of the page, in terms of pages.			*/
 
+	unsigned		first_region;				/**< Offset of the page's first region in the region data block.	*/
+	size_t			region_count;				/**< The number of regions on the page.					*/
+
 //	enum report_line_flags	flags;					/**< Flags relating to the report line.					*/
 //	unsigned		first_cell;				/**< Offset of the line's first cell in the cell data block.		*/
 //	size_t			cell_count;				/**< The number of cells in the line.					*/
@@ -149,60 +152,85 @@ osbool report_page_new_row(struct report_page_block *handle);
  * Add a page to the page output.
  *
  * \param *handle		The block to add the page to.
+ * \param first_region		The offset of the first region on the page.
+ * \param region_count		The number of regions on the page.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool report_page_add(struct report_page_block *handle);
+osbool report_page_add(struct report_page_block *handle, unsigned first_region, size_t region_count);
 
 
 /**
- * Return the number of lines held in a report line data block.
- *
- * \param *handle		The block to query.
- * \return			The number of lines in the block, or 0.
- */
-
-//size_t report_line_get_count(struct report_line_block *handle);
-
-
-/**
- * Return details about a line held in a report line data block. The data
+ * Return details about a page held in a report page data block. The data
  * returned is transient, and not guaracteed to remain valid if the flex
  * heap shifts.
  *
  * \param *handle		The block to query.
- * \param line			The line to query.
- * \return			Pointer to the line data block, or NULL.
+ * \param line			The page to query.
+ * \return			Pointer to the page data block, or NULL.
  */
 
-//struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line);
+struct report_page_data *report_page_get_info(struct report_page_block *handle, unsigned page);
+
+/**
+ * Calculate the extent of an on-screen representation of the pages,
+ * based on the 2D layout and the on-screen page size. No size can be
+ * returned if the pages have not been calculated.
+ *
+ * \param *handle		The block to query.
+ * \param *x			Pointer to a variable to take the X size, in OS Units.
+ * \param *y			Pointer to a variable to take the Y size, in OS Units.
+ * \return			TRUE if successful; FALSE if no size could
+ *				be returned.
+ */
+
+osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, int *y);
 
 
 /**
- * Find a page based on a redraw position on the X axis.
+ * Find a page based on a redraw position on the X axis. Note that at
+ * the edges of the display area, this might return pages outside of the
+ * active range.
  *
  * \param *handle		The block to query.
  * \param ypos			The X axis coordinate to look up.
- * \return			The line number.
+ * \param high			TRUE if we're matching the high coordinate.
+ * \return			The page number in the X direction.
  */
 
-unsigned report_page_find_from_xpos(struct report_page_block *handle, int xpos);
+int report_page_find_from_xpos(struct report_page_block *handle, int xpos, osbool high);
 
 
 /**
- * Find a page based on a redraw position on the Y axis.
+ * Find a page based on a redraw position on the Y axis. Note that at
+ * the edges of the display area, this might return pages outside of the
+ * active range.
  *
  * \param *handle		The block to query.
  * \param ypos			The Y axis coordinate to look up.
- * \return			The line number.
+ * \param high			TRUE if we're matching the high coordinate.
+ * \return			The page number in the Y direction.
  */
 
-unsigned report_page_find_from_ypos(struct report_page_block *handle, int ypos);
+int report_page_find_from_ypos(struct report_page_block *handle, int ypos, osbool high);
 
 
-osbool report_page_get_outline(struct report_page_block *handle, int x, int y, os_box *area);
+/**
+ * Based on an X and Y page position, identify the redraw area in an
+ * on-screen representation and return the page index number of the
+ * associated page.
+ *
+ * \param *handle		The page data block holding the page.
+ * \param x			The X position of the page, in pages.
+ * \param y			The Y position of the page, in pages.
+ * \param *area			Pointer to an OS Box to take the returned
+ *				outline, in OS Units.
+ * \return			The page index number, or REPORT_PAGE_NONE.
+ */
 
-osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, int *y);
+unsigned report_page_get_outline(struct report_page_block *handle, int x, int y, os_box *area);
+
+
 
 /**
  * Read the current printer page size, and work out from the configured margins
@@ -210,13 +238,13 @@ osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, i
  *
  * \param *handle		The page block to update.
  * \param landscape		TRUE to rotate the page to Landscape format; else FALSE.
- * \param body_width		The required width of the page body, in OS Units, or zero.
+ * \param target_width		The required width of the page body, in OS Units, or zero.
  * \param header_size		The required height of the header, in OS Units, or zero.
  * \param footer_size		The required height of the footer, in OS Units, or zero.
  * \return			Pointer to an error block on failure, or NULL on success.
  */
 
-os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, int body_width, int header_size, int footer_size);
+os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, int target_width, int header_size, int footer_size);
 
 #endif
 

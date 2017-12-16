@@ -69,6 +69,12 @@
 #define REPORT_PAGE_BORDER 60
 
 /**
+ * The number of millipoints in an OS Unit.
+ */
+
+#define REPORT_PAGE_MPOINTS_TO_OS 400
+
+/**
  * A Report Page instance data block.
  */
 
@@ -83,6 +89,7 @@ struct report_page_block {
 	int			column;			/**< The current column number whilst paginating.		*/
 
 	os_coord		page_size;		/**< The size of a page, in OS Units.				*/
+	os_coord		display_size;		/**> The display size of a page, in OS Units.			*/
 	os_box			margins;		/**< The location of the print margins.				*/
 
 	enum report_page_area	active_areas;		/**< The areas which are active in the page.			*/
@@ -91,13 +98,15 @@ struct report_page_block {
 	os_box			header;			/**< The location of the page header.				*/
 	os_box			footer;			/**< The location of the page footer.				*/
 
+	os_hom_trfm		print_transform;	/**< The printer driver transformation matrix.			*/
+
 	osbool			landscape;		/**< TRUE if the layout is landscape; FALSE if portrait.	*/
 	osbool			paginated;		/**< TRUE if there is pagination data; FALSE if not.		*/
 };
 
 /* Static Function Prototypes. */
 
-
+static void report_page_scale_area(os_box *area, int scale);
 
 /**
  * Initialise a report page data block
@@ -242,10 +251,12 @@ osbool report_page_new_row(struct report_page_block *handle)
  * Add a page to the page output.
  *
  * \param *handle		The block to add the page to.
+ * \param first_region		The offset of the first region on the page.
+ * \param region_count		The number of regions on the page.
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool report_page_add(struct report_page_block *handle)
+osbool report_page_add(struct report_page_block *handle, unsigned first_region, size_t region_count)
 {
 	unsigned new;
 
@@ -261,12 +272,15 @@ osbool report_page_add(struct report_page_block *handle)
 		handle->size += handle->page_layout.x + handle->allocation;
 	}
 
-	/* Set up the new pages. */
+	/* Set up the new page. */
 
 	new = handle->page_count++;
 
-	handle->pages[new].position.x = ++handle->column;
-	handle->pages[new].position.y = handle->page_layout.y;
+	handle->pages[new].position.x = handle->column++;
+	handle->pages[new].position.y = handle->page_layout.y - 1;
+
+	handle->pages[new].first_region = first_region;
+	handle->pages[new].region_count = region_count;
 
 	if (handle->column > handle->page_layout.x)
 		handle->page_layout.x = handle->column;
@@ -275,124 +289,39 @@ osbool report_page_add(struct report_page_block *handle)
 }
 
 
-#if 0
-
 /**
- * Return the number of lines held in a report line data block.
- *
- * \param *handle		The block to query.
- * \return			The number of lines in the block, or 0.
- */
-
-size_t report_line_get_count(struct report_line_block *handle)
-{
-	if (handle == NULL || handle->lines == NULL)
-		return 0;
-
-	return handle->line_count;
-}
-
-
-/**
- * Return details about a line held in a report line data block. The data
+ * Return details about a page held in a report page data block. The data
  * returned is transient, and not guaracteed to remain valid if the flex
  * heap shifts.
  *
  * \param *handle		The block to query.
- * \param line			The line to query.
- * \return			Pointer to the line data block, or NULL.
+ * \param line			The page to query.
+ * \return			Pointer to the page data block, or NULL.
  */
 
-struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line)
+struct report_page_data *report_page_get_info(struct report_page_block *handle, unsigned page)
 {
-	if (handle == NULL || handle->lines == NULL)
+	if (handle == NULL || handle->pages == NULL)
 		return NULL;
 
-	if (line >= handle->line_count)
+	if (page >= handle->page_count)
 		return NULL;
 
-	return handle->lines + line;
-}
-#endif
-
-
-/**
- * Find a page based on a redraw position on the X axis.
- *
- * \param *handle		The block to query.
- * \param ypos			The X axis coordinate to look up.
- * \return			The page number.
- */
-
-unsigned report_page_find_from_xpos(struct report_page_block *handle, int xpos)
-{
-	int page, position;
-
-	if (handle == NULL || handle->pages == NULL || handle->paginated == FALSE)
-		return REPORT_PAGE_NONE;
-
-	page = xpos / (handle->page_size.x + (2 * REPORT_PAGE_BORDER));
-
-	position = xpos % (handle->page_size.x + (2 * REPORT_PAGE_BORDER));
-	if (position > handle->page_size.x + REPORT_PAGE_BORDER)
-		page += 1;
-
-	if (page >= handle->page_layout.x)
-		page = handle->page_layout.x - 1;
-
-	if (page < 0)
-		page = 0;
-
-	return page;
+	return handle->pages + page;
 }
 
 
 /**
- * Find a page based on a redraw position on the Y axis.
+ * Calculate the extent of an on-screen representation of the pages,
+ * based on the 2D layout and the on-screen page size. No size can be
+ * returned if the pages have not been calculated.
  *
  * \param *handle		The block to query.
- * \param ypos			The Y axis coordinate to look up.
- * \return			The page number.
+ * \param *x			Pointer to a variable to take the X size, in OS Units.
+ * \param *y			Pointer to a variable to take the Y size, in OS Units.
+ * \return			TRUE if successful; FALSE if no size could
+ *				be returned.
  */
-
-unsigned report_page_find_from_ypos(struct report_page_block *handle, int ypos)
-{
-	int page, position;
-
-	if (handle == NULL || handle->pages == NULL || handle->paginated == FALSE)
-		return REPORT_PAGE_NONE;
-
-	page = -ypos / (handle->page_size.y + (2 * REPORT_PAGE_BORDER));
-
-	position = -ypos % (handle->page_size.y + (2 * REPORT_PAGE_BORDER));
-	if (position > handle->page_size.y + REPORT_PAGE_BORDER)
-		page += 1;
-
-	if (page >= handle->page_layout.y)
-		page = handle->page_layout.y - 1;
-
-	if (page < 0)
-		page = 0;
-
-	return page;
-}
-
-
-osbool report_page_get_outline(struct report_page_block *handle, int x, int y, os_box *area)
-{
-	if (handle == NULL || area == NULL || handle->paginated == FALSE)
-		return FALSE;
-
-	if (x < 0 || x >= handle->page_layout.x || y < 0 || y >= handle->page_layout.y)
-		return FALSE;
-
-	area->x0 = x * (handle->page_size.x + (2 * REPORT_PAGE_BORDER)) + REPORT_PAGE_BORDER;
-	area->x1 = area->x0 + handle->page_size.x;
-	area->y1 = -(y * (handle->page_size.y + (2 * REPORT_PAGE_BORDER)) + REPORT_PAGE_BORDER);
-	area->y0 = area->y1 - handle->page_size.y;
-
-	return TRUE;
-}
 
 osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, int *y)
 {
@@ -400,16 +329,131 @@ osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, i
 		return FALSE;
 
 	if (x != NULL)
-		*x = (handle->page_size.x + (2 * REPORT_PAGE_BORDER)) * handle->page_layout.x;
+		*x = (handle->display_size.x + (2 * REPORT_PAGE_BORDER)) * handle->page_layout.x;
 
 	if (y != NULL)
-		*y = (handle->page_size.y + (2 * REPORT_PAGE_BORDER)) * handle->page_layout.y;
+		*y = (handle->display_size.y + (2 * REPORT_PAGE_BORDER)) * handle->page_layout.y;
 
 	return TRUE;
 }
 
 
+/**
+ * Find a page based on a redraw position on the X axis. Note that at
+ * the edges of the display area, this might return pages outside of the
+ * active range.
+ *
+ * \param *handle		The block to query.
+ * \param ypos			The X axis coordinate to look up.
+ * \param high			TRUE if we're matching the high coordinate.
+ * \return			The page number in the X direction.
+ */
 
+int report_page_find_from_xpos(struct report_page_block *handle, int xpos, osbool high)
+{
+	int page, position;
+
+	/* Returning 0 for low and -1 for high ensures that the redraw
+	 * loop is not entered if the exit route is consistantly called
+	 * for both ends of the range.
+	 */
+
+	if (handle == NULL || handle->pages == NULL || handle->paginated == FALSE)
+		return (high) ? -1 : 0;
+
+	page = xpos / (handle->display_size.x + (2 * REPORT_PAGE_BORDER));
+
+	position = xpos % (handle->display_size.x + (2 * REPORT_PAGE_BORDER));
+
+	if ((high == TRUE) && (position < REPORT_PAGE_BORDER))
+		page -= 1;
+	else if ((high == FALSE) && (position > (handle->display_size.x + REPORT_PAGE_BORDER)))
+		page += 1;
+
+	return page;
+}
+
+
+/**
+ * Find a page based on a redraw position on the Y axis. Note that at
+ * the edges of the display area, this might return pages outside of the
+ * active range.
+ *
+ * \param *handle		The block to query.
+ * \param ypos			The Y axis coordinate to look up.
+ * \param high			TRUE if we're matching the high coordinate.
+ * \return			The page number in the Y direction.
+ */
+
+int report_page_find_from_ypos(struct report_page_block *handle, int ypos, osbool high)
+{
+	int page, position;
+
+	/* Returning 0 for low and -1 for high ensures that the redraw
+	 * loop is not entered if the exit route is consistantly called
+	 * for both ends of the range.
+	 */
+
+	if (handle == NULL || handle->pages == NULL || handle->paginated == FALSE)
+		return (high) ? -1 : 0;
+
+	page = -ypos / (handle->display_size.y + (2 * REPORT_PAGE_BORDER));
+
+	position = -ypos % (handle->display_size.y + (2 * REPORT_PAGE_BORDER));
+
+	if ((high == TRUE) && (position < REPORT_PAGE_BORDER))
+		page -= 1;
+	else if ((high == FALSE) && (position > (handle->display_size.y + REPORT_PAGE_BORDER)))
+		page += 1;
+
+	return page;
+}
+
+
+/**
+ * Based on an X and Y page position, identify the redraw area in an
+ * on-screen representation and return the page index number of the
+ * associated page.
+ *
+ * \param *handle		The page data block holding the page.
+ * \param x			The X position of the page, in pages.
+ * \param y			The Y position of the page, in pages.
+ * \param *area			Pointer to an OS Box to take the returned
+ *				outline, in OS Units.
+ * \return			The page index number, or REPORT_PAGE_NONE.
+ */
+
+unsigned report_page_get_outline(struct report_page_block *handle, int x, int y, os_box *area)
+{
+	unsigned page;
+
+	if (handle == NULL || area == NULL || handle->paginated == FALSE)
+		return REPORT_PAGE_NONE;
+
+	/* Does the required page fall within the current layout. */
+
+	if (x < 0 || x >= handle->page_layout.x || y < 0 || y >= handle->page_layout.y)
+		return REPORT_PAGE_NONE;
+
+	/* Search the page list for the page in question. */
+
+	page = 0;
+
+	while (page < handle->page_count && (handle->pages[page].position.x != x || handle->pages[page].position.y != y))
+		page++;
+
+	if (page >= handle->page_count)
+		return REPORT_PAGE_NONE;
+
+	/* Calculate the on-screen area of the page. */
+
+	area->x0 = x * (handle->display_size.x + (2 * REPORT_PAGE_BORDER)) + REPORT_PAGE_BORDER;
+	area->x1 = area->x0 + handle->display_size.x;
+	area->y1 = -(y * (handle->display_size.y + (2 * REPORT_PAGE_BORDER)) + REPORT_PAGE_BORDER);
+	area->y0 = area->y1 - handle->display_size.y;
+
+	return page;
+}
 
 
 /**
@@ -418,19 +462,21 @@ osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, i
  *
  * \param *handle		The page block to update.
  * \param landscape		TRUE to rotate the page to Landscape format; else FALSE.
- * \param body_width		The required width of the page body, in OS Units, or zero.
+ * \param target_width		The required width of the page body, in OS Units, or zero.
  * \param header_size		The required height of the header, in OS Units, or zero.
  * \param footer_size		The required height of the footer, in OS Units, or zero.
  * \return			Pointer to an error block on failure, or NULL on success.
  */
 
-os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, int body_width, int header_size, int footer_size)
+os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, int target_width, int header_size, int footer_size)
 {
 	os_error			*error;
 	osbool				margin_fail = FALSE;
 	enum report_page_area		areas = REPORT_PAGE_AREA_NONE;
 	int				page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
 	int				margin_left, margin_right, margin_top, margin_bottom;
+	int				body_width, scale;
+
 
 	if (handle == NULL)
 		return NULL;
@@ -445,8 +491,8 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 	if (error != NULL)
 		return error;
 
-	handle->page_size.x = page_xsize / 400;
-	handle->page_size.y = page_ysize / 400;
+	handle->page_size.x = page_xsize / REPORT_PAGE_MPOINTS_TO_OS;
+	handle->page_size.y = page_ysize / REPORT_PAGE_MPOINTS_TO_OS;
 
 	margin_left = page_left;
 
@@ -487,15 +533,15 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 	areas |= REPORT_PAGE_AREA_BODY;
 
 	if (landscape) {
-		handle->body.x0 = page_bottom / 400;
-		handle->body.x1 = page_top / 400;
-		handle->body.y0 = page_right / 400;
-		handle->body.y1 = page_left / 400;
+		handle->body.x0 = page_bottom / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.x1 = page_top / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.y0 = page_right / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.y1 = page_left / REPORT_PAGE_MPOINTS_TO_OS;
 	} else {
-		handle->body.x0 = page_left / 400;
-		handle->body.x1 = page_right / 400;
-		handle->body.y0 = page_bottom / 400;
-		handle->body.y1 = page_top / 400;
+		handle->body.x0 = page_left / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.x1 = page_right / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.y0 = page_bottom / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.y1 = page_top / REPORT_PAGE_MPOINTS_TO_OS;
 	}
 
 	if (header_size > 0) {
@@ -523,10 +569,70 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 	if (margin_fail)
 		error_msgs_report_error("BadPrintMargins");
 
+	/* Work out the print scaling: if we're fitting to page, the pages are
+	 * made bigger so that we plot at 1:1 and then scale down via the
+	 * printer drivers. Otherwise, the scaling matrix is 1:1.
+	 */
+
+	body_width = handle->body.x1 - handle->body.x0;
+
+	if (target_width <= body_width) {
+		scale = 1 << 16;
+		debug_printf("Scaled 1:1 (0x%x)", scale);
+
+		handle->display_size.x = handle->page_size.x;
+		handle->display_size.y = handle->page_size.y;
+	} else {
+		scale = (1 << 16) * body_width / target_width;
+		debug_printf("Scaled down (0x%x)", scale);
+
+		handle->display_size.x = handle->page_size.x * (1 << 16) / scale;
+		handle->display_size.y = handle->page_size.y * (1 << 16) / scale;
+
+		if (areas & REPORT_PAGE_AREA_BODY)
+			report_page_scale_area(&(handle->body), scale);
+
+		if (areas & REPORT_PAGE_AREA_HEADER)
+			report_page_scale_area(&(handle->header), scale);
+
+		if (areas & REPORT_PAGE_AREA_FOOTER)
+			report_page_scale_area(&(handle->footer), scale);
+	}
+
+	/* Set the transformation matrix up, to handle any rotated printing. */
+
+	if (landscape) {
+		handle->print_transform.entries[0][0] = 0;
+		handle->print_transform.entries[0][1] = scale;
+		handle->print_transform.entries[1][0] = -scale;
+		handle->print_transform.entries[1][1] = 0;
+	} else {
+		handle->print_transform.entries[0][0] = scale;
+		handle->print_transform.entries[0][1] = 0;
+		handle->print_transform.entries[1][0] = 0;
+		handle->print_transform.entries[1][1] = scale;
+	}
+
+
 	return NULL;
 }
 
 
+/**
+ * Scale the values in an OS Box area to a given transformation.
+ *
+ * \param *area			Pointer to the area to be scaled.
+ * \param scale			The scaling factor to be applied.
+ */
 
+static void report_page_scale_area(os_box *area, int scale)
+{
+	if (area == NULL)
+		return;
 
+	area->x0 = area->x0 * (1 << 16) / scale;
+	area->y0 = area->y0 * (1 << 16) / scale;
+	area->x1 = area->x1 * (1 << 16) / scale;
+	area->y1 = area->y1 * (1 << 16) / scale;
+}
 

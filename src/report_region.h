@@ -108,7 +108,7 @@ void report_region_close(struct report_region_block *handle);
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool report_region_add(struct report_region_block *handle);
+unsigned report_region_add(struct report_region_block *handle, int x0, int y0, int x1, int y1);
 
 
 /**
@@ -122,16 +122,16 @@ osbool report_region_add(struct report_region_block *handle);
 
 
 /**
- * Return details about a line held in a report line data block. The data
+ * Return details about a region held in a report region data block. The data
  * returned is transient, and not guaracteed to remain valid if the flex
  * heap shifts.
  *
  * \param *handle		The block to query.
- * \param line			The line to query.
- * \return			Pointer to the line data block, or NULL.
+ * \param region			The region to query.
+ * \return			Pointer to the region data block, or NULL.
  */
 
-//struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line);
+struct report_region_data *report_region_get_info(struct report_region_block *handle, unsigned region);
 
 
 /**

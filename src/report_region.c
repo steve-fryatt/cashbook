@@ -169,31 +169,31 @@ void report_region_close(struct report_region_block *handle)
  * Add a region to a report region data block.
  *
  * \param *handle		The block to add to.
- * \return			TRUE if successful; FALSE on failure.
+ * \return			The new region number, or REPORT_REGION_NONE.
  */
 
-osbool report_region_add(struct report_region_block *handle)
+unsigned report_region_add(struct report_region_block *handle, int x0, int y0, int x1, int y1)
 {
 	unsigned new;
 
 	if (handle == NULL || handle->regions == NULL)
-		return FALSE;
+		return REPORT_REGION_NONE;
 
 	if (handle->region_count >= handle->size) {
 		if (!flexutils_resize((void **) &(handle->regions), sizeof(struct report_region_data), handle->size + handle->allocation))
-			return FALSE;
+			return REPORT_REGION_NONE;
 
 		handle->size += handle->allocation;
 	}
 
 	new = handle->region_count++;
 
-	handle->regions[new].position.x0 = 0;
-	handle->regions[new].position.y0 = 0;
-	handle->regions[new].position.x1 = 0;
-	handle->regions[new].position.y1 = 0;
+	handle->regions[new].position.x0 = x0;
+	handle->regions[new].position.y0 = y0;
+	handle->regions[new].position.x1 = x1;
+	handle->regions[new].position.y1 = y1;
 
-	return TRUE;
+	return new;
 }
 #if 0
 
@@ -211,29 +211,32 @@ size_t report_line_get_count(struct report_line_block *handle)
 
 	return handle->line_count;
 }
-
+#endif
 
 /**
- * Return details about a line held in a report line data block. The data
+ * Return details about a region held in a report region data block. The data
  * returned is transient, and not guaracteed to remain valid if the flex
  * heap shifts.
  *
  * \param *handle		The block to query.
- * \param line			The line to query.
- * \return			Pointer to the line data block, or NULL.
+ * \param region			The region to query.
+ * \return			Pointer to the region data block, or NULL.
  */
 
-struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line)
+struct report_region_data *report_region_get_info(struct report_region_block *handle, unsigned region)
 {
-	if (handle == NULL || handle->lines == NULL)
+	if (handle == NULL || handle->regions == NULL)
 		return NULL;
 
-	if (line >= handle->line_count)
+	if (region >= handle->region_count)
 		return NULL;
 
-	return handle->lines + line;
+	return handle->regions + region;
 }
 
+
+
+#if 0
 
 /**
  * Find a page based on a redraw position on the X axis.

@@ -229,7 +229,11 @@ static void			report_start_print_job(char *filename);
 static void			report_cancel_print_job(void);
 static void			report_print_as_graphic(struct report *report, osbool fit_width, osbool rotate, osbool pagenum);
 static void			report_handle_print_error(os_error *error, os_fw file, struct report_fonts_block *fonts);
-static os_error			*report_plot_line(struct report *report, unsigned int line, int x, int y);
+
+
+static os_error *report_plot_page(struct report *report, struct report_page_data *page, os_coord *origin, os_box *clip);
+static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
+static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y);
 
 static osbool report_handle_message_set_printer(wimp_message *message);
 static void report_repaginate_all(struct file_block *file);
@@ -1065,17 +1069,21 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 
 static void report_view_redraw_page_handler(struct report *report, wimp_draw *redraw, int ox, int oy)
 {
-	int	x0, y0, x1, y1, x, y;
-	os_box	outline;
+	int				x0, y0, x1, y1, x, y;
+	unsigned			page;
+	struct report_page_data		*data;
+	os_box				outline;
+	os_coord			origin;
+
+	if (report == NULL || redraw == NULL)
+		return;
 
 	/* Identify the range of pages covered. */
 
-	x0 = report_page_find_from_xpos(report->pages, redraw->clip.x0 - ox);
-	y0 = report_page_find_from_ypos(report->pages, redraw->clip.y1 - oy);
-	x1 = report_page_find_from_xpos(report->pages, redraw->clip.x1 - ox);
-	y1 = report_page_find_from_ypos(report->pages, redraw->clip.y0 - oy);
-
-	debug_printf("Redraw pages %d,%d to %d,%d", x0, y0, x1, y1);
+	x0 = report_page_find_from_xpos(report->pages, redraw->clip.x0 - ox, FALSE);
+	y0 = report_page_find_from_ypos(report->pages, redraw->clip.y1 - oy, FALSE);
+	x1 = report_page_find_from_xpos(report->pages, redraw->clip.x1 - ox, TRUE);
+	y1 = report_page_find_from_ypos(report->pages, redraw->clip.y0 - oy, TRUE);
 
 	/* Plot the background. */
 
@@ -1083,17 +1091,42 @@ static void report_view_redraw_page_handler(struct report *report, wimp_draw *re
 	os_plot(os_MOVE_TO, redraw->clip.x0, redraw->clip.y1);
 	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, redraw->clip.x1, redraw->clip.y0);
 
+	/* Plot each of the pages which fall into the rectangle. */
+
 	for (x = x0; x <= x1; x++) {
 		for (y = y0; y <= y1; y++) {
-			if (!report_page_get_outline(report->pages, x, y, &outline))
+			page = report_page_get_outline(report->pages, x, y, &outline);
+			if (page == REPORT_PAGE_NONE)
 				continue;
 
+			/* Calculate the page origin point. */
+
+			origin.x = ox + outline.x0;
+			origin.y = oy + outline.y1;
+
+			/* Plot the on-screen page background. */
+
+			outline.x0 = (ox + outline.x0 > redraw->clip.x0) ? ox + outline.x0 : redraw->clip.x0;
+			outline.y0 = (oy + outline.y0 > redraw->clip.y0) ? oy + outline.y0 : redraw->clip.y0;
+
+			outline.x1 = (ox + outline.x1 < redraw->clip.x1) ? ox + outline.x1 : redraw->clip.x1;
+			outline.y1 = (oy + outline.y1 < redraw->clip.y1) ? oy + outline.y1 : redraw->clip.y1;
+
 			wimp_set_colour(wimp_COLOUR_WHITE);
-			os_plot(os_MOVE_TO, ox + outline.x0, oy + outline.y1);
-			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, ox + outline.x1, oy + outline.y0);
+			os_plot(os_MOVE_TO, outline.x0, outline.y1);
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, outline.x1, outline.y0);
+
+			/* Plot the page itself. */
+
+			data = report_page_get_info(report->pages, page);
+			if (data == NULL)
+				continue;
+
+			report_plot_page(report, data, &origin, &(redraw->clip));
 		}
 	}
 }
+
 
 /**
  * Force the readraw of all the open reports associated with a file.
@@ -1961,6 +1994,93 @@ static void report_handle_print_error(os_error *error, os_fw file, struct report
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Plot the contents of a report page.
+ *
+ * \param *report		The report instance holding the page.
+ * \param *page			Pointer to the page data.
+ * \param *origin		Pointer to an OS Coord holding the page origin
+ *				for the current target in OS Units.
+ * \param *clip			The output clipping box on OS Units.
+ * \return			Pointer to an error block on failure, or NULL.
+ */
+
+static os_error *report_plot_page(struct report *report, struct report_page_data *page, os_coord *origin, os_box *clip)
+{
+	unsigned			region;
+	struct report_region_data	*data;
+	os_error			*error = NULL;
+
+	if (report == NULL || page == NULL || origin == NULL || clip == NULL)
+		return NULL;
+
+	if (page->first_region == REPORT_REGION_NONE || page->region_count == 0)
+		return NULL;
+
+	debug_printf("Redraw page %u, %u (%d, %d)", page->position.x, page->position.y, origin->x, origin->y);
+
+	for (region = 0; region < page->region_count; region++) {
+		data = report_region_get_info(report->regions, page->first_region + region);
+		if (data == NULL)
+			continue;
+
+		/* Check if the region falls into the redraw clip window. */
+
+		if (origin->x + data->position.x0 > clip->x1 ||
+				origin->x + data->position.x1 < clip->x0 ||
+				origin->y + data->position.y0 > clip->y1 ||
+				origin->y + data->position.y1 < clip->y0)
+			continue;
+
+		/* Plot the region. */
+
+		error = report_plot_region(report, data, origin, clip);
+		if (error != NULL)
+			break;
+	}
+
+	return error;
+}
+
+
+/**
+ * Plot the contents of a report region.
+ *
+ * \param *report		The report instance holding the region.
+ * \param *page			Pointer to the region data.
+ * \param *origin		Pointer to an OS Coord holding the region origin
+ *				for the current target in OS Units.
+ * \param *clip			The output clipping box on OS Units.
+ * \return			Pointer to an error block on failure, or NULL.
+ */
+
+static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
+{
+	if (report == NULL || region == NULL)
+		return NULL;
+
+	debug_printf("Redraw region (%d, %d)", origin->x + region->position.x0, origin->y + region->position.y1);
+
+	wimp_set_colour(wimp_COLOUR_ORANGE);
+	os_plot(os_MOVE_TO, origin->x + region->position.x0, origin->y + region->position.y1);
+	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, origin->x + region->position.x1, origin->y + region->position.y0);
+
+	return NULL;
+}
+
+
 /**
  * Plot a line of a report to screen or the printer drivers.
  *
@@ -2247,29 +2367,29 @@ static void report_paginate(struct report *report)
 
 	/* Identify the page size. If this fails, there's no point continuing. */
 
-	if (report_page_calculate_areas(report->pages, report->landscape, repprt->width, 0, 0) != NULL)
+	if (report_page_calculate_areas(report->pages, report->landscape, report->width, 0, 0) != NULL)
 		return;
 
-	report_page_new_row(report->pages);
+	{
+		int row;
+		unsigned region;
 
-	report_page_add(report->pages);
-	report_page_add(report->pages);
-	report_page_add(report->pages);
-	report_page_add(report->pages);
+		for (row = 0; row < 4; row++) {
+			report_page_new_row(report->pages);
 
-	report_page_new_row(report->pages);
+			region = report_region_add(report->regions, 300, -600, 600, -300);
+			report_page_add(report->pages, region, 1);
 
-	report_page_add(report->pages);
-	report_page_add(report->pages);
-	report_page_add(report->pages);
-	report_page_add(report->pages);
+			region = report_region_add(report->regions, 400, -700, 700, -400);
+			report_page_add(report->pages, region, 1);
 
-	report_page_new_row(report->pages);
+			region = report_region_add(report->regions, 500, -800, 800, -500);
+			report_page_add(report->pages, region, 1);
 
-	report_page_add(report->pages);
-	report_page_add(report->pages);
-	report_page_add(report->pages);
-	report_page_add(report->pages);
+			region = report_region_add(report->regions, 600, -900, 900, -600);
+			report_page_add(report->pages, region, 1);
+		}
+	}
 
 	report_page_close(report->pages);
 	report_region_close(report->regions);

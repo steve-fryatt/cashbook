@@ -35,7 +35,7 @@
 #include "oslib/types.h"
 
 /**
- * Np region
+ * No region
  */
 
 #define REPORT_REGION_NONE ((unsigned) 0xffffffffu)

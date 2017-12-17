@@ -35,7 +35,7 @@
 #include "oslib/types.h"
 
 /**
- * Np page
+ * No page
  */
 
 #define REPORT_PAGE_NONE ((unsigned) 0xffffffffu)

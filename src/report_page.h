@@ -246,5 +246,18 @@ unsigned report_page_get_outline(struct report_page_block *handle, int x, int y,
 
 os_error *report_page_calculate_areas(struct report_page_block *handle, osbool landscape, int target_width, int header_size, int footer_size);
 
+
+/**
+ * Get details of the areas of a printed page.
+ *
+ * \param *handle		The page block to interrogate.
+ * \param *body			Pointer to an OS Box to take the body area.
+ * \param *header		Pointer to an OS Box to take the header area.
+ * \param *footer		Pointer to an OS Box to take the footer area.
+ * \return			The areas defined on the page.
+ */
+
+enum report_page_area report_page_get_areas(struct report_page_block *handle, os_box *body, os_box *header, os_box *footer);
+
 #endif
 

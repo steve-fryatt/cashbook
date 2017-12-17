@@ -472,9 +472,7 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 {
 	os_error			*error;
 	osbool				margin_fail = FALSE;
-	enum report_page_area		areas = REPORT_PAGE_AREA_NONE;
 	int				page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
-	int				margin_left, margin_right, margin_top, margin_bottom;
 	int				body_width, scale;
 
 
@@ -483,76 +481,88 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 
 	handle->active_areas = REPORT_PAGE_AREA_NONE;
 
-	/* Get the page dimensions, and set up the print margins.  If the margins are bigger than the print
-	 * borders, the print borders are increased to match.
+	/* Get the current page and margin dimensions, in millipoints.
+	 * All the measurements are taken from the bottom-left corner of
+	 * the paper.
 	 */
 
 	error = xpdriver_page_size(&page_xsize, &page_ysize, &page_left, &page_bottom, &page_right, &page_top);
 	if (error != NULL)
 		return error;
 
+	/* Calculate the left margin in millipoints from the left-hand egde. */
+
+	if (config_int_read("PrintMarginLeft") > 0 && config_int_read("PrintMarginLeft") > page_left)
+		page_left = config_int_read("PrintMarginLeft");
+	else if (config_int_read("PrintMarginLeft") > 0)
+		margin_fail = TRUE;
+
+	/* Calcumate the right margin in millipoints from the right-hand edge. */
+
+	page_right = page_xsize - page_right;
+
+	if (config_int_read("PrintMarginRight") > 0 && config_int_read("PrintMarginRight") > page_right)
+		page_right = config_int_read("PrintMarginRight");
+	else if (config_int_read("PrintMarginRight") > 0)
+		margin_fail = TRUE;
+
+	/* Calculate the top margin in millipoints from the top edge. */
+
+	page_top = page_ysize - page_top;
+
+	if (config_int_read("PrintMarginTop") > 0 && config_int_read("PrintMarginTop") > page_top)
+		page_top = config_int_read("PrintMarginTop");
+	else if (config_int_read("PrintMarginTop") > 0)
+		margin_fail = TRUE;
+
+	/* Calculate the bottom margin in millipoints from the bottom edge. */
+
+	if (config_int_read("PrintMarginBottom") > 0 && config_int_read("PrintMarginBottom") > page_bottom)
+		page_bottom = config_int_read("PrintMarginBottom");
+	else if (config_int_read("PrintMarginBottom") > 0)
+		margin_fail = TRUE;
+
+	/* Convert the page sizes into OS Units. */
+
 	handle->page_size.x = page_xsize / REPORT_PAGE_MPOINTS_TO_OS;
 	handle->page_size.y = page_ysize / REPORT_PAGE_MPOINTS_TO_OS;
 
-	margin_left = page_left;
+	/* Calculate the page body area, taking into account any
+	 * need to rotate into landscape format.
+	 */
 
-	if (config_int_read("PrintMarginLeft") > 0 && config_int_read("PrintMarginLeft") > margin_left) {
-		margin_left = config_int_read("PrintMarginLeft");
-		page_left = margin_left;
-	} else if (config_int_read("PrintMarginLeft") > 0) {
-		margin_fail = TRUE;
-	}
-
-	margin_bottom = page_bottom;
-
-	if (config_int_read("PrintMarginBottom") > 0 && config_int_read("PrintMarginBottom") > margin_bottom) {
-		margin_bottom = config_int_read("PrintMarginBottom");
-		page_bottom = margin_bottom;
-	} else if (config_int_read("PrintMarginBottom") > 0) {
-		margin_fail = TRUE;
-	}
-
-	margin_right = page_xsize - page_right;
-
-	if (config_int_read("PrintMarginRight") > 0 && config_int_read("PrintMarginRight") > margin_right) {
-		margin_right = config_int_read("PrintMarginRight");
-		page_right = page_xsize - margin_right;
-	} else if (config_int_read("PrintMarginRight") > 0) {
-		margin_fail = TRUE;
-	}
-
-	margin_top = page_ysize - page_top;
-
-	if (config_int_read("PrintMarginTop") > 0 && config_int_read("PrintMarginTop") > margin_top) {
-		margin_top = config_int_read("PrintMarginTop");
-		page_top = page_ysize - margin_top;
-	} else if (config_int_read("PrintMarginTop") > 0) {
-		margin_fail = TRUE;
-	}
-
-	areas |= REPORT_PAGE_AREA_BODY;
+	handle->active_areas |= REPORT_PAGE_AREA_BODY;
 
 	if (landscape) {
 		handle->body.x0 = page_bottom / REPORT_PAGE_MPOINTS_TO_OS;
-		handle->body.x1 = page_top / REPORT_PAGE_MPOINTS_TO_OS;
-		handle->body.y0 = page_right / REPORT_PAGE_MPOINTS_TO_OS;
-		handle->body.y1 = page_left / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.x1 = (page_ysize - page_top) / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.y0 = (page_right - page_xsize) / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.y1 = -page_left / REPORT_PAGE_MPOINTS_TO_OS;
+
+		handle->display_size.x = handle->page_size.y;
+		handle->display_size.y = handle->page_size.x;
 	} else {
 		handle->body.x0 = page_left / REPORT_PAGE_MPOINTS_TO_OS;
-		handle->body.x1 = page_right / REPORT_PAGE_MPOINTS_TO_OS;
-		handle->body.y0 = page_bottom / REPORT_PAGE_MPOINTS_TO_OS;
-		handle->body.y1 = page_top / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.x1 = (page_xsize - page_right) / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.y0 = (page_bottom - page_ysize) / REPORT_PAGE_MPOINTS_TO_OS;
+		handle->body.y1 = -page_top / REPORT_PAGE_MPOINTS_TO_OS;
+
+		handle->display_size.x = handle->page_size.x;
+		handle->display_size.y = handle->page_size.y;
 	}
+
+	debug_printf("Calculated page size: x=%d, y=%d", handle->page_size.x, handle->page_size.y);
+	debug_printf("Body area: x0=%x, y0=%d, x1=%d, y1=%d", handle->body.x0, handle->body.y0, handle->body.x1, handle->body.y1);
 
 	if (header_size > 0) {
 		handle->header.x0 = handle->body.x0;
 		handle->header.x1 = handle->body.x1;
 		handle->header.y1 = handle->body.y1;
 
-		handle->header.y0 = handle->header.y1 - (header_size * ((landscape) ? -1 : 1));
-		handle->body.y1 = handle->header.y0 - (config_int_read("PrintMarginInternal") * ((landscape) ? -1 : 1));
+		handle->header.y0 = handle->header.y1 - header_size;
+		handle->body.y1 = handle->header.y0 - (config_int_read("PrintMarginInternal") / REPORT_PAGE_MPOINTS_TO_OS);
 
-		areas |= REPORT_PAGE_AREA_HEADER;
+		handle->active_areas |= REPORT_PAGE_AREA_HEADER;
 	}
 
 	if (footer_size > 0) {
@@ -560,10 +570,10 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 		handle->footer.x1 = handle->body.x1;
 		handle->footer.y0 = handle->body.y0;
 
-		handle->footer.y1 = handle->footer.y0 + (footer_size * ((landscape) ? -1 : 1));
-		handle->body.y0 = handle->footer.y1 + (config_int_read("PrintMarginInternal") * ((landscape) ? -1 : 1));
+		handle->footer.y1 = handle->footer.y0 + footer_size;
+		handle->body.y0 = handle->footer.y1 + (config_int_read("PrintMarginInternal") / REPORT_PAGE_MPOINTS_TO_OS);
 
-		areas |= REPORT_PAGE_AREA_FOOTER;
+		handle->active_areas |= REPORT_PAGE_AREA_FOOTER;
 	}
 
 	if (margin_fail)
@@ -579,23 +589,20 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 	if (target_width <= body_width) {
 		scale = 1 << 16;
 		debug_printf("Scaled 1:1 (0x%x)", scale);
-
-		handle->display_size.x = handle->page_size.x;
-		handle->display_size.y = handle->page_size.y;
 	} else {
 		scale = (1 << 16) * body_width / target_width;
 		debug_printf("Scaled down (0x%x)", scale);
 
-		handle->display_size.x = handle->page_size.x * (1 << 16) / scale;
-		handle->display_size.y = handle->page_size.y * (1 << 16) / scale;
+		handle->display_size.x = handle->display_size.x * (1 << 16) / scale;
+		handle->display_size.y = handle->display_size.y * (1 << 16) / scale;
 
-		if (areas & REPORT_PAGE_AREA_BODY)
+		if (handle->active_areas & REPORT_PAGE_AREA_BODY)
 			report_page_scale_area(&(handle->body), scale);
 
-		if (areas & REPORT_PAGE_AREA_HEADER)
+		if (handle->active_areas & REPORT_PAGE_AREA_HEADER)
 			report_page_scale_area(&(handle->header), scale);
 
-		if (areas & REPORT_PAGE_AREA_FOOTER)
+		if (handle->active_areas & REPORT_PAGE_AREA_FOOTER)
 			report_page_scale_area(&(handle->footer), scale);
 	}
 
@@ -613,8 +620,47 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 		handle->print_transform.entries[1][1] = scale;
 	}
 
-
 	return NULL;
+}
+
+
+/**
+ * Get details of the areas of a printed page.
+ *
+ * \param *handle		The page block to interrogate.
+ * \param *body			Pointer to an OS Box to take the body area.
+ * \param *header		Pointer to an OS Box to take the header area.
+ * \param *footer		Pointer to an OS Box to take the footer area.
+ * \return			The areas defined on the page.
+ */
+
+enum report_page_area report_page_get_areas(struct report_page_block *handle, os_box *body, os_box *header, os_box *footer)
+{
+	if (handle == NULL)
+		return REPORT_PAGE_AREA_NONE;
+
+	if ((body != NULL) && (handle->active_areas & REPORT_PAGE_AREA_BODY)) {
+		body->x0 = handle->body.x0;
+		body->y0 = handle->body.y0;
+		body->x1 = handle->body.x1;
+		body->y1 = handle->body.y1;
+	}
+
+	if ((header != NULL) && (handle->active_areas & REPORT_PAGE_AREA_HEADER)) {
+		header->x0 = handle->header.x0;
+		header->y0 = handle->header.y0;
+		header->x1 = handle->header.x1;
+		header->y1 = handle->header.y1;
+	}
+
+	if ((footer != NULL) && (handle->active_areas & REPORT_PAGE_AREA_FOOTER)) {
+		footer->x0 = handle->footer.x0;
+		footer->y0 = handle->footer.y0;
+		footer->x1 = handle->footer.x1;
+		footer->y1 = handle->footer.y1;
+	}
+
+	return handle->active_areas;
 }
 
 

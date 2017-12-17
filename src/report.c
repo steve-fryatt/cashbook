@@ -2357,6 +2357,9 @@ static void report_repaginate_all(struct file_block *file)
 
 static void report_paginate(struct report *report)
 {
+	enum report_page_area	areas;
+	os_box			body, header, footer;
+
 	if (report == NULL)
 		return;
 
@@ -2367,27 +2370,66 @@ static void report_paginate(struct report *report)
 
 	/* Identify the page size. If this fails, there's no point continuing. */
 
-	if (report_page_calculate_areas(report->pages, report->landscape, report->width, 0, 0) != NULL)
+	if (report_page_calculate_areas(report->pages, report->landscape, report->width, 100, 100) != NULL)
 		return;
 
+	areas = report_page_get_areas(report->pages, &body, &header, &footer);
+	if (areas == REPORT_PAGE_AREA_NONE)
+		return;
+
+
 	{
-		int row;
-		unsigned region;
+		int row, column, regions;
+		unsigned first_region, region;
 
 		for (row = 0; row < 4; row++) {
 			report_page_new_row(report->pages);
 
-			region = report_region_add(report->regions, 300, -600, 600, -300);
-			report_page_add(report->pages, region, 1);
+			for (column = 0; column < 2; column++) {
+				first_region = REPORT_REGION_NONE;
+				regions = 0;
 
-			region = report_region_add(report->regions, 400, -700, 700, -400);
-			report_page_add(report->pages, region, 1);
+				if (areas & REPORT_PAGE_AREA_BODY) {
+					debug_printf("Adding body x0=%d, y0=%d, x1=%d, y1=%d", body.x0, body.y0, body.x1, body.y1);
+					region = report_region_add(report->regions, body.x0, body.y0, body.x1, body.y1);
+					if (region == REPORT_REGION_NONE)
+						continue;
 
-			region = report_region_add(report->regions, 500, -800, 800, -500);
-			report_page_add(report->pages, region, 1);
+					regions++;
 
-			region = report_region_add(report->regions, 600, -900, 900, -600);
-			report_page_add(report->pages, region, 1);
+					if (first_region == REPORT_REGION_NONE)
+						first_region = region;
+				}
+
+				if (areas & REPORT_PAGE_AREA_HEADER) {
+					debug_printf("Adding header x0=%d, y0=%d, x1=%d, y1=%d", header.x0, header.y0, header.x1, header.y1);
+					region = report_region_add(report->regions, header.x0, header.y0, header.x1, header.y1);
+					if (region == REPORT_REGION_NONE)
+						continue;
+
+					regions++;
+
+					if (first_region == REPORT_REGION_NONE)
+						first_region = region;
+				}
+
+				if (areas & REPORT_PAGE_AREA_FOOTER) {
+					debug_printf("Adding footer x0=%d, y0=%d, x1=%d, y1=%d", footer.x0, footer.y0, footer.x1, footer.y1);
+					region = report_region_add(report->regions, footer.x0, footer.y0, footer.x1, footer.y1);
+					if (region == REPORT_REGION_NONE)
+						continue;
+
+					regions++;
+
+					if (first_region == REPORT_REGION_NONE)
+						first_region = region;
+				}
+
+				
+				
+
+				report_page_add(report->pages, first_region, regions);
+			}
 		}
 	}
 

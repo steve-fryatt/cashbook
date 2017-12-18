@@ -152,6 +152,8 @@ struct report {
 
 	osbool			show_pages;					/**< TRUE if page display is enabled.				*/
 
+	osbool			fit_width;					/**< TRUE if we're to fit the report on a single page width.	*/
+
 	/* Report content */
 
 	int			width;						/**< The displayed width of the report data in OS Units.	*/
@@ -233,6 +235,7 @@ static void			report_handle_print_error(os_error *error, os_fw file, struct repo
 
 static os_error *report_plot_page(struct report *report, struct report_page_data *page, os_coord *origin, os_box *clip);
 static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
+static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
 static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y);
 
 static osbool report_handle_message_set_printer(wimp_message *message);
@@ -267,6 +270,7 @@ void report_initialise(osspriteop_area *sprites)
 	/* Initialise subsidiary parts of the report system. */
 
 	report_format_dialogue_initialise();
+	report_fonts_initialise();
 
 	/* Register the Wimp message handlers. */
 
@@ -308,6 +312,7 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->landscape = FALSE;
 	new->show_grid = FALSE;
 	new->show_pages = TRUE;
+	new->fit_width = TRUE;
 
 	new->tabs = report_tabs_create();
 	if (new->tabs == NULL)
@@ -2077,7 +2082,36 @@ static os_error *report_plot_region(struct report *report, struct report_region_
 	os_plot(os_MOVE_TO, origin->x + region->position.x0, origin->y + region->position.y1);
 	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, origin->x + region->position.x1, origin->y + region->position.y0);
 
+	switch (region->type) {
+	case REPORT_REGION_TYPE_TEXT:
+		report_plot_text_region(report, region, origin, clip);
+		break;
+	}
+
 	return NULL;
+}
+
+
+static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
+{
+	int		xpos, width;
+	os_error	*error;
+	char		*content = "This is some text";
+
+	error = report_fonts_get_string_width(report->fonts, content, REPORT_CELL_FLAGS_NONE, &width);
+	if (error != NULL)
+		return error;
+
+	error = report_fonts_set_colour(report->fonts, os_COLOUR_BLACK, os_COLOUR_WHITE);
+	if (error != NULL)
+		return error;
+
+	xpos = region->position.x0 + ((region->position.x1 - region->position.x0) - width) / 2;
+
+	error = report_fonts_paint_text(report->fonts, content,
+			origin->x + xpos, origin->y + region->position.y0 + REPORT_BASELINE_OFFSET, REPORT_CELL_FLAGS_NONE);
+
+	return error;
 }
 
 
@@ -2095,7 +2129,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 {
 	os_error		*error;
 	int			cell, indent, width;
-	char			*content_base, *content, *paint, buffer[REPORT_MAX_LINE_LEN + 10];
+	char			*content_base, *content;
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data;
 	struct report_tabs_stop	*tab_stop;
@@ -2136,21 +2170,11 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 			indent = tab_stop->font_width - width;
 		}
 
-		if (cell_data->flags & REPORT_CELL_FLAGS_UNDERLINE) {
-			buffer[0] = font_COMMAND_UNDERLINE;
-			buffer[1] = 230;
-			buffer[2] = 18;
-			string_copy(buffer + 3, content, REPORT_MAX_LINE_LEN + 7);
-			paint = buffer;
-		} else {
-			paint = content;
-		}
-
 		error = report_fonts_set_colour(report->fonts, os_COLOUR_BLACK, os_COLOUR_WHITE);
 		if (error != NULL)
 			return error;
 
-		error = report_fonts_paint_text(report->fonts, paint,
+		error = report_fonts_paint_text(report->fonts, content,
 				x + tab_stop->font_left + indent,
 				y + line_data->ypos + REPORT_BASELINE_OFFSET, cell_data->flags);
 		if (error != NULL)
@@ -2358,6 +2382,7 @@ static void report_repaginate_all(struct file_block *file)
 static void report_paginate(struct report *report)
 {
 	enum report_page_area	areas;
+	int			target_width, field_height;
 	os_box			body, header, footer;
 
 	if (report == NULL)
@@ -2370,12 +2395,20 @@ static void report_paginate(struct report *report)
 
 	/* Identify the page size. If this fails, there's no point continuing. */
 
-	if (report_page_calculate_areas(report->pages, report->landscape, report->width, 100, 100) != NULL)
+	target_width = (report->fit_width) ? report->width : 0;
+
+	field_height = report_fonts_get_linespace(report->fonts);
+	if (field_height == 0)
+		return;
+
+	if (report_page_calculate_areas(report->pages, report->landscape, target_width, field_height, field_height) != NULL)
 		return;
 
 	areas = report_page_get_areas(report->pages, &body, &header, &footer);
 	if (areas == REPORT_PAGE_AREA_NONE)
 		return;
+
+	/* Start to lay out the report pages. */
 
 
 	{
@@ -2391,7 +2424,7 @@ static void report_paginate(struct report *report)
 
 				if (areas & REPORT_PAGE_AREA_BODY) {
 					debug_printf("Adding body x0=%d, y0=%d, x1=%d, y1=%d", body.x0, body.y0, body.x1, body.y1);
-					region = report_region_add(report->regions, body.x0, body.y0, body.x1, body.y1);
+					region = report_region_add_text(report->regions, body.x0, body.y0, body.x1, body.y1);
 					if (region == REPORT_REGION_NONE)
 						continue;
 
@@ -2403,7 +2436,7 @@ static void report_paginate(struct report *report)
 
 				if (areas & REPORT_PAGE_AREA_HEADER) {
 					debug_printf("Adding header x0=%d, y0=%d, x1=%d, y1=%d", header.x0, header.y0, header.x1, header.y1);
-					region = report_region_add(report->regions, header.x0, header.y0, header.x1, header.y1);
+					region = report_region_add_text(report->regions, header.x0, header.y0, header.x1, header.y1);
 					if (region == REPORT_REGION_NONE)
 						continue;
 
@@ -2415,7 +2448,7 @@ static void report_paginate(struct report *report)
 
 				if (areas & REPORT_PAGE_AREA_FOOTER) {
 					debug_printf("Adding footer x0=%d, y0=%d, x1=%d, y1=%d", footer.x0, footer.y0, footer.x1, footer.y1);
-					region = report_region_add(report->regions, footer.x0, footer.y0, footer.x1, footer.y1);
+					region = report_region_add_text(report->regions, footer.x0, footer.y0, footer.x1, footer.y1);
 					if (region == REPORT_REGION_NONE)
 						continue;
 

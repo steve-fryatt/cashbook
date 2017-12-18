@@ -41,6 +41,11 @@
 
 struct report_fonts_block;
 
+/**
+ * Initialise the Report Fonts module.
+ */
+
+void report_fonts_initialise(void);
 
 /**
  * Initialise a Report Fonts block.

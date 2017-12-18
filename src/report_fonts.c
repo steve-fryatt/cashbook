@@ -80,6 +80,25 @@ struct report_fonts_block {
 
 };
 
+/**
+ * The size of buffer allocated to strings for painting.
+ */
+
+#define REPORT_FONTS_BUFFER_SIZE 1010
+
+/**
+ * The number of bytes at the start of the buffer used for control.
+ */
+
+#define REPORT_FONTS_BUFFER_PREFIX 3
+
+/**
+ * The buffer to use when modifying text for painting.
+ */
+
+static char report_fonts_buffer[REPORT_FONTS_BUFFER_SIZE];
+
+
 /* Static Function Prototypes. */
 
 static font_f report_fonts_get_handle(struct report_fonts_block *handle, enum report_cell_flags flags);
@@ -90,6 +109,18 @@ static os_error *report_fonts_find_face(struct report_fonts_face *face, int size
 static void report_fonts_lose_face(struct report_fonts_face *face);
 static os_error *report_fonts_declare_face(struct report_fonts_face *face);
 static os_error *report_fonts_set_face_colour(struct report_fonts_face *face, os_colour fill, os_colour bg_hint);
+
+
+/**
+ * Initialise the Report Fonts module.
+ */
+
+void report_fonts_initialise(void)
+{
+	report_fonts_buffer[0] = font_COMMAND_UNDERLINE;
+	report_fonts_buffer[1] = 230;
+	report_fonts_buffer[2] = 18;
+}
 
 
 /**
@@ -375,6 +406,16 @@ os_error *report_fonts_paint_text(struct report_fonts_block *handle, char *text,
 	font = report_fonts_get_handle(handle, flags);
 	if (font == font_SYSTEM)
 		return NULL;
+
+	/* If we're underlining the text, copy it into a buffer which
+	 * already has the "underline on" sequence at the start.
+	 */
+
+	if (flags & REPORT_CELL_FLAGS_UNDERLINE) {
+		string_copy(report_fonts_buffer + REPORT_FONTS_BUFFER_PREFIX, text,
+				REPORT_FONTS_BUFFER_SIZE - REPORT_FONTS_BUFFER_PREFIX);
+		text = report_fonts_buffer;
+	}
 
 	return xfont_paint(font, text, font_OS_UNITS | font_KERN | font_GIVEN_FONT, x, y, NULL, NULL, 0);
 }

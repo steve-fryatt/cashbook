@@ -41,11 +41,22 @@
 #define REPORT_REGION_NONE ((unsigned) 0xffffffffu)
 
 /**
+ * The types of region.
+ */
+
+enum report_region_type {
+	REPORT_REGION_TYPE_NONE,		/**< No content.		*/
+	REPORT_REGION_TYPE_TEXT			/**< Static text.		*/
+};
+
+/**
  * A region in a page.
  */
 
 struct report_region_data {
-	os_box			position;				/**< The position of the region on the page, in OS Units from top left.	*/
+	os_box				position;			/**< The position of the region on the page, in OS Units from top left.	*/
+
+	enum report_region_type		type;				/**< The type of content that the region contains.			*/
 //	enum report_line_flags	flags;					/**< Flags relating to the report line.					*/
 //	unsigned		first_cell;				/**< Offset of the line's first cell in the cell data block.		*/
 //	size_t			cell_count;				/**< The number of cells in the line.					*/
@@ -102,13 +113,13 @@ void report_region_close(struct report_region_block *handle);
 
 
 /**
- * Add a region to a report region data block.
+ * Add a static text region to a report region data block.
  *
  * \param *handle		The block to add to.
- * \return			TRUE if successful; FALSE on failure.
+ * \return			The new region number, or REPORT_REGION_NONE.
  */
 
-unsigned report_region_add(struct report_region_block *handle, int x0, int y0, int x1, int y1);
+unsigned report_region_add_text(struct report_region_block *handle, int x0, int y0, int x1, int y1);
 
 
 /**

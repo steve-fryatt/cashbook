@@ -75,6 +75,7 @@ struct report_region_block {
 
 /* Static Function Prototypes. */
 
+static unsigned report_region_add(struct report_region_block *handle, int x0, int y0, int x1, int y1);
 
 
 /**
@@ -166,13 +167,34 @@ void report_region_close(struct report_region_block *handle)
 
 
 /**
- * Add a region to a report region data block.
+ * Add a static text region to a report region data block.
  *
  * \param *handle		The block to add to.
  * \return			The new region number, or REPORT_REGION_NONE.
  */
 
-unsigned report_region_add(struct report_region_block *handle, int x0, int y0, int x1, int y1)
+unsigned report_region_add_text(struct report_region_block *handle, int x0, int y0, int x1, int y1)
+{
+	unsigned new;
+
+	new = report_region_add(handle, x0, y0, x1, y1);
+	if (new == REPORT_REGION_NONE)
+		return new;
+
+	handle->regions[new].type = REPORT_REGION_TYPE_TEXT;
+
+	return new;
+}
+
+
+/**
+ * Add an empty region to a report region data block.
+ *
+ * \param *handle		The block to add to.
+ * \return			The new region number, or REPORT_REGION_NONE.
+ */
+
+static unsigned report_region_add(struct report_region_block *handle, int x0, int y0, int x1, int y1)
 {
 	unsigned new;
 
@@ -192,6 +214,8 @@ unsigned report_region_add(struct report_region_block *handle, int x0, int y0, i
 	handle->regions[new].position.y0 = y0;
 	handle->regions[new].position.x1 = x1;
 	handle->regions[new].position.y1 = y1;
+
+	handle->regions[new].type = REPORT_REGION_TYPE_NONE;
 
 	return new;
 }

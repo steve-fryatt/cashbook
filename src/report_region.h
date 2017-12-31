@@ -45,12 +45,18 @@
  */
 
 enum report_region_type {
-	REPORT_REGION_TYPE_NONE,		/**< No content.		*/
-	REPORT_REGION_TYPE_TEXT			/**< Static text.		*/
+	REPORT_REGION_TYPE_NONE,		/**< No content.				*/
+	REPORT_REGION_TYPE_TEXT,		/**< Static text.				*/
+	REPORT_REGION_TYPE_PAGE_NUMBER		/**< A page number.				*/
 };
 
 struct report_region_text {
-	unsigned	content;		/**< Offset to the region text.	*/
+	unsigned	content;		/**< Offset to the region text.			*/
+};
+
+struct report_region_page_number {
+	int		major;			/**< The major page number.			*/
+	int		minor;			/**< The minor page number, or -1 for none.	*/
 };
 
 /**
@@ -58,19 +64,14 @@ struct report_region_text {
  */
 
 struct report_region_data {
-	os_box					position;		/**< The position of the region on the page, in OS Units from top left.	*/
+	os_box						position;	/**< The position of the region on the page, in OS Units from top left.	*/
 
-	enum report_region_type			type;			/**< The type of content that the region contains.			*/
+	enum report_region_type				type;		/**< The type of content that the region contains.			*/
 
 	union {
-		struct report_region_text	text;			/**< Data associated with a text region.				*/
-	
+		struct report_region_text		text;		/**< Data associated with a text region.				*/
+		struct report_region_page_number	page_number;	/**< Data associated with a page number region.				*/
 	} data;
-//	enum report_line_flags	flags;					/**< Flags relating to the report line.					*/
-//	unsigned		first_cell;				/**< Offset of the line's first cell in the cell data block.		*/
-//	size_t			cell_count;				/**< The number of cells in the line.					*/
-//	int			tab_bar;				/**< The tab bar which relates to the line.				*/
-//	int			ypos;					/**< The vertical position of the line in the window, in OS Units.	*/
 };
 
 
@@ -125,20 +126,25 @@ void report_region_close(struct report_region_block *handle);
  * Add a static text region to a report region data block.
  *
  * \param *handle		The block to add to.
+ * \param *outline		The outline of the region on the page, in OS Units.
+ * \param content		The textdump offset to the region content, or REPORT_TEXTDUMP_NULL.
  * \return			The new region number, or REPORT_REGION_NONE.
  */
 
-unsigned report_region_add_text(struct report_region_block *handle, int x0, int y0, int x1, int y1);
+unsigned report_region_add_text(struct report_region_block *handle, os_box *outline, unsigned content);
 
 
 /**
- * Return the number of lines held in a report line data block.
+ * Add a page number region to a report region data block.
  *
- * \param *handle		The block to query.
- * \return			The number of lines in the block, or 0.
+ * \param *handle		The block to add to.
+ * \param *outline		The outline of the region on the page, in OS Units.
+ * \param major			The major page number.
+ * \param minor			The minor page number, or -1 for none.
+ * \return			The new region number, or REPORT_REGION_NONE.
  */
 
-//size_t report_line_get_count(struct report_line_block *handle);
+unsigned report_region_add_page_number(struct report_region_block *handle, os_box *outline, int major, int minor);
 
 
 /**
@@ -152,33 +158,6 @@ unsigned report_region_add_text(struct report_region_block *handle, int x0, int 
  */
 
 struct report_region_data *report_region_get_info(struct report_region_block *handle, unsigned region);
-
-
-/**
- * Find a page based on a redraw position on the X axis.
- *
- * \param *handle		The block to query.
- * \param ypos			The X axis coordinate to look up.
- * \return			The line number.
- */
-
-//unsigned report_page_find_from_xpos(struct report_page_block *handle, int xpos);
-
-
-/**
- * Find a page based on a redraw position on the Y axis.
- *
- * \param *handle		The block to query.
- * \param ypos			The Y axis coordinate to look up.
- * \return			The line number.
- */
-
-//unsigned report_page_find_from_ypos(struct report_page_block *handle, int ypos);
-
-
-//osbool report_page_get_outline(struct report_page_block *handle, int x, int y, os_box *area);
-
-//osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, int *y);
 
 #endif
 

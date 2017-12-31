@@ -171,20 +171,49 @@ void report_region_close(struct report_region_block *handle)
  * Add a static text region to a report region data block.
  *
  * \param *handle		The block to add to.
+ * \param *outline		The outline of the region on the page, in OS Units.
+ * \param content		The textdump offset to the region content, or REPORT_TEXTDUMP_NULL.
  * \return			The new region number, or REPORT_REGION_NONE.
  */
 
-unsigned report_region_add_text(struct report_region_block *handle, int x0, int y0, int x1, int y1)
+unsigned report_region_add_text(struct report_region_block *handle, os_box *outline, unsigned content)
 {
 	unsigned new;
 
-	new = report_region_add(handle, x0, y0, x1, y1);
+	new = report_region_add(handle, outline->x0, outline->y0, outline->x1, outline->y1);
 	if (new == REPORT_REGION_NONE)
 		return new;
 
 	handle->regions[new].type = REPORT_REGION_TYPE_TEXT;
 
 	handle->regions[new].data.text.content = REPORT_TEXTDUMP_NULL;
+
+	return new;
+}
+
+
+/**
+ * Add a page number region to a report region data block.
+ *
+ * \param *handle		The block to add to.
+ * \param *outline		The outline of the region on the page, in OS Units.
+ * \param major			The major page number.
+ * \param minor			The minor page number, or -1 for none.
+ * \return			The new region number, or REPORT_REGION_NONE.
+ */
+
+unsigned report_region_add_page_number(struct report_region_block *handle, os_box *outline, int major, int minor)
+{
+	unsigned new;
+
+	new = report_region_add(handle, outline->x0, outline->y0, outline->x1, outline->y1);
+	if (new == REPORT_REGION_NONE)
+		return new;
+
+	handle->regions[new].type = REPORT_REGION_TYPE_PAGE_NUMBER;
+
+	handle->regions[new].data.page_number.major = major;
+	handle->regions[new].data.page_number.minor = minor;
 
 	return new;
 }
@@ -222,23 +251,7 @@ static unsigned report_region_add(struct report_region_block *handle, int x0, in
 
 	return new;
 }
-#if 0
 
-/**
- * Return the number of lines held in a report line data block.
- *
- * \param *handle		The block to query.
- * \return			The number of lines in the block, or 0.
- */
-
-size_t report_line_get_count(struct report_line_block *handle)
-{
-	if (handle == NULL || handle->lines == NULL)
-		return 0;
-
-	return handle->line_count;
-}
-#endif
 
 /**
  * Return details about a region held in a report region data block. The data
@@ -260,103 +273,4 @@ struct report_region_data *report_region_get_info(struct report_region_block *ha
 
 	return handle->regions + region;
 }
-
-
-
-#if 0
-
-/**
- * Find a page based on a redraw position on the X axis.
- *
- * \param *handle		The block to query.
- * \param ypos			The X axis coordinate to look up.
- * \return			The page number.
- */
-
-unsigned report_page_find_from_xpos(struct report_page_block *handle, int xpos)
-{
-	int page, position;
-
-	if (handle == NULL || handle->pages == NULL || handle->paginated == FALSE)
-		return REPORT_PAGE_NONE;
-
-	page = xpos / (handle->page_size.x + (2 * REPORT_PAGE_BORDER));
-
-	position = xpos % (handle->page_size.x + (2 * REPORT_PAGE_BORDER));
-	if (position > handle->page_size.x + REPORT_PAGE_BORDER)
-		page += 1;
-
-	if (page >= handle->page_layout.x)
-		page = handle->page_layout.x - 1;
-
-	if (page < 0)
-		page = 0;
-
-	return page;
-}
-
-
-/**
- * Find a page based on a redraw position on the Y axis.
- *
- * \param *handle		The block to query.
- * \param ypos			The Y axis coordinate to look up.
- * \return			The page number.
- */
-
-unsigned report_page_find_from_ypos(struct report_page_block *handle, int ypos)
-{
-	int page, position;
-
-	if (handle == NULL || handle->pages == NULL || handle->paginated == FALSE)
-		return REPORT_PAGE_NONE;
-
-	page = -ypos / (handle->page_size.y + (2 * REPORT_PAGE_BORDER));
-
-	position = -ypos % (handle->page_size.y + (2 * REPORT_PAGE_BORDER));
-	if (position > handle->page_size.y + REPORT_PAGE_BORDER)
-		page += 1;
-
-	if (page >= handle->page_layout.y)
-		page = handle->page_layout.y - 1;
-
-	if (page < 0)
-		page = 0;
-
-	return page;
-}
-
-
-osbool report_page_get_outline(struct report_page_block *handle, int x, int y, os_box *area)
-{
-	if (handle == NULL || area == NULL || handle->paginated == FALSE)
-		return FALSE;
-
-	if (x < 0 || x >= handle->page_layout.x || y < 0 || y >= handle->page_layout.y)
-		return FALSE;
-
-	area->x0 = x * (handle->page_size.x + (2 * REPORT_PAGE_BORDER)) + REPORT_PAGE_BORDER;
-	area->x1 = area->x0 + handle->page_size.x;
-	area->y1 = -(y * (handle->page_size.y + (2 * REPORT_PAGE_BORDER)) + REPORT_PAGE_BORDER);
-	area->y0 = area->y1 - handle->page_size.y;
-
-	return TRUE;
-}
-
-osbool report_page_get_layout_extent(struct report_page_block *handle, int *x, int *y)
-{
-	if (handle == NULL || handle->paginated == FALSE)
-		return FALSE;
-
-	if (x != NULL)
-		*x = (handle->page_size.x + (2 * REPORT_PAGE_BORDER)) * handle->page_layout.x;
-
-	if (y != NULL)
-		*y = (handle->page_size.y + (2 * REPORT_PAGE_BORDER)) * handle->page_layout.y;
-
-	return TRUE;
-}
-
-#endif
-
 

@@ -172,6 +172,21 @@ osbool report_page_add(struct report_page_block *handle, unsigned first_region, 
 
 struct report_page_data *report_page_get_info(struct report_page_block *handle, unsigned page);
 
+
+/**
+ * Return the number of pages in the X and Y directions. No page counts can be
+ * returned if the pages have not been calculated.
+ *
+ * \param *handle		The block to query.
+ * \param *x			Pointer to a variable to take the X page count.
+ * \param *y			Pointer to a variable to take the Y page count.
+ * \return			TRUE if successful; FALSE if no page counts could
+ *				be returned.
+ */
+
+osbool report_page_get_layout_pages(struct report_page_block *handle, int *x, int *y);
+
+
 /**
  * Calculate the extent of an on-screen representation of the pages,
  * based on the 2D layout and the on-screen page size. No size can be

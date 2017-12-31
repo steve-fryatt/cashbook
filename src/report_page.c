@@ -312,6 +312,32 @@ struct report_page_data *report_page_get_info(struct report_page_block *handle, 
 
 
 /**
+ * Return the number of pages in the X and Y directions. No page counts can be
+ * returned if the pages have not been calculated.
+ *
+ * \param *handle		The block to query.
+ * \param *x			Pointer to a variable to take the X page count.
+ * \param *y			Pointer to a variable to take the Y page count.
+ * \return			TRUE if successful; FALSE if no page counts could
+ *				be returned.
+ */
+
+osbool report_page_get_layout_pages(struct report_page_block *handle, int *x, int *y)
+{
+	if (handle == NULL || handle->paginated == FALSE)
+		return FALSE;
+
+	if (x != NULL)
+		*x = handle->page_layout.x;
+
+	if (y != NULL)
+		*y = handle->page_layout.y;
+
+	return TRUE;
+}
+
+
+/**
  * Calculate the extent of an on-screen representation of the pages,
  * based on the 2D layout and the on-screen page size. No size can be
  * returned if the pages have not been calculated.

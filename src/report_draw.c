@@ -75,17 +75,17 @@ static draw_path_element *report_draw_get_new_element(size_t element_size);
 /**
  * Draw a rectangle on screen.
  *
- * \param x0			The minimum X coordinate, in OS Units.
- * \param y0			The minimum Y coordinate, in OS Units.
- * \param x1			The maximum X coordinate, in OS Units.
- * \param y1			The maximum Y coordinate, in OS Units.
+ * \param *outline		The rectangle outline, in absolute OS Units.
  * \return			Pointer to an OS Error block, or NULL on success.
  */
 
-os_error *report_draw_box(int x0, int y0, int x1, int y1)
+os_error *report_draw_box(os_box *outline)
 {
 	bits			dash_data[3];
 	draw_dash_pattern	*dash_pattern = (draw_dash_pattern *) dash_data;
+
+	if (outline == NULL)
+		return NULL;
 
 	dash_pattern->start = (4 << 8);
 	dash_pattern->element_count = 1;
@@ -97,19 +97,19 @@ os_error *report_draw_box(int x0, int y0, int x1, int y1)
 
 	report_draw_path_length = 0;
 
-	if (!report_draw_add_move(x0, y0))
+	if (!report_draw_add_move(outline->x0, outline->y0))
 		return NULL;
 
-	if (!report_draw_add_line(x1, y0))
+	if (!report_draw_add_line(outline->x1, outline->y0))
 		return NULL;
 
-	if (!report_draw_add_line(x1, y1))
+	if (!report_draw_add_line(outline->x1, outline->y1))
 		return NULL;
 
-	if (!report_draw_add_line(x0, y1))
+	if (!report_draw_add_line(outline->x0, outline->y1))
 		return NULL;
 
-	if (!report_draw_add_line(x0, y0))
+	if (!report_draw_add_line(outline->x0, outline->y0))
 		return NULL;
 
 	if (!report_draw_close_subpath())

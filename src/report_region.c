@@ -55,6 +55,7 @@
 #include "report_region.h"
 
 #include "flexutils.h"
+#include "report_textdump.h"
 
 /**
  * The default allocation block size.
@@ -182,6 +183,8 @@ unsigned report_region_add_text(struct report_region_block *handle, int x0, int 
 		return new;
 
 	handle->regions[new].type = REPORT_REGION_TYPE_TEXT;
+
+	handle->regions[new].data.text.content = REPORT_TEXTDUMP_NULL;
 
 	return new;
 }

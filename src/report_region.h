@@ -49,14 +49,23 @@ enum report_region_type {
 	REPORT_REGION_TYPE_TEXT			/**< Static text.		*/
 };
 
+struct report_region_text {
+	unsigned	content;		/**< Offset to the region text.	*/
+};
+
 /**
  * A region in a page.
  */
 
 struct report_region_data {
-	os_box				position;			/**< The position of the region on the page, in OS Units from top left.	*/
+	os_box					position;		/**< The position of the region on the page, in OS Units from top left.	*/
 
-	enum report_region_type		type;				/**< The type of content that the region contains.			*/
+	enum report_region_type			type;			/**< The type of content that the region contains.			*/
+
+	union {
+		struct report_region_text	text;			/**< Data associated with a text region.				*/
+	
+	} data;
 //	enum report_line_flags	flags;					/**< Flags relating to the report line.					*/
 //	unsigned		first_cell;				/**< Offset of the line's first cell in the cell data block.		*/
 //	size_t			cell_count;				/**< The number of cells in the line.					*/

@@ -237,6 +237,7 @@ static os_error *report_plot_page(struct report *report, struct report_page_data
 static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
 static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
 static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y);
+static os_error *report_plot_cell(struct report *report, os_box *outline, char *content, enum report_cell_flags flags);
 
 static osbool report_handle_message_set_printer(wimp_message *message);
 static void report_repaginate_all(struct file_block *file);
@@ -747,7 +748,7 @@ static void report_reflow_content(struct report *report)
 
 	/* Work through the report, line by line, calculating the column positions. */
 
-	line_count = report_line_get_count(report->lines);
+	line_count = (content_base != NULL) ? report_line_get_count(report->lines) : 0;
 
 	ypos = 0;
 
@@ -1358,7 +1359,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 	hourglass_on();
 
 	content_base = report_textdump_get_base(report->content);
-	line_count = report_line_get_count(report->lines);
+	line_count = (content_base != NULL) ? report_line_get_count(report->lines) : 0;
 
 	for (line = 0; line < line_count; line++) {
 		line_data = report_line_get_info(report->lines, line);
@@ -1462,7 +1463,7 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 	hourglass_on();
 
 	content_base = report_textdump_get_base(report->content);
-	line_count = report_line_get_count(report->lines);
+	line_count = (content_base != NULL) ? report_line_get_count(report->lines) : 0;
 
 	for (line = 0; line < line_count; line++) {
 		line_data = report_line_get_info(report->lines, line);
@@ -2094,24 +2095,22 @@ static os_error *report_plot_region(struct report *report, struct report_region_
 
 static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
 {
-	int		xpos, width;
-	os_error	*error;
-	char		*content = "This is some text";
+	os_box		position;
+	char		*content_base;
 
-	error = report_fonts_get_string_width(report->fonts, content, REPORT_CELL_FLAGS_NONE, &width);
-	if (error != NULL)
-		return error;
+	if (region == NULL || region->type != REPORT_REGION_TYPE_TEXT || region->data.text.content == REPORT_TEXTDUMP_NULL)
+		return NULL;
 
-	error = report_fonts_set_colour(report->fonts, os_COLOUR_BLACK, os_COLOUR_WHITE);
-	if (error != NULL)
-		return error;
+	content_base = report_textdump_get_base(report->content);
+	if (content_base == NULL)
+		return NULL;
 
-	xpos = region->position.x0 + ((region->position.x1 - region->position.x0) - width) / 2;
+	position.x0 = origin->x + region->position.x0;
+	position.x1 = origin->x + region->position.x1;
+	position.y0 = origin->y + region->position.y0;
+	position.y1 = origin->y + region->position.y1;
 
-	error = report_fonts_paint_text(report->fonts, content,
-			origin->x + xpos, origin->y + region->position.y0 + REPORT_BASELINE_OFFSET, REPORT_CELL_FLAGS_NONE);
-
-	return error;
+	return report_plot_cell(report, &position, content_base + region->data.text.content, REPORT_CELL_FLAGS_CENTRE);
 }
 
 
@@ -2128,60 +2127,104 @@ static os_error *report_plot_text_region(struct report *report, struct report_re
 static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y)
 {
 	os_error		*error;
-	int			cell, indent, width;
-	char			*content_base, *content;
+	int			cell;
+	char			*content_base;
+	os_box			outline;
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data;
 	struct report_tabs_stop	*tab_stop;
 
 	content_base = report_textdump_get_base(report->content);
+	if (content_base == NULL)
+		return NULL;
 
 	line_data = report_line_get_info(report->lines, line);
 	if (line_data == NULL)
 		return NULL;
 
+	outline.y0 = y + line_data->ypos;
+	outline.y1 = outline.y0 + report->linespace;
+
 	for (cell = 0; cell < line_data->cell_count; cell++) {
 		cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
-		if (cell_data == NULL)
+		if (cell_data == NULL || cell_data->offset == REPORT_TEXTDUMP_NULL)
 			continue;
 
 		tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, cell_data->tab_stop);
 		if (tab_stop == NULL)
 			continue;
 
-		error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
-		if (error != NULL)
-			return error;
+		outline.x0 = x + tab_stop->font_left;
+		outline.x1 = outline.x0 + tab_stop->font_width;
 
-		error = report_draw_box(x + tab_stop->font_left, y + line_data->ypos,
-				x + tab_stop->font_left + tab_stop->font_width, y + line_data->ypos + report->linespace);
-		if (error != NULL)
-			return error;
-
-		content = content_base + cell_data->offset;
-
-		indent = (cell_data->flags & REPORT_CELL_FLAGS_INDENT) ? REPORT_COLUMN_INDENT : 0;
-
-		if (cell_data->flags & REPORT_CELL_FLAGS_RIGHT) {
-			error = report_fonts_get_string_width(report->fonts, content, cell_data->flags, &width);
-			if (error != NULL)
-				return error;
-
-			indent = tab_stop->font_width - width;
-		}
-
-		error = report_fonts_set_colour(report->fonts, os_COLOUR_BLACK, os_COLOUR_WHITE);
-		if (error != NULL)
-			return error;
-
-		error = report_fonts_paint_text(report->fonts, content,
-				x + tab_stop->font_left + indent,
-				y + line_data->ypos + REPORT_BASELINE_OFFSET, cell_data->flags);
+		error = report_plot_cell(report, &outline, content_base + cell_data->offset, cell_data->flags);
 		if (error != NULL)
 			return error;
 	}
 
 	return NULL;
+}
+
+
+/**
+ * Plot a cell on screen.
+ *
+ * \param *report	The report to use.
+ * \param *outline	The outline of the cell, in absolute OS Units.
+ * \param *content	Pointer to the content of the cell.
+ * \param flags		The cell flags to apply to the plotting.
+ * \return		Pointer to an OS Error box, or NULL on success.
+ */
+
+static os_error *report_plot_cell(struct report *report, os_box *outline, char *content, enum report_cell_flags flags)
+{
+	os_error	*error;
+	int		width, indent;
+
+	if (report == NULL || outline == NULL)
+		return NULL;
+
+	/* Draw a box around the cell. This is for debugging only! */
+
+	error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+	if (error != NULL)
+		return error;
+
+	error = report_draw_box(outline);
+	if (error != NULL)
+		return error;
+
+	/* If there's no text, there's nothing else to do. */
+
+	if (content == NULL)
+		return NULL;
+
+	/* Calculate the required cell indent. */
+
+	if (flags & REPORT_CELL_FLAGS_INDENT) {
+		indent = REPORT_COLUMN_INDENT;
+	} else if (flags & REPORT_CELL_FLAGS_RIGHT || flags & REPORT_CELL_FLAGS_CENTRE) {
+		error = report_fonts_get_string_width(report->fonts, content, flags, &width);
+		if (error != NULL)
+			return error;
+
+		if (flags & REPORT_CELL_FLAGS_CENTRE)
+			indent = ((outline->x1 - outline->x0) - width) / 2; 
+		else
+			indent = (outline->x1 - outline->x0) - width;
+	} else {
+		indent = 0;
+	}
+
+	/* Set the font colour and plot the cell contents. */
+
+	error = report_fonts_set_colour(report->fonts, os_COLOUR_BLACK, os_COLOUR_WHITE);
+	if (error != NULL)
+		return error;
+
+	return report_fonts_paint_text(report->fonts, content,
+			outline->x0 + indent,
+			outline->y0 + REPORT_BASELINE_OFFSET, flags);
 }
 
 #if 0

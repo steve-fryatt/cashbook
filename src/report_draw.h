@@ -34,14 +34,11 @@
 /**
  * Draw a rectangle on screen.
  *
- * \param x0			The minimum X coordinate, in OS Units.
- * \param y0			The minimum Y coordinate, in OS Units.
- * \param x1			The maximum X coordinate, in OS Units.
- * \param y1			The maximum Y coordinate, in OS Units.
+ * \param *outline		The rectangle outline, in absolute OS Units.
  * \return			Pointer to an OS Error block, or NULL on success.
  */
 
-os_error *report_draw_box(int x0, int y0, int x1, int y1);
+os_error *report_draw_box(os_box *outline);
 
 
 /**

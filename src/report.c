@@ -236,7 +236,7 @@ static void			report_handle_print_error(os_error *error, os_fw file, struct repo
 static os_error *report_plot_page(struct report *report, struct report_page_data *page, os_coord *origin, os_box *clip);
 static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
 static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
-static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y);
+static os_error *report_plot_line(struct report *report, unsigned int line, os_coord *origin, os_box *clip);
 static os_error *report_plot_cell(struct report *report, os_box *outline, char *content, enum report_cell_flags flags);
 
 static osbool report_handle_message_set_printer(wimp_message *message);
@@ -1028,7 +1028,8 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 static void report_view_redraw_flat_handler(struct report *report, wimp_draw *redraw, int ox, int oy)
 {
-	int top, base, y, linespace, line_count;
+	int		top, base, y, linespace, line_count;
+	os_coord	origin;
 	os_error	*error;
 
 	line_count = report_line_get_count(report->lines);
@@ -1056,8 +1057,11 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 
 	/* Plot Text. */
 
+	origin.x = ox + REPORT_LEFT_MARGIN;
+	origin.y = oy;
+
 	for (y = top; y < line_count && y <= base; y++) {
-		error = report_plot_line(report, y, ox + REPORT_LEFT_MARGIN, oy);
+		error = report_plot_line(report, y, &origin, &(redraw->clip));
 		if (error != NULL)
 			debug_printf("Redraw error: %s", error->errmess);
 	}
@@ -1909,7 +1913,8 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 							line = pages[page_y].header_line;
 						else
 							line = pages[page_y].first_line + y;
-						error = report_plot_line(report, line, REPORT_LEFT_MARGIN, 0);
+					//	error = report_plot_line(report, line, REPORT_LEFT_MARGIN, 0);
+						error = NULL;
 						if (error != NULL) {
 							report_handle_print_error(error, out, report->fonts);
 							return;
@@ -2129,12 +2134,12 @@ static os_error *report_plot_text_region(struct report *report, struct report_re
  *
  * \param *report	The report to use.
  * \param line		The line to be printed.
- * \param x		The x coordinate origin to plot from.
- * \param y		The y coordinate origin to plot from.
+ * \param *origin	The absolute origin to plot from, in OS Units.
+ * \param *clip		The redraw clip region, in absolute OS Units.
  * \return		Pointer to an error block, or NULL for success.
  */
 
-static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y)
+static os_error *report_plot_line(struct report *report, unsigned int line, os_coord *origin, os_box *clip)
 {
 	os_error		*error;
 	int			cell;
@@ -2152,8 +2157,11 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 	if (line_data == NULL)
 		return NULL;
 
-	outline.y0 = y + line_data->ypos;
+	outline.y0 = origin->y + line_data->ypos;
 	outline.y1 = outline.y0 + report->linespace;
+
+	if (outline.y0 > clip->y1 || outline.y1 < clip->y0)
+		return NULL;
 
 	for (cell = 0; cell < line_data->cell_count; cell++) {
 		cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
@@ -2164,8 +2172,11 @@ static os_error *report_plot_line(struct report *report, unsigned int line, int 
 		if (tab_stop == NULL)
 			continue;
 
-		outline.x0 = x + tab_stop->font_left;
+		outline.x0 = origin->x + tab_stop->font_left;
 		outline.x1 = outline.x0 + tab_stop->font_width;
+
+		if (outline.x0 > clip->x1 || outline.x1 < clip->x0)
+			continue;
 
 		error = report_plot_cell(report, &outline, content_base + cell_data->offset, cell_data->flags);
 		if (error != NULL)

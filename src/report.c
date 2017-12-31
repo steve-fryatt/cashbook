@@ -2093,6 +2093,16 @@ static os_error *report_plot_region(struct report *report, struct report_region_
 }
 
 
+/**
+ * Plot a text region, containing a single line of static text.
+ *
+ * \param *report	The report to use.
+ * \param *region	The region to plot.
+ * \param *origin	The absolute origin to plot from, in OS Units.
+ * \param *clip		The redraw clip region, in absolute OS Units.
+ * \return		Pointer to an error block, or NULL for success.
+ */
+
 static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
 {
 	os_box		position;

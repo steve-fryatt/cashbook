@@ -47,7 +47,8 @@
 enum report_region_type {
 	REPORT_REGION_TYPE_NONE,		/**< No content.				*/
 	REPORT_REGION_TYPE_TEXT,		/**< Static text.				*/
-	REPORT_REGION_TYPE_PAGE_NUMBER		/**< A page number.				*/
+	REPORT_REGION_TYPE_PAGE_NUMBER,		/**< A page number.				*/
+	REPORT_REGION_TYPE_LINES		/**< A block of lines.				*/
 };
 
 struct report_region_text {
@@ -57,6 +58,11 @@ struct report_region_text {
 struct report_region_page_number {
 	int		major;			/**< The major page number.			*/
 	int		minor;			/**< The minor page number, or -1 for none.	*/
+};
+
+struct report_region_lines {
+	int		first;			/**< The first line in the region.		*/
+	int		last;			/**< The last line in the region.		*/
 };
 
 /**
@@ -71,6 +77,7 @@ struct report_region_data {
 	union {
 		struct report_region_text		text;		/**< Data associated with a text region.				*/
 		struct report_region_page_number	page_number;	/**< Data associated with a page number region.				*/
+		struct report_region_lines		lines;		/**< Data associated with a lines region.				*/
 	} data;
 };
 
@@ -145,6 +152,19 @@ unsigned report_region_add_text(struct report_region_block *handle, os_box *outl
  */
 
 unsigned report_region_add_page_number(struct report_region_block *handle, os_box *outline, int major, int minor);
+
+
+/**
+ * Add a lines region to a report region data block.
+ *
+ * \param *handle		The block to add to.
+ * \param *outline		The outline of the region on the page, in OS Units.
+ * \param first			The first line nummber to display in the region.
+ * \param last			The last line number to display in the region.
+ * \return			The new region number, or REPORT_REGION_NONE.
+ */
+
+unsigned report_region_add_lines(struct report_region_block *handle, os_box *outline, int first, int last);
 
 
 /**

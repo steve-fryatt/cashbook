@@ -251,6 +251,7 @@ static os_error *report_plot_page(struct report *report, struct report_page_data
 static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
 static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
 static os_error *report_plot_page_number_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
+static os_error *report_plot_lines_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
 static os_error *report_plot_line(struct report *report, unsigned int line, os_coord *origin, os_box *clip);
 static os_error *report_plot_cell(struct report *report, os_box *outline, char *content, enum report_cell_flags flags);
 
@@ -2110,6 +2111,9 @@ static os_error *report_plot_region(struct report *report, struct report_region_
 	case REPORT_REGION_TYPE_PAGE_NUMBER:
 		report_plot_page_number_region(report, region, origin, clip);
 		break;
+	case REPORT_REGION_TYPE_LINES:
+		report_plot_lines_region(report, region, origin, clip);
+		break;
 	case REPORT_REGION_TYPE_NONE:
 		break;
 	}
@@ -2199,6 +2203,25 @@ static os_error *report_plot_page_number_region(struct report *report, struct re
 	position.y1 = origin->y + region->position.y1;
 
 	return report_plot_cell(report, &position, content, REPORT_CELL_FLAGS_CENTRE);
+}
+
+
+/**
+ * Plot a lines region, containing one or more lines from a report.
+ *
+ * \param *report	The report to use.
+ * \param *region	The region to plot.
+ * \param *origin	The absolute origin to plot from, in OS Units.
+ * \param *clip		The redraw clip region, in absolute OS Units.
+ * \return		Pointer to an error block, or NULL for success.
+ */
+
+static os_error *report_plot_lines_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
+{
+	if (region == NULL || region->type != REPORT_REGION_TYPE_LINES)
+		return NULL;
+
+	return NULL;
 }
 
 
@@ -2561,7 +2584,7 @@ static void report_paginate(struct report *report)
 
 				if (areas & REPORT_PAGE_AREA_BODY) {
 					debug_printf("Adding body x0=%d, y0=%d, x1=%d, y1=%d", body.x0, body.y0, body.x1, body.y1);
-					region = report_region_add_text(report->regions, &body, REPORT_TEXTDUMP_NULL);
+					region = report_region_add_lines(report->regions, &body, 0, 10);
 					if (region == REPORT_REGION_NONE)
 						continue;
 

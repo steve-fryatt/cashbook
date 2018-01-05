@@ -220,6 +220,33 @@ unsigned report_region_add_page_number(struct report_region_block *handle, os_bo
 
 
 /**
+ * Add a lines region to a report region data block.
+ *
+ * \param *handle		The block to add to.
+ * \param *outline		The outline of the region on the page, in OS Units.
+ * \param first			The first line nummber to display in the region.
+ * \param last			The last line number to display in the region.
+ * \return			The new region number, or REPORT_REGION_NONE.
+ */
+
+unsigned report_region_add_lines(struct report_region_block *handle, os_box *outline, int first, int last)
+{
+	unsigned new;
+
+	new = report_region_add(handle, outline->x0, outline->y0, outline->x1, outline->y1);
+	if (new == REPORT_REGION_NONE)
+		return new;
+
+	handle->regions[new].type = REPORT_REGION_TYPE_LINES;
+
+	handle->regions[new].data.lines.first = first;
+	handle->regions[new].data.lines.last = last;
+
+	return new;
+}
+
+
+/**
  * Add an empty region to a report region data block.
  *
  * \param *handle		The block to add to.

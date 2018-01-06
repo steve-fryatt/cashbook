@@ -258,6 +258,7 @@ static os_error *report_plot_cell(struct report *report, os_box *outline, char *
 static osbool report_handle_message_set_printer(wimp_message *message);
 static void report_repaginate_all(struct file_block *file);
 static void report_paginate(struct report *report);
+static int report_get_line_height(struct report *report, struct report_line_data *line_data);
 static void report_toggle_page_view(struct report *report);
 static void report_set_window_extent(struct report *report);
 static osbool report_get_window_extent(struct report *report, int *x, int *y);
@@ -1044,7 +1045,9 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 static void report_view_redraw_flat_handler(struct report *report, wimp_draw *redraw, int ox, int oy)
 {
-	int		top, base, y, linespace, line_count;
+	unsigned	top, base, y;
+	int		linespace;
+	size_t		line_count;
 	os_coord	origin;
 	os_error	*error;
 
@@ -2218,7 +2221,8 @@ static os_error *report_plot_page_number_region(struct report *report, struct re
 
 static os_error *report_plot_lines_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
 {
-	int			top, base, y, line_count;
+	unsigned		top, base, y;
+	size_t			line_count;
 	os_coord		position;
 	os_error		*error;
 	struct report_line_data	*line_data;
@@ -2233,7 +2237,7 @@ static os_error *report_plot_lines_region(struct report *report, struct report_r
 		return NULL;
 
 	position.x = origin->x + region->position.x0;
-	position.y = origin->y + region->position.y1 - (line_data->ypos + report->linespace);
+	position.y = origin->y + region->position.y1 - (line_data->ypos + report_get_line_height(report, line_data));
 
 	top = report_line_find_from_ypos(report->lines, clip->y1 - position.y);
 	if (top < region->data.lines.first)
@@ -2568,7 +2572,7 @@ static void report_repaginate_all(struct file_block *file)
 	}
 }
 
-
+static void report_add_page_row(struct report *report, enum report_page_area areas, os_box *body, os_box *header, os_box *footer, unsigned top, unsigned bottom, int row);
 /**
  * Repaginate a report.
  *
@@ -2578,7 +2582,10 @@ static void report_repaginate_all(struct file_block *file)
 static void report_paginate(struct report *report)
 {
 	enum report_page_area	areas;
-	int			target_width, field_height;
+	struct report_line_data	*line_data;
+	int			pages, target_width, field_height, body_height, top_of_page, active_bar;
+	size_t			line_count;
+	unsigned		line, repeat_line, top_line;
 	os_box			body, header, footer;
 
 	if (report == NULL)
@@ -2604,69 +2611,123 @@ static void report_paginate(struct report *report)
 	if (areas == REPORT_PAGE_AREA_NONE)
 		return;
 
+	body_height = body.y1 - body.y0;
+
 	/* Start to lay out the report pages. */
 
+	line_count = report_line_get_count(report->lines);
 
-	{
-		int row, column, regions;
-		unsigned first_region, region;
+	top_of_page = 0;
+	repeat_line = REPORT_LINE_NONE;
+	active_bar = -1;
+	top_line = 0;
+	pages = 1;
 
-		for (row = 0; row < 4; row++) {
-			report_page_new_row(report->pages);
+	for (line = 0; line < line_count; line++) {
+		line_data = report_line_get_info(report->lines, line);
+		if (line_data == NULL)
+			continue;
 
-			for (column = 0; column < 2; column++) {
-				first_region = REPORT_REGION_NONE;
-				regions = 0;
+	//	if ((line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER) && ((line_data->tab_bar == active_bar) || (repeat_line == REPORT_LINE_NONE))) {
+	//		if (repeat_line == REPORT_LINE_NONE)
+	//			repeat_line = line;
+	//	} else {
+	//		repeat_line = REPEAT_LINE_NONE;
+	//	}
 
-				if (areas & REPORT_PAGE_AREA_BODY) {
-					debug_printf("Adding body x0=%d, y0=%d, x1=%d, y1=%d", body.x0, body.y0, body.x1, body.y1);
-					region = report_region_add_lines(report->regions, &body, row * 2, 10 + row * 2);
-					if (region == REPORT_REGION_NONE)
-						continue;
+		active_bar = line_data->tab_bar;
 
-					regions++;
+		if ((top_of_page - line_data->ypos) > body_height) {
+			if (line == top_line)	// \TODO -- Not sure about this???
+				return;
 
-					if (first_region == REPORT_REGION_NONE)
-						first_region = region;
-				}
+			report_add_page_row(report, areas, &body, &header, &footer, top_line, line - 1, pages);
 
-				if (areas & REPORT_PAGE_AREA_HEADER) {
-					debug_printf("Adding header x0=%d, y0=%d, x1=%d, y1=%d", header.x0, header.y0, header.x1, header.y1);
-					region = report_region_add_text(report->regions, &header, REPORT_TEXTDUMP_NULL);
-					if (region == REPORT_REGION_NONE)
-						continue;
+			line_data = report_line_get_info(report->lines, line - 1);
+			if (line_data == NULL)
+				continue;
 
-					regions++;
-
-					if (first_region == REPORT_REGION_NONE)
-						first_region = region;
-				}
-
-				if (areas & REPORT_PAGE_AREA_FOOTER) {
-					debug_printf("Adding footer x0=%d, y0=%d, x1=%d, y1=%d", footer.x0, footer.y0, footer.x1, footer.y1);
-					region = report_region_add_page_number(report->regions, &footer, row + 1, column + 1);
-					if (region == REPORT_REGION_NONE)
-						continue;
-
-					regions++;
-
-					if (first_region == REPORT_REGION_NONE)
-						first_region = region;
-				}
-
-				
-				
-
-				report_page_add(report->pages, first_region, regions);
-			}
+			top_of_page = line_data->ypos;
+			top_line = line;
+			pages++;
 		}
 	}
+
+	if (line > top_line)
+		report_add_page_row(report, areas, &body, &header, &footer, top_line, line, pages);
 
 	report_page_close(report->pages);
 	report_region_close(report->regions);
 }
 
 
+static void report_add_page_row(struct report *report, enum report_page_area areas, os_box *body, os_box *header, os_box *footer, unsigned top, unsigned bottom, int row)
+{
+	int column, regions;
+	unsigned first_region, region;
+
+	report_page_new_row(report->pages);
+
+	for (column = 0; column < 1; column++) {
+		first_region = REPORT_REGION_NONE;
+		regions = 0;
+
+		if (areas & REPORT_PAGE_AREA_BODY) {
+			debug_printf("Adding body x0=%d, y0=%d, x1=%d, y1=%d", body->x0, body->y0, body->x1, body->y1);
+			region = report_region_add_lines(report->regions, body, top, bottom);
+			if (region == REPORT_REGION_NONE)
+				continue;
+
+			regions++;
+
+			if (first_region == REPORT_REGION_NONE)
+				first_region = region;
+		}
+
+		if (areas & REPORT_PAGE_AREA_HEADER) {
+			debug_printf("Adding header x0=%d, y0=%d, x1=%d, y1=%d", header->x0, header->y0, header->x1, header->y1);
+			region = report_region_add_text(report->regions, header, REPORT_TEXTDUMP_NULL);
+			if (region == REPORT_REGION_NONE)
+				continue;
+
+			regions++;
+
+			if (first_region == REPORT_REGION_NONE)
+				first_region = region;
+		}
+
+		if (areas & REPORT_PAGE_AREA_FOOTER) {
+			debug_printf("Adding footer x0=%d, y0=%d, x1=%d, y1=%d", footer->x0, footer->y0, footer->x1, footer->y1);
+			region = report_region_add_page_number(report->regions, footer, row + 1, column + 1);
+			if (region == REPORT_REGION_NONE)
+				continue;
+
+			regions++;
+
+			if (first_region == REPORT_REGION_NONE)
+				first_region = region;
+		}
+
+		report_page_add(report->pages, first_region, regions);
+	}
+}
+
+
+/**
+ * Return the height of a line in a report, from the ypos baseline to
+ * the top of the outside bounding box.
+ *
+ * \param *report	The report containing the line.
+ * \param line_data	The data for the line of interest.
+ */
+
+static int report_get_line_height(struct report *report, struct report_line_data *line_data)
+{
+	if (report == NULL || line_data == NULL)
+		return 0;
+
+	return report->linespace;
+} 
 
 
 /**

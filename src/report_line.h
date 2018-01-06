@@ -32,6 +32,12 @@
 #define CASHBOOK_REPORT_LINE
 
 /**
+ * No line
+ */
+
+#define REPORT_LINE_NONE ((unsigned) 0xffffffffu)
+
+/**
  * Flags relating to a line in a report.
  */
 

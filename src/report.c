@@ -2630,14 +2630,14 @@ static void report_paginate(struct report *report)
 	line_count = report_line_get_count(report->lines);
 
 	main_area.active = TRUE;
-	main_area.ypos_offset = 0;
 	main_area.height = 0;
+	main_area.ypos_offset = 0;
 	main_area.top_line = 0;
 	main_area.bottom_line = 0;
 
 	repeat_area.active = FALSE;
-	repeat_area.ypos_offset = 0;
 	repeat_area.height = 0;
+	repeat_area.ypos_offset = 0;
 	repeat_area.top_line = 0;
 	repeat_area.bottom_line = 0;
 
@@ -2651,14 +2651,9 @@ static void report_paginate(struct report *report)
 		if (line_data == NULL)
 			continue;
 
-	//	if ((line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER) && ((line_data->tab_bar == active_bar) || (repeat_line == REPORT_LINE_NONE))) {
-	//		if (repeat_line == REPORT_LINE_NONE)
-	//			repeat_line = line;
-	//	} else {
-	//		repeat_line = REPEAT_LINE_NONE;
-	//	}
-
-		repeat_tab_bar = line_data->tab_bar;
+		/* If the line falls out of the visible area, package up the current page
+		 * data and add it to the page output before continuing.
+		 */
 
 		if ((main_area.ypos_offset - line_data->ypos) > (body_height - used_height)) {
 			report_add_page_row(report, &layout, &main_area, &repeat_area, pages);
@@ -2669,6 +2664,21 @@ static void report_paginate(struct report *report)
 
 			main_area.ypos_offset = line_data->ypos;
 			main_area.top_line = line;
+
+			if ((repeat_line != REPORT_LINE_NONE) && ((line_data = report_line_get_info(report->lines, repeat_line)) != NULL)) {
+				debug_printf("End of page %d, repeat line %d on next page", pages, repeat_line);
+				repeat_area.active = TRUE;
+				repeat_area.height = report_get_line_height(report, line_data);
+				repeat_area.ypos_offset = line_data->ypos - repeat_area.height;
+				repeat_area.top_line = repeat_line;
+				repeat_area.bottom_line = repeat_line;
+				used_height = repeat_area.height;
+			} else {
+				debug_printf("End of page %d, no repeat on next page", pages);
+				repeat_area.active = FALSE;
+				used_height = 0;
+			}
+
 			pages++;
 
 			line_data = report_line_get_info(report->lines, line);
@@ -2676,8 +2686,19 @@ static void report_paginate(struct report *report)
 				continue;
 		}
 
+		/* Record the current line details. */
+
 		main_area.bottom_line = line;
 		main_area.height = main_area.ypos_offset - line_data->ypos;
+
+		if ((line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER) && ((line_data->tab_bar != repeat_tab_bar) || (repeat_line == REPORT_LINE_NONE))) {
+			repeat_line = line;
+		} else if (!(line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER)) {
+			repeat_line = REPORT_LINE_NONE;
+		}
+
+		repeat_tab_bar = line_data->tab_bar;
+
 	}
 
 	if (line > main_area.top_line)
@@ -2705,8 +2726,24 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 		if (layout->areas & REPORT_PAGE_AREA_BODY) {
 			position.x0 = layout->body.x0;
 			position.x1 = layout->body.x1;
-			position.y0 = layout->body.y1 - main_area->height;
 			position.y1 = layout->body.y1;
+
+			if (repeat_area->active == TRUE) {
+				position.y0 = layout->body.y1 - repeat_area->height;
+
+				region = report_region_add_lines(report->regions, &position, repeat_area->top_line, repeat_area->bottom_line);
+				if (region == REPORT_REGION_NONE)
+					continue;
+
+				regions++;
+
+				if (first_region == REPORT_REGION_NONE)
+					first_region = region;
+
+				position.y1 = position.y0;
+			}
+
+			position.y0 = position.y1 - main_area->height;
 
 			region = report_region_add_lines(report->regions, &position, main_area->top_line, main_area->bottom_line);
 			if (region == REPORT_REGION_NONE)

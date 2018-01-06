@@ -51,6 +51,36 @@ enum report_page_area {
 	REPORT_PAGE_AREA_FOOTER = 4
 };
 
+/**
+ * The basic layout of a page.
+ */
+
+struct report_page_layout {
+	/**
+	 * Flags showing which areas the page contains.
+	 */
+
+	enum report_page_area	areas;
+
+	/**
+	 * The area of the page body, in OS Units.
+	 */
+
+	os_box			body;
+
+	/**
+	 * The area of the page header, in OS Units.
+	 */
+
+	os_box			header;
+
+	/**
+	 * The area of the page footer, in OS Units.
+	 */
+
+	os_box			footer;
+};
+
 
 /**
  * Flags relating to a line in a report.
@@ -246,7 +276,6 @@ int report_page_find_from_ypos(struct report_page_block *handle, int ypos, osboo
 unsigned report_page_get_outline(struct report_page_block *handle, int x, int y, os_box *area);
 
 
-
 /**
  * Read the current printer page size, and work out from the configured margins
  * where on the page the printed body, header and footer will go.
@@ -266,13 +295,11 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
  * Get details of the areas of a printed page.
  *
  * \param *handle		The page block to interrogate.
- * \param *body			Pointer to an OS Box to take the body area.
- * \param *header		Pointer to an OS Box to take the header area.
- * \param *footer		Pointer to an OS Box to take the footer area.
+ * \param *layout		Pointer to a struct to take the layout details.
  * \return			The areas defined on the page.
  */
 
-enum report_page_area report_page_get_areas(struct report_page_block *handle, os_box *body, os_box *header, os_box *footer);
+enum report_page_area report_page_get_areas(struct report_page_block *handle, struct report_page_layout *layout);
 
 #endif
 

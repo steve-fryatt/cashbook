@@ -2572,7 +2572,7 @@ static void report_repaginate_all(struct file_block *file)
 	}
 }
 
-static void report_add_page_row(struct report *report, enum report_page_area areas, os_box *body, os_box *header, os_box *footer, unsigned top, unsigned bottom, int row);
+static void report_add_page_row(struct report *report, struct report_page_layout *layout, unsigned top, unsigned bottom, int row);
 /**
  * Repaginate a report.
  *
@@ -2581,12 +2581,11 @@ static void report_add_page_row(struct report *report, enum report_page_area are
 
 static void report_paginate(struct report *report)
 {
-	enum report_page_area	areas;
-	struct report_line_data	*line_data;
-	int			pages, target_width, field_height, body_height, top_of_page, active_bar;
-	size_t			line_count;
-	unsigned		line, repeat_line, top_line;
-	os_box			body, header, footer;
+	struct report_line_data		*line_data;
+	struct report_page_layout	layout;
+	int				pages, target_width, field_height, body_height, top_of_page, active_bar;
+	size_t				line_count;
+	unsigned			line, repeat_line, top_line;
 
 	if (report == NULL)
 		return;
@@ -2607,11 +2606,11 @@ static void report_paginate(struct report *report)
 	if (report_page_calculate_areas(report->pages, report->landscape, target_width, field_height, field_height) != NULL)
 		return;
 
-	areas = report_page_get_areas(report->pages, &body, &header, &footer);
-	if (areas == REPORT_PAGE_AREA_NONE)
+	report_page_get_areas(report->pages, &layout);
+	if (layout.areas == REPORT_PAGE_AREA_NONE)
 		return;
 
-	body_height = body.y1 - body.y0;
+	body_height = layout.body.y1 - layout.body.y0;
 
 	/* Start to lay out the report pages. */
 
@@ -2641,7 +2640,7 @@ static void report_paginate(struct report *report)
 			if (line == top_line)	// \TODO -- Not sure about this???
 				return;
 
-			report_add_page_row(report, areas, &body, &header, &footer, top_line, line - 1, pages);
+			report_add_page_row(report, &layout, top_line, line - 1, pages);
 
 			line_data = report_line_get_info(report->lines, line - 1);
 			if (line_data == NULL)
@@ -2654,14 +2653,14 @@ static void report_paginate(struct report *report)
 	}
 
 	if (line > top_line)
-		report_add_page_row(report, areas, &body, &header, &footer, top_line, line, pages);
+		report_add_page_row(report, &layout, top_line, line, pages);
 
 	report_page_close(report->pages);
 	report_region_close(report->regions);
 }
 
 
-static void report_add_page_row(struct report *report, enum report_page_area areas, os_box *body, os_box *header, os_box *footer, unsigned top, unsigned bottom, int row)
+static void report_add_page_row(struct report *report, struct report_page_layout *layout, unsigned top, unsigned bottom, int row)
 {
 	int column, regions;
 	unsigned first_region, region;
@@ -2672,9 +2671,8 @@ static void report_add_page_row(struct report *report, enum report_page_area are
 		first_region = REPORT_REGION_NONE;
 		regions = 0;
 
-		if (areas & REPORT_PAGE_AREA_BODY) {
-			debug_printf("Adding body x0=%d, y0=%d, x1=%d, y1=%d", body->x0, body->y0, body->x1, body->y1);
-			region = report_region_add_lines(report->regions, body, top, bottom);
+		if (layout->areas & REPORT_PAGE_AREA_BODY) {
+			region = report_region_add_lines(report->regions, &(layout->body), top, bottom);
 			if (region == REPORT_REGION_NONE)
 				continue;
 
@@ -2684,9 +2682,8 @@ static void report_add_page_row(struct report *report, enum report_page_area are
 				first_region = region;
 		}
 
-		if (areas & REPORT_PAGE_AREA_HEADER) {
-			debug_printf("Adding header x0=%d, y0=%d, x1=%d, y1=%d", header->x0, header->y0, header->x1, header->y1);
-			region = report_region_add_text(report->regions, header, REPORT_TEXTDUMP_NULL);
+		if (layout->areas & REPORT_PAGE_AREA_HEADER) {
+			region = report_region_add_text(report->regions, &(layout->header), REPORT_TEXTDUMP_NULL);
 			if (region == REPORT_REGION_NONE)
 				continue;
 
@@ -2696,9 +2693,8 @@ static void report_add_page_row(struct report *report, enum report_page_area are
 				first_region = region;
 		}
 
-		if (areas & REPORT_PAGE_AREA_FOOTER) {
-			debug_printf("Adding footer x0=%d, y0=%d, x1=%d, y1=%d", footer->x0, footer->y0, footer->x1, footer->y1);
-			region = report_region_add_page_number(report->regions, footer, row + 1, column + 1);
+		if (layout->areas & REPORT_PAGE_AREA_FOOTER) {
+			region = report_region_add_page_number(report->regions, &(layout->footer), row + 1, column + 1);
 			if (region == REPORT_REGION_NONE)
 				continue;
 

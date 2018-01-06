@@ -654,36 +654,36 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
  * Get details of the areas of a printed page.
  *
  * \param *handle		The page block to interrogate.
- * \param *body			Pointer to an OS Box to take the body area.
- * \param *header		Pointer to an OS Box to take the header area.
- * \param *footer		Pointer to an OS Box to take the footer area.
+ * \param *layout		Pointer to a struct to take the layout details.
  * \return			The areas defined on the page.
  */
 
-enum report_page_area report_page_get_areas(struct report_page_block *handle, os_box *body, os_box *header, os_box *footer)
+enum report_page_area report_page_get_areas(struct report_page_block *handle, struct report_page_layout *layout)
 {
-	if (handle == NULL)
+	if (handle == NULL || layout == NULL)
 		return REPORT_PAGE_AREA_NONE;
 
-	if ((body != NULL) && (handle->active_areas & REPORT_PAGE_AREA_BODY)) {
-		body->x0 = handle->body.x0;
-		body->y0 = handle->body.y0;
-		body->x1 = handle->body.x1;
-		body->y1 = handle->body.y1;
+	layout->areas = handle->active_areas;
+
+	if (handle->active_areas & REPORT_PAGE_AREA_BODY) {
+		layout->body.x0 = handle->body.x0;
+		layout->body.y0 = handle->body.y0;
+		layout->body.x1 = handle->body.x1;
+		layout->body.y1 = handle->body.y1;
 	}
 
-	if ((header != NULL) && (handle->active_areas & REPORT_PAGE_AREA_HEADER)) {
-		header->x0 = handle->header.x0;
-		header->y0 = handle->header.y0;
-		header->x1 = handle->header.x1;
-		header->y1 = handle->header.y1;
+	if (handle->active_areas & REPORT_PAGE_AREA_HEADER) {
+		layout->header.x0 = handle->header.x0;
+		layout->header.y0 = handle->header.y0;
+		layout->header.x1 = handle->header.x1;
+		layout->header.y1 = handle->header.y1;
 	}
 
-	if ((footer != NULL) && (handle->active_areas & REPORT_PAGE_AREA_FOOTER)) {
-		footer->x0 = handle->footer.x0;
-		footer->y0 = handle->footer.y0;
-		footer->x1 = handle->footer.x1;
-		footer->y1 = handle->footer.y1;
+	if (handle->active_areas & REPORT_PAGE_AREA_FOOTER) {
+		layout->footer.x0 = handle->footer.x0;
+		layout->footer.y0 = handle->footer.y0;
+		layout->footer.x1 = handle->footer.x1;
+		layout->footer.y1 = handle->footer.y1;
 	}
 
 	return handle->active_areas;

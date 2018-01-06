@@ -2572,7 +2572,19 @@ static void report_repaginate_all(struct file_block *file)
 	}
 }
 
-static void report_add_page_row(struct report *report, struct report_page_layout *layout, unsigned top, unsigned bottom, int row);
+struct report_pagination_area {
+	osbool		active;
+
+	int		ypos_offset;
+
+	int		height;
+
+	unsigned	top_line;
+	unsigned	bottom_line;
+
+};
+
+static void report_add_page_row(struct report *report, struct report_page_layout *layout, struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row);
 /**
  * Repaginate a report.
  *
@@ -2583,9 +2595,10 @@ static void report_paginate(struct report *report)
 {
 	struct report_line_data		*line_data;
 	struct report_page_layout	layout;
-	int				pages, target_width, field_height, body_height, top_of_page, active_bar;
+	struct report_pagination_area	repeat_area, main_area;
+	int				pages, target_width, field_height, body_height, used_height, repeat_tab_bar;
 	size_t				line_count;
-	unsigned			line, repeat_line, top_line;
+	unsigned			line, repeat_line;
 
 	if (report == NULL)
 		return;
@@ -2616,11 +2629,22 @@ static void report_paginate(struct report *report)
 
 	line_count = report_line_get_count(report->lines);
 
-	top_of_page = 0;
+	main_area.active = TRUE;
+	main_area.ypos_offset = 0;
+	main_area.height = 0;
+	main_area.top_line = 0;
+	main_area.bottom_line = 0;
+
+	repeat_area.active = FALSE;
+	repeat_area.ypos_offset = 0;
+	repeat_area.height = 0;
+	repeat_area.top_line = 0;
+	repeat_area.bottom_line = 0;
+
 	repeat_line = REPORT_LINE_NONE;
-	active_bar = -1;
-	top_line = 0;
+	repeat_tab_bar = -1;
 	pages = 1;
+	used_height = 0;
 
 	for (line = 0; line < line_count; line++) {
 		line_data = report_line_get_info(report->lines, line);
@@ -2634,45 +2658,57 @@ static void report_paginate(struct report *report)
 	//		repeat_line = REPEAT_LINE_NONE;
 	//	}
 
-		active_bar = line_data->tab_bar;
+		repeat_tab_bar = line_data->tab_bar;
 
-		if ((top_of_page - line_data->ypos) > body_height) {
-			if (line == top_line)	// \TODO -- Not sure about this???
-				return;
-
-			report_add_page_row(report, &layout, top_line, line - 1, pages);
+		if ((main_area.ypos_offset - line_data->ypos) > (body_height - used_height)) {
+			report_add_page_row(report, &layout, &main_area, &repeat_area, pages);
 
 			line_data = report_line_get_info(report->lines, line - 1);
 			if (line_data == NULL)
 				continue;
 
-			top_of_page = line_data->ypos;
-			top_line = line;
+			main_area.ypos_offset = line_data->ypos;
+			main_area.top_line = line;
 			pages++;
+
+			line_data = report_line_get_info(report->lines, line);
+			if (line_data == NULL)
+				continue;
 		}
+
+		main_area.bottom_line = line;
+		main_area.height = main_area.ypos_offset - line_data->ypos;
 	}
 
-	if (line > top_line)
-		report_add_page_row(report, &layout, top_line, line, pages);
+	if (line > main_area.top_line)
+		report_add_page_row(report, &layout, &main_area, &repeat_area, pages);
 
 	report_page_close(report->pages);
 	report_region_close(report->regions);
 }
 
 
-static void report_add_page_row(struct report *report, struct report_page_layout *layout, unsigned top, unsigned bottom, int row)
+static void report_add_page_row(struct report *report, struct report_page_layout *layout, struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row)
 {
 	int column, regions;
 	unsigned first_region, region;
+	os_box position;
 
 	report_page_new_row(report->pages);
+
+	debug_printf("Main area height = %d", main_area->height);
 
 	for (column = 0; column < 1; column++) {
 		first_region = REPORT_REGION_NONE;
 		regions = 0;
 
 		if (layout->areas & REPORT_PAGE_AREA_BODY) {
-			region = report_region_add_lines(report->regions, &(layout->body), top, bottom);
+			position.x0 = layout->body.x0;
+			position.x1 = layout->body.x1;
+			position.y0 = layout->body.y1 - main_area->height;
+			position.y1 = layout->body.y1;
+
+			region = report_region_add_lines(report->regions, &position, main_area->top_line, main_area->bottom_line);
 			if (region == REPORT_REGION_NONE)
 				continue;
 

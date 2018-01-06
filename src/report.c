@@ -2694,7 +2694,7 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 		}
 
 		if (layout->areas & REPORT_PAGE_AREA_FOOTER) {
-			region = report_region_add_page_number(report->regions, &(layout->footer), row + 1, column + 1);
+			region = report_region_add_page_number(report->regions, &(layout->footer), row, column + 1);
 			if (region == REPORT_REGION_NONE)
 				continue;
 

@@ -2218,8 +2218,44 @@ static os_error *report_plot_page_number_region(struct report *report, struct re
 
 static os_error *report_plot_lines_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
 {
+	int			top, base, y, line_count;
+	os_coord		position;
+	os_error		*error;
+	struct report_line_data	*line_data;
+
 	if (region == NULL || region->type != REPORT_REGION_TYPE_LINES)
 		return NULL;
+
+	/* Identify the position and extent of the text block. */
+
+	line_data = report_line_get_info(report->lines, region->data.lines.first);
+	if (line_data == NULL)
+		return NULL;
+
+	position.x = origin->x + region->position.x0;
+	position.y = origin->y + region->position.y1 - (line_data->ypos + report->linespace);
+
+	top = report_line_find_from_ypos(report->lines, clip->y1 - position.y);
+	if (top < region->data.lines.first)
+		top = region->data.lines.first;
+	else if (top > region->data.lines.last)
+		top = region->data.lines.last;
+
+	base = report_line_find_from_ypos(report->lines, clip->y0 - position.y);
+	if (base < region->data.lines.first)
+		base = region->data.lines.first;
+	else if (base > region->data.lines.last)
+		base = region->data.lines.last;
+
+	/* Plot Text. */
+
+	line_count = report_line_get_count(report->lines);
+
+	for (y = top; y < line_count && y <= base; y++) {
+		error = report_plot_line(report, y, &position, clip);
+		if (error != NULL)
+			return error;
+	}
 
 	return NULL;
 }
@@ -2584,7 +2620,7 @@ static void report_paginate(struct report *report)
 
 				if (areas & REPORT_PAGE_AREA_BODY) {
 					debug_printf("Adding body x0=%d, y0=%d, x1=%d, y1=%d", body.x0, body.y0, body.x1, body.y1);
-					region = report_region_add_lines(report->regions, &body, 0, 10);
+					region = report_region_add_lines(report->regions, &body, row * 2, 10 + row * 2);
 					if (region == REPORT_REGION_NONE)
 						continue;
 

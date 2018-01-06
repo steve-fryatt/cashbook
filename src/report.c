@@ -816,8 +816,8 @@ static void report_reflow_content(struct report *report)
 
 	/* Set the dimensions of the report. */
 
-	report->width = report_tabs_calculate_columns(report->tabs) + REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN;
-	report->height = ypos + REPORT_BOTTOM_MARGIN;
+	report->width = report_tabs_calculate_columns(report->tabs);
+	report->height = ypos;
 
 	report->linespace = line_space;
 	report->rulespace = rule_space;
@@ -1077,7 +1077,7 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 	/* Plot Text. */
 
 	origin.x = ox + REPORT_LEFT_MARGIN;
-	origin.y = oy;
+	origin.y = oy - REPORT_TOP_MARGIN;
 
 	for (y = top; y < line_count && y <= base; y++) {
 		error = report_plot_line(report, y, &origin, &(redraw->clip));
@@ -2837,11 +2837,15 @@ static osbool report_get_window_extent(struct report *report, int *x, int *y)
 
 	if (!report->show_pages || !report_page_get_layout_extent(report->pages, x, y)) {
 		debug_printf("Failed to get paginated extent.");
-		if (x != NULL)
-			*x = (report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH;
+		if (x != NULL) {
+			int width = report->width + REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN;
+			*x = (width > REPORT_MIN_WIDTH) ? width : REPORT_MIN_WIDTH;
+		}
 
-		if (y != NULL)
-			*y = (report->height > REPORT_MIN_HEIGHT) ? report->height : REPORT_MIN_HEIGHT;
+		if (y != NULL) {
+			int height = report->height + REPORT_TOP_MARGIN + REPORT_BOTTOM_MARGIN;
+			*y = (height > REPORT_MIN_HEIGHT) ? height : REPORT_MIN_HEIGHT;
+		}
 	}
 
 	return TRUE;

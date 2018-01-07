@@ -509,7 +509,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	/* Create the toolbar pane. */
 
-	windows_place_as_toolbar(accview_window_def, accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT-4);
+	windows_place_as_toolbar(accview_window_def, accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT - 4);
 	columns_place_heading_icons(view->columns, accview_pane_def);
 
 	accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
@@ -546,9 +546,8 @@ void accview_open_window(struct file_block *file, acct_t account)
 	}
 
 	windows_open(view->accview_window);
-	windows_open_nested_as_toolbar(view->accview_pane,
-			view->accview_window,
-			ACCVIEW_TOOLBAR_HEIGHT-4);
+	windows_open_nested_as_toolbar(view->accview_pane, view->accview_window,
+			ACCVIEW_TOOLBAR_HEIGHT - 4);
 
 	/* Register event handlers for the two windows. */
 
@@ -1065,7 +1064,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 	/* Perform the redraw. */
 
-	more = wimp_redraw_window (redraw);
+	more = wimp_redraw_window(redraw);
 
 	while (more) {
 		window_plot_background(redraw, ACCVIEW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);

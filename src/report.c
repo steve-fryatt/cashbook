@@ -1640,6 +1640,13 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	size_t				line_count;
 	struct report_line_data		*line_data;
 
+
+	/* If the report hasn't been paginated, we can't continue. */
+
+	if (!report_page_paginated(report->pages))
+		return;
+
+
 	hourglass_on();
 
 	/* Get the printer driver settings. */
@@ -1648,22 +1655,9 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	if (error != NULL)
 		return;
 
-	/* Find the fonts we will use and size the header and footer accordingly. */
+	/* Find the fonts we will use. */
 
 	report_fonts_find(report->fonts);
-
-	linespace = report->linespace + report->rulespace;
-
-	line_count = report_line_get_count(report->lines);
-
-	/* Establish the page dimensions. */
-
-	report_fonts_get_size(report->fonts, &font_size, &font_linespace);
-
-	header_height = 0;
-	footer_height = (pagenum) ? (1000 * font_size) * font_linespace / 1600 : 0;
-
-	areas = REPORT_PAGE_AREA_NONE; //report_get_page_areas(rotate, &body, NULL, &footer, header_height, footer_height);
 
 	/* Open a printout file. */
 
@@ -1690,178 +1684,6 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			report_handle_print_error(error, out, report->fonts);
 			return;
 		}
-	}
-
-	/* Calculate the page size, positions, transformations etc. */
-
-	/* The printable page width and height, in milli-points and then into OS units. */
-
-	page_width = abs(body.x1 - body.x0);
-	page_height = abs(body.y1 - body.y0);
-
-	error = xfont_convertto_os(page_width, page_height, (int *) &page_width, (int *) &page_height);
-	if (error != NULL) {
-		report_handle_print_error(error, out, report->fonts);
-		return;
-	}
-
-	/* Scale is the scaling factor to get the width of the report to fit onto one page, if required. The scale is
-	 * never more than 1:1 (we never enlarge the print).
-	 */
-
-	if (fit_width) {
-		scale = (1 << 16) * page_width / report->width;
-		scale = (scale > (1 << 16)) ? (1 << 16) : scale;
-	} else {
-		scale = 1 << 16;
-	}
-
-	/* The page width and page height now need to be worked out in terms of what we actually want to print.
-	 * If scaling is on, the width is the report width and the height is the true page height scaled up in
-	 * proportion; otherwise, these stay as the true printable area in OS units.
-	 */
-
-	scaling = 1;
-
-	if (fit_width) {
-		if (page_width < report->width) {
-			page_height = page_height * report->width / page_width;
-			scaling = (double) page_width / (double) report->width;
-		}
-
-		page_width = report->width;
-	}
-
-	/* \TODO -- Apply the header and footer here. */
-
-	/* Clip the page length to be an exect number of lines */
-
-	trim = (page_height % linespace);
-	page_height -= trim;
-	lines_per_page = page_height / linespace;
-
-	/* Work out the number of pages.
-	 *
-	 * Start by deciding the basic number of pages based on usable page width and
-	 * height compared to report width and height.
-	 */
-
-	pages_x = (int) ceil((double) report->width / (double) page_width);
-	pages_y = (int) ceil((double) report->height / (double) page_height);
-
-	/* Adjust the pages vertically to allow for the possibility that
-	 * each page might have a header carried over from the previous page.
-	 * This is just for allocating the pagination memory.
-	 */
-
-	while ((pages_y * lines_per_page) < (line_count + pages_y))
-		pages_y++;
-
-	#ifdef DEBUG
-	debug_printf("Pages required: x=%d, y=%d, lines per page=%d", pages_x, pages_y, lines_per_page);
-	#endif
-
-	pages = malloc(sizeof(struct report_print_pagination) * pages_y);
-
-	page_y = 0;
-	lines = 0;
-	header = -1;
-	bar = -1;
-
-	/* Paginate the file.  Run through the file line by line, tracking whether
-	 * we are in a keep-together block.  If we are when the page changes,
-	 * remember the first line of the block to be the repeated header for
-	 * the top of the next page.
-	 *
-	 * By the end of this, we know exactly how many pages will be required.
-	 *
-	 * \TODO -- There's no protection for running off the end of the
-	 *          pagination array...
-	 */
-
-	for (y = 0; y < line_count; y++) {
-		if (lines <= 0) {
-			#ifdef DEBUG
-			debug_printf("Page %d starts at line %d, repeating heading from line %d", page_y, y, header);
-			#endif
-
-			pages[page_y].header_line = header;
-			pages[page_y].first_line = y;
-			page_y++;
-			lines = lines_per_page;
-			if (header != -1)
-				lines--;
-			pages[page_y - 1].line_count = (header == -1) ? 0 : 1;
-		}
-
-		line_data = report_line_get_info(report->lines, y);
-		if (line_data == NULL)
-			continue;
-
-		if ((line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER) && ((line_data->tab_bar == bar) || (header == -1))) {
-			if (header == -1)
-				header = y;
-		} else {
-			header = -1;
-		}
-
-		#ifdef DEBUG
-		debug_printf("Line %d has header %d", y, header);
-		#endif
-
-		bar = line_data->tab_bar;
-
-		pages[page_y - 1].line_count++;
-		lines --;
-	}
-
-	pages_y = page_y;
-
-	if (pages_x == 1) {
-		string_printf(b1, REPORT_PRINT_BUFFER_LENGTH, "%d", pages_y);
-	} else {
-		string_printf(b2, REPORT_PRINT_BUFFER_LENGTH, "%d", pages_x);
-		string_printf(b3, REPORT_PRINT_BUFFER_LENGTH, "%d", pages_y);
-	}
-
-	/* Set up the transformation matrix scale the page and rotate it as required. */
-
-	footer_width = footer.x1 - footer.x0;
-
-	error = xfont_convertto_os(footer_width, footer_height, (int *) &footer_width, (int *) &footer_height);
-	if (error != NULL) {
-		report_handle_print_error(error, out, report->fonts);
-		return;
-	}
-
-	/* If the page is wider than the footer, then make the footer wider
-	 * as it will get scaled back in the transformation.
-	 */
-
-	if (fit_width && page_width > footer_width)
-		footer_width = page_width;
-
-	f_rect.x0 = 0;
-	f_rect.x1 = footer_width;
-	f_rect.y1 = footer_height;
-	f_rect.y0 = 0;
-
-	if (rotate) {
-		p_trfm.entries[0][0] = 0;
-		p_trfm.entries[0][1] = scale;
-		p_trfm.entries[1][0] = -scale;
-		p_trfm.entries[1][1] = 0;
-
-		f_pos.x = footer.y0;
-		f_pos.y = footer.x0;
-	} else {
-		p_trfm.entries[0][0] = scale;
-		p_trfm.entries[0][1] = 0;
-		p_trfm.entries[1][0] = 0;
-		p_trfm.entries[1][1] = scale;
-
-		f_pos.x = footer.x0;
-		f_pos.y = footer.y0;
 	}
 
 	/* Loop through the pages down the report and across. */

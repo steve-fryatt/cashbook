@@ -2075,10 +2075,12 @@ static os_error *report_plot_page(struct report *report, struct report_page_data
 	if (report == NULL || page == NULL || origin == NULL || clip == NULL)
 		return NULL;
 
+	/* If the page has no regions, there's nothing to do! */
+
 	if (page->first_region == REPORT_REGION_NONE || page->region_count == 0)
 		return NULL;
 
-	debug_printf("Redraw page %u, %u (%d, %d)", page->position.x, page->position.y, origin->x, origin->y);
+	/* Redraw all of the regions on the page. */
 
 	for (region = 0; region < page->region_count; region++) {
 		data = report_region_get_info(report->regions, page->first_region + region);
@@ -2117,30 +2119,44 @@ static os_error *report_plot_page(struct report *report, struct report_page_data
 
 static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
 {
+	os_error	*error = NULL;
+	os_box		outline;
+
 	if (report == NULL || region == NULL)
 		return NULL;
 
-	debug_printf("Redraw region (%d, %d)", origin->x + region->position.x0, origin->y + region->position.y1);
+	/* Draw a box around the region. This is for debugging only! */
 
-	wimp_set_colour(wimp_COLOUR_ORANGE);
-	os_plot(os_MOVE_TO, origin->x + region->position.x0, origin->y + region->position.y1);
-	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, origin->x + region->position.x1, origin->y + region->position.y0);
+	outline.x0 = origin->x + region->position.x0;
+	outline.y0 = origin->y + region->position.y0;
+	outline.x1 = origin->x + region->position.x1;
+	outline.y1 = origin->y + region->position.y1;
+
+	error = xcolourtrans_set_gcol(os_COLOUR_LIGHT_GREEN, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+	if (error != NULL)
+		return error;
+
+	error = report_draw_box(&outline);
+	if (error != NULL)
+		return error;
+
+	/* Replot the region. */
 
 	switch (region->type) {
 	case REPORT_REGION_TYPE_TEXT:
-		report_plot_text_region(report, region, origin, clip);
+		error = report_plot_text_region(report, region, origin, clip);
 		break;
 	case REPORT_REGION_TYPE_PAGE_NUMBER:
-		report_plot_page_number_region(report, region, origin, clip);
+		error = report_plot_page_number_region(report, region, origin, clip);
 		break;
 	case REPORT_REGION_TYPE_LINES:
-		report_plot_lines_region(report, region, origin, clip);
+		error = report_plot_lines_region(report, region, origin, clip);
 		break;
 	case REPORT_REGION_TYPE_NONE:
 		break;
 	}
 
-	return NULL;
+	return error;
 }
 
 
@@ -2362,7 +2378,7 @@ static os_error *report_plot_cell(struct report *report, os_box *outline, char *
 
 	/* Draw a box around the cell. This is for debugging only! */
 
-	error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+	error = xcolourtrans_set_gcol(os_COLOUR_RED, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
 	if (error != NULL)
 		return error;
 

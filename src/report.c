@@ -131,6 +131,21 @@ struct report_print_pagination {
 	int		line_count;						/**< The total line count on the page, including a repeated header.				*/
 };
 
+/**
+ * An area of a report page body, for use while paginating the data.
+ */
+
+struct report_pagination_area {
+	osbool		active;							/**< TRUE if the area is active; FALSE if it is to be skipped.				*/
+
+	int		ypos_offset;						/**< An offset to apply to YPos values for lines, to bring them into region range.	*/
+
+	int		height;							/**< The total height of the contained lines, in OS Units.				*/
+
+	unsigned	top_line;						/**< The first line in the range.							*/
+	unsigned	bottom_line;						/**< The last line in the range.							*/
+};
+
 /* Report status flags. */
 
 enum report_status {
@@ -258,10 +273,14 @@ static os_error *report_plot_cell(struct report *report, os_box *outline, char *
 static osbool report_handle_message_set_printer(wimp_message *message);
 static void report_repaginate_all(struct file_block *file);
 static void report_paginate(struct report *report);
+static void report_add_page_row(struct report *report, struct report_page_layout *layout,
+		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row);
 static int report_get_line_height(struct report *report, struct report_line_data *line_data);
 static void report_toggle_page_view(struct report *report);
 static void report_set_window_extent(struct report *report);
 static osbool report_get_window_extent(struct report *report, int *x, int *y);
+
+
 
 /**
  * Initialise the reporting system.
@@ -2572,19 +2591,7 @@ static void report_repaginate_all(struct file_block *file)
 	}
 }
 
-struct report_pagination_area {
-	osbool		active;
 
-	int		ypos_offset;
-
-	int		height;
-
-	unsigned	top_line;
-	unsigned	bottom_line;
-
-};
-
-static void report_add_page_row(struct report *report, struct report_page_layout *layout, struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row);
 /**
  * Repaginate a report.
  *
@@ -2623,11 +2630,15 @@ static void report_paginate(struct report *report)
 	if (layout.areas == REPORT_PAGE_AREA_NONE)
 		return;
 
+	/* The Body Height is the vertical space, in OS Units, which is available
+	 * to take output lines on the page.
+	 */
+
 	body_height = layout.body.y1 - layout.body.y0;
 
-	/* Start to lay out the report pages. */
-
-	line_count = report_line_get_count(report->lines);
+	/* Initialise areas to hold the main "new" lines on the page, and to hold
+	 * any lines repeated at the top of new pages.
+	 */
 
 	main_area.active = TRUE;
 	main_area.height = 0;
@@ -2646,10 +2657,29 @@ static void report_paginate(struct report *report)
 	pages = 1;
 	used_height = 0;
 
+	/* Process the lines in the report one at a time. */
+
+	line_count = report_line_get_count(report->lines);
+
 	for (line = 0; line < line_count; line++) {
 		line_data = report_line_get_info(report->lines, line);
 		if (line_data == NULL)
 			continue;
+
+		/* Process keep-together lines: if the Keep Together flag is set and there's
+		 * currently no heading line set or the tab bar has changed, record a new
+		 * heading line. Otherwise, if the Keep Together flag isn't set, make sure
+		 * that there's no heading line.
+		 */
+
+		if ((line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER) &&
+				((line_data->tab_bar != repeat_tab_bar) || (repeat_line == REPORT_LINE_NONE))) {
+			repeat_line = line;
+		} else if (!(line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER)) {
+			repeat_line = REPORT_LINE_NONE;
+		}
+
+		repeat_tab_bar = line_data->tab_bar;
 
 		/* If the line falls out of the visible area, package up the current page
 		 * data and add it to the page output before continuing.
@@ -2658,15 +2688,31 @@ static void report_paginate(struct report *report)
 		if ((main_area.ypos_offset - line_data->ypos) > (body_height - used_height)) {
 			report_add_page_row(report, &layout, &main_area, &repeat_area, pages);
 
-			line_data = report_line_get_info(report->lines, line - 1);
-			if (line_data == NULL)
-				continue;
+			pages++;
 
-			main_area.ypos_offset = line_data->ypos;
+			/* Get the previous line's data, and use it to calculate the
+			 * starting position -- line and vertical offset in OS Units of
+			 * all of the Y-Pos values -- for the new page.
+			 */
+
+			if (line > 0) {
+				line_data = report_line_get_info(report->lines, line - 1);
+				if (line_data == NULL)
+					continue;
+
+				main_area.ypos_offset = line_data->ypos;
+			} else {
+				main_area.ypos_offset = 0;
+			}
+
 			main_area.top_line = line;
 
+			/* If there's a line currently being repeated at the top of the
+			 * page, set up the repeat area and update the Used Height to
+			 * reflect the space lost to "new" lines.
+			 */
+
 			if ((repeat_line != REPORT_LINE_NONE) && ((line_data = report_line_get_info(report->lines, repeat_line)) != NULL)) {
-				debug_printf("End of page %d, repeat line %d on next page", pages, repeat_line);
 				repeat_area.active = TRUE;
 				repeat_area.height = report_get_line_height(report, line_data);
 				repeat_area.ypos_offset = line_data->ypos - repeat_area.height;
@@ -2674,12 +2720,11 @@ static void report_paginate(struct report *report)
 				repeat_area.bottom_line = repeat_line;
 				used_height = repeat_area.height;
 			} else {
-				debug_printf("End of page %d, no repeat on next page", pages);
 				repeat_area.active = FALSE;
 				used_height = 0;
 			}
 
-			pages++;
+			/* Re-find the original page data for the remainder of the processing. */
 
 			line_data = report_line_get_info(report->lines, line);
 			if (line_data == NULL)
@@ -2691,25 +2736,40 @@ static void report_paginate(struct report *report)
 		main_area.bottom_line = line;
 		main_area.height = main_area.ypos_offset - line_data->ypos;
 
-		if ((line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER) && ((line_data->tab_bar != repeat_tab_bar) || (repeat_line == REPORT_LINE_NONE))) {
-			repeat_line = line;
-		} else if (!(line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER)) {
-			repeat_line = REPORT_LINE_NONE;
+		/* If this is the first line of the page, and there are no cells on it,
+		 * skip it so that we don't have blank lines at the top of a page.
+		 */
+
+		if (main_area.top_line == line && line_data->cell_count == 0) {
+			main_area.ypos_offset = line_data->ypos;
+			main_area.top_line = line + 1;
 		}
-
-		repeat_tab_bar = line_data->tab_bar;
-
 	}
+
+	/* If there are any lines left to put out on a page, do so. */
 
 	if (line > main_area.top_line)
 		report_add_page_row(report, &layout, &main_area, &repeat_area, pages);
+
+	/* Close the pages and regions off, to finish the pagination. */
 
 	report_page_close(report->pages);
 	report_region_close(report->regions);
 }
 
 
-static void report_add_page_row(struct report *report, struct report_page_layout *layout, struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row)
+/**
+ * Add a row of pages to a report.
+ *
+ * \param *report	The report to be processed.
+ * \param *layout	The page layout details for the report.
+ * \param *main_area	Pointer to data for the "main" line area.
+ * \param *repeat_area	Pointer to data for the "repeat" line area.
+ * \param row		The row number, for page numbering purposes.
+ */
+
+static void report_add_page_row(struct report *report, struct report_page_layout *layout,
+		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row)
 {
 	int column, regions;
 	unsigned first_region, region;
@@ -2717,11 +2777,13 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 
 	report_page_new_row(report->pages);
 
-	debug_printf("Main area height = %d", main_area->height);
-
 	for (column = 0; column < 1; column++) {
 		first_region = REPORT_REGION_NONE;
 		regions = 0;
+
+		/* Add the main page body: any repeated lines at the top, followed
+		 * by the "main" report lines for the page below.
+		 */
 
 		if (layout->areas & REPORT_PAGE_AREA_BODY) {
 			position.x0 = layout->body.x0;
@@ -2755,6 +2817,8 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 				first_region = region;
 		}
 
+		/* Add the page header, if there is one. */
+
 		if (layout->areas & REPORT_PAGE_AREA_HEADER) {
 			region = report_region_add_text(report->regions, &(layout->header), REPORT_TEXTDUMP_NULL);
 			if (region == REPORT_REGION_NONE)
@@ -2766,6 +2830,8 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 				first_region = region;
 		}
 
+		/* Add the page footer, if there is one. */
+
 		if (layout->areas & REPORT_PAGE_AREA_FOOTER) {
 			region = report_region_add_page_number(report->regions, &(layout->footer), row, column + 1);
 			if (region == REPORT_REGION_NONE)
@@ -2776,6 +2842,8 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 			if (first_region == REPORT_REGION_NONE)
 				first_region = region;
 		}
+
+		/* Add the page to the report. */
 
 		report_page_add(report->pages, first_region, regions);
 	}

@@ -610,7 +610,7 @@ void report_delete(struct report *report)
 		ihelp_remove_window(report->toolbar);
 		event_delete_window(report->toolbar);
 		wimp_delete_window(report->toolbar);
-		report->window = NULL;
+		report->toolbar = NULL;
 	}
 
 	if (report->window != NULL) {

@@ -2925,6 +2925,7 @@ static void report_set_window_extent(struct report *report)
 	int			new_xextent, new_yextent, visible_xextent, visible_yextent, new_xscroll, new_yscroll;
 	os_box			extent;
 	wimp_window_state	state;
+	wimp_window_info	window;
 
 	if (report == NULL || report->window == NULL)
 		return;
@@ -2983,6 +2984,11 @@ static void report_set_window_extent(struct report *report)
 	extent.y1 = 0;
 	extent.y0 = -new_yextent;
 	wimp_set_extent(report->window, &extent);
+
+	window.w = report->toolbar;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_xextent;
+	wimp_set_extent(window.w, &(window.extent));
 }
 
 

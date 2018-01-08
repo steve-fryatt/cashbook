@@ -984,6 +984,8 @@ static void report_view_toolbar_prepare(struct report *report)
 	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGES, report->show_pages);
 	icons_set_selected(report->toolbar, REPORT_PANE_PORTRAIT, report->landscape == FALSE);
 	icons_set_selected(report->toolbar, REPORT_PANE_LANDSCAPE, report->landscape == TRUE);
+	icons_set_selected(report->toolbar, REPORT_PANE_FIT_WIDTH, report->fit_width);
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_GRID, report->show_grid);
 }
 
 

@@ -435,7 +435,7 @@ Help.AccList.Curr:\Tcurrent balance column, showing the totals at this date.|MDo
 Help.AccList.Final:\Tfinal balance column, showing the totals at a given date in the future.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
 Help.AccList.Bud:\Tbudget variance column, showing the changes over the budget period.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
 
-Help.AccListTB.Up/Help.HeadListTB.Up/Help.AccViewTB.Up/Help.HeadViewTB.Up/Help.SOrderTB.Up/Help.PresetTB.Up:\Sbring this file's transaction \w to the front.
+Help.AccListTB.Up/Help.HeadListTB.Up/Help.AccViewTB.Up/Help.HeadViewTB.Up/Help.SOrderTB.Up/Help.PresetTB.Up/Help.ReportTB.Up:\Sbring this file's transaction \w to the front.
 Help.AccListTB.ColName/Help.HeadListTB.ColName:\Tname column.|M\Dchange the column width.
 Help.AccListTB.ColStat:\Tstatement balance column.|M\Dchange the column width.
 Help.AccListTB.ColCurr:\Tcurrent balance column.|M\Dchange the column width.
@@ -1014,7 +1014,7 @@ Help.ReportMenu.01:\Rsave the report as spaced ASCII text.
 Help.ReportMenu.02:\Rexport the report as a comma separated values file, for use in spreadsheets.
 Help.ReportMenu.03:\Rexport the report as a tab separated values file, for use in wordprocessors.
 Help.ReportMenu.04:\Sselect whether the display shows the printed page layout of the report.
-Help.ReportMenu.05:\Sprint the report.
+Help.ReportMenu.05/Help.ReportTB.Print:\Sprint the report.
 Help.ReportMenu.06:\Ssave this report definition as a template for future use.
 
 Help.RepListMenu.??:\Schoose this existing report name.

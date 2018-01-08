@@ -93,6 +93,19 @@
 #include "transact.h"
 #include "window.h"
 
+/* Report View Toolbar icons. */
+
+#define REPORT_PANE_PARENT 0
+#define REPORT_PANE_SAVE 1
+#define REPORT_PANE_PRINT 2
+#define REPORT_PANE_SHOW_PAGES 3
+#define REPORT_PANE_PORTRAIT 4
+#define REPORT_PANE_LANDSCAPE 5
+#define REPORT_PANE_FIT_WIDTH 6
+#define REPORT_PANE_SHOW_GRID 7
+#define REPORT_PANE_SHOW_PAGE_NUMBERS 8
+#define REPORT_PANE_FORMAT 9
+
 /* Report view menu */
 
 #define REPVIEW_MENU_FORMAT 0
@@ -123,7 +136,11 @@
 
 #define REPORT_MAX_PAGE_STRING_LEN 64
 
+/**
+ * The height of the Report window toolbar.
+ */
 
+#define REPORT_TOOLBAR_HEIGHT 78
 
 struct report_print_pagination {
 	int		header_line;						/**< A line to repeat as a header at the top of the page, or -1 for none.			*/
@@ -159,6 +176,7 @@ struct report {
 
 	wimp_w			window;
 	char			window_title[WINDOW_TITLE_LENGTH];
+	wimp_w			toolbar;
 
 	/* Report status flags. */
 
@@ -217,6 +235,7 @@ static osbool			report_print_opt_rotate;			/**< TRUE if the graphics format prin
 static osbool			report_print_opt_pagenum;			/**< TRUE if the graphics format print should include page numbers; else FALSE.			*/
 
 wimp_window			*report_window_def = NULL;			/**< The definition for the Report View window.							*/
+wimp_window			*report_toolbar_def = NULL;			/**< The definition for the Report View toolbar.						*/
 
 static wimp_menu		*report_view_menu = NULL;			/**< The Report View window menu handle.							*/
 
@@ -234,6 +253,8 @@ static void			report_reflow_content(struct report *report);
 
 static void			report_view_close_window_handler(wimp_close *close);
 static void			report_view_redraw_handler(wimp_draw *redraw);
+static void			report_view_toolbar_prepare(struct report *report);
+static void			report_view_toolbar_click_handler(wimp_pointer *pointer);
 static void			report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void			report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void			report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
@@ -276,7 +297,8 @@ static void report_paginate(struct report *report);
 static void report_add_page_row(struct report *report, struct report_page_layout *layout,
 		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row);
 static int report_get_line_height(struct report *report, struct report_line_data *line_data);
-static void report_toggle_page_view(struct report *report);
+static void report_set_orientation(struct report *report, osbool landscape);
+static void report_set_page_view(struct report *report, osbool show_pages);
 static void report_set_window_extent(struct report *report);
 static osbool report_get_window_extent(struct report *report, int *x, int *y);
 
@@ -294,6 +316,9 @@ void report_initialise(osspriteop_area *sprites)
 
 	report_window_def = templates_load_window("Report");
 	report_window_def->sprite_area = sprites;
+
+	report_toolbar_def = templates_load_window("ReportTB");
+	report_toolbar_def->sprite_area = sprites;
 
 	report_view_menu = templates_get_menu("ReportViewMenu");
 	ihelp_add_menu(report_view_menu, "ReportMenu");
@@ -381,6 +406,7 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 
 	new->window = NULL;
 	string_copy(new->window_title, title, WINDOW_TITLE_LENGTH);
+	new->toolbar = NULL;
 
 	new->template = template;
 
@@ -399,6 +425,7 @@ void report_close(struct report *report)
 {
 	wimp_window_state	parent;
 	int			xextent, yextent;
+	os_error		*error;
 
 	#ifdef DEBUG
 	debug_printf("\\GClosing report");
@@ -420,7 +447,7 @@ void report_close(struct report *report)
 	debug_printf("Report window width: %d", report->width);
 	#endif
 
-	/* Position the window and open it. */
+	/* Position the report window. */
 
 	transact_get_window_state(report->file, &parent);
 
@@ -433,16 +460,54 @@ void report_close(struct report *report)
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(report->file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
-	report->window = wimp_create_window(report_window_def);
-	windows_open(report->window);
+	error = xwimp_create_window(report_window_def, &(report->window));
+	if (error != NULL) {
+		report_delete(report);
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	/* Position the report toolbar pane. */
+
+	windows_place_as_toolbar(report_window_def, report_toolbar_def, REPORT_TOOLBAR_HEIGHT - 4);
+
+	error = xwimp_create_window(report_toolbar_def, &(report->toolbar));
+	if (error != NULL) {
+		report_delete(report);
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	report_view_toolbar_prepare(report);
+
+	/* Open the two windows. */
+
 	ihelp_add_window(report->window, "Report", NULL);
-	event_add_window_menu(report->window, report_view_menu);
+	ihelp_add_window(report->toolbar, "ReportTB", NULL);
+
+	windows_open(report->window);
+	windows_open_nested_as_toolbar(report->toolbar, report->window,
+			REPORT_TOOLBAR_HEIGHT - 4);
+
+	/* Register event handles for the two windows. */
+
 	event_add_window_user_data(report->window, report);
+	event_add_window_menu(report->window, report_view_menu);
 	event_add_window_close_event(report->window, report_view_close_window_handler);
 	event_add_window_redraw_event(report->window, report_view_redraw_handler);
 	event_add_window_menu_prepare(report->window, report_view_menu_prepare_handler);
 	event_add_window_menu_selection(report->window, report_view_menu_selection_handler);
 	event_add_window_menu_warning(report->window, report_view_menu_warning_handler);
+
+	event_add_window_user_data(report->toolbar, report);
+	event_add_window_menu(report->toolbar, report_view_menu);
+	event_add_window_mouse_event(report->toolbar, report_view_toolbar_click_handler);
+	event_add_window_menu_prepare(report->toolbar, report_view_menu_prepare_handler);
+	event_add_window_menu_selection(report->toolbar, report_view_menu_selection_handler);
+	event_add_window_menu_warning(report->toolbar, report_view_menu_warning_handler);
+
+	event_add_window_icon_radio(report->toolbar, REPORT_PANE_PORTRAIT, FALSE);
+	event_add_window_icon_radio(report->toolbar, REPORT_PANE_LANDSCAPE, FALSE);
 }
 
 
@@ -517,10 +582,6 @@ static void report_close_and_calculate(struct report *report)
 	/* Try to paginate the report. */
 
 	report_paginate(report);
-
-	/* For now, there isn't a window. */
-
-	report->window = NULL;
 }
 
 
@@ -545,7 +606,15 @@ void report_delete(struct report *report)
 
 	file = report->file;
 
+	if (report->toolbar != NULL) {
+		ihelp_remove_window(report->toolbar);
+		event_delete_window(report->toolbar);
+		wimp_delete_window(report->toolbar);
+		report->window = NULL;
+	}
+
 	if (report->window != NULL) {
+		ihelp_remove_window(report->window);
 		event_delete_window(report->window);
 		wimp_delete_window(report->window);
 		report->window = NULL;
@@ -904,6 +973,98 @@ static void report_view_close_window_handler(wimp_close *close)
 
 
 /**
+ * Set the states of the icons in the Report View toolbar.
+ */
+
+static void report_view_toolbar_prepare(struct report *report)
+{
+	if (report == NULL || report->toolbar == NULL)
+		return;
+
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGES, report->show_pages);
+	icons_set_selected(report->toolbar, REPORT_PANE_PORTRAIT, report->landscape == FALSE);
+	icons_set_selected(report->toolbar, REPORT_PANE_LANDSCAPE, report->landscape == TRUE);
+}
+
+
+/**
+ * Process mouse clicks in the Report View pane.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void report_view_toolbar_click_handler(wimp_pointer *pointer)
+{
+	struct report		*report;
+	wimp_window_state	window;
+	wimp_icon_state		icon;
+
+	report = event_get_window_user_data(pointer->w);
+	if (report == NULL)
+		return;
+
+	/* Decode the mouse click. */
+
+	if (pointer->buttons == wimp_CLICK_SELECT) {
+		switch (pointer->i) {
+		case REPORT_PANE_PARENT:
+			transact_bring_window_to_top(report->file);
+			break;
+
+		case REPORT_PANE_SAVE:
+			break;
+
+		case REPORT_PANE_PRINT:
+			report_open_print_window(report, pointer, config_opt_read("RememberValues"));
+			break;
+
+		case REPORT_PANE_SHOW_PAGES:
+			report_set_page_view(report, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_PAGES));
+			break;
+
+		case REPORT_PANE_PORTRAIT:
+			report_set_orientation(report, FALSE);
+			break;
+
+		case REPORT_PANE_LANDSCAPE:
+			report_set_orientation(report, TRUE);
+			break;
+
+		case REPORT_PANE_FIT_WIDTH:
+			break;
+
+		case REPORT_PANE_SHOW_GRID:
+			break;
+
+		case REPORT_PANE_SHOW_PAGE_NUMBERS:
+			break;
+
+		case REPORT_PANE_FORMAT:
+			break;
+		}
+	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+		switch (pointer->i) {
+		case REPORT_PANE_PRINT:
+			report_open_print_window(report, pointer, !config_opt_read("RememberValues"));
+			break;
+
+		case REPORT_PANE_SHOW_PAGES:
+			report_set_page_view(report, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_PAGES));
+			break;
+
+		case REPORT_PANE_PORTRAIT:
+			report_set_orientation(report, FALSE);
+			break;
+
+		case REPORT_PANE_LANDSCAPE:
+			report_set_orientation(report, TRUE);
+			break;
+		}
+	}
+}
+
+
+/**
  * Process menu prepare events in the Report View window.
  *
  * \param w		The handle of the owning window.
@@ -959,7 +1120,7 @@ static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 		break;
 
 	case REPVIEW_MENU_SHOWPAGES:
-		report_toggle_page_view(report);
+		report_set_page_view(report, !report->show_pages);
 		break;
 
 	case REPVIEW_MENU_PRINT:
@@ -1038,7 +1199,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	more = wimp_redraw_window(redraw);
 
 	ox = redraw->box.x0 - redraw->xscroll;
-	oy = redraw->box.y1 - redraw->yscroll;
+	oy = redraw->box.y1 - redraw->yscroll - REPORT_TOOLBAR_HEIGHT;
 
 	while (more) {
 		if (paginated && report->show_pages)
@@ -1249,7 +1410,8 @@ static void report_process_format_window(struct report *report, char *normal, ch
 
 	/* Redraw the window. */
 
-	windows_redraw(report->window);
+	if (report->window != NULL)
+		windows_redraw(report->window);
 }
 
 
@@ -2706,20 +2868,52 @@ static int report_get_line_height(struct report *report, struct report_line_data
 
 
 /**
- * Toggle the state of page view on a report, subject to the necessary
- * pagination data being available.
+ * Set the portrait or landscape orientation of a report.
  *
- * \param *report		The report view to toggle.
+ * \param *report		The report view to update.
+ * \param landscape		TRUE to use landscape; FALSE for portrait.
  */
 
-static void report_toggle_page_view(struct report *report)
+static void report_set_orientation(struct report *report, osbool landscape)
 {
 	if (report == NULL)
 		return;
 
-	report->show_pages = !report->show_pages;
+	report->landscape = landscape;
+
+	/* Tidy up and redraw the windows */
+
+	report_reflow_content(report);
+
+	/* Calculate the new window extents. */
 
 	report_set_window_extent(report);
+	report_view_toolbar_prepare(report);
+
+	/* Redraw the window. */
+
+	if (report->window != NULL)
+		windows_redraw(report->window);
+}
+
+
+/**
+ * Toggle the state of page view on a report, subject to the necessary
+ * pagination data being available.
+ *
+ * \param *report		The report view to toggle.
+ * \param show_pages		TRUE to show pages, FALSE to show a flat view.
+ */
+
+static void report_set_page_view(struct report *report, osbool show_pages)
+{
+	if (report == NULL)
+		return;
+
+	report->show_pages = show_pages;
+
+	report_set_window_extent(report);
+	report_view_toolbar_prepare(report);
 
 	if (report->window != NULL)
 		windows_redraw(report->window);
@@ -2826,6 +3020,9 @@ static osbool report_get_window_extent(struct report *report, int *x, int *y)
 			*y = (height > REPORT_MIN_HEIGHT) ? height : REPORT_MIN_HEIGHT;
 		}
 	}
+
+	if (y != NULL)
+		*y = *y + REPORT_TOOLBAR_HEIGHT;
 
 	return TRUE;
 }

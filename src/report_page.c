@@ -578,7 +578,7 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 	}
 
 	debug_printf("Calculated page size: x=%d, y=%d", handle->page_size.x, handle->page_size.y);
-	debug_printf("Body area: x0=%x, y0=%d, x1=%d, y1=%d", handle->body.x0, handle->body.y0, handle->body.x1, handle->body.y1);
+	debug_printf("Body area: x0=%d, y0=%d, x1=%d, y1=%d", handle->body.x0, handle->body.y0, handle->body.x1, handle->body.y1);
 
 	if (header_size > 0) {
 		handle->header.x0 = handle->body.x0;

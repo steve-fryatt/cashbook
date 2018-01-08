@@ -1042,6 +1042,7 @@ static void report_view_toolbar_click_handler(wimp_pointer *pointer)
 			break;
 
 		case REPORT_PANE_FORMAT:
+			report_open_format_window(report, pointer);
 			break;
 		}
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {

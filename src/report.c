@@ -2883,7 +2883,7 @@ static void report_set_orientation(struct report *report, osbool landscape)
 
 	/* Tidy up and redraw the windows */
 
-	report_reflow_content(report);
+	report_paginate(report);
 
 	/* Calculate the new window extents. */
 

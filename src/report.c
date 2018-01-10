@@ -1787,24 +1787,16 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 {
 	os_error			*error;
 	os_fw				out = 0;
-	os_box				p_rect, f_rect, rect, body = {0, 0, 0, 0}, footer = {0, 0, 0, 0};
-	os_hom_trfm			p_trfm;
-	os_coord			p_pos, f_pos;
+	os_coord			p_pos, origin;
+	os_box				redraw;
 	char				title[REPORT_PRINT_TITLE_LENGTH];
-	char				b0[REPORT_PRINT_BUFFER_LENGTH], b1[REPORT_PRINT_BUFFER_LENGTH], b2[REPORT_PRINT_BUFFER_LENGTH], b3[REPORT_PRINT_BUFFER_LENGTH];
 	pdriver_features		features;
 	osbool				more;
-	int				width, offset;
-	int				pages_x, pages_y, lines_per_page, trim, page_x, page_y, lines, header;
-	int				top, base, y, linespace, bar;
-	int				font_size, font_linespace;
-	unsigned int			footer_width, footer_height, header_height, page_width, page_height, scale, page_xstart, line;
-	double				scaling;
-	struct report_print_pagination	*pages;
-	enum report_page_area		areas, area;
-	size_t				line_count;
-	struct report_line_data		*line_data;
-
+	size_t				page_count;
+	unsigned			page, region;
+	os_hom_trfm			*scaling_matrix;
+	struct report_page_data		*page_data;
+	struct report_region_data	*region_data;
 
 	/* If the report hasn't been paginated, we can't continue. */
 
@@ -1850,6 +1842,73 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			return;
 		}
 	}
+
+	/* Begin the process of outputting the pages. */
+
+	page_count = report_page_get_count(report->pages);
+
+	for (page = 0; page < page_count; page++) {
+		page_data = report_page_get_info(report->pages, page);
+		if (page_data == NULL)
+			continue;
+
+		scaling_matrix = report_page_get_transform(report->pages);
+		if (scaling_matrix == NULL)
+			continue;
+
+		for (region = page_data->first_region; region < page_data->first_region + page_data->region_count; region++) {
+			region_data = report_region_get_info(report->regions, region);
+			if (region_data == NULL)
+				continue;
+
+			if (report->landscape) {
+				p_pos.x = report_page_scale_dimension(report->pages, region_data->position.y0) * 400;
+				p_pos.y = report_page_scale_dimension(report->pages, region_data->position.x0) * 400;
+			} else {
+				p_pos.x = report_page_scale_dimension(report->pages, region_data->position.x0) * 400;
+				p_pos.y = report_page_scale_dimension(report->pages, region_data->position.y0) * 400;
+			}
+
+			error = xpdriver_give_rectangle(region, &(region_data->position), scaling_matrix, &p_pos, os_COLOUR_WHITE);
+			if (error != NULL) {
+				report_handle_print_error(error, out, report->fonts);
+				return;
+			}
+		}
+
+		error = xpdriver_draw_page(1, &redraw, 0, 0, &more, (int *) &region);
+		if (error != NULL) {
+			report_handle_print_error(error, out, report->fonts);
+			return;
+		}
+
+		/* Perform the redraw. */
+
+		origin.x = 0;
+		origin.y = 0;
+
+		while (more) {
+			region_data = report_region_get_info(report->regions, region);
+			if (region_data == NULL)
+				continue;
+
+			/* Plot the region. */
+
+			error = report_plot_region(report, region_data, &origin, &redraw);
+			if (error != NULL) {
+				report_handle_print_error(error, out, report->fonts);
+				return;
+			}
+
+			error = xpdriver_get_rectangle(&redraw, &more, (int *) &region);
+			if (error != NULL) {
+				report_handle_print_error(error, out, report->fonts);
+				return;
+			}
+		}
+	}
+
+#if 0
 
 	/* Loop through the pages down the report and across. */
 
@@ -1985,7 +2044,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			page_x++;
 		}
 	}
-
+#endif
 	/* Terminate the print job. */
 
 	error = xpdriver_end_jobw(out);
@@ -2000,8 +2059,6 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	xosfind_closew(out);
 
 	report_fonts_lose(report->fonts);
-
-	free(pages);
 
 	hourglass_off();
 }

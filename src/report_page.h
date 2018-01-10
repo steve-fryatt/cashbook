@@ -191,6 +191,16 @@ osbool report_page_add(struct report_page_block *handle, unsigned first_region, 
 
 
 /**
+ * Return the number of pages held in a report page data block.
+ *
+ * \param *handle		The block to query.
+ * \return			The number of pages in the block, or 0.
+ */
+
+size_t report_page_get_count(struct report_page_block *handle);
+
+
+/**
  * Return details about a page held in a report page data block. The data
  * returned is transient, and not guaracteed to remain valid if the flex
  * heap shifts.
@@ -300,6 +310,28 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
  */
 
 enum report_page_area report_page_get_areas(struct report_page_block *handle, struct report_page_layout *layout);
+
+
+/**
+ * Return a volatile pointer to the transformation matrix to use for
+ * printing a given page.
+ *
+ * \param *handle		The report page instance to query.
+ * \return			Pointer to the matrix, or NULL.
+ */
+
+os_hom_trfm *report_page_get_transform(struct report_page_block *handle);
+
+
+/**
+ * Scale a dimension to match the print scale for a given page.
+ *
+ * \param *handle		The report page to use for scaling.
+ * \param dimension		The dimension to be scaled.
+ * \return			The scaled dimension, or 0.
+ */
+
+int report_page_scale_dimension(struct report_page_block *handle, int dimension);
 
 #endif
 

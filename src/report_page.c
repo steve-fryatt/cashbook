@@ -98,6 +98,7 @@ struct report_page_block {
 	os_box			header;			/**< The location of the page header.				*/
 	os_box			footer;			/**< The location of the page footer.				*/
 
+	int			scale;			/**< The print scale, as used in the transformation matrix.	*/
 	os_hom_trfm		print_transform;	/**< The printer driver transformation matrix.			*/
 
 	osbool			landscape;		/**< TRUE if the layout is landscape; FALSE if portrait.	*/
@@ -286,6 +287,22 @@ osbool report_page_add(struct report_page_block *handle, unsigned first_region, 
 		handle->page_layout.x = handle->column;
 
 	return TRUE;
+}
+
+
+/**
+ * Return the number of pages held in a report page data block.
+ *
+ * \param *handle		The block to query.
+ * \return			The number of pages in the block, or 0.
+ */
+
+size_t report_page_get_count(struct report_page_block *handle)
+{
+	if (handle == NULL || handle->pages == NULL)
+		return 0;
+
+	return handle->page_count;
 }
 
 
@@ -499,7 +516,7 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 	os_error			*error;
 	osbool				margin_fail = FALSE;
 	int				page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
-	int				body_width, scale;
+	int				body_width;
 
 
 	if (handle == NULL)
@@ -613,37 +630,37 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 	body_width = handle->body.x1 - handle->body.x0;
 
 	if (target_width <= body_width) {
-		scale = 1 << 16;
-		debug_printf("Scaled 1:1 (0x%x)", scale);
+		handle->scale = 1 << 16;
+		debug_printf("Scaled 1:1 (0x%x)", handle->scale);
 	} else {
-		scale = (1 << 16) * body_width / target_width;
-		debug_printf("Scaled down (0x%x)", scale);
+		handle->scale = (1 << 16) * body_width / target_width;
+		debug_printf("Scaled down (0x%x)", handle->scale);
 
-		handle->display_size.x = handle->display_size.x * (1 << 16) / scale;
-		handle->display_size.y = handle->display_size.y * (1 << 16) / scale;
+		handle->display_size.x = handle->display_size.x * (1 << 16) / handle->scale;
+		handle->display_size.y = handle->display_size.y * (1 << 16) / handle->scale;
 
 		if (handle->active_areas & REPORT_PAGE_AREA_BODY)
-			report_page_scale_area(&(handle->body), scale);
+			report_page_scale_area(&(handle->body), handle->scale);
 
 		if (handle->active_areas & REPORT_PAGE_AREA_HEADER)
-			report_page_scale_area(&(handle->header), scale);
+			report_page_scale_area(&(handle->header), handle->scale);
 
 		if (handle->active_areas & REPORT_PAGE_AREA_FOOTER)
-			report_page_scale_area(&(handle->footer), scale);
+			report_page_scale_area(&(handle->footer), handle->scale);
 	}
 
 	/* Set the transformation matrix up, to handle any rotated printing. */
 
 	if (landscape) {
 		handle->print_transform.entries[0][0] = 0;
-		handle->print_transform.entries[0][1] = scale;
-		handle->print_transform.entries[1][0] = -scale;
+		handle->print_transform.entries[0][1] = handle->scale;
+		handle->print_transform.entries[1][0] = -handle->scale;
 		handle->print_transform.entries[1][1] = 0;
 	} else {
-		handle->print_transform.entries[0][0] = scale;
+		handle->print_transform.entries[0][0] = handle->scale;
 		handle->print_transform.entries[0][1] = 0;
 		handle->print_transform.entries[1][0] = 0;
-		handle->print_transform.entries[1][1] = scale;
+		handle->print_transform.entries[1][1] = handle->scale;
 	}
 
 	return NULL;
@@ -687,6 +704,40 @@ enum report_page_area report_page_get_areas(struct report_page_block *handle, st
 	}
 
 	return handle->active_areas;
+}
+
+
+/**
+ * Return a volatile pointer to the transformation matrix to use for
+ * printing a given page.
+ *
+ * \param *handle		The report page instance to query.
+ * \return			Pointer to the matrix, or NULL.
+ */
+
+os_hom_trfm *report_page_get_transform(struct report_page_block *handle)
+{
+	if (handle == NULL)
+		return NULL;
+
+	return &(handle->print_transform);
+}
+
+
+/**
+ * Scale a dimension to match the print scale for a given page.
+ *
+ * \param *handle		The report page to use for scaling.
+ * \param dimension		The dimension to be scaled.
+ * \return			The scaled dimension, or 0.
+ */
+
+int report_page_scale_dimension(struct report_page_block *handle, int dimension)
+{
+	if (handle == NULL)
+		return 0;
+
+	return dimension * (1 << 16) / handle->scale;
 }
 
 

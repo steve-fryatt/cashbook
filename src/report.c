@@ -142,6 +142,13 @@
 
 #define REPORT_TOOLBAR_HEIGHT 78
 
+/**
+ * The margin around the outside of a print ractangle, in OS Units.
+ */
+
+#define REPORT_PRINT_RECTANGLE_MARGIN 2
+
+
 struct report_print_pagination {
 	int		header_line;						/**< A line to repeat as a header at the top of the page, or -1 for none.			*/
 	int		first_line;						/**< The first non-repeated line on the page from the report document.				*/
@@ -1787,8 +1794,8 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 {
 	os_error			*error;
 	os_fw				out = 0;
-	os_coord			p_pos, origin;
-	os_box				redraw;
+	os_coord			position, origin;
+	os_box				redraw, rectangle;
 	char				title[REPORT_PRINT_TITLE_LENGTH];
 	pdriver_features		features;
 	osbool				more;
@@ -1861,15 +1868,21 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			if (region_data == NULL)
 				continue;
 
-			if (report->landscape) {
-				p_pos.x = report_page_scale_dimension(report->pages, region_data->position.y0) * 400;
-				p_pos.y = report_page_scale_dimension(report->pages, region_data->position.x0) * 400;
-			} else {
-				p_pos.x = report_page_scale_dimension(report->pages, region_data->position.x0) * 400;
-				p_pos.y = report_page_scale_dimension(report->pages, region_data->position.y0) * 400;
-			}
+			/* Add a small margin around the region, to allow for scaling errors. */
 
-			error = xpdriver_give_rectangle(region, &(region_data->position), scaling_matrix, &p_pos, os_COLOUR_WHITE);
+			rectangle.x0 = region_data->position.x0 - REPORT_PRINT_RECTANGLE_MARGIN;
+			rectangle.y0 = region_data->position.y0 - REPORT_PRINT_RECTANGLE_MARGIN;
+			rectangle.x1 = region_data->position.x1 + REPORT_PRINT_RECTANGLE_MARGIN;
+			rectangle.y1 = region_data->position.y1 + REPORT_PRINT_RECTANGLE_MARGIN;
+
+			/* Calculate the position of the region's rectangle on screen, and pass
+			 * the details to the printer driver.
+			 */
+
+			if (!report_page_calculate_position(report->pages, &rectangle, report->landscape, &position))
+				continue;
+
+			error = xpdriver_give_rectangle(region, &rectangle, scaling_matrix, &position, os_COLOUR_WHITE);
 			if (error != NULL) {
 				report_handle_print_error(error, out, report->fonts);
 				return;
@@ -1908,143 +1921,6 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 		}
 	}
 
-#if 0
-
-	/* Loop through the pages down the report and across. */
-
-	for (page_y = 0; page_y < pages_y; page_y++) {
-		page_x = 0;
-
-		for (page_xstart = 0; page_xstart < report->width; page_xstart += page_width) {
-			/* Calculate the area of the page to print and set up the print rectangle.  If the page is on the edge,
-			 * crop the area down to save memory.
-			 */
-
-			p_rect.x0 = page_xstart;
-			p_rect.x1 = (page_xstart + page_width <= report->width) ? page_xstart + page_width : report->width;
-			p_rect.y1 = (pages[page_y].header_line == -1) ? 0 : linespace;
-			p_rect.y0 = p_rect.y1 - (pages[page_y].line_count * linespace);
-
-			/* The bottom y edge is done specially, because we also need to set the print position.  If the page is at the
-			 * edge, it is cropped down to save on memory.
-			 *
-			 * The page origin will depend on rotation and the amount of text on the page.  For a full page, the
-			 * origin is placed at one corner (either bottom left for a portrait, or bottom right for a landscape).
-			 * For part pages, the origin is shifted left or up by the proportion of the page dimension (in milli-points)
-			 * taken from the proportion of OS units used for layout.
-			 */
-
-			if (rotate) {
-				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1) + trim) * scaling, 0, (int *) &offset, NULL);
-				if (error != NULL) {
-					report_handle_print_error(error, out, report->fonts);
-					return;
-				}
-
-				p_pos.x = body.y0 - offset;
-				p_pos.y = body.x0;
-			} else {
-				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1) + trim) * scaling, 0, (int *) &offset, NULL);
-				if (error != NULL) {
-					report_handle_print_error(error, out, report->fonts);
-					return;
-				}
-
-				p_pos.x = body.x0;
-				p_pos.y = body.y0 + offset;
-			}
-
-			/* Pass the page details to the printer driver and start to draw the page. */
-
-			error = xpdriver_give_rectangle(REPORT_PAGE_AREA_BODY, &p_rect, &p_trfm, &p_pos, os_COLOUR_WHITE);
-			if (error != NULL) {
-				report_handle_print_error(error, out, report->fonts);
-				return;
-			}
-
-			if (areas & REPORT_PAGE_AREA_FOOTER) {
-				error = xpdriver_give_rectangle(REPORT_PAGE_AREA_FOOTER, &f_rect, &p_trfm, &f_pos, os_COLOUR_WHITE);
-				if (error != NULL) {
-					report_handle_print_error(error, out, report->fonts);
-					return;
-				}
-			}
-
-			error = xpdriver_draw_page(1, &rect, 0, 0, &more, (int *) &area);
-
-			/* Perform the redraw. */
-
-			while (more) {
-				switch (area) {
-				case REPORT_PAGE_AREA_BODY:
-					/* Calculate the rows to redraw. */
-
-					top = -rect.y1 / linespace;
-					if (top < -1)
-						top = -1;
-					base = (linespace + (linespace / 2) - rect.y0 ) / linespace;
-
-					error = report_fonts_set_colour(report->fonts, os_COLOUR_BLACK, os_COLOUR_WHITE);
-					if (error != NULL) {
-						report_handle_print_error(error, out, report->fonts);
-						return;
-					}
-
-					/* Redraw the data to the printer. */
-
-					for (y = top; (pages[page_y].first_line + y) < line_count && y <= base; y++) {
-						if (y < 0)
-							line = pages[page_y].header_line;
-						else
-							line = pages[page_y].first_line + y;
-					//	error = report_plot_line(report, line, REPORT_LEFT_MARGIN, 0);
-						error = NULL;
-						if (error != NULL) {
-							report_handle_print_error(error, out, report->fonts);
-							return;
-						}
-					}
-					break;
-
-				case REPORT_PAGE_AREA_FOOTER:
-					string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y);
-					if (pages_x == 1) {
-						string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y + 1);
-						msgs_param_lookup("Page1", title, REPORT_PRINT_TITLE_LENGTH, b0, b1, NULL, NULL);
-					} else {
-						string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_x + 1);
-						string_printf(b1, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y + 1);
-						msgs_param_lookup("Page2", title, REPORT_PRINT_TITLE_LENGTH, b0, b1, b2, b3);
-					}
-
-					error = report_fonts_get_string_width(report->fonts, title, REPORT_CELL_FLAGS_NONE, &width);
-					if (error != NULL) {
-						report_handle_print_error(error, out, report->fonts);
-						return;
-					}
-
-					error = report_fonts_paint_text(report->fonts, title, (footer_width - width) / 2, 4, REPORT_CELL_FLAGS_NONE);
-					if (error != NULL) {
-						report_handle_print_error(error, out, report->fonts);
-						return;
-					}
-					break;
-
-				default:
-					break;
-				}
-
-				error = xpdriver_get_rectangle(&rect, &more, (int *) &area);
-				if (error != NULL) {
-					report_handle_print_error(error, out, report->fonts);
-					return;
-				}
-			}
-
-			page_x++;
-		}
-	}
-#endif
 	/* Terminate the print job. */
 
 	error = xpdriver_end_jobw(out);

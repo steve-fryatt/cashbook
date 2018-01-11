@@ -324,14 +324,16 @@ os_hom_trfm *report_page_get_transform(struct report_page_block *handle);
 
 
 /**
- * Scale a dimension to match the print scale for a given page.
+ * Rotate and scale a region outline to convert it into a page origin.
  *
  * \param *handle		The report page to use for scaling.
- * \param dimension		The dimension to be scaled.
- * \return			The scaled dimension, or 0.
+ * \param *region		The region to be calculated.
+ * \param landscape		TRUE if the output is landscape format; FALSE for portrait.
+ * \param *position		Pointer to struct to take the result.
+ * \return			TRUE if valid data was returned; otherwise FALSE.
  */
 
-int report_page_scale_dimension(struct report_page_block *handle, int dimension);
+osbool report_page_calculate_position(struct report_page_block *handle, os_box *region, osbool landscape, os_coord *position);
 
 #endif
 

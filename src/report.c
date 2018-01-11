@@ -2007,14 +2007,6 @@ static os_error *report_plot_page(struct report *report, struct report_page_data
 		if (data == NULL)
 			continue;
 
-		/* Check if the region falls into the redraw clip window. */
-
-		if (origin->x + data->position.x0 > clip->x1 ||
-				origin->x + data->position.x1 < clip->x0 ||
-				origin->y + data->position.y0 > clip->y1 ||
-				origin->y + data->position.y1 < clip->y0)
-			continue;
-
 		/* Plot the region. */
 
 		error = report_plot_region(report, data, origin, clip);
@@ -2043,6 +2035,14 @@ static os_error *report_plot_region(struct report *report, struct report_region_
 	os_box		outline;
 
 	if (report == NULL || region == NULL)
+		return NULL;
+
+	/* Check if the region falls into the redraw clip window. */
+
+	if (origin->x + region->position.x0 > clip->x1 ||
+			origin->x + region->position.x1 < clip->x0 ||
+			origin->y + region->position.y0 > clip->y1 ||
+			origin->y + region->position.y1 < clip->y0)
 		return NULL;
 
 	/* Draw a box around the region. This is for debugging only! */

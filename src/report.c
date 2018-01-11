@@ -1882,7 +1882,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			if (!report_page_calculate_position(report->pages, &rectangle, report->landscape, &position))
 				continue;
 
-			error = xpdriver_give_rectangle(region, &rectangle, scaling_matrix, &position, os_COLOUR_WHITE);
+			error = xpdriver_give_rectangle(region, &rectangle, scaling_matrix, &position, os_COLOUR_TRANSPARENT);
 			if (error != NULL) {
 				report_handle_print_error(error, out, report->fonts);
 				return;

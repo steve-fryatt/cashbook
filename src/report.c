@@ -756,6 +756,38 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 			text++;
 
 			switch (*text++) {
+			case 'b':
+				cell_flags |= REPORT_CELL_FLAGS_BOLD;
+				break;
+
+			case 'c':
+				cell_flags |= REPORT_CELL_FLAGS_CENTRE;
+				break;
+
+			case 'd':
+				cell_flags |= REPORT_CELL_FLAGS_NUMERIC;
+				break;
+
+			case 'i':
+				cell_flags |= REPORT_CELL_FLAGS_INDENT;
+				break;
+
+			case 'k':
+				line_flags |= REPORT_LINE_FLAGS_KEEP_TOGETHER;
+				break;
+
+			case 'o':
+				cell_flags |= REPORT_CELL_FLAGS_ITALIC;
+				break;
+
+			case 'r':
+				cell_flags |= REPORT_CELL_FLAGS_RIGHT;
+				break;
+
+			case 's':
+				cell_flags |= REPORT_CELL_FLAGS_SPILL;
+				break;
+
 			case 't':
 				*c++ = '\0';
 
@@ -768,32 +800,8 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 				cell_flags = REPORT_CELL_FLAGS_NONE;
 				break;
 
-			case 'i':
-				cell_flags |= REPORT_CELL_FLAGS_INDENT;
-				break;
-
-			case 'b':
-				cell_flags |= REPORT_CELL_FLAGS_BOLD;
-				break;
-
 			case 'u':
 				cell_flags |= REPORT_CELL_FLAGS_UNDERLINE;
-				break;
-
-			case 'r':
-				cell_flags |= REPORT_CELL_FLAGS_RIGHT;
-				break;
-
-			case 'd':
-				cell_flags |= REPORT_CELL_FLAGS_NUMERIC;
-				break;
-
-			case 's':
-				cell_flags |= REPORT_CELL_FLAGS_SPILL;
-				break;
-
-			case 'k':
-				line_flags |= REPORT_LINE_FLAGS_KEEP_TOGETHER;
 				break;
 			}
 		} else {

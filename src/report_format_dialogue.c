@@ -65,7 +65,6 @@
 #define REPORT_FORMAT_DIALOGUE_BFONTMENU 5
 #define REPORT_FORMAT_DIALOGUE_FONTSIZE 7
 #define REPORT_FORMAT_DIALOGUE_FONTSPACE 10
-#define REPORT_FORMAT_DIALOGUE_SHOWGRID 14
 
 /* Global variables. */
 
@@ -113,16 +112,10 @@ static int			report_format_dialogue_initial_size;
 static int			report_format_dialogue_initial_spacing;
 
 /**
- * The starting show grid setting.
- */
-
-static osbool			report_format_dialogue_initial_grid;
-
-/**
  * Callback function to return updated settings.
  */
 
-static void			(*report_format_dialogue_callback)(struct report *, char *, char *, int, int, osbool);
+static void			(*report_format_dialogue_callback)(struct report *, char *, char *, int, int);
 
 /**
  * The report to which the currently open Report Format window belongs.
@@ -150,7 +143,7 @@ static void	report_format_dialogue_process(void);
 void report_format_dialogue_initialise(void)
 {
 	report_format_dialogue_window = templates_create_window("RepFormat");
-	ihelp_add_window (report_format_dialogue_window, "RepFormat", NULL);
+	ihelp_add_window(report_format_dialogue_window, "RepFormat", NULL);
 	event_add_window_mouse_event(report_format_dialogue_window, report_format_dialogue_click_handler);
 	event_add_window_key_event(report_format_dialogue_window, report_format_dialogue_keypress_handler);
 	event_add_window_menu_prepare(report_format_dialogue_window, report_format_dialogue_menu_prepare_handler);
@@ -171,19 +164,16 @@ void report_format_dialogue_initialise(void)
  * \param *bold			The initial bold font name.
  * \param size			The initial font size.
  * \param spacing		The initial line spacing.
- * \param grid			The initial grid setting.
  */
 
-void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int, osbool),
-		char *normal, char *bold, int size, int spacing, osbool grid)
+void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int),
+		char *normal, char *bold, int size, int spacing)
 {
 	string_copy(report_format_dialogue_initial_normal, normal, font_NAME_LIMIT);
 	string_copy(report_format_dialogue_initial_bold, bold, font_NAME_LIMIT);
 
 	report_format_dialogue_initial_size = size;
 	report_format_dialogue_initial_spacing = spacing;
-
-	report_format_dialogue_initial_grid = grid;
 
 	report_format_dialogue_callback = callback;
 	report_format_dialogue_report = report;
@@ -367,8 +357,6 @@ static void report_format_dialogue_fill(void)
 
 	icons_printf(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_FONTSIZE, "%d", report_format_dialogue_initial_size / 16);
 	icons_printf(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_FONTSPACE, "%d", report_format_dialogue_initial_spacing);
-
-	icons_set_selected(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_SHOWGRID, report_format_dialogue_initial_grid);
 }
 
 
@@ -390,13 +378,10 @@ static void report_format_dialogue_process(void)
 	report_format_dialogue_initial_size = atoi(icons_get_indirected_text_addr(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_FONTSIZE)) * 16;
 	report_format_dialogue_initial_spacing = atoi(icons_get_indirected_text_addr(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_FONTSPACE));
 
-	report_format_dialogue_initial_grid = icons_get_selected(report_format_dialogue_window, REPORT_FORMAT_DIALOGUE_SHOWGRID);
-
 	/* Call the client back. */
 
 	report_format_dialogue_callback(report_format_dialogue_report,
 			report_format_dialogue_initial_normal, report_format_dialogue_initial_bold, 
-			report_format_dialogue_initial_size, report_format_dialogue_initial_spacing,
-			report_format_dialogue_initial_grid);
+			report_format_dialogue_initial_size, report_format_dialogue_initial_spacing);
 }
 

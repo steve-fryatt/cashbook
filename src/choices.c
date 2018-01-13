@@ -152,7 +152,6 @@
 #define CHOICE_ICON_BFONTMENU 7
 #define CHOICE_ICON_FONTSIZE 9
 #define CHOICE_ICON_FONTSPACE 12
-#define CHOICE_ICON_SHOWGRID 14
 
 /* Transaction pane icons. */
 
@@ -220,7 +219,7 @@ void choices_initialise(void)
 	wimp_menu	*date_menu;
 
 	choices_colpick_window = templates_create_window("Colours");
-	ihelp_add_window (choices_colpick_window, "Colours", NULL);
+	ihelp_add_window(choices_colpick_window, "Colours", NULL);
 	event_add_window_mouse_event(choices_colpick_window, choices_colpick_click_handler);
 
 	choices_window = templates_create_window("Choices");
@@ -229,7 +228,7 @@ void choices_initialise(void)
 	event_add_window_key_event(choices_window, choices_keypress_handler);
 
 	choices_panes[CHOICE_PANE_GENERAL] = templates_create_window("Choices0");
-	ihelp_add_window (choices_panes[CHOICE_PANE_GENERAL], "Choices0", NULL);
+	ihelp_add_window(choices_panes[CHOICE_PANE_GENERAL], "Choices0", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_GENERAL], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_GENERAL], choices_keypress_handler);
 
@@ -238,17 +237,17 @@ void choices_initialise(void)
 	event_add_window_icon_popup(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_DATEFORMAT_POP, date_menu, CHOICE_ICON_DATEFORMAT, NULL);
 
 	choices_panes[CHOICE_PANE_CURRENCY] = templates_create_window("Choices1");
-	ihelp_add_window (choices_panes[CHOICE_PANE_CURRENCY], "Choices1", NULL);
+	ihelp_add_window(choices_panes[CHOICE_PANE_CURRENCY], "Choices1", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_CURRENCY], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_CURRENCY], choices_keypress_handler);
 
 	choices_panes[CHOICE_PANE_SORDER] = templates_create_window("Choices2");
-	ihelp_add_window (choices_panes[CHOICE_PANE_SORDER], "Choices2", NULL);
+	ihelp_add_window(choices_panes[CHOICE_PANE_SORDER], "Choices2", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_SORDER], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_SORDER], choices_keypress_handler);
 
 	choices_panes[CHOICE_PANE_PRINT] = templates_create_window("Choices3");
-	ihelp_add_window (choices_panes[CHOICE_PANE_PRINT], "Choices3", NULL);
+	ihelp_add_window(choices_panes[CHOICE_PANE_PRINT], "Choices3", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_PRINT], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_PRINT], choices_keypress_handler);
 	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_STANDARD, TRUE);
@@ -260,14 +259,14 @@ void choices_initialise(void)
 	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MMM, TRUE);
 
 	choices_panes[CHOICE_PANE_TRANSACT] = templates_create_window("Choices4");
-	ihelp_add_window (choices_panes[CHOICE_PANE_TRANSACT], "Choices4", NULL);
+	ihelp_add_window(choices_panes[CHOICE_PANE_TRANSACT], "Choices4", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_TRANSACT], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_TRANSACT], choices_keypress_handler);
 	event_add_window_menu_prepare(choices_panes[CHOICE_PANE_TRANSACT], choices_menu_prepare_handler);
 	event_add_window_icon_popup(choices_panes[CHOICE_PANE_TRANSACT], CHOICE_ICON_HILIGHTMEN, (wimp_menu *) choices_colpick_window, -1, NULL);
 
 	choices_panes[CHOICE_PANE_REPORT] = templates_create_window("Choices5");
-	ihelp_add_window (choices_panes[CHOICE_PANE_REPORT], "Choices5", NULL);
+	ihelp_add_window(choices_panes[CHOICE_PANE_REPORT], "Choices5", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_REPORT], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_REPORT], choices_keypress_handler);
 	event_add_window_menu_prepare(choices_panes[CHOICE_PANE_REPORT], choices_menu_prepare_handler);
@@ -277,7 +276,7 @@ void choices_initialise(void)
 	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BFONTMENU, choices_font_menu, -1, NULL);
 
 	choices_panes[CHOICE_PANE_ACCOUNT] = templates_create_window("Choices6");
-	ihelp_add_window (choices_panes[CHOICE_PANE_ACCOUNT], "Choices6", NULL);
+	ihelp_add_window(choices_panes[CHOICE_PANE_ACCOUNT], "Choices6", NULL);
 	event_add_window_mouse_event(choices_panes[CHOICE_PANE_ACCOUNT], choices_click_handler);
 	event_add_window_key_event(choices_panes[CHOICE_PANE_ACCOUNT], choices_keypress_handler);
 	event_add_window_menu_prepare(choices_panes[CHOICE_PANE_ACCOUNT], choices_menu_prepare_handler);
@@ -718,8 +717,6 @@ static void choices_set_window(void)
 			config_int_read("ReportFontSize"));
 	icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE, "%d",
 			config_int_read("ReportFontLinespace"));
-	icons_set_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_SHOWGRID,
-			config_opt_read("ReportShowGrid"));
 
 	/* Set the transaction pane up. */
 
@@ -871,8 +868,6 @@ static void choices_read_window(void)
 			atoi(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSIZE)));
 	config_int_set("ReportFontLinespace",
                   atoi(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE)));
-	config_opt_set("ReportShowGrid",
-			icons_get_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_SHOWGRID));
 
 	/* Read the transaction pane. */
 

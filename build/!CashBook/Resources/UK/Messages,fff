@@ -769,7 +769,6 @@ Help.Choices5.BFont:\Tfont used for bold text in reports and printing.
 Help.Choices5.BFontMenu:\Schange the font used for bold text in reports and printing.
 Help.Choices5.Size:\Tfont size for reports and printing, in points.
 Help.Choices5.Spacing:\Tline spacing for reports and printing, as a percentage of the font size.
-Help.Choices5.Grid:\Stoggle the use of a grid around data in reports and printing.
 
 Help.Choices6.HiAcc:\Stoggle the highlighting of overdrawn accounts or analysis headings in the account and heading list \ws.
 Help.Choices6.HiAccCol1/Help.Choices6.HiAccCol2:\Tcolour that overdrawn accounts and analysis headings are highlighted.
@@ -788,7 +787,6 @@ Help.RepFormat.BFont:\Tfont used for bold text in the report.
 Help.RepFormat.BFontMenu:\Schange the font used for bold text in the report.
 Help.RepFormat.Size:\Tfont size for the report, in points.
 Help.RepFormat.Spacing:\Tline spacing for the report, as a percentage of the font size.
-Help.RepFormat.Grid:\Stoggle the display of a grid around the results.
 Help.RepFormat.Update:\Schange the font settings used in the report.
 
 Help.AccEnter:\Taccount ident entry window, which allows account idents to be typed into fields easily.

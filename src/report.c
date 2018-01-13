@@ -102,9 +102,10 @@
 #define REPORT_PANE_PORTRAIT 4
 #define REPORT_PANE_LANDSCAPE 5
 #define REPORT_PANE_FIT_WIDTH 6
-#define REPORT_PANE_SHOW_GRID 7
-#define REPORT_PANE_SHOW_PAGE_NUMBERS 8
-#define REPORT_PANE_FORMAT 9
+#define REPORT_PANE_SHOW_TITLE 7
+#define REPORT_PANE_SHOW_GRID 8
+#define REPORT_PANE_SHOW_PAGE_NUMBERS 9
+#define REPORT_PANE_FORMAT 10
 
 /* Report view menu */
 
@@ -170,12 +171,28 @@ struct report_pagination_area {
 	unsigned	bottom_line;						/**< The last line in the range.							*/
 };
 
-/* Report status flags. */
+/**
+ * Report status flags.
+ */
 
 enum report_status {
 	REPORT_STATUS_NONE = 0x00,						/**< No status flags set.					*/
 	REPORT_STATUS_MEMERR = 0x01,						/**< A memory allocation error has occurred, so stop allowing writes. */
 	REPORT_STATUS_CLOSED = 0x02						/**< The report has been closed to writing.			*/
+};
+
+/**
+ * Report display option flags.
+ */
+
+enum report_display {
+	REPORT_DISPLAY_NONE		= 0x0000,				/**< No flags are in use.					*/
+	REPORT_DISPLAY_LANDSCAPE	= 0x0001,				/**< Use the page in landscape format.				*/
+	REPORT_DISPLAY_FIT_WIDTH	= 0x0002,				/**< Scale the output to fit the width of a page.		*/
+	REPORT_DISPLAY_PAGINATED	= 0x0004,				/**< Display the pagination of the report on screen.		*/
+	REPORT_DISPLAY_SHOW_GRID	= 0x0008,				/**< Include a grid around tabular data.			*/
+	REPORT_DISPLAY_SHOW_NUMBERS	= 0x0010,				/**< Show page numbers in the page footer.			*/
+	REPORT_DISPLAY_SHOW_TITLE	= 0x0020				/**< Show the report title in the page header.			*/
 };
 
 struct report {
@@ -200,13 +217,15 @@ struct report {
 
 	/* Display options. */
 
-	osbool			landscape;					/**< TRUE if the report is to be shown in landscape format.	*/
+	enum report_display	display;
 
-	osbool			show_grid;					/**< TRUE if a grid table is to be plotted.			*/
+//	osbool			landscape;					/**< TRUE if the report is to be shown in landscape format.	*/
 
-	osbool			show_pages;					/**< TRUE if page display is enabled.				*/
+//	osbool			show_grid;					/**< TRUE if a grid table is to be plotted.			*/
 
-	osbool			fit_width;					/**< TRUE if we're to fit the report on a single page width.	*/
+//	osbool			show_pages;					/**< TRUE if page display is enabled.				*/
+
+//	osbool			fit_width;					/**< TRUE if we're to fit the report on a single page width.	*/
 
 	/* Report content */
 
@@ -272,7 +291,7 @@ static void			report_view_redraw_page_handler(struct report *report, wimp_draw *
 
 
 static void			report_open_format_window(struct report *report, wimp_pointer *ptr);
-static void			report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing, osbool grid);
+static void			report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing);
 
 static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
 static struct report		*report_print_window_closed(struct report *report, void *data);
@@ -304,8 +323,7 @@ static void report_paginate(struct report *report);
 static void report_add_page_row(struct report *report, struct report_page_layout *layout,
 		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row);
 static int report_get_line_height(struct report *report, struct report_line_data *line_data);
-static void report_set_orientation(struct report *report, osbool landscape);
-static void report_set_page_view(struct report *report, osbool show_pages);
+static void report_set_display_option(struct report *report, enum report_display option, osbool state);
 static void report_set_window_extent(struct report *report);
 static osbool report_get_window_extent(struct report *report, int *x, int *y);
 
@@ -378,10 +396,7 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
 
-	new->landscape = FALSE;
-	new->show_grid = FALSE;
-	new->show_pages = TRUE;
-	new->fit_width = TRUE;
+	new->display = REPORT_DISPLAY_FIT_WIDTH;
 
 	new->tabs = report_tabs_create();
 	if (new->tabs == NULL)
@@ -583,7 +598,6 @@ static void report_close_and_calculate(struct report *report)
 	report_fonts_set_faces(report->fonts, config_str_read("ReportFontNormal"), config_str_read("ReportFontBold"), NULL, NULL);
 	report_fonts_set_size(report->fonts, config_int_read("ReportFontSize") * 16, config_int_read("ReportFontLinespace"));
 
-	report->show_grid = config_opt_read("ReportShowGrid");
 	report_reflow_content(report);
 
 	/* Try to paginate the report. */
@@ -854,7 +868,7 @@ static void report_reflow_content(struct report *report)
 	report_fonts_find(report->fonts);
 
 	line_space = report_fonts_get_linespace(report->fonts);
-	rule_space = (report->show_grid) ? REPORT_RULE_SPACE : 0;
+	rule_space = (report->display & REPORT_DISPLAY_SHOW_GRID) ? REPORT_RULE_SPACE : 0;
 
 	content_base = report_textdump_get_base(report->content);
 
@@ -992,16 +1006,19 @@ static void report_view_toolbar_prepare(struct report *report)
 
 	paginated = report_page_paginated(report->pages);
 
-	icons_set_group_shaded(report->toolbar, !paginated, 6,
+	icons_set_group_shaded(report->toolbar, !paginated, 7,
 			REPORT_PANE_SHOW_PAGES, REPORT_PANE_PORTRAIT,
 			REPORT_PANE_LANDSCAPE, REPORT_PANE_FIT_WIDTH,
-			REPORT_PANE_SHOW_GRID, REPORT_PANE_SHOW_PAGE_NUMBERS);
+			REPORT_PANE_SHOW_TITLE, REPORT_PANE_SHOW_GRID,
+			REPORT_PANE_SHOW_PAGE_NUMBERS);
 
-	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGES, paginated && report->show_pages);
-	icons_set_selected(report->toolbar, REPORT_PANE_PORTRAIT, (paginated == FALSE) || (report->landscape == FALSE));
-	icons_set_selected(report->toolbar, REPORT_PANE_LANDSCAPE, (paginated == TRUE) && (report->landscape == TRUE));
-	icons_set_selected(report->toolbar, REPORT_PANE_FIT_WIDTH, paginated && report->fit_width);
-	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_GRID, paginated && report->show_grid);
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGES, paginated && (report->display & REPORT_DISPLAY_PAGINATED));
+	icons_set_selected(report->toolbar, REPORT_PANE_PORTRAIT, (paginated == FALSE) || !(report->display & REPORT_DISPLAY_LANDSCAPE));
+	icons_set_selected(report->toolbar, REPORT_PANE_LANDSCAPE, (paginated == TRUE) && (report->display & REPORT_DISPLAY_LANDSCAPE));
+	icons_set_selected(report->toolbar, REPORT_PANE_FIT_WIDTH, paginated && (report->display & REPORT_DISPLAY_FIT_WIDTH));
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_TITLE, paginated && (report->display & REPORT_DISPLAY_SHOW_TITLE));
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_GRID, paginated && (report->display & REPORT_DISPLAY_SHOW_GRID));
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGE_NUMBERS, paginated && (report->display & REPORT_DISPLAY_SHOW_NUMBERS));
 }
 
 
@@ -1023,62 +1040,53 @@ static void report_view_toolbar_click_handler(wimp_pointer *pointer)
 
 	/* Decode the mouse click. */
 
-	if (pointer->buttons == wimp_CLICK_SELECT) {
-		switch (pointer->i) {
-		case REPORT_PANE_PARENT:
+	switch (pointer->i) {
+	case REPORT_PANE_PARENT:
+		if (pointer->buttons == wimp_CLICK_SELECT)
 			transact_bring_window_to_top(report->file);
-			break;
+		break;
 
-		case REPORT_PANE_SAVE:
-			break;
+	case REPORT_PANE_SAVE:
+		break;
 
-		case REPORT_PANE_PRINT:
+	case REPORT_PANE_PRINT:
+		if (pointer->buttons == wimp_CLICK_SELECT)
 			report_open_print_window(report, pointer, config_opt_read("RememberValues"));
-			break;
-
-		case REPORT_PANE_SHOW_PAGES:
-			report_set_page_view(report, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_PAGES));
-			break;
-
-		case REPORT_PANE_PORTRAIT:
-			report_set_orientation(report, FALSE);
-			break;
-
-		case REPORT_PANE_LANDSCAPE:
-			report_set_orientation(report, TRUE);
-			break;
-
-		case REPORT_PANE_FIT_WIDTH:
-			break;
-
-		case REPORT_PANE_SHOW_GRID:
-			break;
-
-		case REPORT_PANE_SHOW_PAGE_NUMBERS:
-			break;
-
-		case REPORT_PANE_FORMAT:
-			report_open_format_window(report, pointer);
-			break;
-		}
-	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-		switch (pointer->i) {
-		case REPORT_PANE_PRINT:
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
 			report_open_print_window(report, pointer, !config_opt_read("RememberValues"));
-			break;
+		break;
 
-		case REPORT_PANE_SHOW_PAGES:
-			report_set_page_view(report, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_PAGES));
-			break;
+	case REPORT_PANE_SHOW_PAGES:
+		report_set_display_option(report, REPORT_DISPLAY_PAGINATED, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_PAGES));
+		break;
 
-		case REPORT_PANE_PORTRAIT:
-			report_set_orientation(report, FALSE);
-			break;
+	case REPORT_PANE_PORTRAIT:
+		report_set_display_option(report, REPORT_DISPLAY_LANDSCAPE, FALSE);
+		break;
 
-		case REPORT_PANE_LANDSCAPE:
-			report_set_orientation(report, TRUE);
-			break;
-		}
+	case REPORT_PANE_LANDSCAPE:
+		report_set_display_option(report, REPORT_DISPLAY_LANDSCAPE, TRUE);
+		break;
+
+	case REPORT_PANE_FIT_WIDTH:
+		report_set_display_option(report, REPORT_DISPLAY_FIT_WIDTH, icons_get_selected(report->toolbar, REPORT_PANE_FIT_WIDTH));
+		break;
+
+	case REPORT_PANE_SHOW_TITLE:
+		report_set_display_option(report, REPORT_DISPLAY_SHOW_TITLE, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_TITLE));
+		break;
+
+	case REPORT_PANE_SHOW_GRID:
+		report_set_display_option(report, REPORT_DISPLAY_SHOW_GRID, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_GRID));
+		break;
+
+	case REPORT_PANE_SHOW_PAGE_NUMBERS:
+		report_set_display_option(report, REPORT_DISPLAY_SHOW_NUMBERS, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_PAGE_NUMBERS));
+		break;
+
+	case REPORT_PANE_FORMAT:
+		report_open_format_window(report, pointer);
+		break;
 	}
 }
 
@@ -1109,7 +1117,7 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template == NULL);
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, paginated == FALSE);
-	menus_tick_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, (paginated == TRUE) && (report->show_pages == TRUE));
+	menus_tick_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, (paginated == TRUE) && (report->display & REPORT_DISPLAY_PAGINATED));
 }
 
 
@@ -1139,7 +1147,7 @@ static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 		break;
 
 	case REPVIEW_MENU_SHOWPAGES:
-		report_set_page_view(report, !report->show_pages);
+		report_set_display_option(report, REPORT_DISPLAY_PAGINATED, !(report->display & REPORT_DISPLAY_PAGINATED));
 		break;
 
 	case REPVIEW_MENU_PRINT:
@@ -1221,7 +1229,7 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 	oy = redraw->box.y1 - redraw->yscroll - REPORT_TOOLBAR_HEIGHT;
 
 	while (more) {
-		if (paginated && report->show_pages)
+		if (paginated && (report->display & REPORT_DISPLAY_PAGINATED))
 			report_view_redraw_page_handler(report, redraw, ox, oy);
 		else
 			report_view_redraw_flat_handler(report, redraw, ox, oy);
@@ -1245,13 +1253,11 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 static void report_view_redraw_flat_handler(struct report *report, wimp_draw *redraw, int ox, int oy)
 {
 	unsigned	top, base, y;
-	int		linespace;
 	size_t		line_count;
 	os_coord	origin;
 	os_error	*error;
 
 	line_count = report_line_get_count(report->lines);
-	linespace = report->linespace + report->rulespace;
 
 	top = report_line_find_from_ypos(report->lines, redraw->clip.y1 - oy);
 	base = report_line_find_from_ypos(report->lines, redraw->clip.y0 - oy);
@@ -1264,14 +1270,14 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 
 	/* Draw Grid. */
 
-	if (report->show_grid) {
-		wimp_set_colour(wimp_COLOUR_BLACK);
+//	if (report->show_grid) {
+//		wimp_set_colour(wimp_COLOUR_BLACK);
 
-		for (y = top; y < line_count && y <= base; y++) {
-			report_draw_line(ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1),
-					ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
-		}
-	}
+//		for (y = top; y < line_count && y <= base; y++) {
+//			report_draw_line(ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1),
+//					ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
+//		}
+//	}
 
 	/* Plot Text. */
 
@@ -1399,7 +1405,7 @@ static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 	report_fonts_get_size(report->fonts, &size, &spacing);
 
 	report_format_dialogue_open(ptr, report, report_process_format_window,
-			normal, bold, size, spacing, report->show_grid);
+			normal, bold, size, spacing);
 }
 
 
@@ -1407,7 +1413,7 @@ static void report_open_format_window(struct report *report, wimp_pointer *ptr)
  * Take the contents of an updated report format window and process the data.
  */
 
-static void report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing, osbool grid)
+static void report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing)
 {
 	if (report == NULL)
 		return;
@@ -1416,8 +1422,6 @@ static void report_process_format_window(struct report *report, char *normal, ch
 
 	report_fonts_set_faces(report->fonts, normal, bold, NULL, NULL);
 	report_fonts_set_size(report->fonts, size, spacing);
-
-	report->show_grid = grid;
 
 	/* Tidy up and redraw the windows */
 
@@ -1888,7 +1892,8 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 			 * the details to the printer driver.
 			 */
 
-			if (!report_page_calculate_position(report->pages, &rectangle, report->landscape, &position))
+			if (!report_page_calculate_position(report->pages, &rectangle,
+					(report->display & REPORT_DISPLAY_LANDSCAPE) ? TRUE : FALSE, &position))
 				continue;
 
 			error = xpdriver_give_rectangle(region, &rectangle, scaling_matrix, &position, os_COLOUR_TRANSPARENT);
@@ -2453,13 +2458,14 @@ static void report_paginate(struct report *report)
 
 	/* Identify the page size. If this fails, there's no point continuing. */
 
-	target_width = (report->fit_width) ? report->width : 0;
+	target_width = (report->display & REPORT_DISPLAY_FIT_WIDTH) ? report->width : 0;
 
 	field_height = report_fonts_get_linespace(report->fonts);
 	if (field_height == 0)
 		return;
 
-	if (report_page_calculate_areas(report->pages, report->landscape, target_width, field_height, field_height) != NULL)
+	if (report_page_calculate_areas(report->pages, (report->display & REPORT_DISPLAY_LANDSCAPE) ? TRUE : FALSE,
+			target_width, field_height, field_height) != NULL)
 		return;
 
 	report_page_get_areas(report->pages, &layout);
@@ -2702,44 +2708,27 @@ static int report_get_line_height(struct report *report, struct report_line_data
 	return report->linespace;
 } 
 
-
 /**
- * Set the portrait or landscape orientation of a report.
+ * Change the state of a display option in a report, and refresh the
+ * report display as a result.
  *
- * \param *report		The report view to update.
- * \param landscape		TRUE to use landscape; FALSE for portrait.
+ * \param *report		The report to update.
+ * \param option		The option to be toggled.
+ * \param state			The new state for the option.
  */
 
-static void report_set_orientation(struct report *report, osbool landscape)
+static void report_set_display_option(struct report *report, enum report_display option, osbool state)
 {
 	if (report == NULL)
 		return;
 
-	report->landscape = landscape;
+	if (state == TRUE)
+		report->display = report->display | option;
+	else
+		report->display = report->display & (~option);
 
-	report_paginate(report);
-	report_set_window_extent(report);
-	report_view_toolbar_prepare(report);
-
-	if (report->window != NULL)
-		windows_redraw(report->window);
-}
-
-
-/**
- * Toggle the state of page view on a report, subject to the necessary
- * pagination data being available.
- *
- * \param *report		The report view to toggle.
- * \param show_pages		TRUE to show pages, FALSE to show a flat view.
- */
-
-static void report_set_page_view(struct report *report, osbool show_pages)
-{
-	if (report == NULL)
-		return;
-
-	report->show_pages = show_pages;
+	if (option & (REPORT_DISPLAY_LANDSCAPE))
+		report_paginate(report);
 
 	report_set_window_extent(report);
 	report_view_toolbar_prepare(report);
@@ -2843,7 +2832,7 @@ static osbool report_get_window_extent(struct report *report, int *x, int *y)
 	if (report == NULL)
 		return FALSE;
 
-	if (!report->show_pages || !report_page_get_layout_extent(report->pages, x, y)) {
+	if (!(report->display & REPORT_DISPLAY_PAGINATED) || !report_page_get_layout_extent(report->pages, x, y)) {
 		debug_printf("Failed to get paginated extent.");
 		if (x != NULL) {
 			int width = report->width + REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN;

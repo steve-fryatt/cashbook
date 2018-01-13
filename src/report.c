@@ -1066,8 +1066,6 @@ static void report_view_toolbar_prepare(struct report *report)
 static void report_view_toolbar_click_handler(wimp_pointer *pointer)
 {
 	struct report		*report;
-	wimp_window_state	window;
-	wimp_icon_state		icon;
 
 	report = event_get_window_user_data(pointer->w);
 	if (report == NULL)

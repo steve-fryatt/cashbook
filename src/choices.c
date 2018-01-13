@@ -146,19 +146,23 @@
 
 /* Report pane icons. */
 
-#define CHOICE_ICON_NFONT 3
-#define CHOICE_ICON_NFONTMENU 4
-#define CHOICE_ICON_BFONT 6
-#define CHOICE_ICON_BFONTMENU 7
-#define CHOICE_ICON_FONTSIZE 9
-#define CHOICE_ICON_FONTSPACE 12
-#define CHOICE_ICON_REPORT_PORTRAIT 16
-#define CHOICE_ICON_REPORT_LANDSCAPE 17
-#define CHOICE_ICON_REPORT_SCALE 18
-#define CHOICE_ICON_REPORT_TITLE 21
-#define CHOICE_ICON_REPORT_PAGENUM 22
-#define CHOICE_ICON_REPORT_GRID 23
-#define CHOICE_ICON_REPORT_SHOWPAGE 24
+#define CHOICE_ICON_REPORT_SHOWPAGE 0
+#define CHOICE_ICON_NFONT 4
+#define CHOICE_ICON_NFONTMENU 5
+#define CHOICE_ICON_BFONT 7
+#define CHOICE_ICON_BFONTMENU 8
+#define CHOICE_ICON_IFONT 10
+#define CHOICE_ICON_IFONTMENU 11
+#define CHOICE_ICON_BIFONT 13
+#define CHOICE_ICON_BIFONTMENU 14
+#define CHOICE_ICON_FONTSIZE 16
+#define CHOICE_ICON_FONTSPACE 19
+#define CHOICE_ICON_REPORT_PORTRAIT 23
+#define CHOICE_ICON_REPORT_LANDSCAPE 24
+#define CHOICE_ICON_REPORT_SCALE 25
+#define CHOICE_ICON_REPORT_TITLE 28
+#define CHOICE_ICON_REPORT_GRID 29
+#define CHOICE_ICON_REPORT_PAGENUM 30
 
 /* Transaction pane icons. */
 
@@ -191,6 +195,8 @@
 #define MARGIN_UNIT_MM 0
 #define MARGIN_UNIT_CM 1
 #define MARGIN_UNIT_INCH 2
+
+#define CHOICES_PANE_TOOLBAR_WIDTH 44
 
 
 static int		choices_pane = 0;					/**< The choices pane that is currently displayed.	*/
@@ -281,6 +287,8 @@ void choices_initialise(void)
 	event_add_window_menu_close(choices_panes[CHOICE_PANE_REPORT], choices_menu_close_handler);
 	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_NFONTMENU, choices_font_menu, -1, NULL);
 	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BFONTMENU, choices_font_menu, -1, NULL);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_IFONTMENU, choices_font_menu, -1, NULL);
+	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BIFONTMENU, choices_font_menu, -1, NULL);
 	event_add_window_icon_radio(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_LANDSCAPE, TRUE);
 	event_add_window_icon_radio(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_PORTRAIT, TRUE);
 
@@ -313,7 +321,7 @@ void choices_open_window(wimp_pointer *pointer)
 	choices_set_window();
 
 	windows_open_with_pane_centred_at_pointer(choices_window, choices_panes[choices_pane],
-			CHOICE_ICON_PANE, 0, pointer);
+			CHOICE_ICON_PANE, CHOICES_PANE_TOOLBAR_WIDTH, pointer);
 
 	place_dialogue_caret_fallback(choices_panes[choices_pane], 2,
 			CHOICE_ICON_DATEIN, CHOICE_ICON_DATEOUT);
@@ -497,6 +505,16 @@ static void choices_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selec
 		icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT, "%s", font);
 		wimp_set_icon_state(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT, 0, 0);
 		break;
+
+	case CHOICE_ICON_IFONTMENU:
+		icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_IFONT, "%s", font);
+		wimp_set_icon_state(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_IFONT, 0, 0);
+		break;
+
+	case CHOICE_ICON_BIFONTMENU:
+		icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BIFONT, "%s", font);
+		wimp_set_icon_state(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BIFONT, 0, 0);
+		break;
 	}
 
 	heap_free(font);
@@ -541,8 +559,8 @@ static void choices_change_pane(int pane)
 	for (i=0; i<CHOICES_PANES; i++)
 		icons_set_selected (choices_window, CHOICE_ICON_SELECT + i, i == choices_pane);
 
-	windows_open_pane_centred_in_icon(choices_window, choices_panes[pane], CHOICE_ICON_PANE, 0,
-			choices_panes[old_pane]);
+	windows_open_pane_centred_in_icon(choices_window, choices_panes[pane], CHOICE_ICON_PANE,
+			CHOICES_PANE_TOOLBAR_WIDTH, choices_panes[old_pane]);
 
 	wimp_close_window(choices_panes[old_pane]);
 
@@ -721,6 +739,10 @@ static void choices_set_window(void)
 			config_str_read("ReportFontNormal"));
 	icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT, "%s",
 			config_str_read("ReportFontBold"));
+	icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_IFONT, "%s",
+			config_str_read("ReportFontItalic"));
+	icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BIFONT, "%s",
+			config_str_read("ReportFontBoldItalic"));
 
 	icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSIZE, "%d",
 			config_int_read("ReportFontSize"));
@@ -888,6 +910,10 @@ static void choices_read_window(void)
 			icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_NFONT));
 	config_str_set("ReportFontBold",
 			icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BFONT));
+	config_str_set("ReportFontItalic",
+			icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_IFONT));
+	config_str_set("ReportFontBoldItalic",
+			icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BIFONT));
 	config_int_set("ReportFontSize",
 			atoi(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSIZE)));
 	config_int_set("ReportFontLinespace",

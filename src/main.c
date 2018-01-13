@@ -282,6 +282,8 @@ static void main_initialise(void)
 
 	config_str_init("ReportFontNormal", "Homerton.Medium");				/**< Normal weight font name for reporting and printing.		*/
 	config_str_init("ReportFontBold", "Homerton.Bold");				/**< Bold weight font name for reporting and printing.			*/
+	config_str_init("ReportFontItalic", "Homerton.Medium.Oblique");			/**< Italic weight font name for reporting and printing.		*/
+	config_str_init("ReportFontBoldItalic", "Homerton.Bold.Oblique");		/**< Bold-Italic weight font name for reporting and printing.		*/
 	config_int_init("ReportFontSize", 12);						/**< Report and print font size (points).				*/
 	config_int_init("ReportFontLinespace", 130);					/**< Report and print linespacing (percent of font size).		*/
 

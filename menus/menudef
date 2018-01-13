@@ -267,11 +267,16 @@ menu(ReportViewMenu, "Report")
 	}
 	item("Font...");
 	item("Include") {
-		submenu(ReportViewIncludeSubmenu);
+		submenu(ReportViewIncludeSubmenu) {
+			always;
+		}
 	}
 	item("Layout") {
-		submenu(ReportViewLayoutSubmenu);
+		submenu(ReportViewLayoutSubmenu) {
+			always;
+		}
 		dotted;
+		
 	}
 	item("Save text") {
 		d_box(SaveAs) {

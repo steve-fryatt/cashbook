@@ -186,7 +186,7 @@ unsigned report_region_add_text(struct report_region_block *handle, os_box *outl
 
 	handle->regions[new].type = REPORT_REGION_TYPE_TEXT;
 
-	handle->regions[new].data.text.content = REPORT_TEXTDUMP_NULL;
+	handle->regions[new].data.text.content = content;
 
 	return new;
 }

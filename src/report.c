@@ -219,14 +219,6 @@ struct report {
 
 	enum report_display	display;
 
-//	osbool			landscape;					/**< TRUE if the report is to be shown in landscape format.	*/
-
-//	osbool			show_grid;					/**< TRUE if a grid table is to be plotted.			*/
-
-//	osbool			show_pages;					/**< TRUE if page display is enabled.				*/
-
-//	osbool			fit_width;					/**< TRUE if we're to fit the report on a single page width.	*/
-
 	/* Report content */
 
 	int			width;						/**< The displayed width of the report data in OS Units.	*/
@@ -241,6 +233,8 @@ struct report {
 
 	struct report_page_block	*pages;
 	struct report_region_block	*regions;
+
+	unsigned			page_title;				/**< Textdump offset for the page title, if any.		*/
 
 	/* Report template details. */
 
@@ -398,6 +392,8 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 
 	new->display = REPORT_DISPLAY_FIT_WIDTH;
 
+	new->page_title = REPORT_TEXTDUMP_NULL;
+
 	new->tabs = report_tabs_create();
 	if (new->tabs == NULL)
 		new->flags |= REPORT_STATUS_MEMERR;
@@ -429,6 +425,10 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->window = NULL;
 	string_copy(new->window_title, title, WINDOW_TITLE_LENGTH);
 	new->toolbar = NULL;
+
+	new->page_title = report_textdump_store(new->content, title);
+	if (new->page_title == REPORT_TEXTDUMP_NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
 
 	new->template = template;
 
@@ -2465,7 +2465,7 @@ static void report_paginate(struct report *report)
 		return;
 
 	if (report_page_calculate_areas(report->pages, (report->display & REPORT_DISPLAY_LANDSCAPE) ? TRUE : FALSE, target_width,
-			(report->display & REPORT_DISPLAY_SHOW_TITLE) ? field_height : 0,
+			((report->page_title != REPORT_TEXTDUMP_NULL) && (report->display & REPORT_DISPLAY_SHOW_TITLE)) ? field_height : 0,
 			(report->display & REPORT_DISPLAY_SHOW_NUMBERS) ? field_height : 0) != NULL)
 		return;
 
@@ -2663,7 +2663,7 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 		/* Add the page header, if there is one. */
 
 		if (layout->areas & REPORT_PAGE_AREA_HEADER) {
-			region = report_region_add_text(report->regions, &(layout->header), REPORT_TEXTDUMP_NULL);
+			region = report_region_add_text(report->regions, &(layout->header), report->page_title);
 			if (region == REPORT_REGION_NONE)
 				continue;
 

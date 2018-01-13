@@ -1,4 +1,4 @@
-# Copyright 2004-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2004-2018, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of CashBook:
 #
@@ -767,6 +767,10 @@ Help.Choices5.NFont:\Tfont used for normal text in reports and printing.
 Help.Choices5.NFontMenu:\Schange the font used for normal text in reports and printing.
 Help.Choices5.BFont:\Tfont used for bold text in reports and printing.
 Help.Choices5.BFontMenu:\Schange the font used for bold text in reports and printing.
+Help.Choices5.IFont:\Tfont used for italic text in reports and printing.
+Help.Choices5.IFontMenu:\Schange the font used for italic text in reports and printing.
+Help.Choices5.BIFont:\Tfont used for bold-italic text in reports and printing.
+Help.Choices5.BIFontMenu:\Schange the font used for bold-italic text in reports and printing.
 Help.Choices5.Size:\Tfont size for reports and printing, in points.
 Help.Choices5.Spacing:\Tline spacing for reports and printing, as a percentage of the font size.
 Help.Choices5.Portrait:\Suse portrait paper orientation by default for reports.
@@ -792,6 +796,10 @@ Help.RepFont.NFont:\Tfont used for normal text in the report.
 Help.RepFont.NFontMenu:\Schange the font used for normal text in the report.
 Help.RepFont.BFont:\Tfont used for bold text in the report.
 Help.RepFont.BFontMenu:\Schange the font used for bold text in the report.
+Help.RepFont.IFont:\Tfont used for italic text in the report.
+Help.RepFont.IFontMenu:\Schange the font used for italic text in the report.
+Help.RepFont.BIFont:\Tfont used for bold-italic text in the report.
+Help.RepFont.BIFontMenu:\Schange the font used for bold-italic text in the report.
 Help.RepFont.Size:\Tfont size for the report, in points.
 Help.RepFont.Spacing:\Tline spacing for the report, as a percentage of the font size.
 Help.RepFont.Update:\Schange the font settings used in the report.

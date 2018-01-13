@@ -985,14 +985,23 @@ static void report_view_close_window_handler(wimp_close *close)
 
 static void report_view_toolbar_prepare(struct report *report)
 {
+	osbool paginated;
+
 	if (report == NULL || report->toolbar == NULL)
 		return;
 
-	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGES, report->show_pages);
-	icons_set_selected(report->toolbar, REPORT_PANE_PORTRAIT, report->landscape == FALSE);
-	icons_set_selected(report->toolbar, REPORT_PANE_LANDSCAPE, report->landscape == TRUE);
-	icons_set_selected(report->toolbar, REPORT_PANE_FIT_WIDTH, report->fit_width);
-	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_GRID, report->show_grid);
+	paginated = report_page_paginated(report->pages);
+
+	icons_set_group_shaded(report->toolbar, !paginated, 6,
+			REPORT_PANE_SHOW_PAGES, REPORT_PANE_PORTRAIT,
+			REPORT_PANE_LANDSCAPE, REPORT_PANE_FIT_WIDTH,
+			REPORT_PANE_SHOW_GRID, REPORT_PANE_SHOW_PAGE_NUMBERS);
+
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGES, paginated && report->show_pages);
+	icons_set_selected(report->toolbar, REPORT_PANE_PORTRAIT, (paginated == FALSE) || (report->landscape == FALSE));
+	icons_set_selected(report->toolbar, REPORT_PANE_LANDSCAPE, (paginated == TRUE) && (report->landscape == TRUE));
+	icons_set_selected(report->toolbar, REPORT_PANE_FIT_WIDTH, paginated && report->fit_width);
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_GRID, paginated && report->show_grid);
 }
 
 
@@ -2409,6 +2418,7 @@ static void report_repaginate_all(struct file_block *file)
 	while (report != NULL) {
 		report_paginate(report);
 		report_set_window_extent(report);
+		report_view_toolbar_prepare(report);
 
 		if (report->window != NULL)
 			windows_redraw(report->window);

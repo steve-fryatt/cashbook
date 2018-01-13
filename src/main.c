@@ -285,6 +285,13 @@ static void main_initialise(void)
 	config_int_init("ReportFontSize", 12);						/**< Report and print font size (points).				*/
 	config_int_init("ReportFontLinespace", 130);					/**< Report and print linespacing (percent of font size).		*/
 
+	config_opt_init("ReportShowPages", TRUE);					/**< Show pages in the report viewer.					*/
+	config_opt_init("ReportRotate", FALSE);						/**< Lay pages out in Landscape orientation.				*/
+	config_opt_init("ReportFitWidth", TRUE);					/**< Fit reports to one page wide.					*/
+	config_opt_init("ReportShowTitle", TRUE);					/**< Show report titles in the header on each report page.		*/
+	config_opt_init("ReportShowPageNum", TRUE);					/**< Show page numbers in the footer on each report page.		*/
+	config_opt_init("ReportShowGrid", TRUE);					/**< Show the grid around tabular report data.				*/
+
 	config_opt_init("PrintFitWidth", TRUE);						/**< Fit printout to one page width when PrintText == FALSE.		*/
 	config_opt_init("PrintRotate", FALSE);						/**< Print Landscape when PrintText == FALSE.				*/
 	config_opt_init("PrintPageNumbers", TRUE);					/**< Include page numbers when PrintText == FALSE.			*/

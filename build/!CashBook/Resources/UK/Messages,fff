@@ -769,6 +769,13 @@ Help.Choices5.BFont:\Tfont used for bold text in reports and printing.
 Help.Choices5.BFontMenu:\Schange the font used for bold text in reports and printing.
 Help.Choices5.Size:\Tfont size for reports and printing, in points.
 Help.Choices5.Spacing:\Tline spacing for reports and printing, as a percentage of the font size.
+Help.Choices5.Portrait:\Suse portrait paper orientation by default for reports.
+Help.Choices5.Landscape:\Suse landscape paper orientation by default for reports.
+Help.Choices5.Scale:\Schoose whether to scale reports to fit the width of a single sheet of paper by default.
+Help.Choices5.ShowPages:\Schoose whether reports are shown on screen in page format by default.
+Help.Choices5.Numbers:\Sturn page numbers on and off on reports by default.
+Help.Choices5.Title:\Sturn printed report titles on and off by default.
+Help.Choices5.Grid:\Sturn the display of a grid around tabular report data on or off by default.
 
 Help.Choices6.HiAcc:\Stoggle the highlighting of overdrawn accounts or analysis headings in the account and heading list \ws.
 Help.Choices6.HiAccCol1/Help.Choices6.HiAccCol2:\Tcolour that overdrawn accounts and analysis headings are highlighted.

@@ -404,7 +404,20 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
 
-	new->display = REPORT_DISPLAY_FIT_WIDTH;
+	new->display = REPORT_DISPLAY_NONE;
+
+	if (config_opt_read("ReportRotate"))
+		new->display |= REPORT_DISPLAY_LANDSCAPE;
+	if (config_opt_read("ReportShowPages"))
+		new->display |= REPORT_DISPLAY_PAGINATED;
+	if (config_opt_read("ReportFitWidth"))
+		new->display |= REPORT_DISPLAY_FIT_WIDTH;
+	if (config_opt_read("ReportShowTitle"))
+		new->display |= REPORT_DISPLAY_SHOW_TITLE;
+	if (config_opt_read("ReportShowPageNum"))
+		new->display |= REPORT_DISPLAY_SHOW_NUMBERS;
+	if (config_opt_read("ReportShowGrid"))
+		new->display |= REPORT_DISPLAY_SHOW_GRID;
 
 	new->page_title = REPORT_TEXTDUMP_NULL;
 

@@ -152,6 +152,13 @@
 #define CHOICE_ICON_BFONTMENU 7
 #define CHOICE_ICON_FONTSIZE 9
 #define CHOICE_ICON_FONTSPACE 12
+#define CHOICE_ICON_REPORT_PORTRAIT 16
+#define CHOICE_ICON_REPORT_LANDSCAPE 17
+#define CHOICE_ICON_REPORT_SCALE 18
+#define CHOICE_ICON_REPORT_TITLE 21
+#define CHOICE_ICON_REPORT_PAGENUM 22
+#define CHOICE_ICON_REPORT_GRID 23
+#define CHOICE_ICON_REPORT_SHOWPAGE 24
 
 /* Transaction pane icons. */
 
@@ -274,6 +281,8 @@ void choices_initialise(void)
 	event_add_window_menu_close(choices_panes[CHOICE_PANE_REPORT], choices_menu_close_handler);
 	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_NFONTMENU, choices_font_menu, -1, NULL);
 	event_add_window_icon_popup(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_BFONTMENU, choices_font_menu, -1, NULL);
+	event_add_window_icon_radio(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_LANDSCAPE, TRUE);
+	event_add_window_icon_radio(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_PORTRAIT, TRUE);
 
 	choices_panes[CHOICE_PANE_ACCOUNT] = templates_create_window("Choices6");
 	ihelp_add_window(choices_panes[CHOICE_PANE_ACCOUNT], "Choices6", NULL);
@@ -718,6 +727,22 @@ static void choices_set_window(void)
 	icons_printf(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE, "%d",
 			config_int_read("ReportFontLinespace"));
 
+	icons_set_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_LANDSCAPE,
+			config_opt_read("ReportRotate"));
+	icons_set_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_PORTRAIT,
+			!config_opt_read("ReportRotate"));
+	icons_set_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_SCALE,
+			config_opt_read("ReportFitWidth"));
+	icons_set_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_TITLE,
+			config_opt_read("ReportShowTitle"));
+	icons_set_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_PAGENUM,
+			config_opt_read("ReportShowPageNum"));
+	icons_set_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_GRID,
+			config_opt_read("ReportShowGrid"));
+	icons_set_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_SHOWPAGE,
+			config_opt_read("ReportShowPages"));
+
+
 	/* Set the transaction pane up. */
 
 	icons_set_selected(choices_panes[CHOICE_PANE_TRANSACT], CHOICE_ICON_AUTOSORT,
@@ -748,7 +773,6 @@ static void choices_set_window(void)
 	colpick_set_icon_colour(choices_panes[CHOICE_PANE_ACCOUNT], CHOICE_ICON_OHILIGHTCOL,
 			config_int_read("ShadeOverdrawnColour"));
 }
-
 
 /**
  * Read the contents of the Choices window into the settings.
@@ -868,6 +892,19 @@ static void choices_read_window(void)
 			atoi(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSIZE)));
 	config_int_set("ReportFontLinespace",
                   atoi(icons_get_indirected_text_addr(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_FONTSPACE)));
+
+	config_opt_set("ReportRotate",
+			icons_get_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_LANDSCAPE));
+	config_opt_set("ReportFitWidth",
+			icons_get_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_SCALE));
+	config_opt_set("ReportShowTitle",
+			icons_get_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_TITLE));
+	config_opt_set("ReportShowPageNum",
+			icons_get_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_PAGENUM));
+	config_opt_set("ReportShowGrid",
+			icons_get_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_GRID));
+	config_opt_set("ReportShowPages",
+			icons_get_selected(choices_panes[CHOICE_PANE_REPORT], CHOICE_ICON_REPORT_SHOWPAGE));
 
 	/* Read the transaction pane. */
 

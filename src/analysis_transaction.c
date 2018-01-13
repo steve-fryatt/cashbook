@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -638,7 +638,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 				if (output_trans) {
 					stringbuild_reset();
-					stringbuild_add_printf("\\k\\d\\r%d\\t",
+					stringbuild_add_printf("\\k\\d\\r%d\\t\\c",
 							transact_get_transaction_number(i));
 					stringbuild_add_date(date);
 					stringbuild_add_printf("\\t%s\\t%s\\t%s\\t\\d\\r",

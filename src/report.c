@@ -2464,8 +2464,9 @@ static void report_paginate(struct report *report)
 	if (field_height == 0)
 		return;
 
-	if (report_page_calculate_areas(report->pages, (report->display & REPORT_DISPLAY_LANDSCAPE) ? TRUE : FALSE,
-			target_width, field_height, field_height) != NULL)
+	if (report_page_calculate_areas(report->pages, (report->display & REPORT_DISPLAY_LANDSCAPE) ? TRUE : FALSE, target_width,
+			(report->display & REPORT_DISPLAY_SHOW_TITLE) ? field_height : 0,
+			(report->display & REPORT_DISPLAY_SHOW_NUMBERS) ? field_height : 0) != NULL)
 		return;
 
 	report_page_get_areas(report->pages, &layout);
@@ -2727,7 +2728,8 @@ static void report_set_display_option(struct report *report, enum report_display
 	else
 		report->display = report->display & (~option);
 
-	if (option & (REPORT_DISPLAY_LANDSCAPE))
+	if (option & (REPORT_DISPLAY_LANDSCAPE | REPORT_DISPLAY_SHOW_TITLE |
+			REPORT_DISPLAY_SHOW_GRID | REPORT_DISPLAY_SHOW_NUMBERS))
 		report_paginate(report);
 
 	report_set_window_extent(report);

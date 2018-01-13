@@ -539,7 +539,7 @@ Help.ImpComp.Rejected:\Tnumber of entries in the file that were not imported.
 Help.ImpComp.Close:\Sclose this \w.
 Help.ImpComp.Log:\Sclose this \w and show the import log report.
 
-Help.EditAccount.Cancel/Help.EditHeading.Cancel/Help.Goto.Cancel/Help.EditAccSect.Cancel/Help.EditSOrder.Cancel/Help.EditPreset.Cancel/Help.Budget.Cancel/Help.RepFormat.Cancel/Help.Choices.Cancel/Help.TransRep.Cancel/Help.UnrecRep.Cancel/Help.CashFlwRep.Cancel/Help.SortTrans.Cancel/Help.SortAccView.Cancel/Help.SortSOrder.Cancel/Help.SortPreset.Cancel/Help.SaveRepTemp???.Cancel:\Scancel the changes.|M\Areset the window contents.
+Help.EditAccount.Cancel/Help.EditHeading.Cancel/Help.Goto.Cancel/Help.EditAccSect.Cancel/Help.EditSOrder.Cancel/Help.EditPreset.Cancel/Help.Budget.Cancel/Help.RepFont.Cancel/Help.Choices.Cancel/Help.TransRep.Cancel/Help.UnrecRep.Cancel/Help.CashFlwRep.Cancel/Help.SortTrans.Cancel/Help.SortAccView.Cancel/Help.SortSOrder.Cancel/Help.SortPreset.Cancel/Help.SaveRepTemp???.Cancel:\Scancel the changes.|M\Areset the window contents.
 
 Help.EditAccount:\Taccount edit \w.
 Help.EditAccount.Name:\Tname of the account.
@@ -780,14 +780,14 @@ Help.Choices6.HiOdn:\Stoggle the highlighting of overdrawn transactions in the a
 Help.Choices6.HiOdnCol1/Help.Choices6.HiOdnCol2:\Tcolour that overdrawn transactions are highlighted.
 Help.Choices6.HiOdnMenu:\Schoose the colour to highlight overdrawn transactions.
 
-Help.RepFormat:\Treport format \w.
-Help.RepFormat.NFont:\Tfont used for normal text in the report.
-Help.RepFormat.NFontMenu:\Schange the font used for normal text in the report.
-Help.RepFormat.BFont:\Tfont used for bold text in the report.
-Help.RepFormat.BFontMenu:\Schange the font used for bold text in the report.
-Help.RepFormat.Size:\Tfont size for the report, in points.
-Help.RepFormat.Spacing:\Tline spacing for the report, as a percentage of the font size.
-Help.RepFormat.Update:\Schange the font settings used in the report.
+Help.RepFont:\Treport font \w.
+Help.RepFont.NFont:\Tfont used for normal text in the report.
+Help.RepFont.NFontMenu:\Schange the font used for normal text in the report.
+Help.RepFont.BFont:\Tfont used for bold text in the report.
+Help.RepFont.BFontMenu:\Schange the font used for bold text in the report.
+Help.RepFont.Size:\Tfont size for the report, in points.
+Help.RepFont.Spacing:\Tline spacing for the report, as a percentage of the font size.
+Help.RepFont.Update:\Schange the font settings used in the report.
 
 Help.AccEnter:\Taccount ident entry window, which allows account idents to be typed into fields easily.
 Help.AccEnter.Ident:\Tident of an account or analysis heading to be entered.

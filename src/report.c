@@ -84,7 +84,7 @@
 #include "report_cell.h"
 #include "report_draw.h"
 #include "report_fonts.h"
-#include "report_format_dialogue.h"
+#include "report_font_dialogue.h"
 #include "report_line.h"
 #include "report_page.h"
 #include "report_region.h"
@@ -364,7 +364,7 @@ void report_initialise(osspriteop_area *sprites)
 
 	/* Initialise subsidiary parts of the report system. */
 
-	report_format_dialogue_initialise();
+	report_font_dialogue_initialise();
 	report_fonts_initialise();
 
 	/* Register the Wimp message handlers. */
@@ -657,7 +657,7 @@ void report_delete(struct report *report)
 
 	/* Close any related dialogues. */
 
-	report_format_dialogue_force_close(report);
+	report_font_dialogue_force_close(report);
 
 	/* Free the flex blocks. */
 
@@ -1469,7 +1469,7 @@ static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 	report_fonts_get_faces(report->fonts, normal, bold, NULL, NULL, font_NAME_LIMIT);
 	report_fonts_get_size(report->fonts, &size, &spacing);
 
-	report_format_dialogue_open(ptr, report, report_process_format_window,
+	report_font_dialogue_open(ptr, report, report_process_format_window,
 			normal, bold, size, spacing);
 }
 

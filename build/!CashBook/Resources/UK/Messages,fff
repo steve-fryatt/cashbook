@@ -1007,13 +1007,21 @@ Help.PresetMenu.03:\Rexport the preset list as a comma separated values file, fo
 Help.PresetMenu.04:\Rexport the preset list as a tab separated values file, for use in wordprocessors.
 Help.PresetMenu.05/Help.PresetTB.Print:\Sprint the preset list.
 
-Help.ReportMenu.00:\Schange the report font and formatting.
-Help.ReportMenu.01:\Rsave the report as spaced ASCII text.
-Help.ReportMenu.02:\Rexport the report as a comma separated values file, for use in spreadsheets.
-Help.ReportMenu.03:\Rexport the report as a tab separated values file, for use in wordprocessors.
-Help.ReportMenu.04:\Sselect whether the display shows the printed page layout of the report.
-Help.ReportMenu.05/Help.ReportTB.Print:\Sprint the report.
-Help.ReportMenu.06:\Ssave this report definition as a template for future use.
+Help.ReportMenu.00:\Sselect whether the display shows the printed page layout of the report.
+Help.ReportMenu.01:\Schange the report font settings.
+Help.ReportMenu.02:\Rchange the appearance of the report.
+Help.ReportMenu.0200:\Schoose whether to include the report title on the page.
+Help.ReportMenu.0201:\Schoose whether to include page numbers.
+Help.ReportMenu.0202:\Schoose whether to include a grid around tabular data.
+Help.ReportMenu.03:\Rchange the page layout of the report.
+Help.ReportMenu.0300:\Sdisplay the report on the page in Portrait format.
+Help.ReportMenu.0301:\Sdisplay the report on the page in Landscape format.
+Help.ReportMenu.0302:\Schoose whether to fit the report onto a single page width.
+Help.ReportMenu.04:\Rsave the report as spaced ASCII text.
+Help.ReportMenu.05:\Rexport the report as a comma separated values file, for use in spreadsheets.
+Help.ReportMenu.06:\Rexport the report as a tab separated values file, for use in wordprocessors.
+Help.ReportMenu.07/Help.ReportTB.Print:\Sprint the report.
+Help.ReportMenu.08:\Ssave this report definition as a template for future use.
 
 Help.RepListMenu.??:\Schoose this existing report name.
 

@@ -109,13 +109,23 @@
 
 /* Report view menu */
 
-#define REPVIEW_MENU_FORMAT 0
-#define REPVIEW_MENU_SAVETEXT 1
-#define REPVIEW_MENU_EXPCSV 2
-#define REPVIEW_MENU_EXPTSV 3
-#define REPVIEW_MENU_SHOWPAGES 4
-#define REPVIEW_MENU_PRINT 5
-#define REPVIEW_MENU_TEMPLATE 6
+#define REPVIEW_MENU_SHOWPAGES 0
+#define REPVIEW_MENU_FORMAT 1
+#define REPVIEW_MENU_INCLUDE 2
+#define REPVIEW_MENU_LAYOUT 3
+#define REPVIEW_MENU_SAVETEXT 4
+#define REPVIEW_MENU_EXPCSV 5
+#define REPVIEW_MENU_EXPTSV 6
+#define REPVIEW_MENU_PRINT 7
+#define REPVIEW_MENU_TEMPLATE 8
+
+#define REPVIEW_MENU_INCLUDE_TITLE 0
+#define REPVIEW_MENU_INCLUDE_PAGE_NUM 1
+#define REPVIEW_MENU_INCLUDE_GRID 2
+
+#define REPVIEW_MENU_LAYOUT_PORTRAIT 0
+#define REPVIEW_MENU_LAYOUT_LANDSCAPE 1
+#define REPVIEW_MENU_LAYOUT_FIT_WIDTH 2
 
 /* Report export details */
 
@@ -258,6 +268,8 @@ wimp_window			*report_window_def = NULL;			/**< The definition for the Report Vi
 wimp_window			*report_toolbar_def = NULL;			/**< The definition for the Report View toolbar.						*/
 
 static wimp_menu		*report_view_menu = NULL;			/**< The Report View window menu handle.							*/
+static wimp_menu		*report_view_include_menu = NULL;		/**< The Report View Include submenu handle.							*/
+static wimp_menu		*report_view_layout_menu = NULL;		/**< The Report View Layout submenu handle.							*/
 
 static struct saveas_block	*report_saveas_text = NULL;			/**< The Save Text saveas data handle.								*/
 static struct saveas_block	*report_saveas_csv = NULL;			/**< The Save CSV saveas data handle.								*/
@@ -340,6 +352,8 @@ void report_initialise(osspriteop_area *sprites)
 	report_toolbar_def->sprite_area = sprites;
 
 	report_view_menu = templates_get_menu("ReportViewMenu");
+	report_view_include_menu = templates_get_menu("ReportViewIncludeSubmenu");
+	report_view_layout_menu = templates_get_menu("ReportViewLayoutSubmenu");
 	ihelp_add_menu(report_view_menu, "ReportMenu");
 
 	/* Save dialogue boxes. */
@@ -1115,9 +1129,28 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 
 	paginated = report_page_paginated(report->pages);
 
-	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template == NULL);
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, paginated == FALSE);
+	menus_shade_entry(report_view_menu, REPVIEW_MENU_INCLUDE, paginated == FALSE);
+	menus_shade_entry(report_view_menu, REPVIEW_MENU_LAYOUT, paginated == FALSE);
+	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template == NULL);
+
+	menus_shade_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_TITLE, paginated == FALSE);
+	menus_shade_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_PAGE_NUM, paginated == FALSE);
+	menus_shade_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_GRID, paginated == FALSE);
+
+	menus_shade_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_PORTRAIT, paginated == FALSE);
+	menus_shade_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_LANDSCAPE, paginated == FALSE);
+	menus_shade_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_FIT_WIDTH, paginated == FALSE);
+
 	menus_tick_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, (paginated == TRUE) && (report->display & REPORT_DISPLAY_PAGINATED));
+
+	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_TITLE, paginated && (report->display & REPORT_DISPLAY_SHOW_TITLE));
+	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_PAGE_NUM, paginated && (report->display & REPORT_DISPLAY_SHOW_NUMBERS));
+	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_GRID, paginated && (report->display & REPORT_DISPLAY_SHOW_GRID));
+
+	menus_tick_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_PORTRAIT, (paginated == FALSE) || !(report->display & REPORT_DISPLAY_LANDSCAPE));
+	menus_tick_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_LANDSCAPE, (paginated == TRUE) && (report->display & REPORT_DISPLAY_LANDSCAPE));
+	menus_tick_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_FIT_WIDTH, paginated && (report->display & REPORT_DISPLAY_FIT_WIDTH));
 }
 
 
@@ -1142,12 +1175,44 @@ static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 	wimp_get_pointer_info(&pointer);
 
 	switch (selection->items[0]){
+	case REPVIEW_MENU_SHOWPAGES:
+		report_set_display_option(report, REPORT_DISPLAY_PAGINATED, !(report->display & REPORT_DISPLAY_PAGINATED));
+		break;
+
 	case REPVIEW_MENU_FORMAT:
 		report_open_format_window(report, &pointer);
 		break;
 
-	case REPVIEW_MENU_SHOWPAGES:
-		report_set_display_option(report, REPORT_DISPLAY_PAGINATED, !(report->display & REPORT_DISPLAY_PAGINATED));
+	case REPVIEW_MENU_INCLUDE:
+		switch(selection->items[1]) {
+		case REPVIEW_MENU_INCLUDE_TITLE:
+			report_set_display_option(report, REPORT_DISPLAY_SHOW_TITLE, !(report->display & REPORT_DISPLAY_SHOW_TITLE));
+			break;
+
+		case REPVIEW_MENU_INCLUDE_PAGE_NUM:
+			report_set_display_option(report, REPORT_DISPLAY_SHOW_NUMBERS, !(report->display & REPORT_DISPLAY_SHOW_NUMBERS));
+			break;
+
+		case REPVIEW_MENU_INCLUDE_GRID:
+			report_set_display_option(report, REPORT_DISPLAY_SHOW_GRID, !(report->display & REPORT_DISPLAY_SHOW_GRID));
+			break;
+		}
+		break;
+
+	case REPVIEW_MENU_LAYOUT:
+		switch(selection->items[1]) {
+		case REPVIEW_MENU_LAYOUT_PORTRAIT:
+			report_set_display_option(report, REPORT_DISPLAY_LANDSCAPE, FALSE);
+			break;
+
+		case REPVIEW_MENU_LAYOUT_LANDSCAPE:
+			report_set_display_option(report, REPORT_DISPLAY_LANDSCAPE, TRUE);
+			break;
+
+		case REPVIEW_MENU_LAYOUT_FIT_WIDTH:
+			report_set_display_option(report, REPORT_DISPLAY_FIT_WIDTH, !(report->display & REPORT_DISPLAY_FIT_WIDTH));
+			break;
+		}
 		break;
 
 	case REPVIEW_MENU_PRINT:

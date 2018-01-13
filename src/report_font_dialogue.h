@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -45,12 +45,14 @@ void report_font_dialogue_initialise(void);
  * \param *callback		The callback function to use to return the results.
  * \param *normal		The initial normal font name.
  * \param *bold			The initial bold font name.
+ * \param *italic		The initial italic font name.
+ * \param *bold_italic		The initial bold-italic font name.
  * \param size			The initial font size.
  * \param spacing		The initial line spacing.
  */
 
-void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int),
-		char *normal, char *bold, int size, int spacing);
+void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, char *, char *, int, int),
+		char *normal, char *bold, char *italic, char *bold_italic, int size, int spacing);
 
 
 /**

@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -57,14 +57,18 @@
 
 /* Dialogue Icons. */
 
-#define REPORT_FONT_DIALOGUE_OK 13
-#define REPORT_FONT_DIALOGUE_CANCEL 12
+#define REPORT_FONT_DIALOGUE_OK 19
+#define REPORT_FONT_DIALOGUE_CANCEL 18
 #define REPORT_FONT_DIALOGUE_NFONT 1
 #define REPORT_FONT_DIALOGUE_NFONTMENU 2
 #define REPORT_FONT_DIALOGUE_BFONT 4
 #define REPORT_FONT_DIALOGUE_BFONTMENU 5
-#define REPORT_FONT_DIALOGUE_FONTSIZE 7
-#define REPORT_FONT_DIALOGUE_FONTSPACE 10
+#define REPORT_FONT_DIALOGUE_IFONT 7
+#define REPORT_FONT_DIALOGUE_IFONTMENU 8
+#define REPORT_FONT_DIALOGUE_BIFONT 10
+#define REPORT_FONT_DIALOGUE_BIFONTMENU 11
+#define REPORT_FONT_DIALOGUE_FONTSIZE 13
+#define REPORT_FONT_DIALOGUE_FONTSPACE 16
 
 /* Global variables. */
 
@@ -100,6 +104,18 @@ static char			report_font_dialogue_initial_normal[font_NAME_LIMIT];
 static char			report_font_dialogue_initial_bold[font_NAME_LIMIT];
 
 /**
+ * The starting italic font name.
+ */
+
+static char			report_font_dialogue_initial_italic[font_NAME_LIMIT];
+
+/**
+ * The starting bold italic font name.
+ */
+
+static char			report_font_dialogue_initial_bold_italic[font_NAME_LIMIT];
+
+/**
  * The staring font size.
  */
 
@@ -115,7 +131,7 @@ static int			report_font_dialogue_initial_spacing;
  * Callback function to return updated settings.
  */
 
-static void			(*report_font_dialogue_callback)(struct report *, char *, char *, int, int);
+static void			(*report_font_dialogue_callback)(struct report *, char *, char *, char *, char *, int, int);
 
 /**
  * The report to which the currently open Report Format window belongs.
@@ -151,6 +167,8 @@ void report_font_dialogue_initialise(void)
 	event_add_window_menu_close(report_font_dialogue_window, report_font_dialogue_menu_close_handler);
 	event_add_window_icon_popup(report_font_dialogue_window, REPORT_FONT_DIALOGUE_NFONTMENU, report_font_dialogue_font_menu, -1, NULL);
 	event_add_window_icon_popup(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONTMENU, report_font_dialogue_font_menu, -1, NULL);
+	event_add_window_icon_popup(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONTMENU, report_font_dialogue_font_menu, -1, NULL);
+	event_add_window_icon_popup(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONTMENU, report_font_dialogue_font_menu, -1, NULL);
 }
 
 
@@ -162,15 +180,19 @@ void report_font_dialogue_initialise(void)
  * \param *callback		The callback function to use to return the results.
  * \param *normal		The initial normal font name.
  * \param *bold			The initial bold font name.
+ * \param *italic		The initial italic font name.
+ * \param *bold_italic		The initial bold-italic font name.
  * \param size			The initial font size.
  * \param spacing		The initial line spacing.
  */
 
-void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int),
-		char *normal, char *bold, int size, int spacing)
+void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, char *, char *, int, int),
+		char *normal, char *bold, char *italic, char *bold_italic, int size, int spacing)
 {
 	string_copy(report_font_dialogue_initial_normal, normal, font_NAME_LIMIT);
 	string_copy(report_font_dialogue_initial_bold, bold, font_NAME_LIMIT);
+	string_copy(report_font_dialogue_initial_italic, italic, font_NAME_LIMIT);
+	string_copy(report_font_dialogue_initial_bold_italic, bold_italic, font_NAME_LIMIT);
 
 	report_font_dialogue_initial_size = size;
 	report_font_dialogue_initial_spacing = spacing;
@@ -310,6 +332,16 @@ static void report_font_dialogue_menu_selection_handler(wimp_w w, wimp_menu *men
 		icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONT, "%s", font);
 		wimp_set_icon_state(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONT, 0, 0);
 		break;
+
+	case REPORT_FONT_DIALOGUE_IFONTMENU:
+		icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONT, "%s", font);
+		wimp_set_icon_state(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONT, 0, 0);
+		break;
+
+	case REPORT_FONT_DIALOGUE_BIFONTMENU:
+		icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONT, "%s", font);
+		wimp_set_icon_state(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONT, 0, 0);
+		break;
 	}
 
 	heap_free(font);
@@ -354,6 +386,8 @@ static void report_font_dialogue_fill(void)
 {
 	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_NFONT, "%s", report_font_dialogue_initial_normal);
 	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONT, "%s", report_font_dialogue_initial_bold);
+	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONT, "%s", report_font_dialogue_initial_italic);
+	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONT, "%s", report_font_dialogue_initial_bold_italic);
 
 	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_FONTSIZE, "%d", report_font_dialogue_initial_size / 16);
 	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_FONTSPACE, "%d", report_font_dialogue_initial_spacing);
@@ -374,6 +408,8 @@ static void report_font_dialogue_process(void)
 
 	icons_copy_text(report_font_dialogue_window, REPORT_FONT_DIALOGUE_NFONT, report_font_dialogue_initial_normal, font_NAME_LIMIT);
 	icons_copy_text(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONT, report_font_dialogue_initial_bold, font_NAME_LIMIT);
+	icons_copy_text(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONT, report_font_dialogue_initial_italic, font_NAME_LIMIT);
+	icons_copy_text(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONT, report_font_dialogue_initial_bold_italic, font_NAME_LIMIT);
 
 	report_font_dialogue_initial_size = atoi(icons_get_indirected_text_addr(report_font_dialogue_window, REPORT_FONT_DIALOGUE_FONTSIZE)) * 16;
 	report_font_dialogue_initial_spacing = atoi(icons_get_indirected_text_addr(report_font_dialogue_window, REPORT_FONT_DIALOGUE_FONTSPACE));
@@ -381,7 +417,8 @@ static void report_font_dialogue_process(void)
 	/* Call the client back. */
 
 	report_font_dialogue_callback(report_font_dialogue_report,
-			report_font_dialogue_initial_normal, report_font_dialogue_initial_bold, 
+			report_font_dialogue_initial_normal, report_font_dialogue_initial_bold,
+			report_font_dialogue_initial_italic, report_font_dialogue_initial_bold_italic,
 			report_font_dialogue_initial_size, report_font_dialogue_initial_spacing);
 }
 

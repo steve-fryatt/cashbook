@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -297,7 +297,7 @@ static void			report_view_redraw_page_handler(struct report *report, wimp_draw *
 
 
 static void			report_open_format_window(struct report *report, wimp_pointer *ptr);
-static void			report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing);
+static void			report_process_format_window(struct report *report, char *normal, char *bold, char* italic, char *bold_italic, int size, int spacing);
 
 static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
 static struct report		*report_print_window_closed(struct report *report, void *data);
@@ -1479,17 +1479,17 @@ void report_redraw_all(struct file_block *file)
 
 static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 {
-	char	normal[font_NAME_LIMIT], bold[font_NAME_LIMIT];
+	char	normal[font_NAME_LIMIT], bold[font_NAME_LIMIT], italic[font_NAME_LIMIT], bold_italic[font_NAME_LIMIT];
 	int	size, spacing;
 
 	if (report == NULL || ptr == NULL)
 		return;
 
-	report_fonts_get_faces(report->fonts, normal, bold, NULL, NULL, font_NAME_LIMIT);
+	report_fonts_get_faces(report->fonts, normal, bold, italic, bold_italic, font_NAME_LIMIT);
 	report_fonts_get_size(report->fonts, &size, &spacing);
 
 	report_font_dialogue_open(ptr, report, report_process_format_window,
-			normal, bold, size, spacing);
+			normal, bold, italic, bold_italic, size, spacing);
 }
 
 
@@ -1497,14 +1497,14 @@ static void report_open_format_window(struct report *report, wimp_pointer *ptr)
  * Take the contents of an updated report format window and process the data.
  */
 
-static void report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing)
+static void report_process_format_window(struct report *report, char *normal, char *bold, char* italic, char *bold_italic, int size, int spacing)
 {
 	if (report == NULL)
 		return;
 
 	/* Extract the information. */
 
-	report_fonts_set_faces(report->fonts, normal, bold, NULL, NULL);
+	report_fonts_set_faces(report->fonts, normal, bold, italic, bold_italic);
 	report_fonts_set_size(report->fonts, size, spacing);
 
 	/* Tidy up and redraw the windows */

@@ -948,13 +948,13 @@ static void report_reflow_content(struct report *report)
 
 		for (cell = 0; cell < line_data->cell_count; cell++) {
 			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
-			if (cell_data == NULL || cell_data->offset == REPORT_TEXTDUMP_NULL)
+			if (cell_data == NULL || (cell_data->offset == REPORT_TEXTDUMP_NULL && cell_data->flags == REPORT_CELL_FLAGS_NONE))
 				continue;
 
 			if (cell_data->flags & REPORT_CELL_FLAGS_SPILL) {
 				font_width = REPORT_TABS_SPILL_WIDTH;
 				text_width = REPORT_TABS_SPILL_WIDTH;
-			} else {
+			} else if (cell_data->offset != REPORT_TEXTDUMP_NULL) {
 				content = content_base + cell_data->offset;
 
 				report_fonts_get_string_width(report->fonts, content, cell_data->flags, &font_width);
@@ -966,6 +966,9 @@ static void report_reflow_content(struct report *report)
 					font_width += REPORT_COLUMN_INDENT;
 					text_width += REPORT_TEXT_COLUMN_INDENT;
 				}
+			} else {
+				font_width = 0;
+				text_width = 0;
 			}
 
 			report_tabs_set_cell_width(report->tabs, cell_data->tab_stop, font_width, text_width);

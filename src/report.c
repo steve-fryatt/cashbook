@@ -2358,6 +2358,8 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 	if (!report_tabs_get_bar_width(report->tabs, line_data->tab_bar, &line_width, &line_inset))
 		return NULL;
 
+	/* Calculate the outline of the whole line, and the Y bounds of the cells within it. */
+
 	line_outline.x0 = origin->x;
 	line_outline.x1 = origin->x + line_width;
 
@@ -2373,6 +2375,8 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE))
 		line_outline.y1 += 2 * REPORT_GRID_LINE_MARGIN;
 
+	/* If the Y bounds of the line fall outside the clip window, skip the rest. */
+
 	if (line_outline.y0 > clip->y1 || line_outline.y1 < clip->y0)
 		return NULL;
 
@@ -2383,9 +2387,13 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 		if (error != NULL)
 			return error;
 
+		/* Plot a line above. */
+
 		if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
 			error = report_draw_line(line_outline.x0, cell_outline.y1 + REPORT_GRID_LINE_MARGIN,
 					line_outline.x1, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+
+		/* Plot a line below, and the associated end risers. */
 
 		if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW) {
 			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
@@ -2410,10 +2418,12 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 		if (tab_stop == NULL)
 			continue;
 
+		/* Calculate the bounds of the initial cell. */
+
 		cell_outline.x0 = origin->x + line_inset + tab_stop->font_left;
 		cell_outline.x1 = cell_outline.x0 + tab_stop->font_width;
 
-		/* Merge in any spill cells which follow. */
+		/* Merge any spill cells which follow into the bounds. */
 
 		while (cell + 1 < line_data->cell_count) {
 			spill_cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell + 1);
@@ -2429,8 +2439,12 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 			cell++;
 		}
 
+		/* Drop the redraw if the cell's X dimensions are outside the clip window. */
+
 		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + line_inset) < clip->x0))
 			continue;
+
+		/* Plot the grid riser after the cell, if required. */
 
 		if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (tab_stop->flags & REPORT_TABS_STOP_FLAGS_RULE_AFTER)) {
 			error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
@@ -2440,6 +2454,8 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 			error = report_draw_line(cell_outline.x1 + line_inset, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
 					cell_outline.x1 + line_inset, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
 		}
+
+		/* Plot the cell itself. */
 
 		error = report_plot_cell(report, &cell_outline, content_base + cell_data->offset, cell_data->flags);
 		if (error != NULL)

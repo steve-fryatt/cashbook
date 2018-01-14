@@ -61,12 +61,15 @@
  */
 
 struct report_tabs_bar {
-	struct report_tabs_block	*parent;
+	struct report_tabs_block	*parent;			/**< The parent tabs instance.						*/
 
-	size_t				stop_allocation;
-	size_t				stop_count;
+	size_t				stop_allocation;		/**< The number of tab stops allocated for during assembly.		*/
+	size_t				stop_count;			/**< The number of tab stops in use.					*/
 
-	struct report_tabs_stop		*stops;
+	int				width;				/**< The total width of the bar, including end rule margins.		*/
+	int				inset;				/**< The left-hand inset of the bar, to allow for the end rule.		*/
+
+	struct report_tabs_stop		*stops;				/**< The tab stop data array.						*/
 };
 
 
@@ -124,7 +127,7 @@ static void report_tabs_reset_bar_columns(struct report_tabs_bar *handle);
 static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop);
 static void report_tabs_initialise_stop(struct report_tabs_stop *stop);
 static void report_tabs_zero_stop(struct report_tabs_stop *stop);
-static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle);
+static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osbool grid);
 static struct report_tabs_stop *report_tabs_bar_get_stop(struct report_tabs_bar *handle, int stop);
 
 
@@ -419,11 +422,12 @@ osbool report_tabs_end_line_format(struct report_tabs_block *handle)
  * Calculate the column positions of all the bars in a Report Tabs instance.
  *
  * \param *handle		The instance to recalculate.
+ * \param grid			TRUE if a grid is being displayed; else FALSE;
  * \return			The width, in OS Units, of the widest bar
  *				when in font mode.
  */
 
-int report_tabs_calculate_columns(struct report_tabs_block *handle)
+int report_tabs_calculate_columns(struct report_tabs_block *handle, osbool grid)
 {
 	int bar, width, max_width = 0;
 
@@ -431,7 +435,7 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle)
 		return 0;
 
 	for (bar = 0; bar < handle->bar_allocation; bar++) {
-		width = report_tabs_calculate_bar_columns(handle->bars[bar]);
+		width = report_tabs_calculate_bar_columns(handle->bars[bar], grid);
 		if (width > max_width)
 			max_width = width;
 	}
@@ -441,26 +445,32 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle)
 
 
 /**
- * Return the width of a tab bar, in OS units for font mode.
+ * Return the width and inset of a tab bar, in OS units for font mode. The
+ * values take into account any left and right margins included for vertical
+ * rules. 
  *
  * \param *handle		The tabs instance to query.
  * \param bar			The bar to return the width for.
- * \return			The font mode width of the bar, in OS units.
+ * \param *width		Pointer to variable to take the bar width.
+ * \param *inset		Pointer to variable to take the bar inset.
+ * \return			TRUE if successful; FALSE on error.
  */
 
-int report_tabs_get_bar_width(struct report_tabs_block *handle, int bar)
+osbool report_tabs_get_bar_width(struct report_tabs_block *handle, int bar, int *width, int *inset)
 {
 	struct report_tabs_bar	*bar_handle = NULL;
-	int			width;
 
 	bar_handle = report_tabs_get_bar(handle, bar);
 	if (bar_handle == NULL)
-		return 0;
+		return FALSE;
 
-	width = bar_handle->stops[bar_handle->stop_count - 1].font_left +
-			bar_handle->stops[bar_handle->stop_count - 1].font_width;
+	if (width != NULL)
+		*width = bar_handle->width;
 
-	return width;
+	if (inset != NULL)
+		*inset = bar_handle->inset;
+
+	return TRUE;
 }
 
 
@@ -564,6 +574,8 @@ static struct report_tabs_bar *report_tabs_create_bar(struct report_tabs_block *
 	new->stop_allocation = REPORT_TABS_STOP_BLOCK_SIZE;
 	new->stop_count = 0;
 	new->stops = NULL;
+	new->width = 0;
+	new->inset = 0;
 
 	if (!flexutils_allocate((void **) &(new->stops), sizeof(struct report_tabs_stop), new->stop_allocation)) {
 		debug_printf("FAILED to claim stops block.");
@@ -741,15 +753,20 @@ static void report_tabs_zero_stop(struct report_tabs_stop *stop)
  * Calculate the column positions for a tab bar.
  *
  * \param *handle		The bar to calculate the positions for.
+ * \param grid			TRUE if a grid is to be displayed; else FALSE.
  * \return			The width, in OS Units, of the bar in font mode.
  */
 
-static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle)
+static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osbool grid)
 {
-	int stop, width = 0;
+	int	stop;
+	osbool	gridlines = FALSE;
 
 	if (handle == NULL || handle->stops == NULL || handle->stop_count == 0)
 		return 0;
+
+	handle->width = 0;
+	handle->inset = 0;
 
 	handle->stops[0].font_left = 0;
 	handle->stops[0].text_left = 0;
@@ -762,11 +779,19 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle)
 
 		debug_printf("tab %d = %d", stop, handle->stops[stop].font_left);
 
-		if ((handle->stops[stop].font_width > 0) && ((handle->stops[stop].font_left + handle->stops[stop].font_width) > width))
-			width = handle->stops[stop].font_left + handle->stops[stop].font_width;
+		if ((handle->stops[stop].font_width > 0) && ((handle->stops[stop].font_left + handle->stops[stop].font_width) > handle->width))
+			handle->width = handle->stops[stop].font_left + handle->stops[stop].font_width;
+
+		if (handle->stops[stop].flags & (REPORT_TABS_STOP_FLAGS_RULE_BEFORE | REPORT_TABS_STOP_FLAGS_RULE_AFTER))
+			gridlines = TRUE;
 	}
 
-	return width;
+	if ((grid == TRUE) && (gridlines == TRUE)) {
+		handle->width += REPORT_TABS_COLUMN_SPACE;
+		handle->inset = (REPORT_TABS_COLUMN_SPACE / 2);
+	}
+
+	return handle->width;
 }
 
 

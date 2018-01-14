@@ -164,22 +164,27 @@ osbool report_tabs_end_line_format(struct report_tabs_block *handle);
  * Calculate the column positions of all the bars in a Report Tabs instance.
  *
  * \param *handle		The instance to recalculate.
+ * \param grid			TRUE if a grid is being displayed; else FALSE;
  * \return			The width, in OS Units, of the widest bar
  *				when in font mode.
  */
 
-int report_tabs_calculate_columns(struct report_tabs_block *handle);
+int report_tabs_calculate_columns(struct report_tabs_block *handle, osbool grid);
 
 
 /**
- * Return the width of a tab bar, in OS units for font mode.
+ * Return the width and inset of a tab bar, in OS units for font mode. The
+ * values take into account any left and right margins included for vertical
+ * rules. 
  *
  * \param *handle		The tabs instance to query.
  * \param bar			The bar to return the width for.
- * \return			The font mode width of the bar, in OS units.
+ * \param *width		Pointer to variable to take the bar width.
+ * \param *inset		Pointer to variable to take the bar inset.
+ * \return			TRUE if successful; FALSE on error.
  */
 
-int report_tabs_get_bar_width(struct report_tabs_block *handle, int bar);
+osbool report_tabs_get_bar_width(struct report_tabs_block *handle, int bar, int *width, int *inset);
 
 
 /**

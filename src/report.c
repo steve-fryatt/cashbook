@@ -874,7 +874,7 @@ static osbool report_add_cell(struct report *report, char *text, enum report_cel
 	if (flags & REPORT_CELL_FLAGS_RULE_AFTER)
 		tab_flags |= REPORT_TABS_STOP_FLAGS_RULE_AFTER;
 
-	report_tabs_set_stop_flags(report->tabs, tab_bar, tab_stop, REPORT_TABS_STOP_FLAGS_NONE);
+	report_tabs_set_stop_flags(report->tabs, tab_bar, tab_stop, tab_flags);
 
 	return (cell_offset == REPORT_CELL_NULL) ? FALSE : TRUE;
 }
@@ -983,7 +983,7 @@ static void report_reflow_content(struct report *report)
 
 	/* Set the dimensions of the report. */
 
-	report->width = report_tabs_calculate_columns(report->tabs);
+	report->width = report_tabs_calculate_columns(report->tabs, (report->display & REPORT_DISPLAY_SHOW_GRID) ? TRUE : FALSE);
 	report->height = ypos;
 
 	report->linespace = line_space;
@@ -2340,7 +2340,7 @@ static os_error *report_plot_lines_region(struct report *report, struct report_r
 static os_error *report_plot_line(struct report *report, unsigned int line, os_coord *origin, os_box *clip)
 {
 	os_error		*error;
-	int			cell;
+	int			cell, line_width, line_inset;
 	char			*content_base;
 	os_box			line_outline, cell_outline;
 	struct report_line_data	*line_data;
@@ -2355,8 +2355,11 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 	if (line_data == NULL)
 		return NULL;
 
+	if (!report_tabs_get_bar_width(report->tabs, line_data->tab_bar, &line_width, &line_inset))
+		return NULL;
+
 	line_outline.x0 = origin->x;
-	line_outline.x1 = origin->x + report_tabs_get_bar_width(report->tabs, line_data->tab_bar);
+	line_outline.x1 = origin->x + line_width;
 
 	line_outline.y0 = origin->y + line_data->ypos;
 	cell_outline.y0 = line_outline.y0;
@@ -2400,7 +2403,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 		if (tab_stop == NULL)
 			continue;
 
-		cell_outline.x0 = origin->x + tab_stop->font_left;
+		cell_outline.x0 = origin->x + line_inset + tab_stop->font_left;
 		cell_outline.x1 = cell_outline.x0 + tab_stop->font_width;
 
 		if (cell_outline.x0 > clip->x1 || cell_outline.x1 < clip->x0)

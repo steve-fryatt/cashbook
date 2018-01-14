@@ -159,6 +159,8 @@
 
 #define REPORT_PRINT_RECTANGLE_MARGIN 2
 
+#define REPORT_GRID_LINE_MARGIN 2
+
 
 struct report_print_pagination {
 	int		header_line;						/**< A line to repeat as a header at the top of the page, or -1 for none.			*/
@@ -803,6 +805,11 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 			case 'u':
 				cell_flags |= REPORT_CELL_FLAGS_UNDERLINE;
 				break;
+				
+			case 'v':
+				line_flags |= REPORT_LINE_FLAGS_RULE_BELOW;
+				cell_flags |= REPORT_CELL_FLAGS_RULE_AFTER;
+				break;
 			}
 		} else {
 			*c++ = *text++;
@@ -838,7 +845,8 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 
 static osbool report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int tab_stop, unsigned *first_cell_offset)
 {
-	unsigned content_offset, cell_offset;
+	unsigned			content_offset, cell_offset;
+	enum report_tabs_stop_flags	tab_flags = REPORT_TABS_STOP_FLAGS_NONE;
 
 	if (text != NULL && *text != '\0') {
 		content_offset = report_textdump_store(report->content, text);
@@ -862,6 +870,9 @@ static osbool report_add_cell(struct report *report, char *text, enum report_cel
 
 	if (*first_cell_offset == REPORT_CELL_NULL)
 		*first_cell_offset = cell_offset;
+
+	if (flags & REPORT_CELL_FLAGS_RULE_AFTER)
+		tab_flags |= REPORT_TABS_STOP_FLAGS_RULE_AFTER;
 
 	report_tabs_set_stop_flags(report->tabs, tab_bar, tab_stop, REPORT_TABS_STOP_FLAGS_NONE);
 
@@ -903,7 +914,6 @@ static void report_reflow_content(struct report *report)
 	report_fonts_find(report->fonts);
 
 	line_space = report_fonts_get_linespace(report->fonts);
-	rule_space = (report->display & REPORT_DISPLAY_SHOW_GRID) ? REPORT_RULE_SPACE : 0;
 
 	content_base = report_textdump_get_base(report->content);
 
@@ -917,6 +927,16 @@ static void report_reflow_content(struct report *report)
 		line_data = report_line_get_info(report->lines, line);
 		if (line_data == NULL)
 			continue;
+
+		rule_space = 0;
+
+		if (report->display & REPORT_DISPLAY_SHOW_GRID) {
+			if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
+				rule_space += 2 * REPORT_GRID_LINE_MARGIN;
+
+			if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW)
+				rule_space += 2 * REPORT_GRID_LINE_MARGIN;
+		}
 
 		ypos += (line_space + rule_space);
 		line_data->ypos = -ypos;
@@ -964,7 +984,7 @@ static void report_reflow_content(struct report *report)
 	report->height = ypos;
 
 	report->linespace = line_space;
-	report->rulespace = rule_space;
+	report->rulespace = 0;
 }
 
 
@@ -1351,17 +1371,6 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 	wimp_set_colour(wimp_COLOUR_WHITE);
 	os_plot(os_MOVE_TO, redraw->clip.x0, redraw->clip.y1);
 	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, redraw->clip.x1, redraw->clip.y0);
-
-	/* Draw Grid. */
-
-//	if (report->show_grid) {
-//		wimp_set_colour(wimp_COLOUR_BLACK);
-
-//		for (y = top; y < line_count && y <= base; y++) {
-//			report_draw_line(ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1),
-//					ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
-//		}
-//	}
 
 	/* Plot Text. */
 
@@ -2333,7 +2342,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 	os_error		*error;
 	int			cell;
 	char			*content_base;
-	os_box			outline;
+	os_box			line_outline, cell_outline;
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data;
 	struct report_tabs_stop	*tab_stop;
@@ -2346,11 +2355,41 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 	if (line_data == NULL)
 		return NULL;
 
-	outline.y0 = origin->y + line_data->ypos;
-	outline.y1 = outline.y0 + report->linespace;
+	line_outline.x0 = origin->x;
+	line_outline.x1 = origin->x + report_tabs_get_bar_width(report->tabs, line_data->tab_bar);
 
-	if (outline.y0 > clip->y1 || outline.y1 < clip->y0)
+	line_outline.y0 = origin->y + line_data->ypos;
+	cell_outline.y0 = line_outline.y0;
+
+	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW))
+		cell_outline.y0 += 2 * REPORT_GRID_LINE_MARGIN;
+
+	cell_outline.y1 = cell_outline.y0 + report->linespace;
+	line_outline.y1 = cell_outline.y1;
+
+	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE))
+		line_outline.y1 += 2 * REPORT_GRID_LINE_MARGIN;
+
+	if (line_outline.y0 > clip->y1 || line_outline.y1 < clip->y0)
 		return NULL;
+
+	/* Plot the grid above and below the line. */
+
+	if (report->display & REPORT_DISPLAY_SHOW_GRID) {
+		error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+		if (error != NULL)
+			return error;
+
+		if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
+			error = report_draw_line(line_outline.x0, cell_outline.y1 + REPORT_GRID_LINE_MARGIN,
+					line_outline.x1, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+
+		if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW)
+			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
+					line_outline.x1, cell_outline.y0 - REPORT_GRID_LINE_MARGIN);
+	}
+
+	/* Plot the cells in the line. */
 
 	for (cell = 0; cell < line_data->cell_count; cell++) {
 		cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
@@ -2361,13 +2400,13 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 		if (tab_stop == NULL)
 			continue;
 
-		outline.x0 = origin->x + tab_stop->font_left;
-		outline.x1 = outline.x0 + tab_stop->font_width;
+		cell_outline.x0 = origin->x + tab_stop->font_left;
+		cell_outline.x1 = cell_outline.x0 + tab_stop->font_width;
 
-		if (outline.x0 > clip->x1 || outline.x1 < clip->x0)
+		if (cell_outline.x0 > clip->x1 || cell_outline.x1 < clip->x0)
 			continue;
 
-		error = report_plot_cell(report, &outline, content_base + cell_data->offset, cell_data->flags);
+		error = report_plot_cell(report, &cell_outline, content_base + cell_data->offset, cell_data->flags);
 		if (error != NULL)
 			return error;
 	}
@@ -2811,6 +2850,9 @@ static void report_set_display_option(struct report *report, enum report_display
 		report->display = report->display | option;
 	else
 		report->display = report->display & (~option);
+
+	if (option & REPORT_DISPLAY_SHOW_GRID)
+		report_reflow_content(report);
 
 	if (option & (REPORT_DISPLAY_LANDSCAPE | REPORT_DISPLAY_SHOW_TITLE |
 			REPORT_DISPLAY_SHOW_GRID | REPORT_DISPLAY_SHOW_NUMBERS))

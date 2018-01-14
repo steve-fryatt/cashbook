@@ -1,4 +1,4 @@
-/* Copyright 2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2017-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -439,6 +439,30 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle)
 	}
 
 	return max_width;
+}
+
+
+/**
+ * Return the width of a tab bar, in OS units for font mode.
+ *
+ * \param *handle		The tabs instance to query.
+ * \param bar			The bar to return the width for.
+ * \return			The font mode width of the bar, in OS units.
+ */
+
+int report_tabs_get_bar_width(struct report_tabs_block *handle, int bar)
+{
+	struct report_tabs_bar	*bar_handle = NULL;
+	int			width;
+
+	bar_handle = report_tabs_get_bar(handle, bar);
+	if (bar_handle == NULL)
+		return 0;
+
+	width = bar_handle->stops[bar_handle->stop_count - 1].font_left +
+			bar_handle->stops[bar_handle->stop_count - 1].font_width;
+
+	return width;
 }
 
 

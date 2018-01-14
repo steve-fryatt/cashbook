@@ -1,4 +1,4 @@
-/* Copyright 2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2017-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -45,7 +45,7 @@ enum report_cell_flags {
 	REPORT_CELL_FLAGS_RIGHT		= 0x0020,		/**< The cell contents should be right aligned.				*/
 	REPORT_CELL_FLAGS_NUMERIC	= 0x0040,		/**< The cell contents should be treated as numeric.			*/ 
 	REPORT_CELL_FLAGS_SPILL		= 0x0080,		/**< The cell is used for spill from cells to the left.			*/
-	REPORT_CELL_FLAGS_RULE_BEFORE	= 0x0100		/**< The cell should have a vertical rule to its left.			*/
+	REPORT_CELL_FLAGS_RULE_AFTER	= 0x0100		/**< The cell should have a vertical rule to its right.			*/
 };
 
 

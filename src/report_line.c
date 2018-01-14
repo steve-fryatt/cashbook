@@ -1,4 +1,4 @@
-/* Copyright 2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2017-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -184,6 +184,13 @@ osbool report_line_add(struct report_line_block *handle, unsigned first_cell, si
 	}
 
 	new = handle->line_count++;
+
+	/* If there's a rule below this, and no rule on the line above,
+	 * add a rule above the line as well.
+	 */
+
+	if ((flags & REPORT_LINE_FLAGS_RULE_BELOW) && ((new == 0) || !(handle->lines[new - 1].flags & REPORT_LINE_FLAGS_RULE_BELOW)))
+		flags |= REPORT_LINE_FLAGS_RULE_ABOVE;
 
 	handle->lines[new].flags = flags;
 	handle->lines[new].first_cell = first_cell;

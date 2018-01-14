@@ -350,7 +350,7 @@ TRTotal:Total
 
 URWinT:Unreconciled Transaction Report
 URTitle:\b\uUnreconciled Transaction Report for %0
-URHeadings:\k\b\rNo\t\b\cDate\t\bFrom\t\s\t\bTo\t\s\t\bReference\t\b\rAmount\t\bDescription
+URHeadings:\k\v\b\rNo\t\v\b\cDate\t\bFrom\t\s\v\t\bTo\t\s\v\t\v\bReference\t\v\b\rAmount\t\v\bDescription
 URTotalIn:Unreconciled incoming
 URTotalOut:Unreconciled outgoing
 URTotal:Total unreconciled

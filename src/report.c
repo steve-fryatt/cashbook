@@ -2387,9 +2387,16 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 			error = report_draw_line(line_outline.x0, cell_outline.y1 + REPORT_GRID_LINE_MARGIN,
 					line_outline.x1, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
 
-		if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW)
+		if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW) {
 			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
 					line_outline.x1, cell_outline.y0 - REPORT_GRID_LINE_MARGIN);
+
+			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
+					line_outline.x0, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+
+			error = report_draw_line(line_outline.x1, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
+					line_outline.x1, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+		}
 	}
 
 	/* Plot the cells in the line. */
@@ -2406,8 +2413,17 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 		cell_outline.x0 = origin->x + line_inset + tab_stop->font_left;
 		cell_outline.x1 = cell_outline.x0 + tab_stop->font_width;
 
-		if (cell_outline.x0 > clip->x1 || cell_outline.x1 < clip->x0)
+		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + line_inset) < clip->x0))
 			continue;
+
+		if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (tab_stop->flags & REPORT_TABS_STOP_FLAGS_RULE_AFTER)) {
+			error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+			if (error != NULL)
+				return error;
+
+			error = report_draw_line(cell_outline.x1 + line_inset, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
+					cell_outline.x1 + line_inset, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+		}
 
 		error = report_plot_cell(report, &cell_outline, content_base + cell_data->offset, cell_data->flags);
 		if (error != NULL)
@@ -2438,13 +2454,13 @@ static os_error *report_plot_cell(struct report *report, os_box *outline, char *
 
 	/* Draw a box around the cell. This is for debugging only! */
 
-	error = xcolourtrans_set_gcol(os_COLOUR_RED, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
-	if (error != NULL)
-		return error;
+//	error = xcolourtrans_set_gcol(os_COLOUR_RED, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+//	if (error != NULL)
+//		return error;
 
-	error = report_draw_box(outline);
-	if (error != NULL)
-		return error;
+//	error = report_draw_box(outline);
+//	if (error != NULL)
+//		return error;
 
 	/* If there's no text, there's nothing else to do. */
 

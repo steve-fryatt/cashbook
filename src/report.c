@@ -1064,18 +1064,17 @@ static void report_view_toolbar_prepare(struct report *report)
 
 	paginated = report_page_paginated(report->pages);
 
-	icons_set_group_shaded(report->toolbar, !paginated, 7,
+	icons_set_group_shaded(report->toolbar, !paginated, 6,
 			REPORT_PANE_SHOW_PAGES, REPORT_PANE_PORTRAIT,
 			REPORT_PANE_LANDSCAPE, REPORT_PANE_FIT_WIDTH,
-			REPORT_PANE_SHOW_TITLE, REPORT_PANE_SHOW_GRID,
-			REPORT_PANE_SHOW_PAGE_NUMBERS);
+			REPORT_PANE_SHOW_TITLE, REPORT_PANE_SHOW_PAGE_NUMBERS);
 
 	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGES, paginated && (report->display & REPORT_DISPLAY_PAGINATED));
 	icons_set_selected(report->toolbar, REPORT_PANE_PORTRAIT, (paginated == FALSE) || !(report->display & REPORT_DISPLAY_LANDSCAPE));
 	icons_set_selected(report->toolbar, REPORT_PANE_LANDSCAPE, (paginated == TRUE) && (report->display & REPORT_DISPLAY_LANDSCAPE));
 	icons_set_selected(report->toolbar, REPORT_PANE_FIT_WIDTH, paginated && (report->display & REPORT_DISPLAY_FIT_WIDTH));
 	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_TITLE, paginated && (report->display & REPORT_DISPLAY_SHOW_TITLE));
-	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_GRID, paginated && (report->display & REPORT_DISPLAY_SHOW_GRID));
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_GRID, (report->display & REPORT_DISPLAY_SHOW_GRID) ? TRUE : FALSE);
 	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGE_NUMBERS, paginated && (report->display & REPORT_DISPLAY_SHOW_NUMBERS));
 }
 
@@ -1172,13 +1171,11 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	paginated = report_page_paginated(report->pages);
 
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, paginated == FALSE);
-	menus_shade_entry(report_view_menu, REPVIEW_MENU_INCLUDE, paginated == FALSE);
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_LAYOUT, paginated == FALSE);
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template == NULL);
 
 	menus_shade_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_TITLE, paginated == FALSE);
 	menus_shade_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_PAGE_NUM, paginated == FALSE);
-	menus_shade_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_GRID, paginated == FALSE);
 
 	menus_shade_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_PORTRAIT, paginated == FALSE);
 	menus_shade_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_LANDSCAPE, paginated == FALSE);
@@ -1188,7 +1185,7 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 
 	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_TITLE, paginated && (report->display & REPORT_DISPLAY_SHOW_TITLE));
 	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_PAGE_NUM, paginated && (report->display & REPORT_DISPLAY_SHOW_NUMBERS));
-	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_GRID, paginated && (report->display & REPORT_DISPLAY_SHOW_GRID));
+	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_GRID, (report->display & REPORT_DISPLAY_SHOW_GRID) ? TRUE : FALSE);
 
 	menus_tick_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_PORTRAIT, (paginated == FALSE) || !(report->display & REPORT_DISPLAY_LANDSCAPE));
 	menus_tick_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_LANDSCAPE, (paginated == TRUE) && (report->display & REPORT_DISPLAY_LANDSCAPE));

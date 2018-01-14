@@ -2344,7 +2344,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 	char			*content_base;
 	os_box			line_outline, cell_outline;
 	struct report_line_data	*line_data;
-	struct report_cell_data	*cell_data;
+	struct report_cell_data	*cell_data, *spill_cell_data;
 	struct report_tabs_stop	*tab_stop;
 
 	content_base = report_textdump_get_base(report->content);
@@ -2412,6 +2412,22 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 
 		cell_outline.x0 = origin->x + line_inset + tab_stop->font_left;
 		cell_outline.x1 = cell_outline.x0 + tab_stop->font_width;
+
+		/* Merge in any spill cells which follow. */
+
+		while (cell + 1 < line_data->cell_count) {
+			spill_cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell + 1);
+			if (spill_cell_data == NULL || !(spill_cell_data->flags & REPORT_CELL_FLAGS_SPILL))
+				break;
+
+			tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, spill_cell_data->tab_stop);
+			if (tab_stop == NULL)
+				break;
+
+			cell_outline.x1 = origin->x + line_inset + tab_stop->font_left + tab_stop->font_width;
+
+			cell++;
+		}
 
 		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + line_inset) < clip->x0))
 			continue;

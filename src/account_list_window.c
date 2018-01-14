@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -1638,7 +1638,7 @@ static struct report *account_list_window_print(struct report *report, void *dat
 	/* Output the headings line, taking the text from the window icons. */
 
 	stringbuild_reset();
-	columns_print_heading_names(windat->columns, windat->account_pane/*, report, 0*/);
+	columns_print_heading_names(windat->columns, windat->account_pane);
 	stringbuild_report_line(report, 0);
 
 	/* Output the account data as a set of delimited lines. */
@@ -1648,9 +1648,9 @@ static struct report *account_list_window_print(struct report *report, void *dat
 
 		for (column = 0; column < ACCOUNT_LIST_WINDOW_COLUMNS; column++) {
 			if (column == 0)
-				stringbuild_add_string("\\k");
+				stringbuild_add_string("\\k\\v");
 			else
-				stringbuild_add_string("\\t");
+				stringbuild_add_string("\\t\\v");
 
 			switch (windat->line_data[line].type) {
 			case ACCOUNT_LINE_DATA:
@@ -1736,9 +1736,9 @@ static struct report *account_list_window_print(struct report *report, void *dat
 
 	for (column = 0; column < ACCOUNT_LIST_WINDOW_COLUMNS; column++) {
 		if (column == 0)
-			stringbuild_add_string("\\k");
+			stringbuild_add_string("\\k\\v");
 		else
-			stringbuild_add_string("\\t");
+			stringbuild_add_string("\\t\\v");
 
 		switch (columns[column]) {
 		case ACCOUNT_LIST_WINDOW_IDENT:

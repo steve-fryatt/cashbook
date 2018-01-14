@@ -339,7 +339,7 @@ GRHeader:Report for period between %0 and %1, generated on %2
 
 TRWinT:Transaction Report
 TRTitle:\b\uTransaction Report for %0
-TRHeadings:\k\v\b\rNo\t\v\b\cDate\t\v\bFrom\t\v\bTo\t\v\bReference\t\v\b\rAmount\t\v\bDescription
+TRHeadings:\k\v\b\o\rNo\t\v\b\o\cDate\t\v\b\oFrom\t\v\b\oTo\t\v\b\oReference\t\v\b\o\rAmount\t\v\b\oDescription
 TRAccounts:\k\bAccounts\t\b\rTotal
 TROutgoings:\k\bOutgoings\t\b\rTotal
 TRIncomings:\k\bIncomings\t\b\rTotal
@@ -350,7 +350,7 @@ TRTotal:Total
 
 URWinT:Unreconciled Transaction Report
 URTitle:\b\uUnreconciled Transaction Report for %0
-URHeadings:\k\v\b\rNo\t\v\b\cDate\t\bFrom\t\s\v\t\bTo\t\s\v\t\v\bReference\t\v\b\rAmount\t\v\bDescription
+URHeadings:\k\v\b\o\rNo\t\v\b\o\cDate\t\b\oFrom\t\s\v\t\b\oTo\t\s\v\t\v\b\oReference\t\v\b\o\rAmount\t\v\b\oDescription
 URTotalIn:Unreconciled incoming
 URTotalOut:Unreconciled outgoing
 URTotal:Total unreconciled

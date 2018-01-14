@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -608,15 +608,15 @@ void columns_print_heading_names(struct column_block *instance, wimp_w window)
 		 */
 
 		if (first == TRUE)
-			stringbuild_add_string("\\k");
+			stringbuild_add_string("\\k\\v");
 		else
-			stringbuild_add_string("\\t");
+			stringbuild_add_string("\\t\\v");
 
 		first = FALSE;
 
 		/* Headings are Bold and Underlined. */
 
-		stringbuild_add_string("\\b\\u");
+		stringbuild_add_string("\\b\\o");
 
 		/* If the icon is right-aligned, so is the heading. */
 
@@ -626,6 +626,8 @@ void columns_print_heading_names(struct column_block *instance, wimp_w window)
 
 		if (state.icon.flags & wimp_ICON_RJUSTIFIED)
 			stringbuild_add_string("\\r");
+		else if (state.icon.flags & wimp_ICON_HCENTRED)
+			stringbuild_add_string("\\c");
 
 		/* Copy the icon text for the heading. */
 

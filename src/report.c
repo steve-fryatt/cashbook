@@ -2486,13 +2486,13 @@ static os_error *report_plot_cell(struct report *report, os_box *outline, char *
 
 	/* Draw a box around the cell. This is for debugging only! */
 
-//	error = xcolourtrans_set_gcol(os_COLOUR_RED, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
-//	if (error != NULL)
-//		return error;
+	error = xcolourtrans_set_gcol(os_COLOUR_RED, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+	if (error != NULL)
+		return error;
 
-//	error = report_draw_box(outline);
-//	if (error != NULL)
-//		return error;
+	error = report_draw_box(outline);
+	if (error != NULL)
+		return error;
 
 	/* If there's no text, there's nothing else to do. */
 

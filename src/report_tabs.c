@@ -251,8 +251,6 @@ osbool report_tabs_set_stop_flags(struct report_tabs_block *handle, int bar, int
 	if (handle == NULL)
 		return FALSE;
 
-	debug_printf("Setting flags for stop %d in bar %d", stop, bar);
-
 	/* Get the bar block handle. */
 
 	bar_handle = report_tabs_get_bar(handle, bar);
@@ -737,10 +735,6 @@ static void report_tabs_zero_stop(struct report_tabs_stop *stop)
 	stop->text_width = 0;
 	stop->text_left = 0;
 }
-
-
-
-
 
 
 /**

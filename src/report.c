@@ -2554,7 +2554,6 @@ void report_process_all_templates(struct file_block *file, void (*callback)(stru
 }
 
 
-
 /**
  * Process a Message_SetPrinter, which requires us to repaginate any open
  * reports.

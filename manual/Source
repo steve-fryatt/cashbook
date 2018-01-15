@@ -1548,15 +1548,15 @@ Alpha release for feedback and comment.
 <list>
 <li>Re-implemented analysis report system to make it modular and enable additional reports to be added.
 <li>Re-implemented report viewer, adding new menus and toolbar. Page layouts can be previewed on screen when a printer driver is present.
+<li>Allow a grid to be plotted around tables in reports and printed output.
+<li>Allow print jobs to be sent to a report window instead of direct to a printer (ticket&nbsp;#300).
 <li>Tidy up print dialogue and print protocol implementation.
 <li>Remove all unbounded string operations from source code.
-<li>Allow print jobs to be sent to a report window instead of direct to a printer (ticket&nbsp;#300).
 <li>Highlight the line over which <mouse>menu</mouse> was clicked when menus can operate on items in a window.
 <li>Fix bug which caused previous dates to be ignored when entering transactions.
 <li>Fix unwanted caret movements when entering dates in the <window>transaction</window> window whilst an account view is open (ticket&nbsp;#630).
 <li>Make changes to cell contents from the Global Clipboard stick correctly when the caret is moved to another cell (ticket&nbsp;#628).
 <li>Correctly ensure that a C99-friendly version of the Shared C Library is present (ticket&nbsp;#632).
-<li>Allow a grid to be plotted around tables in reports and printed output.
 <li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 

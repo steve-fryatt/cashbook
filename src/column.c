@@ -608,9 +608,9 @@ void columns_print_heading_names(struct column_block *instance, wimp_w window)
 		 */
 
 		if (first == TRUE)
-			stringbuild_add_string("\\k\\v");
+			stringbuild_add_string("\\k");
 		else
-			stringbuild_add_string("\\t\\v");
+			stringbuild_add_string("\\v\\t");
 
 		first = FALSE;
 
@@ -633,6 +633,8 @@ void columns_print_heading_names(struct column_block *instance, wimp_w window)
 
 		stringbuild_add_icon(window, icon);
 	}
+
+	stringbuild_add_string("\\v");
 }
 
 

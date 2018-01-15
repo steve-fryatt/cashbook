@@ -270,7 +270,7 @@ osbool report_page_add(struct report_page_block *handle, unsigned first_region, 
 		if (!flexutils_resize((void **) &(handle->pages), sizeof(struct report_page_data), handle->size + handle->allocation))
 			return FALSE;
 
-		handle->size += handle->page_layout.x + handle->allocation;
+		handle->size += handle->allocation;
 	}
 
 	/* Set up the new page. */

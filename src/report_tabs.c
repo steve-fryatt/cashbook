@@ -128,7 +128,7 @@ static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop);
 static void report_tabs_initialise_stop(struct report_tabs_stop *stop);
 static void report_tabs_zero_stop(struct report_tabs_stop *stop);
 static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osbool grid);
-static osbool report_tabs_paginate_bar(struct report_tabs_bar *handle, int width);
+static int report_tabs_paginate_bar(struct report_tabs_bar *handle, int width);
 static struct report_tabs_stop *report_tabs_bar_get_stop(struct report_tabs_bar *handle, int stop);
 
 
@@ -451,22 +451,27 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle, osbool grid)
  *
  * \param *handle		The instance to repaginate.
  * \param width			The available page width, in OS Units.
- * \return			TRUE if successful; FALSE on failure.
+ * \return			The number of pages required, or 0 on failure.
  */
 
-osbool report_tabs_paginate(struct report_tabs_block *handle, int width)
+int report_tabs_paginate(struct report_tabs_block *handle, int width)
 {
-	int bar;
+	int	bar, pages, max_pages = 0;
 
 	if (handle == NULL || handle->bars == NULL)
-		return FALSE;
+		return 0;
 
 	for (bar = 0; bar < handle->bar_allocation; bar++) {
-		if (!report_tabs_paginate_bar(handle->bars[bar], width))
-			return FALSE;
+		debug_printf("\\CPaginating bar %d...", bar);
+		pages = report_tabs_paginate_bar(handle->bars[bar], width);
+		if (pages == 0)
+			return 0;
+	
+		if (pages > max_pages)
+			max_pages = pages;
 	}
 
-	return TRUE;
+	return max_pages;
 }
 
 
@@ -839,31 +844,35 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osb
  *
  * \param *handle		The bar to paginate.
  * \param width			The available width of the page.
- * \return			TRUE if successful; FALSE on failure.
+ * \return			The number of pages required, or 0 on failure.
  */
 
-static osbool report_tabs_paginate_bar(struct report_tabs_bar *handle, int width)
+static int report_tabs_paginate_bar(struct report_tabs_bar *handle, int width)
 {
-	int	stop, page, position, right;
+	int	stop, page, position, column_width;
 
 	if (handle == NULL || handle->stops == NULL || handle->stop_count == 0)
-		return FALSE;
+		return 0;
 
-	page = 0;
+	page = 1;
 	position = handle->inset;
 
 	for (stop = 0; stop < handle->stop_count; stop++) {
-		right = handle->stops[stop].font_left + handle->stops[stop].font_width + REPORT_TABS_COLUMN_SPACE;
+		column_width = handle->stops[stop].font_width + (REPORT_TABS_COLUMN_SPACE / 2);
 
-		if (position + right > width) {
+		if (position + column_width > width) {
+			debug_printf("Stop %d spills off page", stop);
 			page++;
 			position = handle->inset;
 		}
 
+		debug_printf("Stop %d on page %d", stop, page);
+
 		handle->stops[stop].page = page;
+		position += column_width + (REPORT_TABS_COLUMN_SPACE / 2);
 	}
 
-	return TRUE;
+	return page;
 }
 
 

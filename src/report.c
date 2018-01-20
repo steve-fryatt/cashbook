@@ -329,7 +329,7 @@ static osbool report_handle_message_set_printer(wimp_message *message);
 static void report_repaginate_all(struct file_block *file);
 static void report_paginate(struct report *report);
 static void report_add_page_row(struct report *report, struct report_page_layout *layout,
-		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row);
+		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row, int columns);
 static int report_get_line_height(struct report *report, struct report_line_data *line_data);
 static void report_set_display_option(struct report *report, enum report_display option, osbool state);
 static void report_set_window_extent(struct report *report);
@@ -2634,7 +2634,7 @@ static void report_paginate(struct report *report)
 	struct report_line_data		*line_data;
 	struct report_page_layout	layout;
 	struct report_pagination_area	repeat_area, main_area;
-	int				pages, target_width, field_height, body_height, used_height, repeat_tab_bar;
+	int				pages_across, pages_down, target_width, field_height, body_height, used_height, repeat_tab_bar;
 	size_t				line_count;
 	unsigned			line, repeat_line;
 
@@ -2665,7 +2665,9 @@ static void report_paginate(struct report *report)
 
 	/* Calculate column positions across the pages. */
 
-	if (!report_tabs_paginate(report->tabs, layout.body.x1 - layout.body.x0))
+	pages_across = report_tabs_paginate(report->tabs, layout.body.x1 - layout.body.x0);
+	debug_printf("Pages required across: %d", pages_across);
+	if (pages_across == 0)
 		return;
 
 	/* The Body Height is the vertical space, in OS Units, which is available
@@ -2692,7 +2694,7 @@ static void report_paginate(struct report *report)
 
 	repeat_line = REPORT_LINE_NONE;
 	repeat_tab_bar = -1;
-	pages = 1;
+	pages_down = 1;
 	used_height = 0;
 
 	/* Process the lines in the report one at a time. */
@@ -2724,9 +2726,9 @@ static void report_paginate(struct report *report)
 		 */
 
 		if ((main_area.ypos_offset - line_data->ypos) > (body_height - used_height)) {
-			report_add_page_row(report, &layout, &main_area, &repeat_area, pages);
+			report_add_page_row(report, &layout, &main_area, &repeat_area, pages_down, pages_across);
 
-			pages++;
+			pages_down++;
 
 			/* Get the previous line's data, and use it to calculate the
 			 * starting position -- line and vertical offset in OS Units of
@@ -2787,7 +2789,7 @@ static void report_paginate(struct report *report)
 	/* If there are any lines left to put out on a page, do so. */
 
 	if (line > main_area.top_line)
-		report_add_page_row(report, &layout, &main_area, &repeat_area, pages);
+		report_add_page_row(report, &layout, &main_area, &repeat_area, pages_down, pages_across);
 
 	/* Close the pages and regions off, to finish the pagination. */
 
@@ -2804,10 +2806,11 @@ static void report_paginate(struct report *report)
  * \param *main_area	Pointer to data for the "main" line area.
  * \param *repeat_area	Pointer to data for the "repeat" line area.
  * \param row		The row number, for page numbering purposes.
+ * \param columns	The number of columns requireed.
  */
 
 static void report_add_page_row(struct report *report, struct report_page_layout *layout,
-		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row)
+		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row, int columns)
 {
 	int column, regions;
 	unsigned first_region, region;
@@ -2815,7 +2818,7 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 
 	report_page_new_row(report->pages);
 
-	for (column = 0; column < 1; column++) {
+	for (column = 0; column < columns; column++) {
 		first_region = REPORT_REGION_NONE;
 		regions = 0;
 
@@ -2926,8 +2929,9 @@ static void report_set_display_option(struct report *report, enum report_display
 	if (option & REPORT_DISPLAY_SHOW_GRID)
 		report_reflow_content(report);
 
-	if (option & (REPORT_DISPLAY_LANDSCAPE | REPORT_DISPLAY_SHOW_TITLE |
-			REPORT_DISPLAY_SHOW_GRID | REPORT_DISPLAY_SHOW_NUMBERS))
+	if (option & (REPORT_DISPLAY_FIT_WIDTH | REPORT_DISPLAY_LANDSCAPE |
+			REPORT_DISPLAY_SHOW_TITLE | REPORT_DISPLAY_SHOW_GRID |
+			REPORT_DISPLAY_SHOW_NUMBERS))
 		report_paginate(report);
 
 	report_set_window_extent(report);

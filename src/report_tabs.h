@@ -198,10 +198,10 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle, osbool grid)
  *
  * \param *handle		The instance to repaginate.
  * \param width			The available page width, in OS Units.
- * \return			TRUE if successful; FALSE on failure.
+ * \return			The number of pages required, or 0 on failure.
  */
 
-osbool report_tabs_paginate(struct report_tabs_block *handle, int width);
+int report_tabs_paginate(struct report_tabs_block *handle, int width);
 
 
 /**

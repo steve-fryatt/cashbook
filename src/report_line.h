@@ -142,7 +142,7 @@ size_t report_line_get_count(struct report_line_block *handle);
  * \return			Pointer to the line data block, or NULL.
  */
 
-struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line);
+struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line, int *height);
 
 
 /**

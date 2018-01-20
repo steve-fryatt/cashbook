@@ -330,7 +330,6 @@ static void report_repaginate_all(struct file_block *file);
 static void report_paginate(struct report *report);
 static void report_add_page_row(struct report *report, struct report_page_layout *layout,
 		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row, int columns);
-static int report_get_line_height(struct report *report, struct report_line_data *line_data);
 static void report_set_display_option(struct report *report, enum report_display option, osbool state);
 static void report_set_window_extent(struct report *report);
 static osbool report_get_window_extent(struct report *report, int *x, int *y);
@@ -924,7 +923,7 @@ static void report_reflow_content(struct report *report)
 	ypos = 0;
 
 	for (line = 0; line < line_count; line++) {
-		line_data = report_line_get_info(report->lines, line);
+		line_data = report_line_get_info(report->lines, line, NULL);
 		if (line_data == NULL)
 			continue;
 
@@ -1688,7 +1687,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 	line_count = (content_base != NULL) ? report_line_get_count(report->lines) : 0;
 
 	for (line = 0; line < line_count; line++) {
-		line_data = report_line_get_info(report->lines, line);
+		line_data = report_line_get_info(report->lines, line, NULL);
 		if (line_data == NULL)
 			continue;
 
@@ -1792,7 +1791,7 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 	line_count = (content_base != NULL) ? report_line_get_count(report->lines) : 0;
 
 	for (line = 0; line < line_count; line++) {
-		line_data = report_line_get_info(report->lines, line);
+		line_data = report_line_get_info(report->lines, line, NULL);
 		if (line_data == NULL)
 			continue;
 
@@ -2291,6 +2290,7 @@ static os_error *report_plot_lines_region(struct report *report, struct report_r
 {
 	unsigned			top, base;
 	size_t				line_count;
+	int				line_height;
 	os_coord			position;
 	os_error			*error;
 	struct report_tabs_line_info	target;
@@ -2301,12 +2301,12 @@ static os_error *report_plot_lines_region(struct report *report, struct report_r
 
 	/* Identify the position and extent of the text block. */
 
-	line_data = report_line_get_info(report->lines, region->data.lines.first);
+	line_data = report_line_get_info(report->lines, region->data.lines.first, &line_height);
 	if (line_data == NULL)
 		return NULL;
 
 	position.x = origin->x + region->position.x0;
-	position.y = origin->y + region->position.y1 - (line_data->ypos + report_get_line_height(report, line_data));
+	position.y = origin->y + region->position.y1 - (line_data->ypos + line_height);
 
 	top = report_line_find_from_ypos(report->lines, clip->y1 - position.y);
 	if (top < region->data.lines.first)
@@ -2363,7 +2363,7 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 	if (content_base == NULL)
 		return NULL;
 
-	line_data = report_line_get_info(report->lines, target->line);
+	line_data = report_line_get_info(report->lines, target->line, NULL);
 	if (line_data == NULL)
 		return NULL;
 
@@ -2646,7 +2646,7 @@ static void report_paginate(struct report *report)
 	struct report_line_data		*line_data;
 	struct report_page_layout	layout;
 	struct report_pagination_area	repeat_area, main_area;
-	int				pages_across, pages_down, target_width, field_height, body_height, used_height, repeat_tab_bar;
+	int				line_height, repeat_line_height, repeat_line_ypos, pages_across, pages_down, target_width, field_height, body_height, used_height, repeat_tab_bar;
 	size_t				line_count;
 	unsigned			line, repeat_line;
 
@@ -2705,6 +2705,8 @@ static void report_paginate(struct report *report)
 	repeat_area.bottom_line = 0;
 
 	repeat_line = REPORT_LINE_NONE;
+	repeat_line_ypos = 0;
+	repeat_line_height = 0;
 	repeat_tab_bar = -1;
 	pages_down = 1;
 	used_height = 0;
@@ -2714,7 +2716,7 @@ static void report_paginate(struct report *report)
 	line_count = report_line_get_count(report->lines);
 
 	for (line = 0; line < line_count; line++) {
-		line_data = report_line_get_info(report->lines, line);
+		line_data = report_line_get_info(report->lines, line, &line_height);
 		if (line_data == NULL)
 			continue;
 
@@ -2727,6 +2729,8 @@ static void report_paginate(struct report *report)
 		if ((line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER) &&
 				((line_data->tab_bar != repeat_tab_bar) || (repeat_line == REPORT_LINE_NONE))) {
 			repeat_line = line;
+			repeat_line_ypos = line_data->ypos;
+			repeat_line_height = line_height;
 		} else if (!(line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER)) {
 			repeat_line = REPORT_LINE_NONE;
 		}
@@ -2740,23 +2744,17 @@ static void report_paginate(struct report *report)
 		if ((main_area.ypos_offset - line_data->ypos) > (body_height - used_height)) {
 			report_add_page_row(report, &layout, &main_area, &repeat_area, pages_down, pages_across);
 
+			/* Add a new page row. */
+
 			pages_down++;
 
-			/* Get the previous line's data, and use it to calculate the
-			 * starting position -- line and vertical offset in OS Units of
-			 * all of the Y-Pos values -- for the new page.
+			/* Calculate the starting position -- line and vertical offset in
+			 * OS Units of all of the Y-Pos values -- for the new page. The
+			 * offset is the Y-Pos of the TOP of the line, so the line's
+			 * Y-Pos plus the line's height.
 			 */
 
-			if (line > 0) {
-				line_data = report_line_get_info(report->lines, line - 1);
-				if (line_data == NULL)
-					continue;
-
-				main_area.ypos_offset = line_data->ypos;
-			} else {
-				main_area.ypos_offset = 0;
-			}
-
+			main_area.ypos_offset = line_data->ypos + line_height;
 			main_area.top_line = line;
 
 			/* If there's a line currently being repeated at the top of the
@@ -2764,10 +2762,10 @@ static void report_paginate(struct report *report)
 			 * reflect the space lost to "new" lines.
 			 */
 
-			if ((repeat_line != REPORT_LINE_NONE) && ((line_data = report_line_get_info(report->lines, repeat_line)) != NULL)) {
+			if (repeat_line != REPORT_LINE_NONE) {
 				repeat_area.active = TRUE;
-				repeat_area.height = report_get_line_height(report, line_data);
-				repeat_area.ypos_offset = line_data->ypos - repeat_area.height;
+				repeat_area.height = repeat_line_height;
+				repeat_area.ypos_offset = repeat_line_ypos - repeat_line_height;
 				repeat_area.top_line = repeat_line;
 				repeat_area.bottom_line = repeat_line;
 				used_height = repeat_area.height;
@@ -2775,12 +2773,6 @@ static void report_paginate(struct report *report)
 				repeat_area.active = FALSE;
 				used_height = 0;
 			}
-
-			/* Re-find the original page data for the remainder of the processing. */
-
-			line_data = report_line_get_info(report->lines, line);
-			if (line_data == NULL)
-				continue;
 		}
 
 		/* Record the current line details. */
@@ -2900,40 +2892,6 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 
 		report_page_add(report->pages, first_region, regions);
 	}
-}
-
-
-/**
- * Return the height of a line in a report, from the ypos baseline to
- * the top of the outside bounding box.
- *
- * \param *report	The report containing the line.
- * \param line_data	The data for the line of interest.
- */
-
-static int report_get_line_height(struct report *report, struct report_line_data *line_data)
-{
-	int height;
-
-	if (report == NULL || line_data == NULL)
-		return 0;
-
-	/* If there's no grid, the height is just the height of a cell. */
-
-	if (!(report->display & REPORT_DISPLAY_SHOW_GRID))
-		return report->linespace;
-
-	/* If there is a grid, tot up the necessary additional height. */
-
-	height = report->linespace;
-
-	if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
-		height += 2 * REPORT_GRID_LINE_MARGIN;
-
-	if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW)
-		height += 2 * REPORT_GRID_LINE_MARGIN;
-
-	return height;
 }
 
 

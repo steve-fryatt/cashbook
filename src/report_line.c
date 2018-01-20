@@ -221,20 +221,29 @@ size_t report_line_get_count(struct report_line_block *handle)
 /**
  * Return details about a line held in a report line data block. The data
  * returned is transient, and not guaracteed to remain valid if the flex
- * heap shifts.
+ * heap shifts. Optionally return the height of the line, in OS units.
  *
  * \param *handle		The block to query.
  * \param line			The line to query.
+ * \param *height		Pointer to a variable to take the line's height
+ *				in OS Units, or NULL.
  * \return			Pointer to the line data block, or NULL.
  */
 
-struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line)
+struct report_line_data *report_line_get_info(struct report_line_block *handle, unsigned line, int *height)
 {
 	if (handle == NULL || handle->lines == NULL)
 		return NULL;
 
 	if (line >= handle->line_count)
 		return NULL;
+
+	if (height != NULL) {
+		if (line == 0)
+			*height = -handle->lines[line].ypos;
+		else
+			*height = handle->lines[line - 1].ypos - handle->lines[line].ypos;
+	}
 
 	return handle->lines + line;
 }

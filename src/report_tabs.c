@@ -109,7 +109,9 @@ struct report_tabs_block {
 #define REPORT_TABS_STOP_BLOCK_SIZE 10
 
 /**
- * The horizontal space between columns in OS Units.
+ * The horizontal space between columns in OS Units. This ideally
+ * needs to be an even number, to avoid rounding errors when it gets
+ * split across adjacent cells.
  */
 
 #define REPORT_TABS_COLUMN_SPACE 20

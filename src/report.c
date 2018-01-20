@@ -2352,7 +2352,7 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 	os_error		*error;
 	int			cell;
 	char			*content_base;
-	os_box			line_outline, cell_outline;
+	os_box			line_outline, cell_outline, rule_outline;
 	struct report_line_data	*line_data;
 	struct report_cell_data	*cell_data, *spill_cell_data;
 	struct report_tabs_stop	*tab_stop;
@@ -2395,6 +2395,15 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE))
 		line_outline.y1 += 2 * REPORT_GRID_LINE_MARGIN;
 
+	/* Calculate the box encompassing the vertical rules. */
+
+	rule_outline.x0 = line_outline.x0;
+	rule_outline.x1 = line_outline.x1;
+	rule_outline.y0 = line_outline.y0;
+	rule_outline.y1 = line_outline.y1;
+	if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
+		rule_outline.y1 -= REPORT_GRID_LINE_MARGIN;
+
 	/* If the Y bounds of the line fall outside the clip window, skip the rest. */
 
 	if (line_outline.y0 > clip->y1 || line_outline.y1 < clip->y0)
@@ -2403,6 +2412,8 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 	/* Plot the grid above and below the line. */
 
 	if (report->display & REPORT_DISPLAY_SHOW_GRID) {
+		report_tabs_reset_rules(report->tabs, target);
+
 		error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
 		if (error != NULL)
 			return error;
@@ -2414,15 +2425,15 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 					line_outline.x1, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
 
 		/* Plot a line below, and the associated left-hand riser (right-hand
-		 * risers are plotted as part of the individual cells).
+		 * risers are plotted after we've parsed the cells in the line).
 		 */
 
 		if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW) {
 			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
 					line_outline.x1, cell_outline.y0 - REPORT_GRID_LINE_MARGIN);
 
-			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
-					line_outline.x0, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+			error = report_draw_line(line_outline.x0, rule_outline.y0,
+					line_outline.x0, rule_outline.y1);
 		}
 	}
 
@@ -2433,7 +2444,7 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 		if (cell_data == NULL || cell_data->offset == REPORT_TEXTDUMP_NULL)
 			continue;
 
-		/* Don't plot the cell if it falls outside the line range. */
+		/* Don't plot the cell if it falls outside the range of stops in the line. */
 
 		if (cell_data->tab_stop < target->first_stop)
 			continue;
@@ -2459,34 +2470,43 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 			if (spill_cell_data == NULL || !(spill_cell_data->flags & REPORT_CELL_FLAGS_SPILL))
 				break;
 
+			/* If the next cell takes spill from this one, drop any vertical
+			 * rule which might be plotted to the right of this cell.
+			 */
+
+			tab_stop->plot_rule = FALSE;
+
+			/* Get the tab details for the next cell, and extend this cell's
+			 * outline to include it.
+			 */
+
 			tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, spill_cell_data->tab_stop);
 			if (tab_stop == NULL)
 				break;
 
 			cell_outline.x1 = origin->x + target->line_inset + tab_stop->font_left + tab_stop->font_width;
 
+			/* Move on to the next cell. */
+
 			cell++;
 		}
 
 		/* Drop the redraw if the cell's X dimensions are outside the clip window. */
 
-		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + target->cell_inset) < clip->x0))
+		if ((cell_outline.x0 > clip->x1) || (cell_outline.x1 < clip->x0))
 			continue;
-
-		/* Plot the grid riser after the cell, if required. */
-
-		if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (tab_stop->flags & REPORT_TABS_STOP_FLAGS_RULE_AFTER)) {
-			error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
-			if (error != NULL)
-				return error;
-
-			error = report_draw_line(cell_outline.x1 + target->cell_inset, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
-					cell_outline.x1 + target->cell_inset, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
-		}
 
 		/* Plot the cell itself. */
 
 		error = report_plot_cell(report, &cell_outline, content_base + cell_data->offset, cell_data->flags);
+		if (error != NULL)
+			return error;
+	}
+
+	/* Plot any vertical rules which are needed for the row. */
+
+	if (report->display & REPORT_DISPLAY_SHOW_GRID) {
+		error = report_tabs_plot_rules(report->tabs, target, &rule_outline, clip);
 		if (error != NULL)
 			return error;
 	}

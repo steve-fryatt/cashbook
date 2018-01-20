@@ -72,6 +72,15 @@ struct report_tabs_stop {
 	int				text_left;		/**< The left-hand edge of the tab stop, in characters.				*/
 
 	int				page;			/**< The horizontal page on which the stop is paginated.			*/
+
+	/**
+	 * Flag used by report_tabs_reset_rules() and report_tabs_plot_rules()
+	 * to communicate with the client as to whether a vertical rule is
+	 * required after a stop. TRUE indicates that a rule is plotted,
+	 * FALSE that the client does not require one.
+	 */
+
+	osbool				plot_rule;
 };
 
 /**
@@ -218,6 +227,33 @@ int report_tabs_paginate(struct report_tabs_block *handle, int width);
  */
 
 osbool report_tabs_get_line_info(struct report_tabs_block *handle, struct report_tabs_line_info *info);
+
+
+/**
+ * Reset the plot_rules flags for a tab bar, based on a current line's
+ * pagination information. The flags are set according to the stops'
+ * _PLOT_RULE_AFTER flags.
+ *
+ * \param *handle		The instance holding the bar in question.
+ * \param *info			The line info structure defining the state.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool report_tabs_reset_rules(struct report_tabs_block *handle, struct report_tabs_line_info *info);
+
+
+/**
+ * Plot a set of vertical rules for the stops in a tab bar, based on
+ * the plot_rules flags and the current pagination information.
+ *
+ * \param *handle		The instance holding the bar in question.
+ * \param *info			The line info structure defining the state.
+ * \param *outline		The outline of the required rules, in OS Units.
+ * \param *clip			The current clip window, in OS Units.
+ * \return			Pointer to an error block, or NULL on success.
+ */
+
+os_error *report_tabs_plot_rules(struct report_tabs_block *handle, struct report_tabs_line_info *info, os_box *outline, os_box *clip);
 
 
 /**

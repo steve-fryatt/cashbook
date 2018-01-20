@@ -54,6 +54,7 @@
 
 #include "flexutils.h"
 #include "report_cell.h"
+#include "report_draw.h"
 
 
 /**
@@ -536,6 +537,81 @@ osbool report_tabs_get_line_info(struct report_tabs_block *handle, struct report
 	debug_printf("Returning line info: width=%d, inset=%d, first=%d, last=%d", info->line_width, info->line_inset, info->first_stop, info->last_stop);
 
 	return TRUE;
+}
+
+
+/**
+ * Reset the plot_rules flags for a tab bar, based on a current line's
+ * pagination information. The flags are set according to the stops'
+ * _PLOT_RULE_AFTER flags.
+ *
+ * \param *handle		The instance holding the bar in question.
+ * \param *info			The line info structure defining the state.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool report_tabs_reset_rules(struct report_tabs_block *handle, struct report_tabs_line_info *info)
+{
+	struct report_tabs_bar	*bar_handle = NULL;
+	int			stop;
+
+	if (info == NULL)
+		return FALSE;
+
+	bar_handle = report_tabs_get_bar(handle, info->tab_bar);
+	if (bar_handle == NULL || bar_handle->stops == NULL)
+		return FALSE;
+
+	for (stop = info->first_stop; stop <= info->last_stop; stop++)
+		bar_handle->stops[stop].plot_rule = (bar_handle->stops[stop].flags & REPORT_TABS_STOP_FLAGS_RULE_AFTER) ? TRUE : FALSE;
+
+	return TRUE;
+}
+
+
+/**
+ * Plot a set of vertical rules for the stops in a tab bar, based on
+ * the plot_rules flags and the current pagination information.
+ *
+ * \param *handle		The instance holding the bar in question.
+ * \param *info			The line info structure defining the state.
+ * \param *outline		The outline of the required rules, in OS Units.
+ * \param *clip			The current clip window, in OS Units.
+ * \return			Pointer to an error block, or NULL on success.
+ */
+
+os_error *report_tabs_plot_rules(struct report_tabs_block *handle, struct report_tabs_line_info *info, os_box *outline, os_box *clip)
+{
+	struct report_tabs_bar	*bar_handle = NULL;
+	int			stop, xpos;
+	os_error		*error;
+
+	if (info == NULL)
+		return NULL;
+
+	bar_handle = report_tabs_get_bar(handle, info->tab_bar);
+	if (bar_handle == NULL || bar_handle->stops == NULL)
+		return NULL;
+
+	for (stop = info->first_stop; stop <= info->last_stop; stop++) {
+		if (!bar_handle->stops[stop].plot_rule)
+			continue;
+
+		xpos = outline->x0 + info->line_inset + bar_handle->stops[stop].font_left + bar_handle->stops[stop].font_width + bar_handle->inset;
+
+		if (((xpos - bar_handle->inset) > clip->x1) || ((xpos + bar_handle->inset) < clip->x0))
+			continue;
+
+		error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+		if (error != NULL)
+			return error;
+
+		error = report_draw_line(xpos, outline->y0, xpos, outline->y1);
+		if (error != NULL)
+			return error;
+	}
+
+	return NULL;
 }
 
 

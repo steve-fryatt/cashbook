@@ -2913,11 +2913,29 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 
 static int report_get_line_height(struct report *report, struct report_line_data *line_data)
 {
+	int height;
+
 	if (report == NULL || line_data == NULL)
 		return 0;
 
-	return report->linespace;
-} 
+	/* If there's no grid, the height is just the height of a cell. */
+
+	if (!(report->display & REPORT_DISPLAY_SHOW_GRID))
+		return report->linespace;
+
+	/* If there is a grid, tot up the necessary additional height. */
+
+	height = report->linespace;
+
+	if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
+		height += 2 * REPORT_GRID_LINE_MARGIN;
+
+	if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW)
+		height += 2 * REPORT_GRID_LINE_MARGIN;
+
+	return height;
+}
+
 
 /**
  * Change the state of a display option in a report, and refresh the

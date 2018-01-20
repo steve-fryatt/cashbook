@@ -502,7 +502,6 @@ int report_tabs_paginate(struct report_tabs_block *handle, int width)
 osbool report_tabs_get_line_info(struct report_tabs_block *handle, struct report_tabs_line_info *info)
 {
 	struct report_tabs_bar	*bar_handle = NULL;
-	osbool			found_first = FALSE;
 	int			stop;
 
 	if (info == NULL)
@@ -512,14 +511,15 @@ osbool report_tabs_get_line_info(struct report_tabs_block *handle, struct report
 	if (bar_handle == NULL || bar_handle->stops == NULL)
 		return FALSE;
 
+	info->present = FALSE;
 	info->first_stop = 0;
 	info->last_stop = bar_handle->stop_count - 1;
 
 	for (stop = 0; stop < bar_handle->stop_count; stop++) {
-		if (bar_handle->stops[stop].page == info->page) {
-			if (!found_first) {
+		if ((info->page == -1) || (bar_handle->stops[stop].page == info->page)) {
+			if (!info->present) {
 				info->first_stop = stop;
-				found_first = TRUE;
+				info->present = TRUE;
 			}
 
 			info->last_stop = stop;

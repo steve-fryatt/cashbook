@@ -2373,6 +2373,11 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 			return NULL;
 	}
 
+	/* Check if the line appears on the page. */
+
+	if (!target->present)
+		return NULL;
+
 	/* Calculate the outline of the whole line, and the Y bounds of the cells within it. */
 
 	line_outline.x0 = origin->x;

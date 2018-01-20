@@ -88,6 +88,7 @@ struct report_tabs_line_info {
 
 	int				line_width;		/**< The width of the active part of the bar, in OS Units.			*/
 	int				line_inset;		/**< The inset of the bar, in OS Units.						*/
+	int				cell_inset;		/**< The inset of a cell within its stop, in OS Units.				*/
 
 	int				first_stop;		/**< The first tab stop in the bar relating to the page.			*/
 	int				last_stop;		/**< The last tab stop in the bar relating to the page.				*/

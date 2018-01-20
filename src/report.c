@@ -2324,7 +2324,7 @@ static os_error *report_plot_lines_region(struct report *report, struct report_r
 
 	line_count = report_line_get_count(report->lines);
 
-	target.page = -1;
+	target.page = region->data.lines.page;
 	target.tab_bar = -1;
 	target.first_stop = -1;
 	target.last_stop = -1;
@@ -2431,6 +2431,16 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 		if (cell_data == NULL || cell_data->offset == REPORT_TEXTDUMP_NULL)
 			continue;
 
+		/* Don't plot the cell if it falls outside the line range. */
+
+		if (cell_data->tab_stop < target->first_stop)
+			continue;
+
+		if (cell_data->tab_stop > target->last_stop)
+			break;
+
+		/* Get details of the tab stop. */
+
 		tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, cell_data->tab_stop);
 		if (tab_stop == NULL)
 			continue;
@@ -2458,8 +2468,10 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 
 		/* Drop the redraw if the cell's X dimensions are outside the clip window. */
 
-		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + target->line_inset) < clip->x0))
+		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + target->cell_inset) < clip->x0)) {
+			debug_printf("Skipping cell %d", cell);
 			continue;
+			}
 
 		/* Plot the grid riser after the cell, if required. */
 
@@ -2468,8 +2480,8 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 			if (error != NULL)
 				return error;
 
-			error = report_draw_line(cell_outline.x1 + target->line_inset, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
-					cell_outline.x1 + target->line_inset, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+			error = report_draw_line(cell_outline.x1 + target->cell_inset, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
+					cell_outline.x1 + target->cell_inset, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
 		}
 
 		/* Plot the cell itself. */
@@ -2834,7 +2846,7 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 			if (repeat_area->active == TRUE) {
 				position.y0 = layout->body.y1 - repeat_area->height;
 
-				region = report_region_add_lines(report->regions, &position, repeat_area->top_line, repeat_area->bottom_line);
+				region = report_region_add_lines(report->regions, &position, column, repeat_area->top_line, repeat_area->bottom_line);
 				if (region == REPORT_REGION_NONE)
 					continue;
 
@@ -2848,7 +2860,7 @@ static void report_add_page_row(struct report *report, struct report_page_layout
 
 			position.y0 = position.y1 - main_area->height;
 
-			region = report_region_add_lines(report->regions, &position, main_area->top_line, main_area->bottom_line);
+			region = report_region_add_lines(report->regions, &position, column, main_area->top_line, main_area->bottom_line);
 			if (region == REPORT_REGION_NONE)
 				continue;
 

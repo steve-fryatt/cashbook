@@ -61,6 +61,7 @@ struct report_region_page_number {
 };
 
 struct report_region_lines {
+	int		page;			/**< The horizontal page that the region is on.	*/
 	int		first;			/**< The first line in the region.		*/
 	int		last;			/**< The last line in the region.		*/
 };
@@ -159,12 +160,13 @@ unsigned report_region_add_page_number(struct report_region_block *handle, os_bo
  *
  * \param *handle		The block to add to.
  * \param *outline		The outline of the region on the page, in OS Units.
+ * \param page			The horizontal page that the region is on.
  * \param first			The first line nummber to display in the region.
  * \param last			The last line number to display in the region.
  * \return			The new region number, or REPORT_REGION_NONE.
  */
 
-unsigned report_region_add_lines(struct report_region_block *handle, os_box *outline, int first, int last);
+unsigned report_region_add_lines(struct report_region_block *handle, os_box *outline, int page, int first, int last);
 
 
 /**

@@ -66,10 +66,26 @@ struct report_tabs_bar {
 	size_t				stop_allocation;		/**< The number of tab stops allocated for during assembly.		*/
 	size_t				stop_count;			/**< The number of tab stops in use.					*/
 
-	int				width;				/**< The total width of the bar, including end rule margins.		*/
-	int				inset;				/**< The left-hand inset of the bar, to allow for the end rule.		*/
+	/**
+	 * The total width of the bar, including end rule margins.
+	 * In OS Units.
+	 */
 
-	struct report_tabs_stop		*stops;				/**< The tab stop data array.						*/
+	int				width;
+
+	/**
+	 * The left-hand inset of the bar, to allow for the end rule. This allows
+	 * the bar to be pushed in to the page to avoid any left-hand vertical
+	 * rule if the formatting includes one. In OS Units.
+	 */
+
+	int				inset;
+
+	/**
+	 * The tab stop data array.
+	 */
+
+	struct report_tabs_stop		*stops;
 };
 
 
@@ -109,14 +125,17 @@ struct report_tabs_block {
 #define REPORT_TABS_STOP_BLOCK_SIZE 10
 
 /**
- * The horizontal space between columns in OS Units. This ideally
- * needs to be an even number, to avoid rounding errors when it gets
- * split across adjacent cells.
+ * The horizontal space between a tab stop edge and the cell inside it,
+ * in OS Units.
  */
 
-#define REPORT_TABS_COLUMN_SPACE 20
+#define REPORT_TABS_COLUMN_SPACE 10
 
-// \TODO -- Where?
+
+/**
+ * The space between text columns, in characters.
+ */
+
 #define REPORT_TEXT_COLUMN_SPACE 1
 
 /* Static Function Prototypes. */
@@ -386,7 +405,7 @@ osbool report_tabs_end_line_format(struct report_tabs_block *handle)
 	for (stop = 0; stop < handle->line_bar_handle->stop_count; stop++) {
 		if (handle->line_font_width[stop] == REPORT_TABS_SPILL_WIDTH) {
 			if (stop > 0) {
-				handle->line_font_width[stop] = handle->line_font_width[stop - 1] - REPORT_TABS_COLUMN_SPACE;
+				handle->line_font_width[stop] = handle->line_font_width[stop - 1] - (2 * REPORT_TABS_COLUMN_SPACE);
 				handle->line_font_width[stop - 1] = 0;
 			} else {
 				handle->line_font_width[stop] = 0;
@@ -395,7 +414,7 @@ osbool report_tabs_end_line_format(struct report_tabs_block *handle)
 
 		if (handle->line_text_width[stop] == REPORT_TABS_SPILL_WIDTH) {
 			if (stop > 0) {
-				handle->line_text_width[stop] = handle->line_text_width[stop - 1] - REPORT_TEXT_COLUMN_SPACE;
+				handle->line_text_width[stop] = handle->line_text_width[stop - 1] - (2 * REPORT_TEXT_COLUMN_SPACE);
 				handle->line_text_width[stop - 1] = 0;
 			} else {
 				handle->line_text_width[stop] = 0;
@@ -490,6 +509,7 @@ int report_tabs_paginate(struct report_tabs_block *handle, int width)
 osbool report_tabs_get_line_info(struct report_tabs_block *handle, struct report_tabs_line_info *info)
 {
 	struct report_tabs_bar	*bar_handle = NULL;
+	osbool			found_first = FALSE;
 	int			stop;
 
 	if (info == NULL)
@@ -499,20 +519,28 @@ osbool report_tabs_get_line_info(struct report_tabs_block *handle, struct report
 	if (bar_handle == NULL || bar_handle->stops == NULL)
 		return FALSE;
 
-	info->line_width = bar_handle->width;
-	info->line_inset = bar_handle->inset;
-
-	info->first_stop = -1;
-	info->last_stop = -1;
+	info->first_stop = 0;
+	info->last_stop = bar_handle->stop_count - 1;
 
 	for (stop = 0; stop < bar_handle->stop_count; stop++) {
 		if (bar_handle->stops[stop].page == info->page) {
-			if (info->first_stop == -1)
+			if (!found_first) {
 				info->first_stop = stop;
+				found_first = TRUE;
+			}
 
 			info->last_stop = stop;
 		}
 	}
+
+	info->line_width = (bar_handle->stops[info->last_stop].font_left - bar_handle->stops[info->first_stop].font_left) +
+			bar_handle->stops[info->last_stop].font_width + (2 * bar_handle->inset); 
+
+	info->line_inset = bar_handle->inset - bar_handle->stops[info->first_stop].font_left;
+
+	info->cell_inset = bar_handle->inset;
+
+	debug_printf("Returning line info: width=%d, inset=%d, first=%d, last=%d", info->line_width, info->line_inset, info->first_stop, info->last_stop);
 
 	return TRUE;
 }
@@ -819,8 +847,8 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osb
 	debug_printf("Set tab 0 = 0");
 
 	for (stop = 1; stop < handle->stop_count; stop++) {
-		handle->stops[stop].font_left = handle->stops[stop - 1].font_left + handle->stops[stop - 1].font_width + REPORT_TABS_COLUMN_SPACE;
-		handle->stops[stop].text_left = handle->stops[stop - 1].text_left + handle->stops[stop - 1].text_width + REPORT_TEXT_COLUMN_SPACE;
+		handle->stops[stop].font_left = handle->stops[stop - 1].font_left + handle->stops[stop - 1].font_width + (2 * REPORT_TABS_COLUMN_SPACE);
+		handle->stops[stop].text_left = handle->stops[stop - 1].text_left + handle->stops[stop - 1].text_width + (2 * REPORT_TEXT_COLUMN_SPACE);
 
 		debug_printf("tab %d = %d", stop, handle->stops[stop].font_left);
 
@@ -832,8 +860,8 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osb
 	}
 
 	if ((grid == TRUE) && (gridlines == TRUE)) {
-		handle->width += REPORT_TABS_COLUMN_SPACE;
-		handle->inset = (REPORT_TABS_COLUMN_SPACE / 2);
+		handle->width += (2 * REPORT_TABS_COLUMN_SPACE);
+		handle->inset = REPORT_TABS_COLUMN_SPACE;
 	}
 
 	return handle->width;
@@ -856,11 +884,11 @@ static int report_tabs_paginate_bar(struct report_tabs_bar *handle, int width)
 	if (handle == NULL || handle->stops == NULL || handle->stop_count == 0)
 		return 0;
 
-	page = 1;
+	page = 0;
 	position = handle->inset;
 
 	for (stop = 0; stop < handle->stop_count; stop++) {
-		column_width = handle->stops[stop].font_width + (REPORT_TABS_COLUMN_SPACE / 2);
+		column_width = handle->stops[stop].font_width + REPORT_TABS_COLUMN_SPACE;
 
 		if (position + column_width > width) {
 			debug_printf("Stop %d spills off page", stop);
@@ -871,10 +899,10 @@ static int report_tabs_paginate_bar(struct report_tabs_bar *handle, int width)
 		debug_printf("Stop %d on page %d", stop, page);
 
 		handle->stops[stop].page = page;
-		position += column_width + (REPORT_TABS_COLUMN_SPACE / 2);
+		position += column_width + REPORT_TABS_COLUMN_SPACE;
 	}
 
-	return page;
+	return page + 1;
 }
 
 

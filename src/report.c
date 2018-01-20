@@ -2470,10 +2470,8 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 
 		/* Drop the redraw if the cell's X dimensions are outside the clip window. */
 
-		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + target->cell_inset) < clip->x0)) {
-			debug_printf("Skipping cell %d", cell);
+		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + target->cell_inset) < clip->x0))
 			continue;
-			}
 
 		/* Plot the grid riser after the cell, if required. */
 

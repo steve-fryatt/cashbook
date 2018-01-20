@@ -237,7 +237,6 @@ struct report {
 	int			height;						/**< The displayed height of the report data in OS Units.	*/
 
 	int			linespace;					/**< The height allocated to a line of text, in OS Units.	*/
-	int			rulespace;					/**< The height allocated to a horizontal rule, in OS Units.	*/
 
 	struct report_textdump_block	*content;
 	struct report_cell_block	*cells;
@@ -986,7 +985,6 @@ static void report_reflow_content(struct report *report)
 	report->height = ypos;
 
 	report->linespace = line_space;
-	report->rulespace = 0;
 }
 
 

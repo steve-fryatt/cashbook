@@ -67,13 +67,6 @@ struct report_tabs_bar {
 	size_t				stop_count;			/**< The number of tab stops in use.					*/
 
 	/**
-	 * The total width of the bar, including end rule margins.
-	 * In OS Units.
-	 */
-
-	int				width;
-
-	/**
 	 * The left-hand inset of the bar, to allow for the end rule. This allows
 	 * the bar to be pushed in to the page to avoid any left-hand vertical
 	 * rule if the formatting includes one. In OS Units.
@@ -646,7 +639,6 @@ static struct report_tabs_bar *report_tabs_create_bar(struct report_tabs_block *
 	new->stop_allocation = REPORT_TABS_STOP_BLOCK_SIZE;
 	new->stop_count = 0;
 	new->stops = NULL;
-	new->width = 0;
 	new->inset = 0;
 
 	if (!flexutils_allocate((void **) &(new->stops), sizeof(struct report_tabs_stop), new->stop_allocation)) {
@@ -832,13 +824,14 @@ static void report_tabs_zero_stop(struct report_tabs_stop *stop)
 
 static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osbool grid)
 {
-	int	stop;
+	int	stop, width;
 	osbool	gridlines = FALSE;
 
 	if (handle == NULL || handle->stops == NULL || handle->stop_count == 0)
 		return 0;
 
-	handle->width = 0;
+	width = 0;
+
 	handle->inset = 0;
 
 	handle->stops[0].font_left = 0;
@@ -852,19 +845,19 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osb
 
 		debug_printf("tab %d = %d", stop, handle->stops[stop].font_left);
 
-		if ((handle->stops[stop].font_width > 0) && ((handle->stops[stop].font_left + handle->stops[stop].font_width) > handle->width))
-			handle->width = handle->stops[stop].font_left + handle->stops[stop].font_width;
+		if ((handle->stops[stop].font_width > 0) && ((handle->stops[stop].font_left + handle->stops[stop].font_width) > width))
+			width = handle->stops[stop].font_left + handle->stops[stop].font_width;
 
 		if (handle->stops[stop].flags & (REPORT_TABS_STOP_FLAGS_RULE_BEFORE | REPORT_TABS_STOP_FLAGS_RULE_AFTER))
 			gridlines = TRUE;
 	}
 
-	if ((grid == TRUE) && (gridlines == TRUE)) {
-		handle->width += (2 * REPORT_TABS_COLUMN_SPACE);
-		handle->inset = REPORT_TABS_COLUMN_SPACE;
-	}
+	/* If there's a grid, add in space for the outside edge lines. */
 
-	return handle->width;
+	if ((grid == TRUE) && (gridlines == TRUE))
+		handle->inset = REPORT_TABS_COLUMN_SPACE;
+
+	return width + (2 * handle->inset);
 }
 
 

@@ -2413,7 +2413,9 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 			error = report_draw_line(line_outline.x0, cell_outline.y1 + REPORT_GRID_LINE_MARGIN,
 					line_outline.x1, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
 
-		/* Plot a line below, and the associated end risers. */
+		/* Plot a line below, and the associated left-hand riser (right-hand
+		 * risers are plotted as part of the individual cells).
+		 */
 
 		if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW) {
 			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
@@ -2421,9 +2423,6 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 
 			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
 					line_outline.x0, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
-
-			error = report_draw_line(line_outline.x1, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
-					line_outline.x1, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
 		}
 	}
 

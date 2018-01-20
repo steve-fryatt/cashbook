@@ -2352,7 +2352,7 @@ static os_error *report_plot_lines_region(struct report *report, struct report_r
 static os_error *report_plot_line(struct report *report, struct report_tabs_line_info *target, os_coord *origin, os_box *clip)
 {
 	os_error		*error;
-	int			cell, line_width, line_inset;
+	int			cell;
 	char			*content_base;
 	os_box			line_outline, cell_outline;
 	struct report_line_data	*line_data;
@@ -2367,13 +2367,18 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 	if (line_data == NULL)
 		return NULL;
 
-	if (!report_tabs_get_bar_width(report->tabs, line_data->tab_bar, &line_width, &line_inset))
-		return NULL;
+	/* If the tab bar has changed, update the target details. */
+
+	if (line_data->tab_bar != target->tab_bar) {
+		target->tab_bar = line_data->tab_bar;
+		if (!report_tabs_get_line_info(report->tabs, target))
+			return NULL;
+	}
 
 	/* Calculate the outline of the whole line, and the Y bounds of the cells within it. */
 
 	line_outline.x0 = origin->x;
-	line_outline.x1 = origin->x + line_width;
+	line_outline.x1 = origin->x + target->line_width;
 
 	line_outline.y0 = origin->y + line_data->ypos;
 	cell_outline.y0 = line_outline.y0;
@@ -2432,7 +2437,7 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 
 		/* Calculate the bounds of the initial cell. */
 
-		cell_outline.x0 = origin->x + line_inset + tab_stop->font_left;
+		cell_outline.x0 = origin->x + target->line_inset + tab_stop->font_left;
 		cell_outline.x1 = cell_outline.x0 + tab_stop->font_width;
 
 		/* Merge any spill cells which follow into the bounds. */
@@ -2446,14 +2451,14 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 			if (tab_stop == NULL)
 				break;
 
-			cell_outline.x1 = origin->x + line_inset + tab_stop->font_left + tab_stop->font_width;
+			cell_outline.x1 = origin->x + target->line_inset + tab_stop->font_left + tab_stop->font_width;
 
 			cell++;
 		}
 
 		/* Drop the redraw if the cell's X dimensions are outside the clip window. */
 
-		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + line_inset) < clip->x0))
+		if ((cell_outline.x0 > clip->x1) || ((cell_outline.x1 + target->line_inset) < clip->x0))
 			continue;
 
 		/* Plot the grid riser after the cell, if required. */
@@ -2463,8 +2468,8 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 			if (error != NULL)
 				return error;
 
-			error = report_draw_line(cell_outline.x1 + line_inset, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
-					cell_outline.x1 + line_inset, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+			error = report_draw_line(cell_outline.x1 + target->line_inset, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
+					cell_outline.x1 + target->line_inset, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
 		}
 
 		/* Plot the cell itself. */
@@ -2656,6 +2661,11 @@ static void report_paginate(struct report *report)
 
 	report_page_get_areas(report->pages, &layout);
 	if (layout.areas == REPORT_PAGE_AREA_NONE)
+		return;
+
+	/* Calculate column positions across the pages. */
+
+	if (!report_tabs_paginate(report->tabs, layout.body.x1 - layout.body.x0))
 		return;
 
 	/* The Body Height is the vertical space, in OS Units, which is available

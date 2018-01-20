@@ -40,9 +40,9 @@
  */
 
 enum report_tabs_stop_flags {
-	REPORT_TABS_STOP_FLAGS_NONE		= 0x0000,	/**< No tab stop flags are set.						*/
-	REPORT_TABS_STOP_FLAGS_RULE_BEFORE	= 0x0001,	/**< The tab stop should have a vertical rule to its left.		*/
-	REPORT_TABS_STOP_FLAGS_RULE_AFTER	= 0x0002	/**< The tab stop should have a vertical rule to its right.		*/
+	REPORT_TABS_STOP_FLAGS_NONE		= 0x0000,	/**< No tab stop flags are set.							*/
+	REPORT_TABS_STOP_FLAGS_RULE_BEFORE	= 0x0001,	/**< The tab stop should have a vertical rule to its left.			*/
+	REPORT_TABS_STOP_FLAGS_RULE_AFTER	= 0x0002	/**< The tab stop should have a vertical rule to its right.			*/
 };
 
 /**
@@ -63,13 +63,15 @@ struct report_tabs_block;
  */
 
 struct report_tabs_stop {
-	enum report_tabs_stop_flags	flags;
+	enum report_tabs_stop_flags	flags;			/**< Flags associated with the tab stop.					*/
 
-	int				font_width;
-	int				font_left;
+	int				font_width;		/**< The width of the tab stop, in OS Units, in the current font.		*/
+	int				font_left;		/**< The left-hand edge of the tab stop, in OS Units, in the current font.	*/
 
-	int				text_width;
-	int				text_left;
+	int				text_width;		/**< The width of the tab stop, in characters.					*/
+	int				text_left;		/**< The left-hand edge of the tab stop, in characters.				*/
+
+	int				page;			/**< The horizontal page on which the stop is paginated.			*/
 };
 
 /**
@@ -77,13 +79,18 @@ struct report_tabs_stop {
  */
 
 struct report_tabs_line_info {
-	unsigned			line;			/**< The line to be redrawn.					*/
-	int				page;			/**< The page (horizontally) to be redrawn.			*/
+	unsigned			line;			/**< The line to be redrawn.							*/
+	int				page;			/**< The page (horizontally) to be redrawn.					*/
 
-	int				tab_bar;		/**< The tab bar to which the block refers.			*/
+	int				tab_bar;		/**< The tab bar to which the block refers.					*/
 
-	int				first_stop;		/**< The first tab stop in the bar relating to the page.	*/
-	int				last_stop;		/**< The last tab stop in the bar relating to the page.		*/
+	/* Data below this point returned from report_tabs_ */
+
+	int				line_width;		/**< The width of the active part of the bar, in OS Units.			*/
+	int				line_inset;		/**< The inset of the bar, in OS Units.						*/
+
+	int				first_stop;		/**< The first tab stop in the bar relating to the page.			*/
+	int				last_stop;		/**< The last tab stop in the bar relating to the page.				*/
 };
 
 /**
@@ -186,18 +193,28 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle, osbool grid)
 
 
 /**
- * Return the width and inset of a tab bar, in OS units for font mode. The
- * values take into account any left and right margins included for vertical
- * rules. 
+ * Calculate the horizontal pagination of all of the bars in a
+ * Report Tabs instance.
  *
- * \param *handle		The tabs instance to query.
- * \param bar			The bar to return the width for.
- * \param *width		Pointer to variable to take the bar width.
- * \param *inset		Pointer to variable to take the bar inset.
- * \return			TRUE if successful; FALSE on error.
+ * \param *handle		The instance to repaginate.
+ * \param width			The available page width, in OS Units.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool report_tabs_get_bar_width(struct report_tabs_block *handle, int bar, int *width, int *inset);
+osbool report_tabs_paginate(struct report_tabs_block *handle, int width);
+
+
+/**
+ * Return details of a tab bar relating to a line under pagination. This
+ * includes the first and last tab stops to be visible on the current
+ * horizontal page.
+ *
+ * \param *handle		The instance to query.
+ * \param *info			The line info structure to update.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool report_tabs_get_line_info(struct report_tabs_block *handle, struct report_tabs_line_info *info);
 
 
 /**

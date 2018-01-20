@@ -128,6 +128,7 @@ static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop);
 static void report_tabs_initialise_stop(struct report_tabs_stop *stop);
 static void report_tabs_zero_stop(struct report_tabs_stop *stop);
 static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osbool grid);
+static osbool report_tabs_paginate_bar(struct report_tabs_bar *handle, int width);
 static struct report_tabs_stop *report_tabs_bar_get_stop(struct report_tabs_bar *handle, int stop);
 
 
@@ -445,30 +446,66 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle, osbool grid)
 
 
 /**
- * Return the width and inset of a tab bar, in OS units for font mode. The
- * values take into account any left and right margins included for vertical
- * rules. 
+ * Calculate the horizontal pagination of all of the bars in a
+ * Report Tabs instance.
  *
- * \param *handle		The tabs instance to query.
- * \param bar			The bar to return the width for.
- * \param *width		Pointer to variable to take the bar width.
- * \param *inset		Pointer to variable to take the bar inset.
- * \return			TRUE if successful; FALSE on error.
+ * \param *handle		The instance to repaginate.
+ * \param width			The available page width, in OS Units.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool report_tabs_get_bar_width(struct report_tabs_block *handle, int bar, int *width, int *inset)
+osbool report_tabs_paginate(struct report_tabs_block *handle, int width)
 {
-	struct report_tabs_bar	*bar_handle = NULL;
+	int bar;
 
-	bar_handle = report_tabs_get_bar(handle, bar);
-	if (bar_handle == NULL)
+	if (handle == NULL || handle->bars == NULL)
 		return FALSE;
 
-	if (width != NULL)
-		*width = bar_handle->width;
+	for (bar = 0; bar < handle->bar_allocation; bar++) {
+		if (!report_tabs_paginate_bar(handle->bars[bar], width))
+			return FALSE;
+	}
 
-	if (inset != NULL)
-		*inset = bar_handle->inset;
+	return TRUE;
+}
+
+
+/**
+ * Return details of a tab bar relating to a line under pagination. This
+ * includes the first and last tab stops to be visible on the current
+ * horizontal page.
+ *
+ * \param *handle		The instance to query.
+ * \param *info			The line info structure to update.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool report_tabs_get_line_info(struct report_tabs_block *handle, struct report_tabs_line_info *info)
+{
+	struct report_tabs_bar	*bar_handle = NULL;
+	int			stop;
+
+	if (info == NULL)
+		return FALSE;
+
+	bar_handle = report_tabs_get_bar(handle, info->tab_bar);
+	if (bar_handle == NULL || bar_handle->stops == NULL)
+		return FALSE;
+
+	info->line_width = bar_handle->width;
+	info->line_inset = bar_handle->inset;
+
+	info->first_stop = -1;
+	info->last_stop = -1;
+
+	for (stop = 0; stop < bar_handle->stop_count; stop++) {
+		if (bar_handle->stops[stop].page == info->page) {
+			if (info->first_stop == -1)
+				info->first_stop = stop;
+
+			info->last_stop = stop;
+		}
+	}
 
 	return TRUE;
 }
@@ -746,6 +783,7 @@ static void report_tabs_zero_stop(struct report_tabs_stop *stop)
 	stop->font_left = 0;
 	stop->text_width = 0;
 	stop->text_left = 0;
+	stop->page = -1;
 }
 
 
@@ -792,6 +830,40 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osb
 	}
 
 	return handle->width;
+}
+
+
+/**
+ * Put the tabs of a tab bar onto pages horizontally, based on the current
+ * column widths and a given page width in OS Units.
+ *
+ * \param *handle		The bar to paginate.
+ * \param width			The available width of the page.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+static osbool report_tabs_paginate_bar(struct report_tabs_bar *handle, int width)
+{
+	int	stop, page, position, right;
+
+	if (handle == NULL || handle->stops == NULL || handle->stop_count == 0)
+		return FALSE;
+
+	page = 0;
+	position = handle->inset;
+
+	for (stop = 0; stop < handle->stop_count; stop++) {
+		right = handle->stops[stop].font_left + handle->stops[stop].font_width + REPORT_TABS_COLUMN_SPACE;
+
+		if (position + right > width) {
+			page++;
+			position = handle->inset;
+		}
+
+		handle->stops[stop].page = page;
+	}
+
+	return TRUE;
 }
 
 

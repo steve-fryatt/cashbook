@@ -236,7 +236,7 @@ struct report {
 	int			width;						/**< The displayed width of the report data in OS Units.	*/
 	int			height;						/**< The displayed height of the report data in OS Units.	*/
 
-	int			linespace;					/**< The height allocated to a line of text, in OS Units.	*/
+	int			cell_height;					/**< The height allocated to a text cell body, in OS Units.	*/
 
 	struct report_textdump_block	*content;
 	struct report_cell_block	*cells;
@@ -984,7 +984,7 @@ static void report_reflow_content(struct report *report)
 	report->width = report_tabs_calculate_columns(report->tabs, (report->display & REPORT_DISPLAY_SHOW_GRID) ? TRUE : FALSE);
 	report->height = ypos;
 
-	report->linespace = line_space;
+	report->cell_height = line_space;
 }
 
 
@@ -2384,7 +2384,7 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW))
 		cell_outline.y0 += 2 * REPORT_GRID_LINE_MARGIN;
 
-	cell_outline.y1 = cell_outline.y0 + report->linespace;
+	cell_outline.y1 = cell_outline.y0 + report->cell_height;
 	line_outline.y1 = cell_outline.y1;
 
 	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE))

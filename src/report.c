@@ -322,7 +322,7 @@ static os_error *report_plot_region(struct report *report, struct report_region_
 static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
 static os_error *report_plot_page_number_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
 static os_error *report_plot_lines_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
-static os_error *report_plot_line(struct report *report, unsigned int line, os_coord *origin, os_box *clip);
+static os_error *report_plot_line(struct report *report,  struct report_tabs_line_info *target, os_coord *origin, os_box *clip);
 static os_error *report_plot_cell(struct report *report, os_box *outline, char *content, enum report_cell_flags flags);
 
 static osbool report_handle_message_set_printer(wimp_message *message);
@@ -1356,10 +1356,11 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 static void report_view_redraw_flat_handler(struct report *report, wimp_draw *redraw, int ox, int oy)
 {
-	unsigned	top, base, y;
-	size_t		line_count;
-	os_coord	origin;
-	os_error	*error;
+	unsigned			top, base;
+ 	size_t				line_count;
+	os_coord			origin;
+	os_error			*error;
+	struct report_tabs_line_info	target;
 
 	line_count = report_line_get_count(report->lines);
 
@@ -1377,8 +1378,13 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 	origin.x = ox + REPORT_LEFT_MARGIN;
 	origin.y = oy - REPORT_TOP_MARGIN;
 
-	for (y = top; y < line_count && y <= base; y++) {
-		error = report_plot_line(report, y, &origin, &(redraw->clip));
+	target.page = -1;
+	target.tab_bar = -1;
+	target.first_stop = -1;
+	target.last_stop = -1;
+
+	for (target.line = top; target.line < line_count && target.line <= base; target.line++) {
+		error = report_plot_line(report, &target, &origin, &(redraw->clip));
 		if (error != NULL)
 			debug_printf("Redraw error: %s", error->errmess);
 	}
@@ -2283,11 +2289,12 @@ static os_error *report_plot_page_number_region(struct report *report, struct re
 
 static os_error *report_plot_lines_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
 {
-	unsigned		top, base, y;
-	size_t			line_count;
-	os_coord		position;
-	os_error		*error;
-	struct report_line_data	*line_data;
+	unsigned			top, base;
+	size_t				line_count;
+	os_coord			position;
+	os_error			*error;
+	struct report_tabs_line_info	target;
+	struct report_line_data		*line_data;
 
 	if (region == NULL || region->type != REPORT_REGION_TYPE_LINES)
 		return NULL;
@@ -2317,8 +2324,13 @@ static os_error *report_plot_lines_region(struct report *report, struct report_r
 
 	line_count = report_line_get_count(report->lines);
 
-	for (y = top; y < line_count && y <= base; y++) {
-		error = report_plot_line(report, y, &position, clip);
+	target.page = -1;
+	target.tab_bar = -1;
+	target.first_stop = -1;
+	target.last_stop = -1;
+
+	for (target.line = top; target.line < line_count && target.line <= base; target.line++) {
+		error = report_plot_line(report, &target, &position, clip);
 		if (error != NULL)
 			return error;
 	}
@@ -2331,13 +2343,13 @@ static os_error *report_plot_lines_region(struct report *report, struct report_r
  * Plot a line of a report to screen or the printer drivers.
  *
  * \param *report	The report to use.
- * \param line		The line to be printed.
+ * \param target	Pointer to details of the line to be redrawn.
  * \param *origin	The absolute origin to plot from, in OS Units.
  * \param *clip		The redraw clip region, in absolute OS Units.
  * \return		Pointer to an error block, or NULL for success.
  */
 
-static os_error *report_plot_line(struct report *report, unsigned int line, os_coord *origin, os_box *clip)
+static os_error *report_plot_line(struct report *report, struct report_tabs_line_info *target, os_coord *origin, os_box *clip)
 {
 	os_error		*error;
 	int			cell, line_width, line_inset;
@@ -2351,7 +2363,7 @@ static os_error *report_plot_line(struct report *report, unsigned int line, os_c
 	if (content_base == NULL)
 		return NULL;
 
-	line_data = report_line_get_info(report->lines, line);
+	line_data = report_line_get_info(report->lines, target->line);
 	if (line_data == NULL)
 		return NULL;
 

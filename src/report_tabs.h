@@ -72,6 +72,19 @@ struct report_tabs_stop {
 	int				text_left;
 };
 
+/**
+ * Details needed to help redraw a line.
+ */
+
+struct report_tabs_line_info {
+	unsigned			line;			/**< The line to be redrawn.					*/
+	int				page;			/**< The page (horizontally) to be redrawn.			*/
+
+	int				tab_bar;		/**< The tab bar to which the block refers.			*/
+
+	int				first_stop;		/**< The first tab stop in the bar relating to the page.	*/
+	int				last_stop;		/**< The last tab stop in the bar relating to the page.		*/
+};
 
 /**
  * Initialise a Report Tabs block.

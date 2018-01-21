@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -22,19 +22,19 @@
  */
 
 /**
- * \file: report_format_dialogue.h
+ * \file: report_font_dialogue.h
  *
- * High-level report format dialogue interface.
+ * High-level report font dialogue interface.
  */
 
-#ifndef CASHBOOK_REPORT_FORMAT_DIALOGUE
-#define CASHBOOK_REPORT_FORMAT_DIALOGUE
+#ifndef CASHBOOK_REPORT_FONT_DIALOGUE
+#define CASHBOOK_REPORT_FONT_DIALOGUE
 
 /**
  * Initialise the report format dialogue.
  */
 
-void report_format_dialogue_initialise(void);
+void report_font_dialogue_initialise(void);
 
 
 /**
@@ -45,13 +45,14 @@ void report_format_dialogue_initialise(void);
  * \param *callback		The callback function to use to return the results.
  * \param *normal		The initial normal font name.
  * \param *bold			The initial bold font name.
+ * \param *italic		The initial italic font name.
+ * \param *bold_italic		The initial bold-italic font name.
  * \param size			The initial font size.
  * \param spacing		The initial line spacing.
- * \param grid			The initial grid setting.
  */
 
-void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, int, int, osbool),
-		char *normal, char *bold, int size, int spacing, osbool grid);
+void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, char *, char *, int, int),
+		char *normal, char *bold, char *italic, char *bold_italic, int size, int spacing);
 
 
 /**
@@ -61,7 +62,7 @@ void report_format_dialogue_open(wimp_pointer *ptr, struct report *report, void 
  * \param *report		The report to be closed.
  */
 
-void report_format_dialogue_force_close(struct report *report);
+void report_font_dialogue_force_close(struct report *report);
 
 #endif
 

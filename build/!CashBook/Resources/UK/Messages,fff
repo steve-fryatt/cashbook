@@ -1,4 +1,4 @@
-# Copyright 2004-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2004-2018, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of CashBook:
 #
@@ -302,6 +302,7 @@ PrintTitleAcclistHead:Headings
 PrintTitleTransact:Transactions
 PrintTitleAccview:Account
 
+PrintPgFail:The report could not be assembled into pages.
 PrintBusy:The printer is currently in use.
 NoPManager:The Printers application must be loaded for text mode printing.
 NoPDriver:A printer driver must be present for graphics mode printing.
@@ -338,7 +339,7 @@ GRHeader:Report for period between %0 and %1, generated on %2
 
 TRWinT:Transaction Report
 TRTitle:\b\uTransaction Report for %0
-TRHeadings:\k\b\rNo\t\bDate\t\bFrom\t\bTo\t\bReference\t\b\rAmount\t\bDescription
+TRHeadings:\k\v\b\o\rNo\t\v\b\o\cDate\t\v\b\oFrom\t\v\b\oTo\t\v\b\oReference\t\v\b\o\rAmount\t\v\b\oDescription
 TRAccounts:\k\bAccounts\t\b\rTotal
 TROutgoings:\k\bOutgoings\t\b\rTotal
 TRIncomings:\k\bIncomings\t\b\rTotal
@@ -349,7 +350,7 @@ TRTotal:Total
 
 URWinT:Unreconciled Transaction Report
 URTitle:\b\uUnreconciled Transaction Report for %0
-URHeadings:\k\b\rNo\t\bDate\t\bFrom\t\s\t\bTo\t\s\t\bReference\t\b\rAmount\t\bDescription
+URHeadings:\k\v\b\o\rNo\t\v\b\o\cDate\t\b\oFrom\t\s\v\t\b\oTo\t\s\v\t\v\b\oReference\t\v\b\o\rAmount\t\v\b\oDescription
 URTotalIn:Unreconciled incoming
 URTotalOut:Unreconciled outgoing
 URTotal:Total unreconciled
@@ -434,7 +435,7 @@ Help.AccList.Curr:\Tcurrent balance column, showing the totals at this date.|MDo
 Help.AccList.Final:\Tfinal balance column, showing the totals at a given date in the future.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
 Help.AccList.Bud:\Tbudget variance column, showing the changes over the budget period.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
 
-Help.AccListTB.Up/Help.HeadListTB.Up/Help.AccViewTB.Up/Help.HeadViewTB.Up/Help.SOrderTB.Up/Help.PresetTB.Up:\Sbring this file's transaction \w to the front.
+Help.AccListTB.Up/Help.HeadListTB.Up/Help.AccViewTB.Up/Help.HeadViewTB.Up/Help.SOrderTB.Up/Help.PresetTB.Up/Help.ReportTB.Up:\Sbring this file's transaction \w to the front.
 Help.AccListTB.ColName/Help.HeadListTB.ColName:\Tname column.|M\Dchange the column width.
 Help.AccListTB.ColStat:\Tstatement balance column.|M\Dchange the column width.
 Help.AccListTB.ColCurr:\Tcurrent balance column.|M\Dchange the column width.
@@ -538,7 +539,7 @@ Help.ImpComp.Rejected:\Tnumber of entries in the file that were not imported.
 Help.ImpComp.Close:\Sclose this \w.
 Help.ImpComp.Log:\Sclose this \w and show the import log report.
 
-Help.EditAccount.Cancel/Help.EditHeading.Cancel/Help.Goto.Cancel/Help.EditAccSect.Cancel/Help.EditSOrder.Cancel/Help.EditPreset.Cancel/Help.Budget.Cancel/Help.RepFormat.Cancel/Help.Choices.Cancel/Help.TransRep.Cancel/Help.UnrecRep.Cancel/Help.CashFlwRep.Cancel/Help.SortTrans.Cancel/Help.SortAccView.Cancel/Help.SortSOrder.Cancel/Help.SortPreset.Cancel/Help.SaveRepTemp???.Cancel:\Scancel the changes.|M\Areset the window contents.
+Help.EditAccount.Cancel/Help.EditHeading.Cancel/Help.Goto.Cancel/Help.EditAccSect.Cancel/Help.EditSOrder.Cancel/Help.EditPreset.Cancel/Help.Budget.Cancel/Help.RepFont.Cancel/Help.Choices.Cancel/Help.TransRep.Cancel/Help.UnrecRep.Cancel/Help.CashFlwRep.Cancel/Help.SortTrans.Cancel/Help.SortAccView.Cancel/Help.SortSOrder.Cancel/Help.SortPreset.Cancel/Help.SaveRepTemp???.Cancel:\Scancel the changes.|M\Areset the window contents.
 
 Help.EditAccount:\Taccount edit \w.
 Help.EditAccount.Name:\Tname of the account.
@@ -766,9 +767,19 @@ Help.Choices5.NFont:\Tfont used for normal text in reports and printing.
 Help.Choices5.NFontMenu:\Schange the font used for normal text in reports and printing.
 Help.Choices5.BFont:\Tfont used for bold text in reports and printing.
 Help.Choices5.BFontMenu:\Schange the font used for bold text in reports and printing.
+Help.Choices5.IFont:\Tfont used for italic text in reports and printing.
+Help.Choices5.IFontMenu:\Schange the font used for italic text in reports and printing.
+Help.Choices5.BIFont:\Tfont used for bold-italic text in reports and printing.
+Help.Choices5.BIFontMenu:\Schange the font used for bold-italic text in reports and printing.
 Help.Choices5.Size:\Tfont size for reports and printing, in points.
 Help.Choices5.Spacing:\Tline spacing for reports and printing, as a percentage of the font size.
-Help.Choices5.Grid:\Stoggle the use of a grid around data in reports and printing.
+Help.Choices5.Portrait:\Suse portrait paper orientation by default for reports.
+Help.Choices5.Landscape:\Suse landscape paper orientation by default for reports.
+Help.Choices5.Scale:\Schoose whether to scale reports to fit the width of a single sheet of paper by default.
+Help.Choices5.ShowPages:\Schoose whether reports are shown on screen in page format by default.
+Help.Choices5.Numbers:\Sturn page numbers on and off on reports by default.
+Help.Choices5.Title:\Sturn printed report titles on and off by default.
+Help.Choices5.Grid:\Sturn the display of a grid around tabular report data on or off by default.
 
 Help.Choices6.HiAcc:\Stoggle the highlighting of overdrawn accounts or analysis headings in the account and heading list \ws.
 Help.Choices6.HiAccCol1/Help.Choices6.HiAccCol2:\Tcolour that overdrawn accounts and analysis headings are highlighted.
@@ -780,15 +791,18 @@ Help.Choices6.HiOdn:\Stoggle the highlighting of overdrawn transactions in the a
 Help.Choices6.HiOdnCol1/Help.Choices6.HiOdnCol2:\Tcolour that overdrawn transactions are highlighted.
 Help.Choices6.HiOdnMenu:\Schoose the colour to highlight overdrawn transactions.
 
-Help.RepFormat:\Treport format \w.
-Help.RepFormat.NFont:\Tfont used for normal text in the report.
-Help.RepFormat.NFontMenu:\Schange the font used for normal text in the report.
-Help.RepFormat.BFont:\Tfont used for bold text in the report.
-Help.RepFormat.BFontMenu:\Schange the font used for bold text in the report.
-Help.RepFormat.Size:\Tfont size for the report, in points.
-Help.RepFormat.Spacing:\Tline spacing for the report, as a percentage of the font size.
-Help.RepFormat.Grid:\Stoggle the display of a grid around the results.
-Help.RepFormat.Update:\Schange the font settings used in the report.
+Help.RepFont:\Treport font \w.
+Help.RepFont.NFont:\Tfont used for normal text in the report.
+Help.RepFont.NFontMenu:\Schange the font used for normal text in the report.
+Help.RepFont.BFont:\Tfont used for bold text in the report.
+Help.RepFont.BFontMenu:\Schange the font used for bold text in the report.
+Help.RepFont.IFont:\Tfont used for italic text in the report.
+Help.RepFont.IFontMenu:\Schange the font used for italic text in the report.
+Help.RepFont.BIFont:\Tfont used for bold-italic text in the report.
+Help.RepFont.BIFontMenu:\Schange the font used for bold-italic text in the report.
+Help.RepFont.Size:\Tfont size for the report, in points.
+Help.RepFont.Spacing:\Tline spacing for the report, as a percentage of the font size.
+Help.RepFont.Update:\Schange the font settings used in the report.
 
 Help.AccEnter:\Taccount ident entry window, which allows account idents to be typed into fields easily.
 Help.AccEnter.Ident:\Tident of an account or analysis heading to be entered.
@@ -1008,12 +1022,21 @@ Help.PresetMenu.03:\Rexport the preset list as a comma separated values file, fo
 Help.PresetMenu.04:\Rexport the preset list as a tab separated values file, for use in wordprocessors.
 Help.PresetMenu.05/Help.PresetTB.Print:\Sprint the preset list.
 
-Help.ReportMenu.00:\Schange the report font and formatting.
-Help.ReportMenu.01:\Rsave the report as spaced ASCII text.
-Help.ReportMenu.02:\Rexport the report as a comma separated values file, for use in spreadsheets.
-Help.ReportMenu.03:\Rexport the report as a tab separated values file, for use in wordprocessors.
-Help.ReportMenu.04:\Sprint the report.
-Help.ReportMenu.05:\Ssave this report definition as a template for future use.
+Help.ReportMenu.00:\Sselect whether the display shows the printed page layout of the report.
+Help.ReportMenu.01:\Schange the report font settings.
+Help.ReportMenu.02:\Rchange the appearance of the report.
+Help.ReportMenu.0200:\Schoose whether to include the report title on the page.
+Help.ReportMenu.0201:\Schoose whether to include page numbers.
+Help.ReportMenu.0202:\Schoose whether to include a grid around tabular data.
+Help.ReportMenu.03:\Rchange the page layout of the report.
+Help.ReportMenu.0300:\Sdisplay the report on the page in Portrait format.
+Help.ReportMenu.0301:\Sdisplay the report on the page in Landscape format.
+Help.ReportMenu.0302:\Schoose whether to fit the report onto a single page width.
+Help.ReportMenu.04:\Rsave the report as spaced ASCII text.
+Help.ReportMenu.05:\Rexport the report as a comma separated values file, for use in spreadsheets.
+Help.ReportMenu.06:\Rexport the report as a tab separated values file, for use in wordprocessors.
+Help.ReportMenu.07/Help.ReportTB.Print:\Sprint the report.
+Help.ReportMenu.08:\Ssave this report definition as a template for future use.
 
 Help.RepListMenu.??:\Schoose this existing report name.
 

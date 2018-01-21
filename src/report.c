@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -81,39 +81,138 @@
 #include "flexutils.h"
 #include "print_dialogue.h"
 #include "print_protocol.h"
-#include "report_format_dialogue.h"
+#include "report_cell.h"
+#include "report_draw.h"
+#include "report_fonts.h"
+#include "report_font_dialogue.h"
+#include "report_line.h"
+#include "report_page.h"
+#include "report_region.h"
+#include "report_tabs.h"
+#include "report_textdump.h"
 #include "transact.h"
 #include "window.h"
 
+/* Report View Toolbar icons. */
+
+#define REPORT_PANE_PARENT 0
+#define REPORT_PANE_SAVE 1
+#define REPORT_PANE_PRINT 2
+#define REPORT_PANE_SHOW_PAGES 3
+#define REPORT_PANE_PORTRAIT 4
+#define REPORT_PANE_LANDSCAPE 5
+#define REPORT_PANE_FIT_WIDTH 6
+#define REPORT_PANE_SHOW_TITLE 7
+#define REPORT_PANE_SHOW_GRID 8
+#define REPORT_PANE_SHOW_PAGE_NUMBERS 9
+#define REPORT_PANE_FORMAT 10
+
 /* Report view menu */
 
-#define REPVIEW_MENU_FORMAT 0
-#define REPVIEW_MENU_SAVETEXT 1
-#define REPVIEW_MENU_EXPCSV 2
-#define REPVIEW_MENU_EXPTSV 3
-#define REPVIEW_MENU_PRINT 4
-#define REPVIEW_MENU_TEMPLATE 5
+#define REPVIEW_MENU_SHOWPAGES 0
+#define REPVIEW_MENU_FORMAT 1
+#define REPVIEW_MENU_INCLUDE 2
+#define REPVIEW_MENU_LAYOUT 3
+#define REPVIEW_MENU_SAVETEXT 4
+#define REPVIEW_MENU_EXPCSV 5
+#define REPVIEW_MENU_EXPTSV 6
+#define REPVIEW_MENU_PRINT 7
+#define REPVIEW_MENU_TEMPLATE 8
+
+#define REPVIEW_MENU_INCLUDE_TITLE 0
+#define REPVIEW_MENU_INCLUDE_PAGE_NUM 1
+#define REPVIEW_MENU_INCLUDE_GRID 2
+
+#define REPVIEW_MENU_LAYOUT_PORTRAIT 0
+#define REPVIEW_MENU_LAYOUT_LANDSCAPE 1
+#define REPVIEW_MENU_LAYOUT_FIT_WIDTH 2
 
 /* Report export details */
 
-#define REPORT_EXPORT_LINE_LENGTH 256
+/**
+ * The size of buffer allocated to print job titles.
+ */
 
 #define REPORT_PRINT_TITLE_LENGTH 1024
 
-#define REPORT_PRINT_BUFFER_LENGTH 10
-
 /**
- * The number of tab bars which can be defined.
+ * The margin around the outside of a print ractangle, in OS Units.
  */
 
-#define REPORT_TAB_BARS 5
+#define REPORT_PRINT_RECTANGLE_MARGIN 2
 
-enum report_page_area {
-	REPORT_PAGE_NONE   = 0,
-	REPORT_PAGE_BODY   = 1,
-	REPORT_PAGE_HEADER = 2,
-	REPORT_PAGE_FOOTER = 4
-};
+/**
+ * The maximum size of a page number, in characters.
+ */
+
+#define REPORT_MAX_PAGE_NUMBER_LEN 12
+
+/**
+ * The maximum length of a page number message, in characters.
+ */
+
+#define REPORT_MAX_PAGE_STRING_LEN 64
+
+/**
+ * The height of the Report window toolbar.
+ */
+
+#define REPORT_TOOLBAR_HEIGHT 78
+
+/**
+ * The space above and below a horizontal grid line, in OS Units.
+ */
+
+#define REPORT_GRID_LINE_MARGIN 2
+
+/**
+ * The \i indent applied to font cells, in OS Units.
+ */
+
+#define REPORT_FONT_COLUMN_INDENT 40
+
+/**
+ * The \i indent applied to text cells, in characters.
+ */
+
+#define REPORT_TEXT_COLUMN_INDENT 2
+
+/**
+ * The top margin of an unpaginated report on screen, in OS Units.
+ */
+
+#define REPORT_TOP_MARGIN 4
+
+/**
+ * The bottom margin of an unpaginated report on screen, in OS Units.
+ */
+
+#define REPORT_BOTTOM_MARGIN 4
+
+/**
+ * The left margin of an unpaginated report on screen, in OS Units.
+ */
+
+#define REPORT_LEFT_MARGIN 4
+
+/**
+ * The right margin of an unpaginated report on screen, in OS Units.
+ */
+
+#define REPORT_RIGHT_MARGIN 4
+
+/**
+ * The minimum width of a report window, in OS Units.
+ */
+
+#define REPORT_MIN_WIDTH 1000
+
+/**
+ * The minimum height of a report window, in OS Units.
+ */
+
+#define REPORT_MIN_HEIGHT 800
+
 
 struct report_print_pagination {
 	int		header_line;						/**< A line to repeat as a header at the top of the page, or -1 for none.			*/
@@ -121,7 +220,24 @@ struct report_print_pagination {
 	int		line_count;						/**< The total line count on the page, including a repeated header.				*/
 };
 
-/* Report status flags. */
+/**
+ * An area of a report page body, for use while paginating the data.
+ */
+
+struct report_pagination_area {
+	osbool		active;							/**< TRUE if the area is active; FALSE if it is to be skipped.				*/
+
+	int		ypos_offset;						/**< An offset to apply to YPos values for lines, to bring them into region range.	*/
+
+	int		height;							/**< The total height of the contained lines, in OS Units.				*/
+
+	unsigned	top_line;						/**< The first line in the range.							*/
+	unsigned	bottom_line;						/**< The last line in the range.							*/
+};
+
+/**
+ * Report status flags.
+ */
 
 enum report_status {
 	REPORT_STATUS_NONE = 0x00,						/**< No status flags set.					*/
@@ -129,11 +245,26 @@ enum report_status {
 	REPORT_STATUS_CLOSED = 0x02						/**< The report has been closed to writing.			*/
 };
 
+/**
+ * Report display option flags.
+ */
+
+enum report_display {
+	REPORT_DISPLAY_NONE		= 0x0000,				/**< No flags are in use.					*/
+	REPORT_DISPLAY_LANDSCAPE	= 0x0001,				/**< Use the page in landscape format.				*/
+	REPORT_DISPLAY_FIT_WIDTH	= 0x0002,				/**< Scale the output to fit the width of a page.		*/
+	REPORT_DISPLAY_PAGINATED	= 0x0004,				/**< Display the pagination of the report on screen.		*/
+	REPORT_DISPLAY_SHOW_GRID	= 0x0008,				/**< Include a grid around tabular data.			*/
+	REPORT_DISPLAY_SHOW_NUMBERS	= 0x0010,				/**< Show page numbers in the page footer.			*/
+	REPORT_DISPLAY_SHOW_TITLE	= 0x0020				/**< Show the report title in the page header.			*/
+};
+
 struct report {
 	struct file_block	*file;						/**< The file that the report belongs to.			*/
 
 	wimp_w			window;
 	char			window_title[WINDOW_TITLE_LENGTH];
+	wimp_w			toolbar;
 
 	/* Report status flags. */
 
@@ -142,38 +273,33 @@ struct report {
 
 	/* Tab details */
 
-	int			font_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in OS units for outline fonts.		*/
-	int			text_width[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Column widths in characters for ASCII text.		*/
-
-	int			font_tab[REPORT_TAB_BARS][REPORT_TAB_STOPS];	/**< Tab stops in OS units for outline fonts.			*/
+	struct report_tabs_block	*tabs;
 
 	/* Font data */
 
-	char			font_normal[REPORT_MAX_FONT_NAME];		/**< Name of 'normal' outline font.				*/
-	char			font_bold[REPORT_MAX_FONT_NAME];		/**< Name of bold outline font.					*/
-	int			font_size;					/**< Font size in 1/16 points.					*/
-	int			font_spacing;					/**< Line spacing in percent.					*/
+	struct report_fonts_block	*fonts;
 
 	/* Display options. */
 
-	osbool			show_grid;					/**< TRUE if a grid table is to be plotted.			*/
+	enum report_display	display;
 
 	/* Report content */
-
-	int			lines;						/**< The number of lines in the report.				*/
-	int			max_lines;					/**< The size of the line pointer block.			*/
 
 	int			width;						/**< The displayed width of the report data in OS Units.	*/
 	int			height;						/**< The displayed height of the report data in OS Units.	*/
 
-	int			linespace;					/**< The height allocated to a line of text, in OS Units.	*/
-	int			rulespace;					/**< The height allocated to a horizontal rule, in OS Units.	*/
+	int			cell_height;					/**< The height allocated to a text cell body, in OS Units.	*/
 
-	int			block_size;					/**< The size of the data block.				*/
-	int			data_size;					/**< The size of the data in the block.				*/
+	int			cell_baseline;					/**< The font baseline in a cell body, in OS Units.		*/
 
-	char			*data;						/**< The data block itself (flex block).			*/
-	int			*line_ptr;					/**< The line pointer block (flex block).			*/
+	struct report_textdump_block	*content;
+	struct report_cell_block	*cells;
+	struct report_line_block	*lines;
+
+	struct report_page_block	*pages;
+	struct report_region_block	*regions;
+
+	unsigned			page_title;				/**< Textdump offset for the page title, if any.		*/
 
 	/* Report template details. */
 
@@ -194,8 +320,11 @@ static osbool			report_print_opt_rotate;			/**< TRUE if the graphics format prin
 static osbool			report_print_opt_pagenum;			/**< TRUE if the graphics format print should include page numbers; else FALSE.			*/
 
 wimp_window			*report_window_def = NULL;			/**< The definition for the Report View window.							*/
+wimp_window			*report_toolbar_def = NULL;			/**< The definition for the Report View toolbar.						*/
 
 static wimp_menu		*report_view_menu = NULL;			/**< The Report View window menu handle.							*/
+static wimp_menu		*report_view_include_menu = NULL;		/**< The Report View Include submenu handle.							*/
+static wimp_menu		*report_view_layout_menu = NULL;		/**< The Report View Layout submenu handle.							*/
 
 static struct saveas_block	*report_saveas_text = NULL;			/**< The Save Text saveas data handle.								*/
 static struct saveas_block	*report_saveas_csv = NULL;			/**< The Save CSV saveas data handle.								*/
@@ -204,20 +333,26 @@ static struct saveas_block	*report_saveas_tsv = NULL;			/**< The Save TSV saveas
 
 
 static void			report_close_and_calculate(struct report *report);
+static osbool			report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int tab_stop, unsigned *first_cell_offset);
 
-static void			report_calculate_dimensions(struct report *report);
-static int			report_reflow_content(struct report *report);
-static osbool			report_find_fonts(struct report *report, font_f *normal, font_f *bold);
+
+static void			report_reflow_content(struct report *report);
 
 static void			report_view_close_window_handler(wimp_close *close);
 static void			report_view_redraw_handler(wimp_draw *redraw);
+static void			report_view_toolbar_prepare(struct report *report);
+static void			report_view_toolbar_click_handler(wimp_pointer *pointer);
 static void			report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void			report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void			report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void			report_view_redraw_handler(wimp_draw *redraw);
+static void			report_view_redraw_flat_handler(struct report *report, wimp_draw *redraw, int ox, int oy);
+static void			report_view_redraw_page_handler(struct report *report, wimp_draw *redraw, int ox, int oy);
+
+
 
 static void			report_open_format_window(struct report *report, wimp_pointer *ptr);
-static void			report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing, osbool grid);
+static void			report_process_format_window(struct report *report, char *normal, char *bold, char* italic, char *bold_italic, int size, int spacing);
 
 static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
 static struct report		*report_print_window_closed(struct report *report, void *data);
@@ -232,9 +367,26 @@ static void			report_print(struct report *report, osbool text, osbool textformat
 static void			report_start_print_job(char *filename);
 static void			report_cancel_print_job(void);
 static void			report_print_as_graphic(struct report *report, osbool fit_width, osbool rotate, osbool pagenum);
-static void			report_handle_print_error(os_error *error, os_fw file, font_f f1, font_f f2);
-static os_error			*report_plot_line(struct report *report, unsigned int line, int x, int y, font_f normal, font_f bold);
-static enum report_page_area	report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer, unsigned header_size, unsigned footer_size);
+static void			report_handle_print_error(os_error *error, os_fw file, struct report_fonts_block *fonts);
+
+
+static os_error *report_plot_page(struct report *report, struct report_page_data *page, os_coord *origin, os_box *clip);
+static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
+static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
+static os_error *report_plot_page_number_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
+static os_error *report_plot_lines_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip);
+static os_error *report_plot_line(struct report *report,  struct report_tabs_line_info *target, os_coord *origin, os_box *clip);
+static os_error *report_plot_cell(struct report *report, os_box *outline, char *content, enum report_cell_flags flags);
+
+static osbool report_handle_message_set_printer(wimp_message *message);
+static void report_repaginate_all(struct file_block *file);
+static void report_paginate(struct report *report);
+static void report_add_page_row(struct report *report, struct report_page_layout *layout,
+		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row, int columns);
+static void report_set_display_option(struct report *report, enum report_display option, osbool state);
+static void report_set_window_extent(struct report *report);
+static osbool report_get_window_extent(struct report *report, int *x, int *y);
+
 
 
 /**
@@ -250,7 +402,12 @@ void report_initialise(osspriteop_area *sprites)
 	report_window_def = templates_load_window("Report");
 	report_window_def->sprite_area = sprites;
 
+	report_toolbar_def = templates_load_window("ReportTB");
+	report_toolbar_def->sprite_area = sprites;
+
 	report_view_menu = templates_get_menu("ReportViewMenu");
+	report_view_include_menu = templates_get_menu("ReportViewIncludeSubmenu");
+	report_view_layout_menu = templates_get_menu("ReportViewLayoutSubmenu");
 	ihelp_add_menu(report_view_menu, "ReportMenu");
 
 	/* Save dialogue boxes. */
@@ -261,7 +418,12 @@ void report_initialise(osspriteop_area *sprites)
 
 	/* Initialise subsidiary parts of the report system. */
 
-	report_format_dialogue_initialise();
+	report_font_dialogue_initialise();
+	report_fonts_initialise();
+
+	/* Register the Wimp message handlers. */
+
+	event_add_message_handler(message_SET_PRINTER, EVENT_MESSAGE_INCOMING, report_handle_message_set_printer);
 }
 
 
@@ -279,9 +441,9 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 {
 	struct report	*new;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\GOpening report");
-	#endif
+#endif
 
 	new = heap_alloc(sizeof(struct report));
 
@@ -296,26 +458,57 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 	new->flags = REPORT_STATUS_NONE;
 	new->print_pending = 0;
 
-	new->lines = 0;
-	new->data_size = 0;
+	new->display = REPORT_DISPLAY_NONE;
 
-	new->data = NULL;
-	new->line_ptr = NULL;
+	if (config_opt_read("ReportRotate"))
+		new->display |= REPORT_DISPLAY_LANDSCAPE;
+	if (config_opt_read("ReportShowPages"))
+		new->display |= REPORT_DISPLAY_PAGINATED;
+	if (config_opt_read("ReportFitWidth"))
+		new->display |= REPORT_DISPLAY_FIT_WIDTH;
+	if (config_opt_read("ReportShowTitle"))
+		new->display |= REPORT_DISPLAY_SHOW_TITLE;
+	if (config_opt_read("ReportShowPageNum"))
+		new->display |= REPORT_DISPLAY_SHOW_NUMBERS;
+	if (config_opt_read("ReportShowGrid"))
+		new->display |= REPORT_DISPLAY_SHOW_GRID;
 
-	new->block_size = 0;
-	new->max_lines = 0;
+	new->page_title = REPORT_TEXTDUMP_NULL;
+
+	new->tabs = report_tabs_create();
+	if (new->tabs == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
+	new->fonts = report_fonts_create();
+	if (new->fonts == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
+	new->content = report_textdump_create(0, 200, '\0');
+	if (new->content == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
+	new->cells = report_cell_create(0);
+	if (new->cells == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
+	new->lines = report_line_create(0);
+	if (new->lines == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
+	new->pages = report_page_create(0);
+	if (new->pages == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
+
+	new->regions = report_region_create(0);
+	if (new->regions == NULL)
+		new->flags |= REPORT_STATUS_MEMERR;
 
 	new->window = NULL;
 	string_copy(new->window_title, title, WINDOW_TITLE_LENGTH);
+	new->toolbar = NULL;
 
-	if (flex_alloc((flex_ptr) &(new->data), REPORT_BLOCK_SIZE))
-		new->block_size = REPORT_BLOCK_SIZE;
-	else
-		new->flags |= REPORT_STATUS_MEMERR;
-
-	if (flex_alloc((flex_ptr) &(new->line_ptr), sizeof(int) * REPORT_LINE_SIZE))
-		new->max_lines = REPORT_LINE_SIZE;
-	else
+	new->page_title = report_textdump_store(new->content, title);
+	if (new->page_title == REPORT_TEXTDUMP_NULL)
 		new->flags |= REPORT_STATUS_MEMERR;
 
 	new->template = template;
@@ -334,10 +527,12 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 void report_close(struct report *report)
 {
 	wimp_window_state	parent;
+	int			xextent, yextent;
+	os_error		*error;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\GClosing report");
-	#endif
+#endif
 
 	if (report == NULL || (report->flags & REPORT_STATUS_MEMERR)) {
 		error_msgs_report_error("NoMemReport");
@@ -351,30 +546,71 @@ void report_close(struct report *report)
 
 	report_window_def->title_data.indirected_text.text = report->window_title;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("Report window width: %d", report->width);
-	#endif
+#endif
 
-	/* Position the window and open it. */
+	/* Position the report window. */
 
 	transact_get_window_state(report->file, &parent);
 
-	window_set_initial_area(report_window_def,
-			(report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH,
-			(report->height > REPORT_MIN_HEIGHT) ? report->height : REPORT_MIN_HEIGHT,
+	if (!report_get_window_extent(report, &xextent, &yextent)) {
+		xextent = REPORT_MIN_WIDTH;
+		yextent = REPORT_MIN_HEIGHT;
+	}
+
+	window_set_initial_area(report_window_def, xextent, yextent,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(report->file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
-	report->window = wimp_create_window(report_window_def);
-	windows_open(report->window);
+	error = xwimp_create_window(report_window_def, &(report->window));
+	if (error != NULL) {
+		report_delete(report);
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	/* Position the report toolbar pane. */
+
+	windows_place_as_toolbar(report_window_def, report_toolbar_def, REPORT_TOOLBAR_HEIGHT - 4);
+
+	error = xwimp_create_window(report_toolbar_def, &(report->toolbar));
+	if (error != NULL) {
+		report_delete(report);
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return;
+	}
+
+	report_view_toolbar_prepare(report);
+
+	/* Open the two windows. */
+
 	ihelp_add_window(report->window, "Report", NULL);
-	event_add_window_menu(report->window, report_view_menu);
+	ihelp_add_window(report->toolbar, "ReportTB", NULL);
+
+	windows_open(report->window);
+	windows_open_nested_as_toolbar(report->toolbar, report->window,
+			REPORT_TOOLBAR_HEIGHT - 4);
+
+	/* Register event handles for the two windows. */
+
 	event_add_window_user_data(report->window, report);
+	event_add_window_menu(report->window, report_view_menu);
 	event_add_window_close_event(report->window, report_view_close_window_handler);
 	event_add_window_redraw_event(report->window, report_view_redraw_handler);
 	event_add_window_menu_prepare(report->window, report_view_menu_prepare_handler);
 	event_add_window_menu_selection(report->window, report_view_menu_selection_handler);
 	event_add_window_menu_warning(report->window, report_view_menu_warning_handler);
+
+	event_add_window_user_data(report->toolbar, report);
+	event_add_window_menu(report->toolbar, report_view_menu);
+	event_add_window_mouse_event(report->toolbar, report_view_toolbar_click_handler);
+	event_add_window_menu_prepare(report->toolbar, report_view_menu_prepare_handler);
+	event_add_window_menu_selection(report->toolbar, report_view_menu_selection_handler);
+	event_add_window_menu_warning(report->toolbar, report_view_menu_warning_handler);
+
+	event_add_window_icon_radio(report->toolbar, REPORT_PANE_PORTRAIT, FALSE);
+	event_add_window_icon_radio(report->toolbar, REPORT_PANE_LANDSCAPE, FALSE);
 }
 
 
@@ -393,9 +629,9 @@ void report_close(struct report *report)
 
 void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum)
 {
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\GClosing report and starting printing");
-	#endif
+#endif
 
 	if (report == NULL || (report->flags & REPORT_STATUS_MEMERR)) {
 		error_msgs_report_error("NoMemReport");
@@ -404,6 +640,12 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 	}
 
 	report_close_and_calculate(report);
+
+	if (!report_page_paginated(report->pages)) {
+		error_msgs_report_error("PrintPgFail");
+		report_delete(report);
+		return;
+	}
 
 	report_print(report, text, textformat, fitwidth, rotate, pagenum);
 }
@@ -427,21 +669,21 @@ static void report_close_and_calculate(struct report *report)
 
 	/* Update the data block to the required size. */
 
-	flex_extend((flex_ptr) &(report->data), report->data_size);
-	flex_extend((flex_ptr) &(report->line_ptr), sizeof(int) * report->lines);
+	report_textdump_close(report->content);
+	report_cell_close(report->cells);
+	report_line_close(report->lines);
+	report_tabs_close(report->tabs);
 
 	/* Set up the display details. */
 
-	string_copy(report->font_normal, config_str_read("ReportFontNormal"), REPORT_MAX_FONT_NAME);
-	string_copy(report->font_bold, config_str_read("ReportFontBold"), REPORT_MAX_FONT_NAME);
-	report->font_size = config_int_read("ReportFontSize") * 16;
-	report->font_spacing = config_int_read("ReportFontLinespace");
-	report->show_grid = config_opt_read("ReportShowGrid");
-	report_calculate_dimensions(report);
+	report_fonts_set_faces(report->fonts, config_str_read("ReportFontNormal"), config_str_read("ReportFontBold"), NULL, NULL);
+	report_fonts_set_size(report->fonts, config_int_read("ReportFontSize") * 16, config_int_read("ReportFontLinespace"));
 
-	/* For now, there isn't a window. */
+	report_reflow_content(report);
 
-	report->window = NULL;
+	/* Try to paginate the report. */
+
+	report_paginate(report);
 }
 
 
@@ -457,16 +699,24 @@ void report_delete(struct report *report)
 	struct file_block	*file;
 	struct report		**rep;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\RDeleting report");
-	#endif
+#endif
 
 	if (report == NULL)
 		return;
 
 	file = report->file;
 
+	if (report->toolbar != NULL) {
+		ihelp_remove_window(report->toolbar);
+		event_delete_window(report->toolbar);
+		wimp_delete_window(report->toolbar);
+		report->toolbar = NULL;
+	}
+
 	if (report->window != NULL) {
+		ihelp_remove_window(report->window);
 		event_delete_window(report->window);
 		wimp_delete_window(report->window);
 		report->window = NULL;
@@ -474,15 +724,17 @@ void report_delete(struct report *report)
 
 	/* Close any related dialogues. */
 
-	report_format_dialogue_force_close(report);
+	report_font_dialogue_force_close(report);
 
 	/* Free the flex blocks. */
 
-	if (report->data != NULL)
-		flexutils_free((void **) &(report->data));
-
-	if (report->line_ptr != NULL)
-		flexutils_free((void **) &(report->line_ptr));
+	report_textdump_destroy(report->content);
+	report_cell_destroy(report->cells);
+	report_line_destroy(report->lines);
+	report_fonts_destroy(report->fonts);
+	report_tabs_destroy(report->tabs);
+	report_page_destroy(report->pages);
+	report_region_destroy(report->regions);
 
 	if (report->template != NULL)
 		heap_free(report->template);
@@ -516,66 +768,99 @@ void report_delete(struct report *report)
  *	     heading, repeated on subsequent pages.
  *
  * \param *report		The report to write to.
- * \param bar			The tab bar to use.
+ * \param tab_bar		The tab bar to use.
  * \param *text			The line of text to write.
  */
 
-void report_write_line(struct report *report, int bar, char *text)
+void report_write_line(struct report *report, int tab_bar, char *text)
 {
-	int	len;
-	char	*c, *copy, *flag;
+	char			*c, *copy;
+	unsigned		first_cell_offset;
+	int			tab_stop, cell_count;
+	enum report_line_flags	line_flags;
+	enum report_cell_flags	cell_flags;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("Print line: %s", text);
-	#endif
+#endif
 
-	/* Parse the string */
+	if ((report->flags & REPORT_STATUS_MEMERR) || (report->flags & REPORT_STATUS_CLOSED))
+		return;
 
-	copy = malloc(strlen(text) + (REPORT_TAB_STOPS * REPORT_FLAG_BYTES) + 1);
+	/* Allocate a buffer to hold the copied string. */
+
+	copy = malloc(strlen(text) + 1);
+	if (copy == NULL) {
+		report->flags |= REPORT_STATUS_MEMERR;
+		return;
+	}
+
+	tab_stop = 0;
+	cell_count = 0;
+
+	line_flags = REPORT_LINE_FLAGS_NONE;
+	cell_flags = REPORT_CELL_FLAGS_NONE;
+
+	first_cell_offset = REPORT_CELL_NULL;
+
 	c = copy;
 
-	bar = (bar >= 0 && bar < REPORT_TAB_BARS) ? bar : 0;
-
-	flag = c++;
-	*flag = REPORT_FLAG_NOTNULL;
-
-	while (*text != '\0') {
+	while ((*text != '\0') && !(report->flags & REPORT_STATUS_MEMERR)) {
 		if (*text == '\\') {
 			text++;
 
 			switch (*text++) {
-			case 't':
-				*c++ = '\n';
-				flag = c++;
-				*flag = REPORT_FLAG_NOTNULL;
-				break;
-
-			case 'i':
-				*flag |= REPORT_FLAG_INDENT;
-				break;
-
 			case 'b':
-				*flag |= REPORT_FLAG_BOLD;
+				cell_flags |= REPORT_CELL_FLAGS_BOLD;
 				break;
 
-			case 'u':
-				*flag |= REPORT_FLAG_UNDER;
-				break;
-
-			case 'r':
-				*flag |= REPORT_FLAG_RIGHT;
+			case 'c':
+				cell_flags |= REPORT_CELL_FLAGS_CENTRE;
 				break;
 
 			case 'd':
-				*flag |= REPORT_FLAG_NUMERIC;
+				cell_flags |= REPORT_CELL_FLAGS_NUMERIC;
 				break;
 
-			case 's':
-				*flag |= REPORT_FLAG_SPILL;
+			case 'i':
+				cell_flags |= REPORT_CELL_FLAGS_INDENT;
 				break;
 
 			case 'k':
-				*flag |= REPORT_FLAG_KEEPTOGETHER;
+				line_flags |= REPORT_LINE_FLAGS_KEEP_TOGETHER;
+				break;
+
+			case 'o':
+				cell_flags |= REPORT_CELL_FLAGS_ITALIC;
+				break;
+
+			case 'r':
+				cell_flags |= REPORT_CELL_FLAGS_RIGHT;
+				break;
+
+			case 's':
+				cell_flags |= REPORT_CELL_FLAGS_SPILL;
+				break;
+
+			case 't':
+				*c++ = '\0';
+
+				if (report_add_cell(report, copy, cell_flags, tab_bar, tab_stop, &first_cell_offset))
+					cell_count++;
+
+				tab_stop++;
+
+				c = copy;
+				cell_flags = REPORT_CELL_FLAGS_NONE;
+				break;
+
+			case 'u':
+				cell_flags |= REPORT_CELL_FLAGS_UNDERLINE;
+				break;
+				
+			case 'v':
+				line_flags |= REPORT_LINE_FLAGS_RULE_BELOW;
+				cell_flags |= REPORT_CELL_FLAGS_RULE_AFTER;
 				break;
 			}
 		} else {
@@ -585,63 +870,65 @@ void report_write_line(struct report *report, int bar, char *text)
 
 	*c = '\0';
 
-	/* Now that we have a string containing /n for tabs and all the flag bytes in the correct places, allocate memory
-	 * from the flex block and proceed to dump it in there.
-	 */
+	if (report_add_cell(report, copy, cell_flags, tab_bar, tab_stop, &first_cell_offset))
+		cell_count++;
 
-	len = strlen(copy) + REPORT_BAR_BYTES + 1; /* Add in the terminator and the tab bar marker. */
+	/* Store the line in the report. */
 
-	if (len > (report->block_size - report->data_size)) {
-		#ifdef DEBUG
-		debug_printf("Extending data block...");
-		#endif
-
-		if (flex_extend((flex_ptr) &(report->data), report->block_size + REPORT_BLOCK_SIZE))
-			report->block_size += REPORT_BLOCK_SIZE;
-		else
-			report->flags |= REPORT_STATUS_MEMERR;
-	}
-
-	if (report->lines >= report->max_lines) {
-		#ifdef DEBUG
-		debug_printf("Extending line pointer block to %d...", ((report->max_lines + REPORT_LINE_SIZE) * sizeof(int)));
-		#endif
-
-		if (flex_extend((flex_ptr) &(report->line_ptr), (sizeof(int) * (report->max_lines + REPORT_LINE_SIZE))))
-			report->max_lines += REPORT_LINE_SIZE;
-		else
-			report->flags |= REPORT_STATUS_MEMERR;
-	}
-
-	if ((report->flags & REPORT_STATUS_MEMERR) == 0 && (report->flags & REPORT_STATUS_CLOSED) == 0 &&
-			len <= (report->block_size - report->data_size) && report->lines < report->max_lines) {
-		*(report->data + report->data_size) = (char) bar;
-		string_copy(report->data + report->data_size + REPORT_BAR_BYTES, copy, report->block_size - (report->data_size + REPORT_BAR_BYTES));
-		(report->line_ptr)[report->lines] = report->data_size;
-
-		report->lines++;
-		report->data_size += len;
-	}
+	if (!report_line_add(report->lines, first_cell_offset, cell_count, tab_bar, line_flags))
+		report->flags |= REPORT_STATUS_MEMERR;
 
 	free(copy);
 }
 
 
 /**
- * Recalculate the page dimensions for a report.
+ * Add a cell to a report.
  *
- * \param *report		The report to recalculate.
+ * \param *report		The report to add the cell to.
+ * \param *text			Pointer to the text to be stored in the cell.
+ * \param flags			The flags to be applied to the cell.
+ * \param tab_bar		The tab bar to which the cell belongs.
+ * \param tab_stop		The tab stop to which the cell belongs.
+ * \param *first_cell_offset	Pointer to a variable holding the first cell offet,
+ *				to be updated on return.
+ * \return			TRUE if a cell was added; otherwise FALSE.
  */
 
-static void report_calculate_dimensions(struct report *report)
+static osbool report_add_cell(struct report *report, char *text, enum report_cell_flags flags, int tab_bar, int tab_stop, unsigned *first_cell_offset)
 {
-	if (report == NULL)
-		return;
+	unsigned			content_offset, cell_offset;
+	enum report_tabs_stop_flags	tab_flags = REPORT_TABS_STOP_FLAGS_NONE;
 
-	report->width = report_reflow_content(report);
-	font_convertto_os(1000 * (report->font_size / 16) * report->font_spacing / 100, 0, &(report->linespace), NULL);
-	report->rulespace = (report->show_grid) ? REPORT_RULE_SPACE : 0;
-	report->height = report->lines * (report->linespace + report->rulespace) + REPORT_BOTTOM_MARGIN;
+	if (text != NULL && *text != '\0') {
+		content_offset = report_textdump_store(report->content, text);
+		if (content_offset == REPORT_TEXTDUMP_NULL) {
+			report->flags |= REPORT_STATUS_MEMERR;
+			return FALSE;
+		}
+	} else {
+		content_offset = REPORT_TEXTDUMP_NULL;
+	}
+
+	if (content_offset != REPORT_TEXTDUMP_NULL || flags != REPORT_CELL_FLAGS_NONE) {
+		cell_offset = report_cell_add(report->cells, content_offset, tab_stop, flags);
+		if (cell_offset == REPORT_CELL_NULL) {
+			report->flags |= REPORT_STATUS_MEMERR;
+			return FALSE;
+		}
+	} else {
+		cell_offset = REPORT_CELL_NULL;
+	}
+
+	if (*first_cell_offset == REPORT_CELL_NULL)
+		*first_cell_offset = cell_offset;
+
+	if (flags & REPORT_CELL_FLAGS_RULE_AFTER)
+		tab_flags |= REPORT_TABS_STOP_FLAGS_RULE_AFTER;
+
+	report_tabs_set_stop_flags(report->tabs, tab_bar, tab_stop, tab_flags);
+
+	return (cell_offset == REPORT_CELL_NULL) ? FALSE : TRUE;
 }
 
 
@@ -653,206 +940,108 @@ static void report_calculate_dimensions(struct report *report)
  *				to contain the report.
  */
 
-static int report_reflow_content(struct report *report)
+static void report_reflow_content(struct report *report)
 {
-	osbool		right[REPORT_TAB_BARS][REPORT_TAB_STOPS];
-	int		width[REPORT_TAB_STOPS], t_width[REPORT_TAB_STOPS],
-			width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
-			t_width1[REPORT_TAB_BARS][REPORT_TAB_STOPS], t_width2[REPORT_TAB_BARS][REPORT_TAB_STOPS],
-			i, j, line, bar, tab, total;
-	char		*column, *flags;
-	font_f		font, font_n, font_b;
+	int			font_width, font_height, text_width;
+	int			line_space, rule_space, ypos;
+	unsigned		line, cell;
+	char			*content_base, *content;
+	size_t			line_count;
+	struct report_line_data	*line_data;
+	struct report_cell_data	*cell_data;
 
-	#ifdef DEBUG
+	if (report == NULL)
+		return;
+
+#ifdef DEBUG
 	debug_printf("\\GFormatting report");
-	#endif
+#endif
 
 	/* Reset the flags used to keep track of items. */
 
-	for (i = 0; i < REPORT_TAB_BARS; i++) {
-		for (j = 0; j < REPORT_TAB_STOPS; j++) {
-			right[i][j]  = FALSE;		/* Flag to mark if anything in a column has been right-aligned. */
-
-							/* These are in OS units, for on screen rendering. */
-
-			width1[i][j] = 0;		/* Tally of the maximum widths of the columns. */
-			width2[i][j] = 0;		/* Tally of the maximum widths of the columns, ignoring end column objects in each row. */
-
-							/* These two are in characters, for ASCII formatting. */
-
-			t_width1[i][j] = 0;		/* Tally of the maximum widths of the columns. */
-			t_width2[i][j] = 0;		/* Tally of the maximum widths of the columns, ignoring end column objects in each row. */
-		}
-	}
+	report_tabs_reset_columns(report->tabs);
 
 	/* Find the font to be used by the report. */
 
-	report_find_fonts(report, &font_n, &font_b);
+	report_fonts_find(report->fonts);
 
-	/* Work through the report, line by line, getting the maximum column widths. */
+	line_space = report_fonts_get_linespace(report->fonts);
 
-	for (line = 0; line < report->lines; line++) {
-		tab = 0;
-		column = report->data + report->line_ptr[line];
-		bar = (int) *column;
-		column += REPORT_BAR_BYTES;
+	content_base = report_textdump_get_base(report->content);
 
-		/* Process the next line. do {} while is used, as we don't know if the last tab has been reached until we get
-		 * there.
-		 */
+	/* Work through the report, line by line, calculating the column positions. */
 
-		do {
-			flags = column;
-			column += REPORT_FLAG_BYTES;
+	line_count = (content_base != NULL) ? report_line_get_count(report->lines) : 0;
 
-			/* The flags that are looked at are bold, which affects the font, and indent, which affects the width.
-			 * Underline and right don't affect the column width, so these are ignored with the formatting.
-			 *
-			 * Right flags are noted to allow the column widths and tab stops to be sorted out later.
-			 */
+	ypos = 0;
 
-			/* Outline font width. */
+	for (line = 0; line < line_count; line++) {
+		line_data = report_line_get_info(report->lines, line, NULL);
+		if (line_data == NULL)
+			continue;
 
-			font = (*flags & REPORT_FLAG_BOLD) ? font_b : font_n;
+		rule_space = 0;
 
-			font_scan_string(font, column, font_KERN | font_GIVEN_FONT, 0x7fffffff, 0x7fffffff,
-					NULL, NULL, 0, NULL, &total, NULL, NULL);
-			font_convertto_os(total, 0, &(width[tab]), NULL);
+		if (report->display & REPORT_DISPLAY_SHOW_GRID) {
+			if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
+				rule_space += 2 * REPORT_GRID_LINE_MARGIN;
 
-			/* ASCII text column width. */
+			if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW)
+				rule_space += 2 * REPORT_GRID_LINE_MARGIN;
+		}
 
-			t_width[tab] = string_ctrl_strlen(column);
+		ypos += (line_space + rule_space);
+		line_data->ypos = -ypos;
 
-			/* If the column is indented, add the indent to the column widths. */
+		if (!report_tabs_start_line_format(report->tabs, line_data->tab_bar)) {
+			report->flags |= REPORT_STATUS_MEMERR;
+			continue;
+		}
 
-			if (*flags & REPORT_FLAG_INDENT) {
-				width[tab] += REPORT_COLUMN_INDENT;
-				t_width[tab] += REPORT_TEXT_COLUMN_INDENT;
+		for (cell = 0; cell < line_data->cell_count; cell++) {
+			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
+			if (cell_data == NULL || (cell_data->offset == REPORT_TEXTDUMP_NULL && cell_data->flags == REPORT_CELL_FLAGS_NONE))
+				continue;
+
+			if (cell_data->flags & REPORT_CELL_FLAGS_SPILL) {
+				font_width = REPORT_TABS_SPILL_WIDTH;
+				text_width = REPORT_TABS_SPILL_WIDTH;
+			} else if (cell_data->offset != REPORT_TEXTDUMP_NULL) {
+				content = content_base + cell_data->offset;
+
+				report_fonts_get_string_width(report->fonts, content, cell_data->flags, &font_width);
+				text_width = string_ctrl_strlen(content);
+
+				/* If the column is indented, add the indent to the column widths. */
+
+				if (cell_data->flags & REPORT_CELL_FLAGS_INDENT) {
+					font_width += REPORT_FONT_COLUMN_INDENT;
+					text_width += REPORT_TEXT_COLUMN_INDENT;
+				}
+			} else {
+				font_width = 0;
+				text_width = 0;
 			}
 
-			/* If the column is right aligned, record the fact. */
-
-			if (*flags & REPORT_FLAG_RIGHT)
-				right[bar][tab] = TRUE;
-
-			/* If the column is a spill column, the width is carried over from the width of the preceeding column, minus the
-			 * inter-column gap.  The previous column is then zeroed.
-			 */
-
-			if ((*flags & REPORT_FLAG_SPILL) && tab > 0) {
-				width[tab] = width[tab-1] - REPORT_COLUMN_SPACE;
-				width[tab-1] = 0;
-
-				t_width[tab] = t_width[tab-1] - REPORT_TEXT_COLUMN_SPACE;
-				t_width[tab-1] = 0;
-			}
-
-			/* Skip past the text to the next \n or \0, then increment the tab stop. */
-
-			while (*column != '\0' && *column != '\n')
-				column++;
-			column++;
-			tab++;
-		} while (tab < REPORT_TAB_STOPS && *(column - 1) != '\0');
-
-		/* Update the tally of maximum column widths. */
-
-		for (i=0; i<tab; i++) {
-			if (width[i] > width1[bar][i]) /* All column widths are noted here... */
-				width1[bar][i] = width[i];
-
-			if (width[i] > width2[bar][i] && i < (tab-1)) /* ...but here only for non-end column (which can spill over). */
-				width2[bar][i] = width[i];
-
-			if (t_width[i] > t_width1[bar][i]) /* All column widths are noted here... */
-				t_width1[bar][i] = t_width[i];
-
-			if (t_width[i] > t_width2[bar][i] && i < (tab-1)) /* ...but here only those for non-end column. */
-				t_width2[bar][i] = t_width[i];
+			report_tabs_set_cell_width(report->tabs, cell_data->tab_stop, font_width, text_width);
 		}
+
+		report_tabs_end_line_format(report->tabs);
 	}
 
-	font_lose_font(font_n);
-	font_lose_font(font_b);
+	/* Lose the fonts used in the report. */
 
-	/* Go through the columns, storing the widths into the report data block.  If right alignment has been used, we
-	 * must record the widest width; if not, we can get away with the widest non-end-column width.
-	 */
+	report_fonts_lose(report->fonts);
 
-	for (i = 0; i < REPORT_TAB_BARS; i++) {
-		for (j = 0; j < REPORT_TAB_STOPS; j++) {
-			report->font_width[i][j] = (right[i][j]) ? width1[i][j] : width2[i][j];
-			report->text_width[i][j] = (right[i][j]) ? t_width1[i][j] : t_width2[i][j];
-		}
-	}
+	/* Set the dimensions of the report. */
 
-	/* Now set the tab stops up.  The first is at zero, then add each column width on and include the
-	 * inter-column gap.
-	 */
+	report->width = report_tabs_calculate_columns(report->tabs, (report->display & REPORT_DISPLAY_SHOW_GRID) ? TRUE : FALSE);
+	report->height = ypos;
 
-	for (i = 0; i < REPORT_TAB_BARS; i++) {
-		report->font_tab[i][0] = 0;
+	report_fonts_get_max_height(report->fonts, &font_height);
 
-		#ifdef DEBUG
-		debug_printf("Set tab bar %d (tab 0 = 0)", i);
-		#endif
-
-		for (j = 1; j  < REPORT_TAB_STOPS; j++) {
-			report->font_tab[i][j] = report->font_tab[i][j-1] + report->font_width[i][j-1] + REPORT_COLUMN_SPACE;
-
-			#ifdef DEBUG
-			debug_printf ("tab %d = %d", j, report->font_tab[i][j]);
-			#endif
-		}
-	}
-
-	/* Finally, work out how wide the window needs to be.  This is done by taking each tab stop and adding on the
-	 * widest entry in that column.
-	 */
-
-	total = 0;
-
-	for (i = 0; i < REPORT_TAB_BARS; i++) {
-		for (j = 0; j < REPORT_TAB_STOPS; j++) {
-			if (width1[i][j] > 0 && report->font_tab[i][j] + width1[i][j] > total) {
-				total = report->font_tab[i][j] + width1[i][j];
-			}
-		}
-	}
-
-	total += (REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN);
-
-	return total;
-}
-
-
-/**
- * Look up the fonts needed for a report, returning font handles for the two.
- * If the specified fonts don't exist then fall back to Homerton.
- *
- * \param *report		The report to look fonts up for.
- * \param *normal		Return the font handle for the normal font.
- * \param *bold			Return the font handle for the bold font.
- * \return			TRUE if successful; else FALSE.
- */
-
-static osbool report_find_fonts(struct report *report, font_f *normal, font_f *bold)
-{
-	os_error	*error, *e1 = NULL, *e2 = NULL;
-
-	if (normal != NULL) {
-		error = xfont_find_font(report->font_normal, report->font_size, report->font_size, 0, 0, normal, NULL, NULL);
-		if (error != NULL)
-			e1 = xfont_find_font("Homerton.Medium", report->font_size, report->font_size, 0, 0, normal, NULL, NULL);
-	}
-
-	if (bold != NULL) {
-		error = xfont_find_font (report->font_bold, report->font_size, report->font_size, 0, 0, bold, NULL, NULL);
-		if (error != NULL)
-			e2 = xfont_find_font ("Homerton.Bold", report->font_size, report->font_size, 0, 0, bold, NULL, NULL);
-	}
-
-	return (e1 != NULL || e2 != NULL) ? TRUE : FALSE;
+	report->cell_height = line_space;
+	report->cell_baseline = (line_space - font_height) / 2;
 }
 
 
@@ -892,9 +1081,9 @@ static void report_view_close_window_handler(wimp_close *close)
 {
 	struct report	*report;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf ("\\RDeleting report window");
-	#endif
+#endif
 
 	report = event_get_window_user_data(close->w);
 	if (report == NULL)
@@ -917,6 +1106,101 @@ static void report_view_close_window_handler(wimp_close *close)
 
 
 /**
+ * Set the states of the icons in the Report View toolbar.
+ */
+
+static void report_view_toolbar_prepare(struct report *report)
+{
+	osbool paginated;
+
+	if (report == NULL || report->toolbar == NULL)
+		return;
+
+	paginated = report_page_paginated(report->pages);
+
+	icons_set_group_shaded(report->toolbar, !paginated, 6,
+			REPORT_PANE_SHOW_PAGES, REPORT_PANE_PORTRAIT,
+			REPORT_PANE_LANDSCAPE, REPORT_PANE_FIT_WIDTH,
+			REPORT_PANE_SHOW_TITLE, REPORT_PANE_SHOW_PAGE_NUMBERS);
+
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGES, paginated && (report->display & REPORT_DISPLAY_PAGINATED));
+	icons_set_selected(report->toolbar, REPORT_PANE_PORTRAIT, (paginated == FALSE) || !(report->display & REPORT_DISPLAY_LANDSCAPE));
+	icons_set_selected(report->toolbar, REPORT_PANE_LANDSCAPE, (paginated == TRUE) && (report->display & REPORT_DISPLAY_LANDSCAPE));
+	icons_set_selected(report->toolbar, REPORT_PANE_FIT_WIDTH, paginated && (report->display & REPORT_DISPLAY_FIT_WIDTH));
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_TITLE, paginated && (report->display & REPORT_DISPLAY_SHOW_TITLE));
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_GRID, (report->display & REPORT_DISPLAY_SHOW_GRID) ? TRUE : FALSE);
+	icons_set_selected(report->toolbar, REPORT_PANE_SHOW_PAGE_NUMBERS, paginated && (report->display & REPORT_DISPLAY_SHOW_NUMBERS));
+}
+
+
+/**
+ * Process mouse clicks in the Report View pane.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void report_view_toolbar_click_handler(wimp_pointer *pointer)
+{
+	struct report		*report;
+
+	report = event_get_window_user_data(pointer->w);
+	if (report == NULL)
+		return;
+
+	/* Decode the mouse click. */
+
+	switch (pointer->i) {
+	case REPORT_PANE_PARENT:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			transact_bring_window_to_top(report->file);
+		break;
+
+	case REPORT_PANE_SAVE:
+		break;
+
+	case REPORT_PANE_PRINT:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			report_open_print_window(report, pointer, config_opt_read("RememberValues"));
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			report_open_print_window(report, pointer, !config_opt_read("RememberValues"));
+		break;
+
+	case REPORT_PANE_SHOW_PAGES:
+		report_set_display_option(report, REPORT_DISPLAY_PAGINATED, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_PAGES));
+		break;
+
+	case REPORT_PANE_PORTRAIT:
+		report_set_display_option(report, REPORT_DISPLAY_LANDSCAPE, FALSE);
+		break;
+
+	case REPORT_PANE_LANDSCAPE:
+		report_set_display_option(report, REPORT_DISPLAY_LANDSCAPE, TRUE);
+		break;
+
+	case REPORT_PANE_FIT_WIDTH:
+		report_set_display_option(report, REPORT_DISPLAY_FIT_WIDTH, icons_get_selected(report->toolbar, REPORT_PANE_FIT_WIDTH));
+		break;
+
+	case REPORT_PANE_SHOW_TITLE:
+		report_set_display_option(report, REPORT_DISPLAY_SHOW_TITLE, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_TITLE));
+		break;
+
+	case REPORT_PANE_SHOW_GRID:
+		report_set_display_option(report, REPORT_DISPLAY_SHOW_GRID, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_GRID));
+		break;
+
+	case REPORT_PANE_SHOW_PAGE_NUMBERS:
+		report_set_display_option(report, REPORT_DISPLAY_SHOW_NUMBERS, icons_get_selected(report->toolbar, REPORT_PANE_SHOW_PAGE_NUMBERS));
+		break;
+
+	case REPORT_PANE_FORMAT:
+		report_open_format_window(report, pointer);
+		break;
+	}
+}
+
+
+/**
  * Process menu prepare events in the Report View window.
  *
  * \param w		The handle of the owning window.
@@ -927,6 +1211,7 @@ static void report_view_close_window_handler(wimp_close *close)
 static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
 	struct report	*report;
+	osbool		paginated;
 
 	report = event_get_window_user_data(w);
 
@@ -937,7 +1222,28 @@ static void report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	saveas_initialise_dialogue(report_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, report);
 	saveas_initialise_dialogue(report_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, report);
 
+	paginated = report_page_paginated(report->pages);
+
+	menus_shade_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, paginated == FALSE);
+	menus_shade_entry(report_view_menu, REPVIEW_MENU_LAYOUT, paginated == FALSE);
 	menus_shade_entry(report_view_menu, REPVIEW_MENU_TEMPLATE, report->template == NULL);
+
+	menus_shade_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_TITLE, paginated == FALSE);
+	menus_shade_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_PAGE_NUM, paginated == FALSE);
+
+	menus_shade_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_PORTRAIT, paginated == FALSE);
+	menus_shade_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_LANDSCAPE, paginated == FALSE);
+	menus_shade_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_FIT_WIDTH, paginated == FALSE);
+
+	menus_tick_entry(report_view_menu, REPVIEW_MENU_SHOWPAGES, (paginated == TRUE) && (report->display & REPORT_DISPLAY_PAGINATED));
+
+	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_TITLE, paginated && (report->display & REPORT_DISPLAY_SHOW_TITLE));
+	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_PAGE_NUM, paginated && (report->display & REPORT_DISPLAY_SHOW_NUMBERS));
+	menus_tick_entry(report_view_include_menu, REPVIEW_MENU_INCLUDE_GRID, (report->display & REPORT_DISPLAY_SHOW_GRID) ? TRUE : FALSE);
+
+	menus_tick_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_PORTRAIT, (paginated == FALSE) || !(report->display & REPORT_DISPLAY_LANDSCAPE));
+	menus_tick_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_LANDSCAPE, (paginated == TRUE) && (report->display & REPORT_DISPLAY_LANDSCAPE));
+	menus_tick_entry(report_view_layout_menu, REPVIEW_MENU_LAYOUT_FIT_WIDTH, paginated && (report->display & REPORT_DISPLAY_FIT_WIDTH));
 }
 
 
@@ -962,8 +1268,44 @@ static void report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 	wimp_get_pointer_info(&pointer);
 
 	switch (selection->items[0]){
+	case REPVIEW_MENU_SHOWPAGES:
+		report_set_display_option(report, REPORT_DISPLAY_PAGINATED, !(report->display & REPORT_DISPLAY_PAGINATED));
+		break;
+
 	case REPVIEW_MENU_FORMAT:
 		report_open_format_window(report, &pointer);
+		break;
+
+	case REPVIEW_MENU_INCLUDE:
+		switch(selection->items[1]) {
+		case REPVIEW_MENU_INCLUDE_TITLE:
+			report_set_display_option(report, REPORT_DISPLAY_SHOW_TITLE, !(report->display & REPORT_DISPLAY_SHOW_TITLE));
+			break;
+
+		case REPVIEW_MENU_INCLUDE_PAGE_NUM:
+			report_set_display_option(report, REPORT_DISPLAY_SHOW_NUMBERS, !(report->display & REPORT_DISPLAY_SHOW_NUMBERS));
+			break;
+
+		case REPVIEW_MENU_INCLUDE_GRID:
+			report_set_display_option(report, REPORT_DISPLAY_SHOW_GRID, !(report->display & REPORT_DISPLAY_SHOW_GRID));
+			break;
+		}
+		break;
+
+	case REPVIEW_MENU_LAYOUT:
+		switch(selection->items[1]) {
+		case REPVIEW_MENU_LAYOUT_PORTRAIT:
+			report_set_display_option(report, REPORT_DISPLAY_LANDSCAPE, FALSE);
+			break;
+
+		case REPVIEW_MENU_LAYOUT_LANDSCAPE:
+			report_set_display_option(report, REPORT_DISPLAY_LANDSCAPE, TRUE);
+			break;
+
+		case REPVIEW_MENU_LAYOUT_FIT_WIDTH:
+			report_set_display_option(report, REPORT_DISPLAY_FIT_WIDTH, !(report->display & REPORT_DISPLAY_FIT_WIDTH));
+			break;
+		}
 		break;
 
 	case REPVIEW_MENU_PRINT:
@@ -994,9 +1336,9 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 	if (report == NULL)
 		return;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\BReceived submenu warning message.");
-	#endif
+#endif
 
 	switch (warning->selection.items[0]) {
 	case REPVIEW_MENU_SAVETEXT:
@@ -1025,10 +1367,9 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 static void report_view_redraw_handler(wimp_draw *redraw)
 {
-	int		ox, oy, top, base, x, y, linespace;
-	font_f		font_n, font_b;
+	int		ox, oy;
 	struct report	*report;
-	osbool		more;
+	osbool		paginated, more;
 
 	report = event_get_window_user_data(redraw->w);
 
@@ -1037,47 +1378,138 @@ static void report_view_redraw_handler(wimp_draw *redraw)
 
 	/* Find the required font, set it and calculate the font size from the linespacing in points. */
 
-	report_find_fonts(report, &font_n, &font_b);
+	report_fonts_find(report->fonts);
+	paginated = report_page_paginated(report->pages);
 
 	more = wimp_redraw_window(redraw);
 
 	ox = redraw->box.x0 - redraw->xscroll;
-	oy = redraw->box.y1 - redraw->yscroll;
-
-	linespace = report->linespace + report->rulespace;
+	oy = redraw->box.y1 - redraw->yscroll - REPORT_TOOLBAR_HEIGHT;
 
 	while (more) {
-		top = (oy - redraw->clip.y1) / linespace;
-		if (top < 0)
-			top = 0;
-
-		base = (linespace + (linespace / 2) + oy - redraw->clip.y0 ) / linespace;
-
-		/* Draw Grid. */
-
-		if (report->show_grid) {
-			wimp_set_colour(wimp_COLOUR_BLACK);
-
-			for (y = top; y < report->lines && y <= base; y++) {
-				os_plot(os_MOVE_TO, ox + REPORT_LEFT_MARGIN, oy - linespace * (y + 1));
-				os_plot(os_PLOT_TO, ox - (2 * REPORT_LEFT_MARGIN) + report->width, oy - linespace * (y + 1));
-			}
-		}
-
-		/* Plot Text. */
-
-		wimp_set_font_colours(wimp_COLOUR_WHITE, wimp_COLOUR_BLACK);
-
-		for (y = top; y < report->lines && y <= base; y++)
-			report_plot_line(report, y, ox + REPORT_LEFT_MARGIN,
-					oy - linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace,
-					font_n, font_b);
+		if (paginated && (report->display & REPORT_DISPLAY_PAGINATED))
+			report_view_redraw_page_handler(report, redraw, ox, oy);
+		else
+			report_view_redraw_flat_handler(report, redraw, ox, oy);
 
 		more = wimp_get_rectangle(redraw);
 	}
 
-	font_lose_font(font_n);
-	font_lose_font(font_b);
+	report_fonts_lose(report->fonts);
+}
+
+
+/**
+ * Handle the redraw of a rectangle in the flat display mode.
+ *
+ * \param *report		The report to be redrawn.
+ * \param *redraw		The Wimp Redraw Event data block.
+ * \param ox			The X redraw origin.
+ * \param oy			The Y redraw origin.
+ */
+
+static void report_view_redraw_flat_handler(struct report *report, wimp_draw *redraw, int ox, int oy)
+{
+	unsigned			top, base;
+ 	size_t				line_count;
+	os_coord			origin;
+	struct report_tabs_line_info	target;
+
+	line_count = report_line_get_count(report->lines);
+
+	top = report_line_find_from_ypos(report->lines, redraw->clip.y1 - oy);
+	base = report_line_find_from_ypos(report->lines, redraw->clip.y0 - oy);
+
+	/* Plot the background. */
+
+	wimp_set_colour(wimp_COLOUR_WHITE);
+	os_plot(os_MOVE_TO, redraw->clip.x0, redraw->clip.y1);
+	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, redraw->clip.x1, redraw->clip.y0);
+
+	/* Plot Text. */
+
+	origin.x = ox + REPORT_LEFT_MARGIN;
+	origin.y = oy - REPORT_TOP_MARGIN;
+
+	target.page = -1;
+	target.tab_bar = -1;
+	target.first_stop = -1;
+	target.last_stop = -1;
+
+	for (target.line = top; target.line < line_count && target.line <= base; target.line++) {
+		if (report_plot_line(report, &target, &origin, &(redraw->clip)) != NULL)
+			break;
+	}
+}
+
+
+/**
+ * Handle the redraw of a rectangle in the page display mode.
+ *
+ * \param *report		The report to be redrawn.
+ * \param *redraw		The Wimp Redraw Event data block.
+ * \param ox			The X redraw origin.
+ * \param oy			The Y redraw origin.
+ */
+
+static void report_view_redraw_page_handler(struct report *report, wimp_draw *redraw, int ox, int oy)
+{
+	int				x0, y0, x1, y1, x, y;
+	unsigned			page;
+	struct report_page_data		*data;
+	os_box				outline;
+	os_coord			origin;
+
+	if (report == NULL || redraw == NULL)
+		return;
+
+	/* Identify the range of pages covered. */
+
+	x0 = report_page_find_from_xpos(report->pages, redraw->clip.x0 - ox, FALSE);
+	y0 = report_page_find_from_ypos(report->pages, redraw->clip.y1 - oy, FALSE);
+	x1 = report_page_find_from_xpos(report->pages, redraw->clip.x1 - ox, TRUE);
+	y1 = report_page_find_from_ypos(report->pages, redraw->clip.y0 - oy, TRUE);
+
+	/* Plot the background. */
+
+	wimp_set_colour(wimp_COLOUR_LIGHT_GREY);
+	os_plot(os_MOVE_TO, redraw->clip.x0, redraw->clip.y1);
+	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, redraw->clip.x1, redraw->clip.y0);
+
+	/* Plot each of the pages which fall into the rectangle. */
+
+	for (x = x0; x <= x1; x++) {
+		for (y = y0; y <= y1; y++) {
+			page = report_page_get_outline(report->pages, x, y, &outline);
+			if (page == REPORT_PAGE_NONE)
+				continue;
+
+			/* Calculate the page origin point. */
+
+			origin.x = ox + outline.x0;
+			origin.y = oy + outline.y1;
+
+			/* Plot the on-screen page background. */
+
+			outline.x0 = (ox + outline.x0 > redraw->clip.x0) ? ox + outline.x0 : redraw->clip.x0;
+			outline.y0 = (oy + outline.y0 > redraw->clip.y0) ? oy + outline.y0 : redraw->clip.y0;
+
+			outline.x1 = (ox + outline.x1 < redraw->clip.x1) ? ox + outline.x1 : redraw->clip.x1;
+			outline.y1 = (oy + outline.y1 < redraw->clip.y1) ? oy + outline.y1 : redraw->clip.y1;
+
+			wimp_set_colour(wimp_COLOUR_WHITE);
+			os_plot(os_MOVE_TO, outline.x0, outline.y1);
+			os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, outline.x1, outline.y0);
+
+			/* Plot the page itself. */
+
+			data = report_page_get_info(report->pages, page);
+			if (data == NULL)
+				continue;
+
+			report_plot_page(report, data, &origin, &(redraw->clip));
+		}
+	}
 }
 
 
@@ -1114,11 +1546,17 @@ void report_redraw_all(struct file_block *file)
 
 static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 {
+	char	normal[font_NAME_LIMIT], bold[font_NAME_LIMIT], italic[font_NAME_LIMIT], bold_italic[font_NAME_LIMIT];
+	int	size, spacing;
+
 	if (report == NULL || ptr == NULL)
 		return;
 
-	report_format_dialogue_open(ptr, report, report_process_format_window,
-			report->font_normal, report->font_bold, report->font_size, report->font_spacing, report->show_grid);
+	report_fonts_get_faces(report->fonts, normal, bold, italic, bold_italic, font_NAME_LIMIT);
+	report_fonts_get_size(report->fonts, &size, &spacing);
+
+	report_font_dialogue_open(ptr, report, report_process_format_window,
+			normal, bold, italic, bold_italic, size, spacing);
 }
 
 
@@ -1126,86 +1564,33 @@ static void report_open_format_window(struct report *report, wimp_pointer *ptr)
  * Take the contents of an updated report format window and process the data.
  */
 
-static void report_process_format_window(struct report *report, char *normal, char *bold, int size, int spacing, osbool grid)
+static void report_process_format_window(struct report *report, char *normal, char *bold, char* italic, char *bold_italic, int size, int spacing)
 {
-	int			new_xextent, new_yextent, visible_xextent, visible_yextent, new_xscroll, new_yscroll;
-	os_box			extent;
-	wimp_window_state	state;
-
 	if (report == NULL)
 		return;
 
 	/* Extract the information. */
 
-	string_copy(report->font_normal, normal, REPORT_MAX_FONT_NAME);
-	string_copy(report->font_bold, bold, REPORT_MAX_FONT_NAME);
-	report->font_size = size;
-	report->font_spacing = spacing;
-	report->show_grid = grid;
+	report_fonts_set_faces(report->fonts, normal, bold, italic, bold_italic);
+	report_fonts_set_size(report->fonts, size, spacing);
 
 	/* Tidy up and redraw the windows */
 
-	report_calculate_dimensions(report);
+	report_reflow_content(report);
 
-	/* Calculate the next window extents. */
+	/* Calculate the new window extents. */
 
-	new_xextent = (report->width > REPORT_MIN_WIDTH) ? report->width : REPORT_MIN_WIDTH;
-	new_yextent = (report->height > REPORT_MIN_HEIGHT) ? -report->height : -REPORT_MIN_HEIGHT;
+	report_set_window_extent(report);
 
-	/* Get the current window details, and find the extent of the bottom and right of the visible area. */
+	/* Redraw the window. */
 
-	state.w = report->window;
-	wimp_get_window_state(&state);
-
-	visible_xextent = state.xscroll + (state.visible.x1 - state.visible.x0);
-	visible_yextent = state.yscroll + (state.visible.y0 - state.visible.y1);
-
-	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
-
-	if (new_xextent < visible_xextent || new_yextent > visible_yextent) {
-		/* Calculate the required new scroll offsets.
-		 *
-		 * Start with the x scroll.  If this is less than zero, the window is too wide and will need shrinking down.
-		 * Otherwise, just set the new scroll offset.
-		 */
-
-		new_xscroll = new_xextent - (state.visible.x1 - state.visible.x0);
-
-		if (new_xscroll < 0) {
-			state.visible.x1 += new_xscroll;
-			state.xscroll = 0;
-		} else {
-			state.xscroll = new_xscroll;
-		}
-
-		/* Now do the y scroll.  If this is greater than zero, the current window is too deep and will need
-		 * shrinking down.  Otherwise, just set the new scroll offset.
-		 */
-
-		new_yscroll = new_yextent - (state.visible.y0 - state.visible.y1);
-
-		if (new_yscroll > 0) {
-			state.visible.y0 += new_yscroll;
-			state.yscroll = 0;
-		} else {
-			state.yscroll = new_yscroll;
-		}
-
-		wimp_open_window((wimp_open *) &state);
-	}
-
-	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
-	 * exist.
-	 */
-
-	extent.x0 = 0;
-	extent.x1 = new_xextent;
-	extent.y1 = 0;
-	extent.y0 = new_yextent;
-	wimp_set_extent(report->window, &extent);
-
-	windows_redraw(report->window);
+	if (report->window != NULL)
+		windows_redraw(report->window);
 }
+
+
+
+
 
 
 /**
@@ -1237,9 +1622,9 @@ static void report_open_print_window(struct report *report, wimp_pointer *ptr, o
 
 static struct report *report_print_window_closed(struct report *report, void *data)
 {
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("Report print received data from simple print window");
-	#endif
+#endif
 
 	if (report != NULL || data == NULL)
 		return NULL;
@@ -1334,10 +1719,13 @@ static osbool report_save_tsv(char *filename, osbool selection, void *data)
 
 static void report_export_text(struct report *report, char *filename, osbool formatting)
 {
-	FILE	*out;
-	int	i, j, bar, tab, indent, width, overrun, escape;
-	char	*column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
-
+	FILE			*out;
+	int			line, cell, j, indent, width, column, escape;
+	char			*content_base, *content;
+	size_t			line_count;
+	struct report_line_data	*line_data;
+	struct report_cell_data	*cell_data;
+	struct report_tabs_stop	*tab_stop;
 
 	out = fopen(filename, "w");
 
@@ -1348,32 +1736,50 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 	hourglass_on();
 
-	for (i = 0; i < report->lines; i++) {
-		tab = 0;
-		overrun = 0;
-		column = report->data + report->line_ptr[i];
-		bar = (int) *column;
-		column += REPORT_BAR_BYTES;
+	content_base = report_textdump_get_base(report->content);
+	line_count = (content_base != NULL) ? report_line_get_count(report->lines) : 0;
 
-		do {
-			flags = column;
-			column += REPORT_FLAG_BYTES;
-			string_ctrl_copy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
+	for (line = 0; line < line_count; line++) {
+		line_data = report_line_get_info(report->lines, line, NULL);
+		if (line_data == NULL)
+			continue;
 
-			escape = (*flags & REPORT_FLAG_BOLD) ? 0x01 : 0x00;
-			if (*flags & REPORT_FLAG_UNDER)
+		column = 0;
+
+		for (cell = 0; cell < line_data->cell_count; cell++) {
+			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
+			if (cell_data == NULL || cell_data->offset == REPORT_TEXTDUMP_NULL)
+				continue;
+
+			tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, cell_data->tab_stop);
+			if (tab_stop == NULL)
+				continue;
+
+			/* Pad out with spaces to the desired column position. */
+
+			while (column < tab_stop->text_left) {
+				fputc(' ', out);
+				column++;
+			}
+
+			content = content_base + cell_data->offset;
+
+			escape = (cell_data->flags & REPORT_CELL_FLAGS_BOLD) ? 0x01 : 0x00;
+			if (cell_data->flags & REPORT_CELL_FLAGS_UNDERLINE)
 				escape |= 0x08;
 
-			indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_TEXT_COLUMN_INDENT : 0;
-			width = strlen(buffer);
+			indent = (cell_data->flags & REPORT_CELL_FLAGS_INDENT) ? REPORT_TEXT_COLUMN_INDENT : 0;
+			width = strlen(content);
 
-			if (*flags & REPORT_FLAG_RIGHT)
-				indent = report->text_width[bar][tab] - width;
+			if (cell_data->flags & REPORT_CELL_FLAGS_RIGHT)
+				indent = tab_stop->text_width - width;
 
 			/* Output the indent spaces. */
 
 			for (j = 0; j < indent; j++)
 				fputc(' ', out);
+
+			column += (indent + width);
 
 			/* Output fancy text formatting codes (used when printing formatted text) */
 
@@ -1384,7 +1790,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 			/* Output the actual field data. */
 
-			fprintf(out, "%s", buffer);
+			fprintf(out, "%s", content);
 
 			/* Output fancy text formatting codes (used when printing formatted text) */
 
@@ -1392,42 +1798,7 @@ static void report_export_text(struct report *report, char *filename, osbool for
 				fputc((char) 27, out);
 				fputc((char) 0x80, out);
 			}
-
-			/* Find the next field. */
-
-			while (*column != '\0' && *column != '\n')
-				column++;
-
-			/* If there is another field, pad out with spaces. */
-
-			if (*column != '\0') {
-				/* Check the actual width against that allocated.  If it is more,
-				 * note the amount that spills into the next column, taking into
-				 * account the width of the inter column gap.
-				 */
-
-				if ((width+indent) > report->text_width[bar][tab])
-					overrun += (width+indent) - report->text_width[bar][tab] - REPORT_TEXT_COLUMN_SPACE;
-
-				/* Pad out the required number of spaces, taking into account any
-				 * overspill from earlier columns.
-				 */
-
-				for (j = 0; j < (report->text_width[bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE - overrun); j++)
-					fputc(' ', out);
-
-				/* Reduce the overspill record by the amount of free space in this column. */
-
-				if ((width+indent) < report->text_width[bar][tab]) {
-					overrun -= report->text_width[bar][tab] - (width+indent) + REPORT_TEXT_COLUMN_SPACE;
-					if (overrun < 0)
-						overrun = 0;
-				}
-			}
-
-			column++;
-			tab++;
-		} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+		}
 
 		fputc('\n', out);
 	}
@@ -1452,9 +1823,13 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 static void report_export_delimited(struct report *report, char *filename, enum filing_delimit_type format, int filetype)
 {
-	FILE	*out;
-	int	i, tab, delimit;
-	char	*column, *flags, buffer[REPORT_EXPORT_LINE_LENGTH];
+	FILE				*out;
+	int				line, cell;
+	char				*content_base, *content;
+	size_t				line_count;
+	enum filing_delimit_flags	delimit_flags;
+	struct report_line_data		*line_data;
+	struct report_cell_data		*cell_data;
 
 	out = fopen(filename, "w");
 
@@ -1463,36 +1838,32 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 		return;
 	}
 
-  
 	hourglass_on();
 
-	for (i = 0; i < report->lines; i++) {
-		tab = 0;
-		column = report->data + report->line_ptr[i] + REPORT_BAR_BYTES;
+	content_base = report_textdump_get_base(report->content);
+	line_count = (content_base != NULL) ? report_line_get_count(report->lines) : 0;
 
-      do
-      {
-		flags = column;
-		column += REPORT_FLAG_BYTES;
-		string_ctrl_copy(buffer, column, REPORT_EXPORT_LINE_LENGTH);
+	for (line = 0; line < line_count; line++) {
+		line_data = report_line_get_info(report->lines, line, NULL);
+		if (line_data == NULL)
+			continue;
 
-		/* Find the next field. */
+		for (cell = 0; cell < line_data->cell_count; cell++) {
+			cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
+			if (cell_data == NULL)
+				continue;
 
-		while (*column != '\0' && *column != '\n')
-			column++;
+			content = content_base + cell_data->offset;
 
-		/* Output the actual field data. */
+			/* Output the actual field data. */
 
-		delimit = (*column == '\0') ? DELIMIT_LAST : 0;
+			delimit_flags = ((cell + 1) >= line_data->cell_count) ? DELIMIT_LAST : 0;
 
-		if (*flags & REPORT_FLAG_NUMERIC)
-			delimit |= DELIMIT_NUM;
+			if (cell_data->flags & REPORT_CELL_FLAGS_NUMERIC)
+				delimit_flags |= DELIMIT_NUM;
 
-		filing_output_delimited_field(out, buffer, format, delimit);
-
-		column++;
-		tab++;
-		} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+			filing_output_delimited_field(out, content, format, delimit_flags);
+		}
 	}
 
 	/* Close the file and set the type correctly. */
@@ -1587,47 +1958,40 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 {
 	os_error			*error;
 	os_fw				out = 0;
-	os_box				p_rect, f_rect, rect, body = {0, 0, 0, 0}, footer = {0, 0, 0, 0};
-	os_hom_trfm			p_trfm;
-	os_coord			p_pos, f_pos;
+	os_coord			position, origin;
+	os_box				redraw, rectangle;
 	char				title[REPORT_PRINT_TITLE_LENGTH];
-	char				b0[REPORT_PRINT_BUFFER_LENGTH], b1[REPORT_PRINT_BUFFER_LENGTH], b2[REPORT_PRINT_BUFFER_LENGTH], b3[REPORT_PRINT_BUFFER_LENGTH];
 	pdriver_features		features;
-	font_f				font_n = 0, font_b = 0;
 	osbool				more;
-	int				width, offset;
-	int				pages_x, pages_y, lines_per_page, trim, page_x, page_y, lines, header;
-	int				top, base, y, linespace, bar;
-	unsigned int			footer_width, footer_height, header_height, page_width, page_height, scale, page_xstart, line;
-	double				scaling;
-	struct report_print_pagination	*pages;
-	enum report_page_area		areas, area;
+	size_t				page_count;
+	unsigned			page, region;
+	os_hom_trfm			*scaling_matrix;
+	struct report_page_data		*page_data;
+	struct report_region_data	*region_data;
+
+	/* If the report hasn't been paginated, we can't continue. */
+
+	if (!report_page_paginated(report->pages))
+		return;
+
 
 	hourglass_on();
 
 	/* Get the printer driver settings. */
 
-	error = xpdriver_info (NULL, NULL, NULL, &features, NULL, NULL, NULL, NULL);
+	error = xpdriver_info(NULL, NULL, NULL, &features, NULL, NULL, NULL, NULL);
 	if (error != NULL)
 		return;
 
-	/* Find the fonts we will use and size the header and footer accordingly. */
+	/* Find the fonts we will use. */
 
-	report_find_fonts(report, &font_n, &font_b);
-	linespace = report->linespace + report->rulespace;
-
-	/* Establish the page dimensions. */
-
-	header_height = 0;
-	footer_height = (pagenum) ? (1000 * report->font_size) * report->font_spacing / 1600 : 0;
-
-	areas = report_get_page_areas(rotate, &body, NULL, &footer, header_height, footer_height);
+	report_fonts_find(report->fonts);
 
 	/* Open a printout file. */
 
 	error = xosfind_openoutw(osfind_NO_PATH, "printer:", NULL, &out);
 	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
+		report_handle_print_error(error, out, report->fonts);
 		return;
 	}
 
@@ -1636,334 +2000,89 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	msgs_param_lookup("PJobTitle", title, REPORT_PRINT_TITLE_LENGTH, report->window_title, NULL, NULL, NULL);
 	error = xpdriver_select_jobw(out, title, NULL);
 	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
+		report_handle_print_error(error, out, report->fonts);
 		return;
 	}
 
 	/* Declare the fonts we are using, if required. */
 
 	if (features & pdriver_FEATURE_DECLARE_FONT) {
-		xpdriver_declare_font(font_n, 0, pdriver_KERNED);
-		xpdriver_declare_font(font_b, 0, pdriver_KERNED);
-		xpdriver_declare_font(0, 0, 0);
-	}
-
-	/* Calculate the page size, positions, transformations etc. */
-
-	/* The printable page width and height, in milli-points and then into OS units. */
-
-	page_width = abs(body.x1 - body.x0);
-	page_height = abs(body.y1 - body.y0);
-
-	error = xfont_convertto_os(page_width, page_height, (int *) &page_width, (int *) &page_height);
-	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
-		return;
-	}
-
-	/* Scale is the scaling factor to get the width of the report to fit onto one page, if required. The scale is
-	 * never more than 1:1 (we never enlarge the print).
-	 */
-
-	if (fit_width) {
-		scale = (1 << 16) * page_width / report->width;
-		scale = (scale > (1 << 16)) ? (1 << 16) : scale;
-	} else {
-		scale = 1 << 16;
-	}
-
-	/* The page width and page height now need to be worked out in terms of what we actually want to print.
-	 * If scaling is on, the width is the report width and the height is the true page height scaled up in
-	 * proportion; otherwise, these stay as the true printable area in OS units.
-	 */
-
-	scaling = 1;
-
-	if (fit_width) {
-		if (page_width < report->width) {
-			page_height = page_height * report->width / page_width;
-			scaling = (double) page_width / (double) report->width;
+		error = report_fonts_declare(report->fonts);
+		if (error != NULL) {
+			report_handle_print_error(error, out, report->fonts);
+			return;
 		}
-
-		page_width = report->width;
 	}
 
-	/* \TODO -- Apply the header and footer here. */
+	/* Begin the process of outputting the pages. */
 
-	/* Clip the page length to be an exect number of lines */
+	page_count = report_page_get_count(report->pages);
 
-	trim = (page_height % linespace);
-	page_height -= trim;
-	lines_per_page = page_height / linespace;
+	for (page = 0; page < page_count; page++) {
+		page_data = report_page_get_info(report->pages, page);
+		if (page_data == NULL)
+			continue;
 
-	/* Work out the number of pages.
-	 *
-	 * Start by deciding the basic number of pages based on usable page width and
-	 * height compared to report width and height.
-	 */
+		scaling_matrix = report_page_get_transform(report->pages);
+		if (scaling_matrix == NULL)
+			continue;
 
-	pages_x = (int) ceil((double) report->width / (double) page_width);
-	pages_y = (int) ceil((double) report->height / (double) page_height);
+		for (region = page_data->first_region; region < page_data->first_region + page_data->region_count; region++) {
+			region_data = report_region_get_info(report->regions, region);
+			if (region_data == NULL)
+				continue;
 
-	/* Adjust the pages vertically to allow for the possibility that
-	 * each page might have a header carried over from the previous page.
-	 * This is just for allocating the pagination memory.
-	 */
+			/* Add a small margin around the region, to allow for scaling errors. */
 
-	while ((pages_y * lines_per_page) < (report->lines + pages_y))
-		pages_y++;
+			rectangle.x0 = region_data->position.x0 - REPORT_PRINT_RECTANGLE_MARGIN;
+			rectangle.y0 = region_data->position.y0 - REPORT_PRINT_RECTANGLE_MARGIN;
+			rectangle.x1 = region_data->position.x1 + REPORT_PRINT_RECTANGLE_MARGIN;
+			rectangle.y1 = region_data->position.y1 + REPORT_PRINT_RECTANGLE_MARGIN;
 
-	#ifdef DEBUG
-	debug_printf("Pages required: x=%d, y=%d, lines per page=%d", pages_x, pages_y, lines_per_page);
-	#endif
-
-	pages = malloc(sizeof(struct report_print_pagination) * pages_y);
-
-	page_y = 0;
-	lines = 0;
-	header = -1;
-	bar = -1;
-
-	/* Paginate the file.  Run through the file line by line, tracking whether
-	 * we are in a keep-together block.  If we are when the page changes,
-	 * remember the first line of the block to be the repeated header for
-	 * the top of the next page.
-	 *
-	 * By the end of this, we know exactly how many pages will be required.
-	 *
-	 * \TODO -- There's no protection for running off the end of the
-	 *          pagination array...
-	 */
-
-	for (y = 0; y < report->lines; y++) {
-		if (lines <= 0) {
-			#ifdef DEBUG
-			debug_printf("Page %d starts at line %d, repeating heading from line %d", page_y, y, header);
-			#endif
-
-			pages[page_y].header_line = header;
-			pages[page_y].first_line = y;
-			page_y++;
-			lines = lines_per_page;
-			if (header != -1)
-				lines--;
-			pages[page_y - 1].line_count = (header == -1) ? 0 : 1;
-		}
-
-		if ((*(report->data + report->line_ptr[y] + REPORT_BAR_BYTES) & REPORT_FLAG_KEEPTOGETHER) &&
-				((*(report->data + report->line_ptr[y]) == bar) || (header == -1))) {
-			if (header == -1)
-				header = y;
-		} else {
-			header = -1;
-		}
-
-		#ifdef DEBUG
-		debug_printf("Line %d has header %d", y, header);
-		#endif
-
-		bar = *(report->data + report->line_ptr[y]);
-
-		pages[page_y - 1].line_count++;
-		lines --;
-	}
-
-	pages_y = page_y;
-
-	if (pages_x == 1) {
-		string_printf(b1, REPORT_PRINT_BUFFER_LENGTH, "%d", pages_y);
-	} else {
-		string_printf(b2, REPORT_PRINT_BUFFER_LENGTH, "%d", pages_x);
-		string_printf(b3, REPORT_PRINT_BUFFER_LENGTH, "%d", pages_y);
-	}
-
-	/* Set up the transformation matrix scale the page and rotate it as required. */
-
-	footer_width = footer.x1 - footer.x0;
-
-	error = xfont_convertto_os(footer_width, footer_height, (int *) &footer_width, (int *) &footer_height);
-	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
-		return;
-	}
-
-	/* If the page is wider than the footer, then make the footer wider
-	 * as it will get scaled back in the transformation.
-	 */
-
-	if (fit_width && page_width > footer_width)
-		footer_width = page_width;
-
-	f_rect.x0 = 0;
-	f_rect.x1 = footer_width;
-	f_rect.y1 = footer_height;
-	f_rect.y0 = 0;
-
-	if (rotate) {
-		p_trfm.entries[0][0] = 0;
-		p_trfm.entries[0][1] = scale;
-		p_trfm.entries[1][0] = -scale;
-		p_trfm.entries[1][1] = 0;
-
-		f_pos.x = footer.y0;
-		f_pos.y = footer.x0;
-	} else {
-		p_trfm.entries[0][0] = scale;
-		p_trfm.entries[0][1] = 0;
-		p_trfm.entries[1][0] = 0;
-		p_trfm.entries[1][1] = scale;
-
-		f_pos.x = footer.x0;
-		f_pos.y = footer.y0;
-	}
-
-	/* Loop through the pages down the report and across. */
-
-	for (page_y = 0; page_y < pages_y; page_y++) {
-		page_x = 0;
-
-		for (page_xstart = 0; page_xstart < report->width; page_xstart += page_width) {
-			/* Calculate the area of the page to print and set up the print rectangle.  If the page is on the edge,
-			 * crop the area down to save memory.
+			/* Calculate the position of the region's rectangle on screen, and pass
+			 * the details to the printer driver.
 			 */
 
-			p_rect.x0 = page_xstart;
-			p_rect.x1 = (page_xstart + page_width <= report->width) ? page_xstart + page_width : report->width;
-			p_rect.y1 = (pages[page_y].header_line == -1) ? 0 : linespace;
-			p_rect.y0 = p_rect.y1 - (pages[page_y].line_count * linespace);
+			if (!report_page_calculate_position(report->pages, &rectangle,
+					(report->display & REPORT_DISPLAY_LANDSCAPE) ? TRUE : FALSE, &position))
+				continue;
 
-			/* The bottom y edge is done specially, because we also need to set the print position.  If the page is at the
-			 * edge, it is cropped down to save on memory.
-			 *
-			 * The page origin will depend on rotation and the amount of text on the page.  For a full page, the
-			 * origin is placed at one corner (either bottom left for a portrait, or bottom right for a landscape).
-			 * For part pages, the origin is shifted left or up by the proportion of the page dimension (in milli-points)
-			 * taken from the proportion of OS units used for layout.
-			 */
-
-			if (rotate) {
-				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1) + trim) * scaling, 0, (int *) &offset, NULL);
-				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
-					return;
-				}
-
-				p_pos.x = body.y0 - offset;
-				p_pos.y = body.x0;
-			} else {
-				error = xfont_converttopoints((page_height + (p_rect.y0 - p_rect.y1) + trim) * scaling, 0, (int *) &offset, NULL);
-				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
-					return;
-				}
-
-				p_pos.x = body.x0;
-				p_pos.y = body.y0 + offset;
-			}
-
-			/* Pass the page details to the printer driver and start to draw the page. */
-
-			error = xpdriver_give_rectangle(REPORT_PAGE_BODY, &p_rect, &p_trfm, &p_pos, os_COLOUR_WHITE);
+			error = xpdriver_give_rectangle(region, &rectangle, scaling_matrix, &position, os_COLOUR_TRANSPARENT);
 			if (error != NULL) {
-				report_handle_print_error(error, out, font_n, font_b);
+				report_handle_print_error(error, out, report->fonts);
+				return;
+			}
+		}
+
+		error = xpdriver_draw_page(1, &redraw, 0, 0, &more, (int *) &region);
+		if (error != NULL) {
+			report_handle_print_error(error, out, report->fonts);
+			return;
+		}
+
+		/* Perform the redraw. */
+
+		origin.x = 0;
+		origin.y = 0;
+
+		while (more) {
+			region_data = report_region_get_info(report->regions, region);
+			if (region_data == NULL)
+				continue;
+
+			/* Plot the region. */
+
+			error = report_plot_region(report, region_data, &origin, &redraw);
+			if (error != NULL) {
+				report_handle_print_error(error, out, report->fonts);
 				return;
 			}
 
-			if (areas & REPORT_PAGE_FOOTER) {
-				error = xpdriver_give_rectangle(REPORT_PAGE_FOOTER, &f_rect, &p_trfm, &f_pos, os_COLOUR_WHITE);
-				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
-					return;
-				}
+			error = xpdriver_get_rectangle(&redraw, &more, (int *) &region);
+			if (error != NULL) {
+				report_handle_print_error(error, out, report->fonts);
+				return;
 			}
-
-			error = xpdriver_draw_page(1, &rect, 0, 0, &more, (int *) &area);
-
-			/* Perform the redraw. */
-
-			while (more) {
-				switch (area) {
-				case REPORT_PAGE_BODY:
-					/* Calculate the rows to redraw. */
-
-					top = -rect.y1 / linespace;
-					if (top < -1)
-						top = -1;
-					base = (linespace + (linespace / 2) - rect.y0 ) / linespace;
-
-					error = xcolourtrans_set_font_colours(font_n, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
-					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
-						return;
-					}
-
-					error = xcolourtrans_set_font_colours(font_b, os_COLOUR_WHITE, os_COLOUR_BLACK, 0, NULL, NULL, NULL);
-					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
-						return;
-					}
-
-					/* Redraw the data to the printer. */
-
-					for (y = top; (pages[page_y].first_line + y) < report->lines && y <= base; y++) {
-						if (y < 0)
-							line = pages[page_y].header_line;
-						else
-							line = pages[page_y].first_line + y;
-						error = report_plot_line(report, line, REPORT_LEFT_MARGIN,
-								-linespace * (y + 1) + REPORT_BASELINE_OFFSET + report->rulespace,
-								font_n, font_b);
-						if (error != NULL) {
-							report_handle_print_error(error, out, font_n, font_b);
-							return;
-						}
-					}
-					break;
-
-				case REPORT_PAGE_FOOTER:
-					string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y);
-					if (pages_x == 1) {
-						string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y + 1);
-						msgs_param_lookup("Page1", title, REPORT_PRINT_TITLE_LENGTH, b0, b1, NULL, NULL);
-					} else {
-						string_printf(b0, REPORT_PRINT_BUFFER_LENGTH, "%d", page_x + 1);
-						string_printf(b1, REPORT_PRINT_BUFFER_LENGTH, "%d", page_y + 1);
-						msgs_param_lookup("Page2", title, REPORT_PRINT_TITLE_LENGTH, b0, b1, b2, b3);
-					}
-
-					error = xfont_scan_string(font_n, title, font_KERN | font_GIVEN_FONT,
-							0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL, &width, NULL, NULL);
-					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
-						return;
-					}
-
-					error = xfont_convertto_os(width, 0, &width, NULL);
-					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
-						return;
-					}
-
-					error = xfont_paint(font_n, title, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
-							(footer_width - width) / 2, 4, NULL, NULL, 0);
-					if (error != NULL) {
-						report_handle_print_error(error, out, font_n, font_b);
-						return;
-					}
-					break;
-
-				default:
-					break;
-				}
-
-				error = xpdriver_get_rectangle(&rect, &more, (int *) &area);
-				if (error != NULL) {
-					report_handle_print_error(error, out, font_n, font_b);
-					return;
-				}
-			}
-
-			page_x++;
 		}
 	}
 
@@ -1972,7 +2091,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 	error = xpdriver_end_jobw(out);
 
 	if (error != NULL) {
-		report_handle_print_error(error, out, font_n, font_b);
+		report_handle_print_error(error, out, report->fonts);
 		return;
 	}
 
@@ -1980,10 +2099,7 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
 
 	xosfind_closew(out);
 
-	font_lose_font(font_n);
-	font_lose_font(font_b);
-
-	free(pages);
+	report_fonts_lose(report->fonts);
 
 	hourglass_off();
 }
@@ -1994,25 +2110,285 @@ static void report_print_as_graphic(struct report *report, osbool fit_width, osb
  *
  * \param *error	The OS error block rescribing the error.
  * \param file		The print output file handle.
- * \param f1		The first font handle.
- * \param f2		The second font handle.
+ * \param *fonts	The Report Fonts instance in use.
  */
 
-static void report_handle_print_error(os_error *error, os_fw file, font_f f1, font_f f2)
+static void report_handle_print_error(os_error *error, os_fw file, struct report_fonts_block *fonts)
 {
 	if (file != 0) {
 		xpdriver_abort_jobw(file);
 		xosfind_closew(file);
 	}
 
-	if (f1 != 0)
-		font_lose_font(f1);
-
-	if (f2 != 0)
-		font_lose_font(f2);
+	if (fonts != NULL)
+		report_fonts_lose(fonts);
 
 	hourglass_off();
 	error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Plot the contents of a report page.
+ *
+ * \param *report		The report instance holding the page.
+ * \param *page			Pointer to the page data.
+ * \param *origin		Pointer to an OS Coord holding the page origin
+ *				for the current target in OS Units.
+ * \param *clip			The output clipping box on OS Units.
+ * \return			Pointer to an error block on failure, or NULL.
+ */
+
+static os_error *report_plot_page(struct report *report, struct report_page_data *page, os_coord *origin, os_box *clip)
+{
+	unsigned			region;
+	struct report_region_data	*data;
+	os_error			*error = NULL;
+
+	if (report == NULL || page == NULL || origin == NULL || clip == NULL)
+		return NULL;
+
+	/* If the page has no regions, there's nothing to do! */
+
+	if (page->first_region == REPORT_REGION_NONE || page->region_count == 0)
+		return NULL;
+
+	/* Redraw all of the regions on the page. */
+
+	for (region = 0; region < page->region_count; region++) {
+		data = report_region_get_info(report->regions, page->first_region + region);
+		if (data == NULL)
+			continue;
+
+		/* Plot the region. */
+
+		error = report_plot_region(report, data, origin, clip);
+		if (error != NULL)
+			break;
+	}
+
+	return error;
+}
+
+
+/**
+ * Plot the contents of a report region.
+ *
+ * \param *report		The report instance holding the region.
+ * \param *page			Pointer to the region data.
+ * \param *origin		Pointer to an OS Coord holding the region origin
+ *				for the current target in OS Units.
+ * \param *clip			The output clipping box on OS Units.
+ * \return			Pointer to an error block on failure, or NULL.
+ */
+
+static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
+{
+	os_error	*error = NULL;
+	os_box		outline;
+
+	if (report == NULL || region == NULL)
+		return NULL;
+
+	/* Check if the region falls into the redraw clip window. */
+
+	if (origin->x + region->position.x0 > clip->x1 ||
+			origin->x + region->position.x1 < clip->x0 ||
+			origin->y + region->position.y0 > clip->y1 ||
+			origin->y + region->position.y1 < clip->y0)
+		return NULL;
+
+	/* Draw a box around the region. This is for debugging only! */
+
+//	outline.x0 = origin->x + region->position.x0;
+//	outline.y0 = origin->y + region->position.y0;
+//	outline.x1 = origin->x + region->position.x1;
+//	outline.y1 = origin->y + region->position.y1;
+
+//	error = xcolourtrans_set_gcol(os_COLOUR_LIGHT_GREEN, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+//	if (error != NULL)
+//		return error;
+
+//	error = report_draw_box(&outline);
+//	if (error != NULL)
+//		return error;
+
+	/* Replot the region. */
+
+	switch (region->type) {
+	case REPORT_REGION_TYPE_TEXT:
+		error = report_plot_text_region(report, region, origin, clip);
+		break;
+	case REPORT_REGION_TYPE_PAGE_NUMBER:
+		error = report_plot_page_number_region(report, region, origin, clip);
+		break;
+	case REPORT_REGION_TYPE_LINES:
+		error = report_plot_lines_region(report, region, origin, clip);
+		break;
+	case REPORT_REGION_TYPE_NONE:
+		break;
+	}
+
+	return error;
+}
+
+
+/**
+ * Plot a text region, containing a single line of static text.
+ *
+ * \param *report	The report to use.
+ * \param *region	The region to plot.
+ * \param *origin	The absolute origin to plot from, in OS Units.
+ * \param *clip		The redraw clip region, in absolute OS Units.
+ * \return		Pointer to an error block, or NULL for success.
+ */
+
+static os_error *report_plot_text_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
+{
+	os_box		position;
+	char		*content_base;
+
+	if (region == NULL || region->type != REPORT_REGION_TYPE_TEXT || region->data.text.content == REPORT_TEXTDUMP_NULL)
+		return NULL;
+
+	content_base = report_textdump_get_base(report->content);
+	if (content_base == NULL)
+		return NULL;
+
+	position.x0 = origin->x + region->position.x0;
+	position.x1 = origin->x + region->position.x1;
+	position.y0 = origin->y + region->position.y0;
+	position.y1 = origin->y + region->position.y1;
+
+	return report_plot_cell(report, &position, content_base + region->data.text.content, REPORT_CELL_FLAGS_CENTRE);
+}
+
+
+/**
+ * Plot a page number region, containing the single or double page numbering.
+ *
+ * \param *report	The report to use.
+ * \param *region	The region to plot.
+ * \param *origin	The absolute origin to plot from, in OS Units.
+ * \param *clip		The redraw clip region, in absolute OS Units.
+ * \return		Pointer to an error block, or NULL for success.
+ */
+
+static os_error *report_plot_page_number_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
+{
+	os_box		position;
+	int		x_count, y_count;
+	char		content[REPORT_MAX_PAGE_STRING_LEN];
+	char		n1[REPORT_MAX_PAGE_NUMBER_LEN], n2[REPORT_MAX_PAGE_NUMBER_LEN];
+	char		n3[REPORT_MAX_PAGE_NUMBER_LEN], n4[REPORT_MAX_PAGE_NUMBER_LEN];
+
+	if (region == NULL || region->type != REPORT_REGION_TYPE_PAGE_NUMBER)
+		return NULL;
+
+	/* Identify the number of pages in the report layout. */
+
+	if (!report_page_get_layout_pages(report->pages, &x_count, &y_count))
+		return NULL;
+
+	/* Generate the page number messages, including X pages if the report
+	 * is more than 1 page wide.
+	 */
+
+	string_printf(n1, REPORT_MAX_PAGE_NUMBER_LEN, "%d", region->data.page_number.major);
+	string_printf(n2, REPORT_MAX_PAGE_NUMBER_LEN, "%d", y_count);
+
+	if (x_count > 1) {
+		string_printf(n3, REPORT_MAX_PAGE_NUMBER_LEN, "%d", region->data.page_number.minor);
+		string_printf(n4, REPORT_MAX_PAGE_NUMBER_LEN, "%d", x_count);
+
+		msgs_param_lookup("Page2", content, REPORT_MAX_PAGE_STRING_LEN, n1, n3, n2, n4);
+	} else {
+		msgs_param_lookup("Page1", content, REPORT_MAX_PAGE_STRING_LEN, n1, n2, NULL, NULL);
+	}
+
+	/* Plot the page number information. */
+
+	position.x0 = origin->x + region->position.x0;
+	position.x1 = origin->x + region->position.x1;
+	position.y0 = origin->y + region->position.y0;
+	position.y1 = origin->y + region->position.y1;
+
+	return report_plot_cell(report, &position, content, REPORT_CELL_FLAGS_CENTRE);
+}
+
+
+/**
+ * Plot a lines region, containing one or more lines from a report.
+ *
+ * \param *report	The report to use.
+ * \param *region	The region to plot.
+ * \param *origin	The absolute origin to plot from, in OS Units.
+ * \param *clip		The redraw clip region, in absolute OS Units.
+ * \return		Pointer to an error block, or NULL for success.
+ */
+
+static os_error *report_plot_lines_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
+{
+	unsigned			top, base;
+	size_t				line_count;
+	int				line_height;
+	os_coord			position;
+	os_error			*error;
+	struct report_tabs_line_info	target;
+	struct report_line_data		*line_data;
+
+	if (region == NULL || region->type != REPORT_REGION_TYPE_LINES)
+		return NULL;
+
+	/* Identify the position and extent of the text block. */
+
+	line_data = report_line_get_info(report->lines, region->data.lines.first, &line_height);
+	if (line_data == NULL)
+		return NULL;
+
+	position.x = origin->x + region->position.x0;
+	position.y = origin->y + region->position.y1 - (line_data->ypos + line_height);
+
+	top = report_line_find_from_ypos(report->lines, clip->y1 - position.y);
+	if (top < region->data.lines.first)
+		top = region->data.lines.first;
+	else if (top > region->data.lines.last)
+		top = region->data.lines.last;
+
+	base = report_line_find_from_ypos(report->lines, clip->y0 - position.y);
+	if (base < region->data.lines.first)
+		base = region->data.lines.first;
+	else if (base > region->data.lines.last)
+		base = region->data.lines.last;
+
+	/* Plot Text. */
+
+	line_count = report_line_get_count(report->lines);
+
+	target.page = region->data.lines.page;
+	target.tab_bar = -1;
+	target.first_stop = -1;
+	target.last_stop = -1;
+
+	for (target.line = top; target.line < line_count && target.line <= base; target.line++) {
+		error = report_plot_line(report, &target, &position, clip);
+		if (error != NULL)
+			return error;
+	}
+
+	return NULL;
 }
 
 
@@ -2020,178 +2396,239 @@ static void report_handle_print_error(os_error *error, os_fw file, font_f f1, fo
  * Plot a line of a report to screen or the printer drivers.
  *
  * \param *report	The report to use.
- * \param line		The line to be printed.
- * \param x		The x coordinate to plot at.
- * \param y		The y coordinate to plot at.
- * \param normal	The font handle for the normal font face.
- * \param bold		The font handle for the bold font face.
+ * \param target	Pointer to details of the line to be redrawn.
+ * \param *origin	The absolute origin to plot from, in OS Units.
+ * \param *clip		The redraw clip region, in absolute OS Units.
  * \return		Pointer to an error block, or NULL for success.
  */
 
-static os_error *report_plot_line(struct report *report, unsigned int line, int x, int y, font_f normal, font_f bold)
+static os_error *report_plot_line(struct report *report, struct report_tabs_line_info *target, os_coord *origin, os_box *clip)
 {
-	os_error	*error;
-	font_f		font;
-	int		bar, tab = 0, indent, total, width;
-	char		*column, *paint, *flags, buffer[REPORT_MAX_LINE_LEN + 10];
+	os_error		*error;
+	int			cell;
+	char			*content_base;
+	os_box			line_outline, cell_outline, rule_outline;
+	struct report_line_data	*line_data;
+	struct report_cell_data	*cell_data, *spill_cell_data;
+	struct report_tabs_stop	*tab_stop;
 
+	content_base = report_textdump_get_base(report->content);
+	if (content_base == NULL)
+		return NULL;
 
-	column = report->data + report->line_ptr[line];
-	bar = (int) *column;
-	column += REPORT_BAR_BYTES;
+	line_data = report_line_get_info(report->lines, target->line, NULL);
+	if (line_data == NULL)
+		return NULL;
 
-	do {
-		flags = column;
-		column += REPORT_FLAG_BYTES;
+	/* If the tab bar has changed, update the target details. */
 
-		font = (*flags & REPORT_FLAG_BOLD) ? bold : normal;
-		indent = (*flags & REPORT_FLAG_INDENT) ? REPORT_COLUMN_INDENT : 0;
+	if (line_data->tab_bar != target->tab_bar) {
+		target->tab_bar = line_data->tab_bar;
+		if (!report_tabs_get_line_info(report->tabs, target))
+			return NULL;
+	}
 
-		if (*flags & REPORT_FLAG_RIGHT) {
-			error = xfont_scan_string(font, column, font_KERN | font_GIVEN_FONT,
-					0x7fffffff, 0x7fffffff, NULL, NULL, 0, NULL, &total, NULL, NULL);
-			if (error != NULL)
-				return error;
+	/* Check if the line appears on the page. */
 
-			error = xfont_convertto_os(total, 0, &width, NULL);
-			if (error != NULL)
-				return error;
+	if (!target->present)
+		return NULL;
 
-			indent = report->font_width[bar][tab] - width;
-		}
+	/* Calculate the outline of the whole line, and the Y bounds of the cells within it. */
 
-		if (*flags & REPORT_FLAG_UNDER) {
-			buffer[0] = font_COMMAND_UNDERLINE;
-			buffer[1] = 230;
-			buffer[2] = 18;
-			string_copy(buffer + 3, column, REPORT_MAX_LINE_LEN + 7);
-			paint = buffer;
-		} else {
-			paint = column;
-		}
+	line_outline.x0 = origin->x;
+	line_outline.x1 = origin->x + target->line_width;
 
-		error = xfont_paint(font, paint, font_OS_UNITS | font_KERN | font_GIVEN_FONT,
-				x + report->font_tab[bar][tab] + indent, y, NULL, NULL, 0);
+	line_outline.y0 = origin->y + line_data->ypos;
+	cell_outline.y0 = line_outline.y0;
+
+	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW))
+		cell_outline.y0 += 2 * REPORT_GRID_LINE_MARGIN;
+
+	cell_outline.y1 = cell_outline.y0 + report->cell_height;
+	line_outline.y1 = cell_outline.y1;
+
+	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE))
+		line_outline.y1 += 2 * REPORT_GRID_LINE_MARGIN;
+
+	/* Calculate the box encompassing the vertical rules. */
+
+	rule_outline.x0 = line_outline.x0;
+	rule_outline.x1 = line_outline.x1;
+	rule_outline.y0 = line_outline.y0; // \TODO: y0 needs to go up REPORT_GRID_LINE_MARGIN if this is the last grid line.
+	rule_outline.y1 = line_outline.y1;
+	if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
+		rule_outline.y1 -= REPORT_GRID_LINE_MARGIN;
+
+	/* If the Y bounds of the line fall outside the clip window, skip the rest. */
+
+	if (line_outline.y0 > clip->y1 || line_outline.y1 < clip->y0)
+		return NULL;
+
+	/* Plot the grid above and below the line. */
+
+	if (report->display & REPORT_DISPLAY_SHOW_GRID) {
+		report_tabs_reset_rules(report->tabs, target);
+
+		error = xcolourtrans_set_gcol(os_COLOUR_BLACK, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
 		if (error != NULL)
 			return error;
 
-		while (*column != '\0' && *column != '\n')
-			column++;
-		column++;
-		tab++;
-	} while (*(column - 1) != '\0' && tab < REPORT_TAB_STOPS);
+		/* Plot a line above. */
+
+		if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
+			error = report_draw_line(line_outline.x0, cell_outline.y1 + REPORT_GRID_LINE_MARGIN,
+					line_outline.x1, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+
+		/* Plot a line below, and the associated left-hand riser (right-hand
+		 * risers are plotted after we've parsed the cells in the line).
+		 */
+
+		if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW) {
+			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
+					line_outline.x1, cell_outline.y0 - REPORT_GRID_LINE_MARGIN);
+
+			error = report_draw_line(line_outline.x0, rule_outline.y0,
+					line_outline.x0, rule_outline.y1);
+		}
+	}
+
+	/* Plot the cells in the line. */
+
+	for (cell = 0; cell < line_data->cell_count; cell++) {
+		cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell);
+		if (cell_data == NULL || cell_data->offset == REPORT_TEXTDUMP_NULL)
+			continue;
+
+		/* Don't plot the cell if it falls outside the range of stops in the line. */
+
+		if (cell_data->tab_stop < target->first_stop)
+			continue;
+
+		if (cell_data->tab_stop > target->last_stop)
+			break;
+
+		/* Get details of the tab stop. */
+
+		tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, cell_data->tab_stop);
+		if (tab_stop == NULL)
+			continue;
+
+		/* Calculate the bounds of the initial cell. */
+
+		cell_outline.x0 = origin->x + target->line_inset + tab_stop->font_left;
+		cell_outline.x1 = cell_outline.x0 + tab_stop->font_width;
+
+		/* Merge any spill cells which follow into the bounds. */
+
+		while (cell + 1 < line_data->cell_count) {
+			spill_cell_data = report_cell_get_info(report->cells, line_data->first_cell + cell + 1);
+			if (spill_cell_data == NULL || !(spill_cell_data->flags & REPORT_CELL_FLAGS_SPILL))
+				break;
+
+			/* If the next cell takes spill from this one, drop any vertical
+			 * rule which might be plotted to the right of this cell.
+			 */
+
+			tab_stop->plot_rule = FALSE;
+
+			/* Get the tab details for the next cell, and extend this cell's
+			 * outline to include it.
+			 */
+
+			tab_stop = report_tabs_get_stop(report->tabs, line_data->tab_bar, spill_cell_data->tab_stop);
+			if (tab_stop == NULL)
+				break;
+
+			cell_outline.x1 = origin->x + target->line_inset + tab_stop->font_left + tab_stop->font_width;
+
+			/* Move on to the next cell. */
+
+			cell++;
+		}
+
+		/* Drop the redraw if the cell's X dimensions are outside the clip window. */
+
+		if ((cell_outline.x0 > clip->x1) || (cell_outline.x1 < clip->x0))
+			continue;
+
+		/* Plot the cell itself. */
+
+		error = report_plot_cell(report, &cell_outline, content_base + cell_data->offset, cell_data->flags);
+		if (error != NULL)
+			return error;
+	}
+
+	/* Plot any vertical rules which are needed for the row. */
+
+	if (report->display & REPORT_DISPLAY_SHOW_GRID) {
+		error = report_tabs_plot_rules(report->tabs, target, &rule_outline, clip);
+		if (error != NULL)
+			return error;
+	}
 
 	return NULL;
 }
 
 
 /**
- * Read the current printer page size, and work out from the configured margins
- * where on the page the printed body, header and footer will go.
+ * Plot a cell on screen.
  *
- * \param rotate		TRUE to rotate the page to Landscape format; else FALSE.
- * \param *body			Structure to return the body area, or NULL for none.
- * \param *header		Structure to return the header area, or NULL for none.
- * \param *footer		Structure to return the footer area, or NULL for none.
- * \param header_size		The required height of the header, in millipoints.
- * \param footer_size		The required height of the footer, in millipoints.
- * \return			Flagword indicating which areas were set up.
+ * \param *report	The report to use.
+ * \param *outline	The outline of the cell, in absolute OS Units.
+ * \param *content	Pointer to the content of the cell.
+ * \param flags		The cell flags to apply to the plotting.
+ * \return		Pointer to an OS Error box, or NULL on success.
  */
 
-static enum report_page_area report_get_page_areas(osbool rotate, os_box *body, os_box *header, os_box *footer, unsigned header_size, unsigned footer_size)
+static os_error *report_plot_cell(struct report *report, os_box *outline, char *content, enum report_cell_flags flags)
 {
-	os_error			*error;
-	osbool				margin_fail = FALSE;
-	enum report_page_area		areas = REPORT_PAGE_NONE;
-	int				page_xsize, page_ysize, page_left, page_right, page_top, page_bottom;
-	int				margin_left, margin_right, margin_top, margin_bottom;
+	os_error	*error;
+	int		width, indent;
 
-	/* Get the page dimensions, and set up the print margins.  If the margins are bigger than the print
-	 * borders, the print borders are increased to match.
-	 */
+	if (report == NULL || outline == NULL)
+		return NULL;
 
-	error = xpdriver_page_size(&page_xsize, &page_ysize, &page_left, &page_bottom, &page_right, &page_top);
+	/* Draw a box around the cell. This is for debugging only! */
+
+//	error = xcolourtrans_set_gcol(os_COLOUR_RED, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+//	if (error != NULL)
+//		return error;
+
+//	error = report_draw_box(outline);
+//	if (error != NULL)
+//		return error;
+
+	/* If there's no text, there's nothing else to do. */
+
+	if (content == NULL)
+		return NULL;
+
+	/* Calculate the required cell indent. */
+
+	if (flags & REPORT_CELL_FLAGS_INDENT) {
+		indent = REPORT_FONT_COLUMN_INDENT;
+	} else if (flags & REPORT_CELL_FLAGS_RIGHT || flags & REPORT_CELL_FLAGS_CENTRE) {
+		error = report_fonts_get_string_width(report->fonts, content, flags, &width);
+		if (error != NULL)
+			return error;
+
+		if (flags & REPORT_CELL_FLAGS_CENTRE)
+			indent = ((outline->x1 - outline->x0) - width) / 2; 
+		else
+			indent = (outline->x1 - outline->x0) - width;
+	} else {
+		indent = 0;
+	}
+
+	/* Set the font colour and plot the cell contents. */
+
+	error = report_fonts_set_colour(report->fonts, os_COLOUR_BLACK, os_COLOUR_WHITE);
 	if (error != NULL)
-		return REPORT_PAGE_NONE;
+		return error;
 
-	margin_left = page_left;
-
-	if (config_int_read("PrintMarginLeft") > 0 && config_int_read("PrintMarginLeft") > margin_left) {
-		margin_left = config_int_read("PrintMarginLeft");
-		page_left = margin_left;
-	} else if (config_int_read("PrintMarginLeft") > 0) {
-		margin_fail = TRUE;
-	}
-
-	margin_bottom = page_bottom;
-
-	if (config_int_read("PrintMarginBottom") > 0 && config_int_read("PrintMarginBottom") > margin_bottom) {
-		margin_bottom = config_int_read("PrintMarginBottom");
-		page_bottom = margin_bottom;
-	} else if (config_int_read("PrintMarginBottom") > 0) {
-		margin_fail = TRUE;
-	}
-
-	margin_right = page_xsize - page_right;
-
-	if (config_int_read("PrintMarginRight") > 0 && config_int_read("PrintMarginRight") > margin_right) {
-		margin_right = config_int_read("PrintMarginRight");
-		page_right = page_xsize - margin_right;
-	} else if (config_int_read("PrintMarginRight") > 0) {
-		margin_fail = TRUE;
-	}
-
-	margin_top = page_ysize - page_top;
-
-	if (config_int_read("PrintMarginTop") > 0 && config_int_read("PrintMarginTop") > margin_top) {
-		margin_top = config_int_read("PrintMarginTop");
-		page_top = page_ysize - margin_top;
-	} else if (config_int_read("PrintMarginTop") > 0) {
-		margin_fail = TRUE;
-	}
-
-	if (body != NULL) {
-		areas |= REPORT_PAGE_BODY;
-
-		if (rotate) {
-			body->x0 = page_bottom;
-			body->x1 = page_top;
-			body->y0 = page_right;
-			body->y1 = page_left;
-		} else {
-			body->x0 = page_left;
-			body->x1 = page_right;
-			body->y0 = page_bottom;
-			body->y1 = page_top;
-		}
-
-		if (header != NULL && header_size > 0) {
-			header->x0 = body->x0;
-			header->x1 = body->x1;
-			header->y1 = body->y1;
-
-			header->y0 = header->y1 - (header_size * ((rotate) ? -1 : 1));
-			body->y1 = header->y0 - (config_int_read("PrintMarginInternal") * ((rotate) ? -1 : 1));
-
-			areas |= REPORT_PAGE_HEADER;
-		}
-
-		if (footer != NULL && footer_size > 0) {
-			footer->x0 = body->x0;
-			footer->x1 = body->x1;
-			footer->y0 = body->y0;
-
-			footer->y1 = footer->y0 + (footer_size * ((rotate) ? -1 : 1));
-			body->y0 = footer->y1 + (config_int_read("PrintMarginInternal") * ((rotate) ? -1 : 1));
-
-			areas |= REPORT_PAGE_FOOTER;
-		}
-	}
-
-	if (margin_fail)
-		error_msgs_report_error("BadPrintMargins");
-
-	return areas;
+	return report_fonts_paint_text(report->fonts, content,
+			outline->x0 + indent,
+			outline->y0 + report->cell_baseline, flags);
 }
 
 
@@ -2218,5 +2655,469 @@ void report_process_all_templates(struct file_block *file, void (*callback)(stru
 
 		report = report->next;
 	}
+}
+
+
+/**
+ * Process a Message_SetPrinter, which requires us to repaginate any open
+ * reports.
+ *
+ * \param *message		The Wimp message block.
+ * \return			TRUE to claim the message.
+ */
+
+static osbool report_handle_message_set_printer(wimp_message *message)
+{
+#ifdef DEBUG
+	debug_printf("Message_SetPrinter received.");
+#endif
+
+	hourglass_on();
+
+	file_process_all(report_repaginate_all);
+
+	hourglass_off();
+
+	return TRUE;
+}
+
+
+/**
+ * Repaginate all of the reports in a file.
+ *
+ * \param *file			The file to be processed.
+ */
+
+static void report_repaginate_all(struct file_block *file)
+{
+	struct report	*report;
+
+	if (file == NULL)
+		return;
+
+	report = file->reports;
+
+	while (report != NULL) {
+		report_paginate(report);
+		report_set_window_extent(report);
+		report_view_toolbar_prepare(report);
+
+		if (report->window != NULL)
+			windows_redraw(report->window);
+
+		report = report->next;
+	}
+}
+
+
+/**
+ * Repaginate a report.
+ *
+ * \param *report		The handle of the report to be repaginated.
+ */
+
+static void report_paginate(struct report *report)
+{
+	struct report_line_data		*line_data;
+	struct report_page_layout	layout;
+	struct report_pagination_area	repeat_area, main_area;
+	int				line_height, repeat_line_height, repeat_line_ypos, repeat_tab_bar;
+	int				pages_across, pages_down, target_width;
+	int				field_height, body_height, used_height;
+	size_t				line_count;
+	unsigned			line, repeat_line;
+
+	if (report == NULL)
+		return;
+
+	/* Reset any existing pagination. */
+
+	report_page_clear(report->pages);
+	report_region_clear(report->regions);
+
+	/* Identify the page size. If this fails, there's no point continuing. */
+
+	target_width = (report->display & REPORT_DISPLAY_FIT_WIDTH) ? report->width : 0;
+
+	if (target_width == 0)
+		target_width = report_tabs_get_min_column_width(report->tabs);
+
+	field_height = report_fonts_get_linespace(report->fonts);
+	if (field_height == 0)
+		return;
+
+	if (report_page_calculate_areas(report->pages, (report->display & REPORT_DISPLAY_LANDSCAPE) ? TRUE : FALSE, target_width,
+			((report->page_title != REPORT_TEXTDUMP_NULL) && (report->display & REPORT_DISPLAY_SHOW_TITLE)) ? field_height : 0,
+			(report->display & REPORT_DISPLAY_SHOW_NUMBERS) ? field_height : 0) != NULL)
+		return;
+
+	report_page_get_areas(report->pages, &layout);
+	if (layout.areas == REPORT_PAGE_AREA_NONE)
+		return;
+
+	/* Calculate column positions across the pages. */
+
+	pages_across = report_tabs_paginate(report->tabs, layout.body.x1 - layout.body.x0);
+	if (pages_across == 0)
+		return;
+
+	/* The Body Height is the vertical space, in OS Units, which is available
+	 * to take output lines on the page.
+	 */
+
+	body_height = layout.body.y1 - layout.body.y0;
+
+	/* Initialise areas to hold the main "new" lines on the page, and to hold
+	 * any lines repeated at the top of new pages.
+	 */
+
+	main_area.active = TRUE;
+	main_area.height = 0;
+	main_area.ypos_offset = 0;
+	main_area.top_line = 0;
+	main_area.bottom_line = 0;
+
+	repeat_area.active = FALSE;
+	repeat_area.height = 0;
+	repeat_area.ypos_offset = 0;
+	repeat_area.top_line = 0;
+	repeat_area.bottom_line = 0;
+
+	repeat_line = REPORT_LINE_NONE;
+	repeat_line_ypos = 0;
+	repeat_line_height = 0;
+	repeat_tab_bar = -1;
+	pages_down = 1;
+	used_height = 0;
+
+	/* Process the lines in the report one at a time. */
+
+	line_count = report_line_get_count(report->lines);
+
+	for (line = 0; line < line_count; line++) {
+		line_data = report_line_get_info(report->lines, line, &line_height);
+		if (line_data == NULL)
+			continue;
+
+		/* Process keep-together lines: if the Keep Together flag is set and there's
+		 * currently no heading line set or the tab bar has changed, record a new
+		 * heading line. Otherwise, if the Keep Together flag isn't set, make sure
+		 * that there's no heading line.
+		 */
+
+		if ((line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER) &&
+				((line_data->tab_bar != repeat_tab_bar) || (repeat_line == REPORT_LINE_NONE))) {
+			repeat_line = line;
+			repeat_line_ypos = line_data->ypos;
+			repeat_line_height = line_height;
+		} else if (!(line_data->flags & REPORT_LINE_FLAGS_KEEP_TOGETHER)) {
+			repeat_line = REPORT_LINE_NONE;
+		}
+
+		repeat_tab_bar = line_data->tab_bar;
+
+		/* If the line falls out of the visible area, package up the current page
+		 * data and add it to the page output before continuing.
+		 */
+
+		if ((main_area.ypos_offset - line_data->ypos) > (body_height - used_height)) {
+			report_add_page_row(report, &layout, &main_area, &repeat_area, pages_down, pages_across);
+
+			/* Add a new page row. */
+
+			pages_down++;
+
+			/* Calculate the starting position -- line and vertical offset in
+			 * OS Units of all of the Y-Pos values -- for the new page. The
+			 * offset is the Y-Pos of the TOP of the line, so the line's
+			 * Y-Pos plus the line's height.
+			 */
+
+			main_area.ypos_offset = line_data->ypos + line_height;
+			main_area.top_line = line;
+
+			/* If there's a line currently being repeated at the top of the
+			 * page, set up the repeat area and update the Used Height to
+			 * reflect the space lost to "new" lines.
+			 */
+
+			if (repeat_line != REPORT_LINE_NONE) {
+				repeat_area.active = TRUE;
+				repeat_area.height = repeat_line_height;
+				repeat_area.ypos_offset = repeat_line_ypos - repeat_line_height;
+				repeat_area.top_line = repeat_line;
+				repeat_area.bottom_line = repeat_line;
+				used_height = repeat_area.height;
+			} else {
+				repeat_area.active = FALSE;
+				used_height = 0;
+			}
+		}
+
+		/* Record the current line details. */
+
+		main_area.bottom_line = line;
+		main_area.height = main_area.ypos_offset - line_data->ypos;
+
+		/* If this is the first line of the page, and there are no cells on it,
+		 * skip it so that we don't have blank lines at the top of a page.
+		 */
+
+		if (main_area.top_line == line && line_data->cell_count == 0) {
+			main_area.ypos_offset = line_data->ypos;
+			main_area.top_line = line + 1;
+		}
+	}
+
+	/* If there are any lines left to put out on a page, do so. */
+
+	if (line > main_area.top_line)
+		report_add_page_row(report, &layout, &main_area, &repeat_area, pages_down, pages_across);
+
+	/* Close the pages and regions off, to finish the pagination. */
+
+	report_page_close(report->pages);
+	report_region_close(report->regions);
+}
+
+
+/**
+ * Add a row of pages to a report.
+ *
+ * \param *report	The report to be processed.
+ * \param *layout	The page layout details for the report.
+ * \param *main_area	Pointer to data for the "main" line area.
+ * \param *repeat_area	Pointer to data for the "repeat" line area.
+ * \param row		The row number, for page numbering purposes.
+ * \param columns	The number of columns requireed.
+ */
+
+static void report_add_page_row(struct report *report, struct report_page_layout *layout,
+		struct report_pagination_area *main_area, struct report_pagination_area *repeat_area, int row, int columns)
+{
+	int column, regions;
+	unsigned first_region, region;
+	os_box position;
+
+	report_page_new_row(report->pages);
+
+	for (column = 0; column < columns; column++) {
+		first_region = REPORT_REGION_NONE;
+		regions = 0;
+
+		/* Add the main page body: any repeated lines at the top, followed
+		 * by the "main" report lines for the page below.
+		 */
+
+		if (layout->areas & REPORT_PAGE_AREA_BODY) {
+			position.x0 = layout->body.x0;
+			position.x1 = layout->body.x1;
+			position.y1 = layout->body.y1;
+
+			if (repeat_area->active == TRUE) {
+				position.y0 = layout->body.y1 - repeat_area->height;
+
+				region = report_region_add_lines(report->regions, &position, column, repeat_area->top_line, repeat_area->bottom_line);
+				if (region == REPORT_REGION_NONE)
+					continue;
+
+				regions++;
+
+				if (first_region == REPORT_REGION_NONE)
+					first_region = region;
+
+				position.y1 = position.y0;
+			}
+
+			position.y0 = position.y1 - main_area->height;
+
+			region = report_region_add_lines(report->regions, &position, column, main_area->top_line, main_area->bottom_line);
+			if (region == REPORT_REGION_NONE)
+				continue;
+
+			regions++;
+
+			if (first_region == REPORT_REGION_NONE)
+				first_region = region;
+		}
+
+		/* Add the page header, if there is one. */
+
+		if (layout->areas & REPORT_PAGE_AREA_HEADER) {
+			region = report_region_add_text(report->regions, &(layout->header), report->page_title);
+			if (region == REPORT_REGION_NONE)
+				continue;
+
+			regions++;
+
+			if (first_region == REPORT_REGION_NONE)
+				first_region = region;
+		}
+
+		/* Add the page footer, if there is one. */
+
+		if (layout->areas & REPORT_PAGE_AREA_FOOTER) {
+			region = report_region_add_page_number(report->regions, &(layout->footer), row, column + 1);
+			if (region == REPORT_REGION_NONE)
+				continue;
+
+			regions++;
+
+			if (first_region == REPORT_REGION_NONE)
+				first_region = region;
+		}
+
+		/* Add the page to the report. */
+
+		report_page_add(report->pages, first_region, regions);
+	}
+}
+
+
+/**
+ * Change the state of a display option in a report, and refresh the
+ * report display as a result.
+ *
+ * \param *report		The report to update.
+ * \param option		The option to be toggled.
+ * \param state			The new state for the option.
+ */
+
+static void report_set_display_option(struct report *report, enum report_display option, osbool state)
+{
+	if (report == NULL)
+		return;
+
+	if (state == TRUE)
+		report->display = report->display | option;
+	else
+		report->display = report->display & (~option);
+
+	if (option & REPORT_DISPLAY_SHOW_GRID)
+		report_reflow_content(report);
+
+	if (option & (REPORT_DISPLAY_FIT_WIDTH | REPORT_DISPLAY_LANDSCAPE |
+			REPORT_DISPLAY_SHOW_TITLE | REPORT_DISPLAY_SHOW_GRID |
+			REPORT_DISPLAY_SHOW_NUMBERS))
+		report_paginate(report);
+
+	report_set_window_extent(report);
+	report_view_toolbar_prepare(report);
+
+	if (report->window != NULL)
+		windows_redraw(report->window);
+}
+
+
+/**
+ * Update the extent of a report view window, to take account of its
+ * current content and settings.
+ *
+ * \param *report		The report to update.
+ */
+
+static void report_set_window_extent(struct report *report)
+{
+	int			new_xextent, new_yextent, visible_xextent, visible_yextent, new_xscroll, new_yscroll;
+	os_box			extent;
+	wimp_window_state	state;
+	wimp_window_info	window;
+
+	if (report == NULL || report->window == NULL)
+		return;
+
+	if (!report_get_window_extent(report, &new_xextent, &new_yextent))
+		return;
+
+	/* Get the current window details, and find the extent of the bottom and right of the visible area. */
+
+	state.w = report->window;
+	wimp_get_window_state(&state);
+
+	visible_xextent = state.xscroll + (state.visible.x1 - state.visible.x0);
+	visible_yextent = (state.visible.y1 - state.visible.y0) - state.yscroll;
+
+	/* If the visible area falls outside the new window extent, then the window needs to be re-opened first. */
+
+	if (new_xextent < visible_xextent || new_yextent < visible_yextent) {
+		/* Calculate the required new scroll offsets.
+		 *
+		 * Start with the x scroll.  If this is less than zero, the window is too wide and will need shrinking down.
+		 * Otherwise, just set the new scroll offset.
+		 */
+
+		new_xscroll = new_xextent - (state.visible.x1 - state.visible.x0);
+
+		if (new_xscroll < 0) {
+			state.visible.x1 += new_xscroll;
+			state.xscroll = 0;
+		} else {
+			state.xscroll = new_xscroll;
+		}
+
+		/* Now do the y scroll.  If this is less than zero, the current window is too deep and will need
+		 * shrinking down.  Otherwise, just set the new scroll offset.
+		 */
+
+		new_yscroll = new_yextent - (state.visible.y1 - state.visible.y0);
+
+		if (new_yscroll < 0) {
+			state.visible.y0 -= new_yscroll;
+			state.yscroll = 0;
+		} else {
+			state.yscroll = -new_yscroll;
+		}
+
+		wimp_open_window((wimp_open *) &state);
+	}
+
+	/* Finally, call Wimp_SetExtent to update the extent, safe in the knowledge that the visible area will still
+	 * exist.
+	 */
+
+	extent.x0 = 0;
+	extent.x1 = new_xextent;
+	extent.y1 = 0;
+	extent.y0 = -new_yextent;
+	wimp_set_extent(report->window, &extent);
+
+	window.w = report->toolbar;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_xextent;
+	wimp_set_extent(window.w, &(window.extent));
+}
+
+
+/**
+ * Calculate the required window dimensions for a report in OS Units,
+ * taking into account the content and selected view mode.
+ *
+ * \param *report		The report to calculate for.
+ * \param *x			Pointer to variable to take X dimension.
+ * \param *y			Pointer to variable to take Y dimension.
+ * \return			TRUE if values have been returned.
+ */
+
+static osbool report_get_window_extent(struct report *report, int *x, int *y)
+{
+	if (report == NULL)
+		return FALSE;
+
+	if (!(report->display & REPORT_DISPLAY_PAGINATED) || !report_page_get_layout_extent(report->pages, x, y)) {
+		if (x != NULL) {
+			int width = report->width + REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN;
+			*x = (width > REPORT_MIN_WIDTH) ? width : REPORT_MIN_WIDTH;
+		}
+
+		if (y != NULL) {
+			int height = report->height + REPORT_TOP_MARGIN + REPORT_BOTTOM_MARGIN;
+			*y = (height > REPORT_MIN_HEIGHT) ? height : REPORT_MIN_HEIGHT;
+		}
+	}
+
+	if (y != NULL)
+		*y = *y + REPORT_TOOLBAR_HEIGHT;
+
+	return TRUE;
 }
 

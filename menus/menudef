@@ -262,8 +262,21 @@ menu(PresetMenu, "Preset")
 
 menu(ReportViewMenu, "Report")
 {
-	item("Format...") {
+	item("Show pages") {
 		dotted;
+	}
+	item("Font...");
+	item("Include") {
+		submenu(ReportViewIncludeSubmenu) {
+			always;
+		}
+	}
+	item("Layout") {
+		submenu(ReportViewLayoutSubmenu) {
+			always;
+		}
+		dotted;
+		
 	}
 	item("Save text") {
 		d_box(SaveAs) {
@@ -285,6 +298,24 @@ menu(ReportViewMenu, "Report")
 		dotted;
 	}
 	item("Save template...");
+}
+
+menu(ReportViewLayoutSubmenu, "Layout")
+{
+	item("Portrait");
+	item("Landscape") {
+		dotted;
+	}
+	item("Fit width");
+}
+
+menu(ReportViewIncludeSubmenu, "Include")
+{
+	item("Title");
+	item("Page numbers") {
+		dotted;
+	}
+	item("Grid");
 }
 
 /**

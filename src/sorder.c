@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -1893,11 +1893,15 @@ static void sorder_open_print_window(struct sorder_block *windat, wimp_pointer *
 static struct report *sorder_print(struct report *report, void *data)
 {
 	struct sorder_block	*windat = data;
-	int			line;
+	int			line, column;
 	sorder_t		sorder;
 	char			rec_char[REC_FIELD_LEN];
+	wimp_i			columns[SORDER_COLUMNS];
 
-	if (report == NULL || windat == NULL)
+	if (report == NULL || windat == NULL || windat->file == NULL)
+		return NULL;
+
+	if (!column_get_icons(windat->columns, columns, SORDER_COLUMNS, FALSE))
 		return NULL;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
@@ -1930,42 +1934,58 @@ static struct report *sorder_print(struct report *report, void *data)
 
 		stringbuild_reset();
 
-		/* The From column. */
+		for (column = 0; column < SORDER_COLUMNS; column++) {
+			if (column == 0)
+				stringbuild_add_string("\\k");
+			else
+				stringbuild_add_string("\\t");
 
-		stringbuild_add_printf("\\k%s\\t", account_get_ident(windat->file, windat->sorders[sorder].from));
-
-		if (windat->sorders[sorder].flags & TRANS_REC_FROM)
-			stringbuild_add_string(rec_char);
-
-		stringbuild_add_printf("\\t%s", account_get_name(windat->file, windat->sorders[sorder].from));
-
-		/* The To column. */
-
-		stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->sorders[sorder].to));
-
-		if (windat->sorders[sorder].flags & TRANS_REC_TO)
-			stringbuild_add_string(rec_char);
-
-		stringbuild_add_printf("\\t%s\\t\\r", account_get_name(windat->file, windat->sorders[sorder].to));
-
-		/* The Amount column. */
-
-		stringbuild_add_currency(windat->sorders[sorder].normal_amount, FALSE);
-
-		/* The Description column. */
-
-		stringbuild_add_printf("\\t%s\\t", windat->sorders[sorder].description);
-
-		/* The Next Date column. */
-
-		if (windat->sorders[sorder].adjusted_next_date != NULL_DATE)
-			stringbuild_add_date(windat->sorders[sorder].adjusted_next_date);
-		else
-			stringbuild_add_message("SOrderStopped");
-
-		/* The Left column. */
-
-		stringbuild_add_printf("\\t\\r%d", windat->sorders[sorder].left);
+			switch (columns[column]) {
+			case SORDER_ICON_FROM:
+				stringbuild_add_string(account_get_ident(windat->file, windat->sorders[sorder].from));
+				break;
+			case SORDER_ICON_FROM_REC:
+				if (windat->sorders[sorder].flags & TRANS_REC_FROM)
+					stringbuild_add_string(rec_char);
+				break;
+			case SORDER_ICON_FROM_NAME:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(account_get_name(windat->file, windat->sorders[sorder].from));
+				break;
+			case SORDER_ICON_TO:
+				stringbuild_add_string(account_get_ident(windat->file, windat->sorders[sorder].to));
+				break;
+			case SORDER_ICON_TO_REC:
+				if (windat->sorders[sorder].flags & TRANS_REC_TO)
+					stringbuild_add_string(rec_char);
+				break;
+			case SORDER_ICON_TO_NAME:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(account_get_name(windat->file, windat->sorders[sorder].to));
+				break;
+			case SORDER_ICON_AMOUNT:
+				stringbuild_add_string("\\v\\d\\r");
+				stringbuild_add_currency(windat->sorders[sorder].normal_amount, FALSE);
+				break;
+			case SORDER_ICON_DESCRIPTION:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(windat->sorders[sorder].description);
+				break;
+			case SORDER_ICON_NEXTDATE:
+				stringbuild_add_string("\\v\\c");
+				if (windat->sorders[sorder].adjusted_next_date != NULL_DATE)
+					stringbuild_add_date(windat->sorders[sorder].adjusted_next_date);
+				else
+					stringbuild_add_message("SOrderStopped");
+				break;
+			case SORDER_ICON_LEFT:
+				stringbuild_add_printf("\\v\\d\\r%d", windat->sorders[sorder].left);
+				break;
+			default:
+				stringbuild_add_string("\\s");
+				break;
+			}
+		}
 
 		stringbuild_report_line(report, 0);
 	}

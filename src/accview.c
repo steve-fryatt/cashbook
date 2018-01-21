@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -509,7 +509,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	/* Create the toolbar pane. */
 
-	windows_place_as_toolbar(accview_window_def, accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT-4);
+	windows_place_as_toolbar(accview_window_def, accview_pane_def, ACCVIEW_TOOLBAR_HEIGHT - 4);
 	columns_place_heading_icons(view->columns, accview_pane_def);
 
 	accview_pane_def->icons[ACCVIEW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
@@ -546,9 +546,8 @@ void accview_open_window(struct file_block *file, acct_t account)
 	}
 
 	windows_open(view->accview_window);
-	windows_open_nested_as_toolbar(view->accview_pane,
-			view->accview_window,
-			ACCVIEW_TOOLBAR_HEIGHT-4);
+	windows_open_nested_as_toolbar(view->accview_pane, view->accview_window,
+			ACCVIEW_TOOLBAR_HEIGHT - 4);
 
 	/* Register event handlers for the two windows. */
 
@@ -1065,7 +1064,7 @@ static void accview_window_redraw_handler(wimp_draw *redraw)
 
 	/* Perform the redraw. */
 
-	more = wimp_redraw_window (redraw);
+	more = wimp_redraw_window(redraw);
 
 	while (more) {
 		window_plot_background(redraw, ACCVIEW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
@@ -1463,14 +1462,18 @@ static void accview_open_print_window(struct accview_window *view, wimp_pointer 
 static struct report *accview_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct accview_window	*view = data;
-	int			line, sort;
+	int			line, column, sort;
 	tran_t			transaction = 0;
 	enum accview_direction	transaction_direction;
 	date_t			transaction_date;
 	acct_t			transaction_account;
 	char			rec_char[REC_FIELD_LEN];
+	wimp_i			columns[ACCVIEW_COLUMNS];
 
-	if (report == NULL || view == NULL)
+	if (report == NULL || view == NULL || view->file == NULL)
+		return NULL;
+
+	if (!column_get_icons(view->columns, columns, ACCVIEW_COLUMNS, FALSE))
 		return NULL;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
@@ -1494,7 +1497,7 @@ static struct report *accview_print(struct report *report, void *data, date_t fr
 	/* Output the headings line, taking the text from the window icons. */
 
 	stringbuild_reset();
-	columns_print_heading_names(view->columns, view->accview_pane/*, report, 0*/);
+	columns_print_heading_names(view->columns, view->accview_pane);
 	stringbuild_report_line(report, 0);
 
 	/* Output the transaction data as a set of delimited lines. */
@@ -1503,52 +1506,79 @@ static struct report *accview_print(struct report *report, void *data, date_t fr
 		sort = view->line_data[line].sort_index;
 		transaction = view->line_data[sort].transaction;
 
-		transaction_direction = accview_get_transaction_direction(view, transaction);
 		transaction_date = transact_get_date(view->file, transaction);
 
-		if ((from == NULL_DATE || transaction_date >= from) && (to == NULL_DATE || transaction_date <= to)) {
-			stringbuild_reset();
+		if ((from != NULL_DATE && transaction_date < from) || (to != NULL_DATE && transaction_date > to))
+			continue;
 
-			stringbuild_add_printf("\\k\\d\\r%d\\t", transact_get_transaction_number(transaction));
-			stringbuild_add_date(transaction_date);
+		transaction_direction = accview_get_transaction_direction(view, transaction);
 
-			if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
-				transaction_account = transact_get_to(view->file, transaction);
+		if (transaction_direction == ACCVIEW_DIRECTION_FROM)
+			transaction_account = transact_get_to(view->file, transaction);
+		else
+			transaction_account = transact_get_from(view->file, transaction);
 
-				stringbuild_add_printf("\\t%s\\t", account_get_ident(view->file, transaction_account));
+		stringbuild_reset();
 
-				if (transact_get_flags(view->file, transaction) & TRANS_REC_FROM)
-					stringbuild_add_string(rec_char);
+		for (column = 0; column < ACCVIEW_COLUMNS; column++) {
+			if (column == 0)
+				stringbuild_add_string("\\k");
+			else
+				stringbuild_add_string("\\t");
 
-				stringbuild_add_printf("\\t%s\\t", account_get_name(view->file, transaction_account));
-			} else {
-				transaction_account = transact_get_from(view->file, transaction);
-
-				stringbuild_add_printf("\\t%s\\t", account_get_ident(view->file, transaction_account));
-
-				if (transact_get_flags(view->file, transaction) & TRANS_REC_TO)
-					stringbuild_add_string(rec_char);
-
-				stringbuild_add_printf("\\t%s\\t", account_get_name(view->file, transaction_account));
+			switch (columns[column]) {
+			case ACCVIEW_ICON_ROW:
+				stringbuild_add_printf("\\v\\d\\r%d", transact_get_transaction_number(transaction));
+				break;
+			case ACCVIEW_ICON_DATE:
+				stringbuild_add_string("\\v\\c");
+				stringbuild_add_date(transaction_date);
+				break;
+			case ACCVIEW_ICON_IDENT:
+				stringbuild_add_string(account_get_ident(view->file, transaction_account));
+				break;
+			case ACCVIEW_ICON_REC:
+				if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
+					if (transact_get_flags(view->file, transaction) & TRANS_REC_FROM)
+						stringbuild_add_string(rec_char);
+				} else {
+					if (transact_get_flags(view->file, transaction) & TRANS_REC_TO)
+						stringbuild_add_string(rec_char);
+				}
+				break;
+			case ACCVIEW_ICON_FROMTO:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(account_get_name(view->file, transaction_account));
+				break;
+			case ACCVIEW_ICON_REFERENCE:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(transact_get_reference(view->file, transaction, NULL, 0));
+				break;
+			case ACCVIEW_ICON_PAYMENTS:
+				stringbuild_add_string("\\v\\d\\r");
+				if (transaction_direction == ACCVIEW_DIRECTION_FROM)
+					stringbuild_add_currency(transact_get_amount(view->file, transaction), FALSE);
+				break;
+			case ACCVIEW_ICON_RECEIPTS:
+				stringbuild_add_string("\\v\\d\\r");
+				if (transaction_direction == ACCVIEW_DIRECTION_TO)
+					stringbuild_add_currency(transact_get_amount(view->file, transaction), FALSE);
+				break;
+			case ACCVIEW_ICON_BALANCE:
+				stringbuild_add_string("\\v\\d\\r");
+				stringbuild_add_currency(view->line_data[sort].balance, FALSE);
+				break;
+			case ACCVIEW_ICON_DESCRIPTION:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(transact_get_description(view->file, transaction, NULL, 0));
+				break;
+			default:
+				stringbuild_add_string("\\s");
+				break;
 			}
-
-			stringbuild_add_printf("%s\\t\\r", transact_get_reference(view->file, transaction, NULL, 0));
-
-			if (transaction_direction == ACCVIEW_DIRECTION_FROM) {
-				stringbuild_add_currency(transact_get_amount(view->file, transaction), FALSE);
-				stringbuild_add_string("\\t\\r");
-			} else {
-				stringbuild_add_string("\\t\\r");
-				stringbuild_add_currency(transact_get_amount(view->file, transaction), FALSE);
-			}
-
-			stringbuild_add_string("\\t\\r");
-			stringbuild_add_currency(view->line_data[sort].balance, FALSE);
-
-			stringbuild_add_printf("\\t%s", transact_get_description(view->file, transaction, NULL, 0));
-
-			stringbuild_report_line(report, 0);
 		}
+
+		stringbuild_report_line(report, 0);
 	}
 
 	hourglass_off();

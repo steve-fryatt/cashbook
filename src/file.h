@@ -138,13 +138,6 @@ int file_get_next_open_offset(struct file_block *file);
 
 
 /**
- * Redraw the windows associated with all open files.
- */
-
-void file_redraw_all(void);
-
-
-/**
  * Redraw all the windows connected with a given file.
  *
  * \param *file		The file to redraw the windows for.
@@ -154,11 +147,22 @@ void file_redraw_windows(struct file_block *file);
 
 
 /**
- * Process any open files on a change of date: adding any new standing
- * orders and recalculate all the files on a change of day.
+ * Process a file for a change of date: add any new standing orders and
+ * recalculate all the accounts
+ *
+ * \param *file		The file to be processed.
  */
 
-void file_process_date_change(void);
+void file_process_date_change(struct file_block *file);
+
+
+/**
+ * Call a callback function, passing each file block pointer in turn.
+ *
+ * \param *callback	The function to be called for each file.
+ */
+
+void file_process_all(void (*callback)(struct file_block *));
 
 #endif
 

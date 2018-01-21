@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -115,11 +115,16 @@ static void		main_initialise(void);
 static void		main_parse_command_line(int argc, char *argv[]);
 static osbool		main_message_quit(wimp_message *message);
 static osbool		main_message_prequit(wimp_message *message);
+static void		main_process_date_change(void);
 
 
 /* Declare the global variables that are used. */
 
 static struct dataxfer_memory	main_memory_handlers;
+
+/* The last date on which all the files were updated. */
+
+static date_t			main_last_update_date = NULL_DATE;
 
 /* Cross file global variables */
 
@@ -167,8 +172,8 @@ static void main_poll_loop(void)
 		if (!event_process_event(reason, &blk, 0)) {
 			switch (reason) {
 			case wimp_NULL_REASON_CODE:
-				file_process_date_change();
 				poll_time += 6000; /* Wait for a minute for the next Null poll */
+				main_process_date_change();
 				break;
 
 			case wimp_OPEN_WINDOW_REQUEST:
@@ -277,9 +282,17 @@ static void main_initialise(void)
 
 	config_str_init("ReportFontNormal", "Homerton.Medium");				/**< Normal weight font name for reporting and printing.		*/
 	config_str_init("ReportFontBold", "Homerton.Bold");				/**< Bold weight font name for reporting and printing.			*/
+	config_str_init("ReportFontItalic", "Homerton.Medium.Oblique");			/**< Italic weight font name for reporting and printing.		*/
+	config_str_init("ReportFontBoldItalic", "Homerton.Bold.Oblique");		/**< Bold-Italic weight font name for reporting and printing.		*/
 	config_int_init("ReportFontSize", 12);						/**< Report and print font size (points).				*/
 	config_int_init("ReportFontLinespace", 130);					/**< Report and print linespacing (percent of font size).		*/
-	config_opt_init("ReportShowGrid", FALSE);					/**< Display a grid around data in a report.				*/
+
+	config_opt_init("ReportShowPages", TRUE);					/**< Show pages in the report viewer.					*/
+	config_opt_init("ReportRotate", FALSE);						/**< Lay pages out in Landscape orientation.				*/
+	config_opt_init("ReportFitWidth", TRUE);					/**< Fit reports to one page wide.					*/
+	config_opt_init("ReportShowTitle", TRUE);					/**< Show report titles in the header on each report page.		*/
+	config_opt_init("ReportShowPageNum", TRUE);					/**< Show page numbers in the footer on each report page.		*/
+	config_opt_init("ReportShowGrid", TRUE);					/**< Show the grid around tabular report data.				*/
 
 	config_opt_init("PrintFitWidth", TRUE);						/**< Fit printout to one page width when PrintText == FALSE.		*/
 	config_opt_init("PrintRotate", FALSE);						/**< Print Landscape when PrintText == FALSE.				*/
@@ -360,7 +373,7 @@ static void main_initialise(void)
 
 	/* Initialise the file update mechanism: calling it now with no files loaded will force the date to be set up. */
 
-	file_process_date_change();
+	main_process_date_change();
 
 	hourglass_off();
 }
@@ -417,5 +430,40 @@ static osbool main_message_prequit(wimp_message *message)
 	wimp_send_message(wimp_USER_MESSAGE_ACKNOWLEDGE, message, message->sender);
 
 	return TRUE;
+}
+
+
+/**
+ * Process all open files if the date has changed.
+ */
+
+static void main_process_date_change(void)
+{
+	date_t	today;
+
+#ifdef DEBUG
+	debug_printf("\\YChecking for daily update");
+#endif
+
+	/* Get today's date and check if an update has already happened
+	 * today. If one has, there's nothing more to do.
+	 */
+
+	today = date_today();
+
+	if (today == main_last_update_date)
+		return;
+
+	/* Record the date of this update. */
+
+	main_last_update_date = today;
+
+	/* Run an update on all open files. */
+
+	hourglass_on();
+
+	file_process_all(file_process_date_change);
+
+	hourglass_off();
 }
 

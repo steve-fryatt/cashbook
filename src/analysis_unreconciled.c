@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -593,21 +593,21 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 
 							stringbuild_reset();
 
-							stringbuild_add_printf("\\k\\d\\r%d\\t",
+							stringbuild_add_printf("\\k\\v\\d\\r%d\\t\\v\\c",
 									transact_get_transaction_number(i));
 							stringbuild_add_date(date);
 							stringbuild_add_string("\\t");
 							if (flags & TRANS_REC_FROM)
 								stringbuild_add_string(rec_char);
-							stringbuild_add_printf("\\t%s\\t",
+							stringbuild_add_printf("\\t\\v%s\\t",
 									account_get_name(file, from));
 							if (flags & TRANS_REC_TO)
 								stringbuild_add_string(rec_char);
-							stringbuild_add_printf("\\t%s\\t%s\\t\\d\\r",
+							stringbuild_add_printf("\\t\\v%s\\t\\v%s\\t\\v\\d\\r",
 								account_get_name(file, to),
 								transact_get_reference(file, i, NULL, 0));
 							stringbuild_add_currency(amount, TRUE);
-							stringbuild_add_printf("\\t%s",
+							stringbuild_add_printf("\\t\\v%s",
 									transact_get_description(file, i, NULL, 0));
 
 							stringbuild_report_line(report, 1);
@@ -683,21 +683,21 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 
 					stringbuild_reset();
 
-					stringbuild_add_printf("\\k\\d\\r%d\\t",
+					stringbuild_add_printf("\\k\\v\\d\\r%d\\t\\v\\c",
 							transact_get_transaction_number(i));
 					stringbuild_add_date(date);
 					stringbuild_add_string("\\t");
 					if (flags & TRANS_REC_FROM)
 						stringbuild_add_string(rec_char);
-					stringbuild_add_printf("\\t%s\\t",
+					stringbuild_add_printf("\\t\\v%s\\t",
 							account_get_name(file, from));
 					if (flags & TRANS_REC_TO)
 						stringbuild_add_string(rec_char);
-					stringbuild_add_printf("\\t%s\\t%s\\t\\d\\r",
+					stringbuild_add_printf("\\t\\v%s\\t\\v%s\\t\\v\\d\\r",
 						account_get_name(file, to),
 						transact_get_reference(file, i, NULL, 0));
 					stringbuild_add_currency(amount, TRUE);
-					stringbuild_add_printf("\\t%s",
+					stringbuild_add_printf("\\t\\v%s",
 							transact_get_description(file, i, NULL, 0));
 
 					stringbuild_report_line(report, 1);

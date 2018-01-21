@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -1793,11 +1793,15 @@ static void preset_open_print_window(struct preset_block *windat, wimp_pointer *
 static struct report *preset_print(struct report *report, void *data)
 {
 	struct preset_block	*windat = data;
-	int			line;
+	int			line, column;
 	preset_t		preset;
 	char			rec_char[REC_FIELD_LEN];
+	wimp_i			columns[PRESET_COLUMNS];
 
-	if (report == NULL || windat == NULL)
+	if (report == NULL || windat == NULL || windat->file == NULL)
+		return NULL;
+
+	if (!column_get_icons(windat->columns, columns, PRESET_COLUMNS, FALSE))
 		return NULL;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
@@ -1830,41 +1834,55 @@ static struct report *preset_print(struct report *report, void *data)
 
 		stringbuild_reset();
 
-		/* The Key column. */ 
+		for (column = 0; column < PRESET_COLUMNS; column++) {
+			if (column == 0)
+				stringbuild_add_string("\\k");
+			else
+				stringbuild_add_string("\\t");
 
-		stringbuild_add_printf("\\k%c", windat->presets[preset].action_key);
-
-		/* The %c can be zero, in which case the string will end there and then. */
-
-		/* The Name column. */
-
-		stringbuild_add_printf("\\t%s", windat->presets[preset].name);
-
-		/* The From column. */
-
-		stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->presets[preset].from));
-
-		if (windat->presets[preset].flags & TRANS_REC_FROM)
-			stringbuild_add_string(rec_char);
-
-		stringbuild_add_printf("\\t%s", account_get_name(windat->file, windat->presets[preset].from));
-
-		/* The To column. */
-
-		stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->presets[preset].to));
-
-		if (windat->presets[preset].flags & TRANS_REC_TO)
-			stringbuild_add_string(rec_char);
-
-		stringbuild_add_printf("\\t%s\\t\\r", account_get_name(windat->file, windat->presets[preset].to));
-
-		/* The Amount column. */
-
-		stringbuild_add_currency(windat->presets[preset].amount, FALSE);
-
-		/* The Description column. */
-
-		stringbuild_add_printf("\\t%s", windat->presets[preset].description);
+			switch (columns[column]) {
+			case PRESET_ICON_KEY:
+				stringbuild_add_printf("\\v\\c%c", windat->presets[preset].action_key);
+				/* Note that action_key can be zero, in which case %c terminates. */
+				break;
+			case PRESET_ICON_NAME:
+				stringbuild_add_printf("\\v%s", windat->presets[preset].name);
+				break;
+			case PRESET_ICON_FROM:
+				stringbuild_add_string(account_get_ident(windat->file, windat->presets[preset].from));
+				break;
+			case PRESET_ICON_FROM_REC:
+				if (windat->presets[preset].flags & TRANS_REC_FROM)
+					stringbuild_add_string(rec_char);
+				break;
+			case PRESET_ICON_FROM_NAME:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(account_get_name(windat->file, windat->presets[preset].from));
+				break;
+			case PRESET_ICON_TO:
+				stringbuild_add_string(account_get_ident(windat->file, windat->presets[preset].to));
+				break;
+			case PRESET_ICON_TO_REC:
+				if (windat->presets[preset].flags & TRANS_REC_TO)
+					stringbuild_add_string(rec_char);
+				break;
+			case PRESET_ICON_TO_NAME:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(account_get_name(windat->file, windat->presets[preset].to));
+				break;
+			case PRESET_ICON_AMOUNT:
+				stringbuild_add_string("\\v\\d\\r");
+				stringbuild_add_currency(windat->presets[preset].amount, FALSE);
+				break;
+			case PRESET_ICON_DESCRIPTION:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(windat->presets[preset].description);
+				break;
+			default:
+				stringbuild_add_string("\\s");
+				break;
+			}
+		}
 
 		stringbuild_report_line(report, 0);
 	}

@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -44,60 +44,11 @@
  * Static constants
  */
 
-
-/* Report formatting flags. */
-
-#define REPORT_FLAG_BYTES 1 /* The length of the formatting flag data. */
-#define REPORT_BAR_BYTES  1 /* The length of the tab bar data.         */
-
-#define REPORT_FLAG_INDENT       0x01 /* The item is indented into the column. */
-#define REPORT_FLAG_BOLD         0x02 /* The item is in bold. */
-#define REPORT_FLAG_UNDER        0x04 /* The item is underlined. */
-#define REPORT_FLAG_RIGHT        0x08 /* The item is right aligned. */
-#define REPORT_FLAG_NUMERIC      0x10 /* The item is numeric. */
-#define REPORT_FLAG_SPILL        0x20 /* The column is spill from adjacent columns on the left. */
-#define REPORT_FLAG_KEEPTOGETHER 0x40 /* The row is part of a keep-together block, the first line of which is to be repeated on page breaks. */
-#define REPORT_FLAG_NOTNULL      0x80 /* Used to prevent the flag byte being a null terminator. */
-
-/* Memory management */
-
-#define REPORT_BLOCK_SIZE 10240
-#define REPORT_LINE_SIZE 250
-
 /**
  * The maximum length of a report line.
  */
 
 #define REPORT_MAX_LINE_LEN 1000
-
-/**
- * The maximum number of tabs stops in a tab bar.
- */
-
-#define REPORT_TAB_STOPS 20
-
-/**
- * The maximum length of a font name.
- */
-
-#define REPORT_MAX_FONT_NAME 128
-
-/* Layout details */
-
-#define REPORT_BASELINE_OFFSET 4
-#define REPORT_COLUMN_SPACE 20
-#define REPORT_COLUMN_INDENT 40
-#define REPORT_BOTTOM_MARGIN 4
-#define REPORT_LEFT_MARGIN 4
-#define REPORT_RIGHT_MARGIN 4
-#define REPORT_RULE_SPACE 6
-#define REPORT_MIN_WIDTH 1000
-#define REPORT_MIN_HEIGHT 800
-
-#define REPORT_TEXT_COLUMN_SPACE 1
-#define REPORT_TEXT_COLUMN_INDENT 2
-
-
 
 /**
  * Initialise the reporting system.

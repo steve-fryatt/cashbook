@@ -79,7 +79,15 @@ OBJS = account.o			\
        purge.o				\
        refdesc_menu.o			\
        report.o				\
-       report_format_dialogue.o		\
+       report_font_dialogue.o		\
+       report_cell.o			\
+       report_draw.o			\
+       report_fonts.o			\
+       report_line.o			\
+       report_page.o			\
+       report_region.o			\
+       report_tabs.o			\
+       report_textdump.o		\
        sorder.o				\
        sort.o				\
        sort_dialogue.o			\

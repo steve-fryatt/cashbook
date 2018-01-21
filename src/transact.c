@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -4357,11 +4357,15 @@ static void transact_open_print_window(struct transact_block *windat, wimp_point
 static struct report *transact_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct transact_block	*windat = data;
-	int			line;
+	int			line, column;
 	tran_t			transaction;
 	char			rec_char[REC_FIELD_LEN];
+	wimp_i			columns[TRANSACT_COLUMNS];
 
-	if (report == NULL || windat == NULL)
+	if (report == NULL || windat == NULL || windat->file == NULL)
+		return NULL;
+
+	if (!column_get_icons(windat->columns, columns, TRANSACT_COLUMNS, FALSE))
 		return NULL;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
@@ -4384,7 +4388,7 @@ static struct report *transact_print(struct report *report, void *data, date_t f
 	/* Output the headings line, taking the text from the window icons. */
 
 	stringbuild_reset();
-	columns_print_heading_names(windat->columns, windat->transaction_pane/*, report, 0*/);
+	columns_print_heading_names(windat->columns, windat->transaction_pane);
 	stringbuild_report_line(report, 0);
 
 	/* Output the transaction data as a set of delimited lines. */
@@ -4392,47 +4396,67 @@ static struct report *transact_print(struct report *report, void *data, date_t f
 	for (line = 0; line < windat->trans_count; line++) {
 		transaction = windat->transactions[line].sort_index;
 
-		if ((from == NULL_DATE || windat->transactions[transaction].date >= from) &&
-				(to == NULL_DATE || windat->transactions[transaction].date <= to)) {
-			stringbuild_reset();
+		if ((from != NULL_DATE && windat->transactions[transaction].date < from) ||
+				(to != NULL_DATE && windat->transactions[transaction].date > to))
+			continue;
 
-			/* Line and Date Fields. */
+		stringbuild_reset();
 
-			stringbuild_add_printf("\\k\\d\\r%d\\t", transact_get_transaction_number(transaction));
-			stringbuild_add_date(windat->transactions[transaction].date);
+		for (column = 0; column < TRANSACT_COLUMNS; column++) {
+			if (column == 0)
+				stringbuild_add_string("\\k");
+			else
+				stringbuild_add_string("\\t");
 
-			/* From Field. */
-
-			stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->transactions[transaction].from));
-
-			if (transact_get_flags(windat->file, windat->transactions[transaction].from) & TRANS_REC_FROM)
-				stringbuild_add_string(rec_char);
-
-			stringbuild_add_printf("\\t%s", account_get_name(windat->file, windat->transactions[transaction].from));
-
-			/* To Field. */
-
-			stringbuild_add_printf("\\t%s\\t", account_get_ident(windat->file, windat->transactions[transaction].to));
-
-			if (transact_get_flags(windat->file, windat->transactions[transaction].to) & TRANS_REC_FROM)
-				stringbuild_add_string(rec_char);
-
-			stringbuild_add_printf("\\t%s", account_get_name(windat->file, windat->transactions[transaction].to));
-
-			/* Reference Field. */
-
-			stringbuild_add_printf("\\t%s\\t\\r", windat->transactions[transaction].reference);
-
-			/* Amount Field. */
-
-			stringbuild_add_currency(windat->transactions[transaction].amount, FALSE);
-
-			/* Description Field. */
-
-			stringbuild_add_printf("\\t%s", windat->transactions[transaction].description);
-
-			stringbuild_report_line(report, 0);
+			switch (columns[column]) {
+			case TRANSACT_ICON_ROW:
+				stringbuild_add_printf("\\v\\d\\r%d", transact_get_transaction_number(transaction));
+				break;
+			case TRANSACT_ICON_DATE:
+				stringbuild_add_string("\\v\\c");
+				stringbuild_add_date(windat->transactions[transaction].date);
+				break;
+			case TRANSACT_ICON_FROM:
+				stringbuild_add_string(account_get_ident(windat->file, windat->transactions[transaction].from));
+				break;
+			case TRANSACT_ICON_FROM_REC:
+				if (windat->transactions[transaction].flags & TRANS_REC_FROM)
+					stringbuild_add_string(rec_char);
+				break;
+			case TRANSACT_ICON_FROM_NAME:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(account_get_name(windat->file, windat->transactions[transaction].from));
+				break;
+			case TRANSACT_ICON_TO:
+				stringbuild_add_string(account_get_ident(windat->file, windat->transactions[transaction].to));
+				break;
+			case TRANSACT_ICON_TO_REC:
+				if (windat->transactions[transaction].flags & TRANS_REC_TO)
+					stringbuild_add_string(rec_char);
+				break;
+			case TRANSACT_ICON_TO_NAME:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(account_get_name(windat->file, windat->transactions[transaction].to));
+				break;
+			case TRANSACT_ICON_REFERENCE:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(windat->transactions[transaction].reference);
+				break;
+			case TRANSACT_ICON_AMOUNT:
+				stringbuild_add_string("\\v\\d\\r");
+				stringbuild_add_currency(windat->transactions[transaction].amount, FALSE);
+				break;
+			case TRANSACT_ICON_DESCRIPTION:
+				stringbuild_add_string("\\v");
+				stringbuild_add_string(windat->transactions[transaction].description);
+				break;
+			default:
+				stringbuild_add_string("\\s");
+				break;
+			}
 		}
+
+		stringbuild_report_line(report, 0);
 	}
 
 	hourglass_off();

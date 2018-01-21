@@ -805,9 +805,19 @@ In addition to these general reports, the standing order report allows a list of
 
 <subhead title="The report viewer">
 
-The report viewer is used to display completed reports on screen, and allows the results to be printed or saved out in a number of different formats.  Depending on the report, the CSV output is suitable for importing into a spreadsheet or graphing package for further manipulation.
+The report viewer is used to display completed reports or printouts on screen, and allows the results to be printed or saved out in a number of different formats.  Depending on the report, the CSV output is suitable for importing into a spreadsheet or graphing package for further manipulation.
 
-The fonts and formatting used in a report can be changed using the <window>report format</window> dialogue, by clicking <mouse>menu</mouse> over the <window>report</window> window and selecting <menu>Format...</menu>.  Two fonts can be specified, for the normal and bold text respectively.  The font size can be specified in points, and the line spacing as a percentage of the point size.  Default values, to be used for new all new reports, can be set in the <icon>Fonts</icon> section of the <window>choices</window> dialogue. If <icon>Show grid</icon> is on, borders will be plotted around tabular data.
+The fonts used in the report can be changed using the <window>report font</window> dialogue, by selecting <menu>Font...</menu> from the <window>report</window> window menu or by clicking on the <icon>font</icon> in the toolbar.  Four fonts can be chosen: for the normal, italic, bold and bold-italic text respectively.  The font size can be specified in points, and the line spacing specified as a percentage of the point size.
+
+Tabular data in reports can be surrounded by a grid, to make reading the lines easier. The grid can be toggled on and off by selecting <menu>Include &msep; Grid</menu> from the <window>report</window> window menu, or by clicking on the <icon>show grid</icon> button in the toolbar.
+
+If a RISC&nbsp;OS printer driver has been loaded in the current session, then it becomes possible to switch the <window>report</window> window between showing a flat report (the only option if no driver is available) or one split into pages &ndash; showing where page breaks occur and allowing things like page headers and numbers to be previewed. To toggle page display on and off, select <menu>Show pages</menu> from the <window>report</window> window menu or click on the <icon>show pages</icon> button in the toolbar. The page display size is fixed on screen so that fonts appear at 100% scaling; if layout requirements would result in the page content being scaled down to fit on the paper, this results in the apparent page size growing on screen.
+
+The paper layout can be switched between Portrait and Landscape by selecting <menu>Layout &msep; Portrait</menu> and <menu>Layout &msep; Landscape</menu> from the <window>report</window> window menu, or by clicking on the <icon>portrait</icon> and <icon>landscape</icon> buttons in the toolbar. To force the report to be scaled down so that its width fits on a single sheet of paper, select <menu>Layout &msep; Fit width</menu> from the <window>report</window> window menu or click on the <icon>fit width</icon> button in the toolbar.
+
+Report pages can contain header and footer areas, which show the report title and page numbers respectively. These can be switched on and off using <menu>Include &msep; Title</menu> and <menu>Include &msep; Page numbers</menu> in the <window>report</window> window menu, or by clicking on the <icon>show title</icon> and <icon>show page numbers</icon> buttons in the toolbar.
+
+Default values, to be used for new all new reports, can be set in the <icon>Report</icon> section of the <window>choices</window> dialogue.
 
 The report can be printed from the <window>print report</window> dialogue, opened by selecting <menu>Print...</menu> from the <window>report</window> window menu.  The standard <link ref="Printing">printing options</link> are available, allowing the information to be rotated and scaled to best fit the paper or to be printed using fast text output if the hardware supports this.
 
@@ -1548,7 +1558,7 @@ Alpha release for feedback and comment.
 <list>
 <li>Re-implemented analysis report system to make it modular and enable additional reports to be added.
 <li>Re-implemented report viewer, adding new menus and toolbar. Page layouts can be previewed on screen when a printer driver is present.
-<li>Allow a grid to be plotted around tables in reports and printed output.
+<li>Allow a grid to be plotted around tables in reports and printed output (ticket&nbsp;#354).
 <li>Allow print jobs to be sent to a report window instead of direct to a printer (ticket&nbsp;#300).
 <li>Tidy up print dialogue and print protocol implementation.
 <li>Remove all unbounded string operations from source code.

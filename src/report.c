@@ -2157,18 +2157,18 @@ static os_error *report_plot_region(struct report *report, struct report_region_
 
 	/* Draw a box around the region. This is for debugging only! */
 
-	outline.x0 = origin->x + region->position.x0;
-	outline.y0 = origin->y + region->position.y0;
-	outline.x1 = origin->x + region->position.x1;
-	outline.y1 = origin->y + region->position.y1;
+//	outline.x0 = origin->x + region->position.x0;
+//	outline.y0 = origin->y + region->position.y0;
+//	outline.x1 = origin->x + region->position.x1;
+//	outline.y1 = origin->y + region->position.y1;
 
-	error = xcolourtrans_set_gcol(os_COLOUR_LIGHT_GREEN, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
-	if (error != NULL)
-		return error;
+//	error = xcolourtrans_set_gcol(os_COLOUR_LIGHT_GREEN, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+//	if (error != NULL)
+//		return error;
 
-	error = report_draw_box(&outline);
-	if (error != NULL)
-		return error;
+//	error = report_draw_box(&outline);
+//	if (error != NULL)
+//		return error;
 
 	/* Replot the region. */
 
@@ -2535,13 +2535,13 @@ static os_error *report_plot_cell(struct report *report, os_box *outline, char *
 
 	/* Draw a box around the cell. This is for debugging only! */
 
-	error = xcolourtrans_set_gcol(os_COLOUR_RED, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
-	if (error != NULL)
-		return error;
+//	error = xcolourtrans_set_gcol(os_COLOUR_RED, colourtrans_SET_FG_GCOL, os_ACTION_OVERWRITE, NULL, NULL);
+//	if (error != NULL)
+//		return error;
 
-	error = report_draw_box(outline);
-	if (error != NULL)
-		return error;
+//	error = report_draw_box(outline);
+//	if (error != NULL)
+//		return error;
 
 	/* If there's no text, there's nothing else to do. */
 

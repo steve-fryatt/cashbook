@@ -356,23 +356,33 @@ static struct saveas_block		*account_list_window_saveas_csv = NULL;
 
 static struct saveas_block		*account_list_window_saveas_tsv = NULL;
 
-/**
- * The Account List Window instance currently owning the line drag.
- */
-
-static struct account_list_window	*account_list_window_dragging_owner = NULL;
 
 /**
- * The line of the window over which the drag started.
+ * Data relating to line dragging dragging.
  */
 
-static int				account_list_window_dragging_start_line = -1;
+struct account_list_window_drag_data {
+	/**
+	 * The Account List Window instance currently owning the line drag.
+	 */
+	struct account_list_window	*owner;
+
+	/**
+	 * The line of the window over which the drag started.
+	 */
+	int				start_line;
+
+	/**
+	 * TRUE if the window line drag is using a sprite.
+	 */
+	osbool				dragging_sprite;
+};
 
 /**
- * TRUE if the window line drag is using a sprite.
+ * Instance of the line drag data, held statically to survive across Wimp_Poll.
  */
 
-static osbool				account_list_window_dragging_sprite = FALSE;
+static struct account_list_window_drag_data	account_list_window_dragging_data;
 
 /* Static Function Prototypes. */
 
@@ -1939,10 +1949,10 @@ static void account_list_window_start_drag(struct account_list_window *windat, w
 	 *          if a suitable sprite were to be created.
 	 */
 
-	account_list_window_dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+	account_list_window_dragging_data.dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
                        osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
 
-	if (FALSE && account_list_window_dragging_sprite) {
+	if (FALSE && account_list_window_dragging_data.dragging_sprite) {
 		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
 				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
 				"", &(drag.initial), &(drag.bbox));
@@ -1964,10 +1974,10 @@ static void account_list_window_start_drag(struct account_list_window *windat, w
 		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
 	}
 
-	account_list_window_dragging_owner = windat;
-	account_list_window_dragging_start_line = line;
+	account_list_window_dragging_data.owner = windat;
+	account_list_window_dragging_data.start_line = line;
 
-	event_set_drag_handler(account_list_window_terminate_drag, NULL, NULL);
+	event_set_drag_handler(account_list_window_terminate_drag, NULL, &account_list_window_dragging_data);
 }
 
 
@@ -1981,26 +1991,32 @@ static void account_list_window_start_drag(struct account_list_window *windat, w
 
 static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 {
-	wimp_pointer			pointer;
-	wimp_window_state		window;
-	int				line;
-	struct file_block		*file;
-	struct account_redraw		block;
+	wimp_pointer				pointer;
+	wimp_window_state			window;
+	int					line;
+	struct file_block			*file;
+	struct account_redraw			block;
+	struct account_list_window_drag_data	*drag_data = data;
+	struct account_list_window		*windat;
+
+	if (drag_data == NULL)
+		return;
 
 	/* Terminate the drag and end the autoscroll. */
 
 	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
 		wimp_auto_scroll(0, NULL);
 
-	if (account_list_window_dragging_sprite)
+	if (drag_data->dragging_sprite)
 		dragasprite_stop();
 
 	/* Check that the returned data is valid. */
 
-	if (account_list_window_dragging_owner == NULL || account_list_window_dragging_owner->instance == NULL)
+	windat = drag_data->owner;
+	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = account_get_file(account_list_window_dragging_owner->instance);
+	file = account_get_file(windat->instance);
 	if (file == NULL)
 		return;
 
@@ -2008,7 +2024,7 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 
 	wimp_get_pointer_info(&pointer);
 
-	window.w = account_list_window_dragging_owner->account_window;
+	window.w = windat->account_window;
 	wimp_get_window_state(&window);
 
 	line = ((window.visible.y1 - pointer.pos.y) - window.yscroll - ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT) / WINDOW_ROW_HEIGHT;
@@ -2016,34 +2032,34 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 	if (line < 0)
 		line = 0;
 
-	if (line >= account_list_window_dragging_owner->display_lines)
-		line = account_list_window_dragging_owner->display_lines - 1;
+	if (line >= windat->display_lines)
+		line = windat->display_lines - 1;
 
 	/* Move the blocks around. */
 
-	block = account_list_window_dragging_owner->line_data[account_list_window_dragging_start_line];
+	block = windat->line_data[drag_data->start_line];
 
-	if (line < account_list_window_dragging_start_line) {
-		memmove(&(account_list_window_dragging_owner->line_data[line + 1]), &(account_list_window_dragging_owner->line_data[line]),
-				(account_list_window_dragging_start_line - line) * sizeof(struct account_redraw));
+	if (line < drag_data->start_line) {
+		memmove(&(windat->line_data[line + 1]), &(windat->line_data[line]),
+				(drag_data->start_line - line) * sizeof(struct account_redraw));
 
-		account_list_window_dragging_owner->line_data[line] = block;
-	} else if (line > account_list_window_dragging_start_line) {
-		memmove(&(account_list_window_dragging_owner->line_data[account_list_window_dragging_start_line]),
-				&(account_list_window_dragging_owner->line_data[account_list_window_dragging_start_line + 1]),
-				(line - account_list_window_dragging_start_line) * sizeof(struct account_redraw));
+		windat->line_data[line] = block;
+	} else if (line > drag_data->start_line) {
+		memmove(&(windat->line_data[drag_data->start_line]),
+				&(windat->line_data[drag_data->start_line + 1]),
+				(line - drag_data->start_line) * sizeof(struct account_redraw));
 
-		account_list_window_dragging_owner->line_data[line] = block;
+		windat->line_data[line] = block;
 	}
 
 	/* Tidy up and redraw the windows */
 
 	account_recalculate_all(file);
 	file_set_data_integrity(file, TRUE);
-	account_list_window_force_redraw(account_list_window_dragging_owner, 0, account_list_window_dragging_owner->display_lines - 1, wimp_ICON_WINDOW);
+	account_list_window_force_redraw(windat, 0, windat->display_lines - 1, wimp_ICON_WINDOW);
 
 	#ifdef DEBUG
-	debug_printf("Move account from line %d to line %d", account_list_window_dragging_start_line, line);
+	debug_printf("Move account from line %d to line %d", drag_data->start_line, line);
 	#endif
 }
 

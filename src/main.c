@@ -241,6 +241,7 @@ static void main_initialise(void)
 
 	config_opt_init("IyonixKeys", (osbyte1(osbyte_IN_KEY, 0, 0xff) == 0xaa));	/**< Use RISC OS 5 Delete: default true only on an Iyonix.		*/
 	config_opt_init("GlobalClipboardSupport", TRUE);				/**< Support the global clipboard in the transaction window.		*/
+	config_opt_init("TransDragDrop", FALSE);					/**< Support for drag and drop in the transaction window.		*/
 
 	config_opt_init("RememberValues", TRUE);					/**< Remember previous values in dialogue boxes.			*/
 

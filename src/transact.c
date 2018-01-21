@@ -36,7 +36,9 @@
 
 /* OSLib header files */
 
+#include "oslib/dragasprite.h"
 #include "oslib/wimp.h"
+#include "oslib/wimpspriteop.h"
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
 #include "oslib/osfile.h"
@@ -344,6 +346,26 @@ static struct sort_dialogue_icon transact_sort_directions[] = {				/**< Details 
 
 static struct sort_callback	transact_sort_callbacks;
 
+/**
+ * Data relating to window dragging.
+ */
+
+struct transact_drag_data {
+	struct transact_block	*owner;
+
+	int			start_line;
+	wimp_i			start_column;
+
+	osbool			dragging_sprite;
+};
+
+/**
+ * Instance of the window drag data, held statically to survive across Wimp_Poll.
+ */
+
+static struct transact_drag_data transact_window_dragging_data;
+
+
 /* Transaction List Window. */
 
 static wimp_window		*transact_window_def = NULL;			/**< The definition for the Transaction List Window.					*/
@@ -381,6 +403,10 @@ static void			transact_adjust_sort_icon(struct transact_block *windat);
 static void			transact_adjust_sort_icon_data(struct transact_block *windat, wimp_icon *icon);
 static void			transact_force_window_redraw(struct transact_block *windat, int from, int to, wimp_i column);
 static void			transact_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+
+
+static void			transact_window_start_drag(struct transact_block *windat, wimp_window_state *window, wimp_i column, int line);
+static void			transaction_window_terminate_drag(wimp_dragged *drag, void *data);
 
 static osbool			transact_is_blank(struct file_block *file, tran_t transaction);
 static tran_t			transact_find_edit_line_by_transaction(struct transact_block *windat);
@@ -872,9 +898,7 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 		} else if (pointer->i == TRANSACT_ICON_TO_REC || pointer->i == TRANSACT_ICON_TO_NAME) {
 			icons_put_caret_at_end(pointer->w, TRANSACT_ICON_TO);
 		}
-	}
-
-	if (pointer->buttons == wimp_CLICK_ADJUST) {
+	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 		/* Adjust clicks don't care about icons, as we only need to know which line and column we're in. */
 
 		window.w = pointer->w;
@@ -924,6 +948,18 @@ static void transact_window_click_handler(wimp_pointer *pointer)
 					transact_toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
 				}
 			}
+		}
+	} else if (pointer->buttons == wimp_DRAG_SELECT) {
+		if (config_opt_read("TransDragDrop")) {
+			window.w = pointer->w;
+			wimp_get_window_state(&window);
+
+			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_TOOLBAR_HEIGHT, -1);
+			xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
+			column = column_find_icon_from_xpos(windat->columns, xpos);
+
+			if (line >= 0 && column != wimp_ICON_WINDOW)
+				transact_window_start_drag(windat, &window, column, line);
 		}
 	}
 }
@@ -2240,82 +2276,165 @@ int transact_get_caret_line(struct file_block *file)
 }
 
 
+/**
+ * Start a transaction window drag, to copy data within the window.
+ *
+ * \param *windat		The Transaction Window being dragged.
+ * \param *window		The window state of the transaction window.
+ * \param line			The line of the Transaction Window being dragged.
+ */
+
+static void transact_window_start_drag(struct transact_block *windat, wimp_window_state *window, wimp_i column, int line)
+{
+	wimp_auto_scroll_info	auto_scroll;
+	wimp_drag		drag;
+	int			ox, oy, xmin, xmax;
+
+	if (windat == NULL || window == NULL)
+		return;
+
+	xmin = column_get_window_width(windat->columns);
+	xmax = 0;
+
+	column_get_xpos(windat->columns, column, &xmin, &xmax);
+
+	ox = window->visible.x0 - window->xscroll;
+	oy = window->visible.y1 - window->yscroll;
 
+	/* Set up the drag parameters. */
 
+	drag.w = windat->transaction_window;
+	drag.type = wimp_DRAG_USER_FIXED;
 
+	drag.initial.x0 = ox + xmin;
+	drag.initial.y0 = oy + WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, line);
+	drag.initial.x1 = ox + xmax;
+	drag.initial.y1 = oy + WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, line);
 
+	drag.bbox.x0 = window->visible.x0;
+	drag.bbox.y0 = window->visible.y0;
+	drag.bbox.x1 = window->visible.x1;
+	drag.bbox.y1 = window->visible.y1;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/* Read CMOS RAM to see if solid drags are required.
+	 *
+	 * \TODO -- Solid drags are never actually used, although they could be
+	 *          if a suitable sprite were to be created.
+	 */
+
+	transact_window_dragging_data.dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+                       osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
+
+	if (FALSE && transact_window_dragging_data.dragging_sprite) {
+		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
+				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
+				"", &(drag.initial), &(drag.bbox));
+	} else {
+		wimp_drag_box(&drag);
+	}
+
+	/* Initialise the autoscroll. */
+
+	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL) {
+		auto_scroll.w = windat->transaction_window;
+		auto_scroll.pause_zone_sizes.x0 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.y0 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.x1 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.y1 = AUTO_SCROLL_MARGIN + TRANSACT_TOOLBAR_HEIGHT;
+		auto_scroll.pause_duration = 0;
+		auto_scroll.state_change = (void *) 1;
+
+		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
+	}
+
+	transact_window_dragging_data.owner = windat;
+	transact_window_dragging_data.start_line = line;
+	transact_window_dragging_data.start_column = column;
+
+	event_set_drag_handler(transaction_window_terminate_drag, NULL, &transact_window_dragging_data);
+}
+
+
+/**
+ * Handle drag-end events relating to dragging rows of an Transaction
+ * Window instance.
+ *
+ * \param *drag			The Wimp drag end data.
+ * \param *data			Unused client data sent via Event Lib.
+ */
+
+static void transaction_window_terminate_drag(wimp_dragged *drag, void *data)
+{
+	wimp_pointer			pointer;
+	wimp_window_state		window;
+	int				end_line, xpos;
+	wimp_i				end_column;
+	tran_t				start_transaction, end_transaction;
+	struct transact_drag_data	*drag_data = data;
+	struct transact_block		*windat;
+
+	if (drag_data == NULL)
+		return;
+
+	/* Terminate the drag and end the autoscroll. */
+
+	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
+		wimp_auto_scroll(0, NULL);
+
+	if (drag_data->dragging_sprite)
+		dragasprite_stop();
+
+	/* Check that the returned data is valid. */
+
+	windat = drag_data->owner;
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	/* Get the line at which the drag ended. */
+
+	wimp_get_pointer_info(&pointer);
+
+	window.w = windat->transaction_window;
+	wimp_get_window_state(&window);
+
+	end_line = window_calculate_click_row(&(pointer.pos), &window, TRANSACT_TOOLBAR_HEIGHT, -1);
+
+	xpos = (pointer.pos.x - window.visible.x0) + window.xscroll;
+	end_column = column_find_icon_from_xpos(windat->columns, xpos);
+
+	if ((end_line < 0) || (end_column == wimp_ICON_WINDOW))
+		return;
+
+	start_transaction = transact_get_transaction_from_line(windat->file, drag_data->start_line);
+	end_transaction = transact_get_transaction_from_line(windat->file, end_line);
+
+	/* \TODO -- Need to add transactions if drop is outside file limit. */
+
+	switch (drag_data->start_column) {
+	case TRANSACT_ICON_ROW:
+		break;
+	case TRANSACT_ICON_DATE:
+		break;
+	case TRANSACT_ICON_FROM:
+	case TRANSACT_ICON_TO:
+		break;
+	case TRANSACT_ICON_FROM_NAME:
+	case TRANSACT_ICON_TO_NAME:
+		break;
+	case TRANSACT_ICON_FROM_REC:
+	case TRANSACT_ICON_TO_REC:
+		break;
+	case TRANSACT_ICON_AMOUNT:
+		break;
+	case TRANSACT_ICON_REFERENCE:
+	case TRANSACT_ICON_DESCRIPTION:
+		break;
+	}
+
+//	#ifdef DEBUG
+	debug_printf("Drag data from line %d, column %d to line %d, column %d", drag_data->start_line, drag_data->start_column, end_line, end_column);
+//	#endif
+}
 
 
 

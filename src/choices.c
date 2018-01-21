@@ -90,6 +90,7 @@
 #define CHOICE_ICON_REMEMBERDIALOGUE 0
 #define CHOICE_ICON_CLIPBOARD 4
 #define CHOICE_ICON_RO5KEYS 3
+#define CHOICE_ICON_TDRAG 15
 #define CHOICE_ICON_DATEFORMAT 8
 #define CHOICE_ICON_DATEFORMAT_POP 9
 #define CHOICE_ICON_DATEIN 11
@@ -619,6 +620,8 @@ static void choices_set_window(void)
 			config_opt_read("GlobalClipboardSupport"));
 	icons_set_selected(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_RO5KEYS,
 			config_opt_read("IyonixKeys"));
+	icons_set_selected(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_TDRAG,
+			config_opt_read("TransDragDrop"));
 	icons_set_selected(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_REMEMBERDIALOGUE,
 			config_opt_read("RememberValues"));
 	icons_set_selected(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_TERRITORYDATE,
@@ -812,6 +815,8 @@ static void choices_read_window(void)
 			icons_get_selected(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_CLIPBOARD));
 	config_opt_set("IyonixKeys",
 			icons_get_selected(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_RO5KEYS));
+	config_opt_set("TransDragDrop",
+			icons_get_selected(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_TDRAG));
 	config_opt_set("RememberValues",
 			icons_get_selected(choices_panes[CHOICE_PANE_GENERAL], CHOICE_ICON_REMEMBERDIALOGUE));
 	config_opt_set("TerritoryDates",

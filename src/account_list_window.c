@@ -2020,7 +2020,9 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 	if (file == NULL)
 		return;
 
-	/* Get the line at which the drag ended. */
+	/* Get the line at which the drag ended. We do this manually, as there's
+	 * no requirement for the user to hit a row exactly.
+	 */
 
 	wimp_get_pointer_info(&pointer);
 

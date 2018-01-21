@@ -721,7 +721,8 @@ Help.Choices.Reports:\Schange options for fonts and display used in reports and 
 
 Help.Choices0.Remember:\Stoggle whether the contents of dialogue boxes is remembered after use.
 Help.Choices0.RO5Keys:\Stoggle whether the RISC OS 5 style of keyboard usage is adopted.
-Help.Choices0.Global:\Ssupport for the global clipboard on and off.
+Help.Choices0.Global:\Stoggle support for the global clipboard on and off.
+Help.Choices0.TDrag:\Stoggle support for drag and drop on and off in the transaction window.
 Help.Choices0.DateFmt:\Tformat used to enter and display dates.
 Help.Choices0.DateFmtPop:\Sselect a date format from those available.
 Help.Choices0.DateIn:These are the separators which can be used when entering dates.

@@ -205,6 +205,16 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle, osbool grid)
 
 
 /**
+ * Identify the widest column in a Report Tabs instance.
+ *
+ * \param *handle		The instance to query.
+ * \return			The widest column, in OS Units.
+ */
+
+int report_tabs_get_min_column_width(struct report_tabs_block *handle);
+
+
+/**
  * Calculate the horizontal pagination of all of the bars in a
  * Report Tabs instance.
  *

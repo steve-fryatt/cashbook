@@ -143,6 +143,7 @@ static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop);
 static void report_tabs_initialise_stop(struct report_tabs_stop *stop);
 static void report_tabs_zero_stop(struct report_tabs_stop *stop);
 static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osbool grid);
+static int report_tabs_get_min_bar_column_width(struct report_tabs_bar *handle);
 static int report_tabs_paginate_bar(struct report_tabs_bar *handle, int width);
 static struct report_tabs_stop *report_tabs_bar_get_stop(struct report_tabs_bar *handle, int stop);
 
@@ -454,6 +455,33 @@ int report_tabs_calculate_columns(struct report_tabs_block *handle, osbool grid)
 
 	for (bar = 0; bar < handle->bar_allocation; bar++) {
 		width = report_tabs_calculate_bar_columns(handle->bars[bar], grid);
+		if (width > max_width)
+			max_width = width;
+	}
+
+	return max_width;
+}
+
+
+/**
+ * Identify the widest column in a Report Tabs instance.
+ *
+ * \param *handle		The instance to query.
+ * \return			The widest column, in OS Units.
+ */
+
+int report_tabs_get_min_column_width(struct report_tabs_block *handle)
+{
+	int	bar, width, max_width = 0;
+
+	if (handle == NULL || handle->bars == NULL)
+		return 0;
+
+	for (bar = 0; bar < handle->bar_allocation; bar++) {
+		width = report_tabs_get_min_bar_column_width(handle->bars[bar]);
+		if (width == 0)
+			return 0;
+	
 		if (width > max_width)
 			max_width = width;
 	}
@@ -913,13 +941,11 @@ static void report_tabs_zero_stop(struct report_tabs_stop *stop)
 
 static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osbool grid)
 {
-	int	stop, width;
+	int	stop, width = 0;
 	osbool	gridlines = FALSE;
 
 	if (handle == NULL || handle->stops == NULL || handle->stop_count == 0)
 		return 0;
-
-	width = 0;
 
 	handle->inset = 0;
 
@@ -943,6 +969,31 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osb
 		handle->inset = REPORT_TABS_COLUMN_SPACE;
 
 	return width + (2 * handle->inset);
+}
+
+
+/**
+ * Calculate the widest cell on a report, based on the current column widths.
+ *
+ * \param *handle		The bar to measure.
+ * \return			The maximum width, in OS Units.
+ */
+
+static int report_tabs_get_min_bar_column_width(struct report_tabs_bar *handle)
+{
+	int	stop, column_width, max_width = 0;
+
+	if (handle == NULL || handle->stops == NULL || handle->stop_count == 0)
+		return 0;
+
+	for (stop = 0; stop < handle->stop_count; stop++) {
+		column_width = handle->stops[stop].font_width + REPORT_TABS_COLUMN_SPACE;
+
+		if (column_width > max_width)
+			max_width = column_width;
+	}
+
+	return max_width;
 }
 
 

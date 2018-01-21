@@ -2721,7 +2721,9 @@ static void report_paginate(struct report *report)
 	struct report_line_data		*line_data;
 	struct report_page_layout	layout;
 	struct report_pagination_area	repeat_area, main_area;
-	int				line_height, repeat_line_height, repeat_line_ypos, pages_across, pages_down, target_width, field_height, body_height, used_height, repeat_tab_bar;
+	int				line_height, repeat_line_height, repeat_line_ypos, repeat_tab_bar;
+	int				pages_across, pages_down, target_width;
+	int				field_height, body_height, used_height;
 	size_t				line_count;
 	unsigned			line, repeat_line;
 
@@ -2736,6 +2738,9 @@ static void report_paginate(struct report *report)
 	/* Identify the page size. If this fails, there's no point continuing. */
 
 	target_width = (report->display & REPORT_DISPLAY_FIT_WIDTH) ? report->width : 0;
+
+	if (target_width == 0)
+		target_width = report_tabs_get_min_column_width(report->tabs);
 
 	field_height = report_fonts_get_linespace(report->fonts);
 	if (field_height == 0)

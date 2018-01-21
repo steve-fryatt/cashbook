@@ -877,7 +877,7 @@ Accounts and headings are entered into the include fields in comma separated lis
 
 The selection of transactions can be further narrowed down using the <icon>Reference</icon>, <icon>Amount</icon> and <icon>Description</icon> fields: if any of these are specified, the transaction must match the values given. The amount field can be given either a lower limit, and upper limit, or both, while both the reference and description fields can be given a piece of text to match.  The text comparison uses standard wildcards, where <entry>#</entry> matches a single character and <entry>*</entry> matches zero or more different characters.
 
-Finally, the <icon>Output</icon> section contains options to select whether the transaction entries or the summaries are included in the report.  Any combination can be selected.
+Finally, the <icon>Output</icon> section contains options to select whether the transaction entries or the summaries are included in the report. Any combination can be selected. By default, accounts or analysis headings which have a zero balance in a given group will be omitted from the group&rsquo;s summary; this can be reversed by ticking <icon>Include empty</icon>.
 
 Once the options have been set, clicking on <icon>Generate</icon> will create the report and display it in a report viewer.
 
@@ -1560,6 +1560,7 @@ Alpha release for feedback and comment.
 <li>Re-implemented report viewer, adding new menus and toolbar. Page layouts can be previewed on screen when a printer driver is present.
 <li>Allow a grid to be plotted around tables in reports and printed output (ticket&nbsp;#354).
 <li>Allow print jobs to be sent to a report window instead of direct to a printer (ticket&nbsp;#300).
+<li>Allow zero-balance entries to be included in transaction report summaries (ticket&nbsp;#601).
 <li>Tidy up print dialogue and print protocol implementation.
 <li>Remove all unbounded string operations from source code.
 <li>Highlight the line over which <mouse>menu</mouse> was clicked when menus can operate on items in a window.

@@ -831,6 +831,7 @@ Help.TransRep.Desc:\Ttext to be matched in the description field of included tra
 Help.TransRep.OPTrans:\Stoggle whether transaction details are included in the report.
 Help.TransRep.OPSummA:\Stoggle whether account summaries are included in the report.
 Help.TransRep.OPSummH:\Stoggle whether analysis heading summaries are included in the report.
+Help.TransRep.OPEmpty:\Stoggle whether empty (zero balance) accounts and analysis headings are included in the report summaries.
 Help.TransRep.OK:\Sgenerate a transaction report.
 Help.TransRep.Delete/Help.UnrecRep.Delete/Help.CashFlwRep.Delete/Help.BalanceRep.Delete:\Sdetele the template behind this report.
 Help.TransRep.Rename/Help.UnrecRep.Rename/Help.CashFlwRep.Rename/Help.BalanceRep.Rename:\Srename the template behind this report.

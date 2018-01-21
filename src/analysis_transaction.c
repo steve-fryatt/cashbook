@@ -93,6 +93,7 @@
 #define ANALYSIS_TRANS_OPTRANS 36
 #define ANALYSIS_TRANS_OPSUMMARY 37
 #define ANALYSIS_TRANS_OPACCSUMMARY 38
+#define ANALYSIS_TRANS_OPEMPTY 41
 
 
 /**
@@ -121,6 +122,7 @@ struct analysis_transaction_report {
 	osbool				output_trans;
 	osbool				output_summary;
 	osbool				output_accsummary;
+	osbool				output_empty;
 };
 
 /**
@@ -286,6 +288,7 @@ static void *analysis_transaction_create_instance(struct analysis_block *parent)
 	new->saved.output_trans = TRUE;
 	new->saved.output_summary = TRUE;
 	new->saved.output_accsummary = TRUE;
+	new->saved.output_empty = FALSE;
 
 	return new;
 }
@@ -442,6 +445,7 @@ static void analysis_transaction_fill_window(struct analysis_block *parent, wimp
 		icons_set_selected(window, ANALYSIS_TRANS_OPTRANS, template->output_trans);
 		icons_set_selected(window, ANALYSIS_TRANS_OPSUMMARY, template->output_summary);
 		icons_set_selected(window, ANALYSIS_TRANS_OPACCSUMMARY, template->output_accsummary);
+		icons_set_selected(window, ANALYSIS_TRANS_OPEMPTY, template->output_empty);
 	}
 }
 
@@ -509,6 +513,7 @@ static void analysis_transaction_process_window(struct analysis_block *parent, w
 	template->output_trans = icons_get_selected(window, ANALYSIS_TRANS_OPTRANS);
  	template->output_summary = icons_get_selected(window, ANALYSIS_TRANS_OPSUMMARY);
 	template->output_accsummary = icons_get_selected(window, ANALYSIS_TRANS_OPACCSUMMARY);
+	template->output_empty = icons_get_selected(window, ANALYSIS_TRANS_OPEMPTY);
 }
 
 
@@ -676,7 +681,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 				if ((account = account_get_list_entry_account(file, ACCOUNT_FULL, i)) != NULL_ACCOUNT) {
 					amount = analysis_data_get_total(scratch, account);
 
-					if (amount != 0) {
+					if ((amount != 0) || settings->output_empty) {
 						total += amount;
 
 						stringbuild_reset();
@@ -720,7 +725,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 				if ((account = account_get_list_entry_account(file, ACCOUNT_OUT, i)) != NULL_ACCOUNT) {
 					amount = analysis_data_get_total(scratch, account);
 
-					if (amount != 0) {
+					if ((amount != 0) || settings->output_empty) {
 						total += amount;
 
 						stringbuild_reset();
@@ -772,7 +777,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 				if ((account = account_get_list_entry_account(file, ACCOUNT_IN, i)) != NULL_ACCOUNT) {
 					amount = analysis_data_get_total(scratch, account);
 
-					if (amount != 0) {
+					if ((amount != 0) || settings->output_empty) {
 						total += amount;
 
 						stringbuild_reset();
@@ -882,6 +887,7 @@ static void analysis_transaction_copy_template(void *to, void *from)
 	b->output_trans = a->output_trans;
 	b->output_summary = a->output_summary;
 	b->output_accsummary = a->output_accsummary;
+	b->output_empty = a->output_empty;
 }
 
 
@@ -940,6 +946,9 @@ static void analysis_transaction_write_file_block(void *block, FILE *out, char *
 
 	if (*(template->desc) != '\0')
 		config_write_token_pair(out, "Desc", template->desc);
+
+	if (template->output_empty != FALSE)
+		config_write_token_pair(out, "IncEmpty", config_return_opt_string(template->output_empty));
 }
 
 
@@ -986,6 +995,8 @@ static void analysis_transaction_process_file_token(void *block, struct filing_b
 		template->amount_max = currency_get_currency_field(in);
 	} else if (filing_test_token(in, "Desc")) {
 		filing_get_text_value(in, template->desc, TRANSACT_DESCRIPT_FIELD_LEN);
+	} else if (filing_test_token(in, "IncEmpty")) {
+		template->output_empty = filing_get_opt_value(in);
 	} else {
 		filing_set_status(in, FILING_STATUS_UNEXPECTED);
 	}

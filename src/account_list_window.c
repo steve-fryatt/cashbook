@@ -367,6 +367,7 @@ static struct account_list_window	*account_list_window_dragging_owner = NULL;
  */
 
 static int				account_list_window_dragging_start_line = -1;
+
 /**
  * TRUE if the window line drag is using a sprite.
  */

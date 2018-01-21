@@ -58,7 +58,6 @@
 
 /* Layout details */
 
-#define REPORT_BASELINE_OFFSET 4
 #define REPORT_COLUMN_INDENT 40
 #define REPORT_TOP_MARGIN 4
 #define REPORT_BOTTOM_MARGIN 4

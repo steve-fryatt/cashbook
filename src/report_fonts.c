@@ -78,6 +78,7 @@ struct report_fonts_block {
 	int				size;				/**< Font size in 1/16 points.						*/
 	int				linespace;			/**< Line spacing as a % of font size.					*/
 
+	int				max_height;			/**< The maximum font height encountered, in millipoints.		*/
 };
 
 /**
@@ -98,6 +99,11 @@ struct report_fonts_block {
 
 static char report_fonts_buffer[REPORT_FONTS_BUFFER_SIZE];
 
+/**
+ * The coordinate buffer to use when scanning strings.
+ */
+
+static font_scan_block report_fonts_scan_block;
 
 /* Static Function Prototypes. */
 
@@ -120,6 +126,14 @@ void report_fonts_initialise(void)
 	report_fonts_buffer[0] = font_COMMAND_UNDERLINE;
 	report_fonts_buffer[1] = 230;
 	report_fonts_buffer[2] = 18;
+
+	report_fonts_scan_block.space.x = 0;
+	report_fonts_scan_block.space.y = 0;
+
+	report_fonts_scan_block.letter.x = 0;
+	report_fonts_scan_block.letter.y = 0;
+
+	report_fonts_scan_block.split_char = -1;
 }
 
 
@@ -146,6 +160,7 @@ struct report_fonts_block *report_fonts_create(void)
 
 	new->size = 12 * 16;
 	new->linespace = 130;
+	new->max_height = 0;
 
 	return new;
 }
@@ -310,6 +325,8 @@ os_error *report_fonts_find(struct report_fonts_block *handle)
 	if (handle == NULL)
 		return NULL;
 
+	handle->max_height = 0;
+
 	error = report_fonts_find_face(&(handle->normal), handle->size);
 	if (error != NULL)
 		return error;
@@ -327,6 +344,28 @@ os_error *report_fonts_find(struct report_fonts_block *handle)
 		return error;
 
 	return NULL;
+}
+
+
+/**
+ * Return the greatest line height encountered during any call to
+ * report_fonts_get_string_width() since the last call to
+ * report_fonts_find(), in OS Units.
+ *
+ * \param *handle		The Reports Fonts instance to query
+ * \param *height		Pointer to variable to take the height.
+ * \return			Pointer to an error block on failure; NULL
+ *				on success.
+ */
+
+os_error *report_fonts_get_max_height(struct report_fonts_block *handle, int *height)
+{
+	if (handle == NULL || height == NULL)
+		return NULL;
+
+	debug_printf("Max height=%d", handle->max_height);
+
+	return xfont_convertto_os(0, handle->max_height, NULL, height);
 }
 
 
@@ -363,7 +402,6 @@ os_error *report_fonts_get_string_width(struct report_fonts_block *handle, char 
 {
 	os_error	*error;
 	font_f		font;
-	int		points;
 
 	if (width != NULL)
 		*width = 0;
@@ -375,12 +413,17 @@ os_error *report_fonts_get_string_width(struct report_fonts_block *handle, char 
 	if (font == font_SYSTEM)
 		return NULL;
 
-	error = xfont_scan_string(font, text, font_KERN | font_GIVEN_FONT, 0x7fffffff, 0x7fffffff,
-			NULL, NULL, 0, NULL, &points, NULL, NULL);
+	debug_printf("Scanning string... %s", text);
+
+	error = xfont_scan_string(font, text, font_KERN | font_GIVEN_FONT | font_GIVEN_BLOCK | font_RETURN_BBOX,
+			0x7fffffff, 0x7fffffff, &report_fonts_scan_block, NULL, 0, NULL, NULL, NULL, NULL);
 	if (error != NULL)
 		return error;
 
-	return xfont_convertto_os(points, 0, width, NULL);
+	if ((report_fonts_scan_block.bbox.y1 - report_fonts_scan_block.bbox.y0) > handle->max_height)
+		handle->max_height = report_fonts_scan_block.bbox.y1 - report_fonts_scan_block.bbox.y0;
+
+	return xfont_convertto_os(report_fonts_scan_block.bbox.x1 - report_fonts_scan_block.bbox.x0, 0, width, NULL);
 }
 
 

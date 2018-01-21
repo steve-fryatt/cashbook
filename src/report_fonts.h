@@ -147,6 +147,20 @@ os_error *report_fonts_find(struct report_fonts_block *handle);
 
 
 /**
+ * Return the greatest line height encountered during any call to
+ * report_fonts_get_string_width() since the last call to
+ * report_fonts_find(), in OS Units.
+ *
+ * \param *handle		The Reports Fonts instance to query
+ * \param *height		Pointer to variable to take the height.
+ * \return			Pointer to an error block on failure; NULL
+ *				on success.
+ */
+
+os_error *report_fonts_get_max_height(struct report_fonts_block *handle, int *height);
+
+
+/**
  * Release font handles for the faces used in a Report Fonts instance.
  *
  * \param *handle		The Reports Fonts instance to process.

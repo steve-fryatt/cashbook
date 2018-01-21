@@ -363,8 +363,6 @@ os_error *report_fonts_get_max_height(struct report_fonts_block *handle, int *he
 	if (handle == NULL || height == NULL)
 		return NULL;
 
-	debug_printf("Max height=%d", handle->max_height);
-
 	return xfont_convertto_os(0, handle->max_height, NULL, height);
 }
 

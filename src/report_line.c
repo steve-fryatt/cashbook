@@ -154,7 +154,9 @@ void report_line_close(struct report_line_block *handle)
 	if (flexutils_resize((void **) &(handle->lines), sizeof(struct report_line_data), handle->line_count))
 		handle->size = handle->line_count;
 
+#ifdef DEBUG
 	debug_printf("Line data: %d records, using %dKb", handle->line_count, handle->line_count * sizeof (struct report_line_data) / 1024);
+#endif
 }
 
 

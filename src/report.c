@@ -441,9 +441,9 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 {
 	struct report	*new;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\GOpening report");
-	#endif
+#endif
 
 	new = heap_alloc(sizeof(struct report));
 
@@ -530,9 +530,9 @@ void report_close(struct report *report)
 	int			xextent, yextent;
 	os_error		*error;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\GClosing report");
-	#endif
+#endif
 
 	if (report == NULL || (report->flags & REPORT_STATUS_MEMERR)) {
 		error_msgs_report_error("NoMemReport");
@@ -546,9 +546,9 @@ void report_close(struct report *report)
 
 	report_window_def->title_data.indirected_text.text = report->window_title;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("Report window width: %d", report->width);
-	#endif
+#endif
 
 	/* Position the report window. */
 
@@ -629,9 +629,9 @@ void report_close(struct report *report)
 
 void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum)
 {
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\GClosing report and starting printing");
-	#endif
+#endif
 
 	if (report == NULL || (report->flags & REPORT_STATUS_MEMERR)) {
 		error_msgs_report_error("NoMemReport");
@@ -699,9 +699,9 @@ void report_delete(struct report *report)
 	struct file_block	*file;
 	struct report		**rep;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\RDeleting report");
-	#endif
+#endif
 
 	if (report == NULL)
 		return;
@@ -780,9 +780,9 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 	enum report_line_flags	line_flags;
 	enum report_cell_flags	cell_flags;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("Print line: %s", text);
-	#endif
+#endif
 
 	if ((report->flags & REPORT_STATUS_MEMERR) || (report->flags & REPORT_STATUS_CLOSED))
 		return;
@@ -953,9 +953,9 @@ static void report_reflow_content(struct report *report)
 	if (report == NULL)
 		return;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\GFormatting report");
-	#endif
+#endif
 
 	/* Reset the flags used to keep track of items. */
 
@@ -1081,9 +1081,9 @@ static void report_view_close_window_handler(wimp_close *close)
 {
 	struct report	*report;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf ("\\RDeleting report window");
-	#endif
+#endif
 
 	report = event_get_window_user_data(close->w);
 	if (report == NULL)
@@ -1336,9 +1336,9 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 	if (report == NULL)
 		return;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("\\BReceived submenu warning message.");
-	#endif
+#endif
 
 	switch (warning->selection.items[0]) {
 	case REPVIEW_MENU_SAVETEXT:
@@ -1413,7 +1413,6 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 	unsigned			top, base;
  	size_t				line_count;
 	os_coord			origin;
-	os_error			*error;
 	struct report_tabs_line_info	target;
 
 	line_count = report_line_get_count(report->lines);
@@ -1438,9 +1437,8 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 	target.last_stop = -1;
 
 	for (target.line = top; target.line < line_count && target.line <= base; target.line++) {
-		error = report_plot_line(report, &target, &origin, &(redraw->clip));
-		if (error != NULL)
-			debug_printf("Redraw error: %s", error->errmess);
+		if (report_plot_line(report, &target, &origin, &(redraw->clip)) != NULL)
+			break;
 	}
 }
 
@@ -1624,9 +1622,9 @@ static void report_open_print_window(struct report *report, wimp_pointer *ptr, o
 
 static struct report *report_print_window_closed(struct report *report, void *data)
 {
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("Report print received data from simple print window");
-	#endif
+#endif
 
 	if (report != NULL || data == NULL)
 		return NULL;
@@ -2670,9 +2668,9 @@ void report_process_all_templates(struct file_block *file, void (*callback)(stru
 
 static osbool report_handle_message_set_printer(wimp_message *message)
 {
-	#ifdef DEBUG
+#ifdef DEBUG
 	debug_printf("Message_SetPrinter received.");
-	#endif
+#endif
 
 	hourglass_on();
 
@@ -2755,7 +2753,6 @@ static void report_paginate(struct report *report)
 	/* Calculate column positions across the pages. */
 
 	pages_across = report_tabs_paginate(report->tabs, layout.body.x1 - layout.body.x0);
-	debug_printf("Pages required across: %d", pages_across);
 	if (pages_across == 0)
 		return;
 
@@ -3102,7 +3099,6 @@ static osbool report_get_window_extent(struct report *report, int *x, int *y)
 		return FALSE;
 
 	if (!(report->display & REPORT_DISPLAY_PAGINATED) || !report_page_get_layout_extent(report->pages, x, y)) {
-		debug_printf("Failed to get paginated extent.");
 		if (x != NULL) {
 			int width = report->width + REPORT_LEFT_MARGIN + REPORT_RIGHT_MARGIN;
 			*x = (width > REPORT_MIN_WIDTH) ? width : REPORT_MIN_WIDTH;

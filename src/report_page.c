@@ -211,8 +211,10 @@ void report_page_close(struct report_page_block *handle)
 	if (handle->page_count > 0)
 		handle->paginated = TRUE;
 
+#ifdef DEBUG
 	debug_printf("Page data: %d records, using %dKb", handle->page_count, handle->page_count * sizeof(struct report_page_data) / 1024);
 	debug_printf("Page layout: x=%d, y=%d", handle->page_layout.x, handle->page_layout.y);
+#endif
 }
 
 
@@ -594,9 +596,6 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 		handle->display_size.y = handle->page_size.y;
 	}
 
-	debug_printf("Calculated page size: x=%d, y=%d", handle->page_size.x, handle->page_size.y);
-	debug_printf("Body area: x0=%d, y0=%d, x1=%d, y1=%d", handle->body.x0, handle->body.y0, handle->body.x1, handle->body.y1);
-
 	if (header_size > 0) {
 		handle->header.x0 = handle->body.x0;
 		handle->header.x1 = handle->body.x1;
@@ -631,10 +630,8 @@ os_error *report_page_calculate_areas(struct report_page_block *handle, osbool l
 
 	if (target_width <= body_width) {
 		handle->scale = 1 << 16;
-		debug_printf("Scaled 1:1 (0x%x)", handle->scale);
 	} else {
 		handle->scale = (1 << 16) * body_width / target_width;
-		debug_printf("Scaled down (0x%x)", handle->scale);
 
 		handle->display_size.x = handle->display_size.x * (1 << 16) / handle->scale;
 		handle->display_size.y = handle->display_size.y * (1 << 16) / handle->scale;

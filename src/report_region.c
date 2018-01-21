@@ -163,7 +163,9 @@ void report_region_close(struct report_region_block *handle)
 	if (flexutils_resize((void **) &(handle->regions), sizeof(struct report_region_data), handle->region_count))
 		handle->size = handle->region_count;
 
+#ifdef DEBUG
 	debug_printf("Region data: %d records, using %dKb", handle->region_count, handle->region_count * sizeof (struct report_region_data) / 1024);
+#endif
 }
 
 

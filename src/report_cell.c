@@ -154,7 +154,9 @@ void report_cell_close(struct report_cell_block *handle)
 	if (flexutils_resize((void **) &(handle->cells), sizeof(struct report_cell_data), handle->cell_count))
 		handle->size = handle->cell_count;
 
+#ifdef DEBUG
 	debug_printf("Cell data: %d records, using %dKb", handle->cell_count, handle->cell_count * sizeof (struct report_cell_data) / 1024);
+#endif
 }
 
 

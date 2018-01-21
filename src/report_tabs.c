@@ -249,7 +249,9 @@ void report_tabs_close(struct report_tabs_block *handle)
 	if (flexutils_resize((void **) &(handle->bars), sizeof(struct report_tabs_bar *), bars))
 		handle->bar_allocation = bars;
 
+#ifdef DEBUG
 	debug_printf("Tab Bar data: %d bars, using %dKb", bars, total_stops * sizeof(struct report_tabs_stop) / 1024);
+#endif
 }
 
 
@@ -477,7 +479,6 @@ int report_tabs_paginate(struct report_tabs_block *handle, int width)
 		return 0;
 
 	for (bar = 0; bar < handle->bar_allocation; bar++) {
-		debug_printf("\\CPaginating bar %d...", bar);
 		pages = report_tabs_paginate_bar(handle->bars[bar], width);
 		if (pages == 0)
 			return 0;
@@ -533,8 +534,6 @@ osbool report_tabs_get_line_info(struct report_tabs_block *handle, struct report
 	info->line_inset = bar_handle->inset - bar_handle->stops[info->first_stop].font_left;
 
 	info->cell_inset = bar_handle->inset;
-
-	debug_printf("Returning line info: width=%d, inset=%d, first=%d, last=%d", info->line_width, info->line_inset, info->first_stop, info->last_stop);
 
 	return TRUE;
 }
@@ -662,7 +661,9 @@ static struct report_tabs_bar *report_tabs_get_bar(struct report_tabs_block *han
 	if ((bar >= handle->bar_allocation) && (handle->closed == FALSE)) {
 		extend = ((bar / (int) REPORT_TABS_BAR_BLOCK_SIZE) + 1) * REPORT_TABS_BAR_BLOCK_SIZE;
 
+#ifdef DEBUG
 		debug_printf("Bar %d is outside existing range; extending to %d", handle->bar_allocation, extend);
+#endif
 
 		if (!flexutils_resize((void **) &(handle->bars), sizeof(struct report_tabs_bar *), extend))
 			return NULL;
@@ -683,7 +684,6 @@ static struct report_tabs_bar *report_tabs_get_bar(struct report_tabs_block *han
 	bar_handle = handle->bars[bar];
 
 	if ((bar_handle == NULL) && (handle->closed == FALSE)) {
-		debug_printf("Bar %d doesn't yet exist", bar);
 		bar_handle = report_tabs_create_bar(handle);
 		handle->bars[bar] = bar_handle;
 	}
@@ -708,7 +708,9 @@ static struct report_tabs_bar *report_tabs_create_bar(struct report_tabs_block *
 	if (new == NULL)
 		return NULL;
 
+#ifdef DEBUG
 	debug_printf("Claimed bar block");
+#endif
 
 	new->parent = parent;
 
@@ -718,7 +720,6 @@ static struct report_tabs_bar *report_tabs_create_bar(struct report_tabs_block *
 	new->inset = 0;
 
 	if (!flexutils_allocate((void **) &(new->stops), sizeof(struct report_tabs_stop), new->stop_allocation)) {
-		debug_printf("FAILED to claim stops block.");
 		report_tabs_destroy_bar(new);
 		return NULL;
 	}
@@ -726,7 +727,9 @@ static struct report_tabs_bar *report_tabs_create_bar(struct report_tabs_block *
 	for (i = 0; i < new->stop_allocation; i++)
 		report_tabs_initialise_stop(new->stops + i);
 
+#ifdef DEBUG
 	debug_printf("Stops block claimed OK, bar handle=0x%x", new);
+#endif
 
 	return new;
 }
@@ -747,7 +750,9 @@ static void report_tabs_destroy_bar(struct report_tabs_bar *handle)
 
 	heap_free(handle);
 
+#ifdef DEBUG
 	debug_printf("Deleted bar");
+#endif
 }
 
 
@@ -768,7 +773,9 @@ static size_t report_tabs_close_bar(struct report_tabs_bar *handle)
 	if (flexutils_resize((void **) &(handle->stops), sizeof(struct report_tabs_stop), handle->stop_count))
 		handle->stop_allocation = handle->stop_count;
 
+#ifdef DEBUG
 	debug_printf("Tab Stop data: %d stops, using %dKb", handle->stop_count, handle->stop_count * sizeof (struct report_tabs_stop) / 1024);
+#endif
 
 	return handle->stop_count;
 }
@@ -822,14 +829,18 @@ static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop)
 	if ((handle->parent == NULL) || (handle->parent->closed == TRUE))
 		return FALSE;
 
+#ifdef DEBUG
 	debug_printf("Stop %d doesn't yet exist.", stop);
+#endif
 
 	/* If the stop index falls outside the current range, allocate more space. */
 
 	if (stop >= handle->stop_allocation) {
 		extend = ((stop / (int) REPORT_TABS_STOP_BLOCK_SIZE) + 1) * REPORT_TABS_STOP_BLOCK_SIZE;
 
+#ifdef DEBUG
 		debug_printf("Stop %d is outside existing range; extending to %d", handle->stop_allocation, extend);
+#endif
 
 		if (!flexutils_resize((void **) &(handle->stops), sizeof(struct report_tabs_stop), extend))
 			return FALSE;
@@ -849,7 +860,9 @@ static osbool report_tabs_check_stop(struct report_tabs_bar *handle, int stop)
 
 	handle->stop_count = stop + 1;
 
+#ifdef DEBUG
 	debug_printf("Stops extended to include stop %d", stop);
+#endif
 
 	return TRUE;
 }
@@ -913,13 +926,9 @@ static int report_tabs_calculate_bar_columns(struct report_tabs_bar *handle, osb
 	handle->stops[0].font_left = 0;
 	handle->stops[0].text_left = 0;
 
-	debug_printf("Set tab 0 = 0");
-
 	for (stop = 1; stop < handle->stop_count; stop++) {
 		handle->stops[stop].font_left = handle->stops[stop - 1].font_left + handle->stops[stop - 1].font_width + (2 * REPORT_TABS_COLUMN_SPACE);
 		handle->stops[stop].text_left = handle->stops[stop - 1].text_left + handle->stops[stop - 1].text_width + (2 * REPORT_TEXT_COLUMN_SPACE);
-
-		debug_printf("tab %d = %d", stop, handle->stops[stop].font_left);
 
 		if ((handle->stops[stop].font_width > 0) && ((handle->stops[stop].font_left + handle->stops[stop].font_width) > width))
 			width = handle->stops[stop].font_left + handle->stops[stop].font_width;
@@ -960,12 +969,9 @@ static int report_tabs_paginate_bar(struct report_tabs_bar *handle, int width)
 		column_width = handle->stops[stop].font_width + REPORT_TABS_COLUMN_SPACE;
 
 		if (position + column_width > width) {
-			debug_printf("Stop %d spills off page", stop);
 			page++;
 			position = handle->inset;
 		}
-
-		debug_printf("Stop %d on page %d", stop, page);
 
 		handle->stops[stop].page = page;
 		position += column_width + REPORT_TABS_COLUMN_SPACE;

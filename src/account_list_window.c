@@ -1992,13 +1992,6 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 	struct file_block		*file;
 	struct account_redraw		block;
 
-	if (account_list_window_dragging_owner == NULL || account_list_window_dragging_owner->instance == NULL)
-		return;
-
-	file = account_get_file(account_list_window_dragging_owner->instance);
-	if (file == NULL)
-		return;
-
 	/* Terminate the drag and end the autoscroll. */
 
 	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
@@ -2006,6 +1999,15 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 
 	if (account_list_window_dragging_sprite)
 		dragasprite_stop();
+
+	/* Check that the returned data is valid. */
+
+	if (account_list_window_dragging_owner == NULL || account_list_window_dragging_owner->instance == NULL)
+		return;
+
+	file = account_get_file(account_list_window_dragging_owner->instance);
+	if (file == NULL)
+		return;
 
 	/* Get the line at which the drag ended. */
 

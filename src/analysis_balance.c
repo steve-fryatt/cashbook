@@ -483,7 +483,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 	struct file_block			*file;
 
 	osbool			group, lock, tabular;
-	int			items, unit, period;
+	int			unit, period;
 	char			date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
 	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
@@ -519,15 +519,6 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 	}
 
 	tabular = settings->tabular;
-
-	/* Count the number of accounts and headings to be included.  If this comes to more than the number of tab
-	 * stops available (including 2 for account name and total), force the tabular format option off.
-	 */
-
-	items = analysis_data_count_matches(scratch, ANALYSIS_DATA_INCLUDE);
-
-	if ((items + 2) > REPORT_TAB_STOPS)
-		tabular = FALSE;
 
 	/* Output report heading */
 

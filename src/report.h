@@ -51,12 +51,6 @@
 #define REPORT_MAX_LINE_LEN 1000
 
 /**
- * The maximum number of tabs stops in a tab bar.
- */
-
-#define REPORT_TAB_STOPS 20
-
-/**
  * Initialise the reporting system.
  *
  * \param *sprites		The application sprite area.

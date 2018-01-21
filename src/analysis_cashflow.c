@@ -491,8 +491,7 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 	struct analysis_cashflow_report		*settings = template;
 	struct file_block			*file;
 
-	osbool			group, lock, tabular;
-	int			found, unit, period, show_blank;
+	int			found;
 	char			date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
 	acct_t			acc;
@@ -506,14 +505,6 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 	if (file == NULL)
 		return;
 
-	/* Read the grouping settings. */
-
-	group = settings->group;
-	unit = settings->period_unit;
-	lock = settings->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
-	period = (group) ? settings->period : 0;
-	show_blank = settings->empty;
-
 	/* Read the include list. */
 
 	if (settings->accounts_count == 0 && settings->incoming_count == 0 && settings->outgoing_count == 0) {
@@ -523,8 +514,6 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_IN, ANALYSIS_DATA_INCLUDE, settings->incoming, settings->incoming_count);
 		analysis_data_set_flags_from_account_list(scratch, ACCOUNT_OUT, ANALYSIS_DATA_INCLUDE, settings->outgoing, settings->outgoing_count);
 	}
-
-	tabular = settings->tabular;
 
 	/* Output report heading */
 
@@ -536,7 +525,7 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 
 	/* Start to output the report. */
 
-	if (tabular) {
+	if (settings->tabular) {
 		report_write_line(report, 0, "");
 
 		stringbuild_reset();
@@ -563,15 +552,15 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 
 	/* Process the report time groups. */
 
-	analysis_period_initialise(start_date, end_date, period, unit, lock);
+	analysis_period_initialise(start_date, end_date, settings->group, settings->period, settings->period_unit, settings->lock);
 
 	while (analysis_period_get_next_dates(&next_start, &next_end, date_text, sizeof(date_text))) {
 		found = analysis_data_calculate_balances(scratch, next_start, next_end, FALSE);
 
 		/* Print the transaction summaries. */
 
-		if (found > 0 || show_blank) {
-			if (tabular) {
+		if ((found > 0) || settings->empty) {
+			if (settings->tabular) {
 				stringbuild_reset();
 
 				stringbuild_add_printf("\\k%s", date_text);
@@ -600,7 +589,7 @@ static void analysis_cashflow_generate(struct analysis_block *parent, void *temp
 				stringbuild_report_line(report, 1);
 			} else {
 				report_write_line(report, 0, "");
-				if (group) {
+				if (settings->group) {
 					stringbuild_reset();
 					stringbuild_add_printf("\\u%s", date_text);
 					stringbuild_report_line(report, 0);

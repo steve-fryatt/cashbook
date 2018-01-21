@@ -482,8 +482,6 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 	struct analysis_balance_report		*settings = template;
 	struct file_block			*file;
 
-	osbool			group, lock, tabular;
-	int			unit, period;
 	char			date_text[1024];
 	date_t			start_date, end_date, next_start, next_end;
 	int			entries, acc_group, group_line, groups = 3, sequence[]={ACCOUNT_FULL,ACCOUNT_IN,ACCOUNT_OUT};
@@ -496,13 +494,6 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 	file = analysis_get_file(parent);
 	if (file == NULL)
 		return;
-
-	/* Read the grouping settings. */
-
-	group = settings->group;
-	unit = settings->period_unit;
-	lock = settings->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
-	period = (group) ? settings->period : 0;
 
 	/* Read the include list. */
 
@@ -518,8 +509,6 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 				settings->outgoing, settings->outgoing_count);
 	}
 
-	tabular = settings->tabular;
-
 	/* Output report heading */
 
 	report_write_line(report, 0, title);
@@ -530,7 +519,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 	/* Start to output the report. */
 
-	if (tabular) {
+	if (settings->tabular) {
 		report_write_line(report, 0, "");
 
 		stringbuild_reset();
@@ -557,14 +546,14 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 	/* Process the report time groups. */
 
-	analysis_period_initialise(start_date, end_date, period, unit, lock);
+	analysis_period_initialise(start_date, end_date, settings->group, settings->period, settings->period_unit, settings->lock);
 
 	while (analysis_period_get_next_dates(&next_start, &next_end, date_text, sizeof(date_text))) {
 		analysis_data_calculate_balances(scratch, NULL_DATE, next_end, TRUE);
 
 		/* Print the transaction summaries. */
 
-		if (tabular) {
+		if (settings->tabular) {
 			stringbuild_reset();
 
 			stringbuild_add_printf("\\k%s", date_text);
@@ -593,7 +582,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 			stringbuild_report_line(report, 1);
 		} else {
 			report_write_line(report, 0, "");
-			if (group) {
+			if (settings->group) {
 				stringbuild_reset();
 				stringbuild_add_printf("\\u%s", date_text);
 				stringbuild_report_line(report, 0);

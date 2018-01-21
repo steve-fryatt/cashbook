@@ -490,8 +490,7 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 	struct analysis_unreconciled_report	*settings = template;
 	struct file_block			*file;
 
-	osbool			group, lock;
-	int			acc, found, unit, period, entries;
+	int			acc, found, entries;
 	char			date_text[1024], rec_char[REC_FIELD_LEN];
 	date_t			start_date, end_date, next_start, next_end, date;
 	tran_t			i;
@@ -506,13 +505,6 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 	file = analysis_get_file(parent);
 	if (file == NULL)
 		return;
-
-	/* Read the grouping settings. */
-
-	group = settings->group;
-	unit = settings->period_unit;
-	lock = settings->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
-	period = (group) ? settings->period : 0;
 
 	/* Read the include list. */
 
@@ -538,7 +530,7 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 
 	/* Run the report itself. */
 
-	if (group && unit == DATE_PERIOD_NONE) {
+	if (settings->group && settings->period_unit == DATE_PERIOD_NONE) {
 		/* We are doing a grouped-by-account report.
 		 *
 		 * Step through the accounts in account list order, and run through all the transactions each time.  A
@@ -571,7 +563,7 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 							if (found == 0) {
 								report_write_line(report, 0, "");
 
-								if (group == TRUE) {
+								if (settings->group == TRUE) {
 									stringbuild_reset();
 									stringbuild_add_printf("\\u%s", account_get_name(file, acc));
 									stringbuild_report_line(report, 0);
@@ -647,7 +639,7 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 		 * For each date period, run through the transactions and output any which fall within it.
 		 */
 
-		analysis_period_initialise(start_date, end_date, period, unit, lock);
+		analysis_period_initialise(start_date, end_date, settings->group, settings->period, settings->period_unit, settings->lock);
 
 		while (analysis_period_get_next_dates(&next_start, &next_end, date_text, sizeof(date_text))) {
 			found = 0;
@@ -666,7 +658,7 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 					if (found == 0) {
 						report_write_line(report, 0, "");
 
-						if (group == TRUE) {
+						if (settings->group == TRUE) {
 							stringbuild_reset();
 							stringbuild_add_printf("\\u%s", date_text);
 							stringbuild_report_line(report, 0);

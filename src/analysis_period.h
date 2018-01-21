@@ -39,12 +39,13 @@
  *
  * \param start			The start date for the report period.
  * \param end			The end date for the report period.
+ * \param group			TRUE to group the entries; otherwise FALSE.
  * \param period		The time period into which to divide the report.
  * \param unit			The unit of the divisor period.
  * \param lock			TRUE to apply calendar lock; otherwise FALSE.
  */
 
-void analysis_period_initialise(date_t start, date_t end, int period, enum date_period unit, osbool lock);
+void analysis_period_initialise(date_t start, date_t end, osbool group, int period, enum date_period unit, osbool lock);
 
 
 /**

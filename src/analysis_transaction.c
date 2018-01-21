@@ -532,9 +532,8 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 	struct analysis_transaction_report	*settings = template;
 	struct file_block			*file;
 
-	osbool			group, lock, output_trans, output_summary, output_accsummary;
-	int			found, total, unit, period,
-				total_days, period_days, period_limit, entries, account;
+	osbool			output_trans, output_summary, output_accsummary;
+	int			found, total, total_days, period_days, period_limit, entries, account;
 	date_t			start_date, end_date, next_start, next_end, date;
 	tran_t			i;
 	acct_t			from, to;
@@ -548,13 +547,6 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 	file = analysis_get_file(parent);
 	if (file == NULL)
 		return;
-
-	/* Read the grouping settings. */
-
-	group = settings->group;
-	unit = settings->period_unit;
-	lock = settings->lock && (unit == DATE_PERIOD_MONTHS || unit == DATE_PERIOD_YEARS);
-	period = (group) ? settings->period : 0;
 
 	/* Read the include list. */
 
@@ -596,7 +588,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 	/* Process the report time groups. */
 
-	analysis_period_initialise(start_date, end_date, period, unit, lock);
+	analysis_period_initialise(start_date, end_date, settings->group, settings->period, settings->period_unit, settings->lock);
 
 	while (analysis_period_get_next_dates(&next_start, &next_end, date_text, sizeof(date_text))) {
 		analysis_data_zero_totals(scratch);
@@ -622,7 +614,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 				if (found == 0) {
 					report_write_line(report, 0, "");
 
-					if (group == TRUE) {
+					if (settings->group == TRUE) {
 						stringbuild_reset();
 						stringbuild_add_printf("\\u%s", date_text);
 						stringbuild_report_line(report, 0);

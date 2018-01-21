@@ -2399,7 +2399,7 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 
 	rule_outline.x0 = line_outline.x0;
 	rule_outline.x1 = line_outline.x1;
-	rule_outline.y0 = line_outline.y0;
+	rule_outline.y0 = line_outline.y0; // \TODO: y0 needs to go up REPORT_GRID_LINE_MARGIN if this is the last grid line.
 	rule_outline.y1 = line_outline.y1;
 	if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
 		rule_outline.y1 -= REPORT_GRID_LINE_MARGIN;

@@ -413,8 +413,6 @@ os_error *report_fonts_get_string_width(struct report_fonts_block *handle, char 
 	if (font == font_SYSTEM)
 		return NULL;
 
-	debug_printf("Scanning string... %s", text);
-
 	error = xfont_scan_string(font, text, font_KERN | font_GIVEN_FONT | font_GIVEN_BLOCK | font_RETURN_BBOX,
 			0x7fffffff, 0x7fffffff, &report_fonts_scan_block, NULL, 0, NULL, NULL, NULL, NULL);
 	if (error != NULL)

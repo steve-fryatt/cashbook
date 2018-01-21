@@ -396,7 +396,7 @@ static osbool account_list_window_delete_from_section_edit_window(struct account
 static void account_list_window_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore);
 static struct report *account_list_window_print(struct report *report, void *data);
 static int account_list_window_add_line(struct account_list_window *windat);
-static void account_list_window_start_drag(struct account_list_window *windat, int line);
+static void account_list_window_start_drag(struct account_list_window *windat, wimp_window_state *window, int line);
 static void account_list_window_terminate_drag(wimp_dragged *drag, void *data);
 static osbool account_list_window_save_csv(char *filename, osbool selection, void *data);
 static osbool account_list_window_save_tsv(char *filename, osbool selection, void *data);
@@ -747,7 +747,7 @@ static void account_list_window_click_handler(wimp_pointer *pointer)
 			break;
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && line != -1) {
-		account_list_window_start_drag(windat, line);
+		account_list_window_start_drag(windat, &window, line);
 	}
 }
 
@@ -1894,17 +1894,17 @@ char *account_list_window_get_entry_text(struct account_list_window *windat, int
  * Start an account list window drag, to re-order the entries in the window.
  *
  * \param *windat		The Account List Window being dragged.
+ * \param *window		The state of the window being dragged.
  * \param line			The line of the Account list being dragged.
  */
 
-static void account_list_window_start_drag(struct account_list_window *windat, int line)
+static void account_list_window_start_drag(struct account_list_window *windat, wimp_window_state *window, int line)
 {
-	wimp_window_state	window;
 	wimp_auto_scroll_info	auto_scroll;
 	wimp_drag		drag;
 	int			ox, oy;
 
-	if (windat == NULL)
+	if (windat == NULL || window == NULL)
 		return;
 
 	/* The drag is not started if any of the account window edit dialogues
@@ -1915,13 +1915,8 @@ static void account_list_window_start_drag(struct account_list_window *windat, i
 	if (account_account_dialogue_is_open(windat->instance) || account_heading_dialogue_is_open(windat->instance) || account_section_dialogue_is_open(windat))
 		return;
 
-	/* Get the basic information about the window. */
-
-	window.w = windat->account_window;
-	wimp_get_window_state(&window);
-
-	ox = window.visible.x0 - window.xscroll;
-	oy = window.visible.y1 - window.yscroll;
+	ox = window->visible.x0 - window->xscroll;
+	oy = window->visible.y1 - window->yscroll;
 
 	/* Set up the drag parameters. */
 
@@ -1930,13 +1925,13 @@ static void account_list_window_start_drag(struct account_list_window *windat, i
 
 	drag.initial.x0 = ox;
 	drag.initial.y0 = oy + WINDOW_ROW_Y0(ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, line);
-	drag.initial.x1 = ox + (window.visible.x1 - window.visible.x0);
+	drag.initial.x1 = ox + (window->visible.x1 - window->visible.x0);
 	drag.initial.y1 = oy + WINDOW_ROW_Y1(ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, line);
 
-	drag.bbox.x0 = window.visible.x0;
-	drag.bbox.y0 = window.visible.y0;
-	drag.bbox.x1 = window.visible.x1;
-	drag.bbox.y1 = window.visible.y1;
+	drag.bbox.x0 = window->visible.x0;
+	drag.bbox.y0 = window->visible.y0;
+	drag.bbox.x1 = window->visible.x1;
+	drag.bbox.y1 = window->visible.y1;
 
 	/* Read CMOS RAM to see if solid drags are required.
 	 *

@@ -129,17 +129,23 @@
 
 /* Report export details */
 
+/**
+ * The size of buffer allocated to print job titles.
+ */
+
 #define REPORT_PRINT_TITLE_LENGTH 1024
 
-#define REPORT_PRINT_BUFFER_LENGTH 10
+/**
+ * The margin around the outside of a print ractangle, in OS Units.
+ */
 
+#define REPORT_PRINT_RECTANGLE_MARGIN 2
 
 /**
  * The maximum size of a page number, in characters.
  */
 
 #define REPORT_MAX_PAGE_NUMBER_LEN 12
-
 
 /**
  * The maximum length of a page number message, in characters.
@@ -154,12 +160,58 @@
 #define REPORT_TOOLBAR_HEIGHT 78
 
 /**
- * The margin around the outside of a print ractangle, in OS Units.
+ * The space above and below a horizontal grid line, in OS Units.
  */
 
-#define REPORT_PRINT_RECTANGLE_MARGIN 2
-
 #define REPORT_GRID_LINE_MARGIN 2
+
+/**
+ * The \i indent applied to font cells, in OS Units.
+ */
+
+#define REPORT_FONT_COLUMN_INDENT 40
+
+/**
+ * The \i indent applied to text cells, in characters.
+ */
+
+#define REPORT_TEXT_COLUMN_INDENT 2
+
+/**
+ * The top margin of an unpaginated report on screen, in OS Units.
+ */
+
+#define REPORT_TOP_MARGIN 4
+
+/**
+ * The bottom margin of an unpaginated report on screen, in OS Units.
+ */
+
+#define REPORT_BOTTOM_MARGIN 4
+
+/**
+ * The left margin of an unpaginated report on screen, in OS Units.
+ */
+
+#define REPORT_LEFT_MARGIN 4
+
+/**
+ * The right margin of an unpaginated report on screen, in OS Units.
+ */
+
+#define REPORT_RIGHT_MARGIN 4
+
+/**
+ * The minimum width of a report window, in OS Units.
+ */
+
+#define REPORT_MIN_WIDTH 1000
+
+/**
+ * The minimum height of a report window, in OS Units.
+ */
+
+#define REPORT_MIN_HEIGHT 800
 
 
 struct report_print_pagination {
@@ -963,7 +1015,7 @@ static void report_reflow_content(struct report *report)
 				/* If the column is indented, add the indent to the column widths. */
 
 				if (cell_data->flags & REPORT_CELL_FLAGS_INDENT) {
-					font_width += REPORT_COLUMN_INDENT;
+					font_width += REPORT_FONT_COLUMN_INDENT;
 					text_width += REPORT_TEXT_COLUMN_INDENT;
 				}
 			} else {
@@ -2556,7 +2608,7 @@ static os_error *report_plot_cell(struct report *report, os_box *outline, char *
 	/* Calculate the required cell indent. */
 
 	if (flags & REPORT_CELL_FLAGS_INDENT) {
-		indent = REPORT_COLUMN_INDENT;
+		indent = REPORT_FONT_COLUMN_INDENT;
 	} else if (flags & REPORT_CELL_FLAGS_RIGHT || flags & REPORT_CELL_FLAGS_CENTRE) {
 		error = report_fonts_get_string_width(report->fonts, content, flags, &width);
 		if (error != NULL)

@@ -56,21 +56,6 @@
 
 #define REPORT_TAB_STOPS 20
 
-/* Layout details */
-
-#define REPORT_COLUMN_INDENT 40
-#define REPORT_TOP_MARGIN 4
-#define REPORT_BOTTOM_MARGIN 4
-#define REPORT_LEFT_MARGIN 4
-#define REPORT_RIGHT_MARGIN 4
-#define REPORT_RULE_SPACE 6
-#define REPORT_MIN_WIDTH 1000
-#define REPORT_MIN_HEIGHT 800
-
-#define REPORT_TEXT_COLUMN_INDENT 2
-
-
-
 /**
  * Initialise the reporting system.
  *

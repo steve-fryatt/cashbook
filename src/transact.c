@@ -1547,7 +1547,7 @@ static void transact_window_scroll_handler(wimp_scroll *scroll)
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	window_process_scroll_effect(scroll, TRANSACT_TOOLBAR_HEIGHT);
+	window_process_scroll_event(scroll, TRANSACT_TOOLBAR_HEIGHT);
 
 	/* Extend the window downwards if necessary. */
 

@@ -991,7 +991,7 @@ static void account_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void account_list_window_scroll_handler(wimp_scroll *scroll)
 {
-	window_process_scroll_effect(scroll, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT + ACCOUNT_LIST_WINDOW_FOOTER_HEIGHT);
+	window_process_scroll_event(scroll, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT + ACCOUNT_LIST_WINDOW_FOOTER_HEIGHT);
 
 	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
 

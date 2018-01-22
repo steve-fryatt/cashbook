@@ -908,7 +908,7 @@ static void sorder_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void sorder_window_scroll_handler(wimp_scroll *scroll)
 {
-	window_process_scroll_effect(scroll, SORDER_TOOLBAR_HEIGHT);
+	window_process_scroll_event(scroll, SORDER_TOOLBAR_HEIGHT);
 
 	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
 

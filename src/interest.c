@@ -1,4 +1,4 @@
-/* Copyright 2016-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2016-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -644,7 +644,7 @@ static void interest_pane_click_handler(wimp_pointer *pointer)
 
 static void interest_window_scroll_handler(wimp_scroll *scroll)
 {
-	window_process_scroll_effect(scroll, INTEREST_TOOLBAR_HEIGHT);
+	window_process_scroll_event(scroll, INTEREST_TOOLBAR_HEIGHT);
 
 	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
 

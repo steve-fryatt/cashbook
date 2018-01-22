@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -155,7 +155,7 @@ void window_set_initial_area(wimp_window *window, int width, int height, int x, 
  * \param pane_szie		The size, in OS units, of any toolbar and footer panes.
  */
 
-void window_process_scroll_effect(wimp_scroll *scroll, int pane_size);
+void window_process_scroll_event(wimp_scroll *scroll, int pane_size);
 
 
 /**

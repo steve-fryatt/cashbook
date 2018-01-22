@@ -345,6 +345,7 @@ static void			report_view_toolbar_click_handler(wimp_pointer *pointer);
 static void			report_view_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void			report_view_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void			report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
+static void			report_view_scroll_handler(wimp_scroll *scroll);
 static void			report_view_redraw_handler(wimp_draw *redraw);
 static void			report_view_redraw_flat_handler(struct report *report, wimp_draw *redraw, int ox, int oy);
 static void			report_view_redraw_page_handler(struct report *report, wimp_draw *redraw, int ox, int oy);
@@ -597,6 +598,7 @@ void report_close(struct report *report)
 	event_add_window_user_data(report->window, report);
 	event_add_window_menu(report->window, report_view_menu);
 	event_add_window_close_event(report->window, report_view_close_window_handler);
+	event_add_window_scroll_event(report->window, report_view_scroll_handler);
 	event_add_window_redraw_event(report->window, report_view_redraw_handler);
 	event_add_window_menu_prepare(report->window, report_view_menu_prepare_handler);
 	event_add_window_menu_selection(report->window, report_view_menu_selection_handler);
@@ -1356,6 +1358,22 @@ static void report_view_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
+}
+
+
+/**
+ * Process scroll events in a Report View window.
+ *
+ * \param *scroll		The scroll event block to handle.
+ */
+
+static void report_view_scroll_handler(wimp_scroll *scroll)
+{
+	window_process_scroll_event(scroll, REPORT_TOOLBAR_HEIGHT);
+
+	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
+
+	wimp_open_window((wimp_open *) scroll);
 }
 
 

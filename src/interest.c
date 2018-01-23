@@ -456,7 +456,8 @@ void interest_open_window(struct interest_block *instance, acct_t account)
 	/* Open the window. */
 
 	windows_open(instance->interest_window);
-	windows_open_nested_as_toolbar(instance->interest_pane, instance->interest_window, INTEREST_TOOLBAR_HEIGHT - 4);
+	windows_open_nested_as_toolbar(instance->interest_pane, instance->interest_window,
+			INTEREST_TOOLBAR_HEIGHT - 4, FALSE);
 
 	ihelp_add_window(instance->interest_window , "Interest", interest_decode_window_help);
 	ihelp_add_window(instance->interest_pane , "InterestTB", NULL);

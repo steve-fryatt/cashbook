@@ -619,8 +619,8 @@ void account_list_window_open(struct account_list_window *windat)
 	}
 
 	windows_open(windat->account_window);
-	windows_open_nested_as_toolbar(windat->account_pane, windat->account_window, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT - 4);
-	windows_open_nested_as_footer(windat->account_footer, windat->account_window, ACCOUNT_LIST_WINDOW_FOOTER_HEIGHT);
+	windows_open_nested_as_toolbar(windat->account_pane, windat->account_window, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT - 4, FALSE);
+	windows_open_nested_as_footer(windat->account_footer, windat->account_window, ACCOUNT_LIST_WINDOW_FOOTER_HEIGHT, FALSE);
 
 	/* Register event handlers for the two windows. */
 	/* \TODO -- Should this be all three windows?   */

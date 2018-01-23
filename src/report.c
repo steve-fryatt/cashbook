@@ -591,7 +591,7 @@ void report_close(struct report *report)
 
 	windows_open(report->window);
 	windows_open_nested_as_toolbar(report->toolbar, report->window,
-			REPORT_TOOLBAR_HEIGHT - 4);
+			REPORT_TOOLBAR_HEIGHT - 4, TRUE);
 
 	/* Register event handles for the two windows. */
 

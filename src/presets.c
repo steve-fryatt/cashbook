@@ -542,7 +542,7 @@ void preset_open_window(struct file_block *file)
 
 	windows_open(file->presets->preset_window);
 	windows_open_nested_as_toolbar(file->presets->preset_pane,
-			file->presets->preset_window, PRESET_TOOLBAR_HEIGHT-4);
+			file->presets->preset_window, PRESET_TOOLBAR_HEIGHT-4, FALSE);
 
 	/* Register event handlers for the two windows. */
 

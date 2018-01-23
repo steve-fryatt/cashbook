@@ -547,7 +547,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	windows_open(view->accview_window);
 	windows_open_nested_as_toolbar(view->accview_pane, view->accview_window,
-			ACCVIEW_TOOLBAR_HEIGHT - 4);
+			ACCVIEW_TOOLBAR_HEIGHT - 4, FALSE);
 
 	/* Register event handlers for the two windows. */
 

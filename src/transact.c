@@ -697,7 +697,7 @@ void transact_open_window(struct file_block *file)
 	windows_open(file->transacts->transaction_window);
 	windows_open_nested_as_toolbar(file->transacts->transaction_pane,
 			file->transacts->transaction_window,
-			TRANSACT_TOOLBAR_HEIGHT-4);
+			TRANSACT_TOOLBAR_HEIGHT-4, FALSE);
 
 	ihelp_add_window(file->transacts->transaction_window , "Transact", transact_decode_window_help);
 	ihelp_add_window(file->transacts->transaction_pane , "TransactTB", NULL);

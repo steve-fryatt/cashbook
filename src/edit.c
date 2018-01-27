@@ -1998,3 +1998,4 @@ static void edit_free_transfer_block(struct edit_block *instance, struct edit_da
 		}
 	}
 }
+

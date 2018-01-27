@@ -3681,24 +3681,32 @@ static osbool transact_edit_put_field(struct edit_data *data)
 
 			accview_recalculate_all(windat->file);
 		} else if (data->icon == TRANSACT_ICON_FROM) {
-			/* Trust that any accuout views that are open must be based on a
+			/* Trust that any account views that are open must be based on a
 			 * valid date order, and only rebuild those that are directly affected.
+			 * The rebuild might resort the transaction data, so we need to re-find
+			 * the transaction entry for the edit line each time.
 			 */
 
 			accview_rebuild(windat->file, old_account);
-//FIXME -- Changed?	transaction = windat->transactions[line].sort_index;
+			transaction = windat->transactions[data->line].sort_index;
+
 			accview_rebuild(windat->file, windat->transactions[transaction].from);
-//FIXME -- Changed?	transaction = windat->transactions[line].sort_index;
+			transaction = windat->transactions[data->line].sort_index;
+
 			accview_redraw_transaction(windat->file, windat->transactions[transaction].to, transaction);
 		} else if (data->icon == TRANSACT_ICON_TO) {
-			/* Trust that any accuout views that are open must be based on a
+			/* Trust that any account views that are open must be based on a
 			 * valid date order, and only rebuild those that are directly affected.
+			 * The rebuild might resort the transaction data, so we need to re-find
+			 * the transaction entry for the edit line each time.
 			 */
 
 			accview_rebuild(windat->file, old_account);
-//FIXME -- Changed?	transaction = windat->transactions[line].sort_index;
+			transaction = windat->transactions[data->line].sort_index;
+
 			accview_rebuild(windat->file, windat->transactions[transaction].to);
-//FIXME -- Changed?	transaction = windat->transactions[line].sort_index;
+			transaction = windat->transactions[data->line].sort_index;
+
 			accview_redraw_transaction(windat->file, windat->transactions[transaction].from, transaction);
 		} else if (data->icon == TRANSACT_ICON_AMOUNT) {
 			accview_recalculate(windat->file, windat->transactions[transaction].from, transaction);

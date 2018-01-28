@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -77,6 +77,12 @@
  */
 
 #define EDIT_TRANSFER_BLOCKS 2
+
+/**
+ * The number of icons in an Account field.
+ */
+
+#define EDIT_ICONS_IN_ACCOUNT_FIELD 3
 
 /**
  * The different types of icon which can form and edit line.
@@ -230,6 +236,8 @@ static void			edit_delete_line_content(struct edit_block *instance);
 static void			edit_refresh_field_contents(struct edit_field *field);
 static struct edit_data		*edit_get_field_transfer(struct edit_field *field, int line, osbool complete);
 static void			edit_put_field_content(struct edit_field *field, int line, wimp_key_no key);
+static void			edit_fill_transfer_block(struct edit_data *transfer, struct edit_field *field, int line, wimp_key_no key);
+static void			edit_extract_transfer_block(struct edit_data *transfer, struct edit_field *field);
 static osbool			edit_get_field_icons(struct edit_field *field, int icons, ...);
 static osbool			edit_find_field_horizontally(struct edit_field *field);
 static osbool			edit_callback_test_line(struct edit_block *instance, int line);
@@ -414,6 +422,8 @@ osbool edit_add_field(struct edit_block *instance, enum edit_field_type type, ..
 		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_IDENT, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
 		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_REC, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
 		edit_add_field_icon(field, EDIT_ICON_ACCOUNT_NAME, va_arg(ap, wimp_i), va_arg(ap, char *), va_arg(ap, size_t));
+		break;
+	case EDIT_FIELD_NONE:
 		break;
 	}
 
@@ -678,6 +688,124 @@ void edit_refresh_line_contents(struct edit_block *instance, wimp_i only, wimp_i
 
 		field = field->next;
 	}
+}
+
+
+/**
+ * Request a transfer block from an instance of the edit bar, to allow a
+ * field in the bar to be updated. It is essential that the instance is the
+ * currently active instance; if it is not, a block will not be set up.
+ *
+ * It is ESSENTIAL that, if the returned block is not NULL, then the block
+ * is passed back to edit_submit_field_contents_update() to allow it to be
+ * deallocated. If it is not, a memory leak will occur.
+ *
+ * \param *instance		The edit bar instance to be updated.
+ * \param icon			An icon in the field to be updated.
+ * \return			Pointer to a transfer block, or NULL on failure.
+ */
+
+struct edit_data *edit_request_field_contents_update(struct edit_block *instance, wimp_i icon)
+{
+	struct edit_field	*field;
+	struct edit_data	*transfer;
+
+	if (instance == NULL || instance->file == NULL)
+		return NULL;
+
+	if (instance != edit_active_instance)
+		return NULL;
+
+	/* Identify the field to be updated. */
+
+	field = edit_find_icon(instance, icon);
+	if (field == NULL)
+		return NULL;
+
+	/* Construct a transfer block for the field. */
+
+	transfer = edit_get_transfer_block(instance);
+	if (transfer == NULL)
+		return NULL;
+
+	edit_fill_transfer_block(transfer, field, instance->edit_line, '\0');
+
+	return transfer;
+}
+
+
+/**
+ * Return a transfer block, previously claimed by calling
+ * edit_request_field_contents_update(), to update a field in an edit
+ * bar instance and release the memory used by the block.
+ *
+ * \param *instance		The edit bar instance to be updated.
+ * \param *transfer		The transfer block containing the update.
+ * \param caret			TRUE to place the caret in the field; otherwise FALSE.
+ * \return			TRUE if the update was successful; FALSE on failure.
+ */
+
+osbool edit_submit_field_contents_update(struct edit_block *instance, struct edit_data *transfer, osbool caret)
+{
+	struct edit_field	*field;
+
+	if (transfer == NULL)
+		return FALSE;
+
+	if (instance == NULL || instance->file == NULL || instance != edit_active_instance) {
+		edit_free_transfer_block(instance, transfer);
+		return FALSE;
+	}
+
+	if (instance->edit_line != transfer->line) {
+		edit_free_transfer_block(instance, transfer);
+		return FALSE;
+	}
+
+	/* Identify the field to be updated. */
+
+	field = edit_find_icon(instance, transfer->icon);
+
+	if (field == NULL || field->type != transfer->type) {
+		edit_free_transfer_block(instance, transfer);
+		return FALSE;
+	}
+
+	/* Update the field accordingly. */
+
+	edit_extract_transfer_block(transfer, field);
+	edit_free_transfer_block(instance, transfer);
+	edit_put_field_content(field, instance->edit_line, '\0');
+	edit_refresh_field_contents(field);
+
+	/* Locate the caret at the end of the field, if required. */
+
+	if (caret) {
+		icons_put_caret_at_end(instance->parent, field->icon->icon);
+		edit_find_field_horizontally(field);
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Return the type of field represented in an instance by a given icon.
+ *
+ * \param *instance		The instance to query.
+ * \param icon			The icon to look up.
+ * \return			The field type, or FIELD_TYPE_NONE.
+ */
+
+enum edit_field_type edit_get_field_type(struct edit_block *instance, wimp_i icon)
+{
+	struct edit_field	*field;
+
+	field = edit_find_icon(instance, icon);
+	if (field == NULL)
+		return EDIT_FIELD_NONE;
+
+	return field->type;
 }
 
 
@@ -1049,6 +1177,7 @@ static void edit_process_field_keypress(struct edit_field *field, wimp_key *key)
 		edit_process_account_field_keypress(field, key, ACCOUNT_OUT | ACCOUNT_FULL);
 		break;
 	case EDIT_FIELD_DISPLAY:
+	case EDIT_FIELD_NONE:
 		break;
 	}
 }
@@ -1195,7 +1324,7 @@ static void edit_process_account_field_keypress(struct edit_field *field, wimp_k
 
 	/* Identify the field icon handles */
 
-	if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
+	if (!edit_get_field_icons(field, EDIT_ICONS_IN_ACCOUNT_FIELD, &ident, &reconcile, &name))
 		return;
 
 	/* Look up the new account and reconciled status; if it's unchanged, exit. */
@@ -1261,6 +1390,7 @@ static void edit_get_field_content(struct edit_field *field, int line, osbool co
 			field->account.reconciled = FALSE;
 			break;
 		case EDIT_FIELD_DISPLAY:
+		case EDIT_FIELD_NONE:
 			break;
 		}
 
@@ -1274,28 +1404,9 @@ static void edit_get_field_content(struct edit_field *field, int line, osbool co
 		return;
 	}
 
-	/* Something valid was returned in the data block, so update the field icons
-	 * accordingly.
-	 */
+	/* Something valid was returned in the data block. */
 
-	switch (field->type) {
-	case EDIT_FIELD_DISPLAY:
-		break;
-	case EDIT_FIELD_TEXT:
-		field->text.sum = edit_sum_field_text(icon->buffer, icon->length);
-		break;
-	case EDIT_FIELD_CURRENCY:
-		field->currency.amount = transfer->currency.amount;
-		break;
-	case EDIT_FIELD_DATE:
-		field->date.date = transfer->date.date;
-		break;
-	case EDIT_FIELD_ACCOUNT_IN:
-	case EDIT_FIELD_ACCOUNT_OUT:
-		field->account.account = transfer->account.account;
-		field->account.reconciled = transfer->account.reconciled;
-		break;
-	}
+	edit_extract_transfer_block(transfer, field);
 
 	edit_free_transfer_block(field->instance, transfer);
 
@@ -1370,6 +1481,7 @@ static void edit_delete_line_content(struct edit_block *instance)
 			break;
 
 		case EDIT_FIELD_DISPLAY:
+		case EDIT_FIELD_NONE:
 			break;
 		}
 
@@ -1405,6 +1517,7 @@ static void edit_refresh_field_contents(struct edit_field *field)
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:
 	case EDIT_FIELD_TEXT:
+	case EDIT_FIELD_NONE:
 		/* The supplied pointer was direct to the icon's buffer, so there's nothing to do. */
 		break;
 	case EDIT_FIELD_CURRENCY:
@@ -1415,7 +1528,7 @@ static void edit_refresh_field_contents(struct edit_field *field)
 		break;
 	case EDIT_FIELD_ACCOUNT_IN:
 	case EDIT_FIELD_ACCOUNT_OUT:
-		if (!edit_get_field_icons(field, 3, &ident, &reconcile, &name))
+		if (!edit_get_field_icons(field, EDIT_ICONS_IN_ACCOUNT_FIELD, &ident, &reconcile, &name))
 			break;
 		account_fill_field(field->instance->file, field->account.account, field->account.reconciled,
 				field->instance->parent, ident, name, reconcile);
@@ -1453,30 +1566,7 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
 	if (transfer == NULL)
 		return NULL;
 
-	transfer->type = field->type;
-	transfer->line = line;
-	transfer->icon = field->icon->icon;
-	transfer->key = '\0';
-
-	switch (field->type) {
-	case EDIT_FIELD_DISPLAY:
-		transfer->display.text = field->icon->buffer;
-		transfer->display.length = field->icon->length;
-		break;
-	case EDIT_FIELD_TEXT:
-		transfer->text.text = field->icon->buffer;
-		transfer->text.length = field->icon->length;
-		break;
-	case EDIT_FIELD_CURRENCY:
-		transfer->currency.amount = field->currency.amount;
-	case EDIT_FIELD_DATE:
-		transfer->date.date = field->date.date;
-	case EDIT_FIELD_ACCOUNT_IN:
-	case EDIT_FIELD_ACCOUNT_OUT:
-		transfer->account.account = field->account.account;
-		transfer->account.reconciled = field->account.reconciled;
-		break;
-	}
+	edit_fill_transfer_block(transfer, field, line, '\0');
 
 	if (!callback(transfer)) {
 		edit_free_transfer_block(field->instance, transfer);
@@ -1499,7 +1589,6 @@ static struct edit_data *edit_get_field_transfer(struct edit_field *field, int l
 static void edit_put_field_content(struct edit_field *field, int line, wimp_key_no key)
 {
 	struct edit_data	*transfer;
-	struct edit_icon	*icon;
 
 	if (field == NULL || field->instance == NULL || field->icon == NULL)
 		return;
@@ -1507,29 +1596,49 @@ static void edit_put_field_content(struct edit_field *field, int line, wimp_key_
 	if (field->instance->callbacks == NULL || field->instance->callbacks->put_field == NULL)
 		return;
 
-	/* Get the first icon block associated with the field. */
-
-	icon = field->icon;
-
 	/* Initialise the transfer data block. */
 
 	transfer = edit_get_transfer_block(field->instance);
 	if (transfer == NULL)
 		return;
 
+	edit_fill_transfer_block(transfer, field, line, key);
+
+	/* Call the Put callback. */
+
+	field->instance->callbacks->put_field(transfer);
+
+	edit_free_transfer_block(field->instance, transfer);
+}
+
+
+/**
+ * Fill a transfer block with data from a field.
+ *
+ * \param *transfer		The transfer block to be completed.
+ * \param *field		The field to take the data from.
+ * \param line			The line to which the block will apply.
+ * \param key			The key number relating to the update.
+ */
+
+static void edit_fill_transfer_block(struct edit_data *transfer, struct edit_field *field, int line, wimp_key_no key)
+{
+	if (transfer == NULL || field == NULL)
+		return;
+
 	transfer->type = field->type;
 	transfer->line = line;
-	transfer->icon = icon->icon;
+	transfer->icon = field->icon->icon;
 	transfer->key = key;
 
 	switch (field->type) {
 	case EDIT_FIELD_DISPLAY:
-		transfer->display.text = icon->buffer;
-		transfer->display.length = icon->length;
+		transfer->display.text = field->icon->buffer;
+		transfer->display.length = field->icon->length;
 		break;
 	case EDIT_FIELD_TEXT:
-		transfer->text.text = icon->buffer;
-		transfer->text.length = icon->length;
+		transfer->text.text = field->icon->buffer;
+		transfer->text.length = field->icon->length;
 		break;
 	case EDIT_FIELD_CURRENCY:
 		transfer->currency.amount = field->currency.amount;
@@ -1542,13 +1651,48 @@ static void edit_put_field_content(struct edit_field *field, int line, wimp_key_
 		transfer->account.account = field->account.account;
 		transfer->account.reconciled = field->account.reconciled;
 		break;
+	case EDIT_FIELD_NONE:
+		break;
 	}
+}
 
-	/* Call the Put callback. */
 
-	field->instance->callbacks->put_field(transfer);
+/**
+ * Update a field with data from a transfer block.
+ *
+ * \param *transfer		The transfer block to take the date from.
+ * \param *field		The field to be updated.
+ */
 
-	edit_free_transfer_block(field->instance, transfer);
+static void edit_extract_transfer_block(struct edit_data *transfer, struct edit_field *field)
+{
+	if (transfer == NULL || field == NULL)
+		return;
+
+	/* In the case of Text fields, the transfer block passes a pointer
+	 * to the icon buffer to the client, so all that needs to be done
+	 * is to update the field sum.
+	 */
+
+	switch (field->type) {
+	case EDIT_FIELD_DISPLAY:
+	case EDIT_FIELD_NONE:
+		break;
+	case EDIT_FIELD_TEXT:
+		field->text.sum = edit_sum_field_text(field->icon->buffer, field->icon->length);
+		break;
+	case EDIT_FIELD_CURRENCY:
+		field->currency.amount = transfer->currency.amount;
+		break;
+	case EDIT_FIELD_DATE:
+		field->date.date = transfer->date.date;
+		break;
+	case EDIT_FIELD_ACCOUNT_IN:
+	case EDIT_FIELD_ACCOUNT_OUT:
+		field->account.account = transfer->account.account;
+		field->account.reconciled = transfer->account.reconciled;
+		break;
+	}
 }
 
 

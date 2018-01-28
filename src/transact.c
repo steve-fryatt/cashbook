@@ -2369,9 +2369,12 @@ static void transaction_window_terminate_drag(wimp_dragged *drag, void *data)
 	wimp_window_state		window;
 	int				end_line, xpos;
 	wimp_i				end_column;
-	tran_t				start_transaction, end_transaction;
+	tran_t				start_transaction;
+	osbool				changed = FALSE;
 	struct transact_drag_data	*drag_data = data;
 	struct transact_block		*windat;
+	enum edit_field_type		start_field_type;
+	struct edit_data		*transfer;
 
 	if (drag_data == NULL)
 		return;
@@ -2405,57 +2408,77 @@ static void transaction_window_terminate_drag(wimp_dragged *drag, void *data)
 	if ((end_line < 0) || (end_column == wimp_ICON_WINDOW))
 		return;
 
+	#ifdef DEBUG
+	debug_printf("Drag data from line %d, column %d to line %d, column %d", drag_data->start_line, drag_data->start_column, end_line, end_column);
+	#endif
+
 	start_transaction = transact_get_transaction_from_line(windat->file, drag_data->start_line);
-	end_transaction = transact_get_transaction_from_line(windat->file, end_line);
+	if (start_transaction == NULL_TRANSACTION)
+		return;
 
-	/* \TODO -- Need to add transactions if drop is outside file limit. */
+	start_field_type = edit_get_field_type(windat->edit_line, drag_data->start_column);
+	if (start_field_type == EDIT_FIELD_NONE)
+		return;
 
-	switch (drag_data->start_column) {
-	case TRANSACT_ICON_ROW:
+	transact_place_edit_line(windat, end_line);
+
+	transfer = edit_request_field_contents_update(windat->edit_line, end_column);
+	if (transfer == NULL)
+		return;
+
+	switch (transfer->type) {
+	case EDIT_FIELD_TEXT:
+		if (start_field_type == EDIT_FIELD_TEXT) {
+			switch (drag_data->start_column) {
+			case TRANSACT_ICON_REFERENCE:
+				string_copy(transfer->text.text, windat->transactions[start_transaction].reference, transfer->text.length);
+				break;
+			case TRANSACT_ICON_DESCRIPTION:
+				string_copy(transfer->text.text, windat->transactions[start_transaction].description, transfer->text.length);
+				break;
+			}
+			changed = TRUE;
+		}
 		break;
-	case TRANSACT_ICON_DATE:
+	case EDIT_FIELD_CURRENCY:
+		if (start_field_type == EDIT_FIELD_CURRENCY) {
+			transfer->currency.amount = windat->transactions[start_transaction].amount;
+			changed = TRUE;
+		}
 		break;
-	case TRANSACT_ICON_FROM:
-	case TRANSACT_ICON_TO:
+	case EDIT_FIELD_DATE:
+		if (start_field_type == EDIT_FIELD_DATE) {
+			transfer->date.date = windat->transactions[start_transaction].date;
+			changed = TRUE;
+		}
 		break;
-	case TRANSACT_ICON_FROM_NAME:
-	case TRANSACT_ICON_TO_NAME:
+	case EDIT_FIELD_ACCOUNT_IN:
+	case EDIT_FIELD_ACCOUNT_OUT:
+		if (start_field_type == EDIT_FIELD_ACCOUNT_IN || start_field_type == EDIT_FIELD_ACCOUNT_OUT) {
+			switch (drag_data->start_column) {
+			case TRANSACT_ICON_FROM:
+			case TRANSACT_ICON_FROM_REC:
+			case TRANSACT_ICON_FROM_NAME:
+				transfer->account.account = windat->transactions[start_transaction].from;
+				transfer->account.reconciled = (windat->transactions[start_transaction].flags & TRANS_REC_FROM) ? TRUE : FALSE;
+				break;
+			case TRANSACT_ICON_TO:
+			case TRANSACT_ICON_TO_REC:
+			case TRANSACT_ICON_TO_NAME:
+				transfer->account.account = windat->transactions[start_transaction].to;
+				transfer->account.reconciled = (windat->transactions[start_transaction].flags & TRANS_REC_TO) ? TRUE : FALSE;
+				break;
+			}
+			changed = TRUE;
+		}
 		break;
-	case TRANSACT_ICON_FROM_REC:
-	case TRANSACT_ICON_TO_REC:
-		break;
-	case TRANSACT_ICON_AMOUNT:
-		break;
-	case TRANSACT_ICON_REFERENCE:
-	case TRANSACT_ICON_DESCRIPTION:
+	case EDIT_FIELD_DISPLAY:
+	case EDIT_FIELD_NONE:
 		break;
 	}
 
-//	#ifdef DEBUG
-	debug_printf("Drag data from line %d, column %d to line %d, column %d", drag_data->start_line, drag_data->start_column, end_line, end_column);
-//	#endif
+	edit_submit_field_contents_update(windat->edit_line, transfer, changed);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /* ==================================================================================================================

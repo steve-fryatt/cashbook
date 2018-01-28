@@ -1,4 +1,4 @@
-/* Copyright 2003-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -39,6 +39,7 @@
  */
 
 enum edit_field_type {
+	EDIT_FIELD_NONE,					/**< No field.							*/
 	EDIT_FIELD_DISPLAY,					/**< A display field which can not be edited.			*/
 	EDIT_FIELD_TEXT,					/**< A plain text field.					*/
 	EDIT_FIELD_CURRENCY,					/**< A currency field.						*/
@@ -297,6 +298,48 @@ void edit_place_new_line(struct edit_block *instance, int line, wimp_colour colo
  */
 
 void edit_refresh_line_contents(struct edit_block *instance, wimp_i only, wimp_i avoid);
+
+
+/**
+ * Request a transfer block from an instance of the edit bar, to allow a
+ * field in the bar to be updated. It is essential that the instance is the
+ * currently active instance; if it is not, a block will not be set up.
+ *
+ * It is ESSENTIAL that, if the returned block is not NULL, then the block
+ * is passed back to edit_submit_field_contents_update() to allow it to be
+ * deallocated. If it is not, a memory leak will occur.
+ *
+ * \param *instance		The edit bar instance to be updated.
+ * \param icon			An icon in the field to be updated.
+ * \return			Pointer to a transfer block, or NULL on failure.
+ */
+
+struct edit_data *edit_request_field_contents_update(struct edit_block *instance, wimp_i icon);
+
+
+/**
+ * Return a transfer block, previously claimed by calling
+ * edit_request_field_contents_update(), to update a field in an edit
+ * bar instance and release the memory used by the block.
+ *
+ * \param *instance		The edit bar instance to be updated.
+ * \param *transfer		The transfer block containing the update.
+ * \param caret			TRUE to place the caret in the field; otherwise FALSE.
+ * \return			TRUE if the update was successful; FALSE on failure.
+ */
+
+osbool edit_submit_field_contents_update(struct edit_block *instance, struct edit_data *transfer, osbool caret);
+
+
+/**
+ * Return the type of field represented in an instance by a given icon.
+ *
+ * \param *instance		The instance to query.
+ * \param icon			The icon to look up.
+ * \return			The field type, or FIELD_TYPE_NONE.
+ */
+
+enum edit_field_type edit_get_field_type(struct edit_block *instance, wimp_i icon);
 
 
 /**

@@ -2375,6 +2375,7 @@ static void transaction_window_terminate_drag(wimp_dragged *drag, void *data)
 	struct transact_block		*windat;
 	enum edit_field_type		start_field_type;
 	struct edit_data		*transfer;
+	enum account_type		target_type;
 
 	if (drag_data == NULL)
 		return;
@@ -2454,22 +2455,29 @@ static void transaction_window_terminate_drag(wimp_dragged *drag, void *data)
 		break;
 	case EDIT_FIELD_ACCOUNT_IN:
 	case EDIT_FIELD_ACCOUNT_OUT:
+		target_type = (transfer->type == EDIT_FIELD_ACCOUNT_IN) ? ACCOUNT_FULL_IN : ACCOUNT_FULL_OUT;
+	
 		if (start_field_type == EDIT_FIELD_ACCOUNT_IN || start_field_type == EDIT_FIELD_ACCOUNT_OUT) {
 			switch (drag_data->start_column) {
 			case TRANSACT_ICON_FROM:
 			case TRANSACT_ICON_FROM_REC:
 			case TRANSACT_ICON_FROM_NAME:
-				transfer->account.account = windat->transactions[start_transaction].from;
-				transfer->account.reconciled = (windat->transactions[start_transaction].flags & TRANS_REC_FROM) ? TRUE : FALSE;
+				if (account_get_type(windat->file, windat->transactions[start_transaction].from) & target_type) {
+					transfer->account.account = windat->transactions[start_transaction].from;
+					transfer->account.reconciled = (windat->transactions[start_transaction].flags & TRANS_REC_FROM) ? TRUE : FALSE;
+					changed = TRUE;
+				}
 				break;
 			case TRANSACT_ICON_TO:
 			case TRANSACT_ICON_TO_REC:
 			case TRANSACT_ICON_TO_NAME:
-				transfer->account.account = windat->transactions[start_transaction].to;
-				transfer->account.reconciled = (windat->transactions[start_transaction].flags & TRANS_REC_TO) ? TRUE : FALSE;
+				if (account_get_type(windat->file, windat->transactions[start_transaction].to) & target_type) {
+					transfer->account.account = windat->transactions[start_transaction].to;
+					transfer->account.reconciled = (windat->transactions[start_transaction].flags & TRANS_REC_TO) ? TRUE : FALSE;
+					changed = TRUE;
+				}
 				break;
 			}
-			changed = TRUE;
 		}
 		break;
 	case EDIT_FIELD_DISPLAY:

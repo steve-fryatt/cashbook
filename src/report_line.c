@@ -187,12 +187,22 @@ osbool report_line_add(struct report_line_block *handle, unsigned first_cell, si
 
 	new = handle->line_count++;
 
-	/* If there's a rule below this, and no rule on the line above,
-	 * add a rule above the line as well.
-	 */
+	/* If there's a rule below this, process the ruleoff rules. */
 
-	if ((flags & REPORT_LINE_FLAGS_RULE_BELOW) && ((new == 0) || !(handle->lines[new - 1].flags & REPORT_LINE_FLAGS_RULE_BELOW)))
-		flags |= REPORT_LINE_FLAGS_RULE_ABOVE;
+	if (flags & REPORT_LINE_FLAGS_RULE_BELOW) {
+		/* Assume this is the last line for now. */
+
+		flags |= REPORT_LINE_FLAGS_RULE_LAST;
+
+		/* If this is the first line, set the rule-off above. If it isn't,
+		 * remove the "last line" flag from the line above.
+		 */
+
+		if ((new == 0) || (!(handle->lines[new - 1].flags & REPORT_LINE_FLAGS_RULE_BELOW) || (tab_bar != handle->lines[new - 1].tab_bar)))
+			flags |= REPORT_LINE_FLAGS_RULE_ABOVE;
+		else
+			handle->lines[new - 1].flags &= ~REPORT_LINE_FLAGS_RULE_LAST;
+	}
 
 	handle->lines[new].flags = flags;
 	handle->lines[new].first_cell = first_cell;

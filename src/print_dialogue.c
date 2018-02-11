@@ -422,11 +422,13 @@ static void print_dialogue_click_handler(wimp_pointer *pointer)
 
 	case PRINT_DIALOGUE_STANDARD:
 	case PRINT_DIALOGUE_FASTTEXT:
-		icons_set_group_shaded_when_off(print_dialogue_window, PRINT_DIALOGUE_STANDARD, 6,
+		icons_set_group_shaded(print_dialogue_window,
+				icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT) || (*print_dialogue_report_title_token == '\0'), 6,
 				PRINT_DIALOGUE_PORTRAIT, PRINT_DIALOGUE_LANDSCAPE, PRINT_DIALOGUE_SCALE,
 				PRINT_DIALOGUE_PNUM, PRINT_DIALOGUE_TITLE, PRINT_DIALOGUE_GRID);
-		icons_set_group_shaded_when_off(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, 1,
-				PRINT_DIALOGUE_TEXTFORMAT);
+
+		icons_set_group_shaded_when_off(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, 1, PRINT_DIALOGUE_TEXTFORMAT);
+
 		if (icons_get_shaded(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT))
 			icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT, TRUE);
 		break;
@@ -542,11 +544,13 @@ static void print_dialogue_fill_window(struct print_dialogue_block *print_data, 
 			PRINT_DIALOGUE_RANGE_BOX, PRINT_DIALOGUE_RANGE_TITLE, PRINT_DIALOGUE_RANGE_LABEL1,
 			PRINT_DIALOGUE_RANGE_LABEL2, PRINT_DIALOGUE_RANGE_FROM, PRINT_DIALOGUE_RANGE_TO);
 
-	icons_set_group_shaded_when_off(print_dialogue_window, PRINT_DIALOGUE_STANDARD, 6,
+	icons_set_group_shaded(print_dialogue_window,
+			icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT) || (*print_dialogue_report_title_token == '\0'), 6,
 			PRINT_DIALOGUE_PORTRAIT, PRINT_DIALOGUE_LANDSCAPE, PRINT_DIALOGUE_SCALE,
 			PRINT_DIALOGUE_PNUM, PRINT_DIALOGUE_TITLE, PRINT_DIALOGUE_GRID);
-	icons_set_group_shaded_when_off(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, 1,
-			PRINT_DIALOGUE_TEXTFORMAT);
+
+	icons_set_group_shaded_when_off(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, 1, PRINT_DIALOGUE_TEXTFORMAT);
+
 	if (icons_get_shaded(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT))
 		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT, TRUE);
 

@@ -295,9 +295,6 @@ static void main_initialise(void)
 	config_opt_init("ReportShowPageNum", TRUE);					/**< Show page numbers in the footer on each report page.		*/
 	config_opt_init("ReportShowGrid", TRUE);					/**< Show the grid around tabular report data.				*/
 
-	config_opt_init("PrintFitWidth", TRUE);						/**< Fit printout to one page width when PrintText == FALSE.		*/
-	config_opt_init("PrintRotate", FALSE);						/**< Print Landscape when PrintText == FALSE.				*/
-	config_opt_init("PrintPageNumbers", TRUE);					/**< Include page numbers when PrintText == FALSE.			*/
 	config_opt_init("PrintText", FALSE);						/**< Print in legacy text mode instead of graphics.			*/
 	config_opt_init("PrintTextFormat", TRUE);					/**< Include Fancy Text formatting when PrintText == TRUE.		*/
 

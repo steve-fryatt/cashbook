@@ -214,11 +214,11 @@ struct print_dialogue_block *print_dialogue_create(struct file_block *file)
 
 	new->file = file;
 
-	new->fit_width = config_opt_read("PrintFitWidth");
-	new->title = TRUE;
-	new->page_numbers = config_opt_read("PrintPageNumbers");
-	new->grid = TRUE;
-	new->rotate = config_opt_read("PrintRotate");
+	new->fit_width = config_opt_read("ReportFitWidth");
+	new->title = config_opt_read("ReportShowTitle");
+	new->page_numbers = config_opt_read("ReportShowPageNum");
+	new->grid = config_opt_read("ReportShowGrid");
+	new->rotate = config_opt_read("ReportRotate");
 	new->text = config_opt_read("PrintText");
 	new->text_format = config_opt_read("PrintTextFormat");
 
@@ -508,12 +508,12 @@ static void print_dialogue_fill_window(struct print_dialogue_block *print_data, 
 
 	if (!restore) {
 		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_STANDARD, !config_opt_read("PrintText"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_PORTRAIT, !config_opt_read("PrintRotate"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_LANDSCAPE, config_opt_read("PrintRotate"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_SCALE, config_opt_read("PrintFitWidth"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_PNUM, config_opt_read("PrintPageNumbers"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_GRID, TRUE);
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TITLE, FALSE);
+		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_PORTRAIT, !config_opt_read("ReportRotate"));
+		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_LANDSCAPE, config_opt_read("ReportRotate"));
+		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_SCALE, config_opt_read("ReportFitWidth"));
+		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_PNUM, config_opt_read("ReportShowPageNum"));
+		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_GRID, config_opt_read("ReportShowGrid"));
+		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TITLE, config_opt_read("ReportShowTitle"));
 
 		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, config_opt_read("PrintText"));
 		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT, config_opt_read("PrintTextFormat"));

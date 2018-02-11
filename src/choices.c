@@ -129,21 +129,17 @@
 
 /* Print pane icons. */
 
-#define CHOICE_ICON_STANDARD 0
-#define CHOICE_ICON_PORTRAIT 1
-#define CHOICE_ICON_LANDSCAPE 2
-#define CHOICE_ICON_SCALE 3
+#define CHOICE_ICON_STANDARD 2
+#define CHOICE_ICON_FASTTEXT 3
 #define CHOICE_ICON_MTOP 7
-#define CHOICE_ICON_MLEFT 8
+#define CHOICE_ICON_MLEFT 9
 #define CHOICE_ICON_MRIGHT 11
 #define CHOICE_ICON_MBOTTOM 13
-#define CHOICE_ICON_MINCH 14
-#define CHOICE_ICON_MCM 15
-#define CHOICE_ICON_MMM 16
-#define CHOICE_ICON_FASTTEXT 17
-#define CHOICE_ICON_TEXTFORMAT 18
-#define CHOICE_ICON_PNUM 19
-#define CHOICE_ICON_GUTTER 21
+#define CHOICE_ICON_GUTTER 15
+#define CHOICE_ICON_MCM 17
+#define CHOICE_ICON_MMM 18
+#define CHOICE_ICON_MINCH 19
+#define CHOICE_ICON_TEXTFORMAT 20
 
 /* Report pane icons. */
 
@@ -266,8 +262,6 @@ void choices_initialise(void)
 	event_add_window_key_event(choices_panes[CHOICE_PANE_PRINT], choices_keypress_handler);
 	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_STANDARD, TRUE);
 	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT, TRUE);
-	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_PORTRAIT, TRUE);
-	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE, TRUE);
 	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MINCH, TRUE);
 	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MCM, TRUE);
 	event_add_window_icon_radio(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_MMM, TRUE);
@@ -678,15 +672,6 @@ static void choices_set_window(void)
 
 	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_STANDARD,
 			!config_opt_read("PrintText"));
-	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_PORTRAIT,
-			!config_opt_read("PrintRotate"));
-	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE,
-			config_opt_read("PrintRotate"));
-	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_SCALE,
-			config_opt_read("PrintFitWidth"));
-	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_PNUM,
-			config_opt_read("PrintPageNumbers"));
-
 	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT,
 			config_opt_read("PrintText"));
 	icons_set_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_TEXTFORMAT,
@@ -863,12 +848,6 @@ static void choices_read_window(void)
 
 	/* Read the printing pane. */
 
-	config_opt_set("PrintFitWidth",
-			icons_get_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_SCALE));
-	config_opt_set("PrintRotate",
-			icons_get_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_LANDSCAPE));
-	config_opt_set("PrintPageNumbers",
-			icons_get_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_PNUM));
 	config_opt_set("PrintText",
 			icons_get_selected(choices_panes[CHOICE_PANE_PRINT], CHOICE_ICON_FASTTEXT));
 	config_opt_set("PrintTextFormat",

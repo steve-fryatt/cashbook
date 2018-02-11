@@ -322,9 +322,6 @@ struct report			*report_print_report = NULL;			/**< The report to which the curr
 
 static osbool			report_print_opt_text;				/**< TRUE if the current report is to be printed text format; FALSE to print graphically.	*/
 static osbool			report_print_opt_textformat;			/**< TRUE if text formatting should be applied to the current text format print; else FALSE.	*/
-static osbool			report_print_opt_fitwidth;			/**< TRUE if the graphics format print should be fitted to page width; else FALSE.		*/
-static osbool			report_print_opt_rotate;			/**< TRUE if the graphics format print should be rotated to Landscape; FALSE for Portrait.	*/
-static osbool			report_print_opt_pagenum;			/**< TRUE if the graphics format print should include page numbers; else FALSE.			*/
 
 wimp_window			*report_window_def = NULL;			/**< The definition for the Report View window.							*/
 wimp_window			*report_toolbar_def = NULL;			/**< The definition for the Report View toolbar.						*/
@@ -371,10 +368,10 @@ static osbool			report_save_tsv(char *filename, osbool selection, void *data);
 static void			report_export_text(struct report *report, char *filename, osbool formatting);
 static void			report_export_delimited(struct report *report, char *filename, enum filing_delimit_type format, int filetype);
 
-static void			report_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum);
+static void			report_print(struct report *report, osbool text, osbool textformat);
 static void			report_start_print_job(char *filename);
 static void			report_cancel_print_job(void);
-static void			report_print_as_graphic(struct report *report, osbool fit_width, osbool rotate, osbool pagenum);
+static void			report_print_as_graphic(struct report *report);
 static void			report_handle_print_error(os_error *error, os_fw file, struct report_fonts_block *fonts);
 
 
@@ -632,11 +629,13 @@ void report_close(struct report *report)
  * \param textformat		TRUE to apply formatting to text mode printing.
  * \param fitwidth		TRUE to fit graphics printing to page width.
  * \param rotate		TRUE to rotate grapchis printing to Landscape;
+ * \param title			TRUE to include a report title in graphics printing.
  * \param pagenum		TRUE to include page numbers in graphics printing.
+ * \param grid			TRUE to include a grid in graphics printing.
  *				FALSE to print Portrait.
  */
 
-void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum)
+void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool title, osbool pagenum, osbool grid)
 {
 #ifdef DEBUG
 	debug_printf("\\GClosing report and starting printing");
@@ -648,6 +647,31 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 		return;
 	}
 
+	if (fitwidth)
+		report->display |= REPORT_DISPLAY_FIT_WIDTH;
+	else
+		report->display &= ~REPORT_DISPLAY_FIT_WIDTH;
+
+	if (rotate)
+		report->display |= REPORT_DISPLAY_LANDSCAPE;
+	else
+		report->display &= ~REPORT_DISPLAY_LANDSCAPE;
+
+	if (title)
+		report->display |= REPORT_DISPLAY_SHOW_TITLE;
+	else
+		report->display &= ~REPORT_DISPLAY_SHOW_TITLE;
+
+	if (pagenum)
+		report->display |= REPORT_DISPLAY_SHOW_NUMBERS;
+	else
+		report->display &= ~REPORT_DISPLAY_SHOW_NUMBERS;
+
+	if (grid)
+		report->display |= REPORT_DISPLAY_SHOW_GRID;
+	else
+		report->display &= ~REPORT_DISPLAY_SHOW_GRID;
+
 	report_close_and_calculate(report);
 
 	if (!report_page_paginated(report->pages)) {
@@ -656,7 +680,7 @@ void report_close_and_print(struct report *report, osbool text, osbool textforma
 		return;
 	}
 
-	report_print(report, text, textformat, fitwidth, rotate, pagenum);
+	report_print(report, text, textformat);
 }
 
 
@@ -1911,12 +1935,9 @@ static void report_export_delimited(struct report *report, char *filename, enum 
  * \param *data			The report to be printed.
  * \param text			TRUE to use text mode printing.
  * \param textformat		TRUE to use formatted text mode printing.
- * \param fitwidth		TRUE to scale graphics printing to the page width.
- * \param rotate		TRUE to rotate graphics printing into Landscape mode.
- * \param pagenum		TRUE to include page numbers in graphics printing.
  */
 
-static void report_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum)
+static void report_print(struct report *report, osbool text, osbool textformat)
 {
 	report_print_report = report;
 
@@ -1924,9 +1945,6 @@ static void report_print(struct report *report, osbool text, osbool textformat, 
 
 	report_print_opt_text = text;
 	report_print_opt_textformat = textformat;
-	report_print_opt_fitwidth = fitwidth;
-	report_print_opt_rotate = rotate;
-	report_print_opt_pagenum = pagenum;
 
 	/* Start the print dialogue process.
 	 * This process is also used by the direct report print function
@@ -1951,7 +1969,7 @@ static void report_start_print_job(char *filename)
 	if (report_print_opt_text)
 		report_export_text(report_print_report, filename, report_print_opt_textformat);
 	else
-		report_print_as_graphic(report_print_report, report_print_opt_fitwidth, report_print_opt_rotate, report_print_opt_pagenum);
+		report_print_as_graphic(report_print_report);
 
 	/* Tidy up afterwards.  If that was the last print job in progress and the window has already been closed (or if
 	 * there wasn't a window at all), delete the report data.
@@ -1979,12 +1997,9 @@ static void report_cancel_print_job(void)
  * Print a report via the graphical printing system.
  *
  * \param *report		The report to print.
- * \param fit_width		TRUE to fit to the width of the paper.
- * \param rotate		TRUE to rotate into Landscape format.
- * \param pagenum		TRUE to include page numbers.
  */
 
-static void report_print_as_graphic(struct report *report, osbool fit_width, osbool rotate, osbool pagenum)
+static void report_print_as_graphic(struct report *report)
 {
 	os_error			*error;
 	os_fw				out = 0;

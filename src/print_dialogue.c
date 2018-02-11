@@ -656,7 +656,8 @@ static void print_dialogue_process_report(struct print_dialogue_block *instance,
 
 	if (direct == TRUE) {
 		report_close_and_print(report, instance->text, instance->text_format,
-				instance->fit_width, instance->rotate, instance->page_numbers);
+				instance->fit_width, instance->rotate,
+				instance->title, instance->page_numbers, instance->grid);
 	} else {
 		report_close(report);
 	}

@@ -91,11 +91,13 @@ void report_close(struct report *report);
  * \param textformat		TRUE to apply formatting to text mode printing.
  * \param fitwidth		TRUE to fit graphics printing to page width.
  * \param rotate		TRUE to rotate grapchis printing to Landscape;
+ * \param title			TRUE to include a report title in graphics printing.
  * \param pagenum		TRUE to include page numbers in graphics printing.
+ * \param grid			TRUE to include a grid in graphics printing.
  *				FALSE to print Portrait.
  */
 
-void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool pagenum);
+void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool title, osbool pagenum, osbool grid);
 
 
 /**

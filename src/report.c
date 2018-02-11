@@ -127,7 +127,14 @@
 #define REPVIEW_MENU_LAYOUT_LANDSCAPE 1
 #define REPVIEW_MENU_LAYOUT_FIT_WIDTH 2
 
-/* Report export details */
+/* Fancy Text formatting codes. */
+
+#define REPORT_FANCY_TEXT_NONE 0x00		/**< No code.		*/
+#define REPORT_FANCY_TEXT_BOLD 0x01		/**< Bold Text.		*/
+#define REPORT_FANCY_TEXT_ITALIC 0x04		/**< Italic Text.	*/
+#define REPORT_FANCY_TEXT_UNDERLINE 0x80	/**< Underlined Text.	*/
+#define REPORT_FANCY_TEXT_FORMAT 0x80		/**< Formatting Code.	*/
+#define REPORT_FANCY_TEXT_ESCAPE 0x1b		/**< Escape Sequence.	*/
 
 /**
  * The size of buffer allocated to print job titles.
@@ -1782,9 +1789,14 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 			content = content_base + cell_data->offset;
 
-			escape = (cell_data->flags & REPORT_CELL_FLAGS_BOLD) ? 0x01 : 0x00;
+			escape = REPORT_FANCY_TEXT_NONE;
+
+			if (cell_data->flags & REPORT_CELL_FLAGS_BOLD)
+				escape |= REPORT_FANCY_TEXT_BOLD;
+			if (cell_data->flags & REPORT_CELL_FLAGS_ITALIC)
+				escape |= REPORT_FANCY_TEXT_ITALIC;
 			if (cell_data->flags & REPORT_CELL_FLAGS_UNDERLINE)
-				escape |= 0x08;
+				escape |= REPORT_FANCY_TEXT_UNDERLINE;
 
 			indent = (cell_data->flags & REPORT_CELL_FLAGS_INDENT) ? REPORT_TEXT_COLUMN_INDENT : 0;
 			width = strlen(content);
@@ -1801,9 +1813,9 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 			/* Output fancy text formatting codes (used when printing formatted text) */
 
-			if (formatting && escape != 0) {
-				fputc((char) 27, out);
-				fputc((char) (0x80 | escape), out);
+			if (formatting && escape != REPORT_FANCY_TEXT_NONE) {
+				fputc((char) REPORT_FANCY_TEXT_ESCAPE, out);
+				fputc((char) (REPORT_FANCY_TEXT_FORMAT | escape), out);
 			}
 
 			/* Output the actual field data. */
@@ -1812,9 +1824,9 @@ static void report_export_text(struct report *report, char *filename, osbool for
 
 			/* Output fancy text formatting codes (used when printing formatted text) */
 
-			if (formatting && escape != 0) {
-				fputc((char) 27, out);
-				fputc((char) 0x80, out);
+			if (formatting && escape != REPORT_FANCY_TEXT_NONE) {
+				fputc((char) REPORT_FANCY_TEXT_ESCAPE, out);
+				fputc((char) REPORT_FANCY_TEXT_FORMAT, out);
 			}
 		}
 

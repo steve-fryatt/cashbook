@@ -903,20 +903,19 @@ Help.SaveRepTempRen.Name:\Tnew name that the report template will be given.
 Help.SaveRepTempRen.Popup:\Sselect a name from the existing names of the saved reports.
 Help.SaveRepTempRen.Save:\Sstore the new name for the report template.
 
-Help.SimplePrint/Help.DatePrint:\Tprint \w.
-Help.SimplePrint.Standard/Help.DatePrint.Standard/Help.Choices3.Standard:\Sprint using normal printing mode, with a choice of outline font and different size text.
-Help.SimplePrint.Portrait/Help.DatePrint.Portrait/Help.Choices3.Portrait:\Sprint text on the page in portrait orientation.
-Help.SimplePrint.Landscape/Help.DatePrint.Landscape/Help.Choices3.Landscape:\Sprint text on the page in landscape orientation.
-Help.SimplePrint.PNum/Help.DatePrint.PNum/Help.Choices3.PNum:\Stoggle the printing of page numbers.
-Help.SimplePrint.Scale/Help.DatePrint.Scale/Help.Choices3.Scale:\Stoggle scaling the font size to fit everything to one page width.
-Help.SimplePrint.FastText/Help.DatePrint.FastText/Help.Choices3.FastText:\Sprint using a printer's fast text mode instead of outline fonts.
-Help.SimplePrint.TextForm/Help.DatePrint.TextForm/Help.Choices3.TextForm:\Stoggle the use effects (bold and underline) with fast text printing.
-Help.SimplePrint.Print/Help.DatePrint.Print:\Sstart the print job.
-Help.SimplePrint.Report/Help.DatePrint.Report:\Ssend the print job to a report.
-Help.SimplePrint.Cancel/Help.DatePrint.Cancel:\Scancel the print job.
-
-Help.DatePrint.From:\Tdate of the first transaction to include in the print job.
-Help.DatePrint.To:\Tdate of the last transaction to include in the print job.
+Help.Print:\Tprint \w.
+Help.Print.Standard/Help.Choices3.Standard:\Sprint using normal printing mode, with a choice of outline font and different size text.
+Help.Print.Portrait/Help.Choices3.Portrait:\Sprint text on the page in portrait orientation.
+Help.Print.Landscape/Help.Choices3.Landscape:\Sprint text on the page in landscape orientation.
+Help.Print.PNum/Help.Choices3.PNum:\Stoggle the printing of page numbers.
+Help.Print.Scale/Help.Choices3.Scale:\Stoggle scaling the font size to fit everything to one page width.
+Help.Print.FastText/Help.Choices3.FastText:\Sprint using a printer's fast text mode instead of outline fonts.
+Help.Print.TextForm/Help.Choices3.TextForm:\Stoggle the use effects (bold and underline) with fast text printing.
+Help.Print.Print:\Sstart the print job.
+Help.Print.Report:\Ssend the print job to a report.
+Help.Print.Cancel:\Scancel the print job.
+Help.Print.From:\Tdate of the first transaction to include in the print job.
+Help.Print.To:\Tdate of the last transaction to include in the print job.
 
 Help.Purge:\Tpurge \w, allowing old or unused information to be removed from the file.
 Help.Purge.Trans:\Stoggle the removal of reconciled transactions.

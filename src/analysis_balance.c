@@ -352,17 +352,17 @@ static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w w
 		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_DATEFROM) = '\0';
 		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_DATETO) = '\0';
 
-		icons_set_selected(window, ANALYSIS_BALANCE_BUDGET, 0);
+		icons_set_selected(window, ANALYSIS_BALANCE_BUDGET, FALSE);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(window, ANALYSIS_BALANCE_GROUP, 0);
+		icons_set_selected(window, ANALYSIS_BALANCE_GROUP, FALSE);
 
 		icons_strncpy(window, ANALYSIS_BALANCE_PERIOD, "1");
-		icons_set_selected(window, ANALYSIS_BALANCE_PDAYS, 0);
-		icons_set_selected(window, ANALYSIS_BALANCE_PMONTHS, 1);
-		icons_set_selected(window, ANALYSIS_BALANCE_PYEARS, 0);
-		icons_set_selected(window, ANALYSIS_BALANCE_LOCK, 0);
+		icons_set_selected(window, ANALYSIS_BALANCE_PDAYS, FALSE);
+		icons_set_selected(window, ANALYSIS_BALANCE_PMONTHS, TRUE);
+		icons_set_selected(window, ANALYSIS_BALANCE_PYEARS, FALSE);
+		icons_set_selected(window, ANALYSIS_BALANCE_LOCK, FALSE);
 
 		/* Set the accounts and format details. */
 
@@ -370,7 +370,7 @@ static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w w
 		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_INCOMING) = '\0';
 		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_OUTGOING) = '\0';
 
-		icons_set_selected(window, ANALYSIS_BALANCE_TABULAR, 0);
+		icons_set_selected(window, ANALYSIS_BALANCE_TABULAR, FALSE);
 	} else {
 		/* Set the period icons. */
 

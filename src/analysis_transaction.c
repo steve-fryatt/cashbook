@@ -373,17 +373,17 @@ static void analysis_transaction_fill_window(struct analysis_block *parent, wimp
 		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DATEFROM) = '\0';
 		*icons_get_indirected_text_addr(window, ANALYSIS_TRANS_DATETO) = '\0';
 
-		icons_set_selected(window, ANALYSIS_TRANS_BUDGET, 0);
+		icons_set_selected(window, ANALYSIS_TRANS_BUDGET, FALSE);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(window, ANALYSIS_TRANS_GROUP, 0);
+		icons_set_selected(window, ANALYSIS_TRANS_GROUP, FALSE);
 
 		icons_strncpy(window, ANALYSIS_TRANS_PERIOD, "1");
-		icons_set_selected(window, ANALYSIS_TRANS_PDAYS, 0);
-		icons_set_selected(window, ANALYSIS_TRANS_PMONTHS, 1);
-		icons_set_selected(window, ANALYSIS_TRANS_PYEARS, 0);
-		icons_set_selected(window, ANALYSIS_TRANS_LOCK, 0);
+		icons_set_selected(window, ANALYSIS_TRANS_PDAYS, FALSE);
+		icons_set_selected(window, ANALYSIS_TRANS_PMONTHS, TRUE);
+		icons_set_selected(window, ANALYSIS_TRANS_PYEARS, FALSE);
+		icons_set_selected(window, ANALYSIS_TRANS_LOCK, FALSE);
 
 		/* Set the include icons. */
 
@@ -396,9 +396,10 @@ static void analysis_transaction_fill_window(struct analysis_block *parent, wimp
 
 		/* Set the output icons. */
 
-		icons_set_selected(window, ANALYSIS_TRANS_OPTRANS, 1);
-		icons_set_selected(window, ANALYSIS_TRANS_OPSUMMARY, 1);
-		icons_set_selected(window, ANALYSIS_TRANS_OPACCSUMMARY, 1);
+		icons_set_selected(window, ANALYSIS_TRANS_OPTRANS, TRUE);
+		icons_set_selected(window, ANALYSIS_TRANS_OPSUMMARY, TRUE);
+		icons_set_selected(window, ANALYSIS_TRANS_OPACCSUMMARY, TRUE);
+		icons_set_selected(window, ANALYSIS_TRANS_OPEMPTY, FALSE);
 	} else {
 		/* Set the period icons. */
 
@@ -531,15 +532,13 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 {
 	struct analysis_transaction_report	*settings = template;
 	struct file_block			*file;
-
-	osbool			output_trans, output_summary, output_accsummary;
-	int			found, total, total_days, period_days, period_limit, entries, account;
-	date_t			start_date, end_date, next_start, next_end, date;
-	tran_t			i;
-	acct_t			from, to;
-	amt_t			min_amount, max_amount, amount;
-	char			date_text[1024];
-	char			*match_ref, *match_desc;
+	int					found, total, total_days, period_days, period_limit, entries, account;
+	date_t					start_date, end_date, next_start, next_end, date;
+	tran_t					i;
+	acct_t					from, to;
+	amt_t					min_amount, max_amount, amount;
+	char					date_text[1024];
+	char					*match_ref, *match_desc;
 
 	if (parent == NULL || report == NULL || settings == NULL || scratch == NULL || title == NULL)
 		return;
@@ -565,12 +564,6 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 	match_ref = (*(settings->ref) == '\0') ? NULL : settings->ref;
 	match_desc = (*(settings->desc) == '\0') ? NULL : settings->desc;
-
-	/* Read the output options. */
-
-	output_trans = settings->output_trans;
-	output_summary = settings->output_summary;
-	output_accsummary = settings->output_accsummary;
 
 	/* Output report heading */
 
@@ -620,7 +613,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 						stringbuild_report_line(report, 0);
 					}
 
-					if (output_trans) {
+					if (settings->output_trans) {
 						stringbuild_reset();
 						stringbuild_add_message("TRHeadings");
 						stringbuild_report_line(report, 1);
@@ -633,7 +626,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 				analysis_data_add_transaction(scratch, i);
 
-				if (output_trans) {
+				if (settings->output_trans) {
 					stringbuild_reset();
 					stringbuild_add_printf("\\k\\v\\d\\r%d\\t\\v\\c",
 							transact_get_transaction_number(i));
@@ -652,14 +645,14 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 		/* Print the account summaries. */
 
-		if (output_accsummary && found > 0) {
+		if (settings->output_accsummary && found > 0) {
 			/* Summarise the accounts. */
 
 			total = 0;
 
 			/* Only output blank line if there are transactions above. */
 
-			if (output_trans)
+			if (settings->output_trans)
 				report_write_line(report, 0, "");
 
 			stringbuild_reset();
@@ -694,14 +687,14 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 		/* Print the transaction summaries. */
 
-		if (output_summary && found > 0) {
+		if (settings->output_summary && found > 0) {
 			/* Summarise the outgoings. */
 
 			total = 0;
 
 			/* Only output blank line if there is something above. */
 
-			if (output_trans || output_accsummary)
+			if (settings->output_trans || settings->output_accsummary)
 				report_write_line(report, 0, "");
 
 			stringbuild_reset();

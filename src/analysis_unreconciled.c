@@ -360,20 +360,20 @@ static void analysis_unreconciled_fill_window(struct analysis_block *parent, wim
 		*icons_get_indirected_text_addr(window, ANALYSIS_UNREC_DATEFROM) = '\0';
 		*icons_get_indirected_text_addr(window, ANALYSIS_UNREC_DATETO) = '\0';
 
-		icons_set_selected(window, ANALYSIS_UNREC_BUDGET, 0);
+		icons_set_selected(window, ANALYSIS_UNREC_BUDGET, FALSE);
 
 		/* Set the grouping icons. */
 
-		icons_set_selected(window, ANALYSIS_UNREC_GROUP, 0);
+		icons_set_selected(window, ANALYSIS_UNREC_GROUP, FALSE);
 
-		icons_set_selected(window, ANALYSIS_UNREC_GROUPACC, 1);
-		icons_set_selected(window, ANALYSIS_UNREC_GROUPDATE, 0);
+		icons_set_selected(window, ANALYSIS_UNREC_GROUPACC, TRUE);
+		icons_set_selected(window, ANALYSIS_UNREC_GROUPDATE, FALSE);
 
 		icons_strncpy(window, ANALYSIS_UNREC_PERIOD, "1");
-		icons_set_selected(window, ANALYSIS_UNREC_PDAYS, 0);
-		icons_set_selected(window, ANALYSIS_UNREC_PMONTHS, 1);
-		icons_set_selected(window, ANALYSIS_UNREC_PYEARS, 0);
-		icons_set_selected(window, ANALYSIS_UNREC_LOCK, 0);
+		icons_set_selected(window, ANALYSIS_UNREC_PDAYS, FALSE);
+		icons_set_selected(window, ANALYSIS_UNREC_PMONTHS, TRUE);
+		icons_set_selected(window, ANALYSIS_UNREC_PYEARS, FALSE);
+		icons_set_selected(window, ANALYSIS_UNREC_LOCK, FALSE);
 
 		/* Set the from and to spec fields. */
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -58,10 +58,29 @@
 
 /* Print protocol negotiations. */
 
-static void			(*print_protocol_callback_start) (char *) = NULL;	/**< Callback to launch the print process.							*/
-static void			(*print_protocol_callback_cancel) (void) = NULL;	/**< Callback to clean up if the process fails part-way.					*/
+/**
+ * Callback to launch the print process.
+ */
 
-static osbool			print_protocol_text_mode;				/**< TRUE if the current print job is in text mode.						*/
+static void			(*print_protocol_callback_start) (char *, void *) = NULL;
+
+/**
+ * Callback to clean up if the process fails part-way.
+ */
+
+static void			(*print_protocol_callback_cancel) (void *) = NULL;
+
+/**
+ * User data pointer to pass to the callback functions.
+ */
+
+static void			*print_protocol_data;
+
+/**
+ * TRUE if the current print job is in text mode.
+ */
+
+static osbool			print_protocol_text_mode;
 
 /* Static Function Prototypes. */
 
@@ -94,10 +113,11 @@ void print_protocol_initialise(void)
  *				if things fail at any stage.
  * \param *text_print		TRUE to print as text; FALSE to print in
  *				graphics mode.
+ * \param *data			User data to pass to the callback functions.
  * \return			TRUE if process started OK; FALSE on error.
  */
 
-osbool print_protocol_send_start_print_save(void (*callback_print) (char *), void (*callback_cancel) (void), osbool text_print)
+osbool print_protocol_send_start_print_save(void (*callback_print) (char *, void *), void (*callback_cancel) (void *), osbool text_print, void *data)
 {
 	wimp_full_message_data_xfer	datasave;
 	os_error			*error;
@@ -107,6 +127,8 @@ osbool print_protocol_send_start_print_save(void (*callback_print) (char *), voi
 	#endif
 
 	print_protocol_callback_start = callback_print;
+	print_protocol_callback_cancel = callback_cancel;
+	print_protocol_data = data;
 	print_protocol_text_mode = text_print;
 
 	/* Set up and send Message_PrintSave. */
@@ -147,12 +169,12 @@ static osbool print_protocol_handle_bounced_message_print_save(wimp_message *mes
 	#endif
 
 	if (!print_protocol_text_mode)
-		print_protocol_callback_start("");
+		print_protocol_callback_start("", print_protocol_data);
 	else
 		error_msgs_report_error("NoPManager");
 
 	if (print_protocol_callback_cancel != NULL)
-		print_protocol_callback_cancel();
+		print_protocol_callback_cancel(print_protocol_data);
 
 	return TRUE;
 }
@@ -181,7 +203,7 @@ static osbool print_protocol_handle_message_print_error(wimp_message *message)
 		error_report_error(print_error->errmess);
 
 	if (print_protocol_callback_cancel != NULL)
-		print_protocol_callback_cancel();
+		print_protocol_callback_cancel(print_protocol_data);
 
 	return TRUE;
 }
@@ -213,7 +235,7 @@ static osbool print_protocol_handle_message_print_file(wimp_message *message)
 
 		/* Call the printing function with the PrintTemp filename. */
 
-		print_protocol_callback_start(filename);
+		print_protocol_callback_start(filename, print_protocol_data);
 
 		/* Set up the Message_DataLoad and send it to Printers.  File size and file type are read from the actual file
 		 * on disc, using OS_File.
@@ -238,7 +260,7 @@ static osbool print_protocol_handle_message_print_file(wimp_message *message)
 		if (error != NULL)
 			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		else
-			print_protocol_callback_start("");
+			print_protocol_callback_start("", print_protocol_data);
 	}
 
 	return TRUE;

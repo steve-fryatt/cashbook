@@ -318,8 +318,6 @@ struct report {
 };
 
 
-struct report			*report_print_report = NULL;			/**< The report to which the currently open Report Print dialogie belongs.			*/
-
 static osbool			report_print_opt_text;				/**< TRUE if the current report is to be printed text format; FALSE to print graphically.	*/
 static osbool			report_print_opt_textformat;			/**< TRUE if text formatting should be applied to the current text format print; else FALSE.	*/
 
@@ -369,8 +367,8 @@ static void			report_export_text(struct report *report, char *filename, osbool f
 static void			report_export_delimited(struct report *report, char *filename, enum filing_delimit_type format, int filetype);
 
 static void			report_print(struct report *report, osbool text, osbool textformat);
-static void			report_start_print_job(char *filename);
-static void			report_cancel_print_job(void);
+static void			report_start_print_job(char *filename, void *data);
+static void			report_cancel_print_job(void *data);
 static void			report_print_as_graphic(struct report *report);
 static void			report_handle_print_error(os_error *error, os_fw file, struct report_fonts_block *fonts);
 
@@ -1939,8 +1937,6 @@ static void report_export_delimited(struct report *report, char *filename, enum 
 
 static void report_print(struct report *report, osbool text, osbool textformat)
 {
-	report_print_report = report;
-
 	/* Extract the information. */
 
 	report_print_opt_text = text;
@@ -1951,9 +1947,9 @@ static void report_print(struct report *report, osbool text, osbool textformat)
 	 * report_close_and_print(), so the two probably can't co-exist.
 	 */
 
-	report_print_report->print_pending++;
+	report->print_pending++;
 
-	print_protocol_send_start_print_save(report_start_print_job, report_cancel_print_job, report_print_opt_text);
+	print_protocol_send_start_print_save(report_start_print_job, report_cancel_print_job, report_print_opt_text, report);
 }
 
 
@@ -1962,33 +1958,47 @@ static void report_print(struct report *report, osbool text, osbool textformat)
  * to actually start the printing process.
  *
  * \param *filename	The filename supplied by the printing system.
+ * \param *data		The report that is to be processed.
  */
 
-static void report_start_print_job(char *filename)
+static void report_start_print_job(char *filename, void *data)
 {
-	if (report_print_opt_text)
-		report_export_text(report_print_report, filename, report_print_opt_textformat);
-	else
-		report_print_as_graphic(report_print_report);
+	struct report *report = data;
 
-	/* Tidy up afterwards.  If that was the last print job in progress and the window has already been closed (or if
-	 * there wasn't a window at all), delete the report data.
+	if (report == NULL)
+		return;
+
+	if (report_print_opt_text)
+		report_export_text(report, filename, report_print_opt_textformat);
+	else
+		report_print_as_graphic(report);
+
+	/* Tidy up afterwards.  If that was the last print job in progress
+	 * and the window has already been closed (or if there wasn't a
+	 * window at all), delete the report data.
 	 */
 
-	if (--report_print_report->print_pending <= 0 && report_print_report->window == NULL)
-		report_delete(report_print_report);
+	if (--report->print_pending <= 0 && report->window == NULL)
+		report_delete(report);
 }
 
 
 /**
  * Callback for when negotiations with the printing system break down, to
  * tidy up after ourselves.
+ *
+ * \param *data		The report that was to be processed.
  */
 
-static void report_cancel_print_job(void)
+static void report_cancel_print_job(void *data)
 {
-	if (--report_print_report->print_pending <= 0 && report_print_report->window == NULL)
-		report_delete(report_print_report);
+	struct report *report = data;
+
+	if (report == NULL)
+		return;
+
+	if (--report->print_pending <= 0 && report->window == NULL)
+		report_delete(report);
 
 }
 

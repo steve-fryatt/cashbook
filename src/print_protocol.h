@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -48,10 +48,11 @@ void print_protocol_initialise(void);
  *				if things fail at any stage.
  * \param *text_print		TRUE to print as text; FALSE to print in
  *				graphics mode.
+ * \param *data			User data to pass to the callback functions.
  * \return			TRUE if process started OK; FALSE on error.
  */
 
-osbool print_protocol_send_start_print_save(void (*callback_print) (char *), void (*callback_cancel) (void), osbool text_print);
+osbool print_protocol_send_start_print_save(void (*callback_print) (char *, void *), void (*callback_cancel) (void *), osbool text_print, void *data);
 
 #endif
 

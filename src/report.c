@@ -2258,7 +2258,10 @@ static os_error *report_plot_page(struct report *report, struct report_page_data
 static os_error *report_plot_region(struct report *report, struct report_region_data *region, os_coord *origin, os_box *clip)
 {
 	os_error	*error = NULL;
+
+#if REPORT_PLOT_OUTLINES
 	os_box		outline;
+#endif
 
 	if (report == NULL || region == NULL)
 		return NULL;

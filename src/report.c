@@ -152,7 +152,7 @@
  * The margin around the outside of a print ractangle, in OS Units.
  */
 
-#define REPORT_PRINT_RECTANGLE_MARGIN 2
+#define REPORT_PRINT_RECTANGLE_MARGIN 4
 
 /**
  * The maximum size of a page number, in characters.

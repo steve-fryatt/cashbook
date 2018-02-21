@@ -63,6 +63,12 @@ static bits report_draw_path[REPORT_DRAW_BUFFER_LENGTH];
 
 static size_t report_draw_path_length = 0;
 
+/**
+ * The required line thickness, in Draw units.
+ */
+
+static int report_draw_line_thickness = 512;
+
 /* Static Function Prototypes. */
 
 static osbool report_draw_add_move(int x, int y);
@@ -118,7 +124,8 @@ os_error *report_draw_box(os_box *outline)
 	if (!report_draw_end_path())
 		return NULL;
 
-	return xdraw_stroke((draw_path*) report_draw_path, draw_FILL_NONZERO, NULL, 0, 512, &line_style, dash_pattern);
+	return xdraw_stroke((draw_path*) report_draw_path, draw_FILL_NONZERO, NULL,
+			0, report_draw_line_thickness, &line_style, dash_pattern);
 }
 
 
@@ -134,6 +141,10 @@ os_error *report_draw_box(os_box *outline)
 
 os_error *report_draw_line(int x0, int y0, int x1, int y1)
 {
+	static const draw_line_style line_style = { draw_JOIN_MITRED,
+			draw_CAP_ROUND, draw_CAP_ROUND, 0, 0x7fffffff,
+			0, 0, 0, 0 };
+
 	report_draw_path_length = 0;
 
 	if (!report_draw_add_move(x0, y0))
@@ -145,7 +156,8 @@ os_error *report_draw_line(int x0, int y0, int x1, int y1)
 	if (!report_draw_end_path())
 		return NULL;
 
-	return xdraw_stroke((draw_path*) report_draw_path, draw_FILL_NONZERO, NULL, 0, 0, NULL, NULL);
+	return xdraw_stroke((draw_path*) report_draw_path, draw_FILL_NONZERO, NULL,
+			0, report_draw_line_thickness, &line_style, NULL);
 }
 
 

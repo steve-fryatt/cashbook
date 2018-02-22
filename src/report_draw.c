@@ -67,7 +67,7 @@ static size_t report_draw_path_length = 0;
  * The required line thickness, in Draw units.
  */
 
-static int report_draw_line_thickness = 512;
+static int report_draw_line_thickness = 1024;
 
 /* Static Function Prototypes. */
 
@@ -76,6 +76,18 @@ static osbool report_draw_add_line(int x, int y);
 static osbool report_draw_close_subpath(void);
 static osbool report_draw_end_path(void);
 static draw_path_element *report_draw_get_new_element(size_t element_size);
+
+
+/**
+ * Set the line width for subsequent plot operations.
+ *
+ * \param width			The required width, in OS Units.
+ */
+
+void report_draw_set_line_width(int width)
+{
+	report_draw_line_thickness = (width << 8);
+}
 
 
 /**
@@ -142,7 +154,7 @@ os_error *report_draw_box(os_box *outline)
 os_error *report_draw_line(int x0, int y0, int x1, int y1)
 {
 	static const draw_line_style line_style = { draw_JOIN_MITRED,
-			draw_CAP_ROUND, draw_CAP_ROUND, 0, 0x7fffffff,
+			draw_CAP_SQUARE, draw_CAP_SQUARE, 0, 0x7fffffff,
 			0, 0, 0, 0 };
 
 	report_draw_path_length = 0;

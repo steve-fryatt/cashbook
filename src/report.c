@@ -173,10 +173,17 @@
 #define REPORT_TOOLBAR_HEIGHT 78
 
 /**
- * The space above and below a horizontal grid line, in OS Units.
+ * The space inside a horizontal grid line, in OS Units.
  */
 
 #define REPORT_GRID_LINE_MARGIN 2
+
+/**
+ * The thickness of a grid line, in OS Units. This needs to be a multiple
+ * of 2, to allow it to be plotted centrally on an OS Unit.
+ */
+
+#define REPORT_GRID_LINE_THICKNESS 2
 
 /**
  * The \i indent applied to font cells, in OS Units.
@@ -429,6 +436,7 @@ void report_initialise(osspriteop_area *sprites)
 
 	report_font_dialogue_initialise();
 	report_fonts_initialise();
+	report_draw_set_line_width(REPORT_GRID_LINE_THICKNESS);
 
 	/* Register the Wimp message handlers. */
 
@@ -1021,10 +1029,10 @@ static void report_reflow_content(struct report *report)
 
 		if (report->display & REPORT_DISPLAY_SHOW_GRID) {
 			if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
-				rule_space += 2 * REPORT_GRID_LINE_MARGIN;
+				rule_space += (REPORT_GRID_LINE_MARGIN + REPORT_GRID_LINE_THICKNESS);
 
 			if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW)
-				rule_space += 2 * REPORT_GRID_LINE_MARGIN;
+				rule_space += (REPORT_GRID_LINE_MARGIN + REPORT_GRID_LINE_THICKNESS);
 		}
 
 		ypos += (line_space + rule_space);
@@ -2508,26 +2516,20 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 	cell_outline.y0 = line_outline.y0;
 
 	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW))
-		cell_outline.y0 += 2 * REPORT_GRID_LINE_MARGIN;
+		cell_outline.y0 += (REPORT_GRID_LINE_MARGIN + REPORT_GRID_LINE_THICKNESS);
 
 	cell_outline.y1 = cell_outline.y0 + report->cell_height;
 	line_outline.y1 = cell_outline.y1;
 
 	if ((report->display & REPORT_DISPLAY_SHOW_GRID) && (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE))
-		line_outline.y1 += 2 * REPORT_GRID_LINE_MARGIN;
+		line_outline.y1 += (REPORT_GRID_LINE_MARGIN + REPORT_GRID_LINE_THICKNESS);
 
-	/* Calculate the box encompassing the vertical rules. */
+	/* Calculate the box encompassing the horizontal and vertical rules. */
 
-	rule_outline.x0 = line_outline.x0;
-	rule_outline.x1 = line_outline.x1;
-
-	rule_outline.y0 = line_outline.y0;
-	if (line_data->flags & REPORT_LINE_FLAGS_RULE_LAST)
-		rule_outline.y0 += REPORT_GRID_LINE_MARGIN;
-
-	rule_outline.y1 = line_outline.y1;
-	if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
-		rule_outline.y1 -= REPORT_GRID_LINE_MARGIN;
+	rule_outline.x0 = line_outline.x0 + (REPORT_GRID_LINE_THICKNESS / 2);
+	rule_outline.x1 = line_outline.x1 - (REPORT_GRID_LINE_THICKNESS / 2);
+	rule_outline.y0 = line_outline.y0 + (REPORT_GRID_LINE_THICKNESS / 2);
+	rule_outline.y1 = line_outline.y1 - (REPORT_GRID_LINE_THICKNESS / 2);
 
 	/* If the Y bounds of the line fall outside the clip window, skip the rest. */
 
@@ -2546,19 +2548,19 @@ static os_error *report_plot_line(struct report *report, struct report_tabs_line
 		/* Plot a line above. */
 
 		if (line_data->flags & REPORT_LINE_FLAGS_RULE_ABOVE)
-			error = report_draw_line(line_outline.x0, cell_outline.y1 + REPORT_GRID_LINE_MARGIN,
-					line_outline.x1, cell_outline.y1 + REPORT_GRID_LINE_MARGIN);
+			error = report_draw_line(rule_outline.x0, rule_outline.y1,
+					rule_outline.x1, rule_outline.y1);
 
 		/* Plot a line below, and the associated left-hand riser (right-hand
 		 * risers are plotted after we've parsed the cells in the line).
 		 */
 
 		if (line_data->flags & REPORT_LINE_FLAGS_RULE_BELOW) {
-			error = report_draw_line(line_outline.x0, cell_outline.y0 - REPORT_GRID_LINE_MARGIN,
-					line_outline.x1, cell_outline.y0 - REPORT_GRID_LINE_MARGIN);
+			error = report_draw_line(rule_outline.x0, rule_outline.y0,
+					rule_outline.x1, rule_outline.y0);
 
-			error = report_draw_line(line_outline.x0, rule_outline.y0,
-					line_outline.x0, rule_outline.y1);
+			error = report_draw_line(rule_outline.x0, rule_outline.y0,
+					rule_outline.x0, rule_outline.y1);
 		}
 	}
 

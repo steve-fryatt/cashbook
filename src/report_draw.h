@@ -32,6 +32,15 @@
 #define CASHBOOK_REPORT_DRAW
 
 /**
+ * Set the line width for subsequent plot operations.
+ *
+ * \param width			The required width, in OS Units.
+ */
+
+void report_draw_set_line_width(int width);
+
+
+/**
  * Draw a rectangle on screen.
  *
  * \param *outline		The rectangle outline, in absolute OS Units.

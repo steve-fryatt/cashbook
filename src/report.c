@@ -201,25 +201,25 @@
  * The top margin of an unpaginated report on screen, in OS Units.
  */
 
-#define REPORT_TOP_MARGIN 4
+#define REPORT_TOP_MARGIN 10
 
 /**
  * The bottom margin of an unpaginated report on screen, in OS Units.
  */
 
-#define REPORT_BOTTOM_MARGIN 4
+#define REPORT_BOTTOM_MARGIN 10
 
 /**
  * The left margin of an unpaginated report on screen, in OS Units.
  */
 
-#define REPORT_LEFT_MARGIN 4
+#define REPORT_LEFT_MARGIN 10
 
 /**
  * The right margin of an unpaginated report on screen, in OS Units.
  */
 
-#define REPORT_RIGHT_MARGIN 4
+#define REPORT_RIGHT_MARGIN 10
 
 /**
  * The minimum width of a report window, in OS Units.

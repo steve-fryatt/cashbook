@@ -583,6 +583,8 @@ static void print_dialogue_process_window(osbool direct)
 	print_dialogue_current_instance->text = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT);
 	print_dialogue_current_instance->text_format = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT);
 	print_dialogue_current_instance->page_numbers = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_PNUM);
+	print_dialogue_current_instance->title = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_TITLE);
+	print_dialogue_current_instance->grid = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_GRID);
 
 	print_dialogue_current_instance->from = date_convert_from_string(icons_get_indirected_text_addr(print_dialogue_window, PRINT_DIALOGUE_RANGE_FROM),
 			NULL_DATE, 0);

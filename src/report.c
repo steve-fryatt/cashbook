@@ -1214,6 +1214,15 @@ static void report_view_toolbar_click_handler(wimp_pointer *pointer)
 		break;
 
 	case REPORT_PANE_SAVE:
+		if (pointer->buttons == wimp_CLICK_SELECT) {
+			saveas_initialise_dialogue(report_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, report);
+			saveas_prepare_dialogue(report_saveas_csv);
+			saveas_open_dialogue(report_saveas_csv, pointer);
+		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+			saveas_initialise_dialogue(report_saveas_text, NULL, "DefRepFile", NULL, FALSE, FALSE, report);
+			saveas_prepare_dialogue(report_saveas_text);
+			saveas_open_dialogue(report_saveas_text, pointer);
+		}
 		break;
 
 	case REPORT_PANE_PRINT:

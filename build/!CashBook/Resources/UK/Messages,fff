@@ -428,6 +428,8 @@ Help.TransactTB.Goto:\Sgo to a numbered transaction (\a will alter if the dialog
 Help.TransactTB.Sort:\Sopen the transaction sort dialogue, to update or change the sort details.|M\Are-sort the transactions using the current settings.
 Help.TransactTB.Icon20/Help.AccViewTB.Icon12/Help.SOrderTB.Icon10/Help.PresetTB.Icon10:\Tsort indicator, showing which column the data is being sorted on.
 
+Help.ReportTB.Save:\Ssave the report contents as a CSV file.|M\Asave the report as plain text.
+
 Help.AccList/Help.AccListTB/Help.AccListFB:\Taccount list \w.
 Help.AccList.Ident/Help.AccList.Name:\Taccount name column.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.
 Help.AccList.Stat:\Tstatement balance column, showing the reconciled totals.|MDouble-click \s to open a statement view for the account.|MDouble-click \a to edit the account.

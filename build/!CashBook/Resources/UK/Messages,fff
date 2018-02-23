@@ -910,11 +910,11 @@ Help.Print.Landscape:\Sprint text on the page in landscape orientation.
 Help.Print.Title:\Stoggle the printing of the report title.
 Help.Print.PNum:\Stoggle the printing of page numbers.
 Help.Print.Grid:\Stoggle the printing of grid lines around tabular data.
-Help.Print.Scale:\Stoggle scaling the font size to fit everything to one page width.
+Help.Print.Scale:\Stoggle scaling the size of the printout to fit everything to one page width.
 Help.Print.FastText/Help.Choices3.FastText:\Sprint using a printer's fast text mode instead of outline fonts.
 Help.Print.TextForm/Help.Choices3.TextForm:\Stoggle the use effects (bold, italic and underline) with fast text printing.
-Help.Print.Print:\Sstart the print job.
-Help.Print.Report:\Ssend the print job to a report.
+Help.Print.Print:\Ssend the print job to the printer.
+Help.Print.Report:\Ssend the print job to a report viewer.|MThis allows it to be previewed and adjusted before printing.
 Help.Print.Cancel:\Scancel the print job.
 Help.Print.From:\Tdate of the first transaction to include in the print job.
 Help.Print.To:\Tdate of the last transaction to include in the print job.

@@ -73,6 +73,21 @@ struct report *report_open(struct file_block *file, char *title, struct analysis
 
 
 /**
+ * Set the display options for a report.
+ *
+ * \param *report		The report handle.
+ * \param fitwidth		TRUE to fit graphics printing to page width.
+ * \param rotate		TRUE to rotate grapchis printing to Landscape;
+ * \param title			TRUE to include a report title in graphics printing.
+ * \param pagenum		TRUE to include page numbers in graphics printing.
+ * \param grid			TRUE to include a grid in graphics printing.
+ *				FALSE to print Portrait.
+ */
+
+void report_set_options(struct report *report, osbool fitwidth, osbool rotate, osbool title, osbool pagenum, osbool grid);
+
+
+/**
  * Close off a report that has had data written to it, and open a window
  * to display it on screen.
  *
@@ -89,15 +104,9 @@ void report_close(struct report *report);
  * \param *report		The report handle.
  * \param text			TRUE to print in text mode; FALSE for graphics.
  * \param textformat		TRUE to apply formatting to text mode printing.
- * \param fitwidth		TRUE to fit graphics printing to page width.
- * \param rotate		TRUE to rotate grapchis printing to Landscape;
- * \param title			TRUE to include a report title in graphics printing.
- * \param pagenum		TRUE to include page numbers in graphics printing.
- * \param grid			TRUE to include a grid in graphics printing.
- *				FALSE to print Portrait.
  */
 
-void report_close_and_print(struct report *report, osbool text, osbool textformat, osbool fitwidth, osbool rotate, osbool title, osbool pagenum, osbool grid);
+void report_close_and_print(struct report *report, osbool text, osbool textformat);
 
 
 /**

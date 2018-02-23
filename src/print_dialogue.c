@@ -658,12 +658,12 @@ static void print_dialogue_process_report(struct print_dialogue_block *instance,
 	if (instance == NULL || report == NULL)
 		return;
 
-	if (direct == TRUE) {
-		report_close_and_print(report, instance->text, instance->text_format,
-				instance->fit_width, instance->rotate,
+	report_set_options(report, instance->fit_width, instance->rotate,
 				instance->title, instance->page_numbers, instance->grid);
-	} else {
+
+	if (direct == TRUE)
+		report_close_and_print(report, instance->text, instance->text_format);
+	else
 		report_close(report);
-	}
 }
 

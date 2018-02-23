@@ -147,17 +147,18 @@ os_error *report_fonts_find(struct report_fonts_block *handle);
 
 
 /**
- * Return the greatest line height encountered during any call to
- * report_fonts_get_string_width() since the last call to
+ * Return the greatest line and descender height encountered during any
+ * call to report_fonts_get_string_width() since the last call to
  * report_fonts_find(), in OS Units.
  *
  * \param *handle		The Reports Fonts instance to query
  * \param *height		Pointer to variable to take the height.
+ * \param *descender		Pointer to variable to take descender height.
  * \return			Pointer to an error block on failure; NULL
  *				on success.
  */
 
-os_error *report_fonts_get_max_height(struct report_fonts_block *handle, int *height);
+os_error *report_fonts_get_max_height(struct report_fonts_block *handle, int *height, int *descender);
 
 
 /**

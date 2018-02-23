@@ -79,6 +79,7 @@ struct report_fonts_block {
 	int				linespace;			/**< Line spacing as a % of font size.					*/
 
 	int				max_height;			/**< The maximum font height encountered, in millipoints.		*/
+	int				max_descender;			/**< The maximum font descender encountered, in millipoints.		*/
 };
 
 /**
@@ -161,6 +162,7 @@ struct report_fonts_block *report_fonts_create(void)
 	new->size = 12 * 16;
 	new->linespace = 130;
 	new->max_height = 0;
+	new->max_descender = 0;
 
 	return new;
 }
@@ -326,6 +328,7 @@ os_error *report_fonts_find(struct report_fonts_block *handle)
 		return NULL;
 
 	handle->max_height = 0;
+	handle->max_descender = 0;
 
 	error = report_fonts_find_face(&(handle->normal), handle->size);
 	if (error != NULL)
@@ -348,22 +351,37 @@ os_error *report_fonts_find(struct report_fonts_block *handle)
 
 
 /**
- * Return the greatest line height encountered during any call to
- * report_fonts_get_string_width() since the last call to
+ * Return the greatest line and descender height encountered during any
+ * call to report_fonts_get_string_width() since the last call to
  * report_fonts_find(), in OS Units.
  *
  * \param *handle		The Reports Fonts instance to query
  * \param *height		Pointer to variable to take the height.
+ * \param *descender		Pointer to variable to take descender height.
  * \return			Pointer to an error block on failure; NULL
  *				on success.
  */
 
-os_error *report_fonts_get_max_height(struct report_fonts_block *handle, int *height)
+os_error *report_fonts_get_max_height(struct report_fonts_block *handle, int *height, int *descender)
 {
-	if (handle == NULL || height == NULL)
+	os_error	*error;
+
+	if (handle == NULL)
 		return NULL;
 
-	return xfont_convertto_os(0, handle->max_height, NULL, height);
+	if (height != NULL) {
+		error = xfont_convertto_os(0, handle->max_height, NULL, height);
+		if (error != NULL)
+			return error;
+	}
+
+	if (descender != NULL) {
+		error = xfont_convertto_os(0, -handle->max_descender, NULL, descender);
+		if (error != NULL)
+			return error;
+	}
+
+	return NULL;
 }
 
 
@@ -418,6 +436,9 @@ os_error *report_fonts_get_string_width(struct report_fonts_block *handle, char 
 
 	if ((report_fonts_scan_block.bbox.y1 - report_fonts_scan_block.bbox.y0) > handle->max_height)
 		handle->max_height = report_fonts_scan_block.bbox.y1 - report_fonts_scan_block.bbox.y0;
+
+	if (report_fonts_scan_block.bbox.y0 < handle->max_descender)
+		handle->max_descender = report_fonts_scan_block.bbox.y0;
 
 	return xfont_convertto_os(report_fonts_scan_block.bbox.x1 - report_fonts_scan_block.bbox.x0, 0, width, NULL);
 }

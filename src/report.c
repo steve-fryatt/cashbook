@@ -987,7 +987,7 @@ static osbool report_add_cell(struct report *report, char *text, enum report_cel
 
 static void report_reflow_content(struct report *report)
 {
-	int			font_width, font_height, text_width;
+	int			font_width, font_height, font_descender, text_width;
 	int			line_space, rule_space, ypos;
 	unsigned		line, cell;
 	char			*content_base, *content;
@@ -1083,10 +1083,10 @@ static void report_reflow_content(struct report *report)
 	report->width = report_tabs_calculate_columns(report->tabs, (report->display & REPORT_DISPLAY_SHOW_GRID) ? TRUE : FALSE);
 	report->height = ypos;
 
-	report_fonts_get_max_height(report->fonts, &font_height);
+	report_fonts_get_max_height(report->fonts, &font_height, &font_descender);
 
 	report->cell_height = line_space;
-	report->cell_baseline = (line_space - font_height) / 2;
+	report->cell_baseline = font_descender + ((line_space - font_height) / 2);
 }
 
 

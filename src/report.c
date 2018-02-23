@@ -1478,8 +1478,11 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 
 	line_count = report_line_get_count(report->lines);
 
-	top = report_line_find_from_ypos(report->lines, redraw->clip.y1 - oy);
-	base = report_line_find_from_ypos(report->lines, redraw->clip.y0 - oy);
+	origin.x = ox + REPORT_LEFT_MARGIN;
+	origin.y = oy - REPORT_TOP_MARGIN;
+
+	top = report_line_find_from_ypos(report->lines, redraw->clip.y1 - origin.y);
+	base = report_line_find_from_ypos(report->lines, redraw->clip.y0 - origin.y);
 
 	/* Plot the background. */
 
@@ -1488,9 +1491,6 @@ static void report_view_redraw_flat_handler(struct report *report, wimp_draw *re
 	os_plot(os_PLOT_RECTANGLE + os_PLOT_TO, redraw->clip.x1, redraw->clip.y0);
 
 	/* Plot Text. */
-
-	origin.x = ox + REPORT_LEFT_MARGIN;
-	origin.y = oy - REPORT_TOP_MARGIN;
 
 	target.page = -1;
 	target.tab_bar = -1;

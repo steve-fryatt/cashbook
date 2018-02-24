@@ -524,7 +524,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 		stringbuild_reset();
 
-		stringbuild_add_string("\\k\\b");
+		stringbuild_add_string("\\k\\v\\b");
 		stringbuild_add_message("BRDate");
 
 		for (acc_group = 0; acc_group < groups; acc_group++) {
@@ -533,12 +533,12 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 			for (group_line = 0; group_line < entries; group_line++) {
 				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					if (analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
-						stringbuild_add_printf("\\t\\r\\b%s", account_get_name(file, acc));
+						stringbuild_add_printf("\\t\\v\\r\\b%s", account_get_name(file, acc));
 					}
 				}
 			}
 		}
-		stringbuild_add_string("\\t\\r\\b");
+		stringbuild_add_string("\\t\\v\\r\\b");
 		stringbuild_add_message("BRTotal");
 
 		stringbuild_report_line(report, 1);
@@ -556,7 +556,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 		if (settings->tabular) {
 			stringbuild_reset();
 
-			stringbuild_add_printf("\\k%s", date_text);
+			stringbuild_add_printf("\\k\\v%s", date_text);
 
 			total = 0;
 
@@ -571,13 +571,13 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 							total += amount;
 
-							stringbuild_add_string("\\t\\d\\r");
+							stringbuild_add_string("\\t\\v\\d\\r");
 							stringbuild_add_currency(amount, TRUE);
 						}
 					}
 				}
 			}
-			stringbuild_add_string("\\t\\d\\r");
+			stringbuild_add_string("\\t\\v\\d\\r");
 			stringbuild_add_currency(total, TRUE);
 			stringbuild_report_line(report, 1);
 		} else {

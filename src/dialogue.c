@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -22,9 +22,9 @@
  */
 
 /**
- * \file: analysis_dialogue.c
+ * \file: dialogue.c
  *
- * Analysis report dialogue implementation.
+ * Dialogue box implementation.
  */
 
 /* ANSI C header files */
@@ -47,84 +47,67 @@
 /* Application header files */
 
 #include "global.h"
-#include "analysis_dialogue.h"
+#include "dialogue.h"
 
 #include "account.h"
 #include "account_menu.h"
-#include "analysis.h"
-#include "analysis_lookup.h"
-#include "analysis_template.h"
-#include "analysis_template_save.h"
 #include "caret.h"
 
 
 /**
- * An analysis dialogue definition.
+ * A dialogue definition.
  */
 
-struct analysis_dialogue_block {
-	struct analysis_dialogue_definition	*definition;		/**< The dialogue definition from the client.			*/
-	struct analysis_block			*parent;		/**< The parent analysis instance.				*/
-	template_t				template;		/**< The template associated with the dialogue.			*/
+struct dialogue_block {
+	struct dialogue_definition		*definition;		/**< The dialogue definition from the client.			*/
+	struct file_block			*parent;		/**< The current parent file for the dialogue.			*/
 	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
-	osbool					restore;		/**< The restore state for the dialogue.			*/
-	void					*dialogue_settings;	/**< The settings block associated with the dialogue.		*/
-	void					*file_settings;		/**< The settings block associated with the file instance.	*/
 };
 
 /* Static Function Prototypes. */
 
-static void analysis_dialogue_click_handler(wimp_pointer *pointer);
-static osbool analysis_dialogue_keypress_handler(wimp_key *key);
-static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue);
-static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue);
-static void analysis_dialogue_refresh(struct analysis_dialogue_block *dialogue);
-static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue);
-static void analysis_dialogue_place_caret(struct analysis_dialogue_block *dialogue);
-static void analysis_dialogue_shade_icons(struct analysis_dialogue_block *dialogue, wimp_i target);
-static void analysis_dialogue_hide_icons(struct analysis_dialogue_block *dialogue, enum analysis_dialogue_icon_type type, osbool hide);
-static void analysis_dialogue_register_radio_icons(struct analysis_dialogue_block *dialogue);
-static struct analysis_dialogue_icon *analysis_dialogue_find_icon(struct analysis_dialogue_block *dialogue, wimp_i icon);
+static void dialogue_click_handler(wimp_pointer *pointer);
+static osbool dialogue_keypress_handler(wimp_key *key);
+static osbool dialogue_process(struct dialogue_block *dialogue);
+static osbool dialogue_delete(struct dialogue_block *dialogue);
+static void dialogue_refresh(struct dialogue_block *dialogue);
+static void dialogue_fill(struct dialogue_block *dialogue);
+static void dialogue_place_caret(struct dialogue_block *dialogue);
+static void dialogue_shade_icons(struct dialogue_block *dialogue, wimp_i target);
+static void dialogue_hide_icons(struct dialogue_block *dialogue, enum dialogue_icon_type type, osbool hide);
+static void dialogue_register_radio_icons(struct dialogue_block *dialogue);
+static struct dialogue_icon *dialogue_find_icon(struct dialogue_block *dialogue, wimp_i icon);
 
 /**
- * Initialise a new analysis dialogue window instance.
+ * Initialise a new dialogue window instance.
  *
  * \param *definition		The dialogue definition from the client.
  * \return			Pointer to the dialogue structure, or NULL on failure.
  */
 
-struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dialogue_definition *definition)
+struct dialogue_block *dialogue_initialise(struct dialogue_definition *definition)
 {
-	struct analysis_dialogue_block	*new;
+	struct dialogue_block	*new;
 
 	if (definition == NULL)
 		return NULL;
 
 	/* Create the instance. */
 
-	new = heap_alloc(sizeof(struct analysis_dialogue_block));
+	new = heap_alloc(sizeof(struct dialogue_block));
 	if (new == NULL)
 		return NULL;
 
-	new->dialogue_settings = NULL;
-	new->file_settings = NULL;
 	new->definition = definition;
 	new->parent = NULL;
-	new->template = NULL_TEMPLATE;
-
-	/* Claim a local template store to hold the live dialogue contents. */
-
-	new->dialogue_settings = heap_alloc(definition->block_size);
-	if (new->dialogue_settings == NULL)
-		return NULL;
 
 	/* Create the dialogue window. */
 
 	new->window = templates_create_window(definition->template_name);
 	ihelp_add_window(new->window, definition->ihelp_token, NULL);
 	event_add_window_user_data(new->window, new);
-	event_add_window_mouse_event(new->window, analysis_dialogue_click_handler);
-	event_add_window_key_event(new->window, analysis_dialogue_keypress_handler);
+	event_add_window_mouse_event(new->window, dialogue_click_handler);
+	event_add_window_key_event(new->window, dialogue_keypress_handler);
 	analysis_dialogue_register_radio_icons(new);
 
 	return new;
@@ -132,20 +115,14 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
 
 
 /**
- * Open a new analysis dialogue.
+ * Open a new dialogue.
  * 
- * \param *dialogue		The analysis dialogue instance to open.
- * \param *parent		The analysis instance to be the parent.
+ * \param *dialogue		The dialogue instance to open.
+ * \param *parent		The file to be the parent of the dialogue.
  * \param *ptr			The current Wimp Pointer details.
- * \param template		The report template to use for the dialogue.
- * \param *settings		The dialogue settings to use when no template available.
- *				These are assumed to belong to the file instance, and will
- *				be updated if the Generate button is clicked.
- * \param restore		TRUE to retain the last settings for the file; FALSE to
- *				use the application defaults.
  */
 
-void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, wimp_pointer *pointer, template_t template, void *settings, osbool restore)
+void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, wimp_pointer *pointer)
 {
 	struct analysis_report		*template_block;
 	struct analysis_template_block	*templates;
@@ -154,59 +131,25 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 	if (dialogue == NULL || dialogue->definition == NULL || parent == NULL || pointer == NULL)
 		return;
 
-	templates = analysis_get_templates(parent);
-	if (templates == NULL)
-		return;
-
-	report_details = analysis_get_report_details(dialogue->definition->type);
-	if (report_details == NULL)
-		return;
-
-	/* If the window is already open, report is being edited.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
+	/* If the window is already open, another instance is being edited.
+	 * Assume that the user wants to lose any unsaved data and just close the window.
 	 *
-	 * We don't use the close_dialogue_with_caret() as the caret is just moving from one dialogue to another.
+	 * We don't use the close_dialogue_with_caret() as the caret is just moving
+	 * from one dialogue to another.
 	 */
 
 	if (windows_get_open(dialogue->window))
 		wimp_close_window(dialogue->window);
 
-	/* Copy the settings block contents into a static place that won't shift about on the flex heap
-	 * while the dialogue is open.
-	 */
-
-	template_block = analysis_template_get_report(templates, template);
-
-	if (template_block != NULL) {
-		report_details->copy_template(dialogue->dialogue_settings, analysis_template_get_data(template_block));
-		dialogue->template = template;
-
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(dialogue->window),
-				windows_get_indirected_title_length(dialogue->window),
-				analysis_template_get_name(template_block, NULL, 0), NULL, NULL, NULL);
-
-		/* If we use a template, we always want to reset to the template! */
-
-		restore = TRUE;
-	} else {
-		report_details->copy_template(dialogue->dialogue_settings, settings);
-		dialogue->template = NULL_TEMPLATE;
-
-		msgs_lookup(dialogue->definition->title_token, windows_get_indirected_title_addr(dialogue->window),
-				windows_get_indirected_title_length(dialogue->window));
-	}
-
 	/* Set the pointers up so we can find this lot again and open the window. */
 
 	dialogue->parent = parent;
-	dialogue->restore = restore;
-	dialogue->file_settings = settings;
 
 	/* Set the window contents up. */
 
-	analysis_dialogue_hide_icons(dialogue, ANALYSIS_DIALOGUE_ICON_DELETE | ANALYSIS_DIALOGUE_ICON_RENAME, template_block == NULL);
+	dialogue_hide_icons(dialogue, DIALOGUE_ICON_DELETE | DIALOGUE_ICON_RENAME, FALSE);
 
-	analysis_dialogue_fill(dialogue);
+	dialogue_fill(dialogue);
 
 	windows_open_centred_at_pointer(dialogue->window, pointer);
 	analysis_dialogue_place_caret(dialogue);
@@ -214,15 +157,15 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 
 /**
- * Force an analysis dialogue instance to close if it is currently open
+ * Force a dialogue instance to close if it is currently open
  * on screen.
  *
  * \param *dialogue		The dialogue instance to close.
  * \param *parent		If not NULL, only close the dialogue if
- *				this is the parent analysis instance.
+ *				this is the parent file.
  */
 
-void analysis_dialogue_close(struct analysis_dialogue_block *dialogue, struct analysis_block *parent)
+void dialogue_close(struct analysis_dialogue_block *dialogue, struct file_block *parent)
 {
 	if (dialogue == NULL || dialogue->parent != parent)
 		return;
@@ -233,107 +176,62 @@ void analysis_dialogue_close(struct analysis_dialogue_block *dialogue, struct an
 
 
 /**
- * Update an analysis dialogue instance's template pointer if a template
- * is deleted from the parent analysis instance.
- *
- * \param *dialogue		The dialogue instance to process.
- * \param *parent		The analysis instance from which the template
- *				was deleted.
- * \param template		The template which was deleted.
- */
-
-void analysis_dialogue_remove_template(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, template_t template)
-{
-	if (dialogue == NULL || dialogue->parent != parent)
-		return;
-
-	if (dialogue->template != NULL_TEMPLATE && dialogue->template > template)
-		dialogue->template--;
-}
-
-
-/**
- * Tidy up after a template being renamed, by updating the window title
- * if the template belongs to this instance.
- *
- * \param *dialogue		The dialogue instance to check.
- * \param *parent		The parent analysis instance owning the
- *				renamed report.
- * \param template		The report being renamed.
- * \param *name			The new name for the report.
- */
-
-void analysis_dialogue_rename_template(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, template_t template, char *name)
-{
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->parent != parent || dialogue->template != template)
-		return;
-
-	if (!windows_get_open(dialogue->window))
-		return;
-
-	msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(dialogue->window),
-			windows_get_indirected_title_length(dialogue->window), name, NULL, NULL, NULL);
-	xwimp_force_redraw_title(dialogue->window);
-}
-
-
-/**
- * Process mouse clicks in an analysis dialogue instance's window.
+ * Process mouse clicks in a dialogue instance's window.
  *
  * \param *pointer		The mouse event block to handle.
  */
 
-static void analysis_dialogue_click_handler(wimp_pointer *pointer)
+static void dialogue_click_handler(wimp_pointer *pointer)
 {
-	struct analysis_dialogue_block	*windat;
-	struct analysis_dialogue_icon	*icon;
+	struct dialogue_block	*windat;
+	struct dialogue_icon	*icon;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (pointer == NULL || windat == NULL || windat->definition == NULL)
 		return;
 
-	icon = analysis_dialogue_find_icon(windat, pointer->i);
+	icon = dialogue_find_icon(windat, pointer->i);
 	if (icon == NULL)
 		return;
 
-	if (icon->type & ANALYSIS_DIALOGUE_ICON_CANCEL) {
+	if (icon->type & DIALOGUE_ICON_CANCEL) {
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(windat->window);
 			analysis_template_save_force_rename_close(windat->parent, windat->template);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			analysis_dialogue_refresh(windat);
 		}
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_GENERATE) {
+	} else if (icon->type & DIALOGUE_ICON_GENERATE) {
 		if (analysis_dialogue_process(windat) && pointer->buttons == wimp_CLICK_SELECT) {
 			close_dialogue_with_caret(windat->window);
 			analysis_template_save_force_rename_close(windat->parent, windat->template);
 		}
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_DELETE) {
+	} else if (icon->type & DIALOGUE_ICON_DELETE) {
 		if (pointer->buttons == wimp_CLICK_SELECT && analysis_dialogue_delete(windat))
 			close_dialogue_with_caret(windat->window);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_RENAME) {
+	} else if (icon->type & DIALOGUE_ICON_RENAME) {
 		if (pointer->buttons == wimp_CLICK_SELECT && windat->template != NULL_TEMPLATE)
 			analysis_template_save_open_rename_window(windat->parent, windat->template, pointer);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_SHADE_TARGET) {
+	} else if (icon->type & DIALOGUE_ICON_SHADE_TARGET) {
 		analysis_dialogue_shade_icons(windat, pointer->i);
 		icons_replace_caret_in_window(windat->window);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FROM) {
+	} else if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
 			analysis_lookup_open_window(windat->parent, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_TO) {
+	} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
 			analysis_lookup_open_window(windat->parent, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_IN) {
+	} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
 			analysis_lookup_open_window(windat->parent, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_IN);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_OUT) {
+	} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
 			analysis_lookup_open_window(windat->parent, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_OUT);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FULL) {
+	} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
 			analysis_lookup_open_window(windat->parent, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
@@ -342,22 +240,22 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 
 
 /**
- * Process keypresses in an analysis dialogue instance's window.
+ * Process keypresses in a dialogue instance's window.
  *
  * \param *key		The keypress event block to handle.
  * \return		TRUE if the event was handled; else FALSE.
  */
 
-static osbool analysis_dialogue_keypress_handler(wimp_key *key)
+static osbool dialogue_keypress_handler(wimp_key *key)
 {
-	struct analysis_dialogue_block	*windat;
-	struct analysis_dialogue_icon	*icon;
+	struct dialogue_block	*windat;
+	struct dialogue_icon	*icon;
 
 	windat = event_get_window_user_data(key->w);
 	if (key == NULL || windat == NULL || windat->definition == NULL)
 		return FALSE;
 
-	icon = analysis_dialogue_find_icon(windat, key->i);
+	icon = dialogue_find_icon(windat, key->i);
 	if (icon == NULL)
 		return FALSE;
 
@@ -375,24 +273,24 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 		break;
 
 	case wimp_KEY_F1:
-		if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FROM) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+		if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
+			if (icon->target == DIALOGUE_NO_ICON)
 				analysis_lookup_open_window(windat->parent, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_TO) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+		} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
+			if (icon->target == DIALOGUE_NO_ICON)
 				analysis_lookup_open_window(windat->parent, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_IN) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+		} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
+			if (icon->target == DIALOGUE_NO_ICON)
 				analysis_lookup_open_window(windat->parent, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_IN);
-		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_OUT) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+		} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
+			if (icon->target == DIALOGUE_NO_ICON)
 				analysis_lookup_open_window(windat->parent, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_OUT);
-		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FULL) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
+		} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
+			if (icon->target == DIALOGUE_NO_ICON)
 				analysis_lookup_open_window(windat->parent, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_FULL);
 		}
@@ -667,10 +565,10 @@ static void analysis_dialogue_register_radio_icons(struct analysis_dialogue_bloc
  * \return			The icon's definition, or NULL if not found.
  */
 
-static struct analysis_dialogue_icon *analysis_dialogue_find_icon(struct analysis_dialogue_block *dialogue, wimp_i icon)
+static struct dialogue_icon *dialogue_find_icon(struct dialogue_block *dialogue, wimp_i icon)
 {
-	int				i;
-	struct analysis_dialogue_icon	*icons;
+	int			i;
+	struct dialogue_icon	*icons;
 
 	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return NULL;
@@ -680,7 +578,7 @@ static struct analysis_dialogue_icon *analysis_dialogue_find_icon(struct analysi
 
 	icons = dialogue->definition->icons;
 
-	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
+	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
 		if (icons[i].icon == icon)
 			return &(icons[i]);
 	}

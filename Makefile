@@ -1,4 +1,4 @@
-# Copyright 2010-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2010-2018, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of CashBook:
 #
@@ -61,6 +61,7 @@ OBJS = account.o			\
        column.o				\
        currency.o			\
        date.o				\
+       dialogue.o			\
        edit.o				\
        file.o				\
        file_info.o			\

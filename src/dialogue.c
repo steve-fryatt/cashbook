@@ -430,18 +430,18 @@ static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue)
  *				in.
  */
 
-static void analysis_dialogue_place_caret(struct analysis_dialogue_block *dialogue)
+static void dialogue_place_caret(struct dialogue_block *dialogue)
 {
-	int				i;
-	struct analysis_dialogue_icon	*icons;
+	int			i;
+	struct dialogue_icon	*icons;
 
 	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
 
 	icons = dialogue->definition->icons;
 
-	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
-		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_REFRESH) && !icons_get_shaded(dialogue->window, icons[i].icon)) {
+	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
+		if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & DIALOGUE_ICON_REFRESH) && !icons_get_shaded(dialogue->window, icons[i].icon)) {
 			place_dialogue_caret(dialogue->window, icons[i].icon);
 			return;
 		}
@@ -460,48 +460,48 @@ static void analysis_dialogue_place_caret(struct analysis_dialogue_block *dialog
  *				updated, or ANALYSIS_DIALOGUE_NO_ICON for all.
  */
 
-static void analysis_dialogue_shade_icons(struct analysis_dialogue_block *dialogue, wimp_i target)
+static void dialogue_shade_icons(struct dialogue_block *dialogue, wimp_i target)
 {
-	int				i;
-	struct analysis_dialogue_icon	*icons;
-	osbool				include = FALSE;
-	osbool				shaded = FALSE;
-	wimp_i				icon = ANALYSIS_DIALOGUE_NO_ICON;
+	int			i;
+	struct dialogue_icon	*icons;
+	osbool			include = FALSE;
+	osbool			shaded = FALSE;
+	wimp_i			icon = DIALOGUE_NO_ICON;
 
 	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
 
 	icons = dialogue->definition->icons;
 
-	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
-		if (icons[i].target == ANALYSIS_DIALOGUE_NO_ICON)
+	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
+		if (icons[i].target == DIALOGUE_NO_ICON)
 			continue;
 
 		/* Reset the shaded state if this isn't an OR clause. */
 
-		if (!(icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_OR)) {
+		if (!(icons[i].type & DIALOGUE_ICON_SHADE_OR)) {
 			icon = icons[i].icon;
 			shaded = FALSE;
 			include = FALSE;
 		}
 
-		if (target == ANALYSIS_DIALOGUE_NO_ICON || target == icons[i].target)
+		if (target == DIALOGUE_NO_ICON || target == icons[i].target)
 			include = TRUE;
 
 		/* Update the state based on the icon. */
 
-		if (icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_ON) {
+		if (icons[i].type & DIALOGUE_ICON_SHADE_ON) {
 			shaded = shaded || icons_get_selected(dialogue->window, icons[i].target);
-		} else if (icons[i].type & ANALYSIS_DIALOGUE_ICON_SHADE_OFF) {
+		} else if (icons[i].type & DIALOGUE_ICON_SHADE_OFF) {
 			shaded = shaded || !icons_get_selected(dialogue->window, icons[i].target);
 		} else {
-			icon = ANALYSIS_DIALOGUE_NO_ICON;
+			icon = DIALOGUE_NO_ICON;
 			shaded = FALSE;
 		}
 
 		/* If the next icon isn't an AND clause, this is the end: update the icon. */
 
-		if (!(icons[i + 1].type & ANALYSIS_DIALOGUE_ICON_SHADE_OR) && (icon != ANALYSIS_DIALOGUE_NO_ICON) && include)
+		if (!(icons[i + 1].type & DIALOGUE_ICON_SHADE_OR) && (icon != DIALOGUE_NO_ICON) && include)
 			icons_set_shaded(dialogue->window, icon, shaded);
 	}
 }
@@ -515,18 +515,18 @@ static void analysis_dialogue_shade_icons(struct analysis_dialogue_block *dialog
  * \param hide			TRUE to hide any affected icons; FALSE to show them.
  */
 
-static void analysis_dialogue_hide_icons(struct analysis_dialogue_block *dialogue, enum analysis_dialogue_icon_type type, osbool hide)
+static void dialogue_hide_icons(struct dialogue_block *dialogue, enum dialogue_icon_type type, osbool hide)
 {
-	int				i;
-	struct analysis_dialogue_icon	*icons;
+	int			i;
+	struct dialogue_icon	*icons;
 
 	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
 
 	icons = dialogue->definition->icons;
 
-	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
-		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & type))
+	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
+		if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & type))
 			icons_set_deleted(dialogue->window, icons[i].icon, hide);
 	}
 }
@@ -538,20 +538,20 @@ static void analysis_dialogue_hide_icons(struct analysis_dialogue_block *dialogu
  * \param *dialogue		The dialogue instance to register.
  */
 
-static void analysis_dialogue_register_radio_icons(struct analysis_dialogue_block *dialogue)
+static void dialogue_register_radio_icons(struct dialogue_block *dialogue)
 {
-	int				i;
-	struct analysis_dialogue_icon	*icons;
+	int			i;
+	struct dialogue_icon	*icons;
 
 	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
 
 	icons = dialogue->definition->icons;
 
-	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
-		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_RADIO))
+	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
+		if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & DIALOGUE_ICON_RADIO))
 			event_add_window_icon_radio(dialogue->window, icons[i].icon, TRUE);
-		else if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_RADIO_PASS))
+		else if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & SDIALOGUE_ICON_RADIO_PASS))
 			event_add_window_icon_radio(dialogue->window, icons[i].icon, FALSE);
 	}
 }

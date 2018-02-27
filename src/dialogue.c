@@ -62,12 +62,14 @@ struct dialogue_block {
 	struct dialogue_definition		*definition;		/**< The dialogue definition from the client.			*/
 	struct file_block			*parent;		/**< The current parent file for the dialogue.			*/
 	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
+	void					*client_data;		/**< Context data supplied by the client.			*/
 };
 
 /* Static Function Prototypes. */
 
 static void dialogue_click_handler(wimp_pointer *pointer);
 static osbool dialogue_keypress_handler(wimp_key *key);
+static void dialogue_close_window(struct dialogue_block *dialogue);
 static osbool dialogue_process(struct dialogue_block *dialogue);
 static osbool dialogue_delete(struct dialogue_block *dialogue);
 static void dialogue_refresh(struct dialogue_block *dialogue);
@@ -100,6 +102,7 @@ struct dialogue_block *dialogue_initialise(struct dialogue_definition *definitio
 
 	new->definition = definition;
 	new->parent = NULL;
+	new->client_data = NULL;
 
 	/* Create the dialogue window. */
 
@@ -120,9 +123,10 @@ struct dialogue_block *dialogue_initialise(struct dialogue_definition *definitio
  * \param *dialogue		The dialogue instance to open.
  * \param *parent		The file to be the parent of the dialogue.
  * \param *ptr			The current Wimp Pointer details.
+ * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, wimp_pointer *pointer)
+void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, wimp_pointer *pointer, void *data)
 {
 	struct analysis_report		*template_block;
 	struct analysis_template_block	*templates;
@@ -144,15 +148,16 @@ void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, w
 	/* Set the pointers up so we can find this lot again and open the window. */
 
 	dialogue->parent = parent;
+	dialogue->client_data = data;
 
 	/* Set the window contents up. */
 
-	dialogue_hide_icons(dialogue, DIALOGUE_ICON_DELETE | DIALOGUE_ICON_RENAME, FALSE);
+	dialogue_hide_icons(dialogue, DIALOGUE_ICON_DELETE | DIALOGUE_ICON_RENAME, FALSE); // \TODO -- This needs work?!
 
 	dialogue_fill(dialogue);
 
 	windows_open_centred_at_pointer(dialogue->window, pointer);
-	analysis_dialogue_place_caret(dialogue);
+	dialogue_place_caret(dialogue);
 }
 
 
@@ -196,45 +201,42 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 
 	if (icon->type & DIALOGUE_ICON_CANCEL) {
 		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(windat->window);
-			analysis_template_save_force_rename_close(windat->parent, windat->template);
+			dialogue_close_window(windat);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			analysis_dialogue_refresh(windat);
+			dialogue_refresh(windat);
 		}
 	} else if (icon->type & DIALOGUE_ICON_GENERATE) {
-		if (analysis_dialogue_process(windat) && pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(windat->window);
-			analysis_template_save_force_rename_close(windat->parent, windat->template);
-		}
-	} else if (icon->type & DIALOGUE_ICON_DELETE) {
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_dialogue_delete(windat))
-			close_dialogue_with_caret(windat->window);
-	} else if (icon->type & DIALOGUE_ICON_RENAME) {
-		if (pointer->buttons == wimp_CLICK_SELECT && windat->template != NULL_TEMPLATE)
-			analysis_template_save_open_rename_window(windat->parent, windat->template, pointer);
+		if (dialogue_process(windat) && pointer->buttons == wimp_CLICK_SELECT)
+			dialogue_close_window(windat);
+//	} else if (icon->type & DIALOGUE_ICON_DELETE) {
+//		if (pointer->buttons == wimp_CLICK_SELECT && analysis_dialogue_delete(windat))
+//			close_dialogue_with_caret(windat->window);
+//	} else if (icon->type & DIALOGUE_ICON_RENAME) {
+//		if (pointer->buttons == wimp_CLICK_SELECT && windat->template != NULL_TEMPLATE)
+//			analysis_template_save_open_rename_window(windat->parent, windat->template, pointer);
 	} else if (icon->type & DIALOGUE_ICON_SHADE_TARGET) {
-		analysis_dialogue_shade_icons(windat, pointer->i);
+		dialogue_shade_icons(windat, pointer->i);
 		icons_replace_caret_in_window(windat->window);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
+	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+	//		analysis_lookup_open_window(windat->parent, windat->window,
+	//				icon->target, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
+	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+	//		analysis_lookup_open_window(windat->parent, windat->window,
+	//				icon->target, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_IN);
+	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+	//		analysis_lookup_open_window(windat->parent, windat->window,
+	//				icon->target, NULL_ACCOUNT, ACCOUNT_IN);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_OUT);
+	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+	//		analysis_lookup_open_window(windat->parent, windat->window,
+	//				icon->target, NULL_ACCOUNT, ACCOUNT_OUT);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
+	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
+	//		analysis_lookup_open_window(windat->parent, windat->window,
+	//				icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
 	}
 }
 
@@ -261,38 +263,35 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-		if (analysis_dialogue_process(windat)) {
-			close_dialogue_with_caret(windat->window);
-			analysis_template_save_force_rename_close(windat->parent, windat->template);
-		}
+		if (dialogue_process(windat))
+			dialogue_close_window(windat);
 		break;
 
 	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(windat->window);
-		analysis_template_save_force_rename_close(windat->parent, windat->template);
+		dialogue_close_window(windat);
 		break;
 
 	case wimp_KEY_F1:
 		if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
-			if (icon->target == DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
+		//	if (icon->target == DIALOGUE_NO_ICON)
+		//		analysis_lookup_open_window(windat->parent, windat->window,
+		//				key->i, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
-			if (icon->target == DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
+		//	if (icon->target == DIALOGUE_NO_ICON)
+		//		analysis_lookup_open_window(windat->parent, windat->window,
+		//				key->i, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
-			if (icon->target == DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_IN);
+		//	if (icon->target == DIALOGUE_NO_ICON)
+		//		analysis_lookup_open_window(windat->parent, windat->window,
+		//				key->i, NULL_ACCOUNT, ACCOUNT_IN);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
-			if (icon->target == DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_OUT);
+		//	if (icon->target == DIALOGUE_NO_ICON)
+		//		analysis_lookup_open_window(windat->parent, windat->window,
+		//				key->i, NULL_ACCOUNT, ACCOUNT_OUT);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
-			if (icon->target == DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_FULL);
+		//	if (icon->target == DIALOGUE_NO_ICON)
+		//		analysis_lookup_open_window(windat->parent, windat->window,
+		//				key->i, NULL_ACCOUNT, ACCOUNT_FULL);
 		}
 		break;
 
@@ -306,63 +305,37 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 
 /**
+ * Close a dialogue, warning the client that it has gone.
+ *
+ * \param *dialogue		The dialogue instance to close.
+ */
+
+static void dialogue_close_window(struct dialogue_block *dialogue)
+{
+	if (dialogue == NULL)
+		return;
+
+	if (dialogue->callback_close != NULL)
+		dialogue->callback_close(dialogue->window, dialogue->client_data);
+
+	close_dialogue_with_caret(dialogue->window);
+
+}
+
+
+/**
  * Process the contents of a dialogue and return it to the client.
  *
  * \param *dialogue		The dialogue instance to process.
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue)
+static osbool dialogue_process(struct dialogue_block *dialogue)
 {
-	struct analysis_report_details	*report_details;
-
-	if (dialogue == NULL || dialogue->definition == NULL || dialogue->parent == NULL || dialogue->window == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->callback_process == NULL)
 		return FALSE;
 
-	report_details = analysis_get_report_details(dialogue->definition->type);
-	if (report_details == NULL)
-		return FALSE;
-
-	/* Request the client to read the data from the dialogue. */
-
-	if (report_details->read_window != NULL)
-		report_details->read_window(dialogue->parent, dialogue->window, dialogue->file_settings);
-
-	/* Run the report itself */
-
-	analysis_run_report(dialogue->parent, dialogue->definition->type, dialogue->file_settings, dialogue->template);
-
-	return TRUE;
-}
-
-
-/**
- * Delete the template associated with a dialogue.
- *
- * \param *dialogue		The dialogue instance to process.
- * \return			TRUE on success; FALSE on failure.
- */
-
-static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue)
-{
-	struct analysis_template_block	*templates;
-
-	if (dialogue == NULL || dialogue->parent == NULL || dialogue->template == NULL_TEMPLATE)
-		return FALSE;
-
-	templates = analysis_get_templates(dialogue->parent);
-	if (templates == NULL)
-		return FALSE;
-
-	if (error_msgs_report_question("DeleteTemp", "DeleteTempB") != 3)
-		return FALSE;
-
-	if (!analysis_template_delete(templates, dialogue->template))
-		return FALSE;
-
-	dialogue->template = NULL_TEMPLATE;
-
-	return TRUE;
+	return dialogue->callback_process(dialogue->window, dialogue->client_data);
 }
 
 
@@ -373,10 +346,10 @@ static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue)
  * \param *dialogue		The dialogue instance to refresh.
  */
 
-static void analysis_dialogue_refresh(struct analysis_dialogue_block *dialogue)
+static void dialogue_refresh(struct dialogue_block *dialogue)
 {
-	int				i;
-	struct analysis_dialogue_icon	*icons;
+	int			i;
+	struct dialogue_icon	*icons;
 
 	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
@@ -385,8 +358,8 @@ static void analysis_dialogue_refresh(struct analysis_dialogue_block *dialogue)
 
 	icons = dialogue->definition->icons;
 
-	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
-		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_REFRESH))
+	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
+		if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & DIALOGUE_ICON_REFRESH))
 			wimp_set_icon_state(dialogue->window, icons[i].icon, 0, 0);
 	}
 
@@ -401,25 +374,16 @@ static void analysis_dialogue_refresh(struct analysis_dialogue_block *dialogue)
  * \param *dialogue		The dialogue instance to fill.
  */
 
-static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue)
+static void dialogue_fill(struct dialogue_block *dialogue)
 {
-	struct analysis_report_details	*report_details;
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->callback_fill == NULL)
+		return FALSE;
 
-	if (dialogue == NULL || dialogue->definition == NULL || dialogue->parent == NULL || dialogue->window == NULL)
-		return;
-
-	report_details = analysis_get_report_details(dialogue->definition->type);
-	if (report_details == NULL)
-		return;
-
-	/* Request the client to fill the dialogue. */
-
-	if (report_details->fill_window != NULL)
-		report_details->fill_window(dialogue->parent, dialogue->window, (dialogue->restore) ? dialogue->dialogue_settings : NULL);
+	dialogue->callback_fill(dialogue->window, dialogue->client_data);
 
 	/* Update any shaded icons after the update. */
 
-	analysis_dialogue_shade_icons(dialogue, ANALYSIS_DIALOGUE_NO_ICON);
+	dialogue_shade_icons(dialogue, DIALOGUE_NO_ICON);
 }
 
 

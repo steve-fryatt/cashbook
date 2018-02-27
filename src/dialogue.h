@@ -98,6 +98,10 @@ struct dialogue_definition {
 	 * A list of significant icons in the dialogue.
 	 */
 	struct dialogue_icon		*icons;
+
+	void				(*callback_fill)(wimp_w window, void *data);
+	osbool				(*callback_process)(wimp_w window, void *data);
+	void				(*callback_close)(wimp_w window, void *data);
 };
 
 
@@ -117,9 +121,10 @@ struct dialogue_block *dialogue_initialise(struct dialogue_definition *definitio
  * \param *dialogue		The dialogue instance to open.
  * \param *parent		The file to be the parent of the dialogue.
  * \param *ptr			The current Wimp Pointer details.
+ * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, wimp_pointer *pointer);
+void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, wimp_pointer *pointer, void *data);
 
 
 /**

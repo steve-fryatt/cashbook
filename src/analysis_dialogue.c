@@ -56,6 +56,7 @@
 #include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "caret.h"
+#include "dialogue.h"
 
 
 /**
@@ -63,10 +64,11 @@
  */
 
 struct analysis_dialogue_block {
+	struct dialogue_block			*dialogue;		/**< The dialogue instance.					*/
 	struct analysis_dialogue_definition	*definition;		/**< The dialogue definition from the client.			*/
 	struct analysis_block			*parent;		/**< The parent analysis instance.				*/
 	template_t				template;		/**< The template associated with the dialogue.			*/
-	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
+//	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
 	osbool					restore;		/**< The restore state for the dialogue.			*/
 	void					*dialogue_settings;	/**< The settings block associated with the dialogue.		*/
 	void					*file_settings;		/**< The settings block associated with the file instance.	*/
@@ -115,17 +117,18 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
 	/* Claim a local template store to hold the live dialogue contents. */
 
 	new->dialogue_settings = heap_alloc(definition->block_size);
-	if (new->dialogue_settings == NULL)
+	if (new->dialogue_settings == NULL) {
+		heap_free(new);
 		return NULL;
+	}
 
 	/* Create the dialogue window. */
 
-	new->window = templates_create_window(definition->template_name);
-	ihelp_add_window(new->window, definition->ihelp_token, NULL);
-	event_add_window_user_data(new->window, new);
-	event_add_window_mouse_event(new->window, analysis_dialogue_click_handler);
-	event_add_window_key_event(new->window, analysis_dialogue_keypress_handler);
-	analysis_dialogue_register_radio_icons(new);
+	new->dialogue = dialogue_initialise(&(definition->dialogue));
+	if (new->dialogue == NULL) {
+		heap_free(new);
+		return NULL;
+	}
 
 	return new;
 }

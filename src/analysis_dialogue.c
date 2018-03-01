@@ -52,7 +52,6 @@
 #include "account.h"
 #include "account_menu.h"
 #include "analysis.h"
-#include "analysis_lookup.h"
 #include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "caret.h"

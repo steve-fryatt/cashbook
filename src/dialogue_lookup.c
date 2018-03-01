@@ -22,9 +22,9 @@
  */
 
 /**
- * \file: analysis_lookup.c
+ * \file: dialogue_lookup.c
  *
- * Analysis account lookup dialogue implementation.
+ * Dialogue account lookup dialogue implementation.
  */
 
 /* ANSI C header files */
@@ -44,57 +44,56 @@
 /* Application header files */
 
 #include "global.h"
-#include "analysis_lookup.h"
+#include "dialogue_lookup.h"
 
 #include "account.h"
 #include "account_menu.h"
-#include "analysis.h"
 
 /* Dialogue Icons. */
 
-#define ANALYSIS_LOOKUP_IDENT 0
-#define ANALYSIS_LOOKUP_REC 1
-#define ANALYSIS_LOOKUP_NAME 2
-#define ANALYSIS_LOOKUP_CANCEL 3
-#define ANALYSIS_LOOKUP_OK 4
+#define DIALOGUE_LOOKUP_IDENT 0
+#define DIALOGUE_LOOKUP_REC 1
+#define DIALOGUE_LOOKUP_NAME 2
+#define DIALOGUE_LOOKUP_CANCEL 3
+#define DIALOGUE_LOOKUP_OK 4
 
 /**
  * The handle of the Account Lookup window.
  */
 
-static wimp_w			analysis_lookup_window = NULL;
+static wimp_w			dialogue_lookup_window = NULL;
 
 /**
  * The file currently owning the Account Lookup window.
  */
 
-static struct file_block	*analysis_lookup_file = NULL;
+static struct file_block	*dialogue_lookup_file = NULL;
 
 /**
  * The type(s) of account to be looked up in the window.
  */
 
-static enum account_type	analysis_lookup_type = ACCOUNT_NULL;
+static enum account_type	dialogue_lookup_type = ACCOUNT_NULL;
 
 /**
  * The window currently owning the Account Lookup window.
  */
 
-static wimp_w			analysis_lookup_parent;
+static wimp_w			dialogue_lookup_parent;
 
 /**
  * The icon to which the lookup results should be inserted.
  */
 
-static wimp_i			analysis_lookup_icon;
+static wimp_i			dialogue_lookup_icon;
 
 
 /* Static Function Prototypes. */
 
-static void		analysis_lookup_click_handler(wimp_pointer *pointer);
-static osbool		analysis_lookup_keypress_handler(wimp_key *key);
-static void		analysis_lookup_menu_closed(void);
-static osbool		analysis_lookup_process_window(void);
+static void		dialogue_lookup_click_handler(wimp_pointer *pointer);
+static osbool		dialogue_lookup_keypress_handler(wimp_key *key);
+static void		dialogue_lookup_menu_closed(void);
+static osbool		dialogue_lookup_process_window(void);
 
 
 
@@ -103,12 +102,12 @@ static osbool		analysis_lookup_process_window(void);
  * Initialise the Account Lookup dialogue.
  */
 
-void analysis_lookup_initialise(void)
+void dialogue_lookup_initialise(void)
 {
-	analysis_lookup_window = templates_create_window("AccEnter");
-	ihelp_add_window(analysis_lookup_window, "AccEnter", NULL);
-	event_add_window_mouse_event(analysis_lookup_window, analysis_lookup_click_handler);
-	event_add_window_key_event(analysis_lookup_window, analysis_lookup_keypress_handler);
+	dialogue_lookup_window = templates_create_window("AccEnter");
+	ihelp_add_window(dialogue_lookup_window, "AccEnter", NULL);
+	event_add_window_mouse_event(dialogue_lookup_window, dialogue_lookup_click_handler);
+	event_add_window_key_event(dialogue_lookup_window, dialogue_lookup_keypress_handler);
 }
 
 
@@ -116,29 +115,29 @@ void analysis_lookup_initialise(void)
  * Open the account lookup window as a menu, allowing an account to be
  * entered into an account list using a graphical interface.
  *
- * \param *parent		The analysis_instance to which the operation relates.
+ * \param *file		The file instance to which the operation relates.
  * \param window		The window to own the lookup dialogue.
  * \param icon			The icon to own the lookup dialogue.
  * \param account		An account to seed the window, or NULL_ACCOUNT.
  * \param type			The types of account to be accepted.
  */
 
-void analysis_lookup_open_window(struct analysis_block *parent, wimp_w window, wimp_i icon, acct_t account, enum account_type type)
+void dialogue_lookup_open_window(struct file_block *file, wimp_w window, wimp_i icon, acct_t account, enum account_type type)
 {
 	wimp_pointer		pointer;
 
-	analysis_lookup_file = analysis_get_file(parent);
-	analysis_lookup_type = type;
-	analysis_lookup_parent = window;
-	analysis_lookup_icon = icon;
+	dialogue_lookup_file = file;
+	dialogue_lookup_type = type;
+	dialogue_lookup_parent = window;
+	dialogue_lookup_icon = icon;
 
-	account_fill_field(analysis_lookup_file, account, FALSE, analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC);
+	account_fill_field(dialogue_lookup_file, account, FALSE, dialogue_lookup_window, DIALOGUE_LOOKUP_IDENT, DIALOGUE_LOOKUP_NAME, DIALOGUE_LOOKUP_REC);
 
 	/* Set the window position and open it on screen. */
 
 	pointer.w = window;
 	pointer.i = icon;
-	menus_create_popup_menu((wimp_menu *) analysis_lookup_window, &pointer);
+	menus_create_popup_menu((wimp_menu *) dialogue_lookup_window, &pointer);
 }
 
 
@@ -148,23 +147,23 @@ void analysis_lookup_open_window(struct analysis_block *parent, wimp_w window, w
  * \param *pointer		The mouse event block to handle.
  */
 
-static void analysis_lookup_click_handler(wimp_pointer *pointer)
+static void dialogue_lookup_click_handler(wimp_pointer *pointer)
 {
 	enum account_menu_type	type;
 	wimp_window_state	window_state;
 
 	switch (pointer->i) {
-	case ANALYSIS_LOOKUP_CANCEL:
+	case DIALOGUE_LOOKUP_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT)
 			wimp_create_menu((wimp_menu *) -1, 0, 0);
 		break;
 
-	case ANALYSIS_LOOKUP_OK:
-		if (analysis_lookup_process_window() && pointer->buttons == wimp_CLICK_SELECT)
+	case DIALOGUE_LOOKUP_OK:
+		if (dialogue_lookup_process_window() && pointer->buttons == wimp_CLICK_SELECT)
 			wimp_create_menu((wimp_menu *) -1, 0, 0);
 		break;
 
-	case ANALYSIS_LOOKUP_NAME:
+	case DIALOGUE_LOOKUP_NAME:
 		if (pointer->buttons != wimp_CLICK_ADJUST)
 			break;
 
@@ -172,12 +171,12 @@ static void analysis_lookup_click_handler(wimp_pointer *pointer)
 		 * that the lookup menu can be created.
 		 */
 
-		window_state.w = analysis_lookup_window;
+		window_state.w = dialogue_lookup_window;
 		wimp_get_window_state(&window_state);
 		wimp_create_menu((wimp_menu *) -1, 0, 0);
 		wimp_open_window((wimp_open *) &window_state);
 
-		switch (analysis_lookup_type) {
+		switch (dialogue_lookup_type) {
 		case ACCOUNT_FULL | ACCOUNT_IN:
 			type = ACCOUNT_MENU_FROM;
 			break;
@@ -203,13 +202,13 @@ static void analysis_lookup_click_handler(wimp_pointer *pointer)
 			break;
 		}
 
-		account_menu_open_icon(analysis_lookup_file, type, analysis_lookup_menu_closed,
-				analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC, pointer);
+		account_menu_open_icon(dialogue_lookup_file, type, dialogue_lookup_menu_closed,
+				dialogue_lookup_window, DIALOGUE_LOOKUP_IDENT, DIALOGUE_LOOKUP_NAME, DIALOGUE_LOOKUP_REC, pointer);
 		break;
 
-	case ANALYSIS_LOOKUP_REC:
+	case DIALOGUE_LOOKUP_REC:
 		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_toggle_reconcile_icon(analysis_lookup_window, ANALYSIS_LOOKUP_REC);
+			account_toggle_reconcile_icon(dialogue_lookup_window, DIALOGUE_LOOKUP_REC);
 		break;
 	}
 }
@@ -222,21 +221,21 @@ static void analysis_lookup_click_handler(wimp_pointer *pointer)
  * \return		TRUE if the event was handled; else FALSE.
  */
 
-static osbool analysis_lookup_keypress_handler(wimp_key *key)
+static osbool dialogue_lookup_keypress_handler(wimp_key *key)
 {
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-		if (analysis_lookup_process_window())
+		if (dialogue_lookup_process_window())
 			wimp_create_menu((wimp_menu *) -1, 0, 0);
 		break;
 
 	default:
-		if (key->i != ANALYSIS_LOOKUP_IDENT)
+		if (key->i != DIALOGUE_LOOKUP_IDENT)
 			return FALSE;
 
-		if (key->i == ANALYSIS_LOOKUP_IDENT)
-			account_lookup_field(analysis_lookup_file, key->c, analysis_lookup_type, NULL_ACCOUNT, NULL,
-					analysis_lookup_window, ANALYSIS_LOOKUP_IDENT, ANALYSIS_LOOKUP_NAME, ANALYSIS_LOOKUP_REC);
+		if (key->i == DIALOGUE_LOOKUP_IDENT)
+			account_lookup_field(dialogue_lookup_file, key->c, dialogue_lookup_type, NULL_ACCOUNT, NULL,
+					dialogue_lookup_window, DIALOGUE_LOOKUP_IDENT, DIALOGUE_LOOKUP_NAME, DIALOGUE_LOOKUP_REC);
  		break;
 	}
 
@@ -249,22 +248,22 @@ static osbool analysis_lookup_keypress_handler(wimp_key *key)
  * account window is open, it is converted back into a transient menu.
  */
 
-static void analysis_lookup_menu_closed(void)
+static void dialogue_lookup_menu_closed(void)
 {
 	wimp_window_state	window_state;
 
-	if (!windows_get_open(analysis_lookup_window))
+	if (!windows_get_open(dialogue_lookup_window))
 		return;
 
-	window_state.w = analysis_lookup_window;
+	window_state.w = dialogue_lookup_window;
 	wimp_get_window_state(&window_state);
-	wimp_close_window(analysis_lookup_window);
+	wimp_close_window(dialogue_lookup_window);
 
-	if (!windows_get_open(analysis_lookup_parent))
+	if (!windows_get_open(dialogue_lookup_parent))
 		return;
 
 	wimp_create_menu((wimp_menu *) -1, 0, 0);
-	wimp_create_menu((wimp_menu *) analysis_lookup_window, window_state.visible.x0, window_state.visible.y1);
+	wimp_create_menu((wimp_menu *) dialogue_lookup_window, window_state.visible.x0, window_state.visible.y1);
 }
 
 
@@ -275,7 +274,7 @@ static void analysis_lookup_menu_closed(void)
  * \return			TRUE if the content was processed; FALSE otherwise.
  */
 
-static osbool analysis_lookup_process_window(void)
+static osbool dialogue_lookup_process_window(void)
 {
 	int		index, max_len;
 	acct_t		account;
@@ -284,15 +283,15 @@ static osbool analysis_lookup_process_window(void)
 
 	/* Get the account number that was entered. */
 
-	account = account_find_by_ident(analysis_lookup_file, icons_get_indirected_text_addr(analysis_lookup_window, ANALYSIS_LOOKUP_IDENT),
-			analysis_lookup_type);
+	account = account_find_by_ident(dialogue_lookup_file, icons_get_indirected_text_addr(dialogue_lookup_window, DIALOGUE_LOOKUP_IDENT),
+			dialogue_lookup_type);
 
 	if (account == NULL_ACCOUNT)
 		return TRUE;
 
 	/* Get the icon text, and the length of it. */
 
-	icon = icons_get_indirected_text_addr(analysis_lookup_parent, analysis_lookup_icon);
+	icon = icons_get_indirected_text_addr(dialogue_lookup_parent, dialogue_lookup_icon);
 	max_len = string_ctrl_strlen(icon);
 
 	/* Check the caret position.  If it is in the target icon, move the insertion until it falls before a comma;
@@ -300,7 +299,7 @@ static osbool analysis_lookup_process_window(void)
 	 */
 
 	wimp_get_caret_position(&caret);
-	if (caret.w == analysis_lookup_parent && caret.i == analysis_lookup_icon) {
+	if (caret.w == dialogue_lookup_parent && caret.i == dialogue_lookup_icon) {
 		index = caret.index;
 		while (index < max_len && icon[index] != ',')
 			index++;
@@ -316,16 +315,17 @@ static osbool analysis_lookup_process_window(void)
 	 */
 
 	if (*icon == '\0') {
-		string_printf(ident, ACCOUNT_IDENT_LEN + 1, "%s", account_get_ident(analysis_lookup_file, account));
+		string_printf(ident, ACCOUNT_IDENT_LEN + 1, "%s", account_get_ident(dialogue_lookup_file, account));
 	} else {
 		if (index < max_len)
-			string_printf(ident, ACCOUNT_IDENT_LEN + 1, "%s,", account_get_ident(analysis_lookup_file, account));
+			string_printf(ident, ACCOUNT_IDENT_LEN + 1, "%s,", account_get_ident(dialogue_lookup_file, account));
 		else
-			string_printf(ident, ACCOUNT_IDENT_LEN + 1, ",%s", account_get_ident(analysis_lookup_file, account));
+			string_printf(ident, ACCOUNT_IDENT_LEN + 1, ",%s", account_get_ident(dialogue_lookup_file, account));
 	}
 
-	icons_insert_text(analysis_lookup_parent, analysis_lookup_icon, index, ident, strlen(ident));
-	icons_replace_caret_in_window(analysis_lookup_parent);
+	icons_insert_text(dialogue_lookup_parent, dialogue_lookup_icon, index, ident, strlen(ident));
+	icons_replace_caret_in_window(dialogue_lookup_parent);
 
 	return TRUE;
 }
+

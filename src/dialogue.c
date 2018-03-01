@@ -52,6 +52,7 @@
 #include "account.h"
 #include "account_menu.h"
 #include "caret.h"
+#include "dialogue_lookup.h"
 
 
 /**
@@ -238,25 +239,25 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		dialogue_shade_icons(windat, pointer->i);
 		icons_replace_caret_in_window(windat->window);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
-	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-	//		analysis_lookup_open_window(windat->parent, windat->window,
-	//				icon->target, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
+			dialogue_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
-	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-	//		analysis_lookup_open_window(windat->parent, windat->window,
-	//				icon->target, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
+			dialogue_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
-	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-	//		analysis_lookup_open_window(windat->parent, windat->window,
-	//				icon->target, NULL_ACCOUNT, ACCOUNT_IN);
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
+			dialogue_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_IN);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
-	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-	//		analysis_lookup_open_window(windat->parent, windat->window,
-	//				icon->target, NULL_ACCOUNT, ACCOUNT_OUT);
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
+			dialogue_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_OUT);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
-	//	if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-	//		analysis_lookup_open_window(windat->parent, windat->window,
-	//				icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
+			dialogue_lookup_open_window(windat->parent, windat->window,
+					icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
 	}
 }
 

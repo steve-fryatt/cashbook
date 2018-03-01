@@ -64,7 +64,6 @@
 #include "analysis_cashflow.h"
 #include "analysis_data.h"
 #include "analysis_dialogue.h"
-#include "analysis_lookup.h"
 #include "analysis_period.h"
 #include "analysis_template.h"
 #include "analysis_template_save.h"
@@ -150,7 +149,6 @@ void analysis_initialise(void)
 	analysis_report_types[REPORT_TYPE_CASHFLOW] = analysis_cashflow_initialise();
 	analysis_report_types[REPORT_TYPE_BALANCE] = analysis_balance_initialise();
 	analysis_template_save_initialise();
-	analysis_lookup_initialise();
 }
 
 

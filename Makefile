@@ -47,7 +47,6 @@ OBJS = account.o			\
        analysis_cashflow.o		\
        analysis_data.o			\
        analysis_dialogue.o		\
-       analysis_lookup.o		\
        analysis_period.o		\
        analysis_template.o		\
        analysis_template_menu.o		\
@@ -62,6 +61,7 @@ OBJS = account.o			\
        currency.o			\
        date.o				\
        dialogue.o			\
+       dialogue_lookup.o		\
        edit.o				\
        file.o				\
        file_info.o			\

@@ -71,7 +71,6 @@ static void dialogue_click_handler(wimp_pointer *pointer);
 static osbool dialogue_keypress_handler(wimp_key *key);
 static void dialogue_close_window(struct dialogue_block *dialogue);
 static osbool dialogue_process(struct dialogue_block *dialogue);
-static osbool dialogue_delete(struct dialogue_block *dialogue);
 static void dialogue_refresh(struct dialogue_block *dialogue);
 static void dialogue_fill(struct dialogue_block *dialogue);
 static void dialogue_place_caret(struct dialogue_block *dialogue);
@@ -111,7 +110,7 @@ struct dialogue_block *dialogue_initialise(struct dialogue_definition *definitio
 	event_add_window_user_data(new->window, new);
 	event_add_window_mouse_event(new->window, dialogue_click_handler);
 	event_add_window_key_event(new->window, dialogue_keypress_handler);
-	analysis_dialogue_register_radio_icons(new);
+	dialogue_register_radio_icons(new);
 
 	return new;
 }
@@ -128,10 +127,6 @@ struct dialogue_block *dialogue_initialise(struct dialogue_definition *definitio
 
 void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, wimp_pointer *pointer, void *data)
 {
-	struct analysis_report		*template_block;
-	struct analysis_template_block	*templates;
-	struct analysis_report_details	*report_details;
-
 	if (dialogue == NULL || dialogue->definition == NULL || parent == NULL || pointer == NULL)
 		return;
 
@@ -170,13 +165,38 @@ void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, w
  *				this is the parent file.
  */
 
-void dialogue_close(struct analysis_dialogue_block *dialogue, struct file_block *parent)
+void dialogue_close(struct dialogue_block *dialogue, struct file_block *parent)
 {
 	if (dialogue == NULL || dialogue->parent != parent)
 		return;
 
 	if (windows_get_open(dialogue->window))
 		close_dialogue_with_caret(dialogue->window);
+}
+
+
+/**
+ * Set the window title for a dialogue box, redrawing it if the
+ * dialogue is currently open.
+ *
+ * \param *dialogue		The dialogue instance to update.
+ * \param *token		The MessageTrans token for the new title.
+ * \param *a			MessageTrans parameter A, or NULL.
+ * \param *b			MessageTrans parameter B, or NULL.
+ * \param *c			MessageTrans parameter C, or NULL.
+ * \param *d			MessageTrans parameter D, or NULL.
+ */
+
+void dialogue_set_title(struct dialogue_block *dialogue, char *token, char *a, char *b, char *c, char *d)
+{
+	if (dialogue == NULL || dialogue->window == NULL)
+		return;
+
+	msgs_param_lookup(token, windows_get_indirected_title_addr(dialogue->window),
+			windows_get_indirected_title_length(dialogue->window), a, b, c, d);
+
+	if (windows_get_open(dialogue->window))
+		xwimp_force_redraw_title(dialogue->window);
 }
 
 
@@ -315,8 +335,8 @@ static void dialogue_close_window(struct dialogue_block *dialogue)
 	if (dialogue == NULL)
 		return;
 
-	if (dialogue->callback_close != NULL)
-		dialogue->callback_close(dialogue->window, dialogue->client_data);
+	if (dialogue->definition->callback_close != NULL)
+		dialogue->definition->callback_close(dialogue->window, dialogue->client_data);
 
 	close_dialogue_with_caret(dialogue->window);
 
@@ -332,10 +352,10 @@ static void dialogue_close_window(struct dialogue_block *dialogue)
 
 static osbool dialogue_process(struct dialogue_block *dialogue)
 {
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->callback_process == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition->callback_process == NULL)
 		return FALSE;
 
-	return dialogue->callback_process(dialogue->window, dialogue->client_data);
+	return dialogue->definition->callback_process(dialogue->window, dialogue->client_data);
 }
 
 
@@ -354,7 +374,7 @@ static void dialogue_refresh(struct dialogue_block *dialogue)
 	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
 
-	analysis_dialogue_fill(dialogue);
+	dialogue_fill(dialogue);
 
 	icons = dialogue->definition->icons;
 
@@ -376,10 +396,10 @@ static void dialogue_refresh(struct dialogue_block *dialogue)
 
 static void dialogue_fill(struct dialogue_block *dialogue)
 {
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->callback_fill == NULL)
-		return FALSE;
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition->callback_fill == NULL)
+		return;
 
-	dialogue->callback_fill(dialogue->window, dialogue->client_data);
+	dialogue->definition->callback_fill(dialogue->window, dialogue->client_data);
 
 	/* Update any shaded icons after the update. */
 
@@ -515,7 +535,7 @@ static void dialogue_register_radio_icons(struct dialogue_block *dialogue)
 	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
 		if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & DIALOGUE_ICON_RADIO))
 			event_add_window_icon_radio(dialogue->window, icons[i].icon, TRUE);
-		else if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & SDIALOGUE_ICON_RADIO_PASS))
+		else if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & DIALOGUE_ICON_RADIO_PASS))
 			event_add_window_icon_radio(dialogue->window, icons[i].icon, FALSE);
 	}
 }

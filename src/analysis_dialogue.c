@@ -76,12 +76,9 @@ struct analysis_dialogue_block {
 
 /* Static Function Prototypes. */
 
-static void analysis_dialogue_click_handler(wimp_pointer *pointer);
-static osbool analysis_dialogue_keypress_handler(wimp_key *key);
-static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue);
+static osbool analysis_dialogue_process(wimp_w window, void *data);
 static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue);
-static void analysis_dialogue_refresh(struct analysis_dialogue_block *dialogue);
-static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue);
+static void analysis_dialogue_fill(wimp_w window, void *data);
 
 /**
  * Initialise a new analysis dialogue window instance.
@@ -160,15 +157,6 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 	if (report_details == NULL)
 		return;
 
-	/* If the window is already open, report is being edited.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret() as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(dialogue->window))
-		wimp_close_window(dialogue->window);
-
 	/* Copy the settings block contents into a static place that won't shift about on the flex heap
 	 * while the dialogue is open.
 	 */
@@ -179,8 +167,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 		report_details->copy_template(dialogue->dialogue_settings, analysis_template_get_data(template_block));
 		dialogue->template = template;
 
-		msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(dialogue->window),
-				windows_get_indirected_title_length(dialogue->window),
+		dialogue_set_title(dialogue->dialogue, "GenRepTitle",
 				analysis_template_get_name(template_block, NULL, 0), NULL, NULL, NULL);
 
 		/* If we use a template, we always want to reset to the template! */
@@ -190,8 +177,8 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 		report_details->copy_template(dialogue->dialogue_settings, settings);
 		dialogue->template = NULL_TEMPLATE;
 
-		msgs_lookup(dialogue->definition->title_token, windows_get_indirected_title_addr(dialogue->window),
-				windows_get_indirected_title_length(dialogue->window));
+		dialogue_set_title(dialogue->dialogue, dialogue->definition->dialogue.title_token,
+				analysis_template_get_name(template_block, NULL, 0), NULL, NULL, NULL);
 	}
 
 	/* Set the pointers up so we can find this lot again and open the window. */
@@ -202,12 +189,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 	/* Set the window contents up. */
 
-	analysis_dialogue_hide_icons(dialogue, ANALYSIS_DIALOGUE_ICON_DELETE | ANALYSIS_DIALOGUE_ICON_RENAME, template_block == NULL);
-
-	analysis_dialogue_fill(dialogue);
-
-	windows_open_centred_at_pointer(dialogue->window, pointer);
-	analysis_dialogue_place_caret(dialogue);
+	dialogue_open(dialogue->dialogue, analysis_get_file(dialogue->parent), pointer, dialogue);
 }
 
 
@@ -225,8 +207,7 @@ void analysis_dialogue_close(struct analysis_dialogue_block *dialogue, struct an
 	if (dialogue == NULL || dialogue->parent != parent)
 		return;
 
-	if (windows_get_open(dialogue->window))
-		close_dialogue_with_caret(dialogue->window);
+	dialogue_close(dialogue->dialogue, analysis_get_file(dialogue->parent));
 }
 
 
@@ -263,15 +244,10 @@ void analysis_dialogue_remove_template(struct analysis_dialogue_block *dialogue,
 
 void analysis_dialogue_rename_template(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, template_t template, char *name)
 {
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->parent != parent || dialogue->template != template)
+	if (dialogue == NULL || dialogue->parent != parent || dialogue->template != template)
 		return;
 
-	if (!windows_get_open(dialogue->window))
-		return;
-
-	msgs_param_lookup("GenRepTitle", windows_get_indirected_title_addr(dialogue->window),
-			windows_get_indirected_title_length(dialogue->window), name, NULL, NULL, NULL);
-	xwimp_force_redraw_title(dialogue->window);
+	dialogue_set_title(dialogue->dialogue, "GenRepTitle", name, NULL, NULL, NULL);
 }
 
 
@@ -280,7 +256,7 @@ void analysis_dialogue_rename_template(struct analysis_dialogue_block *dialogue,
  *
  * \param *pointer		The mouse event block to handle.
  */
-
+#if 0
 static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 {
 	struct analysis_dialogue_block	*windat;
@@ -337,7 +313,7 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
 					icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
 	}
 }
-
+#endif
 
 /**
  * Process keypresses in an analysis dialogue instance's window.
@@ -345,7 +321,7 @@ static void analysis_dialogue_click_handler(wimp_pointer *pointer)
  * \param *key		The keypress event block to handle.
  * \return		TRUE if the event was handled; else FALSE.
  */
-
+#if 0
 static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 {
 	struct analysis_dialogue_block	*windat;
@@ -403,20 +379,22 @@ static osbool analysis_dialogue_keypress_handler(wimp_key *key)
 
 	return TRUE;
 }
-
+#endif
 
 /**
  * Process the contents of a dialogue and return it to the client.
  *
- * \param *dialogue		The dialogue instance to process.
+ * \param Window		The handle of the dialogue box to fill.
+ * \param *data			The associated analysis dialogue instance.
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue)
+static osbool analysis_dialogue_process(wimp_w window, void *data)
 {
+	struct analysis_dialogue_block *dialogue = data;
 	struct analysis_report_details	*report_details;
 
-	if (dialogue == NULL || dialogue->definition == NULL || dialogue->parent == NULL || dialogue->window == NULL)
+	if (window == NULL || dialogue == NULL || dialogue->definition == NULL || dialogue->parent == NULL)
 		return FALSE;
 
 	report_details = analysis_get_report_details(dialogue->definition->type);
@@ -426,7 +404,7 @@ static osbool analysis_dialogue_process(struct analysis_dialogue_block *dialogue
 	/* Request the client to read the data from the dialogue. */
 
 	if (report_details->read_window != NULL)
-		report_details->read_window(dialogue->parent, dialogue->window, dialogue->file_settings);
+		report_details->read_window(dialogue->parent, window, dialogue->file_settings);
 
 	/* Run the report itself */
 
@@ -467,45 +445,19 @@ static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue)
 
 
 /**
- * Request the client to fill a dialogue, update the shaded icons and then
- * redraw any fields which require it.
- *
- * \param *dialogue		The dialogue instance to refresh.
- */
-
-static void analysis_dialogue_refresh(struct analysis_dialogue_block *dialogue)
-{
-	int				i;
-	struct analysis_dialogue_icon	*icons;
-
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
-		return;
-
-	analysis_dialogue_fill(dialogue);
-
-	icons = dialogue->definition->icons;
-
-	for (i = 0; (icons[i].type & ANALYSIS_DIALOGUE_ICON_END) == 0; i++) {
-		if ((icons[i].icon != ANALYSIS_DIALOGUE_NO_ICON) && (icons[i].type & ANALYSIS_DIALOGUE_ICON_REFRESH))
-			wimp_set_icon_state(dialogue->window, icons[i].icon, 0, 0);
-	}
-
-	icons_replace_caret_in_window(dialogue->window);
-}
-
-
-/**
  * Request the client to fill a dialogue, and update the shaded icons
  * based on the end result.
  *
- * \param *dialogue		The dialogue instance to fill.
+ * \param Window		The handle of the dialogue box to fill.
+ * \param *data			The associated analysis dialogue instance.
  */
 
-static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue)
+static void analysis_dialogue_fill(wimp_w window, void *data)
 {
+	struct analysis_dialogue_block *dialogue = data;
 	struct analysis_report_details	*report_details;
 
-	if (dialogue == NULL || dialogue->definition == NULL || dialogue->parent == NULL || dialogue->window == NULL)
+	if (window == NULL || dialogue == NULL || dialogue->definition == NULL || dialogue->parent == NULL)
 		return;
 
 	report_details = analysis_get_report_details(dialogue->definition->type);
@@ -515,10 +467,6 @@ static void analysis_dialogue_fill(struct analysis_dialogue_block *dialogue)
 	/* Request the client to fill the dialogue. */
 
 	if (report_details->fill_window != NULL)
-		report_details->fill_window(dialogue->parent, dialogue->window, (dialogue->restore) ? dialogue->dialogue_settings : NULL);
-
-	/* Update any shaded icons after the update. */
-
-	analysis_dialogue_shade_icons(dialogue, ANALYSIS_DIALOGUE_NO_ICON);
+		report_details->fill_window(dialogue->parent, window, (dialogue->restore) ? dialogue->dialogue_settings : NULL);
 }
 

@@ -138,4 +138,19 @@ void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, w
 
 void dialogue_close(struct dialogue_block *dialogue, struct file_block *parent);
 
+
+/**
+ * Set the window title for a dialogue box, redrawing it if the
+ * dialogue is currently open.
+ *
+ * \param *dialogue		The dialogue instance to update.
+ * \param *token		The MessageTrans token for the new title.
+ * \param *a			MessageTrans parameter A, or NULL.
+ * \param *b			MessageTrans parameter B, or NULL.
+ * \param *c			MessageTrans parameter C, or NULL.
+ * \param *d			MessageTrans parameter D, or NULL.
+ */
+
+void dialogue_set_title(struct dialogue_block *dialogue, char *token, char *a, char *b, char *c, char *d);
+
 #endif

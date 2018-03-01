@@ -294,25 +294,25 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 	case wimp_KEY_F1:
 		if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
-		//	if (icon->target == DIALOGUE_NO_ICON)
-		//		analysis_lookup_open_window(windat->parent, windat->window,
-		//				key->i, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
+			if (icon->target == DIALOGUE_NO_ICON)
+				dialogue_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
-		//	if (icon->target == DIALOGUE_NO_ICON)
-		//		analysis_lookup_open_window(windat->parent, windat->window,
-		//				key->i, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
+			if (icon->target == DIALOGUE_NO_ICON)
+				dialogue_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
-		//	if (icon->target == DIALOGUE_NO_ICON)
-		//		analysis_lookup_open_window(windat->parent, windat->window,
-		//				key->i, NULL_ACCOUNT, ACCOUNT_IN);
+			if (icon->target == DIALOGUE_NO_ICON)
+				dialogue_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_IN);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
-		//	if (icon->target == DIALOGUE_NO_ICON)
-		//		analysis_lookup_open_window(windat->parent, windat->window,
-		//				key->i, NULL_ACCOUNT, ACCOUNT_OUT);
+			if (icon->target == DIALOGUE_NO_ICON)
+				dialogue_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_OUT);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
-		//	if (icon->target == DIALOGUE_NO_ICON)
-		//		analysis_lookup_open_window(windat->parent, windat->window,
-		//				key->i, NULL_ACCOUNT, ACCOUNT_FULL);
+			if (icon->target == DIALOGUE_NO_ICON)
+				dialogue_lookup_open_window(windat->parent, windat->window,
+						key->i, NULL_ACCOUNT, ACCOUNT_FULL);
 		}
 		break;
 

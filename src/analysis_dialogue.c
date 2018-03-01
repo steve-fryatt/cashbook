@@ -67,7 +67,6 @@ struct analysis_dialogue_block {
 	struct analysis_dialogue_definition	*definition;		/**< The dialogue definition from the client.			*/
 	struct analysis_block			*parent;		/**< The parent analysis instance.				*/
 	template_t				template;		/**< The template associated with the dialogue.			*/
-//	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
 	osbool					restore;		/**< The restore state for the dialogue.			*/
 	void					*dialogue_settings;	/**< The settings block associated with the dialogue.		*/
 	void					*file_settings;		/**< The settings block associated with the file instance.	*/
@@ -120,6 +119,12 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
 		heap_free(new);
 		return NULL;
 	}
+
+	/* Set the callback handlers for our client. */
+
+	definition->dialogue.callback_fill = analysis_dialogue_fill;
+	definition->dialogue.callback_process = analysis_dialogue_process;
+//	definition->dialogue.callback_close = 
 
 	return new;
 }

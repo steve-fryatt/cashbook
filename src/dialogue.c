@@ -71,7 +71,7 @@ struct dialogue_block {
 static void dialogue_click_handler(wimp_pointer *pointer);
 static osbool dialogue_keypress_handler(wimp_key *key);
 static void dialogue_close_window(struct dialogue_block *dialogue);
-static osbool dialogue_process(struct dialogue_block *dialogue);
+static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *pointer, struct dialogue_icon *icon);
 static void dialogue_refresh(struct dialogue_block *dialogue);
 static void dialogue_fill(struct dialogue_block *dialogue);
 static void dialogue_place_caret(struct dialogue_block *dialogue);
@@ -226,15 +226,12 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			dialogue_refresh(windat);
 		}
-	} else if (icon->type & DIALOGUE_ICON_GENERATE) {
-		if (dialogue_process(windat) && pointer->buttons == wimp_CLICK_SELECT)
+	} else if (icon->type & DIALOGUE_ICON_OK) {
+		if (dialogue_process(windat, pointer, icon) && pointer->buttons == wimp_CLICK_SELECT)
 			dialogue_close_window(windat);
-//	} else if (icon->type & DIALOGUE_ICON_DELETE) {
-//		if (pointer->buttons == wimp_CLICK_SELECT && analysis_dialogue_delete(windat))
-//			close_dialogue_with_caret(windat->window);
-//	} else if (icon->type & DIALOGUE_ICON_RENAME) {
-//		if (pointer->buttons == wimp_CLICK_SELECT && windat->template != NULL_TEMPLATE)
-//			analysis_template_save_open_rename_window(windat->parent, windat->template, pointer);
+	} else if (icon->type & DIALOGUE_ICON_ACTION) {
+		if (dialogue_process(windat, pointer, icon))
+			dialogue_close_window(windat);
 	} else if (icon->type & DIALOGUE_ICON_SHADE_TARGET) {
 		dialogue_shade_icons(windat, pointer->i);
 		icons_replace_caret_in_window(windat->window);
@@ -284,7 +281,7 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-		if (dialogue_process(windat))
+		if (dialogue_process(windat, NULL, icon))
 			dialogue_close_window(windat);
 		break;
 
@@ -348,15 +345,17 @@ static void dialogue_close_window(struct dialogue_block *dialogue)
  * Process the contents of a dialogue and return it to the client.
  *
  * \param *dialogue		The dialogue instance to process.
+ * \param *pointer		Pointer to the pointer data, or NULL on keypress.
+ * \param *icon			The dialogue icon details.
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool dialogue_process(struct dialogue_block *dialogue)
+static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *pointer, struct dialogue_icon *icon)
 {
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition->callback_process == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition->callback_process == NULL || icon == NULL)
 		return FALSE;
 
-	return dialogue->definition->callback_process(dialogue->window, dialogue->client_data);
+	return dialogue->definition->callback_process(dialogue->window, pointer, icon->type, dialogue->client_data);
 }
 
 

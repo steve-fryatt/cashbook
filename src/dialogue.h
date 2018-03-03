@@ -41,24 +41,30 @@ struct dialogue_block;
  */
 
 enum dialogue_icon_type {
-	DIALOGUE_ICON_GENERATE		= 0x00000001,		/**< The Generate (or 'OK') button.		*/
-	DIALOGUE_ICON_DELETE		= 0x00000002,		/**< The Delete button.				*/
-	DIALOGUE_ICON_RENAME		= 0x00000004,		/**< The Rename button.				*/
-	DIALOGUE_ICON_CANCEL		= 0x00000008,		/**< The Cancel button.				*/
-	DIALOGUE_ICON_RADIO		= 0x00000010,		/**< A radio icon.				*/
-	DIALOGUE_ICON_RADIO_PASS	= 0x00000020,		/**< A radio icon which passes events on.	*/
-	DIALOGUE_ICON_SHADE_ON		= 0x00000040,		/**< Shade icon when target is selected.	*/
-	DIALOGUE_ICON_SHADE_OFF		= 0x00000080,		/**< Shade icon when target is not selected.	*/
-	DIALOGUE_ICON_SHADE_OR		= 0x00000100,		/**< Include this condition with the previous.	*/
-	DIALOGUE_ICON_SHADE_TARGET	= 0x00000200,		/**< A target for shading other icons.		*/
-	DIALOGUE_ICON_REFRESH		= 0x00000400,		/**< The icon requires refreshing.		*/
-	DIALOGUE_ICON_HIDDEN		= 0x00000800,		/**< The icon should be hidden when requested.	*/
-	DIALOGUE_ICON_POPUP_FROM	= 0x00001000,		/*<< The icon should launch a "From" popup.	*/
-	DIALOGUE_ICON_POPUP_TO		= 0x00002000,		/*<< The icon should launch a "To" popup.	*/
-	DIALOGUE_ICON_POPUP_IN		= 0x00004000,		/*<< The icon should launch a "In" popup.	*/
-	DIALOGUE_ICON_POPUP_OUT		= 0x00008000,		/*<< The icon should launch a "Out" popup.	*/
-	DIALOGUE_ICON_POPUP_FULL	= 0x00010000,		/*<< The icon should launch a "Full" popup.	*/
-	DIALOGUE_ICON_END		= 0x80000000		/**< The last entry in the icon sequence.	*/
+	DIALOGUE_ICON_OK		= 0x00000001,		/**< The OK button.				*/
+	DIALOGUE_ICON_CANCEL		= 0x00000002,		/**< The Cancel button.				*/
+	DIALOGUE_ICON_ACTION		= 0x00000004,		/**< Another generic action button.		*/
+	DIALOGUE_ICON_RADIO		= 0x00000008,		/**< A radio icon.				*/
+	DIALOGUE_ICON_RADIO_PASS	= 0x00000010,		/**< A radio icon which passes events on.	*/
+	DIALOGUE_ICON_SHADE_ON		= 0x00000020,		/**< Shade icon when target is selected.	*/
+	DIALOGUE_ICON_SHADE_OFF		= 0x00000040,		/**< Shade icon when target is not selected.	*/
+	DIALOGUE_ICON_SHADE_OR		= 0x00000080,		/**< Include this condition with the previous.	*/
+	DIALOGUE_ICON_SHADE_TARGET	= 0x00000100,		/**< A target for shading other icons.		*/
+	DIALOGUE_ICON_REFRESH		= 0x00000200,		/**< The icon requires refreshing.		*/
+	DIALOGUE_ICON_HIDDEN		= 0x00000400,		/**< The icon should be hidden when requested.	*/
+	DIALOGUE_ICON_POPUP_FROM	= 0x00000800,		/*<< The icon should launch a "From" popup.	*/
+	DIALOGUE_ICON_POPUP_TO		= 0x00001000,		/*<< The icon should launch a "To" popup.	*/
+	DIALOGUE_ICON_POPUP_IN		= 0x00002000,		/*<< The icon should launch a "In" popup.	*/
+	DIALOGUE_ICON_POPUP_OUT		= 0x00004000,		/*<< The icon should launch a "Out" popup.	*/
+	DIALOGUE_ICON_POPUP_FULL	= 0x00008000,		/*<< The icon should launch a "Full" popup.	*/
+	DIALOGUE_ICON_END		= 0x80000000,		/**< The last entry in the icon sequence.	*/
+
+	/* Flags below this point belong to individual clients; values
+	 * can be duplicated across clients.
+	 */
+
+	DIALOGUE_ICON_DELETE		= 0x01000000,		/**< The Analysis Report Delete button.		*/
+	DIALOGUE_ICON_RENAME		= 0x02000000,		/**< The Analysis Report Rename button.		*/
 };
 
 #define DIALOGUE_NO_ICON ((wimp_i) -1)
@@ -68,9 +74,9 @@ enum dialogue_icon_type {
  */
 
 struct dialogue_icon {
-	enum dialogue_icon_type	type;
-	wimp_i					icon;
-	wimp_i					target;
+	enum dialogue_icon_type		type;
+	wimp_i				icon;
+	wimp_i				target;
 };
 
 
@@ -99,8 +105,19 @@ struct dialogue_definition {
 	 */
 	struct dialogue_icon		*icons;
 
+	/**
+	 * Callback function to request the dialogue is filled.
+	 */
 	void				(*callback_fill)(wimp_w window, void *data);
-	osbool				(*callback_process)(wimp_w window, void *data);
+
+	/**
+	 * Callback function to request the dialogue is processed.
+	 */
+	osbool				(*callback_process)(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
+
+	/**
+	 * Callback function to report the dialogue closing.
+	 */
 	void				(*callback_close)(wimp_w window, void *data);
 };
 
@@ -154,3 +171,4 @@ void dialogue_close(struct dialogue_block *dialogue, struct file_block *parent);
 void dialogue_set_title(struct dialogue_block *dialogue, char *token, char *a, char *b, char *c, char *d);
 
 #endif
+

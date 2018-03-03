@@ -127,3 +127,4 @@ void analysis_dialogue_remove_template(struct analysis_dialogue_block *dialogue,
 void analysis_dialogue_rename_template(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, template_t template, char *name);
 
 #endif
+

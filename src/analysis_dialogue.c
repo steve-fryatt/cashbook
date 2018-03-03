@@ -74,7 +74,7 @@ struct analysis_dialogue_block {
 
 /* Static Function Prototypes. */
 
-static osbool analysis_dialogue_process(wimp_w window, void *data);
+static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue);
 static void analysis_dialogue_fill(wimp_w window, void *data);
 
@@ -256,144 +256,16 @@ void analysis_dialogue_rename_template(struct analysis_dialogue_block *dialogue,
 
 
 /**
- * Process mouse clicks in an analysis dialogue instance's window.
- *
- * \param *pointer		The mouse event block to handle.
- */
-#if 0
-static void analysis_dialogue_click_handler(wimp_pointer *pointer)
-{
-	struct analysis_dialogue_block	*windat;
-	struct analysis_dialogue_icon	*icon;
-
-	windat = event_get_window_user_data(pointer->w);
-	if (pointer == NULL || windat == NULL || windat->definition == NULL)
-		return;
-
-	icon = analysis_dialogue_find_icon(windat, pointer->i);
-	if (icon == NULL)
-		return;
-
-	if (icon->type & ANALYSIS_DIALOGUE_ICON_CANCEL) {
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(windat->window);
-			analysis_template_save_force_rename_close(windat->parent, windat->template);
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			analysis_dialogue_refresh(windat);
-		}
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_GENERATE) {
-		if (analysis_dialogue_process(windat) && pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(windat->window);
-			analysis_template_save_force_rename_close(windat->parent, windat->template);
-		}
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_DELETE) {
-		if (pointer->buttons == wimp_CLICK_SELECT && analysis_dialogue_delete(windat))
-			close_dialogue_with_caret(windat->window);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_RENAME) {
-		if (pointer->buttons == wimp_CLICK_SELECT && windat->template != NULL_TEMPLATE)
-			analysis_template_save_open_rename_window(windat->parent, windat->template, pointer);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_SHADE_TARGET) {
-		analysis_dialogue_shade_icons(windat, pointer->i);
-		icons_replace_caret_in_window(windat->window);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FROM) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_TO) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_IN) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_IN);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_OUT) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_OUT);
-	} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FULL) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != ANALYSIS_DIALOGUE_NO_ICON))
-			analysis_lookup_open_window(windat->parent, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
-	}
-}
-#endif
-
-/**
- * Process keypresses in an analysis dialogue instance's window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-#if 0
-static osbool analysis_dialogue_keypress_handler(wimp_key *key)
-{
-	struct analysis_dialogue_block	*windat;
-	struct analysis_dialogue_icon	*icon;
-
-	windat = event_get_window_user_data(key->w);
-	if (key == NULL || windat == NULL || windat->definition == NULL)
-		return FALSE;
-
-	icon = analysis_dialogue_find_icon(windat, key->i);
-	if (icon == NULL)
-		return FALSE;
-
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (analysis_dialogue_process(windat)) {
-			close_dialogue_with_caret(windat->window);
-			analysis_template_save_force_rename_close(windat->parent, windat->template);
-		}
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(windat->window);
-		analysis_template_save_force_rename_close(windat->parent, windat->template);
-		break;
-
-	case wimp_KEY_F1:
-		if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FROM) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_TO) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_IN) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_IN);
-		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_OUT) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_OUT);
-		} else if (icon->type & ANALYSIS_DIALOGUE_ICON_POPUP_FULL) {
-			if (icon->target == ANALYSIS_DIALOGUE_NO_ICON)
-				analysis_lookup_open_window(windat->parent, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_FULL);
-		}
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-#endif
-
-/**
  * Process the contents of a dialogue and return it to the client.
  *
- * \param Window		The handle of the dialogue box to fill.
+ * \param window		The handle of the dialogue box to fill.
+ * \param *pointer		The wimp pointer data, or NULL on an Enter keypress.
+ * \param type			The dialogue icon type of the target icon.
  * \param *data			The associated analysis dialogue instance.
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool analysis_dialogue_process(wimp_w window, void *data)
+static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data)
 {
 	struct analysis_dialogue_block *dialogue = data;
 	struct analysis_report_details	*report_details;
@@ -401,20 +273,30 @@ static osbool analysis_dialogue_process(wimp_w window, void *data)
 	if (window == NULL || dialogue == NULL || dialogue->definition == NULL || dialogue->parent == NULL)
 		return FALSE;
 
-	report_details = analysis_get_report_details(dialogue->definition->type);
-	if (report_details == NULL)
-		return FALSE;
+	if (type & DIALOGUE_ICON_OK ) {
+		report_details = analysis_get_report_details(dialogue->definition->type);
+		if (report_details == NULL)
+			return FALSE;
 
-	/* Request the client to read the data from the dialogue. */
+		/* Request the client to read the data from the dialogue. */
 
-	if (report_details->read_window != NULL)
-		report_details->read_window(dialogue->parent, window, dialogue->file_settings);
+		if (report_details->read_window != NULL)
+			report_details->read_window(dialogue->parent, window, dialogue->file_settings);
 
-	/* Run the report itself */
+		/* Run the report itself */
 
-	analysis_run_report(dialogue->parent, dialogue->definition->type, dialogue->file_settings, dialogue->template);
+		analysis_run_report(dialogue->parent, dialogue->definition->type, dialogue->file_settings, dialogue->template);
 
-	return TRUE;
+		return TRUE;
+	} else if (type & DIALOGUE_ICON_DELETE) {
+		if (pointer->buttons == wimp_CLICK_SELECT && analysis_dialogue_delete(dialogue))
+			return TRUE;
+	} else if (type & DIALOGUE_ICON_RENAME) {
+		if (pointer->buttons == wimp_CLICK_SELECT && dialogue->template != NULL_TEMPLATE)
+			analysis_template_save_open_rename_window(dialogue->parent, dialogue->template, pointer);
+	}
+
+	return FALSE;
 }
 
 

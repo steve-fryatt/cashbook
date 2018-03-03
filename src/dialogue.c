@@ -121,12 +121,14 @@ struct dialogue_block *dialogue_initialise(struct dialogue_definition *definitio
  * Open a new dialogue.
  * 
  * \param *dialogue		The dialogue instance to open.
+ * \param hide			TRUE to hide the 'hidden' icons; FALSE
+ *				to show them.
  * \param *parent		The file to be the parent of the dialogue.
  * \param *ptr			The current Wimp Pointer details.
  * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, wimp_pointer *pointer, void *data)
+void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_block *parent, wimp_pointer *pointer, void *data)
 {
 	if (dialogue == NULL || dialogue->definition == NULL || parent == NULL || pointer == NULL)
 		return;
@@ -148,7 +150,8 @@ void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, w
 
 	/* Set the window contents up. */
 
-	dialogue_hide_icons(dialogue, DIALOGUE_ICON_DELETE | DIALOGUE_ICON_RENAME, FALSE); // \TODO -- This needs work?!
+	if (dialogue->definition->hidden_icons != DIALOGUE_ICON_NONE)
+		dialogue_hide_icons(dialogue, dialogue->definition->hidden_icons, hide);
 
 	dialogue_fill(dialogue);
 

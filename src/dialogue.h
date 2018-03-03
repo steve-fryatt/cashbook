@@ -41,6 +41,7 @@ struct dialogue_block;
  */
 
 enum dialogue_icon_type {
+	DIALOGUE_ICON_NONE		= 0x00000000,		/*<< No icon.					*/
 	DIALOGUE_ICON_OK		= 0x00000001,		/**< The OK button.				*/
 	DIALOGUE_ICON_CANCEL		= 0x00000002,		/**< The Cancel button.				*/
 	DIALOGUE_ICON_ACTION		= 0x00000004,		/**< Another generic action button.		*/
@@ -57,14 +58,15 @@ enum dialogue_icon_type {
 	DIALOGUE_ICON_POPUP_IN		= 0x00002000,		/*<< The icon should launch a "In" popup.	*/
 	DIALOGUE_ICON_POPUP_OUT		= 0x00004000,		/*<< The icon should launch a "Out" popup.	*/
 	DIALOGUE_ICON_POPUP_FULL	= 0x00008000,		/*<< The icon should launch a "Full" popup.	*/
-	DIALOGUE_ICON_END		= 0x80000000,		/**< The last entry in the icon sequence.	*/
+	DIALOGUE_ICON_END		= 0x08000000,		/**< The last entry in the icon sequence.	*/
 
 	/* Flags below this point belong to individual clients; values
-	 * can be duplicated across clients.
+	 * can be duplicated across clients. Four flags are allocated,
+	 * from 0x10000000 to 0x80000000.
 	 */
 
-	DIALOGUE_ICON_DELETE		= 0x01000000,		/**< The Analysis Report Delete button.		*/
-	DIALOGUE_ICON_RENAME		= 0x02000000,		/**< The Analysis Report Rename button.		*/
+	DIALOGUE_ICON_ANALYSIS_DELETE	= 0x10000000,		/**< The Analysis Report Delete button.		*/
+	DIALOGUE_ICON_ANALYSIS_RENAME	= 0x20000000,		/**< The Analysis Report Rename button.		*/
 };
 
 #define DIALOGUE_NO_ICON ((wimp_i) -1)
@@ -106,6 +108,12 @@ struct dialogue_definition {
 	struct dialogue_icon		*icons;
 
 	/**
+	 * A set of icons which should be able to be hidden,
+	 * or DIALOGUE_ICON_NONE.
+	 */
+	enum dialogue_icon_type		hidden_icons;
+
+	/**
 	 * Callback function to request the dialogue is filled.
 	 */
 	void				(*callback_fill)(wimp_w window, void *data);
@@ -136,12 +144,14 @@ struct dialogue_block *dialogue_initialise(struct dialogue_definition *definitio
  * Open a new dialogue.
  * 
  * \param *dialogue		The dialogue instance to open.
+ * \param hide			TRUE to hide the 'hidden' icons; FALSE
+ *				to show them.
  * \param *parent		The file to be the parent of the dialogue.
  * \param *ptr			The current Wimp Pointer details.
  * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, struct file_block *parent, wimp_pointer *pointer, void *data);
+void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_block *parent, wimp_pointer *pointer, void *data);
 
 
 /**

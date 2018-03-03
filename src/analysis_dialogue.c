@@ -193,7 +193,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 	/* Set the window contents up. */
 
-	dialogue_open(dialogue->dialogue, analysis_get_file(dialogue->parent), pointer, dialogue);
+	dialogue_open(dialogue->dialogue, template_block == NULL, analysis_get_file(dialogue->parent), pointer, dialogue);
 }
 
 
@@ -288,10 +288,10 @@ static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, en
 		analysis_run_report(dialogue->parent, dialogue->definition->type, dialogue->file_settings, dialogue->template);
 
 		return TRUE;
-	} else if (type & DIALOGUE_ICON_DELETE) {
+	} else if (type & DIALOGUE_ICON_ANALYSIS_DELETE) {
 		if (pointer->buttons == wimp_CLICK_SELECT && analysis_dialogue_delete(dialogue))
 			return TRUE;
-	} else if (type & DIALOGUE_ICON_RENAME) {
+	} else if (type & DIALOGUE_ICON_ANALYSIS_RENAME) {
 		if (pointer->buttons == wimp_CLICK_SELECT && dialogue->template != NULL_TEMPLATE)
 			analysis_template_save_open_rename_window(dialogue->parent, dialogue->template, pointer);
 	}

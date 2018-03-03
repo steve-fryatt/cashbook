@@ -188,8 +188,8 @@ static struct analysis_report_details analysis_transaction_details = {
 static struct dialogue_icon analysis_transaction_icon_list[] = {
 	{DIALOGUE_ICON_OK,					ANALYSIS_TRANS_OK,		DIALOGUE_NO_ICON},
 	{DIALOGUE_ICON_CANCEL,					ANALYSIS_TRANS_CANCEL,		DIALOGUE_NO_ICON},
-	{DIALOGUE_ICON_DELETE | DIALOGUE_ICON_ACTION,		ANALYSIS_TRANS_DELETE,		DIALOGUE_NO_ICON},
-	{DIALOGUE_ICON_RENAME | DIALOGUE_ICON_ACTION,		ANALYSIS_TRANS_RENAME,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_ANALYSIS_DELETE,	ANALYSIS_TRANS_DELETE,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_ANALYSIS_RENAME,	ANALYSIS_TRANS_RENAME,		DIALOGUE_NO_ICON},
 
 	/* Budget Group. */
 
@@ -236,6 +236,7 @@ static struct analysis_dialogue_definition analysis_transaction_dialogue_definit
 		"TransRep",
 		"TrnRepTitle",
 		analysis_transaction_icon_list,
+		DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME,
 		NULL,
 		NULL,
 		NULL

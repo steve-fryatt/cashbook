@@ -173,8 +173,8 @@ static struct analysis_report_details analysis_unreconciled_details = {
 static struct dialogue_icon analysis_unreconciled_icon_list[] = {
 	{DIALOGUE_ICON_OK,									ANALYSIS_UNREC_OK,		DIALOGUE_NO_ICON},
 	{DIALOGUE_ICON_CANCEL,									ANALYSIS_UNREC_CANCEL,		DIALOGUE_NO_ICON},
-	{DIALOGUE_ICON_DELETE | DIALOGUE_ICON_ACTION,						ANALYSIS_UNREC_DELETE,		DIALOGUE_NO_ICON},
-	{DIALOGUE_ICON_RENAME | DIALOGUE_ICON_ACTION,						ANALYSIS_UNREC_RENAME,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_ANALYSIS_DELETE,					ANALYSIS_UNREC_DELETE,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_ANALYSIS_RENAME,					ANALYSIS_UNREC_RENAME,		DIALOGUE_NO_ICON},
 
 	/* Budget Group. */
 
@@ -231,6 +231,7 @@ static struct analysis_dialogue_definition analysis_unreconciled_dialogue_defini
 		"UnrecRep",
 		"UrcRepTitle",
 		analysis_unreconciled_icon_list,
+		DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME,
 		NULL,
 		NULL,
 		NULL

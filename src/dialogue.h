@@ -148,6 +148,15 @@ struct dialogue_block *dialogue_create(struct dialogue_definition *definition);
 
 
 /**
+ * Close any open dialogues which relate to a given file.
+ *
+ * \param *file			The file to close dialogues for.
+ */
+
+void dialogue_force_all_closed(struct file_block *file);
+
+
+/**
  * Open a new dialogue.
  * 
  * \param *dialogue		The dialogue instance to open.

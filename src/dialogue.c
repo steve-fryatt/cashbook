@@ -64,7 +64,15 @@ struct dialogue_block {
 	struct file_block			*parent;		/**< The current parent file for the dialogue.			*/
 	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
 	void					*client_data;		/**< Context data supplied by the client.			*/
+
+	struct dialogue_block			*next;			/**< Pointer to the next box in the list, or NULL.		*/
 };
+
+/**
+ * The linked list of dialogue boxes.
+ */
+
+static struct dialogue_block *dialogue_list = NULL;
 
 /* Static Function Prototypes. */
 
@@ -118,13 +126,41 @@ struct dialogue_block *dialogue_create(struct dialogue_definition *definition)
 	/* Create the dialogue window. */
 
 	new->window = templates_create_window(definition->template_name);
+	if (new->window == NULL) {
+		heap_free(new);
+		return NULL;
+	}
+
 	ihelp_add_window(new->window, definition->ihelp_token, NULL);
 	event_add_window_user_data(new->window, new);
 	event_add_window_mouse_event(new->window, dialogue_click_handler);
 	event_add_window_key_event(new->window, dialogue_keypress_handler);
 	dialogue_register_radio_icons(new);
 
+	/* Link the dialogue into the list. */
+
+	new->next = dialogue_list;
+	dialogue_list = new;
+
 	return new;
+}
+
+
+/**
+ * Close any open dialogues which relate to a given file.
+ *
+ * \param *file			The file to close dialogues for.
+ */
+
+void dialogue_force_all_closed(struct file_block *file)
+{
+	struct dialogue_block *dialogue = dialogue_list;
+
+	while (dialogue != NULL) {
+		debug_printf("Checking to close %s dialogue", dialogue->definition->template_name);
+		dialogue_close(dialogue, file);
+		dialogue = dialogue->next;
+	}
 }
 
 

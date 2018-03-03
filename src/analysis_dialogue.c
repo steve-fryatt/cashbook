@@ -114,7 +114,7 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
 
 	/* Create the dialogue window. */
 
-	new->dialogue = dialogue_initialise(&(definition->dialogue));
+	new->dialogue = dialogue_create(&(definition->dialogue));
 	if (new->dialogue == NULL) {
 		heap_free(new);
 		return NULL;

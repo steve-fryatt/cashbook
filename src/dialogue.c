@@ -80,14 +80,25 @@ static void dialogue_hide_icons(struct dialogue_block *dialogue, enum dialogue_i
 static void dialogue_register_radio_icons(struct dialogue_block *dialogue);
 static struct dialogue_icon *dialogue_find_icon(struct dialogue_block *dialogue, wimp_i icon);
 
+
 /**
- * Initialise a new dialogue window instance.
+ * Initialise the dialogue handler.
+ */
+
+void dialogue_initialise(void)
+{
+	dialogue_lookup_initialise();
+}
+
+
+/**
+ * Create a new dialogue window instance.
  *
  * \param *definition		The dialogue definition from the client.
  * \return			Pointer to the dialogue structure, or NULL on failure.
  */
 
-struct dialogue_block *dialogue_initialise(struct dialogue_definition *definition)
+struct dialogue_block *dialogue_create(struct dialogue_definition *definition)
 {
 	struct dialogue_block	*new;
 

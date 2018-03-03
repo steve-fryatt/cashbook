@@ -131,13 +131,20 @@ struct dialogue_definition {
 
 
 /**
- * Initialise a new dialogue window instance.
+ * Initialise the dialogue handler.
+ */
+
+void dialogue_initialise(void);
+
+
+/**
+ * Create a new dialogue window instance.
  *
  * \param *definition		The dialogue definition from the client.
  * \return			Pointer to the dialogue structure, or NULL on failure.
  */
 
-struct dialogue_block *dialogue_initialise(struct dialogue_definition *definition);
+struct dialogue_block *dialogue_create(struct dialogue_definition *definition);
 
 
 /**

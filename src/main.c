@@ -81,7 +81,7 @@
 #include "clipboard.h"
 #include "currency.h"
 #include "date.h"
-#include "dialogue_lookup.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "file_info.h"
@@ -345,7 +345,7 @@ static void main_initialise(void)
 	saveas_initialise("SaveAs", NULL);
 	file_initialise();
 	iconbar_initialise();
-	dialogue_lookup_initialise();
+	dialogue_initialise();
 	choices_initialise();
 	analysis_initialise();
 	budget_initialise();

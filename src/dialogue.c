@@ -507,7 +507,7 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 
 	dialogue->definition->callback_menu_select(window, dialogue_menu_target->target, menu, selection, dialogue->client_data);
 
-	icons_redraw_group(window, 1, dialogue_menu_target->target);
+	wimp_set_icon_state(window, dialogue_menu_target->target, 0, 0);
 	icons_replace_caret_in_window(window);
 }
 

@@ -158,7 +158,9 @@ void analysis_template_save_initialise(void)
 
 
 /**
- * Open the Save Template dialogue box.
+ * Open the Save Template dialogue box. When open, the dialogue's parent
+ * object is the template handle of the template being renamed (ie. the
+ * value passed as *template).
  *
  * \param *template		The report template to be saved.
  * \param *ptr			The current Wimp Pointer details.
@@ -190,7 +192,10 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 
 
 /**
- * Open the Rename Template dialogue box.
+ * Open the Rename Template dialogue box. When open, the dialogue's parent
+ * object is the global instance of the analysis dialogue which has opened
+ * it. CashBook can only have one of each dialogue open at a time, so
+ * there is no need to make this file-based.
  *
  * \param *parent		The analysis instance owning the template.
  * \param *dialogue		The analysis dialogue instance owning the template.

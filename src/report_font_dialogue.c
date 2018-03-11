@@ -51,7 +51,7 @@
 #include "global.h"
 #include "report_font_dialogue.h"
 
-#include "caret.h"
+#include "dialogue.h"
 #include "fontlist.h"
 #include "report.h"
 
@@ -72,24 +72,11 @@
 
 /* Global variables. */
 
-
 /**
- * The handle of the Report Format dialogue.
+ * The handle of the Save/Rename dialogue.
  */
 
-static wimp_w			report_font_dialogue_window = NULL;
-
-/**
- * The handle of the Font menu.
- */
-
-static wimp_menu		*report_font_dialogue_font_menu = NULL;
-
-/**
- * The pop-up icon which opened the font menu.
- */
-
-static wimp_i			report_font_dialogue_font_icon = -1;
+static struct dialogue_block	*report_font_dialogue = NULL;
 
 /**
  * The starting normal font name.
@@ -142,14 +129,59 @@ struct report			*report_font_dialogue_report = NULL;
 
 /* Static function prototypes. */
 
-static void	report_font_dialogue_click_handler(wimp_pointer *pointer);
-static osbool	report_font_dialogue_keypress_handler(wimp_key *key);
-static void	report_font_dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
-static void	report_font_dialogue_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
-static void	report_font_dialogue_menu_close_handler(wimp_w w, wimp_menu *menu);
-static void	report_font_dialogue_refresh(void);
-static void	report_font_dialogue_fill(void);
-static void	report_font_dialogue_process(void);
+static void report_font_dialogue_fill(wimp_w window, void *data);
+static osbool report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
+static void report_font_dialogue_close(wimp_w window, void *data);
+static wimp_menu *report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, void *data);
+static void report_font_dialogue_menu_selection(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
+static void report_font_dialogue_menu_close(wimp_w window, wimp_menu *menu, void *data);
+
+/**
+ * The Report Font Dialogue Icon Set.
+ */
+
+static struct dialogue_icon report_font_dialogue_icon_list[] = {
+	{DIALOGUE_ICON_OK,	REPORT_FONT_DIALOGUE_OK,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_CANCEL,	REPORT_FONT_DIALOGUE_CANCEL,		DIALOGUE_NO_ICON},
+
+	/* The Font Name fields. */
+
+	{DIALOGUE_ICON_POPUP,	REPORT_FONT_DIALOGUE_NFONTMENU,		REPORT_FONT_DIALOGUE_NFONT},
+	{DIALOGUE_ICON_REFRESH,	REPORT_FONT_DIALOGUE_NFONT,		DIALOGUE_NO_ICON},
+
+	{DIALOGUE_ICON_POPUP,	REPORT_FONT_DIALOGUE_BFONTMENU,		REPORT_FONT_DIALOGUE_BFONT},
+	{DIALOGUE_ICON_REFRESH,	REPORT_FONT_DIALOGUE_BFONT,		DIALOGUE_NO_ICON},
+
+	{DIALOGUE_ICON_POPUP,	REPORT_FONT_DIALOGUE_IFONTMENU,		REPORT_FONT_DIALOGUE_IFONT},
+	{DIALOGUE_ICON_REFRESH,	REPORT_FONT_DIALOGUE_IFONT,		DIALOGUE_NO_ICON},
+
+	{DIALOGUE_ICON_POPUP,	REPORT_FONT_DIALOGUE_BIFONTMENU,	REPORT_FONT_DIALOGUE_BIFONT},
+	{DIALOGUE_ICON_REFRESH,	REPORT_FONT_DIALOGUE_BIFONT,		DIALOGUE_NO_ICON},
+
+	/* The Font Size and Line Space fields. */
+
+	{DIALOGUE_ICON_REFRESH,	REPORT_FONT_DIALOGUE_FONTSIZE,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_REFRESH,	REPORT_FONT_DIALOGUE_FONTSPACE,		DIALOGUE_NO_ICON},
+
+	{DIALOGUE_ICON_END,	DIALOGUE_NO_ICON,			DIALOGUE_NO_ICON}
+};
+
+/**
+ * The Report Font Dialogue Definition.
+ */
+
+static struct dialogue_definition report_font_dialogue_definition = {
+	"RepFont",
+	"RepFont",
+	report_font_dialogue_icon_list,
+	DIALOGUE_ICON_NONE,
+	report_font_dialogue_fill,
+	report_font_dialogue_process,
+	report_font_dialogue_close,
+	report_font_dialogue_menu_prepare,
+	report_font_dialogue_menu_selection,
+	report_font_dialogue_menu_close
+};
 
 
 /**
@@ -158,17 +190,7 @@ static void	report_font_dialogue_process(void);
 
 void report_font_dialogue_initialise(void)
 {
-	report_font_dialogue_window = templates_create_window("RepFont");
-	ihelp_add_window(report_font_dialogue_window, "RepFont", NULL);
-	event_add_window_mouse_event(report_font_dialogue_window, report_font_dialogue_click_handler);
-	event_add_window_key_event(report_font_dialogue_window, report_font_dialogue_keypress_handler);
-	event_add_window_menu_prepare(report_font_dialogue_window, report_font_dialogue_menu_prepare_handler);
-	event_add_window_menu_selection(report_font_dialogue_window, report_font_dialogue_menu_selection_handler);
-	event_add_window_menu_close(report_font_dialogue_window, report_font_dialogue_menu_close_handler);
-	event_add_window_icon_popup(report_font_dialogue_window, REPORT_FONT_DIALOGUE_NFONTMENU, report_font_dialogue_font_menu, -1, NULL);
-	event_add_window_icon_popup(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONTMENU, report_font_dialogue_font_menu, -1, NULL);
-	event_add_window_icon_popup(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONTMENU, report_font_dialogue_font_menu, -1, NULL);
-	event_add_window_icon_popup(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONTMENU, report_font_dialogue_font_menu, -1, NULL);
+	report_font_dialogue = dialogue_create(&report_font_dialogue_definition);
 }
 
 
@@ -200,219 +222,56 @@ void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*
 	report_font_dialogue_callback = callback;
 	report_font_dialogue_report = report;
 
-	/* If the window is already open, another report format is being
-	 * edited.  Assume the user wants to lose any unsaved data and
-	 * just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret() as the caret is
-	 * just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(report_font_dialogue_window))
-		wimp_close_window(report_font_dialogue_window);
-
-	/* Set the window contents up. */
-
-	report_font_dialogue_fill();
-
 	/* Open the window. */
 
-	windows_open_centred_at_pointer(report_font_dialogue_window, ptr);
-	place_dialogue_caret(report_font_dialogue_window, REPORT_FONT_DIALOGUE_FONTSIZE);
+	dialogue_open(report_font_dialogue, FALSE, report_get_file(report), report, ptr, NULL);
 }
 
 
 /**
- * Force the closure of the report format dialogue if it relates to a
- * given report instance.
+ * Fill the Report Font Dialogue with values.
  *
- * \param *report		The report to be closed.
+ * \param window	The handle of the dialogue box to be filled.
+ * \param *data		Client data pointer (unused).
  */
 
-void report_font_dialogue_force_close(struct report *report)
+static void report_font_dialogue_fill(wimp_w window, void *data)
 {
-	if (report_font_dialogue_report == report && windows_get_open(report_font_dialogue_window))
-		close_dialogue_with_caret(report_font_dialogue_window);
+	icons_printf(window, REPORT_FONT_DIALOGUE_NFONT, "%s", report_font_dialogue_initial_normal);
+	icons_printf(window, REPORT_FONT_DIALOGUE_BFONT, "%s", report_font_dialogue_initial_bold);
+	icons_printf(window, REPORT_FONT_DIALOGUE_IFONT, "%s", report_font_dialogue_initial_italic);
+	icons_printf(window, REPORT_FONT_DIALOGUE_BIFONT, "%s", report_font_dialogue_initial_bold_italic);
+
+	icons_printf(window, REPORT_FONT_DIALOGUE_FONTSIZE, "%d", report_font_dialogue_initial_size / 16);
+	icons_printf(window, REPORT_FONT_DIALOGUE_FONTSPACE, "%d", report_font_dialogue_initial_spacing);
 }
 
 
 /**
- * Process mouse clicks in the Report Format dialogue.
+ * Process OK clicks in the Report Font Dialogue.
  *
- * \param *pointer		The mouse event block to handle.
+ * \param window	The handle of the dialogue box to be processed.
+ * \param *pointer	The Wimp pointer state.
+ * \param type		The type of icon selected by the user.
+ * \param *data		Client data pointer (unused).
+ * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static void report_font_dialogue_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case REPORT_FONT_DIALOGUE_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(report_font_dialogue_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			report_font_dialogue_refresh();
-		break;
-
-	case REPORT_FONT_DIALOGUE_OK:
-		report_font_dialogue_process();
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(report_font_dialogue_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Report Format window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool report_font_dialogue_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		report_font_dialogue_process();
-		close_dialogue_with_caret(report_font_dialogue_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(report_font_dialogue_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Process menu prepare events in the Report Format window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- * \param *pointer	The pointer position, or NULL for a re-open.
- */
-
-static void report_font_dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
-{
-	report_font_dialogue_font_menu = fontlist_build();
-	report_font_dialogue_font_icon = pointer->i;
-	event_set_menu_block(report_font_dialogue_font_menu);
-	ihelp_add_menu(report_font_dialogue_font_menu, "FontMenu");
-}
-
-
-/**
- * Process menu selection events in the Report Format window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- * \param *selection	The menu selection details.
- */
-
-static void report_font_dialogue_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
-{
-	char	*font;
-
-	font = fontlist_decode(selection);
-	if (font == NULL)
-		return;
-
-	switch (report_font_dialogue_font_icon) {
-	case REPORT_FONT_DIALOGUE_NFONTMENU:
-		icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_NFONT, "%s", font);
-		wimp_set_icon_state(report_font_dialogue_window, REPORT_FONT_DIALOGUE_NFONT, 0, 0);
-		break;
-
-	case REPORT_FONT_DIALOGUE_BFONTMENU:
-		icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONT, "%s", font);
-		wimp_set_icon_state(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONT, 0, 0);
-		break;
-
-	case REPORT_FONT_DIALOGUE_IFONTMENU:
-		icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONT, "%s", font);
-		wimp_set_icon_state(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONT, 0, 0);
-		break;
-
-	case REPORT_FONT_DIALOGUE_BIFONTMENU:
-		icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONT, "%s", font);
-		wimp_set_icon_state(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONT, 0, 0);
-		break;
-	}
-
-	heap_free(font);
-}
-
-
-/**
- * Process menu close events in the Report Format window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- */
-
-static void report_font_dialogue_menu_close_handler(wimp_w w, wimp_menu *menu)
-{
-	fontlist_destroy();
-	report_font_dialogue_font_menu = NULL;
-	report_font_dialogue_font_icon = -1;
-	ihelp_remove_menu(report_font_dialogue_font_menu);
-}
-
-
-/**
- * Refresh the contents of the Report Format window.
- */
-
-static void report_font_dialogue_refresh(void)
-{
-	report_font_dialogue_fill();
-	icons_redraw_group(report_font_dialogue_window, 4, REPORT_FONT_DIALOGUE_NFONT, REPORT_FONT_DIALOGUE_BFONT,
-			REPORT_FONT_DIALOGUE_FONTSIZE, REPORT_FONT_DIALOGUE_FONTSPACE);
-	icons_replace_caret_in_window(report_font_dialogue_window);
-}
-
-
-/**
- * Update the contents of the Report Format window to reflect the current
- * settings of the given report.
- */
-
-static void report_font_dialogue_fill(void)
-{
-	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_NFONT, "%s", report_font_dialogue_initial_normal);
-	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONT, "%s", report_font_dialogue_initial_bold);
-	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONT, "%s", report_font_dialogue_initial_italic);
-	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONT, "%s", report_font_dialogue_initial_bold_italic);
-
-	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_FONTSIZE, "%d", report_font_dialogue_initial_size / 16);
-	icons_printf(report_font_dialogue_window, REPORT_FONT_DIALOGUE_FONTSPACE, "%d", report_font_dialogue_initial_spacing);
-}
-
-
-/**
- * Take the contents of an updated report format window and process the data.
- */
-
-static void report_font_dialogue_process(void)
+static osbool report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data)
 {
 
 	if (report_font_dialogue_callback == NULL)
-		return;
+		return TRUE;
 
 	/* Extract the information. */
 
-	icons_copy_text(report_font_dialogue_window, REPORT_FONT_DIALOGUE_NFONT, report_font_dialogue_initial_normal, font_NAME_LIMIT);
-	icons_copy_text(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BFONT, report_font_dialogue_initial_bold, font_NAME_LIMIT);
-	icons_copy_text(report_font_dialogue_window, REPORT_FONT_DIALOGUE_IFONT, report_font_dialogue_initial_italic, font_NAME_LIMIT);
-	icons_copy_text(report_font_dialogue_window, REPORT_FONT_DIALOGUE_BIFONT, report_font_dialogue_initial_bold_italic, font_NAME_LIMIT);
+	icons_copy_text(window, REPORT_FONT_DIALOGUE_NFONT, report_font_dialogue_initial_normal, font_NAME_LIMIT);
+	icons_copy_text(window, REPORT_FONT_DIALOGUE_BFONT, report_font_dialogue_initial_bold, font_NAME_LIMIT);
+	icons_copy_text(window, REPORT_FONT_DIALOGUE_IFONT, report_font_dialogue_initial_italic, font_NAME_LIMIT);
+	icons_copy_text(window, REPORT_FONT_DIALOGUE_BIFONT, report_font_dialogue_initial_bold_italic, font_NAME_LIMIT);
 
-	report_font_dialogue_initial_size = atoi(icons_get_indirected_text_addr(report_font_dialogue_window, REPORT_FONT_DIALOGUE_FONTSIZE)) * 16;
-	report_font_dialogue_initial_spacing = atoi(icons_get_indirected_text_addr(report_font_dialogue_window, REPORT_FONT_DIALOGUE_FONTSPACE));
+	report_font_dialogue_initial_size = atoi(icons_get_indirected_text_addr(window, REPORT_FONT_DIALOGUE_FONTSIZE)) * 16;
+	report_font_dialogue_initial_spacing = atoi(icons_get_indirected_text_addr(window, REPORT_FONT_DIALOGUE_FONTSPACE));
 
 	/* Call the client back. */
 
@@ -420,5 +279,75 @@ static void report_font_dialogue_process(void)
 			report_font_dialogue_initial_normal, report_font_dialogue_initial_bold,
 			report_font_dialogue_initial_italic, report_font_dialogue_initial_bold_italic,
 			report_font_dialogue_initial_size, report_font_dialogue_initial_spacing);
+
+	return TRUE;
+}
+
+
+/**
+ * The Report Font dialogue has been closed.
+ *
+ * \param window	The handle of the dialogue box to be filled.
+ * \param *data		Client data pointer (unused).
+ */
+
+static void report_font_dialogue_close(wimp_w window, void *data)
+{
+	report_font_dialogue_callback = NULL;
+	report_font_dialogue_report = NULL;
+}
+
+
+/**
+ * Process menu prepare events in the Report Font dialogue.
+ *
+ * \param window	The handle of the owning window.
+ * \param icon		The target icon for the menu.
+ * \param *data		Client data pointer (unused).
+ * \return		Pointer to menu, or NULL on failure.
+ */
+
+static wimp_menu *report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, void *data)
+{
+	return fontlist_build();
+//	ihelp_add_menu(report_font_dialogue_font_menu, "FontMenu");
+}
+
+
+/**
+ * Process menu selection events in the Report Font dialogue.
+ *
+ * \param w		The handle of the owning window.
+ * \param icon		The target icon for the menu.
+ * \param *menu		The menu handle.
+ * \param *selection	The menu selection details.
+ * \param *data		Client data pointer (unused). 
+ */
+
+static void report_font_dialogue_menu_selection(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data)
+{
+	char	*font;
+
+	font = fontlist_decode(selection);
+	if (font == NULL)
+		return;
+
+	icons_printf(window, icon, "%s", font);
+
+	heap_free(font);
+}
+
+
+/**
+ * Process menu close events in the Report Font dialogue.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *data		Client data pointer (unused).
+ */
+
+static void report_font_dialogue_menu_close(wimp_w window, wimp_menu *menu, void *data)
+{
+	fontlist_destroy();
 }
 

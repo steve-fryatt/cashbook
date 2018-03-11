@@ -120,6 +120,16 @@ void report_delete(struct report *report);
 
 
 /**
+ * Return the file instance to which a report belongs.
+ *
+ * \param *instance		The instance to look up.
+ * \return			The parent file, or NULL.
+ */
+
+struct file_block *report_get_file(struct report *report);
+
+
+/**
  * Write a lone of text to an open report.  Lines are NULL terminated, and can
  * contain the following inline commands:
  *

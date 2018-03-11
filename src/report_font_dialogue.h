@@ -54,15 +54,5 @@ void report_font_dialogue_initialise(void);
 void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, char *, char *, int, int),
 		char *normal, char *bold, char *italic, char *bold_italic, int size, int spacing);
 
-
-/**
- * Force the closure of the report format dialogue if it relates to a
- * given report instance.
- *
- * \param *report		The report to be closed.
- */
-
-void report_font_dialogue_force_close(struct report *report);
-
 #endif
 

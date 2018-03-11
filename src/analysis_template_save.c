@@ -54,7 +54,6 @@
 #include "analysis.h"
 #include "analysis_template.h"
 #include "analysis_template_menu.h"
-#include "caret.h"
 #include "dialogue.h"
 
 /* Dialogue Icons. */

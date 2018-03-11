@@ -755,7 +755,6 @@ static void report_close_and_calculate(struct report *report)
 
 void report_delete(struct report *report)
 {
-	struct file_block	*file;
 	struct report		**rep;
 
 #ifdef DEBUG
@@ -764,8 +763,6 @@ void report_delete(struct report *report)
 
 	if (report == NULL)
 		return;
-
-	file = report->file;
 
 	if (report->toolbar != NULL) {
 		ihelp_remove_window(report->toolbar);
@@ -783,7 +780,7 @@ void report_delete(struct report *report)
 
 	/* Close any related dialogues. */
 
-	report_font_dialogue_force_close(report);
+	dialogue_force_all_closed(NULL, report);
 
 	/* Free the flex blocks. */
 
@@ -800,7 +797,7 @@ void report_delete(struct report *report)
 
 	/* Delink the block and delete it. */
 
-	rep = &(file->reports);
+	rep = &(report->file->reports);
 
 	while (*rep != NULL && *rep != report)
 		rep = &((*rep)->next);
@@ -809,6 +806,22 @@ void report_delete(struct report *report)
 		*rep = report->next;
 
 	heap_free(report);
+}
+
+
+/**
+ * Return the file instance to which a report belongs.
+ *
+ * \param *instance		The instance to look up.
+ * \return			The parent file, or NULL.
+ */
+
+struct file_block *report_get_file(struct report *report)
+{
+	if (report == NULL)
+		return NULL;
+
+	return report->file;
 }
 
 

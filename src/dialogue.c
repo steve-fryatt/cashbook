@@ -182,6 +182,8 @@ void dialogue_force_all_closed(struct file_block *file, void *parent)
 		dialogue_close(dialogue, file, parent);
 		dialogue = dialogue->next;
 	}
+
+	debug_printf("\\LFinished dialogue close check for file=0x%x and parent=0x%x.", file, parent);
 }
 
 

@@ -74,6 +74,7 @@ struct analysis_dialogue_block {
 
 /* Static Function Prototypes. */
 
+static void analysis_dialogue_closing(wimp_w window, void *data);
 static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue);
 static void analysis_dialogue_fill(wimp_w window, void *data);
@@ -124,7 +125,7 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
 
 	definition->dialogue.callback_fill = analysis_dialogue_fill;
 	definition->dialogue.callback_process = analysis_dialogue_process;
-//	definition->dialogue.callback_close = 
+	definition->dialogue.callback_close = analysis_dialogue_closing;
 
 	return new;
 }
@@ -212,6 +213,24 @@ void analysis_dialogue_close(struct analysis_dialogue_block *dialogue, struct an
 		return;
 
 	dialogue_close(dialogue->dialogue, analysis_get_file(dialogue->parent));
+}
+
+
+/**
+ * Handle a dialogue being closed.
+ *
+ * \param window		The window handle of the dialogue.
+ * \param *data			The associated analysis dialogue instance.
+ */
+
+static void analysis_dialogue_closing(wimp_w window, void *data)
+{
+	struct analysis_dialogue_block *dialogue = data;
+
+	if (dialogue == NULL || dialogue->template == NULL_TEMPLATE)
+		return;
+
+	analysis_template_save_force_rename_close(dialogue->parent, dialogue->template);
 }
 
 

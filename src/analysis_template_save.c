@@ -113,19 +113,25 @@ static void		analysis_template_save_fill_window(wimp_w window, void *data);
 static osbool		analysis_template_save_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static void		analysis_template_save_window_close(wimp_w window, void *data);
 
+/**
+ * The Save Template Dialogue Icon Set.
+ */
+
 static struct dialogue_icon analysis_template_save_icon_list[] = {
-	{DIALOGUE_ICON_OK,									ANALYSIS_SAVE_OK,		DIALOGUE_NO_ICON},
-	{DIALOGUE_ICON_CANCEL,									ANALYSIS_SAVE_CANCEL,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_OK,	ANALYSIS_SAVE_OK,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_CANCEL,	ANALYSIS_SAVE_CANCEL,		DIALOGUE_NO_ICON},
 
 	/* Saved Report Name Field. */
 
-	{DIALOGUE_ICON_POPUP,									ANALYSIS_SAVE_NAMEPOPUP,	ANALYSIS_SAVE_NAME},
-	{DIALOGUE_ICON_REFRESH,									ANALYSIS_SAVE_NAME,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_POPUP,	ANALYSIS_SAVE_NAMEPOPUP,	ANALYSIS_SAVE_NAME},
+	{DIALOGUE_ICON_REFRESH,	ANALYSIS_SAVE_NAME,		DIALOGUE_NO_ICON},
 
-	{DIALOGUE_ICON_END,									DIALOGUE_NO_ICON,		DIALOGUE_NO_ICON}
+	{DIALOGUE_ICON_END,	DIALOGUE_NO_ICON,		DIALOGUE_NO_ICON}
 };
 
-/* The Save Template Dialogue Definition. */
+/**
+ * The Save Template Dialogue Definition.
+ */
 
 static struct dialogue_definition analysis_template_save_dialogue_definition = {
 	"SaveRepTemp",

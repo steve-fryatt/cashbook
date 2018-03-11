@@ -637,14 +637,28 @@ static void dialogue_place_caret(struct dialogue_block *dialogue)
 {
 	int			i;
 	struct dialogue_icon	*icons;
+	wimp_icon_state		state;
+	wimp_icon_flags		button_type;
 
 	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
 
 	icons = dialogue->definition->icons;
+	state.w = dialogue->window;
 
 	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
-		if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & DIALOGUE_ICON_REFRESH) && !icons_get_shaded(dialogue->window, icons[i].icon)) {
+		if (icons[i].icon == DIALOGUE_NO_ICON)
+			continue;
+
+		state.i = icons[i].icon;
+		wimp_get_icon_state(&state);
+
+		if ((state.icon.flags & wimp_ICON_SHADED) || !(state.icon.flags & wimp_ICON_INDIRECTED))
+			continue;
+
+		button_type = (state.icon.flags & wimp_ICON_BUTTON_TYPE) >> wimp_ICON_BUTTON_TYPE_SHIFT;
+
+		if (button_type == wimp_BUTTON_WRITE_CLICK_DRAG || button_type == wimp_BUTTON_WRITABLE) {
 			place_dialogue_caret(dialogue->window, icons[i].icon);
 			return;
 		}

@@ -179,12 +179,7 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 	analysis_template_save_report = template;
 	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_SAVE;
 
-	/* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
-	 * can only be done via this dialogue.  In the (unlikely) event that the Save dialogue is open when the last
-	 * report is deleted, then the popup remains active but no menu will appear...
-	 */
-
-//	icons_set_shaded(analysis_template_save_window, ANALYSIS_SAVE_NAMEPOPUP, analysis_template_get_count(analysis_template_save_parent) == 0);
+	/* Open the dialogue. */
 
 	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), template, ptr, NULL);
 }
@@ -216,14 +211,7 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, vo
 	analysis_template_save_template = template_number;
 	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_RENAME;
 
-	/* The popup can be shaded here, as the only way its state can be changed is if a report is added: which
-	 * can only be done via this dialogue.  In the (unlikely) event that the Save dialogue is open when the last
-	 * report is deleted, then the popup remains active but no menu will appear...
-	 */
-
-//	icons_set_shaded(analysis_template_save_window, ANALYSIS_SAVE_NAMEPOPUP, analysis_template_get_count(analysis_template_save_parent) == 0);
-
-	// \TODO -- The line above allows for no templates, but here we're assuming that there's a template?!
+	/* Open the dialogue. */
 
 	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), dialogue, ptr, NULL);
 }
@@ -240,6 +228,12 @@ static void analysis_template_save_fill_window(wimp_w window, void *data)
 {
 	struct analysis_report	*template = NULL;
 	char			*name;
+
+	/* Shade the template menu popup if there are no template names. */
+
+	icons_set_shaded(window, ANALYSIS_SAVE_NAMEPOPUP, analysis_template_get_count(analysis_template_save_parent) == 0);
+
+	/* Find the current template name, and insert it into the field. */
 
 	switch (analysis_template_save_current_mode) {
 	case ANALYSIS_SAVE_MODE_SAVE:

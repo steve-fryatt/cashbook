@@ -159,12 +159,15 @@ struct dialogue_block *dialogue_create(struct dialogue_definition *definition);
 
 
 /**
- * Close any open dialogues which relate to a given file.
+ * Close any open dialogues which relate to a given file or parent object.
  *
- * \param *file			The file to close dialogues for.
+ * \param *file			If not NULL, the file to close dialogues
+ *				for.
+ * \param *parent		If not NULL, the parent object to close
+ *				dialogues for.
  */
 
-void dialogue_force_all_closed(struct file_block *file);
+void dialogue_force_all_closed(struct file_block *file, void *parent);
 
 
 /**
@@ -173,12 +176,13 @@ void dialogue_force_all_closed(struct file_block *file);
  * \param *dialogue		The dialogue instance to open.
  * \param hide			TRUE to hide the 'hidden' icons; FALSE
  *				to show them.
- * \param *parent		The file to be the parent of the dialogue.
+ * \param *file			The file to be the parent of the dialogue.
+ * \param *parent		The parent object of the dialogue, or NULL.
  * \param *ptr			The current Wimp Pointer details.
  * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_block *parent, wimp_pointer *pointer, void *data);
+void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_block *file, void *parent, wimp_pointer *pointer, void *data);
 
 
 /**
@@ -186,11 +190,13 @@ void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_blo
  * on screen.
  *
  * \param *dialogue		The dialogue instance to close.
- * \param *parent		If not NULL, only close the dialogue if
+ * \param *file			If not NULL, only close the dialogue if
  *				this is the parent file.
+ * \param *parent		If not NULL, only close the dialogue if
+ *				this is the parent object.
  */
 
-void dialogue_close(struct dialogue_block *dialogue, struct file_block *parent);
+void dialogue_close(struct dialogue_block *dialogue, struct file_block *file, void *parent);
 
 
 /**

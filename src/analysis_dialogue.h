@@ -80,6 +80,7 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  * Open a new analysis dialogue.
  * 
  * \param *dialogue		The analysis dialogue instance to open.
+ * \param *report		The report instance opening the dialogue.
  * \param *parent		The analysis instance to be the parent.
  * \param *ptr			The current Wimp Pointer details.
  * \param template		The report template to use for the dialogue.
@@ -90,19 +91,7 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  *				use the application defaults.
  */
 
-void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, wimp_pointer *pointer, template_t template, void *settings, osbool restore);
-
-
-/**
- * Force an analysis dialogue instance to close if it is currently open
- * on screen.
- *
- * \param *dialogue		The dialogue instance to close.
- * \param *parent		If not NULL, only close the dialogue if
- *				this is the parent analysis instance.
- */
-
-void analysis_dialogue_close(struct analysis_dialogue_block *dialogue, struct analysis_block *parent);
+void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, void *report, struct analysis_block *parent, wimp_pointer *pointer, template_t template, void *settings, osbool restore);
 
 
 /**

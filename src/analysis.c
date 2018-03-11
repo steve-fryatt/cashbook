@@ -245,6 +245,8 @@ void analysis_delete_instance(struct analysis_block *instance)
 		if (instance->reports[type] == NULL)
 			continue;
 
+		dialogue_force_all_closed(NULL, instance->reports[type]);
+
 		report_details = analysis_get_report_details(type);
 
 		if (report_details == NULL || report_details->delete_instance == NULL)

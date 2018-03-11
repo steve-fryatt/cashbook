@@ -54,11 +54,12 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
  * Open the Rename Template dialogue box.
  *
  * \param *parent		The analysis instance owning the template.
+ * \param *dialogue		The analysis dialogue instance owning the template.
  * \param template_number	The template to be renamed.
  * \param *ptr			The current Wimp Pointer details.
  */
 
-void analysis_template_save_open_rename_window(struct analysis_block *parent, int template_number, wimp_pointer *ptr);
+void analysis_template_save_open_rename_window(struct analysis_block *parent, void *dialogue, int template_number, wimp_pointer *ptr);
 
 
 /**
@@ -70,26 +71,5 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, in
  */
 
 void analysis_template_save_delete_template(struct analysis_block *parent, template_t template);
-
-
-/**
- * Force the closure of the Save Template window if it is open to save the
- * given template.
- *
- * \param *template		The template of interest.
- */
-
-void analysis_template_save_force_template_close(struct analysis_report *template);
-
-
-/**
- * Force the closure of the Rename Template window if it is open to rename the
- * given template.
- *
- * \param *parent		The analysis block in which the template is held.
- * \param template		The template which is to be closed.
- */
-
-void analysis_template_save_force_rename_close(struct analysis_block *parent, template_t template);
 
 #endif

@@ -179,7 +179,7 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 
 //	icons_set_shaded(analysis_template_save_window, ANALYSIS_SAVE_NAMEPOPUP, analysis_template_get_count(analysis_template_save_parent) == 0);
 
-	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), ptr, NULL);
+	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), template, ptr, NULL);
 }
 
 
@@ -187,11 +187,12 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
  * Open the Rename Template dialogue box.
  *
  * \param *parent		The analysis instance owning the template.
+ * \param *dialogue		The analysis dialogue instance owning the template.
  * \param template_number	The template to be renamed.
  * \param *ptr			The current Wimp Pointer details.
  */
 
-void analysis_template_save_open_rename_window(struct analysis_block *parent, int template_number, wimp_pointer *ptr)
+void analysis_template_save_open_rename_window(struct analysis_block *parent, void *dialogue, int template_number, wimp_pointer *ptr)
 {
 	/* Set the window contents up. */
 
@@ -214,7 +215,7 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, in
 
 	// \TODO -- The line above allows for no templates, but here we're assuming that there's a template?!
 
-	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), ptr, NULL);
+	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), dialogue, ptr, NULL);
 }
 
 
@@ -406,41 +407,5 @@ void analysis_template_save_delete_template(struct analysis_block *parent, templ
 		analysis_template_save_template--;
 	else if (analysis_template_save_template == template)
 		analysis_template_save_template = NULL_TEMPLATE;
-}
-
-
-/**
- * Force the closure of the Save Template window if it is open to save the
- * given template.
- *
- * \param *template		The template of interest.
- */
-
-void analysis_template_save_force_template_close(struct analysis_report *template)
-{
-	if (template == NULL || analysis_template_save_current_mode != ANALYSIS_SAVE_MODE_SAVE ||
-			analysis_template_save_report != template)
-		return;
-
-	dialogue_close(analysis_template_save_dialogue, NULL);
-}
-
-
-/**
- * Force the closure of the Rename Template window if it is open to rename the
- * given template.
- *
- * \param *parent		The analysis block in which the template is held.
- * \param template		The template which is to be closed.
- */
-
-void analysis_template_save_force_rename_close(struct analysis_block *parent, template_t template)
-{
-	if (analysis_template_save_parent != analysis_get_templates(parent) ||
-			analysis_template_save_current_mode != ANALYSIS_SAVE_MODE_RENAME ||
-			analysis_template_save_template != template)
-		return;
-
-	dialogue_close(analysis_template_save_dialogue, NULL);
 }
 

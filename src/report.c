@@ -75,6 +75,7 @@
 #include "analysis.h"
 #include "analysis_template_save.h"
 #include "caret.h"
+#include "dialogue.h"
 #include "file.h"
 #include "filing.h"
 #include "fontlist.h"
@@ -1150,7 +1151,7 @@ static void report_view_close_window_handler(wimp_close *close)
 	/* Close the window */
 
 	if (report->window != NULL) {
-		analysis_template_save_force_template_close(report->template);
+		dialogue_force_all_closed(NULL, report->template);
 
 		ihelp_remove_window(report->window);
 		event_delete_window(report->window);

@@ -303,8 +303,6 @@ static void analysis_unreconciled_delete_instance(void *instance)
 	if (report == NULL)
 		return;
 
-	analysis_dialogue_close(analysis_unreconciled_dialogue, report->parent);
-
 	heap_free(report);
 }
 
@@ -326,7 +324,7 @@ static void analysis_unreconciled_open_window(void *instance, wimp_pointer *poin
 	if (report == NULL)
 		return;
 
-	analysis_dialogue_open(analysis_unreconciled_dialogue, report->parent, pointer, template, &(report->saved), restore);
+	analysis_dialogue_open(analysis_unreconciled_dialogue, report, report->parent, pointer, template, &(report->saved), restore);
 }
 
 

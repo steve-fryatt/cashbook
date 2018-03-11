@@ -611,10 +611,6 @@ osbool analysis_template_delete(struct analysis_template_block *instance, templa
 	if (file != NULL)
 		file_set_data_integrity(file, TRUE);
 
-	/* If the rename template window is open for this template, close it now before the pointer is lost. */
-
-	analysis_template_save_force_rename_close(instance->parent, template);
-
 	/* Update any affected report dialogue. */
 
 	report_details = analysis_get_report_details(type);

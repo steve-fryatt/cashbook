@@ -135,6 +135,7 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  * Open a new analysis dialogue.
  * 
  * \param *dialogue		The analysis dialogue instance to open.
+ * \param *report		The report instance opening the dialogue.
  * \param *parent		The analysis instance to be the parent.
  * \param *ptr			The current Wimp Pointer details.
  * \param template		The report template to use for the dialogue.
@@ -145,7 +146,7 @@ struct analysis_dialogue_block *analysis_dialogue_initialise(struct analysis_dia
  *				use the application defaults.
  */
 
-void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct analysis_block *parent, wimp_pointer *pointer, template_t template, void *settings, osbool restore)
+void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, void *report, struct analysis_block *parent, wimp_pointer *pointer, template_t template, void *settings, osbool restore)
 {
 	struct analysis_report		*template_block;
 	struct analysis_template_block	*templates;
@@ -194,25 +195,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 
 	/* Set the window contents up. */
 
-	dialogue_open(dialogue->dialogue, template_block == NULL, analysis_get_file(dialogue->parent), pointer, dialogue);
-}
-
-
-/**
- * Force an analysis dialogue instance to close if it is currently open
- * on screen.
- *
- * \param *dialogue		The dialogue instance to close.
- * \param *parent		If not NULL, only close the dialogue if
- *				this is the parent analysis instance.
- */
-
-void analysis_dialogue_close(struct analysis_dialogue_block *dialogue, struct analysis_block *parent)
-{
-	if (dialogue == NULL || dialogue->parent != parent)
-		return;
-
-	dialogue_close(dialogue->dialogue, analysis_get_file(dialogue->parent));
+	dialogue_open(dialogue->dialogue, template_block == NULL, analysis_get_file(dialogue->parent), report, pointer, dialogue);
 }
 
 
@@ -230,7 +213,7 @@ static void analysis_dialogue_closing(wimp_w window, void *data)
 	if (dialogue == NULL || dialogue->template == NULL_TEMPLATE)
 		return;
 
-	analysis_template_save_force_rename_close(dialogue->parent, dialogue->template);
+	dialogue_force_all_closed(NULL, dialogue);
 }
 
 
@@ -312,7 +295,7 @@ static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, en
 			return TRUE;
 	} else if (type & DIALOGUE_ICON_ANALYSIS_RENAME) {
 		if (pointer->buttons == wimp_CLICK_SELECT && dialogue->template != NULL_TEMPLATE)
-			analysis_template_save_open_rename_window(dialogue->parent, dialogue->template, pointer);
+			analysis_template_save_open_rename_window(dialogue->parent, dialogue, dialogue->template, pointer);
 	}
 
 	return FALSE;

@@ -62,7 +62,8 @@
 
 struct dialogue_block {
 	struct dialogue_definition		*definition;		/**< The dialogue definition from the client.			*/
-	struct file_block			*parent;		/**< The current parent file for the dialogue.			*/
+	struct file_block			*file;			/**< The current parent file for the dialogue.			*/
+	void					*parent;		/**< The parent object pointer for the dialogue, or NULL.	*/
 	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
 	void					*client_data;		/**< Context data supplied by the client.			*/
 
@@ -130,6 +131,7 @@ struct dialogue_block *dialogue_create(struct dialogue_definition *definition)
 		return NULL;
 
 	new->definition = definition;
+	new->file = NULL;
 	new->parent = NULL;
 	new->client_data = NULL;
 
@@ -161,18 +163,23 @@ struct dialogue_block *dialogue_create(struct dialogue_definition *definition)
 
 
 /**
- * Close any open dialogues which relate to a given file.
+ * Close any open dialogues which relate to a given file or parent object.
  *
- * \param *file			The file to close dialogues for.
+ * \param *file			If not NULL, the file to close dialogues
+ *				for.
+ * \param *parent		If not NULL, the parent object to close
+ *				dialogues for.
  */
 
-void dialogue_force_all_closed(struct file_block *file)
+void dialogue_force_all_closed(struct file_block *file, void *parent)
 {
 	struct dialogue_block *dialogue = dialogue_list;
 
+	debug_printf("\\GRunning dialogue close check for file=0x%x and parent=0x%x.", file, parent);
+
 	while (dialogue != NULL) {
-		debug_printf("Checking to close %s dialogue", dialogue->definition->template_name);
-		dialogue_close(dialogue, file);
+		debug_printf("Checking to close %s dialogue.", dialogue->definition->template_name);
+		dialogue_close(dialogue, file, parent);
 		dialogue = dialogue->next;
 	}
 }
@@ -184,14 +191,15 @@ void dialogue_force_all_closed(struct file_block *file)
  * \param *dialogue		The dialogue instance to open.
  * \param hide			TRUE to hide the 'hidden' icons; FALSE
  *				to show them.
- * \param *parent		The file to be the parent of the dialogue.
+ * \param *file			The file to be the parent of the dialogue.
+ * \param *parent		The parent object of the dialogue, or NULL.
  * \param *ptr			The current Wimp Pointer details.
  * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_block *parent, wimp_pointer *pointer, void *data)
+void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_block *file, void *parent, wimp_pointer *pointer, void *data)
 {
-	if (dialogue == NULL || dialogue->definition == NULL || parent == NULL || pointer == NULL)
+	if (dialogue == NULL || dialogue->definition == NULL || file == NULL || pointer == NULL)
 		return;
 
 	/* If the window is already open, another instance is being edited.
@@ -206,6 +214,7 @@ void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_blo
 
 	/* Set the pointers up so we can find this lot again and open the window. */
 
+	dialogue->file = file;
 	dialogue->parent = parent;
 	dialogue->client_data = data;
 
@@ -226,17 +235,18 @@ void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_blo
  * on screen.
  *
  * \param *dialogue		The dialogue instance to close.
- * \param *parent		If not NULL, only close the dialogue if
+ * \param *file			If not NULL, only close the dialogue if
  *				this is the parent file.
+ * \param *parent		If not NULL, only close the dialogue if
+ *				this is the parent object.
  */
 
-void dialogue_close(struct dialogue_block *dialogue, struct file_block *parent)
+void dialogue_close(struct dialogue_block *dialogue, struct file_block *file, void *parent)
 {
-	if (dialogue == NULL || (parent!= NULL && dialogue->parent != parent))
+	if (dialogue == NULL || (file!= NULL && dialogue->file != file) || (parent != NULL && dialogue->parent != parent))
 		return;
 
-	if (windows_get_open(dialogue->window))
-		close_dialogue_with_caret(dialogue->window);
+	dialogue_close_window(dialogue);
 }
 
 
@@ -352,23 +362,23 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		icons_replace_caret_in_window(windat->window);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->parent, windat->window,
+			dialogue_lookup_open_window(windat->file, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->parent, windat->window,
+			dialogue_lookup_open_window(windat->file, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->parent, windat->window,
+			dialogue_lookup_open_window(windat->file, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_IN);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->parent, windat->window,
+			dialogue_lookup_open_window(windat->file, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_OUT);
 	} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->parent, windat->window,
+			dialogue_lookup_open_window(windat->file, windat->window,
 					icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
 	}
 }
@@ -407,23 +417,23 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 	case wimp_KEY_F1:
 		if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
 			if (icon->target == DIALOGUE_NO_ICON)
-				dialogue_lookup_open_window(windat->parent, windat->window,
+				dialogue_lookup_open_window(windat->file, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
 			if (icon->target == DIALOGUE_NO_ICON)
-				dialogue_lookup_open_window(windat->parent, windat->window,
+				dialogue_lookup_open_window(windat->file, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
 			if (icon->target == DIALOGUE_NO_ICON)
-				dialogue_lookup_open_window(windat->parent, windat->window,
+				dialogue_lookup_open_window(windat->file, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_IN);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
 			if (icon->target == DIALOGUE_NO_ICON)
-				dialogue_lookup_open_window(windat->parent, windat->window,
+				dialogue_lookup_open_window(windat->file, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_OUT);
 		} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
 			if (icon->target == DIALOGUE_NO_ICON)
-				dialogue_lookup_open_window(windat->parent, windat->window,
+				dialogue_lookup_open_window(windat->file, windat->window,
 						key->i, NULL_ACCOUNT, ACCOUNT_FULL);
 		}
 		break;
@@ -528,7 +538,7 @@ static void dialogue_menu_close_handler(wimp_w window, wimp_menu *menu)
 
 static void dialogue_close_window(struct dialogue_block *dialogue)
 {
-	if (dialogue == NULL || dialogue->window == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || windows_get_open(dialogue->window) == FALSE)
 		return;
 
 	if (dialogue->definition != NULL && dialogue->definition->callback_close != NULL)
@@ -536,6 +546,11 @@ static void dialogue_close_window(struct dialogue_block *dialogue)
 
 	close_dialogue_with_caret(dialogue->window);
 
+	dialogue->file = NULL;
+	dialogue->parent = NULL;
+	dialogue->client_data = NULL;
+
+	debug_printf("\\ODialogue Closed!");
 }
 
 

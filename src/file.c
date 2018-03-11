@@ -342,7 +342,7 @@ void delete_file(struct file_block *file)
 
 	/* Force close any dialogues which are open. */
 
-	dialogue_force_all_closed(file);
+	dialogue_force_all_closed(file, NULL);
 
 	/* Delete the windows and data structures. */
 

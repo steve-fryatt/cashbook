@@ -295,8 +295,6 @@ static void analysis_balance_delete_instance(void *instance)
 	if (report == NULL)
 		return;
 
-	analysis_dialogue_close(analysis_balance_dialogue, report->parent);
-
 	heap_free(report);
 }
 
@@ -318,7 +316,7 @@ static void analysis_balance_open_window(void *instance, wimp_pointer *pointer, 
 	if (report == NULL)
 		return;
 
-	analysis_dialogue_open(analysis_balance_dialogue, report->parent, pointer, template, &(report->saved), restore);
+	analysis_dialogue_open(analysis_balance_dialogue, report, report->parent, pointer, template, &(report->saved), restore);
 }
 
 

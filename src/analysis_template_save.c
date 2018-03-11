@@ -81,25 +81,25 @@ enum analysis_template_save_mode {
 static struct dialogue_block			*analysis_template_save_dialogue = NULL;
 
 /**
- * The current mode of the Save/Rename window.
+ * The current mode of the Save/Rename dialogue.
  */
 
 static enum analysis_template_save_mode		analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_NONE;
 
 /**
- * The saved template instance currently owning the Save/Rename window.
+ * The saved template instance currently owning the Save/Rename dialogue.
  */
 
 static struct analysis_template_block		*analysis_template_save_parent = NULL;
 
 /**
- * The report currently owning the Save/Rename window.
+ * The report currently owning the Save/Rename dialogue.
  */
 
 static struct analysis_report			*analysis_template_save_report = NULL;
 
 /**
- * The template currently owning the Save/Rename window.
+ * The template currently owning the Save/Rename dialogue.
  */
 
 static template_t				analysis_template_save_template = NULL_TEMPLATE;
@@ -226,7 +226,7 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, vo
 
 
 /**
- * Fill the Save / Rename Report Window with values.
+ * Fill the Save / Rename Template dialogue with values.
  *
  * \param window	The handle of the dialogue box to be filled.
  * \param *data		Client data pointer (unused).
@@ -262,14 +262,15 @@ static void analysis_template_save_fill_window(wimp_w window, void *data)
 
 
 /**
- * Process OK clicks in the Save/Rename Template window.  If it is a real save,
- * pass the call on to the store saved report function.  If it is a rename,
- * handle it directly here.
+ * Process OK clicks in the Save/Rename Template dialogue.  If it is a
+ * real save, pass the call on to the store saved report function.  If it
+ * is a rename, handle it directly here.
  *
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
  * \param *data		Client data pointer (unused).
+ * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
 static osbool analysis_template_save_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data)
@@ -313,7 +314,7 @@ static osbool analysis_template_save_process_window(wimp_w window, wimp_pointer 
 
 
 /**
- * The Save / Rename Report Window has been closed.
+ * The Save / Rename Template dialogue has been closed.
  *
  * \param window	The handle of the dialogue box to be filled.
  * \param *data		Client data pointer (unused).
@@ -329,7 +330,7 @@ static void analysis_template_save_window_close(wimp_w window, void *data)
 
 
 /**
- * Process menu prepare events in the Save/Rename Report window.
+ * Process menu prepare events in the Save/Rename Template dialogue.
  *
  * \param window	The handle of the owning window.
  * \param icon		The target icon for the menu.
@@ -344,7 +345,7 @@ static wimp_menu *analysis_template_save_menu_prepare_handler(wimp_w window, wim
 
 
 /**
- * Process menu selection events in the Save/Rename Report window.
+ * Process menu selection events in the Save/Rename Template dialogue.
  *
  * \param w		The handle of the owning window.
  * \param icon		The target icon for the menu.
@@ -379,7 +380,7 @@ static void analysis_template_save_menu_selection_handler(wimp_w window, wimp_i 
 
 
 /**
- * Process menu close events in the Save/Rename Report window.
+ * Process menu close events in the Save/Rename Template dialogue.
  *
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.

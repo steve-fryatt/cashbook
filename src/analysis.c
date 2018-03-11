@@ -234,10 +234,6 @@ void analysis_delete_instance(struct analysis_block *instance)
 	if (instance == NULL)
 		return;
 
-	/* Close the template save/rename dialogue. */
-
-	analysis_template_save_force_close(instance);
-
 	/* Free any saved report data. */
 
 	if (instance->templates != NULL)

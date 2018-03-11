@@ -217,12 +217,15 @@ static struct dialogue_icon analysis_cashflow_icon_list[] = {
 static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition = {
 	REPORT_TYPE_CASHFLOW,
 	sizeof(struct analysis_cashflow_report),
+	"CflRepTitle",
 	{
 		"CashFlwRep",
 		"CashFlwRep",
-		"CflRepTitle",
 		analysis_cashflow_icon_list,
 		DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME,
+		NULL,
+		NULL,
+		NULL,
 		NULL,
 		NULL,
 		NULL

@@ -55,6 +55,11 @@ struct analysis_dialogue_definition {
 	size_t				block_size;
 
 	/**
+	 * The token to use for the window title.
+	 */
+	char				*title_token;
+
+	/**
 	 * The definition block for the dialogue box.
 	 */
 	struct dialogue_definition	dialogue;

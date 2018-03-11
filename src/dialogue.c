@@ -33,6 +33,7 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
@@ -74,10 +75,19 @@ struct dialogue_block {
 
 static struct dialogue_block *dialogue_list = NULL;
 
+/**
+ * The icon which is currently the target of a pop-up menu.
+ */
+
+static struct dialogue_icon *dialogue_menu_target = NULL;
+
 /* Static Function Prototypes. */
 
 static void dialogue_click_handler(wimp_pointer *pointer);
 static osbool dialogue_keypress_handler(wimp_key *key);
+static void dialogue_menu_prepare_handler(wimp_w window, wimp_menu *menu, wimp_pointer *pointer);
+static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
+static void dialogue_menu_close_handler(wimp_w window, wimp_menu *menu);
 static void dialogue_close_window(struct dialogue_block *dialogue);
 static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *pointer, struct dialogue_icon *icon);
 static void dialogue_refresh(struct dialogue_block *dialogue);
@@ -85,7 +95,7 @@ static void dialogue_fill(struct dialogue_block *dialogue);
 static void dialogue_place_caret(struct dialogue_block *dialogue);
 static void dialogue_shade_icons(struct dialogue_block *dialogue, wimp_i target);
 static void dialogue_hide_icons(struct dialogue_block *dialogue, enum dialogue_icon_type type, osbool hide);
-static void dialogue_register_radio_icons(struct dialogue_block *dialogue);
+static void dialogue_register_icon_handlers(struct dialogue_block *dialogue);
 static struct dialogue_icon *dialogue_find_icon(struct dialogue_block *dialogue, wimp_i icon);
 
 
@@ -135,7 +145,11 @@ struct dialogue_block *dialogue_create(struct dialogue_definition *definition)
 	event_add_window_user_data(new->window, new);
 	event_add_window_mouse_event(new->window, dialogue_click_handler);
 	event_add_window_key_event(new->window, dialogue_keypress_handler);
-	dialogue_register_radio_icons(new);
+	event_add_window_menu_prepare(new->window, dialogue_menu_prepare_handler);
+	event_add_window_menu_selection(new->window, dialogue_menu_selection_handler);
+	event_add_window_menu_close(new->window, dialogue_menu_close_handler);
+
+	dialogue_register_icon_handlers(new);
 
 	/* Link the dialogue into the list. */
 
@@ -218,7 +232,7 @@ void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_blo
 
 void dialogue_close(struct dialogue_block *dialogue, struct file_block *parent)
 {
-	if (dialogue == NULL || dialogue->parent != parent)
+	if (dialogue == NULL || (parent!= NULL && dialogue->parent != parent))
 		return;
 
 	if (windows_get_open(dialogue->window))
@@ -248,6 +262,57 @@ void dialogue_set_title(struct dialogue_block *dialogue, char *token, char *a, c
 
 	if (windows_get_open(dialogue->window))
 		xwimp_force_redraw_title(dialogue->window);
+}
+
+
+/**
+ * Set the text in an icon or icons in a dialogue box, redrawing them if the
+ * dialogue is currently open.
+ *
+ * \param *dialogue		The dialogue instance to update.
+ * \param type			The types of icon to update.
+ * \param *token		The MessageTrans token for the new text.
+ * \param *a			MessageTrans parameter A, or NULL.
+ * \param *b			MessageTrans parameter B, or NULL.
+ * \param *c			MessageTrans parameter C, or NULL.
+ * \param *d			MessageTrans parameter D, or NULL.
+ */
+
+void dialogue_set_icon_text(struct dialogue_block *dialogue, enum dialogue_icon_type type, char *token, char *a, char *b, char *c, char *d)
+{
+	int			i;
+	struct dialogue_icon	*icons;
+
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+		return;
+
+	icons = dialogue->definition->icons;
+
+	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
+		if ((icons[i].icon == DIALOGUE_NO_ICON) || !(icons[i].type & type))
+			continue;
+
+		icons_msgs_param_lookup(dialogue->window, icons[i].icon, token, a, b, c, d);
+
+		if (windows_get_open(dialogue->window))
+			xwimp_set_icon_state(dialogue->window, icons[i].icon, 0, 0);
+	}
+}
+
+
+/**
+ * Change the interactive help token modifier for a dialogue window.
+ *
+ * \param *dialogue		The dialogue instance to update.
+ * \param *modifier		The new modifier to apply.
+ */
+
+void dialogue_set_ihelp_modifier(struct dialogue_block *dialogue, char *modifier)
+{
+	if (dialogue == NULL || dialogue->window == NULL)
+		return;
+
+	ihelp_set_modifier(dialogue->window, modifier);
 }
 
 
@@ -373,6 +438,89 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 
 /**
+ * Process menu prepare events in a dialogue instance's window.
+ *
+ * \param window	The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *pointer	The pointer position, or NULL for a re-open.
+ */
+
+static void dialogue_menu_prepare_handler(wimp_w window, wimp_menu *menu, wimp_pointer *pointer)
+{
+	struct dialogue_block	*dialogue;
+
+	dialogue = event_get_window_user_data(window);
+	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->callback_menu_prepare == NULL)
+		return;
+
+	if (pointer != NULL)
+		dialogue_menu_target = dialogue_find_icon(dialogue, pointer->i);
+
+	if (dialogue_menu_target == NULL)
+		return;
+
+	menu = dialogue->definition->callback_menu_prepare(window, dialogue_menu_target->target, dialogue->client_data);
+
+	if (menu == NULL)
+		return;
+
+	event_set_menu_block(menu);
+	ihelp_add_menu(menu, "RepListMenu"); // \TODO -- This needs to come from somewhere!
+}
+
+
+/**
+ * Process menu selection events in a dialogue instance's window.
+ *
+ * \param window	The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *selection	The menu selection details.
+ */
+
+static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection)
+{
+	struct dialogue_block	*dialogue;
+
+	if (dialogue_menu_target == NULL)
+		return;
+
+	dialogue = event_get_window_user_data(window);
+	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->callback_menu_select == NULL)
+		return;
+
+	dialogue->definition->callback_menu_select(window, dialogue_menu_target->target, menu, selection, dialogue->client_data);
+
+	icons_redraw_group(window, 1, dialogue_menu_target->target);
+	icons_replace_caret_in_window(window);
+}
+
+
+/**
+ * Process menu close events in a dialogue instance's window.
+ *
+ * \param window	The handle of the owning window.
+ * \param *menu		The menu handle.
+ */
+
+static void dialogue_menu_close_handler(wimp_w window, wimp_menu *menu)
+{
+	struct dialogue_block	*dialogue;
+
+	if (dialogue_menu_target == NULL)
+		return;
+
+	dialogue = event_get_window_user_data(window);
+	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->callback_menu_close == NULL)
+		return;
+
+	dialogue->definition->callback_menu_close(window, menu, dialogue->client_data);
+
+	ihelp_remove_menu(menu);
+	dialogue_menu_target = NULL;
+}
+
+
+/**
  * Close a dialogue, warning the client that it has gone.
  *
  * \param *dialogue		The dialogue instance to close.
@@ -380,10 +528,10 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 static void dialogue_close_window(struct dialogue_block *dialogue)
 {
-	if (dialogue == NULL)
+	if (dialogue == NULL || dialogue->window == NULL)
 		return;
 
-	if (dialogue->definition->callback_close != NULL)
+	if (dialogue->definition != NULL && dialogue->definition->callback_close != NULL)
 		dialogue->definition->callback_close(dialogue->window, dialogue->client_data);
 
 	close_dialogue_with_caret(dialogue->window);
@@ -402,7 +550,7 @@ static void dialogue_close_window(struct dialogue_block *dialogue)
 
 static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *pointer, struct dialogue_icon *icon)
 {
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition->callback_process == NULL || icon == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->callback_process == NULL || icon == NULL)
 		return FALSE;
 
 	return dialogue->definition->callback_process(dialogue->window, pointer, icon->type, dialogue->client_data);
@@ -446,7 +594,7 @@ static void dialogue_refresh(struct dialogue_block *dialogue)
 
 static void dialogue_fill(struct dialogue_block *dialogue)
 {
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition->callback_fill == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->callback_fill == NULL)
 		return;
 
 	dialogue->definition->callback_fill(dialogue->window, dialogue->client_data);
@@ -502,7 +650,7 @@ static void dialogue_shade_icons(struct dialogue_block *dialogue, wimp_i target)
 	osbool			shaded = FALSE;
 	wimp_i			icon = DIALOGUE_NO_ICON;
 
-	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
 
 	icons = dialogue->definition->icons;
@@ -554,7 +702,7 @@ static void dialogue_hide_icons(struct dialogue_block *dialogue, enum dialogue_i
 	int			i;
 	struct dialogue_icon	*icons;
 
-	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
 
 	icons = dialogue->definition->icons;
@@ -567,17 +715,17 @@ static void dialogue_hide_icons(struct dialogue_block *dialogue, enum dialogue_i
 
 
 /**
- * Register any icons declared as radio icons with the event handler.
+ * Register any icons declared as requiring event handlers.
  *
  * \param *dialogue		The dialogue instance to register.
  */
 
-static void dialogue_register_radio_icons(struct dialogue_block *dialogue)
+static void dialogue_register_icon_handlers(struct dialogue_block *dialogue)
 {
 	int			i;
 	struct dialogue_icon	*icons;
 
-	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
 		return;
 
 	icons = dialogue->definition->icons;
@@ -587,6 +735,8 @@ static void dialogue_register_radio_icons(struct dialogue_block *dialogue)
 			event_add_window_icon_radio(dialogue->window, icons[i].icon, TRUE);
 		else if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & DIALOGUE_ICON_RADIO_PASS))
 			event_add_window_icon_radio(dialogue->window, icons[i].icon, FALSE);
+		else if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & DIALOGUE_ICON_POPUP))
+			event_add_window_icon_popup(dialogue->window, icons[i].icon, NULL, -1, NULL);
 	}
 }
 

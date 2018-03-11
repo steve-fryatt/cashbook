@@ -231,12 +231,15 @@ static struct dialogue_icon analysis_transaction_icon_list[] = {
 static struct analysis_dialogue_definition analysis_transaction_dialogue_definition = {
 	REPORT_TYPE_TRANSACTION,
 	sizeof(struct analysis_transaction_report),
+	"TrnRepTitle",
 	{
 		"TransRep",
 		"TransRep",
-		"TrnRepTitle",
 		analysis_transaction_icon_list,
 		DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME,
+		NULL,
+		NULL,
+		NULL,
 		NULL,
 		NULL,
 		NULL

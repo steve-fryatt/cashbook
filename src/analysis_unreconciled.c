@@ -226,12 +226,15 @@ static struct dialogue_icon analysis_unreconciled_icon_list[] = {
 static struct analysis_dialogue_definition analysis_unreconciled_dialogue_definition = {
 	REPORT_TYPE_UNRECONCILED,
 	sizeof(struct analysis_unreconciled_report),
+	"UrcRepTitle",
 	{
 		"UnrecRep",
 		"UnrecRep",
-		"UrcRepTitle",
 		analysis_unreconciled_icon_list,
 		DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME,
+		NULL,
+		NULL,
+		NULL,
 		NULL,
 		NULL,
 		NULL

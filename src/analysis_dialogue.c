@@ -181,7 +181,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, struct ana
 		report_details->copy_template(dialogue->dialogue_settings, settings);
 		dialogue->template = NULL_TEMPLATE;
 
-		dialogue_set_title(dialogue->dialogue, dialogue->definition->dialogue.title_token,
+		dialogue_set_title(dialogue->dialogue, dialogue->definition->title_token,
 				analysis_template_get_name(template_block, NULL, 0), NULL, NULL, NULL);
 	}
 

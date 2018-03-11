@@ -73,16 +73,6 @@ void analysis_template_save_delete_template(struct analysis_block *parent, templ
 
 
 /**
- * Force the closure of the Save / Rename Template dialogue if the file
- * owning it closes.
- *
- * \param *parent		The parent analysis instance.
- */
-
-void analysis_template_save_force_close(struct analysis_block *parent);
-
-
-/**
  * Force the closure of the Save Template window if it is open to save the
  * given template.
  *

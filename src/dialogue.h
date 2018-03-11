@@ -58,6 +58,7 @@ enum dialogue_icon_type {
 	DIALOGUE_ICON_POPUP_IN		= 0x00002000,		/*<< The icon should launch a "In" popup.	*/
 	DIALOGUE_ICON_POPUP_OUT		= 0x00004000,		/*<< The icon should launch a "Out" popup.	*/
 	DIALOGUE_ICON_POPUP_FULL	= 0x00008000,		/*<< The icon should launch a "Full" popup.	*/
+	DIALOGUE_ICON_POPUP		= 0x00010000,		/*<< A pop-up menu field.			*/
 	DIALOGUE_ICON_END		= 0x08000000,		/**< The last entry in the icon sequence.	*/
 
 	/* Flags below this point belong to individual clients; values
@@ -98,11 +99,6 @@ struct dialogue_definition {
 	char				*ihelp_token;
 
 	/**
-	 * The token to use for the window title.
-	 */
-	char				*title_token;
-
-	/**
 	 * A list of significant icons in the dialogue.
 	 */
 	struct dialogue_icon		*icons;
@@ -127,6 +123,21 @@ struct dialogue_definition {
 	 * Callback function to report the dialogue closing.
 	 */
 	void				(*callback_close)(wimp_w window, void *data);
+
+	/**
+	 * Callback function to report a pop-up menu opening.
+	 */
+	wimp_menu*			(*callback_menu_prepare)(wimp_w window, wimp_i icon, void *data);
+
+	/**
+	 * Callback function to report a pop-up menu selection.
+	 */
+	void				(*callback_menu_select)(wimp_w w, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
+
+	/**
+	 * Callback function to report a pop-up menu closing.
+	 */
+	void				(*callback_menu_close)(wimp_w w, wimp_menu *menu, void *data);
 };
 
 
@@ -195,6 +206,32 @@ void dialogue_close(struct dialogue_block *dialogue, struct file_block *parent);
  */
 
 void dialogue_set_title(struct dialogue_block *dialogue, char *token, char *a, char *b, char *c, char *d);
+
+
+/**
+ * Set the text in an icon or icons in a dialogue box, redrawing them if the
+ * dialogue is currently open.
+ *
+ * \param *dialogue		The dialogue instance to update.
+ * \param type			The types of icon to update.
+ * \param *token		The MessageTrans token for the new text.
+ * \param *a			MessageTrans parameter A, or NULL.
+ * \param *b			MessageTrans parameter B, or NULL.
+ * \param *c			MessageTrans parameter C, or NULL.
+ * \param *d			MessageTrans parameter D, or NULL.
+ */
+
+void dialogue_set_icon_text(struct dialogue_block *dialogue, enum dialogue_icon_type type, char *token, char *a, char *b, char *c, char *d);
+
+
+/**
+ * Change the interactive help token modifier for a dialogue window.
+ *
+ * \param *dialogue		The dialogue instance to update.
+ * \param *modifier		The new modifier to apply.
+ */
+
+void dialogue_set_ihelp_modifier(struct dialogue_block *dialogue, char *modifier);
 
 #endif
 

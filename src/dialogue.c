@@ -464,7 +464,8 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 static void dialogue_menu_prepare_handler(wimp_w window, wimp_menu *menu, wimp_pointer *pointer)
 {
-	struct dialogue_block	*dialogue;
+	struct dialogue_block		*dialogue;
+	struct dialogue_menu_data	menu_data;
 
 	dialogue = event_get_window_user_data(window);
 	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->callback_menu_prepare == NULL)
@@ -476,13 +477,11 @@ static void dialogue_menu_prepare_handler(wimp_w window, wimp_menu *menu, wimp_p
 	if (dialogue_menu_target == NULL)
 		return;
 
-	menu = dialogue->definition->callback_menu_prepare(window, dialogue_menu_target->target, dialogue->client_data);
-
-	if (menu == NULL)
+	if (!dialogue->definition->callback_menu_prepare(window, dialogue_menu_target->target, &menu_data, dialogue->client_data))
 		return;
 
-	event_set_menu_block(menu);
-	ihelp_add_menu(menu, "RepListMenu"); // \TODO -- This needs to come from somewhere!
+	event_set_menu_block(menu_data.menu);
+	ihelp_add_menu(menu_data.menu, menu_data.help_token);
 }
 
 

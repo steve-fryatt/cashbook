@@ -82,6 +82,22 @@ struct dialogue_icon {
 	wimp_i				target;
 };
 
+/**
+ * Menu details block.
+ */
+
+struct dialogue_menu_data {
+	/**
+	 * Pointer to the menu block.
+	 */
+	wimp_menu			*menu;
+
+	/**
+	 * Pointer to an interactive help token, or NULL.
+	 */
+	char				*help_token;
+};
+
 
 /**
  * An analysis dialogue contents definition.
@@ -127,7 +143,7 @@ struct dialogue_definition {
 	/**
 	 * Callback function to report a pop-up menu opening.
 	 */
-	wimp_menu*			(*callback_menu_prepare)(wimp_w window, wimp_i icon, void *data);
+	osbool				(*callback_menu_prepare)(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
 
 	/**
 	 * Callback function to report a pop-up menu selection.

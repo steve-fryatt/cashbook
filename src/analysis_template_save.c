@@ -108,7 +108,7 @@ static template_t				analysis_template_save_template = NULL_TEMPLATE;
 static void		analysis_template_save_fill_window(wimp_w window, void *data);
 static osbool		analysis_template_save_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static void		analysis_template_save_window_close(wimp_w window, void *data);
-static wimp_menu*	analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, void *data);
+static osbool		analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
 static void		analysis_template_save_menu_selection_handler(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
 static void		analysis_template_save_menu_close_handler(wimp_w window, wimp_menu *menu, void *data);
 
@@ -338,13 +338,20 @@ static void analysis_template_save_window_close(wimp_w window, void *data)
  *
  * \param window	The handle of the owning window.
  * \param icon		The target icon for the menu.
+ * \param *menu		Pointer to struct to take the menu details.
  * \param *data		Client data pointer (unused).
- * \return		Pointer to menu, or NULL on failure.
+ * \return		TRUE if the menu struct was updated; else FALSE.
  */
 
-static wimp_menu *analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, void *data)
+static osbool analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data)
 {
-	return analysis_template_menu_build(analysis_template_get_file(analysis_template_save_parent), TRUE);
+	if (menu == NULL)
+		return FALSE;
+
+	menu->menu = analysis_template_menu_build(analysis_template_get_file(analysis_template_save_parent), TRUE);
+	menu->help_token = "RepListMenu";
+
+	return TRUE;
 }
 
 

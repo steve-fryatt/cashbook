@@ -129,12 +129,12 @@ struct report			*report_font_dialogue_report = NULL;
 
 /* Static function prototypes. */
 
-static void report_font_dialogue_fill(wimp_w window, void *data);
-static osbool report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
-static void report_font_dialogue_close(wimp_w window, void *data);
-static wimp_menu *report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, void *data);
-static void report_font_dialogue_menu_selection(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
-static void report_font_dialogue_menu_close(wimp_w window, wimp_menu *menu, void *data);
+static void	report_font_dialogue_fill(wimp_w window, void *data);
+static osbool	report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
+static void	report_font_dialogue_close(wimp_w window, void *data);
+static osbool	report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
+static void	report_font_dialogue_menu_selection(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
+static void	report_font_dialogue_menu_close(wimp_w window, wimp_menu *menu, void *data);
 
 /**
  * The Report Font Dialogue Icon Set.
@@ -303,14 +303,20 @@ static void report_font_dialogue_close(wimp_w window, void *data)
  *
  * \param window	The handle of the owning window.
  * \param icon		The target icon for the menu.
+ * \param *menu		Pointer to struct to take the menu details.
  * \param *data		Client data pointer (unused).
- * \return		Pointer to menu, or NULL on failure.
+ * \return		TRUE if the menu struct was updated; else FALSE.
  */
 
-static wimp_menu *report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, void *data)
+static osbool report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data)
 {
-	return fontlist_build();
-//	ihelp_add_menu(report_font_dialogue_font_menu, "FontMenu");
+	if (menu == NULL)
+		return FALSE;
+
+	menu->menu = fontlist_build();
+	menu->help_token = "FontMenu";
+
+	return TRUE;
 }
 
 

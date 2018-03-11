@@ -190,6 +190,8 @@ void analysis_template_delete_instance(struct analysis_template_block *instance)
 
 	if (instance->saved_reports != NULL)
 		flexutils_free((void **) &(instance->saved_reports));
+
+	heap_free(instance);
 }
 
 

@@ -188,7 +188,12 @@ void dialogue_force_all_closed(struct file_block *file, void *parent)
 
 
 /**
- * Open a new dialogue.
+ * Open a new dialogue. Dialogues are attached to a file, and also to a
+ * "parent object", which can be anything that the client for
+ * dialogue_open() wishes to associate them with. If not NULL, they are
+ * commonly pointers to instance blocks, such that a dialogue can be
+ * associated with -- and closed on the demise of -- things such as
+ * account or report views.
  * 
  * \param *dialogue		The dialogue instance to open.
  * \param hide			TRUE to hide the 'hidden' icons; FALSE

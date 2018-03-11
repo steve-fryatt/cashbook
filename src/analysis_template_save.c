@@ -106,12 +106,12 @@ static template_t				analysis_template_save_template = NULL_TEMPLATE;
 
 /* Static Function Prototypes. */
 
-static wimp_menu*	analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, void *data);
-static void		analysis_template_save_menu_selection_handler(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
-static void		analysis_template_save_menu_close_handler(wimp_w window, wimp_menu *menu, void *data);
 static void		analysis_template_save_fill_window(wimp_w window, void *data);
 static osbool		analysis_template_save_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static void		analysis_template_save_window_close(wimp_w window, void *data);
+static wimp_menu*	analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, void *data);
+static void		analysis_template_save_menu_selection_handler(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
+static void		analysis_template_save_menu_close_handler(wimp_w window, wimp_menu *menu, void *data);
 
 /**
  * The Save Template Dialogue Icon Set.
@@ -226,73 +226,6 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, vo
 
 
 /**
- * Process menu prepare events in the Save/Rename Report window.
- *
- * \param window	The handle of the owning window.
- * \param icon		The target icon for the menu.
- * \param *data		Client data pointer (unused).
- * \return		Pointer to menu, or NULL on failure.
- */
-
-static wimp_menu *analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, void *data)
-{
-	return analysis_template_menu_build(analysis_template_get_file(analysis_template_save_parent), TRUE);
-}
-
-
-/**
- * Process menu selection events in the Save/Rename Report window.
- *
- * \param w		The handle of the owning window.
- * \param icon		The target icon for the menu.
- * \param *menu		The menu handle.
- * \param *selection	The menu selection details.
- * \param *data		Client data pointer (unused). 
- */
-
-static void analysis_template_save_menu_selection_handler(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data)
-{
-	template_t		template_number;
-	struct analysis_report	*template;
-	char			*name;
-
-	if (selection->items[0] == -1 || analysis_template_save_parent == NULL || menu == NULL || icon != ANALYSIS_SAVE_NAME)
-		return;
-
-	template_number = analysis_template_menu_decode(selection->items[0]);
-	if (template_number == NULL_TEMPLATE)
-		return;
-
-	template = analysis_template_get_report(analysis_template_save_parent, template_number);
-	if (template == NULL)
-		return;
-
-	name = analysis_template_get_name(template, NULL, 0);
-	if (name == NULL)
-		return;
-
-	icons_strncpy(window, icon, name);
-}
-
-
-/**
- * Process menu close events in the Save/Rename Report window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- * \param *data		Client data pointer (unused).
- */
-
-static void analysis_template_save_menu_close_handler(wimp_w window, wimp_menu *menu, void *data)
-{
-	if (menu == NULL)
-		return;
-
-	analysis_template_menu_destroy();
-}
-
-
-/**
  * Fill the Save / Rename Report Window with values.
  *
  * \param window	The handle of the dialogue box to be filled.
@@ -392,6 +325,73 @@ static void analysis_template_save_window_close(wimp_w window, void *data)
 	analysis_template_save_parent = NULL;
 	analysis_template_save_report = NULL;
 	analysis_template_save_template = NULL_TEMPLATE;
+}
+
+
+/**
+ * Process menu prepare events in the Save/Rename Report window.
+ *
+ * \param window	The handle of the owning window.
+ * \param icon		The target icon for the menu.
+ * \param *data		Client data pointer (unused).
+ * \return		Pointer to menu, or NULL on failure.
+ */
+
+static wimp_menu *analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, void *data)
+{
+	return analysis_template_menu_build(analysis_template_get_file(analysis_template_save_parent), TRUE);
+}
+
+
+/**
+ * Process menu selection events in the Save/Rename Report window.
+ *
+ * \param w		The handle of the owning window.
+ * \param icon		The target icon for the menu.
+ * \param *menu		The menu handle.
+ * \param *selection	The menu selection details.
+ * \param *data		Client data pointer (unused). 
+ */
+
+static void analysis_template_save_menu_selection_handler(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data)
+{
+	template_t		template_number;
+	struct analysis_report	*template;
+	char			*name;
+
+	if (selection->items[0] == -1 || analysis_template_save_parent == NULL || menu == NULL || icon != ANALYSIS_SAVE_NAME)
+		return;
+
+	template_number = analysis_template_menu_decode(selection->items[0]);
+	if (template_number == NULL_TEMPLATE)
+		return;
+
+	template = analysis_template_get_report(analysis_template_save_parent, template_number);
+	if (template == NULL)
+		return;
+
+	name = analysis_template_get_name(template, NULL, 0);
+	if (name == NULL)
+		return;
+
+	icons_strncpy(window, icon, name);
+}
+
+
+/**
+ * Process menu close events in the Save/Rename Report window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *data		Client data pointer (unused).
+ */
+
+static void analysis_template_save_menu_close_handler(wimp_w window, wimp_menu *menu, void *data)
+{
+	if (menu == NULL)
+		return;
+
+	analysis_template_menu_destroy();
 }
 
 

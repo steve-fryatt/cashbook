@@ -70,7 +70,6 @@
 #include "analysis_transaction.h"
 #include "analysis_unreconciled.h"
 #include "budget.h"
-#include "caret.h"
 #include "currency.h"
 #include "date.h"
 #include "file.h"

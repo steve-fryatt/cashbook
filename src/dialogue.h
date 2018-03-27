@@ -68,6 +68,8 @@ enum dialogue_icon_type {
 
 	DIALOGUE_ICON_ANALYSIS_DELETE	= 0x10000000,		/**< The Analysis Report Delete button.		*/
 	DIALOGUE_ICON_ANALYSIS_RENAME	= 0x20000000,		/**< The Analysis Report Rename button.		*/
+
+	DIALOGUE_ICON_PRINT_REPORT	= 0x10000000,		/**< The Print Report button.			*/
 };
 
 #define DIALOGUE_NO_ICON ((wimp_i) -1)

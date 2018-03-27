@@ -60,6 +60,7 @@
 
 #include "caret.h"
 #include "date.h"
+#include "dialogue.h"
 #include "report.h"
 #include "stringbuild.h"
 
@@ -136,13 +137,19 @@ enum print_dialogue_type {
 
 static enum print_dialogue_type		print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;	/**< Which of the two windows is open.						*/
 
+/**
+ * The handle of the Print dialogue.
+ */
+
+static struct dialogue_block		print_dialogue = NULL;
+
 /* Window Handles. */
 
-static wimp_w				print_dialogue_window = NULL;				/**< The Advanced Print window handle.						*/
+//static wimp_w				print_dialogue_window = NULL;				/**< The Advanced Print window handle.						*/
 
 /* Global Variables. */
 
-static struct print_dialogue_block	*print_dialogue_current_instance = NULL;			/**< The print dialogue instance currently owning the dialogue.			*/
+//static struct print_dialogue_block	*print_dialogue_current_instance = NULL;			/**< The print dialogue instance currently owning the dialogue.			*/
 static osbool				print_dialogue_current_restore = FALSE;				/**< The current restore setting for the print dialogue.			*/
 static char				print_dialogue_window_title_token[PRINT_MAX_TOKEN_LEN];		/**< The message token for the Simple Print window title.			*/
 static char				print_dialogue_report_title_token[PRINT_MAX_TOKEN_LEN];		/**< The message token for the Simple Print report title.			*/
@@ -160,7 +167,7 @@ static struct report*			(*print_dialogue_advanced_callback) (struct report *, vo
 
 static osbool		print_dialogue_handle_message_set_printer(wimp_message *message);
 
-static osbool		print_dialogue_open(struct print_dialogue_block *instance, osbool restore, char *title, char *report, void *data);
+static osbool		print_dialogue_open(struct print_dialogue_block *instance, osbool restore, char *title, char *report, wimp_pointer *ptr, void *data);
 
 static void		print_dialogue_click_handler(wimp_pointer *pointer);
 static osbool		print_dialogue_keypress_handler(wimp_key *key);
@@ -174,19 +181,71 @@ static void		print_dialogue_process_report(struct print_dialogue_block *instance
 
 
 /**
+ * The Print Dialogue Icon Set.
+ */
+
+static struct dialogue_icon print_dialogue_icon_list[] = {
+	{DIALOGUE_ICON_OK,					PRINT_DIALOGUE_OK,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_CANCEL,					PRINT_DIALOGUE_CANCEL,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_PRINT_REPORT,	PRINT_DIALOGUE_REPORT,		DIALOGUE_NO_ICON},
+
+	/* Range Group */
+
+	{DIALOGUE_ICON_REFRESH,					PRINT_DIALOGUE_RANGE_FROM,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_REFRESH,					PRINT_DIALOGUE_RANGE_TO,	DIALOGUE_NO_ICON},
+
+	/* Print Mode Group. */
+
+	{DIALOGUE_ICON_RADIO,					PRINT_DIALOGUE_STANDARD,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_RADIO,					PRINT_DIALOGUE_FASTTEXT,	DIALOGUE_NO_ICON},
+
+	/* Formatting Group. */
+
+	{DIALOGUE_ICON_SHADE_OFF | DIALOGUE_ICON_RADIO,		PRINT_DIALOGUE_PORTRAIT,	PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OFF | DIALOGUE_ICON_RADIO,		PRINT_DIALOGUE_LANDSCAPE,	PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_SCALE,		PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_TITLE,		PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_PNUM,		PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_GRID,		PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_TEXTFORMAT,	PRINT_DIALOGUE_FASTTEXT},
+
+	{DIALOGUE_ICON_END,					DIALOGUE_NO_ICON,		DIALOGUE_NO_ICON}
+};
+
+/**
+ * The Print Dialogue Definition.
+ */
+
+static struct dialogue_definition print_dialogue_definition = {
+	"Print",
+	"Print",
+	print_dialogue_icon_list,
+	DIALOGUE_ICON_NONE,
+	analysis_template_save_fill_window,
+	analysis_template_save_process_window,
+	analysis_template_save_window_close,
+	NULL,
+	NULL,
+	NULL
+};
+
+
+/**
  * Initialise the printing system.
  */
 
 void print_dialogue_initialise(void)
 {
-	print_dialogue_window = templates_create_window("Print");
-	ihelp_add_window(print_dialogue_window, "Print", NULL);
-	event_add_window_mouse_event(print_dialogue_window, print_dialogue_click_handler);
-	event_add_window_key_event(print_dialogue_window, print_dialogue_keypress_handler);
-	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_STANDARD, FALSE);
-	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, FALSE);
-	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_PORTRAIT, TRUE);
-	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_LANDSCAPE, TRUE);
+	print_dialogue = dialogue_create(&print_dialogue_definition);
+
+//	print_dialogue_window = templates_create_window("Print");
+//	ihelp_add_window(print_dialogue_window, "Print", NULL);
+//	event_add_window_mouse_event(print_dialogue_window, print_dialogue_click_handler);
+//	event_add_window_key_event(print_dialogue_window, print_dialogue_keypress_handler);
+//	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_STANDARD, FALSE);
+//	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, FALSE);
+//	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_PORTRAIT, TRUE);
+//	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_LANDSCAPE, TRUE);
 
 	/* Register the Wimp message handlers. */
 
@@ -242,12 +301,7 @@ void print_dialogue_delete(struct print_dialogue_block *print)
 
 	/* Close any related dialogues. */
 
-	if (print == print_dialogue_current_instance) {
-		if (windows_get_open(print_dialogue_window))
-			close_dialogue_with_caret(print_dialogue_window);
-
-		print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
-	}
+	dialogue_force_all_closed(NULL, print);
 
 	/* Free the memory. */
 
@@ -293,20 +347,10 @@ void print_dialogue_open_simple(struct print_dialogue_block *instance, wimp_poin
 	if (instance == NULL)
 		return;
 	
-	if (!print_dialogue_open(instance, restore, title, report, data))
+	if (!print_dialogue_open(instance, restore, title, report, ptr, data))
 		return;
 
 	print_dialogue_simple_callback = callback;
-
-	/* Set the window contents up. */
-
-	print_dialogue_fill_window(instance, TRUE, restore);
-
-	/* Open the window on screen. */
-
-	windows_open_centred_at_pointer(print_dialogue_window, ptr);
-	place_dialogue_caret(print_dialogue_window, wimp_ICON_WINDOW);
-
 	print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_SIMPLE;
 }
 
@@ -332,20 +376,10 @@ void print_dialogue_open_advanced(struct print_dialogue_block *instance, wimp_po
 	if (instance == NULL)
 		return;
 
-	if (!print_dialogue_open(instance, restore, title, report, data))
+	if (!print_dialogue_open(instance, restore, title, report, ptr, data))
 		return;
 
 	print_dialogue_advanced_callback = callback;
-
-	/* Set the window contents up. */
-
-	print_dialogue_fill_window(instance, FALSE, restore);
-
-	/* Open the window on screen. */
-
-	windows_open_centred_at_pointer(print_dialogue_window, ptr);
-	place_dialogue_caret(print_dialogue_window, PRINT_DIALOGUE_RANGE_FROM);
-
 	print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_ADVANCED;
 }
 
@@ -359,22 +393,13 @@ void print_dialogue_open_advanced(struct print_dialogue_block *instance, wimp_po
  * \param *title	The Message Trans token for the dialogue title.
  * \param *report	The MessageTrans token for the report title, or NULL
  *			if the client doesn't need a report.
+ * \param *ptr		Wimp Pointer details for the window open position.
  * \param *data		Data to be passed to the callback function.
  * \return		TRUE if successful; otherwise FALSE.
  */
 
-static osbool print_dialogue_open(struct print_dialogue_block *instance, osbool restore, char *title, char *report, void *data)
+static osbool print_dialogue_open(struct print_dialogue_block *instance, osbool restore, char *title, char *report, wimp_pointer *ptr, void *data)
 {
-	/* If the window is already open, another print job is being set up.
-	 * Assume the user wants to lose any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret() as the caret is
-	 * just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(print_dialogue_window))
-		wimp_close_window(print_dialogue_window);
-
 	print_dialogue_current_instance = instance;
 	print_dialogue_current_restore = restore;
 	print_dialogue_client_data = data;
@@ -388,6 +413,8 @@ static osbool print_dialogue_open(struct print_dialogue_block *instance, osbool 
 		string_copy(print_dialogue_report_title_token, report, PRINT_MAX_TOKEN_LEN);
 	else
 		*print_dialogue_report_title_token = '\0';
+
+	dialogue_open(print_dialogue, FALSE, instance->file, instance, ptr, instance);
 
 	return TRUE;
 }
@@ -470,26 +497,13 @@ static osbool print_dialogue_keypress_handler(wimp_key *key)
 
 
 /**
- * Refresh the contents of the current Advanced Print window.
- */
-
-static void print_dialogue_refresh_window(void)
-{
-	print_dialogue_fill_window(print_dialogue_current_instance, print_dialogue_window_open == PRINTING_DIALOGUE_TYPE_SIMPLE, print_dialogue_current_restore);
-	icons_replace_caret_in_window(print_dialogue_window);
-	xwimp_force_redraw_title(print_dialogue_window);
-}
-
-
-/**
- * Fill the Advanced Print window with values.
+ * Fill the Print Dialogue with values.
  *
- * \param *print_data		Saved settings to use if restore == FALSE.
- * \param simple		TRUE to configure a simple dialogue; FALSE for
- *				one with a date range.
- * \param restore		TRUE to keep the supplied settings; FALSE to
- *				use system defaults.
+ * \param window	The handle of the dialogue box to be filled.
+ * \param *data		Client data pointer (unused).
  */
+
+static void print_dialogue_fill_window(wimp_w window, void *data)
 
 static void print_dialogue_fill_window(struct print_dialogue_block *print_data, osbool simple, osbool restore)
 {
@@ -504,6 +518,7 @@ static void print_dialogue_fill_window(struct print_dialogue_block *print_data, 
 	}
 
 	windows_title_msgs_param_lookup(print_dialogue_window, print_dialogue_window_title_token, name, NULL, NULL, NULL);
+	// \TODO -- If we've refreshed, there needs to be a title redraw here!
 
 	if (!restore) {
 		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_STANDARD, !config_opt_read("PrintText"));

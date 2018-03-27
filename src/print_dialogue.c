@@ -475,9 +475,6 @@ static osbool print_dialogue_keypress_handler(wimp_key *key)
 
 static void print_dialogue_refresh_window(void)
 {
-	if (print_dialogue_window_open != PRINTING_DIALOGUE_TYPE_ADVANCED)
-		return;
-
 	print_dialogue_fill_window(print_dialogue_current_instance, print_dialogue_window_open == PRINTING_DIALOGUE_TYPE_SIMPLE, print_dialogue_current_restore);
 	icons_replace_caret_in_window(print_dialogue_window);
 	xwimp_force_redraw_title(print_dialogue_window);

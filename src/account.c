@@ -83,7 +83,6 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
-#include "interest.h"
 #include "presets.h"
 #include "print_dialogue.h"
 #include "report.h"
@@ -133,10 +132,6 @@ struct account {
 	struct account_idnum		cheque_number;
 	struct account_idnum		payin_number;
 
-	/* Interest details. (the rates are held in the interest module). */
-
-	acct_t				offset_against;				/* The account against which interest is offset, or NULL_ACCOUNT. */
-
 	/* User-set values used for calculation. */
 
 	amt_t				opening_balance;			/* The opening balance for accounts, from which everything else is calculated. */
@@ -180,13 +175,12 @@ struct account_block {
 
 static osbool account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
 		amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
-		acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
+		char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
 static osbool account_process_heading_edit_window(struct account_block *instance, acct_t account, char* name, char *ident, amt_t budget, enum account_type type);
 static osbool account_delete_from_edit_window(struct account_block *instance, acct_t account);
 static void account_add_to_lists(struct file_block *file, acct_t account);
 static int account_find_window_entry_from_type(struct file_block *file, enum account_type type);
 static osbool account_used_in_file(struct account_block *instance, acct_t account);
-static osbool account_check_account(struct account_block *instance, acct_t account);
 
 
 static void			account_recalculate_windows(struct account_block *instance);
@@ -371,7 +365,6 @@ void account_redraw_all(struct file_block *file)
 void account_open_edit_window(struct file_block *file, acct_t account, enum account_type type, wimp_pointer *ptr)
 {
 	struct account	*data;
-	rate_t		rate;
 
 	if (file == NULL || file->accounts == NULL)
 		return;
@@ -391,7 +384,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 	if (account == NULL_ACCOUNT) {
 		if (type & ACCOUNT_FULL) {
 			account_account_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_account_edit_window, account_delete_from_edit_window,
-					"", "", NULL_CURRENCY, NULL_CURRENCY, NULL, NULL, NULL_RATE, NULL_ACCOUNT, "", "", NULL);
+					"", "", NULL_CURRENCY, NULL_CURRENCY, NULL, NULL, "", "", NULL);
 		} else if (type & ACCOUNT_IN || type & ACCOUNT_OUT) {
 			account_heading_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_heading_edit_window, account_delete_from_edit_window,
 					"", "", NULL_CURRENCY, type);
@@ -400,10 +393,9 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 		data = &(file->accounts->accounts[account]);
 
 		if (data->type & ACCOUNT_FULL) {
-			rate = interest_get_current_rate(file->interest, account, date_today());
 			account_account_dialogue_open(ptr, file->accounts, account, account_process_account_edit_window, account_delete_from_edit_window,
 					data->name, data->ident, data->credit_limit, data->opening_balance,
-					&(data->cheque_number), &(data->payin_number), rate, data->offset_against,
+					&(data->cheque_number), &(data->payin_number),
 					data->account_no, data->sort_code, data->address);
 		} else if (data->type & ACCOUNT_IN || data->type & ACCOUNT_OUT) {
 			account_heading_dialogue_open(ptr, file->accounts, account, account_process_heading_edit_window, account_delete_from_edit_window,
@@ -425,7 +417,6 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
  * \param opening_balance	The opening balance for the account.
  * \param *cheque_number	The cheque number details for the account.
  * \param *payin_number		The paying in slip number details for the account.
- * \param offset_against	The account to offset this account against.
  * \param *account_num		The account number of the account.
  * \param *sort_code		The sort code of this account.
  * \param **address		The address details of this account.
@@ -434,7 +425,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 
 static osbool account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
 		amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
-		acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN])
+		char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN])
 {
 	int	i;
 	acct_t	check_ident;
@@ -728,7 +719,6 @@ acct_t account_add(struct file_block *file, char *name, char *ident, enum accoun
 	file->accounts->accounts[new].opening_balance = 0;
 	file->accounts->accounts[new].credit_limit = 0;
 	file->accounts->accounts[new].budget_amount = 0;
-	file->accounts->accounts[new].offset_against = NULL_ACCOUNT;
 	account_idnum_initialise(&(file->accounts->accounts[new].cheque_number));
 	account_idnum_initialise(&(file->accounts->accounts[new].payin_number));
 
@@ -1369,9 +1359,6 @@ static osbool account_used_in_file(struct account_block *instance, acct_t accoun
 	if (instance == NULL || instance->file == NULL)
 		return FALSE;
 
-	if (account_check_account(instance, account))
-		return TRUE;
-
 	if (transact_check_account(instance->file, account))
 		return TRUE;
 
@@ -1380,33 +1367,6 @@ static osbool account_used_in_file(struct account_block *instance, acct_t accoun
 
 	if (preset_check_account(instance->file, account))
 		return TRUE;
-
-	return FALSE;
-}
-
-
-/**
- * Check the accounts in a file to see if the given account is referenced
- * in any of them.
- *
- * \param *instance		The accounts instance to check.
- * \param account		The account to search for.
- * \return			TRUE if the account is used; FALSE if not.
- */
-
-static osbool account_check_account(struct account_block *instance, acct_t account)
-{
-	int	i;
-
-	if (instance == NULL || instance->accounts == NULL)
-		return FALSE;
-
-	/* Check to see if any other accounts offset to this one. */
-
-	for (i = 0; i < instance->account_count; i++) {
-		if (instance->accounts[i].offset_against == account)
-			return TRUE;
-	}
 
 	return FALSE;
 }
@@ -1804,8 +1764,6 @@ void account_write_file(struct file_block *file, FILE *out)
 				config_write_token_pair(out, "Addr3", file->accounts->accounts[account].address[3]);
 			if (width != 0 || next_id != 0)
 				fprintf(out, "PayIn: %x,%x\n", width, next_id);
-			if (file->accounts->accounts[account].offset_against != NULL_ACCOUNT)
-				fprintf(out, "Offset: %x\n", file->accounts->accounts[account].offset_against);
 		}
 	}
 
@@ -1906,7 +1864,6 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 					file->accounts->accounts[j].opening_balance = 0;
 					file->accounts->accounts[j].credit_limit = 0;
 					file->accounts->accounts[j].budget_amount = 0;
-					file->accounts->accounts[j].offset_against = NULL_ACCOUNT;
 					account_idnum_initialise(&(file->accounts->accounts[j].cheque_number));
 					account_idnum_initialise(&(file->accounts->accounts[j].payin_number));
 
@@ -1960,8 +1917,6 @@ osbool account_read_acct_file(struct file_block *file, struct filing_block *in)
 		} else if (account != NULL_ACCOUNT && filing_test_token(in, "PayIn")) {
 			account_idnum_set(&(file->accounts->accounts[account].payin_number),
 					filing_get_int_field(in), filing_get_unsigned_field(in));
-		} else if (account != NULL_ACCOUNT && filing_test_token(in, "Offset")) {
-			file->accounts->accounts[account].offset_against = account_get_account_field(in);
 		} else {
 			filing_set_status(in, FILING_STATUS_UNEXPECTED);
 		}

@@ -32,7 +32,6 @@
 
 #include "account.h"
 #include "account_idnum.h"
-#include "interest.h"
 
 /**
  * Initialise the Account Edit dialogue.
@@ -55,19 +54,16 @@ void account_account_dialogue_initialise(void);
  * \param opening_balance	The initial opening balance to use for the account.
  * \param *cheque_number	The initial cheque number to use for the account.
  * \param *payin_number		The initial paying in number to use for the account.
- * \param interest_rate		The initial interest rate to use for the account.
- * \param offset_against	The initial offset account to use for the account.
  * \param *account_num		The initial account number to use for the account.
  * \param *sort_code		The initial sort code to use for the account.
  * \param **address		The initial address details to use for the account, or NULL.
  */
 
 void account_account_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acct_t account,
-		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, amt_t, struct account_idnum *, struct account_idnum *, acct_t, char *, char *, char [][ACCOUNT_ADDR_LEN]),
+		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, amt_t, struct account_idnum *, struct account_idnum *, char *, char *, char [][ACCOUNT_ADDR_LEN]),
 		osbool (*delete_callback)(struct account_block *, acct_t),
 		char *name, char *ident, amt_t credit_limit, amt_t opening_balance,
 		struct account_idnum *cheque_number, struct account_idnum *payin_number,
-		rate_t interest_rate, acct_t offset_against,
 		char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
 
 

@@ -70,7 +70,6 @@ OBJS = account.o			\
        fontlist.o			\
        goto.o				\
        iconbar.o			\
-       interest.o			\
        main.o				\
        presets.o			\
        preset_menu.o			\

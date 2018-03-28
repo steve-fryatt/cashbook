@@ -53,7 +53,6 @@
 
 #include "currency.h"
 #include "date.h"
-#include "interest.h"
 
 /**
  * The window template block currently being used for plotting icons.
@@ -518,27 +517,6 @@ void window_plot_currency_field(wimp_i field, amt_t amount, wimp_colour colour)
 	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
 
 	currency_convert_to_string(amount, icon->data.indirected_text.text, icon->data.indirected_text.size);
-
-	wimp_plot_icon(icon);
-}
-
-
-/**
- * Plot an interest rate field from the icon plotting template.
- *
- * \param field			The field icon to plot.
- * \param rate			The interest rate amount to be plotted in the field.
- * \param colour		The foreground colour to plot the icon text in.
- */
- 
-void window_plot_interest_rate_field(wimp_i field, rate_t rate, wimp_colour colour)
-{
-	wimp_icon	*icon = window_icon_templates->icons + field;
-
-	icon->flags &= ~wimp_ICON_FG_COLOUR;
-	icon->flags |= (colour << wimp_ICON_FG_COLOUR_SHIFT);
-
-	interest_convert_to_string(rate, icon->data.indirected_text.text, icon->data.indirected_text.size);
 
 	wimp_plot_icon(icon);
 }

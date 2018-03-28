@@ -88,7 +88,6 @@
 #include "find.h"
 #include "goto.h"
 #include "iconbar.h"
-#include "interest.h"
 #include "presets.h"
 #include "print_dialogue.h"
 #include "print_protocol.h"
@@ -315,8 +314,6 @@ static void main_initialise(void)
 	config_str_init("LimSOrderCols", "88,32,140,88,32,140,140,200,140,60");
 	config_str_init("PresetCols", "120,500,88,32,362,88,32,362,176,500");
 	config_str_init("LimPresetCols", "88,200,88,32,140,88,32,140,140,200");
-	config_str_init("InterestCols", "180,176,176,808");
-	config_str_init("LimInterestCols", "140,140,140,200");
 
 	config_load();
 
@@ -350,7 +347,6 @@ static void main_initialise(void)
 	find_initialise();
 	goto_initialise();
 	purge_initialise();
-	interest_initialise(sprites);
 	transact_initialise(sprites);
 	account_initialise(sprites);
 	accview_initialise(sprites);

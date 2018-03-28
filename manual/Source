@@ -1553,7 +1553,7 @@ Update to fourth stable release.
 
 <subhead title="Test Build">
 
-Alpha release for feedback and comment.
+Release Candidate for version 1.40.
 
 <list>
 <li>Re-implemented analysis report system to make it modular and enable additional reports to be added.
@@ -1569,7 +1569,6 @@ Alpha release for feedback and comment.
 <li>Fix unwanted caret movements when entering dates in the <window>transaction</window> window whilst an account view is open (ticket&nbsp;#630).
 <li>Make changes to cell contents from the Global Clipboard stick correctly when the caret is moved to another cell (ticket&nbsp;#628).
 <li>Correctly ensure that a C99-friendly version of the Shared C Library is present (ticket&nbsp;#632).
-<li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 
 </chapter>

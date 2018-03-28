@@ -32,7 +32,6 @@
 
 #include "currency.h"
 #include "date.h"
-#include "interest.h"
 
 /* ==================================================================================================================
  * Static constants
@@ -284,17 +283,6 @@ void window_plot_date_field(wimp_i field, date_t date, wimp_colour colour);
  */
  
 void window_plot_currency_field(wimp_i field, amt_t amount, wimp_colour colour);
-
-
-/**
- * Plot an interest rate field from the icon plotting template.
- *
- * \param field			The field icon to plot.
- * \param rate			The interest rate amount to be plotted in the field.
- * \param colour		The foreground colour to plot the icon text in.
- */
- 
-void window_plot_interest_rate_field(wimp_i field, rate_t rate, wimp_colour colour);
 
 
 /**

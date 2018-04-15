@@ -39,6 +39,7 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/errors.h"
 #include "sflib/icons.h"
 #include "sflib/msgs.h"
 
@@ -71,6 +72,12 @@ static char *stringbuild_ptr = NULL;
  */
 
 static char *stringbuild_end = NULL;
+
+/**
+ * Set TRUE if a line was too long for the buffer.
+ */
+
+static osbool stringbuild_too_long = FALSE;
 
 /* Macros. */
 
@@ -106,6 +113,10 @@ osbool stringbuild_initialise(char *buffer, size_t length)
 
 	*stringbuild_end = '\0';
 
+	/* Reset the too long flag. */
+
+	stringbuild_too_long = FALSE;
+
 	return TRUE;
 }
 
@@ -120,6 +131,11 @@ void stringbuild_cancel(void)
 	stringbuild_buffer = NULL;
 	stringbuild_ptr = NULL;
 	stringbuild_end = NULL;
+
+	if (stringbuild_too_long)
+		error_msgs_report_error("StringTooLong");
+
+	stringbuild_too_long = FALSE;
 }
 
 
@@ -147,8 +163,10 @@ char *stringbuild_get_line(void)
 
 	/* If the buffer has overrun, do nothing. */
 
-	if (stringbuild_ptr >= stringbuild_end)
+	if (stringbuild_ptr >= stringbuild_end) {
+		stringbuild_too_long = TRUE;
 		return NULL;
+	}
 
 	/* Terminate the buffer and return the string it holds. */
 

@@ -51,6 +51,10 @@ NoMemNewFile:There was not enough memory to create the new file.
 BadMemory:There was an error with the memory block sizes.
 BadDelete:There was an error while freeing memory.
 
+# String builder
+
+StringTooLong:Some of the lines in the output were too long to be processed, and have been omitted.
+
 # Transaction window
 
 TransTitle:Transaction list: %0

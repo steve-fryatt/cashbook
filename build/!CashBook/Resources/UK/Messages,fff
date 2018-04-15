@@ -510,7 +510,7 @@ Help.PresetTB.ColKey:\Tkey column.|M\Ssort the entries in ascending order by nex
 Help.PresetTB.ColName:\Tname column.|M\Ssort the entries in ascending order by transactions left, or \a for descending.|M\Dchange the column width.
 Help.PresetTB.Sort:\Sopen the preset sort dialogue, to update or change the sort details.|M\Are-sort the presets using the current settings.
 
-Help.Report:\Wa CashBook report.|MThe contents can be printed or exported from the menu.
+Help.Report/Help.ReportTB:\Wa CashBook report.|MThe contents can be printed or exported from the menu.
 
 Help.ProgInfo:\TCashBook information \w.
 Help.ProgInfo.Website:\Svisit the CashBook website, if you have Internet access.
@@ -1018,16 +1018,16 @@ Help.PresetMenu.03:\Rexport the preset list as a comma separated values file, fo
 Help.PresetMenu.04:\Rexport the preset list as a tab separated values file, for use in wordprocessors.
 Help.PresetMenu.05/Help.PresetTB.Print:\Sprint the preset list.
 
-Help.ReportMenu.00:\Sselect whether the display shows the printed page layout of the report.
-Help.ReportMenu.01:\Schange the report font settings.
+Help.ReportMenu.00/Help.ReportTB.ShowPages:\Sselect whether the display shows the printed page layout of the report.
+Help.ReportMenu.01/Help.ReportTB.Format:\Schange the report font settings.
 Help.ReportMenu.02:\Rchange the appearance of the report.
-Help.ReportMenu.0200:\Schoose whether to include the report title on the page.
-Help.ReportMenu.0201:\Schoose whether to include page numbers.
-Help.ReportMenu.0202:\Schoose whether to include a grid around tabular data.
+Help.ReportMenu.0200/Help.ReportTB.Title:\Schoose whether to include the report title on the page.
+Help.ReportMenu.0201/Help.ReportTB.PageNum:\Schoose whether to include page numbers.
+Help.ReportMenu.0202/Help.ReportTB.Grid:\Schoose whether to include a grid around tabular data.
 Help.ReportMenu.03:\Rchange the page layout of the report.
-Help.ReportMenu.0300:\Sdisplay the report on the page in Portrait format.
-Help.ReportMenu.0301:\Sdisplay the report on the page in Landscape format.
-Help.ReportMenu.0302:\Schoose whether to fit the report onto a single page width.
+Help.ReportMenu.0300/Help.ReportTB.Portrait:\Sdisplay the report on the page in portrait format.
+Help.ReportMenu.0301/Help.ReportTB.Landscape:\Sdisplay the report on the page in landscape format.
+Help.ReportMenu.0302/Help.ReportTB.FitWidth:\Schoose whether to fit the report onto a single page width.
 Help.ReportMenu.04:\Rsave the report as spaced ASCII text.
 Help.ReportMenu.05:\Rexport the report as a comma separated values file, for use in spreadsheets.
 Help.ReportMenu.06:\Rexport the report as a tab separated values file, for use in wordprocessors.

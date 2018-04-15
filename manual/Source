@@ -1553,9 +1553,9 @@ Update to fourth stable release.
 </list>
 
 
-<subhead title="Test Build">
+<subhead title="1.40 (15 April 2018)">
 
-Release Candidate for version 1.40.
+Fifth stable release.
 
 <list>
 <li>Re-implemented analysis report system to make it modular and enable additional reports to be added.

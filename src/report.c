@@ -355,6 +355,7 @@ static osbool			report_add_cell(struct report *report, char *text, enum report_c
 static void			report_reflow_content(struct report *report);
 
 static void			report_view_close_window_handler(wimp_close *close);
+static void			report_view_delete_window(struct report *report);
 static void			report_view_redraw_handler(wimp_draw *redraw);
 static void			report_view_toolbar_prepare(struct report *report);
 static void			report_view_toolbar_click_handler(wimp_pointer *pointer);
@@ -764,23 +765,9 @@ void report_delete(struct report *report)
 	if (report == NULL)
 		return;
 
-	if (report->toolbar != NULL) {
-		ihelp_remove_window(report->toolbar);
-		event_delete_window(report->toolbar);
-		wimp_delete_window(report->toolbar);
-		report->toolbar = NULL;
-	}
+	/* Delete any window that is still associated with the report. */
 
-	if (report->window != NULL) {
-		ihelp_remove_window(report->window);
-		event_delete_window(report->window);
-		wimp_delete_window(report->window);
-		report->window = NULL;
-	}
-
-	/* Close any related dialogues. */
-
-	dialogue_force_all_closed(NULL, report);
+	report_view_delete_window(report);
 
 	/* Free the flex blocks. */
 
@@ -1163,17 +1150,46 @@ static void report_view_close_window_handler(wimp_close *close)
 
 	/* Close the window */
 
-	if (report->window != NULL) {
-		dialogue_force_all_closed(NULL, report->template);
+	report_view_delete_window(report);
 
+	/* Delete the report, if there are no pending print jobs. */
+
+	if (report->print_pending == 0)
+		report_delete(report);
+}
+
+
+/**
+ * Delete a report window and any associated dialogues.
+ *
+ * \param *report		The report to be closed.
+ */
+
+static void report_view_delete_window(struct report *report)
+{
+	if (report == NULL)
+		return;
+
+	if (report->toolbar != NULL) {
+		ihelp_remove_window(report->toolbar);
+		event_delete_window(report->toolbar);
+		wimp_delete_window(report->toolbar);
+		report->toolbar = NULL;
+	}
+
+	if (report->window != NULL) {
 		ihelp_remove_window(report->window);
 		event_delete_window(report->window);
 		wimp_delete_window(report->window);
 		report->window = NULL;
 	}
 
-	if (report->print_pending == 0)
-		report_delete(report);
+	/* Close any related dialogues. */
+
+	dialogue_force_all_closed(NULL, report);
+
+	if (report->template != NULL)
+		dialogue_force_all_closed(NULL, report->template);
 }
 
 

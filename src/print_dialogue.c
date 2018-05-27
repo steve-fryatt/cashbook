@@ -141,7 +141,7 @@ static enum print_dialogue_type		print_dialogue_window_open = PRINTING_DIALOGUE_
  * The handle of the Print dialogue.
  */
 
-static struct dialogue_block		print_dialogue = NULL;
+static struct dialogue_block		*print_dialogue = NULL;
 
 /* Window Handles. */
 
@@ -169,14 +169,11 @@ static osbool		print_dialogue_handle_message_set_printer(wimp_message *message);
 
 static osbool		print_dialogue_open(struct print_dialogue_block *instance, osbool restore, char *title, char *report, wimp_pointer *ptr, void *data);
 
-static void		print_dialogue_click_handler(wimp_pointer *pointer);
-static osbool		print_dialogue_keypress_handler(wimp_key *key);
+static void		print_dialogue_fill_window(wimp_w window, void *data);
+static osbool		print_dialogue_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
+static void		print_dialogue_close(wimp_w window, void *data);
 
-static void		print_dialogue_refresh_window(void);
-static void		print_dialogue_fill_window(struct print_dialogue_block *print_data, osbool simple, osbool restore);
-static void		print_dialogue_process_window(osbool direct);
-
-static struct report	*print_dialogue_create_report(void);
+static struct report	*print_dialogue_create_report(struct print_dialogue_block *instance);
 static void		print_dialogue_process_report(struct print_dialogue_block *instance, struct report *report, osbool direct);
 
 
@@ -221,9 +218,9 @@ static struct dialogue_definition print_dialogue_definition = {
 	"Print",
 	print_dialogue_icon_list,
 	DIALOGUE_ICON_NONE,
-	analysis_template_save_fill_window,
-	analysis_template_save_process_window,
-	analysis_template_save_window_close,
+	print_dialogue_fill_window,
+	print_dialogue_process_window,
+	print_dialogue_close,
 	NULL,
 	NULL,
 	NULL
@@ -320,7 +317,7 @@ void print_dialogue_delete(struct print_dialogue_block *print)
 
 static osbool print_dialogue_handle_message_set_printer(wimp_message *message)
 {
-	print_dialogue_refresh_window();
+//	print_dialogue_refresh_window(); \TODO -- This needs to do something sensible!
 
 	return TRUE;
 }
@@ -400,7 +397,6 @@ void print_dialogue_open_advanced(struct print_dialogue_block *instance, wimp_po
 
 static osbool print_dialogue_open(struct print_dialogue_block *instance, osbool restore, char *title, char *report, wimp_pointer *ptr, void *data)
 {
-	print_dialogue_current_instance = instance;
 	print_dialogue_current_restore = restore;
 	print_dialogue_client_data = data;
 
@@ -425,7 +421,7 @@ static osbool print_dialogue_open(struct print_dialogue_block *instance, osbool 
  *
  * \param *pointer		The mouse event block to handle.
  */
-
+/*
 static void print_dialogue_click_handler(wimp_pointer *pointer)
 {
 	switch (pointer->i) {
@@ -461,40 +457,7 @@ static void print_dialogue_click_handler(wimp_pointer *pointer)
 		break;
 	}
 }
-
-
-/**
- * Process keypresses in one of the print dialogue boxes.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool print_dialogue_keypress_handler(wimp_key *key)
-{
-	if (key->w != print_dialogue_window)
-		return FALSE;
-
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		print_dialogue_process_window(TRUE);
-		close_dialogue_with_caret(key->w);
-		print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(key->w);
-		print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
+*/
 
 /**
  * Fill the Print Dialogue with values.
@@ -504,12 +467,11 @@ static osbool print_dialogue_keypress_handler(wimp_key *key)
  */
 
 static void print_dialogue_fill_window(wimp_w window, void *data)
-
-static void print_dialogue_fill_window(struct print_dialogue_block *print_data, osbool simple, osbool restore)
 {
 	char		*name, buffer[25];
 	os_error	*error;
-
+	struct print_dialogue_block	*instance = data;
+	
 	error = xpdriver_info(NULL, NULL, NULL, NULL, &name, NULL, NULL, NULL);
 
 	if (error != NULL) {
@@ -517,58 +479,57 @@ static void print_dialogue_fill_window(struct print_dialogue_block *print_data, 
 		name = buffer;
 	}
 
-	windows_title_msgs_param_lookup(print_dialogue_window, print_dialogue_window_title_token, name, NULL, NULL, NULL);
-	// \TODO -- If we've refreshed, there needs to be a title redraw here!
+	dialogue_set_title(print_dialogue, print_dialogue_window_title_token, name, NULL, NULL, NULL);
 
-	if (!restore) {
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_STANDARD, !config_opt_read("PrintText"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_PORTRAIT, !config_opt_read("ReportRotate"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_LANDSCAPE, config_opt_read("ReportRotate"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_SCALE, config_opt_read("ReportFitWidth"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_PNUM, config_opt_read("ReportShowPageNum"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_GRID, config_opt_read("ReportShowGrid"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TITLE, config_opt_read("ReportShowTitle"));
+	if (!print_dialogue_current_restore) {
+		icons_set_selected(window, PRINT_DIALOGUE_STANDARD, !config_opt_read("PrintText"));
+		icons_set_selected(window, PRINT_DIALOGUE_PORTRAIT, !config_opt_read("ReportRotate"));
+		icons_set_selected(window, PRINT_DIALOGUE_LANDSCAPE, config_opt_read("ReportRotate"));
+		icons_set_selected(window, PRINT_DIALOGUE_SCALE, config_opt_read("ReportFitWidth"));
+		icons_set_selected(window, PRINT_DIALOGUE_PNUM, config_opt_read("ReportShowPageNum"));
+		icons_set_selected(window, PRINT_DIALOGUE_GRID, config_opt_read("ReportShowGrid"));
+		icons_set_selected(window, PRINT_DIALOGUE_TITLE, config_opt_read("ReportShowTitle"));
 
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, config_opt_read("PrintText"));
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT, config_opt_read("PrintTextFormat"));
+		icons_set_selected(window, PRINT_DIALOGUE_FASTTEXT, config_opt_read("PrintText"));
+		icons_set_selected(window, PRINT_DIALOGUE_TEXTFORMAT, config_opt_read("PrintTextFormat"));
 
-		*icons_get_indirected_text_addr(print_dialogue_window, PRINT_DIALOGUE_RANGE_FROM) = '\0';
-		*icons_get_indirected_text_addr(print_dialogue_window, PRINT_DIALOGUE_RANGE_TO) = '\0';
+		*icons_get_indirected_text_addr(window, PRINT_DIALOGUE_RANGE_FROM) = '\0';
+		*icons_get_indirected_text_addr(window, PRINT_DIALOGUE_RANGE_TO) = '\0';
 	} else {
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_STANDARD, !print_data->text);
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_PORTRAIT, !print_data->rotate);
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_LANDSCAPE, print_data->rotate);
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_SCALE, print_data->fit_width);
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_PNUM, print_data->page_numbers);
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TITLE, print_data->title);
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_GRID, print_data->grid);
+		icons_set_selected(window, PRINT_DIALOGUE_STANDARD, !instance->text);
+		icons_set_selected(window, PRINT_DIALOGUE_PORTRAIT, !instance->rotate);
+		icons_set_selected(window, PRINT_DIALOGUE_LANDSCAPE, instance->rotate);
+		icons_set_selected(window, PRINT_DIALOGUE_SCALE, instance->fit_width);
+		icons_set_selected(window, PRINT_DIALOGUE_PNUM, instance->page_numbers);
+		icons_set_selected(window, PRINT_DIALOGUE_TITLE, instance->title);
+		icons_set_selected(window, PRINT_DIALOGUE_GRID, instance->grid);
 
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, print_data->text);
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT, print_data->text_format);
+		icons_set_selected(window, PRINT_DIALOGUE_FASTTEXT, instance->text);
+		icons_set_selected(window, PRINT_DIALOGUE_TEXTFORMAT, instance->text_format);
 
-		date_convert_to_string(print_data->from, icons_get_indirected_text_addr(print_dialogue_window, PRINT_DIALOGUE_RANGE_FROM),
-				icons_get_indirected_text_length(print_dialogue_window, PRINT_DIALOGUE_RANGE_FROM));
-		date_convert_to_string(print_data->to, icons_get_indirected_text_addr(print_dialogue_window, PRINT_DIALOGUE_RANGE_TO),
-				icons_get_indirected_text_length(print_dialogue_window, PRINT_DIALOGUE_RANGE_TO));
+		date_convert_to_string(instance->from, icons_get_indirected_text_addr(window, PRINT_DIALOGUE_RANGE_FROM),
+				icons_get_indirected_text_length(window, PRINT_DIALOGUE_RANGE_FROM));
+		date_convert_to_string(instance->to, icons_get_indirected_text_addr(window, PRINT_DIALOGUE_RANGE_TO),
+				icons_get_indirected_text_length(window, PRINT_DIALOGUE_RANGE_TO));
 	}
 
-	icons_set_group_shaded(print_dialogue_window, simple, 6,
+	icons_set_group_shaded(window, print_dialogue_window_open == PRINTING_DIALOGUE_TYPE_SIMPLE, 6,
 			PRINT_DIALOGUE_RANGE_BOX, PRINT_DIALOGUE_RANGE_TITLE, PRINT_DIALOGUE_RANGE_LABEL1,
 			PRINT_DIALOGUE_RANGE_LABEL2, PRINT_DIALOGUE_RANGE_FROM, PRINT_DIALOGUE_RANGE_TO);
 
-	icons_set_group_shaded(print_dialogue_window,
-			icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT) || (*print_dialogue_report_title_token == '\0'), 6,
+	icons_set_group_shaded(window,
+			icons_get_selected(window, PRINT_DIALOGUE_FASTTEXT) || (*print_dialogue_report_title_token == '\0'), 6,
 			PRINT_DIALOGUE_PORTRAIT, PRINT_DIALOGUE_LANDSCAPE, PRINT_DIALOGUE_SCALE,
 			PRINT_DIALOGUE_PNUM, PRINT_DIALOGUE_TITLE, PRINT_DIALOGUE_GRID);
 
-	icons_set_group_shaded_when_off(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, 1, PRINT_DIALOGUE_TEXTFORMAT);
+	icons_set_group_shaded_when_off(window, PRINT_DIALOGUE_FASTTEXT, 1, PRINT_DIALOGUE_TEXTFORMAT);
 
-	if (icons_get_shaded(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT))
-		icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT, TRUE);
+	if (icons_get_shaded(window, PRINT_DIALOGUE_TEXTFORMAT))
+		icons_set_selected(window, PRINT_DIALOGUE_TEXTFORMAT, TRUE);
 
-	icons_set_shaded(print_dialogue_window, PRINT_DIALOGUE_OK, error != NULL);
+	icons_set_shaded(window, PRINT_DIALOGUE_OK, error != NULL);
 
-	icons_set_shaded(print_dialogue_window, PRINT_DIALOGUE_REPORT, *print_dialogue_report_title_token == '\0');
+	icons_set_shaded(window, PRINT_DIALOGUE_REPORT, *print_dialogue_report_title_token == '\0');
 }
 
 
@@ -579,10 +540,24 @@ static void print_dialogue_fill_window(struct print_dialogue_block *print_data, 
  * \param direct		TRUE if the report should be printed direct.
  */
 
-static void print_dialogue_process_window(osbool direct)
+
+/**
+ * Process OK clicks in the Save/Rename Template dialogue.  If it is a
+ * real save, pass the call on to the store saved report function.  If it
+ * is a rename, handle it directly here.
+ *
+ * \param window	The handle of the dialogue box to be processed.
+ * \param *pointer	The Wimp pointer state.
+ * \param type		The type of icon selected by the user.
+ * \param *data		Client data pointer (unused).
+ * \return		TRUE if the dialogue should close; otherwise FALSE.
+ */
+
+static osbool print_dialogue_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data)
 {
-	char		print_line[PRINT_MAX_LINE_LEN];
-	struct report	*report_in, *report_out;
+	char				print_line[PRINT_MAX_LINE_LEN];
+	struct report			*report_in, *report_out;
+	struct print_dialogue_block	*instance = data;
 
 	#ifdef DEBUG
 	debug_printf("\\BProcessing the Advanced Print window");
@@ -590,23 +565,23 @@ static void print_dialogue_process_window(osbool direct)
 
 	/* Extract the information and call the originator's print start function. */
 
-	print_dialogue_current_instance->fit_width = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_SCALE);
-	print_dialogue_current_instance->rotate = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_LANDSCAPE);
-	print_dialogue_current_instance->text = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT);
-	print_dialogue_current_instance->text_format = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT);
-	print_dialogue_current_instance->page_numbers = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_PNUM);
-	print_dialogue_current_instance->title = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_TITLE);
-	print_dialogue_current_instance->grid = icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_GRID);
+	instance->fit_width = icons_get_selected(window, PRINT_DIALOGUE_SCALE);
+	instance->rotate = icons_get_selected(window, PRINT_DIALOGUE_LANDSCAPE);
+	instance->text = icons_get_selected(window, PRINT_DIALOGUE_FASTTEXT);
+	instance->text_format = icons_get_selected(window, PRINT_DIALOGUE_TEXTFORMAT);
+	instance->page_numbers = icons_get_selected(window, PRINT_DIALOGUE_PNUM);
+	instance->title = icons_get_selected(window, PRINT_DIALOGUE_TITLE);
+	instance->grid = icons_get_selected(window, PRINT_DIALOGUE_GRID);
 
-	print_dialogue_current_instance->from = date_convert_from_string(icons_get_indirected_text_addr(print_dialogue_window, PRINT_DIALOGUE_RANGE_FROM),
+	instance->from = date_convert_from_string(icons_get_indirected_text_addr(window, PRINT_DIALOGUE_RANGE_FROM),
 			NULL_DATE, 0);
-	print_dialogue_current_instance->to = date_convert_from_string(icons_get_indirected_text_addr(print_dialogue_window, PRINT_DIALOGUE_RANGE_TO),
+	instance->to = date_convert_from_string(icons_get_indirected_text_addr(window, PRINT_DIALOGUE_RANGE_TO),
 			NULL_DATE, 0);
 
 	if (!stringbuild_initialise(print_line, PRINT_MAX_LINE_LEN))
-		return;
+		return FALSE;
 
-	report_in = print_dialogue_create_report();
+	report_in = print_dialogue_create_report(instance);
 
 	switch (print_dialogue_window_open) {
 	case PRINTING_DIALOGUE_TYPE_SIMPLE:
@@ -615,8 +590,7 @@ static void print_dialogue_process_window(osbool direct)
 
 	case PRINTING_DIALOGUE_TYPE_ADVANCED:
 		report_out = print_dialogue_advanced_callback(report_in, print_dialogue_client_data,
-				print_dialogue_current_instance->from,
-				print_dialogue_current_instance->to);
+				instance->from, instance->to);
 		break;
 
 	default:
@@ -629,7 +603,27 @@ static void print_dialogue_process_window(osbool direct)
 	if (report_in != NULL && report_out == NULL)
 		report_delete(report_in);
 
-	print_dialogue_process_report(print_dialogue_current_instance, report_out, direct);
+	print_dialogue_process_report(instance, report_out, type == DIALOGUE_ICON_OK);
+
+	return TRUE;
+}
+
+
+/**
+ * The Print dialogue has been closed.
+ *
+ * \param window	The handle of the dialogue box to be filled.
+ * \param *data		Client data pointer (unused).
+ */
+
+static void print_dialogue_close(wimp_w window, void *data)
+{
+//	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_NONE;
+//	analysis_template_save_parent = NULL;
+//	analysis_template_save_report = NULL;
+//	analysis_template_save_template = NULL_TEMPLATE;
+
+	print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
 }
 
 
@@ -637,20 +631,21 @@ static void print_dialogue_process_window(osbool direct)
  * Construct a new report for the client to use, if one has been requested
  * by supplying a valid report title message token.
  *
+ * \param *instance		The dialogue instance to be used.
  * \return			The new report handle, or NULL.
  */
 
-static struct report *print_dialogue_create_report(void)
+static struct report *print_dialogue_create_report(struct print_dialogue_block *instance)
 {
 	struct report	*report;
 
 	char report_title[PRINT_MAX_TITLE_LEN];
 
-	if (print_dialogue_current_instance == NULL || *print_dialogue_report_title_token == '\0')
+	if (instance == NULL || *print_dialogue_report_title_token == '\0')
 		return NULL;
 
 	msgs_lookup(print_dialogue_report_title_token, report_title, PRINT_MAX_TITLE_LEN);
-	report = report_open(print_dialogue_current_instance->file, report_title, NULL);
+	report = report_open(instance->file, report_title, NULL);
 
 	if (report == NULL)
 		error_msgs_report_error("PrintMemFail");

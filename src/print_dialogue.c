@@ -193,18 +193,25 @@ static struct dialogue_icon print_dialogue_icon_list[] = {
 
 	/* Print Mode Group. */
 
-	{DIALOGUE_ICON_RADIO,					PRINT_DIALOGUE_STANDARD,	DIALOGUE_NO_ICON},
-	{DIALOGUE_ICON_RADIO,					PRINT_DIALOGUE_FASTTEXT,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_RADIO_PASS | DIALOGUE_ICON_SHADE_TARGET,	PRINT_DIALOGUE_STANDARD,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_RADIO_PASS | DIALOGUE_ICON_SHADE_TARGET,	PRINT_DIALOGUE_FASTTEXT,	DIALOGUE_NO_ICON},
 
 	/* Formatting Group. */
 
-	{DIALOGUE_ICON_SHADE_OFF | DIALOGUE_ICON_RADIO,		PRINT_DIALOGUE_PORTRAIT,	PRINT_DIALOGUE_STANDARD},
-	{DIALOGUE_ICON_SHADE_OFF | DIALOGUE_ICON_RADIO,		PRINT_DIALOGUE_LANDSCAPE,	PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_RADIO | DIALOGUE_ICON_SHADE_OFF,		PRINT_DIALOGUE_PORTRAIT,	PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OR | DIALOGUE_ICON_SHADE_ON,	PRINT_DIALOGUE_PORTRAIT,	PRINT_DIALOGUE_FASTTEXT},
+	{DIALOGUE_ICON_RADIO | DIALOGUE_ICON_SHADE_OFF,		PRINT_DIALOGUE_LANDSCAPE,	PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OR | DIALOGUE_ICON_SHADE_ON,	PRINT_DIALOGUE_LANDSCAPE,	PRINT_DIALOGUE_FASTTEXT},
 	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_SCALE,		PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OR | DIALOGUE_ICON_SHADE_ON,	PRINT_DIALOGUE_SCALE,		PRINT_DIALOGUE_FASTTEXT},
 	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_TITLE,		PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OR | DIALOGUE_ICON_SHADE_ON,	PRINT_DIALOGUE_TITLE,		PRINT_DIALOGUE_FASTTEXT},
 	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_PNUM,		PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OR | DIALOGUE_ICON_SHADE_ON,	PRINT_DIALOGUE_PNUM,		PRINT_DIALOGUE_FASTTEXT},
 	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_GRID,		PRINT_DIALOGUE_STANDARD},
+	{DIALOGUE_ICON_SHADE_OR | DIALOGUE_ICON_SHADE_ON,	PRINT_DIALOGUE_GRID,		PRINT_DIALOGUE_FASTTEXT},
 	{DIALOGUE_ICON_SHADE_OFF,				PRINT_DIALOGUE_TEXTFORMAT,	PRINT_DIALOGUE_FASTTEXT},
+	{DIALOGUE_ICON_SHADE_OR | DIALOGUE_ICON_SHADE_ON,	PRINT_DIALOGUE_TEXTFORMAT,	PRINT_DIALOGUE_STANDARD},
 
 	{DIALOGUE_ICON_END,					DIALOGUE_NO_ICON,		DIALOGUE_NO_ICON}
 };
@@ -234,15 +241,6 @@ static struct dialogue_definition print_dialogue_definition = {
 void print_dialogue_initialise(void)
 {
 	print_dialogue = dialogue_create(&print_dialogue_definition);
-
-//	print_dialogue_window = templates_create_window("Print");
-//	ihelp_add_window(print_dialogue_window, "Print", NULL);
-//	event_add_window_mouse_event(print_dialogue_window, print_dialogue_click_handler);
-//	event_add_window_key_event(print_dialogue_window, print_dialogue_keypress_handler);
-//	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_STANDARD, FALSE);
-//	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, FALSE);
-//	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_PORTRAIT, TRUE);
-//	event_add_window_icon_radio(print_dialogue_window, PRINT_DIALOGUE_LANDSCAPE, TRUE);
 
 	/* Register the Wimp message handlers. */
 
@@ -417,49 +415,6 @@ static osbool print_dialogue_open(struct print_dialogue_block *instance, osbool 
 
 
 /**
- * Process mouse clicks in the Advanced Print dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-/*
-static void print_dialogue_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case PRINT_DIALOGUE_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(print_dialogue_window);
-			print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			print_dialogue_refresh_window();
-		}
-		break;
-
-	case PRINT_DIALOGUE_OK:
-	case PRINT_DIALOGUE_REPORT:
-		print_dialogue_process_window(pointer->i == PRINT_DIALOGUE_OK);
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			close_dialogue_with_caret(print_dialogue_window);
-			print_dialogue_window_open = PRINTING_DIALOGUE_TYPE_NONE;
-		}
-		break;
-
-	case PRINT_DIALOGUE_STANDARD:
-	case PRINT_DIALOGUE_FASTTEXT:
-		icons_set_group_shaded(print_dialogue_window,
-				icons_get_selected(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT) || (*print_dialogue_report_title_token == '\0'), 6,
-				PRINT_DIALOGUE_PORTRAIT, PRINT_DIALOGUE_LANDSCAPE, PRINT_DIALOGUE_SCALE,
-				PRINT_DIALOGUE_PNUM, PRINT_DIALOGUE_TITLE, PRINT_DIALOGUE_GRID);
-
-		icons_set_group_shaded_when_off(print_dialogue_window, PRINT_DIALOGUE_FASTTEXT, 1, PRINT_DIALOGUE_TEXTFORMAT);
-
-		if (icons_get_shaded(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT))
-			icons_set_selected(print_dialogue_window, PRINT_DIALOGUE_TEXTFORMAT, TRUE);
-		break;
-	}
-}
-*/
-
-/**
  * Fill the Print Dialogue with values.
  *
  * \param window	The handle of the dialogue box to be filled.
@@ -536,15 +491,6 @@ static void print_dialogue_fill_window(wimp_w window, void *data)
 /**
  * Process the contents of the Advanced Print window, store the details and
  * call the supplied callback function with the details.
- *
- * \param direct		TRUE if the report should be printed direct.
- */
-
-
-/**
- * Process OK clicks in the Save/Rename Template dialogue.  If it is a
- * real save, pass the call on to the store saved report function.  If it
- * is a rename, handle it directly here.
  *
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.

@@ -372,7 +372,7 @@ static void			report_open_format_window(struct report *report, wimp_pointer *ptr
 static void			report_process_format_window(struct report *report, char *normal, char *bold, char* italic, char *bold_italic, int size, int spacing);
 
 static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
-static struct report		*report_print_window_closed(struct report *report, void *data);
+static struct report		*report_print_window_closed(struct report *report, void *data, date_t from, date_t to);
 
 static osbool			report_save_text(char *filename, osbool selection, void *data);
 static osbool			report_save_csv(char *filename, osbool selection, void *data);
@@ -1704,7 +1704,7 @@ static void report_open_print_window(struct report *report, wimp_pointer *ptr, o
 	if (report == NULL || report->file == NULL)
 		return;
 
-	print_dialogue_open_simple(report->file->print, ptr, restore, "PrintReport", NULL, report_print_window_closed, report);
+	print_dialogue_open(report->file->print, ptr, FALSE, restore, "PrintReport", NULL, report_print_window_closed, report);
 }
 
 
@@ -1714,10 +1714,12 @@ static void report_open_print_window(struct report *report, wimp_pointer *ptr, o
  *
  * \param *report		Printing-system supplied report handle, which should be NULL.
  * \param *data			The report to be printed.
+ * \param from			The date to print from.
+ * \param to			The date to print to.
  * \return			Pointer to the report to print, or NULL on failure.
  */
 
-static struct report *report_print_window_closed(struct report *report, void *data)
+static struct report *report_print_window_closed(struct report *report, void *data, date_t from, date_t to)
 {
 #ifdef DEBUG
 	debug_printf("Report print received data from simple print window");

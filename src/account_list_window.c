@@ -404,7 +404,7 @@ static void account_list_window_open_section_edit_window(struct account_list_win
 static osbool account_list_window_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type);
 static osbool account_list_window_delete_from_section_edit_window(struct account_list_window *window, int line);
 static void account_list_window_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore);
-static struct report *account_list_window_print(struct report *report, void *data);
+static struct report *account_list_window_print(struct report *report, void *data, date_t from, date_t to);
 static int account_list_window_add_line(struct account_list_window *windat);
 static void account_list_window_start_drag(struct account_list_window *windat, wimp_window_state *window, int line);
 static void account_list_window_terminate_drag(wimp_dragged *drag, void *data);
@@ -1555,10 +1555,10 @@ static void account_list_window_open_print_window(struct account_list_window *wi
 	/* Open the print dialogue box. */
 
 	if (windat->type & ACCOUNT_FULL) {
-		print_dialogue_open_simple(file->print, ptr, restore, "PrintAcclistAcc", "PrintTitleAcclistAcc",
+		print_dialogue_open(file->print, ptr, FALSE, restore, "PrintAcclistAcc", "PrintTitleAcclistAcc",
 				account_list_window_print, windat);
 	} else if (windat->type & ACCOUNT_IN || windat->type & ACCOUNT_OUT) {
-		print_dialogue_open_simple(file->print, ptr, restore, "PrintAcclistHead", "PrintTitleAcclistHead",
+		print_dialogue_open(file->print, ptr, FALSE, restore, "PrintAcclistHead", "PrintTitleAcclistHead",
 				account_list_window_print, windat);
 	}
 }
@@ -1570,10 +1570,12 @@ static void account_list_window_open_print_window(struct account_list_window *wi
  *
  * \param *report		The report handle to use for output.
  * \param *data			The account window structure to be printed.
+ * \param from			The date to print from.
+ * \param to			The date to print to.
  * \return			Pointer to the report, or NULL on failure.
  */
 
-static struct report *account_list_window_print(struct report *report, void *data)
+static struct report *account_list_window_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct account_list_window	*windat = data;
 	struct file_block		*file;

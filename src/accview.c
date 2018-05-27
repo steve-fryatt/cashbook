@@ -1444,7 +1444,7 @@ static void accview_open_print_window(struct accview_window *view, wimp_pointer 
 	if (view == NULL || view->file == NULL)
 		return;
 
-	print_dialogue_open_advanced(view->file->print, ptr, restore, "PrintAccview", "PrintTitleAccview", accview_print, view);
+	print_dialogue_open(view->file->print, ptr, TRUE, restore, "PrintAccview", "PrintTitleAccview", accview_print, view);
 }
 
 

@@ -4497,7 +4497,7 @@ static void transact_open_print_window(struct transact_block *windat, wimp_point
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	print_dialogue_open_advanced(windat->file->print, ptr, restore, "PrintTransact", "PrintTitleTransact", transact_print, windat);
+	print_dialogue_open(windat->file->print, ptr, TRUE, restore, "PrintTransact", "PrintTitleTransact", transact_print, windat);
 }
 
 

@@ -310,7 +310,7 @@ static void		preset_open_sort_window(struct preset_block *windat, wimp_pointer *
 static osbool		preset_process_sort_window(enum sort_type order, void *data);
 
 static void		preset_open_print_window(struct preset_block *windat, wimp_pointer *ptr, osbool restore);
-static struct report	*preset_print(struct report *report, void *data);
+static struct report	*preset_print(struct report *report, void *data, date_t from, date_t to);
 
 static int		preset_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void		preset_sort_swap(int index1, int index2, void *data);
@@ -1777,7 +1777,7 @@ static void preset_open_print_window(struct preset_block *windat, wimp_pointer *
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	print_dialogue_open_simple(windat->file->print, ptr, restore, "PrintPreset", "PrintTitlePreset", preset_print, windat);
+	print_dialogue_open(windat->file->print, ptr, FALSE, restore, "PrintPreset", "PrintTitlePreset", preset_print, windat);
 }
 
 
@@ -1787,10 +1787,12 @@ static void preset_open_print_window(struct preset_block *windat, wimp_pointer *
  *
  * \param *report		The report handle to use for output.
  * \param *data			The preset window structure to be printed.
+ * \param from			The date to print from.
+ * \param to			The date to print to.
  * \return			Pointer to the report, or NULL on failure.
  */
 
-static struct report *preset_print(struct report *report, void *data)
+static struct report *preset_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct preset_block	*windat = data;
 	int			line, column;

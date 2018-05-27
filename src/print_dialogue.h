@@ -67,29 +67,12 @@ void print_dialogue_delete(struct print_dialogue_block *print);
 
 
 /**
- * Open the Simple Print dialoge box, as used by a number of print routines.
- *
- * \param *instance	The print dialogue instance to own the dialogue.
- * \param *ptr		The current Wimp Pointer details.
- * \param restore	TRUE to retain the last settings for the file; FALSE to
- *			use the application defaults.
- * \param *title	The MessageTrans token for the dialogue title.
- * \param *report	The MessageTrans token for the report title, or NULL
- *			if the client doesn't need a report. 
- * \param callback	The function to call when the user closes the dialogue
- *			in the affermative.
- * \param *data		Data to be passed to the callback function.
- */
-
-void print_dialogue_open_simple(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool restore, char *title, char *report,
-		struct report* (callback) (struct report *, void *), void *data);
-
-
-/**
  * Open the Advanced Print dialoge box, as used by a number of print routines.
  *
  * \param *instance	The print dialogue instance to own the dialogue.
  * \param *ptr		The current Wimp Pointer details.
+ * \param dates		TRUE to allow dates to be selected, FALSE to shade
+ *			the associated fields out.
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  * \param *title	The Message Trans token for the dialogue title.
@@ -100,7 +83,7 @@ void print_dialogue_open_simple(struct print_dialogue_block *instance, wimp_poin
  * \param *data		Data to be passed to the callback function.
  */
 
-void print_dialogue_open_advanced(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool restore, char *title, char *report,
+void print_dialogue_open(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool dates, osbool restore, char *title, char *report,
 		struct report* (callback) (struct report *, void *, date_t, date_t), void *data);
 
 #endif

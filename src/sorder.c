@@ -336,7 +336,7 @@ static void			sorder_open_sort_window(struct sorder_block *windat, wimp_pointer 
 static osbool			sorder_process_sort_window(enum sort_type order, void *data);
 
 static void			sorder_open_print_window(struct sorder_block *windat, wimp_pointer *ptr, osbool restore);
-static struct report		*sorder_print(struct report *report, void *data);
+static struct report		*sorder_print(struct report *report, void *data, date_t from, date_t to);
 
 static int			sorder_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void			sorder_sort_swap(int index1, int index2, void *data);
@@ -1877,7 +1877,7 @@ static void sorder_open_print_window(struct sorder_block *windat, wimp_pointer *
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	print_dialogue_open_simple(windat->file->print, ptr, restore, "PrintSOrder", "PrintTitleSOrder", sorder_print, windat);
+	print_dialogue_open(windat->file->print, ptr, FALSE, restore, "PrintSOrder", "PrintTitleSOrder", sorder_print, windat);
 }
 
 
@@ -1887,10 +1887,12 @@ static void sorder_open_print_window(struct sorder_block *windat, wimp_pointer *
  *
  * \param *report		The report handle to use for output.
  * \param *data			The standing order window structure to be printed.
+ * \param from			The date to print from.
+ * \param to			The date to print to.
  * \return			Pointer to the report, or NULL on failure.
  */
 
-static struct report *sorder_print(struct report *report, void *data)
+static struct report *sorder_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct sorder_block	*windat = data;
 	int			line, column;

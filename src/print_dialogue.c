@@ -495,8 +495,6 @@ static osbool print_dialogue_process_window(wimp_w window, wimp_pointer *pointer
 
 static void print_dialogue_close(wimp_w window, void *data)
 {
-	struct print_dialogue_block	*instance = data;
-
 	print_dialogue_callback = NULL;
 	print_dialogue_client_data = NULL;
 }

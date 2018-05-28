@@ -312,7 +312,7 @@ void print_dialogue_delete(struct print_dialogue_block *print)
 
 static osbool print_dialogue_handle_message_set_printer(wimp_message *message)
 {
-//	print_dialogue_refresh_window(); \TODO -- This needs to do something sensible!
+	dialogue_refresh(print_dialogue, TRUE);
 
 	return TRUE;
 }

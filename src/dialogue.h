@@ -262,5 +262,17 @@ void dialogue_set_icon_text(struct dialogue_block *dialogue, enum dialogue_icon_
 
 void dialogue_set_ihelp_modifier(struct dialogue_block *dialogue, char *modifier);
 
+
+/**
+ * Request the client to fill a dialogue, update the shaded icons and then
+ * redraw any fields which require it. If the dialogue isn't open, nothing
+ * will be done.
+ *
+ * \param *dialogue		The dialogue instance to refresh.
+ * \param redraw_title		TRUE to force a redraw of the title bar.
+ */
+
+void dialogue_refresh(struct dialogue_block *dialogue, osbool redraw_title);
+
 #endif
 

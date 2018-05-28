@@ -91,7 +91,6 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 static void dialogue_menu_close_handler(wimp_w window, wimp_menu *menu);
 static void dialogue_close_window(struct dialogue_block *dialogue);
 static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *pointer, struct dialogue_icon *icon);
-static void dialogue_refresh(struct dialogue_block *dialogue);
 static void dialogue_fill(struct dialogue_block *dialogue);
 static void dialogue_place_caret(struct dialogue_block *dialogue);
 static void dialogue_shade_icons(struct dialogue_block *dialogue, wimp_i target);
@@ -356,7 +355,7 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			dialogue_close_window(windat);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			dialogue_refresh(windat);
+			dialogue_refresh(windat, FALSE);
 		}
 	} else if (icon->type & DIALOGUE_ICON_OK) {
 		if (dialogue_process(windat, pointer, icon) && pointer->buttons == wimp_CLICK_SELECT)
@@ -580,17 +579,22 @@ static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *po
 
 /**
  * Request the client to fill a dialogue, update the shaded icons and then
- * redraw any fields which require it.
+ * redraw any fields which require it. If the dialogue isn't open, nothing
+ * will be done.
  *
  * \param *dialogue		The dialogue instance to refresh.
+ * \param redraw_title		TRUE to force a redraw of the title bar.
  */
 
-static void dialogue_refresh(struct dialogue_block *dialogue)
+void dialogue_refresh(struct dialogue_block *dialogue, osbool redraw_title)
 {
 	int			i;
 	struct dialogue_icon	*icons;
 
 	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+		return;
+
+	if (!windows_get_open(dialogue->window))
 		return;
 
 	dialogue_fill(dialogue);
@@ -603,6 +607,9 @@ static void dialogue_refresh(struct dialogue_block *dialogue)
 	}
 
 	icons_replace_caret_in_window(dialogue->window);
+
+	if (redraw_title)
+		xwimp_force_redraw_title(dialogue->window);
 }
 
 

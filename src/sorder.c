@@ -71,6 +71,7 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
@@ -626,6 +627,10 @@ static void sorder_delete_window(struct sorder_block *windat)
 		wimp_delete_window(windat->sorder_pane);
 		windat->sorder_pane = NULL;
 	}
+
+	/* Close any related dialogues. */
+
+	dialogue_force_all_closed(NULL, windat);
 }
 
 
@@ -1877,7 +1882,7 @@ static void sorder_open_print_window(struct sorder_block *windat, wimp_pointer *
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	print_dialogue_open(windat->file->print, ptr, FALSE, restore, "PrintSOrder", "PrintTitleSOrder", sorder_print, windat);
+	print_dialogue_open(windat->file->print, ptr, FALSE, restore, "PrintSOrder", "PrintTitleSOrder", windat, sorder_print, windat);
 }
 
 

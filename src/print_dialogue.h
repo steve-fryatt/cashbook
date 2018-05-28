@@ -76,6 +76,8 @@ void print_dialogue_delete(struct print_dialogue_block *print);
  * \param restore	TRUE to retain the last settings for the file; FALSE to
  *			use the application defaults.
  * \param *title	The Message Trans token for the dialogue title.
+ * \param *parent	A parent for the dialogue, or NULL if there isn't
+ *			a specific owner.
  * \param *report	The MessageTrans token for the report title, or NULL
  *			if the client doesn't need a report. 
  * \param callback	The function to call when the user closes the dialogue
@@ -84,7 +86,7 @@ void print_dialogue_delete(struct print_dialogue_block *print);
  */
 
 void print_dialogue_open(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool dates, osbool restore, char *title, char *report,
-		struct report* (callback) (struct report *, void *, date_t, date_t), void *data);
+		void *parent, struct report* (callback) (struct report *, void *, date_t, date_t), void *data);
 
 #endif
 

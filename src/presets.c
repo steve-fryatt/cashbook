@@ -67,6 +67,7 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
@@ -601,6 +602,10 @@ static void preset_delete_window(struct preset_block *windat)
 		wimp_delete_window(windat->preset_pane);
 		windat->preset_pane = NULL;
 	}
+
+	/* Close any related dialogues. */
+
+	dialogue_force_all_closed(NULL, windat);
 }
 
 
@@ -1777,7 +1782,7 @@ static void preset_open_print_window(struct preset_block *windat, wimp_pointer *
 	if (windat == NULL || windat->file == NULL)
 		return;
 
-	print_dialogue_open(windat->file->print, ptr, FALSE, restore, "PrintPreset", "PrintTitlePreset", preset_print, windat);
+	print_dialogue_open(windat->file->print, ptr, FALSE, restore, "PrintPreset", "PrintTitlePreset", windat, preset_print, windat);
 }
 
 

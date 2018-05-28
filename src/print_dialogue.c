@@ -330,13 +330,15 @@ static osbool print_dialogue_handle_message_set_printer(wimp_message *message)
  * \param *title	The Message Trans token for the dialogue title.
  * \param *report	The MessageTrans token for the report title, or NULL
  *			if the client doesn't need a report. 
+ * \param *parent	A parent for the dialogue, or NULL if there isn't
+ *			a specific owner.
  * \param callback	The function to call when the user closes the dialogue
  *			in the affermative.
  * \param *data		Data to be passed to the callback function.
  */
 
 void print_dialogue_open(struct print_dialogue_block *instance, wimp_pointer *ptr, osbool dates, osbool restore, char *title, char *report,
-		struct report* (callback) (struct report *, void *, date_t, date_t), void *data)
+		void *parent, struct report* (callback) (struct report *, void *, date_t, date_t), void *data)
 {
 	if (instance == NULL)
 		return;
@@ -356,7 +358,7 @@ void print_dialogue_open(struct print_dialogue_block *instance, wimp_pointer *pt
 	else
 		*print_dialogue_report_title_token = '\0';
 
-	dialogue_open(print_dialogue, FALSE, instance->file, instance, ptr, instance);
+	dialogue_open(print_dialogue, FALSE, instance->file, parent, ptr, instance);
 
 	print_dialogue_callback = callback;
 }

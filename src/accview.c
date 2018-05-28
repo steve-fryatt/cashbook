@@ -65,6 +65,7 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "flexutils.h"
@@ -618,6 +619,10 @@ void accview_delete_window(struct file_block *file, acct_t account)
 
 	account_set_accview(file, account, NULL);
 	heap_free(view);
+
+	/* Close any related dialogues. */
+
+	dialogue_force_all_closed(NULL, view);
 }
 
 
@@ -1444,7 +1449,7 @@ static void accview_open_print_window(struct accview_window *view, wimp_pointer 
 	if (view == NULL || view->file == NULL)
 		return;
 
-	print_dialogue_open(view->file->print, ptr, TRUE, restore, "PrintAccview", "PrintTitleAccview", accview_print, view);
+	print_dialogue_open(view->file->print, ptr, TRUE, restore, "PrintAccview", "PrintTitleAccview", view, accview_print, view);
 }
 
 

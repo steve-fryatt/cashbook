@@ -1188,6 +1188,10 @@ static void report_view_delete_window(struct report *report)
 
 	dialogue_force_all_closed(NULL, report);
 
+	/* The Save Report Template will be opened with a parent of
+	 * the template handle.
+	 */
+
 	if (report->template != NULL)
 		dialogue_force_all_closed(NULL, report->template);
 }
@@ -1720,7 +1724,7 @@ static void report_open_print_window(struct report *report, wimp_pointer *ptr, o
 	if (report == NULL || report->file == NULL)
 		return;
 
-	print_dialogue_open(report->file->print, ptr, FALSE, restore, "PrintReport", NULL, report_print_window_closed, report);
+	print_dialogue_open(report->file->print, ptr, FALSE, restore, "PrintReport", NULL, report, report_print_window_closed, report);
 }
 
 

@@ -78,6 +78,7 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
@@ -689,6 +690,10 @@ static void account_list_window_delete(struct account_list_window *windat)
 		wimp_delete_window(windat->account_footer);
 		windat->account_footer = NULL;
 	}
+
+	/* Close any related dialogues. */
+
+	dialogue_force_all_closed(NULL, windat);
 }
 
 
@@ -1556,10 +1561,10 @@ static void account_list_window_open_print_window(struct account_list_window *wi
 
 	if (windat->type & ACCOUNT_FULL) {
 		print_dialogue_open(file->print, ptr, FALSE, restore, "PrintAcclistAcc", "PrintTitleAcclistAcc",
-				account_list_window_print, windat);
+				windat, account_list_window_print, windat);
 	} else if (windat->type & ACCOUNT_IN || windat->type & ACCOUNT_OUT) {
 		print_dialogue_open(file->print, ptr, FALSE, restore, "PrintAcclistHead", "PrintTitleAcclistHead",
-				account_list_window_print, windat);
+				windat, account_list_window_print, windat);
 	}
 }
 

@@ -1744,7 +1744,7 @@ void account_write_file(struct file_block *file, FILE *out)
 			fprintf(out, "@: %x,%s,%x,%x,%x,%x,%x,%x\n",
 					account, file->accounts->accounts[account].ident, file->accounts->accounts[account].type,
 					file->accounts->accounts[account].opening_balance, file->accounts->accounts[account].credit_limit,
-					file->accounts->accounts[account].budget_amount, next_id, width);
+					file->accounts->accounts[account].budget_amount, width, next_id);
 
 			account_idnum_get(&(file->accounts->accounts[account].payin_number), &width, &next_id);
 

@@ -1573,6 +1573,15 @@ Fifth stable release.
 <li>Correctly ensure that a C99-friendly version of the Shared C Library is present (ticket&nbsp;#632).
 </list>
 
+
+<subhead title="Test Build">
+
+Alpha release for feedback and comment.
+
+<list>
+<li>Fix errors writing cheque number details to file, introduced in 1.40 (ticket&nbsp;#659).
+</list>
+
 </chapter>
 
 

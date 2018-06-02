@@ -1574,9 +1574,9 @@ Fifth stable release.
 </list>
 
 
-<subhead title="Test Build">
+<subhead title="1.41 (2nd June 2018)">
 
-Alpha release for feedback and comment.
+Update to fifth stable release.
 
 <list>
 <li>Fix errors writing cheque number details to file, introduced in 1.40 (ticket&nbsp;#659).

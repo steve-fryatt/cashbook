@@ -1,0 +1,333 @@
+/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+ *
+ * This file is part of CashBook:
+ *
+ *   http://www.stevefryatt.org.uk/software/
+ *
+ * Licensed under the EUPL, Version 1.1 only (the "Licence");
+ * You may not use this work except in compliance with the
+ * Licence.
+ *
+ * You may obtain a copy of the Licence at:
+ *
+ *   http://joinup.ec.europa.eu/software/page/eupl
+ *
+ * Unless required by applicable law or agreed to in
+ * writing, software distributed under the Licence is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES
+ * OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * See the Licence for the specific language governing
+ * permissions and limitations under the Licence.
+ */
+
+
+/**
+ * Icon bar menu.
+ */
+
+menu(IconBarMenu, "CashBook")
+{
+	item("Info") {
+		d_box(ProgInfo);
+	}
+	item("Help");
+	item("Choices...");
+	item("Quit");
+}
+
+/**
+ * Main menu.
+ */
+
+menu(MainMenu, "CashBook")
+{
+	item("File") {
+		submenu(MainFileSubmenu);
+	}
+	item("Accounts") {
+		submenu(MainAccountsSubmenu);
+	}
+	item("Headings") {
+		submenu(MainHeadingsSubmenu);
+	}
+	item("Transactions") {
+		submenu(MainTransactionsSubmenu);
+	}
+	item("Analysis") {
+		submenu(MainAnalysisSubmenu);
+	}
+}
+
+menu(MainFileSubmenu, "File")
+{
+	item("Info ^F1") {
+		d_box(file_info) {
+			warning;
+		}
+		dotted;
+	}
+	item("Save F3") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Export CSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Purge...") {
+		dotted;
+	}
+	item("Print... Print");
+}
+
+menu(MainAccountsSubmenu, "Accounts")
+{
+	item("View account");
+	item("List accounts F9") {
+		dotted;
+	}
+	item("New account...");
+}
+
+menu(MainHeadingsSubmenu, "Headings")
+{
+	item("List incoming F10");
+	item("List outgoing F11") {
+		dotted;
+	}
+	item("New heading...");
+}
+
+menu(MainTransactionsSubmenu, "Transactions")
+{
+	item("Find... F4");
+	item("Goto... F5");
+	item("Sort... F6") {
+		dotted;
+	}
+	item("List standing orders");
+	item("New standing order...") {
+		dotted;
+	}
+	item("List presets");
+	item("New preset...") {
+		dotted;
+	}
+	item("Reconcile");
+}
+
+menu(MainAnalysisSubmenu, "Analysis")
+{
+	item("Budget...") {
+		dotted;
+	}
+	item("Saved reports");
+	item("Transaction report...");
+	item("Unreconciled report...");
+	item("Cashflow report...");
+	item("Balance report...") {
+		dotted;
+	}
+	item("Standing order report");
+}
+
+/**
+ * Accounts List menu
+ */
+
+menu(AccountListMenu, "Accounts")
+{
+	item("View account") {
+		indirected(20);
+	}
+	item("Edit account...") {
+		indirected(20);
+	}
+	item("Edit section...") {
+		dotted;
+	}
+	item("New account...") {
+		indirected(20);
+	}
+	item("New section...") {
+		dotted;
+	}
+	item("Export CSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Print...");
+}
+
+/**
+ * Account View menu
+ */
+
+menu(AccountViewMenu, "Account")
+{
+	item("Find transaction");
+	item("Goto transaction");
+	item("Sort entries...") {
+		dotted;
+	}
+	item("Edit account...") {
+		indirected(20);
+		dotted;
+	}
+	item("Export CSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Print...");
+}
+
+/**
+ * Standing Order List menu
+ */
+
+menu(SOrderMenu, "Standing Order")
+{
+	item("Sort entries...") {
+		dotted;
+	}
+	item("Edit standing order...");
+	item("New standing order...") {
+		dotted;
+	}
+	item("Export CSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Print...") {
+		dotted;
+	}
+	item("Full report");
+}
+
+/**
+ * Preset List menu
+ */
+
+menu(PresetMenu, "Preset")
+{
+	item("Sort entries...") {
+		dotted;
+	}
+	item("Edit preset...");
+	item("New preset...") {
+		dotted;
+	}
+	item("Export CSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Print...");
+}
+
+/**
+ * Report view menu
+ */
+
+menu(ReportViewMenu, "Report")
+{
+	item("Show pages") {
+		dotted;
+	}
+	item("Font...");
+	item("Include") {
+		submenu(ReportViewIncludeSubmenu) {
+			always;
+		}
+	}
+	item("Layout") {
+		submenu(ReportViewLayoutSubmenu) {
+			always;
+		}
+		dotted;
+		
+	}
+	item("Save text") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Export CSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+	}
+	item("Export TSV") {
+		d_box(SaveAs) {
+			warning;
+		}
+		dotted;
+	}
+	item("Print...") {
+		dotted;
+	}
+	item("Save template...");
+}
+
+menu(ReportViewLayoutSubmenu, "Layout")
+{
+	item("Portrait");
+	item("Landscape") {
+		dotted;
+	}
+	item("Fit width");
+}
+
+menu(ReportViewIncludeSubmenu, "Include")
+{
+	item("Title");
+	item("Page numbers") {
+		dotted;
+	}
+	item("Grid");
+}
+
+/**
+ * Choices Date Format Menu
+ *
+ * The entries in this menu must match the order of the entries in
+ * enum date_format.
+ */
+
+menu(ChoicesDateMenu, "Format")
+{
+	item("DD MM YYYY");
+	item("YYYY MM DD");
+	item("MM DD YYYY");
+}

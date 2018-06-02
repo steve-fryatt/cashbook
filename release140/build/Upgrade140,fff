@@ -1,0 +1,93 @@
+=============================================================================
+CashBook - Home Accounts Manager
+
+Important Upgrade Information for users of CashBook 1.40          2 June 2018
+=============================================================================
+
+  CashBook 1.40 contained a bug which would corrupt the Next Cheque numbers
+  associated with accounts. Users upgrading from CashBook 1.40 should read
+  this release note before starting to upgrade their copy to a later version.
+  
+
+Does this affect me?
+--------------------
+
+  1) Are you currently using CashBook 1.40?
+
+  2) Do any of your accounts have a 'Next cheque' number associated with
+     them? Note that the 'Next pay-in slip' field is not affected.
+
+  If the answer to either of these questions is "no", then this problem does
+  NOT affect you. You should proceed directly to upgrading, as described in
+  "How do I upgrade my copy of CashBook?" below.
+
+
+If I might be affected, what do I need to do?
+---------------------------------------------
+
+  Before upgrading your copy of CashBook 1.40, quit any copies which are on
+  the iconbar and start a copy of CashBook 1.41 or later (either from the
+  download archive, or by copying it to another location on your hard disc --
+  do NOT overwrite your copy of CashBook 1.40 yet).
+
+  Load any files which have been saved by CashBook 1.40 and contain accounts
+  using the 'Next cheque' field into this newer version of CashBook. Open the
+  Accounts list window (click Menu over the Transaction window, and select
+  'Accounts->List accounts').
+
+  Open the Edit Account dialogue for any account which might contain a next
+  cheque number (click Menu over it in the Accounts List, and select 'Edit
+  account...'). If the 'Next cheque' field contains a valid number, the file
+  is OK. If it contains a corrupted number (often a string of zeros), make a
+  note of the file for the next step.
+
+  If the cheque numbers in all of your files were OK, then again, this
+  problem does NOT affect you. However, do NOT load the files into
+  CashBook 1.40 again -- instead, proceed to upgrading your application as
+  described in "How do I upgrade my copy of CashBook?" below.
+
+
+So I have some corrupted cheque numbers, what now?
+--------------------------------------------------
+
+  If the previous step identified any files with corrupt cheque numbers, quit
+  the copy of CashBook from the iconbar and load CashBook 1.40 for one final
+  time.
+
+  Load each corrupted file into CashBook 1.40, save it and close it again. Do
+  this ONLY ONCE for each file.
+
+  When each affected file has been loaded and saved, proceed to upgrade your
+  copy of CashBook 1.40.
+
+
+How do I upgrade my copy of CashBook?
+-------------------------------------
+
+  CashBook 1.40 can be upgraded in the usual way: delete the existing
+  application, and replace it with version 1.41 (or later).
+
+  If you saved a temporary copy of the new version somewhere for the previous
+  checks, make sure that you delete it to avoid any confusion later on.
+
+  Note that loading files back into a copy of CashBook 1.40 in the future,
+  and saving them again, will restore this corruption again. It is wise to
+  make sure that you do not have any copies of this version of CashBook, or
+  any test builds with version numbers of less than r4686, remaining anywhere
+  on your computers.
+
+  That's it! Sorry for the inconvenience of having to check your files.
+
+
+Updates and Contacting Me
+-------------------------
+
+  If you have any comments about CashBook, have any questions about this
+  upgrade process, or would like to report any bugs that you find, you can
+  email me at the address below.
+
+  Updates to CashBook and more programs for RISC OS computers can be found on
+  my website at http://www.stevefryatt.org.uk/software/
+
+  Stephen Fryatt
+  email: steve@stevefryatt.org.uk

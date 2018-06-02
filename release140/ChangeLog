@@ -1,0 +1,218 @@
+CashBook Change Log
+-------------------
+
+0.98
+----
+* Statement views open at an appropriate offset based on the transaction view.
+* Auxiliary window menus updated to contain additional options.
+* Report presentation code added.
+* Standing order reports moved into new format.
+* qsort() replaced by comb sort and problems with changing order resolved.
+* Null dates now sort to end of file.
+* Adjust clicks on the reconcile flag in the transaction window and account view window will toggle the flag status.
+* Questions now supply custom button texts to clarify the options available.
+* Linked to new version of SFLib which gracefully relocates the caret to the nearest writable icon when the current one is shaded.
+* File load warns if unknown tokens are encountered.
+* Filename details are now accessed through specific functions in file.c, so that the default <Untitled n> is always substituted.
+* Text-mode printing for reports added.
+* Graphics mode printing for reports added.
+* Printing options added to Choices.
+* Printing added for standing orders, accounts & headings lists, transactions and account views.
+* Account used check updated to include account usage in standing orders.
+* File purge option added, to clear unwanted transactions, accounts, headings and standing orders.
+* Account and standing oreder delete moved to separate functions, with user questions left in GUI handling code.
+* Check for line type added to account list update code in delete account, to prevent headers and footers being deleted by mistake.  Need to establish why these have valid account numbers set.
+* Budget balances start from zero and do not include any opening balance.
+* Fully reconciled transactions can be shaded.
+* Column width dragging is fixed, so that columns don't extend by sum of gutter width.
+* Applying choices now refreshes all the open windows.
+* Column titles moved entirely from Messages into Templates.
+* Linked to a new version of SFLib which fixes toolbar pane positions when windows open off-screen.
+* Updated toolbar icons.
+* Fixed formatting of fully fractional -ve values, so that they get a 0 before the decimal point.
+* Double-clicks in a statement view place the caret into the same column of the transaction window.
+* Option of goto date added to Goto Transaction dialogue.
+* Added document titles to window printouts.
+* Stopped Adjust-Cancel in edit heading dialogue clearing both radio icons.
+* Budget limits are no longer discarded when creating a new heading.
+* Credit limits are no longer discarded when creating a new account.
+* Choices window refreshes fields correctly when Adjust-Cancel is used.
+* Fixed use of heap_alloc() in Account View code, so returned addresses are not stored directly into flex memory (which can move while the function is in progress - GCC 3.4.4r3).
+* Margins implemented in printing code.
+* Print and Report choices split into separate panes in Choices window.
+* Implemented periodic report engine, with transaction grouping and calendar lock.
+* Implemented unreconciled transaction reports.
+* Implemented cashflow and budget reports.
+* Account ident entry window implemented for report setting windows.
+* Reversed actions of select and adjust double-clicks in account and heading list windows.
+* Checks to see if Wimp_AutoScroll is available before calling SWI, for compatibility with RISC OS 3+Nested Wimp.
+* Reconcile toolbar icon corrected to work on RISC OS 3.
+* Group box headings in templates fixed for RISC OS 3.
+* File loading now ignores misplaced additional file tags.
+* Reversed logic of goto clear option.  Goto field now initialised to NULL_DATE, instead of 0, to go with default goto type of date.
+
+0.98a
+-----
+* Updated convert_string_to_money () to accept nagative values and return valid negative numbers.  Transaction amount, Standing order amounts, find amount and transcation report amounts fields now take - and ().  No checks made to establish if negative transactions upset any code!
+* Windows size correctly set when importing small (<MIN_TRANSACT_ENTRIES) CSV files.
+* Recalculation and window refresh is now handled correctly after a CSV import.
+
+0.99
+----
+* Support added for arbitrary transaction sorts.
+* Account views can be independantly sorted.
+* Edit line bug fixed, so that description only updates if changed.
+* Popup Menu icons in templates given Pptr_menu validation strings.
+* Adjust clicks on Save button and Ctrl-F3 shortcut save file to the same place as the current location, if possible.
+* Error trapping improved when transaction and standing order windows are opened.
+* Standing Orders can be independantly sorted.  The option to re-sort the list when orders are processed allows them to remain in 'next-first' order.
+* Analysis heading statement views can highlight transactions falling outwith the budget period.
+* Linked against OSLib 6.90.
+* Added Ctrl-R shortcut to force a full recalculation.  This isn't much use to the end user, but will help debugging.
+* Statement views and account lists can highlight balances that go overdrawn.
+* "Default" button hidden in choices window.
+* Added Accounts pane in the Choices window to take the additional options arising from highlighting overdrawn accounts.
+
+0.99a
+-----
+* Makefile updated to show full dependencies.
+* Changed Wimp Version passed to Wimp_Initialise to 380.
+* Fixed memory overrun in find_transaction_window_centre() when account or heading unused.
+
+0.99b
+-----
+* Shift-Adjust-Close now open parent directoty but leaves file open.
+
+0.99c
+-----
+* refresh_transaction_edit_line_icons () updated to refresh all icons.
+* Importing a CSV file now refreshes the window and edit line.
+* Closing Account/Header edit window now refreshes edit line icons.
+* redraw_file_windows () now refreshes edit line icons.
+* Processing standing orders now refreshes edit line icons.
+
+0.99d
+-----
+* Interactive help corrected for analysis heading view toolbar and menu.
+
+1.00
+----
+* Recompiled with GCC 3.4.6 r3.
+
+1.01
+----
+* Added Save button to File Not Saved warning box.
+* Changed all hex file reads to unsigned.
+* Report find_date_range() now ignores NULL_DATEs when scanning the file.
+
+1.02
+----
+* Added count_days() function.
+* strip_blank_transactions() now corrects the sort_index entry of the transactions array, to avoid breaking the transaction redraw.
+* purge_file() rebuilds sets the sort_valid to false, and rebuilds all all account views after the purge has completed.
+* purge_file() correctly updates the filename in the window title if the file was already unsafe.
+* purge_file() scrolls the transaction window to the top before finding the caret, to get the body of the file into view.
+* When deleting an account/heading via delete_account(), any open accview window is deleted.
+* set_accview_window_extent() calls wimp_open_window() to fix the visible area first.
+* set_accounts_window_extent() calls wimp_open_window() to fix the visible area first.
+* set_sorder_window_extent() calls wimp_open_window() to fix the visible area first.
+* set_transact_window_extent() calls wimp_open_window() to fix the visible area first.
+* process_report_format_window() calls wimp_open_window() to fix the visible area first.
+
+1.03
+----
+* Added budget info to budget period Transaction report.
+* Readrw added to start of purge_file() -- may need moving and redraw fixing to cover original extent of file?
+* Corrected Edit Account template, to allow () in monetary fields.
+* Standing Order window no longer reads invalid data if From field is filled and To isn't.
+* Found window closes if parent file is closed.
+* File Import log structure added.
+* convert_string_to_date() checks to see if numbers are numerical, and rejects them if not.
+* Toggling reconcile flags works correctly when only one of two accounts is specified in the transaction.
+* Adjust-clicks over From and To columns in transaction window opens list of accounts and headings.
+* Added Ctrl-F10 delete line option, with the config AllowTransDelete to disable it and an item in the Choices Transactions pane to set it.
+* The relevant account view is recalculated after an account is edited, in case the opening balance is changed.
+
+1.10
+----
+* CSV import correctly logs account names and rejects lines with invalid idents.
+* Refreshing transactions after Adjust-Click reconcile works correctly when the sort index has been changed.
+* Updating From and To from the Adjust-Click menu works correctly when the sort index has been changed.
+* Heading statement views are no longer shaded if no budget dates are both unset.
+* All windows redraw when the budget settings are changed.
+* File closes after a save if the save dialogue is opened from the File Unsaved warning message.
+
+1.11
+----
+* Ctrl-F2 closes the transaction window.
+* SOrder and Find windows call fill_account_field() to set up the From and To fields.
+* Caret placed correctly in transaction window ident field if Adjust-click menu changes the account ident.
+* Adjust click on dialogue reconciled fields toggles the state.
+* Adjust click on dialogue account name fields opens a selection menu.
+* Account enter transient can turn into a static dialogue when a menu is opened over it.
+* set_transaction_edit_line_shading() now checks that the file contains transactions before trying to index via one.
+
+1.12
+----
+* Transaction report outputs headings in account window order.
+* Unreconciled report outputs accounts and headnings in list order when grouped by account.
+* Cashflow and Balance reports output accounts and headings in list order.
+
+1.15
+----
+* Standing Order click now uses SORDER_TOOLBAR_HEIGHT correctly.
+* Ascending icon in SO Sort dialogue protected from deselection.
+* Added preset list window and supporting code.
+* Radio icons in SO Edit dialogue protected from deselection.
+* Memu block allocation in mainmenu merged into shared code.
+* process_transaction_edit_line_keypress() now uses icon constants instead of magic numbers.
+* fill_sorder_edit_window() shades Stop icon if the SO is already stopped.
+* Trying to update a stopped order without changing the start date prompts a question. process_sorder_edit_window() reorganised accordingly.
+
+1.16
+----
+* Menus identified by ID and not memory address, as menus using the new shared memory block would now clash and cause problems.
+
+1.17
+----
+* FileInfo window shows the number of presets in a file.
+* Presets correctly update the transaction flags (reconciled status).
+* build_date_menu() correctly uses PRESET_NAME_LENGTH to fill in indirected menu entry length fields.
+* Added Reference and Description Adjust-click menus.
+* Linked to new heap_lib, to enable heap_extend() and heap_size().
+* find_first_blank_line() can no longer run off the top of the transaction heap.
+* change_transaction_account() renamed to edit_...
+* Ctrl-Return and Ctrl-Tab in the transaction window copy down the previous line's contents to the current field.
+* Account summaries added to transaction report.
+
+1.18
+----
+* Preset block size calculations in load_transaction_file() corrected.
+* Preset block correctly post-load shrunk in load_transaction_filr().
+* trans_rep.output_accsummary set to 1 when new file is created.
+* trans_rep blocks moved over to array-style from and to data.
+* unrec_rep blocks moved over to array-style from and to data.
+* cashflow_rep blocks moved over to array-style from and to data.
+* balance_rep blocks moved over to array-style from and to data.
+* Saved report templates added.
+
+1.20
+----
+* Popup menu icon in Save Report window shades when there are no reports in the file.
+* build_main_menu() sets submenu pointers for the AccList and RepList submenus when these don't exist (to show a greyed out pointer in the menu).
+* mainmenu_build_replist_menu() no longer leaks memory allocation by freeing blocks before reallocating them.
+* RepList menu given its own title block, to avoid clash with AccList in the main menu.
+* RepList call to qsort() passes the correct number of items, so that the last menu entry isn't forgotten.
+* account_used_in_file() takes into account presets.
+* Deleting an account removes all references from report templates.
+
+1.21
+----
+* Added next_payin_num to account structure, and initialise to zero on account creation.
+* get_next_cheque_number() updated to understand payin slip numbers, and take from and to accounts from callers.  Calling points updated.
+* Payin slip numbers handled in Account Edit window.
+* Test for existing copies of CashBook on load: initialise() tests and passes back true if a quit is required so that poll loop is never run.
+
+1.22
+----
+* Corrected icon handles in EditHeading window and associated routines.

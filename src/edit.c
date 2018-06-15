@@ -1204,7 +1204,7 @@ static void edit_process_text_field_keypress(struct edit_field *field, wimp_key 
 		edit_get_field_content(field, field->instance->edit_line, TRUE);
 		wimp_set_icon_state(key->w, field->icon->icon, 0, 0);
 		edit_put_field_content(field, field->instance->edit_line, key->c);
-		icons_replace_caret_in_window(key->w);
+		icons_put_caret_at_end(key->w, field->icon->icon);
 	}
 
 	/* Calculate the new sum from the field; if it's unchanged, exit. */

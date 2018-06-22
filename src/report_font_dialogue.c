@@ -73,7 +73,7 @@
 /* Global variables. */
 
 /**
- * The handle of the Save/Rename dialogue.
+ * The handle of the Report Font dialogue.
  */
 
 static struct dialogue_block	*report_font_dialogue = NULL;

@@ -124,7 +124,7 @@ static void			(*report_font_dialogue_callback)(struct report *, char *, char *, 
  * The report to which the currently open Report Format window belongs.
  */
 
-struct report			*report_font_dialogue_report = NULL;
+static struct report		*report_font_dialogue_report = NULL;
 
 
 /* Static function prototypes. */

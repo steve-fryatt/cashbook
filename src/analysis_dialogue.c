@@ -66,7 +66,6 @@ struct analysis_dialogue_block {
 	struct analysis_dialogue_definition	*definition;		/**< The dialogue definition from the client.			*/
 	struct analysis_block			*parent;		/**< The parent analysis instance.				*/
 	template_t				template;		/**< The template associated with the dialogue.			*/
-	osbool					restore;		/**< The restore state for the dialogue.			*/
 	void					*dialogue_settings;	/**< The settings block associated with the dialogue.		*/
 	void					*file_settings;		/**< The settings block associated with the file instance.	*/
 };
@@ -189,12 +188,11 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, void *repo
 	/* Set the pointers up so we can find this lot again and open the window. */
 
 	dialogue->parent = parent;
-	dialogue->restore = restore;
 	dialogue->file_settings = settings;
 
 	/* Set the window contents up. */
 
-	dialogue_open(dialogue->dialogue, template_block == NULL, FALSE, analysis_get_file(dialogue->parent), report, pointer, dialogue);
+	dialogue_open(dialogue->dialogue, template_block == NULL, restore, analysis_get_file(dialogue->parent), report, pointer, dialogue);
 }
 
 
@@ -337,7 +335,7 @@ static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue)
  * based on the end result.
  *
  * \param Window		The handle of the dialogue box to fill.
- * \param restore		Unused restore state flag.
+ * \param restore		TRUE if the dialogue should restore from the template.
  * \param *data			The associated analysis dialogue instance.
  */
 
@@ -356,6 +354,6 @@ static void analysis_dialogue_fill(wimp_w window, osbool restore, void *data)
 	/* Request the client to fill the dialogue. */
 
 	if (report_details->fill_window != NULL)
-		report_details->fill_window(dialogue->parent, window, (dialogue->restore) ? dialogue->dialogue_settings : NULL);
+		report_details->fill_window(dialogue->parent, window, restore ? dialogue->dialogue_settings : NULL);
 }
 

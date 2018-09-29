@@ -4961,7 +4961,7 @@ int transact_find_date(struct file_block *file, date_t target)
 {
 	int		min, max, mid;
 
-	if (file == NULL || file->transacts || file->transacts->trans_count == 0 || target == NULL_DATE)
+	if (file == NULL || file->transacts == NULL || file->transacts->trans_count == 0 || target == NULL_DATE)
 		return NULL_TRANSACTION;
 
 	/* If the transactions are not already sorted, sort them into date

@@ -222,7 +222,7 @@ static osbool goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum d
 
 
 /**
- * The Report Font dialogue has been closed.
+ * The Goto dialogue has been closed.
  *
  * \param window	The handle of the dialogue box to be filled.
  * \param *data		Client data pointer, to the dislogue data structure.

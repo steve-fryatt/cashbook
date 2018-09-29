@@ -163,7 +163,7 @@ static struct report*		(*print_dialogue_callback) (struct report *, void *, date
 
 static osbool		print_dialogue_handle_message_set_printer(wimp_message *message);
 static void		print_dialogue_fill_window(wimp_w window, osbool restore, void *data);
-static osbool		print_dialogue_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
+static osbool		print_dialogue_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
 static void		print_dialogue_close(wimp_w window, void *data);
 static struct report	*print_dialogue_create_report(struct print_dialogue_block *instance);
 static void		print_dialogue_process_report(struct print_dialogue_block *instance, struct report *report, osbool direct);
@@ -433,11 +433,12 @@ static void print_dialogue_fill_window(wimp_w window, osbool restore, void *data
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
+ * \param *parent	The dialogue parent object.
  * \param *data		Client data pointer, giving the dialogue instance.
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool print_dialogue_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data)
+static osbool print_dialogue_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	char				print_line[PRINT_MAX_LINE_LEN];
 	struct report			*report_in, *report_out;

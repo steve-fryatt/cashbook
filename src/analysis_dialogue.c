@@ -74,7 +74,7 @@ struct analysis_dialogue_block {
 /* Static Function Prototypes. */
 
 static void analysis_dialogue_closing(wimp_w window, void *data);
-static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
+static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
 static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue);
 static void analysis_dialogue_fill(wimp_w window, osbool restore, void *data);
 
@@ -262,11 +262,12 @@ void analysis_dialogue_rename_template(struct analysis_dialogue_block *dialogue,
  * \param window		The handle of the dialogue box to fill.
  * \param *pointer		The wimp pointer data, or NULL on an Enter keypress.
  * \param type			The dialogue icon type of the target icon.
+ * \param *report		The parent analysis report instance.
  * \param *data			The associated analysis dialogue instance.
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data)
+static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	struct analysis_dialogue_block *dialogue = data;
 	struct analysis_report_details	*report_details;

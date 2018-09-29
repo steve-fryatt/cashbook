@@ -135,7 +135,7 @@ struct dialogue_definition {
 	/**
 	 * Callback function to request the dialogue is processed.
 	 */
-	osbool				(*callback_process)(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
+	osbool				(*callback_process)(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
 
 	/**
 	 * Callback function to report the dialogue closing.

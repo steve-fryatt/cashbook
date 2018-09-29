@@ -578,7 +578,7 @@ static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *po
 	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->callback_process == NULL || icon == NULL)
 		return FALSE;
 
-	return dialogue->definition->callback_process(dialogue->window, pointer, icon->type, dialogue->client_data);
+	return dialogue->definition->callback_process(dialogue->window, pointer, icon->type, dialogue->parent, dialogue->client_data);
 }
 
 

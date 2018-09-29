@@ -120,17 +120,11 @@ static int			report_font_dialogue_initial_spacing;
 
 static void			(*report_font_dialogue_callback)(struct report *, char *, char *, char *, char *, int, int);
 
-/**
- * The report to which the currently open Report Format window belongs.
- */
-
-static struct report		*report_font_dialogue_report = NULL;
-
 
 /* Static function prototypes. */
 
 static void	report_font_dialogue_fill(wimp_w window, osbool restore, void *data);
-static osbool	report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
+static osbool	report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
 static void	report_font_dialogue_close(wimp_w window, void *data);
 static osbool	report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
 static void	report_font_dialogue_menu_selection(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
@@ -220,7 +214,6 @@ void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*
 	report_font_dialogue_initial_spacing = spacing;
 
 	report_font_dialogue_callback = callback;
-	report_font_dialogue_report = report;
 
 	/* Open the window. */
 
@@ -254,14 +247,16 @@ static void report_font_dialogue_fill(wimp_w window, osbool restore, void *data)
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
+ * \param *parent	The parent report which owns the dialogue.
  * \param *data		Client data pointer (unused).
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data)
+static osbool report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
+	struct report *report = parent;
 
-	if (report_font_dialogue_callback == NULL)
+	if (report_font_dialogue_callback == NULL || report == NULL)
 		return TRUE;
 
 	/* Extract the information. */
@@ -276,7 +271,7 @@ static osbool report_font_dialogue_process(wimp_w window, wimp_pointer *pointer,
 
 	/* Call the client back. */
 
-	report_font_dialogue_callback(report_font_dialogue_report,
+	report_font_dialogue_callback(report,
 			report_font_dialogue_initial_normal, report_font_dialogue_initial_bold,
 			report_font_dialogue_initial_italic, report_font_dialogue_initial_bold_italic,
 			report_font_dialogue_initial_size, report_font_dialogue_initial_spacing);
@@ -295,7 +290,6 @@ static osbool report_font_dialogue_process(wimp_w window, wimp_pointer *pointer,
 static void report_font_dialogue_close(wimp_w window, void *data)
 {
 	report_font_dialogue_callback = NULL;
-	report_font_dialogue_report = NULL;
 }
 
 

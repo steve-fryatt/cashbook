@@ -70,17 +70,11 @@ static struct dialogue_block	*goto_dialogue = NULL;
 
 static osbool			(*goto_dialogue_callback)(void *);
 
-/**
- * The goto instance to which the currently open Goto window belongs.
- */
-
-static void			*goto_dialogue_owner = NULL;
-
 
 /* Static function prototypes. */
 
 static void	goto_dialogue_fill(wimp_w window, osbool restore, void *data);
-static osbool	goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
+static osbool	goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
 static void	goto_dialogue_close(wimp_w window, void *data);
 
 /**
@@ -145,11 +139,10 @@ void goto_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct f
 		struct goto_dialogue_data *content)
 {
 	goto_dialogue_callback = callback;
-	goto_dialogue_owner = owner;
 
 	/* Open the window. */
 
-	dialogue_open(goto_dialogue, FALSE, restore, file, NULL, ptr, content);
+	dialogue_open(goto_dialogue, FALSE, restore, file, owner, ptr, content);
 }
 
 /**
@@ -196,15 +189,16 @@ static void goto_dialogue_fill(wimp_w window, osbool restore, void *data)
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
+ * \param *parent	The parent goto instance.
  * \param *data		Client data pointer, to the dislogue data structure.
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data)
+static osbool goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	struct goto_dialogue_data *content = data;
 
-	if (goto_dialogue_callback == NULL || content == NULL)
+	if (goto_dialogue_callback == NULL || content == NULL || parent == NULL)
 		return TRUE;
 
 	/* Extract the information. */
@@ -223,7 +217,7 @@ static osbool goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum d
 
 	/* Call the client back. */
 
-	return goto_dialogue_callback(goto_dialogue_owner);
+	return goto_dialogue_callback(parent);
 }
 
 
@@ -237,6 +231,5 @@ static osbool goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum d
 static void goto_dialogue_close(wimp_w window, void *data)
 {
 	goto_dialogue_callback = NULL;
-	goto_dialogue_owner = NULL;
 }
 

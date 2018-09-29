@@ -37,43 +37,36 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/debug.h"
 #include "sflib/errors.h"
-#include "sflib/event.h"
 #include "sflib/heap.h"
-#include "sflib/icons.h"
-#include "sflib/ihelp.h"
-#include "sflib/templates.h"
-#include "sflib/windows.h"
 
 /* Application header files */
 
 #include "goto.h"
 
-#include "caret.h"
-#include "date.h"
-#include "edit.h"
-#include "file.h"
 #include "goto_dialogue.h"
 #include "transact.h"
 
 
-/* Goto dialogue data. */
-
+/**
+ * Goto instance data.
+ */
 
 struct goto_block {
-	struct file_block		*file;					/**< The file owning the goto dialogue.				*/
-	union goto_dialogue_target	target;					/**< The current goto target.					*/
-	enum goto_dialogue_type		type;					/**< The type of target we're aiming for.			*/
+	/**
+	 * The file owning the goto instance.
+	 */
+	struct file_block		*file;
+
+	/**
+	 * The most recent dialogue content.
+	 */
+	struct goto_dialogue_data	dialogue;
 };
 
+/* Static Function Prototypes. */
 
-//static struct goto_block	*goto_window_owner = NULL;			/**< The file whoch currently owns the Goto dialogue.	*/
-//static osbool			goto_restore = FALSE;				/**< The restore setting for the current dialogue.	*/
-//static wimp_w			goto_window = NULL;				/**< The Goto dialogue handle.				*/
-
-
-static osbool goto_process_window(void *owner, enum goto_dialogue_type type, int line, date_t date);
+static osbool goto_process_window(void *owner);
 
 
 /**
@@ -104,8 +97,8 @@ struct goto_block *goto_create(struct file_block *file)
 		return NULL;
 
 	new->file = file;
-	new->target.date = NULL_DATE;
-	new->type = GOTO_TYPE_DATE;
+	new->dialogue.type = GOTO_DIALOGUE_TYPE_DATE;
+	new->dialogue.target.date = NULL_DATE;
 
 	return new;
 }
@@ -139,7 +132,7 @@ void goto_open_window(struct goto_block *windat, wimp_pointer *ptr, osbool resto
 		return;
 
 	goto_dialogue_open(ptr, restore, windat, windat->file, goto_process_window,
-			windat->type, windat->target.line, windat->target.date);
+			&(windat->dialogue));
 }
 
 
@@ -151,37 +144,31 @@ void goto_open_window(struct goto_block *windat, wimp_pointer *ptr, osbool resto
  *				was an error.
  */
 
-static osbool goto_process_window(void *owner, enum goto_dialogue_type type, int transaction, date_t date)
+static osbool goto_process_window(void *owner)
 {
-	int			line = 0;
+	int			transaction = 0, line = 0;
 	struct goto_block	*windat = owner;
 
 	if (windat == NULL)
 		return FALSE;
 
-	windat->type = type;
-
-	switch (type) {
-	case GOTO_TYPE_LINE:
-		windat->target.line = transaction;
-
-		if (transaction > transact_get_count(windat->file)) {
+	switch (windat->dialogue.type) {
+	case GOTO_DIALOGUE_TYPE_LINE:
+		if ((windat->dialogue.target.line <= 0) || (windat->dialogue.target.line > transact_get_count(windat->file))) {
 			error_msgs_report_info("BadGotoLine");
 			return FALSE;
 		}
 
-		line = transact_get_line_from_transaction(windat->file, transact_find_transaction_number(windat->target.line));
+		line = transact_get_line_from_transaction(windat->file, transact_find_transaction_number(windat->dialogue.target.line));
 		break;
 
-	case GOTO_TYPE_DATE:
-		windat->target.date = date;
-
-		if (date == NULL_DATE) {
+	case GOTO_DIALOGUE_TYPE_DATE:
+		if (windat->dialogue.target.date == NULL_DATE) {
 			error_msgs_report_info("BadGotoDate");
 			return FALSE;
 		}
 
-		transaction = transact_find_date(windat->file, windat->target.date);
+		transaction = transact_find_date(windat->file, windat->dialogue.target.date);
 
 		if (transaction == NULL_TRANSACTION)
 			return FALSE;

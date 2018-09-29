@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_DATE
 #define CASHBOOK_DATE
 
+#include <stddef.h>
+
 /**
  * A date.
  */

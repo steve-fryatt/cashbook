@@ -30,6 +30,7 @@
 #ifndef CASHBOOK_FILE
 #define CASHBOOK_FILE
 
+#include <stddef.h>
 
 /* ==================================================================================================================
  * Data structures

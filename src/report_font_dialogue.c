@@ -129,7 +129,7 @@ static struct report		*report_font_dialogue_report = NULL;
 
 /* Static function prototypes. */
 
-static void	report_font_dialogue_fill(wimp_w window, void *data);
+static void	report_font_dialogue_fill(wimp_w window, osbool restore, void *data);
 static osbool	report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static void	report_font_dialogue_close(wimp_w window, void *data);
 static osbool	report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
@@ -224,7 +224,7 @@ void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*
 
 	/* Open the window. */
 
-	dialogue_open(report_font_dialogue, FALSE, report_get_file(report), report, ptr, NULL);
+	dialogue_open(report_font_dialogue, FALSE, FALSE, report_get_file(report), report, ptr, NULL);
 }
 
 
@@ -232,10 +232,11 @@ void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*
  * Fill the Report Font Dialogue with values.
  *
  * \param window	The handle of the dialogue box to be filled.
+ * \param restore	Unused restore state flag.
  * \param *data		Client data pointer (unused).
  */
 
-static void report_font_dialogue_fill(wimp_w window, void *data)
+static void report_font_dialogue_fill(wimp_w window, osbool restore, void *data)
 {
 	icons_printf(window, REPORT_FONT_DIALOGUE_NFONT, "%s", report_font_dialogue_initial_normal);
 	icons_printf(window, REPORT_FONT_DIALOGUE_BFONT, "%s", report_font_dialogue_initial_bold);

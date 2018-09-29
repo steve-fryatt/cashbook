@@ -76,7 +76,7 @@ struct analysis_dialogue_block {
 static void analysis_dialogue_closing(wimp_w window, void *data);
 static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue);
-static void analysis_dialogue_fill(wimp_w window, void *data);
+static void analysis_dialogue_fill(wimp_w window, osbool restore, void *data);
 
 /**
  * Initialise a new analysis dialogue window instance.
@@ -194,7 +194,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, void *repo
 
 	/* Set the window contents up. */
 
-	dialogue_open(dialogue->dialogue, template_block == NULL, analysis_get_file(dialogue->parent), report, pointer, dialogue);
+	dialogue_open(dialogue->dialogue, template_block == NULL, FALSE, analysis_get_file(dialogue->parent), report, pointer, dialogue);
 }
 
 
@@ -336,10 +336,11 @@ static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue)
  * based on the end result.
  *
  * \param Window		The handle of the dialogue box to fill.
+ * \param restore		Unused restore state flag.
  * \param *data			The associated analysis dialogue instance.
  */
 
-static void analysis_dialogue_fill(wimp_w window, void *data)
+static void analysis_dialogue_fill(wimp_w window, osbool restore, void *data)
 {
 	struct analysis_dialogue_block *dialogue = data;
 	struct analysis_report_details	*report_details;

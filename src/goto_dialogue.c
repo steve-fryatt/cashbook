@@ -71,12 +71,6 @@ static struct dialogue_block	*goto_dialogue = NULL;
 static osbool			(*goto_dialogue_callback)(void *);
 
 /**
- * The restore state of the goto dialogue.
- */
-
-static osbool			goto_dialogue_restore_state;
-
-/**
  * The goto instance to which the currently open Goto window belongs.
  */
 
@@ -85,7 +79,7 @@ static void			*goto_dialogue_owner = NULL;
 
 /* Static function prototypes. */
 
-static void	goto_dialogue_fill(wimp_w window, void *data);
+static void	goto_dialogue_fill(wimp_w window, osbool restore, void *data);
 static osbool	goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static void	goto_dialogue_close(wimp_w window, void *data);
 
@@ -152,28 +146,28 @@ void goto_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct f
 {
 	goto_dialogue_callback = callback;
 	goto_dialogue_owner = owner;
-	goto_dialogue_restore_state = restore;
 
 	/* Open the window. */
 
-	dialogue_open(goto_dialogue, FALSE, file, NULL, ptr, content);
+	dialogue_open(goto_dialogue, FALSE, restore, file, NULL, ptr, content);
 }
 
 /**
  * Fill the Goto Dialogue with values.
  *
  * \param window	The handle of the dialogue box to be filled.
+ * \param restore	TRUE if the dialogue should restore previous settings.
  * \param *data		Client data pointer (unused).
  */
 
-static void goto_dialogue_fill(wimp_w window, void *data)
+static void goto_dialogue_fill(wimp_w window, osbool restore, void *data)
 {
 	struct goto_dialogue_data *content = data;
 
 	if (content == NULL)
 		return;
 
-	if (goto_dialogue_restore_state) {
+	if (restore) {
 		switch (content->type) {
 		case GOTO_DIALOGUE_TYPE_LINE:
 			icons_printf(window, GOTO_DIALOGUE_ICON_NUMBER_FIELD, "%d", content->target.line);

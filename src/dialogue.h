@@ -130,7 +130,7 @@ struct dialogue_definition {
 	/**
 	 * Callback function to request the dialogue is filled.
 	 */
-	void				(*callback_fill)(wimp_w window, void *data);
+	void				(*callback_fill)(wimp_w window, osbool restore, void *data);
 
 	/**
 	 * Callback function to request the dialogue is processed.
@@ -199,13 +199,15 @@ void dialogue_force_all_closed(struct file_block *file, void *parent);
  * \param *dialogue		The dialogue instance to open.
  * \param hide			TRUE to hide the 'hidden' icons; FALSE
  *				to show them.
+ * \param restore		TRUE to restore previous values; FALSE to
+ *				use application defaults.
  * \param *file			The file to be the parent of the dialogue.
  * \param *parent		The parent object of the dialogue, or NULL.
  * \param *ptr			The current Wimp Pointer details.
  * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_block *file, void *parent, wimp_pointer *pointer, void *data);
+void dialogue_open(struct dialogue_block *dialogue, osbool hide, osbool restore, struct file_block *file, void *parent, wimp_pointer *pointer, void *data);
 
 
 /**

@@ -66,7 +66,6 @@ struct dialogue_block {
 	void					*parent;		/**< The parent object pointer for the dialogue, or NULL.	*/
 	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
 	void					*client_data;		/**< Context data supplied by the client.			*/
-
 	osbool					restore;		/**< TRUE if the current dialogue should restore.		*/
 
 	struct dialogue_block			*next;			/**< Pointer to the next box in the list, or NULL.		*/
@@ -135,6 +134,7 @@ struct dialogue_block *dialogue_create(struct dialogue_definition *definition)
 	new->file = NULL;
 	new->parent = NULL;
 	new->client_data = NULL;
+	new->restore = FALSE;
 
 	/* Create the dialogue window. */
 
@@ -199,13 +199,15 @@ void dialogue_force_all_closed(struct file_block *file, void *parent)
  * \param *dialogue		The dialogue instance to open.
  * \param hide			TRUE to hide the 'hidden' icons; FALSE
  *				to show them.
+ * \param restore		TRUE to restore previous values; FALSE to
+ *				use application defaults.
  * \param *file			The file to be the parent of the dialogue.
  * \param *parent		The parent object of the dialogue, or NULL.
  * \param *ptr			The current Wimp Pointer details.
  * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_block *file, void *parent, wimp_pointer *pointer, void *data)
+void dialogue_open(struct dialogue_block *dialogue, osbool hide, osbool restore, struct file_block *file, void *parent, wimp_pointer *pointer, void *data)
 {
 	if (dialogue == NULL || dialogue->definition == NULL || file == NULL || pointer == NULL)
 		return;
@@ -225,6 +227,7 @@ void dialogue_open(struct dialogue_block *dialogue, osbool hide, struct file_blo
 	dialogue->file = file;
 	dialogue->parent = parent;
 	dialogue->client_data = data;
+	dialogue->restore = restore;
 
 	/* Set the window contents up. */
 
@@ -627,7 +630,7 @@ static void dialogue_fill(struct dialogue_block *dialogue)
 	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->callback_fill == NULL)
 		return;
 
-	dialogue->definition->callback_fill(dialogue->window, dialogue->client_data);
+	dialogue->definition->callback_fill(dialogue->window, dialogue->restore, dialogue->client_data);
 
 	/* Update any shaded icons after the update. */
 

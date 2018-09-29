@@ -42,6 +42,7 @@
 
 /* Application header files */
 
+#include "global.h"
 #include "goto.h"
 
 #include "goto_dialogue.h"

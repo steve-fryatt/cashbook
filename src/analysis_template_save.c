@@ -105,7 +105,7 @@ static template_t				analysis_template_save_template = NULL_TEMPLATE;
 
 /* Static Function Prototypes. */
 
-static void		analysis_template_save_fill_window(wimp_w window, void *data);
+static void		analysis_template_save_fill_window(wimp_w window, osbool restore, void *data);
 static osbool		analysis_template_save_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static void		analysis_template_save_window_close(wimp_w window, void *data);
 static osbool		analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
@@ -181,7 +181,7 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 
 	/* Open the dialogue. */
 
-	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), template, ptr, NULL);
+	dialogue_open(analysis_template_save_dialogue, FALSE, FALSE, analysis_template_get_file(analysis_template_save_parent), template, ptr, NULL);
 }
 
 
@@ -213,7 +213,7 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, vo
 
 	/* Open the dialogue. */
 
-	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), dialogue, ptr, NULL);
+	dialogue_open(analysis_template_save_dialogue, FALSE, FALSE, analysis_template_get_file(analysis_template_save_parent), dialogue, ptr, NULL);
 }
 
 
@@ -221,10 +221,11 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, vo
  * Fill the Save / Rename Template dialogue with values.
  *
  * \param window	The handle of the dialogue box to be filled.
+ * \param restore	Unused restore state flag.
  * \param *data		Client data pointer (unused).
  */
 
-static void analysis_template_save_fill_window(wimp_w window, void *data)
+static void analysis_template_save_fill_window(wimp_w window, osbool restore, void *data)
 {
 	struct analysis_report	*template = NULL;
 	char			*name;

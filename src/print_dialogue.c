@@ -138,12 +138,6 @@ static struct dialogue_block	*print_dialogue = NULL;
 static osbool			print_dialogue_include_dates = FALSE;
 
 /**
- * TRUE to restore the current settings in the dialogue box.
- */
-
-static osbool			print_dialogue_restore_state = FALSE;
-
-/**
  * The message token for the Print Dialogue title.
  */
 
@@ -168,7 +162,7 @@ static struct report*		(*print_dialogue_callback) (struct report *, void *, date
 /* Static Function Prototypes. */
 
 static osbool		print_dialogue_handle_message_set_printer(wimp_message *message);
-static void		print_dialogue_fill_window(wimp_w window, void *data);
+static void		print_dialogue_fill_window(wimp_w window, osbool restore, void *data);
 static osbool		print_dialogue_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *data);
 static void		print_dialogue_close(wimp_w window, void *data);
 static struct report	*print_dialogue_create_report(struct print_dialogue_block *instance);
@@ -344,8 +338,6 @@ void print_dialogue_open(struct print_dialogue_block *instance, wimp_pointer *pt
 		return;
 
 	print_dialogue_include_dates = dates;
-	print_dialogue_restore_state = restore;
-
 	print_dialogue_client_data = data;
 
 	if (title != NULL)
@@ -358,7 +350,7 @@ void print_dialogue_open(struct print_dialogue_block *instance, wimp_pointer *pt
 	else
 		*print_dialogue_report_title_token = '\0';
 
-	dialogue_open(print_dialogue, FALSE, instance->file, parent, ptr, instance);
+	dialogue_open(print_dialogue, FALSE, restore, instance->file, parent, ptr, instance);
 
 	print_dialogue_callback = callback;
 }
@@ -368,10 +360,11 @@ void print_dialogue_open(struct print_dialogue_block *instance, wimp_pointer *pt
  * Fill the Print Dialogue with values.
  *
  * \param window	The handle of the dialogue box to be filled.
+ * \param restore	TRUE if the dialogue should restore previous settings.
  * \param *data		Client data pointer, giving the dialogue instance.
  */
 
-static void print_dialogue_fill_window(wimp_w window, void *data)
+static void print_dialogue_fill_window(wimp_w window, osbool restore, void *data)
 {
 	char				*name, buffer[25];
 	os_error			*error;
@@ -391,7 +384,7 @@ static void print_dialogue_fill_window(wimp_w window, void *data)
 
 	dialogue_set_title(print_dialogue, print_dialogue_window_title_token, name, NULL, NULL, NULL);
 
-	if (print_dialogue_restore_state) {
+	if (restore) {
 		icons_set_selected(window, PRINT_DIALOGUE_STANDARD, !instance->text);
 		icons_set_selected(window, PRINT_DIALOGUE_PORTRAIT, !instance->rotate);
 		icons_set_selected(window, PRINT_DIALOGUE_LANDSCAPE, instance->rotate);

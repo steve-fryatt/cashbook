@@ -31,6 +31,7 @@
 #define CASHBOOK_DATE
 
 #include <stddef.h>
+#include "oslib/types.h"
 
 /**
  * A date.

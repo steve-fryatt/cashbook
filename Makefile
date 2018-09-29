@@ -54,6 +54,7 @@ OBJS = account.o			\
        analysis_transaction.o		\
        analysis_unreconciled.o		\
        budget.o				\
+       budget_dialogue.o		\
        caret.o				\
        choices.o			\
        clipboard.o			\

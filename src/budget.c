@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -29,10 +29,6 @@
 
 /* ANSI C header files */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-
 /* Acorn C header files */
 
 /* OSLib header files */
@@ -42,32 +38,19 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
-#include "sflib/event.h"
 #include "sflib/heap.h"
-#include "sflib/icons.h"
-#include "sflib/ihelp.h"
-#include "sflib/string.h"
-#include "sflib/templates.h"
-#include "sflib/windows.h"
 
 /* Application header files */
 
 #include "budget.h"
 
-#include "account.h"
-#include "caret.h"
+#include "budget_dialogue.h"
+//#include "account.h"
 #include "date.h"
 #include "file.h"
 #include "sorder.h"
 
 
-#define BUDGET_ICON_OK 0
-#define BUDGET_ICON_CANCEL 1
-
-#define BUDGET_ICON_START 5
-#define BUDGET_ICON_FINISH 7
-#define BUDGET_ICON_TRIAL 11
-#define BUDGET_ICON_RESTRICT 13
 
 /**
  * Budget data structure
@@ -87,16 +70,9 @@ struct budget_block {
 	osbool			limit_postdate;					/**< TRUE to limit post-dated transactions to the SO trial period.	*/
 };
 
-static struct budget_block	*budget_window_owner = NULL;			/**< The file currently owning the Budget window.			*/
-static wimp_w			budget_window = NULL;				/**< The Budget window handle.						*/
+/* Static Function Prototypes */
 
-
-static void		budget_click_handler(wimp_pointer *pointer);
-static osbool		budget_keypress_handler(wimp_key *key);
-static void		budget_refresh_window(void);
-static void		budget_fill_window(struct budget_block *windat);
-static osbool		budget_process_window(void);
-
+static osbool budget_process_window(void *owner, struct budget_dialogue_data *content);
 
 /**
  * Initialise the Budget module.
@@ -104,10 +80,7 @@ static osbool		budget_process_window(void);
 
 void budget_initialise(void)
 {
-	budget_window = templates_create_window("Budget");
-	ihelp_add_window(budget_window, "Budget", NULL);
-	event_add_window_mouse_event(budget_window, budget_click_handler);
-	event_add_window_key_event(budget_window, budget_keypress_handler);
+	budget_dialogue_initialise();
 }
 
 
@@ -148,9 +121,6 @@ struct budget_block *budget_create(struct file_block *file)
 
 void budget_delete(struct budget_block *windat)
 {
-	if (budget_window_owner == windat && windows_get_open(budget_window))
-		close_dialogue_with_caret(budget_window);
-
 	if (windat != NULL)
 		heap_free(windat);
 }
@@ -165,110 +135,21 @@ void budget_delete(struct budget_block *windat)
 
 void budget_open_window(struct budget_block *windat, wimp_pointer *ptr)
 {
-	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 */
+	struct budget_dialogue_data *content = NULL;
 
-	if (windows_get_open(budget_window))
-		wimp_close_window(budget_window);
-
-	/* Set the window contents up. */
-
-	budget_fill_window(windat);
-
-	/* Set the pointers up so we can find this lot again and open the window. */
-
-	budget_window_owner = windat;
-
-	windows_open_centred_at_pointer(budget_window, ptr);
-	place_dialogue_caret(budget_window, BUDGET_ICON_START);
-}
-
-
-/**
- * Process mouse clicks in the Budget dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void budget_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case BUDGET_ICON_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(budget_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			budget_refresh_window();
-		break;
-
-	case BUDGET_ICON_OK:
-		if (budget_process_window() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(budget_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Budget window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool budget_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (budget_process_window())
-			close_dialogue_with_caret(budget_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(budget_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the current Budget window.
- */
-
-static void budget_refresh_window(void)
-{
-	budget_fill_window(budget_window_owner);
-	icons_redraw_group(budget_window, 3, BUDGET_ICON_START, BUDGET_ICON_FINISH, BUDGET_ICON_TRIAL);
-	icons_replace_caret_in_window(budget_window);
-}
-
-
-
-/**
- * Fill the Budget window with values from the file.
- *
- * \param: *windat		The data to use to fill the window.
- */
-
-static void budget_fill_window(struct budget_block *windat)
-{
-	if (windat == NULL)
+	if (windat == NULL || ptr == NULL)
 		return;
 
-	date_convert_to_string(windat->start, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START),
-			icons_get_indirected_text_length(budget_window, BUDGET_ICON_START));
-	date_convert_to_string(windat->finish, icons_get_indirected_text_addr(budget_window, BUDGET_ICON_FINISH),
-			icons_get_indirected_text_length(budget_window, BUDGET_ICON_FINISH));
+	content = heap_alloc(sizeof(struct budget_dialogue_data));
+	if (content == NULL)
+		return;
 
-	icons_printf(budget_window, BUDGET_ICON_TRIAL, "%d", windat->sorder_trial);
+	content->start = windat->start;
+	content->finish = windat->finish;
+	content->sorder_trial = windat->sorder_trial;
+	content->limit_postdate = windat->limit_postdate;
 
-	icons_set_selected(budget_window, BUDGET_ICON_RESTRICT, windat->limit_postdate);
+	budget_dialogue_open(ptr, windat, windat->file, budget_process_window, content);
 }
 
 
@@ -280,23 +161,24 @@ static void budget_fill_window(struct budget_block *windat)
  *				was an error.
  */
 
-static osbool budget_process_window(void)
+static osbool budget_process_window(void *owner, struct budget_dialogue_data *content)
 {
-	budget_window_owner->start =
-			date_convert_from_string(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_START), NULL_DATE, 0);
-	budget_window_owner->finish =
-			date_convert_from_string(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_FINISH), NULL_DATE, 0);
+	struct budget_block *windat = owner;
 
-	budget_window_owner->sorder_trial = atoi(icons_get_indirected_text_addr(budget_window, BUDGET_ICON_TRIAL));
+	if (windat == NULL || content == NULL)
+		return TRUE;
 
-	budget_window_owner->limit_postdate = icons_get_selected(budget_window, BUDGET_ICON_RESTRICT);
+	windat->start = content->start;
+	windat->finish = content->finish;
+	windat->sorder_trial = content->sorder_trial;
+	windat->limit_postdate = content->limit_postdate;
 
 	/* Tidy up and redraw the windows */
 
-	sorder_trial(budget_window_owner->file);
-	account_recalculate_all(budget_window_owner->file);
-	file_set_data_integrity(budget_window_owner->file, TRUE);
-	file_redraw_windows(budget_window_owner->file);
+	sorder_trial(windat->file);
+	account_recalculate_all(windat->file);
+	file_set_data_integrity(windat->file, TRUE);
+	file_redraw_windows(windat->file);
 
 	return TRUE;
 }
@@ -408,3 +290,4 @@ osbool budget_read_file(struct file_block *file, struct filing_block *in)
 
 	return TRUE;
 }
+

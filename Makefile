@@ -70,6 +70,7 @@ OBJS = account.o			\
        flexutils.o			\
        fontlist.o			\
        goto.o				\
+       goto_dialogue.o			\
        iconbar.o			\
        interest.o			\
        main.o				\

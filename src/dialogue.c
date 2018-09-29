@@ -67,6 +67,8 @@ struct dialogue_block {
 	wimp_w					window;			/**< The Wimp window handle of the dialogue.			*/
 	void					*client_data;		/**< Context data supplied by the client.			*/
 
+	osbool					restore;		/**< TRUE if the current dialogue should restore.		*/
+
 	struct dialogue_block			*next;			/**< Pointer to the next box in the list, or NULL.		*/
 };
 

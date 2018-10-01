@@ -80,6 +80,7 @@ OBJS = account.o			\
        print_dialogue.o			\
        print_protocol.o			\
        purge.o				\
+       purge_dialogue.o			\
        refdesc_menu.o			\
        report.o				\
        report_font_dialogue.o		\

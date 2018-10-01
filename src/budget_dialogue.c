@@ -130,7 +130,7 @@ void budget_dialogue_initialise(void)
  * Open the budget dialogue for a given transaction window.
  *
  * \param *ptr			The current Wimp pointer position.
- * \param *owner		The goto dialogue instance to own the dialogue.
+ * \param *owner		The budget dialogue instance to own the dialogue.
  * \param *file			The file instance to own the dialogue.
  * \param *callback		The callback function to use to return the results.
  * \param *content		Pointer to a structure to hold the dialogue content.

@@ -206,7 +206,7 @@ static osbool budget_dialogue_process(wimp_w window, wimp_pointer *pointer, enum
 
 
 /**
- * The Report Font dialogue has been closed.
+ * The Budget dialogue has been closed.
  *
  * \param window	The handle of the dialogue box to be filled.
  * \param *data		Client data pointer, to the dislogue data structure.

@@ -346,7 +346,8 @@ void dialogue_set_ihelp_modifier(struct dialogue_block *dialogue, char *modifier
 static void dialogue_click_handler(wimp_pointer *pointer)
 {
 	struct dialogue_block	*windat;
-	struct dialogue_icon	*icon;
+	struct dialogue_icon	*icon, *next;
+	enum account_type	type = ACCOUNT_NULL;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (pointer == NULL || windat == NULL || windat->definition == NULL)
@@ -371,26 +372,35 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 	} else if (icon->type & DIALOGUE_ICON_SHADE_TARGET) {
 		dialogue_shade_icons(windat, pointer->i);
 		icons_replace_caret_in_window(windat->window);
-	} else if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->file, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-	} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->file, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-	} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->file, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_IN);
-	} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->file, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_OUT);
-	} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
-		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON))
-			dialogue_lookup_open_window(windat->file, windat->window,
-					icon->target, NULL_ACCOUNT, ACCOUNT_FULL);
+	} else if (icon->type & DIALOGUE_ICON_ACCOUNT_POPUP) {
+		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON)) {
+			if (icon->type & DIALOGUE_ICON_TYPE_FROM)
+				type = ACCOUNT_IN | ACCOUNT_FULL;
+			else if (icon->type & DIALOGUE_ICON_TYPE_TO)
+				type = ACCOUNT_OUT | ACCOUNT_FULL;
+			else if (icon->type & DIALOGUE_ICON_TYPE_IN)
+				type = ACCOUNT_IN;
+			else if (icon->type & DIALOGUE_ICON_TYPE_OUT)
+				type = ACCOUNT_OUT;
+			else if (icon->type & DIALOGUE_ICON_TYPE_FULL)
+				type = ACCOUNT_FULL;
+
+			if (type != ACCOUNT_NULL)
+				dialogue_lookup_open_window(windat->file, windat->window,
+						icon->target, NULL_ACCOUNT, type);
+		}
+	} else if (icon->type & DIALOGUE_ICON_ACCOUNT_IDENT) {
+	
+	
+	} else if (icon->type & DIALOGUE_ICON_ACCOUNT_RECONCILE) {
+		if (pointer->buttons == wimp_CLICK_ADJUST)
+			account_toggle_reconcile_icon(windat->window, icon->icon);
+	} else if (icon->type & DIALOGUE_ICON_ACCOUNT_NAME) {
+		next = dialogue_find_icon(windat, icon->target);
+		if ((next != NULL) && (pointer->buttons == wimp_CLICK_ADJUST)) {
+			account_menu_open_icon(windat->file, ACCOUNT_MENU_FROM, NULL, windat->window,
+					next->target, icon->icon, icon->target, pointer);
+		}
 	}
 }
 
@@ -406,6 +416,7 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 {
 	struct dialogue_block	*windat;
 	struct dialogue_icon	*icon;
+	enum account_type	type = ACCOUNT_NULL;
 
 	windat = event_get_window_user_data(key->w);
 	if (key == NULL || windat == NULL || windat->definition == NULL)
@@ -426,26 +437,21 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 		break;
 
 	case wimp_KEY_F1:
-		if (icon->type & DIALOGUE_ICON_POPUP_FROM) {
-			if (icon->target == DIALOGUE_NO_ICON)
+		if ((icon->type & DIALOGUE_ICON_ACCOUNT_POPUP) && (icon->target == DIALOGUE_NO_ICON)) {
+			if (icon->type & DIALOGUE_ICON_TYPE_FROM)
+				type = ACCOUNT_IN | ACCOUNT_FULL;
+			else if (icon->type & DIALOGUE_ICON_TYPE_TO)
+				type = ACCOUNT_OUT | ACCOUNT_FULL;
+			else if (icon->type & DIALOGUE_ICON_TYPE_IN)
+				type = ACCOUNT_IN;
+			else if (icon->type & DIALOGUE_ICON_TYPE_OUT)
+				type = ACCOUNT_OUT;
+			else if (icon->type & DIALOGUE_ICON_TYPE_FULL)
+				type = ACCOUNT_FULL;
+
+			if (type != ACCOUNT_NULL)
 				dialogue_lookup_open_window(windat->file, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_IN | ACCOUNT_FULL);
-		} else if (icon->type & DIALOGUE_ICON_POPUP_TO) {
-			if (icon->target == DIALOGUE_NO_ICON)
-				dialogue_lookup_open_window(windat->file, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_OUT | ACCOUNT_FULL);
-		} else if (icon->type & DIALOGUE_ICON_POPUP_IN) {
-			if (icon->target == DIALOGUE_NO_ICON)
-				dialogue_lookup_open_window(windat->file, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_IN);
-		} else if (icon->type & DIALOGUE_ICON_POPUP_OUT) {
-			if (icon->target == DIALOGUE_NO_ICON)
-				dialogue_lookup_open_window(windat->file, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_OUT);
-		} else if (icon->type & DIALOGUE_ICON_POPUP_FULL) {
-			if (icon->target == DIALOGUE_NO_ICON)
-				dialogue_lookup_open_window(windat->file, windat->window,
-						key->i, NULL_ACCOUNT, ACCOUNT_FULL);
+						icon->icon, NULL_ACCOUNT, type);
 		}
 		break;
 

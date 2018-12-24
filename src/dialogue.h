@@ -41,25 +41,129 @@ struct dialogue_block;
  */
 
 enum dialogue_icon_type {
-	DIALOGUE_ICON_NONE		= 0x00000000,		/*<< No icon.					*/
-	DIALOGUE_ICON_OK		= 0x00000001,		/**< The OK button.				*/
-	DIALOGUE_ICON_CANCEL		= 0x00000002,		/**< The Cancel button.				*/
-	DIALOGUE_ICON_ACTION		= 0x00000004,		/**< Another generic action button.		*/
-	DIALOGUE_ICON_RADIO		= 0x00000008,		/**< A radio icon.				*/
-	DIALOGUE_ICON_RADIO_PASS	= 0x00000010,		/**< A radio icon which passes events on.	*/
-	DIALOGUE_ICON_SHADE_ON		= 0x00000020,		/**< Shade icon when target is selected.	*/
-	DIALOGUE_ICON_SHADE_OFF		= 0x00000040,		/**< Shade icon when target is not selected.	*/
-	DIALOGUE_ICON_SHADE_OR		= 0x00000080,		/**< Include this condition with the previous.	*/
-	DIALOGUE_ICON_SHADE_TARGET	= 0x00000100,		/**< A target for shading other icons.		*/
-	DIALOGUE_ICON_REFRESH		= 0x00000200,		/**< The icon requires refreshing.		*/
-	DIALOGUE_ICON_HIDDEN		= 0x00000400,		/**< The icon should be hidden when requested.	*/
-	DIALOGUE_ICON_POPUP_FROM	= 0x00000800,		/*<< The icon should launch a "From" popup.	*/
-	DIALOGUE_ICON_POPUP_TO		= 0x00001000,		/*<< The icon should launch a "To" popup.	*/
-	DIALOGUE_ICON_POPUP_IN		= 0x00002000,		/*<< The icon should launch a "In" popup.	*/
-	DIALOGUE_ICON_POPUP_OUT		= 0x00004000,		/*<< The icon should launch a "Out" popup.	*/
-	DIALOGUE_ICON_POPUP_FULL	= 0x00008000,		/*<< The icon should launch a "Full" popup.	*/
-	DIALOGUE_ICON_POPUP		= 0x00010000,		/*<< A pop-up menu field.			*/
-	DIALOGUE_ICON_END		= 0x08000000,		/**< The last entry in the icon sequence.	*/
+	/**
+	 * No special treatment is required.
+	 */
+	DIALOGUE_ICON_NONE		= 0x00000000,
+
+	/**
+	 * The OK button in a dialogue. Target is unused.
+	 */
+	DIALOGUE_ICON_OK		= 0x00000001,
+
+	/**
+	 * The Cancel button in a dialogue. Target is unused.
+	 */
+	DIALOGUE_ICON_CANCEL		= 0x00000002,
+
+	/**
+	 * A generic action button in a dialogue, to be fed back to the
+	 * client; a client flag identifies the purpose. Target is unused.
+	 */
+	DIALOGUE_ICON_ACTION		= 0x00000004,
+
+	/**
+	 * A radio icon, which must be registerd with the Wimp Library
+	 * for Adjust-click handling. The library is not asked to pass
+	 * clicks on. Target is unused.
+	 */
+	DIALOGUE_ICON_RADIO		= 0x00000008,
+
+	/**
+	 * A radio icon, which must be registerd with the Wimp Library
+	 * for Adjust-click handling. The library is asked to pass clicks
+	 * on, so other action flags can be applied. Target is unused.
+	 */
+	DIALOGUE_ICON_RADIO_PASS	= 0x00000010,
+
+	/**
+	 * Shade this icon when another icon is selected; the other icon
+	 * is specified by Target.
+	 */
+	DIALOGUE_ICON_SHADE_ON		= 0x00000020,
+
+
+	/**
+	 * Shade this icon when another icon is not selected; the other
+	 * icon is specified by Target.
+	 */
+	DIALOGUE_ICON_SHADE_OFF		= 0x00000040,
+
+	/**
+	 * Used in conjucntion with DIALOGUE_ICON_SHADE_ON or
+	 * DIALOGUE_ICON_SHADE_OFF, to include this condition with the
+	 * previous line of the array. In this situation, Target still
+	 * specifies the target icon, but Icon is not used and must be
+	 * set to DIALOGUE_NO_ICON.
+	 */
+	DIALOGUE_ICON_SHADE_OR		= 0x00000080,
+
+	/**
+	 * Treat this icon as a shading target, thereby scanning the
+	 * icon set and updating the state of any associated icons
+	 * whenever a click is detected. If the icon is a radio icon,
+	 * it is essential that DIALOGUE_ICON_RADIO_PASS is used.
+	 * Target is unused.
+	 */
+	DIALOGUE_ICON_SHADE_TARGET	= 0x00000100,
+
+	/**
+	 * The icon should be redrawn whenever its contents is changed
+	 * by the dialogue handler. Target is unused.
+	 */
+	DIALOGUE_ICON_REFRESH		= 0x00000200,
+
+	/**
+	 * The icon should be hidden if requested. Target is unused.
+	 */
+	DIALOGUE_ICON_HIDDEN		= 0x00000400,
+
+	/**
+	 * The icon should be registered with the Wimp Library as a
+	 * pop-up menu icon. Target is unused.
+	 */
+	DIALOGUE_ICON_POPUP		= 0x00000800,
+
+	/**
+	 * The icon requires a pop-up account selection dialogue to be
+	 * associated with it. If Target is DIALOGUE_NO_ICON, the icon
+	 * is the text field; otherwise, the icon is the pop-up menu icon
+	 * and Target is the text field. One of the DIALOGUE_ICON_TYPE
+	 * flags should be set to indicate the type of field.
+	 */
+	DIALOGUE_ICON_ACCOUNT_POPUP	= 0x00001000,
+
+	/**
+	 * The icon is the ident field in an account selector. Target
+	 * should reference the icon representing the name field.
+	 */
+	DIALOGUE_ICON_ACCOUNT_IDENT	= 0x00002000,
+
+	/**
+	 * The icon is the name field in an account selector. Target
+	 * should reference the icon representing the reconciled field.
+	 */
+	DIALOGUE_ICON_ACCOUNT_NAME	= 0x00004000,
+
+	/**
+	 * The icon is the reconciled field in an account selector. Target
+	 * should reference the icon representing the ident field.
+	 */
+	DIALOGUE_ICON_ACCOUNT_RECONCILE	= 0x00008000,
+
+	/**/
+
+	DIALOGUE_ICON_TYPE_FROM		= 0x00010000,		/**< The icon targets incoming headings and accounts.	*/
+	DIALOGUE_ICON_TYPE_TO		= 0x00020000,		/**< The icon targets outgoing headings and accounts.	*/
+	DIALOGUE_ICON_TYPE_IN		= 0x00040000,		/**< The icon targets incoming headings.		*/
+	DIALOGUE_ICON_TYPE_OUT		= 0x00080000,		/**< The icon targets outgoing headings.		*/
+	DIALOGUE_ICON_TYPE_FULL		= 0x00100000,		/**< The icon targets accounts.				*/
+
+	/**
+	 * The last, dummy, entry in the dialogue icon sequence. Icon and
+	 * Target should both be DIALOGUE_NO_ICON.
+	 */
+	DIALOGUE_ICON_END		= 0x08000000,
 
 	/* Flags below this point belong to individual clients; values
 	 * can be duplicated across clients. Four flags are allocated,
@@ -70,6 +174,10 @@ enum dialogue_icon_type {
 	DIALOGUE_ICON_ANALYSIS_RENAME	= 0x20000000,		/**< The Analysis Report Rename button.		*/
 
 	DIALOGUE_ICON_PRINT_REPORT	= 0x10000000,		/**< The Print Report button.			*/
+
+	DIALOGUE_ICON_FIND_PREVIOUS	= 0x10000000,		/**< The Previous Match button.			*/
+	DIALOGUE_ICON_FIND_NEXT		= 0x20000000,		/**< The Next Match button.			*/
+	DIALOGUE_ICON_FIND_NEW		= 0x40000000		/**< The New Search button.			*/
 };
 
 #define DIALOGUE_NO_ICON ((wimp_i) -1)

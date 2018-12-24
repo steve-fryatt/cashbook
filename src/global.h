@@ -61,7 +61,6 @@
 struct analysis_report;
 struct report;
 struct budget_block;
-struct find_block;
 struct goto_block;
 struct purge_block;
 

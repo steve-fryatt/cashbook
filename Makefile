@@ -68,6 +68,8 @@ OBJS = account.o			\
        file_info.o			\
        filing.o				\
        find.o				\
+       find_result_dialogue.o		\
+       find_search_dialogue.o		\
        flexutils.o			\
        fontlist.o			\
        goto.o				\

@@ -32,6 +32,32 @@
 
 #include "file.h"
 
+struct find_block;
+
+/**
+ * Search logic options.
+ */
+
+enum find_logic {
+	FIND_NOLOGIC = 0,							/**< No logic has been specified.					*/
+	FIND_AND = 1,								/**< Search using AND logic to combine the fields.			*/
+	FIND_OR = 2								/**< Search using OR logic to comnine the fields.			*/
+};
+
+/**
+ * Search direction options.
+ */
+
+enum find_direction {
+	FIND_NODIR = 0,								/**< No direction has been specified.					*/
+	FIND_START = 1,								/**< Begin searching down from the start of the file.			*/
+	FIND_END = 2,								/**< Begin searching up from the end of the file.			*/
+	FIND_UP = 3,								/**< Continue searching up.						*/
+	FIND_DOWN = 4,								/**< Continue searching down.						*/
+	FIND_NEXT = 5,								/**< Find the next match in the current direction.			*/
+	FIND_PREVIOUS = 6							/**< Find the previous match in the current direction.			*/
+};
+
 /**
  * Initialise the Find module.
  */

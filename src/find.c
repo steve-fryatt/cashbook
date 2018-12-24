@@ -62,62 +62,10 @@
 #include "file.h"
 #include "transact.h"
 
-#define FIND_ICON_OK 26
-#define FIND_ICON_CANCEL 27
 
-#define FIND_ICON_DATE 2
-#define FIND_ICON_FMIDENT 4
-#define FIND_ICON_FMREC 5
-#define FIND_ICON_FMNAME 6
-#define FIND_ICON_TOIDENT 8
-#define FIND_ICON_TOREC 9
-#define FIND_ICON_TONAME 10
-#define FIND_ICON_REF 12
-#define FIND_ICON_AMOUNT 14
-#define FIND_ICON_DESC 16
-
-#define FIND_ICON_AND 18
-#define FIND_ICON_OR 19
-
-#define FIND_ICON_CASE 17
-#define FIND_ICON_WHOLE 28
-
-#define FIND_ICON_START 22
-#define FIND_ICON_DOWN 23
-#define FIND_ICON_UP 25
-#define FIND_ICON_END 24
-
-#define FOUND_ICON_CANCEL 1
-#define FOUND_ICON_PREVIOUS 0
-#define FOUND_ICON_NEXT 2
-#define FOUND_ICON_NEW 3
-#define FOUND_ICON_INFO 4
 
 #define FIND_MESSAGE_BUFFER_LENGTH 64
 
-/**
- * Search logic options.
- */
-
-enum find_logic {
-	FIND_NOLOGIC = 0,							/**< No logic has been specified.					*/
-	FIND_AND = 1,								/**< Search using AND logic to combine the fields.			*/
-	FIND_OR = 2								/**< Search using OR logic to comnine the fields.			*/
-};
-
-/**
- * Search direction options.
- */
-
-enum find_direction {
-	FIND_NODIR = 0,								/**< No direction has been specified.					*/
-	FIND_START = 1,								/**< Begin searching down from the start of the file.			*/
-	FIND_END = 2,								/**< Begin searching up from the end of the file.			*/
-	FIND_UP = 3,								/**< Continue searching up.						*/
-	FIND_DOWN = 4,								/**< Continue searching down.						*/
-	FIND_NEXT = 5,								/**< Find the next match in the current direction.			*/
-	FIND_PREVIOUS = 6							/**< Find the previous match in the current direction.			*/
-};
 
 /**
  * Search data.
@@ -144,9 +92,6 @@ static struct find_block	*find_window_owner = NULL;			/**< The file currently ow
 static struct find_block	find_params;					/**< A copy of the settings for the current search.			*/
 static osbool			find_restore = FALSE;				/**< The restore setting for the current dialogue.			*/
 
-static wimp_w			find_window = NULL;				/**< The handle of the find window.					*/
-static wimp_w			find_result_window = NULL;			/**< The handle of the 'found' window.					*/
-
 
 static void		find_reopen_window(wimp_pointer *ptr);
 static void		find_close_window(void);
@@ -166,22 +111,8 @@ static int		find_from_line(struct find_block *new_params, int new_dir, int start
 
 void find_initialise(void)
 {
-	find_window  = templates_create_window("Find");
-	ihelp_add_window(find_window , "Find", NULL);
-	event_add_window_mouse_event(find_window, find_click_handler);
-	event_add_window_key_event(find_window, find_keypress_handler);
-	event_add_window_icon_radio(find_window, FIND_ICON_AND, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_OR, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_START, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_END, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_UP, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_DOWN, TRUE);
-
-
-
-	find_result_window = templates_create_window("Found");
-	ihelp_add_window(find_result_window, "Found", NULL);
-	event_add_window_mouse_event(find_result_window, find_result_click_handler);
+	find_search_dialogue_initialise();
+	find_result_dialogue_initialise();
 }
 
 
@@ -227,14 +158,6 @@ struct find_block *find_create(struct file_block *file)
 
 void find_delete(struct find_block *windat)
 {
-	if (find_window_owner == windat) {
-		if (windows_get_open(find_window))
-			find_close_window();
-
-		if (windows_get_open(find_result_window))
-			find_result_close_window();
-	}
-
 	if (windat != NULL)
 		heap_free(windat);
 }
@@ -251,6 +174,10 @@ void find_delete(struct find_block *windat)
 
 void find_open_window(struct find_block *windat, wimp_pointer *ptr, osbool restore)
 {
+
+	if (windat == NULL || ptr == NULL)
+		return;
+
 	/* If either of the find/found windows are already open, close them to start with. */
 
 	if (windows_get_open(find_window))

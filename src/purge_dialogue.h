@@ -60,13 +60,14 @@ void purge_dialogue_initialise(void);
  * Open the purge dialogue for a given transaction window.
  *
  * \param *ptr			The current Wimp pointer position.
+ * \param restore		TRUE to restore the current dialogue content, otherwise FALSE
  * \param *owner		The goto dialogue instance to own the dialogue.
  * \param *file			The file instance to own the dialogue.
  * \param *callback		The callback function to use to return the results.
  * \param *content		Pointer to a structure to hold the dialogue content.
  */
 
-void purge_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file, osbool (*callback)(void *, struct purge_dialogue_data *),
+void purge_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct file_block *file, osbool (*callback)(void *, struct purge_dialogue_data *),
 		struct purge_dialogue_data *data);
 
 #endif

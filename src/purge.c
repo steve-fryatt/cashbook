@@ -150,7 +150,7 @@ void purge_open_window(struct purge_block *purge, wimp_pointer *ptr, osbool rest
 	content->remove_sorders = purge->sorders;
 	content->keep_from = purge->before;
 
-	purge_dialogue_open(ptr, purge, purge->file, purge_process_window, content);
+	purge_dialogue_open(ptr, restore, purge, purge->file, purge_process_window, content);
 }
 
 

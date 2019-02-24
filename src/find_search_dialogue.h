@@ -66,13 +66,14 @@ void find_search_dialogue_initialise(void);
  * Open the find_search dialogue for a given transaction window.
  *
  * \param *ptr			The current Wimp pointer position.
+ * \param restore		TRUE to restore the current dialogue content, otherwise FALSE
  * \param *owner		The find dialogue instance to own the dialogue.
  * \param *file			The file instance to own the dialogue.
  * \param *callback		The callback function to use to return the results.
  * \param *content		Pointer to a structure to hold the dialogue content.
  */
 
-void find_search)dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file, osbool (*callback)(void *, struct find_search_dialogue_data *),
+void find_search_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct file_block *file, osbool (*callback)(void *, struct find_search_dialogue_data *),
 		struct find_search_dialogue_data *data);
 
 #endif

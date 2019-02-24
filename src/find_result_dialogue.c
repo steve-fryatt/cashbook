@@ -221,7 +221,7 @@ static void find_result_dialogue_close(wimp_w window, void *data)
 
 	/* The client is assuming that we'll delete this after use. */
 
-	if (data != NULL)
-		heap_free(data);
+//	if (data != NULL)
+//		heap_free(data);
 }
 

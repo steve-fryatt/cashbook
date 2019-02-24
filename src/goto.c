@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -60,14 +60,19 @@ struct goto_block {
 	struct file_block		*file;
 
 	/**
-	 * The most recent dialogue content.
+	 * The most recent type of target held by the dialogue.
 	 */
-	struct goto_dialogue_data	dialogue;
+	enum goto_dialogue_type		type;
+
+	/**
+	 * The most recent target held by the dialogue.
+	 */
+	union goto_dialogue_target	target;
 };
 
 /* Static Function Prototypes. */
 
-static osbool goto_process_window(void *owner);
+static osbool goto_process_window(void *owner, struct goto_dialogue_data *content);
 
 
 /**
@@ -98,8 +103,8 @@ struct goto_block *goto_create(struct file_block *file)
 		return NULL;
 
 	new->file = file;
-	new->dialogue.type = GOTO_DIALOGUE_TYPE_DATE;
-	new->dialogue.target.date = NULL_DATE;
+	new->type = GOTO_DIALOGUE_TYPE_DATE;
+	new->target.date = NULL_DATE;
 
 	return new;
 }
@@ -129,11 +134,19 @@ void goto_delete(struct goto_block *windat)
 
 void goto_open_window(struct goto_block *windat, wimp_pointer *ptr, osbool restore)
 {
+	struct goto_dialogue_data *content = NULL;
+
 	if (windat == NULL || ptr == NULL)
 		return;
 
-	goto_dialogue_open(ptr, restore, windat, windat->file, goto_process_window,
-			&(windat->dialogue));
+	content = heap_alloc(sizeof(struct goto_dialogue_data));
+	if (content == NULL)
+		return;
+
+	content->type = windat->type;
+	content->target = windat->target;
+
+	goto_dialogue_open(ptr, restore, windat, windat->file, goto_process_window, content);
 }
 
 
@@ -145,31 +158,37 @@ void goto_open_window(struct goto_block *windat, wimp_pointer *ptr, osbool resto
  *				was an error.
  */
 
-static osbool goto_process_window(void *owner)
+static osbool goto_process_window(void *owner, struct goto_dialogue_data *content)
 {
 	int			transaction = 0, line = 0;
 	struct goto_block	*windat = owner;
 
-	if (windat == NULL)
+	if (windat == NULL || content == NULL)
 		return FALSE;
 
-	switch (windat->dialogue.type) {
+	switch (content->type) {
 	case GOTO_DIALOGUE_TYPE_LINE:
-		if ((windat->dialogue.target.line <= 0) || (windat->dialogue.target.line > transact_get_count(windat->file))) {
+		if ((content->target.line <= 0) || (content->target.line > transact_get_count(windat->file))) {
 			error_msgs_report_info("BadGotoLine");
 			return FALSE;
 		}
 
-		line = transact_get_line_from_transaction(windat->file, transact_find_transaction_number(windat->dialogue.target.line));
+		windat->type = content->type;
+		windat->target.line = content->target.line;
+
+		line = transact_get_line_from_transaction(windat->file, transact_find_transaction_number(content->target.line));
 		break;
 
 	case GOTO_DIALOGUE_TYPE_DATE:
-		if (windat->dialogue.target.date == NULL_DATE) {
+		if (content->target.date == NULL_DATE) {
 			error_msgs_report_info("BadGotoDate");
 			return FALSE;
 		}
 
-		transaction = transact_find_date(windat->file, windat->dialogue.target.date);
+		windat->type = content->type;
+		windat->target.date = content->target.date;
+
+		transaction = transact_find_date(windat->file, content->target.date);
 
 		if (transaction == NULL_TRANSACTION)
 			return FALSE;

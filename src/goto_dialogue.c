@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -39,6 +39,7 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/heap.h"
 #include "sflib/icons.h"
 
 /* Application header files */
@@ -68,7 +69,7 @@ static struct dialogue_block	*goto_dialogue = NULL;
  * Callback function to return updated settings.
  */
 
-static osbool			(*goto_dialogue_callback)(void *);
+static osbool			(*goto_dialogue_callback)(void *, struct goto_dialogue_data *);
 
 
 /* Static function prototypes. */
@@ -135,7 +136,7 @@ void goto_dialogue_initialise(void)
  * \param *content		Pointer to a structure to hold the dialogue content.
  */
 
-void goto_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct file_block *file, osbool (*callback)(void *),
+void goto_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct file_block *file, osbool (*callback)(void *, struct goto_dialogue_data *),
 		struct goto_dialogue_data *content)
 {
 	goto_dialogue_callback = callback;
@@ -217,7 +218,7 @@ static osbool goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum d
 
 	/* Call the client back. */
 
-	return goto_dialogue_callback(parent);
+	return goto_dialogue_callback(parent, content);
 }
 
 
@@ -231,5 +232,10 @@ static osbool goto_dialogue_process(wimp_w window, wimp_pointer *pointer, enum d
 static void goto_dialogue_close(wimp_w window, void *data)
 {
 	goto_dialogue_callback = NULL;
+
+	/* The client is assuming that we'll delete this after use. */
+
+	if (data != NULL)
+		heap_free(data);
 }
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -76,7 +76,7 @@ void goto_dialogue_initialise(void);
  * \param *content		Pointer to a structure to hold the dialogue content.
  */
 
-void goto_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct file_block *file, osbool (*callback)(void *),
+void goto_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct file_block *file, osbool (*callback)(void *, struct goto_dialogue_data *),
 		struct goto_dialogue_data *data);
 
 #endif

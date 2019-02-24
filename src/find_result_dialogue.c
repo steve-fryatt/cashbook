@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -69,7 +69,7 @@ static struct dialogue_block	*find_result_dialogue = NULL;
  * Callback function to return updated settings.
  */
 
-static osbool			(*find_result_dialogue_callback)(void *, struct find_result_dialogue_data *);
+static osbool			(*find_result_dialogue_callback)(wimp_pointer *, void *, struct find_result_dialogue_data *);
 
 
 /* Static function prototypes. */
@@ -132,7 +132,7 @@ void find_result_dialogue_initialise(void)
  * \param *content		Pointer to a structure to hold the dialogue content.
  */
 
-void find_result_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file, osbool (*callback)(void *, struct find_result_dialogue_data *),
+void find_result_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file, osbool (*callback)(wimp_pointer *, void *, struct find_result_dialogue_data *),
 		struct find_result_dialogue_data *content)
 {
 	find_result_dialogue_callback = callback;
@@ -158,20 +158,15 @@ static void find_result_dialogue_fill(wimp_w window, osbool restore, void *data)
 		return;
 
 	if (restore) {
-		icons_set_selected(window, PURGE_DIALOGUE_ICON_TRANSACT, content->remove_transactions);
-		icons_set_selected(window, PURGE_DIALOGUE_ICON_ACCOUNTS, content->remove_accounts);
-		icons_set_selected(window, PURGE_DIALOGUE_ICON_HEADINGS, content->remove_headings);
-		icons_set_selected(window, PURGE_DIALOGUE_ICON_SORDERS, content->remove_sorders);
+//		transact_get_column_name(find_window_owner->file, result, buf1, FIND_MESSAGE_BUFFER_LENGTH);
+//		string_printf(buf2, FIND_MESSAGE_BUFFER_LENGTH, "%d", transact_get_transaction_number(line));
 
-		date_convert_to_string(content->keep_from, icons_get_indirected_text_addr(window, PURGE_DIALOGUE_ICON_DATE),
-				icons_get_indirected_text_length(window, PURGE_DIALOGUE_ICON_DATE));
+//		icons_msgs_param_lookup(find_result_window, FOUND_ICON_INFO, "Found", buf1, buf2, NULL, NULL);
+
+//		date_convert_to_string(content->keep_from, icons_get_indirected_text_addr(window, PURGE_DIALOGUE_ICON_DATE),
+//				icons_get_indirected_text_length(window, PURGE_DIALOGUE_ICON_DATE));
 	} else {
-		icons_set_selected(window, PURGE_DIALOGUE_ICON_TRANSACT, TRUE);
-		icons_set_selected(window, PURGE_DIALOGUE_ICON_ACCOUNTS, FALSE);
-		icons_set_selected(window, PURGE_DIALOGUE_ICON_HEADINGS, FALSE);
-		icons_set_selected(window, PURGE_DIALOGUE_ICON_SORDERS, FALSE);
-
-		*icons_get_indirected_text_addr(window, PURGE_DIALOGUE_ICON_DATE) = '\0';
+		*icons_get_indirected_text_addr(window, FIND_RESULT_DIALOGUE_ICON_INFO) = '\0';
 	}
 }
 
@@ -181,7 +176,7 @@ static void find_result_dialogue_fill(wimp_w window, osbool restore, void *data)
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
- * \param *parent	The parent goto instance.
+ * \param *parent	The parent find instance.
  * \param *data		Client data pointer, to the dislogue data structure.
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
@@ -195,16 +190,18 @@ static osbool find_result_dialogue_process(wimp_w window, wimp_pointer *pointer,
 
 	/* Extract the information. */
 
-	content->remove_transactions = icons_get_selected(window, PURGE_DIALOGUE_ICON_TRANSACT);
-	content->remove_accounts = icons_get_selected(window, PURGE_DIALOGUE_ICON_ACCOUNTS);
-	content->remove_headings = icons_get_selected(window, PURGE_DIALOGUE_ICON_HEADINGS);
-	content->remove_sorders = icons_get_selected(window, PURGE_DIALOGUE_ICON_SORDERS);
-
-	content->keep_from = date_convert_from_string(icons_get_indirected_text_addr(window, PURGE_DIALOGUE_ICON_DATE), NULL_DATE, 0);
+	if (type == DIALOGUE_ICON_FIND_PREVIOUS && pointer->buttons == wimp_CLICK_SELECT)
+		content->action = FIND_RESULT_DIALOGUE_PREVIOUS;
+	else if (type == DIALOGUE_ICON_FIND_NEXT && pointer->buttons == wimp_CLICK_SELECT)
+		content->action = FIND_RESULT_DIALOGUE_NEXT;
+	else if (type == DIALOGUE_ICON_FIND_NEW && pointer->buttons == wimp_CLICK_SELECT)
+		content->action = FIND_RESULT_DIALOGUE_NEXT;
+	else
+		content->action = FIND_RESULT_DIALOGUE_NONE;
 
 	/* Call the client back. */
 
-	return find_result_dialogue_callback(parent, content);
+	return find_result_dialogue_callback(pointer, parent, content);
 }
 
 
@@ -221,7 +218,7 @@ static void find_result_dialogue_close(wimp_w window, void *data)
 
 	/* The client is assuming that we'll delete this after use. */
 
-//	if (data != NULL)
-//		heap_free(data);
+	if (data != NULL)
+		heap_free(data);
 }
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -91,15 +91,13 @@ struct find_block {
 	enum find_direction	direction;					/**< The direction to search in.					*/
 };
 
-//static struct find_block	*find_window_owner = NULL;			/**< The file currently owning the Find dialogue.			*/
 //static struct find_block	find_params;					/**< A copy of the settings for the current search.			*/
-//static osbool			find_restore = FALSE;				/**< The restore setting for the current dialogue.			*/
 
+/* Static Function Prototypes. */
 
 static void		find_reopen_window(wimp_pointer *ptr);
-static void		find_close_window(void);
-static void		find_result_click_handler(wimp_pointer *pointer);
-static osbool		find_process_window(void *owner, struct find_search_dialogue_data *content);
+static osbool		find_process_search_window(void *owner, struct find_search_dialogue_data *content);
+static osbool		find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content);
 static int		find_from_line(struct find_block *new_params, int new_dir, int start);
 
 
@@ -194,7 +192,7 @@ void find_open_window(struct find_block *windat, wimp_pointer *ptr, osbool resto
 	string_copy(content->ref, windat->ref, TRANSACT_REF_FIELD_LEN);
 	string_copy(content->desc, windat->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	find_search_dialogue_open(ptr, restore, windat, windat->file, find_process_window, content);
+	find_search_dialogue_open(ptr, restore, windat, windat->file, find_process_search_window, content);
 }
 
 
@@ -226,41 +224,6 @@ static void find_reopen_window(wimp_pointer *ptr)
 }
 
 
-
-
-
-/**
- * Process mouse clicks in the Find Result dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void find_result_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case FOUND_ICON_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			find_result_close_window();
-		break;
-
-	case FOUND_ICON_PREVIOUS:
-		if (pointer->buttons == wimp_CLICK_SELECT && (find_from_line(NULL, FIND_PREVIOUS, NULL_TRANSACTION) == NULL_TRANSACTION))
-			find_result_close_window();
-		break;
-
-	case FOUND_ICON_NEXT:
-		if (pointer->buttons == wimp_CLICK_SELECT && (find_from_line(NULL, FIND_NEXT, NULL_TRANSACTION) == NULL_TRANSACTION))
-			find_result_close_window();
-		break;
-
-	case FOUND_ICON_NEW:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			find_reopen_window(pointer);
-		break;
-	}
-}
-
-
 /**
  * Process the contents of the Find window, store the details and
  * perform a find operation.
@@ -269,32 +232,94 @@ static void find_result_click_handler(wimp_pointer *pointer)
  *				was an error.
  */
 
-static osbool find_process_window(void *owner, struct find_search_dialogue_data *content)
+static osbool find_process_search_window(void *owner, struct find_search_dialogue_data *content)
 {
-	int		line;
+	struct find_block	*windat = owner;
+	int			line;
 
+	if (windat == NULL || content == NULL)
+		return TRUE;
 
 	/* Get the start line. */
 
-	if (find_window_owner->direction == FIND_START)
+	if (content->direction == FIND_START)
 		line = 0;
-	else if (find_window_owner->direction == FIND_END)
-		line = transact_get_count(find_window_owner->file) - 1;
-	else if (find_window_owner->direction == FIND_DOWN) {
-		line = transact_get_caret_line(find_window_owner->file) + 1;
-		if (line >= transact_get_count(find_window_owner->file))
-			line = transact_get_count(find_window_owner->file) - 1;
-	} else /* FUND_UP */ {
-		line = transact_get_caret_line(find_window_owner->file) - 1;
+	else if (content->direction == FIND_END)
+		line = transact_get_count(windat->file) - 1;
+	else if (content->direction == FIND_DOWN) {
+		line = transact_get_caret_line(windat->file) + 1;
+		if (line >= transact_get_count(windat->file))
+			line = transact_get_count(windat->file) - 1;
+	} else if (content->direction == FIND_UP) {
+		line = transact_get_caret_line(windat->file) - 1;
 		if (line < 0)
 			line = 0;
+	} else {
+		return FALSE;
 	}
+
+	/* Store the new data. */
+
+	windat->date = content->date;
+	windat->from = content->from;
+	windat->to = content->to;
+	windat->reconciled = content->reconciled;
+	windat->amount = content->amount;
+	windat->logic = content->logic;
+	windat->case_sensitive = content->case_sensitive;
+	windat->whole_text = content->whole_text;
+	windat->direction = content->direction;
+
+	string_copy(windat->ref, content->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(windat->desc, content->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	/* Start the search. */
 
-	line = find_from_line(find_window_owner, FIND_NODIR, line);
+	line = find_from_line(windat, FIND_NODIR, line);
 
 	return (line != NULL_TRANSACTION) ? TRUE : FALSE;
+}
+
+
+/**
+ * Process the contents of the Found window, store the details and
+ * perform a new find operation as required.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static osbool find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content)
+{
+	struct find_block	*windat = owner;
+
+	if (windat == NULL || content == NULL)
+		return TRUE;
+
+	switch (content->action) {
+//	case FOUND_ICON_CANCEL:
+//		if (pointer->buttons == wimp_CLICK_SELECT)
+//			find_result_close_window();
+//		break;
+
+	case FIND_RESULT_DIALOGUE_PREVIOUS:
+		if (find_from_line(NULL, FIND_PREVIOUS, NULL_TRANSACTION) == NULL_TRANSACTION)
+			return TRUE;
+		break;
+
+	case FIND_RESULT_DIALOGUE_NEXT:
+		if (find_from_line(NULL, FIND_NEXT, NULL_TRANSACTION) == NULL_TRANSACTION)
+			return TRUE;
+		break;
+
+	case FIND_RESULT_DIALOGUE_NEW:
+		find_reopen_window(pointer);
+		break;
+
+	case FIND_RESULT_DIALOGUE_NONE:
+		break;
+	}
+
+	return TRUE;
 }
 
 
@@ -310,70 +335,76 @@ static osbool find_process_window(void *owner, struct find_search_dialogue_data 
 
 static int find_from_line(struct find_block *new_params, int new_dir, int start)
 {
+	struct find_block	*saved_params;
 	int			line;
 	enum find_direction	direction;
 	enum transact_field	result;
 	wimp_pointer		pointer;
 	char			buf1[FIND_MESSAGE_BUFFER_LENGTH], buf2[FIND_MESSAGE_BUFFER_LENGTH], ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
 
-	/* If new parameters are being supplied, take copies. */
+	if (new_params == NULL)
+		return NULL_TRANSACTION;
 
-	if (new_params != NULL) {
-		find_params.file = new_params->file;
-		find_params.date = new_params->date;
-		find_params.from = new_params->from;
-		find_params.to = new_params->to;
-		find_params.reconciled = new_params->reconciled;
-		find_params.amount = new_params->amount;
-		string_copy(find_params.ref, new_params->ref, TRANSACT_REF_FIELD_LEN);
-		string_copy(find_params.desc, new_params->desc, TRANSACT_DESCRIPT_FIELD_LEN);
+	/* Take a copy of the saved parameters. */
 
-		find_params.logic = new_params->logic;
-		find_params.case_sensitive = new_params->case_sensitive;
-		find_params.whole_text = new_params->whole_text;
-		find_params.direction = new_params->direction;
+	saved_params = heap_alloc(sizeof(struct find_block));
+	if (saved_params == NULL)
+		return;
 
-		/* Start and End have served their purpose; they now need to convert into up and down. */
+	saved_params->file = new_params->file;
+	saved_params->date = new_params->date;
+	saved_params->from = new_params->from;
+	saved_params->to = new_params->to;
+	saved_params->reconciled = new_params->reconciled;
+	saved_params->amount = new_params->amount;
+	string_copy(saved_params->ref, new_params->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(saved_params->desc, new_params->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
-		if (find_params.direction == FIND_START)
-			find_params.direction = FIND_DOWN;
+	saved_params->logic = new_params->logic;
+	saved_params->case_sensitive = new_params->case_sensitive;
+	saved_params->whole_text = new_params->whole_text;
+	saved_params->direction = new_params->direction;
 
-		if (find_params.direction == FIND_END)
-			find_params.direction = FIND_UP;
-	}
+	/* Start and End have served their purpose; they now need to convert into up and down. */
+
+	if (saved_params->direction == FIND_START)
+		saved_params->direction = FIND_DOWN;
+
+	if (saved_params->direction == FIND_END)
+		saved_params->direction = FIND_UP;
 
 	/* Take local copies of the two text fields, and add bracketing wildcards as necessary. */
 
-	if ((!find_params.whole_text) && (*(find_params.ref) != '\0'))
-		string_printf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", find_params.ref);
+	if ((!saved_params->whole_text) && (*(saved_params->ref) != '\0'))
+		string_printf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", saved_params->ref);
 	else
-		string_copy(ref, find_params.ref, TRANSACT_REF_FIELD_LEN + 2);
+		string_copy(ref, saved_params->ref, TRANSACT_REF_FIELD_LEN + 2);
 
-	if ((!find_params.whole_text) && (*(find_params.desc) != '\0'))
-		string_printf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", find_params.desc);
+	if ((!saved_params->whole_text) && (*(saved_params->desc) != '\0'))
+		string_printf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", saved_params->desc);
 	else
-		string_copy(desc, find_params.desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
+		string_copy(desc, saved_params->desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
 
 	/* If the search needs to change direction, do so now. */
 
 	if (new_dir == FIND_NEXT || new_dir == FIND_PREVIOUS) {
-		if (find_params.direction == FIND_UP)
+		if (saved_params->direction == FIND_UP)
 			direction = (new_dir == FIND_NEXT) ? FIND_UP : FIND_DOWN;
 		else
 			direction = (new_dir == FIND_NEXT) ? FIND_DOWN : FIND_UP;
 	} else {
-		direction = find_params.direction;
+		direction = saved_params->direction;
 	}
 
 	/* If a new start line is being specified, take note, else use the current edit line. */
 
 	if (start == NULL_TRANSACTION) {
 		if (direction == FIND_DOWN) {
-			line = transact_get_caret_line(find_window_owner->file) + 1;
-			if (line >= transact_get_count(find_window_owner->file))
-				line = transact_get_count(find_window_owner->file) - 1;
+			line = transact_get_caret_line(saved_params->file) + 1;
+			if (line >= transact_get_count(saved_params->file))
+				line = transact_get_count(saved_params->file) - 1;
 		} else /* FIND_UP */ {
-			line = transact_get_caret_line(find_window_owner->file) - 1;
+			line = transact_get_caret_line(saved_params->file) - 1;
 			if (line < 0)
 				line = 0;
 		}
@@ -381,29 +412,27 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 		line = start;
 	}
 
-	result = transact_search(find_window_owner->file, &line, direction == FIND_UP, find_params.case_sensitive, find_params.logic == FIND_AND,
-			find_params.date, find_params.from, find_params.to, find_params.reconciled, find_params.amount, ref, desc);
+	result = transact_search(saved_params->file, &line, direction == FIND_UP, saved_params->case_sensitive, saved_params->logic == FIND_AND,
+			saved_params->date, saved_params->from, saved_params->to, saved_params->reconciled, saved_params->amount, ref, desc);
 
 	if (result == TRANSACT_FIELD_NONE) {
 		error_msgs_report_info ("BadFind");
 		return NULL_TRANSACTION;
 	}
 
-	wimp_close_window(find_window);
+//	transact_place_caret(saved_params->file, line, result);
 
-	transact_place_caret(find_window_owner->file, line, result);
+//	transact_get_column_name(saved_params->file, result, buf1, FIND_MESSAGE_BUFFER_LENGTH);
+//	string_printf(buf2, FIND_MESSAGE_BUFFER_LENGTH, "%d", transact_get_transaction_number(line));
 
-	transact_get_column_name(find_window_owner->file, result, buf1, FIND_MESSAGE_BUFFER_LENGTH);
-	string_printf(buf2, FIND_MESSAGE_BUFFER_LENGTH, "%d", transact_get_transaction_number(line));
+//	icons_msgs_param_lookup(find_result_window, FOUND_ICON_INFO, "Found", buf1, buf2, NULL, NULL);
 
-	icons_msgs_param_lookup(find_result_window, FOUND_ICON_INFO, "Found", buf1, buf2, NULL, NULL);
-
-	if (!windows_get_open(find_result_window)) {
-		wimp_get_pointer_info(&pointer);
-		windows_open_centred_at_pointer(find_result_window, &pointer);
-	} else {
-		icons_redraw_group(find_result_window, 1, FOUND_ICON_INFO);
-	}
+//	if (!windows_get_open(find_result_window)) {
+//		wimp_get_pointer_info(&pointer);
+//		windows_open_centred_at_pointer(find_result_window, &pointer);
+//	} else {
+//		icons_redraw_group(find_result_window, 1, FOUND_ICON_INFO);
+//	}
 
 	return line;
 }

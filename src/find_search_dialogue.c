@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -95,7 +95,7 @@ static osbool			(*find_search_dialogue_callback)(void *, struct find_search_dial
 
 static void	find_search_dialogue_fill(wimp_w window, osbool restore, void *data);
 static osbool	find_search_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
-static void	fins_search_dialogue_close(wimp_w window, void *data);
+static void	find_search_dialogue_close(wimp_w window, void *data);
 
 /**
  * The Fins Search Dialogue Icon Set.
@@ -210,19 +210,19 @@ static void find_search_dialogue_fill(wimp_w window, osbool restore, void *data)
 		icons_set_selected(window, FIND_SEARCH_DIALOGUE_ICON_CASE, content->case_sensitive);
 		icons_set_selected(window, FIND_SEARCH_DIALOGUE_ICON_WHOLE, content->whole_text);
 
-		date_convert_to_string(find_data->date, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_DATE),
+		date_convert_to_string(content->date, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_DATE),
 				icons_get_indirected_text_length(window, FIND_SEARCH_DIALOGUE_ICON_DATE));
 
-		account_fill_field(find_data->file, find_data->from, (find_data->reconciled & TRANS_REC_FROM) ? TRUE : FALSE,
-				window, FIND_SEARCH_DIALOGUE_ICON_FMIDENT, FIND_SEARCH_DIALOGUE_ICON_FMNAME, FIND_SEARCH_DIALOGUE_ICON_FMREC);
+//		account_fill_field(content->file, content->from, (content->reconciled & TRANS_REC_FROM) ? TRUE : FALSE,
+//				window, FIND_SEARCH_DIALOGUE_ICON_FMIDENT, FIND_SEARCH_DIALOGUE_ICON_FMNAME, FIND_SEARCH_DIALOGUE_ICON_FMREC);
 
-		account_fill_field(find_data->file, find_data->to, (find_data->reconciled & TRANS_REC_TO) ? TRUE : FALSE,
-				window, FIND_SEARCH_DIALOGUE_ICON_TOIDENT, FIND_SEARCH_DIALOGUE_ICON_TONAME, FIND_SEARCH_DIALOGUE_ICON_TOREC);
+//		account_fill_field(content->file, content->to, (content->reconciled & TRANS_REC_TO) ? TRUE : FALSE,
+//				window, FIND_SEARCH_DIALOGUE_ICON_TOIDENT, FIND_SEARCH_DIALOGUE_ICON_TONAME, FIND_SEARCH_DIALOGUE_ICON_TOREC);
 
-		icons_strncpy(window, FIND_SEARCH_DIALOGUE_ICON_REF, find_data->ref);
-		currency_convert_to_string(find_data->amount, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_AMOUNT),
+		icons_strncpy(window, FIND_SEARCH_DIALOGUE_ICON_REF, content->ref);
+		currency_convert_to_string(content->amount, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_AMOUNT),
 				icons_get_indirected_text_length(window, FIND_SEARCH_DIALOGUE_ICON_AMOUNT));
-		icons_strncpy(window, FIND_SEARCH_DIALOGUE_ICON_DESC, find_data->desc);
+		icons_strncpy(window, FIND_SEARCH_DIALOGUE_ICON_DESC, content->desc);
 	} else {
 		icons_set_selected(window, FIND_SEARCH_DIALOGUE_ICON_AND, TRUE);
 		icons_set_selected(window, FIND_SEARCH_DIALOGUE_ICON_OR, FALSE);
@@ -252,7 +252,7 @@ static void find_search_dialogue_fill(wimp_w window, osbool restore, void *data)
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
- * \param *parent	The parent goto instance.
+ * \param *parent	The parent find instance.
  * \param *data		Client data pointer, to the dislogue data structure.
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
@@ -260,7 +260,6 @@ static void find_search_dialogue_fill(wimp_w window, osbool restore, void *data)
 static osbool find_search_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	struct find_search_dialogue_data	*content = data;
-	int					line;
 
 
 	if (find_search_dialogue_callback == NULL || content == NULL || parent == NULL)
@@ -268,44 +267,44 @@ static osbool find_search_dialogue_process(wimp_w window, wimp_pointer *pointer,
 
 	/* Extract the information. */
 
-	content->date = date_convert_from_string(icons_get_indirected_text_addr(window, FIND_ICON_DATE), NULL_DATE, 0);
-	content->from = account_find_by_ident(content->file, icons_get_indirected_text_addr(window, FIND_ICON_FMIDENT),
-			ACCOUNT_FULL | ACCOUNT_IN);
-	content->to = account_find_by_ident(content->file, icons_get_indirected_text_addr(window, FIND_ICON_TOIDENT),
-			ACCOUNT_FULL | ACCOUNT_OUT);
+	content->date = date_convert_from_string(icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_DATE), NULL_DATE, 0);
+//	content->from = account_find_by_ident(content->file, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_FMIDENT),
+//			ACCOUNT_FULL | ACCOUNT_IN);
+//	content->to = account_find_by_ident(content->file, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_TOIDENT),
+//			ACCOUNT_FULL | ACCOUNT_OUT);
 	content->reconciled = TRANS_FLAGS_NONE;
-	if (*icons_get_indirected_text_addr(window, FIND_ICON_FMREC) != '\0')
+	if (*icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_FMREC) != '\0')
 		content->reconciled |= TRANS_REC_FROM;
-	if (*icons_get_indirected_text_addr(window, FIND_ICON_TOREC) != '\0')
+	if (*icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_TOREC) != '\0')
 		content->reconciled |= TRANS_REC_TO;
-	content->amount = currency_convert_from_string(icons_get_indirected_text_addr(window, FIND_ICON_AMOUNT));
-	icons_copy_text(window, FIND_ICON_REF, content->ref, TRANSACT_REF_FIELD_LEN);
-	icons_copy_text(window, FIND_ICON_DESC, content->desc, TRANSACT_DESCRIPT_FIELD_LEN);
+	content->amount = currency_convert_from_string(icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_AMOUNT));
+	icons_copy_text(window, FIND_SEARCH_DIALOGUE_ICON_REF, content->ref, TRANSACT_REF_FIELD_LEN);
+	icons_copy_text(window, FIND_SEARCH_DIALOGUE_ICON_DESC, content->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	/* Read find logic. */
 
-	if (icons_get_selected(window, FIND_ICON_AND))
+	if (icons_get_selected(window, FIND_SEARCH_DIALOGUE_ICON_AND))
 		content->logic = FIND_AND;
-	else if (icons_get_selected(window, FIND_ICON_OR))
+	else if (icons_get_selected(window, FIND_SEARCH_DIALOGUE_ICON_OR))
 		content->logic = FIND_OR;
 	else
 		content->logic = FIND_NOLOGIC;
 
 	/* Read search direction. */
 
-	if (icons_get_selected(window, FIND_ICON_START))
+	if (icons_get_selected(window, FIND_SEARCH_DIALOGUE_ICON_START))
 		content->direction = FIND_START;
-	else if (icons_get_selected(window, FIND_ICON_END))
+	else if (icons_get_selected(window, FIND_SEARCH_DIALOGUE_ICON_END))
 		content->direction = FIND_END;
-	else if (icons_get_selected(window, FIND_ICON_DOWN))
+	else if (icons_get_selected(window, FIND_SEARCH_DIALOGUE_ICON_DOWN))
 		content->direction = FIND_DOWN;
-	else if (icons_get_selected(window, FIND_ICON_UP))
+	else if (icons_get_selected(window, FIND_SEARCH_DIALOGUE_ICON_UP))
 		content->direction = FIND_UP;
 	else
 		content->direction = FIND_NODIR;
 
-	content->case_sensitive = icons_get_selected(window, FIND_ICON_CASE);
-	content->whole_text = icons_get_selected(window, FIND_ICON_WHOLE);
+	content->case_sensitive = icons_get_selected(window, FIND_SEARCH_DIALOGUE_ICON_CASE);
+	content->whole_text = icons_get_selected(window, FIND_SEARCH_DIALOGUE_ICON_WHOLE);
 
 	/* Call the client back. */
 

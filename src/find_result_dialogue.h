@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -33,14 +33,30 @@
 #include "find.h"
 
 #include "date.h"
+#include "transact.h"
+
 #include "oslib/types.h"
+
+/**
+ * Actions which the user can request.
+ */
+
+enum find_result_dialogue_action {
+	FIND_RESULT_DIALOGUE_NONE,
+	FIND_RESULT_DIALOGUE_PREVIOUS,
+	FIND_RESULT_DIALOGUE_NEXT,
+	FIND_RESULT_DIALOGUE_NEW
+};
 
 /**
  * The find result data held by the dialogue.
  */
 
 struct find_result_dialogue_data {
-	enum find_direction	direction;
+	enum transact_field			result;
+	tran_t					transaction;
+
+	enum find_result_dialogue_action	action;
 };
 
 /**
@@ -59,7 +75,7 @@ void find_result_dialogue_initialise(void);
  * \param *content		Pointer to a structure to hold the dialogue content.
  */
 
-void find_result_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file, osbool (*callback)(void *, struct find_result_dialogue_data *),
+void find_result_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file, osbool (*callback)(wimp_pointer *, void *, struct find_result_dialogue_data *),
 		struct find_result_dialogue_data *data);
 
 #endif

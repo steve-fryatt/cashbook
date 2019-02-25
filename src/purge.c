@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -158,6 +158,8 @@ void purge_open_window(struct purge_block *purge, wimp_pointer *ptr, osbool rest
  * Process the contents of the Purge window, store the details and
  * perform a goto operation.
  *
+ * \param *owner		The purge instance currently owning the dialogue.
+ * \param *content		The data from the dialogue which is to be processed.
  * \return			TRUE if the operation completed OK; FALSE if there
  *				was an error.
  */

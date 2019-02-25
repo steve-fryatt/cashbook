@@ -154,6 +154,8 @@ void goto_open_window(struct goto_block *windat, wimp_pointer *ptr, osbool resto
  * Process the contents of the Goto window, store the details and
  * perform a goto operation.
  *
+ * \param *owner		The goto instance currently owning the dialogue.
+ * \param *content		The data from the dialogue which is to be processed.
  * \return			TRUE if the operation completed OK; FALSE if there
  *				was an error.
  */

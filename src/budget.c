@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -156,6 +156,8 @@ void budget_open_window(struct budget_block *windat, wimp_pointer *ptr)
  * Process the contents of the Budget window, storing the details in the
  * owning file.
  *
+ * \param *owner		The budget instance currently owning the dialogue.
+ * \param *content		The data from the dialogue which is to be processed.
  * \return			TRUE if the operation completed OK; FALSE if there
  *				was an error.
  */

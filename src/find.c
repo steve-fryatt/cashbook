@@ -228,6 +228,8 @@ static void find_reopen_window(wimp_pointer *ptr)
  * Process the contents of the Find window, store the details and
  * perform a find operation.
  *
+ * \param *owner		The find instance currently owning the dialogue.
+ * \param *content		The data from the dialogue which is to be processed.
  * \return			TRUE if the operation completed OK; FALSE if there
  *				was an error.
  */
@@ -285,6 +287,9 @@ static osbool find_process_search_window(void *owner, struct find_search_dialogu
  * Process the contents of the Found window, store the details and
  * perform a new find operation as required.
  *
+ * \param *pointer		The Wimp pointer data from the last dialogue click.
+ * \param *owner		The find instance currently owning the dialogue.
+ * \param *content		The data from the dialogue which is to be processed.
  * \param *pointer		The mouse event block to handle.
  */
 

@@ -36,7 +36,7 @@
  * The different types of Reference or Description menu available.
  */
 
-enum account_menu_type{
+enum account_menu_type {
 	ACCOUNT_MENU_NONE = 0,
 	ACCOUNT_MENU_FROM,
 	ACCOUNT_MENU_TO,
@@ -44,7 +44,6 @@ enum account_menu_type{
 	ACCOUNT_MENU_INCOMING,
 	ACCOUNT_MENU_OUTGOING
 };
-
 
 
 

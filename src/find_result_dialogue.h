@@ -53,6 +53,19 @@ enum find_result_dialogue_action {
  */
 
 struct find_result_dialogue_data {
+	date_t					date;					/**< The date to match, or NULL_DATE for none.				*/
+	acct_t					from;					/**< The From account to match, or NULL_ACCOUNT for none.		*/
+	acct_t					to;					/**< The To account to match, or NULL_ACCOUNT for none.			*/
+	enum transact_flags			reconciled;				/**< The From and To Accounts' reconciled status.			*/
+	amt_t					amount;					/**< The Amount to match, or NULL_CURRENCY for "don't care".		*/
+	char					ref[TRANSACT_REF_FIELD_LEN];		/**< The Reference to match; NULL or '\0' for "don't care".		*/
+	char					desc[TRANSACT_DESCRIPT_FIELD_LEN];	/**< The Description to match; NULL or '\0' for "don't care".		*/
+
+	enum find_logic				logic;					/**< The logic to use to combine the fields specified above.		*/
+	osbool					case_sensitive;				/**< TRUE to match case of strings; FALSE to ignore.			*/
+	osbool					whole_text;				/**< TRUE to match strings exactly; FALSE to allow substrings.		*/
+	enum find_direction			direction;				/**< The direction to search in.					*/
+
 	enum transact_field			result;
 	tran_t					transaction;
 

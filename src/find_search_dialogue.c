@@ -328,6 +328,8 @@ static void find_search_dialogue_close(struct file_block *file, wimp_w window, v
 
 	/* The client is assuming that we'll delete this after use. */
 
+	debug_printf("Freeing find block 0x%x", data);
+
 	if (data != NULL)
 		heap_free(data);
 }

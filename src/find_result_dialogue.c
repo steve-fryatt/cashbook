@@ -39,8 +39,10 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/debug.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/string.h"
 
 /* Application header files */
 
@@ -48,6 +50,8 @@
 #include "find_result_dialogue.h"
 
 #include "dialogue.h"
+
+#define FIND_RESULT_DIALOGUE_MESSAGE_LENGTH 64
 
 /* Dialogue Icons. */
 
@@ -83,16 +87,16 @@ static void	find_result_dialogue_close(struct file_block *file, wimp_w window, v
  */
 
 static struct dialogue_icon find_result_dialogue_icon_list[] = {
-	{DIALOGUE_ICON_CANCEL,		FIND_RESULT_DIALOGUE_ICON_CANCEL,	DIALOGUE_NO_ICON},
-	{DIALOGUE_ICON_FIND_PREVIOUS,	FIND_RESULT_DIALOGUE_ICON_PREVIOUS,	DIALOGUE_NO_ICON},
-	{DIALOGUE_ICON_FIND_NEXT,	FIND_RESULT_DIALOGUE_ICON_NEXT,		DIALOGUE_NO_ICON},
-	{DIALOGUE_ICON_FIND_NEW,	FIND_RESULT_DIALOGUE_ICON_NEW,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_CANCEL,					FIND_RESULT_DIALOGUE_ICON_CANCEL,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_FIND_PREVIOUS,	FIND_RESULT_DIALOGUE_ICON_PREVIOUS,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_FIND_NEXT,	FIND_RESULT_DIALOGUE_ICON_NEXT,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_FIND_NEW,		FIND_RESULT_DIALOGUE_ICON_NEW,		DIALOGUE_NO_ICON},
 
 	/* The found info fields. */
 
-	{DIALOGUE_ICON_SHADE_TARGET,	FIND_RESULT_DIALOGUE_ICON_INFO,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_SHADE_TARGET,				FIND_RESULT_DIALOGUE_ICON_INFO,		DIALOGUE_NO_ICON},
 
-	{DIALOGUE_ICON_END,		DIALOGUE_NO_ICON,			DIALOGUE_NO_ICON}
+	{DIALOGUE_ICON_END,					DIALOGUE_NO_ICON,			DIALOGUE_NO_ICON}
 };
 
 /**
@@ -139,7 +143,7 @@ void find_result_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block
 
 	/* Open the window. */
 
-	dialogue_open(find_result_dialogue, FALSE, FALSE, file, owner, ptr, content);
+	dialogue_open(find_result_dialogue, FALSE, TRUE, file, owner, ptr, content);
 }
 
 /**
@@ -153,19 +157,17 @@ void find_result_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block
 
 static void find_result_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
-	struct find_result_dialogue_data *content = data;
+	struct find_result_dialogue_data	*content = data;
+	char					buf1[FIND_RESULT_DIALOGUE_MESSAGE_LENGTH], buf2[FIND_RESULT_DIALOGUE_MESSAGE_LENGTH];
 
 	if (content == NULL)
 		return;
 
 	if (restore) {
-//		transact_get_column_name(find_window_owner->file, result, buf1, FIND_MESSAGE_BUFFER_LENGTH);
-//		string_printf(buf2, FIND_MESSAGE_BUFFER_LENGTH, "%d", transact_get_transaction_number(line));
+		transact_get_column_name(file, content->result, buf1, FIND_RESULT_DIALOGUE_MESSAGE_LENGTH);
+		string_printf(buf2, FIND_RESULT_DIALOGUE_MESSAGE_LENGTH, "%d", transact_get_transaction_number(content->transaction));
 
-//		icons_msgs_param_lookup(find_result_window, FOUND_ICON_INFO, "Found", buf1, buf2, NULL, NULL);
-
-//		date_convert_to_string(content->keep_from, icons_get_indirected_text_addr(window, PURGE_DIALOGUE_ICON_DATE),
-//				icons_get_indirected_text_length(window, PURGE_DIALOGUE_ICON_DATE));
+		icons_msgs_param_lookup(window, FIND_RESULT_DIALOGUE_ICON_INFO, "Found", buf1, buf2, NULL, NULL);
 	} else {
 		*icons_get_indirected_text_addr(window, FIND_RESULT_DIALOGUE_ICON_INFO) = '\0';
 	}
@@ -192,11 +194,11 @@ static osbool find_result_dialogue_process(struct file_block *file, wimp_w windo
 
 	/* Extract the information. */
 
-	if (type == DIALOGUE_ICON_FIND_PREVIOUS && pointer->buttons == wimp_CLICK_SELECT)
+	if ((type & DIALOGUE_ICON_FIND_PREVIOUS) && (pointer->buttons == wimp_CLICK_SELECT))
 		content->action = FIND_RESULT_DIALOGUE_PREVIOUS;
-	else if (type == DIALOGUE_ICON_FIND_NEXT && pointer->buttons == wimp_CLICK_SELECT)
+	else if ((type & DIALOGUE_ICON_FIND_NEXT) && (pointer->buttons == wimp_CLICK_SELECT))
 		content->action = FIND_RESULT_DIALOGUE_NEXT;
-	else if (type == DIALOGUE_ICON_FIND_NEW && pointer->buttons == wimp_CLICK_SELECT)
+	else if ((type & DIALOGUE_ICON_FIND_NEW) && (pointer->buttons == wimp_CLICK_SELECT))
 		content->action = FIND_RESULT_DIALOGUE_NEXT;
 	else
 		content->action = FIND_RESULT_DIALOGUE_NONE;
@@ -220,6 +222,8 @@ static void find_result_dialogue_close(struct file_block *file, wimp_w window, v
 	find_result_dialogue_callback = NULL;
 
 	/* The client is assuming that we'll delete this after use. */
+
+	debug_printf("Freeing found block 0x%x", data);
 
 	if (data != NULL)
 		heap_free(data);

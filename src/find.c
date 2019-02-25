@@ -66,10 +66,6 @@
 #include "transact.h"
 
 
-
-#define FIND_MESSAGE_BUFFER_LENGTH 64
-
-
 /**
  * Search data.
  */
@@ -98,7 +94,7 @@ struct find_block {
 static void		find_reopen_window(wimp_pointer *ptr);
 static osbool		find_process_search_window(void *owner, struct find_search_dialogue_data *content);
 static osbool		find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content);
-static int		find_from_line(struct find_block *new_params, int new_dir, int start);
+static tran_t		find_from_line(struct find_block *new_params, int new_dir, int start);
 
 
 /**
@@ -178,6 +174,8 @@ void find_open_window(struct find_block *windat, wimp_pointer *ptr, osbool resto
 	content = heap_alloc(sizeof(struct find_search_dialogue_data));
 	if (content == NULL)
 		return;
+
+	debug_printf("Allocating find block 0x%x", content);
 
 	content->date = windat->date;
 	content->from = windat->from;
@@ -300,6 +298,8 @@ static osbool find_process_result_window(wimp_pointer *pointer, void *owner, str
 	if (windat == NULL || content == NULL)
 		return TRUE;
 
+	debug_printf("New action: %d", content->action);
+
 	switch (content->action) {
 //	case FOUND_ICON_CANCEL:
 //		if (pointer->buttons == wimp_CLICK_SELECT)
@@ -338,25 +338,28 @@ static osbool find_process_result_window(wimp_pointer *pointer, void *owner, str
  * \return			The resulting matching transaction.
  */
 
-static int find_from_line(struct find_block *new_params, int new_dir, int start)
+static tran_t find_from_line(struct find_block *new_params, int new_dir, int start)
 {
-	struct find_block	*saved_params;
-	int			line;
-	enum find_direction	direction;
-	enum transact_field	result;
-	wimp_pointer		pointer;
-	char			buf1[FIND_MESSAGE_BUFFER_LENGTH], buf2[FIND_MESSAGE_BUFFER_LENGTH], ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
+	struct find_result_dialogue_data	*saved_params;
+	int					line;
+	enum find_direction			direction;
+	enum transact_field			result;
+	wimp_pointer				pointer;
+	char					ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
+
+	debug_printf("Starting to find a transaction...");
 
 	if (new_params == NULL)
 		return NULL_TRANSACTION;
 
 	/* Take a copy of the saved parameters. */
 
-	saved_params = heap_alloc(sizeof(struct find_block));
+	saved_params = heap_alloc(sizeof(struct find_result_dialogue_data));
 	if (saved_params == NULL)
-		return;
+		return NULL_TRANSACTION;
 
-	saved_params->file = new_params->file;
+	debug_printf("Allocating found block 0x%x", saved_params);
+
 	saved_params->date = new_params->date;
 	saved_params->from = new_params->from;
 	saved_params->to = new_params->to;
@@ -369,6 +372,10 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 	saved_params->case_sensitive = new_params->case_sensitive;
 	saved_params->whole_text = new_params->whole_text;
 	saved_params->direction = new_params->direction;
+
+	saved_params->result = TRANSACT_FIELD_NONE;
+	saved_params->transaction = NULL_TRANSACTION;
+	saved_params->action = FIND_RESULT_DIALOGUE_NONE;
 
 	/* Start and End have served their purpose; they now need to convert into up and down. */
 
@@ -405,11 +412,11 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 
 	if (start == NULL_TRANSACTION) {
 		if (direction == FIND_DOWN) {
-			line = transact_get_caret_line(saved_params->file) + 1;
-			if (line >= transact_get_count(saved_params->file))
-				line = transact_get_count(saved_params->file) - 1;
+			line = transact_get_caret_line(new_params->file) + 1;
+			if (line >= transact_get_count(new_params->file))
+				line = transact_get_count(new_params->file) - 1;
 		} else /* FIND_UP */ {
-			line = transact_get_caret_line(saved_params->file) - 1;
+			line = transact_get_caret_line(new_params->file) - 1;
 			if (line < 0)
 				line = 0;
 		}
@@ -417,27 +424,27 @@ static int find_from_line(struct find_block *new_params, int new_dir, int start)
 		line = start;
 	}
 
-	result = transact_search(saved_params->file, &line, direction == FIND_UP, saved_params->case_sensitive, saved_params->logic == FIND_AND,
+	result = transact_search(new_params->file, &line, direction == FIND_UP, saved_params->case_sensitive, saved_params->logic == FIND_AND,
 			saved_params->date, saved_params->from, saved_params->to, saved_params->reconciled, saved_params->amount, ref, desc);
 
+	debug_printf("Find result: %d", result);
+
 	if (result == TRANSACT_FIELD_NONE) {
+		heap_free(saved_params);
+
 		error_msgs_report_info ("BadFind");
 		return NULL_TRANSACTION;
 	}
 
-//	transact_place_caret(saved_params->file, line, result);
+	/* Store and act on the result. */
 
-//	transact_get_column_name(saved_params->file, result, buf1, FIND_MESSAGE_BUFFER_LENGTH);
-//	string_printf(buf2, FIND_MESSAGE_BUFFER_LENGTH, "%d", transact_get_transaction_number(line));
+	transact_place_caret(new_params->file, line, result);
 
-//	icons_msgs_param_lookup(find_result_window, FOUND_ICON_INFO, "Found", buf1, buf2, NULL, NULL);
+	saved_params->result = result;
+	saved_params->transaction = line;
 
-//	if (!windows_get_open(find_result_window)) {
-//		wimp_get_pointer_info(&pointer);
-//		windows_open_centred_at_pointer(find_result_window, &pointer);
-//	} else {
-//		icons_redraw_group(find_result_window, 1, FOUND_ICON_INFO);
-//	}
+	wimp_get_pointer_info(&pointer);
+	find_result_dialogue_open(&pointer, new_params, new_params->file, find_process_result_window, saved_params);
 
 	return line;
 }

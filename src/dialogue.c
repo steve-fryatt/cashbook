@@ -88,6 +88,7 @@ static struct dialogue_icon *dialogue_menu_target = NULL;
 static void dialogue_click_handler(wimp_pointer *pointer);
 static osbool dialogue_keypress_handler(wimp_key *key);
 static enum account_type dialogue_convert_account_type(enum dialogue_icon_type icon);
+static enum account_menu_type dialogue_convert_account_menu_type(enum dialogue_icon_type icon);
 static void dialogue_menu_prepare_handler(wimp_w window, wimp_menu *menu, wimp_pointer *pointer);
 static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static void dialogue_menu_close_handler(wimp_w window, wimp_menu *menu);
@@ -348,7 +349,8 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 {
 	struct dialogue_block	*windat;
 	struct dialogue_icon	*icon, *next;
-	enum account_type	type = ACCOUNT_NULL;
+	enum account_type	account_type = ACCOUNT_NULL;
+	enum account_menu_type	menu_type = ACCOUNT_MENU_NONE;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (pointer == NULL || windat == NULL || windat->definition == NULL)
@@ -375,22 +377,20 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		icons_replace_caret_in_window(windat->window);
 	} else if (icon->type & DIALOGUE_ICON_ACCOUNT_POPUP) {
 		if ((pointer->buttons == wimp_CLICK_SELECT) && (icon->target != DIALOGUE_NO_ICON)) {
-			type = dialogue_convert_account_type(icon->type);
+			account_type = dialogue_convert_account_type(icon->type);
 
-			if (type != ACCOUNT_NULL)
+			if (account_type != ACCOUNT_NULL)
 				dialogue_lookup_open_window(windat->file, windat->window,
-						icon->target, NULL_ACCOUNT, type);
+						icon->target, NULL_ACCOUNT, account_type);
 		}
-	} else if (icon->type & DIALOGUE_ICON_ACCOUNT_IDENT) {
-	
-	
 	} else if (icon->type & DIALOGUE_ICON_ACCOUNT_RECONCILE) {
 		if (pointer->buttons == wimp_CLICK_ADJUST)
 			account_toggle_reconcile_icon(windat->window, icon->icon);
 	} else if (icon->type & DIALOGUE_ICON_ACCOUNT_NAME) {
+		menu_type = dialogue_convert_account_menu_type(icon->type);
 		next = dialogue_find_icon(windat, icon->target);
-		if ((next != NULL) && (pointer->buttons == wimp_CLICK_ADJUST)) {
-			account_menu_open_icon(windat->file, ACCOUNT_MENU_FROM, NULL, windat->window,
+		if ((menu_type != ACCOUNT_MENU_NONE) && (next != NULL) && (pointer->buttons == wimp_CLICK_ADJUST)) {
+			account_menu_open_icon(windat->file, menu_type, NULL, windat->window,
 					next->target, icon->icon, icon->target, pointer);
 		}
 	}
@@ -408,7 +408,7 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 {
 	struct dialogue_block	*windat;
 	struct dialogue_icon	*icon, *next;
-	enum account_type	type = ACCOUNT_NULL;
+	enum account_type	account_type = ACCOUNT_NULL;
 
 	windat = event_get_window_user_data(key->w);
 	if (key == NULL || windat == NULL || windat->definition == NULL)
@@ -430,11 +430,11 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 	case wimp_KEY_F1:
 		if ((icon->type & DIALOGUE_ICON_ACCOUNT_POPUP) && (icon->target == DIALOGUE_NO_ICON)) {
-			type = dialogue_convert_account_type(icon->type);
+			account_type = dialogue_convert_account_type(icon->type);
 
-			if (type != ACCOUNT_NULL)
+			if (account_type != ACCOUNT_NULL)
 				dialogue_lookup_open_window(windat->file, windat->window,
-						icon->icon, NULL_ACCOUNT, type);
+						icon->icon, NULL_ACCOUNT, account_type);
 		}
 		break;
 
@@ -442,14 +442,13 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 		if ((icon->type & DIALOGUE_ICON_ACCOUNT_IDENT) == 0)
 			return FALSE;
 
-		type = dialogue_convert_account_type(icon->type);
+		account_type = dialogue_convert_account_type(icon->type);
 		next = dialogue_find_icon(windat, icon->target);
 
-		if ((type != ACCOUNT_NULL) && (next != NULL)) {
-			account_lookup_field(windat->file, key->c, type, NULL_ACCOUNT, NULL,
+		if ((account_type != ACCOUNT_NULL) && (next != NULL)) {
+			account_lookup_field(windat->file, key->c, account_type, NULL_ACCOUNT, NULL,
 				windat->window, icon->icon, icon->target, next->target);
 		}
-
 		break;
 	}
 
@@ -478,6 +477,31 @@ static enum account_type dialogue_convert_account_type(enum dialogue_icon_type i
 		return ACCOUNT_FULL;
 	else
 		return ACCOUNT_NULL;
+}
+
+
+/**
+ * Convert a dialogue icon type bitfield into an account menu type.
+ *
+ * \param icon		The icon bitfield to convert.
+ * \return		The corresponding account menu type, or
+ *			ACCOUNT_MENU_NONE.
+ */
+
+static enum account_menu_type dialogue_convert_account_menu_type(enum dialogue_icon_type icon)
+{
+	if (icon & DIALOGUE_ICON_TYPE_FROM)
+		return ACCOUNT_MENU_FROM;
+	else if (icon & DIALOGUE_ICON_TYPE_TO)
+		return ACCOUNT_MENU_TO;
+	else if (icon & DIALOGUE_ICON_TYPE_IN)
+		return ACCOUNT_MENU_INCOMING;
+	else if (icon & DIALOGUE_ICON_TYPE_OUT)
+		return ACCOUNT_MENU_OUTGOING;
+	else if (icon & DIALOGUE_ICON_TYPE_FULL)
+		return ACCOUNT_MENU_ACCOUNTS;
+	else
+		return ACCOUNT_MENU_NONE;
 }
 
 

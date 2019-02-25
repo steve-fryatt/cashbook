@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -75,9 +75,9 @@ static osbool			(*budget_dialogue_callback)(void *, struct budget_dialogue_data 
 
 /* Static function prototypes. */
 
-static void	budget_dialogue_fill(wimp_w window, osbool restore, void *data);
-static osbool	budget_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
-static void	budget_dialogue_close(wimp_w window, void *data);
+static void	budget_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data);
+static osbool	budget_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+static void	budget_dialogue_close(struct file_block *file, wimp_w window, void *data);
 
 /**
  * The Budget Dialogue Icon Set.
@@ -149,12 +149,13 @@ void budget_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *fil
 /**
  * Fill the Budget Dialogue with values.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param restore	Unused restore flag.
  * \param *data		Client data pointer (unused).
  */
 
-static void budget_dialogue_fill(wimp_w window, osbool restore, void *data)
+static void budget_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
 	struct budget_dialogue_data *content = data;
 
@@ -175,6 +176,7 @@ static void budget_dialogue_fill(wimp_w window, osbool restore, void *data)
 /**
  * Process OK clicks in the Budget Dialogue.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
@@ -183,7 +185,7 @@ static void budget_dialogue_fill(wimp_w window, osbool restore, void *data)
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool budget_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
+static osbool budget_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	struct budget_dialogue_data *content = data;
 
@@ -208,11 +210,12 @@ static osbool budget_dialogue_process(wimp_w window, wimp_pointer *pointer, enum
 /**
  * The Budget dialogue has been closed.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param *data		Client data pointer, to the dislogue data structure.
  */
 
-static void budget_dialogue_close(wimp_w window, void *data)
+static void budget_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
 	budget_dialogue_callback = NULL;
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -79,9 +79,9 @@ static osbool			(*purge_dialogue_callback)(void *, struct purge_dialogue_data *)
 
 /* Static function prototypes. */
 
-static void	purge_dialogue_fill(wimp_w window, osbool restore, void *data);
-static osbool	purge_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
-static void	purge_dialogue_close(wimp_w window, void *data);
+static void	purge_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data);
+static osbool	purge_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+static void	purge_dialogue_close(struct file_block *file, wimp_w window, void *data);
 
 /**
  * The Purge Dialogue Icon Set.
@@ -152,12 +152,13 @@ void purge_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct 
 /**
  * Fill the Purge Dialogue with values.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param restore	Unused restore flag.
  * \param *data		Client data pointer (unused).
  */
 
-static void purge_dialogue_fill(wimp_w window, osbool restore, void *data)
+static void purge_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
 	struct purge_dialogue_data *content = data;
 
@@ -185,6 +186,7 @@ static void purge_dialogue_fill(wimp_w window, osbool restore, void *data)
 /**
  * Process OK clicks in the Purge Dialogue.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
@@ -193,7 +195,7 @@ static void purge_dialogue_fill(wimp_w window, osbool restore, void *data)
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool purge_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
+static osbool purge_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	struct purge_dialogue_data *content = data;
 
@@ -218,11 +220,12 @@ static osbool purge_dialogue_process(wimp_w window, wimp_pointer *pointer, enum 
 /**
  * The Purge dialogue has been closed.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box being closed.
  * \param *data		Client data pointer, to the dislogue data structure.
  */
 
-static void purge_dialogue_close(wimp_w window, void *data)
+static void purge_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
 	purge_dialogue_callback = NULL;
 

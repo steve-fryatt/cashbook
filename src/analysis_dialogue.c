@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -72,10 +72,10 @@ struct analysis_dialogue_block {
 
 /* Static Function Prototypes. */
 
-static void analysis_dialogue_closing(wimp_w window, void *data);
-static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+static void analysis_dialogue_closing(struct file_block *file, wimp_w window, void *data);
+static osbool analysis_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
 static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue);
-static void analysis_dialogue_fill(wimp_w window, osbool restore, void *data);
+static void analysis_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data);
 
 /**
  * Initialise a new analysis dialogue window instance.
@@ -199,11 +199,12 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, void *repo
 /**
  * Handle a dialogue being closed.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param window		The window handle of the dialogue.
  * \param *data			The associated analysis dialogue instance.
  */
 
-static void analysis_dialogue_closing(wimp_w window, void *data)
+static void analysis_dialogue_closing(struct file_block *file, wimp_w window, void *data)
 {
 	struct analysis_dialogue_block *dialogue = data;
 
@@ -257,6 +258,7 @@ void analysis_dialogue_rename_template(struct analysis_dialogue_block *dialogue,
 /**
  * Process the contents of a dialogue and return it to the client.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param window		The handle of the dialogue box to fill.
  * \param *pointer		The wimp pointer data, or NULL on an Enter keypress.
  * \param type			The dialogue icon type of the target icon.
@@ -265,7 +267,7 @@ void analysis_dialogue_rename_template(struct analysis_dialogue_block *dialogue,
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool analysis_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
+static osbool analysis_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	struct analysis_dialogue_block *dialogue = data;
 	struct analysis_report_details	*report_details;
@@ -334,12 +336,13 @@ static osbool analysis_dialogue_delete(struct analysis_dialogue_block *dialogue)
  * Request the client to fill a dialogue, and update the shaded icons
  * based on the end result.
  *
- * \param Window		The handle of the dialogue box to fill.
+ * \param *file			The file instance associated with the dialogue.
+ * \param window		The handle of the dialogue box to fill.
  * \param restore		TRUE if the dialogue should restore from the template.
  * \param *data			The associated analysis dialogue instance.
  */
 
-static void analysis_dialogue_fill(wimp_w window, osbool restore, void *data)
+static void analysis_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
 	struct analysis_dialogue_block *dialogue = data;
 	struct analysis_report_details	*report_details;

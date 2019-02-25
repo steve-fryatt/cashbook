@@ -74,9 +74,9 @@ static osbool			(*find_result_dialogue_callback)(wimp_pointer *, void *, struct 
 
 /* Static function prototypes. */
 
-static void	find_result_dialogue_fill(wimp_w window, osbool restore, void *data);
-static osbool	find_result_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
-static void	find_result_dialogue_close(wimp_w window, void *data);
+static void	find_result_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data);
+static osbool	find_result_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+static void	find_result_dialogue_close(struct file_block *file, wimp_w window, void *data);
 
 /**
  * The Find Results Dialogue Icon Set.
@@ -145,12 +145,13 @@ void find_result_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block
 /**
  * Fill the Find Result Dialogue with values.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param restore	Unused restore flag.
  * \param *data		Client data pointer (unused).
  */
 
-static void find_result_dialogue_fill(wimp_w window, osbool restore, void *data)
+static void find_result_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
 	struct find_result_dialogue_data *content = data;
 
@@ -173,6 +174,7 @@ static void find_result_dialogue_fill(wimp_w window, osbool restore, void *data)
 /**
  * Process OK clicks in the Find Result Dialogue.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
@@ -181,7 +183,7 @@ static void find_result_dialogue_fill(wimp_w window, osbool restore, void *data)
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool find_result_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
+static osbool find_result_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	struct find_result_dialogue_data *content = data;
 
@@ -208,11 +210,12 @@ static osbool find_result_dialogue_process(wimp_w window, wimp_pointer *pointer,
 /**
  * The Find Result dialogue has been closed.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box being closed.
  * \param *data		Client data pointer, to the dislogue data structure.
  */
 
-static void find_result_dialogue_close(wimp_w window, void *data)
+static void find_result_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
 	find_result_dialogue_callback = NULL;
 

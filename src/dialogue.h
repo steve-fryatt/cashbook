@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -151,13 +151,30 @@ enum dialogue_icon_type {
 	 */
 	DIALOGUE_ICON_ACCOUNT_RECONCILE	= 0x00008000,
 
-	/**/
+	/**
+	 * The icon is an account field targetting incoming headings and accounts.
+	 */
+	DIALOGUE_ICON_TYPE_FROM		= 0x00010000,
 
-	DIALOGUE_ICON_TYPE_FROM		= 0x00010000,		/**< The icon targets incoming headings and accounts.	*/
-	DIALOGUE_ICON_TYPE_TO		= 0x00020000,		/**< The icon targets outgoing headings and accounts.	*/
-	DIALOGUE_ICON_TYPE_IN		= 0x00040000,		/**< The icon targets incoming headings.		*/
-	DIALOGUE_ICON_TYPE_OUT		= 0x00080000,		/**< The icon targets outgoing headings.		*/
-	DIALOGUE_ICON_TYPE_FULL		= 0x00100000,		/**< The icon targets accounts.				*/
+	/**
+	 * The icon is an account field targetting outgoing headings and accounts.
+	 */
+	DIALOGUE_ICON_TYPE_TO		= 0x00020000,
+
+	/**
+	 * The icon is an account field targetting incoming headings.
+	 */
+	DIALOGUE_ICON_TYPE_IN		= 0x00040000,
+
+	/**
+	 * The icon is an account field targetting outgoing headings.
+	 */
+	DIALOGUE_ICON_TYPE_OUT		= 0x00080000,
+
+	/**
+	 * The icon is an account field targetting accounts.
+	 */
+	DIALOGUE_ICON_TYPE_FULL		= 0x00100000,
 
 	/**
 	 * The last, dummy, entry in the dialogue icon sequence. Icon and
@@ -238,32 +255,32 @@ struct dialogue_definition {
 	/**
 	 * Callback function to request the dialogue is filled.
 	 */
-	void				(*callback_fill)(wimp_w window, osbool restore, void *data);
+	void				(*callback_fill)(struct file_block *file, wimp_w window, osbool restore, void *data);
 
 	/**
 	 * Callback function to request the dialogue is processed.
 	 */
-	osbool				(*callback_process)(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+	osbool				(*callback_process)(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
 
 	/**
 	 * Callback function to report the dialogue closing.
 	 */
-	void				(*callback_close)(wimp_w window, void *data);
+	void				(*callback_close)(struct file_block *file, wimp_w window, void *data);
 
 	/**
 	 * Callback function to report a pop-up menu opening.
 	 */
-	osbool				(*callback_menu_prepare)(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
+	osbool				(*callback_menu_prepare)(struct file_block *file, wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
 
 	/**
 	 * Callback function to report a pop-up menu selection.
 	 */
-	void				(*callback_menu_select)(wimp_w w, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
+	void				(*callback_menu_select)(struct file_block *file, wimp_w w, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
 
 	/**
 	 * Callback function to report a pop-up menu closing.
 	 */
-	void				(*callback_menu_close)(wimp_w w, wimp_menu *menu, void *data);
+	void				(*callback_menu_close)(struct file_block *file, wimp_w w, wimp_menu *menu, void *data);
 };
 
 

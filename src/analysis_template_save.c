@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -105,12 +105,12 @@ static template_t				analysis_template_save_template = NULL_TEMPLATE;
 
 /* Static Function Prototypes. */
 
-static void		analysis_template_save_fill_window(wimp_w window, osbool restore, void *data);
-static osbool		analysis_template_save_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
-static void		analysis_template_save_window_close(wimp_w window, void *data);
-static osbool		analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
-static void		analysis_template_save_menu_selection_handler(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
-static void		analysis_template_save_menu_close_handler(wimp_w window, wimp_menu *menu, void *data);
+static void		analysis_template_save_fill_window(struct file_block *file, wimp_w window, osbool restore, void *data);
+static osbool		analysis_template_save_process_window(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+static void		analysis_template_save_window_close(struct file_block *file, wimp_w window, void *data);
+static osbool		analysis_template_save_menu_prepare_handler(struct file_block *file, wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
+static void		analysis_template_save_menu_selection_handler(struct file_block *file, wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
+static void		analysis_template_save_menu_close_handler(struct file_block *file, wimp_w window, wimp_menu *menu, void *data);
 
 /**
  * The Save Template Dialogue Icon Set.
@@ -220,12 +220,13 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, vo
 /**
  * Fill the Save / Rename Template dialogue with values.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param restore	Unused restore state flag.
  * \param *data		Client data pointer (unused).
  */
 
-static void analysis_template_save_fill_window(wimp_w window, osbool restore, void *data)
+static void analysis_template_save_fill_window(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
 	struct analysis_report	*template = NULL;
 	char			*name;
@@ -265,6 +266,7 @@ static void analysis_template_save_fill_window(wimp_w window, osbool restore, vo
  * real save, pass the call on to the store saved report function.  If it
  * is a rename, handle it directly here.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
@@ -273,7 +275,7 @@ static void analysis_template_save_fill_window(wimp_w window, osbool restore, vo
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool analysis_template_save_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
+static osbool analysis_template_save_process_window(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	template_t	template;
 	char		*name;
@@ -316,11 +318,12 @@ static osbool analysis_template_save_process_window(wimp_w window, wimp_pointer 
 /**
  * The Save / Rename Template dialogue has been closed.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param *data		Client data pointer (unused).
  */
 
-static void analysis_template_save_window_close(wimp_w window, void *data)
+static void analysis_template_save_window_close(struct file_block *file, wimp_w window, void *data)
 {
 	analysis_template_save_current_mode = ANALYSIS_SAVE_MODE_NONE;
 	analysis_template_save_parent = NULL;
@@ -332,6 +335,7 @@ static void analysis_template_save_window_close(wimp_w window, void *data)
 /**
  * Process menu prepare events in the Save/Rename Template dialogue.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param window	The handle of the owning window.
  * \param icon		The target icon for the menu.
  * \param *menu		Pointer to struct to take the menu details.
@@ -339,7 +343,7 @@ static void analysis_template_save_window_close(wimp_w window, void *data)
  * \return		TRUE if the menu struct was updated; else FALSE.
  */
 
-static osbool analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data)
+static osbool analysis_template_save_menu_prepare_handler(struct file_block *file, wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data)
 {
 	if (menu == NULL)
 		return FALSE;
@@ -354,6 +358,7 @@ static osbool analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i 
 /**
  * Process menu selection events in the Save/Rename Template dialogue.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param w		The handle of the owning window.
  * \param icon		The target icon for the menu.
  * \param *menu		The menu handle.
@@ -361,7 +366,7 @@ static osbool analysis_template_save_menu_prepare_handler(wimp_w window, wimp_i 
  * \param *data		Client data pointer (unused). 
  */
 
-static void analysis_template_save_menu_selection_handler(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data)
+static void analysis_template_save_menu_selection_handler(struct file_block *file, wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data)
 {
 	template_t		template_number;
 	struct analysis_report	*template;
@@ -389,12 +394,13 @@ static void analysis_template_save_menu_selection_handler(wimp_w window, wimp_i 
 /**
  * Process menu close events in the Save/Rename Template dialogue.
  *
+ * \param *file			The file instance associated with the dialogue.
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
  * \param *data		Client data pointer (unused).
  */
 
-static void analysis_template_save_menu_close_handler(wimp_w window, wimp_menu *menu, void *data)
+static void analysis_template_save_menu_close_handler(struct file_block *file, wimp_w window, wimp_menu *menu, void *data)
 {
 	if (menu == NULL)
 		return;

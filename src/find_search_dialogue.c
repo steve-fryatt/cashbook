@@ -93,9 +93,9 @@ static osbool			(*find_search_dialogue_callback)(void *, struct find_search_dial
 
 /* Static function prototypes. */
 
-static void	find_search_dialogue_fill(wimp_w window, osbool restore, void *data);
-static osbool	find_search_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
-static void	find_search_dialogue_close(wimp_w window, void *data);
+static void	find_search_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data);
+static osbool	find_search_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+static void	find_search_dialogue_close(struct file_block *file, wimp_w window, void *data);
 
 /**
  * The Fins Search Dialogue Icon Set.
@@ -186,16 +186,17 @@ void find_search_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, s
 /**
  * Fill the Find Search Dialogue with values.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param restore	Unused restore flag.
  * \param *data		Client data pointer (unused).
  */
 
-static void find_search_dialogue_fill(wimp_w window, osbool restore, void *data)
+static void find_search_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
 	struct find_search_dialogue_data *content = data;
 
-	if (content == NULL)
+	if (file == NULL || content == NULL)
 		return;
 
 	if (restore) {
@@ -213,11 +214,11 @@ static void find_search_dialogue_fill(wimp_w window, osbool restore, void *data)
 		date_convert_to_string(content->date, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_DATE),
 				icons_get_indirected_text_length(window, FIND_SEARCH_DIALOGUE_ICON_DATE));
 
-//		account_fill_field(content->file, content->from, (content->reconciled & TRANS_REC_FROM) ? TRUE : FALSE,
-//				window, FIND_SEARCH_DIALOGUE_ICON_FMIDENT, FIND_SEARCH_DIALOGUE_ICON_FMNAME, FIND_SEARCH_DIALOGUE_ICON_FMREC);
+		account_fill_field(file, content->from, (content->reconciled & TRANS_REC_FROM) ? TRUE : FALSE,
+				window, FIND_SEARCH_DIALOGUE_ICON_FMIDENT, FIND_SEARCH_DIALOGUE_ICON_FMNAME, FIND_SEARCH_DIALOGUE_ICON_FMREC);
 
-//		account_fill_field(content->file, content->to, (content->reconciled & TRANS_REC_TO) ? TRUE : FALSE,
-//				window, FIND_SEARCH_DIALOGUE_ICON_TOIDENT, FIND_SEARCH_DIALOGUE_ICON_TONAME, FIND_SEARCH_DIALOGUE_ICON_TOREC);
+		account_fill_field(file, content->to, (content->reconciled & TRANS_REC_TO) ? TRUE : FALSE,
+				window, FIND_SEARCH_DIALOGUE_ICON_TOIDENT, FIND_SEARCH_DIALOGUE_ICON_TONAME, FIND_SEARCH_DIALOGUE_ICON_TOREC);
 
 		icons_strncpy(window, FIND_SEARCH_DIALOGUE_ICON_REF, content->ref);
 		currency_convert_to_string(content->amount, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_AMOUNT),
@@ -249,6 +250,7 @@ static void find_search_dialogue_fill(wimp_w window, osbool restore, void *data)
 /**
  * Process OK clicks in the Find Search Dialogue.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
@@ -257,21 +259,21 @@ static void find_search_dialogue_fill(wimp_w window, osbool restore, void *data)
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool find_search_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
+static osbool find_search_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	struct find_search_dialogue_data	*content = data;
 
 
-	if (find_search_dialogue_callback == NULL || content == NULL || parent == NULL)
+	if (find_search_dialogue_callback == NULL || file == NULL || content == NULL || parent == NULL)
 		return TRUE;
 
 	/* Extract the information. */
 
 	content->date = date_convert_from_string(icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_DATE), NULL_DATE, 0);
-//	content->from = account_find_by_ident(content->file, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_FMIDENT),
-//			ACCOUNT_FULL | ACCOUNT_IN);
-//	content->to = account_find_by_ident(content->file, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_TOIDENT),
-//			ACCOUNT_FULL | ACCOUNT_OUT);
+	content->from = account_find_by_ident(file, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_FMIDENT),
+			ACCOUNT_FULL | ACCOUNT_IN);
+	content->to = account_find_by_ident(file, icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_TOIDENT),
+			ACCOUNT_FULL | ACCOUNT_OUT);
 	content->reconciled = TRANS_FLAGS_NONE;
 	if (*icons_get_indirected_text_addr(window, FIND_SEARCH_DIALOGUE_ICON_FMREC) != '\0')
 		content->reconciled |= TRANS_REC_FROM;
@@ -315,11 +317,12 @@ static osbool find_search_dialogue_process(wimp_w window, wimp_pointer *pointer,
 /**
  * The Find Search dialogue has been closed.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box being closed.
  * \param *data		Client data pointer, to the dialogue data structure.
  */
 
-static void find_search_dialogue_close(wimp_w window, void *data)
+static void find_search_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
 	find_search_dialogue_callback = NULL;
 

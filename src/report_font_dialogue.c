@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -123,12 +123,12 @@ static void			(*report_font_dialogue_callback)(struct report *, char *, char *, 
 
 /* Static function prototypes. */
 
-static void	report_font_dialogue_fill(wimp_w window, osbool restore, void *data);
-static osbool	report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
-static void	report_font_dialogue_close(wimp_w window, void *data);
-static osbool	report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
-static void	report_font_dialogue_menu_selection(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
-static void	report_font_dialogue_menu_close(wimp_w window, wimp_menu *menu, void *data);
+static void	report_font_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data);
+static osbool	report_font_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+static void	report_font_dialogue_close(struct file_block *file, wimp_w window, void *data);
+static osbool	report_font_dialogue_menu_prepare(struct file_block *file, wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data);
+static void	report_font_dialogue_menu_selection(struct file_block *file, wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data);
+static void	report_font_dialogue_menu_close(struct file_block *file, wimp_w window, wimp_menu *menu, void *data);
 
 /**
  * The Report Font Dialogue Icon Set.
@@ -224,12 +224,13 @@ void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*
 /**
  * Fill the Report Font Dialogue with values.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param restore	Unused restore state flag.
  * \param *data		Client data pointer (unused).
  */
 
-static void report_font_dialogue_fill(wimp_w window, osbool restore, void *data)
+static void report_font_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
 	icons_printf(window, REPORT_FONT_DIALOGUE_NFONT, "%s", report_font_dialogue_initial_normal);
 	icons_printf(window, REPORT_FONT_DIALOGUE_BFONT, "%s", report_font_dialogue_initial_bold);
@@ -244,6 +245,7 @@ static void report_font_dialogue_fill(wimp_w window, osbool restore, void *data)
 /**
  * Process OK clicks in the Report Font Dialogue.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
@@ -252,7 +254,7 @@ static void report_font_dialogue_fill(wimp_w window, osbool restore, void *data)
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool report_font_dialogue_process(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
+static osbool report_font_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	struct report *report = parent;
 
@@ -283,11 +285,12 @@ static osbool report_font_dialogue_process(wimp_w window, wimp_pointer *pointer,
 /**
  * The Report Font dialogue has been closed.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param *data		Client data pointer (unused).
  */
 
-static void report_font_dialogue_close(wimp_w window, void *data)
+static void report_font_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
 	report_font_dialogue_callback = NULL;
 }
@@ -296,6 +299,7 @@ static void report_font_dialogue_close(wimp_w window, void *data)
 /**
  * Process menu prepare events in the Report Font dialogue.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the owning window.
  * \param icon		The target icon for the menu.
  * \param *menu		Pointer to struct to take the menu details.
@@ -303,7 +307,7 @@ static void report_font_dialogue_close(wimp_w window, void *data)
  * \return		TRUE if the menu struct was updated; else FALSE.
  */
 
-static osbool report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data)
+static osbool report_font_dialogue_menu_prepare(struct file_block *file, wimp_w window, wimp_i icon, struct dialogue_menu_data *menu, void *data)
 {
 	if (menu == NULL)
 		return FALSE;
@@ -318,6 +322,7 @@ static osbool report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, stru
 /**
  * Process menu selection events in the Report Font dialogue.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param w		The handle of the owning window.
  * \param icon		The target icon for the menu.
  * \param *menu		The menu handle.
@@ -325,7 +330,7 @@ static osbool report_font_dialogue_menu_prepare(wimp_w window, wimp_i icon, stru
  * \param *data		Client data pointer (unused). 
  */
 
-static void report_font_dialogue_menu_selection(wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data)
+static void report_font_dialogue_menu_selection(struct file_block *file, wimp_w window, wimp_i icon, wimp_menu *menu, wimp_selection *selection, void *data)
 {
 	char	*font;
 
@@ -342,12 +347,13 @@ static void report_font_dialogue_menu_selection(wimp_w window, wimp_i icon, wimp
 /**
  * Process menu close events in the Report Font dialogue.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
  * \param *data		Client data pointer (unused).
  */
 
-static void report_font_dialogue_menu_close(wimp_w window, wimp_menu *menu, void *data)
+static void report_font_dialogue_menu_close(struct file_block *file, wimp_w window, wimp_menu *menu, void *data)
 {
 	fontlist_destroy();
 }

@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -487,7 +487,7 @@ static void dialogue_menu_prepare_handler(wimp_w window, wimp_menu *menu, wimp_p
 	if (dialogue_menu_target == NULL)
 		return;
 
-	if (!dialogue->definition->callback_menu_prepare(window, dialogue_menu_target->target, &menu_data, dialogue->client_data))
+	if (!dialogue->definition->callback_menu_prepare(dialogue->file, window, dialogue_menu_target->target, &menu_data, dialogue->client_data))
 		return;
 
 	event_set_menu_block(menu_data.menu);
@@ -514,7 +514,7 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->callback_menu_select == NULL)
 		return;
 
-	dialogue->definition->callback_menu_select(window, dialogue_menu_target->target, menu, selection, dialogue->client_data);
+	dialogue->definition->callback_menu_select(dialogue->file, window, dialogue_menu_target->target, menu, selection, dialogue->client_data);
 
 	wimp_set_icon_state(window, dialogue_menu_target->target, 0, 0);
 	icons_replace_caret_in_window(window);
@@ -539,7 +539,7 @@ static void dialogue_menu_close_handler(wimp_w window, wimp_menu *menu)
 	if (dialogue == NULL || dialogue->definition == NULL || dialogue->definition->callback_menu_close == NULL)
 		return;
 
-	dialogue->definition->callback_menu_close(window, menu, dialogue->client_data);
+	dialogue->definition->callback_menu_close(dialogue->file, window, menu, dialogue->client_data);
 
 	ihelp_remove_menu(menu);
 	dialogue_menu_target = NULL;
@@ -558,7 +558,7 @@ static void dialogue_close_window(struct dialogue_block *dialogue)
 		return;
 
 	if (dialogue->definition != NULL && dialogue->definition->callback_close != NULL)
-		dialogue->definition->callback_close(dialogue->window, dialogue->client_data);
+		dialogue->definition->callback_close(dialogue->file, dialogue->window, dialogue->client_data);
 
 	close_dialogue_with_caret(dialogue->window);
 
@@ -584,7 +584,7 @@ static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *po
 	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->callback_process == NULL || icon == NULL)
 		return FALSE;
 
-	return dialogue->definition->callback_process(dialogue->window, pointer, icon->type, dialogue->parent, dialogue->client_data);
+	return dialogue->definition->callback_process(dialogue->file, dialogue->window, pointer, icon->type, dialogue->parent, dialogue->client_data);
 }
 
 
@@ -636,7 +636,7 @@ static void dialogue_fill(struct dialogue_block *dialogue)
 	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->callback_fill == NULL)
 		return;
 
-	dialogue->definition->callback_fill(dialogue->window, dialogue->restore, dialogue->client_data);
+	dialogue->definition->callback_fill(dialogue->file, dialogue->window, dialogue->restore, dialogue->client_data);
 
 	/* Update any shaded icons after the update. */
 

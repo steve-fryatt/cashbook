@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -162,9 +162,9 @@ static struct report*		(*print_dialogue_callback) (struct report *, void *, date
 /* Static Function Prototypes. */
 
 static osbool		print_dialogue_handle_message_set_printer(wimp_message *message);
-static void		print_dialogue_fill_window(wimp_w window, osbool restore, void *data);
-static osbool		print_dialogue_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
-static void		print_dialogue_close(wimp_w window, void *data);
+static void		print_dialogue_fill_window(struct file_block *file, wimp_w window, osbool restore, void *data);
+static osbool		print_dialogue_process_window(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+static void		print_dialogue_close(struct file_block *file, wimp_w window, void *data);
 static struct report	*print_dialogue_create_report(struct print_dialogue_block *instance);
 static void		print_dialogue_process_report(struct print_dialogue_block *instance, struct report *report, osbool direct);
 
@@ -359,12 +359,13 @@ void print_dialogue_open(struct print_dialogue_block *instance, wimp_pointer *pt
 /**
  * Fill the Print Dialogue with values.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param restore	TRUE if the dialogue should restore previous settings.
  * \param *data		Client data pointer, giving the dialogue instance.
  */
 
-static void print_dialogue_fill_window(wimp_w window, osbool restore, void *data)
+static void print_dialogue_fill_window(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
 	char				*name, buffer[25];
 	os_error			*error;
@@ -430,6 +431,7 @@ static void print_dialogue_fill_window(wimp_w window, osbool restore, void *data
  * Process the contents of the Advanced Print window, store the details and
  * call the supplied callback function with the details.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be processed.
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
@@ -438,7 +440,7 @@ static void print_dialogue_fill_window(wimp_w window, osbool restore, void *data
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-static osbool print_dialogue_process_window(wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
+static osbool print_dialogue_process_window(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
 	char				print_line[PRINT_MAX_LINE_LEN];
 	struct report			*report_in, *report_out;
@@ -483,11 +485,12 @@ static osbool print_dialogue_process_window(wimp_w window, wimp_pointer *pointer
 /**
  * The Print dialogue has been closed.
  *
+ * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param *data		Client data pointer, giving the dialogue instance.
  */
 
-static void print_dialogue_close(wimp_w window, void *data)
+static void print_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
 	print_dialogue_callback = NULL;
 	print_dialogue_client_data = NULL;

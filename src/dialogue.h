@@ -153,26 +153,41 @@ enum dialogue_icon_type {
 
 	/**
 	 * The icon is an account field targetting incoming headings and accounts.
+	 * This is used in conjunction with DIALOGUE_ICON_ACCOUNT_POPUP,
+	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
+	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
 	DIALOGUE_ICON_TYPE_FROM		= 0x00010000,
 
 	/**
 	 * The icon is an account field targetting outgoing headings and accounts.
+	 * This is used in conjunction with DIALOGUE_ICON_ACCOUNT_POPUP,
+	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
+	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
 	DIALOGUE_ICON_TYPE_TO		= 0x00020000,
 
 	/**
 	 * The icon is an account field targetting incoming headings.
+	 * This is used in conjunction with DIALOGUE_ICON_ACCOUNT_POPUP,
+	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
+	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
 	DIALOGUE_ICON_TYPE_IN		= 0x00040000,
 
 	/**
 	 * The icon is an account field targetting outgoing headings.
+	 * This is used in conjunction with DIALOGUE_ICON_ACCOUNT_POPUP,
+	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
+	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
 	DIALOGUE_ICON_TYPE_OUT		= 0x00080000,
 
 	/**
 	 * The icon is an account field targetting accounts.
+	 * This is used in conjunction with DIALOGUE_ICON_ACCOUNT_POPUP,
+	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
+	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
 	DIALOGUE_ICON_TYPE_FULL		= 0x00100000,
 

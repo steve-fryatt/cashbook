@@ -328,6 +328,8 @@ static osbool find_process_result_window(wimp_pointer *pointer, void *owner, str
 
 	content->result = TRANSACT_FIELD_NONE;
 
+	/* Adjust the search direction for next/previous. */
+
 	switch (content->action) {
 	case FIND_RESULT_DIALOGUE_PREVIOUS:
 		if (content->direction == FIND_UP)		// \TODO -- Not sure if this gets the old logic correct?
@@ -346,6 +348,10 @@ static osbool find_process_result_window(wimp_pointer *pointer, void *owner, str
 	case FIND_RESULT_DIALOGUE_NONE:
 		break;
 	}
+
+	/* Step past the current line, where the match is. */
+
+	// \TODO -- What happens if line is 0 or (max_lines-1)?
 
 	switch (content->direction) {
 	case FIND_UP:

@@ -442,6 +442,7 @@ static tran_t find_from_line(struct find_block *windat, struct find_result_dialo
 			parameters->date, parameters->from, parameters->to, parameters->reconciled, parameters->amount, ref, desc);
 
 	if (result == TRANSACT_FIELD_NONE) {
+		// \TODO -- This should still free the parameters block? It won't happen elsewhere if find_result_dialogue_open() isn't called?
 		error_msgs_report_info ("BadFind");
 		return NULL_TRANSACTION;
 	}

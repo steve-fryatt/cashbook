@@ -94,7 +94,7 @@ struct find_block {
 static void		find_reopen_window(wimp_pointer *ptr);
 static osbool		find_process_search_window(void *owner, struct find_search_dialogue_data *content);
 static osbool		find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content);
-static tran_t		find_from_line(struct find_block *new_params, int new_dir, int start);
+static tran_t		find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters);
 
 
 /**
@@ -234,29 +234,11 @@ static void find_reopen_window(wimp_pointer *ptr)
 
 static osbool find_process_search_window(void *owner, struct find_search_dialogue_data *content)
 {
-	struct find_block	*windat = owner;
-	int			line;
+	struct find_block			*windat = owner;
+	struct find_result_dialogue_data	*parameters = NULL;
 
 	if (windat == NULL || content == NULL)
 		return TRUE;
-
-	/* Get the start line. */
-
-	if (content->direction == FIND_START)
-		line = 0;
-	else if (content->direction == FIND_END)
-		line = transact_get_count(windat->file) - 1;
-	else if (content->direction == FIND_DOWN) {
-		line = transact_get_caret_line(windat->file) + 1;
-		if (line >= transact_get_count(windat->file))
-			line = transact_get_count(windat->file) - 1;
-	} else if (content->direction == FIND_UP) {
-		line = transact_get_caret_line(windat->file) - 1;
-		if (line < 0)
-			line = 0;
-	} else {
-		return FALSE;
-	}
 
 	/* Store the new data. */
 
@@ -273,11 +255,55 @@ static osbool find_process_search_window(void *owner, struct find_search_dialogu
 	string_copy(windat->ref, content->ref, TRANSACT_REF_FIELD_LEN);
 	string_copy(windat->desc, content->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
+	/* Take a copy of the saved parameters. */
+
+	parameters = heap_alloc(sizeof(struct find_result_dialogue_data));
+	if (parameters == NULL)
+		return FALSE;
+
+	debug_printf("Allocating found block 0x%x", parameters);
+
+	parameters->date = windat->date;
+	parameters->from = windat->from;
+	parameters->to = windat->to;
+	parameters->reconciled = windat->reconciled;
+	parameters->amount = windat->amount;
+	string_copy(parameters->ref, windat->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(parameters->desc, windat->desc, TRANSACT_DESCRIPT_FIELD_LEN);
+
+	parameters->logic = windat->logic;
+	parameters->case_sensitive = windat->case_sensitive;
+	parameters->whole_text = windat->whole_text;
+	parameters->direction = windat->direction;
+
+	parameters->result = TRANSACT_FIELD_NONE;
+	parameters->action = FIND_RESULT_DIALOGUE_NONE;
+
+	/* Get the start line. */
+
+	if (content->direction == FIND_START) {
+		parameters->transaction = 0;
+		parameters->direction = FIND_DOWN;
+	} else if (content->direction == FIND_END) {
+		parameters->transaction = transact_get_count(windat->file) - 1;
+		parameters->direction = FIND_UP;
+	} else if (content->direction == FIND_DOWN) {
+		parameters->transaction = transact_get_caret_line(windat->file) + 1;
+		if (parameters->transaction >= transact_get_count(windat->file))
+			parameters->transaction = transact_get_count(windat->file) - 1;
+	} else if (content->direction == FIND_UP) {
+		parameters->transaction = transact_get_caret_line(windat->file) - 1;
+		if (parameters->transaction < 0)
+			parameters->transaction = 0;
+	} else {
+		return FALSE;
+	}
+
 	/* Start the search. */
 
-	line = find_from_line(windat, FIND_NODIR, line);
+	find_from_line(windat, parameters);
 
-	return (line != NULL_TRANSACTION) ? TRUE : FALSE;
+	return TRUE;
 }
 
 
@@ -293,36 +319,59 @@ static osbool find_process_search_window(void *owner, struct find_search_dialogu
 
 static osbool find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content)
 {
-	struct find_block	*windat = owner;
+	struct find_block			*windat = owner;
+	struct find_result_dialogue_data	*parameters = NULL;
 
 	if (windat == NULL || content == NULL)
 		return TRUE;
 
-	debug_printf("New action: %d", content->action);
+	/* Take a new copy of the saved parameters. */
+
+	parameters = heap_alloc(sizeof(struct find_result_dialogue_data));
+	if (parameters == NULL)
+		return FALSE;
+
+	debug_printf("Allocating found block 0x%x", parameters);
+
+	parameters->date = content->date;
+	parameters->from = content->from;
+	parameters->to = content->to;
+	parameters->reconciled = content->reconciled;
+	parameters->amount = content->amount;
+	string_copy(parameters->ref, content->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(parameters->desc, content->desc, TRANSACT_DESCRIPT_FIELD_LEN);
+
+	parameters->logic = content->logic;
+	parameters->case_sensitive = content->case_sensitive;
+	parameters->whole_text = content->whole_text;
+	parameters->direction = content->direction;
+
+	parameters->result = TRANSACT_FIELD_NONE;
+	parameters->transaction = NULL_TRANSACTION;
+	parameters->action = FIND_RESULT_DIALOGUE_NONE;
 
 	switch (content->action) {
-//	case FOUND_ICON_CANCEL:
-//		if (pointer->buttons == wimp_CLICK_SELECT)
-//			find_result_close_window();
-//		break;
-
 	case FIND_RESULT_DIALOGUE_PREVIOUS:
-		if (find_from_line(NULL, FIND_PREVIOUS, NULL_TRANSACTION) == NULL_TRANSACTION)
-			return TRUE;
+		if (parameters->direction == FIND_UP)		// \TODO -- Not sure if this gets the old logic correct?
+			parameters->direction = FIND_DOWN;
+		else if (parameters->direction == FIND_DOWN)
+			parameters->direction = FIND_UP;
 		break;
 
 	case FIND_RESULT_DIALOGUE_NEXT:
-		if (find_from_line(NULL, FIND_NEXT, NULL_TRANSACTION) == NULL_TRANSACTION)
-			return TRUE;
 		break;
 
 	case FIND_RESULT_DIALOGUE_NEW:
-		find_reopen_window(pointer);
+	//	find_reopen_window(pointer);
 		break;
 
 	case FIND_RESULT_DIALOGUE_NONE:
 		break;
 	}
+
+	/* Resume the search. */
+
+	find_from_line(windat, parameters);
 
 	return TRUE;
 }
@@ -331,120 +380,81 @@ static osbool find_process_result_window(wimp_pointer *pointer, void *owner, str
 /**
  * Perform a search
  *
- * \param *new_params		The search parameters to use, or NULL to continue
- *				with the existing set.
- * \param new_dir		The direction to search in.
- * \param start			The line to start the search from (inclusive).
+ * \param *windat		The parent Find instance.
+ * \param *parameters		The search parameters to use.
  * \return			The resulting matching transaction.
  */
 
-static tran_t find_from_line(struct find_block *new_params, int new_dir, int start)
+static tran_t find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters)
 {
-	struct find_result_dialogue_data	*saved_params;
 	int					line;
-	enum find_direction			direction;
 	enum transact_field			result;
 	wimp_pointer				pointer;
 	char					ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
 
 	debug_printf("Starting to find a transaction...");
 
-	if (new_params == NULL)
+	if (windat == NULL || parameters == NULL)
 		return NULL_TRANSACTION;
-
-	/* Take a copy of the saved parameters. */
-
-	saved_params = heap_alloc(sizeof(struct find_result_dialogue_data));
-	if (saved_params == NULL)
-		return NULL_TRANSACTION;
-
-	debug_printf("Allocating found block 0x%x", saved_params);
-
-	saved_params->date = new_params->date;
-	saved_params->from = new_params->from;
-	saved_params->to = new_params->to;
-	saved_params->reconciled = new_params->reconciled;
-	saved_params->amount = new_params->amount;
-	string_copy(saved_params->ref, new_params->ref, TRANSACT_REF_FIELD_LEN);
-	string_copy(saved_params->desc, new_params->desc, TRANSACT_DESCRIPT_FIELD_LEN);
-
-	saved_params->logic = new_params->logic;
-	saved_params->case_sensitive = new_params->case_sensitive;
-	saved_params->whole_text = new_params->whole_text;
-	saved_params->direction = new_params->direction;
-
-	saved_params->result = TRANSACT_FIELD_NONE;
-	saved_params->transaction = NULL_TRANSACTION;
-	saved_params->action = FIND_RESULT_DIALOGUE_NONE;
-
-	/* Start and End have served their purpose; they now need to convert into up and down. */
-
-	if (saved_params->direction == FIND_START)
-		saved_params->direction = FIND_DOWN;
-
-	if (saved_params->direction == FIND_END)
-		saved_params->direction = FIND_UP;
 
 	/* Take local copies of the two text fields, and add bracketing wildcards as necessary. */
 
-	if ((!saved_params->whole_text) && (*(saved_params->ref) != '\0'))
-		string_printf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", saved_params->ref);
+	if ((!parameters->whole_text) && (*(parameters->ref) != '\0'))
+		string_printf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", parameters->ref);
 	else
-		string_copy(ref, saved_params->ref, TRANSACT_REF_FIELD_LEN + 2);
+		string_copy(ref, parameters->ref, TRANSACT_REF_FIELD_LEN + 2);
 
-	if ((!saved_params->whole_text) && (*(saved_params->desc) != '\0'))
-		string_printf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", saved_params->desc);
+	if ((!parameters->whole_text) && (*(parameters->desc) != '\0'))
+		string_printf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", parameters->desc);
 	else
-		string_copy(desc, saved_params->desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
+		string_copy(desc, parameters->desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
 
 	/* If the search needs to change direction, do so now. */
 
-	if (new_dir == FIND_NEXT || new_dir == FIND_PREVIOUS) {
-		if (saved_params->direction == FIND_UP)
-			direction = (new_dir == FIND_NEXT) ? FIND_UP : FIND_DOWN;
-		else
-			direction = (new_dir == FIND_NEXT) ? FIND_DOWN : FIND_UP;
-	} else {
-		direction = saved_params->direction;
-	}
+//	if (new_dir == FIND_NEXT || new_dir == FIND_PREVIOUS) {
+//		if (parameters->direction == FIND_UP)
+//			direction = (new_dir == FIND_NEXT) ? FIND_UP : FIND_DOWN;
+//		else
+//			direction = (new_dir == FIND_NEXT) ? FIND_DOWN : FIND_UP;
+//	} else {
+//		direction = parameters->direction;
+//	}
 
 	/* If a new start line is being specified, take note, else use the current edit line. */
 
-	if (start == NULL_TRANSACTION) {
-		if (direction == FIND_DOWN) {
-			line = transact_get_caret_line(new_params->file) + 1;
-			if (line >= transact_get_count(new_params->file))
-				line = transact_get_count(new_params->file) - 1;
-		} else /* FIND_UP */ {
-			line = transact_get_caret_line(new_params->file) - 1;
-			if (line < 0)
-				line = 0;
-		}
-	} else {
-		line = start;
-	}
+//	if (start == NULL_TRANSACTION) {
+//		if (direction == FIND_DOWN) {
+//			line = transact_get_caret_line(windat->file) + 1;
+//			if (line >= transact_get_count(windat->file))
+//				line = transact_get_count(windat->file) - 1;
+//		} else /* FIND_UP */ {
+//			line = transact_get_caret_line(windat->file) - 1;
+//			if (line < 0)
+//				line = 0;
+//		}
+//	} else {
+//		line = start;
+//	}
 
-	result = transact_search(new_params->file, &line, direction == FIND_UP, saved_params->case_sensitive, saved_params->logic == FIND_AND,
-			saved_params->date, saved_params->from, saved_params->to, saved_params->reconciled, saved_params->amount, ref, desc);
+	line = parameters->transaction;
 
-	debug_printf("Find result: %d", result);
+	result = transact_search(windat->file, &line, parameters->direction == FIND_UP, parameters->case_sensitive, parameters->logic == FIND_AND,
+			parameters->date, parameters->from, parameters->to, parameters->reconciled, parameters->amount, ref, desc);
 
 	if (result == TRANSACT_FIELD_NONE) {
-		heap_free(saved_params);
-
 		error_msgs_report_info ("BadFind");
 		return NULL_TRANSACTION;
 	}
 
 	/* Store and act on the result. */
 
-	transact_place_caret(new_params->file, line, result);
+	transact_place_caret(windat->file, line, result);
 
-	saved_params->result = result;
-	saved_params->transaction = line;
+	parameters->result = result;
+	parameters->transaction = line;
 
 	wimp_get_pointer_info(&pointer);
-	find_result_dialogue_open(&pointer, new_params, new_params->file, find_process_result_window, saved_params);
+	find_result_dialogue_open(&pointer, windat, windat->file, find_process_result_window, parameters);
 
 	return line;
 }

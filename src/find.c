@@ -94,7 +94,7 @@ struct find_block {
 static void		find_reopen_window(wimp_pointer *ptr);
 static osbool		find_process_search_window(void *owner, struct find_search_dialogue_data *content);
 static osbool		find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content);
-static tran_t		find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters);
+static osbool		find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters);
 
 
 /**
@@ -320,42 +320,20 @@ static osbool find_process_search_window(void *owner, struct find_search_dialogu
 static osbool find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content)
 {
 	struct find_block			*windat = owner;
-	struct find_result_dialogue_data	*parameters = NULL;
 
 	if (windat == NULL || content == NULL)
 		return TRUE;
 
-	/* Take a new copy of the saved parameters. */
+	/* Reset the match data. */
 
-	parameters = heap_alloc(sizeof(struct find_result_dialogue_data));
-	if (parameters == NULL)
-		return FALSE;
-
-	debug_printf("Allocating found block 0x%x", parameters);
-
-	parameters->date = content->date;
-	parameters->from = content->from;
-	parameters->to = content->to;
-	parameters->reconciled = content->reconciled;
-	parameters->amount = content->amount;
-	string_copy(parameters->ref, content->ref, TRANSACT_REF_FIELD_LEN);
-	string_copy(parameters->desc, content->desc, TRANSACT_DESCRIPT_FIELD_LEN);
-
-	parameters->logic = content->logic;
-	parameters->case_sensitive = content->case_sensitive;
-	parameters->whole_text = content->whole_text;
-	parameters->direction = content->direction;
-
-	parameters->result = TRANSACT_FIELD_NONE;
-	parameters->transaction = NULL_TRANSACTION;
-	parameters->action = FIND_RESULT_DIALOGUE_NONE;
+	content->result = TRANSACT_FIELD_NONE;
 
 	switch (content->action) {
 	case FIND_RESULT_DIALOGUE_PREVIOUS:
-		if (parameters->direction == FIND_UP)		// \TODO -- Not sure if this gets the old logic correct?
-			parameters->direction = FIND_DOWN;
-		else if (parameters->direction == FIND_DOWN)
-			parameters->direction = FIND_UP;
+		if (content->direction == FIND_UP)		// \TODO -- Not sure if this gets the old logic correct?
+			content->direction = FIND_DOWN;
+		else if (content->direction == FIND_DOWN)
+			content->direction = FIND_UP;
 		break;
 
 	case FIND_RESULT_DIALOGUE_NEXT:
@@ -369,11 +347,24 @@ static osbool find_process_result_window(wimp_pointer *pointer, void *owner, str
 		break;
 	}
 
+	switch (content->direction) {
+	case FIND_UP:
+		content->transaction -= 1;
+		if (content->transaction < 0)
+			content->transaction = 0;
+		break;
+	case FIND_DOWN:
+		content->transaction += 1;
+		if (content->transaction >= transact_get_count(windat->file))
+			content->transaction = transact_get_count(windat->file) - 1;
+		break;
+	default:
+		break;
+	}
+
 	/* Resume the search. */
 
-	find_from_line(windat, parameters);
-
-	return TRUE;
+	return !find_from_line(windat, content);
 }
 
 
@@ -382,10 +373,10 @@ static osbool find_process_result_window(wimp_pointer *pointer, void *owner, str
  *
  * \param *windat		The parent Find instance.
  * \param *parameters		The search parameters to use.
- * \return			The resulting matching transaction.
+ * \return			TRUE if a match was found; otherwise FALSE.
  */
 
-static tran_t find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters)
+static osbool find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters)
 {
 	int					line;
 	enum transact_field			result;
@@ -395,7 +386,7 @@ static tran_t find_from_line(struct find_block *windat, struct find_result_dialo
 	debug_printf("Starting to find a transaction...");
 
 	if (windat == NULL || parameters == NULL)
-		return NULL_TRANSACTION;
+		return FALSE;
 
 	/* Take local copies of the two text fields, and add bracketing wildcards as necessary. */
 
@@ -442,9 +433,10 @@ static tran_t find_from_line(struct find_block *windat, struct find_result_dialo
 			parameters->date, parameters->from, parameters->to, parameters->reconciled, parameters->amount, ref, desc);
 
 	if (result == TRANSACT_FIELD_NONE) {
-		// \TODO -- This should still free the parameters block? It won't happen elsewhere if find_result_dialogue_open() isn't called?
+		debug_printf("\\gFreeing the results data on no-match exit for 0x%x", parameters);
+		heap_free(parameters);
 		error_msgs_report_info ("BadFind");
-		return NULL_TRANSACTION;
+		return FALSE;
 	}
 
 	/* Store and act on the result. */
@@ -457,6 +449,6 @@ static tran_t find_from_line(struct find_block *windat, struct find_result_dialo
 	wimp_get_pointer_info(&pointer);
 	find_result_dialogue_open(&pointer, windat, windat->file, find_process_result_window, parameters);
 
-	return line;
+	return TRUE;
 }
 

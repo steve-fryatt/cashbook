@@ -141,6 +141,11 @@ void find_result_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block
 {
 	find_result_dialogue_callback = callback;
 
+	/* Reset the action, ready for the next dialogue cycle. */
+
+	if (content != NULL)
+		content->action = FIND_RESULT_DIALOGUE_NONE;
+
 	/* Open the window. */
 
 	dialogue_open(find_result_dialogue, FALSE, TRUE, file, owner, ptr, content);
@@ -219,13 +224,17 @@ static osbool find_result_dialogue_process(struct file_block *file, wimp_w windo
 
 static void find_result_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
+	struct find_result_dialogue_data *content = data;
+
 	find_result_dialogue_callback = NULL;
 
-	/* The client is assuming that we'll delete this after use. */
+	/* The client is assuming that we'll delete this after use, if the
+	 * selected dialogue action was Cancel.
+	 */
 
-	debug_printf("Freeing found block 0x%x", data);
-
-	if (data != NULL)
-		heap_free(data);
+	if ((content != NULL) && (content->action == FIND_RESULT_DIALOGUE_NONE)) {
+		debug_printf("\\bFreeing the results data on Cancel exit for 0x%x", content);
+		heap_free(content);
+	}
 }
 

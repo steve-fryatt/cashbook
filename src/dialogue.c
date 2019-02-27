@@ -239,7 +239,9 @@ void dialogue_open(struct dialogue_block *dialogue, osbool hide, osbool restore,
 	dialogue_fill(dialogue);
 
 	windows_open_centred_at_pointer(dialogue->window, pointer);
-	dialogue_place_caret(dialogue);
+
+	if (dialogue->definition->flags & DIALOGUE_FLAGS_TAKE_FOCUS)
+		dialogue_place_caret(dialogue);
 }
 
 
@@ -364,7 +366,7 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			dialogue_close_window(windat);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			dialogue_refresh(windat, FALSE);
+			dialogue_refresh(windat, (windat->definition->flags & DIALOGUE_FLAGS_REDRAW_TITLE) ? TRUE : FALSE);
 		}
 	} else if (icon->type & DIALOGUE_ICON_OK) {
 		if (dialogue_process(windat, pointer, icon) && pointer->buttons == wimp_CLICK_SELECT)

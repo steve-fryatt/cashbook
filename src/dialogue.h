@@ -212,6 +212,10 @@ enum dialogue_icon_type {
 	DIALOGUE_ICON_FIND_NEW		= 0x40000000		/**< The New Search button.			*/
 };
 
+/**
+ * Value indicating no icon.
+ */
+
 #define DIALOGUE_NO_ICON ((wimp_i) -1)
 
 /**
@@ -240,6 +244,26 @@ struct dialogue_menu_data {
 	char				*help_token;
 };
 
+/**
+ * Dialogue option flags.
+ */
+
+enum dialogue_flags {
+	/**
+	 * No flags set.
+	 */
+	DIALOGUE_FLAGS_NONE = 0,
+
+	/**
+	 * Take input focus when the dialogue opens.
+	 */
+	DIALOGUE_FLAGS_TAKE_FOCUS = 1,
+
+	/**
+	 * When refreshing the dialogue content, redraw the titlebar.
+	 */
+	DIALOGUE_FLAGS_REDRAW_TITLE = 2
+};
 
 /**
  * An analysis dialogue contents definition.
@@ -266,6 +290,11 @@ struct dialogue_definition {
 	 * or DIALOGUE_ICON_NONE.
 	 */
 	enum dialogue_icon_type		hidden_icons;
+
+	/**
+	 * The dialogue option flags.
+	 */
+	enum dialogue_flags		flags;
 
 	/**
 	 * Callback function to request the dialogue is filled.

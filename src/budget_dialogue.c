@@ -108,6 +108,7 @@ static struct dialogue_definition budget_dialogue_definition = {
 	"Budget",
 	budget_dialogue_icon_list,
 	DIALOGUE_ICON_NONE,
+	DIALOGUE_FLAGS_TAKE_FOCUS,
 	budget_dialogue_fill,
 	budget_dialogue_process,
 	budget_dialogue_close,

@@ -232,6 +232,7 @@ static struct analysis_dialogue_definition analysis_unreconciled_dialogue_defini
 		"UnrecRep",
 		analysis_unreconciled_icon_list,
 		DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME,
+		DIALOGUE_FLAGS_TAKE_FOCUS,
 		NULL,
 		NULL,
 		NULL,

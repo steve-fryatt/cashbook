@@ -108,6 +108,7 @@ static struct dialogue_definition find_result_dialogue_definition = {
 	"Found",
 	find_result_dialogue_icon_list,
 	DIALOGUE_ICON_NONE,
+	DIALOGUE_FLAGS_NONE,
 	find_result_dialogue_fill,
 	find_result_dialogue_process,
 	find_result_dialogue_close,

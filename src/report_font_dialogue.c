@@ -169,6 +169,7 @@ static struct dialogue_definition report_font_dialogue_definition = {
 	"RepFont",
 	report_font_dialogue_icon_list,
 	DIALOGUE_ICON_NONE,
+	DIALOGUE_FLAGS_TAKE_FOCUS,
 	report_font_dialogue_fill,
 	report_font_dialogue_process,
 	report_font_dialogue_close,

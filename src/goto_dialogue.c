@@ -107,6 +107,7 @@ static struct dialogue_definition goto_dialogue_definition = {
 	"Goto",
 	goto_dialogue_icon_list,
 	DIALOGUE_ICON_NONE,
+	DIALOGUE_FLAGS_TAKE_FOCUS,
 	goto_dialogue_fill,
 	goto_dialogue_process,
 	goto_dialogue_close,

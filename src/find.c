@@ -351,9 +351,7 @@ static osbool find_process_result_window(wimp_pointer *pointer, void *owner, str
 
 	/* Step past the current line, where the match is. */
 
-	// \TODO -- What happens if line is 0 or (max_lines-1)?
-
-	switch (content->direction) {
+	switch (content->direction) {				// \TODO -- What happens if line is 0 or (max_lines-1)?
 	case FIND_UP:
 		content->transaction -= 1;
 		if (content->transaction < 0)
@@ -406,32 +404,7 @@ static osbool find_from_line(struct find_block *windat, struct find_result_dialo
 	else
 		string_copy(desc, parameters->desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
 
-	/* If the search needs to change direction, do so now. */
-
-//	if (new_dir == FIND_NEXT || new_dir == FIND_PREVIOUS) {
-//		if (parameters->direction == FIND_UP)
-//			direction = (new_dir == FIND_NEXT) ? FIND_UP : FIND_DOWN;
-//		else
-//			direction = (new_dir == FIND_NEXT) ? FIND_DOWN : FIND_UP;
-//	} else {
-//		direction = parameters->direction;
-//	}
-
-	/* If a new start line is being specified, take note, else use the current edit line. */
-
-//	if (start == NULL_TRANSACTION) {
-//		if (direction == FIND_DOWN) {
-//			line = transact_get_caret_line(windat->file) + 1;
-//			if (line >= transact_get_count(windat->file))
-//				line = transact_get_count(windat->file) - 1;
-//		} else /* FIND_UP */ {
-//			line = transact_get_caret_line(windat->file) - 1;
-//			if (line < 0)
-//				line = 0;
-//		}
-//	} else {
-//		line = start;
-//	}
+	/* Run the search. */
 
 	line = parameters->transaction;
 

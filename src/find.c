@@ -87,14 +87,12 @@ struct find_block {
 	enum find_direction	direction;					/**< The direction to search in.					*/
 };
 
-//static struct find_block	find_params;					/**< A copy of the settings for the current search.			*/
-
 /* Static Function Prototypes. */
 
-static void		find_reopen_window(wimp_pointer *ptr);
-static osbool		find_process_search_window(void *owner, struct find_search_dialogue_data *content);
-static osbool		find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content);
-static osbool		find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters);
+static void find_reopen_window(struct find_block *windat, struct find_result_dialogue_data *parameters, wimp_pointer *ptr);
+static osbool find_process_search_window(void *owner, struct find_search_dialogue_data *content);
+static osbool find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content);
+static osbool find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters);
 
 
 /**
@@ -175,8 +173,6 @@ void find_open_window(struct find_block *windat, wimp_pointer *ptr, osbool resto
 	if (content == NULL)
 		return;
 
-	debug_printf("Allocating find block 0x%x", content);
-
 	content->date = windat->date;
 	content->from = windat->from;
 	content->to = windat->to;
@@ -198,27 +194,35 @@ void find_open_window(struct find_block *windat, wimp_pointer *ptr, osbool resto
  * Re-open the Find window, from the 'modify' icon in the Found window, with
  * the current search params.
  *
+ * \param *parameters		The search data to use as a base for the new search.
  * \param *ptr			The Wimp pointer details.
  */
 
-static void find_reopen_window(wimp_pointer *ptr)
+static void find_reopen_window(struct find_block *windat, struct find_result_dialogue_data *parameters, wimp_pointer *ptr)
 {
-	/* If either of the find/found windows are already open, close them to start with. */
+	struct find_search_dialogue_data *content = NULL;
 
-//	if (windows_get_open(find_window))
-//		wimp_close_window(find_window);
+	if (parameters == NULL || ptr == NULL)
+		return;
 
-//	if (windows_get_open(find_result_window))
-//		wimp_close_window(find_result_window);
+	content = heap_alloc(sizeof(struct find_search_dialogue_data));
+	if (content == NULL)
+		return;
 
-	/* Blank out the icon contents. */
+	content->date = parameters->date;
+	content->from = parameters->from;
+	content->to = parameters->to;
+	content->reconciled = parameters->reconciled;
+	content->amount = parameters->amount;
+	content->logic = parameters->logic;
+	content->case_sensitive = parameters->case_sensitive;
+	content->whole_text = parameters->whole_text;
+	content->direction = parameters->direction;
 
-//	find_fill_window(&find_params, TRUE);
+	string_copy(content->ref, parameters->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(content->desc, parameters->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
-//	find_restore = TRUE;
-
-//	windows_open_centred_at_pointer(find_window, ptr);
-//	place_dialogue_caret(find_window, FIND_ICON_DATE);
+	find_search_dialogue_open(ptr, TRUE, windat, windat->file, find_process_search_window, content);
 }
 
 
@@ -260,8 +264,6 @@ static osbool find_process_search_window(void *owner, struct find_search_dialogu
 	parameters = heap_alloc(sizeof(struct find_result_dialogue_data));
 	if (parameters == NULL)
 		return FALSE;
-
-	debug_printf("Allocating found block 0x%x", parameters);
 
 	parameters->date = windat->date;
 	parameters->from = windat->from;
@@ -315,6 +317,8 @@ static osbool find_process_search_window(void *owner, struct find_search_dialogu
  * \param *owner		The find instance currently owning the dialogue.
  * \param *content		The data from the dialogue which is to be processed.
  * \param *pointer		The mouse event block to handle.
+ * \return			TRUE if the operation completed and the window should
+ *				close; FALSE to hold it open.
  */
 
 static osbool find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content)
@@ -342,8 +346,8 @@ static osbool find_process_result_window(wimp_pointer *pointer, void *owner, str
 		break;
 
 	case FIND_RESULT_DIALOGUE_NEW:
-	//	find_reopen_window(pointer);
-		break;
+		find_reopen_window(windat, content, pointer);
+		return TRUE;
 
 	case FIND_RESULT_DIALOGUE_NONE:
 		break;
@@ -387,8 +391,6 @@ static osbool find_from_line(struct find_block *windat, struct find_result_dialo
 	wimp_pointer				pointer;
 	char					ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
 
-	debug_printf("Starting to find a transaction...");
-
 	if (windat == NULL || parameters == NULL)
 		return FALSE;
 
@@ -412,7 +414,6 @@ static osbool find_from_line(struct find_block *windat, struct find_result_dialo
 			parameters->date, parameters->from, parameters->to, parameters->reconciled, parameters->amount, ref, desc);
 
 	if (result == TRANSACT_FIELD_NONE) {
-		debug_printf("\\gFreeing the results data on no-match exit for 0x%x", parameters);
 		heap_free(parameters);
 		error_msgs_report_info ("BadFind");
 		return FALSE;

@@ -205,7 +205,7 @@ static osbool find_result_dialogue_process(struct file_block *file, wimp_w windo
 	else if ((type & DIALOGUE_ICON_FIND_NEXT) && (pointer->buttons == wimp_CLICK_SELECT))
 		content->action = FIND_RESULT_DIALOGUE_NEXT;
 	else if ((type & DIALOGUE_ICON_FIND_NEW) && (pointer->buttons == wimp_CLICK_SELECT))
-		content->action = FIND_RESULT_DIALOGUE_NEXT;
+		content->action = FIND_RESULT_DIALOGUE_NEW;
 	else
 		content->action = FIND_RESULT_DIALOGUE_NONE;
 
@@ -233,9 +233,7 @@ static void find_result_dialogue_close(struct file_block *file, wimp_w window, v
 	 * selected dialogue action was Cancel.
 	 */
 
-	if ((content != NULL) && (content->action == FIND_RESULT_DIALOGUE_NONE)) {
-		debug_printf("\\bFreeing the results data on Cancel exit for 0x%x", content);
+	if ((content != NULL) && (content->action == FIND_RESULT_DIALOGUE_NONE || content->action == FIND_RESULT_DIALOGUE_NEW))
 		heap_free(content);
-	}
 }
 

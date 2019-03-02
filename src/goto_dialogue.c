@@ -153,7 +153,7 @@ void goto_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct f
  * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
  * \param restore	TRUE if the dialogue should restore previous settings.
- * \param *data		Client data pointer (unused).
+ * \param *data		Client data pointer, to the dialogue data structure.
  */
 
 static void goto_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
@@ -194,7 +194,7 @@ static void goto_dialogue_fill(struct file_block *file, wimp_w window, osbool re
  * \param *pointer	The Wimp pointer state.
  * \param type		The type of icon selected by the user.
  * \param *parent	The parent goto instance.
- * \param *data		Client data pointer, to the dislogue data structure.
+ * \param *data		Client data pointer, to the dialogue data structure.
  * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
@@ -230,7 +230,7 @@ static osbool goto_dialogue_process(struct file_block *file, wimp_w window, wimp
  *
  * \param *file		The file instance associated with the dialogue.
  * \param window	The handle of the dialogue box to be filled.
- * \param *data		Client data pointer, to the dislogue data structure.
+ * \param *data		Client data pointer, to the dialogue data structure.
  */
 
 static void goto_dialogue_close(struct file_block *file, wimp_w window, void *data)

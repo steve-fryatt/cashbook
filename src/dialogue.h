@@ -202,6 +202,7 @@ enum dialogue_icon_type {
 
 	DIALOGUE_ICON_EDIT_DELETE	= 0x10000000,		/**< The Delete button in edit dialogues.	*/
 	DIALOGUE_ICON_EDIT_RATES	= 0x20000000,		/**< The Rates... button in edit dialogues.	*/
+	DIALOGUE_ICON_EDIT_STOP		= 0x40000000,		/**< The Stop button in edit dialogues.		*/
 
 	DIALOGUE_ICON_PRINT_REPORT	= 0x10000000,		/**< The Print Report button.			*/
 

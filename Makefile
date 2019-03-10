@@ -78,6 +78,7 @@ OBJS = account.o			\
        interest.o			\
        main.o				\
        presets.o			\
+       preset_dialogue.o		\
        preset_menu.o			\
        print_dialogue.o			\
        print_protocol.o			\
@@ -95,6 +96,7 @@ OBJS = account.o			\
        report_tabs.o			\
        report_textdump.o		\
        sorder.o				\
+       sorder_dialogue.o		\
        sort.o				\
        sort_dialogue.o			\
        stringbuild.o			\

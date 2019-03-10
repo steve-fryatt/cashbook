@@ -172,9 +172,11 @@ void account_section_dialogue_open(wimp_pointer *ptr, void *owner, struct file_b
 	if (content->line == -1) {
 		dialogue_set_title(account_section_dialogue, "NewSect", NULL, NULL, NULL, NULL);
 		dialogue_set_icon_text(account_section_dialogue, DIALOGUE_ICON_OK, "NewAcctAct", NULL, NULL, NULL, NULL);
+		dialogue_set_hidden_icons(account_section_dialogue, DIALOGUE_ICON_EDIT_DELETE, TRUE);
 	} else {
 		dialogue_set_title(account_section_dialogue, "EditSect", NULL, NULL, NULL, NULL);
 		dialogue_set_icon_text(account_section_dialogue, DIALOGUE_ICON_OK, "EditAcctAct", NULL, NULL, NULL, NULL);
+		dialogue_set_hidden_icons(account_section_dialogue, DIALOGUE_ICON_EDIT_DELETE, FALSE);
 	}
 
 	/* Open the window. */
@@ -205,9 +207,6 @@ static void account_section_dialogue_fill(struct file_block *file, wimp_w window
 			(content->type == ACCOUNT_LINE_HEADER));
 	icons_set_selected(window, ACCOUNT_SECTION_DIALOGUE_FOOTER,
 			(content->type == ACCOUNT_LINE_FOOTER));
-
-	icons_set_deleted(window, ACCOUNT_SECTION_DIALOGUE_DELETE,
-			(content->line == -1));
 }
 
 

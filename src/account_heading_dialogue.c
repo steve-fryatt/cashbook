@@ -177,9 +177,11 @@ void account_heading_dialogue_open(wimp_pointer *ptr, void *owner, struct file_b
 	if (content->account == NULL_ACCOUNT) {
 		dialogue_set_title(account_heading_dialogue, "NewHdr", NULL, NULL, NULL, NULL);
 		dialogue_set_icon_text(account_heading_dialogue, DIALOGUE_ICON_OK, "NewAcctAct", NULL, NULL, NULL, NULL);
+		dialogue_set_hidden_icons(account_heading_dialogue, DIALOGUE_ICON_EDIT_DELETE, TRUE);
 	} else {
 		dialogue_set_title(account_heading_dialogue, "EditHdr", NULL, NULL, NULL, NULL);
 		dialogue_set_icon_text(account_heading_dialogue, DIALOGUE_ICON_OK, "EditAcctAct", NULL, NULL, NULL, NULL);
+		dialogue_set_hidden_icons(account_heading_dialogue, DIALOGUE_ICON_EDIT_DELETE, FALSE);
 	}
 
 	/* Open the window. */
@@ -216,8 +218,6 @@ static void account_heading_dialogue_fill(struct file_block *file, wimp_w window
 
 	icons_set_shaded(window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (content->account != NULL_ACCOUNT));
 	icons_set_selected(window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (content->type & ACCOUNT_OUT));
-
-	icons_set_deleted(window, ACCOUNT_HEADING_DIALOGUE_DELETE, (content->account == NULL_ACCOUNT));
 }
 
 

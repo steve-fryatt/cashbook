@@ -624,17 +624,17 @@ static osbool account_delete_from_edit_window(struct account_block *instance, ac
 	if (instance == NULL || instance->file == NULL || account == NULL_ACCOUNT)
 		return FALSE;
 
-	/* Check that the user really wishes to proceed. */
-
-	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 4)
-		return FALSE;
-
 	/* Check that the account isn't in use. */
 
 	if (account_used_in_file(instance, account)) {
 		error_msgs_report_info("CantDelAcct");
 		return FALSE;
 	}
+
+	/* Check that the user really wishes to proceed. */
+
+	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 4)
+		return FALSE;
 
 	return account_delete(instance->file, account);
 }

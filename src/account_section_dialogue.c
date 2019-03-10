@@ -79,22 +79,12 @@ static struct dialogue_block	*account_section_dialogue = NULL;
  * Callback function to return updated settings.
  */
 
-static osbool			(*account_section_dialogue_update_callback)(void *, struct account_section_dialogue_data *);
-
-
-
-
-/**
- * Callback function to request the deletion of a section.
- */
-
-static osbool (*account_section_dialogue_delete_callback)(struct account_list_window *, int);
+static osbool			(*account_section_dialogue_callback)(void *, struct account_section_dialogue_data *);
 
 /* Static Function Prototypes. */
 
 static void account_section_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data);
 static osbool account_section_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
-static osbool account_section_dialogue_delete(void);
 static void account_section_dialogue_close(struct file_block *file, wimp_w window, void *data);
 
 /**
@@ -152,20 +142,17 @@ void account_section_dialogue_initialise(void)
  * \param *ptr			The current Wimp pointer position.
  * \param *owner		The account instance to own the dialogue.
  * \param *file			The file instance to own the dialogue.
- * \param *update_callback	The callback function to use to return new values.
- * \param *delete_callback	The callback function to use to request deletion.
+ * \param *callback		The callback function to use to return new values.
  * \param *content		Pointer to structure to hold the dialogue content.
  */
 
 void account_section_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file,
-		osbool (*update_callback)(void *, struct account_section_dialogue_data *),
-		osbool (*delete_callback)(struct account_list_window *, int), struct account_section_dialogue_data *content)
+		osbool (*callback)(void *, struct account_section_dialogue_data *), struct account_section_dialogue_data *content)
 {
 	if (content == NULL)
 		return;
 
-	account_section_dialogue_update_callback = update_callback;
-	account_section_dialogue_delete_callback = delete_callback;
+	account_section_dialogue_callback = callback;
 
 	/* Set up the dialogue title and action buttons. */
 
@@ -226,10 +213,15 @@ static osbool account_section_dialogue_process(struct file_block *file, wimp_w w
 {
 	struct account_section_dialogue_data *content = data;
 
-	if (content == NULL || account_section_dialogue_update_callback == NULL)
+	if (content == NULL || account_section_dialogue_callback == NULL)
 		return FALSE;
 
 	/* Extract the information from the dialogue. */
+
+	if (type & DIALOGUE_ICON_OK)
+		content->action = ACCOUNT_SECTION_ACTION_OK;
+	else if (type & DIALOGUE_ICON_EDIT_DELETE)
+		content->action = ACCOUNT_SECTION_ACTION_DELETE;
 
 	icons_copy_text(window, ACCOUNT_SECTION_DIALOGUE_TITLE, content->name, ACCOUNT_SECTION_LEN);
 
@@ -242,30 +234,7 @@ static osbool account_section_dialogue_process(struct file_block *file, wimp_w w
 
 	/* Call the client back. */
 
-	return account_section_dialogue_update_callback(parent, content);
-}
-
-
-/**
- * Delete the section associated with the currently open Section Edit
- * window.
- *
- * \return			TRUE if deleted; else FALSE.
- */
-
-static osbool account_section_dialogue_delete(void)
-{
-	if (account_section_dialogue_delete_callback == NULL)
-		return FALSE;
-
-	/* Check that the user really wishes to proceed. */
-
-	if (error_msgs_report_question("DeleteSection", "DeleteSectionB") == 4)
-		return FALSE;
-
-	/* Call the client back. */
-
-//	return account_section_dialogue_delete_callback(account_section_dialogue_owner, account_section_dialogue_line);
+	return account_section_dialogue_callback(parent, content);
 }
 
 
@@ -279,7 +248,7 @@ static osbool account_section_dialogue_delete(void)
 
 static void account_section_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
-	account_section_dialogue_update_callback = NULL;
+	account_section_dialogue_callback = NULL;
 
 	/* The client is assuming that we'll delete this after use. */
 

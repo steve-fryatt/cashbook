@@ -33,24 +33,50 @@
 #include "account_list_window.h"
 
 /**
+ * The requested action from the dialogue.
+ */
+
+enum account_section_dialogue_action {
+	/**
+	 * No action defined.
+	 */
+	ACCOUNT_SECTION_ACTION_NONE,
+
+	/**
+	 * Create or update the section using the supplied details.
+	 */
+	ACCOUNT_SECTION_ACTION_OK,
+
+	/**
+	 * Delete the section.
+	 */
+	ACCOUNT_SECTION_ACTION_DELETE
+};
+
+/**
  * The list section data held by the dialogue.
  */
 
 struct account_section_dialogue_data {
 	/**
+	 * The requested action from the dialogue.
+	 */
+	enum account_section_dialogue_action	action;
+
+	/**
 	 * The line in the account list being edited by the Section Edit window.
 	 */
-	int			line;
+	int					line;
 
 	/**
 	 * The name for the section.
 	 */
-	char			name[ACCOUNT_SECTION_LEN];
+	char					name[ACCOUNT_SECTION_LEN];
 
 	/**
 	 * The type for the section.
 	 */
-	enum account_line_type	type;
+	enum account_line_type			type;
 };
 
 /**
@@ -66,14 +92,12 @@ void account_section_dialogue_initialise(void);
  * \param *ptr			The current Wimp pointer position.
  * \param *owner		The account instance to own the dialogue.
  * \param *file			The file instance to own the dialogue.
- * \param *update_callback	The callback function to use to return new values.
- * \param *delete_callback	The callback function to use to request deletion.
+ * \param *callback		The callback function to use to return new values.
  * \param *content		Pointer to structure to hold the dialogue content.
  */
 
 void account_section_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file,
-		osbool (*update_callback)(void *, struct account_section_dialogue_data *),
-		osbool (*delete_callback)(struct account_list_window *, int), struct account_section_dialogue_data *content);
+		osbool (*callback)(void *, struct account_section_dialogue_data *), struct account_section_dialogue_data *content);
 
 #endif
 

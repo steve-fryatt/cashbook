@@ -114,15 +114,10 @@ enum dialogue_icon_type {
 	DIALOGUE_ICON_REFRESH		= 0x00000200,
 
 	/**
-	 * The icon should be hidden if requested. Target is unused.
-	 */
-//	DIALOGUE_ICON_HIDDEN		= 0x00000400,
-
-	/**
 	 * The icon should be registered with the Wimp Library as a
 	 * pop-up menu icon. Target is unused.
 	 */
-	DIALOGUE_ICON_POPUP		= 0x00000800,
+	DIALOGUE_ICON_POPUP		= 0x00000400,
 
 	/**
 	 * The icon requires a pop-up account selection dialogue to be
@@ -131,25 +126,25 @@ enum dialogue_icon_type {
 	 * and Target is the text field. One of the DIALOGUE_ICON_TYPE
 	 * flags should be set to indicate the type of field.
 	 */
-	DIALOGUE_ICON_ACCOUNT_POPUP	= 0x00001000,
+	DIALOGUE_ICON_ACCOUNT_POPUP	= 0x00000800,
 
 	/**
 	 * The icon is the ident field in an account selector. Target
 	 * should reference the icon representing the name field.
 	 */
-	DIALOGUE_ICON_ACCOUNT_IDENT	= 0x00002000,
+	DIALOGUE_ICON_ACCOUNT_IDENT	= 0x00001000,
 
 	/**
 	 * The icon is the name field in an account selector. Target
 	 * should reference the icon representing the reconciled field.
 	 */
-	DIALOGUE_ICON_ACCOUNT_NAME	= 0x00004000,
+	DIALOGUE_ICON_ACCOUNT_NAME	= 0x00002000,
 
 	/**
 	 * The icon is the reconciled field in an account selector. Target
 	 * should reference the icon representing the ident field.
 	 */
-	DIALOGUE_ICON_ACCOUNT_RECONCILE	= 0x00008000,
+	DIALOGUE_ICON_ACCOUNT_RECONCILE	= 0x00004000,
 
 	/**
 	 * The icon is an account field targetting incoming headings and accounts.
@@ -157,7 +152,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_FROM		= 0x00010000,
+	DIALOGUE_ICON_TYPE_FROM		= 0x00008000,
 
 	/**
 	 * The icon is an account field targetting outgoing headings and accounts.
@@ -165,7 +160,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_TO		= 0x00020000,
+	DIALOGUE_ICON_TYPE_TO		= 0x00010000,
 
 	/**
 	 * The icon is an account field targetting incoming headings.
@@ -173,7 +168,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_IN		= 0x00040000,
+	DIALOGUE_ICON_TYPE_IN		= 0x00020000,
 
 	/**
 	 * The icon is an account field targetting outgoing headings.
@@ -181,7 +176,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_OUT		= 0x00080000,
+	DIALOGUE_ICON_TYPE_OUT		= 0x00040000,
 
 	/**
 	 * The icon is an account field targetting accounts.
@@ -189,7 +184,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_FULL		= 0x00100000,
+	DIALOGUE_ICON_TYPE_FULL		= 0x00080000,
 
 	/**
 	 * The last, dummy, entry in the dialogue icon sequence. Icon and

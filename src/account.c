@@ -564,6 +564,9 @@ static osbool account_process_heading_edit_window(void *parent, struct account_h
 	struct account_block	*instance = parent;
 	acct_t			check_ident;
 
+	if (instance == NULL || instance->accounts == NULL || instance->file == NULL || content == NULL)
+		return FALSE;
+
 	/* Check the requested action from the user. */
 
 	if (content->action == ACCOUNT_HEADING_ACTION_DELETE)

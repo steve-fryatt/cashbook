@@ -79,46 +79,10 @@
 static struct dialogue_block	*report_font_dialogue = NULL;
 
 /**
- * The starting normal font name.
- */
-
-static char			report_font_dialogue_initial_normal[font_NAME_LIMIT];
-
-/**
- * The starting bold font name.
- */
-
-static char			report_font_dialogue_initial_bold[font_NAME_LIMIT];
-
-/**
- * The starting italic font name.
- */
-
-static char			report_font_dialogue_initial_italic[font_NAME_LIMIT];
-
-/**
- * The starting bold italic font name.
- */
-
-static char			report_font_dialogue_initial_bold_italic[font_NAME_LIMIT];
-
-/**
- * The staring font size.
- */
-
-static int			report_font_dialogue_initial_size;
-
-/**
- * The starting line spacing.
- */
-
-static int			report_font_dialogue_initial_spacing;
-
-/**
  * Callback function to return updated settings.
  */
 
-static void			(*report_font_dialogue_callback)(struct report *, char *, char *, char *, char *, int, int);
+static void			(*report_font_dialogue_callback)(void *, struct report_font_dialogue_data *);
 
 
 /* Static function prototypes. */
@@ -195,30 +159,17 @@ void report_font_dialogue_initialise(void)
  * \param *ptr			The current Wimp pointer position.
  * \param *report		The report to own the dialogue.
  * \param *callback		The callback function to use to return the results.
- * \param *normal		The initial normal font name.
- * \param *bold			The initial bold font name.
- * \param *italic		The initial italic font name.
- * \param *bold_italic		The initial bold-italic font name.
- * \param size			The initial font size.
- * \param spacing		The initial line spacing.
+ * \param *content		Pointer to structure to hold the dialogue content.
  */
 
-void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, char *, char *, int, int),
-		char *normal, char *bold, char *italic, char *bold_italic, int size, int spacing)
+void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(void *, struct report_font_dialogue_data *),
+		struct report_font_dialogue_data *content)
 {
-	string_copy(report_font_dialogue_initial_normal, normal, font_NAME_LIMIT);
-	string_copy(report_font_dialogue_initial_bold, bold, font_NAME_LIMIT);
-	string_copy(report_font_dialogue_initial_italic, italic, font_NAME_LIMIT);
-	string_copy(report_font_dialogue_initial_bold_italic, bold_italic, font_NAME_LIMIT);
-
-	report_font_dialogue_initial_size = size;
-	report_font_dialogue_initial_spacing = spacing;
-
 	report_font_dialogue_callback = callback;
 
 	/* Open the window. */
 
-	dialogue_open(report_font_dialogue, FALSE, report_get_file(report), report, ptr, NULL);
+	dialogue_open(report_font_dialogue, FALSE, report_get_file(report), report, ptr, content);
 }
 
 
@@ -233,13 +184,18 @@ void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*
 
 static void report_font_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
-	icons_printf(window, REPORT_FONT_DIALOGUE_NFONT, "%s", report_font_dialogue_initial_normal);
-	icons_printf(window, REPORT_FONT_DIALOGUE_BFONT, "%s", report_font_dialogue_initial_bold);
-	icons_printf(window, REPORT_FONT_DIALOGUE_IFONT, "%s", report_font_dialogue_initial_italic);
-	icons_printf(window, REPORT_FONT_DIALOGUE_BIFONT, "%s", report_font_dialogue_initial_bold_italic);
+	struct report_font_dialogue_data *content = data;
 
-	icons_printf(window, REPORT_FONT_DIALOGUE_FONTSIZE, "%d", report_font_dialogue_initial_size / 16);
-	icons_printf(window, REPORT_FONT_DIALOGUE_FONTSPACE, "%d", report_font_dialogue_initial_spacing);
+	if (content == NULL)
+		return;
+
+	icons_printf(window, REPORT_FONT_DIALOGUE_NFONT, "%s", content->normal);
+	icons_printf(window, REPORT_FONT_DIALOGUE_BFONT, "%s", content->bold);
+	icons_printf(window, REPORT_FONT_DIALOGUE_IFONT, "%s", content->italic);
+	icons_printf(window, REPORT_FONT_DIALOGUE_BIFONT, "%s", content->bold_italic);
+
+	icons_printf(window, REPORT_FONT_DIALOGUE_FONTSIZE, "%d", content->size / 16);
+	icons_printf(window, REPORT_FONT_DIALOGUE_FONTSPACE, "%d", content->spacing);
 }
 
 
@@ -257,27 +213,24 @@ static void report_font_dialogue_fill(struct file_block *file, wimp_w window, os
 
 static osbool report_font_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
-	struct report *report = parent;
+	struct report_font_dialogue_data *content = data;
 
-	if (report_font_dialogue_callback == NULL || report == NULL)
+	if (content == NULL || report_font_dialogue_callback == NULL)
 		return TRUE;
 
 	/* Extract the information. */
 
-	icons_copy_text(window, REPORT_FONT_DIALOGUE_NFONT, report_font_dialogue_initial_normal, font_NAME_LIMIT);
-	icons_copy_text(window, REPORT_FONT_DIALOGUE_BFONT, report_font_dialogue_initial_bold, font_NAME_LIMIT);
-	icons_copy_text(window, REPORT_FONT_DIALOGUE_IFONT, report_font_dialogue_initial_italic, font_NAME_LIMIT);
-	icons_copy_text(window, REPORT_FONT_DIALOGUE_BIFONT, report_font_dialogue_initial_bold_italic, font_NAME_LIMIT);
+	icons_copy_text(window, REPORT_FONT_DIALOGUE_NFONT, content->normal, font_NAME_LIMIT);
+	icons_copy_text(window, REPORT_FONT_DIALOGUE_BFONT, content->bold, font_NAME_LIMIT);
+	icons_copy_text(window, REPORT_FONT_DIALOGUE_IFONT, content->italic, font_NAME_LIMIT);
+	icons_copy_text(window, REPORT_FONT_DIALOGUE_BIFONT,content->bold_italic, font_NAME_LIMIT);
 
-	report_font_dialogue_initial_size = atoi(icons_get_indirected_text_addr(window, REPORT_FONT_DIALOGUE_FONTSIZE)) * 16;
-	report_font_dialogue_initial_spacing = atoi(icons_get_indirected_text_addr(window, REPORT_FONT_DIALOGUE_FONTSPACE));
+	content->size = atoi(icons_get_indirected_text_addr(window, REPORT_FONT_DIALOGUE_FONTSIZE)) * 16;
+	content->spacing = atoi(icons_get_indirected_text_addr(window, REPORT_FONT_DIALOGUE_FONTSPACE));
 
 	/* Call the client back. */
 
-	report_font_dialogue_callback(report,
-			report_font_dialogue_initial_normal, report_font_dialogue_initial_bold,
-			report_font_dialogue_initial_italic, report_font_dialogue_initial_bold_italic,
-			report_font_dialogue_initial_size, report_font_dialogue_initial_spacing);
+	report_font_dialogue_callback(parent, content);
 
 	return TRUE;
 }
@@ -294,6 +247,11 @@ static osbool report_font_dialogue_process(struct file_block *file, wimp_w windo
 static void report_font_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
 	report_font_dialogue_callback = NULL;
+
+	/* The client is assuming that we'll delete this after use. */
+
+	if (data != NULL)
+		heap_free(data);
 }
 
 

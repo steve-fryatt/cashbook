@@ -87,16 +87,11 @@ void report_font_dialogue_initialise(void);
  * \param *ptr			The current Wimp pointer position.
  * \param *report		The report to own the dialogue.
  * \param *callback		The callback function to use to return the results.
- * \param *normal		The initial normal font name.
- * \param *bold			The initial bold font name.
- * \param *italic		The initial italic font name.
- * \param *bold_italic		The initial bold-italic font name.
- * \param size			The initial font size.
- * \param spacing		The initial line spacing.
+ * \param *content		Pointer to structure to hold the dialogue content.
  */
 
-void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, char *, char *, int, int),
-		char *normal, char *bold, char *italic, char *bold_italic, int size, int spacing);
+void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(void *, struct report_font_dialogue_data *),
+		struct report_font_dialogue_data *content);
 
 #endif
 

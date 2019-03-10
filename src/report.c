@@ -370,7 +370,7 @@ static void			report_view_redraw_page_handler(struct report *report, wimp_draw *
 
 
 static void			report_open_format_window(struct report *report, wimp_pointer *ptr);
-static void			report_process_format_window(struct report *report, char *normal, char *bold, char* italic, char *bold_italic, int size, int spacing);
+static void			report_process_format_window(void *parent, struct report_font_dialogue_data *content);
 
 static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
 static struct report		*report_print_window_closed(struct report *report, void *data, date_t from, date_t to);
@@ -1663,33 +1663,43 @@ void report_redraw_all(struct file_block *file)
 
 static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 {
-	char	normal[font_NAME_LIMIT], bold[font_NAME_LIMIT], italic[font_NAME_LIMIT], bold_italic[font_NAME_LIMIT];
-	int	size, spacing;
+	struct report_font_dialogue_data *content = NULL;
 
 	if (report == NULL || ptr == NULL)
 		return;
 
-	report_fonts_get_faces(report->fonts, normal, bold, italic, bold_italic, font_NAME_LIMIT);
-	report_fonts_get_size(report->fonts, &size, &spacing);
+	/* Open the dialogue box. */
 
-	report_font_dialogue_open(ptr, report, report_process_format_window,
-			normal, bold, italic, bold_italic, size, spacing);
+	content = heap_alloc(sizeof(struct report_font_dialogue_data));
+	if (content == NULL)
+		return;
+
+	report_fonts_get_faces(report->fonts, content->normal, content->bold, content->italic, content->bold_italic, font_NAME_LIMIT);
+	report_fonts_get_size(report->fonts, &(content->size), &(content->spacing));
+
+	report_font_dialogue_open(ptr, report, report_process_format_window, content);
 }
 
 
 /**
  * Take the contents of an updated report format window and process the data.
+ *
+ * \param *parent		The report owning the session.
+ * \param *content		The content of the dialogue box.
+ * \return			TRUE if processed; else FALSE.
  */
 
-static void report_process_format_window(struct report *report, char *normal, char *bold, char* italic, char *bold_italic, int size, int spacing)
+static void report_process_format_window(void *parent, struct report_font_dialogue_data *content)
 {
-	if (report == NULL)
+	struct report *report = parent;
+
+	if (report == NULL || content == NULL)
 		return;
 
 	/* Extract the information. */
 
-	report_fonts_set_faces(report->fonts, normal, bold, italic, bold_italic);
-	report_fonts_set_size(report->fonts, size, spacing);
+	report_fonts_set_faces(report->fonts, content->normal, content->bold, content->italic, content->bold_italic);
+	report_fonts_set_size(report->fonts, content->size, content->spacing);
 
 	/* Tidy up and redraw the windows */
 

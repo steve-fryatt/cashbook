@@ -279,7 +279,7 @@ static osbool analysis_dialogue_process(struct file_block *file, wimp_w window, 
 	if (window == NULL || dialogue == NULL || dialogue->definition == NULL || dialogue->parent == NULL)
 		return FALSE;
 
-	if (type & DIALOGUE_ICON_OK ) {
+	if (type & DIALOGUE_ICON_OK) {
 		report_details = analysis_get_report_details(dialogue->definition->type);
 		if (report_details == NULL)
 			return FALSE;

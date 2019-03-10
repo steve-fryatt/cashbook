@@ -205,6 +205,9 @@ enum dialogue_icon_type {
 	DIALOGUE_ICON_ANALYSIS_DELETE	= 0x10000000,		/**< The Analysis Report Delete button.		*/
 	DIALOGUE_ICON_ANALYSIS_RENAME	= 0x20000000,		/**< The Analysis Report Rename button.		*/
 
+	DIALOGUE_ICON_EDIT_DELETE	= 0x10000000,		/**< The Delete button in edit dialogues.	*/
+	DIALOGUE_ICON_EDIT_RATES	= 0x20000000,		/**< The Rates... button in edit dialogues.	*/
+
 	DIALOGUE_ICON_PRINT_REPORT	= 0x10000000,		/**< The Print Report button.			*/
 
 	DIALOGUE_ICON_FIND_PREVIOUS	= 0x10000000,		/**< The Previous Match button.			*/
@@ -355,6 +358,21 @@ struct dialogue_block *dialogue_create(struct dialogue_definition *definition);
  */
 
 void dialogue_force_all_closed(struct file_block *file, void *parent);
+
+
+/**
+ * Test all open dialogues, to see if any relate to a given file or
+ * parent object.
+ *
+ * \param *file			If not NULL, the file to test open
+ *				dialogues for.
+ * \param *parent		If not NULL, the parent object to test
+ *				open dialogues for.
+ * \return			TRUE if any dialogues are open; otherwise
+ *				FALSE.
+ */
+
+osbool dialogue_any_open(struct file_block *file, void *parent);
 
 
 /**

@@ -85,6 +85,7 @@ static struct dialogue_icon *dialogue_menu_target = NULL;
 
 /* Static Function Prototypes. */
 
+static osbool dialogue_is_open(struct dialogue_block *dialogue, struct file_block *file, void *parent);
 static void dialogue_click_handler(wimp_pointer *pointer);
 static osbool dialogue_keypress_handler(wimp_key *key);
 static enum account_type dialogue_convert_account_type(enum dialogue_icon_type icon);
@@ -191,6 +192,38 @@ void dialogue_force_all_closed(struct file_block *file, void *parent)
 
 
 /**
+ * Test all open dialogues, to see if any relate to a given file or
+ * parent object.
+ *
+ * \param *file			If not NULL, the file to test open
+ *				dialogues for.
+ * \param *parent		If not NULL, the parent object to test
+ *				open dialogues for.
+ * \return			TRUE if any dialogues are open; otherwise
+ *				FALSE.
+ */
+
+osbool dialogue_any_open(struct file_block *file, void *parent)
+{
+	struct dialogue_block *dialogue = dialogue_list;
+
+	debug_printf("\\ORunning dialogue open check for file=0x%x and parent=0x%x.", file, parent);
+
+	while (dialogue != NULL) {
+		debug_printf("Checking %s dialogue for open state.", dialogue->definition->template_name);
+		if (dialogue_is_open(dialogue, file, parent))
+			return TRUE;
+
+		dialogue = dialogue->next;
+	}
+
+	debug_printf("\\YFinished dialogue open check for file=0x%x and parent=0x%x.", file, parent);
+
+	return FALSE;
+}
+
+
+/**
  * Open a new dialogue. Dialogues are attached to a file, and also to a
  * "parent object", which can be anything that the client for
  * dialogue_open() wishes to associate them with. If not NULL, they are
@@ -258,10 +291,34 @@ void dialogue_open(struct dialogue_block *dialogue, osbool hide, osbool restore,
 
 void dialogue_close(struct dialogue_block *dialogue, struct file_block *file, void *parent)
 {
-	if (dialogue == NULL || (file!= NULL && dialogue->file != file) || (parent != NULL && dialogue->parent != parent))
+	if (dialogue == NULL || (file != NULL && dialogue->file != file) || (parent != NULL && dialogue->parent != parent))
 		return;
 
 	dialogue_close_window(dialogue);
+}
+
+
+/**
+ * Check a dialogue instance to see if it is currently open
+ * on screen.
+ *
+ * \param *dialogue		The dialogue instance to test.
+ * \param *file			If not NULL, only text the dialogue if
+ *				this is the parent file.
+ * \param *parent		If not NULL, only text the dialogue if
+ *				this is the parent object.
+ * \return			TRUE if the dialogue is open; FALSE if it
+ *				is closed or if no test took place.
+ */
+
+static osbool dialogue_is_open(struct dialogue_block *dialogue, struct file_block *file, void *parent)
+{
+	if (dialogue == NULL || dialogue->window == NULL ||
+			(file != NULL && dialogue->file != file) ||
+			(parent != NULL && dialogue->parent != parent))
+		return FALSE;
+
+	return windows_get_open(dialogue->window);
 }
 
 
@@ -282,8 +339,7 @@ void dialogue_set_title(struct dialogue_block *dialogue, char *token, char *a, c
 	if (dialogue == NULL || dialogue->window == NULL)
 		return;
 
-	msgs_param_lookup(token, windows_get_indirected_title_addr(dialogue->window),
-			windows_get_indirected_title_length(dialogue->window), a, b, c, d);
+	windows_title_msgs_param_lookup(dialogue->window, token, a, b, c, d);
 
 	if (windows_get_open(dialogue->window))
 		xwimp_force_redraw_title(dialogue->window);

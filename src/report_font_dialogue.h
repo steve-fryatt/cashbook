@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -29,6 +29,50 @@
 
 #ifndef CASHBOOK_REPORT_FONT_DIALOGUE
 #define CASHBOOK_REPORT_FONT_DIALOGUE
+
+#include "oslib/font.h"
+
+/**
+ * The font data held by the dialogue.
+ */
+
+struct report_font_dialogue_data {
+	/**
+	 * The normal font name.
+	 */
+
+	char	normal[font_NAME_LIMIT];
+
+	/**
+	 * The bold font name.
+	 */
+
+	char	bold[font_NAME_LIMIT];
+
+	/**
+	 * The italic font name.
+	 */
+
+	char	italic[font_NAME_LIMIT];
+
+	/**
+	 * The bold italic font name.
+	 */
+
+	char	bold_italic[font_NAME_LIMIT];
+
+	/**
+	 * The font size.
+	 */
+
+	int	size;
+
+	/**
+	 * The font line spacing.
+	 */
+
+	int	spacing;
+};
 
 /**
  * Initialise the report format dialogue.

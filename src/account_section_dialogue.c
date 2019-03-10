@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -54,7 +54,7 @@
 #include "account_section_dialogue.h"
 
 #include "account_list_window.h"
-#include "caret.h"
+#include "dialogue.h"
 
 /* Window Icon Details. */
 
@@ -70,28 +70,19 @@
 /* Global Variables */
 
 /**
- * The handle of the Section Edit window.
+ * The handle of the Section Edit dialogue.
  */
 
-static wimp_w account_section_dialogue_window = NULL;
-
-/**
- * The starting name for the section.
- */
-
-static char account_section_dialogue_initial_name[ACCOUNT_SECTION_LEN];
-
-/**
- * The starting type for the section.
- */
-
-static enum account_line_type account_section_dialogue_initial_type;
+static struct dialogue_block	*account_section_dialogue = NULL;
 
 /**
  * Callback function to return updated settings.
  */
 
-static osbool (*account_section_dialogue_update_callback)(struct account_list_window *, int, char *, enum account_line_type);
+static osbool			(*account_section_dialogue_update_callback)(void *, struct account_section_dialogue_data *);
+
+
+
 
 /**
  * Callback function to request the deletion of a section.
@@ -99,26 +90,51 @@ static osbool (*account_section_dialogue_update_callback)(struct account_list_wi
 
 static osbool (*account_section_dialogue_delete_callback)(struct account_list_window *, int);
 
-/**
- * The account list to which the currently open Section Edit window belongs.
- */
-
-static struct account_list_window *account_section_dialogue_owner = NULL;
-
-/**
- * The line in the account list being edited by the Section Edit window.
- */
-
-static int account_section_dialogue_line = -1;
-
 /* Static Function Prototypes. */
 
-static void account_section_dialogue_click_handler(wimp_pointer *pointer);
-static osbool account_section_dialogue_keypress_handler(wimp_key *key);
-static void account_section_dialogue_refresh(void);
-static void account_section_dialogue_fill(void);
-static osbool account_section_dialogue_process(void);
+static void account_section_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data);
+static osbool account_section_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
 static osbool account_section_dialogue_delete(void);
+static void account_section_dialogue_close(struct file_block *file, wimp_w window, void *data);
+
+/**
+ * The Section Edit Dialogue Icon Set.
+ */
+
+static struct dialogue_icon account_section_dialogue_icon_list[] = {
+	{DIALOGUE_ICON_OK,					ACCOUNT_SECTION_DIALOGUE_OK,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_CANCEL,					ACCOUNT_SECTION_DIALOGUE_CANCEL,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_EDIT_DELETE,	ACCOUNT_SECTION_DIALOGUE_DELETE,	DIALOGUE_NO_ICON},
+
+	/* The title field. */
+
+	{DIALOGUE_ICON_REFRESH,					ACCOUNT_SECTION_DIALOGUE_TITLE,		DIALOGUE_NO_ICON},
+
+	/* The heading type icons. */
+
+	{DIALOGUE_ICON_RADIO,					ACCOUNT_SECTION_DIALOGUE_HEADER,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_RADIO,					ACCOUNT_SECTION_DIALOGUE_FOOTER,	DIALOGUE_NO_ICON},
+
+	{DIALOGUE_ICON_END,					DIALOGUE_NO_ICON,			DIALOGUE_NO_ICON}
+};
+
+/**
+ * The Section Edit Dialogue Definition.
+ */
+
+static struct dialogue_definition account_section_dialogue_definition = {
+	"EditAccSect",
+	"EditAccSect",
+	account_section_dialogue_icon_list,
+	DIALOGUE_ICON_NONE,
+	DIALOGUE_FLAGS_TAKE_FOCUS,
+	account_section_dialogue_fill,
+	account_section_dialogue_process,
+	account_section_dialogue_close,
+	NULL,
+	NULL,
+	NULL
+};
 
 
 /**
@@ -127,12 +143,7 @@ static osbool account_section_dialogue_delete(void);
 
 void account_section_dialogue_initialise(void)
 {
-	account_section_dialogue_window = templates_create_window("EditAccSect");
-	ihelp_add_window(account_section_dialogue_window, "EditAccSect", NULL);
-	event_add_window_mouse_event(account_section_dialogue_window, account_section_dialogue_click_handler);
-	event_add_window_key_event(account_section_dialogue_window, account_section_dialogue_keypress_handler);
-	event_add_window_icon_radio(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_HEADER, TRUE);
-	event_add_window_icon_radio(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_FOOTER, TRUE);
+	account_section_dialogue = dialogue_create(&account_section_dialogue_definition);
 }
 
 
@@ -140,198 +151,100 @@ void account_section_dialogue_initialise(void)
  * Open the Section Edit dialogue for a given account list window.
  *
  * \param *ptr			The current Wimp pointer position.
- * \param *window		The account list window to own the dialogue.
- * \param line			The line in the list associated with the dialogue, or -1.
+ * \param *owner		The account instance to own the dialogue.
+ * \param *file			The file instance to own the dialogue.
  * \param *update_callback	The callback function to use to return new values.
  * \param *delete_callback	The callback function to use to request deletion.
- * \param *name			The initial name to use for the section.
- * \param type			The initial header/footer setting for the section.
+ * \param *content		Pointer to structure to hold the dialogue content.
  */
 
-void account_section_dialogue_open(wimp_pointer *ptr, struct account_list_window *window, int line,
-		osbool (*update_callback)(struct account_list_window *, int, char *, enum account_line_type),
-		osbool (*delete_callback)(struct account_list_window *, int), char *name, enum account_line_type type)
+void account_section_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file,
+		osbool (*update_callback)(void *, struct account_section_dialogue_data *),
+		osbool (*delete_callback)(struct account_list_window *, int), struct account_section_dialogue_data *content)
 {
-	string_copy(account_section_dialogue_initial_name, name, ACCOUNT_SECTION_LEN);
-
-	account_section_dialogue_initial_type = type;
+	if (content == NULL)
+		return;
 
 	account_section_dialogue_update_callback = update_callback;
 	account_section_dialogue_delete_callback = delete_callback;
-	account_section_dialogue_owner = window;
-	account_section_dialogue_line = line;
 
-	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
+	/* Set up the dialogue title and action buttons. */
 
-	if (windows_get_open(account_section_dialogue_window))
-		wimp_close_window(account_section_dialogue_window);
-
-	/* Select the window to use and set the contents up. */
-
-	account_section_dialogue_fill();
-
-	if (line == -1) {
-		windows_title_msgs_lookup(account_section_dialogue_window, "NewSect");
-		icons_msgs_lookup(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_OK, "NewAcctAct");
+	if (content->line == -1) {
+		dialogue_set_title(account_section_dialogue, "NewSect", NULL, NULL, NULL, NULL);
+		dialogue_set_icon_text(account_section_dialogue, DIALOGUE_ICON_OK, "NewAcctAct", NULL, NULL, NULL, NULL);
 	} else {
-		windows_title_msgs_lookup(account_section_dialogue_window, "EditSect");
-		icons_msgs_lookup(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_OK, "EditAcctAct");
+		dialogue_set_title(account_section_dialogue, "EditSect", NULL, NULL, NULL, NULL);
+		dialogue_set_icon_text(account_section_dialogue, DIALOGUE_ICON_OK, "EditAcctAct", NULL, NULL, NULL, NULL);
 	}
 
 	/* Open the window. */
 
-	windows_open_centred_at_pointer(account_section_dialogue_window, ptr);
-	place_dialogue_caret(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_TITLE);
+	dialogue_open(account_section_dialogue, FALSE, FALSE, file, owner, ptr, content);
 }
 
 
 /**
- * Force the closure of the account section edit dialogue if it relates
- * to a given accounts list instance.
+ * Fill the Section Edit Dialogue with values.
  *
- * \param *parent		The parent of the dialogue to be closed,
- *				or NULL to force close.
+ * \param *file		The file instance associated with the dialogue.
+ * \param window	The handle of the dialogue box to be filled.
+ * \param restore	TRUE if the dialogue should restore previous settings.
+ * \param *data		Client data pointer, to the dialogue data structure.
  */
 
-void account_section_dialogue_force_close(struct account_list_window *parent)
+static void account_section_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
-	if (account_section_dialogue_is_open(parent))
-		close_dialogue_with_caret(account_section_dialogue_window);
+	struct account_section_dialogue_data *content = data;
+
+	if (content == NULL)
+		return;
+
+	icons_strncpy(window, ACCOUNT_SECTION_DIALOGUE_TITLE, content->name);
+
+	icons_set_selected(window, ACCOUNT_SECTION_DIALOGUE_HEADER,
+			(content->type == ACCOUNT_LINE_HEADER));
+	icons_set_selected(window, ACCOUNT_SECTION_DIALOGUE_FOOTER,
+			(content->type == ACCOUNT_LINE_FOOTER));
+
+	icons_set_deleted(window, ACCOUNT_SECTION_DIALOGUE_DELETE,
+			(content->line == -1));
 }
 
 
 /**
- * Check whether the Edit Section dialogue is open for a given accounts
- * list instance.
+ * Process OK clicks in the Section Edit Dialogue.
  *
- * \param *parent		The accounts list instance to check.
- * \return			TRUE if the dialogue is open; else FALSE.
+ * \param *file		The file instance associated with the dialogue.
+ * \param window	The handle of the dialogue box to be processed.
+ * \param *pointer	The Wimp pointer state.
+ * \param type		The type of icon selected by the user.
+ * \param *parent	The parent goto instance.
+ * \param *data		Client data pointer, to the dialogue data structure.
+ * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-osbool account_section_dialogue_is_open(struct account_list_window *parent)
+static osbool account_section_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
-	return ((account_section_dialogue_owner == parent || parent == NULL) && windows_get_open(account_section_dialogue_window)) ? TRUE : FALSE;
-}
+	struct account_section_dialogue_data *content = data;
 
-
-/**
- * Process mouse clicks in the Section Edit dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void account_section_dialogue_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case ACCOUNT_SECTION_DIALOGUE_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(account_section_dialogue_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_section_dialogue_refresh();
-		break;
-
-	case ACCOUNT_SECTION_DIALOGUE_OK:
-		if (account_section_dialogue_process() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(account_section_dialogue_window);
-		break;
-
-	case ACCOUNT_SECTION_DIALOGUE_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && account_section_dialogue_delete())
-			close_dialogue_with_caret(account_section_dialogue_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Section Edit window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool account_section_dialogue_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (account_section_dialogue_process())
-			close_dialogue_with_caret(account_section_dialogue_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(account_section_dialogue_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the Section Edit window.
- */
-
-static void account_section_dialogue_refresh(void)
-{
-	account_section_dialogue_fill();
-	icons_redraw_group(account_section_dialogue_window, 1, ACCOUNT_SECTION_DIALOGUE_TITLE);
-	icons_replace_caret_in_window(account_section_dialogue_window);
-}
-
-
-/**
- * Update the contents of the Section Edit window to reflect the current
- * settings of the given file and section.
- */
-
-static void account_section_dialogue_fill(void)
-{
-	icons_strncpy(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_TITLE, account_section_dialogue_initial_name);
-
-	icons_set_selected(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_HEADER,
-			(account_section_dialogue_initial_type == ACCOUNT_LINE_HEADER));
-	icons_set_selected(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_FOOTER,
-			(account_section_dialogue_initial_type == ACCOUNT_LINE_FOOTER));
-
-	icons_set_deleted(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_DELETE,
-			(account_section_dialogue_line == -1));
-}
-
-
-/**
- * Take the contents of an updated Section Edit window and process the data.
- *
- * \return			TRUE if the data was valid; FALSE otherwise.
- */
-
-static osbool account_section_dialogue_process(void)
-{
-	if (account_section_dialogue_update_callback == NULL)
+	if (content == NULL || account_section_dialogue_update_callback == NULL)
 		return FALSE;
 
 	/* Extract the information from the dialogue. */
 
-	icons_copy_text(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_TITLE, account_section_dialogue_initial_name, ACCOUNT_SECTION_LEN);
+	icons_copy_text(window, ACCOUNT_SECTION_DIALOGUE_TITLE, content->name, ACCOUNT_SECTION_LEN);
 
-	if (icons_get_selected(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_HEADER))
-		account_section_dialogue_initial_type = ACCOUNT_LINE_HEADER;
-	else if (icons_get_selected(account_section_dialogue_window, ACCOUNT_SECTION_DIALOGUE_FOOTER))
-		account_section_dialogue_initial_type = ACCOUNT_LINE_FOOTER;
+	if (icons_get_selected(window, ACCOUNT_SECTION_DIALOGUE_HEADER))
+		content->type = ACCOUNT_LINE_HEADER;
+	else if (icons_get_selected(window, ACCOUNT_SECTION_DIALOGUE_FOOTER))
+		content->type = ACCOUNT_LINE_FOOTER;
 	else
-		account_section_dialogue_initial_type = ACCOUNT_LINE_BLANK;
+		content->type = ACCOUNT_LINE_BLANK;
 
 	/* Call the client back. */
 
-	return account_section_dialogue_update_callback(account_section_dialogue_owner, account_section_dialogue_line,
-			account_section_dialogue_initial_name, account_section_dialogue_initial_type);
+	return account_section_dialogue_update_callback(parent, content);
 }
 
 
@@ -354,6 +267,25 @@ static osbool account_section_dialogue_delete(void)
 
 	/* Call the client back. */
 
-	return account_section_dialogue_delete_callback(account_section_dialogue_owner, account_section_dialogue_line);
+//	return account_section_dialogue_delete_callback(account_section_dialogue_owner, account_section_dialogue_line);
+}
+
+
+/**
+ * The Edit Section dialogue has been closed.
+ *
+ * \param *file		The file instance associated with the dialogue.
+ * \param window	The handle of the dialogue box to be filled.
+ * \param *data		Client data pointer, to the dialogue data structure.
+ */
+
+static void account_section_dialogue_close(struct file_block *file, wimp_w window, void *data)
+{
+	account_section_dialogue_update_callback = NULL;
+
+	/* The client is assuming that we'll delete this after use. */
+
+	if (data != NULL)
+		heap_free(data);
 }
 

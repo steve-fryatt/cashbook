@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -35,6 +35,72 @@
 #include "interest.h"
 
 /**
+ * The account data held by the dialogue.
+ */
+
+struct account_account_dialogue_data {
+	/**
+	 * The target account.
+	 */
+	acct_t			account;
+
+	/**
+	 * The name for the account.
+	 */
+	char			name[ACCOUNT_NAME_LEN];
+
+	/**
+	 * The ident for the account.
+	 */
+	char			ident[ACCOUNT_IDENT_LEN];
+
+	/**
+	 * The credit limit for the account.
+	 */
+	amt_t			credit_limit;
+
+	/**
+	 * The opening balance for the account.
+	 */
+	amt_t			opening_balance;
+
+	/**
+	 * The cheque number for the account.
+	 */
+	struct account_idnum	cheque_number;
+
+	/**
+	 * The paying in for the account.
+	 */
+	struct account_idnum	payin_number;
+
+	/**
+	 * The interest rate for the account.
+	 */
+	rate_t			interest_rate;
+
+	/**
+	 * The offset account for the account.
+	 */
+	acct_t			offset_against;
+
+	/**
+	 * The starting account number for the account.
+	 */
+	char			account_num[ACCOUNT_NO_LEN];
+
+	/**
+	 * The sort code for the account.
+	 */
+	char			sort_code[ACCOUNT_SRTCD_LEN];
+
+	/**
+	 * The address information for the account.
+	 */
+	char			address[ACCOUNT_ADDR_LINES][ACCOUNT_ADDR_LEN];
+};
+
+/**
  * Initialise the Account Edit dialogue.
  */
 
@@ -46,51 +112,15 @@ void account_account_dialogue_initialise(void);
  *
  * \param *ptr			The current Wimp pointer position.
  * \param *owner		The account instance to own the dialogue.
- * \param account		The account number of the account to be edited, or NULL_ACCOUNT.
+ * \param *file			The file instance to own the dialogue.
  * \param *update_callback	The callback function to use to return new values.
  * \param *delete_callback	The callback function to use to request deletion.
- * \param *name			The initial name to use for the account.
- * \param *ident		The initial ident to use for the account.
- * \param credit_limit		The initial credit limit to use for the account.
- * \param opening_balance	The initial opening balance to use for the account.
- * \param *cheque_number	The initial cheque number to use for the account.
- * \param *payin_number		The initial paying in number to use for the account.
- * \param interest_rate		The initial interest rate to use for the account.
- * \param offset_against	The initial offset account to use for the account.
- * \param *account_num		The initial account number to use for the account.
- * \param *sort_code		The initial sort code to use for the account.
- * \param **address		The initial address details to use for the account, or NULL.
+ * \param *content		Pointer to structure to hold the dialogue content.
  */
 
-void account_account_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acct_t account,
-		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, amt_t, struct account_idnum *, struct account_idnum *, acct_t, char *, char *, char [][ACCOUNT_ADDR_LEN]),
-		osbool (*delete_callback)(struct account_block *, acct_t),
-		char *name, char *ident, amt_t credit_limit, amt_t opening_balance,
-		struct account_idnum *cheque_number, struct account_idnum *payin_number,
-		rate_t interest_rate, acct_t offset_against,
-		char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
-
-
-/**
- * Force the closure of the account section edit dialogue if it relates
- * to a given accounts instance.
- *
- * \param *parent		The parent of the dialogue to be closed,
- *				or NULL to force close.
- */
-
-void account_account_dialogue_force_close(struct account_block *parent);
-
-
-/**
- * Check whether the Edit Section dialogue is open for a given accounts
- * instance.
- *
- * \param *parent		The accounts list instance to check.
- * \return			TRUE if the dialogue is open; else FALSE.
- */
-
-osbool account_account_dialogue_is_open(struct account_block *parent);
+void account_account_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file,
+		osbool (*update_callback)(void *, struct account_account_dialogue_data *),
+		osbool (*delete_callback)(struct account_block *, acct_t), struct account_account_dialogue_data *content);
 
 #endif
 

@@ -402,7 +402,7 @@ static void account_list_window_set_extent(struct account_list_window *windat);
 static void account_list_window_force_redraw(struct account_list_window *windat, int from, int to, wimp_i column);
 static void account_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 static void account_list_window_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr);
-static osbool account_list_window_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type);
+static osbool account_list_window_process_section_edit_window(void *parent, struct account_section_dialogue_data *content);
 static osbool account_list_window_delete_from_section_edit_window(struct account_list_window *window, int line);
 static void account_list_window_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore);
 static struct report *account_list_window_print(struct report *report, void *data, date_t from, date_t to);
@@ -665,9 +665,8 @@ static void account_list_window_delete(struct account_list_window *windat)
 
 	/* Close any dialogues which belong to this window. */
 
-	account_account_dialogue_force_close(windat->instance);
-	account_heading_dialogue_force_close(windat->instance);
-	account_section_dialogue_force_close(windat);
+	dialogue_force_all_closed(NULL, windat->instance);
+	dialogue_force_all_closed(NULL, windat);
 
 	/* Delete the window, if it exists. */
 
@@ -1431,38 +1430,59 @@ static void account_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os
 
 static void account_list_window_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr)
 {
+	struct account_section_dialogue_data	*content = NULL;
+	struct file_block			*file = NULL;
+
 	if (window == NULL)
+		return;
+
+	file = account_get_file(window->instance);
+	if (file == NULL)
 		return;
 
 	/* Close any other edit dialogues relating to this account list window. */
 
-	account_account_dialogue_force_close(NULL);
-	account_heading_dialogue_force_close(NULL);
-	account_section_dialogue_force_close(NULL);
+// \TODO - This needs another mechanism!
+//	account_account_dialogue_force_close(NULL);
+//	account_heading_dialogue_force_close(NULL);
+//	account_section_dialogue_force_close(NULL);
 
 	/* Open the dialogue box. */
 
-	account_section_dialogue_open(ptr, window, line, account_list_window_process_section_edit_window, account_list_window_delete_from_section_edit_window,
-			(line == -1) ? "" : window->line_data[line].heading,
-			(line == -1) ? ACCOUNT_LINE_HEADER : window->line_data[line].type);
+	content = heap_alloc(sizeof(struct account_section_dialogue_data));
+	if (content == NULL)
+		return;
+
+	content->line = line;
+
+	if (line == -1) {
+		*(content->name) = '\0';
+		content->type = ACCOUNT_LINE_HEADER;
+	} else {
+		string_copy(content->name, window->line_data[line].heading, ACCOUNT_SECTION_LEN);
+		content->type = window->line_data[line].type;
+	}
+
+	account_section_dialogue_open(ptr, window, file,
+			account_list_window_process_section_edit_window, account_list_window_delete_from_section_edit_window,
+			content);
 }
 
 
 /**
  * Process data associated with the currently open Section Edit window.
  *
- * \param *windat		The Account List window holding the section.
- * \param line			The selected section to be updated, or -1.
- * \param *name			The new name for the section.
- * \param type			The new type of section.
+ * \param *parent		The Account List window holding the section.
+ * \param *content		The content of the dialogue box.
  * \return			TRUE if processed; else FALSE.
  */
 
-static osbool account_list_window_process_section_edit_window(struct account_list_window *windat, int line, char* name, enum account_line_type type)
+static osbool account_list_window_process_section_edit_window(void *parent, struct account_section_dialogue_data *content)
 {
-	struct file_block *file;
+	struct account_list_window	*windat = parent;
+	struct file_block		*file = NULL;
 
-	if (windat == NULL || windat->instance == NULL)
+	if (content == NULL || windat == NULL || windat->instance == NULL)
 		return FALSE;
 
 	file = account_get_file(windat->instance);
@@ -1471,10 +1491,10 @@ static osbool account_list_window_process_section_edit_window(struct account_lis
 
 	/* If the section doesn't exsit, create space for it. */
 
-	if (line == -1) {
-		line = account_list_window_add_line(windat);
+	if (content->line == -1) {
+		content->line = account_list_window_add_line(windat);
 
-		if (line == -1) {
+		if (content->line == -1) {
 			error_msgs_report_error("NoMemNewSect");
 			return FALSE;
 		}
@@ -1482,15 +1502,15 @@ static osbool account_list_window_process_section_edit_window(struct account_lis
 
 	/* Update the line details. */
 
-	string_copy(windat->line_data[line].heading, name, ACCOUNT_SECTION_LEN);
-	windat->line_data[line].type = type;
+	string_copy(windat->line_data[content->line].heading, content->name, ACCOUNT_SECTION_LEN);
+	windat->line_data[content->line].type = content->type;
 
 	/* Tidy up and redraw the windows */
 
 	account_recalculate_all(file);
 	account_list_window_set_extent(windat);
 	windows_open(windat->account_window);
-	account_list_window_force_redraw(windat, line, line, wimp_ICON_WINDOW);
+	account_list_window_force_redraw(windat, content->line, content->line, wimp_ICON_WINDOW);
 	file_set_data_integrity(file, TRUE);
 
 	return TRUE;
@@ -1929,7 +1949,7 @@ static void account_list_window_start_drag(struct account_list_window *windat, w
 	 * the data moving beneath them.
 	 */
 
-	if (account_account_dialogue_is_open(windat->instance) || account_heading_dialogue_is_open(windat->instance) || account_section_dialogue_is_open(windat))
+	if (dialogue_any_open(NULL, windat->instance) || dialogue_any_open(NULL, windat))
 		return;
 
 	ox = window->visible.x0 - window->xscroll;

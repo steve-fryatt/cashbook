@@ -395,6 +395,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 			if (account_content == NULL)
 				return;
 
+			account_content->action = ACCOUNT_ACCOUNT_ACTION_NONE;
 			account_content->account = account;
 			account_content->credit_limit = NULL_CURRENCY;
 			account_content->opening_balance = NULL_CURRENCY;
@@ -412,12 +413,13 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 			for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
 				*(account_content->address[i]) = '\0';
 
-			account_account_dialogue_open(ptr, file->accounts, file, account_process_account_edit_window, account_delete_from_edit_window, account_content);
+			account_account_dialogue_open(ptr, file->accounts, file, account_process_account_edit_window, account_content);
 		} else if (type & ACCOUNT_IN || type & ACCOUNT_OUT) {
 			heading_content = heap_alloc(sizeof(struct account_heading_dialogue_data));
 			if (heading_content == NULL)
 				return;
 
+			heading_content->action = ACCOUNT_HEADING_ACTION_NONE;
 			heading_content->account = NULL_ACCOUNT;
 			heading_content->type = type;
 			heading_content->budget = NULL_CURRENCY;
@@ -425,7 +427,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 			*(heading_content->name) = '\0';
 			*(heading_content->ident) = '\0';
 
-			account_heading_dialogue_open(ptr, file->accounts, file, account_process_heading_edit_window, account_delete_from_edit_window, heading_content);
+			account_heading_dialogue_open(ptr, file->accounts, file, account_process_heading_edit_window, heading_content);
 		}
 	} else if (account_valid(file->accounts, account)) {
 		data = &(file->accounts->accounts[account]);
@@ -437,6 +439,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 
 			data = &(file->accounts->accounts[account]);
 
+			account_content->action = ACCOUNT_ACCOUNT_ACTION_NONE;
 			account_content->account = account;
 			account_content->credit_limit = data->credit_limit;
 			account_content->opening_balance = data->opening_balance;
@@ -454,7 +457,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 			for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
 				string_copy(account_content->address[i], data->address[i], ACCOUNT_ADDR_LEN);
 
-			account_account_dialogue_open(ptr, file->accounts, file, account_process_account_edit_window, account_delete_from_edit_window, account_content);
+			account_account_dialogue_open(ptr, file->accounts, file, account_process_account_edit_window, account_content);
 		} else if (data->type & ACCOUNT_IN || data->type & ACCOUNT_OUT) {
 			heading_content = heap_alloc(sizeof(struct account_heading_dialogue_data));
 			if (heading_content == NULL)
@@ -462,6 +465,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 
 			data = &(file->accounts->accounts[account]);
 
+			heading_content->action = ACCOUNT_HEADING_ACTION_NONE;
 			heading_content->account = account;
 			heading_content->type = data->type;
 			heading_content->budget = data->budget_amount;
@@ -469,7 +473,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 			string_copy(heading_content->name, data->name, ACCOUNT_NAME_LEN);
 			string_copy(heading_content->ident, data->ident, ACCOUNT_IDENT_LEN);
 
-			account_heading_dialogue_open(ptr, file->accounts, file, account_process_heading_edit_window, account_delete_from_edit_window, heading_content);
+			account_heading_dialogue_open(ptr, file->accounts, file, account_process_heading_edit_window, heading_content);
 		}
 	}
 }
@@ -488,6 +492,13 @@ static osbool account_process_account_edit_window(void *parent, struct account_a
 	struct account_block	*instance = parent;
 	int			i;
 	acct_t			check_ident;
+
+	/* Check the requested action from the user. */
+
+	if (content->action == ACCOUNT_ACCOUNT_ACTION_DELETE)
+		return account_delete_from_edit_window(instance, content->account);
+	else if (content->action != ACCOUNT_ACCOUNT_ACTION_OK)
+		return FALSE;
 
 	/* Check that the ident is valid and unused. As a full account,
 	 * we need to check all full accounts and also all headers.
@@ -553,6 +564,13 @@ static osbool account_process_heading_edit_window(void *parent, struct account_h
 	struct account_block	*instance = parent;
 	acct_t			check_ident;
 
+	/* Check the requested action from the user. */
+
+	if (content->action == ACCOUNT_HEADING_ACTION_DELETE)
+		return account_delete_from_edit_window(instance, content->account);
+	else if (content->action != ACCOUNT_HEADING_ACTION_OK)
+		return FALSE;
+
 	/* Check that the ident is valid and unused. As a header, we need
 	 * to check all full accounts and also any headers in the same
 	 * category as this one.
@@ -604,6 +622,11 @@ static osbool account_process_heading_edit_window(void *parent, struct account_h
 static osbool account_delete_from_edit_window(struct account_block *instance, acct_t account)
 {
 	if (instance == NULL || instance->file == NULL || account == NULL_ACCOUNT)
+		return FALSE;
+
+	/* Check that the user really wishes to proceed. */
+
+	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 4)
 		return FALSE;
 
 	/* Check that the account isn't in use. */

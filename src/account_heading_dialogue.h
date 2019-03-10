@@ -33,34 +33,60 @@
 #include "account.h"
 
 /**
+ * The requested action from the dialogue.
+ */
+
+enum account_heading_dialogue_action {
+	/**
+	 * No action defined.
+	 */
+	ACCOUNT_HEADING_ACTION_NONE,
+
+	/**
+	 * Create or update the heading using the supplied details.
+	 */
+	ACCOUNT_HEADING_ACTION_OK,
+
+	/**
+	 * Delete the heading.
+	 */
+	ACCOUNT_HEADING_ACTION_DELETE
+};
+
+/**
  * The analysis heading data held by the dialogue.
  */
 
 struct account_heading_dialogue_data {
 	/**
+	 * The requested action from the dialogue.
+	 */
+	enum account_heading_dialogue_action	action;
+
+	/**
 	 * The target heading account.
 	 */
-	acct_t			account;
+	acct_t					account;
 
 	/**
 	 * The name for the heading.
 	 */
-	char			name[ACCOUNT_NAME_LEN];
+	char					name[ACCOUNT_NAME_LEN];
 
 	/**
 	 * The ident for the heading.
 	 */
-	char			ident[ACCOUNT_IDENT_LEN];
+	char					ident[ACCOUNT_IDENT_LEN];
 
 	/**
 	 * The budget limit for the heading.
 	 */
-	amt_t			budget;
+	amt_t					budget;
 
 	/**
 	 * The type for the heading.
 	 */
-	enum account_type	type;
+	enum account_type			type;
 };
 
 /**
@@ -76,14 +102,12 @@ void account_heading_dialogue_initialise(void);
  * \param *ptr			The current Wimp pointer position.
  * \param *owner		The account instance to own the dialogue.
  * \param *file			The file instance to own the dialogue.
- * \param *update_callback	The callback function to use to return new values.
- * \param *delete_callback	The callback function to use to request deletion.
+ * \param *callback		The callback function to use to return new values.
  * \param *content		Pointer to structure to hold the dialogue content.
  */
 
 void account_heading_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file,
-		osbool (*update_callback)(void *, struct account_heading_dialogue_data *),
-		osbool (*delete_callback)(struct account_block *, acct_t), struct account_heading_dialogue_data *content);
+		osbool (*callback)(void *, struct account_heading_dialogue_data *), struct account_heading_dialogue_data *content);
 
 #endif
 

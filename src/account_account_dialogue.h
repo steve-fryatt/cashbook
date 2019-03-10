@@ -52,7 +52,12 @@ enum account_account_dialogue_action {
 	/**
 	 * Delete the account.
 	 */
-	ACCOUNT_ACCOUNT_DIALOGUE_ACTION_DELETE
+	ACCOUNT_ACCOUNT_DIALOGUE_ACTION_DELETE,
+
+	/**
+	 * Open the Interest Rates dialogue.
+	 */
+	ACCOUNT_ACCOUNT_DIALOGUE_ACTION_RATES
 };
 
 /**

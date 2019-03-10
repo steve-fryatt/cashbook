@@ -143,6 +143,7 @@ static struct dialogue_definition find_search_dialogue_definition = {
 	"Find",
 	"Find",
 	find_search_dialogue_icon_list,
+	DIALOGUE_GROUP_FIND,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	find_search_dialogue_fill,
 	find_search_dialogue_process,

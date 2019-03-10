@@ -243,6 +243,32 @@ struct dialogue_menu_data {
 };
 
 /**
+ * Dialogue box groups.
+ */
+
+enum dialogue_group {
+	/**
+	 * No specific group.
+	 */
+	DIALOGUE_GROUP_NONE,
+
+	/**
+	 * An analysis dialogue.
+	 */
+	DIALOGUE_GROUP_ANALYSIS,
+
+	/**
+	 * A find dialogue.
+	 */
+	DIALOGUE_GROUP_FIND,
+
+	/**
+	 * An account Edit dialogue.
+	 */
+	DIALOGUE_GROUP_EDIT
+};
+
+/**
  * Dialogue option flags.
  */
 
@@ -282,6 +308,11 @@ struct dialogue_definition {
 	 * A list of significant icons in the dialogue.
 	 */
 	struct dialogue_icon		*icons;
+
+	/**
+	 * The group to which the dialogue belongs.
+	 */
+	enum dialogue_group		group;
 
 	/**
 	 * The dialogue option flags.
@@ -347,6 +378,15 @@ struct dialogue_block *dialogue_create(struct dialogue_definition *definition);
  */
 
 void dialogue_force_all_closed(struct file_block *file, void *parent);
+
+
+/**
+ * Close any open dialogues which belong to a given group.
+ *
+ * \param group			The group to be closed.
+ */
+
+void dialogue_force_group_closed(enum dialogue_group group);
 
 
 /**

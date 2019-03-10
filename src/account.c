@@ -79,6 +79,7 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
@@ -382,10 +383,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
 	 */
 
-// \TODO -- This needs another mechanism!
-//	account_account_dialogue_force_close(NULL);
-//	account_heading_dialogue_force_close(NULL);
-//	account_section_dialogue_force_close(NULL);
+	dialogue_force_group_closed(DIALOGUE_GROUP_EDIT);
 
 	/* Select the window to use and set the contents up. */
 

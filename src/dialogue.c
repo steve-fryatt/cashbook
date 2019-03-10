@@ -191,6 +191,34 @@ void dialogue_force_all_closed(struct file_block *file, void *parent)
 
 
 /**
+ * Close any open dialogues which belong to a given group.
+ *
+ * \param group			The group to be closed.
+ */
+
+void dialogue_force_group_closed(enum dialogue_group group)
+{
+	struct dialogue_block *dialogue = dialogue_list;
+
+	if (group == DIALOGUE_GROUP_NONE)
+		return;
+
+	debug_printf("\\GRunning dialogue group close for group=%d", group);
+
+	while (dialogue != NULL) {
+		if (dialogue->definition->group == group) {
+			debug_printf("Closing %s dialogue.", dialogue->definition->template_name);
+			dialogue_close(dialogue, NULL, NULL);
+		}
+
+		dialogue = dialogue->next;
+	}
+
+	debug_printf("\\LFinished dialogue group close for group=%d", group);
+}
+
+
+/**
  * Test all open dialogues, to see if any relate to a given file or
  * parent object.
  *

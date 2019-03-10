@@ -215,6 +215,7 @@ static struct dialogue_definition print_dialogue_definition = {
 	"Print",
 	"Print",
 	print_dialogue_icon_list,
+	DIALOGUE_GROUP_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	print_dialogue_fill_window,
 	print_dialogue_process_window,

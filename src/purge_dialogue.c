@@ -109,6 +109,7 @@ static struct dialogue_definition purge_dialogue_definition = {
 	"Purge",
 	"Purge",
 	purge_dialogue_icon_list,
+	DIALOGUE_GROUP_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	purge_dialogue_fill,
 	purge_dialogue_process,

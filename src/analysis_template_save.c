@@ -136,6 +136,7 @@ static struct dialogue_definition analysis_template_save_dialogue_definition = {
 	"SaveRepTemp",
 	"SaveRepTemp",
 	analysis_template_save_icon_list,
+	DIALOGUE_GROUP_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	analysis_template_save_fill_window,
 	analysis_template_save_process_window,

@@ -222,6 +222,7 @@ static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition
 		"CashFlwRep",
 		"CashFlwRep",
 		analysis_cashflow_icon_list,
+		DIALOGUE_GROUP_ANALYSIS,
 		DIALOGUE_FLAGS_TAKE_FOCUS,
 		NULL,
 		NULL,

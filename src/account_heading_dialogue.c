@@ -124,6 +124,7 @@ static struct dialogue_definition account_heading_dialogue_definition = {
 	"EditHeading",
 	"EditHeading",
 	account_heading_dialogue_icon_list,
+	DIALOGUE_GROUP_EDIT,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	account_heading_dialogue_fill,
 	account_heading_dialogue_process,

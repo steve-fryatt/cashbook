@@ -116,6 +116,7 @@ static struct dialogue_definition account_section_dialogue_definition = {
 	"EditAccSect",
 	"EditAccSect",
 	account_section_dialogue_icon_list,
+	DIALOGUE_GROUP_EDIT,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	account_section_dialogue_fill,
 	account_section_dialogue_process,

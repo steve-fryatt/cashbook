@@ -1441,10 +1441,7 @@ static void account_list_window_open_section_edit_window(struct account_list_win
 
 	/* Close any other edit dialogues relating to this account list window. */
 
-// \TODO - This needs another mechanism!
-//	account_account_dialogue_force_close(NULL);
-//	account_heading_dialogue_force_close(NULL);
-//	account_section_dialogue_force_close(NULL);
+	dialogue_force_group_closed(DIALOGUE_GROUP_EDIT);
 
 	/* Open the dialogue box. */
 

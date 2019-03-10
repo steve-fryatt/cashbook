@@ -169,6 +169,7 @@ static struct dialogue_definition account_account_dialogue_definition = {
 	"EditAccount",
 	"EditAccount",
 	account_account_dialogue_icon_list,
+	DIALOGUE_GROUP_EDIT,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	account_account_dialogue_fill,
 	account_account_dialogue_process,

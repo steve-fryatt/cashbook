@@ -40,17 +40,17 @@ enum account_heading_dialogue_action {
 	/**
 	 * No action defined.
 	 */
-	ACCOUNT_HEADING_ACTION_NONE,
+	ACCOUNT_HEADING_DIALOGUE_ACTION_NONE,
 
 	/**
 	 * Create or update the heading using the supplied details.
 	 */
-	ACCOUNT_HEADING_ACTION_OK,
+	ACCOUNT_HEADING_DIALOGUE_ACTION_OK,
 
 	/**
 	 * Delete the heading.
 	 */
-	ACCOUNT_HEADING_ACTION_DELETE
+	ACCOUNT_HEADING_DIALOGUE_ACTION_DELETE
 };
 
 /**

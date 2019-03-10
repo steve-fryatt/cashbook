@@ -393,7 +393,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 			if (account_content == NULL)
 				return;
 
-			account_content->action = ACCOUNT_ACCOUNT_ACTION_NONE;
+			account_content->action = ACCOUNT_ACCOUNT_DIALOGUE_ACTION_NONE;
 			account_content->account = account;
 			account_content->credit_limit = NULL_CURRENCY;
 			account_content->opening_balance = NULL_CURRENCY;
@@ -417,7 +417,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 			if (heading_content == NULL)
 				return;
 
-			heading_content->action = ACCOUNT_HEADING_ACTION_NONE;
+			heading_content->action = ACCOUNT_HEADING_DIALOGUE_ACTION_NONE;
 			heading_content->account = NULL_ACCOUNT;
 			heading_content->type = type;
 			heading_content->budget = NULL_CURRENCY;
@@ -437,7 +437,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 
 			data = &(file->accounts->accounts[account]);
 
-			account_content->action = ACCOUNT_ACCOUNT_ACTION_NONE;
+			account_content->action = ACCOUNT_ACCOUNT_DIALOGUE_ACTION_NONE;
 			account_content->account = account;
 			account_content->credit_limit = data->credit_limit;
 			account_content->opening_balance = data->opening_balance;
@@ -463,7 +463,7 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 
 			data = &(file->accounts->accounts[account]);
 
-			heading_content->action = ACCOUNT_HEADING_ACTION_NONE;
+			heading_content->action = ACCOUNT_HEADING_DIALOGUE_ACTION_NONE;
 			heading_content->account = account;
 			heading_content->type = data->type;
 			heading_content->budget = data->budget_amount;
@@ -493,9 +493,9 @@ static osbool account_process_account_edit_window(void *parent, struct account_a
 
 	/* Check the requested action from the user. */
 
-	if (content->action == ACCOUNT_ACCOUNT_ACTION_DELETE)
+	if (content->action == ACCOUNT_ACCOUNT_DIALOGUE_ACTION_DELETE)
 		return account_delete_from_edit_window(instance, content->account);
-	else if (content->action != ACCOUNT_ACCOUNT_ACTION_OK)
+	else if (content->action != ACCOUNT_ACCOUNT_DIALOGUE_ACTION_OK)
 		return FALSE;
 
 	/* Check that the ident is valid and unused. As a full account,
@@ -567,9 +567,9 @@ static osbool account_process_heading_edit_window(void *parent, struct account_h
 
 	/* Check the requested action from the user. */
 
-	if (content->action == ACCOUNT_HEADING_ACTION_DELETE)
+	if (content->action == ACCOUNT_HEADING_DIALOGUE_ACTION_DELETE)
 		return account_delete_from_edit_window(instance, content->account);
-	else if (content->action != ACCOUNT_HEADING_ACTION_OK)
+	else if (content->action != ACCOUNT_HEADING_DIALOGUE_ACTION_OK)
 		return FALSE;
 
 	/* Check that the ident is valid and unused. As a header, we need

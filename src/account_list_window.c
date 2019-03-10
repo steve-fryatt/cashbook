@@ -1449,6 +1449,7 @@ static void account_list_window_open_section_edit_window(struct account_list_win
 	if (content == NULL)
 		return;
 
+	content->action = ACCOUNT_SECTION_DIALOGUE_ACTION_NONE;
 	content->line = line;
 
 	if (line == -1) {
@@ -1486,7 +1487,7 @@ static osbool account_list_window_process_section_edit_window(void *parent, stru
 		return FALSE;
 
 	switch (content->action) {
-	case ACCOUNT_SECTION_ACTION_OK:
+	case ACCOUNT_SECTION_DIALOGUE_ACTION_OK:
 		/* If the section doesn't exsit, create space for it. */
 
 		if (content->line == -1) {
@@ -1508,7 +1509,7 @@ static osbool account_list_window_process_section_edit_window(void *parent, stru
 		redraw_to = content->line;
 		break;
 
-	case ACCOUNT_SECTION_ACTION_DELETE:
+	case ACCOUNT_SECTION_DIALOGUE_ACTION_DELETE:
 		if (content->line == -1)
 			return FALSE;
 
@@ -1531,7 +1532,7 @@ static osbool account_list_window_process_section_edit_window(void *parent, stru
 		redraw_to = windat->display_lines - 1;
 		break;
 
-	case ACCOUNT_SECTION_ACTION_NONE:
+	case ACCOUNT_SECTION_DIALOGUE_ACTION_NONE:
 		return FALSE;
 	}
 

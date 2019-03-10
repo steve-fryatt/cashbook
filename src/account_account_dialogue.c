@@ -300,9 +300,9 @@ static osbool account_account_dialogue_process(struct file_block *file, wimp_w w
 	/* Extract the information from the dialogue. */
 
 	if (type & DIALOGUE_ICON_OK)
-		content->action = ACCOUNT_ACCOUNT_ACTION_OK;
+		content->action = ACCOUNT_ACCOUNT_DIALOGUE_ACTION_OK;
 	else if (type & DIALOGUE_ICON_EDIT_DELETE)
-		content->action = ACCOUNT_ACCOUNT_ACTION_DELETE;
+		content->action = ACCOUNT_ACCOUNT_DIALOGUE_ACTION_DELETE;
 
 	icons_copy_text(window, ACCOUNT_ACCOUNT_DIALOGUE_NAME, content->name, ACCOUNT_NAME_LEN);
 	icons_copy_text(window, ACCOUNT_ACCOUNT_DIALOGUE_IDENT, content->ident, ACCOUNT_IDENT_LEN);

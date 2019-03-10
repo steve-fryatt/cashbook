@@ -40,17 +40,17 @@ enum account_section_dialogue_action {
 	/**
 	 * No action defined.
 	 */
-	ACCOUNT_SECTION_ACTION_NONE,
+	ACCOUNT_SECTION_DIALOGUE_ACTION_NONE,
 
 	/**
 	 * Create or update the section using the supplied details.
 	 */
-	ACCOUNT_SECTION_ACTION_OK,
+	ACCOUNT_SECTION_DIALOGUE_ACTION_OK,
 
 	/**
 	 * Delete the section.
 	 */
-	ACCOUNT_SECTION_ACTION_DELETE
+	ACCOUNT_SECTION_DIALOGUE_ACTION_DELETE
 };
 
 /**

@@ -42,17 +42,17 @@ enum account_account_dialogue_action {
 	/**
 	 * No action defined.
 	 */
-	ACCOUNT_ACCOUNT_ACTION_NONE,
+	ACCOUNT_ACCOUNT_DIALOGUE_ACTION_NONE,
 
 	/**
 	 * Create or update the account using the supplied details.
 	 */
-	ACCOUNT_ACCOUNT_ACTION_OK,
+	ACCOUNT_ACCOUNT_DIALOGUE_ACTION_OK,
 
 	/**
 	 * Delete the account.
 	 */
-	ACCOUNT_ACCOUNT_ACTION_DELETE
+	ACCOUNT_ACCOUNT_DIALOGUE_ACTION_DELETE
 };
 
 /**

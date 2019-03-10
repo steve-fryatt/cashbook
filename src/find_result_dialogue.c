@@ -107,7 +107,6 @@ static struct dialogue_definition find_result_dialogue_definition = {
 	"Found",
 	"Found",
 	find_result_dialogue_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_NONE,
 	find_result_dialogue_fill,
 	find_result_dialogue_process,
@@ -149,7 +148,7 @@ void find_result_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block
 
 	/* Open the window. */
 
-	dialogue_open(find_result_dialogue, FALSE, TRUE, file, owner, ptr, content);
+	dialogue_open(find_result_dialogue, TRUE, file, owner, ptr, content);
 }
 
 /**

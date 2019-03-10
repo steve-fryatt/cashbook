@@ -116,7 +116,7 @@ enum dialogue_icon_type {
 	/**
 	 * The icon should be hidden if requested. Target is unused.
 	 */
-	DIALOGUE_ICON_HIDDEN		= 0x00000400,
+//	DIALOGUE_ICON_HIDDEN		= 0x00000400,
 
 	/**
 	 * The icon should be registered with the Wimp Library as a
@@ -289,12 +289,6 @@ struct dialogue_definition {
 	struct dialogue_icon		*icons;
 
 	/**
-	 * A set of icons which should be able to be hidden,
-	 * or DIALOGUE_ICON_NONE.
-	 */
-	enum dialogue_icon_type		hidden_icons;
-
-	/**
 	 * The dialogue option flags.
 	 */
 	enum dialogue_flags		flags;
@@ -384,8 +378,6 @@ osbool dialogue_any_open(struct file_block *file, void *parent);
  * account or report views.
  * 
  * \param *dialogue		The dialogue instance to open.
- * \param hide			TRUE to hide the 'hidden' icons; FALSE
- *				to show them.
  * \param restore		TRUE to restore previous values; FALSE to
  *				use application defaults.
  * \param *file			The file to be the parent of the dialogue.
@@ -394,7 +386,7 @@ osbool dialogue_any_open(struct file_block *file, void *parent);
  * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, osbool hide, osbool restore, struct file_block *file, void *parent, wimp_pointer *pointer, void *data);
+void dialogue_open(struct dialogue_block *dialogue, osbool restore, struct file_block *file, void *parent, wimp_pointer *pointer, void *data);
 
 
 /**
@@ -440,6 +432,17 @@ void dialogue_set_title(struct dialogue_block *dialogue, char *token, char *a, c
  */
 
 void dialogue_set_icon_text(struct dialogue_block *dialogue, enum dialogue_icon_type type, char *token, char *a, char *b, char *c, char *d);
+
+
+/**
+ * Set the hidden state of an icon or icons in a dialogue box, redrawing
+ * them if the dialogue is currently open.
+ *
+ * \param *dialogue		The dialogue instance to update.
+ * \param type			The types of icon to update.
+ * \param hide			TRUE to hide the icons; otherwise FALSE.
+ */
+void dialogue_set_hidden_icons(struct dialogue_block *dialogue, enum dialogue_icon_type type, osbool hide);
 
 
 /**

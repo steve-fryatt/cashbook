@@ -98,7 +98,6 @@ static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *po
 static void dialogue_fill(struct dialogue_block *dialogue);
 static void dialogue_place_caret(struct dialogue_block *dialogue);
 static void dialogue_shade_icons(struct dialogue_block *dialogue, wimp_i target);
-static void dialogue_hide_icons(struct dialogue_block *dialogue, enum dialogue_icon_type type, osbool hide);
 static void dialogue_register_icon_handlers(struct dialogue_block *dialogue);
 static struct dialogue_icon *dialogue_find_icon(struct dialogue_block *dialogue, wimp_i icon);
 
@@ -232,8 +231,6 @@ osbool dialogue_any_open(struct file_block *file, void *parent)
  * account or report views.
  * 
  * \param *dialogue		The dialogue instance to open.
- * \param hide			TRUE to hide the 'hidden' icons; FALSE
- *				to show them.
  * \param restore		TRUE to restore previous values; FALSE to
  *				use application defaults.
  * \param *file			The file to be the parent of the dialogue.
@@ -242,7 +239,7 @@ osbool dialogue_any_open(struct file_block *file, void *parent)
  * \param *data			Data to pass to client callbacks.
  */
 
-void dialogue_open(struct dialogue_block *dialogue, osbool hide, osbool restore, struct file_block *file, void *parent, wimp_pointer *pointer, void *data)
+void dialogue_open(struct dialogue_block *dialogue, osbool restore, struct file_block *file, void *parent, wimp_pointer *pointer, void *data)
 {
 	if (dialogue == NULL || dialogue->definition == NULL || file == NULL || pointer == NULL)
 		return;
@@ -265,9 +262,6 @@ void dialogue_open(struct dialogue_block *dialogue, osbool hide, osbool restore,
 	dialogue->restore = restore;
 
 	/* Set the window contents up. */
-
-	if (dialogue->definition->hidden_icons != DIALOGUE_ICON_NONE)
-		dialogue_hide_icons(dialogue, dialogue->definition->hidden_icons, hide);
 
 	dialogue_fill(dialogue);
 
@@ -347,8 +341,8 @@ void dialogue_set_title(struct dialogue_block *dialogue, char *token, char *a, c
 
 
 /**
- * Set the text in an icon or icons in a dialogue box, redrawing them if the
- * dialogue is currently open.
+ * Set the text in an icon or icons in a dialogue box, redrawing them if
+ * the dialogue is currently open.
  *
  * \param *dialogue		The dialogue instance to update.
  * \param type			The types of icon to update.
@@ -374,6 +368,36 @@ void dialogue_set_icon_text(struct dialogue_block *dialogue, enum dialogue_icon_
 			continue;
 
 		icons_msgs_param_lookup(dialogue->window, icons[i].icon, token, a, b, c, d);
+
+		if (windows_get_open(dialogue->window))
+			xwimp_set_icon_state(dialogue->window, icons[i].icon, 0, 0);
+	}
+}
+
+
+/**
+ * Set the hidden state of an icon or icons in a dialogue box, redrawing
+ * them if the dialogue is currently open.
+ *
+ * \param *dialogue		The dialogue instance to update.
+ * \param type			The types of icon to update.
+ * \param hide			TRUE to hide the icons; otherwise FALSE.
+ */
+void dialogue_set_hidden_icons(struct dialogue_block *dialogue, enum dialogue_icon_type type, osbool hide)
+{
+	int			i;
+	struct dialogue_icon	*icons;
+
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
+		return;
+
+	icons = dialogue->definition->icons;
+
+	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
+		if ((icons[i].icon == DIALOGUE_NO_ICON) || !(icons[i].type & type))
+			continue;
+
+		icons_set_deleted(dialogue->window, icons[i].icon, hide);
 
 		if (windows_get_open(dialogue->window))
 			xwimp_set_icon_state(dialogue->window, icons[i].icon, 0, 0);
@@ -837,31 +861,6 @@ static void dialogue_shade_icons(struct dialogue_block *dialogue, wimp_i target)
 
 		if (!(icons[i + 1].type & DIALOGUE_ICON_SHADE_OR) && (icon != DIALOGUE_NO_ICON) && include)
 			icons_set_shaded(dialogue->window, icon, shaded);
-	}
-}
-
-
-/**
- * Set the hidden (deleted) state of any icons with the hide flag.
- *
- * \param *dialogue		The dialogue instance to process.
- * \param type			The type(s) of icon to be affected.
- * \param hide			TRUE to hide any affected icons; FALSE to show them.
- */
-
-static void dialogue_hide_icons(struct dialogue_block *dialogue, enum dialogue_icon_type type, osbool hide)
-{
-	int			i;
-	struct dialogue_icon	*icons;
-
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->icons == NULL)
-		return;
-
-	icons = dialogue->definition->icons;
-
-	for (i = 0; (icons[i].type & DIALOGUE_ICON_END) == 0; i++) {
-		if ((icons[i].icon != DIALOGUE_NO_ICON) && (icons[i].type & type))
-			icons_set_deleted(dialogue->window, icons[i].icon, hide);
 	}
 }
 

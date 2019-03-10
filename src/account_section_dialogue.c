@@ -126,7 +126,6 @@ static struct dialogue_definition account_section_dialogue_definition = {
 	"EditAccSect",
 	"EditAccSect",
 	account_section_dialogue_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	account_section_dialogue_fill,
 	account_section_dialogue_process,
@@ -180,7 +179,7 @@ void account_section_dialogue_open(wimp_pointer *ptr, void *owner, struct file_b
 
 	/* Open the window. */
 
-	dialogue_open(account_section_dialogue, FALSE, FALSE, file, owner, ptr, content);
+	dialogue_open(account_section_dialogue, FALSE, file, owner, ptr, content);
 }
 
 

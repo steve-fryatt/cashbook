@@ -109,7 +109,6 @@ static struct dialogue_definition purge_dialogue_definition = {
 	"Purge",
 	"Purge",
 	purge_dialogue_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	purge_dialogue_fill,
 	purge_dialogue_process,
@@ -147,7 +146,7 @@ void purge_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct 
 
 	/* Open the window. */
 
-	dialogue_open(purge_dialogue, FALSE, restore, file, owner, ptr, content);
+	dialogue_open(purge_dialogue, restore, file, owner, ptr, content);
 }
 
 /**

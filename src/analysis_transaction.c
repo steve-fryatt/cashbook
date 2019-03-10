@@ -236,7 +236,6 @@ static struct analysis_dialogue_definition analysis_transaction_dialogue_definit
 		"TransRep",
 		"TransRep",
 		analysis_transaction_icon_list,
-		DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME,
 		DIALOGUE_FLAGS_TAKE_FOCUS,
 		NULL,
 		NULL,

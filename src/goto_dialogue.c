@@ -106,7 +106,6 @@ static struct dialogue_definition goto_dialogue_definition = {
 	"Goto",
 	"Goto",
 	goto_dialogue_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	goto_dialogue_fill,
 	goto_dialogue_process,
@@ -144,7 +143,7 @@ void goto_dialogue_open(wimp_pointer *ptr, osbool restore, void *owner, struct f
 
 	/* Open the window. */
 
-	dialogue_open(goto_dialogue, FALSE, restore, file, owner, ptr, content);
+	dialogue_open(goto_dialogue, restore, file, owner, ptr, content);
 }
 
 /**

@@ -221,7 +221,6 @@ static struct analysis_dialogue_definition analysis_balance_dialogue_definition 
 		"BalanceRep",
 		"BalanceRep",
 		analysis_balance_icon_list,
-		DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME,
 		DIALOGUE_FLAGS_TAKE_FOCUS,
 		NULL,
 		NULL,

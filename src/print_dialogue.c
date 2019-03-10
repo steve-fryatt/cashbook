@@ -215,7 +215,6 @@ static struct dialogue_definition print_dialogue_definition = {
 	"Print",
 	"Print",
 	print_dialogue_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	print_dialogue_fill_window,
 	print_dialogue_process_window,
@@ -351,7 +350,7 @@ void print_dialogue_open(struct print_dialogue_block *instance, wimp_pointer *pt
 	else
 		*print_dialogue_report_title_token = '\0';
 
-	dialogue_open(print_dialogue, FALSE, restore, instance->file, parent, ptr, instance);
+	dialogue_open(print_dialogue, restore, instance->file, parent, ptr, instance);
 
 	print_dialogue_callback = callback;
 }

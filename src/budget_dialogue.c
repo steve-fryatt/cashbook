@@ -107,7 +107,6 @@ static struct dialogue_definition budget_dialogue_definition = {
 	"Budget",
 	"Budget",
 	budget_dialogue_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	budget_dialogue_fill,
 	budget_dialogue_process,
@@ -144,7 +143,7 @@ void budget_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *fil
 
 	/* Open the window. */
 
-	dialogue_open(budget_dialogue, FALSE, FALSE, file, owner, ptr, content);
+	dialogue_open(budget_dialogue, FALSE, file, owner, ptr, content);
 }
 
 /**

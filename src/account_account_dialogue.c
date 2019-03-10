@@ -176,7 +176,6 @@ static struct dialogue_definition account_account_dialogue_definition = {
 	"EditAccount",
 	"EditAccount",
 	account_account_dialogue_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	account_account_dialogue_fill,
 	account_account_dialogue_process,
@@ -227,7 +226,7 @@ void account_account_dialogue_open(wimp_pointer *ptr, void *owner, struct file_b
 
 	/* Open the window. */
 
-	dialogue_open(account_account_dialogue, FALSE, FALSE, file, owner, ptr, content);
+	dialogue_open(account_account_dialogue, FALSE, file, owner, ptr, content);
 }
 
 

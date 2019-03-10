@@ -136,7 +136,6 @@ static struct dialogue_definition analysis_template_save_dialogue_definition = {
 	"SaveRepTemp",
 	"SaveRepTemp",
 	analysis_template_save_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	analysis_template_save_fill_window,
 	analysis_template_save_process_window,
@@ -182,7 +181,7 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 
 	/* Open the dialogue. */
 
-	dialogue_open(analysis_template_save_dialogue, FALSE, FALSE, analysis_template_get_file(analysis_template_save_parent), template, ptr, NULL);
+	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), template, ptr, NULL);
 }
 
 
@@ -214,7 +213,7 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, vo
 
 	/* Open the dialogue. */
 
-	dialogue_open(analysis_template_save_dialogue, FALSE, FALSE, analysis_template_get_file(analysis_template_save_parent), dialogue, ptr, NULL);
+	dialogue_open(analysis_template_save_dialogue, FALSE, analysis_template_get_file(analysis_template_save_parent), dialogue, ptr, NULL);
 }
 
 

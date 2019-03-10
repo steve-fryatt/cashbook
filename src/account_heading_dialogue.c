@@ -131,7 +131,6 @@ static struct dialogue_definition account_heading_dialogue_definition = {
 	"EditHeading",
 	"EditHeading",
 	account_heading_dialogue_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	account_heading_dialogue_fill,
 	account_heading_dialogue_process,
@@ -185,7 +184,7 @@ void account_heading_dialogue_open(wimp_pointer *ptr, void *owner, struct file_b
 
 	/* Open the window. */
 
-	dialogue_open(account_heading_dialogue, FALSE, FALSE, file, owner, ptr, content);
+	dialogue_open(account_heading_dialogue, FALSE, file, owner, ptr, content);
 }
 
 

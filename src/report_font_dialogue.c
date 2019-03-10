@@ -168,7 +168,6 @@ static struct dialogue_definition report_font_dialogue_definition = {
 	"RepFont",
 	"RepFont",
 	report_font_dialogue_icon_list,
-	DIALOGUE_ICON_NONE,
 	DIALOGUE_FLAGS_TAKE_FOCUS,
 	report_font_dialogue_fill,
 	report_font_dialogue_process,
@@ -218,7 +217,7 @@ void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*
 
 	/* Open the window. */
 
-	dialogue_open(report_font_dialogue, FALSE, FALSE, report_get_file(report), report, ptr, NULL);
+	dialogue_open(report_font_dialogue, FALSE, report_get_file(report), report, ptr, NULL);
 }
 
 

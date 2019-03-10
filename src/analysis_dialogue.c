@@ -174,6 +174,8 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, void *repo
 		dialogue_set_title(dialogue->dialogue, "GenRepTitle",
 				analysis_template_get_name(template_block, NULL, 0), NULL, NULL, NULL);
 
+		dialogue_set_hidden_icons(dialogue->dialogue, DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME, FALSE);
+
 		/* If we use a template, we always want to reset to the template! */
 
 		restore = TRUE;
@@ -183,6 +185,8 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, void *repo
 
 		dialogue_set_title(dialogue->dialogue, dialogue->definition->title_token,
 				analysis_template_get_name(template_block, NULL, 0), NULL, NULL, NULL);
+
+		dialogue_set_hidden_icons(dialogue->dialogue, DIALOGUE_ICON_ANALYSIS_DELETE | DIALOGUE_ICON_ANALYSIS_RENAME, TRUE);
 	}
 
 	/* Set the pointers up so we can find this lot again and open the window. */
@@ -192,7 +196,7 @@ void analysis_dialogue_open(struct analysis_dialogue_block *dialogue, void *repo
 
 	/* Set the window contents up. */
 
-	dialogue_open(dialogue->dialogue, template_block == NULL, restore, analysis_get_file(dialogue->parent), report, pointer, dialogue);
+	dialogue_open(dialogue->dialogue, restore, analysis_get_file(dialogue->parent), report, pointer, dialogue);
 }
 
 

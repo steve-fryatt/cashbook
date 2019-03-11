@@ -1285,6 +1285,9 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
 	if (content == NULL || windat == NULL)
 		return FALSE;
 
+	if (!sorder_valid(windat, content->sorder))
+		return FALSE;
+
 	if (content->action == SORDER_DIALOGUE_ACTION_DELETE) {
 		if (error_msgs_report_question("DeleteSOrder", "DeleteSOrderB") == 4)
 			return FALSE;
@@ -1407,7 +1410,8 @@ static osbool sorder_stop_from_edit_window(struct sorder_block *windat, struct s
 	if (windat == NULL || content == NULL)
 		return FALSE;
 
-//	\TODO -- Check that the order is valid!
+	if (!sorder_valid(windat, content->sorder))
+		return FALSE;
 
 	if (error_msgs_report_question("StopSOrder", "StopSOrderB") == 4)
 		return FALSE;

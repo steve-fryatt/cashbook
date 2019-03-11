@@ -290,7 +290,7 @@ static void			sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
 static int			sorder_get_line_from_sorder(struct sorder_block *windat, sorder_t sorder);
 
 static osbool			sorder_process_edit_window(void *parent, struct sorder_dialogue_data *content);
-static osbool			sorder_stop_from_edit_window(struct sorder_block *windat, sorder_t sorder);
+static osbool			sorder_stop_from_edit_window(struct sorder_block *windat, struct sorder_dialogue_data *content);
 
 static void			sorder_open_sort_window(struct sorder_block *windat, wimp_pointer *ptr);
 static osbool			sorder_process_sort_window(enum sort_type order, void *data);
@@ -1291,7 +1291,7 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
 
 		return sorder_delete(windat->file, content->sorder);
 	} else if (content->action == SORDER_DIALOGUE_ACTION_STOP) {
-		sorder_stop_from_edit_window(windat, content->sorder);
+		return sorder_stop_from_edit_window(windat, content);
 	} else if (content->action != SORDER_DIALOGUE_ACTION_OK) {
 		return FALSE;
 	}
@@ -1400,39 +1400,41 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
  * \return			TRUE if stopped; else FALSE.
  */
 
-static osbool sorder_stop_from_edit_window(struct sorder_block *windat, sorder_t sorder)
+static osbool sorder_stop_from_edit_window(struct sorder_block *windat, struct sorder_dialogue_data *content)
 {
 	int line;
 
-	if (windat == NULL)
+	if (windat == NULL || content == NULL)
 		return FALSE;
+
+//	\TODO -- Check that the order is valid!
 
 	if (error_msgs_report_question("StopSOrder", "StopSOrderB") == 4)
 		return FALSE;
 
 	/* Stop the order */
 
-	windat->sorders[sorder].raw_next_date = NULL_DATE;
-	windat->sorders[sorder].adjusted_next_date = NULL_DATE;
-	windat->sorders[sorder].left = 0;
+	windat->sorders[content->sorder].raw_next_date = NULL_DATE;
+	windat->sorders[content->sorder].adjusted_next_date = NULL_DATE;
+	windat->sorders[content->sorder].left = 0;
 
-	/* Redraw the standing order edit window's contents. */
+	/* Free the standing order edit window's contents. */
 
-//	\TODO - This needs to be fixed!
-//	sorder_refresh_edit_window();
+	content->active = FALSE;
 
 	/* Update the main standing order display window. */
 
 	if (config_opt_read("AutoSortSOrders")) {
 		sorder_sort(windat);
 	} else {
-		line = sorder_get_line_from_sorder(windat, sorder);
+		line = sorder_get_line_from_sorder(windat, content->sorder);
 
 		if (line != -1) {
 			sorder_force_window_redraw(windat, line, line, SORDER_PANE_NEXTDATE);
 			sorder_force_window_redraw(windat, line, line, SORDER_PANE_LEFT);
 		}
 	}
+
 	file_set_data_integrity(windat->file, TRUE);
 
 	return TRUE;

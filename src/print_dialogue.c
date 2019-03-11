@@ -216,7 +216,7 @@ static struct dialogue_definition print_dialogue_definition = {
 	"Print",
 	print_dialogue_icon_list,
 	DIALOGUE_GROUP_NONE,
-	DIALOGUE_FLAGS_TAKE_FOCUS,
+	DIALOGUE_FLAGS_TAKE_FOCUS | DIALOGUE_FLAGS_REDRAW_TITLE,
 	print_dialogue_fill_window,
 	print_dialogue_process_window,
 	print_dialogue_close,
@@ -307,7 +307,7 @@ void print_dialogue_delete(struct print_dialogue_block *print)
 
 static osbool print_dialogue_handle_message_set_printer(wimp_message *message)
 {
-	dialogue_refresh(print_dialogue, TRUE);
+	dialogue_refresh(print_dialogue);
 
 	return TRUE;
 }

@@ -63,31 +63,37 @@ enum dialogue_icon_type {
 	DIALOGUE_ICON_ACTION		= 0x00000004,
 
 	/**
+	 * This action button should not close the dialogue on selection,
+	 * but simply refresh the dialogue content.
+	 */
+	DIALOGUE_ICON_ACTION_NO_CLOSE	= 0x00000008,
+
+	/**
 	 * A radio icon, which must be registerd with the Wimp Library
 	 * for Adjust-click handling. The library is not asked to pass
 	 * clicks on. Target is unused.
 	 */
-	DIALOGUE_ICON_RADIO		= 0x00000008,
+	DIALOGUE_ICON_RADIO		= 0x00000010,
 
 	/**
 	 * A radio icon, which must be registerd with the Wimp Library
 	 * for Adjust-click handling. The library is asked to pass clicks
 	 * on, so other action flags can be applied. Target is unused.
 	 */
-	DIALOGUE_ICON_RADIO_PASS	= 0x00000010,
+	DIALOGUE_ICON_RADIO_PASS	= 0x00000020,
 
 	/**
 	 * Shade this icon when another icon is selected; the other icon
 	 * is specified by Target.
 	 */
-	DIALOGUE_ICON_SHADE_ON		= 0x00000020,
+	DIALOGUE_ICON_SHADE_ON		= 0x00000040,
 
 
 	/**
 	 * Shade this icon when another icon is not selected; the other
 	 * icon is specified by Target.
 	 */
-	DIALOGUE_ICON_SHADE_OFF		= 0x00000040,
+	DIALOGUE_ICON_SHADE_OFF		= 0x00000080,
 
 	/**
 	 * Used in conjucntion with DIALOGUE_ICON_SHADE_ON or
@@ -96,7 +102,7 @@ enum dialogue_icon_type {
 	 * specifies the target icon, but Icon is not used and must be
 	 * set to DIALOGUE_NO_ICON.
 	 */
-	DIALOGUE_ICON_SHADE_OR		= 0x00000080,
+	DIALOGUE_ICON_SHADE_OR		= 0x00000100,
 
 	/**
 	 * Treat this icon as a shading target, thereby scanning the
@@ -105,19 +111,19 @@ enum dialogue_icon_type {
 	 * it is essential that DIALOGUE_ICON_RADIO_PASS is used.
 	 * Target is unused.
 	 */
-	DIALOGUE_ICON_SHADE_TARGET	= 0x00000100,
+	DIALOGUE_ICON_SHADE_TARGET	= 0x00000200,
 
 	/**
 	 * The icon should be redrawn whenever its contents is changed
 	 * by the dialogue handler. Target is unused.
 	 */
-	DIALOGUE_ICON_REFRESH		= 0x00000200,
+	DIALOGUE_ICON_REFRESH		= 0x00000400,
 
 	/**
 	 * The icon should be registered with the Wimp Library as a
 	 * pop-up menu icon. Target is unused.
 	 */
-	DIALOGUE_ICON_POPUP		= 0x00000400,
+	DIALOGUE_ICON_POPUP		= 0x00000800,
 
 	/**
 	 * The icon requires a pop-up account selection dialogue to be
@@ -126,25 +132,25 @@ enum dialogue_icon_type {
 	 * and Target is the text field. One of the DIALOGUE_ICON_TYPE
 	 * flags should be set to indicate the type of field.
 	 */
-	DIALOGUE_ICON_ACCOUNT_POPUP	= 0x00000800,
+	DIALOGUE_ICON_ACCOUNT_POPUP	= 0x00001000,
 
 	/**
 	 * The icon is the ident field in an account selector. Target
 	 * should reference the icon representing the name field.
 	 */
-	DIALOGUE_ICON_ACCOUNT_IDENT	= 0x00001000,
+	DIALOGUE_ICON_ACCOUNT_IDENT	= 0x00002000,
 
 	/**
 	 * The icon is the name field in an account selector. Target
 	 * should reference the icon representing the reconciled field.
 	 */
-	DIALOGUE_ICON_ACCOUNT_NAME	= 0x00002000,
+	DIALOGUE_ICON_ACCOUNT_NAME	= 0x00004000,
 
 	/**
 	 * The icon is the reconciled field in an account selector. Target
 	 * should reference the icon representing the ident field.
 	 */
-	DIALOGUE_ICON_ACCOUNT_RECONCILE	= 0x00004000,
+	DIALOGUE_ICON_ACCOUNT_RECONCILE	= 0x00008000,
 
 	/**
 	 * The icon is an account field targetting incoming headings and accounts.
@@ -152,7 +158,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_FROM		= 0x00008000,
+	DIALOGUE_ICON_TYPE_FROM		= 0x00010000,
 
 	/**
 	 * The icon is an account field targetting outgoing headings and accounts.
@@ -160,7 +166,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_TO		= 0x00010000,
+	DIALOGUE_ICON_TYPE_TO		= 0x00020000,
 
 	/**
 	 * The icon is an account field targetting incoming headings.
@@ -168,7 +174,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_IN		= 0x00020000,
+	DIALOGUE_ICON_TYPE_IN		= 0x00040000,
 
 	/**
 	 * The icon is an account field targetting outgoing headings.
@@ -176,7 +182,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_OUT		= 0x00040000,
+	DIALOGUE_ICON_TYPE_OUT		= 0x00080000,
 
 	/**
 	 * The icon is an account field targetting accounts.
@@ -184,7 +190,7 @@ enum dialogue_icon_type {
 	 * DIALOGUE_ICON_ACCOUNT_IDENT, DIALOGUE_ICON_ACCOUNT_NAME and
 	 * DIALOGUE_ICON_ACCOUNT_RECONCILE.
 	 */
-	DIALOGUE_ICON_TYPE_FULL		= 0x00080000,
+	DIALOGUE_ICON_TYPE_FULL		= 0x00100000,
 
 	/**
 	 * The last, dummy, entry in the dialogue icon sequence. Icon and
@@ -497,10 +503,9 @@ void dialogue_set_ihelp_modifier(struct dialogue_block *dialogue, char *modifier
  * will be done.
  *
  * \param *dialogue		The dialogue instance to refresh.
- * \param redraw_title		TRUE to force a redraw of the title bar.
  */
 
-void dialogue_refresh(struct dialogue_block *dialogue, osbool redraw_title);
+void dialogue_refresh(struct dialogue_block *dialogue);
 
 #endif
 

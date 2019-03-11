@@ -474,14 +474,18 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			dialogue_close_window(windat);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			dialogue_refresh(windat, (windat->definition->flags & DIALOGUE_FLAGS_REDRAW_TITLE) ? TRUE : FALSE);
+			dialogue_refresh(windat);
 		}
 	} else if (icon->type & DIALOGUE_ICON_OK) {
 		if (dialogue_process(windat, pointer, icon) && pointer->buttons == wimp_CLICK_SELECT)
 			dialogue_close_window(windat);
 	} else if (icon->type & DIALOGUE_ICON_ACTION) {
-		if (dialogue_process(windat, pointer, icon))
-			dialogue_close_window(windat);
+		if (dialogue_process(windat, pointer, icon)) {
+			if (icon->type & DIALOGUE_ICON_ACTION_NO_CLOSE)
+				dialogue_refresh(windat);
+			else
+				dialogue_close_window(windat);
+		}
 	} else if (icon->type & DIALOGUE_ICON_SHADE_TARGET) {
 		dialogue_shade_icons(windat, pointer->i);
 		icons_replace_caret_in_window(windat->window);
@@ -745,10 +749,9 @@ static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *po
  * will be done.
  *
  * \param *dialogue		The dialogue instance to refresh.
- * \param redraw_title		TRUE to force a redraw of the title bar.
  */
 
-void dialogue_refresh(struct dialogue_block *dialogue, osbool redraw_title)
+void dialogue_refresh(struct dialogue_block *dialogue)
 {
 	int			i;
 	struct dialogue_icon	*icons;
@@ -770,7 +773,7 @@ void dialogue_refresh(struct dialogue_block *dialogue, osbool redraw_title)
 
 	icons_replace_caret_in_window(dialogue->window);
 
-	if (redraw_title)
+	if (dialogue->definition->flags & DIALOGUE_FLAGS_REDRAW_TITLE)
 		xwimp_force_redraw_title(dialogue->window);
 }
 

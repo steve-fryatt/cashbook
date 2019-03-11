@@ -367,10 +367,6 @@ void delete_file(struct file_block *file)
 	if (file->analysis != NULL)
 		analysis_delete_instance(file->analysis);
 
-	/* Do the same for any file-related dialogues that are open. */
-
-	filing_force_windows_closed(file);
-
 	/* Delink the block from the list of open files. */
 
 	list = &file_list;

@@ -59,6 +59,7 @@
 #include "sflib/config.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/ihelp.h"
 #include "sflib/msgs.h"
@@ -77,8 +78,10 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
+#include "import_dialogue.h"
 #include "interest.h"
 #include "presets.h"
 #include "report.h"
@@ -116,15 +119,6 @@
 
 
 /**
- * Icons in the import report dialogue.
- */
-
-#define FILING_ICON_IMPORTED 0
-#define FILING_ICON_REJECTED 2
-#define FILING_ICON_CLOSE 5
-#define FILING_ICON_LOG 4
-
-/**
  * The file load and save handle structure.
  */
 
@@ -146,24 +140,11 @@ struct filing_block {
 
 #define filing_load_status_is_ok(status) (((status) == FILING_STATUS_OK) || ((status) == FILING_STATUS_UNEXPECTED))
 
-/* Global Variables. */
-
-/**
- * The handle of the Import Complete dialogue box.
- */
-
-static wimp_w			filing_import_window = NULL;
-
-/**
- * The file instance to which the Import Complete dialogue box belongs, or NULL.
- */
-
-static struct file_block	*import_window_file = NULL;
 
 /* Static Function Prototypes. */
 
-static void		filing_import_complete_click_handler(wimp_pointer *pointer);
-static void 		filing_close_import_complete(osbool show_log);
+static void		filing_open_import_complete_window(struct file_block *file, wimp_pointer *ptr, int imported, int rejected);
+static osbool		filing_process_import_complete_window(void *parent, struct import_dialogue_data *content);
 static char		*filing_find_next_field(struct filing_block *in);
 
 
@@ -173,9 +154,7 @@ static char		*filing_find_next_field(struct filing_block *in);
 
 void filing_initialise(void)
 {
-	filing_import_window = templates_create_window("ImpComp");
-	ihelp_add_window(filing_import_window, "ImpComp", NULL);
-	event_add_window_mouse_event(filing_import_window, filing_import_complete_click_handler);
+	import_dialogue_initialise();
 }
 
 
@@ -394,17 +373,15 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 
 void filing_import_csv_file(struct file_block *file, char *filename)
 {
-  FILE         *input;
-  char         line[FILING_CSV_LINE_LENGTH], log[FILING_LOG_LINE_LENGTH], b1[FILING_TEMP_BUF_LENGTH], b2[FILING_TEMP_BUF_LENGTH],
-               *date, *ref, *amount, *description, *ident, *name, *raw_from, *raw_to;
-  int          from, to, import_count, reject_count;
-	osbool		error;
-  wimp_pointer pointer;
-  unsigned int type;
-  enum transact_flags rec_from, rec_to;
+	FILE			*input;
+	char			line[FILING_CSV_LINE_LENGTH], log[FILING_LOG_LINE_LENGTH], b1[FILING_TEMP_BUF_LENGTH], b2[FILING_TEMP_BUF_LENGTH],
+						*date, *ref, *amount, *description, *ident, *name, *raw_from, *raw_to;
+	int			from, to, import_count, reject_count;
+	osbool			error;
+	wimp_pointer		pointer;
+	unsigned int		type;
+	enum transact_flags	rec_from, rec_to;
 
-
-	import_window_file = file;
 
 	import_count = 0;
 	reject_count = 0;
@@ -418,8 +395,7 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 		file->import_report = NULL;
 	}
 
-	if (windows_get_open(filing_import_window))
-		wimp_close_window(filing_import_window);
+	dialogue_force_group_closed(DIALOGUE_GROUP_IMPORT); // Could be done via parent once import has a class.
 
 	/* Open a log report for the process, and title it. */
 
@@ -559,69 +535,74 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 	msgs_param_lookup("IRTotals", log, FILING_LOG_LINE_LENGTH, b1, b2, NULL, NULL);
 	report_write_line(file->import_report, 0, log);
 
-	icons_printf(filing_import_window, FILING_ICON_IMPORTED, "%d", import_count);
-	icons_printf(filing_import_window, FILING_ICON_REJECTED, "%d", reject_count);
-
 	wimp_get_pointer_info(&pointer);
-	windows_open_centred_at_pointer(filing_import_window, &pointer);
+	filing_open_import_complete_window(file, &pointer, import_count, reject_count);
 
 	hourglass_off();
 }
 
 
 /**
- * Process mouse clicks in the Import Complete dialogue.
+ * Open the Import Result dialogue for a given import process.
  *
- * \param *pointer		The mouse event block to handle.
+ * \param *file			The file to own the dialogue.
+ * \param *ptr			The current Wimp pointer position.
  */
 
-static void filing_import_complete_click_handler(wimp_pointer *pointer)
+static void filing_open_import_complete_window(struct file_block *file, wimp_pointer *ptr, int imported, int rejected)
 {
-	switch (pointer->i) {
-	case FILING_ICON_CLOSE:
-		filing_close_import_complete(FALSE);
+	struct import_dialogue_data *content = NULL;
+
+	if (file == NULL)
+		return;
+
+	/* Open the dialogue box. */
+
+	content = heap_alloc(sizeof(struct import_dialogue_data));
+	if (content == NULL)
+		return;
+
+	content->action = IMPORT_DIALOGUE_ACTION_NONE;
+	content->imported = imported;
+	content->rejected = rejected;
+
+	import_dialogue_open(ptr, file, filing_process_import_complete_window, content);
+}
+
+
+/**
+ * Handle the closure of the Import Result dialogue, either opening or
+ * deleting the log report. Once the window is closed, we no longer need
+ * to track the report, so the pointer can be set to NULL.
+ *
+ * \param *parent		The parent file for the dialogue.
+ * \param *content		The dialogue content.
+ * \return			TRUE on success.
+ */
+
+static osbool filing_process_import_complete_window(void *parent, struct import_dialogue_data *content)
+{
+	struct file_block *file = parent;
+
+	if (file == NULL || content == NULL)
+		return FALSE;
+
+	switch (content->action) {
+	case IMPORT_DIALOGUE_ACTION_CLOSE:
+		report_delete(file->import_report);
+		break;
+	
+	case IMPORT_DIALOGUE_ACTION_VIEW_REPORT:
+		report_close(file->import_report);
 		break;
 
-	case FILING_ICON_LOG:
-		filing_close_import_complete(TRUE);
-		break;
+	default:
+		return FALSE;
 	}
-}
 
+	file->import_report = NULL;
 
-/**
- * Close the import results dialogue, either opening or deleting the log report.
- * Once the window is closed, we no longer need to track the report, so the
- * pointer can be set to NULL.
- *
- * \param show_log		TRUE to open the import log; FALSE to dispose
- *				of it.
- */
-
-static void filing_close_import_complete(osbool show_log)
-{
-	if (show_log)
-		report_close(import_window_file->import_report);
-	else
-		report_delete(import_window_file->import_report);
-
-	wimp_close_window(filing_import_window);
-	import_window_file->import_report = NULL;
-}
-
-
-/**
- * Force the closure of the Import windows if the owning file disappears.
- * There's no need to delete any associated report, because it will be handled
- * via the Report module when the file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void filing_force_windows_closed(struct file_block *file)
-{
-	if (import_window_file == file && windows_get_open(filing_import_window))
-		wimp_close_window(filing_import_window);
+	return TRUE;
 }
 
 

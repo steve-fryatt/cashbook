@@ -214,7 +214,10 @@ enum dialogue_icon_type {
 
 	DIALOGUE_ICON_FIND_PREVIOUS	= 0x10000000,		/**< The Previous Match button.			*/
 	DIALOGUE_ICON_FIND_NEXT		= 0x20000000,		/**< The Next Match button.			*/
-	DIALOGUE_ICON_FIND_NEW		= 0x40000000		/**< The New Search button.			*/
+	DIALOGUE_ICON_FIND_NEW		= 0x40000000,		/**< The New Search button.			*/
+
+	DIALOGUE_ICON_IMPORT_CLOSE	= 0x10000000,		/**< The Import Report close button.		*/
+	DIALOGUE_ICON_IMPORT_VIEW_LOG	= 0x20000000		/**< The Import Report View Log button.		*/
 };
 
 /**
@@ -272,7 +275,12 @@ enum dialogue_group {
 	/**
 	 * An account Edit dialogue.
 	 */
-	DIALOGUE_GROUP_EDIT
+	DIALOGUE_GROUP_EDIT,
+
+	/**
+	 * An Import dialogue.
+	 */
+	DIALOGUE_GROUP_IMPORT
 };
 
 /**

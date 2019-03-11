@@ -112,17 +112,6 @@ void filing_import_csv_file(struct file_block *file, char *filename);
 
 
 /**
- * Force the closure of the Import windows if the owning file disappears.
- * There's no need to delete any associated report, because it will be handled
- * via the Report module when the file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void filing_force_windows_closed(struct file_block *file);
-
-
-/**
  * Output a text string to a file, treating it as a field in a delimited format
  * and applying the necessary quoting as required.
  *

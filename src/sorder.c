@@ -234,13 +234,6 @@ struct sorder_block {
 	sorder_t		sorder_count;					/**< The number of standing orders defined in the file.			*/
 };
 
-
-/* Standing Order Edit Window. */
-
-static wimp_w			sorder_edit_window = NULL;			/**< The handle of the standing order edit window.			*/
-static struct sorder_block	*sorder_edit_owner = NULL;			/**< The file currently owning the standing order edit window.		*/
-static int			sorder_edit_number = -1;			/**< The standing order currently being edited.				*/
-
 /* Standing Order Sort Window. */
 
 static struct sort_dialogue_block	*sorder_sort_dialogue = NULL;		/**< The standing order window sort dialogue box.			*/
@@ -297,7 +290,7 @@ static void			sorder_decode_window_help(char *buffer, wimp_w w, wimp_i i, os_coo
 static int			sorder_get_line_from_sorder(struct sorder_block *windat, sorder_t sorder);
 
 static osbool			sorder_process_edit_window(void *parent, struct sorder_dialogue_data *content);
-static osbool			sorder_stop_from_edit_window(void);
+static osbool			sorder_stop_from_edit_window(struct sorder_block *windat, sorder_t sorder);
 
 static void			sorder_open_sort_window(struct sorder_block *windat, wimp_pointer *ptr);
 static osbool			sorder_process_sort_window(enum sort_type order, void *data);
@@ -569,8 +562,7 @@ static void sorder_delete_window(struct sorder_block *windat)
 
 	sort_dialogue_close(sorder_sort_dialogue, windat);
 
-	if (sorder_edit_owner == windat && windows_get_open(sorder_edit_window))
-		close_dialogue_with_caret(sorder_edit_window);
+	dialogue_force_all_closed(NULL, windat);
 
 	if (windat->sorder_window != NULL) {
 		ihelp_remove_window (windat->sorder_window);
@@ -1299,7 +1291,7 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
 
 		return sorder_delete(windat->file, content->sorder);
 	} else if (content->action == SORDER_DIALOGUE_ACTION_STOP) {
-//
+		sorder_stop_from_edit_window(windat, content->sorder);
 	} else if (content->action != SORDER_DIALOGUE_ACTION_OK) {
 		return FALSE;
 	}
@@ -1403,39 +1395,45 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
  * Stop the standing order associated with the currently open Standing
  * Order Edit window.  Set the next dates to NULL and zero the left count.
  *
+ * \param *windat		The standing order instance holding the order.
+ * \param sorder		The order to stop.
  * \return			TRUE if stopped; else FALSE.
  */
 
-static osbool sorder_stop_from_edit_window(void)
+static osbool sorder_stop_from_edit_window(struct sorder_block *windat, sorder_t sorder)
 {
 	int line;
+
+	if (windat == NULL)
+		return FALSE;
 
 	if (error_msgs_report_question("StopSOrder", "StopSOrderB") == 4)
 		return FALSE;
 
 	/* Stop the order */
 
-	sorder_edit_owner->sorders[sorder_edit_number].raw_next_date = NULL_DATE;
-	sorder_edit_owner->sorders[sorder_edit_number].adjusted_next_date = NULL_DATE;
-	sorder_edit_owner->sorders[sorder_edit_number].left = 0;
+	windat->sorders[sorder].raw_next_date = NULL_DATE;
+	windat->sorders[sorder].adjusted_next_date = NULL_DATE;
+	windat->sorders[sorder].left = 0;
 
 	/* Redraw the standing order edit window's contents. */
 
-	sorder_refresh_edit_window();
+//	\TODO - This needs to be fixed!
+//	sorder_refresh_edit_window();
 
 	/* Update the main standing order display window. */
 
 	if (config_opt_read("AutoSortSOrders")) {
-		sorder_sort(sorder_edit_owner);
+		sorder_sort(windat);
 	} else {
-		line = sorder_get_line_from_sorder(sorder_edit_owner, sorder_edit_number);
+		line = sorder_get_line_from_sorder(windat, sorder);
 
 		if (line != -1) {
-			sorder_force_window_redraw(sorder_edit_owner, line, line, SORDER_PANE_NEXTDATE);
-			sorder_force_window_redraw(sorder_edit_owner, line, line, SORDER_PANE_LEFT);
+			sorder_force_window_redraw(windat, line, line, SORDER_PANE_NEXTDATE);
+			sorder_force_window_redraw(windat, line, line, SORDER_PANE_LEFT);
 		}
 	}
-	file_set_data_integrity(sorder_edit_owner->file, TRUE);
+	file_set_data_integrity(windat->file, TRUE);
 
 	return TRUE;
 }

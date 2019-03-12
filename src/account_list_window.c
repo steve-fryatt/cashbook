@@ -231,7 +231,7 @@ enum account_list_window_overdrawn {
  * Account List Window line redraw data.
  */
 
-struct account_redraw {
+struct account_list_window_redraw {
 	/**
 	 * The type of line (account, section heading, section footer, blank, etc).
 	 */
@@ -310,9 +310,9 @@ struct account_list_window {
 	int					display_lines;
 
 	/**
-	 * flex array holding the line data for the window.
+	 * Flex array holding the line data for the window.
 	 */
-	struct account_redraw			*line_data;
+	struct account_list_window_redraw	*line_data;
 };
 
 /**
@@ -1238,7 +1238,7 @@ void account_list_window_remove_account(struct account_list_window *windat, acct
 			debug_printf("Deleting entry type %x", windat->line_data[line].type);
 			#endif
 
-			if (!flexutils_delete_object((void **) &(windat->line_data), sizeof(struct account_redraw), line)) {
+			if (!flexutils_delete_object((void **) &(windat->line_data), sizeof(struct account_list_window_redraw), line)) {
 				error_msgs_report_error("BadDelete");
 				continue;
 			}
@@ -1520,7 +1520,7 @@ static osbool account_list_window_process_section_edit_window(void *parent, stru
 
 		/* Delete the heading */
 
-		if (!flexutils_delete_object((void **) &(windat->line_data), sizeof(struct account_redraw), content->line)) {
+		if (!flexutils_delete_object((void **) &(windat->line_data), sizeof(struct account_list_window_redraw), content->line)) {
 			error_msgs_report_error("BadDelete");
 			return FALSE;
 		}
@@ -1819,7 +1819,7 @@ static int account_list_window_add_line(struct account_list_window *windat)
 	if (windat == NULL)
 		return -1;
 
-	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct account_redraw), windat->display_lines + 1))
+	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct account_list_window_redraw), windat->display_lines + 1))
 		return -1;
 
 	line = windat->display_lines++;
@@ -2013,7 +2013,7 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 	wimp_window_state			window;
 	int					line;
 	struct file_block			*file;
-	struct account_redraw			block;
+	struct account_list_window_redraw	block;
 	struct account_list_window_drag_data	*drag_data = data;
 	struct account_list_window		*windat;
 
@@ -2061,13 +2061,13 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 
 	if (line < drag_data->start_line) {
 		memmove(&(windat->line_data[line + 1]), &(windat->line_data[line]),
-				(drag_data->start_line - line) * sizeof(struct account_redraw));
+				(drag_data->start_line - line) * sizeof(struct account_list_window_redraw));
 
 		windat->line_data[line] = block;
 	} else if (line > drag_data->start_line) {
 		memmove(&(windat->line_data[drag_data->start_line]),
 				&(windat->line_data[drag_data->start_line + 1]),
-				(line - drag_data->start_line) * sizeof(struct account_redraw));
+				(line - drag_data->start_line) * sizeof(struct account_list_window_redraw));
 
 		windat->line_data[line] = block;
 	}
@@ -2277,7 +2277,7 @@ osbool account_list_window_read_file(struct account_list_window *windat, struct 
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_load_initialise((void **) &(windat->line_data), sizeof(struct account_redraw), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(windat->line_data), sizeof(struct account_list_window_redraw), &block_size)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}

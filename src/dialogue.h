@@ -63,8 +63,10 @@ enum dialogue_icon_type {
 	DIALOGUE_ICON_ACTION		= 0x00000004,
 
 	/**
-	 * This action button should not close the dialogue on selection,
-	 * but simply refresh the dialogue content.
+	 * A generic action button in a dialogue, to be fed back to the
+	 * client; a client flag identifies the purpose. This action button
+	 * should not close the dialogue on selection, but simply refresh
+	 * the dialogue content. Target is unused.
 	 */
 	DIALOGUE_ICON_ACTION_NO_CLOSE	= 0x00000008,
 

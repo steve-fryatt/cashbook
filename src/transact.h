@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -24,7 +24,7 @@
 /**
  * \file: transact.h
  *
- * Transaction and transaction window implementation.
+ * Transaction interface.
  */
 
 #ifndef CASHBOOK_TRANSACT

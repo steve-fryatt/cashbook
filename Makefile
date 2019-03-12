@@ -80,6 +80,7 @@ OBJS = account.o			\
        main.o				\
        presets.o			\
        preset_dialogue.o		\
+       preset_list_window.o		\
        preset_menu.o			\
        print_dialogue.o			\
        print_protocol.o			\
@@ -98,10 +99,12 @@ OBJS = account.o			\
        report_textdump.o		\
        sorder.o				\
        sorder_dialogue.o		\
+       sorder_list_window.o		\
        sort.o				\
        sort_dialogue.o			\
        stringbuild.o			\
        transact.o			\
+       transact_list_window.o		\
        window.o
 
 include $(SFTOOLS_MAKE)/CApp

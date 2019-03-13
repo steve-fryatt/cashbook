@@ -124,13 +124,25 @@
 #define SORDER_MENU_PRINT 5
 #define SORDER_MENU_FULLREP 6
 
-/* Standing order window details. */
+/**
+ * The minimum number of entries in the Standing Order List Window.
+ */
 
-#define SORDER_COLUMNS 10
-#define SORDER_TOOLBAR_HEIGHT 132
 #define MIN_SORDER_ENTRIES 10
 
-/* Standing Order Window column mapping. */
+/**
+ * The height of the Standing Order List Window toolbar, in OS Units.
+ */
+
+#define SORDER_TOOLBAR_HEIGHT 132
+
+/**
+ * The number of draggable columns in the Standing Order List Window.
+ */
+
+#define SORDER_COLUMNS 10
+
+/* The Standing Order List Window column map. */
 
 static struct column_map sorder_columns[SORDER_COLUMNS] = {
 	{SORDER_ICON_FROM, SORDER_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},

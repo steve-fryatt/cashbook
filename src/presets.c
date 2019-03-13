@@ -73,6 +73,7 @@
 #include "filing.h"
 #include "flexutils.h"
 #include "preset_dialogue.h"
+#include "preset_list_window.h"
 #include "print_dialogue.h"
 #include "sort.h"
 #include "sort_dialogue.h"
@@ -80,30 +81,7 @@
 #include "report.h"
 #include "window.h"
 
-/* Main Window Icons
- *
- * Note that these correspond to column numbers.
- */
 
-#define PRESET_ICON_KEY 0
-#define PRESET_ICON_NAME 1
-#define PRESET_ICON_FROM 2
-#define PRESET_ICON_FROM_REC 3
-#define PRESET_ICON_FROM_NAME 4
-#define PRESET_ICON_TO 5
-#define PRESET_ICON_TO_REC 6
-#define PRESET_ICON_TO_NAME 7
-#define PRESET_ICON_AMOUNT 8
-#define PRESET_ICON_DESCRIPTION 9
-
-/* Preset menu */
-
-#define PRESET_MENU_SORT 0
-#define PRESET_MENU_EDIT 1
-#define PRESET_MENU_NEWPRESET 2
-#define PRESET_MENU_EXPCSV 3
-#define PRESET_MENU_EXPTSV 4
-#define PRESET_MENU_PRINT 5
 
 /* Preset Sort Window */
 
@@ -118,42 +96,7 @@
 #define PRESET_SORT_ASCENDING 10
 #define PRESET_SORT_DESCENDING 11
 
-/* Toolbar icons. */
 
-#define PRESET_PANE_KEY 0
-#define PRESET_PANE_NAME 1
-#define PRESET_PANE_FROM 2
-#define PRESET_PANE_TO 3
-#define PRESET_PANE_AMOUNT 4
-#define PRESET_PANE_DESCRIPTION 5
-
-#define PRESET_PANE_PARENT 6
-#define PRESET_PANE_ADDPRESET 7
-#define PRESET_PANE_PRINT 8
-#define PRESET_PANE_SORT 9
-
-#define PRESET_PANE_SORT_DIR_ICON 10
-
-/* Preset window details. */
-
-#define PRESET_COLUMNS 10
-#define PRESET_TOOLBAR_HEIGHT 132
-#define MIN_PRESET_ENTRIES 10
-
-/* Preset Window column mapping. */
-
-static struct column_map preset_columns[PRESET_COLUMNS] = {
-	{PRESET_ICON_KEY, PRESET_PANE_KEY, wimp_ICON_WINDOW, SORT_CHAR},
-	{PRESET_ICON_NAME, PRESET_PANE_NAME, wimp_ICON_WINDOW, SORT_NAME},
-	{PRESET_ICON_FROM, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
-	{PRESET_ICON_FROM_REC, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
-	{PRESET_ICON_FROM_NAME, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
-	{PRESET_ICON_TO, PRESET_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
-	{PRESET_ICON_TO_REC, PRESET_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
-	{PRESET_ICON_TO_NAME, PRESET_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
-	{PRESET_ICON_AMOUNT, PRESET_PANE_AMOUNT, wimp_ICON_WINDOW, SORT_AMOUNT},
-	{PRESET_ICON_DESCRIPTION, PRESET_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
-};
 
 
 /**
@@ -189,28 +132,25 @@ struct preset {
  */
 
 struct preset_block {
-	struct file_block	*file;						/**< The file to which the window belongs.				*/
+	/**
+	 * The file to which the instance belongs.
+	 */
+	struct file_block		*file;
 
-	/* Preset window handle and title details. */
+	/**
+	 * The Preset List window instance.
+	 */
+	struct preset_list_window	*preset_window;
 
-	wimp_w			preset_window;					/**< Window handle of the preset window.				*/
-	char			window_title[WINDOW_TITLE_LENGTH];
-	wimp_w			preset_pane;					/**< Window handle of the preset window toolbar pane.			*/
+	/**
+	 * The preset data for the defined presets.
+	 */
+	struct preset		*presets;
 
-	/* Display column details. */
-
-	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
-
-	/* Window sorting information. */
-
-	struct sort_block	*sort;						/**< Instance handle for the sort code.					*/
-
-	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
-
-	/* Preset Data. */
-
-	struct preset		*presets;					/**< The preset data for the defined presets.				*/
-	int			preset_count;					/**< The number of presets defined in the file.				*/
+	/**
+	 * The number of presets defined in the file.
+	 */
+	int			preset_count;
 };
 
 
@@ -238,17 +178,6 @@ static struct sort_dialogue_icon preset_sort_directions[] = {				/**< Details of
 
 static struct sort_callback	preset_sort_callbacks;
 
-/* Preset List Window. */
-
-static wimp_window		*preset_window_def = NULL;			/**< The definition for the Preset Window.				*/
-static wimp_window		*preset_pane_def = NULL;			/**< The definition for the Preset Window pane.				*/
-static wimp_menu		*preset_window_menu = NULL;			/**< The Preset Window menu handle.					*/
-static int			preset_window_menu_line = -1;			/**< The line over which the Preset Window Menu was opened.		*/
-
-/* SaveAs Dialogue Handles. */
-
-static struct saveas_block	*preset_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
-static struct saveas_block	*preset_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 static void		preset_delete_window(struct preset_block *windat);
 static void		preset_close_window_handler(wimp_close *close);
@@ -309,21 +238,12 @@ void preset_initialise(osspriteop_area *sprites)
 	preset_sort_dialogue = sort_dialogue_create(sort_window, preset_sort_columns, preset_sort_directions,
 			PRESET_SORT_OK, PRESET_SORT_CANCEL, preset_process_sort_window);
 
-	preset_window_def = templates_load_window("Preset");
-	preset_window_def->icon_count = 0;
 
-	preset_pane_def = templates_load_window("PresetTB");
-	preset_pane_def->sprite_area = sprites;
-
-	preset_window_menu = templates_get_menu("PresetMenu");
-	ihelp_add_menu(preset_window_menu, "PresetMenu");
-
-	preset_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_save_csv);
-	preset_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_save_tsv);
 
 	preset_sort_callbacks.compare = preset_sort_compare;
 	preset_sort_callbacks.swap = preset_sort_swap;
 
+	preset_list_window_initialise(sprites);
 	preset_dialogue_initialise();
 }
 

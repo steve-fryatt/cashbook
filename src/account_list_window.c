@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -260,7 +260,7 @@ struct account_list_window_redraw {
 
 
 /**
- * Account Window instance data structure.
+ * Account List Window instance data structure.
  */
 
 struct account_list_window {
@@ -414,7 +414,7 @@ static void account_list_window_export_delimited(struct account_list_window *win
 
 
 /**
- * Test whether an account number is safe to look up in the account data array.
+ * Test whether a line number is safe to look up in the redraw data array.
  */
 
 #define account_list_window_line_valid(windat, line) (((line) >= 0) && ((line) < ((windat)->display_lines)))
@@ -423,6 +423,8 @@ static void account_list_window_export_delimited(struct account_list_window *win
 
 /**
  * Initialise the Account List Window system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
 void account_list_window_initialise(osspriteop_area *sprites)

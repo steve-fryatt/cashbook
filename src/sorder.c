@@ -78,6 +78,7 @@
 #include "flexutils.h"
 #include "print_dialogue.h"
 #include "sorder_dialogue.h"
+#include "sorder_list_window.h"
 #include "sort.h"
 #include "sort_dialogue.h"
 #include "stringbuild.h"
@@ -85,16 +86,6 @@
 #include "transact.h"
 #include "window.h"
 
-
-/* Main Window Icons
- *
- * Note that these correspond to column numbers.
- */
-
-
-/* SOrder menu */
-
-/* Toolbar icons. */
 
 /* Standing Order Sort Window */
 

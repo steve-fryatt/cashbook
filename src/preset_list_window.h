@@ -30,5 +30,13 @@
 #ifndef CASHBOOK_PRESET_LIST_WINDOW
 #define CASHBOOK_PRESET_LIST_WINDOW
 
+/**
+ * Initialise the Preset List Window system.
+ *
+ * \param *sprites		The application sprite area.
+ */
+
+void preset_list_window_initialise(osspriteop_area *sprites)
+
 #endif
 

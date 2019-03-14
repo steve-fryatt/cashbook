@@ -233,3 +233,212 @@ static struct column_map transact_columns[TRANSACT_COLUMNS] = {
 	{TRANSACT_ICON_DESCRIPTION, TRANSACT_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
 };
 
+/**
+ * Transaction List Window line redraw data.
+ */
+
+struct transact_list_window_redraw {
+	/**
+	 * The number of the transaction relating to the line.
+	 */
+	trans_t					transact;
+};
+
+/**
+ * Transaction List Window instance data structure.
+ */
+
+struct transact_list_window {
+	/**
+	 * The Transaction instance owning the Transaction List Window.
+	 */
+	struct transact_block			*instance;
+
+	/**
+	 * Wimp window handle for the main Transaction List Window.
+	 */
+	wimp_w					transaction_window;
+
+	/**
+	 * Indirected title data for the window.
+	 */
+	char					window_title[WINDOW_TITLE_LENGTH];
+
+	/**
+	 * Wimp window handle for the Transaction List Window Toolbar pane.
+	 */
+	wimp_w					transaction_pane;
+
+	/**
+	 * Instance handle for the window's edit line.
+	 */
+	struct edit_block			*edit_line;
+
+	/**
+	 * Instance handle for the window's column definitions.
+	 */
+	struct column_block			*columns;
+
+	/**
+	 * Instance handle for the window's sort code.
+	 */
+	struct sort_block			*sort;
+
+	/**
+	 * Indirected text data for the sort sprite icon.
+	 */
+	char					sort_sprite[COLUMN_SORT_SPRITE_LEN];
+
+	/**
+	 * Count of the number of populated display lines in the window.
+	 */
+	int					display_lines;
+
+	/**
+	 * Flex array holding the line data for the window.
+	 */
+	struct sorder_list_window_redraw	*line_data;
+
+	/**
+	 * True if reconcile should automatically jump to the next unreconciled entry.
+	 */
+	osbool			auto_reconcile;	
+};
+
+/**
+ * The definition for the Transaction List Window.
+ */
+
+static wimp_window		*transact_window_def = NULL;
+
+/**
+ * The definition for the Transaction List Window toolbar pane.
+ */
+
+static wimp_window		*transact_pane_def = NULL;
+
+/**
+ * The handle of the Transaction List Window menu.
+ */
+
+static wimp_menu		*transact_window_menu = NULL;
+
+/**
+ * The Transaction List Window Account submenu handle.
+ */
+
+static wimp_menu		*transact_window_menu_account = NULL;
+
+/**
+ * The Transaction List Window Transaction submenu handle.
+ */
+
+static wimp_menu		*transact_window_menu_transact = NULL;
+
+/**
+ * The Transaction List Window Analysis submenu handle.
+ */
+
+static wimp_menu		*transact_window_menu_analysis = NULL;
+
+/**
+ * The Transaction List Window Toolbar's Account List popup menu handle.
+ */
+
+static wimp_menu		*transact_account_list_menu = NULL;
+
+/**
+ * The window line associated with the most recent menu opening.
+ */
+
+static int			transact_window_menu_line = -1;
+
+/**
+ * The Save File saveas data handle.
+ */
+
+static struct saveas_block	*transact_saveas_file = NULL;
+
+/**
+ * The Save CSV saveas data handle.
+ */
+
+static struct saveas_block	*transact_saveas_csv = NULL;
+
+/**
+ * The Save TSV saveas data handle.
+ */
+
+static struct saveas_block	*transact_saveas_tsv = NULL;
+
+/**
+ * Data relating to field dragging.
+ */
+
+struct transact_drag_data {
+	/**
+	 * The Transaction List Window instance currently owning the line drag.
+	 */
+	struct transact_block	*owner; // \TODO -- Make this transact_list_window
+
+	/**
+	 * The line of the window over which the drag started.
+	 */
+	int			start_line;
+
+	/**
+	 * The column of the window over which the drag started.
+	 */
+	wimp_i			start_column;
+
+	/**
+	 * TRUE if the field drag is using a sprite.
+	 */
+	osbool			dragging_sprite;
+};
+
+/**
+ * Instance of the window drag data, held statically to survive across Wimp_Poll.
+ */
+
+static struct transact_drag_data transact_window_dragging_data;
+
+
+/* Static Function Prototypes. */
+
+
+
+
+
+/**
+ * Test whether a line number is safe to look up in the redraw data array.
+ */
+
+#define transact_list_window_line_valid(windat, line) (((line) >= 0) && ((line) < ((windat)->display_lines)))
+
+
+/**
+ * Initialise the Transaction List Window system.
+ *
+ * \param *sprites		The application sprite area.
+ */
+
+void transact_list_window_initialise(osspriteop_area *sprites)
+{
+	transact_window_def = templates_load_window("Transact");
+	transact_window_def->icon_count = 0;
+
+	transact_pane_def = templates_load_window("TransactTB");
+	transact_pane_def->sprite_area = sprites;
+
+	transact_window_menu = templates_get_menu("MainMenu");
+	ihelp_add_menu(transact_window_menu, "MainMenu");
+	transact_window_menu_account = templates_get_menu("MainAccountsSubmenu");
+	transact_window_menu_transact = templates_get_menu("MainTransactionsSubmenu");
+	transact_window_menu_analysis = templates_get_menu("MainAnalysisSubmenu");
+
+	transact_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_save_file);
+	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_save_csv);
+	transact_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", transact_save_tsv);
+}
+

@@ -146,32 +146,6 @@ struct transaction {
 struct transact_block {
 	struct file_block	*file;						/**< The file to which the window belongs.				*/
 
-	/* Transactcion window handle and title details. */
-
-	wimp_w			transaction_window;				/**< Window handle of the transaction window */
-	char			window_title[WINDOW_TITLE_LENGTH];
-	wimp_w			transaction_pane;				/**< Window handle of the transaction window toolbar pane */
-
-	/* Edit line details. */
-
-	struct edit_block	*edit_line;					/**< Instance handle of the edit line.					*/
-
-	/* Display column details. */
-
-	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
-
-	/* Window sorting information. */
-
-	struct sort_block	*sort;						/**< Instance handle for the sort code.					*/
-
-	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
-
-	/* Other window information. */
-
-	int			display_lines;					/**< How many lines the current work area is formatted to display.	*/
-
-	osbool			auto_reconcile;					/**< Should reconcile jump to the next unreconcliled entry.		*/
-
 	/* Transaction Data. */
 
 	struct transaction	*transactions;					/**< The transaction data for the defined transactions			*/
@@ -238,44 +212,6 @@ static struct sort_dialogue_icon transact_sort_directions[] = {				/**< Details 
 /* Transaction sorting. */
 
 static struct sort_callback	transact_sort_callbacks;
-
-/**
- * Data relating to window dragging.
- */
-
-struct transact_drag_data {
-	struct transact_block	*owner;
-
-	int			start_line;
-	wimp_i			start_column;
-
-	osbool			dragging_sprite;
-};
-
-/**
- * Instance of the window drag data, held statically to survive across Wimp_Poll.
- */
-
-static struct transact_drag_data transact_window_dragging_data;
-
-
-/* Transaction List Window. */
-
-static wimp_window		*transact_window_def = NULL;			/**< The definition for the Transaction List Window.					*/
-static wimp_window		*transact_pane_def = NULL;			/**< The definition for the Transaction List Toolbar pane.				*/
-static wimp_menu		*transact_window_menu = NULL;			/**< The Transaction List Window menu handle.						*/
-static wimp_menu		*transact_window_menu_account = NULL;		/**< The Transaction List Window Account submenu handle.				*/
-static wimp_menu		*transact_window_menu_transact = NULL;		/**< The Transaction List Window Transaction submenu handle.				*/
-static wimp_menu		*transact_window_menu_analysis = NULL;		/**< The Transaction List Window Analysis submenu handle.				*/
-static int			transact_window_menu_line = -1;			/**< The line over which the Transaction List Window Menu was opened.			*/
-
-static wimp_menu		*transact_account_list_menu = NULL;		/**< The toolbar's Account List popup menu handle.					*/
-
-/* SaveAs Dialogue Handles. */
-
-static struct saveas_block	*transact_saveas_file = NULL;			/**< The Save File saveas data handle.					*/
-static struct saveas_block	*transact_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
-static struct saveas_block	*transact_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 
 static void			transact_delete_window(struct transact_block *windat);
@@ -359,21 +295,7 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_sort_dialogue = sort_dialogue_create(sort_window, transact_sort_columns, transact_sort_directions,
 			TRANS_SORT_OK, TRANS_SORT_CANCEL, transact_process_sort_window);
 
-	transact_window_def = templates_load_window("Transact");
-	transact_window_def->icon_count = 0;
 
-	transact_pane_def = templates_load_window("TransactTB");
-	transact_pane_def->sprite_area = sprites;
-
-	transact_window_menu = templates_get_menu("MainMenu");
-	ihelp_add_menu(transact_window_menu, "MainMenu");
-	transact_window_menu_account = templates_get_menu("MainAccountsSubmenu");
-	transact_window_menu_transact = templates_get_menu("MainTransactionsSubmenu");
-	transact_window_menu_analysis = templates_get_menu("MainAnalysisSubmenu");
-
-	transact_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_save_file);
-	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_save_csv);
-	transact_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", transact_save_tsv);
 
 	transact_edit_callbacks.get_field = transact_edit_get_field;
 	transact_edit_callbacks.put_field = transact_edit_put_field;
@@ -387,6 +309,8 @@ void transact_initialise(osspriteop_area *sprites)
 
 	transact_sort_callbacks.compare = transact_sort_compare;
 	transact_sort_callbacks.swap = transact_sort_swap;
+
+	transact_list_window_initialise(sprites);
 }
 
 

@@ -157,3 +157,135 @@ static struct column_map sorder_columns[SORDER_COLUMNS] = {
 	{SORDER_ICON_LEFT, SORDER_PANE_LEFT, wimp_ICON_WINDOW, SORT_LEFT}
 };
 
+/**
+ * Standing Order List Window line redraw data.
+ */
+
+struct sorder_list_window_redraw {
+	/**
+	 * The number of the standing order relating to the line.
+	 */
+	sorder_t				sorder;
+};
+
+/**
+ * Standing Order List Window instance data structure.
+ */
+
+struct sorder_list_window {
+	/**
+	 * The standing order instance owning the Standing Order List Window.
+	 */
+	struct sorder_block			*instance;
+
+	/**
+	 * Wimp window handle for the main Standing Order List Window.
+	 */
+	wimp_w					sorder_window;
+
+	/**
+	 * Indirected title data for the window.
+	 */
+	char					window_title[WINDOW_TITLE_LENGTH];
+
+	/**
+	 * Wimp window handle for the Standing Order List Window Toolbar pane.
+	 */
+	wimp_w					sorder_pane;
+
+	/**
+	 * Instance handle for the window's column definitions.
+	 */
+	struct column_block			*columns;
+
+	/**
+	 * Instance handle for the window's sort code.
+	 */
+	struct sort_block			*sort;
+
+	/**
+	 * Indirected text data for the sort sprite icon.
+	 */
+	char					sort_sprite[COLUMN_SORT_SPRITE_LEN];
+
+	/**
+	 * Count of the number of populated display lines in the window.
+	 */
+	int					display_lines;
+
+	/**
+	 * Flex array holding the line data for the window.
+	 */
+	struct sorder_list_window_redraw	*line_data;
+};
+
+/**
+ * The definition for the Standing Order List Window.
+ */
+
+static wimp_window		*sorder_window_def = NULL;
+
+/**
+ * The definition for the Standing Order List Window toolbar pane.
+ */
+
+static wimp_window		*sorder_pane_def = NULL;
+
+/**
+ * The handle of the Standing Order List Window menu.
+ */
+
+static wimp_menu		*sorder_window_menu = NULL;
+
+/**
+ * The window line associated with the most recent menu opening.
+ */
+
+static int			sorder_window_menu_line = -1;
+
+/**
+ * The Save CSV saveas data handle.
+ */
+
+static struct saveas_block	*sorder_saveas_csv = NULL;
+
+/**
+ * The Save TSV saveas data handle.
+ */
+
+static struct saveas_block	*sorder_saveas_tsv = NULL;
+
+/* Static Function Prototypes. */
+
+
+
+
+/**
+ * Test whether a line number is safe to look up in the redraw data array.
+ */
+
+#define sorder_list_window_line_valid(windat, line) (((line) >= 0) && ((line) < ((windat)->display_lines)))
+
+
+/**
+ * Initialise the Standing Order List Window system.
+ *
+ * \param *sprites		The application sprite area.
+ */
+
+void sorder_list_window_initialise(osspriteop_area *sprites)
+{
+	sorder_window_def = templates_load_window("SOrder");
+	sorder_window_def->icon_count = 0;
+
+	sorder_pane_def = templates_load_window("SOrderTB");
+	sorder_pane_def->sprite_area = sprites;
+
+	sorder_window_menu = templates_get_menu("SOrderMenu");
+	ihelp_add_menu(sorder_window_menu, "SorderMenu");
+
+	sorder_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", sorder_save_csv);
+	sorder_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", sorder_save_tsv);
+}
+
+

@@ -359,7 +359,7 @@ static struct saveas_block		*account_list_window_saveas_tsv = NULL;
 
 
 /**
- * Data relating to line dragging dragging.
+ * Data relating to line dragging.
  */
 
 struct account_list_window_drag_data {

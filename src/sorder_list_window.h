@@ -30,6 +30,13 @@
 #ifndef CASHBOOK_SORDER_LIST_WINDOW
 #define CASHBOOK_SORDER_LIST_WINDOW
 
+/**
+ * Initialise the Standing Order List Window system.
+ *
+ * \param *sprites		The application sprite area.
+ */
+
+void sorder_list_window_initialise(osspriteop_area *sprites);
 
 
 

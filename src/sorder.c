@@ -132,44 +132,33 @@ struct sorder {
 	amt_t			last_amount;
 	char			reference[TRANSACT_REF_FIELD_LEN];
 	char			description[TRANSACT_DESCRIPT_FIELD_LEN];
-
-	/* Sort index entries.
-	 *
-	 * NB - These are unconnected to the rest of the sorder data, and are in effect a separate array that is used
-	 * for handling entries in the sorder window.
-	 */
-
-	sorder_t		sort_index;					/**< Point to another order, to allow the sorder window to be sorted.	*/
 };
 
 
 /**
- * Standing Order Window data structure
+ * Standing Order Instance data structure
  */
 
 struct sorder_block {
-	struct file_block	*file;						/**< The file to which the window belongs.				*/
+	/**
+	 * The file to which the instance belongs.
+	 */
+	struct file_block		*file;
 
-	/* Transactcion window handle and title details. */
+	/**
+	 * The Standing Order List window instance.
+	 */
+	struct sorder_list_window	*sorder_window;
 
-	wimp_w			sorder_window;					/**< Window handle of the standing order window.			*/
-	char			window_title[WINDOW_TITLE_LENGTH];
-	wimp_w			sorder_pane;					/**< Window handle of the standing order window toolbar pane.		*/
+	/**
+	 * The standing order data for the defined standing orders.
+	 */
+	struct sorder		*sorders;
 
-	/* Display column details. */
-
-	struct column_block	*columns;					/**< Instance handle of the column definitions.				*/
-
-	/* Window sorting information. */
-
-	struct sort_block	*sort;						/**< Instance handle for the sort code.					*/
-
-	char			sort_sprite[COLUMN_SORT_SPRITE_LEN];		/**< Space for the sort icon's indirected data.				*/
-
-	/* Standing Order data. */
-
-	struct sorder		*sorders;					/**< The standing order data for the defined standing orders		*/
-	sorder_t		sorder_count;					/**< The number of standing orders defined in the file.			*/
+	/**
+	 * The number of standing orders defined in the file.
+	 */
+	sorder_t		sorder_count;
 };
 
 /* Standing Order Sort Window. */
@@ -195,18 +184,6 @@ static struct sort_dialogue_icon sorder_sort_directions[] = {				/**< Details of
 /* Standing Order sorting. */
 
 static struct sort_callback	sorder_sort_callbacks;
-
-/* Standing Order List Window. */
-
-static wimp_window		*sorder_window_def = NULL;			/**< The definition for the Standing Order Window.			*/
-static wimp_window		*sorder_pane_def = NULL;			/**< The definition for the Standing Order Window pane.			*/
-static wimp_menu		*sorder_window_menu = NULL;			/**< The Standing Order Window menu handle.				*/
-static int			sorder_window_menu_line = -1;			/**< The line over which the Standing Order Window Menu was opened.	*/
-
-/* SaveAs Dialogue Handles. */
-
-static struct saveas_block	*sorder_saveas_csv = NULL;			/**< The Save CSV saveas data handle.					*/
-static struct saveas_block	*sorder_saveas_tsv = NULL;			/**< The Save TSV saveas data handle.					*/
 
 
 static void			sorder_delete_window(struct sorder_block *windat);
@@ -270,21 +247,12 @@ void sorder_initialise(osspriteop_area *sprites)
 	sorder_sort_dialogue = sort_dialogue_create(sort_window, sorder_sort_columns, sorder_sort_directions,
 			SORDER_SORT_OK, SORDER_SORT_CANCEL, sorder_process_sort_window);
 
-	sorder_window_def = templates_load_window("SOrder");
-	sorder_window_def->icon_count = 0;
 
-	sorder_pane_def = templates_load_window("SOrderTB");
-	sorder_pane_def->sprite_area = sprites;
-
-	sorder_window_menu = templates_get_menu("SOrderMenu");
-	ihelp_add_menu(sorder_window_menu, "SorderMenu");
-
-	sorder_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", sorder_save_csv);
-	sorder_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", sorder_save_tsv);
 
 	sorder_sort_callbacks.compare = sorder_sort_compare;
 	sorder_sort_callbacks.swap = sorder_sort_swap;
 
+	sorder_list_window_initialise(sprites);
 	sorder_dialogue_initialise();
 }
 

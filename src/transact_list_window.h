@@ -30,5 +30,14 @@
 #ifndef CASHBOOK_TRANSACT_LIST_WINDOW
 #define CASHBOOK_TRANSACT_LIST_WINDOW
 
+/**
+ * Initialise the Transaction List Window system.
+ *
+ * \param *sprites		The application sprite area.
+ */
+
+void transact_list_window_initialise(osspriteop_area *sprites);
+
+
 #endif
 

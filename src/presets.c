@@ -117,14 +117,6 @@ struct preset {
 	amt_t			amount;
 	char			reference[TRANSACT_REF_FIELD_LEN];
 	char			description[TRANSACT_DESCRIPT_FIELD_LEN];
-
-	/* Sort index entries.
-	 *
-	 * NB - These are unconnected to the rest of the preset data, and are in effect a separate array that is used
-	 * for handling entries in the preset window.
-	 */
-
-	preset_t		sort_index;       /* Point to another order, to allow the sorder window to be sorted. */
 };
 
 /**
@@ -145,12 +137,12 @@ struct preset_block {
 	/**
 	 * The preset data for the defined presets.
 	 */
-	struct preset		*presets;
+	struct preset			*presets;
 
 	/**
 	 * The number of presets defined in the file.
 	 */
-	int			preset_count;
+	int				preset_count;
 };
 
 

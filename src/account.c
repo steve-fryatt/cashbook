@@ -95,7 +95,7 @@
 
 /**
  * The number of Account List Windows.
- */ 
+ */
 
 #define ACCOUNT_LIST_WINDOWS 3
 
@@ -304,6 +304,8 @@ void account_open_window(struct file_block *file, enum account_type type)
 {
 	int			entry;
 
+        if (file == NULL)
+           return;
 
 	entry = account_find_window_entry_from_type(file, type);
 

@@ -481,6 +481,8 @@ struct account_list_window *account_list_window_create_instance(struct account_b
 	*new->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL] = '\0';
 	*new->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET] = '\0';
 
+	/* Initialise the window columns. */
+
 	new->columns = column_create_instance(ACCOUNT_LIST_WINDOW_COLUMNS, account_list_window_columns, account_list_window_extra_columns, wimp_ICON_WINDOW);
 	if (new->columns == NULL) {
 		account_list_window_delete_instance(new);
@@ -664,11 +666,6 @@ static void account_list_window_delete(struct account_list_window *windat)
 	debug_printf ("\\RDeleting accounts list window");
 	#endif
 
-	/* Close any dialogues which belong to this window. */
-
-	dialogue_force_all_closed(NULL, windat->instance);
-	dialogue_force_all_closed(NULL, windat);
-
 	/* Delete the window, if it exists. */
 
 	if (windat->account_window != NULL) {
@@ -691,8 +688,9 @@ static void account_list_window_delete(struct account_list_window *windat)
 		windat->account_footer = NULL;
 	}
 
-	/* Close any related dialogues. */
+	/* Close any dialogues which belong to this window. */
 
+	dialogue_force_all_closed(NULL, windat->instance);
 	dialogue_force_all_closed(NULL, windat);
 }
 

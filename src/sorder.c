@@ -161,27 +161,7 @@ struct sorder_block {
 	sorder_t		sorder_count;
 };
 
-/* Standing Order Sort Window. */
-
-static struct sort_dialogue_block	*sorder_sort_dialogue = NULL;		/**< The standing order window sort dialogue box.			*/
-
-static struct sort_dialogue_icon sorder_sort_columns[] = {				/**< Details of the sort dialogue column icons.				*/
-	{SORDER_SORT_FROM, SORT_FROM},
-	{SORDER_SORT_TO, SORT_TO},
-	{SORDER_SORT_AMOUNT, SORT_AMOUNT},
-	{SORDER_SORT_DESCRIPTION, SORT_DESCRIPTION},
-	{SORDER_SORT_NEXTDATE, SORT_NEXTDATE},
-	{SORDER_SORT_LEFT, SORT_LEFT},
-	{0, SORT_NONE}
-};
-
-static struct sort_dialogue_icon sorder_sort_directions[] = {				/**< Details of the sort dialogue direction icons.			*/
-	{SORDER_SORT_ASCENDING, SORT_ASCENDING},
-	{SORDER_SORT_DESCENDING, SORT_DESCENDING},
-	{0, SORT_NONE}
-};
-
-/* Standing Order sorting. */
+s/* Standing Order sorting. */
 
 static struct sort_callback	sorder_sort_callbacks;
 
@@ -240,15 +220,6 @@ static enum date_adjust		sorder_get_date_adjustment(enum transact_flags flags);
 
 void sorder_initialise(osspriteop_area *sprites)
 {
-	wimp_w	sort_window;
-
-	sort_window = templates_create_window("SortSOrder");
-	ihelp_add_window(sort_window, "SortSOrder", NULL);
-	sorder_sort_dialogue = sort_dialogue_create(sort_window, sorder_sort_columns, sorder_sort_directions,
-			SORDER_SORT_OK, SORDER_SORT_CANCEL, sorder_process_sort_window);
-
-
-
 	sorder_sort_callbacks.compare = sorder_sort_compare;
 	sorder_sort_callbacks.swap = sorder_sort_swap;
 
@@ -272,33 +243,17 @@ struct sorder_block *sorder_create_instance(struct file_block *file)
 	if (new == NULL)
 		return NULL;
 
-	/* Initialise the standing order window. */
+	/* Initialise the standing order block. */
 
 	new->file = file;
-
-	new->sorder_window = NULL;
-	new->sorder_pane = NULL;
-	new->columns = NULL;
-	new->sort = NULL;
 
 	new->sorders = NULL;
 	new->sorder_count = 0;
 
-	/* Initialise the window columns. */
+	/* Initialise the standing order window. */
 
-	new-> columns = column_create_instance(SORDER_COLUMNS, sorder_columns, NULL, SORDER_PANE_SORT_DIR_ICON);
-	if (new->columns == NULL) {
-		sorder_delete_instance(new);
-		return NULL;
-	}
-
-	column_set_minimum_widths(new->columns, config_str_read("LimSOrderCols"));
-	column_init_window(new->columns, 0, FALSE, config_str_read("SOrderCols"));
-
-	/* Initialise the window sort. */
-
-	new->sort = sort_create_instance(SORT_NEXTDATE | SORT_DESCENDING, SORT_NONE, &sorder_sort_callbacks, new);
-	if (new->sort == NULL) {
+	new->sorder_window = sorder_list_window_create_instance(new);
+	if (new->sorder_window == NULL) {
 		sorder_delete_instance(new);
 		return NULL;
 	}
@@ -325,10 +280,7 @@ void sorder_delete_instance(struct sorder_block *windat)
 	if (windat == NULL)
 		return;
 
-	sorder_delete_window(windat);
-
-	column_delete_instance(windat->columns);
-	sort_delete_instance(windat->sort);
+	sorder_list_window_delete_instance(windat->sorder_window);
 
 	if (windat->sorders != NULL)
 		flexutils_free((void **) &(windat->sorders));
@@ -345,173 +297,17 @@ void sorder_delete_instance(struct sorder_block *windat)
 
 void sorder_open_window(struct file_block *file)
 {
-	int			height;
-	wimp_window_state	parent;
-	os_error		*error;
-
-	if (file == NULL || file->sorders == NULL)
+	if (file == NULL || file->sorders == NULL || file->sorders->sorder_window == NULL)
 		return;
 
-	/* Create or re-open the window. */
-
-	if (file->sorders->sorder_window != NULL) {
-		windows_open(file->sorders->sorder_window);
-		return;
-	}
-
-	#ifdef DEBUG
-	debug_printf("\\CCreating standing order window");
-	#endif
-
-	/* Create the new window data and build the window. */
-
-	*(file->sorders->window_title) = '\0';
-	sorder_window_def->title_data.indirected_text.text = file->sorders->window_title;
-
-	height = (file->sorders->sorder_count > MIN_SORDER_ENTRIES) ? file->sorders->sorder_count : MIN_SORDER_ENTRIES;
-
-	transact_get_window_state(file, &parent);
-
-	window_set_initial_area(sorder_window_def, column_get_window_width(file->sorders->columns),
-			(height * WINDOW_ROW_HEIGHT) + SORDER_TOOLBAR_HEIGHT,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
-			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
-
-	error = xwimp_create_window(sorder_window_def, &(file->sorders->sorder_window));
-	if (error != NULL) {
-		sorder_delete_window(file->sorders);
-		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		return;
-	}
-
-	/* Create the toolbar. */
-
-	windows_place_as_toolbar(sorder_window_def, sorder_pane_def, SORDER_TOOLBAR_HEIGHT-4);
-
-	#ifdef DEBUG
-	debug_printf("Window extents set...");
-	#endif
-
-	columns_place_heading_icons(file->sorders->columns, sorder_pane_def);
-
-	sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
-			(osspriteop_id) file->sorders->sort_sprite;
-	sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-			sorder_pane_def->sprite_area;
-	sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
-
-	sorder_adjust_sort_icon_data(file->sorders, &(sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON]));
-
-	#ifdef DEBUG
-	debug_printf("Toolbar icons adjusted...");
-	#endif
-
-	error = xwimp_create_window(sorder_pane_def, &(file->sorders->sorder_pane));
-	if (error != NULL) {
-		sorder_delete_window(file->sorders);
-		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		return;
-	}
-
-	/* Set the title */
-
-	sorder_build_window_title(file);
-
-	/* Open the window. */
-
-	ihelp_add_window(file->sorders->sorder_window , "SOrder", sorder_decode_window_help);
-	ihelp_add_window(file->sorders->sorder_pane , "SOrderTB", NULL);
-
-	windows_open(file->sorders->sorder_window);
-	windows_open_nested_as_toolbar(file->sorders->sorder_pane,
-			file->sorders->sorder_window,
-			SORDER_TOOLBAR_HEIGHT-4, FALSE);
-
-	/* Register event handlers for the two windows. */
-
-	event_add_window_user_data(file->sorders->sorder_window, file->sorders);
-	event_add_window_menu(file->sorders->sorder_window, sorder_window_menu);
-	event_add_window_close_event(file->sorders->sorder_window, sorder_close_window_handler);
-	event_add_window_mouse_event(file->sorders->sorder_window, sorder_window_click_handler);
-	event_add_window_scroll_event(file->sorders->sorder_window, sorder_window_scroll_handler);
-	event_add_window_redraw_event(file->sorders->sorder_window, sorder_window_redraw_handler);
-	event_add_window_menu_prepare(file->sorders->sorder_window, sorder_window_menu_prepare_handler);
-	event_add_window_menu_selection(file->sorders->sorder_window, sorder_window_menu_selection_handler);
-	event_add_window_menu_warning(file->sorders->sorder_window, sorder_window_menu_warning_handler);
-	event_add_window_menu_close(file->sorders->sorder_window, sorder_window_menu_close_handler);
-
-	event_add_window_user_data(file->sorders->sorder_pane, file->sorders);
-	event_add_window_menu(file->sorders->sorder_pane, sorder_window_menu);
-	event_add_window_mouse_event(file->sorders->sorder_pane, sorder_pane_click_handler);
-	event_add_window_menu_prepare(file->sorders->sorder_pane, sorder_window_menu_prepare_handler);
-	event_add_window_menu_selection(file->sorders->sorder_pane, sorder_window_menu_selection_handler);
-	event_add_window_menu_warning(file->sorders->sorder_pane, sorder_window_menu_warning_handler);
-	event_add_window_menu_close(file->sorders->sorder_pane, sorder_window_menu_close_handler);
+	sorder_list_window_open(file->sorders->sorder_window);
 }
 
 
-/**
- * Close and delete the Standing order List Window associated with the given
- * file block.
- *
- * \param *windat		The window to delete.
- */
-
-static void sorder_delete_window(struct sorder_block *windat)
-{
-	#ifdef DEBUG
-	debug_printf ("\\RDeleting standing order window");
-	#endif
-
-	if (windat == NULL)
-		return;
-
-	sort_dialogue_close(sorder_sort_dialogue, windat);
-
-	dialogue_force_all_closed(NULL, windat);
-
-	if (windat->sorder_window != NULL) {
-		ihelp_remove_window (windat->sorder_window);
-		event_delete_window(windat->sorder_window);
-		wimp_delete_window(windat->sorder_window);
-		windat->sorder_window = NULL;
-	}
-
-	if (windat->sorder_pane != NULL) {
-		ihelp_remove_window (windat->sorder_pane);
-		event_delete_window(windat->sorder_pane);
-		wimp_delete_window(windat->sorder_pane);
-		windat->sorder_pane = NULL;
-	}
-
-	/* Close any related dialogues. */
-
-	dialogue_force_all_closed(NULL, windat);
-}
 
 
-/**
- * Handle Close events on Standing Order List windows, deleting the window.
- *
- * \param *close		The Wimp Close data block.
- */
 
-static void sorder_close_window_handler(wimp_close *close)
-{
-	struct sorder_block	*windat;
 
-	#ifdef DEBUG
-	debug_printf("\\RClosing Standing Order window");
-	#endif
-
-	windat = event_get_window_user_data(close->w);
-	if (windat == NULL)
-		return;
-
-	/* Close the window */
-
-	sorder_delete_window(windat);
-}
 
 
 /**

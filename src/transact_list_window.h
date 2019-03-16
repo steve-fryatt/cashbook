@@ -39,5 +39,33 @@
 void transact_list_window_initialise(osspriteop_area *sprites);
 
 
+/**
+ * Create a new Transaction List Window instance.
+ *
+ * \param *parent		The parent transact instance.
+ * \return			Pointer to the new instance, or NULL.
+ */
+
+struct transact_list_window *transact_list_window_create_instance(struct transact_block *parent);
+
+
+/**
+ * Destroy a Transaction List Window instance.
+ *
+ * \param *windat		The instance to be deleted.
+ */
+
+void transact_list_window_delete_instance(struct transact_list_window *windat);
+
+
+/**
+ * Create and open a Transaction List window for the given instance.
+ *
+ * \param *windat		The instance to open a window for.
+ */
+
+void transact_list_window_open(struct transact_list_window *windat);
+
+
 #endif
 

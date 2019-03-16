@@ -39,6 +39,33 @@
 void sorder_list_window_initialise(osspriteop_area *sprites);
 
 
+/**
+ * Create a new Standing Order List Window instance.
+ *
+ * \param *parent		The parent sorder instance.
+ * \return			Pointer to the new instance, or NULL.
+ */
+
+struct sorder_list_window *sorder_list_window_create_instance(struct sorder_block *parent);
+
+
+/**
+ * Destroy a Standing Order List Window instance.
+ *
+ * \param *windat		The instance to be deleted.
+ */
+
+void sorder_list_window_delete_instance(struct sorder_list_window *windat);
+
+
+/**
+ * Create and open a Standing Order List window for the given instance.
+ *
+ * \param *windat		The instance to open a window for.
+ */
+
+void sorder_list_window_open(struct sorder_list_window *windat);
+
 
 #endif
 

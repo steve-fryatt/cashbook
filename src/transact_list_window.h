@@ -67,5 +67,52 @@ void transact_list_window_delete_instance(struct transact_list_window *windat);
 void transact_list_window_open(struct transact_list_window *windat);
 
 
+
+
+
+
+
+
+/**
+ * Recreate the title of the given Transaction window.
+ *
+ * \param *windat		The transaction window to rebuild the title for.
+ */
+
+void transact_list_window_build_window_title(struct transact_list_window *windat);
+
+
+/**
+ * Force the complete redraw of a given Transaction window.
+ *
+ * \param *windat		The transaction window to redraw.
+ */
+
+void transact_list_window_redraw_all(struct transact_list_window *windat);
+
+
+/**
+ * Find the display line in a transaction window which points to the
+ * specified transaction under the applied sort.
+ *
+ * \param *windat		The transaction list window to search in
+ * \param transaction		The transaction to return the line for.
+ * \return			The appropriate line, or -1 if not found.
+ */
+
+int transact_list_window_get_line_from_transaction(struct transact_list_window *windat, tran_t transaction);
+
+
+/**
+ * Find the transaction which corresponds to a display line in a given
+ * transaction window.
+ *
+ * \param *windat		The transaction list window to search in
+ * \param line			The display line to return the transaction for.
+ * \return			The appropriate transaction, or NULL_TRANSACTION.
+ */
+
+tran_t transact_list_window_get_transaction_from_line(struct transact_list_window *windat, int line);
+
 #endif
 

@@ -68,7 +68,7 @@ void preset_list_window_open(struct preset_list_window *windat);
 
 
 /**
- * Recreate the title of the Preset List window connected to the given file.
+ * Recreate the title of the given Preset List window.
  *
  * \param *windat		The preset window to rebuild the title for.
  */
@@ -77,7 +77,7 @@ void preset_list_window_build_title(struct preset_list_window *windat);
 
 
 /**
- * Force the complete redraw of the Preset list window.
+ * Force the complete redraw of the given Preset list window.
  *
  * \param *file			The file owning the window to redraw.
  */
@@ -89,7 +89,7 @@ void preset_list_window_redraw_all(struct preset_list_window *windat);
  * Find the preset which corresponds to a display line in the specified
  * preset list window.
  *
- * \param *file			The preset list window to search in.
+ * \param *windat		The preset list window to search in.
  * \param line			The display line to return the preset for.
  * \return			The appropriate transaction, or NULL_PRESET.
  */

@@ -67,5 +67,23 @@ void sorder_list_window_delete_instance(struct sorder_list_window *windat);
 void sorder_list_window_open(struct sorder_list_window *windat);
 
 
+/**
+ * Recreate the title of the given Standing Order List window.
+ *
+ * \param *windat		The standing order window to rebuild the
+ *				title for.
+ */
+
+void sorder_list_window_build_title(struct sorder_list_window *windat);
+
+
+/**
+ * Force the complete redraw of the given Standing Order list window.
+ *
+ * \param *windat		The standing order window to redraw.
+ */
+
+void sorder_redraw_all(struct sorder_list_window *windat);
+
 #endif
 

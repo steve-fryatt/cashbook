@@ -1069,7 +1069,7 @@ static void preset_list_window_set_extent(struct preset_list_window *windat)
 
 
 /**
- * Recreate the title of the Preset List window connected to the given file.
+ * Recreate the title of the given Preset List window.
  *
  * \param *windat		The preset window to rebuild the title for.
  */
@@ -1091,7 +1091,7 @@ void preset_list_window_build_title(struct preset_list_window *windat)
 
 
 /**
- * Force the complete redraw of the Preset list window.
+ * Force the complete redraw of the given Preset list window.
  *
  * \param *file			The file owning the window to redraw.
  */
@@ -1180,12 +1180,12 @@ static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
  * Find the display line in a preset window which points to the specified
  * preset under the applied sort.
  *
- * \param *windat		The preset window to search.
+ * \param *windat		The preset list window to search.
  * \param preset		The preset to return the line for.
  * \return			The appropriate line, or -1 if not found.
  */
 
-static int preset_window_get_line_from_preset(struct preset_block *windat, preset_t preset)
+static int preset_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset)
 {
 	int	i;
 	int	line = -1;
@@ -1208,7 +1208,7 @@ static int preset_window_get_line_from_preset(struct preset_block *windat, prese
  * Find the preset which corresponds to a display line in the specified
  * preset list window.
  *
- * \param *file			The preset list window to search in.
+ * \param *windat		The preset list window to search in.
  * \param line			The display line to return the preset for.
  * \return			The appropriate transaction, or NULL_PRESET.
  */
@@ -1570,4 +1570,3 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 
 	hourglass_off();
 }
-

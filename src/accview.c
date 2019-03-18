@@ -2217,7 +2217,6 @@ void accview_read_file_sortorder(struct file_block *file, char *order)
 }
 
 
-
 /**
  * Callback handler for saving a CSV version of the account view transaction data.
  *

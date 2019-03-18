@@ -1467,6 +1467,87 @@ static void preset_sort_swap(int index1, int index2, void *data)
 }
 
 
+
+
+osbool preset_list_window_add_line(struct preset_list_window *windat, preset_t preset)
+{
+
+}
+
+
+osbool preset_list_window_delete_line(struct preset_list_window *windat, preset_t preset)
+{
+	int i;
+
+	if (windat == NULL)
+		return FALSE;
+
+	for (i = 0; i < windat->display_lines && windat->line_data[i].sort_index != preset; i++);
+
+
+}
+
+
+
+
+/**
+ * Save the preset list window details from a window to a CashBook file.
+ * This assumes that the caller has laready created a suitable section
+ * in the file to be written.
+ *
+ * \param *windat		The window whose details to write.
+ * \param *out			The file handle to write to.
+ */
+
+void preset_list_window_write_file(struct preset_list_window *windat, FILE *out)
+{
+	char	buffer[FILING_MAX_FILE_LINE_LEN];
+
+	if (windat == NULL)
+		return;
+
+	/* We should be in a [Presets] section by now. */
+
+	column_write_as_text(windat->columns, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "WinColumns: %s\n", buffer);
+
+	sort_write_as_text(windat->sort, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "SortOrder: %s\n", buffer);
+}
+
+
+/**
+ * Process a WinColumns line from the Presets section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param *columns		The column text line.
+ */
+
+void preset_list_window_read_file_wincolumns(struct preset_list_window *windat, char *columns)
+{
+	if (windat == NULL)
+		return;
+
+	column_init_window(windat->columns, 0, TRUE, columns);
+}
+
+
+/**
+ * Process a SortOrder line from the Presets section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param *columns		The sort order text line.
+ */
+
+void preset_list_window_read_file_sortorder(struct preset_list_window *windat, char *order)
+{
+	if (windat == NULL)
+		return;
+
+	sort_read_from_text(windat->sort, order);
+}
+
+
 /**
  * Callback handler for saving a CSV version of the preset data.
  *
@@ -1570,3 +1651,4 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 
 	hourglass_off();
 }
+

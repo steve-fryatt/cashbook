@@ -85,5 +85,37 @@ void sorder_list_window_build_title(struct sorder_list_window *windat);
 
 void sorder_redraw_all(struct sorder_list_window *windat);
 
+
+/**
+ * Save the standing order list window details from a window to a CashBook
+ * file. This assumes that the caller has laready created a suitable section
+ * in the file to be written.
+ *
+ * \param *windat		The window whose details to write.
+ * \param *out			The file handle to write to.
+ */
+
+void sorder_list_window_write_file(struct sorder_list_window *windat, FILE *out);
+
+
+/**
+ * Process a WinColumns line from the StandingOrders section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param *columns		The column text line.
+ */
+
+void sorder_list_window_read_file_wincolumns(struct sorder_list_window *windat, char *columns);
+
+
+/**
+ * Process a SortOrder line from the StandingOrders section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param *columns		The sort order text line.
+ */
+
+void sorder_list_window_read_file_sortorder(struct sorder_list_window *windat, char *order);
+
 #endif
 

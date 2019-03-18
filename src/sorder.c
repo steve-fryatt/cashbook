@@ -1062,7 +1062,6 @@ void sorder_full_report(struct file_block *file)
 void sorder_write_file(struct file_block *file, FILE *out)
 {
 	int	i;
-	char	buffer[FILING_MAX_FILE_LINE_LEN];
 
 	if (file == NULL || file->sorders == NULL)
 		return;
@@ -1071,11 +1070,7 @@ void sorder_write_file(struct file_block *file, FILE *out)
 
 	fprintf(out, "Entries: %x\n", file->sorders->sorder_count);
 
-	column_write_as_text(file->sorders->columns, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "WinColumns: %s\n", buffer);
-
-	sort_write_as_text(file->sorders->sort, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "SortOrder: %s\n", buffer);
+	sorder_list_window_write_file(file->sorders->sorder_window, out);
 
 	for (i = 0; i < file->sorders->sorder_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x\n",
@@ -1135,9 +1130,9 @@ osbool sorder_read_file(struct file_block *file, struct filing_block *in)
 				block_size = file->sorders->sorder_count;
 			}
 		} else if (filing_test_token(in, "WinColumns")) {
-			column_init_window(file->sorders->columns, 0, TRUE, filing_get_text_value(in, NULL, 0));
+			sorder_list_window_read_file_wincolumns(file->sorders->sorder_window, filing_get_text_value(in, NULL, 0));
 		} else if (filing_test_token(in, "SortOrder")) {
-			sort_read_from_text(file->sorders->sort, filing_get_text_value(in, NULL, 0));
+			sorder_list_window_read_file_sortorder(file->sorders->sorder_window, filing_get_text_value(in, NULL, 0));
 		} else if (filing_test_token(in, "@")) {
 			file->sorders->sorder_count++;
 			if (file->sorders->sorder_count > block_size) {
@@ -1166,7 +1161,6 @@ osbool sorder_read_file(struct file_block *file, struct filing_block *in)
 			file->sorders->sorders[sorder].last_amount = currency_get_currency_field(in);
 			*(file->sorders->sorders[sorder].reference) = '\0';
 			*(file->sorders->sorders[sorder].description) = '\0';
-			file->sorders->sorders[sorder].sort_index = sorder;
 		} else if (sorder != NULL_SORDER && filing_test_token(in, "Ref")) {
 			filing_get_text_value(in, file->sorders->sorders[sorder].reference, TRANSACT_REF_FIELD_LEN);
 		} else if (sorder != NULL_SORDER && filing_test_token(in, "Desc")) {

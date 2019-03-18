@@ -96,5 +96,37 @@ void preset_list_window_redraw_all(struct preset_list_window *windat);
 
 preset_t preset_list_window_get_preset_from_line(struct preset_list_window *windat, int line);
 
+
+/**
+ * Save the preset list window details from a window to a CashBook file.
+ * This assumes that the caller has laready created a suitable section
+ * in the file to be written.
+ *
+ * \param *windat		The window whose details to write.
+ * \param *out			The file handle to write to.
+ */
+
+void preset_list_window_write_file(struct preset_list_window *windat, FILE *out);
+
+
+/**
+ * Process a WinColumns line from the Presets section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param *columns		The column text line.
+ */
+
+void preset_list_window_read_file_wincolumns(struct preset_list_window *windat, char *columns);
+
+
+/**
+ * Process a SortOrder line from the Presets section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param *columns		The sort order text line.
+ */
+
+void preset_list_window_read_file_sortorder(struct preset_list_window *windat, char *order);
+
 #endif
 

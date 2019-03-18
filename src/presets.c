@@ -775,7 +775,6 @@ enum transact_field preset_apply(struct file_block *file, preset_t preset, date_
 void preset_write_file(struct file_block *file, FILE *out)
 {
 	int	i;
-	char	buffer[FILING_MAX_FILE_LINE_LEN];
 
 	if (file == NULL || file->presets == NULL)
 		return;
@@ -784,11 +783,7 @@ void preset_write_file(struct file_block *file, FILE *out)
 
 	fprintf(out, "Entries: %x\n", file->presets->preset_count);
 
-	column_write_as_text(file->presets->columns, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "WinColumns: %s\n", buffer);
-
-	sort_write_as_text(file->presets->sort, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "SortOrder: %s\n", buffer);
+	preset_list_window_write_file(file->presets->preset_window, out);
 
 	for (i = 0; i < file->presets->preset_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x,%x,%x\n",
@@ -849,9 +844,9 @@ osbool preset_read_file(struct file_block *file, struct filing_block *in)
 				block_size = file->presets->preset_count;
 			}
 		} else if (filing_test_token(in, "WinColumns")) {
-			column_init_window(file->presets->columns, 0, TRUE, filing_get_text_value(in, NULL, 0));
+			preset_list_window_read_file_wincolumns(file->presets->preset_window, filing_get_text_value(in, NULL, 0));
 		} else if (filing_test_token(in, "SortOrder")) {
-			sort_read_from_text(file->presets->sort, filing_get_text_value(in, NULL, 0));
+			preset_list_window_read_file_sortorder(file->presets->preset_window, filing_get_text_value(in, NULL, 0));
 		} else if (filing_test_token(in, "@")) {
 			file->presets->preset_count++;
 			if (file->presets->preset_count > block_size) {
@@ -875,7 +870,6 @@ osbool preset_read_file(struct file_block *file, struct filing_block *in)
 			*(file->presets->presets[preset].name) = '\0';
 			*(file->presets->presets[preset].reference) = '\0';
 			*(file->presets->presets[preset].description) = '\0';
-			file->presets->presets[preset].sort_index = preset;
 		} else if (preset != NULL_PRESET && filing_test_token(in, "Name")) {
 			filing_get_text_value(in, file->presets->presets[preset].name, PRESET_NAME_LEN);
 		} else if (preset != NULL_PRESET && filing_test_token(in, "Ref")) {

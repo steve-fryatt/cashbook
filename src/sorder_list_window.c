@@ -1458,6 +1458,64 @@ static void sorder_sort_swap(int index1, int index2, void *data)
 
 
 /**
+ * Save the standing order list window details from a window to a CashBook
+ * file. This assumes that the caller has laready created a suitable section
+ * in the file to be written.
+ *
+ * \param *windat		The window whose details to write.
+ * \param *out			The file handle to write to.
+ */
+
+void sorder_list_window_write_file(struct sorder_list_window *windat, FILE *out)
+{
+	char	buffer[FILING_MAX_FILE_LINE_LEN];
+
+	if (windat == NULL)
+		return;
+
+	/* We should be in a [StandingOrders] section by now. */
+
+	column_write_as_text(windat->columns, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "WinColumns: %s\n", buffer);
+
+	sort_write_as_text(windat->sort, buffer, FILING_MAX_FILE_LINE_LEN);
+	fprintf(out, "SortOrder: %s\n", buffer);
+}
+
+
+/**
+ * Process a WinColumns line from the StandingOrders section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param *columns		The column text line.
+ */
+
+void sorder_list_window_read_file_wincolumns(struct sorder_list_window *windat, char *columns)
+{
+	if (windat == NULL)
+		return;
+
+	column_init_window(windat->columns, 0, TRUE, columns);
+}
+
+
+/**
+ * Process a SortOrder line from the StandingOrders section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param *columns		The sort order text line.
+ */
+
+void sorder_list_window_read_file_sortorder(struct sorder_list_window *windat, char *order)
+{
+	if (windat == NULL)
+		return;
+
+	sort_read_from_text(windat->sort, order);
+}
+
+
+/**
  * Callback handler for saving a CSV version of the standing order data.
  *
  * \param *filename		Pointer to the filename to save to.

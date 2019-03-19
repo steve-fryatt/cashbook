@@ -445,7 +445,7 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = account_get_file(windat->instance);
+	file = sorder_get_file(windat->instance);
 	if (file == NULL)
 		return;
 
@@ -476,7 +476,7 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 
 	error = xwimp_create_window(sorder_window_def, &(windat->sorder_window));
 	if (error != NULL) {
-		sorder_delete_window(file->sorders);
+		sorder_delete_window(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -497,7 +497,7 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 			sorder_pane_def->sprite_area;
 	sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-	sorder_list_window_adjust_sort_icon_data(file->sorders, &(sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON]));
+	sorder_list_window_adjust_sort_icon_data(windat->instance, &(sorder_pane_def->icons[SORDER_PANE_SORT_DIR_ICON]));
 
 	#ifdef DEBUG
 	debug_printf("Toolbar icons adjusted...");
@@ -505,7 +505,7 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 
 	error = xwimp_create_window(sorder_pane_def, &(windat->sorder_pane));
 	if (error != NULL) {
-		sorder_delete_window(file->sorders);
+		sorder_delete_window(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -526,7 +526,7 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 
 	/* Register event handlers for the two windows. */
 
-	event_add_window_user_data(windat->sorder_window, file->sorders);
+	event_add_window_user_data(windat->sorder_window, windat);
 	event_add_window_menu(windat->sorder_window, sorder_window_menu);
 	event_add_window_close_event(windat->sorder_window, sorder_close_window_handler);
 	event_add_window_mouse_event(windat->sorder_window, sorder_list_window_click_handler);
@@ -537,7 +537,7 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 	event_add_window_menu_warning(windat->sorder_window, sorder_list_window_menu_warning_handler);
 	event_add_window_menu_close(windat->sorder_window, sorder_list_window_menu_close_handler);
 
-	event_add_window_user_data(windat->sorder_pane, file->sorders);
+	event_add_window_user_data(windat->sorder_pane, windat);
 	event_add_window_menu(windat->sorder_pane, sorder_window_menu);
 	event_add_window_mouse_event(windat->sorder_pane, sorder_list_window_pane_click_handler);
 	event_add_window_menu_prepare(windat->sorder_pane, sorder_list_window_menu_prepare_handler);
@@ -616,11 +616,16 @@ static void sorder_list_window_close_handler(wimp_close *close)
 static void sorder_list_window_click_handler(wimp_pointer *pointer)
 {
 	struct sorder_block	*windat;
+	struct file_block	*file;
 	int			line;
 	wimp_window_state	window;
 
 	windat = event_get_window_user_data(pointer->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	/* Find the window type and get the line clicked on. */
@@ -628,12 +633,12 @@ static void sorder_list_window_click_handler(wimp_pointer *pointer)
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = window_calculate_click_row(&(pointer->pos), &window, SORDER_TOOLBAR_HEIGHT, windat->sorder_count);
+	line = window_calculate_click_row(&(pointer->pos), &window, SORDER_TOOLBAR_HEIGHT, windat->display_lines);
 
 	/* Handle double-clicks, which will open an edit standing order window. */
 
 	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
-		sorder_open_edit_window(windat->file, windat->sorders[line].sort_index, pointer);
+		sorder_open_edit_window(file, windat->sorders[line].sort_index, pointer);
 }
 
 

@@ -608,7 +608,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = account_get_file(windat->instance);
+	file = transact_get_file(windat->instance);
 	if (file == NULL)
 		return;
 
@@ -641,7 +641,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	error = xwimp_create_window(transact_window_def, &(windat->transaction_window));
 	if (error != NULL) {
-		transact_delete_window(file->transacts);
+		transact_delete_window(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -661,11 +661,11 @@ void transact_list_window_open(struct transact_list_window *windat)
 			transact_pane_def->sprite_area;
 	transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-	transact_list_window_adjust_sort_icon_data(file->transacts, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
+	transact_list_window_adjust_sort_icon_data(windat->instance, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
 
 	error = xwimp_create_window(transact_pane_def, &(windat->transaction_pane));
 	if (error != NULL) {
-		transact_delete_window(file->transacts);
+		transact_delete_window(windat->instance);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -676,7 +676,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 			windat->columns, TRANSACT_TOOLBAR_HEIGHT,
 			&transact_edit_callbacks, file->transacts);
 	if (windat->edit_line == NULL) {
-		transact_delete_window(file->transacts);
+		transact_delete_window(windat);
 		error_msgs_report_error("TransactNoMem");
 		return;
 	}
@@ -701,7 +701,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 			TRANSACT_ICON_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	if (!edit_complete(windat->edit_line)) {
-		transact_delete_window(file->transacts);
+		transact_delete_window(file);
 		error_msgs_report_error("TransactNoMem");
 		return;
 	}
@@ -726,7 +726,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	/* Register event handlers for the two windows. */
 
-	event_add_window_user_data(windat->transaction_window, file->transacts);
+	event_add_window_user_data(windat->transaction_window, windat);
 	event_add_window_menu(windat->transaction_window, transact_window_menu);
 	event_add_window_open_event(windat->transaction_window, transact_list_window_open_handler);
 	event_add_window_close_event(windat->transaction_window, transact_window_close_handler);
@@ -740,7 +740,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 	event_add_window_menu_warning(windat->transaction_window, transact_list_window_menu_warning_handler);
 	event_add_window_menu_close(windat->transaction_window, transact_list_window_menu_close_handler);
 
-	event_add_window_user_data(windat->transaction_pane, file->transacts);
+	event_add_window_user_data(windat->transaction_pane, windat);
 	event_add_window_menu(windat->transaction_pane, transact_window_menu);
 	event_add_window_mouse_event(windat->transaction_pane, transact_list_window_pane_click_handler);
 	event_add_window_menu_prepare(windat->transaction_pane, transact_list_window_menu_prepare_handler);
@@ -799,6 +799,7 @@ static void transact_list_window_delete(struct transact_list_window *windat)
 
 	/* Close any dialogues which belong to this window. */
 
+	dialogue_force_all_closed(NULL, windat);
 	sort_dialogue_close(transact_sort_dialogue, windat);
 }
 
@@ -878,10 +879,12 @@ static void transact_list_window_click_handler(wimp_pointer *pointer)
 	wimp_pointer		ptr;
 
 	windat = event_get_window_user_data(pointer->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = windat->file;
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return;
 
 	/* Force a refresh of the current edit line, if there is one.  We avoid refreshing the icon where the mouse
 	 * was clicked.

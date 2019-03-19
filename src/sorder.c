@@ -550,19 +550,7 @@ void sorder_sort(struct sorder_block *windat)
 	if (windat == NULL)
 		return;
 
-	#ifdef DEBUG
-	debug_printf("Sorting standing order window");
-	#endif
-
-	hourglass_on();
-
-	/* Run the sort. */
-
-	sort_process(windat->sort, windat->sorder_count);
-
-	sorder_force_window_redraw(windat, 0, windat->sorder_count - 1, wimp_ICON_WINDOW);
-
-	hourglass_off();
+	sorder_list_window_sort(windat->sorder_window);
 }
 
 

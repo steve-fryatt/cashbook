@@ -114,5 +114,15 @@ int transact_list_window_get_line_from_transaction(struct transact_list_window *
 
 tran_t transact_list_window_get_transaction_from_line(struct transact_list_window *windat, int line);
 
+
+/**
+ * Sort the contents of the transaction list window based on the instance's
+ * sort setting.
+ *
+ * \param *windat		The transaction window instance to sort.
+ */
+
+void transact_list_window_sort(struct transact_list_window *windat);
+
 #endif
 

@@ -2708,41 +2708,10 @@ static wimp_colour transact_line_colour(struct transact_block *windat, int line)
 
 void transact_sort(struct transact_block *windat)
 {
-	wimp_caret	caret;
-	tran_t		edit_transaction;
-
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL)
 		return;
 
-#ifdef DEBUG
-	debug_printf("Sorting transaction window");
-#endif
-
-	hourglass_on();
-
-	/* Find the caret position and edit line before sorting. */
-
-	wimp_get_caret_position(&caret);
-	edit_transaction = transact_find_edit_line_by_transaction(windat);
-
-	/* Run the sort. */
-
-	sort_process(windat->sort, windat->trans_count);
-
-	/* Replace the edit line where we found it prior to the sort. */
-
-	transact_place_edit_line_by_transaction(windat, edit_transaction);
-
-	/* If the caret's position was in the current transaction window, we need to
-	 * replace it in the same position now, so that we don't lose input focus.
-	 */
-
-	if (windat->transaction_window != NULL && windat->transaction_window == caret.w)
-		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
-
-	transact_redraw_all(windat->file);
-
-	hourglass_off();
+	transact_list_window_sort(windat->transaction_window);
 }
 
 

@@ -87,6 +87,16 @@ void sorder_redraw_all(struct sorder_list_window *windat);
 
 
 /**
+ * Sort the standing orders in a given list window based on that instances's
+ * sort setting.
+ *
+ * \param *windat		The standing order window instance to sort.
+ */
+
+void sorder_list_window_sort(struct sorder_list_window *windat);
+
+
+/**
  * Save the standing order list window details from a window to a CashBook
  * file. This assumes that the caller has laready created a suitable section
  * in the file to be written.

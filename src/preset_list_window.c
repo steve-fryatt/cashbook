@@ -59,7 +59,7 @@
 /* Application header files */
 
 #include "global.h"
-#include "presets.h"
+#include "preset_list_window.h"
 
 #include "account.h"
 #include "account_menu.h"
@@ -117,6 +117,19 @@
 #define PRESET_MENU_EXPCSV 3
 #define PRESET_MENU_EXPTSV 4
 #define PRESET_MENU_PRINT 5
+
+/* Preset Sort Window icons */
+
+#define PRESET_SORT_OK 2
+#define PRESET_SORT_CANCEL 3
+#define PRESET_SORT_FROM 4
+#define PRESET_SORT_TO 5
+#define PRESET_SORT_AMOUNT 6
+#define PRESET_SORT_DESCRIPTION 7
+#define PRESET_SORT_KEY 8
+#define PRESET_SORT_NAME 9
+#define PRESET_SORT_ASCENDING 10
+#define PRESET_SORT_DESCENDING 11
 
 /**
  * The minimum number of entries in the Preset List Window.
@@ -384,7 +397,7 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 
 	new-> columns = column_create_instance(PRESET_COLUMNS, preset_columns, NULL, PRESET_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
-		preset_delete_instance(new);
+		preset_list_window_delete_instance(new);
 		return NULL;
 	}
 
@@ -395,7 +408,7 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 
 	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING, SORT_NONE, &preset_sort_callbacks, new);
 	if (new->sort == NULL) {
-		preset_delete_instance(new);
+		preset_list_window_delete_instance(new);
 		return NULL;
 	}
 
@@ -449,7 +462,7 @@ void preset_list_window_open(struct preset_list_window *windat)
 	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = account_get_file(windat->instance);
+	file = preset_get_file(windat->instance);
 	if (file == NULL)
 		return;
 
@@ -469,7 +482,7 @@ void preset_list_window_open(struct preset_list_window *windat)
 	*(windat->window_title) = '\0';
 	preset_window_def->title_data.indirected_text.text = windat->window_title;
 
-	height = (windat->preset_count > MIN_PRESET_ENTRIES) ? windat->preset_count : MIN_PRESET_ENTRIES;
+	height = (windat->display_lines > MIN_PRESET_ENTRIES) ? windat->display_lines : MIN_PRESET_ENTRIES;
 
 	transact_get_window_state(file, &parent);
 
@@ -480,7 +493,7 @@ void preset_list_window_open(struct preset_list_window *windat)
 
 	error = xwimp_create_window(preset_window_def, &(windat->preset_window));
 	if (error != NULL) {
-		preset_delete_window(file->presets);
+		preset_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -501,7 +514,7 @@ void preset_list_window_open(struct preset_list_window *windat)
 			preset_pane_def->sprite_area;
 	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-	preset_adjust_sort_icon_data(file->presets, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
+	preset_list_window_adjust_sort_icon_data(windat, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
 
 	#ifdef DEBUG
 	debug_printf ("Toolbar icons adjusted...");
@@ -509,18 +522,18 @@ void preset_list_window_open(struct preset_list_window *windat)
 
 	error = xwimp_create_window(preset_pane_def, &(windat->preset_pane));
 	if (error != NULL) {
-		preset_delete_window(file->presets);
+		preset_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
 
 	/* Set the title */
 
-	preset_build_window_title(file);
+	preset_list_window_build_title(windat);
 
 	/* Open the window. */
 
-	ihelp_add_window(windat->preset_window , "Preset", preset_decode_window_help);
+	ihelp_add_window(windat->preset_window , "Preset", preset_list_window_decode_help);
 	ihelp_add_window(windat->preset_pane , "PresetTB", NULL);
 
 	windows_open(windat->preset_window);
@@ -531,22 +544,22 @@ void preset_list_window_open(struct preset_list_window *windat)
 
 	event_add_window_user_data(windat->preset_window, windat);
 	event_add_window_menu(windat->preset_window, preset_window_menu);
-	event_add_window_close_event(windat->preset_window, preset_close_window_handler);
-	event_add_window_mouse_event(windat->preset_window, preset_window_click_handler);
-	event_add_window_scroll_event(windat->preset_window, preset_window_scroll_handler);
-	event_add_window_redraw_event(windat->preset_window, preset_window_redraw_handler);
-	event_add_window_menu_prepare(windat->preset_window, preset_window_menu_prepare_handler);
-	event_add_window_menu_selection(windat->preset_window, preset_window_menu_selection_handler);
-	event_add_window_menu_warning(windat->preset_window, preset_window_menu_warning_handler);
-	event_add_window_menu_close(windat->preset_window, preset_window_menu_close_handler);
+	event_add_window_close_event(windat->preset_window, preset_list_window_close_handler);
+	event_add_window_mouse_event(windat->preset_window, preset_list_window_pane_click_handler);
+	event_add_window_scroll_event(windat->preset_window, preset_list_window_scroll_handler);
+	event_add_window_redraw_event(windat->preset_window, preset_list_window_redraw_handler);
+	event_add_window_menu_prepare(windat->preset_window, preset_list_window_menu_prepare_handler);
+	event_add_window_menu_selection(windat->preset_window, preset_list_window_menu_selection_handler);
+	event_add_window_menu_warning(windat->preset_window, preset_list_window_menu_warning_handler);
+	event_add_window_menu_close(windat->preset_window, preset_list_window_menu_close_handler);
 
 	event_add_window_user_data(windat->preset_pane, windat);
 	event_add_window_menu(windat->preset_pane, preset_window_menu);
-	event_add_window_mouse_event(windat->preset_pane, preset_pane_click_handler);
-	event_add_window_menu_prepare(windat->preset_pane, preset_window_menu_prepare_handler);
-	event_add_window_menu_selection(windat->preset_pane, preset_window_menu_selection_handler);
-	event_add_window_menu_warning(windat->preset_pane, preset_window_menu_warning_handler);
-	event_add_window_menu_close(windat->preset_pane, preset_window_menu_close_handler);
+	event_add_window_mouse_event(windat->preset_pane, preset_list_window_pane_click_handler);
+	event_add_window_menu_prepare(windat->preset_pane, preset_list_window_menu_prepare_handler);
+	event_add_window_menu_selection(windat->preset_pane, preset_list_window_menu_selection_handler);
+	event_add_window_menu_warning(windat->preset_pane, preset_list_window_menu_warning_handler);
+	event_add_window_menu_close(windat->preset_pane, preset_list_window_menu_close_handler);
 }
 
 
@@ -618,11 +631,16 @@ static void preset_list_window_close_handler(wimp_close *close)
 static void preset_list_window_click_handler(wimp_pointer *pointer)
 {
 	struct preset_list_window	*windat;
+	struct file_block		*file;
 	int				line;
 	wimp_window_state		window;
 
 	windat = event_get_window_user_data(pointer->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	/* Find the window type and get the line clicked on. */
@@ -630,12 +648,12 @@ static void preset_list_window_click_handler(wimp_pointer *pointer)
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = window_calculate_click_row(&(pointer->pos), &window, PRESET_TOOLBAR_HEIGHT, windat->preset_count);
+	line = window_calculate_click_row(&(pointer->pos), &window, PRESET_TOOLBAR_HEIGHT, windat->display_lines);
 
 	/* Handle double-clicks, which will open an edit preset window. */
 
 	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
-		preset_open_edit_window(windat->file, windat->presets[line].sort_index, pointer);
+		preset_open_edit_window(file, windat->line_data[line].preset, pointer);
 }
 
 
@@ -1094,14 +1112,25 @@ void preset_list_window_build_title(struct preset_list_window *windat)
  * Force the complete redraw of the given Preset list window.
  *
  * \param *file			The file owning the window to redraw.
+ * \param preset		The preset to redraw, or NULL_PRESET for all.
  */
 
-void preset_list_window_redraw_all(struct preset_list_window *windat)
+void preset_list_window_redraw(struct preset_list_window *windat, preset_t preset)
 {
+	int from, to;
+
 	if (windat == NULL)
 		return;
 
-	preset_list_window_force_redraw(windat, 0, windat->display_lines - 1, wimp_ICON_WINDOW);
+	if (preset != NULL_PRESET) {
+		from = preset_get_line_from_preset(windat, content->preset);
+		to = from;
+	} else {
+		from = 0;
+		to = windat->display_lines - 1;
+	}
+
+	preset_list_window_force_redraw(windat, from, to, wimp_ICON_WINDOW);
 }
 
 
@@ -1397,6 +1426,34 @@ static struct report *preset_print(struct report *report, void *data, date_t fro
 
 
 /**
+ * Sort the presets in a given list window based on that instance's sort
+ * setting.
+ *
+ * \param *windat		The preset window instance to sort.
+ */
+
+void preset_list_window_sort(struct preset_list_window *windat)
+{
+	if (windat == NULL)
+		return;
+
+	#ifdef DEBUG
+	debug_printf("Sorting preset window");
+	#endif
+
+	hourglass_on();
+
+	/* Run the sort. */
+
+	sort_process(windat->sort, windat->preset_count);
+
+	preset_force_window_redraw(windat, 0, windat->preset_count - 1, wimp_ICON_WINDOW);
+
+	hourglass_off();
+}
+
+
+/**
  * Compare two lines of a preset list, returning the result of the
  * in terms of a positive value, zero or a negative value.
  *
@@ -1467,11 +1524,20 @@ static void preset_sort_swap(int index1, int index2, void *data)
 }
 
 
+static void preset_list_window_initialise_entries(struct preset_list_window *windat, int presets)
+{
+
+
+}
 
 
 osbool preset_list_window_add_line(struct preset_list_window *windat, preset_t preset)
 {
 
+
+
+
+	preset_set_window_extent(file->presets);
 }
 
 
@@ -1484,6 +1550,42 @@ osbool preset_list_window_delete_line(struct preset_list_window *windat, preset_
 
 	for (i = 0; i < windat->display_lines && windat->line_data[i].sort_index != preset; i++);
 
+	/* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along
+	 * so that they remain in the correct places. */
+
+	for (i = 0; i < file->presets->preset_count && file->presets->presets[i].sort_index != preset; i++);
+
+	if (file->presets->presets[i].sort_index == preset && i != preset) {
+		index = i;
+
+		if (index > preset)
+			for (i=index; i>preset; i--)
+				file->presets->presets[i].sort_index = file->presets->presets[i-1].sort_index;
+		else
+			for (i=index; i<preset; i++)
+				file->presets->presets[i].sort_index = file->presets->presets[i+1].sort_index;
+	}
+	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
+	 * greater than the deleted entry by one.
+	 */
+
+	for (i = 0; i < file->presets->preset_count; i++)
+		if (file->presets->presets[i].sort_index > preset)
+			file->presets->presets[i].sort_index = file->presets->presets[i].sort_index - 1;
+
+	/* Update the main preset display window. */
+
+	preset_set_window_extent(file->presets);
+
+	if (file->presets->preset_window != NULL) {
+		windows_open(file->presets->preset_window);
+		if (config_opt_read("AutoSortPresets")) {
+			preset_sort(file->presets);
+			preset_force_window_redraw(file->presets, file->presets->preset_count, file->presets->preset_count, wimp_ICON_WINDOW);
+		} else {
+			preset_force_window_redraw(file->presets, 0, file->presets->preset_count, wimp_ICON_WINDOW);
+		}
+	}
 
 }
 

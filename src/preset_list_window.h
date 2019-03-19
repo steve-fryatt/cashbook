@@ -80,9 +80,10 @@ void preset_list_window_build_title(struct preset_list_window *windat);
  * Force the complete redraw of the given Preset list window.
  *
  * \param *file			The file owning the window to redraw.
+ * \param preset		The preset to redraw, or NULL_PRESET for all.
  */
 
-void preset_list_window_redraw_all(struct preset_list_window *windat);
+void preset_list_window_redraw(struct preset_list_window *windat, preset_t preset);
 
 
 /**
@@ -95,6 +96,16 @@ void preset_list_window_redraw_all(struct preset_list_window *windat);
  */
 
 preset_t preset_list_window_get_preset_from_line(struct preset_list_window *windat, int line);
+
+
+/**
+ * Sort the presets in a given list window based on that instance's sort
+ * setting.
+ *
+ * \param *windat		The preset window instance to sort.
+ */
+
+void preset_list_window_sort(struct preset_list_window *windat);
 
 
 /**

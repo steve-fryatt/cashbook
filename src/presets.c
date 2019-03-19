@@ -81,24 +81,6 @@
 #include "report.h"
 #include "window.h"
 
-
-
-/* Preset Sort Window */
-
-#define PRESET_SORT_OK 2
-#define PRESET_SORT_CANCEL 3
-#define PRESET_SORT_FROM 4
-#define PRESET_SORT_TO 5
-#define PRESET_SORT_AMOUNT 6
-#define PRESET_SORT_DESCRIPTION 7
-#define PRESET_SORT_KEY 8
-#define PRESET_SORT_NAME 9
-#define PRESET_SORT_ASCENDING 10
-#define PRESET_SORT_DESCENDING 11
-
-
-
-
 /**
  * Preset Entry data structure -- implementation.
  */
@@ -275,7 +257,7 @@ void preset_redraw_all(struct file_block *file)
 	if (file == NULL || file->presets == NULL)
 		return;
 
-	preset_list_window_redraw_all(file->presets->preset_window);
+	preset_list_window_redraw(file->presets->preset_window, NULL_PRESET);
 }
 
 
@@ -307,6 +289,22 @@ preset_t preset_get_preset_from_line(struct file_block *file, int line)
 int preset_get_count(struct file_block *file)
 {
 	return (file != NULL && file->presets != NULL) ? file->presets->preset_count : 0;
+}
+
+
+/**
+ * Return the file associated with a preset instance.
+ *
+ * \param *instance		The preset instance to query.
+ * \return			The associated file, or NULL.
+ */
+
+struct file_block *preset_get_file(struct preset_block *instance)
+{
+	if (instance == NULL)
+		return NULL;
+
+	return instance->file;
 }
 
 
@@ -428,7 +426,6 @@ static osbool preset_process_edit_window(void *parent, struct preset_dialogue_da
 	struct preset_block	*windat = parent;
 	char		copyname[PRESET_NAME_LEN];
 	preset_t	check_key;
-	int		line;
 
 	if (content == NULL || windat == NULL)
 		return FALSE;
@@ -487,14 +484,10 @@ static osbool preset_process_edit_window(void *parent, struct preset_dialogue_da
 
 	/* Update the display. */
 
-	if (config_opt_read("AutoSortPresets")) {
+	if (config_opt_read("AutoSortPresets"))
 		preset_sort(windat);
-	} else {
-		line = preset_get_line_from_preset(windat, content->preset);
-
-		if (line != -1)
-			preset_force_window_redraw(windat, line, line, wimp_ICON_WINDOW);
-	}
+	else
+		preset_list_window_redraw(windat->preset_window, content->preset);
 
 	file_set_data_integrity(windat->file, TRUE);
 
@@ -513,19 +506,7 @@ void preset_sort(struct preset_block *windat)
 	if (windat == NULL)
 		return;
 
-	#ifdef DEBUG
-	debug_printf("Sorting preset window");
-	#endif
-
-	hourglass_on();
-
-	/* Run the sort. */
-
-	sort_process(windat->sort, windat->preset_count);
-
-	preset_force_window_redraw(windat, 0, windat->preset_count - 1, wimp_ICON_WINDOW);
-
-	hourglass_off();
+	preset_list_window_sort(windat->preset_window);
 }
 
 
@@ -563,9 +544,7 @@ static int preset_add(struct file_block *file)
 	*file->presets->presets[new].reference = '\0';
 	*file->presets->presets[new].description = '\0';
 
-	file->presets->presets[new].sort_index = new;
-
-	preset_set_window_extent(file->presets);
+	preset_list_window_add_preset(file->presets->preset_window, new);
 
 	return new;
 }
@@ -581,26 +560,8 @@ static int preset_add(struct file_block *file)
 
 static osbool preset_delete(struct file_block *file, int preset)
 {
-	int	i, index;
-
-	if (file == NULL || file->presets == NULL || preset == NULL_PRESET || preset >= file->presets->preset_count)
+	if (file == NULL || file->presets == NULL || preset == NULL_PRESET || !preset_valid(file->presets, preset))
 		return FALSE;
-
-	/* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along
-	 * so that they remain in the correct places. */
-
-	for (i = 0; i < file->presets->preset_count && file->presets->presets[i].sort_index != preset; i++);
-
-	if (file->presets->presets[i].sort_index == preset && i != preset) {
-		index = i;
-
-		if (index > preset)
-			for (i=index; i>preset; i--)
-				file->presets->presets[i].sort_index = file->presets->presets[i-1].sort_index;
-		else
-			for (i=index; i<preset; i++)
-				file->presets->presets[i].sort_index = file->presets->presets[i+1].sort_index;
-	}
 
 	/* Delete the preset */
 
@@ -611,27 +572,7 @@ static osbool preset_delete(struct file_block *file, int preset)
 
 	file->presets->preset_count--;
 
-	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
-	 * greater than the deleted entry by one.
-	 */
-
-	for (i = 0; i < file->presets->preset_count; i++)
-		if (file->presets->presets[i].sort_index > preset)
-			file->presets->presets[i].sort_index = file->presets->presets[i].sort_index - 1;
-
-	/* Update the main preset display window. */
-
-	preset_set_window_extent(file->presets);
-
-	if (file->presets->preset_window != NULL) {
-		windows_open(file->presets->preset_window);
-		if (config_opt_read("AutoSortPresets")) {
-			preset_sort(file->presets);
-			preset_force_window_redraw(file->presets, file->presets->preset_count, file->presets->preset_count, wimp_ICON_WINDOW);
-		} else {
-			preset_force_window_redraw(file->presets, 0, file->presets->preset_count, wimp_ICON_WINDOW);
-		}
-	}
+	preset_list_window_delete_preset(file->presets->preset_window, preset);
 
 	file_set_data_integrity(file, TRUE);
 

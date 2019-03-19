@@ -157,6 +157,16 @@ int preset_get_count(struct file_block *file);
 
 
 /**
+ * Return the file associated with a preset instance.
+ *
+ * \param *instance		The preset instance to query.
+ * \return			The associated file, or NULL.
+ */
+
+struct file_block *preset_get_file(struct preset_block *instance);
+
+
+/**
  * Test the validity of a preset index.
  *
  * \param *file			The file to test against.

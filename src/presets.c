@@ -24,7 +24,7 @@
 /**
  * \file: presets.c
  *
- * Transaction presets implementation.
+ * preset presets implementation.
  */
 
 /* ANSI C header files */
@@ -89,7 +89,7 @@ struct preset {
 	char			name[PRESET_NAME_LEN];					/**< The name of the preset. */
 	char			action_key;						/**< The key used to insert it. */
 
-	enum transact_flags	flags;							/**< Preset flags (containing transaction flags, preset flags, etc). */
+	enum transact_flags	flags;							/**< Preset flags (containing preset flags, preset flags, etc). */
 
 	enum preset_caret	caret_target;						/**< The target icon for the caret. */
 
@@ -265,9 +265,9 @@ void preset_redraw_all(struct file_block *file)
  * Find the preset which corresponds to a display line in a preset
  * window.
  *
- * \param *file			The file to use the transaction window in.
- * \param line			The display line to return the transaction for.
- * \return			The appropriate transaction, or NULL_TRANSACTION.
+ * \param *file			The file to use the preset window in.
+ * \param line			The display line to return the preset for.
+ * \return			The appropriate preset, or NULL_preset.
  */
 
 preset_t preset_get_preset_from_line(struct file_block *file, int line)
@@ -356,6 +356,197 @@ char *preset_get_name(struct file_block *file, preset_t preset, char *buffer, si
 		return file->presets->presets[preset].name;
 
 	string_copy(buffer, file->presets->presets[preset].name, length);
+
+	return buffer;
+}
+
+
+/**
+ * Find the caret target for the given preset.
+ *
+ * \param *file			The file holding the preset.
+ * \param preset		The preset to check.
+ * \return			The preset's caret target.
+ */
+
+enum preset_caret preset_get_caret_destination(struct file_block *file, preset_t preset)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset))
+		return 0;
+
+	return file->presets->presets[preset].caret_target;
+}
+
+
+/**
+ * Find the action key for the given preset.
+ *
+ * \param *file			The file holding the preset.
+ * \param preset		The preset to check.
+ * \return			The preset's action key.
+ */
+
+char preset_get_action_key(struct file_block *file, preset_t preset)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset))
+		return '\0';
+
+	return file->presets->presets[preset].action_key;
+}
+
+
+/**
+ * Return the date for the given preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the date for.
+ * \return			The preset's date, or NULL_DATE.
+ */
+
+date_t preset_get_date(struct file_block *file, preset_t preset)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset))
+		return NULL_DATE;
+
+	return file->presets->presets[preset].date;
+}
+
+
+/**
+ * Return the from account of a preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the from account for.
+ * \return			The from account of the preset, or NULL_ACCOUNT.
+ */
+
+acct_t preset_get_from(struct file_block *file, preset_t preset)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset))
+		return NULL_ACCOUNT;
+
+	return file->presets->presets[preset].from;
+}
+
+
+/**
+ * Return the to account of a preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the to account for.
+ * \return			The to account of the preset, or NULL_ACCOUNT.
+ */
+
+acct_t preset_get_to(struct file_block *file, preset_t preset)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset))
+		return NULL_ACCOUNT;
+
+	return file->presets->presets[preset].to;
+}
+
+
+/**
+ * Return the preset flags for a preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the flags for.
+ * \return			The flags of the preset, or TRANS_FLAGS_NONE.
+ */
+
+enum transact_flags preset_get_flags(struct file_block *file, preset_t preset)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset))
+		return TRANS_FLAGS_NONE;
+
+	return file->presets->presets[preset].flags;
+}
+
+
+/**
+ * Return the amount of a preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the amount of.
+ * \return			The amount of the preset, or NULL_CURRENCY.
+ */
+
+amt_t preset_get_amount(struct file_block *file, preset_t preset)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset))
+		return NULL_CURRENCY;
+
+	return file->presets->presets[preset].amount;
+}
+
+
+/**
+ * Return the reference for a preset.
+ *
+ * If a buffer is supplied, the reference is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * reference in the preset array is returned instead. In the latter
+ * case, this pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the reference of.
+ * \param *buffer		Pointer to a buffer to take the reference, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting reference string,
+ *				either the supplied buffer or the original.
+ */
+
+char *preset_get_reference(struct file_block *file, preset_t preset, char *buffer, size_t length)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset))
+		return NULL;
+
+	if (buffer == NULL || length == 0)
+		return file->presets->presets[preset].reference;
+
+	string_copy(buffer, file->presets->presets[preset].reference, length);
+
+	return buffer;
+}
+
+
+/**
+ * Return the description for a preset.
+ *
+ * If a buffer is supplied, the description is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * description in the preset array is returned instead. In the latter
+ * case, this pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the description of.
+ * \param *buffer		Pointer to a buffer to take the description, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting description string,
+ *				either the supplied buffer or the original.
+ */
+
+char *preset_get_description(struct file_block *file, preset_t preset, char *buffer, size_t length)
+{
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset)) {
+		if (buffer != NULL && length > 0) {
+			*buffer = '\0';
+			return buffer;
+		}
+
+		return NULL;
+	}
+
+	if (buffer == NULL || length == 0)
+		return file->presets->presets[preset].description;
+
+	string_copy(buffer, file->presets->presets[preset].description, length);
 
 	return buffer;
 }
@@ -610,25 +801,7 @@ preset_t preset_find_from_keypress(struct file_block *file, char key)
 
 
 /**
- * Find the caret target for the given preset.
- *
- * \param *file			The file holding the preset.
- * \param preset		The preset to check.
- * \return			The preset's caret target.
- */
-
-enum preset_caret preset_get_caret_destination(struct file_block *file, preset_t preset)
-{
-	if (file == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->presets->preset_count)
-		return 0;
-
-	return file->presets->presets[preset].caret_target;
-
-}
-
-
-/**
- * Apply a preset to fields of a transaction.
+ * Apply a preset to fields of a preset.
  *
  * \param *file			The file holding the preset.
  * \param preset		The preset to apply.
@@ -649,7 +822,7 @@ enum transact_field preset_apply(struct file_block *file, preset_t preset, date_
 	if (file == NULL || file->presets == NULL || preset == NULL_PRESET || preset < 0 || preset >= file->presets->preset_count)
 		return changed;
 
-	/* Update the transaction, piece by piece.
+	/* Update the preset, piece by piece.
 	 *
 	 * Start with the date.
 	 */
@@ -758,7 +931,7 @@ osbool preset_read_file(struct file_block *file, struct filing_block *in)
 		return FALSE;
 
 #ifdef DEBUG
-	debug_printf("\\GLoading Transaction Presets.");
+	debug_printf("\\GLoading preset Presets.");
 #endif
 
 	/* Identify the current size of the flex block allocation. */
@@ -804,7 +977,7 @@ osbool preset_read_file(struct file_block *file, struct filing_block *in)
 			file->presets->presets[preset].action_key = filing_get_char_field(in);
 			file->presets->presets[preset].caret_target = preset_get_caret_field(in);
 			file->presets->presets[preset].date = date_get_date_field(in);
-			file->presets->presets[preset].flags = transact_get_flags_field(in);
+			file->presets->presets[preset].flags = preset_get_flags_field(in);
 			file->presets->presets[preset].from = account_get_account_field(in);
 			file->presets->presets[preset].to = account_get_account_field(in);
 			file->presets->presets[preset].amount = currency_get_currency_field(in);

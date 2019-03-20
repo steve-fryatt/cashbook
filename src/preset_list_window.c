@@ -316,18 +316,18 @@ static void preset_list_window_adjust_columns(void *data, wimp_i group, int widt
 static void preset_list_window_adjust_sort_icon(struct preset_list_window *windat);
 static void preset_list_window_adjust_sort_icon_data(struct preset_list_window *windat, wimp_icon *icon);
 static void preset_list_window_set_extent(struct preset_list_window *windat);
-static void preset_list_window_force_redraw(struct preset_block *windat, int from, int to, wimp_i column);
+static void preset_list_window_force_redraw(struct preset_list_window *windat, int from, int to, wimp_i column);
 static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
-static int preset_window_get_line_from_preset(struct preset_block *windat, preset_t preset);
-static void preset_open_sort_window(struct preset_block *windat, wimp_pointer *ptr);
+static int preset_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset);
+static void preset_open_sort_window(struct preset_list_window *windat, wimp_pointer *ptr);
 static osbool preset_process_sort_window(enum sort_type order, void *data);
-static void preset_open_print_window(struct preset_block *windat, wimp_pointer *ptr, osbool restore);
+static void preset_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
 static struct report *preset_print(struct report *report, void *data, date_t from, date_t to);
 static int preset_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void preset_sort_swap(int index1, int index2, void *data);
 static osbool preset_save_csv(char *filename, osbool selection, void *data);
 static osbool preset_save_tsv(char *filename, osbool selection, void *data);
-static void preset_export_delimited(struct preset_block *windat, char *filename, enum filing_delimit_type format, int filetype);
+static void preset_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
 
 /**
  * Test whether a line number is safe to look up in the redraw data array.
@@ -673,10 +673,12 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer)
 	enum sort_type			sort_order;
 
 	windat = event_get_window_user_data(pointer->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = windat->file;
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
+		return;
 
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
@@ -687,7 +689,7 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer)
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
 		case PRESET_PANE_PARENT:
-			transact_bring_window_to_top(windat->file);
+			transact_bring_window_to_top(file);
 			break;
 
 		case PRESET_PANE_PRINT:
@@ -709,7 +711,7 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case PRESET_PANE_SORT:
-			preset_sort(file->presets);
+			preset_sort(windat->instance);
 			break;
 		}
 	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
@@ -730,14 +732,14 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer)
 				sort_order |= (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
 
 				sort_set_order(windat->sort, sort_order);
-				preset_adjust_sort_icon(windat);
+				preset_list_window_adjust_sort_icon(windat);
 				windows_redraw(windat->preset_pane);
-				preset_sort(windat);
+				preset_list_window_sort(windat);
 			}
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
 		column_set_minimum_widths(windat->columns, config_str_read("LimPresetCols"));
-		column_start_drag(windat->columns, pointer, windat, windat->preset_window, preset_adjust_window_columns);
+		column_start_drag(windat->columns, pointer, windat, windat->preset_window, preset_list_window_adjust_columns);
 	}
 }
 
@@ -756,9 +758,8 @@ static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 	int				line;
 	wimp_window_state		window;
 
-
 	windat = event_get_window_user_data(w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL)
 		return;
 
 	if (pointer != NULL) {
@@ -768,7 +769,7 @@ static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = window_calculate_click_row(&(pointer->pos), &window, PRESET_TOOLBAR_HEIGHT, windat->preset_count);
+			line = window_calculate_click_row(&(pointer->pos), &window, PRESET_TOOLBAR_HEIGHT, windat->display_lines);
 
 			if (line != -1)
 				preset_window_menu_line = line;
@@ -780,7 +781,7 @@ static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 
 	menus_shade_entry(preset_window_menu, PRESET_MENU_EDIT, preset_window_menu_line == -1);
 
-	preset_force_window_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
+	preset_list_window_force_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
 }
 
 
@@ -795,10 +796,15 @@ static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
 	struct preset_list_window	*windat;
+	struct file_block		*file;
 	wimp_pointer			pointer;
 
 	windat = event_get_window_user_data(w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	wimp_get_pointer_info(&pointer);
@@ -810,11 +816,11 @@ static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 
 	case PRESET_MENU_EDIT:
 		if (preset_window_menu_line != -1)
-			preset_open_edit_window(windat->file, windat->presets[preset_window_menu_line].sort_index, &pointer);
+			preset_open_edit_window(file, windat->line_data[preset_window_menu_line].preset, &pointer);
 		break;
 
 	case PRESET_MENU_NEWPRESET:
-		preset_open_edit_window(windat->file, NULL_PRESET, &pointer);
+		preset_open_edit_window(file, NULL_PRESET, &pointer);
 		break;
 
 	case PRESET_MENU_PRINT:
@@ -837,7 +843,7 @@ static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, w
 	struct preset_list_window	*windat;
 
 	windat = event_get_window_user_data(w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL)
 		return;
 
 	switch (warning->selection.items[0]) {
@@ -867,7 +873,7 @@ static void preset_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 	windat = event_get_window_user_data(w);
 	if (windat != NULL)
-		preset_force_window_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
+		preset_list_window_force_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
 
 	preset_window_menu_line = -1;
 }
@@ -898,12 +904,20 @@ static void preset_list_window_scroll_handler(wimp_scroll *scroll)
 static void preset_list_window_redraw_handler(wimp_draw *redraw)
 {
 	struct preset_list_window	*windat;
-	int				top, base, y, select, t;
+	struct file_block		*file;
+	int				top, base, y, select;
+	acct_t				account;
+	enum transact_flags		flags;
+	preset_t			preset;
 	char				icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool				more;
 
 	windat = event_get_window_user_data(redraw->w);
-	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
+	if (windat == NULL || windat->instance == NULL || windat->columns == NULL)
+		return;
+
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	/* Identify if there is a selected line to highlight. */
@@ -929,7 +943,7 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
-			t = (y < windat->preset_count) ? windat->presets[y].sort_index : 0;
+			preset = (y < windat->display_lines) ? windat->line_data[y].preset : 0;
 
 			/* Place the icons in the current row. */
 
@@ -938,38 +952,44 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 
 			/* If we're off the end of the data, plot a blank line and continue. */
 
-			if (y >= windat->preset_count) {
+			if (y >= windat->display_lines) {
 				columns_plot_empty_table_icons(windat->columns);
 				continue;
 			}
 
+			flags =  preset_get_flags(file, preset);
+
 			/* Key field */
 
-			window_plot_char_field(PRESET_ICON_KEY, windat->presets[t].action_key, wimp_COLOUR_BLACK);
+			window_plot_char_field(PRESET_ICON_KEY, preset_get_action_key(file, preset), wimp_COLOUR_BLACK);
 
 			/* Name field */
 
-			window_plot_text_field(PRESET_ICON_NAME, windat->presets[t].name, wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_ICON_NAME, preset_get_name(file, preset, NULL, 0), wimp_COLOUR_BLACK);
 
 			/* From field */
 
-			window_plot_text_field(PRESET_ICON_FROM, account_get_ident(windat->file, windat->presets[t].from), wimp_COLOUR_BLACK);
-			window_plot_reconciled_field(PRESET_ICON_FROM_REC, (windat->presets[t].flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
-			window_plot_text_field(PRESET_ICON_FROM_NAME, account_get_name(windat->file, windat->presets[t].from), wimp_COLOUR_BLACK);
+			account = preset_get_from(file, preset);
+
+			window_plot_text_field(PRESET_ICON_FROM, account_get_ident(file, account), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(PRESET_ICON_FROM_REC, (flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_ICON_FROM_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
 
 			/* To field */
 
-			window_plot_text_field(PRESET_ICON_TO, account_get_ident(windat->file, windat->presets[t].to), wimp_COLOUR_BLACK);
-			window_plot_reconciled_field(PRESET_ICON_TO_REC, (windat->presets[t].flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
-			window_plot_text_field(PRESET_ICON_TO_NAME, account_get_name(windat->file, windat->presets[t].to), wimp_COLOUR_BLACK);
+			account = preset_get_to(file, preset);
+
+			window_plot_text_field(PRESET_ICON_TO, account_get_ident(file, account), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(PRESET_ICON_TO_REC, (flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_ICON_TO_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
 
 			/* Amount field */
 
-			window_plot_currency_field(PRESET_ICON_AMOUNT, windat->presets[t].amount, wimp_COLOUR_BLACK);
+			window_plot_currency_field(PRESET_ICON_AMOUNT, preset_get_amount(file, preset), wimp_COLOUR_BLACK);
 
 			/* Description field */
 
-			window_plot_text_field(PRESET_ICON_DESCRIPTION, windat->presets[t].description, wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_ICON_DESCRIPTION, preset_get_description(file, preset, NULL, 0), wimp_COLOUR_BLACK);
 		}
 
 		more = wimp_get_rectangle(redraw);
@@ -986,18 +1006,23 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 
 static void preset_list_window_adjust_columns(void *data, wimp_i group, int width)
 {
-	struct preset_list_window	*windat = (struct preset_block *) data;
+	struct preset_list_window	*windat = (struct preset_list_window *) data;
+	struct file_block		*file;
 	int				new_extent;
 	wimp_window_info		window;
 
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	columns_update_dragged(windat->columns, windat->preset_pane, NULL, group, width);
 
 	new_extent = column_get_window_width(windat->columns);
 
-	preset_adjust_sort_icon(windat);
+	preset_list_window_adjust_sort_icon(windat);
 
 	/* Replace the edit line to force a redraw and redraw the rest of the window. */
 
@@ -1018,7 +1043,7 @@ static void preset_list_window_adjust_columns(void *data, wimp_i group, int widt
 
 	windows_open(window.w);
 
-	file_set_data_integrity(windat->file, TRUE);
+	file_set_data_integrity(file, TRUE);
 }
 
 
@@ -1080,7 +1105,7 @@ static void preset_list_window_set_extent(struct preset_list_window *windat)
 	if (windat == NULL || windat->preset_window == NULL)
 		return;
 
-	lines = (windat->preset_count > MIN_PRESET_ENTRIES) ? windat->preset_count : MIN_PRESET_ENTRIES;
+	lines = (windat->display_lines > MIN_PRESET_ENTRIES) ? windat->display_lines : MIN_PRESET_ENTRIES;
 
 	window_set_extent(windat->preset_window, lines, PRESET_TOOLBAR_HEIGHT, column_get_window_width(windat->columns));
 }
@@ -1143,7 +1168,7 @@ void preset_list_window_redraw(struct preset_list_window *windat, preset_t prese
  * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
  */
 
-static void preset_list_window_force_redraw(struct preset_block *windat, int from, int to, wimp_i column)
+static void preset_list_window_force_redraw(struct preset_list_window *windat, int from, int to, wimp_i column)
 {
 	wimp_window_info	window;
 
@@ -1180,10 +1205,10 @@ static void preset_list_window_force_redraw(struct preset_block *windat, int fro
 
 static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
-	int			xpos;
-	wimp_i			icon;
-	wimp_window_state	window;
-	struct preset_block	*windat;
+	int				xpos;
+	wimp_i				icon;
+	wimp_window_state		window;
+	struct preset_list_window	*windat;
 
 	*buffer = '\0';
 
@@ -1258,7 +1283,7 @@ preset_t preset_list_window_get_preset_from_line(struct preset_list_window *wind
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void preset_open_sort_window(struct preset_block *windat, wimp_pointer *ptr)
+static void preset_open_sort_window(struct preset_list_window *windat, wimp_pointer *ptr)
 {
 	if (windat == NULL || ptr == NULL)
 		return;
@@ -1278,7 +1303,7 @@ static void preset_open_sort_window(struct preset_block *windat, wimp_pointer *p
 
 static osbool preset_process_sort_window(enum sort_type order, void *data)
 {
-	struct preset_block	*windat = (struct preset_block *) data;
+	struct preset_list_window *windat = (struct preset_list_window *) data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -1287,7 +1312,7 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
 
 	preset_adjust_sort_icon(windat);
 	windows_redraw(windat->preset_pane);
-	preset_sort(windat);
+	preset_list_window_sort(windat);
 
 	return TRUE;
 }
@@ -1302,7 +1327,7 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
  *				return to defaults.
  */
 
-static void preset_open_print_window(struct preset_block *windat, wimp_pointer *ptr, osbool restore)
+static void preset_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore)
 {
 	if (windat == NULL || windat->file == NULL)
 		return;
@@ -1324,11 +1349,11 @@ static void preset_open_print_window(struct preset_block *windat, wimp_pointer *
 
 static struct report *preset_print(struct report *report, void *data, date_t from, date_t to)
 {
-	struct preset_block	*windat = data;
-	int			line, column;
-	preset_t		preset;
-	char			rec_char[REC_FIELD_LEN];
-	wimp_i			columns[PRESET_COLUMNS];
+	struct preset_list_window	*windat = data;
+	int				line, column;
+	preset_t			preset;
+	char				rec_char[REC_FIELD_LEN];
+	wimp_i				columns[PRESET_COLUMNS];
 
 	if (report == NULL || windat == NULL || windat->file == NULL)
 		return NULL;
@@ -1466,7 +1491,7 @@ void preset_list_window_sort(struct preset_list_window *windat)
 
 static int preset_sort_compare(enum sort_type type, int index1, int index2, void *data)
 {
-	struct preset_block *windat = data;
+	struct preset_list_window *windat = data;
 
 	if (windat == NULL)
 		return 0;
@@ -1512,8 +1537,8 @@ static int preset_sort_compare(enum sort_type type, int index1, int index2, void
 
 static void preset_sort_swap(int index1, int index2, void *data)
 {
-	struct preset_block	*windat = data;
-	int			temp;
+	struct preset_list_window	*windat = data;
+	int				temp;
 
 	if (windat == NULL)
 		return;
@@ -1660,7 +1685,7 @@ void preset_list_window_read_file_sortorder(struct preset_list_window *windat, c
 
 static osbool preset_save_csv(char *filename, osbool selection, void *data)
 {
-	struct preset_block *windat = data;
+	struct preset_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -1681,7 +1706,7 @@ static osbool preset_save_csv(char *filename, osbool selection, void *data)
 
 static osbool preset_save_tsv(char *filename, osbool selection, void *data)
 {
-	struct preset_block *windat = data;
+	struct preset_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -1701,14 +1726,19 @@ static osbool preset_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void preset_export_delimited(struct preset_block *windat, char *filename, enum filing_delimit_type format, int filetype)
+static void preset_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
-	FILE		*out;
-	int		line;
-	preset_t	preset;
-	char		buffer[FILING_DELIMITED_FIELD_LEN];
+	FILE			*out;
+	struct file_block	*file;
+	int			line;
+	preset_t		preset;
+	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	out = fopen(filename, "w");
@@ -1726,24 +1756,24 @@ static void preset_export_delimited(struct preset_block *windat, char *filename,
 
 	/* Output the preset data as a set of delimited lines. */
 
-	for (line = 0; line < windat->preset_count; line++) {
-		preset = windat->presets[line].sort_index;
+	for (line = 0; line < windat->display_lines; line++) {
+		preset = windat->line_data[line].preset;
 
-		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%c", windat->presets[preset].action_key);
+		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%c", preset_get_action_key(file, preset));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		filing_output_delimited_field(out, windat->presets[preset].name, format, DELIMIT_NONE);
+		filing_output_delimited_field(out, preset_get_name(file, preset, NULL, 0), format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->presets[preset].from, buffer, FILING_DELIMITED_FIELD_LEN);
+		account_build_name_pair(file, preset_get_from(file, preset), buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->presets[preset].to, buffer, FILING_DELIMITED_FIELD_LEN);
+		account_build_name_pair(file, preset_get_to(file, preset), buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(windat->presets[preset].amount, buffer, FILING_DELIMITED_FIELD_LEN);
+		currency_convert_to_string(preset_get_amount(file, preset), buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-		filing_output_delimited_field(out, windat->presets[preset].description, format, DELIMIT_LAST);
+		filing_output_delimited_field(out, preset_get_description(file, preset, NULL, 0), format, DELIMIT_LAST);
 	}
 
 	/* Close the file and set the type correctly. */

@@ -298,21 +298,21 @@ static void sorder_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void sorder_list_window_scroll_handler(wimp_scroll *scroll);
 static void sorder_list_window_window_redraw_handler(wimp_draw *redraw);
 static void sorder_list_window_adjust_columns(void *data, wimp_i group, int width);
-static void sorder_list_window_adjust_sort_icon(struct sorder_block *windat);
-static void sorder_list_window_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon *icon);
-static void sorder_list_window_set_extent(struct sorder_block *windat);
-static void sorder_list_window_force_redraw(struct sorder_block *windat, int from, int to, wimp_i column);
+static void sorder_list_window_adjust_sort_icon(struct sorder_list_window *windat);
+static void sorder_list_window_adjust_sort_icon_data(struct sorder_list_window *windat, wimp_icon *icon);
+static void sorder_list_window_set_extent(struct sorder_list_window *windat);
+static void sorder_list_window_force_redraw(struct sorder_list_window *windat, int from, int to, wimp_i column);
 static void sorder_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
-static int sorder_list_window_get_line_from_sorder(struct sorder_block *windat, sorder_t sorder);
-static void sorder_list_window_open_sort_window(struct sorder_block *windat, wimp_pointer *ptr);
+static int sorder_list_window_get_line_from_sorder(struct sorder_list_window *windat, sorder_t sorder);
+static void sorder_list_window_open_sort_window(struct sorder_list_window *windat, wimp_pointer *ptr);
 static osbool sorder_list_window_process_sort_window(enum sort_type order, void *data);
-static void sorder_list_window_open_print_window(struct sorder_block *windat, wimp_pointer *ptr, osbool restore);
+static void sorder_list_window_open_print_window(struct sorder_list_window *windat, wimp_pointer *ptr, osbool restore);
 static struct report *sorder_list_window_print(struct report *report, void *data, date_t from, date_t to);
 static int sorder_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void sorder_list_window_sort_swap(int index1, int index2, void *data);
 static osbool sorder_list_window_save_csv(char *filename, osbool selection, void *data);
 static osbool sorder_list_window_save_tsv(char *filename, osbool selection, void *data);
-static void sorder_list_window_export_delimited(struct sorder_block *windat, char *filename, enum filing_delimit_type format, int filetype);
+static void sorder_list_window_export_delimited(struct sorder_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
 
 
 /**
@@ -615,10 +615,10 @@ static void sorder_list_window_close_handler(wimp_close *close)
 
 static void sorder_list_window_click_handler(wimp_pointer *pointer)
 {
-	struct sorder_block	*windat;
-	struct file_block	*file;
-	int			line;
-	wimp_window_state	window;
+	struct sorder_list_window	*windat;
+	struct file_block		*file;
+	int				line;
+	wimp_window_state		window;
 
 	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->instance == NULL)
@@ -650,18 +650,20 @@ static void sorder_list_window_click_handler(wimp_pointer *pointer)
 
 static void sorder_list_window_pane_click_handler(wimp_pointer *pointer)
 {
-	struct sorder_block	*windat;
-	struct file_block	*file;
-	wimp_window_state	window;
-	wimp_icon_state		icon;
-	int			ox;
-	enum sort_type		sort_order;
+	struct sorder_list_window	*windat;
+	struct file_block		*file;
+	wimp_window_state		window;
+	wimp_icon_state			icon;
+	int				ox;
+	enum sort_type			sort_order;
 
 	windat = event_get_window_user_data(pointer->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = windat->file;
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
+		return;
 
 	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
 
@@ -670,7 +672,7 @@ static void sorder_list_window_pane_click_handler(wimp_pointer *pointer)
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
 		case SORDER_PANE_PARENT:
-			transact_bring_window_to_top(windat->file);
+			transact_bring_window_to_top(file);
 			break;
 
 		case SORDER_PANE_PRINT:
@@ -692,7 +694,7 @@ static void sorder_list_window_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case SORDER_PANE_SORT:
-			sorder_list_window_sort(file->sorders);
+			sorder_list_window_sort(windat->instance);
 			break;
 		}
 	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
@@ -735,9 +737,9 @@ static void sorder_list_window_pane_click_handler(wimp_pointer *pointer)
 
 static void sorder_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	struct sorder_block	*windat;
-	int			line;
-	wimp_window_state	window;
+	struct sorder_list_window	*windat;
+	int				line;
+	wimp_window_state		window;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL)
@@ -750,7 +752,7 @@ static void sorder_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = window_calculate_click_row(&(pointer->pos), &window, SORDER_TOOLBAR_HEIGHT, windat->sorder_count);
+			line = window_calculate_click_row(&(pointer->pos), &window, SORDER_TOOLBAR_HEIGHT, windat->display_lines);
 
 			if (line != -1)
 				sorder_window_menu_line = line;
@@ -776,8 +778,8 @@ static void sorder_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 
 static void sorder_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	struct sorder_block	*windat;
-	wimp_pointer		pointer;
+	struct sorder_list_window	*windat;
+	wimp_pointer			pointer;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL || windat->file == NULL)
@@ -820,7 +822,7 @@ static void sorder_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 
 static void sorder_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-	struct sorder_block	*windat;
+	struct sorder_list_window *windat;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL)
@@ -849,7 +851,7 @@ static void sorder_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, w
 
 static void sorder_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
-	struct sorder_block	*windat;
+	struct sorder_list_window *windat;
 
 	windat = event_get_window_user_data(w);
 	if (windat != NULL)
@@ -883,10 +885,10 @@ static void sorder_list_window_scroll_handler(wimp_scroll *scroll)
 
 static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 {
-	struct sorder_block	*windat;
-	int			top, base, y, select, t;
-	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
-	osbool			more;
+	struct sorder_list_window	*windat;
+	int				top, base, y, select, t;
+	char				icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool				more;
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
@@ -976,9 +978,9 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 
 static void sorder_list_window_adjust_columns(void *data, wimp_i group, int width)
 {
-	struct sorder_block	*windat = (struct sorder_block *) data;
-	int			new_extent;
-	wimp_window_info	window;
+	struct sorder_list_window	*windat = (struct sorder_list_window *) data;
+	int				new_extent;
+	wimp_window_info		window;
 
 	if (windat == NULL || windat->file == NULL)
 		return;
@@ -1019,7 +1021,7 @@ static void sorder_list_window_adjust_columns(void *data, wimp_i group, int widt
  * \param *windat		The standing order window to update.
  */
 
-static void sorder_list_window_adjust_sort_icon(struct sorder_block *windat)
+static void sorder_list_window_adjust_sort_icon(struct sorder_list_window *windat)
 {
 	wimp_icon_state		icon;
 
@@ -1044,7 +1046,7 @@ static void sorder_list_window_adjust_sort_icon(struct sorder_block *windat)
  * \param *icon			The icon to be updated.
  */
 
-static void sorder_list_window_adjust_sort_icon_data(struct sorder_block *windat, wimp_icon *icon)
+static void sorder_list_window_adjust_sort_icon_data(struct sorder_list_window *windat, wimp_icon *icon)
 {
 	enum sort_type	sort_order;
 
@@ -1063,7 +1065,7 @@ static void sorder_list_window_adjust_sort_icon_data(struct sorder_block *windat
  * \param *windat		The standing order window to update.
  */
 
-static void sorder_list_window_set_extent(struct sorder_block *windat)
+static void sorder_list_window_set_extent(struct sorder_list_window *windat)
 {
 	int	lines;
 
@@ -1125,7 +1127,7 @@ void sorder_redraw_all(struct sorder_list_window *windat)
  * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
  */
 
-static void sorder_list_window_force_redraw(struct sorder_block *windat, int from, int to, wimp_i column)
+static void sorder_list_window_force_redraw(struct sorder_list_window *windat, int from, int to, wimp_i column)
 {
 	wimp_window_info	window;
 
@@ -1162,10 +1164,10 @@ static void sorder_list_window_force_redraw(struct sorder_block *windat, int fro
 
 static void sorder_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
-	int			xpos;
-	wimp_i			icon;
-	wimp_window_state	window;
-	struct sorder_block	*windat;
+	int				xpos;
+	wimp_i				icon;
+	wimp_window_state		window;
+	struct sorder_list_window	*windat;
 
 	*buffer = '\0';
 
@@ -1196,7 +1198,7 @@ static void sorder_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
  * \return			The appropriate line, or -1 if not found.
  */
 
-static int sorder_list_window_get_line_from_sorder(struct sorder_block *windat, sorder_t sorder)
+static int sorder_list_window_get_line_from_sorder(struct sorder_list_window *windat, sorder_t sorder)
 {
 	int	i;
 	int	line = -1;
@@ -1222,7 +1224,7 @@ static int sorder_list_window_get_line_from_sorder(struct sorder_block *windat, 
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void sorder_list_window_open_sort_window(struct sorder_block *windat, wimp_pointer *ptr)
+static void sorder_list_window_open_sort_window(struct sorder_list_window *windat, wimp_pointer *ptr)
 {
 	if (windat == NULL || ptr == NULL)
 		return;
@@ -1242,7 +1244,7 @@ static void sorder_list_window_open_sort_window(struct sorder_block *windat, wim
 
 static osbool sorder_list_window_process_sort_window(enum sort_type order, void *data)
 {
-	struct sorder_block	*windat = (struct sorder_block *) data;
+	struct sorder_list_window *windat = (struct sorder_list_window *) data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -1265,7 +1267,7 @@ static osbool sorder_list_window_process_sort_window(enum sort_type order, void 
  * \param restore		TRUE to restore the current settings; else FALSE.
  */
 
-static void sorder_list_window_open_print_window(struct sorder_block *windat, wimp_pointer *ptr, osbool restore)
+static void sorder_list_window_open_print_window(struct sorder_list_window *windat, wimp_pointer *ptr, osbool restore)
 {
 	if (windat == NULL || windat->file == NULL)
 		return;
@@ -1287,11 +1289,11 @@ static void sorder_list_window_open_print_window(struct sorder_block *windat, wi
 
 static struct report *sorder_list_window_print(struct report *report, void *data, date_t from, date_t to)
 {
-	struct sorder_block	*windat = data;
-	int			line, column;
-	sorder_t		sorder;
-	char			rec_char[REC_FIELD_LEN];
-	wimp_i			columns[SORDER_COLUMNS];
+	struct sorder_list_window	*windat = data;
+	int				line, column;
+	sorder_t			sorder;
+	char				rec_char[REC_FIELD_LEN];
+	wimp_i				columns[SORDER_COLUMNS];
 
 	if (report == NULL || windat == NULL || windat->file == NULL)
 		return NULL;
@@ -1431,7 +1433,7 @@ void sorder_list_window_sort(struct sorder_list_window *windat)
 
 static int sorder_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data)
 {
-	struct sorder_block *windat = data;
+	struct sorder_list_window *windat = data;
 
 	if (windat == NULL)
 		return 0;
@@ -1477,8 +1479,8 @@ static int sorder_list_window_sort_compare(enum sort_type type, int index1, int 
 
 static void sorder_list_window_sort_swap(int index1, int index2, void *data)
 {
-	struct sorder_block	*windat = data;
-	int			temp;
+	struct sorder_list_window	*windat = data;
+	int				temp;
 
 	if (windat == NULL)
 		return;
@@ -1557,7 +1559,7 @@ void sorder_list_window_read_file_sortorder(struct sorder_list_window *windat, c
 
 static osbool sorder_list_window_save_csv(char *filename, osbool selection, void *data)
 {
-	struct sorder_block *windat = data;
+	struct sorder_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -1578,7 +1580,7 @@ static osbool sorder_list_window_save_csv(char *filename, osbool selection, void
 
 static osbool sorder_list_window_save_tsv(char *filename, osbool selection, void *data)
 {
-	struct sorder_block *windat = data;
+	struct sorder_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
@@ -1598,7 +1600,7 @@ static osbool sorder_list_window_save_tsv(char *filename, osbool selection, void
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void sorder_list_window_export_delimited(struct sorder_block *windat, char *filename, enum filing_delimit_type format, int filetype)
+static void sorder_list_window_export_delimited(struct sorder_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	int			line;

@@ -1508,35 +1508,40 @@ void preset_list_window_sort(struct preset_list_window *windat)
 
 static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data)
 {
-	struct preset_list_window *windat = data;
+	struct preset_list_window	*windat = data;
+	struct file_block		*file = NULL;
 
-	if (windat == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return 0;
+
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
 		return 0;
 
 	switch (type) {
 	case SORT_CHAR:
-		return (windat->presets[windat->presets[index1].sort_index].action_key -
-				windat->presets[windat->presets[index2].sort_index].action_key);
+		return (preset_get_action_key(file, windat->line_data[index1].preset) -
+				preset_get_action_key(file, windat->line_data[index2].preset));
 
 	case SORT_NAME:
-		return strcmp(windat->presets[windat->presets[index1].sort_index].name,
-				windat->presets[windat->presets[index2].sort_index].name);
+		return strcmp(preset_get_name(file, windat->line_data[index1].preset, NULL, 0),
+				preset_get_name(file, windat->line_data[index2].preset, NULL, 0));
 
 	case SORT_FROM:
-		return strcmp(account_get_name(windat->file, windat->presets[windat->presets[index1].sort_index].from),
-				account_get_name(windat->file, windat->presets[windat->presets[index2].sort_index].from));
+		return strcmp(account_get_name(file, preset_get_from(file, windat->line_data[index1].preset)),
+				account_get_name(file, preset_get_from(file, windat->line_data[index2].preset)));
 
 	case SORT_TO:
-		return strcmp(account_get_name(windat->file, windat->presets[windat->presets[index1].sort_index].to),
-				account_get_name(windat->file, windat->presets[windat->presets[index2].sort_index].to));
+		return strcmp(account_get_name(file, preset_get_to(file, windat->line_data[index1].preset)),
+				account_get_name(file, preset_get_to(file, windat->line_data[index2].preset)));
 
 	case SORT_AMOUNT:
-		return (windat->presets[windat->presets[index1].sort_index].amount -
-				windat->presets[windat->presets[index2].sort_index].amount);
+		return (preset_get_amount(file, windat->line_data[index1].preset) -
+				preset_get_amount(file, windat->line_data[index2].preset));
 
 	case SORT_DESCRIPTION:
-		return strcmp(windat->presets[windat->presets[index1].sort_index].description,
-				windat->presets[windat->presets[index2].sort_index].description);
+		return strcmp(preset_get_description(file, windat->line_data[index1].preset, NULL, 0),
+				preset_get_description(file, windat->line_data[index2].preset, NULL, 0));
 
 	default:
 		return 0;
@@ -1560,9 +1565,9 @@ static void preset_list_window_sort_swap(int index1, int index2, void *data)
 	if (windat == NULL)
 		return;
 
-	temp = windat->presets[index1].sort_index;
-	windat->presets[index1].sort_index = windat->presets[index2].sort_index;
-	windat->presets[index2].sort_index = temp;
+	temp = windat->line_data[index1].preset;
+	windat->line_data[index1].preset = windat->line_data[index2].preset;
+	windat->line_data[index2].preset = temp;
 }
 
 

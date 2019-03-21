@@ -545,7 +545,7 @@ void preset_list_window_open(struct preset_list_window *windat)
 	event_add_window_user_data(windat->preset_window, windat);
 	event_add_window_menu(windat->preset_window, preset_window_menu);
 	event_add_window_close_event(windat->preset_window, preset_list_window_close_handler);
-	event_add_window_mouse_event(windat->preset_window, preset_list_window_pane_click_handler);
+	event_add_window_mouse_event(windat->preset_window, preset_list_window_click_handler);
 	event_add_window_scroll_event(windat->preset_window, preset_list_window_scroll_handler);
 	event_add_window_redraw_event(windat->preset_window, preset_list_window_redraw_handler);
 	event_add_window_menu_prepare(windat->preset_window, preset_list_window_menu_prepare_handler);
@@ -1329,10 +1329,16 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
 
 static void preset_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore)
 {
-	if (windat == NULL || windat->file == NULL)
+	struct file_block *file;
+
+	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	print_dialogue_open(windat->file->print, ptr, FALSE, restore, "PrintPreset", "PrintTitlePreset", windat, preset_print, windat);
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
+		return;
+
+	print_dialogue_open(file->print, ptr, FALSE, restore, "PrintPreset", "PrintTitlePreset", windat, preset_print, windat);
 }
 
 
@@ -1350,12 +1356,17 @@ static void preset_open_print_window(struct preset_list_window *windat, wimp_poi
 static struct report *preset_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct preset_list_window	*windat = data;
+	struct file_block		*file;
 	int				line, column;
 	preset_t			preset;
 	char				rec_char[REC_FIELD_LEN];
 	wimp_i				columns[PRESET_COLUMNS];
 
-	if (report == NULL || windat == NULL || windat->file == NULL)
+	if (report == NULL || windat == NULL || windat->instance == NULL)
+		return NULL;
+
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
 		return NULL;
 
 	if (!column_get_icons(windat->columns, columns, PRESET_COLUMNS, FALSE))
@@ -1371,7 +1382,7 @@ static struct report *preset_print(struct report *report, void *data, date_t fro
 
 	stringbuild_add_string("\\b\\u");
 	stringbuild_add_message_param("PresetTitle",
-			file_get_leafname(windat->file, NULL, 0),
+			file_get_leafname(file, NULL, 0),
 			NULL, NULL, NULL);
 
 	stringbuild_report_line(report, 1);
@@ -1381,13 +1392,13 @@ static struct report *preset_print(struct report *report, void *data, date_t fro
 	/* Output the headings line, taking the text from the window icons. */
 
 	stringbuild_reset();
-	columns_print_heading_names(windat->columns, windat->preset_pane/*, report, 0*/);
+	columns_print_heading_names(windat->columns, windat->preset_pane);
 	stringbuild_report_line(report, 0);
 
 	/* Output the standing order data as a set of delimited lines. */
 
-	for (line = 0; line < windat->preset_count; line++) {
-		preset = windat->presets[line].sort_index;
+	for (line = 0; line < windat->display_lines; line++) {
+		preset = windat->line_data[line].preset;
 
 		stringbuild_reset();
 
@@ -1399,41 +1410,41 @@ static struct report *preset_print(struct report *report, void *data, date_t fro
 
 			switch (columns[column]) {
 			case PRESET_ICON_KEY:
-				stringbuild_add_printf("\\v\\c%c", windat->presets[preset].action_key);
+				stringbuild_add_printf("\\v\\c%c", preset_get_action_key(file, preset));
 				/* Note that action_key can be zero, in which case %c terminates. */
 				break;
 			case PRESET_ICON_NAME:
-				stringbuild_add_printf("\\v%s", windat->presets[preset].name);
+				stringbuild_add_printf("\\v%s", preset_get_name(file, preset, NULL, 0));
 				break;
 			case PRESET_ICON_FROM:
-				stringbuild_add_string(account_get_ident(windat->file, windat->presets[preset].from));
+				stringbuild_add_string(account_get_ident(file, preset_get_from(file, preset)));
 				break;
 			case PRESET_ICON_FROM_REC:
-				if (windat->presets[preset].flags & TRANS_REC_FROM)
+				if (preset_get_flags(file, preset) & TRANS_REC_FROM)
 					stringbuild_add_string(rec_char);
 				break;
 			case PRESET_ICON_FROM_NAME:
 				stringbuild_add_string("\\v");
-				stringbuild_add_string(account_get_name(windat->file, windat->presets[preset].from));
+				stringbuild_add_string(account_get_name(file, preset_get_from(file, preset)));
 				break;
 			case PRESET_ICON_TO:
-				stringbuild_add_string(account_get_ident(windat->file, windat->presets[preset].to));
+				stringbuild_add_string(account_get_ident(file, preset_get_to(file, preset)));
 				break;
 			case PRESET_ICON_TO_REC:
-				if (windat->presets[preset].flags & TRANS_REC_TO)
+				if (preset_get_flags(file, preset) & TRANS_REC_TO)
 					stringbuild_add_string(rec_char);
 				break;
 			case PRESET_ICON_TO_NAME:
 				stringbuild_add_string("\\v");
-				stringbuild_add_string(account_get_name(windat->file, windat->presets[preset].to));
+				stringbuild_add_string(account_get_name(file, preset_get_to(file, preset)));
 				break;
 			case PRESET_ICON_AMOUNT:
 				stringbuild_add_string("\\v\\d\\r");
-				stringbuild_add_currency(windat->presets[preset].amount, FALSE);
+				stringbuild_add_currency(preset_get_amount(file, preset), FALSE);
 				break;
 			case PRESET_ICON_DESCRIPTION:
 				stringbuild_add_string("\\v");
-				stringbuild_add_string(windat->presets[preset].description);
+				stringbuild_add_string(preset_get_description(file, preset, NULL, 0));
 				break;
 			default:
 				stringbuild_add_string("\\s");

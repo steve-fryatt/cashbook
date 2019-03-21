@@ -318,16 +318,16 @@ static void preset_list_window_adjust_sort_icon_data(struct preset_list_window *
 static void preset_list_window_set_extent(struct preset_list_window *windat);
 static void preset_list_window_force_redraw(struct preset_list_window *windat, int from, int to, wimp_i column);
 static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
-static int preset_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset);
-static void preset_open_sort_window(struct preset_list_window *windat, wimp_pointer *ptr);
-static osbool preset_process_sort_window(enum sort_type order, void *data);
-static void preset_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
-static struct report *preset_print(struct report *report, void *data, date_t from, date_t to);
-static int preset_sort_compare(enum sort_type type, int index1, int index2, void *data);
-static void preset_sort_swap(int index1, int index2, void *data);
-static osbool preset_save_csv(char *filename, osbool selection, void *data);
-static osbool preset_save_tsv(char *filename, osbool selection, void *data);
-static void preset_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
+static int preset_list_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset);
+static void preset_list_window_open_sort_window(struct preset_list_window *windat, wimp_pointer *ptr);
+static osbool preset_list_window_process_sort_window(enum sort_type order, void *data);
+static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
+static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to);
+static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
+static void preset_list_window_sort_swap(int index1, int index2, void *data);
+static osbool preset_list_window_save_csv(char *filename, osbool selection, void *data);
+static osbool preset_list_window_save_tsv(char *filename, osbool selection, void *data);
+static void preset_list_window_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
 
 /**
  * Test whether a line number is safe to look up in the redraw data array.
@@ -349,10 +349,10 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 	sort_window = templates_create_window("SortPreset");
 	ihelp_add_window(sort_window, "SortPreset", NULL);
 	preset_sort_dialogue = sort_dialogue_create(sort_window, preset_sort_columns, preset_sort_directions,
-			PRESET_SORT_OK, PRESET_SORT_CANCEL, preset_process_sort_window);
+			PRESET_SORT_OK, PRESET_SORT_CANCEL, preset_list_window_process_sort_window);
 
-	preset_sort_callbacks.compare = preset_sort_compare;
-	preset_sort_callbacks.swap = preset_sort_swap;
+	preset_sort_callbacks.compare = preset_list_window_sort_compare;
+	preset_sort_callbacks.swap = preset_list_window_sort_swap;
 
 	preset_window_def = templates_load_window("Preset");
 	preset_window_def->icon_count = 0;
@@ -363,8 +363,8 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 	preset_window_menu = templates_get_menu("PresetMenu");
 	ihelp_add_menu(preset_window_menu, "PresetMenu");
 
-	preset_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_save_csv);
-	preset_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_save_tsv);
+	preset_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_list_window_save_csv);
+	preset_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_list_window_save_tsv);
 }
 
 
@@ -693,7 +693,7 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case PRESET_PANE_PRINT:
-			preset_open_print_window(windat, pointer, config_opt_read("RememberValues"));
+			preset_list_window_open_print_window(windat, pointer, config_opt_read("RememberValues"));
 			break;
 
 		case PRESET_PANE_ADDPRESET:
@@ -701,13 +701,13 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case PRESET_PANE_SORT:
-			preset_open_sort_window(windat, pointer);
+			preset_list_window_open_sort_window(windat, pointer);
 			break;
 		}
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 		switch (pointer->i) {
 		case PRESET_PANE_PRINT:
-			preset_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
+			preset_list_window_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
 			break;
 
 		case PRESET_PANE_SORT:
@@ -811,7 +811,7 @@ static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 
 	switch (selection->items[0]){
 	case PRESET_MENU_SORT:
-		preset_open_sort_window(windat, &pointer);
+		preset_list_window_open_sort_window(windat, &pointer);
 		break;
 
 	case PRESET_MENU_EDIT:
@@ -824,7 +824,7 @@ static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 		break;
 
 	case PRESET_MENU_PRINT:
-		preset_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
+		preset_list_window_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
 		break;
 	}
 }
@@ -1119,17 +1119,23 @@ static void preset_list_window_set_extent(struct preset_list_window *windat)
 
 void preset_list_window_build_title(struct preset_list_window *windat)
 {
-	char	name[WINDOW_TITLE_LENGTH];
+	struct file_block	*file;
+	char			name[WINDOW_TITLE_LENGTH];
 
-	if (file == NULL || file->presets == NULL || file->presets->preset_window == NULL)
+
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = preset_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	file_get_leafname(file, name, WINDOW_TITLE_LENGTH);
 
-	msgs_param_lookup("PresetTitle", file->presets->window_title, WINDOW_TITLE_LENGTH,
+	msgs_param_lookup("PresetTitle", windat->window_title, WINDOW_TITLE_LENGTH,
 			name, NULL, NULL, NULL);
 
-	wimp_force_redraw_title(file->presets->preset_window);
+	wimp_force_redraw_title(windat->preset_window);
 }
 
 
@@ -1148,7 +1154,7 @@ void preset_list_window_redraw(struct preset_list_window *windat, preset_t prese
 		return;
 
 	if (preset != NULL_PRESET) {
-		from = preset_get_line_from_preset(windat, content->preset);
+		from = preset_list_window_get_line_from_preset(windat, preset);
 		to = from;
 	} else {
 		from = 0;
@@ -1239,16 +1245,16 @@ static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
  * \return			The appropriate line, or -1 if not found.
  */
 
-static int preset_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset)
+static int preset_list_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset)
 {
 	int	i;
 	int	line = -1;
 
-	if (windat == NULL || !preset_valid(windat, preset))
+	if (windat == NULL || windat->line_data == NULL)
 		return line;
 
-	for (i = 0; i < windat->preset_count; i++) {
-		if (windat->presets[i].sort_index == preset) {
+	for (i = 0; i < windat->display_lines; i++) {
+		if (windat->line_data[i].preset == preset) {
 			line = i;
 			break;
 		}
@@ -1269,10 +1275,10 @@ static int preset_window_get_line_from_preset(struct preset_list_window *windat,
 
 preset_t preset_list_window_get_preset_from_line(struct preset_list_window *windat, int line)
 {
-	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, line))
+	if (windat == NULL || windat->line_data == NULL || !preset_list_window_line_valid(windat, line))
 		return NULL_PRESET;
 
-	return file->presets->presets[line].sort_index;
+	return windat->line_data[line].preset;
 }
 
 
@@ -1283,7 +1289,7 @@ preset_t preset_list_window_get_preset_from_line(struct preset_list_window *wind
  * \param *ptr			The current Wimp pointer position.
  */
 
-static void preset_open_sort_window(struct preset_list_window *windat, wimp_pointer *ptr)
+static void preset_list_window_open_sort_window(struct preset_list_window *windat, wimp_pointer *ptr)
 {
 	if (windat == NULL || ptr == NULL)
 		return;
@@ -1301,7 +1307,7 @@ static void preset_open_sort_window(struct preset_list_window *windat, wimp_poin
  * \return			TRUE if successful; else FALSE.
  */
 
-static osbool preset_process_sort_window(enum sort_type order, void *data)
+static osbool preset_list_window_process_sort_window(enum sort_type order, void *data)
 {
 	struct preset_list_window *windat = (struct preset_list_window *) data;
 
@@ -1310,7 +1316,7 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
 
 	sort_set_order(windat->sort, order);
 
-	preset_adjust_sort_icon(windat);
+	preset_list_window_adjust_sort_icon(windat);
 	windows_redraw(windat->preset_pane);
 	preset_list_window_sort(windat);
 
@@ -1327,7 +1333,7 @@ static osbool preset_process_sort_window(enum sort_type order, void *data)
  *				return to defaults.
  */
 
-static void preset_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore)
+static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore)
 {
 	struct file_block *file;
 
@@ -1338,7 +1344,7 @@ static void preset_open_print_window(struct preset_list_window *windat, wimp_poi
 	if (file == NULL)
 		return;
 
-	print_dialogue_open(file->print, ptr, FALSE, restore, "PrintPreset", "PrintTitlePreset", windat, preset_print, windat);
+	print_dialogue_open(file->print, ptr, FALSE, restore, "PrintPreset", "PrintTitlePreset", windat, preset_list_window_print, windat);
 }
 
 
@@ -1353,7 +1359,7 @@ static void preset_open_print_window(struct preset_list_window *windat, wimp_poi
  * \return			Pointer to the report, or NULL on failure.
  */
 
-static struct report *preset_print(struct report *report, void *data, date_t from, date_t to)
+static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct preset_list_window	*windat = data;
 	struct file_block		*file;
@@ -1481,9 +1487,9 @@ void preset_list_window_sort(struct preset_list_window *windat)
 
 	/* Run the sort. */
 
-	sort_process(windat->sort, windat->preset_count);
+	sort_process(windat->sort, windat->display_lines);
 
-	preset_force_window_redraw(windat, 0, windat->preset_count - 1, wimp_ICON_WINDOW);
+	preset_list_window_force_redraw(windat, 0, windat->display_lines - 1, wimp_ICON_WINDOW);
 
 	hourglass_off();
 }
@@ -1500,7 +1506,7 @@ void preset_list_window_sort(struct preset_list_window *windat)
  * \return			The comparison result.
  */
 
-static int preset_sort_compare(enum sort_type type, int index1, int index2, void *data)
+static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data)
 {
 	struct preset_list_window *windat = data;
 
@@ -1546,7 +1552,7 @@ static int preset_sort_compare(enum sort_type type, int index1, int index2, void
  * \param *data			Client specific data, which is our window block.
  */
 
-static void preset_sort_swap(int index1, int index2, void *data)
+static void preset_list_window_sort_swap(int index1, int index2, void *data)
 {
 	struct preset_list_window	*windat = data;
 	int				temp;
@@ -1573,7 +1579,7 @@ osbool preset_list_window_add_line(struct preset_list_window *windat, preset_t p
 
 
 
-	preset_set_window_extent(file->presets);
+	preset_list_window_set_extent(file->presets);
 }
 
 
@@ -1611,15 +1617,15 @@ osbool preset_list_window_delete_line(struct preset_list_window *windat, preset_
 
 	/* Update the main preset display window. */
 
-	preset_set_window_extent(file->presets);
+	preset_list_window_set_extent(file->presets);
 
 	if (file->presets->preset_window != NULL) {
 		windows_open(file->presets->preset_window);
 		if (config_opt_read("AutoSortPresets")) {
 			preset_sort(file->presets);
-			preset_force_window_redraw(file->presets, file->presets->preset_count, file->presets->preset_count, wimp_ICON_WINDOW);
+			preset_list_window_force_redraw(file->presets, file->presets->preset_count, file->presets->preset_count, wimp_ICON_WINDOW);
 		} else {
-			preset_force_window_redraw(file->presets, 0, file->presets->preset_count, wimp_ICON_WINDOW);
+			preset_list_window_force_redraw(file->presets, 0, file->presets->preset_count, wimp_ICON_WINDOW);
 		}
 	}
 
@@ -1694,14 +1700,14 @@ void preset_list_window_read_file_sortorder(struct preset_list_window *windat, c
  * \param *data			Pointer to the window block for the save target.
  */
 
-static osbool preset_save_csv(char *filename, osbool selection, void *data)
+static osbool preset_list_window_save_csv(char *filename, osbool selection, void *data)
 {
 	struct preset_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
 
-	preset_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
+	preset_list_window_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
 
 	return TRUE;
 }
@@ -1715,14 +1721,14 @@ static osbool preset_save_csv(char *filename, osbool selection, void *data)
  * \param *data			Pointer to the window block for the save target.
  */
 
-static osbool preset_save_tsv(char *filename, osbool selection, void *data)
+static osbool preset_list_window_save_tsv(char *filename, osbool selection, void *data)
 {
 	struct preset_list_window *windat = data;
 
 	if (windat == NULL)
 		return FALSE;
 
-	preset_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
+	preset_list_window_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
 
 	return TRUE;
 }
@@ -1737,7 +1743,7 @@ static osbool preset_save_tsv(char *filename, osbool selection, void *data)
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void preset_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
+static void preset_list_window_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
 	struct file_block	*file;

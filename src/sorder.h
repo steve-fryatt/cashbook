@@ -136,6 +136,16 @@ int sorder_get_count(struct file_block *file);
 
 
 /**
+ * Return the file associated with a standing order instance.
+ *
+ * \param *instance		The standing order instance to query.
+ * \return			The associated file, or NULL.
+ */
+
+struct file_block *sorder_get_file(struct sorder_block *instance);
+
+
+/**
  * Scan the standing orders in a file, adding transactions for any which have
  * fallen due.
  *

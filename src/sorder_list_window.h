@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_SORDER_LIST_WINDOW
 #define CASHBOOK_SORDER_LIST_WINDOW
 
+#include "sorder.h"
+
 /**
  * Initialise the Standing Order List Window system.
  *
@@ -81,9 +83,11 @@ void sorder_list_window_build_title(struct sorder_list_window *windat);
  * Force the complete redraw of the given Standing Order list window.
  *
  * \param *windat		The standing order window to redraw.
+ * \param sorder		The standing order to redraw, or NULL_SORDER for all.
+ * \param stopped		TRUE to redraw just the active columns.
  */
 
-void sorder_redraw_all(struct sorder_list_window *windat);
+void sorder_list_window_redraw(struct sorder_list_window *windat, sorder_t sorder, osbool stopped);
 
 
 /**

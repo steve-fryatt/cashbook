@@ -87,19 +87,6 @@
 #include "window.h"
 
 
-/* Standing Order Sort Window */
-
-#define SORDER_SORT_OK 2
-#define SORDER_SORT_CANCEL 3
-#define SORDER_SORT_FROM 4
-#define SORDER_SORT_TO 5
-#define SORDER_SORT_AMOUNT 6
-#define SORDER_SORT_DESCRIPTION 7
-#define SORDER_SORT_NEXTDATE 8
-#define SORDER_SORT_LEFT 9
-#define SORDER_SORT_ASCENDING 10
-#define SORDER_SORT_DESCENDING 11
-
 /* Buffers used in the standing order report. */
 
 #define SORDER_REPORT_LINE_LENGTH 1024
@@ -161,11 +148,7 @@ struct sorder_block {
 	sorder_t		sorder_count;
 };
 
-/* Standing Order sorting. */
-
-static struct sort_callback	sorder_sort_callbacks;
-
-
+/* Static Function Prototypes. */
 
 static osbool			sorder_process_edit_window(void *parent, struct sorder_dialogue_data *content);
 static osbool			sorder_stop_from_edit_window(struct sorder_block *windat, struct sorder_dialogue_data *content);
@@ -190,9 +173,6 @@ static enum date_adjust		sorder_get_date_adjustment(enum transact_flags flags);
 
 void sorder_initialise(osspriteop_area *sprites)
 {
-	sorder_sort_callbacks.compare = sorder_sort_compare;
-	sorder_sort_callbacks.swap = sorder_sort_swap;
-
 	sorder_list_window_initialise(sprites);
 	sorder_dialogue_initialise();
 }
@@ -301,7 +281,7 @@ void sorder_redraw_all(struct file_block *file)
 	if (file == NULL || file->sorders == NULL)
 		return;
 
-	sorder_list_window_redraw_all(file->sorders->sorder_window);
+	sorder_list_window_redraw(file->sorders->sorder_window, NULL_SORDER, FALSE);
 }
 
 
@@ -374,7 +354,7 @@ void sorder_open_edit_window(struct file_block *file, sorder_t sorder, wimp_poin
 static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_data *content)
 {
 	struct sorder_block	*windat = parent;
-	int			done, line;
+	int			done;
 
 	if (content == NULL || windat == NULL)
 		return FALSE;
@@ -470,13 +450,10 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
 
 	/* Update the display. */
 
-	if (config_opt_read("AutoSortSOrders")) {
+	if (config_opt_read("AutoSortSOrders"))
 		sorder_sort(windat);
-	} else {
-		line = sorder_get_line_from_sorder(windat, content->sorder);
-		if (line != -1)
-			sorder_force_window_redraw(windat, line, line, wimp_ICON_WINDOW);
-	}
+	else
+		sorder_list_window_redraw(windat->sorder_window, content->sorder, FALSE);
 
 	file_set_data_integrity(windat->file, TRUE);
 	sorder_process(windat->file);
@@ -499,8 +476,6 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
 
 static osbool sorder_stop_from_edit_window(struct sorder_block *windat, struct sorder_dialogue_data *content)
 {
-	int line;
-
 	if (windat == NULL || content == NULL)
 		return FALSE;
 
@@ -522,16 +497,10 @@ static osbool sorder_stop_from_edit_window(struct sorder_block *windat, struct s
 
 	/* Update the main standing order display window. */
 
-	if (config_opt_read("AutoSortSOrders")) {
+	if (config_opt_read("AutoSortSOrders"))
 		sorder_sort(windat);
-	} else {
-		line = sorder_get_line_from_sorder(windat, content->sorder);
-
-		if (line != -1) {
-			sorder_force_window_redraw(windat, line, line, SORDER_PANE_NEXTDATE);
-			sorder_force_window_redraw(windat, line, line, SORDER_PANE_LEFT);
-		}
-	}
+	else
+		sorder_list_window_redraw(windat->sorder_window, content->sorder, TRUE);
 
 	file_set_data_integrity(windat->file, TRUE);
 
@@ -596,9 +565,7 @@ static sorder_t sorder_add(struct file_block *file)
 	*file->sorders->sorders[new].reference = '\0';
 	*file->sorders->sorders[new].description = '\0';
 
-	file->sorders->sorders[new].sort_index = new;
-
-	sorder_set_window_extent(file->sorders);
+	sorder_list_window_add_sorder(file->sorders->sorder_window, new);
 
 	return new;
 }
@@ -619,21 +586,6 @@ static osbool sorder_delete(struct file_block *file, sorder_t sorder)
 	if (file == NULL || file->sorders == NULL || sorder == NULL_SORDER || sorder >= file->sorders->sorder_count)
 		return FALSE;
 
-	/* Find the index entry for the deleted order, and if it doesn't index itself, shuffle all the indexes along
-	 * so that they remain in the correct places. */
-
-	for (i = 0; i < file->sorders->sorder_count && file->sorders->sorders[i].sort_index != sorder; i++);
-
-	if (file->sorders->sorders[i].sort_index == sorder && i != sorder) {
-		index = i;
-
-		if (index > sorder)
-			for (i = index; i > sorder; i--)
-				file->sorders->sorders[i].sort_index = file->sorders->sorders[i-1].sort_index;
-		else
-			for (i = index; i < sorder; i++)
-				file->sorders->sorders[i].sort_index = file->sorders->sorders[i+1].sort_index;
-	}
 
 	/* Delete the order */
 
@@ -644,26 +596,7 @@ static osbool sorder_delete(struct file_block *file, sorder_t sorder)
 
 	file->sorders->sorder_count--;
 
-	/* Adjust the sort indexes that point to entries above the deleted one, by reducing any indexes that are
-	 * greater than the deleted entry by one.
-	 */
-
-	for (i = 0; i < file->sorders->sorder_count; i++)
-		if (file->sorders->sorders[i].sort_index > sorder)
-			file->sorders->sorders[i].sort_index = file->sorders->sorders[i].sort_index - 1;
-
-	/* Update the main standing order display window. */
-
-	sorder_set_window_extent(file->sorders);
-	if (file->sorders->sorder_window != NULL) {
-		windows_open(file->sorders->sorder_window);
-		if (config_opt_read("AutoSortSOrders")) {
-			sorder_sort(file->sorders);
-			sorder_force_window_redraw(file->sorders, file->sorders->sorder_count, file->sorders->sorder_count, wimp_ICON_WINDOW);
-		} else {
-			sorder_force_window_redraw(file->sorders, 0, file->sorders->sorder_count, wimp_ICON_WINDOW);
-		}
-	}
+	sorder_list_window_delete_sorder(file->sorders->sorder_window, sorder);
 
 	file_set_data_integrity(file, TRUE);
 
@@ -705,6 +638,22 @@ int sorder_get_count(struct file_block *file)
 
 
 /**
+ * Return the file associated with a standing order instance.
+ *
+ * \param *instance		The standing order instance to query.
+ * \return			The associated file, or NULL.
+ */
+
+struct file_block *sorder_get_file(struct sorder_block *instance)
+{
+	if (instance == NULL)
+		return NULL;
+
+	return instance->file;
+}
+
+
+/**
  * Scan the standing orders in a file, adding transactions for any which have
  * fallen due.
  *
@@ -717,7 +666,6 @@ void sorder_process(struct file_block *file)
 	sorder_t	order;
 	amt_t		amount;
 	osbool		changed;
-	int		line;
 	char		ref[TRANSACT_REF_FIELD_LEN], desc[TRANSACT_DESCRIPT_FIELD_LEN];
 
 	if (file == NULL || file->sorders == NULL)
@@ -783,12 +731,7 @@ void sorder_process(struct file_block *file)
 
 			/* Redraw the standing order in the standing order window. */
 
-			line = sorder_get_line_from_sorder(file->sorders, order);
-
-			if (line != -1) {
-				sorder_force_window_redraw(file->sorders, order, order, SORDER_PANE_NEXTDATE);
-				sorder_force_window_redraw(file->sorders, order, order, SORDER_PANE_LEFT);
-			}
+			sorder_list_window_redraw(file->sorders->sorder_window, order, TRUE);
 		}
 	}
 

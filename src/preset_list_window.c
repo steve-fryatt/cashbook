@@ -72,6 +72,7 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
+#include "presets.h"
 #include "preset_dialogue.h"
 #include "print_dialogue.h"
 #include "sort.h"
@@ -1582,9 +1583,7 @@ osbool preset_list_window_add_line(struct preset_list_window *windat, preset_t p
 {
 
 
-
-
-	preset_list_window_set_extent(file->presets);
+//	preset_list_window_set_extent(file->presets);
 }
 
 
@@ -1592,47 +1591,47 @@ osbool preset_list_window_delete_line(struct preset_list_window *windat, preset_
 {
 	int i;
 
-	if (windat == NULL)
-		return FALSE;
+//	if (windat == NULL)
+//		return FALSE;
 
-	for (i = 0; i < windat->display_lines && windat->line_data[i].sort_index != preset; i++);
+//	for (i = 0; i < windat->display_lines && windat->line_data[i].sort_index != preset; i++);
 
 	/* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along
 	 * so that they remain in the correct places. */
 
-	for (i = 0; i < file->presets->preset_count && file->presets->presets[i].sort_index != preset; i++);
+//	for (i = 0; i < file->presets->preset_count && file->presets->presets[i].sort_index != preset; i++);
 
-	if (file->presets->presets[i].sort_index == preset && i != preset) {
-		index = i;
+//	if (file->presets->presets[i].sort_index == preset && i != preset) {
+//		index = i;
 
-		if (index > preset)
-			for (i=index; i>preset; i--)
-				file->presets->presets[i].sort_index = file->presets->presets[i-1].sort_index;
-		else
-			for (i=index; i<preset; i++)
-				file->presets->presets[i].sort_index = file->presets->presets[i+1].sort_index;
-	}
+//		if (index > preset)
+//			for (i=index; i>preset; i--)
+//				file->presets->presets[i].sort_index = file->presets->presets[i-1].sort_index;
+//		else
+//			for (i=index; i<preset; i++)
+//				file->presets->presets[i].sort_index = file->presets->presets[i+1].sort_index;
+//	}
 	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
 	 * greater than the deleted entry by one.
 	 */
 
-	for (i = 0; i < file->presets->preset_count; i++)
-		if (file->presets->presets[i].sort_index > preset)
-			file->presets->presets[i].sort_index = file->presets->presets[i].sort_index - 1;
+//	for (i = 0; i < file->presets->preset_count; i++)
+//		if (file->presets->presets[i].sort_index > preset)
+//			file->presets->presets[i].sort_index = file->presets->presets[i].sort_index - 1;
 
 	/* Update the main preset display window. */
 
-	preset_list_window_set_extent(file->presets);
+//	preset_list_window_set_extent(file->presets);
 
-	if (file->presets->preset_window != NULL) {
-		windows_open(file->presets->preset_window);
-		if (config_opt_read("AutoSortPresets")) {
-			preset_sort(file->presets);
-			preset_list_window_force_redraw(file->presets, file->presets->preset_count, file->presets->preset_count, wimp_ICON_WINDOW);
-		} else {
-			preset_list_window_force_redraw(file->presets, 0, file->presets->preset_count, wimp_ICON_WINDOW);
-		}
-	}
+//	if (file->presets->preset_window != NULL) {
+//		windows_open(file->presets->preset_window);
+//		if (config_opt_read("AutoSortPresets")) {
+//			preset_sort(file->presets);
+//			preset_list_window_force_redraw(file->presets, file->presets->preset_count, file->presets->preset_count, wimp_ICON_WINDOW);
+//		} else {
+//			preset_list_window_force_redraw(file->presets, 0, file->presets->preset_count, wimp_ICON_WINDOW);
+//		}
+//	}
 
 }
 

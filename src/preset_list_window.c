@@ -1123,7 +1123,6 @@ void preset_list_window_build_title(struct preset_list_window *windat)
 	struct file_block	*file;
 	char			name[WINDOW_TITLE_LENGTH];
 
-
 	if (windat == NULL || windat->instance == NULL)
 		return;
 

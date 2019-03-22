@@ -802,10 +802,15 @@ static void sorder_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 static void sorder_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
 	struct sorder_list_window	*windat;
+	struct file_block		*file;
 	wimp_pointer			pointer;
 
 	windat = event_get_window_user_data(w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	wimp_get_pointer_info(&pointer);
@@ -817,11 +822,11 @@ static void sorder_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 
 	case SORDER_MENU_EDIT:
 		if (sorder_window_menu_line != -1)
-			sorder_open_edit_window(windat->file, windat->sorders[sorder_window_menu_line].sort_index, &pointer);
+			sorder_open_edit_window(file, windat->line_data[sorder_window_menu_line].sorder, &pointer);
 		break;
 
 	case SORDER_MENU_NEWSORDER:
-		sorder_open_edit_window(windat->file, NULL_SORDER, &pointer);
+		sorder_open_edit_window(file, NULL_SORDER, &pointer);
 		break;
 
 	case SORDER_MENU_PRINT:
@@ -829,7 +834,7 @@ static void sorder_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 		break;
 
 	case SORDER_MENU_FULLREP:
-		sorder_full_report(windat->file);
+		sorder_full_report(file);
 		break;
 	}
 }
@@ -909,12 +914,21 @@ static void sorder_list_window_scroll_handler(wimp_scroll *scroll)
 static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 {
 	struct sorder_list_window	*windat;
-	int				top, base, y, select, t;
+	struct file_block		*file;
+	sorder_t			sorder;
+	acct_t				account;
+	date_t				next_date;
+	enum transact_flags		flags;
+	int				top, base, y, select;
 	char				icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool				more;
 
 	windat = event_get_window_user_data(redraw->w);
-	if (windat == NULL || windat->file == NULL || windat->columns == NULL)
+	if (windat == NULL || windat->instance == NULL || windat->columns == NULL)
+		return;
+
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	/* Identify if there is a selected line to highlight. */
@@ -940,7 +954,7 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
-			t = (y < windat->sorder_count) ? windat->sorders[y].sort_index : 0;
+			sorder = (y < windat->display_lines) ? windat->line_data[y].sorder : 0;
 
 			/* Place the icons in the current row. */
 
@@ -949,44 +963,52 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 
 			/* If we're off the end of the data, plot a blank line and continue. */
 
-			if (y >= windat->sorder_count) {
+			if (y >= windat->display_lines) {
 				columns_plot_empty_table_icons(windat->columns);
 				continue;
 			}
 
+			flags =  sorder_get_flags(file, sorder);
+
 			/* From field */
 
-			window_plot_text_field(SORDER_ICON_FROM, account_get_ident(windat->file, windat->sorders[t].from), wimp_COLOUR_BLACK);
-			window_plot_reconciled_field(SORDER_ICON_FROM_REC, (windat->sorders[t].flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
-			window_plot_text_field(SORDER_ICON_FROM_NAME, account_get_name(windat->file, windat->sorders[t].from), wimp_COLOUR_BLACK);
+			account = sorder_get_from(file, sorder);
+
+			window_plot_text_field(SORDER_ICON_FROM, account_get_ident(file, account), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(SORDER_ICON_FROM_REC, (flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
+			window_plot_text_field(SORDER_ICON_FROM_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
 
 			/* To field */
 
-			window_plot_text_field(SORDER_ICON_TO, account_get_ident(windat->file, windat->sorders[t].to), wimp_COLOUR_BLACK);
-			window_plot_reconciled_field(SORDER_ICON_TO_REC, (windat->sorders[t].flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
-			window_plot_text_field(SORDER_ICON_TO_NAME, account_get_name(windat->file, windat->sorders[t].to), wimp_COLOUR_BLACK);
+			account = sorder_get_to(file, sorder);
+
+			window_plot_text_field(SORDER_ICON_TO, account_get_ident(file, account), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(SORDER_ICON_TO_REC, (flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
+			window_plot_text_field(SORDER_ICON_TO_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
 
 			/* Amount field */
 
-			window_plot_currency_field(SORDER_ICON_AMOUNT, windat->sorders[t].normal_amount, wimp_COLOUR_BLACK);
+			window_plot_currency_field(SORDER_ICON_AMOUNT, sorder_get_amount(file, sorder), wimp_COLOUR_BLACK);
 
 			/* Description field */
 
-			window_plot_text_field(SORDER_ICON_DESCRIPTION, windat->sorders[t].description, wimp_COLOUR_BLACK);
+			window_plot_text_field(SORDER_ICON_DESCRIPTION, sorder_get_description(file, sorder, NULL, 0), wimp_COLOUR_BLACK);
 
 			/* Next date field */
 
-			if (windat->sorders[t].adjusted_next_date != NULL_DATE)
-				window_plot_date_field(SORDER_ICON_NEXTDATE, windat->sorders[t].adjusted_next_date, wimp_COLOUR_BLACK);
+			next_date = sorder_get_next_date(file, sorder);
+
+			if (next_date != NULL_DATE)
+				window_plot_date_field(SORDER_ICON_NEXTDATE, next_date, wimp_COLOUR_BLACK);
 			else
 				window_plot_message_field(SORDER_ICON_NEXTDATE, "SOrderStopped", wimp_COLOUR_BLACK);
 
 			/* Left field */
 
-			window_plot_int_field(SORDER_ICON_LEFT,windat->sorders[t].left, wimp_COLOUR_BLACK);
+			window_plot_int_field(SORDER_ICON_LEFT, sorder_get_remaining_transactions(file, sorder), wimp_COLOUR_BLACK);
 		}
 
-		more = wimp_get_rectangle (redraw);
+		more = wimp_get_rectangle(redraw);
 	}
 }
 
@@ -1002,10 +1024,15 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 static void sorder_list_window_adjust_columns(void *data, wimp_i group, int width)
 {
 	struct sorder_list_window	*windat = (struct sorder_list_window *) data;
+	struct file_block		*file;
 	int				new_extent;
 	wimp_window_info		window;
 
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	columns_update_dragged(windat->columns, windat->sorder_pane, NULL, group, width);
@@ -1033,7 +1060,7 @@ static void sorder_list_window_adjust_columns(void *data, wimp_i group, int widt
 
 	windows_open(window.w);
 
-	file_set_data_integrity(windat->file, TRUE);
+	file_set_data_integrity(file, TRUE);
 }
 
 
@@ -1096,7 +1123,7 @@ static void sorder_list_window_set_extent(struct sorder_list_window *windat)
 	if (windat == NULL || windat->sorder_window == NULL)
 		return;
 
-	lines = (windat->sorder_count > MIN_SORDER_ENTRIES) ? windat->sorder_count : MIN_SORDER_ENTRIES;
+	lines = (windat->display_lines > MIN_SORDER_ENTRIES) ? windat->display_lines : MIN_SORDER_ENTRIES;
 
 	window_set_extent(windat->sorder_window, lines, SORDER_TOOLBAR_HEIGHT, column_get_window_width(windat->columns));
 }
@@ -1111,9 +1138,14 @@ static void sorder_list_window_set_extent(struct sorder_list_window *windat)
 
 void sorder_list_window_build_title(struct sorder_list_window *windat)
 {
-	char	name[WINDOW_TITLE_LENGTH];
+	struct file_block	*file;
+	char			name[WINDOW_TITLE_LENGTH];
 
-	if (windat == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	file_get_leafname(file, name, WINDOW_TITLE_LENGTH);
@@ -1121,7 +1153,7 @@ void sorder_list_window_build_title(struct sorder_list_window *windat)
 	msgs_param_lookup("SOrderTitle", windat->window_title, WINDOW_TITLE_LENGTH,
 			name, NULL, NULL, NULL);
 
-	wimp_force_redraw_title(windat);
+	wimp_force_redraw_title(windat->sorder_window);
 }
 
 
@@ -1243,11 +1275,11 @@ static int sorder_list_window_get_line_from_sorder(struct sorder_list_window *wi
 	int	i;
 	int	line = -1;
 
-	if (windat == NULL || !sorder_valid(windat, sorder))
+	if (windat == NULL || windat->line_data == NULL)
 		return line;
 
-	for (i = 0; i < windat->sorder_count; i++) {
-		if (windat->sorders[i].sort_index == sorder) {
+	for (i = 0; i < windat->display_lines; i++) {
+		if (windat->line_data[i].sorder == sorder) {
 			line = i;
 			break;
 		}
@@ -1309,10 +1341,16 @@ static osbool sorder_list_window_process_sort_window(enum sort_type order, void 
 
 static void sorder_list_window_open_print_window(struct sorder_list_window *windat, wimp_pointer *ptr, osbool restore)
 {
-	if (windat == NULL || windat->file == NULL)
+	struct file_block *file;
+
+	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	print_dialogue_open(windat->file->print, ptr, FALSE, restore, "PrintSOrder", "PrintTitleSOrder", windat, sorder_list_window_print, windat);
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
+		return;
+
+	print_dialogue_open(file->print, ptr, FALSE, restore, "PrintSOrder", "PrintTitleSOrder", windat, sorder_list_window_print, windat);
 }
 
 
@@ -1330,12 +1368,18 @@ static void sorder_list_window_open_print_window(struct sorder_list_window *wind
 static struct report *sorder_list_window_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct sorder_list_window	*windat = data;
+	struct file_block		*file;
 	int				line, column;
 	sorder_t			sorder;
+	date_t				next_date;
 	char				rec_char[REC_FIELD_LEN];
 	wimp_i				columns[SORDER_COLUMNS];
 
-	if (report == NULL || windat == NULL || windat->file == NULL)
+	if (report == NULL || windat == NULL || windat->instance == NULL)
+		return NULL;
+
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
 		return NULL;
 
 	if (!column_get_icons(windat->columns, columns, SORDER_COLUMNS, FALSE))
@@ -1351,7 +1395,7 @@ static struct report *sorder_list_window_print(struct report *report, void *data
 
 	stringbuild_add_string("\\b\\u");
 	stringbuild_add_message_param("SOrderTitle",
-			file_get_leafname(windat->file, NULL, 0),
+			file_get_leafname(file, NULL, 0),
 			NULL, NULL, NULL);
 
 	stringbuild_report_line(report, 1);
@@ -1366,8 +1410,8 @@ static struct report *sorder_list_window_print(struct report *report, void *data
 
 	/* Output the standing order data as a set of delimited lines. */
 
-	for (line = 0; line < windat->sorder_count; line++) {
-		sorder = windat->sorders[line].sort_index;
+	for (line = 0; line < windat->display_lines; line++) {
+		sorder = windat->line_data[line].sorder;
 
 		stringbuild_reset();
 
@@ -1379,44 +1423,45 @@ static struct report *sorder_list_window_print(struct report *report, void *data
 
 			switch (columns[column]) {
 			case SORDER_ICON_FROM:
-				stringbuild_add_string(account_get_ident(windat->file, windat->sorders[sorder].from));
+				stringbuild_add_string(account_get_ident(file, sorder_get_from(file, sorder)));
 				break;
 			case SORDER_ICON_FROM_REC:
-				if (windat->sorders[sorder].flags & TRANS_REC_FROM)
+				if (sorder_get_flags(file, sorder) & TRANS_REC_FROM)
 					stringbuild_add_string(rec_char);
 				break;
 			case SORDER_ICON_FROM_NAME:
 				stringbuild_add_string("\\v");
-				stringbuild_add_string(account_get_name(windat->file, windat->sorders[sorder].from));
+				stringbuild_add_string(account_get_name(file, sorder_get_from(file, sorder)));
 				break;
 			case SORDER_ICON_TO:
-				stringbuild_add_string(account_get_ident(windat->file, windat->sorders[sorder].to));
+				stringbuild_add_string(account_get_ident(file, sorder_get_to(file, sorder)));
 				break;
 			case SORDER_ICON_TO_REC:
-				if (windat->sorders[sorder].flags & TRANS_REC_TO)
+				if (sorder_get_flags(file, sorder) & TRANS_REC_TO)
 					stringbuild_add_string(rec_char);
 				break;
 			case SORDER_ICON_TO_NAME:
 				stringbuild_add_string("\\v");
-				stringbuild_add_string(account_get_name(windat->file, windat->sorders[sorder].to));
+				stringbuild_add_string(account_get_name(file, sorder_get_to(file, sorder)));
 				break;
 			case SORDER_ICON_AMOUNT:
 				stringbuild_add_string("\\v\\d\\r");
-				stringbuild_add_currency(windat->sorders[sorder].normal_amount, FALSE);
+				stringbuild_add_currency(sorder_get_amount(file, sorder), FALSE);
 				break;
 			case SORDER_ICON_DESCRIPTION:
 				stringbuild_add_string("\\v");
-				stringbuild_add_string(windat->sorders[sorder].description);
+				stringbuild_add_string(sorder_get_description(file, sorder, NULL, 0));
 				break;
 			case SORDER_ICON_NEXTDATE:
 				stringbuild_add_string("\\v\\c");
-				if (windat->sorders[sorder].adjusted_next_date != NULL_DATE)
-					stringbuild_add_date(windat->sorders[sorder].adjusted_next_date);
+				next_date = sorder_get_next_date(file, sorder);
+				if (next_date != NULL_DATE)
+					stringbuild_add_date(next_date);
 				else
 					stringbuild_add_message("SOrderStopped");
 				break;
 			case SORDER_ICON_LEFT:
-				stringbuild_add_printf("\\v\\d\\r%d", windat->sorders[sorder].left);
+				stringbuild_add_printf("\\v\\d\\r%d", sorder_get_remaining_transactions(file, sorder));
 				break;
 			default:
 				stringbuild_add_string("\\s");
@@ -1453,9 +1498,9 @@ void sorder_list_window_sort(struct sorder_list_window *windat)
 
 	/* Run the sort. */
 
-	sort_process(windat->sort, windat->sorder_count);
+	sort_process(windat->sort, windat->display_lines);
 
-	sorder_force_window_redraw(windat, 0, windat->sorder_count - 1, wimp_ICON_WINDOW);
+	sorder_list_window_force_redraw(windat, 0, windat->display_lines - 1, wimp_ICON_WINDOW);
 
 	hourglass_off();
 }
@@ -1473,35 +1518,40 @@ void sorder_list_window_sort(struct sorder_list_window *windat)
 
 static int sorder_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data)
 {
-	struct sorder_list_window *windat = data;
+	struct sorder_list_window	*windat = data;
+	struct file_block		*file = NULL;
 
-	if (windat == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return 0;
+
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
 		return 0;
 
 	switch (type) {
 	case SORT_FROM:
-		return strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[index1].sort_index].from),
-				account_get_name(windat->file, windat->sorders[windat->sorders[index2].sort_index].from));
+		return strcmp(account_get_name(file, sorder_get_from(file, windat->line_data[index1].sorder)),
+				account_get_name(file, sorder_get_from(file, windat->line_data[index2].sorder)));
 
 	case SORT_TO:
-		return strcmp(account_get_name(windat->file, windat->sorders[windat->sorders[index1].sort_index].to),
-				account_get_name(windat->file, windat->sorders[windat->sorders[index2].sort_index].to));
+		return strcmp(account_get_name(file, sorder_get_to(file, windat->line_data[index1].sorder)),
+				account_get_name(file, sorder_get_to(file, windat->line_data[index2].sorder)));
 
 	case SORT_AMOUNT:
-		return (windat->sorders[windat->sorders[index1].sort_index].normal_amount -
-				windat->sorders[windat->sorders[index2].sort_index].normal_amount);
+		return (sorder_get_amount(file, windat->line_data[index1].sorder) -
+				sorder_get_amount(file, windat->line_data[index2].sorder));
 
 	case SORT_DESCRIPTION:
-		return strcmp(windat->sorders[windat->sorders[index1].sort_index].description,
-				windat->sorders[windat->sorders[index2].sort_index].description);
+		return strcmp(sorder_get_description(file, windat->line_data[index1].sorder, NULL, 0),
+				sorder_get_description(file, windat->line_data[index2].sorder, NULL, 0));
 
 	case SORT_NEXTDATE:
-		return ((windat->sorders[windat->sorders[index2].sort_index].adjusted_next_date & DATE_SORT_MASK) -
-				(windat->sorders[windat->sorders[index1].sort_index].adjusted_next_date & DATE_SORT_MASK));
+		return ((sorder_get_next_date(file, windat->line_data[index2].sorder) & DATE_SORT_MASK) -
+				(sorder_get_next_date(file, windat->line_data[index1].sorder) & DATE_SORT_MASK));
 
 	case SORT_LEFT:
-		return  (windat->sorders[windat->sorders[index1].sort_index].left -
-				windat->sorders[windat->sorders[index2].sort_index].left);
+		return  (sorder_get_remaining_transactions(file, windat->line_data[index1].sorder) -
+				sorder_get_remaining_transactions(file, windat->line_data[index2].sorder));
 
 	default:
 		return 0;
@@ -1525,9 +1575,9 @@ static void sorder_list_window_sort_swap(int index1, int index2, void *data)
 	if (windat == NULL)
 		return;
 
-	temp = windat->sorders[index1].sort_index;
-	windat->sorders[index1].sort_index = windat->sorders[index2].sort_index;
-	windat->sorders[index2].sort_index = temp;
+	temp = windat->line_data[index1].sorder;
+	windat->line_data[index1].sorder = windat->line_data[index2].sorder;
+	windat->line_data[index2].sorder = temp;
 }
 
 
@@ -1716,11 +1766,17 @@ static osbool sorder_list_window_save_tsv(char *filename, osbool selection, void
 static void sorder_list_window_export_delimited(struct sorder_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
 {
 	FILE			*out;
+	struct file_block	*file;
 	int			line;
 	sorder_t		sorder;
+	date_t			next_date;
 	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = sorder_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	out = fopen(filename, "w");
@@ -1738,27 +1794,28 @@ static void sorder_list_window_export_delimited(struct sorder_list_window *winda
 
 	/* Output the standing order data as a set of delimited lines. */
 
-	for (line = 0; line < windat->sorder_count; line++) {
-		sorder = windat->sorders[line].sort_index;
+	for (line = 0; line < windat->display_lines; line++) {
+		sorder = windat->line_data[line].sorder;
 
-		account_build_name_pair(windat->file, windat->sorders[sorder].from, buffer, FILING_DELIMITED_FIELD_LEN);
+		account_build_name_pair(file, sorder_get_from(file, sorder), buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		account_build_name_pair(windat->file, windat->sorders[sorder].to, buffer, FILING_DELIMITED_FIELD_LEN);
+		account_build_name_pair(file, sorder_get_to(file, sorder), buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(windat->sorders[sorder].normal_amount, buffer, FILING_DELIMITED_FIELD_LEN);
+		currency_convert_to_string(sorder_get_amount(file, sorder), buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-		filing_output_delimited_field(out, windat->sorders[sorder].description, format, DELIMIT_NONE);
+		filing_output_delimited_field(out, sorder_get_description(file, sorder, NULL, 0), format, DELIMIT_NONE);
 
-		if (windat->sorders[sorder].adjusted_next_date != NULL_DATE)
-			date_convert_to_string(windat->sorders[sorder].adjusted_next_date, buffer, FILING_DELIMITED_FIELD_LEN);
+		next_date = sorder_get_next_date(file, sorder);
+		if (next_date != NULL_DATE)
+			date_convert_to_string(next_date, buffer, FILING_DELIMITED_FIELD_LEN);
 		else
 			msgs_lookup("SOrderStopped", buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", windat->sorders[sorder].left);
+		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", sorder_get_remaining_transactions(file, sorder));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 	}
 

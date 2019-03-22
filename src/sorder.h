@@ -146,6 +146,94 @@ struct file_block *sorder_get_file(struct sorder_block *instance);
 
 
 /**
+ * Return the from account of a standing order.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the from account for.
+ * \return			The from account of the standing order, or NULL_ACCOUNT.
+ */
+
+acct_t sorder_get_from(struct file_block *file, sorder_t sorder);
+
+
+/**
+ * Return the to account of a standing order.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the to account for.
+ * \return			The to account of the standing order, or NULL_ACCOUNT.
+ */
+
+acct_t sorder_get_to(struct file_block *file, sorder_t sorder);
+
+
+/**
+ * Return the standing order flags for a standing order.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the flags for.
+ * \return			The flags of the standing order, or TRANS_FLAGS_NONE.
+ */
+
+enum transact_flags sorder_get_flags(struct file_block *file, sorder_t sorder);
+
+
+/**
+ * Return the to amount of a standing order.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the amount for.
+ * \return			The amount of the standing order, or NULL_CURRENCY.
+ */
+
+amt_t sorder_get_amount(struct file_block *file, sorder_t sorder);
+
+
+/**
+ * Return the next date of a standing order.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the next date for.
+ * \return			The next date of the standing order, or NULL_DATE.
+ */
+
+date_t sorder_get_next_date(struct file_block *file, sorder_t sorder);
+
+
+/**
+ * Return the remaining transactions for a standing order.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the remaining transactions for.
+ * \return			The remaining transactions for the standing order, or 0.
+ */
+
+date_t sorder_get_remaining_transactions(struct file_block *file, sorder_t sorder);
+
+
+/**
+ * Return the description for a standing order.
+ *
+ * If a buffer is supplied, the description is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * description in the preset array is returned instead. In the latter
+ * case, this pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the description of.
+ * \param *buffer		Pointer to a buffer to take the description, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting description string,
+ *				either the supplied buffer or the original.
+ */
+
+char *sorder_get_description(struct file_block *file, sorder_t sorder, char *buffer, size_t length);
+
+
+/**
  * Scan the standing orders in a file, adding transactions for any which have
  * fallen due.
  *

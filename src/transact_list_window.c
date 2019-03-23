@@ -379,6 +379,12 @@ static wimp_menu			*transact_account_list_menu = NULL;
 static int				transact_window_menu_line = -1;
 
 /**
+ * The Transaction List Window Edit Line callbacks.
+ */
+
+static struct edit_callback		transact_edit_callbacks;
+
+/**
  * The Transaction List Window Sort dialogue.
  */
 
@@ -513,6 +519,16 @@ void transact_list_window_initialise(osspriteop_area *sprites)
 	transact_window_menu_account = templates_get_menu("MainAccountsSubmenu");
 	transact_window_menu_transact = templates_get_menu("MainTransactionsSubmenu");
 	transact_window_menu_analysis = templates_get_menu("MainAnalysisSubmenu");
+
+	transact_edit_callbacks.get_field = transact_edit_get_field;
+	transact_edit_callbacks.put_field = transact_edit_put_field;
+	transact_edit_callbacks.test_line = transact_edit_test_line;
+	transact_edit_callbacks.place_line = transact_edit_place_line;
+	transact_edit_callbacks.find_field = transact_edit_find_field;
+	transact_edit_callbacks.first_blank_line = transact_edit_first_blank_line;
+	transact_edit_callbacks.auto_sort = transact_edit_auto_sort;
+	transact_edit_callbacks.auto_complete = transact_edit_auto_complete;
+	transact_edit_callbacks.insert_preset = transact_edit_insert_preset;
 
 	transact_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_list_window_save_file);
 	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_list_window_save_csv);

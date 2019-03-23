@@ -190,8 +190,6 @@ static int    new_transaction_window_offset = 0;
 
 /* Transaction Window. */
 
-static struct edit_callback	transact_edit_callbacks;			/**< Callback details for the edit line instances.					*/
-
 
 
 
@@ -236,16 +234,6 @@ static wimp_colour		transact_line_colour(struct transact_block *windat, int line
 
 void transact_initialise(osspriteop_area *sprites)
 {
-	transact_edit_callbacks.get_field = transact_edit_get_field;
-	transact_edit_callbacks.put_field = transact_edit_put_field;
-	transact_edit_callbacks.test_line = transact_edit_test_line;
-	transact_edit_callbacks.place_line = transact_edit_place_line;
-	transact_edit_callbacks.find_field = transact_edit_find_field;
-	transact_edit_callbacks.first_blank_line = transact_edit_first_blank_line;
-	transact_edit_callbacks.auto_sort = transact_edit_auto_sort;
-	transact_edit_callbacks.auto_complete = transact_edit_auto_complete;
-	transact_edit_callbacks.insert_preset = transact_edit_insert_preset;
-
 	transact_list_window_initialise(sprites);
 }
 

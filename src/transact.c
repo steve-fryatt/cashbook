@@ -193,9 +193,6 @@ static int    new_transaction_window_offset = 0;
 static struct edit_callback	transact_edit_callbacks;			/**< Callback details for the edit line instances.					*/
 
 
-/* Transaction sorting. */
-
-static struct sort_callback	transact_sort_callbacks;
 
 
 static void			transact_window_start_drag(struct transact_block *windat, wimp_window_state *window, wimp_i column, int line);
@@ -248,9 +245,6 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_edit_callbacks.auto_sort = transact_edit_auto_sort;
 	transact_edit_callbacks.auto_complete = transact_edit_auto_complete;
 	transact_edit_callbacks.insert_preset = transact_edit_insert_preset;
-
-	transact_sort_callbacks.compare = transact_sort_compare;
-	transact_sort_callbacks.swap = transact_sort_swap;
 
 	transact_list_window_initialise(sprites);
 }
@@ -334,37 +328,6 @@ void transact_open_window(struct file_block *file)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * Return the name of a transaction window column.
  *
@@ -377,51 +340,10 @@ void transact_open_window(struct file_block *file)
 
 char *transact_get_column_name(struct file_block *file, enum transact_field field, char *buffer, size_t len)
 {
-	wimp_i	group, icon = wimp_ICON_WINDOW;
-
-	if (buffer == NULL || len == 0)
-		return NULL;
-
-	*buffer = '\0';
-
 	if (file == NULL || file->transacts == NULL)
 		return buffer;
 
-	switch (field) {
-	case TRANSACT_FIELD_NONE:
-		return buffer;
-	case TRANSACT_FIELD_ROW:
-	case TRANSACT_FIELD_DATE:
-		icon = TRANSACT_ICON_DATE;
-		break;
-	case TRANSACT_FIELD_FROM:
-		icon = TRANSACT_ICON_FROM;
-		break;
-	case TRANSACT_FIELD_TO:
-		icon = TRANSACT_ICON_TO;
-		break;
-	case TRANSACT_FIELD_AMOUNT:
-		icon = TRANSACT_ICON_AMOUNT;
-		break;
-	case TRANSACT_FIELD_REF:
-		icon = TRANSACT_ICON_REFERENCE;
-		break;
-	case TRANSACT_FIELD_DESC:
-		icon = TRANSACT_ICON_DESCRIPTION;
-		break;
-	}
-
-	if (icon == wimp_ICON_WINDOW)
-		return buffer;
-
-	group = column_get_group_icon(file->transacts->columns, icon);
-
-	if (icon == wimp_ICON_WINDOW)
-		return buffer;
-
-	icons_copy_text(file->transacts->transaction_pane, group, buffer, len);
-
-	return buffer;
+	return transact_list_window_get_column_name(file->transacts->transact_window, field, buffer, len);
 }
 
 
@@ -441,27 +363,6 @@ char *transact_get_column_name(struct file_block *file, enum transact_field fiel
 
 
 
-/**
- * Set the extent of the transaction window for the specified file.
- *
- * \param *file			The file containing the window to update.
- */
-
-void transact_set_window_extent(struct file_block *file)
-{
-	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
-		return;
-
-	/* If the window display length is too small, extend it to one blank line after the data. */
-
-	if (file->transacts->display_lines <= (file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES)) {
-		file->transacts->display_lines = (file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-				file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
-	}
-
-	window_set_extent(file->transacts->transaction_window, file->transacts->display_lines, TRANSACT_TOOLBAR_HEIGHT,
-			column_get_window_width(file->transacts->columns));
-}
 
 
 /**
@@ -3038,42 +2939,10 @@ int transact_find_date(struct file_block *file, date_t target)
 
 void transact_place_caret(struct file_block *file, int line, enum transact_field field)
 {
-	wimp_i icon = wimp_ICON_WINDOW;
-
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	transact_place_edit_line(file->transacts, line);
-
-	switch (field) {
-	case TRANSACT_FIELD_NONE:
-		return;
-	case TRANSACT_FIELD_ROW:
-	case TRANSACT_FIELD_DATE:
-		icon = TRANSACT_ICON_DATE;
-		break;
-	case TRANSACT_FIELD_FROM:
-		icon = TRANSACT_ICON_FROM;
-		break;
-	case TRANSACT_FIELD_TO:
-		icon = TRANSACT_ICON_TO;
-		break;
-	case TRANSACT_FIELD_AMOUNT:
-		icon = TRANSACT_ICON_AMOUNT;
-		break;
-	case TRANSACT_FIELD_REF:
-		icon = TRANSACT_ICON_REFERENCE;
-		break;
-	case TRANSACT_FIELD_DESC:
-		icon = TRANSACT_ICON_DESCRIPTION;
-		break;
-	}
-
-	if (icon == wimp_ICON_WINDOW)
-		icon = TRANSACT_ICON_DATE;
-
-	icons_put_caret_at_end(file->transacts->transaction_window, icon);
-	transact_find_edit_line_vertically(file->transacts);
+	transact_list_window_place_caret(file->transacts->transact_window, line, field);
 }
 
 

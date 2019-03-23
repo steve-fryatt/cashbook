@@ -67,6 +67,32 @@ void transact_list_window_delete_instance(struct transact_list_window *windat);
 void transact_list_window_open(struct transact_list_window *windat);
 
 
+/**
+ * Return the name of a transaction window column.
+ *
+ * \param *windat		The transaction list window instance to query.
+ * \param field			The field representing the required column.
+ * \param *buffer		Pointer to a buffer to take the name.
+ * \param len			The length of the supplied buffer.
+ * \return			Pointer to the supplied buffer, or NULL.
+ */
+
+char *transact_list_window_get_column_name(struct transact_list_window *windat, enum transact_field field, char *buffer, size_t len);
+
+
+/**
+ * Place the caret in a given line in a transaction window, and scroll
+ * the line into view.
+ *
+ * \param *windat		The transaction list window to operate on.
+ * \param line			The line (under the current display sort order)
+ *				to place the caret in.
+ * \param field			The field to place the caret in.
+ */
+
+void transact_list_window_place_caret(struct transact_list_window *windat, int line, enum transact_field field);
+
+
 
 
 

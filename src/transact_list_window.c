@@ -385,6 +385,12 @@ static int				transact_window_menu_line = -1;
 static struct sort_dialogue_block	*transact_sort_dialogue = NULL;
 
 /**
+ * The Transaction List Window Sort callbacks.
+ */
+
+static struct sort_callback		transact_sort_callbacks;
+
+/**
  * The Save File saveas data handle.
  */
 
@@ -492,6 +498,9 @@ void transact_list_window_initialise(osspriteop_area *sprites)
 	ihelp_add_window(sort_window, "SortTrans", NULL);
 	transact_sort_dialogue = sort_dialogue_create(sort_window, transact_sort_columns, transact_sort_directions,
 			TRANS_SORT_OK, TRANS_SORT_CANCEL, transact_list_window_process_sort_window);
+
+	transact_sort_callbacks.compare = transact_sort_compare;
+	transact_sort_callbacks.swap = transact_sort_swap;
 
 	transact_window_def = templates_load_window("Transact");
 	transact_window_def->icon_count = 0;
@@ -1816,6 +1825,115 @@ static void transact_list_window_adjust_sort_icon_data(struct transact_list_wind
 }
 
 
+/**
+ * Return the name of a transaction window column.
+ *
+ * \param *windat		The transaction list window instance to query.
+ * \param field			The field representing the required column.
+ * \param *buffer		Pointer to a buffer to take the name.
+ * \param len			The length of the supplied buffer.
+ * \return			Pointer to the supplied buffer, or NULL.
+ */
+
+char *transact_list_window_get_column_name(struct transact_list_window *windat, enum transact_field field, char *buffer, size_t len)
+{
+	wimp_i	group, icon = wimp_ICON_WINDOW;
+
+	if (buffer == NULL || len == 0)
+		return NULL;
+
+	*buffer = '\0';
+
+	if (file == NULL || file->transacts == NULL)
+		return buffer;
+
+	switch (field) {
+	case TRANSACT_FIELD_NONE:
+		return buffer;
+	case TRANSACT_FIELD_ROW:
+	case TRANSACT_FIELD_DATE:
+		icon = TRANSACT_ICON_DATE;
+		break;
+	case TRANSACT_FIELD_FROM:
+		icon = TRANSACT_ICON_FROM;
+		break;
+	case TRANSACT_FIELD_TO:
+		icon = TRANSACT_ICON_TO;
+		break;
+	case TRANSACT_FIELD_AMOUNT:
+		icon = TRANSACT_ICON_AMOUNT;
+		break;
+	case TRANSACT_FIELD_REF:
+		icon = TRANSACT_ICON_REFERENCE;
+		break;
+	case TRANSACT_FIELD_DESC:
+		icon = TRANSACT_ICON_DESCRIPTION;
+		break;
+	}
+
+	if (icon == wimp_ICON_WINDOW)
+		return buffer;
+
+	group = column_get_group_icon(file->transacts->columns, icon);
+
+	if (icon == wimp_ICON_WINDOW)
+		return buffer;
+
+	icons_copy_text(file->transacts->transaction_pane, group, buffer, len);
+
+	return buffer;
+}
+
+
+/**
+ * Place the caret in a given line in a transaction window, and scroll
+ * the line into view.
+ *
+ * \param *windat		The transaction list window to operate on.
+ * \param line			The line (under the current display sort order)
+ *				to place the caret in.
+ * \param field			The field to place the caret in.
+ */
+
+void transact_list_window_place_caret(struct transact_list_window *windat, int line, enum transact_field field)
+{
+	wimp_i icon = wimp_ICON_WINDOW;
+
+	if (file == NULL || file->transacts == NULL)
+		return;
+
+	transact_place_edit_line(file->transacts, line);
+
+	switch (field) {
+	case TRANSACT_FIELD_NONE:
+		return;
+	case TRANSACT_FIELD_ROW:
+	case TRANSACT_FIELD_DATE:
+		icon = TRANSACT_ICON_DATE;
+		break;
+	case TRANSACT_FIELD_FROM:
+		icon = TRANSACT_ICON_FROM;
+		break;
+	case TRANSACT_FIELD_TO:
+		icon = TRANSACT_ICON_TO;
+		break;
+	case TRANSACT_FIELD_AMOUNT:
+		icon = TRANSACT_ICON_AMOUNT;
+		break;
+	case TRANSACT_FIELD_REF:
+		icon = TRANSACT_ICON_REFERENCE;
+		break;
+	case TRANSACT_FIELD_DESC:
+		icon = TRANSACT_ICON_DESCRIPTION;
+		break;
+	}
+
+	if (icon == wimp_ICON_WINDOW)
+		icon = TRANSACT_ICON_DATE;
+
+	icons_put_caret_at_end(windat->transaction_window, icon);
+	transact_find_edit_line_vertically(file->transacts);
+}
 
 
 
@@ -1842,6 +1960,28 @@ static void transact_list_window_adjust_sort_icon_data(struct transact_list_wind
 
 
 
+
+/**
+ * Set the extent of the transaction window for the specified file.
+ *
+ * \param *file			The file containing the window to update.
+ */
+
+void transact_list_window_set_extent(struct file_block *file)
+{
+	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
+		return;
+
+	/* If the window display length is too small, extend it to one blank line after the data. */
+
+	if (file->transacts->display_lines <= (file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES)) {
+		file->transacts->display_lines = (file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
+				file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
+	}
+
+	window_set_extent(file->transacts->transaction_window, file->transacts->display_lines, TRANSACT_TOOLBAR_HEIGHT,
+			column_get_window_width(file->transacts->columns));
+}
 
 
 

@@ -288,7 +288,7 @@ static int				sorder_window_menu_line = -1;
 static struct sort_dialogue_block	*sorder_sort_dialogue = NULL;
 
 /**
- * The Stanmding Order List Window Sort callbacks.
+ * The Standing Order List Window Sort callbacks.
  */
 
 static struct sort_callback		sorder_sort_callbacks;

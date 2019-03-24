@@ -470,6 +470,24 @@ static void transact_list_window_minimise_extent(struct transact_list_window *wi
 
 static void transact_list_window_force_redraw(struct transact_list_window *windat, int from, int to, wimp_i column);
 static void transact_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+static void transact_list_window_start_drag(struct transact_list_window *windat, wimp_window_state *window, wimp_i column, int line);
+static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *data);
+
+
+static tran_t transact_list_window_find_edit_line_by_transaction(struct transact_list_window *windat);
+static void transactlist_window_place_edit_line_by_transaction(struct transact_list_window *windat, tran_t transaction);
+static osbool transact_list_window_edit_place_line(int line, void *data);
+static void transact_list_window_place_edit_line(struct transact_list_window *windat, int line);
+static void transact_list_window_find_edit_line_vertically(struct transact_list_window *windat);
+static osbool transact_list_window_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data);
+static int transact_list_window_edit_first_blank_line(void *data);
+static osbool transact_list_window_edit_test_line(int line, void *data);
+static osbool transact_list_window_edit_get_field(struct edit_data *data);
+static osbool transact_list_window_edit_put_field(struct edit_data *data);
+static osbool transact_list_window_edit_auto_complete(struct edit_data *data);
+static char *transact_list_window_complete_description(struct transact_list_window *windat, int line, char *buffer, size_t length);
+
+
 static void transact_list_window_open_sort_window(struct transact_list_window *windat, wimp_pointer *ptr);
 static osbool transact_list_window_process_sort_window(enum sort_type order, void *data);
 static void transact_list_window_open_print_window(struct transact_list_window *windat, wimp_pointer *ptr, osbool restore);
@@ -2164,6 +2182,219 @@ static void transact_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, o
 
 
 /**
+ * Start a transaction window drag, to copy data within the window.
+ *
+ * \param *windat		The Transaction Window being dragged.
+ * \param *window		The window state of the transaction window.
+ * \param line			The line of the Transaction Window being dragged.
+ */
+
+static void transact_list_window_start_drag(struct transact_list_window *windat, wimp_window_state *window, wimp_i column, int line)
+{
+	wimp_auto_scroll_info	auto_scroll;
+	wimp_drag		drag;
+	int			ox, oy, xmin, xmax;
+
+	if (windat == NULL || window == NULL)
+		return;
+
+	xmin = column_get_window_width(windat->columns);
+	xmax = 0;
+
+	column_get_xpos(windat->columns, column, &xmin, &xmax);
+
+	ox = window->visible.x0 - window->xscroll;
+	oy = window->visible.y1 - window->yscroll;
+
+	/* Set up the drag parameters. */
+
+	drag.w = windat->transaction_window;
+	drag.type = wimp_DRAG_USER_FIXED;
+
+	drag.initial.x0 = ox + xmin;
+	drag.initial.y0 = oy + WINDOW_ROW_Y0(TRANSACT_TOOLBAR_HEIGHT, line);
+	drag.initial.x1 = ox + xmax;
+	drag.initial.y1 = oy + WINDOW_ROW_Y1(TRANSACT_TOOLBAR_HEIGHT, line);
+
+	drag.bbox.x0 = window->visible.x0;
+	drag.bbox.y0 = window->visible.y0;
+	drag.bbox.x1 = window->visible.x1;
+	drag.bbox.y1 = window->visible.y1;
+
+	/* Read CMOS RAM to see if solid drags are required.
+	 *
+	 * \TODO -- Solid drags are never actually used, although they could be
+	 *          if a suitable sprite were to be created.
+	 */
+
+	transact_window_dragging_data.dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+                       osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
+
+	if (FALSE && transact_window_dragging_data.dragging_sprite) {
+		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
+				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
+				"", &(drag.initial), &(drag.bbox));
+	} else {
+		wimp_drag_box(&drag);
+	}
+
+	/* Initialise the autoscroll. */
+
+	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL) {
+		auto_scroll.w = windat->transaction_window;
+		auto_scroll.pause_zone_sizes.x0 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.y0 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.x1 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.y1 = AUTO_SCROLL_MARGIN + TRANSACT_TOOLBAR_HEIGHT;
+		auto_scroll.pause_duration = 0;
+		auto_scroll.state_change = (void *) 1;
+
+		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
+	}
+
+	transact_window_dragging_data.owner = windat;
+	transact_window_dragging_data.start_line = line;
+	transact_window_dragging_data.start_column = column;
+
+	event_set_drag_handler(transaction_window_terminate_drag, NULL, &transact_window_dragging_data);
+}
+
+
+/**
+ * Handle drag-end events relating to dragging rows of an Transaction
+ * Window instance.
+ *
+ * \param *drag			The Wimp drag end data.
+ * \param *data			Unused client data sent via Event Lib.
+ */
+
+static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *data)
+{
+	wimp_pointer			pointer;
+	wimp_window_state		window;
+	int				end_line, xpos;
+	wimp_i				end_column;
+	tran_t				start_transaction;
+	osbool				changed = FALSE;
+	struct transact_drag_data	*drag_data = data;
+	struct transact_block		*windat;
+	enum edit_field_type		start_field_type;
+	struct edit_data		*transfer;
+	enum account_type		target_type;
+
+	if (drag_data == NULL)
+		return;
+
+	/* Terminate the drag and end the autoscroll. */
+
+	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
+		wimp_auto_scroll(0, NULL);
+
+	if (drag_data->dragging_sprite)
+		dragasprite_stop();
+
+	/* Check that the returned data is valid. */
+
+	windat = drag_data->owner;
+	if (windat == NULL || windat->file == NULL)
+		return;
+
+	/* Get the line at which the drag ended. */
+
+	wimp_get_pointer_info(&pointer);
+
+	window.w = windat->transaction_window;
+	wimp_get_window_state(&window);
+
+	end_line = window_calculate_click_row(&(pointer.pos), &window, TRANSACT_TOOLBAR_HEIGHT, -1);
+
+	xpos = (pointer.pos.x - window.visible.x0) + window.xscroll;
+	end_column = column_find_icon_from_xpos(windat->columns, xpos);
+
+	if ((end_line < 0) || (end_column == wimp_ICON_WINDOW))
+		return;
+
+	#ifdef DEBUG
+	debug_printf("Drag data from line %d, column %d to line %d, column %d", drag_data->start_line, drag_data->start_column, end_line, end_column);
+	#endif
+
+	start_transaction = transact_get_transaction_from_line(windat->file, drag_data->start_line);
+	if (start_transaction == NULL_TRANSACTION)
+		return;
+
+	start_field_type = edit_get_field_type(windat->edit_line, drag_data->start_column);
+	if (start_field_type == EDIT_FIELD_NONE)
+		return;
+
+	transact_place_edit_line(windat, end_line);
+
+	transfer = edit_request_field_contents_update(windat->edit_line, end_column);
+	if (transfer == NULL)
+		return;
+
+	switch (transfer->type) {
+	case EDIT_FIELD_TEXT:
+		if (start_field_type == EDIT_FIELD_TEXT) {
+			switch (drag_data->start_column) {
+			case TRANSACT_ICON_REFERENCE:
+				string_copy(transfer->text.text, windat->transactions[start_transaction].reference, transfer->text.length);
+				break;
+			case TRANSACT_ICON_DESCRIPTION:
+				string_copy(transfer->text.text, windat->transactions[start_transaction].description, transfer->text.length);
+				break;
+			}
+			changed = TRUE;
+		}
+		break;
+	case EDIT_FIELD_CURRENCY:
+		if (start_field_type == EDIT_FIELD_CURRENCY) {
+			transfer->currency.amount = windat->transactions[start_transaction].amount;
+			changed = TRUE;
+		}
+		break;
+	case EDIT_FIELD_DATE:
+		if (start_field_type == EDIT_FIELD_DATE) {
+			transfer->date.date = windat->transactions[start_transaction].date;
+			changed = TRUE;
+		}
+		break;
+	case EDIT_FIELD_ACCOUNT_IN:
+	case EDIT_FIELD_ACCOUNT_OUT:
+		target_type = (transfer->type == EDIT_FIELD_ACCOUNT_IN) ? ACCOUNT_FULL_IN : ACCOUNT_FULL_OUT;
+	
+		if (start_field_type == EDIT_FIELD_ACCOUNT_IN || start_field_type == EDIT_FIELD_ACCOUNT_OUT) {
+			switch (drag_data->start_column) {
+			case TRANSACT_ICON_FROM:
+			case TRANSACT_ICON_FROM_REC:
+			case TRANSACT_ICON_FROM_NAME:
+				if (account_get_type(windat->file, windat->transactions[start_transaction].from) & target_type) {
+					transfer->account.account = windat->transactions[start_transaction].from;
+					transfer->account.reconciled = (windat->transactions[start_transaction].flags & TRANS_REC_FROM) ? TRUE : FALSE;
+					changed = TRUE;
+				}
+				break;
+			case TRANSACT_ICON_TO:
+			case TRANSACT_ICON_TO_REC:
+			case TRANSACT_ICON_TO_NAME:
+				if (account_get_type(windat->file, windat->transactions[start_transaction].to) & target_type) {
+					transfer->account.account = windat->transactions[start_transaction].to;
+					transfer->account.reconciled = (windat->transactions[start_transaction].flags & TRANS_REC_TO) ? TRUE : FALSE;
+					changed = TRUE;
+				}
+				break;
+			}
+		}
+		break;
+	case EDIT_FIELD_DISPLAY:
+	case EDIT_FIELD_NONE:
+		break;
+	}
+
+	edit_submit_field_contents_update(windat->edit_line, transfer, changed);
+}
+
+
+/**
  * Update the state of the buttons in a transaction window toolbar.
  *
  * \param *windat		The transaction list window to update.
@@ -2191,6 +2422,122 @@ void transact_list_window_bring_to_top(struct transact_list_window *windat)
 		return;
 
 	windows_open(windat->transaction_window);
+}
+
+
+/**
+ * Scroll a transaction window to either the top (home) or the end.
+ *
+ * \param *windat		The transaction list window to be scrolled.
+ * \param direction		The direction to scroll the window in.
+ */
+
+void transact_list_window_scroll_to_end(struct transact_list_window *windat, enum transact_scroll_direction direction)
+{
+	wimp_window_info	window;
+
+
+	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL ||
+			direction == TRANSACT_SCROLL_NONE)
+		return;
+
+	window.w = file->transacts->transaction_window;
+	wimp_get_window_info_header_only(&window);
+
+	switch (direction) {
+	case TRANSACT_SCROLL_HOME:
+		window.yscroll = window.extent.y1;
+		break;
+
+	case TRANSACT_SCROLL_END:
+		window.yscroll = window.extent.y0 - (window.extent.y1 - window.extent.y0);
+		break;
+
+	case TRANSACT_SCROLL_NONE:
+		break;
+	}
+
+ 	transact_minimise_window_extent(file);
+ 	wimp_open_window((wimp_open *) &window);
+}
+
+
+/**
+ * Return the transaction number of the transaction nearest to the centre of
+ * the visible area of the transaction list window which references a given
+ * account.
+ *
+ * \param *windat		The transaction list window to be searched.
+ * \param account		The account to search for.
+ * \return			The transaction found, or NULL_TRANSACTION.
+ */
+
+int transact_list_window_find_nearest_centre(struct transact_list_window *windat, acct_t account)
+{
+	wimp_window_state	window;
+	int			height, i, centre, result;
+
+
+	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL ||
+			account == NULL_ACCOUNT)
+		return NULL_TRANSACTION;
+
+	window.w = file->transacts->transaction_window;
+	wimp_get_window_state(&window);
+
+	/* Calculate the height of the useful visible window, leaving out
+	 * any OS units taken up by part lines.
+	 */
+
+	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT - TRANSACT_TOOLBAR_HEIGHT;
+
+	/* Calculate the centre line in the window. If this is greater than
+	 * the number of actual tracsactions in the window, reduce it
+	 * accordingly.
+	 */
+
+	centre = ((-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT) + ((height / 2) / WINDOW_ROW_HEIGHT);
+
+	if (centre >= file->transacts->trans_count)
+		centre = file->transacts->trans_count - 1;
+
+	/* If there are no transactions, we can't return one. */
+
+	if (centre < 0)
+		return NULL_TRANSACTION;
+
+	/* If the centre transaction is a match, return it. */
+
+	if (file->transacts->transactions[file->transacts->transactions[centre].sort_index].from == account ||
+			file->transacts->transactions[file->transacts->transactions[centre].sort_index].to == account)
+		return file->transacts->transactions[centre].sort_index;
+
+	/* Start searching out from the centre until we find a match or hit
+	 * both the start and end of the file.
+	 */
+
+	result = NULL_TRANSACTION;
+	i = 1;
+
+	while (centre + i < file->transacts->trans_count || centre - i >= 0) {
+		if (centre + i < file->transacts->trans_count &&
+				(file->transacts->transactions[file->transacts->transactions[centre + i].sort_index].from == account ||
+				file->transacts->transactions[file->transacts->transactions[centre + i].sort_index].to == account)) {
+			result = file->transacts->transactions[centre + i].sort_index;
+			break;
+		}
+
+		if (centre - i >= 0 &&
+				(file->transacts->transactions[file->transacts->transactions[centre - i].sort_index].from == account ||
+				file->transacts->transactions[file->transacts->transactions[centre - i].sort_index].to == account)) {
+			result = file->transacts->transactions[centre - i].sort_index;
+			break;
+		}
+
+		i++;
+	}
+
+	return result;
 }
 
 
@@ -2238,6 +2585,693 @@ tran_t transact_list_window_get_transaction_from_line(struct transact_list_windo
 
 	return file->transacts->transactions[line].sort_index;
 }
+
+
+/**
+ * Find the display line number of the current transaction entry line.
+ *
+ * \param *windat		The transaction list window to interrogate.
+ * \return			The display line number of the line with the caret.
+ */
+
+int transact_list_window_get_caret_line(struct transact_list_window *windat)
+{
+	int entry_line = 0;
+
+	if (windat == NULL)
+		return 0;
+
+	entry_line = edit_get_line(windat->edit_line);
+
+	return (entry_line >= 0) ? entry_line : 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Get the underlying transaction number relating to the current edit line
+ * position.
+ *
+ * \param *file			The file that we're interested in.
+ * \return			The transaction number, or NULL_TRANSACTION if the
+ *				line isn't in the specified file.
+ */
+
+static tran_t transact_list_window_find_edit_line_by_transaction(struct transact_list_window *windat)
+{
+	int	line;
+
+	if (windat == NULL || windat->transactions == NULL)
+		return NULL_TRANSACTION;
+
+	line = edit_get_line(windat->edit_line);
+	if (!transact_valid(windat, line))
+		return NULL_TRANSACTION;
+
+	return windat->transactions[line].sort_index;
+}
+
+
+/**
+ * Place a new edit line by raw transaction number.
+ *
+ * \param *windat		The transaction window to place the line in.
+ * \param transaction		The transaction to place the line on.
+ */
+
+static void transactlist_window_place_edit_line_by_transaction(struct transact_list_window *windat, tran_t transaction)
+{
+	int		i, line;
+
+	if (windat == NULL)
+		return;
+
+	line = windat->trans_count;
+
+	if (transaction != NULL_TRANSACTION) {
+		for (i = 0; i < windat->trans_count; i++) {
+			if (windat->transactions[i].sort_index == transaction) {
+				line = i;
+				break;
+			}
+		}
+	}
+
+	transact_place_edit_line(windat, line);
+
+	transact_find_edit_line_vertically(windat);
+}
+
+
+/**
+ * Callback to allow the edit line to move.
+ *
+ * \param line			The line in which to place the edit line.
+ * \param *data			Client data: windat.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+static osbool transact_list_window_edit_place_line(int line, void *data)
+{
+	struct transact_list_window *windat = data;
+
+	if (windat == NULL)
+		return FALSE;
+
+	transact_place_edit_line(windat, line);
+	transact_find_edit_line_vertically(windat);
+
+	return TRUE;
+}
+
+
+/**
+ * Place a new edit line in a transaction window by visible line number,
+ * extending the window if required.
+ *
+ * \param *windat		The transaction window to place the line in.
+ * \param line			The line to place.
+ */
+
+static void transact_list_window_place_edit_line(struct transact_list_window *windat, int line)
+{
+	wimp_colour	colour;
+
+	if (windat == NULL)
+		return;
+
+	if (line >= windat->display_lines) {
+		windat->display_lines = line + 1;
+		transact_set_window_extent(windat->file);
+	}
+
+	colour = transact_line_colour(windat, line);
+	edit_place_new_line(windat->edit_line, line, colour);
+}
+
+
+/**
+ * Bring the edit line into view in a vertical direction within a transaction
+ * window.
+ *
+ * \param *windat		The transaction window to be updated.
+ */
+
+static void transact_list_window_find_edit_line_vertically(struct transact_list_window *windat)
+{
+	wimp_window_state	window;
+	int			height, top, bottom, line;
+
+
+	if (windat == NULL || windat->file == NULL || windat->transaction_window == NULL || !edit_get_active(windat->edit_line))
+		return;
+
+	window.w = windat->transaction_window;
+	wimp_get_window_state(&window);
+
+	/* Calculate the height of the useful visible window, leaving out any OS units taken up by part lines.
+	 * This will allow the edit line to be aligned with the top or bottom of the window.
+	 */
+
+	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT - TRANSACT_TOOLBAR_HEIGHT;
+
+	/* Calculate the top full line and bottom full line that are showing in the window.  Part lines don't
+	 * count and are discarded.
+	 */
+
+	top = (-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT;
+	bottom = (height / WINDOW_ROW_HEIGHT) + top;
+
+	/* If the edit line is above or below the visible area, bring it into range. */
+
+	line = edit_get_line(windat->edit_line);
+	if (line < 0)
+		return;
+
+#ifdef DEBUG
+	debug_printf("\\BFind transaction edit line");
+	debug_printf("Top: %d, Bottom: %d, Entry line: %d", top, bottom, line);
+#endif
+
+	if (line < top) {
+		window.yscroll = -(line * WINDOW_ROW_HEIGHT);
+		wimp_open_window((wimp_open *) &window);
+		transact_minimise_window_extent(windat->file);
+	}
+
+	if (line > bottom) {
+		window.yscroll = -(line * WINDOW_ROW_HEIGHT - height);
+		wimp_open_window((wimp_open *) &window);
+		transact_minimise_window_extent(windat->file);
+	}
+}
+
+
+/**
+ * Handle requests from the edit line to bring a given line and field into
+ * view in the visible area of the window.
+ *
+ * \param line			The line in the window to be brought into view.
+ * \param xmin			The minimum X coordinate to be shown.
+ * \param xmax			The maximum X coordinate to be shown.
+ * \param target		The target requirement: left edge, right edge or centred.
+ * \param *data			Our client data, holding the window instance.
+ * \return			TRUE if handled successfully; FALSE if not.
+ */
+
+static osbool transact_list_window_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data)
+{
+	struct transact_list_window	*windat = data;
+	wimp_window_state		window;
+	int				icon_width, window_width, window_xmin, window_xmax;
+
+	if (windat == NULL)
+		return FALSE;
+
+	window.w = windat->transaction_window;
+	wimp_get_window_state(&window);
+
+	icon_width = xmax - xmin;
+
+	/* Establish the window dimensions. */
+
+	window_width = window.visible.x1 - window.visible.x0;
+	window_xmin = window.xscroll;
+	window_xmax = window.xscroll + window_width;
+
+	if (window_width > icon_width) {
+		/* If the icon group fits into the visible window, just pull the overlap into view. */
+
+		if (xmin < window_xmin) {
+			window.xscroll = xmin;
+			wimp_open_window((wimp_open *) &window);
+		} else if (xmax > window_xmax) {
+			window.xscroll = xmax - window_width;
+			wimp_open_window((wimp_open *) &window);
+		}
+	} else {
+		/* If the icon is bigger than the window, however, align the target with the edge of the window. */
+
+		switch (target) {
+		case EDIT_ALIGN_LEFT:
+		case EDIT_ALIGN_CENTRE:
+			if (xmin < window_xmin || xmin > window_xmax) {
+				window.xscroll = xmin;
+				wimp_open_window((wimp_open *) &window);
+			}
+			break;
+		case EDIT_ALIGN_RIGHT:
+			if (xmax < window_xmin || xmax > window_xmax) {
+				window.xscroll = xmax - window_width;
+				wimp_open_window((wimp_open *) &window);
+			}
+			break;
+		case EDIT_ALIGN_NONE:
+			break;
+		}
+	}
+
+	/* Make sure that the line is visible vertically, as well.
+	 * NB: This currently ignores the line parameter, as transact_find_edit_line_vertically()
+	 * queries the edit line directly. At present, these both yield the same result.
+	 */
+
+	transact_find_edit_line_vertically(windat);
+
+	return TRUE;
+}
+
+
+/**
+ * Inform the edit line about the location of the first blank transaction
+ * line in our window.
+ *
+ * \param *data			Our client data, holding the window instance.
+ * \return			The line number of the first blank line, or -1.
+ */
+
+static int transact_list_window_edit_first_blank_line(void *data)
+{
+	struct transact_list_window *windat = data;
+
+	if (windat == NULL || windat->file == NULL)
+		return -1;
+
+	return transact_find_first_blank_line(windat->file);
+}
+
+
+/**
+ * Inform the edit line whether a given line in the window contains a valid
+ * transaction.
+ *
+ * \param line			The line in the window to be tested.
+ * \param *data			Our client data, holding the window instance.
+ * \return			TRUE if valid; FALSE if not or on error.
+ */
+
+static osbool transact_list_window_edit_test_line(int line, void *data)
+{
+	struct transact_list_window *windat = data;
+
+	if (windat == NULL)
+		return FALSE;
+
+	return (transact_valid(windat, line)) ? TRUE : FALSE;
+}
+
+
+/**
+ * Handle requests for field data from the edit line.
+ *
+ * \param *data			The block to hold the requested data.
+ * \return			TRUE if valid data was returned; FALSE if not.
+ */
+
+static osbool transact_list_window_edit_get_field(struct edit_data *data)
+{
+	tran_t				t;
+	struct transact_list_window	*windat;
+
+	if (data == NULL || data->data == NULL)
+		return FALSE;
+
+	windat = data->data;
+
+	if (!transact_valid(windat, data->line))
+		return FALSE;
+
+	t = windat->transactions[data->line].sort_index;
+
+	switch (data->icon) {
+	case TRANSACT_ICON_ROW:
+		if (data->type != EDIT_FIELD_DISPLAY || data->display.text == NULL || data->display.length == 0)
+			return FALSE;
+
+		string_printf(data->display.text, data->display.length, "%d", transact_get_transaction_number(t));
+		break;
+	case TRANSACT_ICON_DATE:
+		if (data->type != EDIT_FIELD_DATE)
+			return FALSE;
+
+		data->date.date = windat->transactions[t].date;
+		break;
+	case TRANSACT_ICON_FROM:
+		if (data->type != EDIT_FIELD_ACCOUNT_IN)
+			return FALSE;
+
+		data->account.account = windat->transactions[t].from;
+		data->account.reconciled = (windat->transactions[t].flags & TRANS_REC_FROM) ? TRUE : FALSE;
+		break;
+	case TRANSACT_ICON_TO:
+		if (data->type != EDIT_FIELD_ACCOUNT_OUT)
+			return FALSE;
+
+		data->account.account = windat->transactions[t].to;
+		data->account.reconciled = (windat->transactions[t].flags & TRANS_REC_TO) ? TRUE : FALSE;
+		break;
+	case TRANSACT_ICON_AMOUNT:
+		if (data->type != EDIT_FIELD_CURRENCY)
+			return FALSE;
+
+		data->currency.amount = windat->transactions[t].amount;
+		break;
+	case TRANSACT_ICON_REFERENCE:
+		if (data->type != EDIT_FIELD_TEXT || data->display.text == NULL || data->display.length == 0)
+			return FALSE;
+
+		string_copy(data->text.text, windat->transactions[t].reference, data->text.length);
+		break;
+	case TRANSACT_ICON_DESCRIPTION:
+		if (data->type != EDIT_FIELD_TEXT || data->display.text == NULL || data->display.length == 0)
+			return FALSE;
+
+		string_copy(data->text.text, windat->transactions[t].description, data->text.length);
+		break;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Handle returned field data from the edit line.
+ *
+ * \param *data			The block holding the returned data.
+ * \return			TRUE if valid data was returned; FALSE if not.
+ */
+
+static osbool transact_list_window_edit_put_field(struct edit_data *data)
+{
+	struct transact_list_window	*windat;
+	int				start, i;
+	tran_t				transaction;
+	acct_t				old_account;
+	osbool				changed;
+
+#ifdef DEBUG
+	debug_printf("Returning complex data for icon %d in row %d", data->icon, data->line);
+#endif
+
+	if (data == NULL)
+		return FALSE;
+
+	windat = data->data;
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+	/* If there is not a transaction entry for the current edit line location
+	 * (ie. if this is the first keypress in a new line), extend the transaction
+	 * entries to reach the current location.
+	 */
+
+	if (data->line >= windat->trans_count) {
+		start = windat->trans_count;
+		
+		for (i = windat->trans_count; i <= data->line; i++)
+			transact_add_raw_entry(windat->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
+
+		edit_refresh_line_contents(windat->edit_line, TRANSACT_ICON_ROW, wimp_ICON_WINDOW);
+		transact_force_window_redraw(windat, start, windat->trans_count - 1, TRANSACT_PANE_ROW);
+	}
+
+	/* Get out if we failed to create the necessary transactions. */
+
+	if (data->line >= windat->trans_count)
+		return FALSE;
+
+	transaction = windat->transactions[data->line].sort_index;
+
+	/* Take the transaction out of the fully calculated results.
+	 *
+	 * Presets occur with the caret in the Date column, so they will have the
+	 * transaction correctly removed before anything happens.
+	 */
+
+	if (data->icon != TRANSACT_ICON_REFERENCE && data->icon != TRANSACT_ICON_DESCRIPTION)
+		account_remove_transaction(windat->file, transaction);
+
+	/* Process the supplied data. */
+
+	changed = FALSE;
+	old_account = NULL_ACCOUNT;
+
+	switch (data->icon) {
+	case TRANSACT_ICON_DATE:
+		windat->transactions[transaction].date = data->date.date;
+		changed = TRUE;
+		windat->date_sort_valid = FALSE;
+		break;
+	case TRANSACT_ICON_FROM:
+		old_account = windat->transactions[transaction].from;
+		windat->transactions[transaction].from = data->account.account;
+		if (data->account.reconciled == TRUE)
+			windat->transactions[transaction].flags |= TRANS_REC_FROM;
+		else
+			windat->transactions[transaction].flags &= ~TRANS_REC_FROM;
+
+		edit_set_line_colour(windat->edit_line, transact_line_colour(windat, data->line));
+		changed = TRUE;
+		break;
+	case TRANSACT_ICON_TO:
+		old_account = windat->transactions[transaction].to;
+		windat->transactions[transaction].to = data->account.account;
+		if (data->account.reconciled == TRUE)
+			windat->transactions[transaction].flags |= TRANS_REC_TO;
+		else
+			windat->transactions[transaction].flags &= ~TRANS_REC_TO;
+
+		edit_set_line_colour(windat->edit_line, transact_line_colour(windat, data->line));
+		changed = TRUE;
+		break;
+	case TRANSACT_ICON_AMOUNT:
+		windat->transactions[transaction].amount = data->currency.amount;
+		changed = TRUE;
+		break;
+	case TRANSACT_ICON_REFERENCE:
+		string_copy(windat->transactions[transaction].reference, data->text.text, TRANSACT_REF_FIELD_LEN);
+		changed = TRUE;
+		break;
+	case TRANSACT_ICON_DESCRIPTION:
+		string_copy(windat->transactions[transaction].description, data->text.text, TRANSACT_DESCRIPT_FIELD_LEN);
+		changed = TRUE;
+		break;
+	}
+
+	/* Add the transaction back into the accounts calculations.
+	 *
+	 * From this point on, it is now OK to change the sort order of the
+	 * transaction data again!
+	 */
+
+	if (data->icon != TRANSACT_ICON_REFERENCE && data->icon != TRANSACT_ICON_DESCRIPTION)
+		account_restore_transaction(windat->file, transaction);
+
+	/* Mark the data as unsafe and perform any post-change recalculations that
+	 * may affect the order of the transaction data.
+	 */
+
+	if (changed == TRUE) {
+		file_set_data_integrity(windat->file, TRUE);
+		if (data->icon == TRANSACT_ICON_DATE) {
+			/* Ideally, we would want to recalculate just the affected two
+			 * accounts.  However, because the date sort is unclean, any rebuild
+			 * will force a resort of the transactions, which will require a
+			 * full rebuild of all the open account views.  Therefore, call
+			 * accview_recalculate_all() to force a full recalculation.  This
+			 * will in turn sort the data if required.
+			 *
+			 * The big assumption here is that, because no from or to entries
+			 * have changed, none of the accounts will change length and so a
+			 * full rebuild is not required.
+			 */
+
+			accview_recalculate_all(windat->file);
+		} else if (data->icon == TRANSACT_ICON_FROM) {
+			/* Trust that any account views that are open must be based on a
+			 * valid date order, and only rebuild those that are directly affected.
+			 * The rebuild might resort the transaction data, so we need to re-find
+			 * the transaction entry for the edit line each time.
+			 */
+
+			accview_rebuild(windat->file, old_account);
+			transaction = windat->transactions[data->line].sort_index;
+
+			accview_rebuild(windat->file, windat->transactions[transaction].from);
+			transaction = windat->transactions[data->line].sort_index;
+
+			accview_redraw_transaction(windat->file, windat->transactions[transaction].to, transaction);
+		} else if (data->icon == TRANSACT_ICON_TO) {
+			/* Trust that any account views that are open must be based on a
+			 * valid date order, and only rebuild those that are directly affected.
+			 * The rebuild might resort the transaction data, so we need to re-find
+			 * the transaction entry for the edit line each time.
+			 */
+
+			accview_rebuild(windat->file, old_account);
+			transaction = windat->transactions[data->line].sort_index;
+
+			accview_rebuild(windat->file, windat->transactions[transaction].to);
+			transaction = windat->transactions[data->line].sort_index;
+
+			accview_redraw_transaction(windat->file, windat->transactions[transaction].from, transaction);
+		} else if (data->icon == TRANSACT_ICON_AMOUNT) {
+			accview_recalculate(windat->file, windat->transactions[transaction].from, transaction);
+			accview_recalculate(windat->file, windat->transactions[transaction].to, transaction);
+		} else if (data->icon == TRANSACT_ICON_REFERENCE || data->icon == TRANSACT_ICON_DESCRIPTION) {
+			accview_redraw_transaction(windat->file, windat->transactions[transaction].from, transaction);
+			accview_redraw_transaction(windat->file, windat->transactions[transaction].to, transaction);
+		}
+	}
+
+	/* Finally, look for the next reconcile line if that is necessary.
+	 *
+	 * This is done last, as the only hold we have over the line being edited
+	 * is the edit line location.  Move that and we've lost everything.
+	 */
+
+	if ((data->icon == TRANSACT_ICON_FROM || data->icon == TRANSACT_ICON_TO) &&
+			(data->key == '+' || data->key == '=' || data->key == '-' || data->key == '_'))
+		transact_find_next_reconcile_line(windat, FALSE);
+
+	return TRUE;
+}
+
+
+/**
+ * Process auto-complete requests from the edit line for one of the transaction
+ * fields.
+ *
+ * \param *data			The field auto-complete data.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+static osbool transact_list_window_edit_auto_complete(struct edit_data *data)
+{
+	struct transact_list_window	*windat;
+	tran_t				transaction;
+
+	if (data == NULL)
+		return FALSE;
+
+	windat = data->data;
+	if (windat == NULL || windat->file == NULL)
+		return FALSE;
+
+#ifdef DEBUG
+	debug_printf("Requesting auto-completion");
+#endif
+
+	/* We can only complete text fields at the moment, as none of the others make sense. */
+
+	if (data->type != EDIT_FIELD_TEXT)
+		return FALSE;
+
+	/* Process the Reference or Descripton field as appropriate. */
+
+	switch (data->icon) {
+	case TRANSACT_ICON_REFERENCE:
+		/* To complete the reference, we need to be in a valid transaction which contains
+		 * at least one of the From or To fields.
+		 */
+
+		if (data->line >= windat->trans_count)
+			return FALSE;
+
+		transaction = windat->transactions[data->line].sort_index;
+
+		if (!transact_valid(windat, transaction))
+			return FALSE;
+
+		account_get_next_cheque_number(windat->file, windat->transactions[transaction].from, windat->transactions[transaction].to,
+				1, data->text.text, data->text.length);
+		break;
+
+	case TRANSACT_ICON_DESCRIPTION:
+		/* The description field can be completed whether or not there's an underlying
+		 * transaction, as we just search back up from the last valid line.
+		 */
+
+		transact_complete_description(windat->file, data->line, data->text.text, data->text.length);
+		break;
+
+	default:
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Complete a description field, by finding the most recent description in the file
+ * which starts with the same characters as the current line.
+ *
+ * \param *windat	The transaction list window containing the transaction.
+ * \param line		The transaction line to be completed.
+ * \param *buffer	Pointer to the buffer to be completed.
+ * \param length	The length of the buffer.
+ * \return		Pointer to the completed buffer.
+ */
+
+static char *transact_list_window_complete_description(struct transact_list_window *windat, int line, char *buffer, size_t length)
+{
+	tran_t	t;
+
+	if (file == NULL || file->transacts == NULL || buffer == NULL)
+		return buffer;
+
+	if (line >= file->transacts->trans_count)
+		line = file->transacts->trans_count - 1;
+	else
+		line -= 1;
+
+	for (; line >= 0; line--) {
+		t = file->transacts->transactions[line].sort_index;
+
+		if (*(file->transacts->transactions[t].description) != '\0' &&
+				string_nocase_strstr(file->transacts->transactions[t].description, buffer) == file->transacts->transactions[t].description) {
+			string_copy(buffer, file->transacts->transactions[t].description, length);
+			break;
+		}
+	}
+
+	return buffer;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /**

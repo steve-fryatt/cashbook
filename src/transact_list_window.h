@@ -151,6 +151,29 @@ void transact_list_window_bring_to_top(struct transact_list_window *windat);
 
 
 /**
+ * Scroll a transaction window to either the top (home) or the end.
+ *
+ * \param *windat		The transaction list window to be scrolled.
+ * \param direction		The direction to scroll the window in.
+ */
+
+void transact_list_window_scroll_to_end(struct transact_list_window *windat, enum transact_scroll_direction direction);
+
+
+/**
+ * Return the transaction number of the transaction nearest to the centre of
+ * the visible area of the transaction list window which references a given
+ * account.
+ *
+ * \param *windat		The transaction list window to be searched.
+ * \param account		The account to search for.
+ * \return			The transaction found, or NULL_TRANSACTION.
+ */
+
+int transact_list_window_find_nearest_centre(struct transact_list_window *windat, acct_t account);
+
+
+/**
  * Find the display line in a transaction window which points to the
  * specified transaction under the applied sort.
  *
@@ -172,6 +195,18 @@ int transact_list_window_get_line_from_transaction(struct transact_list_window *
  */
 
 tran_t transact_list_window_get_transaction_from_line(struct transact_list_window *windat, int line);
+
+
+/**
+ * Find the display line number of the current transaction entry line.
+ *
+ * \param *windat		The transaction list window to interrogate.
+ * \return			The display line number of the line with the caret.
+ */
+
+int transact_list_window_get_caret_line(struct transact_list_window *windat);
+
+
 
 
 /**

@@ -183,16 +183,6 @@ void transact_set_window_extent(struct file_block *file);
 
 
 /**
- * Minimise the extent of the transaction window, by removing unnecessary
- * blank lines as they are scrolled out of sight.
- *
- * \param *file			The file containing the window to update.
- */
-
-void transact_minimise_window_extent(struct file_block *file);
-
-
-/**
  * Get the window state of the transaction window belonging to
  * the specified file.
  *

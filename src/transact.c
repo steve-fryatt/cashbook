@@ -335,71 +335,18 @@ char *transact_get_column_name(struct file_block *file, enum transact_field fiel
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
- * Minimise the extent of the transaction window, by removing unnecessary
- * blank lines as they are scrolled out of sight.
+ * Set the extent of the transaction window for the specified file.
  *
  * \param *file			The file containing the window to update.
  */
 
-void transact_minimise_window_extent(struct file_block *file)
+void transact_set_window_extent(struct file_block *file)
 {
-	int			height, last_visible_line, minimum_length, entry_line;
-	wimp_window_state	window;
-
-	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
+	if (file == NULL || file->transacts == NULL)
 		return;
 
-	window.w = file->transacts->transaction_window;
-	wimp_get_window_state(&window);
-
-	/* Calculate the height of the window and the last line that
-	 * is on display in the visible area.
-	 */
-
-	height = (window.visible.y1 - window.visible.y0) - TRANSACT_TOOLBAR_HEIGHT;
-	last_visible_line = (-window.yscroll + height) / WINDOW_ROW_HEIGHT;
-
-	/* Work out what the minimum length of the window needs to be,
-	 * taking into account minimum window size, entries and blank lines
-	 * and the location of the edit line.
-	 */
-
-	minimum_length = (file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-			file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
-
-	entry_line = edit_get_line(file->transacts->edit_line);
-
-	if (entry_line >= minimum_length)
-		minimum_length = entry_line + 1;
-
-	if (last_visible_line > minimum_length)
-		minimum_length = last_visible_line;
-
-	/* Shrink the window. */
-
-	if (file->transacts->display_lines > minimum_length) {
-		file->transacts->display_lines = minimum_length;
-		transact_set_window_extent(file);
-	}
+	transact_list_window_set_extent(file->transacts->transact_window);
 }
 
 
@@ -414,11 +361,10 @@ void transact_minimise_window_extent(struct file_block *file)
 
 os_error *transact_get_window_state(struct file_block *file, wimp_window_state *state)
 {
-	if (file == NULL || file->transacts == NULL || state == NULL)
+	if (file == NULL || file->transacts == NULL)
 		return NULL;
 
-	state->w = file->transacts->transaction_pane;
-	return xwimp_get_window_state(state);
+	return transact_list_window_get_state(file->transacts->transact_window, state);
 }
 
 
@@ -460,11 +406,10 @@ void transact_redraw_all(struct file_block *file)
 
 void transact_update_toolbar(struct file_block *file)
 {
-	if (file == NULL || file->transacts == NULL || file->transacts->transaction_pane == NULL)
+	if (file == NULL || file->transacts == NULL)
 		return;
 
-	icons_set_shaded(file->transacts->transaction_pane, TRANSACT_PANE_VIEWACCT,
-			account_count_type_in_file(file, ACCOUNT_FULL) == 0);
+	transact_list_window_update_toolbar(file->transacts->transact_window);
 }
 
 
@@ -476,10 +421,10 @@ void transact_update_toolbar(struct file_block *file)
 
 void transact_bring_window_to_top(struct file_block *file)
 {
-	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
+	if (file == NULL || file->transacts == NULL)
 		return;
 
-	windows_open(file->transacts->transaction_window);
+	transact_list_window_bring_to_top(file->transacts->transact_window);
 }
 
 

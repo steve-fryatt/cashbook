@@ -93,10 +93,25 @@ char *transact_list_window_get_column_name(struct transact_list_window *windat, 
 void transact_list_window_place_caret(struct transact_list_window *windat, int line, enum transact_field field);
 
 
+/**
+ * Set the extent of the transaction window for the specified file.
+ *
+ * \param *windat		The transaction list window to update.
+ */
+
+void transact_list_window_set_extent(struct transact_list_window *windat);
 
 
+/**
+ * Get the window state of the transaction window belonging to
+ * the specified file.
+ *
+ * \param *file			The file containing the window.
+ * \param *state		The structure to hold the window state.
+ * \return			Pointer to an error block, or NULL on success.
+ */
 
-
+os_error *transact_list_window_get_state(struct transact_list_window *windat, wimp_window_state *state);
 
 
 /**
@@ -105,7 +120,7 @@ void transact_list_window_place_caret(struct transact_list_window *windat, int l
  * \param *windat		The transaction window to rebuild the title for.
  */
 
-void transact_list_window_build_window_title(struct transact_list_window *windat);
+void transact_list_window_build_title(struct transact_list_window *windat);
 
 
 /**
@@ -115,6 +130,24 @@ void transact_list_window_build_window_title(struct transact_list_window *windat
  */
 
 void transact_list_window_redraw_all(struct transact_list_window *windat);
+
+
+/**
+ * Update the state of the buttons in a transaction window toolbar.
+ *
+ * \param *windat		The transaction list window to update.
+ */
+
+void transact_list_window_update_toolbar(struct transact_list_window *windat);
+
+
+/**
+ * Bring a transaction window to the top of the window stack.
+ *
+ * \param *windat		The transaction list window to bring up.
+ */
+
+void transact_list_window_bring_to_top(struct transact_list_window *windat);
 
 
 /**

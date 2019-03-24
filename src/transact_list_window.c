@@ -465,7 +465,7 @@ static void transact_list_window_redraw_handler(wimp_draw *redraw);
 static void transact_list_window_adjust_columns(void *data, wimp_i icon, int width);
 static void transact_list_window_adjust_sort_icon(struct transact_list_window *windat);
 static void transact_list_window_adjust_sort_icon_data(struct transact_list_window *windat, wimp_icon *icon);
-
+static void transact_list_window_minimise_extent(struct transact_list_window *windat);
 
 
 static void transact_list_window_force_redraw(struct transact_list_window *windat, int from, int to, wimp_i column);
@@ -1952,38 +1952,63 @@ void transact_list_window_place_caret(struct transact_list_window *windat, int l
 }
 
 
+/**
+ * Minimise the extent of the transaction window, by removing unnecessary
+ * blank lines as they are scrolled out of sight.
+ *
+ * \param *windat		The transaction list window to update.
+ */
 
+static void transact_list_window_minimise_extent(struct transact_list_window *windat)
+{
+	int			height, last_visible_line, minimum_length, entry_line;
+	wimp_window_state	window;
 
+	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
+		return;
 
+	window.w = file->transacts->transaction_window;
+	wimp_get_window_state(&window);
 
+	/* Calculate the height of the window and the last line that
+	 * is on display in the visible area.
+	 */
 
+	height = (window.visible.y1 - window.visible.y0) - TRANSACT_TOOLBAR_HEIGHT;
+	last_visible_line = (-window.yscroll + height) / WINDOW_ROW_HEIGHT;
 
+	/* Work out what the minimum length of the window needs to be,
+	 * taking into account minimum window size, entries and blank lines
+	 * and the location of the edit line.
+	 */
 
+	minimum_length = (file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
+			file->transacts->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 
+	entry_line = edit_get_line(file->transacts->edit_line);
 
+	if (entry_line >= minimum_length)
+		minimum_length = entry_line + 1;
 
+	if (last_visible_line > minimum_length)
+		minimum_length = last_visible_line;
 
+	/* Shrink the window. */
 
-
-
-
-
-
-
-
-
-
-
-
+	if (file->transacts->display_lines > minimum_length) {
+		file->transacts->display_lines = minimum_length;
+		transact_set_window_extent(file);
+	}
+}
 
 
 /**
  * Set the extent of the transaction window for the specified file.
  *
- * \param *file			The file containing the window to update.
+ * \param *windat		The transaction list window to update.
  */
 
-void transact_list_window_set_extent(struct file_block *file)
+void transact_list_window_set_extent(struct transact_list_window *windat)
 {
 	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL)
 		return;
@@ -2000,6 +2025,25 @@ void transact_list_window_set_extent(struct file_block *file)
 }
 
 
+/**
+ * Get the window state of the transaction window belonging to
+ * the specified file.
+ *
+ * \param *file			The file containing the window.
+ * \param *state		The structure to hold the window state.
+ * \return			Pointer to an error block, or NULL on success.
+ */
+
+os_error *transact_list_window_get_state(struct transact_list_window *windat, wimp_window_state *state)
+{
+	if (file == NULL || file->transacts == NULL || state == NULL)
+		return NULL;
+
+	state->w = file->transacts->transaction_pane;
+	return xwimp_get_window_state(state);
+}
+
+
 
 /**
  * Recreate the title of the given Transaction window.
@@ -2007,7 +2051,7 @@ void transact_list_window_set_extent(struct file_block *file)
  * \param *windat		The transaction window to rebuild the title for.
  */
 
-void transact_list_window_build_window_title(struct transact_list_window *windat)
+void transact_list_window_build_title(struct transact_list_window *windat)
 {
 	if (file == NULL || file->transacts == NULL)
 		return;
@@ -2116,6 +2160,37 @@ static void transact_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, o
 
 	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, transact_window_def->icons[icon].data.indirected_text.validation, 'N'))
 		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
+}
+
+
+/**
+ * Update the state of the buttons in a transaction window toolbar.
+ *
+ * \param *windat		The transaction list window to update.
+ */
+
+void transact_list_window_update_toolbar(struct transact_list_window *windat)
+{
+	if (windat == NULL || windat->transaction_pane == NULL)
+		return;
+
+	icons_set_shaded(windat->transaction_pane, TRANSACT_PANE_VIEWACCT,
+			account_count_type_in_file(file, ACCOUNT_FULL) == 0);
+}
+
+
+/**
+ * Bring a transaction window to the top of the window stack.
+ *
+ * \param *windat		The transaction list window to bring up.
+ */
+
+void transact_list_window_bring_to_top(struct transact_list_window *windat)
+{
+	if (windat == NULL || windat->transaction_window == NULL)
+		return;
+
+	windows_open(windat->transaction_window);
 }
 
 

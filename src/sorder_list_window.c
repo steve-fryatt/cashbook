@@ -1656,7 +1656,7 @@ osbool sorder_list_window_delete_line(struct sorder_list_window *windat, sorder_
 
 /**
  * Save the standing order list window details from a window to a CashBook
- * file. This assumes that the caller has laready created a suitable section
+ * file. This assumes that the caller has already created a suitable section
  * in the file to be written.
  *
  * \param *windat		The window whose details to write.

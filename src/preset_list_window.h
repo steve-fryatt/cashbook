@@ -110,7 +110,7 @@ void preset_list_window_sort(struct preset_list_window *windat);
 
 /**
  * Save the preset list window details from a window to a CashBook file.
- * This assumes that the caller has laready created a suitable section
+ * This assumes that the caller has already created a suitable section
  * in the file to be written.
  *
  * \param *windat		The window whose details to write.

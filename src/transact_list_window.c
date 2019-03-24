@@ -66,7 +66,7 @@
 /* Application header files */
 
 #include "global.h"
-#include "transact.h"
+#include "transact_list_window.h"
 
 #include "account.h"
 #include "account_list_menu.h"
@@ -79,6 +79,7 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "file_info.h"
@@ -181,6 +182,20 @@
 #define MAIN_MENU_ANALYSIS_BALANCE 5
 #define MAIN_MENU_ANALYSIS_SOREP 6
 
+/* Transaction List Sort Window icons. */
+
+#define TRANS_SORT_OK 2
+#define TRANS_SORT_CANCEL 3
+#define TRANS_SORT_DATE 4
+#define TRANS_SORT_FROM 5
+#define TRANS_SORT_TO 6
+#define TRANS_SORT_REFERENCE 7
+#define TRANS_SORT_AMOUNT 8
+#define TRANS_SORT_DESCRIPTION 9
+#define TRANS_SORT_ASCENDING 10
+#define TRANS_SORT_DESCENDING 11
+#define TRANS_SORT_ROW 12
+
 /**
  * The minimum number of entries in the Transaction List Window.
  */
@@ -266,7 +281,7 @@ struct transact_list_window_redraw {
 	/**
 	 * The number of the transaction relating to the line.
 	 */
-	trans_t					transact;
+	tran_t					transaction;
 };
 
 /**
@@ -322,7 +337,7 @@ struct transact_list_window {
 	/**
 	 * Flex array holding the line data for the window.
 	 */
-	struct sorder_list_window_redraw	*line_data;
+	struct transact_list_window_redraw	*line_data;
 
 	/**
 	 * True if reconcile should automatically jump to the next unreconciled entry.
@@ -415,6 +430,12 @@ static struct saveas_block		*transact_saveas_csv = NULL;
 static struct saveas_block		*transact_saveas_tsv = NULL;
 
 /**
+ * Offset, in OS Units, at which to open the next window.
+ */
+
+static int				transact_list_window_new_offset = 0;
+
+/**
  * Data relating to field dragging.
  */
 
@@ -446,6 +467,19 @@ struct transact_drag_data {
 
 static struct transact_drag_data transact_window_dragging_data;
 
+/* Buffers used by the Transaction List Window Edit Line. */
+
+static char	transact_buffer_row[TRANSACT_ROW_FIELD_LEN];
+static char	transact_buffer_date[DATE_FIELD_LEN];
+static char	transact_buffer_from_ident[ACCOUNT_IDENT_LEN];
+static char	transact_buffer_from_name[ACCOUNT_NAME_LEN];
+static char	transact_buffer_from_rec[REC_FIELD_LEN];
+static char	transact_buffer_to_ident[ACCOUNT_IDENT_LEN];
+static char	transact_buffer_to_name[ACCOUNT_NAME_LEN];
+static char	transact_buffer_to_rec[REC_FIELD_LEN];
+static char	transact_buffer_reference [TRANSACT_REF_FIELD_LEN];
+static char	transact_buffer_amount[AMOUNT_FIELD_LEN];
+static char	transact_buffer_description[TRANSACT_DESCRIPT_FIELD_LEN];
 
 /* Static Function Prototypes. */
 
@@ -487,6 +521,7 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data);
 static osbool transact_list_window_edit_auto_complete(struct edit_data *data);
 static char *transact_list_window_complete_description(struct transact_list_window *windat, int line, char *buffer, size_t length);
 static void transact_list_window_find_next_reconcile_line(struct transact_list_window *windat, osbool set);
+static osbool transact_list_window_edit_insert_preset(int line, wimp_key_no key, void *data);
 static wimp_i transact_list_window_convert_preset_icon_number(enum preset_caret caret);
 static int transact_list_window_edit_auto_sort(wimp_i icon, void *data);
 static wimp_colour transact_list_window_line_colour(struct transact_list_window *windat, int line);
@@ -528,8 +563,8 @@ void transact_list_window_initialise(osspriteop_area *sprites)
 	transact_sort_dialogue = sort_dialogue_create(sort_window, transact_sort_columns, transact_sort_directions,
 			TRANS_SORT_OK, TRANS_SORT_CANCEL, transact_list_window_process_sort_window);
 
-	transact_sort_callbacks.compare = transact_sort_compare;
-	transact_sort_callbacks.swap = transact_sort_swap;
+	transact_sort_callbacks.compare = transact_list_window_sort_compare;
+	transact_sort_callbacks.swap = transact_list_window_sort_swap;
 
 	transact_window_def = templates_load_window("Transact");
 	transact_window_def->icon_count = 0;
@@ -543,15 +578,15 @@ void transact_list_window_initialise(osspriteop_area *sprites)
 	transact_window_menu_transact = templates_get_menu("MainTransactionsSubmenu");
 	transact_window_menu_analysis = templates_get_menu("MainAnalysisSubmenu");
 
-	transact_edit_callbacks.get_field = transact_edit_get_field;
-	transact_edit_callbacks.put_field = transact_edit_put_field;
-	transact_edit_callbacks.test_line = transact_edit_test_line;
-	transact_edit_callbacks.place_line = transact_edit_place_line;
-	transact_edit_callbacks.find_field = transact_edit_find_field;
-	transact_edit_callbacks.first_blank_line = transact_edit_first_blank_line;
-	transact_edit_callbacks.auto_sort = transact_edit_auto_sort;
-	transact_edit_callbacks.auto_complete = transact_edit_auto_complete;
-	transact_edit_callbacks.insert_preset = transact_edit_insert_preset;
+	transact_edit_callbacks.get_field = transact_list_window_edit_get_field;
+	transact_edit_callbacks.put_field = transact_list_window_edit_put_field;
+	transact_edit_callbacks.test_line = transact_list_window_edit_test_line;
+	transact_edit_callbacks.place_line = transact_list_window_edit_place_line;
+	transact_edit_callbacks.find_field = transact_list_window_edit_find_field;
+	transact_edit_callbacks.first_blank_line = transact_list_window_edit_first_blank_line;
+	transact_edit_callbacks.auto_sort = transact_list_window_edit_auto_sort;
+	transact_edit_callbacks.auto_complete = transact_list_window_edit_auto_complete;
+	transact_edit_callbacks.insert_preset = transact_list_window_edit_insert_preset;
 
 	transact_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_list_window_save_file);
 	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_list_window_save_csv);
@@ -591,7 +626,7 @@ struct transact_list_window *transact_list_window_create_instance(struct transac
 
 	new->columns = column_create_instance(TRANSACT_COLUMNS, transact_columns, NULL, TRANSACT_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
-		transact_delete_instance(new);
+		transact_list_window_delete_instance(new);
 		return NULL;
 	}
 
@@ -602,14 +637,14 @@ struct transact_list_window *transact_list_window_create_instance(struct transac
 
 	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING,  &transact_sort_callbacks, new);
 	if (new->sort == NULL) {
-		transact_delete_instance(new);
+		transact_list_window_delete_instance(new);
 		return NULL;
 	}
 
 	/* Set the initial lines up */
 
 	if (!flexutils_initialise((void **) &(new->line_data))) {
-		sorder_list_window_delete_instance(new);
+		transact_list_window_delete_instance(new);
 		return NULL;
 	}
 
@@ -634,7 +669,7 @@ void transact_list_window_delete_instance(struct transact_list_window *windat)
 	column_delete_instance(windat->columns);
 	sort_delete_instance(windat->sort);
 
-	sorder_list_window_delete(windat);
+	transact_list_window_delete(windat);
 
 	heap_free(windat);
 }
@@ -650,7 +685,6 @@ void transact_list_window_open(struct transact_list_window *windat)
 {
 	int			height;
 	os_error		*error;
-	wimp_window_state	parent;
 	struct file_block	*file;
 
 	if (windat == NULL || windat->instance == NULL)
@@ -662,8 +696,8 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	/* Create or re-open the window. */
 
-	if (windat->transact_window != NULL) {
-		windows_open(windat->transact_window);
+	if (windat->transaction_window != NULL) {
+		windows_open(windat->transaction_window);
 		return;
 	}
 
@@ -673,8 +707,8 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	/* Set the default values */
 
-	windat->display_lines = (windat->trans_count + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
-			windat->trans_count + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
+	windat->display_lines = (windat->display_lines + MIN_TRANSACT_BLANK_LINES > MIN_TRANSACT_ENTRIES) ?
+			windat->display_lines + MIN_TRANSACT_BLANK_LINES : MIN_TRANSACT_ENTRIES;
 
 	/* Create the new window data and build the window. */
 
@@ -685,18 +719,18 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	window_set_initial_area(transact_window_def, column_get_window_width(windat->columns),
 			(height * WINDOW_ROW_HEIGHT) + TRANSACT_TOOLBAR_HEIGHT,
-			-1, -1, new_transaction_window_offset * TRANSACTION_WINDOW_OPEN_OFFSET);
+			-1, -1, transact_list_window_new_offset * TRANSACTION_WINDOW_OPEN_OFFSET);
 
 	error = xwimp_create_window(transact_window_def, &(windat->transaction_window));
 	if (error != NULL) {
-		transact_delete_window(windat);
+		transact_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
 
-	new_transaction_window_offset++;
-	if (new_transaction_window_offset >= TRANSACTION_WINDOW_OFFSET_LIMIT)
-		new_transaction_window_offset = 0;
+	transact_list_window_new_offset++;
+	if (transact_list_window_new_offset >= TRANSACTION_WINDOW_OFFSET_LIMIT)
+		transact_list_window_new_offset = 0;
 
 	/* Create the toolbar pane. */
 
@@ -709,11 +743,11 @@ void transact_list_window_open(struct transact_list_window *windat)
 			transact_pane_def->sprite_area;
 	transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-	transact_list_window_adjust_sort_icon_data(windat->instance, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
+	transact_list_window_adjust_sort_icon_data(windat, &(transact_pane_def->icons[TRANSACT_PANE_SORT_DIR_ICON]));
 
 	error = xwimp_create_window(transact_pane_def, &(windat->transaction_pane));
 	if (error != NULL) {
-		transact_delete_window(windat->instance);
+		transact_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return;
 	}
@@ -724,7 +758,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 			windat->columns, TRANSACT_TOOLBAR_HEIGHT,
 			&transact_edit_callbacks, file->transacts);
 	if (windat->edit_line == NULL) {
-		transact_delete_window(windat);
+		transact_list_window_delete(windat);
 		error_msgs_report_error("TransactNoMem");
 		return;
 	}
@@ -749,7 +783,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 			TRANSACT_ICON_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
 	if (!edit_complete(windat->edit_line)) {
-		transact_delete_window(file);
+		transact_list_window_delete(windat);
 		error_msgs_report_error("TransactNoMem");
 		return;
 	}
@@ -777,7 +811,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 	event_add_window_user_data(windat->transaction_window, windat);
 	event_add_window_menu(windat->transaction_window, transact_window_menu);
 	event_add_window_open_event(windat->transaction_window, transact_list_window_open_handler);
-	event_add_window_close_event(windat->transaction_window, transact_window_close_handler);
+	event_add_window_close_event(windat->transaction_window, transact_list_window_close_handler);
 	event_add_window_lose_caret_event(windat->transaction_window, transact_list_window_lose_caret_handler);
 	event_add_window_mouse_event(windat->transaction_window, transact_list_window_click_handler);
 	event_add_window_key_event(windat->transaction_window, transact_list_window_keypress_handler);
@@ -802,7 +836,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	/* Put the caret into the first empty line. */
 
-	transact_place_caret(file, windat->trans_count, TRANSACT_FIELD_DATE);
+	transact_place_caret(file, windat->display_lines, TRANSACT_FIELD_DATE);
 }
 
 
@@ -863,8 +897,8 @@ static void transact_list_window_open_handler(wimp_open *open)
 	struct transact_list_window *windat;
 
 	windat = event_get_window_user_data(open->w);
-	if (windat != NULL && windat->file != NULL)
-		transact_minimise_window_extent(windat->file);
+	if (windat != NULL)
+		transact_list_window_minimise_extent(windat);
 
 	wimp_open_window(open);
 }
@@ -879,6 +913,7 @@ static void transact_list_window_open_handler(wimp_open *open)
 static void transact_list_window_close_handler(wimp_close *close)
 {
 	struct transact_list_window	*windat;
+	struct file_block		*file;
 	wimp_pointer			pointer;
 	char				buffer[1024], *pathcopy;
 
@@ -887,15 +922,19 @@ static void transact_list_window_close_handler(wimp_close *close)
 	#endif
 
 	windat = event_get_window_user_data(close->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	wimp_get_pointer_info(&pointer);
 
 	/* If Adjust was clicked, find the pathname and open the parent directory. */
 
-	if (pointer.buttons == wimp_CLICK_ADJUST && file_check_for_filepath(windat->file)) {
-		pathcopy = strdup(windat->file->filename);
+	if (pointer.buttons == wimp_CLICK_ADJUST && file_check_for_filepath(file)) {
+		pathcopy = strdup(file->filename);
 		if (pathcopy != NULL) {
 			string_printf(buffer, sizeof(buffer), "%%Filer_OpenDir %s", string_find_pathname(pathcopy));
 			xos_cli(buffer);
@@ -907,7 +946,7 @@ static void transact_list_window_close_handler(wimp_close *close)
 
 	if (!((osbyte1(osbyte_IN_KEY, 0xfc, 0xff) == 0xff || osbyte1(osbyte_IN_KEY, 0xf9, 0xff) == 0xff) &&
 			pointer.buttons == wimp_CLICK_ADJUST))
-		delete_file(windat->file);
+		delete_file(file);
 }
 
 
@@ -948,7 +987,7 @@ static void transact_list_window_click_handler(wimp_pointer *pointer)
 			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_TOOLBAR_HEIGHT, -1);
 
 			if (line >= 0) {
-				transact_place_edit_line(windat, line);
+				transact_list_window_place_edit_line(windat, line);
 
 				/* Find the correct point for the caret and insert it. */
 
@@ -1012,9 +1051,9 @@ static void transact_list_window_click_handler(wimp_pointer *pointer)
 			} else if (column == TRANSACT_ICON_DESCRIPTION) {
 				/* If the column is the Description, open the to description menu. */
 				refdesc_menu_open(file, REFDESC_MENU_DESCRIPTION, line, pointer);
-			} else if (line < windat->trans_count) {
+			} else if (line < windat->display_lines) {
 				/* ...while the rest have to occur over a transaction line. */
-				transaction = windat->transactions[line].sort_index;
+				transaction = windat->line_data[line].transaction;
 
 				if (column == TRANSACT_ICON_FROM_REC) {
 					/* If the column is the from reconcile flag, toggle its status. */
@@ -1035,7 +1074,7 @@ static void transact_list_window_click_handler(wimp_pointer *pointer)
 			column = column_find_icon_from_xpos(windat->columns, xpos);
 
 			if (line >= 0 && column != wimp_ICON_WINDOW)
-				transact_window_start_drag(windat, &window, column, line);
+				transact_list_window_start_drag(windat, &window, column, line);
 		}
 	}
 }
@@ -1052,7 +1091,7 @@ static void transact_list_window_lose_caret_handler(wimp_caret *caret)
 	struct transact_list_window	*windat;
 
 	windat = event_get_window_user_data(caret->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL)
 		return;
 
 	edit_refresh_line_contents(windat->edit_line, wimp_ICON_WINDOW, wimp_ICON_WINDOW);
@@ -1091,7 +1130,7 @@ static void transact_list_window_pane_click_handler(wimp_pointer *pointer)
 		switch (pointer->i) {
 		case TRANSACT_PANE_SAVE:
 			if (file_check_for_filepath(file))
-				filename = windat->file->filename;
+				filename = file->filename;
 			else
 				filename = NULL;
 
@@ -1175,7 +1214,7 @@ static void transact_list_window_pane_click_handler(wimp_pointer *pointer)
 			break;
 
 		case TRANSACT_PANE_SORT:
-			transact_sort(windat);
+			transact_list_window_sort(windat);
 			break;
 
 		case TRANSACT_PANE_RECONCILE:
@@ -1207,7 +1246,7 @@ static void transact_list_window_pane_click_handler(wimp_pointer *pointer)
 				sort_set_order(windat->sort, sort_order);
 				transact_list_window_adjust_sort_icon(windat);
 				windows_redraw(windat->transaction_pane);
-				transact_sort(windat);
+				transact_list_window_sort(windat);
 			}
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
@@ -1239,7 +1278,7 @@ static osbool transact_list_window_keypress_handler(wimp_key *key)
 
 	file = transact_get_file(windat->instance);
 	if (file == NULL)
-		return;
+		return FALSE;
 
 	/* Keyboard shortcuts */
 
@@ -1257,8 +1296,8 @@ static osbool transact_list_window_keypress_handler(wimp_key *key)
 	} else if (key->c == wimp_KEY_F3) {
 		wimp_get_pointer_info(&pointer);
 
-		if (file_check_for_filepath(windat->file))
-			filename = windat->file->filename;
+		if (file_check_for_filepath(file))
+			filename = file->filename;
 		else
 			filename = NULL;
 
@@ -1338,7 +1377,7 @@ static void transact_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu,
 
 	if (menu != transact_window_menu) {
 		if (pointer != NULL) {
-			transact_account_list_menu = account_list_menu_build(windat->file);
+			transact_account_list_menu = account_list_menu_build(file);
 			event_set_menu_block(transact_account_list_menu);
 			ihelp_add_menu(transact_account_list_menu, "AccOpenMenu");
 		}
@@ -1359,7 +1398,7 @@ static void transact_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu,
 
 			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_TOOLBAR_HEIGHT, -1);
 
-			if (transact_valid(windat, line))
+			if (transact_list_window_line_valid(windat, line))
 				transact_window_menu_line = line;
 		}
 
@@ -1374,7 +1413,7 @@ static void transact_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu,
 			transact_window_menu_analysis->entries[MAIN_MENU_ANALYSIS_SAVEDREP].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
 
 		if (file_check_for_filepath(file))
-			filename = windat->file->filename;
+			filename = file->filename;
 		else
 			filename = NULL;
 
@@ -1384,7 +1423,7 @@ static void transact_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu,
 	}
 
 	menus_tick_entry(transact_window_menu_transact, MAIN_MENU_TRANS_RECONCILE, windat->auto_reconcile);
-	menus_shade_entry(transact_window_menu_account, MAIN_MENU_ACCOUNTS_VIEW, account_count_type_in_file(windat->file, ACCOUNT_FULL) == 0);
+	menus_shade_entry(transact_window_menu_account, MAIN_MENU_ACCOUNTS_VIEW, account_count_type_in_file(file, ACCOUNT_FULL) == 0);
 	menus_shade_entry(transact_window_menu_analysis, MAIN_MENU_ANALYSIS_SAVEDREP, !analysis_template_menu_contains_entries());
 	account_list_menu_prepare();
 }
@@ -1406,10 +1445,12 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 	template_t			template;
 
 	windat = event_get_window_user_data(w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = windat->file;
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return;
 
 	/* If the menu is the account open menu, then it needs special processing...
 	 */
@@ -1434,7 +1475,7 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 			break;
 
 		case MAIN_MENU_FILE_CONTINUE:
-			purge_open_window(windat->file->purge, &pointer, config_opt_read("RememberValues"));
+			purge_open_window(file->purge, &pointer, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_FILE_PRINT:
@@ -1447,15 +1488,15 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 		switch (selection->items[1]) {
 		case MAIN_MENU_ACCOUNTS_VIEW:
 			if (selection->items[2] != -1)
-				accview_open_window(windat->file, account_list_menu_decode(selection->items[2]));
+				accview_open_window(file, account_list_menu_decode(selection->items[2]));
 			break;
 
 		case MAIN_MENU_ACCOUNTS_LIST:
-			account_open_window(windat->file, ACCOUNT_FULL);
+			account_open_window(file, ACCOUNT_FULL);
 			break;
 
 		case MAIN_MENU_ACCOUNTS_NEW:
-			account_open_edit_window(windat->file, NULL_ACCOUNT, ACCOUNT_FULL, &pointer);
+			account_open_edit_window(file, NULL_ACCOUNT, ACCOUNT_FULL, &pointer);
 			break;
 		}
 		break;
@@ -1463,15 +1504,15 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 	case MAIN_MENU_SUB_HEADINGS:
 		switch (selection->items[1]) {
 		case MAIN_MENU_HEADINGS_LISTIN:
-			account_open_window(windat->file, ACCOUNT_IN);
+			account_open_window(file, ACCOUNT_IN);
 			break;
 
 		case MAIN_MENU_HEADINGS_LISTOUT:
-			account_open_window(windat->file, ACCOUNT_OUT);
+			account_open_window(file, ACCOUNT_OUT);
 			break;
 
 		case MAIN_MENU_HEADINGS_NEW:
-			account_open_edit_window(windat->file, NULL_ACCOUNT, ACCOUNT_IN, &pointer);
+			account_open_edit_window(file, NULL_ACCOUNT, ACCOUNT_IN, &pointer);
 			break;
 		}
 		break;
@@ -1479,11 +1520,11 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 	case MAIN_MENU_SUB_TRANS:
 		switch (selection->items[1]) {
 		case MAIN_MENU_TRANS_FIND:
-			find_open_window(windat->file->find, &pointer, config_opt_read("RememberValues"));
+			find_open_window(file->find, &pointer, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_TRANS_GOTO:
-			goto_open_window(windat->file->go_to, &pointer, config_opt_read("RememberValues"));
+			goto_open_window(file->go_to, &pointer, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_TRANS_SORT:
@@ -1491,19 +1532,19 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 			break;
 
 		case MAIN_MENU_TRANS_AUTOVIEW:
-			sorder_open_window(windat->file);
+			sorder_open_window(file);
 			break;
 
 		case MAIN_MENU_TRANS_AUTONEW:
-			sorder_open_edit_window(windat->file, NULL_SORDER, &pointer);
+			sorder_open_edit_window(file, NULL_SORDER, &pointer);
 			break;
 
 		case MAIN_MENU_TRANS_PRESET:
-			preset_open_window(windat->file);
+			preset_open_window(file);
 			break;
 
 		case MAIN_MENU_TRANS_PRESETNEW:
-			preset_open_edit_window(windat->file, NULL_PRESET, &pointer);
+			preset_open_edit_window(file, NULL_PRESET, &pointer);
 			break;
 
 		case MAIN_MENU_TRANS_RECONCILE:
@@ -1516,33 +1557,33 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 	case MAIN_MENU_SUB_UTILS:
 		switch (selection->items[1]) {
 		case MAIN_MENU_ANALYSIS_BUDGET:
-			budget_open_window(windat->file->budget, &pointer);
+			budget_open_window(file->budget, &pointer);
 			break;
 
 		case MAIN_MENU_ANALYSIS_SAVEDREP:
 			template = analysis_template_menu_decode(selection->items[2]);
 			if (template != NULL_TEMPLATE)
-				analysis_open_template(windat->file->analysis, &pointer, template, config_opt_read("RememberValues"));
+				analysis_open_template(file->analysis, &pointer, template, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_MONTHREP:
-			analysis_open_window(windat->file->analysis, &pointer, REPORT_TYPE_TRANSACTION, config_opt_read("RememberValues"));
+			analysis_open_window(file->analysis, &pointer, REPORT_TYPE_TRANSACTION, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_UNREC:
-			analysis_open_window(windat->file->analysis, &pointer, REPORT_TYPE_UNRECONCILED, config_opt_read("RememberValues"));
+			analysis_open_window(file->analysis, &pointer, REPORT_TYPE_UNRECONCILED, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_CASHFLOW:
-			analysis_open_window(windat->file->analysis, &pointer, REPORT_TYPE_CASHFLOW, config_opt_read("RememberValues"));
+			analysis_open_window(file->analysis, &pointer, REPORT_TYPE_CASHFLOW, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_BALANCE:
-			analysis_open_window(windat->file->analysis, &pointer, REPORT_TYPE_BALANCE, config_opt_read("RememberValues"));
+			analysis_open_window(file->analysis, &pointer, REPORT_TYPE_BALANCE, config_opt_read("RememberValues"));
 			break;
 
 		case MAIN_MENU_ANALYSIS_SOREP:
-			sorder_full_report(windat->file);
+			sorder_full_report(file);
 			break;
 		}
 		break;
@@ -1560,10 +1601,15 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 
 static void transact_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-	struct transact_list_window *windat;
+	struct transact_list_window	*windat;
+	struct file_block		*file;
 
 	windat = event_get_window_user_data(w);
-	if (windat == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	if (menu != transact_window_menu)
@@ -1573,7 +1619,7 @@ static void transact_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu,
 	case MAIN_MENU_SUB_FILE:
 		switch (warning->selection.items[1]) {
 		case MAIN_MENU_FILE_INFO:
-			file_info_prepare_dialogue(windat->file);
+			file_info_prepare_dialogue(file);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 
@@ -1629,7 +1675,7 @@ static void transact_list_window_scroll_handler(wimp_scroll *scroll)
 	struct transact_list_window	*windat;
 
 	windat = event_get_window_user_data(scroll->w);
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
 		return;
 
 	window_process_scroll_event(scroll, TRANSACT_TOOLBAR_HEIGHT);
@@ -1641,7 +1687,7 @@ static void transact_list_window_scroll_handler(wimp_scroll *scroll)
 
 		if (line > windat->display_lines) {
 			windat->display_lines = line;
-			transact_set_window_extent(windat->file);
+			transact_list_window_set_extent(windat);
 		}
 	}
 
@@ -1651,7 +1697,7 @@ static void transact_list_window_scroll_handler(wimp_scroll *scroll)
 
 	/* Try to reduce the window extent, if possible. */
 
-	transact_minimise_window_extent(windat->file);
+	transact_list_window_minimise_extent(windat);
 }
 
 
@@ -3446,7 +3492,7 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 			((changed & TRANSACT_FIELD_REF) && ((order & SORT_MASK) == SORT_REFERENCE)) ||
 			((changed & TRANSACT_FIELD_AMOUNT) && ((order & SORT_MASK) == SORT_AMOUNT)) ||
 			((changed & TRANSACT_FIELD_DESC) && ((order & SORT_MASK) == SORT_DESCRIPTION)))) {
-		transact_sort(file->transacts);
+		transact_list_window_sort(windat);
 
 		if (transact_valid(file->transacts, line)) {
 			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].from);
@@ -3549,7 +3595,7 @@ static int transact_list_window_edit_auto_sort(wimp_i icon, void *data)
 
 	/* Sort the transactions. */
 
-	transact_sort(windat);
+	transact_list_window_sort(windat);
 
 	/* Re-sort any affected account views. */
 
@@ -3794,7 +3840,7 @@ static osbool transact_list_window_process_sort_window(enum sort_type order, voi
 
 	transact_list_window_adjust_sort_icon(windat);
 	windows_redraw(windat->transaction_pane);
-	transact_sort(windat);
+	transact_list_window_sort(windat);
 
 	return TRUE;
 }

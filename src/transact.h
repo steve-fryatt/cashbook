@@ -288,6 +288,16 @@ int transact_get_count(struct file_block *file);
 
 
 /**
+ * Return the file associated with a transactions instance.
+ *
+ * \param *instance		The transactions instance to query.
+ * \return			The associated file, or NULL.
+ */
+
+struct file_block *transact_get_file(struct transact_block *instance);
+
+
+/**
  * Find the display line number of the current transaction entry line.
  *
  * \param *file			The file to interrogate.

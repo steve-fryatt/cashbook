@@ -100,20 +100,6 @@
 #include "window.h"
 
 
-
-
-#define TRANS_SORT_OK 2
-#define TRANS_SORT_CANCEL 3
-#define TRANS_SORT_DATE 4
-#define TRANS_SORT_FROM 5
-#define TRANS_SORT_TO 6
-#define TRANS_SORT_REFERENCE 7
-#define TRANS_SORT_AMOUNT 8
-#define TRANS_SORT_DESCRIPTION 9
-#define TRANS_SORT_ASCENDING 10
-#define TRANS_SORT_DESCENDING 11
-#define TRANS_SORT_ROW 12
-
 /**
  * Transatcion data structure
  */
@@ -170,29 +156,9 @@ struct transact_block {
 	osbool				date_sort_valid;
 };
 
-/* The following are the buffers used by the edit line in the transaction window. */
-
-static char	transact_buffer_row[TRANSACT_ROW_FIELD_LEN];
-static char	transact_buffer_date[DATE_FIELD_LEN];
-static char	transact_buffer_from_ident[ACCOUNT_IDENT_LEN];
-static char	transact_buffer_from_name[ACCOUNT_NAME_LEN];
-static char	transact_buffer_from_rec[REC_FIELD_LEN];
-static char	transact_buffer_to_ident[ACCOUNT_IDENT_LEN];
-static char	transact_buffer_to_name[ACCOUNT_NAME_LEN];
-static char	transact_buffer_to_rec[REC_FIELD_LEN];
-static char	transact_buffer_reference [TRANSACT_REF_FIELD_LEN];
-static char	transact_buffer_amount[AMOUNT_FIELD_LEN];
-static char	transact_buffer_description[TRANSACT_DESCRIPT_FIELD_LEN];
-
-
-
-static int    new_transaction_window_offset = 0;
-
-/* Transaction Window. */
+/* Static Function Prototypes. */
 
 static osbool			transact_is_blank(struct file_block *file, tran_t transaction);
-
-
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -484,6 +450,22 @@ tran_t transact_get_transaction_from_line(struct file_block *file, int line)
 int transact_get_count(struct file_block *file)
 {
 	return (file != NULL && file->transacts != NULL) ? file->transacts->trans_count : 0;
+}
+
+
+/**
+ * Return the file associated with a transactions instance.
+ *
+ * \param *instance		The transactions instance to query.
+ * \return			The associated file, or NULL.
+ */
+
+struct file_block *transact_get_file(struct transact_block *instance)
+{
+	if (instance == NULL)
+		return NULL;
+
+	return instance->file;
 }
 
 

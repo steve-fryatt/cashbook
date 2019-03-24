@@ -194,17 +194,6 @@ static osbool			transact_is_blank(struct file_block *file, tran_t transaction);
 
 
 
-static void			transact_find_next_reconcile_line(struct transact_block *windat, osbool set);
-static osbool			transact_edit_auto_complete(struct edit_data *data);
-static osbool			transact_edit_insert_preset(int line, wimp_key_no key, void *data);
-static wimp_i			transact_convert_preset_icon_number(enum preset_caret caret);
-static int			transact_edit_auto_sort(wimp_i icon, void *data);
-static wimp_colour		transact_line_colour(struct transact_block *windat, int line);
-
-
-
-
-
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
  */
@@ -634,16 +623,16 @@ void transact_strip_blanks_from_end(struct file_block *file)
 		 * to the current blank. If one is found, shuffle all of the
 		 * following indexes up a space to compensate.
 		 */
+// \TODO
+//		found = FALSE;
 
-		found = FALSE;
+//		for (line = 0; line < transaction; line++) {
+//			if (file->transacts->transactions[line].sort_index == transaction)
+//				found = TRUE;
 
-		for (line = 0; line < transaction; line++) {
-			if (file->transacts->transactions[line].sort_index == transaction)
-				found = TRUE;
-
-			if (found == TRUE)
-				file->transacts->transactions[line].sort_index = file->transacts->transactions[line + 1].sort_index;
-		}
+//			if (found == TRUE)
+//				file->transacts->transactions[line].sort_index = file->transacts->transactions[line + 1].sort_index;
+//		}
 
 		/* Remove the transaction. */
 
@@ -660,8 +649,8 @@ void transact_strip_blanks_from_end(struct file_block *file)
 
 		if (!flexutils_resize((void **) &(file->transacts->transactions), sizeof(struct transaction), file->transacts->trans_count))
 			error_msgs_report_error("BadDelete");
-
-		transact_force_window_redraw(file->transacts, 0, old_count, TRANSACT_PANE_ROW);
+//\TODO
+//		transact_force_window_redraw(file->transacts, 0, old_count, TRANSACT_PANE_ROW);
 	}
 }
 
@@ -835,8 +824,8 @@ int transact_get_sort_workspace(struct file_block *file, tran_t transaction)
 {
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
 		return 0;
-
-	return file->transacts->transactions[transaction].sort_workspace;
+// \TODO
+	return NULL; //file->transacts->transactions[transaction].sort_workspace;
 }
 
 
@@ -861,38 +850,6 @@ osbool transact_test_index_valid(struct file_block *file, tran_t transaction)
 
 
 
-
-/**
- * Find and return the line number of the first blank line in a file, based on
- * display order.
- *
- * \param *file			The file to search.
- * \return			The first blank display line.
- */
-
-int transact_find_first_blank_line(struct file_block *file)
-{
-	int line;
-
-	if (file == NULL || file->transacts == NULL)
-		return 0;
-
-	#ifdef DEBUG
-	debug_printf("\\DFinding first blank line");
-	#endif
-
-	line = file->transacts->trans_count;
-
-	while (line > 0 && transact_is_blank(file, file->transacts->transactions[line - 1].sort_index)) {
-		line--;
-
-		#ifdef DEBUG
-		debug_printf("Stepping back up...");
-		#endif
-	}
-
-	return line;
-}
 
 
 /**
@@ -1265,339 +1222,6 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 
 
 /**
- * Find the next line of an account, based on its reconcoled status, and place
- * the caret into the unreconciled account field.
- *
- * \param *windat		The transaction window instance to search in.
- * \param set			TRUE to match reconciled lines; FALSE to match unreconciled ones.
- */
-
-static void transact_find_next_reconcile_line(struct transact_block *windat, osbool set)
-{
-	int			line;
-	acct_t			account;
-	enum transact_field	found;
-	wimp_caret		caret;
-
-	if (windat == NULL || windat->file == NULL || windat->auto_reconcile == FALSE)
-		return;
-
-	line = edit_get_line(windat->edit_line);
-	account = NULL_ACCOUNT;
-
-	wimp_get_caret_position(&caret);
-
-	if (caret.i == TRANSACT_ICON_FROM)
-		account = windat->transactions[windat->transactions[line].sort_index].from;
-	else if (caret.i == TRANSACT_ICON_TO)
-		account = windat->transactions[windat->transactions[line].sort_index].to;
-
-	if (account == NULL_ACCOUNT)
-		return;
-
-	line++;
-	found = TRANSACT_FIELD_NONE;
-
-	while ((line < windat->trans_count) && (found == TRANSACT_FIELD_NONE)) {
-		if (windat->transactions[windat->transactions[line].sort_index].from == account &&
-				((windat->transactions[windat->transactions[line].sort_index].flags & TRANS_REC_FROM) ==
-						((set) ? TRANS_REC_FROM : TRANS_FLAGS_NONE)))
-			found = TRANSACT_FIELD_FROM;
-		else if (windat->transactions[windat->transactions[line].sort_index].to == account &&
-				((windat->transactions[windat->transactions[line].sort_index].flags & TRANS_REC_TO) ==
-						((set) ? TRANS_REC_TO : TRANS_FLAGS_NONE)))
-			found = TRANSACT_FIELD_TO;
-		else
-			line++;
-	}
-
-	if (found != TRANSACT_FIELD_NONE)
-		transact_place_caret(windat->file, line, found);
-}
-
-
-/**
- * Process preset insertion requests from the edit line.
- *
- * \param line			The line at which to insert the preset.
- * \param key			The Wimp Key number triggering the request.
- * \param *data			Our client data, holding the window instance.
- * \return			TRUE on success; FALSE on failure.
- */
-
-static osbool transact_edit_insert_preset(int line, wimp_key_no key, void *data)
-{
-	struct transact_block	*windat;
-	preset_t		preset;
-
-	if (data == NULL)
-		return FALSE;
-
-	windat = data;
-	if (windat == NULL || windat->file == NULL)
-		return FALSE;
-
-	/* Identify the preset to be inserted. */
-
-	preset = preset_find_from_keypress(windat->file, toupper(key));
-
-	if (preset == NULL_PRESET)
-		return TRUE;
-
-	return transact_insert_preset_into_line(windat->file, line, preset);
-}
-
-
-/**
- * Insert a preset into a pre-existing transaction, taking care of updating all
- * the file data in a clean way.
- *
- * \param *file		The file to edit.
- * \param line		The line in the transaction window to update.
- * \param preset	The preset to insert into the transaction.
- * \return		TRUE if successful; FALSE on failure.
- */
-
-osbool transact_insert_preset_into_line(struct file_block *file, int line, preset_t preset)
-{
-	enum transact_field	changed = TRANSACT_FIELD_NONE;
-	tran_t			transaction;
-	int			i;
-	enum sort_type		order;
-
-
-	if (file == NULL || file->transacts == NULL || file->transacts->edit_line == NULL || !preset_test_index_valid(file, preset))
-		return FALSE;
-
-	/* Identify the transaction to be updated. */
-	/* If there is not a transaction entry for the current edit line location
-	 * (ie. if this is the first keypress in a new line), extend the transaction
-	 * entries to reach the current location.
-	 */
-
-	if (line >= file->transacts->trans_count) {
-		for (i = file->transacts->trans_count; i <= line; i++)
-			transact_add_raw_entry(file->transacts->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
-
-		edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_ROW, wimp_ICON_WINDOW);
-	}
-
-	if (line >= file->transacts->trans_count)
-		return FALSE;
-
-	transaction = file->transacts->transactions[line].sort_index;
-
-	if (!transact_valid(file->transacts, transaction))
-		return FALSE;
-
-	/* Remove the target transaction from all calculations. */
-
-	account_remove_transaction(file, transaction);
-
-	/* Apply the preset to the transaction. */
-
-	changed = preset_apply(file, preset, &(file->transacts->transactions[transaction].date),
-			&(file->transacts->transactions[transaction].from),
-			&(file->transacts->transactions[transaction].to),
-			&(file->transacts->transactions[transaction].flags),
-			&(file->transacts->transactions[transaction].amount),
-			file->transacts->transactions[transaction].reference,
-			file->transacts->transactions[transaction].description);
-
-	/* Return the line to the calculations.  This will automatically update
-	 * all the account listings.
-	 */
-
-	account_restore_transaction(file, transaction);
-
-	/* Replace the edit line to make it pick up the changes. */
-
-	transact_place_edit_line(file->transacts, line);
-
-	/* Put the caret at the end of the preset destination field. */
-
-	icons_put_caret_at_end(file->transacts->transaction_window,
-			transact_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
-
-	/* If nothing changed, there's no more to do. */
-
-	if (changed == TRANSACT_FIELD_NONE)
-		return TRUE;
-
-	if (changed & TRANSACT_FIELD_DATE)
-		file->transacts->date_sort_valid = FALSE;
-
-	/* If any changes were made, refresh the relevant account listing, redraw
-	 * the transaction window line and mark the file as modified.
-	 */
-
-	accview_rebuild_all(file);
-
-	/* Force a redraw of the affected line. */
-
-	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
-
-
-	/* If we're auto-sorting, and the sort column has been updated as
-	 * part of the preset, then do an auto sort now.
-	 *
-	 * We will always sort if the sort column is Date, because pressing
-	 * a preset key is analagous to hitting Return.
-	 */
-
-	order = sort_get_order(file->transacts->sort);
-
-	if (config_opt_read("AutoSort") && (
-			((order & SORT_MASK) == SORT_DATE) ||
-			((changed & TRANSACT_FIELD_FROM) && ((order & SORT_MASK) == SORT_FROM)) ||
-			((changed & TRANSACT_FIELD_TO) && ((order & SORT_MASK) == SORT_TO)) ||
-			((changed & TRANSACT_FIELD_REF) && ((order & SORT_MASK) == SORT_REFERENCE)) ||
-			((changed & TRANSACT_FIELD_AMOUNT) && ((order & SORT_MASK) == SORT_AMOUNT)) ||
-			((changed & TRANSACT_FIELD_DESC) && ((order & SORT_MASK) == SORT_DESCRIPTION)))) {
-		transact_sort(file->transacts);
-
-		if (transact_valid(file->transacts, line)) {
-			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].from);
-			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].to);
-		}
-	}
-
-
-	file_set_data_integrity(file, TRUE);
-
-	return TRUE;
-}
-
-
-/**
- * Take a preset caret destination as used in the preset blocks, and convert it
- * into an icon number for the transaction edit line.
- *
- * \param caret		The preset caret destination to be converted.
- * \return		The corresponding icon number.
- */
-
-static wimp_i transact_convert_preset_icon_number(enum preset_caret caret)
-{
-	wimp_i	icon;
-
-	switch (caret) {
-	case PRESET_CARET_DATE:
-		icon = TRANSACT_ICON_DATE;
-		break;
-
-	case PRESET_CARET_FROM:
-		icon = TRANSACT_ICON_FROM;
-		break;
-
-	case PRESET_CARET_TO:
-		icon = TRANSACT_ICON_TO;
-		break;
-
-	case PRESET_CARET_REFERENCE:
-		icon = TRANSACT_ICON_REFERENCE;
-		break;
-
-	case PRESET_CARET_AMOUNT:
-		icon = TRANSACT_ICON_AMOUNT;
-		break;
-
-	case PRESET_CARET_DESCRIPTION:
-		icon = TRANSACT_ICON_DESCRIPTION;
-		break;
-
-	default:
-		icon = TRANSACT_ICON_DATE;
-		break;
-	}
-
-	return icon;
-}
-
-
-/**
- * Process auto sort requests from the edit line.
- *
- * \param icon			The icon handle associated with the affected column.
- * \param *data			Our client data, holding the window instance.
- * \return			TRUE if successfully handled; else FALSE.
- */
-
-static int transact_edit_auto_sort(wimp_i icon, void *data)
-{
-	struct transact_block	*windat = data;
-	int			entry_line;
-	enum sort_type		order;
-
-	if (windat == NULL || windat->file == NULL)
-		return FALSE;
-
-#ifdef DEBUG
-	debug_printf("Requesting auto-sort on icon %d", icon);
-#endif
-
-	/* Don't do anything if AutoSort is configured off. */
-
-	if (!config_opt_read("AutoSort"))
-		return TRUE;
-
-	/* Only sort if the keypress was in the active sort column, as nothing
-	 * will be changing otherwise.
-	 */
-
-	order = sort_get_order(windat->sort);
-
-	if ((icon == TRANSACT_ICON_DATE && (order & SORT_MASK) != SORT_DATE) ||
-			(icon == TRANSACT_ICON_FROM && (order & SORT_MASK) != SORT_FROM) ||
-			(icon == TRANSACT_ICON_TO && (order & SORT_MASK) != SORT_TO) ||
-			(icon == TRANSACT_ICON_REFERENCE && (order & SORT_MASK) != SORT_REFERENCE) ||
-			(icon == TRANSACT_ICON_AMOUNT && (order & SORT_MASK) != SORT_AMOUNT) ||
-			(icon == TRANSACT_ICON_DESCRIPTION && (order & SORT_MASK) != SORT_DESCRIPTION))
-		return TRUE;
-
-	/* Sort the transactions. */
-
-	transact_sort(windat);
-
-	/* Re-sort any affected account views. */
-
-	entry_line = edit_get_line(windat->edit_line);
-
-	if (transact_valid(windat, entry_line)) {
-		accview_sort(windat->file, windat->transactions[windat->transactions[entry_line].sort_index].from);
-		accview_sort(windat->file, windat->transactions[windat->transactions[entry_line].sort_index].to);
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Find the Wimp colour of a given line in a transaction window.
- *
- * \param *windat		The transaction window instance of interest.
- * \param line			The line of interest.
- * \return			The required Wimp colour, or Black on failure.
- */
-
-static wimp_colour transact_line_colour(struct transact_block *windat, int line)
-{
-	tran_t	transaction;
-
-	if (windat == NULL || windat->transactions == NULL || line < 0 || line >= windat->trans_count)
-		return wimp_COLOUR_BLACK;
-
-	transaction = windat->transactions[line].sort_index;
-
-	if (config_opt_read("ShadeReconciled") &&
-			((windat->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
-		return config_int_read("ShadeReconciledColour");
-	else
-		return wimp_COLOUR_BLACK;
-}
-
-
-/**
  * Sort the contents of the transaction window based on the file's sort setting.
  *
  * \param *windat		The transaction window instance to sort.
@@ -1608,7 +1232,7 @@ void transact_sort(struct transact_block *windat)
 	if (windat == NULL)
 		return;
 
-	transact_list_window_sort(windat->transaction_window);
+	transact_list_window_sort(windat->transact_window);
 }
 
 
@@ -1641,10 +1265,11 @@ void transact_sort_file_data(struct file_block *file)
 	 * main window, and also the order of the transactions themselves.
 	 */
 
-	for (i=0; i < file->transacts->trans_count; i++) {
-		file->transacts->transactions[file->transacts->transactions[i].sort_index].saved_sort = i;	/* Record transaction window lines. */
-		file->transacts->transactions[i].sort_index = i;						/* Record old transaction locations. */
-	}
+// \TODO
+//	for (i=0; i < file->transacts->trans_count; i++) {
+//		file->transacts->transactions[file->transacts->transactions[i].sort_index].saved_sort = i;	/* Record transaction window lines. */
+//		file->transacts->transactions[i].sort_index = i;						/* Record old transaction locations. */
+//	}
 
 	/* Sort the entries using a combsort.  This has the advantage over qsort()
 	 * that the order of entries is only affected if they are not equal and are
@@ -1673,16 +1298,17 @@ void transact_sort_file_data(struct file_block *file)
 	/* Finally, restore the order of the transactions on display in the
 	 * main window.
 	 */
-
-	for (i=0; i < file->transacts->trans_count; i++)
-		file->transacts->transactions[file->transacts->transactions[i].sort_index].sort_workspace = i;
+// \TODO
+//	for (i=0; i < file->transacts->trans_count; i++)
+//		file->transacts->transactions[file->transacts->transactions[i].sort_index].sort_workspace = i;
 
 	accview_reindex_all(file);
 
-	for (i=0; i < file->transacts->trans_count; i++)
-		file->transacts->transactions[file->transacts->transactions[i].saved_sort].sort_index = i;
+// \TODO
+//	for (i=0; i < file->transacts->trans_count; i++)
+//		file->transacts->transactions[file->transacts->transactions[i].saved_sort].sort_index = i;
 
-	transact_force_window_redraw(file->transacts, 0, file->transacts->trans_count - 1, TRANSACT_PANE_ROW);
+//	transact_force_window_redraw(file->transacts, 0, file->transacts->trans_count - 1, TRANSACT_PANE_ROW);
 
 	file->transacts->date_sort_valid = TRUE;
 
@@ -1757,7 +1383,6 @@ void transact_purge(struct file_block *file, date_t cutoff)
 void transact_write_file(struct file_block *file, FILE *out)
 {
 	int	i;
-	char	buffer[FILING_MAX_FILE_LINE_LEN];
 
 	if (file == NULL || file->transacts == NULL)
 		return;
@@ -1766,11 +1391,7 @@ void transact_write_file(struct file_block *file, FILE *out)
 
 	fprintf(out, "Entries: %x\n", file->transacts->trans_count);
 
-	column_write_as_text(file->transacts->columns, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "WinColumns: %s\n", buffer);
-
-	sort_write_as_text(file->transacts->sort, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "SortOrder: %s\n", buffer);
+	transact_list_window_write_file(file->transacts->transact_window, out);
 
 	for (i = 0; i < file->transacts->trans_count; i++) {
 		fprintf(out, "@: %x,%x,%x,%x,%x\n",
@@ -1832,12 +1453,9 @@ osbool transact_read_file(struct file_block *file, struct filing_block *in)
 				block_size = file->transacts->trans_count;
 			}
 		} else if (filing_test_token(in, "WinColumns")) {
-			/* For file format 1.00 or older, there's no row column at the
-			 * start of the line so skip on to colunn 1 (date).
-			 */
-			column_init_window(file->transacts->columns, (filing_get_format(in) <= 100) ? 1 : 0, TRUE, filing_get_text_value(in, NULL, 0));
+			transact_list_window_read_file_wincolumns(file->transacts->transact_window, filing_get_format(in), filing_get_text_value(in, NULL, 0));
 		} else if (filing_test_token(in, "SortOrder")){
-			sort_read_from_text(file->transacts->sort, filing_get_text_value(in, NULL, 0));
+			transact_list_window_read_file_sortorder(file->transacts->transact_window, filing_get_text_value(in, NULL, 0));
 		} else if (filing_test_token(in, "@")) {
 			file->transacts->trans_count++;
 			if (file->transacts->trans_count > block_size) {
@@ -1859,8 +1477,6 @@ osbool transact_read_file(struct file_block *file, struct filing_block *in)
 
 			*(file->transacts->transactions[transaction].reference) = '\0';
 			*(file->transacts->transactions[transaction].description) = '\0';
-
-			file->transacts->transactions[transaction].sort_index = transaction;
 		} else if (transaction != NULL_TRANSACTION && filing_test_token(in, "Ref")) {
 			filing_get_text_value(in, file->transacts->transactions[transaction].reference, TRANSACT_REF_FIELD_LEN);
 		} else if (transaction != NULL_TRANSACTION && filing_test_token(in, "Desc")) {
@@ -1939,134 +1555,6 @@ void transact_place_caret(struct file_block *file, int line, enum transact_field
 		return;
 
 	transact_list_window_place_caret(file->transacts->transact_window, line, field);
-}
-
-
-/**
- * Search the transaction list from a file for a set of matching entries.
- *
- * \param *file			The file to search in.
- * \param *line			Pointer to the line (under current display sort
- *				order) to search from. Updated on exit to show
- *				the matched line.
- * \param back			TRUE to search back up the file; FALSE to search
- *				down.
- * \param case_sensitive	TRUE to match case in strings; FALSE to ignore.
- * \param logic_and		TRUE to combine the parameters in an AND logic;
- *				FALSE to use an OR logic.
- * \param date			A date to match, or NULL_DATE for none.
- * \param from			A from account to match, or NULL_ACCOUNT for none.
- * \param to			A to account to match, or NULL_ACCOUNT for none.
- * \param flags			Reconcile flags for the from and to accounts, if
- *				these have been specified.
- * \param amount		An amount to match, or NULL_AMOUNT for none.
- * \param *ref			A wildcarded reference to match; NULL or '\0' for none.
- * \param *desc			A wildcarded description to match; NULL or '\0' for none.
- * \return			Transaction field flags set for each matching field;
- *				TRANSACT_FIELD_NONE if no match found.
- */
-
-enum transact_field transact_search(struct file_block *file, int *line, osbool back, osbool case_sensitive, osbool logic_and,
-		date_t date, acct_t from, acct_t to, enum transact_flags flags, amt_t amount, char *ref, char *desc)
-{
-	enum transact_field	test = TRANSACT_FIELD_NONE, original = TRANSACT_FIELD_NONE;
-	osbool			match = FALSE;
-	enum transact_flags	from_rec, to_rec;
-	int			transaction;
-
-
-	if (file == NULL || file->transacts == NULL)
-		return TRANSACT_FIELD_NONE;
-
-	match = FALSE;
-
-	from_rec = flags & TRANS_REC_FROM;
-	to_rec = flags & TRANS_REC_TO;
-
-	while (*line < file->transacts->trans_count && *line >= 0 && !match) {
-		/* Initialise the test result variable.  The tests all have a bit allocated.  For OR tests, these start unset and
-		 * are set if a test passes; a non-zero value at the end indicates a match.  For AND tests, all the required bits
-		 * are set at the start and cleared as tests match.  A zero value at the end indicates a match.
-		 */
-
-		test = TRANSACT_FIELD_NONE;
-
-		if (logic_and) {
-			if (date != NULL_DATE)
-				test |= TRANSACT_FIELD_DATE;
-
-			if (from != NULL_ACCOUNT)
-				test |= TRANSACT_FIELD_FROM;
-
-			if (to != NULL_ACCOUNT)
-				test |= TRANSACT_FIELD_TO;
-
-			if (amount != NULL_CURRENCY)
-				test |= TRANSACT_FIELD_AMOUNT;
-
-			if (ref != NULL && *ref != '\0')
-				test |= TRANSACT_FIELD_REF;
-
-			if (desc != NULL && *desc != '\0')
-				test |= TRANSACT_FIELD_DESC;
-		}
-
-		original = test;
-
-		/* Perform the tests.
-		 *
-		 * \TODO -- The order of these tests could be optimised, to
-		 *          skip things that we don't need to bother matching.
-		 */
-
-		transaction = file->transacts->transactions[*line].sort_index;
-
-		if (desc != NULL && *desc != '\0' && string_wildcard_compare(desc, file->transacts->transactions[transaction].description, !case_sensitive)) {
-			test ^= TRANSACT_FIELD_DESC;
-		}
-
-		if (amount != NULL_CURRENCY && amount == file->transacts->transactions[transaction].amount) {
-			test ^= TRANSACT_FIELD_AMOUNT;
-		}
-
-		if (ref != NULL && *ref != '\0' && string_wildcard_compare(ref, file->transacts->transactions[transaction].reference, !case_sensitive)) {
-			test ^= TRANSACT_FIELD_REF;
-		}
-
-		/* The following two tests check that a) an account has been specified, b) it is the same as the transaction and
-		 * c) the two reconcile flags are set the same (if they are, the EOR operation cancels them out).
-		 */
-
-		if (to != NULL_ACCOUNT && to == file->transacts->transactions[transaction].to &&
-				((to_rec ^ file->transacts->transactions[transaction].flags) & TRANS_REC_TO) == 0) {
-			test ^= TRANSACT_FIELD_TO;
-		}
-
-		if (from != NULL_ACCOUNT && from == file->transacts->transactions[transaction].from &&
-				((from_rec ^ file->transacts->transactions[transaction].flags) & TRANS_REC_FROM) == 0) {
-			test ^= TRANSACT_FIELD_FROM;
-		}
-
-		if (date != NULL_DATE && date == file->transacts->transactions[transaction].date) {
-			test ^= TRANSACT_FIELD_DATE;
-		}
-
-		/* Check if the test passed or failed. */
-
-		if ((!logic_and && test) || (logic_and && !test)) {
-			match = TRUE;
-		} else {
-			if (back)
-				(*line)--;
-			else
-				(*line)++;
-		}
-	}
-
-	if (!match)
-		return TRANSACT_FIELD_NONE;
-
-	return (logic_and) ? original : test;
 }
 
 

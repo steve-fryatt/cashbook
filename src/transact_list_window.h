@@ -207,6 +207,57 @@ tran_t transact_list_window_get_transaction_from_line(struct transact_list_windo
 int transact_list_window_get_caret_line(struct transact_list_window *windat);
 
 
+/**
+ * Insert a preset into a pre-existing transaction, taking care of updating all
+ * the file data in a clean way.
+ *
+ * \param *windat		The window to edit.
+ * \param line			The line in the transaction window to update.
+ * \param preset		The preset to insert into the transaction.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool transact_insert_preset_into_line(struct transact_list_window *windat, int line, preset_t preset);
+
+
+
+/**
+ * Find and return the line number of the first blank line in a file, based on
+ * display order.
+ *
+ * \param *windat		The transaction list window to search.
+ * \return			The first blank display line.
+ */
+
+int transact_list_window_find_first_blank_line(struct transact_list_window *windat);
+
+
+/**
+ * Search the transaction list from a file for a set of matching entries.
+ *
+ * \param *windat		The transaction list window to search in.
+ * \param *line			Pointer to the line (under current display sort
+ *				order) to search from. Updated on exit to show
+ *				the matched line.
+ * \param back			TRUE to search back up the file; FALSE to search
+ *				down.
+ * \param case_sensitive	TRUE to match case in strings; FALSE to ignore.
+ * \param logic_and		TRUE to combine the parameters in an AND logic;
+ *				FALSE to use an OR logic.
+ * \param date			A date to match, or NULL_DATE for none.
+ * \param from			A from account to match, or NULL_ACCOUNT for none.
+ * \param to			A to account to match, or NULL_ACCOUNT for none.
+ * \param flags			Reconcile flags for the from and to accounts, if
+ *				these have been specified.
+ * \param amount		An amount to match, or NULL_AMOUNT for none.
+ * \param *ref			A wildcarded reference to match; NULL or '\0' for none.
+ * \param *desc			A wildcarded description to match; NULL or '\0' for none.
+ * \return			Transaction field flags set for each matching field;
+ *				TRANSACT_FIELD_NONE if no match found.
+ */
+
+enum transact_field transact_list_window_search(struct transact_list_window *windat, int *line, osbool back, osbool case_sensitive, osbool logic_and,
+		date_t date, acct_t from, acct_t to, enum transact_flags flags, amt_t amount, char *ref, char *desc);
 
 
 /**
@@ -217,6 +268,39 @@ int transact_list_window_get_caret_line(struct transact_list_window *windat);
  */
 
 void transact_list_window_sort(struct transact_list_window *windat);
+
+
+/**
+ * Save the transaction list window details from a window to a CashBook
+ * file. This assumes that the caller has already created a suitable section
+ * in the file to be written.
+ *
+ * \param *windat		The window whose details to write.
+ * \param *out			The file handle to write to.
+ */
+
+void transact_list_window_write_file(struct transact_list_window *windat, FILE *out);
+
+
+/**
+ * Process a WinColumns line from the Transactions section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param format		The format of the disc file.
+ * \param *columns		The column text line.
+ */
+
+void transact_list_window_read_file_wincolumns(struct transact_list_window *windat, int format, char *columns);
+
+
+/**
+ * Process a SortOrder line from the Transactions section of a file.
+ *
+ * \param *windat		The window being read in to.
+ * \param *columns		The sort order text line.
+ */
+
+void transact_list_window_read_file_sortorder(struct transact_list_window *windat, char *order);
 
 #endif
 

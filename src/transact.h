@@ -547,19 +547,6 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 
 
 /**
- * Insert a preset into a pre-existing transaction, taking care of updating all
- * the file data in a clean way.
- *
- * \param *file		The file to edit.
- * \param line		The line in the transaction window to update.
- * \param preset	The preset to insert into the transaction.
- * \return		TRUE if successful; FALSE on failure.
- */
-
-osbool transact_insert_preset_into_line(struct file_block *file, int line, preset_t preset);
-
-
-/**
  * Sort the contents of the transaction window based on the file's sort setting.
  *
  * \param *windat		The transaction window instance to sort.

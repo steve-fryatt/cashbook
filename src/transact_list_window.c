@@ -2631,10 +2631,10 @@ int transact_list_window_get_line_from_transaction(struct transact_list_window *
 
 tran_t transact_list_window_get_transaction_from_line(struct transact_list_window *windat, int line)
 {
-	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, line))
+	if (windat == NULL || windat->line_data == NULL || !transact_list_window_line_valid(windat, line))
 		return NULL_TRANSACTION;
 
-	return file->transacts->transactions[line].sort_index;
+	return windat->line_data[line].transaction;
 }
 
 
@@ -2916,10 +2916,10 @@ static int transact_list_window_edit_first_blank_line(void *data)
 {
 	struct transact_list_window *windat = data;
 
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL)
 		return -1;
 
-	return transact_find_first_blank_line(windat->file);
+	return transact_find_first_blank_line(windat);
 }
 
 
@@ -3365,24 +3365,29 @@ static void transact_list_window_find_next_reconcile_line(struct transact_list_w
 
 static osbool transact_list_window_edit_insert_preset(int line, wimp_key_no key, void *data)
 {
-	struct transact_block	*windat;
-	preset_t		preset;
+	struct transact_list_window	*windat;
+	struct file_block		*file;
+	preset_t			preset;
 
 	if (data == NULL)
 		return FALSE;
 
 	windat = data;
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
 		return FALSE;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return;
 
 	/* Identify the preset to be inserted. */
 
-	preset = preset_find_from_keypress(windat->file, toupper(key));
+	preset = preset_find_from_keypress(file, toupper(key));
 
 	if (preset == NULL_PRESET)
 		return TRUE;
 
-	return transact_insert_preset_into_line(windat->file, line, preset);
+	return transact_list_window_insert_preset_into_line(windat, line, preset);
 }
 
 
@@ -4098,12 +4103,12 @@ static void transact_list_window_sort_swap(int index1, int index2, void *data)
 	struct transact_list_window	*windat = data;
 	int				temp;
 
-	if (windat == NULL)
+	if (windat == NULL || windat->line_data == NULL)
 		return;
 
-	temp = windat->transactions[index1].sort_index;
-	windat->transactions[index1].sort_index = windat->transactions[index2].sort_index;
-	windat->transactions[index2].sort_index = temp;
+	temp = windat->line_data[index1].transaction;
+	windat->line_data[index1].transaction = windat->line_data[index2].transaction;
+	windat->line_data[index2].transaction = temp;
 }
 
 
@@ -4179,13 +4184,18 @@ void transact_list_window_read_file_sortorder(struct transact_list_window *winda
 
 static void transact_list_window_start_direct_save(struct transact_list_window *windat)
 {
-	wimp_pointer pointer;
+	struct file_block	*file;
+	wimp_pointer		pointer;
 
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	if (file_check_for_filepath(windat->file)) {
-		filing_save_cashbook_file(windat->file, windat->file->filename);
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return;
+
+	if (file_check_for_filepath(file)) {
+		filing_save_cashbook_file(file, file->filename);
 	} else {
 		wimp_get_pointer_info(&pointer);
 
@@ -4206,12 +4216,17 @@ static void transact_list_window_start_direct_save(struct transact_list_window *
 
 static osbool transact_list_window_save_file(char *filename, osbool selection, void *data)
 {
-	struct transact_list_window *windat = data;
+	struct transact_list_window	*windat = data;
+	struct file_block		*file;
 
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
 		return FALSE;
 
-	filing_save_cashbook_file(windat->file, filename);
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return FALSE;
+
+	filing_save_cashbook_file(file, filename);
 
 	return TRUE;
 }

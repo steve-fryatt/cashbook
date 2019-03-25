@@ -501,8 +501,14 @@ amt_t preset_get_amount(struct file_block *file, preset_t preset)
 
 char *preset_get_reference(struct file_block *file, preset_t preset, char *buffer, size_t length)
 {
-	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset))
+	if (file == NULL || file->presets == NULL || !preset_valid(file->presets, preset)) {
+		if (buffer != NULL && length > 0) {
+			*buffer = '\0';
+			return buffer;
+		}
+
 		return NULL;
+	}
 
 	if (buffer == NULL || length == 0)
 		return file->presets->presets[preset].reference;

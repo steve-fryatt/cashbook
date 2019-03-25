@@ -743,8 +743,14 @@ amt_t transact_get_amount(struct file_block *file, tran_t transaction)
 
 char *transact_get_reference(struct file_block *file, tran_t transaction, char *buffer, size_t length)
 {
-	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
+	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction)) {
+		if (buffer != NULL && length > 0) {
+			*buffer = '\0';
+			return buffer;
+		}
+
 		return NULL;
+	}
 
 	if (buffer == NULL || length == 0)
 		return file->transacts->transactions[transaction].reference;

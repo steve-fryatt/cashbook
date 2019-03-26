@@ -3059,10 +3059,9 @@ static osbool transact_list_window_edit_get_field(struct edit_data *data)
 static osbool transact_list_window_edit_put_field(struct edit_data *data)
 {
 	struct transact_list_window	*windat;
+	struct file_block		*file;
 	int				start, i;
 	tran_t				transaction;
-	acct_t				old_account;
-	osbool				changed;
 
 #ifdef DEBUG
 	debug_printf("Returning complex data for icon %d in row %d", data->icon, data->line);
@@ -3072,7 +3071,11 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 		return FALSE;
 
 	windat = data->data;
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return FALSE;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
 		return FALSE;
 
 	/* If there is not a transaction entry for the current edit line location
@@ -3080,143 +3083,50 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 	 * entries to reach the current location.
 	 */
 
-	if (data->line >= windat->trans_count) {
-		start = windat->trans_count;
+	if (data->line >= windat->display_lines) {
+		start = windat->display_lines;
 		
-		for (i = windat->trans_count; i <= data->line; i++)
-			transact_add_raw_entry(windat->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
+		for (i = windat->display_lines; i <= data->line; i++)
+			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
+
+		// \TODO -- Add line here.? Or via transact? If the latter, do we redraw here?
 
 		edit_refresh_line_contents(windat->edit_line, TRANSACT_ICON_ROW, wimp_ICON_WINDOW);
-		transact_force_window_redraw(windat, start, windat->trans_count - 1, TRANSACT_PANE_ROW);
+		transact_list_window_force_redraw(windat, start, windat->display_lines - 1, TRANSACT_PANE_ROW);
 	}
 
 	/* Get out if we failed to create the necessary transactions. */
 
-	if (data->line >= windat->trans_count)
+	if (data->line >= windat->display_lines)
 		return FALSE;
 
-	transaction = windat->transactions[data->line].sort_index;
-
-	/* Take the transaction out of the fully calculated results.
-	 *
-	 * Presets occur with the caret in the Date column, so they will have the
-	 * transaction correctly removed before anything happens.
-	 */
-
-	if (data->icon != TRANSACT_ICON_REFERENCE && data->icon != TRANSACT_ICON_DESCRIPTION)
-		account_remove_transaction(windat->file, transaction);
+	transaction = windat->line_data[data->line].transaction;
 
 	/* Process the supplied data. */
 
-	changed = FALSE;
-	old_account = NULL_ACCOUNT;
-
 	switch (data->icon) {
 	case TRANSACT_ICON_DATE:
-		windat->transactions[transaction].date = data->date.date;
-		changed = TRUE;
-		windat->date_sort_valid = FALSE;
+		transact_change_date(file, transaction, data->date.date);
 		break;
 	case TRANSACT_ICON_FROM:
-		old_account = windat->transactions[transaction].from;
-		windat->transactions[transaction].from = data->account.account;
-		if (data->account.reconciled == TRUE)
-			windat->transactions[transaction].flags |= TRANS_REC_FROM;
-		else
-			windat->transactions[transaction].flags &= ~TRANS_REC_FROM;
+		transact_change_account(file, transaction, TRANSACT_FIELD_FROM, data->account.account, data->account.reconciled);
 
-		edit_set_line_colour(windat->edit_line, transact_line_colour(windat, data->line));
-		changed = TRUE;
+		edit_set_line_colour(windat->edit_line, transact_list_window_line_colour(windat, data->line));
 		break;
 	case TRANSACT_ICON_TO:
-		old_account = windat->transactions[transaction].to;
-		windat->transactions[transaction].to = data->account.account;
-		if (data->account.reconciled == TRUE)
-			windat->transactions[transaction].flags |= TRANS_REC_TO;
-		else
-			windat->transactions[transaction].flags &= ~TRANS_REC_TO;
+		transact_change_account(file, transaction, TRANSACT_FIELD_TO, data->account.account, data->account.reconciled);
 
-		edit_set_line_colour(windat->edit_line, transact_line_colour(windat, data->line));
-		changed = TRUE;
+		edit_set_line_colour(windat->edit_line, transact_list_window_line_colour(windat, data->line));
 		break;
 	case TRANSACT_ICON_AMOUNT:
-		windat->transactions[transaction].amount = data->currency.amount;
-		changed = TRUE;
+		transact_change_amount(file, transaction, data->currency.amount);
 		break;
 	case TRANSACT_ICON_REFERENCE:
-		string_copy(windat->transactions[transaction].reference, data->text.text, TRANSACT_REF_FIELD_LEN);
-		changed = TRUE;
+		transact_change_refdesc(file, transaction, TRANSACT_FIELD_REF, data->text.text);
 		break;
 	case TRANSACT_ICON_DESCRIPTION:
-		string_copy(windat->transactions[transaction].description, data->text.text, TRANSACT_DESCRIPT_FIELD_LEN);
-		changed = TRUE;
+		transact_change_refdesc(file, transaction, TRANSACT_FIELD_DESC, data->text.text);
 		break;
-	}
-
-	/* Add the transaction back into the accounts calculations.
-	 *
-	 * From this point on, it is now OK to change the sort order of the
-	 * transaction data again!
-	 */
-
-	if (data->icon != TRANSACT_ICON_REFERENCE && data->icon != TRANSACT_ICON_DESCRIPTION)
-		account_restore_transaction(windat->file, transaction);
-
-	/* Mark the data as unsafe and perform any post-change recalculations that
-	 * may affect the order of the transaction data.
-	 */
-
-	if (changed == TRUE) {
-		file_set_data_integrity(windat->file, TRUE);
-		if (data->icon == TRANSACT_ICON_DATE) {
-			/* Ideally, we would want to recalculate just the affected two
-			 * accounts.  However, because the date sort is unclean, any rebuild
-			 * will force a resort of the transactions, which will require a
-			 * full rebuild of all the open account views.  Therefore, call
-			 * accview_recalculate_all() to force a full recalculation.  This
-			 * will in turn sort the data if required.
-			 *
-			 * The big assumption here is that, because no from or to entries
-			 * have changed, none of the accounts will change length and so a
-			 * full rebuild is not required.
-			 */
-
-			accview_recalculate_all(windat->file);
-		} else if (data->icon == TRANSACT_ICON_FROM) {
-			/* Trust that any account views that are open must be based on a
-			 * valid date order, and only rebuild those that are directly affected.
-			 * The rebuild might resort the transaction data, so we need to re-find
-			 * the transaction entry for the edit line each time.
-			 */
-
-			accview_rebuild(windat->file, old_account);
-			transaction = windat->transactions[data->line].sort_index;
-
-			accview_rebuild(windat->file, windat->transactions[transaction].from);
-			transaction = windat->transactions[data->line].sort_index;
-
-			accview_redraw_transaction(windat->file, windat->transactions[transaction].to, transaction);
-		} else if (data->icon == TRANSACT_ICON_TO) {
-			/* Trust that any account views that are open must be based on a
-			 * valid date order, and only rebuild those that are directly affected.
-			 * The rebuild might resort the transaction data, so we need to re-find
-			 * the transaction entry for the edit line each time.
-			 */
-
-			accview_rebuild(windat->file, old_account);
-			transaction = windat->transactions[data->line].sort_index;
-
-			accview_rebuild(windat->file, windat->transactions[transaction].to);
-			transaction = windat->transactions[data->line].sort_index;
-
-			accview_redraw_transaction(windat->file, windat->transactions[transaction].from, transaction);
-		} else if (data->icon == TRANSACT_ICON_AMOUNT) {
-			accview_recalculate(windat->file, windat->transactions[transaction].from, transaction);
-			accview_recalculate(windat->file, windat->transactions[transaction].to, transaction);
-		} else if (data->icon == TRANSACT_ICON_REFERENCE || data->icon == TRANSACT_ICON_DESCRIPTION) {
-			accview_redraw_transaction(windat->file, windat->transactions[transaction].from, transaction);
-			accview_redraw_transaction(windat->file, windat->transactions[transaction].to, transaction);
-		}
 	}
 
 	/* Finally, look for the next reconcile line if that is necessary.
@@ -3227,7 +3137,7 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 
 	if ((data->icon == TRANSACT_ICON_FROM || data->icon == TRANSACT_ICON_TO) &&
 			(data->key == '+' || data->key == '=' || data->key == '-' || data->key == '_'))
-		transact_find_next_reconcile_line(windat, FALSE);
+		transact_list_window_find_next_reconcile_line(windat, FALSE);
 
 	return TRUE;
 }

@@ -917,9 +917,10 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
  * \param transaction	The transaction to edit.
  * \param target	The target field to change.
  * \param new_account	The new account to set the field to.
+ * \param reconciled	TRUE if the account is reconciled; else FALSE.
  */
 
-void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account)
+void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account, osbool reconciled)
 {
 	int		line;
 	osbool		changed = FALSE;
@@ -952,10 +953,10 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 		file->transacts->transactions[transaction].from = new_account;
 
-		if (account_get_type(file, new_account) == ACCOUNT_FULL)
-			file->transacts->transactions[transaction].flags &= ~TRANS_REC_FROM;
-		else
+		if (reconciled)
 			file->transacts->transactions[transaction].flags |= TRANS_REC_FROM;
+		else
+			file->transacts->transactions[transaction].flags &= ~TRANS_REC_FROM;
 
 		if (old_acct != file->transacts->transactions[transaction].from || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
@@ -966,10 +967,10 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 		file->transacts->transactions[transaction].to = new_account;
 
-		if (account_get_type(file, new_account) == ACCOUNT_FULL)
-			file->transacts->transactions[transaction].flags &= ~TRANS_REC_TO;
-		else
+		if (reconciled)
 			file->transacts->transactions[transaction].flags |= TRANS_REC_TO;
+		else
+			file->transacts->transactions[transaction].flags &= ~TRANS_REC_TO;
 
 		if (old_acct != file->transacts->transactions[transaction].to || old_flags != file->transacts->transactions[transaction].flags)
 			changed = TRUE;
@@ -1011,12 +1012,7 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 		accview_rebuild(file, file->transacts->transactions[transaction].to);
 		accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
 		break;
-	case TRANSACT_FIELD_ROW:
-	case TRANSACT_FIELD_DATE:
-	case TRANSACT_FIELD_REF:
-	case TRANSACT_FIELD_AMOUNT:
-	case TRANSACT_FIELD_DESC:
-	case TRANSACT_FIELD_NONE:
+	default:
 		break;
 	}
 

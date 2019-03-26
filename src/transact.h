@@ -517,9 +517,10 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
  * \param transaction	The transaction to edit.
  * \param target	The target field to change.
  * \param new_account	The new account to set the field to.
+ * \param reconciled	TRUE if the account is reconciled; else FALSE.
  */
 
-void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account);
+void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account, osbool reconciled);
 
 
 /**

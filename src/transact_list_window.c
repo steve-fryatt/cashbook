@@ -2566,15 +2566,19 @@ void transact_list_window_scroll_to_end(struct transact_list_window *windat, enu
 
 int transact_list_window_find_nearest_centre(struct transact_list_window *windat, acct_t account)
 {
+	struct file_block	*file;
 	wimp_window_state	window;
 	int			height, i, centre, result;
 
-
-	if (file == NULL || file->transacts == NULL || file->transacts->transaction_window == NULL ||
-			account == NULL_ACCOUNT)
+	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL ||
+			windat->transaction_window == NULL || account == NULL_ACCOUNT)
 		return NULL_TRANSACTION;
 
-	window.w = file->transacts->transaction_window;
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return NULL_TRANSACTION;
+
+	window.w = windat->transaction_window;
 	wimp_get_window_state(&window);
 
 	/* Calculate the height of the useful visible window, leaving out
@@ -2590,8 +2594,8 @@ int transact_list_window_find_nearest_centre(struct transact_list_window *windat
 
 	centre = ((-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT) + ((height / 2) / WINDOW_ROW_HEIGHT);
 
-	if (centre >= file->transacts->trans_count)
-		centre = file->transacts->trans_count - 1;
+	if (centre >= windat->display_lines)
+		centre = windat->display_lines - 1;
 
 	/* If there are no transactions, we can't return one. */
 
@@ -2600,9 +2604,9 @@ int transact_list_window_find_nearest_centre(struct transact_list_window *windat
 
 	/* If the centre transaction is a match, return it. */
 
-	if (file->transacts->transactions[file->transacts->transactions[centre].sort_index].from == account ||
-			file->transacts->transactions[file->transacts->transactions[centre].sort_index].to == account)
-		return file->transacts->transactions[centre].sort_index;
+	if (transact_get_from(file, windat->line_data[centre].transaction) == account ||
+			transact_get_to(file, windat->line_data[centre].transaction) == account)
+		return windat->line_data[centre].transaction;
 
 	/* Start searching out from the centre until we find a match or hit
 	 * both the start and end of the file.
@@ -2611,18 +2615,18 @@ int transact_list_window_find_nearest_centre(struct transact_list_window *windat
 	result = NULL_TRANSACTION;
 	i = 1;
 
-	while (centre + i < file->transacts->trans_count || centre - i >= 0) {
-		if (centre + i < file->transacts->trans_count &&
-				(file->transacts->transactions[file->transacts->transactions[centre + i].sort_index].from == account ||
-				file->transacts->transactions[file->transacts->transactions[centre + i].sort_index].to == account)) {
-			result = file->transacts->transactions[centre + i].sort_index;
+	while (centre + i < windat->display_lines || centre - i >= 0) {
+		if (centre + i < windat->display_lines &&
+				(transact_get_from(file, windat->line_data[centre + i].transaction) == account ||
+			transact_get_to(file, windat->line_data[centre + i].transaction) == account)) {
+			result = windat->line_data[centre + i].transaction;
 			break;
 		}
 
 		if (centre - i >= 0 &&
-				(file->transacts->transactions[file->transacts->transactions[centre - i].sort_index].from == account ||
-				file->transacts->transactions[file->transacts->transactions[centre - i].sort_index].to == account)) {
-			result = file->transacts->transactions[centre - i].sort_index;
+				(transact_get_from(file, windat->line_data[centre - i].transaction) == account ||
+			transact_get_to(file, windat->line_data[centre - i].transaction) == account)) {
+			result = windat->line_data[centre - i].transaction;
 			break;
 		}
 

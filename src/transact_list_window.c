@@ -3363,12 +3363,17 @@ static osbool transact_list_window_edit_insert_preset(int line, wimp_key_no key,
 osbool transact_list_window_insert_preset_into_line(struct transact_list_window *windat, int line, preset_t preset)
 {
 	enum transact_field	changed = TRANSACT_FIELD_NONE;
+	struct file_block	*file;
 	tran_t			transaction;
 	int			i;
 	enum sort_type		order;
 
 
-	if (file == NULL || file->transacts == NULL || file->transacts->edit_line == NULL || !preset_test_index_valid(file, preset))
+	if (windat == NULL || windat->instance == NULL || windat->edit_line == NULL)
+		return FALSE;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL || !preset_test_index_valid(file, preset))
 		return FALSE;
 
 	/* Identify the transaction to be updated. */
@@ -3377,19 +3382,19 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	 * entries to reach the current location.
 	 */
 
-	if (line >= file->transacts->trans_count) {
-		for (i = file->transacts->trans_count; i <= line; i++)
-			transact_add_raw_entry(file->transacts->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
+	if (line >= windat->display_lines) {
+		for (i = windat->display_lines; i <= line; i++)
+			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
-		edit_refresh_line_contents(file->transacts->edit_line, TRANSACT_ICON_ROW, wimp_ICON_WINDOW);
+		edit_refresh_line_contents(windat->edit_line, TRANSACT_ICON_ROW, wimp_ICON_WINDOW);
 	}
 
-	if (line >= file->transacts->trans_count)
+	if (line >= windat->display_lines)
 		return FALSE;
 
-	transaction = file->transacts->transactions[line].sort_index;
+	transaction = windat->line_data[line].transaction;
 
-	if (!transact_valid(file->transacts, transaction))
+	if (!transact_test_index_valid(file, transaction))
 		return FALSE;
 
 	/* Remove the target transaction from all calculations. */
@@ -3414,12 +3419,12 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 
 	/* Replace the edit line to make it pick up the changes. */
 
-	transact_place_edit_line(file->transacts, line);
+	transact_list_window_place_edit_line(windat, line);
 
 	/* Put the caret at the end of the preset destination field. */
 
-	icons_put_caret_at_end(file->transacts->transaction_window,
-			transact_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
+	icons_put_caret_at_end(windat->transaction_window,
+			transact_list_window_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
 
 	/* If nothing changed, there's no more to do. */
 
@@ -3437,7 +3442,7 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 
 	/* Force a redraw of the affected line. */
 
-	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+	transact_list_window_force_redraw(windat, line, line, wimp_ICON_WINDOW);
 
 
 	/* If we're auto-sorting, and the sort column has been updated as
@@ -3447,7 +3452,7 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	 * a preset key is analagous to hitting Return.
 	 */
 
-	order = sort_get_order(file->transacts->sort);
+	order = sort_get_order(windat->sort);
 
 	if (config_opt_read("AutoSort") && (
 			((order & SORT_MASK) == SORT_DATE) ||
@@ -3458,7 +3463,7 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 			((changed & TRANSACT_FIELD_DESC) && ((order & SORT_MASK) == SORT_DESCRIPTION)))) {
 		transact_list_window_sort(windat);
 
-		if (transact_valid(file->transacts, line)) {
+		if (transact_list_window_line_valid(windat, line)) {
 			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].from);
 			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].to);
 		}
@@ -3527,11 +3532,16 @@ static wimp_i transact_list_window_convert_preset_icon_number(enum preset_caret 
 
 static int transact_list_window_edit_auto_sort(wimp_i icon, void *data)
 {
-	struct transact_block	*windat = data;
-	int			entry_line;
-	enum sort_type		order;
+	struct transact_list_window	*windat = data;
+	struct file_block		*file;
+	int				entry_line;
+	enum sort_type			order;
 
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return FALSE;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
 		return FALSE;
 
 #ifdef DEBUG
@@ -3565,9 +3575,9 @@ static int transact_list_window_edit_auto_sort(wimp_i icon, void *data)
 
 	entry_line = edit_get_line(windat->edit_line);
 
-	if (transact_valid(windat, entry_line)) {
-		accview_sort(windat->file, windat->transactions[windat->transactions[entry_line].sort_index].from);
-		accview_sort(windat->file, windat->transactions[windat->transactions[entry_line].sort_index].to);
+	if (transact_list_window_line_valid(windat, entry_line)) {
+		accview_sort(file, transact_get_from(file, windat->line_data[entry_line].transaction));
+		accview_sort(file, transact_get_to(file, windat->line_data[entry_line].transaction));
 	}
 
 	return TRUE;
@@ -3584,27 +3594,25 @@ static int transact_list_window_edit_auto_sort(wimp_i icon, void *data)
 
 static wimp_colour transact_list_window_line_colour(struct transact_list_window *windat, int line)
 {
-	tran_t	transaction;
+	struct file_block	*file;
+	tran_t			transaction;
 
-	if (windat == NULL || windat->transactions == NULL || line < 0 || line >= windat->trans_count)
+	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL ||
+			!transact_list_window_line_valid(windat, line))
 		return wimp_COLOUR_BLACK;
 
-	transaction = windat->transactions[line].sort_index;
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return FALSE;
+
+	transaction = windat->line_data[line].transaction;
 
 	if (config_opt_read("ShadeReconciled") &&
-			((windat->transactions[transaction].flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
+			((transact_get_flags(file, transaction) & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
 		return config_int_read("ShadeReconciledColour");
 	else
 		return wimp_COLOUR_BLACK;
 }
-
-
-
-
-
-
-
-
 
 
 /**
@@ -3619,14 +3627,14 @@ int transact_list_window_find_first_blank_line(struct transact_list_window *wind
 {
 	int line;
 
-	if (file == NULL || file->transacts == NULL)
+	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL)
 		return 0;
 
 	#ifdef DEBUG
 	debug_printf("\\DFinding first blank line");
 	#endif
 
-	line = file->transacts->trans_count;
+	line = windat->display_lines;
 
 	while (line > 0 && transact_is_blank(file, file->transacts->transactions[line - 1].sort_index)) {
 		line--;

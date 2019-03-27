@@ -841,7 +841,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	/* Put the caret into the first empty line. */
 
-	transact_place_caret(file, windat->display_lines, TRANSACT_FIELD_DATE);
+	transact_list_window_place_caret(windat, windat->display_lines, TRANSACT_FIELD_DATE);
 }
 
 
@@ -3154,13 +3154,18 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 static osbool transact_list_window_edit_auto_complete(struct edit_data *data)
 {
 	struct transact_list_window	*windat;
+	struct file_block		*file;
 	tran_t				transaction;
 
 	if (data == NULL)
 		return FALSE;
 
 	windat = data->data;
-	if (windat == NULL || windat->file == NULL)
+	if (windat == NULL || windat->instance == NULL)
+		return FALSE;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
 		return FALSE;
 
 #ifdef DEBUG
@@ -3180,15 +3185,12 @@ static osbool transact_list_window_edit_auto_complete(struct edit_data *data)
 		 * at least one of the From or To fields.
 		 */
 
-		if (data->line >= windat->trans_count)
+		if (!transact_list_window_line_valid(windat, data->line))
 			return FALSE;
 
-		transaction = windat->transactions[data->line].sort_index;
+		transaction = windat->line_data[data->line].transaction;
 
-		if (!transact_valid(windat, transaction))
-			return FALSE;
-
-		account_get_next_cheque_number(windat->file, windat->transactions[transaction].from, windat->transactions[transaction].to,
+		account_get_next_cheque_number(file, transact_get_from(file, transaction), transact_get_to(file, transaction),
 				1, data->text.text, data->text.length);
 		break;
 
@@ -3197,7 +3199,7 @@ static osbool transact_list_window_edit_auto_complete(struct edit_data *data)
 		 * transaction, as we just search back up from the last valid line.
 		 */
 
-		transact_complete_description(windat->file, data->line, data->text.text, data->text.length);
+		transact_list_window_complete_description(windat, data->line, data->text.text, data->text.length);
 		break;
 
 	default:
@@ -3221,22 +3223,28 @@ static osbool transact_list_window_edit_auto_complete(struct edit_data *data)
 
 static char *transact_list_window_complete_description(struct transact_list_window *windat, int line, char *buffer, size_t length)
 {
-	tran_t	t;
+	struct file_block	*file;
+	tran_t			transaction;
+	char			*description;
 
-	if (file == NULL || file->transacts == NULL || buffer == NULL)
+	if (windat == NULL || windat->instance == NULL || buffer == NULL)
 		return buffer;
 
-	if (line >= file->transacts->trans_count)
-		line = file->transacts->trans_count - 1;
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return FALSE;
+
+	if (line >= windat->display_lines)
+		line = windat->display_lines - 1;
 	else
 		line -= 1;
 
 	for (; line >= 0; line--) {
-		t = file->transacts->transactions[line].sort_index;
+		transaction = windat->line_data[line].transaction;
+		description = transact_get_description(file, transaction, NULL, 0);
 
-		if (*(file->transacts->transactions[t].description) != '\0' &&
-				string_nocase_strstr(file->transacts->transactions[t].description, buffer) == file->transacts->transactions[t].description) {
-			string_copy(buffer, file->transacts->transactions[t].description, length);
+		if (*description != '\0' && string_nocase_strstr(description, buffer) == description) {
+			string_copy(buffer, description, length);
 			break;
 		}
 	}
@@ -3255,23 +3263,31 @@ static char *transact_list_window_complete_description(struct transact_list_wind
 
 static void transact_list_window_find_next_reconcile_line(struct transact_list_window *windat, osbool set)
 {
+	struct file_block	*file;
 	int			line;
 	acct_t			account;
 	enum transact_field	found;
 	wimp_caret		caret;
 
-	if (windat == NULL || windat->file == NULL || windat->auto_reconcile == FALSE)
+	if (windat == NULL || windat->instance == NULL || windat->auto_reconcile == FALSE)
+		return;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
 		return;
 
 	line = edit_get_line(windat->edit_line);
+	if (!transact_list_window_line_valid(windat, line))
+		return;
+
 	account = NULL_ACCOUNT;
 
 	wimp_get_caret_position(&caret);
 
 	if (caret.i == TRANSACT_ICON_FROM)
-		account = windat->transactions[windat->transactions[line].sort_index].from;
+		account = transact_get_from(file, windat->line_data[line].transaction);
 	else if (caret.i == TRANSACT_ICON_TO)
-		account = windat->transactions[windat->transactions[line].sort_index].to;
+		account = transact_get_to(file, windat->line_data[line].transaction);
 
 	if (account == NULL_ACCOUNT)
 		return;
@@ -3279,13 +3295,13 @@ static void transact_list_window_find_next_reconcile_line(struct transact_list_w
 	line++;
 	found = TRANSACT_FIELD_NONE;
 
-	while ((line < windat->trans_count) && (found == TRANSACT_FIELD_NONE)) {
-		if (windat->transactions[windat->transactions[line].sort_index].from == account &&
-				((windat->transactions[windat->transactions[line].sort_index].flags & TRANS_REC_FROM) ==
+	while ((line < windat->display_lines) && (found == TRANSACT_FIELD_NONE)) {
+		if (transact_get_from(file, windat->line_data[line].transaction) == account &&
+				((transact_get_flags(file, windat->line_data[line].transaction) & TRANS_REC_FROM) ==
 						((set) ? TRANS_REC_FROM : TRANS_FLAGS_NONE)))
 			found = TRANSACT_FIELD_FROM;
-		else if (windat->transactions[windat->transactions[line].sort_index].to == account &&
-				((windat->transactions[windat->transactions[line].sort_index].flags & TRANS_REC_TO) ==
+		else if (transact_get_to(file, windat->line_data[line].transaction) == account &&
+				((transact_get_flags(file, windat->line_data[line].transaction) & TRANS_REC_TO) ==
 						((set) ? TRANS_REC_TO : TRANS_FLAGS_NONE)))
 			found = TRANSACT_FIELD_TO;
 		else
@@ -3293,7 +3309,7 @@ static void transact_list_window_find_next_reconcile_line(struct transact_list_w
 	}
 
 	if (found != TRANSACT_FIELD_NONE)
-		transact_place_caret(windat->file, line, found);
+		transact_list_window_place_caret(windat, line, found);
 }
 
 
@@ -3321,7 +3337,7 @@ static osbool transact_list_window_edit_insert_preset(int line, wimp_key_no key,
 
 	file = transact_get_file(windat->instance);
 	if (file == NULL)
-		return;
+		return FALSE;
 
 	/* Identify the preset to be inserted. */
 

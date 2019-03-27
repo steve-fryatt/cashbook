@@ -217,7 +217,7 @@ int transact_list_window_get_caret_line(struct transact_list_window *windat);
  * \return			TRUE if successful; FALSE on failure.
  */
 
-osbool transact_insert_preset_into_line(struct transact_list_window *windat, int line, preset_t preset);
+osbool transact_list_window_insert_preset_into_line(struct transact_list_window *windat, int line, preset_t preset);
 
 
 

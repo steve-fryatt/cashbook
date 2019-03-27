@@ -3679,21 +3679,25 @@ int transact_list_window_find_first_blank_line(struct transact_list_window *wind
 enum transact_field transact_list_window_search(struct transact_list_window *windat, int *line, osbool back, osbool case_sensitive, osbool logic_and,
 		date_t date, acct_t from, acct_t to, enum transact_flags flags, amt_t amount, char *ref, char *desc)
 {
+	struct file_block	*file;
 	enum transact_field	test = TRANSACT_FIELD_NONE, original = TRANSACT_FIELD_NONE;
 	osbool			match = FALSE;
 	enum transact_flags	from_rec, to_rec;
 	int			transaction;
 
-
-	if (file == NULL || file->transacts == NULL)
+	if (windat == NULL || windat->instance == NULL)
 		return TRANSACT_FIELD_NONE;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return FALSE;
 
 	match = FALSE;
 
 	from_rec = flags & TRANS_REC_FROM;
 	to_rec = flags & TRANS_REC_TO;
 
-	while (*line < file->transacts->trans_count && *line >= 0 && !match) {
+	while (*line < windat->display_lines && *line >= 0 && !match) {
 		/* Initialise the test result variable.  The tests all have a bit allocated.  For OR tests, these start unset and
 		 * are set if a test passes; a non-zero value at the end indicates a match.  For AND tests, all the required bits
 		 * are set at the start and cleared as tests match.  A zero value at the end indicates a match.
@@ -3729,17 +3733,17 @@ enum transact_field transact_list_window_search(struct transact_list_window *win
 		 *          skip things that we don't need to bother matching.
 		 */
 
-		transaction = file->transacts->transactions[*line].sort_index;
+		transaction = windat->line_data[*line].transaction;
 
-		if (desc != NULL && *desc != '\0' && string_wildcard_compare(desc, file->transacts->transactions[transaction].description, !case_sensitive)) {
+		if (desc != NULL && *desc != '\0' && string_wildcard_compare(desc, transact_get_description(file, transaction, NULL, 0), !case_sensitive)) {
 			test ^= TRANSACT_FIELD_DESC;
 		}
 
-		if (amount != NULL_CURRENCY && amount == file->transacts->transactions[transaction].amount) {
+		if (amount != NULL_CURRENCY && amount == transact_get_amount(file, transaction)) {
 			test ^= TRANSACT_FIELD_AMOUNT;
 		}
 
-		if (ref != NULL && *ref != '\0' && string_wildcard_compare(ref, file->transacts->transactions[transaction].reference, !case_sensitive)) {
+		if (ref != NULL && *ref != '\0' && string_wildcard_compare(ref, transact_get_reference(file, transaction, NULL, 0), !case_sensitive)) {
 			test ^= TRANSACT_FIELD_REF;
 		}
 
@@ -3747,17 +3751,17 @@ enum transact_field transact_list_window_search(struct transact_list_window *win
 		 * c) the two reconcile flags are set the same (if they are, the EOR operation cancels them out).
 		 */
 
-		if (to != NULL_ACCOUNT && to == file->transacts->transactions[transaction].to &&
-				((to_rec ^ file->transacts->transactions[transaction].flags) & TRANS_REC_TO) == 0) {
+		if (to != NULL_ACCOUNT && to == transact_get_to(file, transaction) &&
+				((to_rec ^ transact_get_flags(file, transaction)) & TRANS_REC_TO) == 0) {
 			test ^= TRANSACT_FIELD_TO;
 		}
 
-		if (from != NULL_ACCOUNT && from == file->transacts->transactions[transaction].from &&
-				((from_rec ^ file->transacts->transactions[transaction].flags) & TRANS_REC_FROM) == 0) {
+		if (from != NULL_ACCOUNT && from == transact_get_from(file, transaction) &&
+				((from_rec ^ transact_get_flags(file, transaction)) & TRANS_REC_FROM) == 0) {
 			test ^= TRANSACT_FIELD_FROM;
 		}
 
-		if (date != NULL_DATE && date == file->transacts->transactions[transaction].date) {
+		if (date != NULL_DATE && date == transact_get_date(file, transaction)) {
 			test ^= TRANSACT_FIELD_DATE;
 		}
 

@@ -158,7 +158,6 @@ struct transact_block {
 
 /* Static Function Prototypes. */
 
-static osbool			transact_is_blank(struct file_block *file, tran_t transaction);
 
 /**
  * Test whether a transaction number is safe to look up in the transaction data array.
@@ -565,7 +564,7 @@ void transact_clear_raw_entry(struct file_block *file, tran_t transaction)
  * \return			TRUE if the transaction is empty; FALSE if not.
  */
 
-static osbool transact_is_blank(struct file_block *file, tran_t transaction)
+osbool transact_is_blank(struct file_block *file, tran_t transaction)
 {
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
 		return FALSE;
@@ -829,15 +828,6 @@ osbool transact_test_index_valid(struct file_block *file, tran_t transaction)
 {
 	return (transact_valid(file->transacts, transaction)) ? TRUE : FALSE;
 }
-
-
-
-
-
-
-
-
-
 
 
 /**
@@ -1344,17 +1334,6 @@ void transact_purge(struct file_block *file, date_t cutoff)
 
 	transact_strip_blanks_from_end(file);
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**

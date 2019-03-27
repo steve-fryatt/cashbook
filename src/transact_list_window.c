@@ -3629,10 +3629,15 @@ static wimp_colour transact_list_window_line_colour(struct transact_list_window 
 
 int transact_list_window_find_first_blank_line(struct transact_list_window *windat)
 {
-	int line;
+	struct file_block	*file;
+	int			line;
 
 	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL)
 		return 0;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return FALSE;
 
 	#ifdef DEBUG
 	debug_printf("\\DFinding first blank line");
@@ -3640,7 +3645,7 @@ int transact_list_window_find_first_blank_line(struct transact_list_window *wind
 
 	line = windat->display_lines;
 
-	while (line > 0 && transact_is_blank(file, file->transacts->transactions[line - 1].sort_index)) {
+	while (line > 0 && transact_is_blank(file, windat->line_data[line - 1].transaction)) {
 		line--;
 
 		#ifdef DEBUG

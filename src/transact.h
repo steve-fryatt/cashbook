@@ -357,6 +357,17 @@ void transact_clear_raw_entry(struct file_block *file, tran_t transaction);
 
 
 /**
+ * Test to see if a transaction entry in a file is completely empty.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to be tested.
+ * \return			TRUE if the transaction is empty; FALSE if not.
+ */
+
+osbool transact_is_blank(struct file_block *file, tran_t transaction);
+
+
+/**
  * Strip any blank transactions from the end of the file, releasing any memory
  * associated with them. To be sure to remove all blank transactions, it is
  * necessary to sort the transaction list before calling this function.

@@ -3407,13 +3407,14 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 
 	/* Apply the preset to the transaction. */
 
-	changed = preset_apply(file, preset, &(file->transacts->transactions[transaction].date),
-			&(file->transacts->transactions[transaction].from),
-			&(file->transacts->transactions[transaction].to),
-			&(file->transacts->transactions[transaction].flags),
-			&(file->transacts->transactions[transaction].amount),
-			file->transacts->transactions[transaction].reference,
-			file->transacts->transactions[transaction].description);
+//	changed = preset_apply(file, preset, &(file->transacts->transactions[transaction].date),
+//			&(file->transacts->transactions[transaction].from),
+//			&(file->transacts->transactions[transaction].to),
+//			&(file->transacts->transactions[transaction].flags),
+//			&(file->transacts->transactions[transaction].amount),
+//			file->transacts->transactions[transaction].reference,
+//			file->transacts->transactions[transaction].description);
+// \TODO -- Fix this!
 
 	/* Return the line to the calculations.  This will automatically update
 	 * all the account listings.
@@ -3435,9 +3436,9 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	if (changed == TRANSACT_FIELD_NONE)
 		return TRUE;
 
-	if (changed & TRANSACT_FIELD_DATE)
-		file->transacts->date_sort_valid = FALSE;
-
+//	if (changed & TRANSACT_FIELD_DATE)
+//		file->transacts->date_sort_valid = FALSE;
+// \TODO -- Fix!
 	/* If any changes were made, refresh the relevant account listing, redraw
 	 * the transaction window line and mark the file as modified.
 	 */
@@ -3468,8 +3469,8 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 		transact_list_window_sort(windat);
 
 		if (transact_list_window_line_valid(windat, line)) {
-			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].from);
-			accview_sort(file, file->transacts->transactions[file->transacts->transactions[line].sort_index].to);
+			accview_sort(file, transact_get_from(file, windat->line_data[line].transaction));
+			accview_sort(file, transact_get_to(file, windat->line_data[line].transaction));
 		}
 	}
 

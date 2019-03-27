@@ -635,6 +635,34 @@ int transact_find_date(struct file_block *file, date_t target);
 
 
 /**
+ * Search the transaction list from a file for a set of matching entries.
+ *
+ * \param *file			The file containing transaction list window to search in.
+ * \param *line			Pointer to the line (under current display sort
+ *				order) to search from. Updated on exit to show
+ *				the matched line.
+ * \param back			TRUE to search back up the file; FALSE to search
+ *				down.
+ * \param case_sensitive	TRUE to match case in strings; FALSE to ignore.
+ * \param logic_and		TRUE to combine the parameters in an AND logic;
+ *				FALSE to use an OR logic.
+ * \param date			A date to match, or NULL_DATE for none.
+ * \param from			A from account to match, or NULL_ACCOUNT for none.
+ * \param to			A to account to match, or NULL_ACCOUNT for none.
+ * \param flags			Reconcile flags for the from and to accounts, if
+ *				these have been specified.
+ * \param amount		An amount to match, or NULL_AMOUNT for none.
+ * \param *ref			A wildcarded reference to match; NULL or '\0' for none.
+ * \param *desc			A wildcarded description to match; NULL or '\0' for none.
+ * \return			Transaction field flags set for each matching field;
+ *				TRANSACT_FIELD_NONE if no match found.
+ */
+
+enum transact_field transact_search(struct file_block *file, int *line, osbool back, osbool case_sensitive, osbool logic_and,
+		date_t date, acct_t from, acct_t to, enum transact_flags flags, amt_t amount, char *ref, char *desc);
+
+
+/**
  * Place the caret in a given line in a transaction window, and scroll
  * the line into view.
  *

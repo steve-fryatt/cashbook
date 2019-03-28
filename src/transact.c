@@ -910,7 +910,7 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 		/* Force a redraw of the affected line. */
 
 		line = transact_get_line_from_transaction(file, transaction);
-		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+//\TODO		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -1026,7 +1026,7 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 	/* Force a redraw of the affected line. */
 
 	line = transact_get_line_from_transaction(file, transaction);
-	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+//\TODO	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 	file_set_data_integrity(file, TRUE);
 }
@@ -1087,7 +1087,7 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 		/* Force a redraw of the affected line. */
 
 		line = transact_get_line_from_transaction(file, transaction);
-		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+//\TODO		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -1141,7 +1141,7 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
 		/* Force a redraw of the affected line. */
 
 		line = transact_get_line_from_transaction(file, transaction);
-		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+//\TODO		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -1206,7 +1206,7 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 	/* Force a redraw of the affected line. */
 
 	line = transact_get_line_from_transaction(file, transaction);
-	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+//\TODO	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
 
 	file_set_data_integrity(file, TRUE);
 }

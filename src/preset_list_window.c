@@ -1578,7 +1578,7 @@ static void preset_list_window_initialise_entries(struct preset_list_window *win
 }
 
 
-osbool preset_list_window_add_line(struct preset_list_window *windat, preset_t preset)
+osbool preset_list_window_add_preset(struct preset_list_window *windat, preset_t preset)
 {
 
 
@@ -1586,7 +1586,7 @@ osbool preset_list_window_add_line(struct preset_list_window *windat, preset_t p
 }
 
 
-osbool preset_list_window_delete_line(struct preset_list_window *windat, preset_t preset)
+osbool preset_list_window_delete_preset(struct preset_list_window *windat, preset_t preset)
 {
 	int i;
 

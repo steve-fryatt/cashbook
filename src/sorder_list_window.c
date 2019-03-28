@@ -1594,7 +1594,7 @@ static void sorder_list_window_initialise_entries(struct sorder_list_window *win
 }
 
 
-osbool sorder_list_window_add_line(struct sorder_list_window *windat, sorder_t sorder)
+osbool sorder_list_window_add_sorder(struct sorder_list_window *windat, sorder_t sorder)
 {
 
 
@@ -1602,7 +1602,7 @@ osbool sorder_list_window_add_line(struct sorder_list_window *windat, sorder_t s
 }
 
 
-osbool sorder_list_window_delete_line(struct sorder_list_window *windat, sorder_t sorder)
+osbool sorder_list_window_delete_sorder(struct sorder_list_window *windat, sorder_t sorder)
 {
 	int i;
 

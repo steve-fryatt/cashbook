@@ -983,7 +983,7 @@ osbool preset_read_file(struct file_block *file, struct filing_block *in)
 			file->presets->presets[preset].action_key = filing_get_char_field(in);
 			file->presets->presets[preset].caret_target = preset_get_caret_field(in);
 			file->presets->presets[preset].date = date_get_date_field(in);
-			file->presets->presets[preset].flags = preset_get_flags_field(in);
+			file->presets->presets[preset].flags = transact_get_flags_field(in);
 			file->presets->presets[preset].from = account_get_account_field(in);
 			file->presets->presets[preset].to = account_get_account_field(in);
 			file->presets->presets[preset].amount = currency_get_currency_field(in);

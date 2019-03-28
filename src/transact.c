@@ -1547,9 +1547,9 @@ enum transact_field transact_search(struct file_block *file, int *line, osbool b
 		date_t date, acct_t from, acct_t to, enum transact_flags flags, amt_t amount, char *ref, char *desc)
 {
 	if (file == NULL || file->transacts == NULL)
-		return;
+		return TRANSACT_FIELD_NONE;
 
-	transact_list_window_search(file->transacts->transact_window, line, back, case_sensitive, logic_and,
+	return transact_list_window_search(file->transacts->transact_window, line, back, case_sensitive, logic_and,
 			date, from, to, flags, amount, ref, desc);
 }
 

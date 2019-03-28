@@ -3696,7 +3696,7 @@ enum transact_field transact_list_window_search(struct transact_list_window *win
 
 	file = transact_get_file(windat->instance);
 	if (file == NULL)
-		return FALSE;
+		return TRANSACT_FIELD_NONE;
 
 	match = FALSE;
 

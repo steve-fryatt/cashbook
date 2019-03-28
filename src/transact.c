@@ -86,7 +86,7 @@
 #include "find.h"
 #include "flexutils.h"
 #include "goto.h"
-#include "presets.h"
+#include "preset.h"
 #include "preset_menu.h"
 #include "print_dialogue.h"
 #include "purge.h"

@@ -90,7 +90,7 @@
 #include "goto.h"
 #include "iconbar.h"
 #include "interest.h"
-#include "presets.h"
+#include "preset.h"
 #include "print_dialogue.h"
 #include "print_protocol.h"
 #include "purge.h"

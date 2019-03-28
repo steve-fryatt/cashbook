@@ -78,7 +78,7 @@ OBJS = account.o			\
        import_dialogue.o		\
        interest.o			\
        main.o				\
-       presets.o			\
+       preset.o				\
        preset_dialogue.o		\
        preset_list_window.o		\
        preset_menu.o			\

@@ -30,7 +30,7 @@
 #ifndef CASHBOOK_PRESET_DIALOGUE
 #define CASHBOOK_PRESET_DIALOGUE
 
-#include "presets.h"
+#include "preset.h"
 
 /**
  * The requested action from the dialogue.

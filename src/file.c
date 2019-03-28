@@ -74,7 +74,7 @@
 #include "flexutils.h"
 #include "goto.h"
 #include "interest.h"
-#include "presets.h"
+#include "preset.h"
 #include "print_dialogue.h"
 #include "purge.h"
 #include "report.h"

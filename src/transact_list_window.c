@@ -444,7 +444,7 @@ static int				transact_list_window_new_offset = 0;
  * Data relating to field dragging.
  */
 
-struct transact_drag_data {
+struct transact_list_window_drag_data {
 	/**
 	 * The Transaction List Window instance currently owning the line drag.
 	 */
@@ -470,7 +470,7 @@ struct transact_drag_data {
  * Instance of the window drag data, held statically to survive across Wimp_Poll.
  */
 
-static struct transact_drag_data transact_window_dragging_data;
+static struct transact_list_window_drag_data transact_list_window_dragging_data;
 
 /* Buffers used by the Transaction List Window Edit Line. */
 
@@ -2307,10 +2307,10 @@ static void transact_list_window_start_drag(struct transact_list_window *windat,
 	 *          if a suitable sprite were to be created.
 	 */
 
-	transact_window_dragging_data.dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+	transact_list_window_dragging_data.dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
                        osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
 
-	if (FALSE && transact_window_dragging_data.dragging_sprite) {
+	if (FALSE && transact_list_window_dragging_data.dragging_sprite) {
 		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
 				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
 				"", &(drag.initial), &(drag.bbox));
@@ -2332,11 +2332,11 @@ static void transact_list_window_start_drag(struct transact_list_window *windat,
 		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
 	}
 
-	transact_window_dragging_data.owner = windat;
-	transact_window_dragging_data.start_line = line;
-	transact_window_dragging_data.start_column = column;
+	transact_list_window_dragging_data.owner = windat;
+	transact_list_window_dragging_data.start_line = line;
+	transact_list_window_dragging_data.start_column = column;
 
-	event_set_drag_handler(transaction_list_window_terminate_drag, NULL, &transact_window_dragging_data);
+	event_set_drag_handler(transaction_list_window_terminate_drag, NULL, &transact_list_window_dragging_data);
 }
 
 
@@ -2350,19 +2350,19 @@ static void transact_list_window_start_drag(struct transact_list_window *windat,
 
 static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *data)
 {
-	wimp_pointer			pointer;
-	wimp_window_state		window;
-	int				end_line, xpos;
-	wimp_i				end_column;
-	tran_t				start_transaction;
-	acct_t				account;
-	osbool				changed = FALSE;
-	struct file_block		*file;
-	struct transact_drag_data	*drag_data = data;
-	struct transact_list_window	*windat;
-	enum edit_field_type		start_field_type;
-	struct edit_data		*transfer;
-	enum account_type		target_type;
+	wimp_pointer				pointer;
+	wimp_window_state			window;
+	int					end_line, xpos;
+	wimp_i					end_column;
+	tran_t					start_transaction;
+	acct_t					account;
+	osbool					changed = FALSE;
+	struct file_block			*file;
+	struct transact_list_window_drag_data	*drag_data = data;
+	struct transact_list_window		*windat;
+	enum edit_field_type			start_field_type;
+	struct edit_data			*transfer;
+	enum account_type			target_type;
 
 	if (drag_data == NULL)
 		return;

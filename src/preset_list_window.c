@@ -83,101 +83,101 @@
 
 /* Preset List Window icons. */
 
-#define PRESET_ICON_KEY 0
-#define PRESET_ICON_NAME 1
-#define PRESET_ICON_FROM 2
-#define PRESET_ICON_FROM_REC 3
-#define PRESET_ICON_FROM_NAME 4
-#define PRESET_ICON_TO 5
-#define PRESET_ICON_TO_REC 6
-#define PRESET_ICON_TO_NAME 7
-#define PRESET_ICON_AMOUNT 8
-#define PRESET_ICON_DESCRIPTION 9
+#define PRESET_LIST_WINDOW_KEY 0
+#define PRESET_LIST_WINDOW_NAME 1
+#define PRESET_LIST_WINDOW_FROM 2
+#define PRESET_LIST_WINDOW_FROM_REC 3
+#define PRESET_LIST_WINDOW_FROM_NAME 4
+#define PRESET_LIST_WINDOW_TO 5
+#define PRESET_LIST_WINDOW_TO_REC 6
+#define PRESET_LIST_WINDOW_TO_NAME 7
+#define PRESET_LIST_WINDOW_AMOUNT 8
+#define PRESET_LIST_WINDOW_DESCRIPTION 9
 
 /* Preset List Toolbar icons. */
 
-#define PRESET_PANE_KEY 0
-#define PRESET_PANE_NAME 1
-#define PRESET_PANE_FROM 2
-#define PRESET_PANE_TO 3
-#define PRESET_PANE_AMOUNT 4
-#define PRESET_PANE_DESCRIPTION 5
+#define PRESET_LIST_WINDOW_PANE_KEY 0
+#define PRESET_LIST_WINDOW_PANE_NAME 1
+#define PRESET_LIST_WINDOW_PANE_FROM 2
+#define PRESET_LIST_WINDOW_PANE_TO 3
+#define PRESET_LIST_WINDOW_PANE_AMOUNT 4
+#define PRESET_LIST_WINDOW_PANE_DESCRIPTION 5
 
-#define PRESET_PANE_PARENT 6
-#define PRESET_PANE_ADDPRESET 7
-#define PRESET_PANE_PRINT 8
-#define PRESET_PANE_SORT 9
+#define PRESET_LIST_WINDOW_PANE_PARENT 6
+#define PRESET_LIST_WINDOW_PANE_ADDPRESET 7
+#define PRESET_LIST_WINDOW_PANE_PRINT 8
+#define PRESET_LIST_WINDOW_PANE_SORT 9
 
-#define PRESET_PANE_SORT_DIR_ICON 10
+#define PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON 10
 
 /* Preset List Menu entries. */
 
-#define PRESET_MENU_SORT 0
-#define PRESET_MENU_EDIT 1
-#define PRESET_MENU_NEWPRESET 2
-#define PRESET_MENU_EXPCSV 3
-#define PRESET_MENU_EXPTSV 4
-#define PRESET_MENU_PRINT 5
+#define PRESET_LIST_WINDOW_MENU_SORT 0
+#define PRESET_LIST_WINDOW_MENU_EDIT 1
+#define PRESET_LIST_WINDOW_MENU_NEWPRESET 2
+#define PRESET_LIST_WINDOW_MENU_EXPCSV 3
+#define PRESET_LIST_WINDOW_MENU_EXPTSV 4
+#define PRESET_LIST_WINDOW_MENU_PRINT 5
 
 /* Preset Sort Window icons */
 
-#define PRESET_SORT_OK 2
-#define PRESET_SORT_CANCEL 3
-#define PRESET_SORT_FROM 4
-#define PRESET_SORT_TO 5
-#define PRESET_SORT_AMOUNT 6
-#define PRESET_SORT_DESCRIPTION 7
-#define PRESET_SORT_KEY 8
-#define PRESET_SORT_NAME 9
-#define PRESET_SORT_ASCENDING 10
-#define PRESET_SORT_DESCENDING 11
+#define PRESET_LIST_WINDOW_SORT_OK 2
+#define PRESET_LIST_WINDOW_SORT_CANCEL 3
+#define PRESET_LIST_WINDOW_SORT_FROM 4
+#define PRESET_LIST_WINDOW_SORT_TO 5
+#define PRESET_LIST_WINDOW_SORT_AMOUNT 6
+#define PRESET_LIST_WINDOW_SORT_DESCRIPTION 7
+#define PRESET_LIST_WINDOW_SORT_KEY 8
+#define PRESET_LIST_WINDOW_SORT_NAME 9
+#define PRESET_LIST_WINDOW_SORT_ASCENDING 10
+#define PRESET_LIST_WINDOW_SORT_DESCENDING 11
 
 /**
  * The minimum number of entries in the Preset List Window.
  */
 
-#define MIN_PRESET_ENTRIES 10
+#define PRESET_LIST_WINDOW_MIN_ENTRIES 10
 
 /**
  * The height of the Preset List Window toolbar, in OS Units.
  */
 
-#define PRESET_TOOLBAR_HEIGHT 132
+#define PRESET_LIST_WINDOW_TOOLBAR_HEIGHT 132
 
 /**
  * The number of draggable columns in the Preset List Window.
  */
 
-#define PRESET_COLUMNS 10
+#define PRESET_LIST_WINDOW_COLUMNS 10
 
 /**
  * The Preset List Window column map.
  */
 
-static struct column_map preset_columns[PRESET_COLUMNS] = {
-	{PRESET_ICON_KEY, PRESET_PANE_KEY, wimp_ICON_WINDOW, SORT_CHAR},
-	{PRESET_ICON_NAME, PRESET_PANE_NAME, wimp_ICON_WINDOW, SORT_NAME},
-	{PRESET_ICON_FROM, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
-	{PRESET_ICON_FROM_REC, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
-	{PRESET_ICON_FROM_NAME, PRESET_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
-	{PRESET_ICON_TO, PRESET_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
-	{PRESET_ICON_TO_REC, PRESET_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
-	{PRESET_ICON_TO_NAME, PRESET_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
-	{PRESET_ICON_AMOUNT, PRESET_PANE_AMOUNT, wimp_ICON_WINDOW, SORT_AMOUNT},
-	{PRESET_ICON_DESCRIPTION, PRESET_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
+static struct column_map preset_list_window_columns[PRESET_LIST_WINDOW_COLUMNS] = {
+	{PRESET_LIST_WINDOW_KEY, PRESET_LIST_WINDOW_PANE_KEY, wimp_ICON_WINDOW, SORT_CHAR},
+	{PRESET_LIST_WINDOW_NAME, PRESET_LIST_WINDOW_PANE_NAME, wimp_ICON_WINDOW, SORT_NAME},
+	{PRESET_LIST_WINDOW_FROM, PRESET_LIST_WINDOW_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{PRESET_LIST_WINDOW_FROM_REC, PRESET_LIST_WINDOW_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{PRESET_LIST_WINDOW_FROM_NAME, PRESET_LIST_WINDOW_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{PRESET_LIST_WINDOW_TO, PRESET_LIST_WINDOW_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{PRESET_LIST_WINDOW_TO_REC, PRESET_LIST_WINDOW_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{PRESET_LIST_WINDOW_TO_NAME, PRESET_LIST_WINDOW_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{PRESET_LIST_WINDOW_AMOUNT, PRESET_LIST_WINDOW_PANE_AMOUNT, wimp_ICON_WINDOW, SORT_AMOUNT},
+	{PRESET_LIST_WINDOW_DESCRIPTION, PRESET_LIST_WINDOW_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
 };
 
 /**
  * The Preset List Window Sort Dialogue column icons.
  */
 
-static struct sort_dialogue_icon preset_sort_columns[] = {
-	{PRESET_SORT_FROM, SORT_FROM},
-	{PRESET_SORT_TO, SORT_TO},
-	{PRESET_SORT_AMOUNT, SORT_AMOUNT},
-	{PRESET_SORT_DESCRIPTION, SORT_DESCRIPTION},
-	{PRESET_SORT_KEY, SORT_CHAR},
-	{PRESET_SORT_NAME, SORT_LEFT},
+static struct sort_dialogue_icon preset_list_window_sort_columns[] = {
+	{PRESET_LIST_WINDOW_SORT_FROM, SORT_FROM},
+	{PRESET_LIST_WINDOW_SORT_TO, SORT_TO},
+	{PRESET_LIST_WINDOW_SORT_AMOUNT, SORT_AMOUNT},
+	{PRESET_LIST_WINDOW_SORT_DESCRIPTION, SORT_DESCRIPTION},
+	{PRESET_LIST_WINDOW_SORT_KEY, SORT_CHAR},
+	{PRESET_LIST_WINDOW_SORT_NAME, SORT_LEFT},
 	{0, SORT_NONE}
 };
 
@@ -185,9 +185,9 @@ static struct sort_dialogue_icon preset_sort_columns[] = {
  * The Preset List Window Sort Dialogue direction icons.
  */
 
-static struct sort_dialogue_icon preset_sort_directions[] = {
-	{PRESET_SORT_ASCENDING, SORT_ASCENDING},
-	{PRESET_SORT_DESCENDING, SORT_DESCENDING},
+static struct sort_dialogue_icon preset_list_window_sort_directions[] = {
+	{PRESET_LIST_WINDOW_SORT_ASCENDING, SORT_ASCENDING},
+	{PRESET_LIST_WINDOW_SORT_DESCENDING, SORT_DESCENDING},
 	{0, SORT_NONE}
 };
 
@@ -257,49 +257,49 @@ struct preset_list_window {
  * The definition for the Preset List Window.
  */
 
-static wimp_window			*preset_window_def = NULL;
+static wimp_window			*preset_list_window_def = NULL;
 
 /**
  * The definition for the Preset List Window toolbar pane.
  */
 
-static wimp_window			*preset_pane_def = NULL;
+static wimp_window			*preset_list_window_pane_def = NULL;
 
 /**
  * The handle of the Preset List Window menu.
  */
 
-static wimp_menu			*preset_window_menu = NULL;
+static wimp_menu			*preset_list_window_menu = NULL;
 
 /**
  * The window line associated with the most recent menu opening.
  */
 
-static int				preset_window_menu_line = -1;
+static int				preset_list_window_menu_line = -1;
 
 /**
  * The Preset List Window Sort dialogue.
  */
 
-static struct sort_dialogue_block	*preset_sort_dialogue = NULL;
+static struct sort_dialogue_block	*preset_list_window_sort_dialogue = NULL;
 
 /**
  * The Preset List Window Sort callbacks.
  */
 
-static struct sort_callback		preset_sort_callbacks;
+static struct sort_callback		preset_list_window_sort_callbacks;
 
 /**
  * The Save CSV saveas data handle.
  */
 
-static struct saveas_block		*preset_saveas_csv = NULL;
+static struct saveas_block		*preset_list_window_saveas_csv = NULL;
 
 /**
  * The Save TSV saveas data handle.
  */
 
-static struct saveas_block		*preset_saveas_tsv = NULL;
+static struct saveas_block		*preset_list_window_saveas_tsv = NULL;
 
 /* Static Function Prototypes. */
 
@@ -349,23 +349,23 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 
 	sort_window = templates_create_window("SortPreset");
 	ihelp_add_window(sort_window, "SortPreset", NULL);
-	preset_sort_dialogue = sort_dialogue_create(sort_window, preset_sort_columns, preset_sort_directions,
-			PRESET_SORT_OK, PRESET_SORT_CANCEL, preset_list_window_process_sort_window);
+	preset_list_window_sort_dialogue = sort_dialogue_create(sort_window, preset_list_window_sort_columns, preset_list_window_sort_directions,
+			PRESET_LIST_WINDOW_SORT_OK, PRESET_LIST_WINDOW_SORT_CANCEL, preset_list_window_process_sort_window);
 
-	preset_sort_callbacks.compare = preset_list_window_sort_compare;
-	preset_sort_callbacks.swap = preset_list_window_sort_swap;
+	preset_list_window_sort_callbacks.compare = preset_list_window_sort_compare;
+	preset_list_window_sort_callbacks.swap = preset_list_window_sort_swap;
 
-	preset_window_def = templates_load_window("Preset");
-	preset_window_def->icon_count = 0;
+	preset_list_window_def = templates_load_window("Preset");
+	preset_list_window_def->icon_count = 0;
 
-	preset_pane_def = templates_load_window("PresetTB");
-	preset_pane_def->sprite_area = sprites;
+	preset_list_window_pane_def = templates_load_window("PresetTB");
+	preset_list_window_pane_def->sprite_area = sprites;
 
-	preset_window_menu = templates_get_menu("PresetMenu");
-	ihelp_add_menu(preset_window_menu, "PresetMenu");
+	preset_list_window_menu = templates_get_menu("PresetMenu");
+	ihelp_add_menu(preset_list_window_menu, "PresetMenu");
 
-	preset_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_list_window_save_csv);
-	preset_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_list_window_save_tsv);
+	preset_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_list_window_save_csv);
+	preset_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_list_window_save_tsv);
 }
 
 
@@ -396,7 +396,7 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 
 	/* Initialise the window columns. */
 
-	new-> columns = column_create_instance(PRESET_COLUMNS, preset_columns, NULL, PRESET_PANE_SORT_DIR_ICON);
+	new-> columns = column_create_instance(PRESET_LIST_WINDOW_COLUMNS, preset_list_window_columns, NULL, PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON);
 	if (new->columns == NULL) {
 		preset_list_window_delete_instance(new);
 		return NULL;
@@ -407,7 +407,7 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 
 	/* Initialise the window sort. */
 
-	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING, SORT_NONE, &preset_sort_callbacks, new);
+	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING, SORT_NONE, &preset_list_window_sort_callbacks, new);
 	if (new->sort == NULL) {
 		preset_list_window_delete_instance(new);
 		return NULL;
@@ -481,18 +481,18 @@ void preset_list_window_open(struct preset_list_window *windat)
 	/* Create the new window data and build the window. */
 
 	*(windat->window_title) = '\0';
-	preset_window_def->title_data.indirected_text.text = windat->window_title;
+	preset_list_window_def->title_data.indirected_text.text = windat->window_title;
 
-	height = (windat->display_lines > MIN_PRESET_ENTRIES) ? windat->display_lines : MIN_PRESET_ENTRIES;
+	height = (windat->display_lines > PRESET_LIST_WINDOW_MIN_ENTRIES) ? windat->display_lines : PRESET_LIST_WINDOW_MIN_ENTRIES;
 
 	transact_get_window_state(file, &parent);
 
-	window_set_initial_area(preset_window_def, column_get_window_width(windat->columns),
-			(height * WINDOW_ROW_HEIGHT) + PRESET_TOOLBAR_HEIGHT,
+	window_set_initial_area(preset_list_window_def, column_get_window_width(windat->columns),
+			(height * WINDOW_ROW_HEIGHT) + PRESET_LIST_WINDOW_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
-	error = xwimp_create_window(preset_window_def, &(windat->preset_window));
+	error = xwimp_create_window(preset_list_window_def, &(windat->preset_window));
 	if (error != NULL) {
 		preset_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -501,27 +501,27 @@ void preset_list_window_open(struct preset_list_window *windat)
 
 	/* Create the toolbar. */
 
-	windows_place_as_toolbar(preset_window_def, preset_pane_def, PRESET_TOOLBAR_HEIGHT-4);
+	windows_place_as_toolbar(preset_list_window_def, preset_list_window_pane_def, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT-4);
 
 	#ifdef DEBUG
 	debug_printf ("Window extents set...");
 	#endif
 
-	columns_place_heading_icons(windat->columns, preset_pane_def);
+	columns_place_heading_icons(windat->columns, preset_list_window_pane_def);
 
-	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
+	preset_list_window_pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
 			(osspriteop_id) windat->sort_sprite;
-	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-			preset_pane_def->sprite_area;
-	preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
+	preset_list_window_pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
+			preset_list_window_pane_def->sprite_area;
+	preset_list_window_pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-	preset_list_window_adjust_sort_icon_data(windat, &(preset_pane_def->icons[PRESET_PANE_SORT_DIR_ICON]));
+	preset_list_window_adjust_sort_icon_data(windat, &(preset_list_window_pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON]));
 
 	#ifdef DEBUG
 	debug_printf ("Toolbar icons adjusted...");
 	#endif
 
-	error = xwimp_create_window(preset_pane_def, &(windat->preset_pane));
+	error = xwimp_create_window(preset_list_window_pane_def, &(windat->preset_pane));
 	if (error != NULL) {
 		preset_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -539,12 +539,12 @@ void preset_list_window_open(struct preset_list_window *windat)
 
 	windows_open(windat->preset_window);
 	windows_open_nested_as_toolbar(windat->preset_pane,
-			windat->preset_window, PRESET_TOOLBAR_HEIGHT-4, FALSE);
+			windat->preset_window, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT-4, FALSE);
 
 	/* Register event handlers for the two windows. */
 
 	event_add_window_user_data(windat->preset_window, windat);
-	event_add_window_menu(windat->preset_window, preset_window_menu);
+	event_add_window_menu(windat->preset_window, preset_list_window_menu);
 	event_add_window_close_event(windat->preset_window, preset_list_window_close_handler);
 	event_add_window_mouse_event(windat->preset_window, preset_list_window_click_handler);
 	event_add_window_scroll_event(windat->preset_window, preset_list_window_scroll_handler);
@@ -555,7 +555,7 @@ void preset_list_window_open(struct preset_list_window *windat)
 	event_add_window_menu_close(windat->preset_window, preset_list_window_menu_close_handler);
 
 	event_add_window_user_data(windat->preset_pane, windat);
-	event_add_window_menu(windat->preset_pane, preset_window_menu);
+	event_add_window_menu(windat->preset_pane, preset_list_window_menu);
 	event_add_window_mouse_event(windat->preset_pane, preset_list_window_pane_click_handler);
 	event_add_window_menu_prepare(windat->preset_pane, preset_list_window_menu_prepare_handler);
 	event_add_window_menu_selection(windat->preset_pane, preset_list_window_menu_selection_handler);
@@ -599,7 +599,7 @@ static void preset_list_window_delete(struct preset_list_window *windat)
 	/* Close any dialogues which belong to this window. */
 
 	dialogue_force_all_closed(NULL, windat);
-	sort_dialogue_close(preset_sort_dialogue, windat);
+	sort_dialogue_close(preset_list_window_sort_dialogue, windat);
 }
 
 
@@ -649,7 +649,7 @@ static void preset_list_window_click_handler(wimp_pointer *pointer)
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = window_calculate_click_row(&(pointer->pos), &window, PRESET_TOOLBAR_HEIGHT, windat->display_lines);
+	line = window_calculate_click_row(&(pointer->pos), &window, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, windat->display_lines);
 
 	/* Handle double-clicks, which will open an edit preset window. */
 
@@ -689,29 +689,29 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer)
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
-		case PRESET_PANE_PARENT:
+		case PRESET_LIST_WINDOW_PANE_PARENT:
 			transact_bring_window_to_top(file);
 			break;
 
-		case PRESET_PANE_PRINT:
+		case PRESET_LIST_WINDOW_PANE_PRINT:
 			preset_list_window_open_print_window(windat, pointer, config_opt_read("RememberValues"));
 			break;
 
-		case PRESET_PANE_ADDPRESET:
+		case PRESET_LIST_WINDOW_PANE_ADDPRESET:
 			preset_open_edit_window(file, NULL_PRESET, pointer);
 			break;
 
-		case PRESET_PANE_SORT:
+		case PRESET_LIST_WINDOW_PANE_SORT:
 			preset_list_window_open_sort_window(windat, pointer);
 			break;
 		}
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 		switch (pointer->i) {
-		case PRESET_PANE_PRINT:
+		case PRESET_LIST_WINDOW_PANE_PRINT:
 			preset_list_window_open_print_window(windat, pointer, !config_opt_read("RememberValues"));
 			break;
 
-		case PRESET_PANE_SORT:
+		case PRESET_LIST_WINDOW_PANE_SORT:
 			preset_sort(windat->instance);
 			break;
 		}
@@ -764,25 +764,25 @@ static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 		return;
 
 	if (pointer != NULL) {
-		preset_window_menu_line = -1;
+		preset_list_window_menu_line = -1;
 
 		if (w == windat->preset_window) {
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = window_calculate_click_row(&(pointer->pos), &window, PRESET_TOOLBAR_HEIGHT, windat->display_lines);
+			line = window_calculate_click_row(&(pointer->pos), &window, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, windat->display_lines);
 
 			if (line != -1)
-				preset_window_menu_line = line;
+				preset_list_window_menu_line = line;
 		}
 
-		saveas_initialise_dialogue(preset_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
-		saveas_initialise_dialogue(preset_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(preset_list_window_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
+		saveas_initialise_dialogue(preset_list_window_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
-	menus_shade_entry(preset_window_menu, PRESET_MENU_EDIT, preset_window_menu_line == -1);
+	menus_shade_entry(preset_list_window_menu, PRESET_LIST_WINDOW_MENU_EDIT, preset_list_window_menu_line == -1);
 
-	preset_list_window_force_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
+	preset_list_window_force_redraw(windat, preset_list_window_menu_line, preset_list_window_menu_line, wimp_ICON_WINDOW);
 }
 
 
@@ -811,20 +811,20 @@ static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 	wimp_get_pointer_info(&pointer);
 
 	switch (selection->items[0]){
-	case PRESET_MENU_SORT:
+	case PRESET_LIST_WINDOW_MENU_SORT:
 		preset_list_window_open_sort_window(windat, &pointer);
 		break;
 
-	case PRESET_MENU_EDIT:
-		if (preset_window_menu_line != -1)
-			preset_open_edit_window(file, windat->line_data[preset_window_menu_line].preset, &pointer);
+	case PRESET_LIST_WINDOW_MENU_EDIT:
+		if (preset_list_window_menu_line != -1)
+			preset_open_edit_window(file, windat->line_data[preset_list_window_menu_line].preset, &pointer);
 		break;
 
-	case PRESET_MENU_NEWPRESET:
+	case PRESET_LIST_WINDOW_MENU_NEWPRESET:
 		preset_open_edit_window(file, NULL_PRESET, &pointer);
 		break;
 
-	case PRESET_MENU_PRINT:
+	case PRESET_LIST_WINDOW_MENU_PRINT:
 		preset_list_window_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
 		break;
 	}
@@ -848,13 +848,13 @@ static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, w
 		return;
 
 	switch (warning->selection.items[0]) {
-	case PRESET_MENU_EXPCSV:
-		saveas_prepare_dialogue(preset_saveas_csv);
+	case PRESET_LIST_WINDOW_MENU_EXPCSV:
+		saveas_prepare_dialogue(preset_list_window_saveas_csv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 
-	case PRESET_MENU_EXPTSV:
-		saveas_prepare_dialogue(preset_saveas_tsv);
+	case PRESET_LIST_WINDOW_MENU_EXPTSV:
+		saveas_prepare_dialogue(preset_list_window_saveas_tsv);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -874,9 +874,9 @@ static void preset_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 	windat = event_get_window_user_data(w);
 	if (windat != NULL)
-		preset_list_window_force_redraw(windat, preset_window_menu_line, preset_window_menu_line, wimp_ICON_WINDOW);
+		preset_list_window_force_redraw(windat, preset_list_window_menu_line, preset_list_window_menu_line, wimp_ICON_WINDOW);
 
-	preset_window_menu_line = -1;
+	preset_list_window_menu_line = -1;
 }
 
 
@@ -888,7 +888,7 @@ static void preset_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void preset_list_window_scroll_handler(wimp_scroll *scroll)
 {
-	window_process_scroll_event(scroll, PRESET_TOOLBAR_HEIGHT);
+	window_process_scroll_event(scroll, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT);
 
 	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
 
@@ -924,22 +924,22 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 	/* Identify if there is a selected line to highlight. */
 
 	if (redraw->w == event_get_current_menu_window())
-		select = preset_window_menu_line;
+		select = preset_list_window_menu_line;
 	else
 		select = -1;
 
 	/* Set the horizontal positions of the icons. */
 
-	columns_place_table_icons_horizontally(windat->columns, preset_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
+	columns_place_table_icons_horizontally(windat->columns, preset_list_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	window_set_icon_templates(preset_window_def);
+	window_set_icon_templates(preset_list_window_def);
 
 	/* Perform the redraw. */
 
 	more = wimp_redraw_window(redraw);
 
 	while (more) {
-		window_plot_background(redraw, PRESET_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
+		window_plot_background(redraw, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
 
 		/* Redraw the data into the window. */
 
@@ -948,8 +948,8 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 
 			/* Place the icons in the current row. */
 
-			columns_place_table_icons_vertically(windat->columns, preset_window_def,
-					WINDOW_ROW_Y0(PRESET_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(PRESET_TOOLBAR_HEIGHT, y));
+			columns_place_table_icons_vertically(windat->columns, preset_list_window_def,
+					WINDOW_ROW_Y0(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, y));
 
 			/* If we're off the end of the data, plot a blank line and continue. */
 
@@ -962,35 +962,35 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 
 			/* Key field */
 
-			window_plot_char_field(PRESET_ICON_KEY, preset_get_action_key(file, preset), wimp_COLOUR_BLACK);
+			window_plot_char_field(PRESET_LIST_WINDOW_KEY, preset_get_action_key(file, preset), wimp_COLOUR_BLACK);
 
 			/* Name field */
 
-			window_plot_text_field(PRESET_ICON_NAME, preset_get_name(file, preset, NULL, 0), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_LIST_WINDOW_NAME, preset_get_name(file, preset, NULL, 0), wimp_COLOUR_BLACK);
 
 			/* From field */
 
 			account = preset_get_from(file, preset);
 
-			window_plot_text_field(PRESET_ICON_FROM, account_get_ident(file, account), wimp_COLOUR_BLACK);
-			window_plot_reconciled_field(PRESET_ICON_FROM_REC, (flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
-			window_plot_text_field(PRESET_ICON_FROM_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_LIST_WINDOW_FROM, account_get_ident(file, account), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(PRESET_LIST_WINDOW_FROM_REC, (flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_LIST_WINDOW_FROM_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
 
 			/* To field */
 
 			account = preset_get_to(file, preset);
 
-			window_plot_text_field(PRESET_ICON_TO, account_get_ident(file, account), wimp_COLOUR_BLACK);
-			window_plot_reconciled_field(PRESET_ICON_TO_REC, (flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
-			window_plot_text_field(PRESET_ICON_TO_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_LIST_WINDOW_TO, account_get_ident(file, account), wimp_COLOUR_BLACK);
+			window_plot_reconciled_field(PRESET_LIST_WINDOW_TO_REC, (flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_LIST_WINDOW_TO_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
 
 			/* Amount field */
 
-			window_plot_currency_field(PRESET_ICON_AMOUNT, preset_get_amount(file, preset), wimp_COLOUR_BLACK);
+			window_plot_currency_field(PRESET_LIST_WINDOW_AMOUNT, preset_get_amount(file, preset), wimp_COLOUR_BLACK);
 
 			/* Description field */
 
-			window_plot_text_field(PRESET_ICON_DESCRIPTION, preset_get_description(file, preset, NULL, 0), wimp_COLOUR_BLACK);
+			window_plot_text_field(PRESET_LIST_WINDOW_DESCRIPTION, preset_get_description(file, preset, NULL, 0), wimp_COLOUR_BLACK);
 		}
 
 		more = wimp_get_rectangle(redraw);
@@ -1063,7 +1063,7 @@ static void preset_list_window_adjust_sort_icon(struct preset_list_window *winda
 		return;
 
 	icon.w = windat->preset_pane;
-	icon.i = PRESET_PANE_SORT_DIR_ICON;
+	icon.i = PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON;
 	wimp_get_icon_state(&icon);
 
 	preset_list_window_adjust_sort_icon_data(windat, &(icon.icon));
@@ -1089,7 +1089,7 @@ static void preset_list_window_adjust_sort_icon_data(struct preset_list_window *
 
 	sort_order = sort_get_order(windat->sort);
 
-	column_update_sort_indicator(windat->columns, icon, preset_pane_def, sort_order);
+	column_update_sort_indicator(windat->columns, icon, preset_list_window_pane_def, sort_order);
 }
 
 /**
@@ -1106,9 +1106,9 @@ static void preset_list_window_set_extent(struct preset_list_window *windat)
 	if (windat == NULL || windat->preset_window == NULL)
 		return;
 
-	lines = (windat->display_lines > MIN_PRESET_ENTRIES) ? windat->display_lines : MIN_PRESET_ENTRIES;
+	lines = (windat->display_lines > PRESET_LIST_WINDOW_MIN_ENTRIES) ? windat->display_lines : PRESET_LIST_WINDOW_MIN_ENTRIES;
 
-	window_set_extent(windat->preset_window, lines, PRESET_TOOLBAR_HEIGHT, column_get_window_width(windat->columns));
+	window_set_extent(windat->preset_window, lines, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, column_get_window_width(windat->columns));
 }
 
 
@@ -1191,8 +1191,8 @@ static void preset_list_window_force_redraw(struct preset_list_window *windat, i
 		column_get_heading_xpos(windat->columns, column, &(window.extent.x0), &(window.extent.x1));
 	}
 
-	window.extent.y1 = WINDOW_ROW_TOP(PRESET_TOOLBAR_HEIGHT, from);
-	window.extent.y0 = WINDOW_ROW_BASE(PRESET_TOOLBAR_HEIGHT, to);
+	window.extent.y1 = WINDOW_ROW_TOP(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, from);
+	window.extent.y0 = WINDOW_ROW_BASE(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, to);
 
 	wimp_force_redraw(windat->preset_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
 }
@@ -1231,7 +1231,7 @@ static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
 	if (icon == wimp_ICON_WINDOW)
 		return;
 
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, preset_window_def->icons[icon].data.indirected_text.validation, 'N'))
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, preset_list_window_def->icons[icon].data.indirected_text.validation, 'N'))
 		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 
@@ -1294,7 +1294,7 @@ static void preset_list_window_open_sort_window(struct preset_list_window *winda
 	if (windat == NULL || ptr == NULL)
 		return;
 
-	sort_dialogue_open(preset_sort_dialogue, ptr, sort_get_order(windat->sort), windat);
+	sort_dialogue_open(preset_list_window_sort_dialogue, ptr, sort_get_order(windat->sort), windat);
 }
 
 
@@ -1366,7 +1366,7 @@ static struct report *preset_list_window_print(struct report *report, void *data
 	int				line, column;
 	preset_t			preset;
 	char				rec_char[REC_FIELD_LEN];
-	wimp_i				columns[PRESET_COLUMNS];
+	wimp_i				columns[PRESET_LIST_WINDOW_COLUMNS];
 
 	if (report == NULL || windat == NULL || windat->instance == NULL)
 		return NULL;
@@ -1375,7 +1375,7 @@ static struct report *preset_list_window_print(struct report *report, void *data
 	if (file == NULL)
 		return NULL;
 
-	if (!column_get_icons(windat->columns, columns, PRESET_COLUMNS, FALSE))
+	if (!column_get_icons(windat->columns, columns, PRESET_LIST_WINDOW_COLUMNS, FALSE))
 		return NULL;
 
 	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
@@ -1408,47 +1408,47 @@ static struct report *preset_list_window_print(struct report *report, void *data
 
 		stringbuild_reset();
 
-		for (column = 0; column < PRESET_COLUMNS; column++) {
+		for (column = 0; column < PRESET_LIST_WINDOW_COLUMNS; column++) {
 			if (column == 0)
 				stringbuild_add_string("\\k");
 			else
 				stringbuild_add_string("\\t");
 
 			switch (columns[column]) {
-			case PRESET_ICON_KEY:
+			case PRESET_LIST_WINDOW_KEY:
 				stringbuild_add_printf("\\v\\c%c", preset_get_action_key(file, preset));
 				/* Note that action_key can be zero, in which case %c terminates. */
 				break;
-			case PRESET_ICON_NAME:
+			case PRESET_LIST_WINDOW_NAME:
 				stringbuild_add_printf("\\v%s", preset_get_name(file, preset, NULL, 0));
 				break;
-			case PRESET_ICON_FROM:
+			case PRESET_LIST_WINDOW_FROM:
 				stringbuild_add_string(account_get_ident(file, preset_get_from(file, preset)));
 				break;
-			case PRESET_ICON_FROM_REC:
+			case PRESET_LIST_WINDOW_FROM_REC:
 				if (preset_get_flags(file, preset) & TRANS_REC_FROM)
 					stringbuild_add_string(rec_char);
 				break;
-			case PRESET_ICON_FROM_NAME:
+			case PRESET_LIST_WINDOW_FROM_NAME:
 				stringbuild_add_string("\\v");
 				stringbuild_add_string(account_get_name(file, preset_get_from(file, preset)));
 				break;
-			case PRESET_ICON_TO:
+			case PRESET_LIST_WINDOW_TO:
 				stringbuild_add_string(account_get_ident(file, preset_get_to(file, preset)));
 				break;
-			case PRESET_ICON_TO_REC:
+			case PRESET_LIST_WINDOW_TO_REC:
 				if (preset_get_flags(file, preset) & TRANS_REC_TO)
 					stringbuild_add_string(rec_char);
 				break;
-			case PRESET_ICON_TO_NAME:
+			case PRESET_LIST_WINDOW_TO_NAME:
 				stringbuild_add_string("\\v");
 				stringbuild_add_string(account_get_name(file, preset_get_to(file, preset)));
 				break;
-			case PRESET_ICON_AMOUNT:
+			case PRESET_LIST_WINDOW_AMOUNT:
 				stringbuild_add_string("\\v\\d\\r");
 				stringbuild_add_currency(preset_get_amount(file, preset), FALSE);
 				break;
-			case PRESET_ICON_DESCRIPTION:
+			case PRESET_LIST_WINDOW_DESCRIPTION:
 				stringbuild_add_string("\\v");
 				stringbuild_add_string(preset_get_description(file, preset, NULL, 0));
 				break;

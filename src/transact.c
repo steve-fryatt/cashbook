@@ -252,7 +252,7 @@ void transact_open_window(struct file_block *file)
 	if (file == NULL || file->transacts == NULL || file->transacts->transact_window == NULL)
 		return;
 
-	transact_list_window_open(file->transacts->transact_window);
+	transact_list_window_open(file->transacts->transact_window, file->transacts->trans_count);
 }
 
 

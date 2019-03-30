@@ -64,9 +64,10 @@ void sorder_list_window_delete_instance(struct sorder_list_window *windat);
  * Create and open a Standing Order List window for the given instance.
  *
  * \param *windat		The instance to open a window for.
+ * \param sorders		The number of standing orders to include.
  */
 
-void sorder_list_window_open(struct sorder_list_window *windat);
+void sorder_list_window_open(struct sorder_list_window *windat, int sorders);
 
 
 /**

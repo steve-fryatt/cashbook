@@ -330,6 +330,7 @@ static void sorder_list_window_open_print_window(struct sorder_list_window *wind
 static struct report *sorder_list_window_print(struct report *report, void *data, date_t from, date_t to);
 static int sorder_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void sorder_list_window_sort_swap(int index1, int index2, void *data);
+static osbool sorder_list_window_initialise_entries(struct sorder_list_window *windat, int sorders);
 static osbool sorder_list_window_save_csv(char *filename, osbool selection, void *data);
 static osbool sorder_list_window_save_tsv(char *filename, osbool selection, void *data);
 static void sorder_list_window_export_delimited(struct sorder_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
@@ -456,9 +457,10 @@ void sorder_list_window_delete_instance(struct sorder_list_window *windat)
  * Create and open a Standing Order List window for the given instance.
  *
  * \param *windat		The instance to open a window for.
+ * \param sorders		The number of standing orders to include.
  */
 
-void sorder_list_window_open(struct sorder_list_window *windat)
+void sorder_list_window_open(struct sorder_list_window *windat, int sorders)
 {
 	int			height;
 	os_error		*error;
@@ -482,6 +484,14 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 	#ifdef DEBUG
 	debug_printf("\\CCreating standing order window");
 	#endif
+
+	/* Initialise the window contents. */
+
+	if (!sorder_list_window_initialise_entries(windat, sorders)) {
+		sorder_list_window_delete(windat);
+		error_msgs_report_error("NoMemNewListWindow");
+		return;
+	}
 
 	/* Create the new window data and build the window. */
 
@@ -601,6 +611,10 @@ static void sorder_list_window_delete(struct sorder_list_window *windat)
 		wimp_delete_window(windat->sorder_pane);
 		windat->sorder_pane = NULL;
 	}
+
+	/* Free the display memory. */
+
+	flexutils_resize((void **) &(windat->line_data), sizeof(struct sorder_list_window_redraw), 0);
 
 	/* Close any dialogues which belong to this window. */
 
@@ -1581,17 +1595,41 @@ static void sorder_list_window_sort_swap(int index1, int index2, void *data)
 }
 
 
+/**
+ * Initialise the contents of the standing order list window, creating an
+ * entry for each of the required standing orders.
+ *
+ * \param *windat		The standing order list window instance to initialise.
+ * \param sorders		The number of standing orders to insert.
+ * \return			TRUE on success; FALSE on failure.
+ */
 
-
-
-
-
-
-static void sorder_list_window_initialise_entries(struct sorder_list_window *windat, int sorders)
+static osbool sorder_list_window_initialise_entries(struct sorder_list_window *windat, int sorders)
 {
+	int i;
 
+	if (windat == NULL || windat->line_data == NULL)
+		return FALSE;
 
+	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct sorder_list_window_redraw), sorders))
+		return FALSE;
+
+	windat->display_lines = sorders;
+
+	for (i = 0; i < sorders; i++)
+		windat->line_data[i].sorder = i;
+
+	sorder_list_window_sort(windat);
+
+	return TRUE;
 }
+
+
+
+
+
+
+
 
 
 osbool sorder_list_window_add_sorder(struct sorder_list_window *windat, sorder_t sorder)

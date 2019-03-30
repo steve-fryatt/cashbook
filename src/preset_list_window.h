@@ -110,6 +110,17 @@ void preset_list_window_sort(struct preset_list_window *windat);
 
 
 /**
+ * Add a new preset to an instance of the preset list window.
+ *
+ * \param *windat		The preset list window instance to add to.
+ * \param preset		The preset index to add.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool preset_list_window_add_preset(struct preset_list_window *windat, preset_t preset);
+
+
+/**
  * Save the preset list window details from a window to a CashBook file.
  * This assumes that the caller has already created a suitable section
  * in the file to be written.

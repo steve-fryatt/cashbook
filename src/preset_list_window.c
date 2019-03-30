@@ -1601,10 +1601,14 @@ static osbool preset_list_window_initialise_entries(struct preset_list_window *w
 	if (windat == NULL || windat->line_data == NULL)
 		return FALSE;
 
+	/* Extend the index array. */
+
 	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct preset_list_window_redraw), presets))
 		return FALSE;
 
 	windat->display_lines = presets;
+
+	/* Initialise and sort the entries. */
 
 	for (i = 0; i < presets; i++)
 		windat->line_data[i].preset = i;
@@ -1615,11 +1619,39 @@ static osbool preset_list_window_initialise_entries(struct preset_list_window *w
 }
 
 
+/**
+ * Add a new preset to an instance of the preset list window.
+ *
+ * \param *windat		The preset list window instance to add to.
+ * \param preset		The preset index to add.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
 osbool preset_list_window_add_preset(struct preset_list_window *windat, preset_t preset)
 {
+	if (windat == NULL || windat->line_data == NULL)
+		return FALSE;
 
+	/* If the window is closed, do nothing. */
 
-//	preset_list_window_set_extent(file->presets);
+	if (windat->preset_window == NULL)
+		return TRUE;
+
+	/* Extend the index array. */
+
+	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct preset_list_window_redraw), windat->display_lines + 1))
+		return FALSE;
+
+	windat->display_lines++;
+
+	/* Add the new entry, expand the window and sort the entries. */
+
+	windat->line_data[windat->display_lines - 1].preset = preset;
+
+	preset_list_window_set_extent(windat);
+	preset_list_window_sort(windat);
+
+	return TRUE;
 }
 
 

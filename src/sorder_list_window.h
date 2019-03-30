@@ -102,6 +102,29 @@ void sorder_list_window_sort(struct sorder_list_window *windat);
 
 
 /**
+ * Add a new standing order to an instance of the standing order list window.
+ *
+ * \param *windat		The standing order list window instance to add to.
+ * \param sorder		The standing order index to add.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool sorder_list_window_add_sorder(struct sorder_list_window *windat, sorder_t sorder);
+
+
+/**
+ * Remove a standing order from an instance of the preset list window,
+ * and update the other entries to allow for its deletion.
+ *
+ * \param *windat		The standing order list window instance to remove from.
+ * \param sorder		The standing order index to remove.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool sorder_list_window_delete_sorder(struct sorder_list_window *windat, sorder_t sorder);
+
+
+/**
  * Save the standing order list window details from a window to a CashBook
  * file. This assumes that the caller has already created a suitable section
  * in the file to be written.

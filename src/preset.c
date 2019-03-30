@@ -769,7 +769,10 @@ static osbool preset_delete(struct file_block *file, int preset)
 
 	file->presets->preset_count--;
 
-	preset_list_window_delete_preset(file->presets->preset_window, preset);
+	if (!preset_list_window_delete_preset(file->presets->preset_window, preset)) {
+		error_msgs_report_error("BadDelete");
+		return FALSE;
+	}
 
 	file_set_data_integrity(file, TRUE);
 

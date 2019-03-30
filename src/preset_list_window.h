@@ -121,6 +121,18 @@ osbool preset_list_window_add_preset(struct preset_list_window *windat, preset_t
 
 
 /**
+ * Remove a preset from an instance of the preset list window, and update
+ * the other entries to allow for its deletion.
+ *
+ * \param *windat		The preset list window instance to remove from.
+ * \param preset		The preset index to remove.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool preset_list_window_delete_preset(struct preset_list_window *windat, preset_t preset);
+
+
+/**
  * Save the preset list window details from a window to a CashBook file.
  * This assumes that the caller has already created a suitable section
  * in the file to be written.

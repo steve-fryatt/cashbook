@@ -1625,71 +1625,96 @@ static osbool sorder_list_window_initialise_entries(struct sorder_list_window *w
 }
 
 
-
-
-
-
-
-
+/**
+ * Add a new standing order to an instance of the standing order list window.
+ *
+ * \param *windat		The standing order list window instance to add to.
+ * \param sorder		The standing order index to add.
+ * \return			TRUE on success; FALSE on failure.
+ */
 
 osbool sorder_list_window_add_sorder(struct sorder_list_window *windat, sorder_t sorder)
 {
+	if (windat == NULL || windat->line_data == NULL)
+		return FALSE;
 
+	/* If the window is closed, do nothing. */
 
-//	sorder_set_window_extent(file->sorders);
+	if (windat->sorder_window == NULL)
+		return TRUE;
+
+	/* Extend the index array. */
+
+	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct sorder_list_window_redraw), windat->display_lines + 1))
+		return FALSE;
+
+	windat->display_lines++;
+
+	/* Add the new entry, expand the window and sort the entries. */
+
+	windat->line_data[windat->display_lines - 1].sorder = sorder;
+
+	sorder_list_window_set_extent(windat);
+
+	if (config_opt_read("AutoSortSOrders"))
+		sorder_list_window_sort(windat);
+	else
+		sorder_list_window_force_redraw(windat, windat->display_lines - 1, windat->display_lines - 1, wimp_ICON_WINDOW);
+
+	return TRUE;
 }
 
+
+/**
+ * Remove a standing order from an instance of the preset list window,
+ * and update the other entries to allow for its deletion.
+ *
+ * \param *windat		The standing order list window instance to remove from.
+ * \param sorder		The standing order index to remove.
+ * \return			TRUE on success; FALSE on failure.
+ */
 
 osbool sorder_list_window_delete_sorder(struct sorder_list_window *windat, sorder_t sorder)
 {
-	int i;
+	int i = 0, delete = -1;
 
-//	if (windat == NULL)
-//		return FALSE;
+	if (windat == NULL || windat->line_data == NULL)
+		return FALSE;
 
-	/* Find the index entry for the deleted order, and if it doesn't index itself, shuffle all the indexes along
-	 * so that they remain in the correct places. */
+	/* If the window is closed, do nothing. */
 
-//	for (i = 0; i < file->sorders->sorder_count && file->sorders->sorders[i].sort_index != sorder; i++);
+	if (windat->sorder_window == NULL)
+		return TRUE;
 
-//	if (file->sorders->sorders[i].sort_index == sorder && i != sorder) {
-//		index = i;
+	/* Find the standing order, and decrement any index entries above it. */
 
-//		if (index > sorder)
-//			for (i = index; i > sorder; i--)
-//				file->sorders->sorders[i].sort_index = file->sorders->sorders[i-1].sort_index;
-//		else
-//			for (i = index; i < sorder; i++)
-//				file->sorders->sorders[i].sort_index = file->sorders->sorders[i+1].sort_index;
-//	}
+	for (i = 0; i < windat->display_lines; i++) {
+		if (windat->line_data[i].sorder == sorder)
+			delete = i;
+		else if (windat->line_data[i].sorder > sorder)
+			windat->line_data[i].sorder--;
+	}
 
+	/* Delete the index entry. */
 
-	/* Adjust the sort indexes that point to entries above the deleted one, by reducing any indexes that are
-	 * greater than the deleted entry by one.
-	 */
+	if (delete >= 0 && !flexutils_delete_object((void **) &(windat->line_data), sizeof(struct sorder_list_window_redraw), delete))
+		return FALSE;
 
-//	for (i = 0; i < file->sorders->sorder_count; i++)
-//		if (file->sorders->sorders[i].sort_index > sorder)
-//			file->sorders->sorders[i].sort_index = file->sorders->sorders[i].sort_index - 1;
+	windat->display_lines--;
 
-	/* Update the main standing order display window. */
+	/* Update the preset window. */
 
-//	sorder_set_window_extent(file->sorders);
-//	if (file->sorders->sorder_window != NULL) {
-//		windows_open(file->sorders->sorder_window);
-//		if (config_opt_read("AutoSortSOrders")) {
-//			sorder_sort(file->sorders);
-//			sorder_force_window_redraw(file->sorders, file->sorders->sorder_count, file->sorders->sorder_count, wimp_ICON_WINDOW);
-//		} else {
-//			sorder_force_window_redraw(file->sorders, 0, file->sorders->sorder_count, wimp_ICON_WINDOW);
-//		}
-//	}
+	sorder_list_window_set_extent(windat);
 
+	windows_open(windat->sorder_window);
+
+	if (config_opt_read("AutoSortSOrders"))
+		sorder_list_window_sort(windat);
+	else
+		sorder_list_window_force_redraw(windat, delete, windat->display_lines, wimp_ICON_WINDOW);
+
+	return TRUE;
 }
-
-
-
-
 
 
 /**

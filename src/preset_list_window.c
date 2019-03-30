@@ -1649,61 +1649,66 @@ osbool preset_list_window_add_preset(struct preset_list_window *windat, preset_t
 	windat->line_data[windat->display_lines - 1].preset = preset;
 
 	preset_list_window_set_extent(windat);
-	preset_list_window_sort(windat);
+
+	if (config_opt_read("AutoSortPresets"))
+		preset_list_window_sort(windat);
+	else
+		preset_list_window_force_redraw(windat, windat->display_lines - 1, windat->display_lines - 1, wimp_ICON_WINDOW);
 
 	return TRUE;
 }
 
 
+/**
+ * Remove a preset from an instance of the preset list window, and update
+ * the other entries to allow for its deletion.
+ *
+ * \param *windat		The preset list window instance to remove from.
+ * \param preset		The preset index to remove.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
 osbool preset_list_window_delete_preset(struct preset_list_window *windat, preset_t preset)
 {
-	int i;
+	int i = 0, delete = -1;
 
-//	if (windat == NULL)
-//		return FALSE;
+	if (windat == NULL || windat->line_data == NULL)
+		return FALSE;
 
-//	for (i = 0; i < windat->display_lines && windat->line_data[i].sort_index != preset; i++);
+	/* If the window is closed, do nothing. */
 
-	/* Find the index entry for the deleted preset, and if it doesn't index itself, shuffle all the indexes along
-	 * so that they remain in the correct places. */
+	if (windat->preset_window == NULL)
+		return TRUE;
 
-//	for (i = 0; i < file->presets->preset_count && file->presets->presets[i].sort_index != preset; i++);
+	/* Find the preset, and decrement any index entries above it. */
 
-//	if (file->presets->presets[i].sort_index == preset && i != preset) {
-//		index = i;
+	for (i = 0; i < windat->display_lines; i++) {
+		if (windat->line_data[i].preset == preset)
+			delete = i;
+		else if (windat->line_data[i].preset > preset)
+			windat->line_data[i].preset--;
+	}
 
-//		if (index > preset)
-//			for (i=index; i>preset; i--)
-//				file->presets->presets[i].sort_index = file->presets->presets[i-1].sort_index;
-//		else
-//			for (i=index; i<preset; i++)
-//				file->presets->presets[i].sort_index = file->presets->presets[i+1].sort_index;
-//	}
-	/* Adjust the sort indexes that pointe to entries above the deleted one, by reducing any indexes that are
-	 * greater than the deleted entry by one.
-	 */
+	/* Delete the index entry. */
 
-//	for (i = 0; i < file->presets->preset_count; i++)
-//		if (file->presets->presets[i].sort_index > preset)
-//			file->presets->presets[i].sort_index = file->presets->presets[i].sort_index - 1;
+	if (delete >= 0 && !flexutils_delete_object((void **) &(windat->line_data), sizeof(struct preset_list_window_redraw), delete))
+		return FALSE;
 
-	/* Update the main preset display window. */
+	windat->display_lines--;
 
-//	preset_list_window_set_extent(file->presets);
+	/* Update the preset window. */
 
-//	if (file->presets->preset_window != NULL) {
-//		windows_open(file->presets->preset_window);
-//		if (config_opt_read("AutoSortPresets")) {
-//			preset_sort(file->presets);
-//			preset_list_window_force_redraw(file->presets, file->presets->preset_count, file->presets->preset_count, wimp_ICON_WINDOW);
-//		} else {
-//			preset_list_window_force_redraw(file->presets, 0, file->presets->preset_count, wimp_ICON_WINDOW);
-//		}
-//	}
+	preset_list_window_set_extent(windat);
 
+	windows_open(windat->preset_window);
+
+	if (config_opt_read("AutoSortPresets"))
+		preset_list_window_sort(windat);
+	else
+		preset_list_window_force_redraw(windat, delete, windat->display_lines, wimp_ICON_WINDOW);
+
+	return TRUE;
 }
-
-
 
 
 /**

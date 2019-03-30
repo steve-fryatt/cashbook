@@ -581,11 +581,8 @@ static sorder_t sorder_add(struct file_block *file)
 
 static osbool sorder_delete(struct file_block *file, sorder_t sorder)
 {
-	int	i, index;
-
 	if (file == NULL || file->sorders == NULL || sorder == NULL_SORDER || sorder >= file->sorders->sorder_count)
 		return FALSE;
-
 
 	/* Delete the order */
 
@@ -596,7 +593,10 @@ static osbool sorder_delete(struct file_block *file, sorder_t sorder)
 
 	file->sorders->sorder_count--;
 
-	sorder_list_window_delete_sorder(file->sorders->sorder_window, sorder);
+	if (!sorder_list_window_delete_sorder(file->sorders->sorder_window, sorder)) {
+		error_msgs_report_error("BadDelete");
+		return FALSE;
+	}
 
 	file_set_data_integrity(file, TRUE);
 

@@ -771,7 +771,7 @@ void transact_list_window_open(struct transact_list_window *windat, int transact
 
 	windat->edit_line = edit_create_instance(file, transact_list_window_def, windat->transaction_window,
 			windat->columns, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,
-			&transact_list_window_edit_callbacks, file->transacts);
+			&transact_list_window_edit_callbacks, windat);
 	if (windat->edit_line == NULL) {
 		transact_list_window_delete(windat);
 		error_msgs_report_error("TransactNoMem");

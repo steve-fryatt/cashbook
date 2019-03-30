@@ -667,6 +667,9 @@ static osbool preset_process_edit_window(void *parent, struct preset_dialogue_da
 	if (content->preset == NULL_PRESET)
 		return FALSE;
 
+	if (!preset_valid(windat, content->preset))
+		return FALSE;
+
 	string_copy(windat->presets[content->preset].name, content->name, PRESET_NAME_LEN);
 	string_copy(windat->presets[content->preset].reference, content->reference, TRANSACT_REF_FIELD_LEN);
 	string_copy(windat->presets[content->preset].description, content->description, TRANSACT_DESCRIPT_FIELD_LEN);

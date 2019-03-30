@@ -359,9 +359,6 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
 	if (content == NULL || windat == NULL)
 		return FALSE;
 
-	if (!sorder_valid(windat, content->sorder))
-		return FALSE;
-
 	if (content->action == SORDER_DIALOGUE_ACTION_DELETE) {
 		if (error_msgs_report_question("DeleteSOrder", "DeleteSOrderB") == 4)
 			return FALSE;
@@ -382,10 +379,16 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
 			return FALSE;
 		}
 
+		if (!sorder_valid(windat, content->sorder))
+			return FALSE;
+
 		windat->sorders[content->sorder].adjusted_next_date = NULL_DATE; /* Set to allow editing. */
 
 		done = 0;
 	} else {
+		if (!sorder_valid(windat, content->sorder))
+			return FALSE;
+
 		done = windat->sorders[content->sorder].number - windat->sorders[content->sorder].left;
 		if (content->number < done && windat->sorders[content->sorder].adjusted_next_date != NULL_DATE) {
 			error_msgs_report_error("BadSONumber");

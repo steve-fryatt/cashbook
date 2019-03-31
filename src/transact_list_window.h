@@ -272,6 +272,29 @@ void transact_list_window_sort(struct transact_list_window *windat);
 
 
 /**
+ * Add a new transaction to an instance of the transaction list window.
+ *
+ * \param *windat		The transaction list window instance to add to.
+ * \param transaction		The transaction index to add.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool transact_list_window_add_transaction(struct transact_list_window *windat, tran_t transaction);
+
+
+/**
+ * Remove a transaction from an instance of the transaction list window,
+ * and update the other entries to allow for its deletion.
+ *
+ * \param *windat		The transaction list window instance to remove from.
+ * \param transaction		The transaction index to remove.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool transact_list_window_delete_transaction(struct transact_list_window *windat, tran_t transaction);
+
+
+/**
  * Save the transaction list window details from a window to a CashBook
  * file. This assumes that the caller has already created a suitable section
  * in the file to be written.

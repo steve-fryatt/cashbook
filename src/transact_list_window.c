@@ -4155,10 +4155,96 @@ static osbool transact_list_window_initialise_entries(struct transact_list_windo
 }
 
 
+/**
+ * Add a new transaction to an instance of the transaction list window.
+ *
+ * \param *windat		The transaction list window instance to add to.
+ * \param transaction		The transaction index to add.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool transact_list_window_add_transaction(struct transact_list_window *windat, tran_t transaction)
+{
+	if (windat == NULL || windat->line_data == NULL)
+		return FALSE;
+
+	/* If the window is closed, do nothing. */
+
+	if (windat->transaction_window == NULL)
+		return TRUE;
+
+	/* Extend the index array. */
+
+	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct transact_list_window_redraw), windat->display_lines + 1))
+		return FALSE;
+
+	windat->display_lines++;
+
+	/* Add the new entry, expand the window and sort the entries. */
+
+	windat->line_data[windat->display_lines - 1].transaction = transaction;
+
+	transact_list_window_set_extent(windat);
+
+//	if (config_opt_read("AutoSortSOrders"))
+//		transact_list_window_sort(windat);
+//	else
+//		transact_list_window_force_redraw(windat, windat->display_lines - 1, windat->display_lines - 1, wimp_ICON_WINDOW);
+
+	return TRUE;
+}
 
 
+/**
+ * Remove a transaction from an instance of the transaction list window,
+ * and update the other entries to allow for its deletion.
+ *
+ * \param *windat		The transaction list window instance to remove from.
+ * \param transaction		The transaction index to remove.
+ * \return			TRUE on success; FALSE on failure.
+ */
 
+osbool transact_list_window_delete_transaction(struct transact_list_window *windat, tran_t transaction)
+{
+	int i = 0, delete = -1;
 
+	if (windat == NULL || windat->line_data == NULL)
+		return FALSE;
+
+	/* If the window is closed, do nothing. */
+
+	if (windat->transaction_window == NULL)
+		return TRUE;
+
+	/* Find the transaction, and decrement any index entries above it. */
+
+	for (i = 0; i < windat->display_lines; i++) {
+		if (windat->line_data[i].transaction == transaction)
+			delete = i;
+		else if (windat->line_data[i].transaction > transaction)
+			windat->line_data[i].transaction--;
+	}
+
+	/* Delete the index entry. */
+
+	if (delete >= 0 && !flexutils_delete_object((void **) &(windat->line_data), sizeof(struct transact_list_window_redraw), delete))
+		return FALSE;
+
+	windat->display_lines--;
+
+	/* Update the preset window. */
+
+	transact_list_window_set_extent(windat);
+
+	windows_open(windat->transaction_window);
+
+//	if (config_opt_read("AutoSortSOrders"))
+//		sorder_list_window_sort(windat);
+//	else
+//		sorder_list_window_force_redraw(windat, delete, windat->display_lines, wimp_ICON_WINDOW);
+
+	return TRUE;
+}
 
 
 /**

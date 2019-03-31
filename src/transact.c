@@ -524,6 +524,8 @@ void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, a
 	string_copy(file->transacts->transactions[new].reference, (ref != NULL) ? ref : "", TRANSACT_REF_FIELD_LEN);
 	string_copy(file->transacts->transactions[new].description, (description != NULL) ? description : "", TRANSACT_DESCRIPT_FIELD_LEN);
 
+	transact_list_window_add_transaction(file->transacts->transact_window, new);
+
 	file_set_data_integrity(file, TRUE);
 	if (date != NULL_DATE)
 		file->transacts->date_sort_valid = FALSE;
@@ -589,50 +591,24 @@ osbool transact_is_blank(struct file_block *file, tran_t transaction)
 void transact_strip_blanks_from_end(struct file_block *file)
 {
 	tran_t	transaction;
-	int	line, old_count;
-	osbool	found;
-
 
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	transaction = file->transacts->trans_count - 1;
+	/* Remove any empty transactions from the end of the file. */
 
-	while (transact_is_blank(file, transaction)) {
-
-		/* Search the transaction sort index to find the line pointing
-		 * to the current blank. If one is found, shuffle all of the
-		 * following indexes up a space to compensate.
-		 */
-// \TODO
-//		found = FALSE;
-
-//		for (line = 0; line < transaction; line++) {
-//			if (file->transacts->transactions[line].sort_index == transaction)
-//				found = TRUE;
-
-//			if (found == TRUE)
-//				file->transacts->transactions[line].sort_index = file->transacts->transactions[line + 1].sort_index;
-//		}
-
-		/* Remove the transaction. */
-
-		transaction--;
-	}
+	for (transaction = file->transacts->trans_count - 1; transact_is_blank(file, transaction); transaction--)
+		transact_list_window_delete_transaction(file->transacts->transact_window, transaction);
 
 	/* If any transactions were removed, free up the unneeded memory
 	 * from the end of the file.
 	 */
 
 	if (transaction < file->transacts->trans_count - 1) {
-		old_count = file->transacts->trans_count - 1;
 		file->transacts->trans_count = transaction + 1;
 
 		if (!flexutils_resize((void **) &(file->transacts->transactions), sizeof(struct transaction), file->transacts->trans_count))
 			error_msgs_report_error("BadDelete");
-
-//		transact_list_window_redraw_(file->transacts->transact_window, NULL_TRANSACTION);
-//\TODO		transact_force_window_redraw(file->transacts, 0, old_count, TRANSACT_PANE_ROW);
 	}
 }
 

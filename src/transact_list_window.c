@@ -4184,6 +4184,8 @@ osbool transact_list_window_add_transaction(struct transact_list_window *windat,
 	if (windat->transaction_window == NULL)
 		return TRUE;
 
+	debug_printf("Adding a new transaction to the window: transaction=%d, index=%d", transaction, windat->display_lines);
+
 	/* Extend the index array. */
 
 	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct transact_list_window_redraw), windat->display_lines + 1))
@@ -4197,10 +4199,7 @@ osbool transact_list_window_add_transaction(struct transact_list_window *windat,
 
 	transact_list_window_set_extent(windat);
 
-//	if (config_opt_read("AutoSortSOrders"))
-//		transact_list_window_sort(windat);
-//	else
-//		transact_list_window_force_redraw(windat, windat->display_lines - 1, windat->display_lines - 1, wimp_ICON_WINDOW);
+	transact_list_window_force_redraw(windat, windat->display_lines - 1, windat->display_lines - 1, wimp_ICON_WINDOW);
 
 	return TRUE;
 }
@@ -4236,6 +4235,8 @@ osbool transact_list_window_delete_transaction(struct transact_list_window *wind
 			windat->line_data[i].transaction--;
 	}
 
+	debug_printf("Removing a transaction from the window: transaction=%d, index=%d", transaction, delete);
+
 	/* Delete the index entry. */
 
 	if (delete >= 0 && !flexutils_delete_object((void **) &(windat->line_data), sizeof(struct transact_list_window_redraw), delete))
@@ -4249,10 +4250,7 @@ osbool transact_list_window_delete_transaction(struct transact_list_window *wind
 
 	windows_open(windat->transaction_window);
 
-//	if (config_opt_read("AutoSortSOrders"))
-//		sorder_list_window_sort(windat);
-//	else
-//		sorder_list_window_force_redraw(windat, delete, windat->display_lines, wimp_ICON_WINDOW);
+	transact_list_window_force_redraw(windat, delete, windat->display_lines, wimp_ICON_WINDOW);
 
 	return TRUE;
 }

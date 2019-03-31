@@ -2185,6 +2185,35 @@ void transact_list_window_build_title(struct transact_list_window *windat)
 
 
 /**
+ * Re-index the transactions in a transaction list window.  This can *only*
+ * be done after transact_sort_file_data() has been called, as it requires
+ * data set up in the transaction block by that call.
+ *
+ * \param *windat		The transaction window to reindex.
+ */
+
+void transact_list_window_reindex(struct transact_list_window *windat)
+{
+	struct file_block	*file;
+	int			line, transaction;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return;
+
+	if (windat == NULL || windat->line_data == NULL || windat->transaction_window == NULL)
+		return;
+
+	for (line = 0; line < windat->display_lines; line++) {
+		transaction = windat->line_data[line].transaction;
+		windat->line_data[line].transaction = transact_get_sort_workspace(file, transaction);
+	}
+
+	transact_list_window_force_redraw(windat, 0, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);
+}
+
+
+/**
  * Force the redraw of one or all of the transactions in a given
  * Transaction List window.
  *
@@ -2193,7 +2222,7 @@ void transact_list_window_build_title(struct transact_list_window *windat)
 
 void transact_list_window_redraw(struct transact_list_window *windat, tran_t transaction)
 {
-	int	from, to;
+	int from, to;
 
 	if (windat == NULL)
 		return;

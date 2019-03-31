@@ -120,8 +120,8 @@ struct transaction {
 	 */
 
 //	tran_t			sort_index;					/**< Point to another transaction, to allow the transaction window to be sorted.	*/
-//	tran_t			saved_sort;					/**< Preserve the transaction window sort order across transaction data sorts.		*/
-//	tran_t			sort_workspace;					/**< Workspace used by the sorting code.						*/
+	tran_t			saved_sort;					/**< Preserve the transaction window sort order across transaction data sorts.		*/
+	tran_t			sort_workspace;					/**< Workspace used by the sorting code.						*/
 };
 
 
@@ -805,8 +805,8 @@ int transact_get_sort_workspace(struct file_block *file, tran_t transaction)
 {
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
 		return 0;
-// \TODO
-	return NULL; //file->transacts->transactions[transaction].sort_workspace;
+
+	return file->transacts->transactions[transaction].sort_workspace;
 }
 
 
@@ -1221,12 +1221,11 @@ void transact_sort_file_data(struct file_block *file)
 	/* Start by recording the order of the transactions on display in the
 	 * main window, and also the order of the transactions themselves.
 	 */
-
 // \TODO
-//	for (i=0; i < file->transacts->trans_count; i++) {
+	for (i=0; i < file->transacts->trans_count; i++) {
 //		file->transacts->transactions[file->transacts->transactions[i].sort_index].saved_sort = i;	/* Record transaction window lines. */
-//		file->transacts->transactions[i].sort_index = i;						/* Record old transaction locations. */
-//	}
+		file->transacts->transactions[i].saved_sort = i;						/* Record old transaction locations. */
+	}
 
 	/* Sort the entries using a combsort.  This has the advantage over qsort()
 	 * that the order of entries is only affected if they are not equal and are
@@ -1256,16 +1255,15 @@ void transact_sort_file_data(struct file_block *file)
 	 * main window.
 	 */
 // \TODO
-//	for (i=0; i < file->transacts->trans_count; i++)
-//		file->transacts->transactions[file->transacts->transactions[i].sort_index].sort_workspace = i;
+	for (i=0; i < file->transacts->trans_count; i++)
+		file->transacts->transactions[file->transacts->transactions[i].saved_sort].sort_workspace = i;
 
 	accview_reindex_all(file);
+	transact_list_window_reindex(file->transacts->transact_window);
 
 // \TODO
 //	for (i=0; i < file->transacts->trans_count; i++)
 //		file->transacts->transactions[file->transacts->transactions[i].saved_sort].sort_index = i;
-
-	transact_list_window_redraw(file->transacts->transact_window, NULL_TRANSACTION); //\TODO -- Just TRANSACT_PANE_ROW
 
 	file->transacts->date_sort_valid = TRUE;
 

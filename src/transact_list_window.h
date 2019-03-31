@@ -125,6 +125,17 @@ void transact_list_window_build_title(struct transact_list_window *windat);
 
 
 /**
+ * Re-index the transactions in a transaction list window.  This can *only*
+ * be done after transact_sort_file_data() has been called, as it requires
+ * data set up in the transaction block by that call.
+ *
+ * \param *windat		The transaction window to reindex.
+ */
+
+void transact_list_window_reindex(struct transact_list_window *windat);
+
+
+/**
  * Force the redraw of one or all of the transactions in a given
  * Transaction List window.
  *

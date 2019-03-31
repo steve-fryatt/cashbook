@@ -1149,7 +1149,8 @@ void preset_list_window_build_title(struct preset_list_window *windat)
 	msgs_param_lookup("PresetTitle", windat->window_title, WINDOW_TITLE_LENGTH,
 			name, NULL, NULL, NULL);
 
-	wimp_force_redraw_title(windat->preset_window);
+	if (windat->preset_window != NULL)
+		wimp_force_redraw_title(windat->preset_window);
 }
 
 

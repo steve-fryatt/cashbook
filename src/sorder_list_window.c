@@ -1167,7 +1167,8 @@ void sorder_list_window_build_title(struct sorder_list_window *windat)
 	msgs_param_lookup("SOrderTitle", windat->window_title, WINDOW_TITLE_LENGTH,
 			name, NULL, NULL, NULL);
 
-	wimp_force_redraw_title(windat->sorder_window);
+	if (windat->sorder_window != NULL)
+		wimp_force_redraw_title(windat->sorder_window);
 }
 
 

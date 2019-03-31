@@ -659,10 +659,7 @@ static osbool preset_process_edit_window(void *parent, struct preset_dialogue_da
 	if (content->preset == NULL_PRESET)
 		content->preset = preset_add(windat->file);
 
-	/* If the preset was created OK, store the rest of the data.
-	 *
-	 * \TODO -- This should error before returning FALSE.
-	 */
+	/* If the preset was created OK, store the rest of the data. */
 
 	if (content->preset == NULL_PRESET)
 		return FALSE;

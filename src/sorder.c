@@ -374,10 +374,8 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
 
 	if (content->sorder == NULL_SORDER) {
 		content->sorder = sorder_add(windat->file);
-		if (content->sorder == NULL_SORDER) {
-			// \TODO - Error no mem!
+		if (content->sorder == NULL_SORDER)
 			return FALSE;
-		}
 
 		if (!sorder_valid(windat, content->sorder))
 			return FALSE;

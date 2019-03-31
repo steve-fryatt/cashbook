@@ -125,12 +125,13 @@ void transact_list_window_build_title(struct transact_list_window *windat);
 
 
 /**
- * Force the complete redraw of a given Transaction window.
+ * Force the redraw of one or all of the transactions in a given
+ * Transaction List window.
  *
  * \param *windat		The transaction window to redraw.
  */
 
-void transact_list_window_redraw_all(struct transact_list_window *windat);
+void transact_list_window_redraw(struct transact_list_window *windat, tran_t transaction);
 
 
 /**

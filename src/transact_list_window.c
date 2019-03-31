@@ -2179,17 +2179,28 @@ void transact_list_window_build_title(struct transact_list_window *windat)
 
 
 /**
- * Force the complete redraw of a given Transaction window.
+ * Force the redraw of one or all of the transactions in a given
+ * Transaction List window.
  *
  * \param *windat		The transaction window to redraw.
  */
 
-void transact_list_window_redraw_all(struct transact_list_window *windat)
+void transact_list_window_redraw(struct transact_list_window *windat, tran_t transaction)
 {
+	int	from, to;
+
 	if (windat == NULL)
 		return;
 
-	transact_list_window_force_redraw(windat, 0, windat->display_lines - 1, wimp_ICON_WINDOW);
+	if (transaction != NULL_TRANSACTION) {
+		from = transact_list_window_get_line_from_transaction(windat, transaction);
+		to = from;
+	} else {
+		from = 0;
+		to = windat->display_lines - 1;
+	}
+
+	transact_list_window_force_redraw(windat, from, to, wimp_ICON_WINDOW);
 }
 
 
@@ -4039,7 +4050,7 @@ void transact_list_window_sort(struct transact_list_window *windat)
 	if (windat->transaction_window != NULL && windat->transaction_window == caret.w)
 		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
 
-	transact_list_window_redraw_all(windat);
+	transact_list_window_redraw(windat, NULL_TRANSACTION);
 
 	hourglass_off();
 }

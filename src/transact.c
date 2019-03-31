@@ -334,7 +334,7 @@ void transact_redraw_all(struct file_block *file)
 	if (file == NULL || file->transacts == NULL)
 		return;
 
-	transact_list_window_redraw_all(file->transacts->transact_window);
+	transact_list_window_redraw(file->transacts->transact_window, NULL_TRANSACTION);
 }
 
 
@@ -630,8 +630,9 @@ void transact_strip_blanks_from_end(struct file_block *file)
 
 		if (!flexutils_resize((void **) &(file->transacts->transactions), sizeof(struct transaction), file->transacts->trans_count))
 			error_msgs_report_error("BadDelete");
-//\TODO
-//		transact_force_window_redraw(file->transacts, 0, old_count, TRANSACT_PANE_ROW);
+
+//		transact_list_window_redraw_(file->transacts->transact_window, NULL_TRANSACTION);
+//\TODO		transact_force_window_redraw(file->transacts, 0, old_count, TRANSACT_PANE_ROW);
 	}
 }
 
@@ -857,7 +858,6 @@ osbool transact_test_index_valid(struct file_block *file, tran_t transaction)
 
 void transact_change_date(struct file_block *file, tran_t transaction, date_t new_date)
 {
-	int	line;
 	osbool	changed = FALSE;
 	date_t	old_date = NULL_DATE;
 
@@ -909,8 +909,7 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 
 		/* Force a redraw of the affected line. */
 
-		line = transact_get_line_from_transaction(file, transaction);
-//\TODO		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+		transact_list_window_redraw(file->transacts->transact_window, transaction);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -929,7 +928,6 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 
 void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account, osbool reconciled)
 {
-	int		line;
 	osbool		changed = FALSE;
 	unsigned	old_flags;
 	acct_t		old_acct = NULL_ACCOUNT;
@@ -1025,8 +1023,7 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 	/* Force a redraw of the affected line. */
 
-	line = transact_get_line_from_transaction(file, transaction);
-//\TODO	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+	transact_list_window_redraw(file->transacts->transact_window, transaction);
 
 	file_set_data_integrity(file, TRUE);
 }
@@ -1042,7 +1039,6 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 
 void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag)
 {
-	int	line;
 	osbool	changed = FALSE;
 
 
@@ -1086,8 +1082,7 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 
 		/* Force a redraw of the affected line. */
 
-		line = transact_get_line_from_transaction(file, transaction);
-//\TODO		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+		transact_list_window_redraw(file->transacts->transact_window, transaction);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -1104,8 +1099,7 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 
 void transact_change_amount(struct file_block *file, tran_t transaction, amt_t new_amount)
 {
-	int	line;
-	osbool	changed = FALSE;
+	osbool changed = FALSE;
 
 
 	/* Only do anything if the transaction is inside the limit of the file. */
@@ -1140,8 +1134,7 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
 
 		/* Force a redraw of the affected line. */
 
-		line = transact_get_line_from_transaction(file, transaction);
-//\TODO		transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+		transact_list_window_redraw(file->transacts->transact_window, transaction);
 
 		file_set_data_integrity(file, TRUE);
 	}
@@ -1159,9 +1152,7 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
 
 void transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text)
 {
-	int	line;
-	osbool	changed = FALSE;
-
+	osbool changed = FALSE;
 
 	/* Only do anything if the transaction is inside the limit of the file. */
 
@@ -1205,8 +1196,7 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 
 	/* Force a redraw of the affected line. */
 
-	line = transact_get_line_from_transaction(file, transaction);
-//\TODO	transact_force_window_redraw(file->transacts, line, line, wimp_ICON_WINDOW);
+	transact_list_window_redraw(file->transacts->transact_window, transaction);
 
 	file_set_data_integrity(file, TRUE);
 }
@@ -1299,7 +1289,7 @@ void transact_sort_file_data(struct file_block *file)
 //	for (i=0; i < file->transacts->trans_count; i++)
 //		file->transacts->transactions[file->transacts->transactions[i].saved_sort].sort_index = i;
 
-//	transact_force_window_redraw(file->transacts, 0, file->transacts->trans_count - 1, TRANSACT_PANE_ROW);
+	transact_list_window_redraw(file->transacts->transact_window, NULL_TRANSACTION); //\TODO -- Just TRANSACT_PANE_ROW
 
 	file->transacts->date_sort_valid = TRUE;
 

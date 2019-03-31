@@ -1172,7 +1172,8 @@ void sorder_list_window_build_title(struct sorder_list_window *windat)
 
 
 /**
- * Force the complete redraw of the given Standing Order list window.
+ * Force the redraw of one or all of the standing orders in the given
+ * Standing Order list window.
  *
  * \param *windat		The standing order window to redraw.
  * \param sorder		The standing order to redraw, or NULL_SORDER for all.

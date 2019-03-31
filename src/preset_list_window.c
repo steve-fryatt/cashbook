@@ -1154,7 +1154,8 @@ void preset_list_window_build_title(struct preset_list_window *windat)
 
 
 /**
- * Force the complete redraw of the given Preset list window.
+ * Force the redraw of one or all of the presets in the given Preset list
+ * bwindow.
  *
  * \param *file			The file owning the window to redraw.
  * \param preset		The preset to redraw, or NULL_PRESET for all.

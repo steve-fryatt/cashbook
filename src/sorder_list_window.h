@@ -113,7 +113,7 @@ osbool sorder_list_window_add_sorder(struct sorder_list_window *windat, sorder_t
 
 
 /**
- * Remove a standing order from an instance of the preset list window,
+ * Remove a standing order from an instance of the standing order list window,
  * and update the other entries to allow for its deletion.
  *
  * \param *windat		The standing order list window instance to remove from.

@@ -399,6 +399,12 @@ static wimp_menu			*transact_list_window_account_list_menu = NULL;
 static int				transact_list_window_menu_line = -1;
 
 /**
+ * Set to TRUE to disable forced redraw requests within the window.
+ */
+
+static osbool				transact_list_window_disable_redraw = FALSE;
+
+/**
  * The Transaction List Window Edit Line callbacks.
  */
 
@@ -2218,7 +2224,7 @@ static void transact_list_window_force_redraw(struct transact_list_window *winda
 	int			line;
 	wimp_window_info	window;
 
-	if (windat == NULL || windat->transaction_window == NULL)
+	if (windat == NULL || windat->transaction_window == NULL || transact_list_window_disable_redraw)
 		return;
 
 	/* If the edit line falls inside the redraw range, refresh it. */
@@ -3131,7 +3137,14 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 
 	transaction = windat->line_data[data->line].transaction;
 
-	/* Process the supplied data. */
+	/* Process the supplied data.
+	 *
+	 * During this operation, forced redraw is disabled for the window,
+	 * so that the changes made to the data don't force updates which
+	 * the trigger data refetches.
+	 */
+
+	transact_list_window_disable_redraw = TRUE;
 
 	switch (data->icon) {
 	case TRANSACT_LIST_WINDOW_DATE:
@@ -3157,6 +3170,8 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 		transact_change_refdesc(file, transaction, TRANSACT_FIELD_DESC, data->text.text);
 		break;
 	}
+
+	transact_list_window_disable_redraw = FALSE;
 
 	/* Finally, look for the next reconcile line if that is necessary.
 	 *

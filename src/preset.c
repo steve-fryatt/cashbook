@@ -743,6 +743,8 @@ static int preset_add(struct file_block *file)
 
 	preset_list_window_add_preset(file->presets->preset_window, new);
 
+	file_set_data_integrity(file, TRUE);
+
 	return new;
 }
 

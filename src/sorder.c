@@ -568,6 +568,8 @@ static sorder_t sorder_add(struct file_block *file)
 
 	sorder_list_window_add_sorder(file->sorders->sorder_window, new);
 
+	file_set_data_integrity(file, TRUE);
+
 	return new;
 }
 

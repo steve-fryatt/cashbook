@@ -3141,7 +3141,7 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 	 *
 	 * During this operation, forced redraw is disabled for the window,
 	 * so that the changes made to the data don't force updates which
-	 * the trigger data refetches.
+	 * then trigger data refetches and further change the edit line.
 	 */
 
 	transact_list_window_disable_redraw = TRUE;

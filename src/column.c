@@ -697,6 +697,58 @@ osbool column_get_icons(struct column_block *instance, wimp_i icons[], size_t le
 
 
 /**
+ * Return details of the field icons associated with a heading icon in
+ * a column instance.
+ *
+ * \param *instance		The column instance to query.
+ * \param heading		The heading to query.
+ * \param icons[]		Pointer to an array to hold the column icon handles.
+ * \param length		The size of the supplied array.
+ * \int				The number of columns found; otherwise zero.
+ */
+
+osbool column_get_heading_icons(struct column_block *instance, wimp_i heading, wimp_i icons[], size_t length)
+{
+	int	column = -1, i, found = 0;
+
+	/* If no buffer is supplied, there's nothing to do. */
+
+	if (icons == NULL || length == 0)
+		return found;
+
+	/* Locate the first column in the heading group. */
+
+	column = column_get_leftmost_in_heading_group(instance, heading);
+
+	/* If no instance is supplied, or the located values don't make
+	 * sense, blank the buffer and return.
+	 */
+
+	if (instance == NULL) {
+		for (i = 0; i < length; i++)
+			icons[i] = wimp_ICON_WINDOW;
+		return found;
+	}
+
+	/* Fill the buffer with details of the column icons. */
+
+	i = 0;
+
+	for (; (column < instance->columns) && (i < length) && (instance->map[column].heading == heading); column++)
+		icons[i++] = instance->map[column].field;
+
+	found = i;
+
+	/* Pad the rest of the buffer with blank fields. */
+
+	for (; i < length; i++)
+		icons[i] = wimp_ICON_WINDOW;
+
+	return found;
+}
+
+
+/**
  * Create a column width configuration string from an array of column widths.
  *
  * \param *instance		The column instance to be processed.

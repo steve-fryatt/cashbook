@@ -264,6 +264,20 @@ osbool column_get_icons(struct column_block *instance, wimp_i icons[], size_t le
 
 
 /**
+ * Return details of the field icons associated with a heading icon in
+ * a column instance.
+ *
+ * \param *instance		The column instance to query.
+ * \param heading		The heading to query.
+ * \param icons[]		Pointer to an array to hold the column icon handles.
+ * \param length		The size of the supplied array.
+ * \int				The number of columns found; otherwise zero.
+ */
+
+osbool column_get_heading_icons(struct column_block *instance, wimp_i heading, wimp_i icons[], size_t length);
+
+
+/**
  * Create a column width configuration string from an array of column widths.
  *
  * \param *instance		The column instance to be processed.

@@ -2250,8 +2250,9 @@ void transact_list_window_redraw(struct transact_list_window *windat, tran_t tra
 
 static void transact_list_window_force_redraw(struct transact_list_window *windat, int from, int to, wimp_i column)
 {
-	int			line;
+	int			line, icons = 0, i;
 	wimp_window_info	window;
+	wimp_i			columns[TRANSACT_LIST_WINDOW_COLUMNS];
 
 	if (windat == NULL || windat->transaction_window == NULL || transact_list_window_disable_redraw)
 		return;
@@ -2261,7 +2262,16 @@ static void transact_list_window_force_redraw(struct transact_list_window *winda
 	line = edit_get_line(windat->edit_line);
 
 	if (line >= from && line <= to) {
-		edit_refresh_line_contents(windat->edit_line, column, wimp_ICON_WINDOW);
+		if (column != wimp_ICON_WINDOW) {
+			icons = column_get_heading_icons(windat->columns, column, columns, TRANSACT_LIST_WINDOW_COLUMNS);
+		} else if (TRANSACT_LIST_WINDOW_COLUMNS > 0) {
+			icons = 1;
+			columns[0] = wimp_ICON_WINDOW;
+		}
+
+		for (i = 0; i < icons; i++)
+			edit_refresh_line_contents(windat->edit_line, columns[i], wimp_ICON_WINDOW);
+
 		edit_set_line_colour(windat->edit_line, transact_list_window_line_colour(windat, line));
 		icons_replace_caret_in_window(windat->transaction_window);
 	}
@@ -2283,6 +2293,8 @@ static void transact_list_window_force_redraw(struct transact_list_window *winda
 
 	wimp_force_redraw(windat->transaction_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
 }
+
+
 /**
  * Turn a mouse position over a Transaction window into an interactive
  * help token.
@@ -3146,35 +3158,41 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 	 * (ie. if this is the first keypress in a new line), extend the transaction
 	 * entries to reach the current location.
 	 *
-	 * During the following operations, forced redraw is disabled for the
+	 * During the following operation, forced redraw is disabled for the
 	 * window, so that the changes made to the data don't force updates
 	 * which then trigger data refetches and further change the edit line.
+	 *
+	 * After the raw transactions are added, the Row column is redrawn only.
 	 */
-
-	transact_list_window_disable_redraw = TRUE;
 
 	if (data->line >= windat->display_lines) {
 		start = windat->display_lines;
-		
+
+		transact_list_window_disable_redraw = TRUE;
+
 		for (i = windat->display_lines; i <= data->line; i++)
 			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
-		// \TODO -- Add line here.? Or via transact? If the latter, do we redraw here? force_redraw already does refresh_line?
+		transact_list_window_disable_redraw = FALSE;
 
-		edit_refresh_line_contents(windat->edit_line, TRANSACT_LIST_WINDOW_ROW, wimp_ICON_WINDOW);
 		transact_list_window_force_redraw(windat, start, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);
 	}
 
 	/* Get out if we failed to create the necessary transactions. */
 
-	if (data->line >= windat->display_lines) {
-		transact_list_window_disable_redraw = FALSE;
+	if (data->line >= windat->display_lines)
 		return FALSE;
-	}
 
 	transaction = windat->line_data[data->line].transaction;
 
-	/* Process the supplied data. */
+	/* Process the supplied data.
+	 *
+	 * During the following operation, forced redraw is disabled for the
+	 * window, so that the changes made to the data don't force updates
+	 * which then trigger data refetches and further change the edit line.
+	 */
+
+	transact_list_window_disable_redraw = TRUE;
 
 	switch (data->icon) {
 	case TRANSACT_LIST_WINDOW_DATE:

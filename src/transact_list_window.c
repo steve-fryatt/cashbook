@@ -3153,7 +3153,7 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 		for (i = windat->display_lines; i <= data->line; i++)
 			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
-		// \TODO -- Add line here.? Or via transact? If the latter, do we redraw here?
+		// \TODO -- Add line here.? Or via transact? If the latter, do we redraw here? force_redraw already does refresh_line?
 
 		edit_refresh_line_contents(windat->edit_line, TRANSACT_LIST_WINDOW_ROW, wimp_ICON_WINDOW);
 		transact_list_window_force_redraw(windat, start, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);

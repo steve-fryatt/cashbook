@@ -3145,7 +3145,13 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 	/* If there is not a transaction entry for the current edit line location
 	 * (ie. if this is the first keypress in a new line), extend the transaction
 	 * entries to reach the current location.
+	 *
+	 * During the following operations, forced redraw is disabled for the
+	 * window, so that the changes made to the data don't force updates
+	 * which then trigger data refetches and further change the edit line.
 	 */
+
+	transact_list_window_disable_redraw = TRUE;
 
 	if (data->line >= windat->display_lines) {
 		start = windat->display_lines;
@@ -3161,19 +3167,14 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 
 	/* Get out if we failed to create the necessary transactions. */
 
-	if (data->line >= windat->display_lines)
+	if (data->line >= windat->display_lines) {
+		transact_list_window_disable_redraw = FALSE;
 		return FALSE;
+	}
 
 	transaction = windat->line_data[data->line].transaction;
 
-	/* Process the supplied data.
-	 *
-	 * During this operation, forced redraw is disabled for the window,
-	 * so that the changes made to the data don't force updates which
-	 * then trigger data refetches and further change the edit line.
-	 */
-
-	transact_list_window_disable_redraw = TRUE;
+	/* Process the supplied data. */
 
 	switch (data->icon) {
 	case TRANSACT_LIST_WINDOW_DATE:

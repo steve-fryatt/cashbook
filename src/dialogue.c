@@ -94,7 +94,7 @@ static void dialogue_menu_prepare_handler(wimp_w window, wimp_menu *menu, wimp_p
 static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static void dialogue_menu_close_handler(wimp_w window, wimp_menu *menu);
 static void dialogue_close_window(struct dialogue_block *dialogue);
-static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *pointer, struct dialogue_icon *icon);
+static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *pointer, enum dialogue_icon_type type);
 static void dialogue_fill(struct dialogue_block *dialogue);
 static void dialogue_place_caret(struct dialogue_block *dialogue);
 static void dialogue_shade_icons(struct dialogue_block *dialogue, wimp_i target);
@@ -477,10 +477,10 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 			dialogue_refresh(windat);
 		}
 	} else if (icon->type & DIALOGUE_ICON_OK) {
-		if (dialogue_process(windat, pointer, icon) && pointer->buttons == wimp_CLICK_SELECT)
+		if (dialogue_process(windat, pointer, icon->type) && pointer->buttons == wimp_CLICK_SELECT)
 			dialogue_close_window(windat);
 	} else if (icon->type & DIALOGUE_ICON_ACTION) {
-		if (dialogue_process(windat, pointer, icon)) {
+		if (dialogue_process(windat, pointer, icon->type)) {
 			if (icon->type & DIALOGUE_ICON_ACTION_NO_CLOSE)
 				dialogue_refresh(windat);
 			else
@@ -534,7 +534,7 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-		if (dialogue_process(windat, NULL, icon))
+		if (dialogue_process(windat, NULL, DIALOGUE_ICON_OK))
 			dialogue_close_window(windat);
 		break;
 
@@ -730,16 +730,16 @@ static void dialogue_close_window(struct dialogue_block *dialogue)
  *
  * \param *dialogue		The dialogue instance to process.
  * \param *pointer		Pointer to the pointer data, or NULL on keypress.
- * \param *icon			The dialogue icon details.
+ * \param type			The dialogue icon type flags.
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *pointer, struct dialogue_icon *icon)
+static osbool dialogue_process(struct dialogue_block *dialogue, wimp_pointer *pointer, enum dialogue_icon_type type)
 {
-	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->callback_process == NULL || icon == NULL)
+	if (dialogue == NULL || dialogue->window == NULL || dialogue->definition == NULL || dialogue->definition->callback_process == NULL)
 		return FALSE;
 
-	return dialogue->definition->callback_process(dialogue->file, dialogue->window, pointer, icon->type, dialogue->parent, dialogue->client_data);
+	return dialogue->definition->callback_process(dialogue->file, dialogue->window, pointer, type, dialogue->parent, dialogue->client_data);
 }
 
 

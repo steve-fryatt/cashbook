@@ -494,12 +494,12 @@ static osbool account_process_account_edit_window(void *parent, struct account_a
 	acct_t			check_ident;
 
 	/* Check the requested action from the user. */
-
+debug_printf("One");
 	if (content->action == ACCOUNT_ACCOUNT_DIALOGUE_ACTION_DELETE)
 		return account_delete_from_edit_window(instance, content->account);
 	else if (content->action != ACCOUNT_ACCOUNT_DIALOGUE_ACTION_OK)
 		return FALSE;
-
+debug_printf("Two");
 	/* Check that the ident is valid and unused. As a full account,
 	 * we need to check all full accounts and also all headers.
 	 */

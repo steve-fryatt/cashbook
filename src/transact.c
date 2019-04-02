@@ -1218,14 +1218,12 @@ void transact_sort_file_data(struct file_block *file)
 
 	hourglass_on();
 
-	/* Start by recording the order of the transactions on display in the
-	 * main window, and also the order of the transactions themselves.
+	/* Start by recording the order of the transactions as they are
+	 * currently held in the array.
 	 */
-// \TODO
-	for (i=0; i < file->transacts->trans_count; i++) {
-//		file->transacts->transactions[file->transacts->transactions[i].sort_index].saved_sort = i;	/* Record transaction window lines. */
-		file->transacts->transactions[i].saved_sort = i;						/* Record old transaction locations. */
-	}
+
+	for (i = 0; i < file->transacts->trans_count; i++)
+		file->transacts->transactions[i].saved_sort = i;
 
 	/* Sort the entries using a combsort.  This has the advantage over qsort()
 	 * that the order of entries is only affected if they are not equal and are
@@ -1241,7 +1239,9 @@ void transact_sort_file_data(struct file_block *file)
 
 		sorted = TRUE;
 		for (comb = 0; (comb + gap) < file->transacts->trans_count; comb++) {
-			if (file->transacts->transactions[comb+gap].date < file->transacts->transactions[comb].date) {
+			if ((file->transacts->transactions[comb+gap].date < file->transacts->transactions[comb].date) ||
+					((file->transacts->transactions[comb+gap].date == file->transacts->transactions[comb].date) &&
+						(file->transacts->transactions[comb+gap].saved_sort < file->transacts->transactions[comb].saved_sort))) {
 				temp = file->transacts->transactions[comb+gap];
 				file->transacts->transactions[comb+gap] = file->transacts->transactions[comb];
 				file->transacts->transactions[comb] = temp;
@@ -1252,18 +1252,16 @@ void transact_sort_file_data(struct file_block *file)
 	} while (!sorted || gap != 1);
 
 	/* Finally, restore the order of the transactions on display in the
-	 * main window.
+	 * main window and any account view windows which are open.
 	 */
-// \TODO
-	for (i=0; i < file->transacts->trans_count; i++)
+
+	for (i = 0; i < file->transacts->trans_count; i++)
 		file->transacts->transactions[file->transacts->transactions[i].saved_sort].sort_workspace = i;
 
 	accview_reindex_all(file);
 	transact_list_window_reindex(file->transacts->transact_window);
 
-// \TODO
-//	for (i=0; i < file->transacts->trans_count; i++)
-//		file->transacts->transactions[file->transacts->transactions[i].saved_sort].sort_index = i;
+	/* Mark the sort as valid. */
 
 	file->transacts->date_sort_valid = TRUE;
 

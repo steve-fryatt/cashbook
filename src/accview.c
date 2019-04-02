@@ -1934,8 +1934,10 @@ void accview_reindex_all(struct file_block *file)
 		if (view != NULL && view->line_data != NULL) {
 			for (line = 0; line < view->display_lines; line++) {
 				transaction = (view->line_data)[line].transaction;
-				(view->line_data)[line].transaction = transact_get_sort_workspace(file, transaction);
+				(view->line_data)[line].transaction = transact_get_new_sort_index(file, transaction);
 			}
+
+			// \TODO - Does this require a full redraw?
 
 			accview_force_window_redraw(view, 0, view->display_lines - 1, ACCVIEW_PANE_ROW);
 		}

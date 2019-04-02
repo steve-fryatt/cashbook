@@ -2206,10 +2206,10 @@ void transact_list_window_reindex(struct transact_list_window *windat)
 
 	for (line = 0; line < windat->display_lines; line++) {
 		transaction = windat->line_data[line].transaction;
-		windat->line_data[line].transaction = transact_get_sort_workspace(file, transaction);
-
-		debug_printf("Reindexing line %d as %d", transaction, windat->line_data[line].transaction);
+		windat->line_data[line].transaction = transact_get_new_sort_index(file, transaction);
 	}
+
+	// \TODO - Does this require a full redraw?
 
 	transact_list_window_force_redraw(windat, 0, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);
 }

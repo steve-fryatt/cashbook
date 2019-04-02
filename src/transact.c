@@ -105,23 +105,51 @@
  */
 
 struct transaction {
-	date_t			date;						/**< The date of the transaction.							*/
-	enum transact_flags	flags;						/**< The flags applying to the transaction.						*/
-	acct_t			from;						/**< The account from which money is being transferred.					*/
-	acct_t			to;						/**< The account to which money is being transferred.					*/
-	amt_t			amount;						/**< The amount of money transferred by the transaction.				*/
-	char			reference[TRANSACT_REF_FIELD_LEN];		/**< The transaction reference text.							*/
-	char			description[TRANSACT_DESCRIPT_FIELD_LEN];	/**< The transaction description text.							*/
-
-	/* Sort index entries.
-	 *
-	 * NB - These are unconnected to the rest of the transaction data, and are in effect a separate array that is used
-	 * for handling entries in the transaction window.
+	/**
+	 * The date of the transaction.
 	 */
+	date_t			date;
 
-//	tran_t			sort_index;					/**< Point to another transaction, to allow the transaction window to be sorted.	*/
-	tran_t			saved_sort;					/**< Preserve the transaction window sort order across transaction data sorts.		*/
-	tran_t			sort_workspace;					/**< Workspace used by the sorting code.						*/
+	/**
+	 * The flags applying to the transaction.
+	 */
+	enum transact_flags	flags;
+
+	/**
+	 * The account from which money is being transferred.
+	 */
+	acct_t			from;
+
+	/**
+	 * The account to which money is being transferred.
+	 */
+	acct_t			to;
+
+	/**
+	 * The amount of money transferred by the transaction.
+	 */
+	amt_t			amount;
+
+	/**
+	 * The transaction reference text.
+	 */
+	char			reference[TRANSACT_REF_FIELD_LEN];
+
+	/**
+	 * The transaction description text.
+	 */
+	char			description[TRANSACT_DESCRIPT_FIELD_LEN];
+
+	/**
+	 * Preserve the original sort index across a date sort operation.
+	 */
+	tran_t			saved_sort;
+
+	/**
+	 * After a date sort operation, the new index of the transaction which
+	 * was previously at this index.
+	 */
+	tran_t			new_sort_index;
 };
 
 
@@ -794,19 +822,19 @@ char *transact_get_description(struct file_block *file, tran_t transaction, char
 
 
 /**
- * Return the sort workspace for a transaction.
+ * Return the new index for a transaction, following a date sort.
  *
  * \param *file			The file containing the transaction.
  * \param transaction		The transaction to return the workspace of.
  * \return			The sort workspace for the transaction, or 0.
  */
 
-int transact_get_sort_workspace(struct file_block *file, tran_t transaction)
+int transact_get_new_sort_index(struct file_block *file, tran_t transaction)
 {
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
 		return 0;
 
-	return file->transacts->transactions[transaction].sort_workspace;
+	return file->transacts->transactions[transaction].new_sort_index;
 }
 
 
@@ -1256,7 +1284,7 @@ void transact_sort_file_data(struct file_block *file)
 	 */
 
 	for (i = 0; i < file->transacts->trans_count; i++)
-		file->transacts->transactions[file->transacts->transactions[i].saved_sort].sort_workspace = i;
+		file->transacts->transactions[file->transacts->transactions[i].saved_sort].new_sort_index = i;
 
 	accview_reindex_all(file);
 	transact_list_window_reindex(file->transacts->transact_window);

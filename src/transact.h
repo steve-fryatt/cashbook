@@ -478,14 +478,14 @@ char *transact_get_description(struct file_block *file, tran_t transaction, char
 
 
 /**
- * Return the sort workspace for a transaction.
+ * Return the new index for a transaction, following a date sort.
  *
  * \param *file			The file containing the transaction.
  * \param transaction		The transaction to return the workspace of.
  * \return			The sort workspace for the transaction, or 0.
  */
 
-int transact_get_sort_workspace(struct file_block *file, tran_t transaction);
+int transact_get_new_sort_index(struct file_block *file, tran_t transaction);
 
 
 /**

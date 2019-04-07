@@ -353,24 +353,6 @@ preset_t preset_find_from_keypress(struct file_block *file, char key);
 
 
 /**
- * Apply a preset to fields of a transaction.
- *
- * \param *file			The file holding the preset.
- * \param preset		The preset to apply.
- * \param *date			The date field to be updated.
- * \param *from			The from field to be updated.
- * \param *to			The to field to be updated.
- * \param *flags		The flags field to be updated.
- * \param *amount		The amount field to be updated.
- * \param *reference		The reference field to be updated.
- * \param *description		The description field to be updated.
- * \return			Bitfield indicating which fields have changed.
- */
-
-enum transact_field preset_apply(struct file_block *file, preset_t preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description);
-
-
-/**
  * Save the standing order details from a file to a CashBook file
  *
  * \param *file			The file to write.

@@ -536,7 +536,7 @@ static osbool transact_list_window_edit_insert_preset(int line, wimp_key_no key,
 static wimp_i transact_list_window_convert_preset_icon_number(enum preset_caret caret);
 static int transact_list_window_edit_auto_sort(wimp_i icon, void *data);
 static wimp_colour transact_list_window_line_colour(struct transact_list_window *windat, int line);
-
+static osbool transact_list_window_extend_display_lines(struct transact_list_window *windat, int line);
 
 
 static void transact_list_window_open_sort_window(struct transact_list_window *windat, wimp_pointer *ptr);
@@ -3138,7 +3138,6 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 {
 	struct transact_list_window	*windat;
 	struct file_block		*file;
-	int				start, i;
 	tran_t				transaction;
 
 #ifdef DEBUG
@@ -3160,29 +3159,10 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 	 * (ie. if this is the first keypress in a new line), extend the transaction
 	 * entries to reach the current location.
 	 *
-	 * During the following operation, forced redraw is disabled for the
-	 * window, so that the changes made to the data don't force updates
-	 * which then trigger data refetches and further change the edit line.
-	 *
-	 * After the raw transactions are added, the Row column is redrawn only.
+	 * Get out if we failed to create the necessary transactions.
 	 */
 
-	if (data->line >= windat->display_lines) {
-		start = windat->display_lines;
-
-		transact_list_window_disable_redraw = TRUE;
-
-		for (i = windat->display_lines; i <= data->line; i++)
-			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
-
-		transact_list_window_disable_redraw = FALSE;
-
-		transact_list_window_force_redraw(windat, start, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);
-	}
-
-	/* Get out if we failed to create the necessary transactions. */
-
-	if (data->line >= windat->display_lines)
+	if (!transact_list_window_extend_display_lines(windat, data->line))
 		return FALSE;
 
 	transaction = windat->line_data[data->line].transaction;
@@ -3458,8 +3438,12 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 {
 	enum transact_field	changed = TRANSACT_FIELD_NONE;
 	struct file_block	*file;
+	enum transact_flags	flags;
 	tran_t			transaction;
-	int			i;
+	date_t			date;
+	acct_t			from, to;
+	amt_t			amount;
+	char			text[TRANSACT_DESCRIPT_FIELD_LEN]; /* This assumes that the description is longer than the reference. */
 	enum sort_type		order;
 
 
@@ -3470,26 +3454,68 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	if (file == NULL || !preset_test_index_valid(file, preset))
 		return FALSE;
 
-	/* Identify the transaction to be updated. */
-	/* If there is not a transaction entry for the current edit line location
-	 * (ie. if this is the first keypress in a new line), extend the transaction
-	 * entries to reach the current location.
-	 */
+	/* Ensure that there is a transaction behind the target line. */
 
-	if (line >= windat->display_lines) {
-		for (i = windat->display_lines; i <= line; i++)
-			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
-
-		edit_refresh_line_contents(windat->edit_line, TRANSACT_LIST_WINDOW_ROW, wimp_ICON_WINDOW);
-	}
-
-	if (line >= windat->display_lines)
+	if (!transact_list_window_extend_display_lines(windat, line))
 		return FALSE;
 
 	transaction = windat->line_data[line].transaction;
 
-	if (!transact_test_index_valid(file, transaction))
-		return FALSE;
+	/* Update the transaction from the preset, piece by piece. */
+
+	flags = preset_get_flags(file, preset);
+
+	/* Update the date. */
+
+	date = (flags & TRANS_TAKE_TODAY) ? date_today() : preset_get_date(file, preset);
+
+	if (date != NULL_DATE)
+		transact_change_date(file, transaction, date);
+
+	/* Update the From account. */
+
+	from = preset_get_from(file, preset);
+
+	if (from != NULL_ACCOUNT)
+		transact_change_account(file, transaction, TRANSACT_FIELD_FROM, from,
+				((flags & TRANS_REC_FROM) == TRANS_REC_FROM) ? TRUE : FALSE);
+
+	/* Update the To account. */
+
+	to = preset_get_to(file, preset);
+
+	if (to != NULL_ACCOUNT)
+		transact_change_account(file, transaction, TRANSACT_FIELD_TO, to,
+				((flags & TRANS_REC_TO) == TRANS_REC_TO) ? TRUE : FALSE);
+
+	/* Update the reference. */
+
+	if (flags & TRANS_TAKE_CHEQUE)
+		account_get_next_cheque_number(file, from, to, 1, text, TRANSACT_DESCRIPT_FIELD_LEN);
+	else
+		preset_get_reference(file, preset, text, TRANSACT_DESCRIPT_FIELD_LEN);
+
+	if (*text != '\0')
+		transact_change_refdesc(file, transaction, TRANSACT_FIELD_REF, text);
+
+	/* Update the amount. */
+
+	amount = preset_get_amount(file, preset);
+
+	if (amount != NULL_CURRENCY)
+		transact_change_amount(file, transaction, amount);
+
+	/* Update the description. */
+
+	preset_get_description(file, preset, text, TRANSACT_DESCRIPT_FIELD_LEN);
+
+	if (*text != '\0')
+		transact_change_refdesc(file, transaction, TRANSACT_FIELD_DESC, text);
+
+
+
+
+
 
 	/* Remove the target transaction from all calculations. */
 
@@ -3565,7 +3591,7 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	}
 
 
-	file_set_data_integrity(file, TRUE);
+//	file_set_data_integrity(file, TRUE);
 
 	return TRUE;
 }
@@ -3707,6 +3733,53 @@ static wimp_colour transact_list_window_line_colour(struct transact_list_window 
 		return config_int_read("ShadeReconciledColour");
 	else
 		return wimp_COLOUR_BLACK;
+}
+
+
+/**
+ * Extend the active display area of the transaction list window to the
+ * specified line (if necessary) by adding blank transaction lines.
+ *
+ * \param *windat	The transaction list window to extend.
+ * \param line		The line to be included in the active range.
+ * \return		TRUE on success; FALSE on failure.
+ */
+
+static osbool transact_list_window_extend_display_lines(struct transact_list_window *windat, int line)
+{
+	struct file_block	*file;
+	int			i;
+
+	if (windat == NULL || windat->instance == NULL || windat->edit_line == NULL)
+		return FALSE;
+
+	file = transact_get_file(windat->instance);
+	if (file == NULL)
+		return FALSE;
+
+	/* During the following operation, forced redraw is disabled for the
+	 * window, so that the changes made to the data don't force updates
+	 * which then trigger data refetches and potentially change the edit line.
+	 *
+	 * After the raw transactions are added, the Row column is redrawn only.
+	 */
+
+	if (line >= windat->display_lines) {
+		start = windat->display_lines;
+
+		transact_list_window_disable_redraw = TRUE;
+
+		for (i = windat->display_lines; i <= line; i++)
+			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
+
+		transact_list_window_disable_redraw = FALSE;
+
+		transact_list_window_force_redraw(windat, start, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);
+	}
+
+	/* If the line is less than the display line count, we succeeded. */
+
+	return (line < windat->display_lines) ? TRUE : FALSE;
 }
 
 

@@ -168,10 +168,10 @@ static void preset_menu_decode(wimp_selection *selection)
 	if (preset_menu_line >= transact_get_count(preset_menu_file))
 		return;
 
-//	if (selection->items[0] == PRESET_MENU_DATE)
-//		transact_change_date(preset_menu_file, transact_get_transaction_from_line(preset_menu_file, preset_menu_line), date_today());
-//	else
-//\TODO		transact_insert_preset_into_line(preset_menu_file, preset_menu_line, preset_menu_entry_link[selection->items[0]].preset);
+	if (selection->items[0] == PRESET_MENU_DATE)
+		transact_change_date(preset_menu_file, transact_get_transaction_from_line(preset_menu_file, preset_menu_line), date_today());
+	else
+		transact_insert_preset_into_line(preset_menu_file, preset_menu_line, preset_menu_entry_link[selection->items[0]].preset);
 }
 
 

@@ -972,7 +972,7 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 				continue;
 			}
 
-			flags =  preset_get_flags(file, preset);
+			flags = preset_get_flags(file, preset);
 
 			/* Key field */
 

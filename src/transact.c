@@ -1344,6 +1344,25 @@ void transact_purge(struct file_block *file, date_t cutoff)
 
 
 /**
+ * Insert a preset into a pre-existing transaction, taking care of updating all
+ * the file data in a clean way.
+ *
+ * \param *file		The file to be updated.
+ * \param line		The line in the transaction window to update.
+ * \param preset	The preset to insert into the transaction.
+ * \return		TRUE if successful; FALSE on failure.
+ */
+
+osbool transact_insert_preset_into_line(struct file_block *file, int line, preset_t preset)
+{
+	if (file == NULL || file->transacts == NULL)
+		return FALSE;
+
+	return transact_list_window_insert_preset_into_line(file->transacts->transact_window, line, preset);
+}
+
+
+/**
  * Save the transaction details from a file to a CashBook file
  *
  * \param *file			The file to write.

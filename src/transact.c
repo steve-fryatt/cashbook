@@ -858,9 +858,10 @@ osbool transact_test_index_valid(struct file_block *file, tran_t transaction)
  * \param *file		The file to edit.
  * \param transaction	The transaction to edit.
  * \param new_date	The new date to set the transaction to.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_date(struct file_block *file, tran_t transaction, date_t new_date)
+osbool transact_change_date(struct file_block *file, tran_t transaction, date_t new_date)
 {
 	osbool	changed = FALSE;
 	date_t	old_date = NULL_DATE;
@@ -869,7 +870,7 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 	/* Only do anything if the transaction is inside the limit of the file. */
 
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
-		return;
+		return FALSE;
 
 	account_remove_transaction(file, transaction);
 
@@ -896,27 +897,30 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
 	 * the transaction window line and mark the file as modified.
 	 */
 
-	if (changed == TRUE) {
-		/* Ideally, we would want to recalculate just the affected two
-		 * accounts.  However, because the date sort is unclean, any rebuild
-		 * will force a resort of the transactions, which will require a
-		 * full rebuild of all the open account views. Therefore, call
-		 * accview_recalculate_all() to force a full recalculation. This
-		 * will in turn sort the data if required.
-		 *
-		 * The big assumption here is that, because no from or to entries
-		 * have changed, none of the accounts will change length and so a
-		 * full rebuild is not required.
-		 */
+	if (changed == FALSE)
+		return FALSE;
 
-		accview_recalculate_all(file);
+	/* Ideally, we would want to recalculate just the affected two
+	 * accounts.  However, because the date sort is unclean, any rebuild
+	 * will force a resort of the transactions, which will require a
+	 * full rebuild of all the open account views. Therefore, call
+	 * accview_recalculate_all() to force a full recalculation. This
+	 * will in turn sort the data if required.
+	 *
+	 * The big assumption here is that, because no from or to entries
+	 * have changed, none of the accounts will change length and so a
+	 * full rebuild is not required.
+	 */
 
-		/* Force a redraw of the affected line. */
+	accview_recalculate_all(file);
 
-		transact_list_window_redraw(file->transacts->transact_window, transaction);
+	/* Force a redraw of the affected line. */
 
-		file_set_data_integrity(file, TRUE);
-	}
+	transact_list_window_redraw(file->transacts->transact_window, transaction);
+
+	file_set_data_integrity(file, TRUE);
+
+	return TRUE;
 }
 
 
@@ -928,9 +932,10 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
  * \param target	The target field to change.
  * \param new_account	The new account to set the field to.
  * \param reconciled	TRUE if the account is reconciled; else FALSE.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account, osbool reconciled)
+osbool transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account, osbool reconciled)
 {
 	osbool		changed = FALSE;
 	unsigned	old_flags;
@@ -940,7 +945,7 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 	/* Only do anything if the transaction is inside the limit of the file. */
 
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
-		return;
+		return FALSE;
 
 	account_remove_transaction(file, transaction);
 
@@ -1008,7 +1013,7 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 	 */
 
 	if (changed == FALSE)
-		return;
+		return FALSE;
 
 	switch (target) {
 	case TRANSACT_FIELD_FROM:
@@ -1030,6 +1035,8 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
 	transact_list_window_redraw(file->transacts->transact_window, transaction);
 
 	file_set_data_integrity(file, TRUE);
+
+	return TRUE;
 }
 
 
@@ -1039,15 +1046,16 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
  * \param *file		The file to edit.
  * \param transaction	The transaction to edit.
  * \param change_flag	Indicate which reconciled flags to change.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag)
+osbool transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag)
 {
-	osbool	changed = FALSE;
+	osbool changed = FALSE;
 
 
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
-		return;
+		return FALSE;
 
 	/* Only do anything if the transaction is inside the limit of the file. */
 
@@ -1078,18 +1086,21 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
 	 * the transaction window line and mark the file as modified.
 	 */
 
-	if (changed == TRUE) {
-		if (change_flag == TRANS_REC_FROM)
-			accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
-		else
-			accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
+	if (changed == FALSE)
+		return FALSE;
 
-		/* Force a redraw of the affected line. */
+	if (change_flag == TRANS_REC_FROM)
+		accview_redraw_transaction(file, file->transacts->transactions[transaction].from, transaction);
+	else
+		accview_redraw_transaction(file, file->transacts->transactions[transaction].to, transaction);
 
-		transact_list_window_redraw(file->transacts->transact_window, transaction);
+	/* Force a redraw of the affected line. */
 
-		file_set_data_integrity(file, TRUE);
-	}
+	transact_list_window_redraw(file->transacts->transact_window, transaction);
+
+	file_set_data_integrity(file, TRUE);
+
+	return TRUE;
 }
 
 
@@ -1099,9 +1110,10 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
  * \param *file		The file to edit.
  * \param transaction	The transaction to edit.
  * \param new_amount	The new amount to set the transaction to.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_amount(struct file_block *file, tran_t transaction, amt_t new_amount)
+osbool transact_change_amount(struct file_block *file, tran_t transaction, amt_t new_amount)
 {
 	osbool changed = FALSE;
 
@@ -1109,7 +1121,7 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
 	/* Only do anything if the transaction is inside the limit of the file. */
 
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
-		return;
+		return FALSE;
 
 	account_remove_transaction(file, transaction);
 
@@ -1132,16 +1144,19 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
 	 * the transaction window line and mark the file as modified.
 	 */
 
-	if (changed == TRUE) {
-		accview_recalculate(file, file->transacts->transactions[transaction].from, transaction);
-		accview_recalculate(file, file->transacts->transactions[transaction].to, transaction);
+	if (changed == FALSE)
+		return FALSE;
 
-		/* Force a redraw of the affected line. */
+	accview_recalculate(file, file->transacts->transactions[transaction].from, transaction);
+	accview_recalculate(file, file->transacts->transactions[transaction].to, transaction);
 
-		transact_list_window_redraw(file->transacts->transact_window, transaction);
+	/* Force a redraw of the affected line. */
 
-		file_set_data_integrity(file, TRUE);
-	}
+	transact_list_window_redraw(file->transacts->transact_window, transaction);
+
+	file_set_data_integrity(file, TRUE);
+
+	return FALSE;
 }
 
 
@@ -1152,16 +1167,17 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
  * \param transaction	The transaction to edit.
  * \param target	The target field to change.
  * \param new_text	The new text to set the field to.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text)
+osbool transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text)
 {
 	osbool changed = FALSE;
 
 	/* Only do anything if the transaction is inside the limit of the file. */
 
 	if (file == NULL || file->transacts == NULL || !transact_valid(file->transacts, transaction))
-		return;
+		return FALSE;
 
 	/* Find the field that will be getting changed. */
 
@@ -1191,7 +1207,7 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 	 */
 
 	if (changed == FALSE)
-		return;
+		return FALSE;
 
 	/* Refresh any account views that may be affected. */
 
@@ -1203,6 +1219,8 @@ void transact_change_refdesc(struct file_block *file, tran_t transaction, enum t
 	transact_list_window_redraw(file->transacts->transact_window, transaction);
 
 	file_set_data_integrity(file, TRUE);
+
+	return TRUE;
 }
 
 

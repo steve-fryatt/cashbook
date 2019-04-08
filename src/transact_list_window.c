@@ -3469,24 +3469,24 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 
 	date = (flags & TRANS_TAKE_TODAY) ? date_today() : preset_get_date(file, preset);
 
-	if (date != NULL_DATE)
-		transact_change_date(file, transaction, date);
+	if (date != NULL_DATE && transact_change_date(file, transaction, date))
+		changed |= TRANSACT_FIELD_DATE;
 
 	/* Update the From account. */
 
 	from = preset_get_from(file, preset);
 
-	if (from != NULL_ACCOUNT)
-		transact_change_account(file, transaction, TRANSACT_FIELD_FROM, from,
-				((flags & TRANS_REC_FROM) == TRANS_REC_FROM) ? TRUE : FALSE);
+	if (from != NULL_ACCOUNT && transact_change_account(file, transaction, TRANSACT_FIELD_FROM, from,
+				((flags & TRANS_REC_FROM) == TRANS_REC_FROM) ? TRUE : FALSE))
+		changed |= TRANSACT_FIELD_FROM;
 
 	/* Update the To account. */
 
 	to = preset_get_to(file, preset);
 
-	if (to != NULL_ACCOUNT)
-		transact_change_account(file, transaction, TRANSACT_FIELD_TO, to,
-				((flags & TRANS_REC_TO) == TRANS_REC_TO) ? TRUE : FALSE);
+	if (to != NULL_ACCOUNT && transact_change_account(file, transaction, TRANSACT_FIELD_TO, to,
+				((flags & TRANS_REC_TO) == TRANS_REC_TO) ? TRUE : FALSE))
+		changed |= TRANSACT_FIELD_TO;
 
 	/* Update the reference. */
 
@@ -3495,48 +3495,22 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	else
 		preset_get_reference(file, preset, text, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	if (*text != '\0')
-		transact_change_refdesc(file, transaction, TRANSACT_FIELD_REF, text);
+	if (*text != '\0' && transact_change_refdesc(file, transaction, TRANSACT_FIELD_REF, text))
+		changed |= TRANSACT_FIELD_REF;
 
 	/* Update the amount. */
 
 	amount = preset_get_amount(file, preset);
 
-	if (amount != NULL_CURRENCY)
-		transact_change_amount(file, transaction, amount);
+	if (amount != NULL_CURRENCY && transact_change_amount(file, transaction, amount))
+		changed |= TRANSACT_FIELD_AMOUNT;
 
 	/* Update the description. */
 
 	preset_get_description(file, preset, text, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	if (*text != '\0')
-		transact_change_refdesc(file, transaction, TRANSACT_FIELD_DESC, text);
-
-
-
-
-
-
-	/* Remove the target transaction from all calculations. */
-
-	account_remove_transaction(file, transaction);
-
-	/* Apply the preset to the transaction. */
-
-//	changed = preset_apply(file, preset, &(file->transacts->transactions[transaction].date),
-//			&(file->transacts->transactions[transaction].from),
-//			&(file->transacts->transactions[transaction].to),
-//			&(file->transacts->transactions[transaction].flags),
-//			&(file->transacts->transactions[transaction].amount),
-//			file->transacts->transactions[transaction].reference,
-//			file->transacts->transactions[transaction].description);
-// \TODO -- Fix this!
-
-	/* Return the line to the calculations.  This will automatically update
-	 * all the account listings.
-	 */
-
-	account_restore_transaction(file, transaction);
+	if (*text != '\0' && transact_change_refdesc(file, transaction, TRANSACT_FIELD_DESC, text))
+		changed |= TRANSACT_FIELD_DESC;
 
 	/* Replace the edit line to make it pick up the changes. */
 
@@ -3552,19 +3526,9 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	if (changed == TRANSACT_FIELD_NONE)
 		return TRUE;
 
-//	if (changed & TRANSACT_FIELD_DATE)
-//		file->transacts->date_sort_valid = FALSE;
-// \TODO -- Fix!
-	/* If any changes were made, refresh the relevant account listing, redraw
-	 * the transaction window line and mark the file as modified.
-	 */
-
-	accview_rebuild_all(file);
-
 	/* Force a redraw of the affected line. */
 
 	transact_list_window_force_redraw(windat, line, line, wimp_ICON_WINDOW);
-
 
 	/* If we're auto-sorting, and the sort column has been updated as
 	 * part of the preset, then do an auto sort now.
@@ -3589,9 +3553,6 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 			accview_sort(file, transact_get_to(file, windat->line_data[line].transaction));
 		}
 	}
-
-
-//	file_set_data_integrity(file, TRUE);
 
 	return TRUE;
 }
@@ -3748,7 +3709,7 @@ static wimp_colour transact_list_window_line_colour(struct transact_list_window 
 static osbool transact_list_window_extend_display_lines(struct transact_list_window *windat, int line)
 {
 	struct file_block	*file;
-	int			i;
+	int			start, i;
 
 	if (windat == NULL || windat->instance == NULL || windat->edit_line == NULL)
 		return FALSE;

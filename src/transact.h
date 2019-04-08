@@ -516,9 +516,10 @@ int transact_find_first_blank_line(struct file_block *file);
  * \param *file		The file to edit.
  * \param transaction	The transaction to edit.
  * \param new_date	The new date to set the transaction to.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_date(struct file_block *file, tran_t transaction, date_t new_date);
+osbool transact_change_date(struct file_block *file, tran_t transaction, date_t new_date);
 
 
 /**
@@ -529,9 +530,10 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
  * \param target	The target field to change.
  * \param new_account	The new account to set the field to.
  * \param reconciled	TRUE if the account is reconciled; else FALSE.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account, osbool reconciled);
+osbool transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account, osbool reconciled);
 
 
 /**
@@ -540,9 +542,10 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
  * \param *file		The file to edit.
  * \param transaction	The transaction to edit.
  * \param change_flag	Indicate which reconciled flags to change.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag);
+osbool transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag);
 
 
 /**
@@ -551,9 +554,10 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
  * \param *file		The file to edit.
  * \param transaction	The transaction to edit.
  * \param new_amount	The new amount to set the transaction to.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_amount(struct file_block *file, tran_t transaction, amt_t new_amount);
+osbool transact_change_amount(struct file_block *file, tran_t transaction, amt_t new_amount);
 
 
 /**
@@ -563,9 +567,10 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
  * \param transaction	The transaction to edit.
  * \param target	The target field to change.
  * \param new_text	The new text to set the field to.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text);
+osbool transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text);
 
 
 /**

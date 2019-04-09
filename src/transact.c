@@ -1501,6 +1501,13 @@ osbool transact_read_file(struct file_block *file, struct filing_block *in)
 		return FALSE;
 	}
 
+	/* Initialise the transaction list window contents. */
+
+	if (!transact_list_window_initialise_entries(file->transacts->transact_window, file->transacts->trans_count)) {
+		filing_set_status(in, FILING_STATUS_MEMORY);
+		return FALSE;
+	}
+
 	return TRUE;
 }
 

@@ -545,7 +545,6 @@ static void transact_list_window_open_print_window(struct transact_list_window *
 static struct report *transact_list_window_print(struct report *report, void *data, date_t from, date_t to);
 static int transact_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void transact_list_window_sort_swap(int index1, int index2, void *data);
-static osbool transact_list_window_initialise_entries(struct transact_list_window *windat, int transacts);
 static void transact_list_window_start_direct_save(struct transact_list_window *windat);
 static osbool transact_list_window_save_file(char *filename, osbool selection, void *data);
 static osbool transact_list_window_save_csv(char *filename, osbool selection, void *data);
@@ -717,14 +716,6 @@ void transact_list_window_open(struct transact_list_window *windat, int transact
 	#ifdef DEBUG
 	debug_printf("\\CCreating transaction window");
 	#endif
-
-	/* Initialise the window contents. */
-
-	if (!transact_list_window_initialise_entries(windat, transacts)) {
-		transact_list_window_delete(windat);
-		error_msgs_report_error("NoMemNewListWindow");
-		return;
-	}
 
 	/* Set the default values */
 
@@ -899,10 +890,6 @@ static void transact_list_window_delete(struct transact_list_window *windat)
 		wimp_delete_window(windat->transaction_pane);
 		windat->transaction_pane = NULL;
 	}
-
-	/* Free the display memory. */
-
-	flexutils_resize((void **) &(windat->line_data), sizeof(struct transact_list_window_redraw), 0);
 
 	/* Close any dialogues which belong to this window. */
 
@@ -4244,7 +4231,7 @@ static void transact_list_window_sort_swap(int index1, int index2, void *data)
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool transact_list_window_initialise_entries(struct transact_list_window *windat, int transacts)
+osbool transact_list_window_initialise_entries(struct transact_list_window *windat, int transacts)
 {
 	int i;
 

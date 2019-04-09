@@ -146,10 +146,6 @@ RenRepTitle:Rename template
 SaveRepSave:Save
 RenRepRen:Rename
 
-# List Windows
-
-NoMemNewListWindow:Not enough memory to create new list window.
-
 # Edit Line
 
 EditFailIcon:Failed to create or update edit icon: %0

@@ -282,6 +282,17 @@ enum transact_field transact_list_window_search(struct transact_list_window *win
 
 void transact_list_window_sort(struct transact_list_window *windat);
 
+/**
+ * Initialise the contents of the transaction list window, creating an
+ * entry for each of the required transactions.
+ *
+ * \param *windat		The transaction list window instance to initialise.
+ * \param transacts		The number of transactionss to insert.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool transact_list_window_initialise_entries(struct transact_list_window *windat, int transacts);
+
 
 /**
  * Add a new transaction to an instance of the transaction list window.

@@ -326,7 +326,6 @@ static void preset_list_window_open_print_window(struct preset_list_window *wind
 static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to);
 static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void preset_list_window_sort_swap(int index1, int index2, void *data);
-static osbool preset_list_window_initialise_entries(struct preset_list_window *windat, int presets);
 static osbool preset_list_window_save_csv(char *filename, osbool selection, void *data);
 static osbool preset_list_window_save_tsv(char *filename, osbool selection, void *data);
 static void preset_list_window_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
@@ -480,14 +479,6 @@ void preset_list_window_open(struct preset_list_window *windat, int presets)
 	debug_printf("\\CCreating preset window");
 	#endif
 
-	/* Initialise the window contents. */
-
-	if (!preset_list_window_initialise_entries(windat, presets)) {
-		preset_list_window_delete(windat);
-		error_msgs_report_error("NoMemNewListWindow");
-		return;
-	}
-
 	/* Create the new window data and build the window. */
 
 	*(windat->window_title) = '\0';
@@ -605,10 +596,6 @@ static void preset_list_window_delete(struct preset_list_window *windat)
 		wimp_delete_window(windat->preset_pane);
 		windat->preset_pane = NULL;
 	}
-
-	/* Free the display memory. */
-
-	flexutils_resize((void **) &(windat->line_data), sizeof(struct preset_list_window_redraw), 0);
 
 	/* Close any dialogues which belong to this window. */
 
@@ -1596,7 +1583,7 @@ static void preset_list_window_sort_swap(int index1, int index2, void *data)
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool preset_list_window_initialise_entries(struct preset_list_window *windat, int presets)
+osbool preset_list_window_initialise_entries(struct preset_list_window *windat, int presets)
 {
 	int i;
 

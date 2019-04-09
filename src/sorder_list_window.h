@@ -103,6 +103,18 @@ void sorder_list_window_sort(struct sorder_list_window *windat);
 
 
 /**
+ * Initialise the contents of the standing order list window, creating an
+ * entry for each of the required standing orders.
+ *
+ * \param *windat		The standing order list window instance to initialise.
+ * \param sorders		The number of standing orders to insert.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool sorder_list_window_initialise_entries(struct sorder_list_window *windat, int sorders);
+
+
+/**
  * Add a new standing order to an instance of the standing order list window.
  *
  * \param *windat		The standing order list window instance to add to.

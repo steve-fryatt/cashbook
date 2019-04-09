@@ -934,6 +934,13 @@ osbool preset_read_file(struct file_block *file, struct filing_block *in)
 		return FALSE;
 	}
 
+	/* Initialise the preset list window contents. */
+
+	if (!preset_list_window_initialise_entries(file->presets->preset_window, file->presets->preset_count)) {
+		filing_set_status(in, FILING_STATUS_MEMORY);
+		return FALSE;
+	}
+
 	return TRUE;
 }
 

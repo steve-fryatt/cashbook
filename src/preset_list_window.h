@@ -111,6 +111,18 @@ void preset_list_window_sort(struct preset_list_window *windat);
 
 
 /**
+ * Initialise the contents of the preset list window, creating an entry
+ * for each of the required presets.
+ *
+ * \param *windat		The preset list window instance to initialise.
+ * \param presets		The number of presets to insert.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool preset_list_window_initialise_entries(struct preset_list_window *windat, int presets);
+
+
+/**
  * Add a new preset to an instance of the preset list window.
  *
  * \param *windat		The preset list window instance to add to.

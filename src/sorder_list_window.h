@@ -93,6 +93,18 @@ void sorder_list_window_redraw(struct sorder_list_window *windat, sorder_t sorde
 
 
 /**
+ * Find the standing order which corresponds to a display line in the specified
+ * standing order list window.
+ *
+ * \param *windat		The standing order list window to search in.
+ * \param line			The display line to return the standing order for.
+ * \return			The appropriate transaction, or NULL_SORDER.
+ */
+
+sorder_t sorder_list_window_get_sorder_from_line(struct sorder_list_window *windat, int line);
+
+
+/**
  * Sort the standing orders in a given list window based on that instances's
  * sort setting.
  *

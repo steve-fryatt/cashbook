@@ -44,19 +44,11 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
-#include "sflib/dataxfer.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
-#include "sflib/event.h"
 #include "sflib/heap.h"
-#include "sflib/icons.h"
-#include "sflib/ihelp.h"
-#include "sflib/menus.h"
 #include "sflib/msgs.h"
-#include "sflib/saveas.h"
 #include "sflib/string.h"
-#include "sflib/templates.h"
-#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -64,35 +56,16 @@
 #include "sorder.h"
 
 #include "account.h"
-#include "account_menu.h"
 #include "accview.h"
 #include "budget.h"
-#include "caret.h"
-#include "column.h"
 #include "currency.h"
 #include "date.h"
-#include "dialogue.h"
-#include "edit.h"
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
-#include "print_dialogue.h"
 #include "sorder_dialogue.h"
 #include "sorder_list_window.h"
-#include "sort.h"
-#include "sort_dialogue.h"
-#include "stringbuild.h"
-#include "report.h"
 #include "transact.h"
-#include "window.h"
-
-
-/* Buffers used in the standing order report. */
-
-#define SORDER_REPORT_LINE_LENGTH 1024
-#define SORDER_REPORT_BUF1_LENGTH 256
-#define SORDER_REPORT_BUF2_LENGTH 32
-#define SORDER_REPORT_BUF3_LENGTH 32
 
 
 /**
@@ -628,6 +601,24 @@ void sorder_purge(struct file_block *file)
 
 
 /**
+ * Find the standing order which corresponds to a display line in a standing
+ * order list window.
+ *
+ * \param *file			The file to use the preset window in.
+ * \param line			The display line to return the preset for.
+ * \return			The appropriate preset, or NULL_preset.
+ */
+
+sorder_t sorder_get_sorder_from_line(struct file_block *file, int line)
+{
+	if (file == NULL || file->sorders == NULL)
+		return NULL_SORDER;
+
+	return sorder_list_window_get_sorder_from_line(file->sorders->sorder_window, line);
+}
+
+
+/**
  * Find the number of standing orders in a file.
  *
  * \param *file			The file to interrogate.
@@ -708,53 +699,156 @@ enum transact_flags sorder_get_flags(struct file_block *file, sorder_t sorder)
 
 
 /**
- * Return the amount of a standing order.
+ * Return the period of a standing order.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the period for.
+ * \return			The period of the standing order, or 0.
+ */
+
+acct_t sorder_get_period(struct file_block *file, sorder_t sorder)
+{
+	if (file == NULL || file->sorders == NULL || !sorder_valid(file->sorders, sorder))
+		return 0;
+
+	return file->sorders->sorders[sorder].period;
+}
+
+
+/**
+ * Return the unit of the period of a standing order.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the period for.
+ * \return			The period of the standing order, or DATE_PERIOD_NONE.
+ */
+
+enum date_period sorder_get_period_unit(struct file_block *file, sorder_t sorder)
+{
+	if (file == NULL || file->sorders == NULL || !sorder_valid(file->sorders, sorder))
+		return DATE_PERIOD_NONE;
+
+	return file->sorders->sorders[sorder].period_unit;
+}
+
+
+/**
+ * Return an amount associated with a standing order.
  *
  * \param *file			The file containing the standing order.
  * \param sorder		The standing order to return the amount for.
+ * \param type			The type of amount to be returned.
  * \return			The amount of the standing order, or NULL_CURRENCY.
  */
 
-amt_t sorder_get_amount(struct file_block *file, sorder_t sorder)
+amt_t sorder_get_amount(struct file_block *file, sorder_t sorder, enum sorder_amount type)
 {
 	if (file == NULL || file->sorders == NULL || !sorder_valid(file->sorders, sorder))
 		return NULL_CURRENCY;
 
-	return file->sorders->sorders[sorder].normal_amount;
+	switch (type) {
+	case SORDER_AMOUNT_NORMAL:
+		return file->sorders->sorders[sorder].normal_amount;
+	case SORDER_AMOUNT_FIRST:
+		return file->sorders->sorders[sorder].first_amount;
+	case SORDER_AMOUNT_LAST:
+		return file->sorders->sorders[sorder].last_amount;
+	default:
+		return NULL_CURRENCY;
+	}
 }
 
 
 /**
- * Return the next date of a standing order.
+ * Return a date associated with a standing order.
  *
  * \param *file			The file containing the standing order.
  * \param sorder		The standing order to return the next date for.
- * \return			The next date of the standing order, or NULL_DATE.
+ * \param type			The type of date to be returned.
+ * \return			The date of the standing order, or NULL_DATE.
  */
 
-date_t sorder_get_next_date(struct file_block *file, sorder_t sorder)
+date_t sorder_get_date(struct file_block *file, sorder_t sorder, enum sorder_amount type)
 {
 	if (file == NULL || file->sorders == NULL || !sorder_valid(file->sorders, sorder))
 		return NULL_DATE;
 
-	return file->sorders->sorders[sorder].adjusted_next_date;
+	switch (type) {
+	case SORDER_DATE_START:
+		return file->sorders->sorders[sorder].start_date;
+	case SORDER_DATE_RAW_NEXT:
+		return file->sorders->sorders[sorder].raw_next_date;
+	case SORDER_DATE_ADJUSTED_NEXT:
+		return file->sorders->sorders[sorder].adjusted_next_date;
+	default:
+		return NULL_DATE;
+	}
 }
 
 
 /**
- * Return the remaining transactions for a standing order.
+ * Return a number of transactions associated with a standing order.
  *
  * \param *file			The file containing the standing order.
- * \param sorder		The standing order to return the remaining transactions for.
+ * \param sorder		The standing order to return the transactions for.
+ * \param type			The type of transaction count to be returned.
  * \return			The remaining transactions for the standing order, or 0.
  */
 
-date_t sorder_get_remaining_transactions(struct file_block *file, sorder_t sorder)
+int sorder_get_transactions(struct file_block *file, sorder_t sorder, enum sorder_transactions type)
 {
 	if (file == NULL || file->sorders == NULL || !sorder_valid(file->sorders, sorder))
-		return NULL_DATE;
+		return 0;
 
-	return file->sorders->sorders[sorder].left;
+	switch (type) {
+	case SORDER_TRANSACTIONS_TOTAL:
+		return file->sorders->sorders[sorder].number;
+	case SORDER_TRANSACTIONS_DONE:
+		return file->sorders->sorders[sorder].number - file->sorders->sorders[sorder].left;
+	case SORDER_TRANSACTIONS_LEFT:
+		return file->sorders->sorders[sorder].left;
+	default:
+		return 0;
+	}
+}
+
+
+/**
+ * Return the reference for a standing order.
+ *
+ * If a buffer is supplied, the reference is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * reference in the standing order array is returned instead. In the latter
+ * case, this pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the standing order.
+ * \param sorder		The standing order to return the reference of.
+ * \param *buffer		Pointer to a buffer to take the reference, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting reference string,
+ *				either the supplied buffer or the original.
+ */
+
+char *sorder_get_reference(struct file_block *file, sorder_t sorder, char *buffer, size_t length)
+{
+	if (file == NULL || file->sorders == NULL || !sorder_valid(file->sorders, sorder)) {
+		if (buffer != NULL && length > 0) {
+			*buffer = '\0';
+			return buffer;
+		}
+
+		return NULL;
+	}
+
+	if (buffer == NULL || length == 0)
+		return file->sorders->sorders[sorder].reference;
+
+	string_copy(buffer, file->sorders->sorders[sorder].reference, length);
+
+	return buffer;
 }
 
 
@@ -763,7 +857,7 @@ date_t sorder_get_remaining_transactions(struct file_block *file, sorder_t sorde
  *
  * If a buffer is supplied, the description is copied into that buffer and a
  * pointer to the buffer is returned; if one is not, then a pointer to the
- * description in the preset array is returned instead. In the latter
+ * description in the standing order array is returned instead. In the latter
  * case, this pointer will become invalid as soon as any operation is carried
  * out which might shift blocks in the flex heap.
  *
@@ -973,156 +1067,6 @@ void sorder_trial(struct file_block *file)
 			}
 		}
 	}
-}
-
-
-/**
- * Generate a report detailing all of the standing orders in a file.
- *
- * \param *file			The file to report on.
- */
-
-void sorder_full_report(struct file_block *file)
-{
-	struct report	*report;
-	sorder_t	sorder;
-	char		line[SORDER_REPORT_LINE_LENGTH], numbuf1[SORDER_REPORT_BUF1_LENGTH], numbuf2[SORDER_REPORT_BUF2_LENGTH], numbuf3[SORDER_REPORT_BUF3_LENGTH];
-
-	if (file == NULL || file->sorders == NULL)
-		return;
-
-	if (!stringbuild_initialise(line, SORDER_REPORT_LINE_LENGTH))
-		return;
-
-	msgs_lookup("SORWinT", line, SORDER_REPORT_LINE_LENGTH);
-	report = report_open(file, line, NULL);
-
-	if (report == NULL) {
-		stringbuild_cancel();
-		return;
-	}
-
-	hourglass_on();
-
-	stringbuild_reset();
-	stringbuild_add_message_param("SORTitle", file_get_leafname(file, NULL, 0), NULL, NULL, NULL);
-	stringbuild_report_line(report, 0);
-
-	stringbuild_reset();
-	date_convert_to_string(date_today(), numbuf1, SORDER_REPORT_BUF1_LENGTH);
-	stringbuild_add_message_param("SORHeader", numbuf1, NULL, NULL, NULL);
-	stringbuild_report_line(report, 0);
-
-	stringbuild_reset();
-	string_printf(numbuf1, SORDER_REPORT_BUF1_LENGTH, "%d", file->sorders->sorder_count);
-	stringbuild_add_message_param("SORCount", numbuf1, NULL, NULL, NULL);
-	stringbuild_report_line(report, 0);
-
-	/* Output the data for each of the standing orders in turn. */
-
-	for (sorder = 0; sorder < file->sorders->sorder_count; sorder++) {
-		report_write_line(report, 0, ""); /* Separate each entry with a blank line. */
-
-		stringbuild_reset();
-		string_printf(numbuf1, SORDER_REPORT_BUF1_LENGTH, "%d", sorder + 1);
-		stringbuild_add_message_param("SORNumber", numbuf1, NULL, NULL, NULL);
-		stringbuild_report_line(report, 0);
-
-		stringbuild_reset();
-		stringbuild_add_message_param("SORFrom", account_get_name(file, file->sorders->sorders[sorder].from), NULL, NULL, NULL);
-		stringbuild_report_line(report, 0);
-
-		stringbuild_reset();
-		stringbuild_add_message_param("SORTo", account_get_name(file, file->sorders->sorders[sorder].to), NULL, NULL, NULL);
-		stringbuild_report_line(report, 0);
-
-		stringbuild_reset();
-		stringbuild_add_message_param("SORRef", file->sorders->sorders[sorder].reference, NULL, NULL, NULL);
-		stringbuild_report_line(report, 0);
-
-		stringbuild_reset();
-		currency_convert_to_string(file->sorders->sorders[sorder].normal_amount, numbuf1, SORDER_REPORT_BUF1_LENGTH);
-		stringbuild_add_message_param("SORAmount", numbuf1, NULL, NULL, NULL);
-		stringbuild_report_line(report, 0);
-
-		if (file->sorders->sorders[sorder].normal_amount != file->sorders->sorders[sorder].first_amount) {
-			stringbuild_reset();
-			currency_convert_to_string(file->sorders->sorders[sorder].first_amount, numbuf1, SORDER_REPORT_BUF1_LENGTH);
-			stringbuild_add_message_param("SORFirst", numbuf1, NULL, NULL, NULL);
-			stringbuild_report_line(report, 0);
-		}
-
-		if (file->sorders->sorders[sorder].normal_amount != file->sorders->sorders[sorder].last_amount) {
-			stringbuild_reset();
-			currency_convert_to_string(file->sorders->sorders[sorder].last_amount, numbuf1, SORDER_REPORT_BUF1_LENGTH);
-			stringbuild_add_message_param("SORFirst", numbuf1, NULL, NULL, NULL);
-			stringbuild_report_line(report, 0);
-		}
-
-		stringbuild_reset();
-		stringbuild_add_message_param("SORDesc", file->sorders->sorders[sorder].description, NULL, NULL, NULL);
-		stringbuild_report_line(report, 0);
-
-		stringbuild_reset();
-		string_printf(numbuf1, SORDER_REPORT_BUF1_LENGTH, "%d", file->sorders->sorders[sorder].number);
-		string_printf(numbuf2, SORDER_REPORT_BUF2_LENGTH, "%d", file->sorders->sorders[sorder].number - file->sorders->sorders[sorder].left);
-		string_printf(numbuf3, SORDER_REPORT_BUF3_LENGTH, "%d", file->sorders->sorders[sorder].left);
-		stringbuild_add_message_param("SORCounts", numbuf1, numbuf2, numbuf3, NULL);
-		stringbuild_report_line(report, 0);
-
-		stringbuild_reset();
-		date_convert_to_string(file->sorders->sorders[sorder].start_date, numbuf1, SORDER_REPORT_BUF1_LENGTH);
-		stringbuild_add_message_param("SORStart", numbuf1, NULL, NULL, NULL);
-		stringbuild_report_line(report, 0);
-
-		stringbuild_reset();
-		string_printf(numbuf1, SORDER_REPORT_BUF1_LENGTH, "%d", file->sorders->sorders[sorder].period);
-		switch (file->sorders->sorders[sorder].period_unit) {
-		case DATE_PERIOD_DAYS:
-			msgs_lookup("SOrderDays", numbuf2, SORDER_REPORT_BUF2_LENGTH);
-			break;
-
-		case DATE_PERIOD_MONTHS:
-			msgs_lookup("SOrderMonths", numbuf2, SORDER_REPORT_BUF2_LENGTH);
-			break;
-
-		case DATE_PERIOD_YEARS:
-			msgs_lookup("SOrderYears", numbuf2, SORDER_REPORT_BUF2_LENGTH);
-			break;
-
-		default:
-			*numbuf2 = '\0';
-			break;
-		}
-		stringbuild_add_message_param("SOREvery", numbuf1, numbuf2, NULL, NULL);
-		stringbuild_report_line(report, 0);
-
-		if (file->sorders->sorders[sorder].flags & TRANS_SKIP_FORWARD) {
-			stringbuild_reset();
-			stringbuild_add_message("SORAvoidFwd");
-			stringbuild_report_line(report, 0);
-		} else if (file->sorders->sorders[sorder].flags & TRANS_SKIP_BACKWARD) {
-			stringbuild_reset();
-			stringbuild_add_message("SORAvoidBack");
-			stringbuild_report_line(report, 0);
-		}
-
-		stringbuild_reset();
-		if (file->sorders->sorders[sorder].adjusted_next_date != NULL_DATE)
-			date_convert_to_string(file->sorders->sorders[sorder].adjusted_next_date, numbuf1, SORDER_REPORT_BUF1_LENGTH);
-		else
-			msgs_lookup("SOrderStopped", numbuf1, SORDER_REPORT_BUF1_LENGTH);
-		stringbuild_add_message_param("SORNext", numbuf1, NULL, NULL, NULL);
-		stringbuild_report_line(report, 0);
-	}
-
-	/* Close the report. */
-
-	stringbuild_cancel();
-
-	report_close(report);
-
-	hourglass_off();
 }
 
 

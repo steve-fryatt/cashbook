@@ -79,6 +79,7 @@
 #include "print_dialogue.h"
 #include "sorder.h"
 #include "sorder_dialogue.h"
+#include "sorder_full_report.h"
 #include "sort.h"
 #include "sort_dialogue.h"
 #include "stringbuild.h"
@@ -989,7 +990,7 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 
 			/* Amount field */
 
-			window_plot_currency_field(SORDER_LIST_WINDOW_AMOUNT, sorder_get_amount(file, sorder), wimp_COLOUR_BLACK);
+			window_plot_currency_field(SORDER_LIST_WINDOW_AMOUNT, sorder_get_amount(file, sorder, SORDER_AMOUNT_NORMAL), wimp_COLOUR_BLACK);
 
 			/* Description field */
 
@@ -997,7 +998,7 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 
 			/* Next date field */
 
-			next_date = sorder_get_next_date(file, sorder);
+			next_date = sorder_get_date(file, sorder, SORDER_DATE_ADJUSTED_NEXT);
 
 			if (next_date != NULL_DATE)
 				window_plot_date_field(SORDER_LIST_WINDOW_NEXTDATE, next_date, wimp_COLOUR_BLACK);
@@ -1006,7 +1007,7 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 
 			/* Left field */
 
-			window_plot_int_field(SORDER_LIST_WINDOW_LEFT, sorder_get_remaining_transactions(file, sorder), wimp_COLOUR_BLACK);
+			window_plot_int_field(SORDER_LIST_WINDOW_LEFT, sorder_get_transactions(file, sorder, SORDER_TRANSACTIONS_LEFT), wimp_COLOUR_BLACK);
 		}
 
 		more = wimp_get_rectangle(redraw);
@@ -1293,6 +1294,24 @@ static int sorder_list_window_get_line_from_sorder(struct sorder_list_window *wi
 
 
 /**
+ * Find the standing order which corresponds to a display line in the specified
+ * standing order list window.
+ *
+ * \param *windat		The standing order list window to search in.
+ * \param line			The display line to return the standing order for.
+ * \return			The appropriate transaction, or NULL_SORDER.
+ */
+
+sorder_t sorder_list_window_get_sorder_from_line(struct sorder_list_window *windat, int line)
+{
+	if (windat == NULL || windat->line_data == NULL || !sorder_list_window_line_valid(windat, line))
+		return NULL_SORDER;
+
+	return windat->line_data[line].sorder;
+}
+
+
+/**
  * Open the Standing Order Sort dialogue for a given standing order list window.
  *
  * \param *windat		The standing order window to own the dialogue.
@@ -1449,7 +1468,7 @@ static struct report *sorder_list_window_print(struct report *report, void *data
 				break;
 			case SORDER_LIST_WINDOW_AMOUNT:
 				stringbuild_add_string("\\v\\d\\r");
-				stringbuild_add_currency(sorder_get_amount(file, sorder), FALSE);
+				stringbuild_add_currency(sorder_get_amount(file, sorder, SORDER_AMOUNT_NORMAL), FALSE);
 				break;
 			case SORDER_LIST_WINDOW_DESCRIPTION:
 				stringbuild_add_string("\\v");
@@ -1457,14 +1476,14 @@ static struct report *sorder_list_window_print(struct report *report, void *data
 				break;
 			case SORDER_LIST_WINDOW_NEXTDATE:
 				stringbuild_add_string("\\v\\c");
-				next_date = sorder_get_next_date(file, sorder);
+				next_date = sorder_get_date(file, sorder, SORDER_DATE_ADJUSTED_NEXT);
 				if (next_date != NULL_DATE)
 					stringbuild_add_date(next_date);
 				else
 					stringbuild_add_message("SOrderStopped");
 				break;
 			case SORDER_LIST_WINDOW_LEFT:
-				stringbuild_add_printf("\\v\\d\\r%d", sorder_get_remaining_transactions(file, sorder));
+				stringbuild_add_printf("\\v\\d\\r%d", sorder_get_transactions(file, sorder, SORDER_TRANSACTIONS_LEFT));
 				break;
 			default:
 				stringbuild_add_string("\\s");
@@ -1541,20 +1560,20 @@ static int sorder_list_window_sort_compare(enum sort_type type, int index1, int 
 				account_get_name(file, sorder_get_to(file, windat->line_data[index2].sorder)));
 
 	case SORT_AMOUNT:
-		return (sorder_get_amount(file, windat->line_data[index1].sorder) -
-				sorder_get_amount(file, windat->line_data[index2].sorder));
+		return (sorder_get_amount(file, windat->line_data[index1].sorder, SORDER_AMOUNT_NORMAL) -
+				sorder_get_amount(file, windat->line_data[index2].sorder, SORDER_AMOUNT_NORMAL));
 
 	case SORT_DESCRIPTION:
 		return strcmp(sorder_get_description(file, windat->line_data[index1].sorder, NULL, 0),
 				sorder_get_description(file, windat->line_data[index2].sorder, NULL, 0));
 
 	case SORT_NEXTDATE:
-		return ((sorder_get_next_date(file, windat->line_data[index2].sorder) & DATE_SORT_MASK) -
-				(sorder_get_next_date(file, windat->line_data[index1].sorder) & DATE_SORT_MASK));
+		return ((sorder_get_date(file, windat->line_data[index2].sorder, SORDER_DATE_ADJUSTED_NEXT) & DATE_SORT_MASK) -
+				(sorder_get_date(file, windat->line_data[index1].sorder, SORDER_DATE_ADJUSTED_NEXT) & DATE_SORT_MASK));
 
 	case SORT_LEFT:
-		return  (sorder_get_remaining_transactions(file, windat->line_data[index1].sorder) -
-				sorder_get_remaining_transactions(file, windat->line_data[index2].sorder));
+		return  (sorder_get_transactions(file, windat->line_data[index1].sorder, SORDER_TRANSACTIONS_LEFT) -
+				sorder_get_transactions(file, windat->line_data[index2].sorder, SORDER_TRANSACTIONS_LEFT));
 
 	default:
 		return 0;
@@ -1855,19 +1874,19 @@ static void sorder_list_window_export_delimited(struct sorder_list_window *winda
 		account_build_name_pair(file, sorder_get_to(file, sorder), buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		currency_convert_to_string(sorder_get_amount(file, sorder), buffer, FILING_DELIMITED_FIELD_LEN);
+		currency_convert_to_string(sorder_get_amount(file, sorder, SORDER_AMOUNT_NORMAL), buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
 		filing_output_delimited_field(out, sorder_get_description(file, sorder, NULL, 0), format, DELIMIT_NONE);
 
-		next_date = sorder_get_next_date(file, sorder);
+		next_date = sorder_get_date(file, sorder, SORDER_DATE_ADJUSTED_NEXT);
 		if (next_date != NULL_DATE)
 			date_convert_to_string(next_date, buffer, FILING_DELIMITED_FIELD_LEN);
 		else
 			msgs_lookup("SOrderStopped", buffer, FILING_DELIMITED_FIELD_LEN);
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", sorder_get_remaining_transactions(file, sorder));
+		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", sorder_get_transactions(file, sorder, SORDER_TRANSACTIONS_LEFT));
 		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 	}
 

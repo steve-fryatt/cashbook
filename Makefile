@@ -99,6 +99,7 @@ OBJS = account.o			\
        report_textdump.o		\
        sorder.o				\
        sorder_dialogue.o		\
+       sorder_full_report.o		\
        sorder_list_window.o		\
        sort.o				\
        sort_dialogue.o			\

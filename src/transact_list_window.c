@@ -94,6 +94,7 @@
 #include "refdesc_menu.h"
 #include "report.h"
 #include "sorder.h"
+#include "sorder_full_report.h"
 #include "sort_dialogue.h"
 #include "stringbuild.h"
 #include "transact.h"

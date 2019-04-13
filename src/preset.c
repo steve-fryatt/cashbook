@@ -42,44 +42,31 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
-#include "sflib/dataxfer.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
-#include "sflib/event.h"
 #include "sflib/heap.h"
-#include "sflib/icons.h"
-#include "sflib/ihelp.h"
-#include "sflib/menus.h"
 #include "sflib/msgs.h"
-#include "sflib/saveas.h"
 #include "sflib/string.h"
-#include "sflib/templates.h"
-#include "sflib/windows.h"
 
 /* Application header files */
 
 #include "global.h"
 #include "preset.h"
-
 #include "account.h"
 #include "account_menu.h"
-#include "caret.h"
-#include "column.h"
 #include "currency.h"
 #include "date.h"
-#include "dialogue.h"
-#include "edit.h"
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
 #include "preset_dialogue.h"
 #include "preset_list_window.h"
-#include "print_dialogue.h"
-#include "sort.h"
-#include "sort_dialogue.h"
-#include "stringbuild.h"
-#include "report.h"
-#include "window.h"
+
+
+
+
+
+
 
 /**
  * Preset Entry data structure -- implementation.

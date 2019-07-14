@@ -205,11 +205,9 @@ char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length
 /**
  * Return the boolean value of a token in a file, which will be in "Yes"
  * or "No" format.
- * The file's data is updated to identify the next field in the record. If
- * the field is missing or empty, the file is marked as corrupt.
  *
  * \param *in			The file being loaded.
- * \return			The integer value, or FALSE.
+ * \return			The boolean value, or FALSE.
  */
 
 osbool filing_get_opt_value(struct filing_block *in);

@@ -44,17 +44,29 @@
 
 #define FILING_DELIMITED_FIELD_LEN 256
 
+/**
+ * Delimited file types.
+ */
+
 enum filing_delimit_type {
 	DELIMIT_TAB,								/**< Fields delimited by tabs.							*/
 	DELIMIT_COMMA,								/**< Fields delimited by commas; text quoted when whitespace requires.		*/
 	DELIMIT_QUOTED_COMMA							/**< Fields delimited by commas; text always quoted.				*/
 };
 
+/**
+ * Delimited file field flags.
+ */
+
 enum filing_delimit_flags {
 	DELIMIT_NONE	= 0,							/**< Flags unset.								*/
 	DELIMIT_LAST	= 0x01,							/**< Last field on the line (no delimiter follows).				*/
 	DELIMIT_NUM	= 0x02							/**< Numeric field, so no quoting required.					*/
 };
+
+/**
+ * File load result statuses.
+ */
 
 enum filing_status {
 	FILING_STATUS_OK,							/**< The operation is OK.							*/
@@ -64,6 +76,10 @@ enum filing_status {
 	FILING_STATUS_BAD_MEMORY,						/**< Something went wrong with the memory allocation.				*/
 	FILING_STATUS_CORRUPT							/**< The file contents appeared to be corrupt.					*/
 };
+
+/** 
+ * A load or save operation instance block.
+ */
 
 struct filing_block;
 

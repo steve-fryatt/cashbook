@@ -4266,11 +4266,6 @@ osbool transact_list_window_add_transaction(struct transact_list_window *windat,
 	if (windat == NULL || windat->line_data == NULL)
 		return FALSE;
 
-	/* If the window is closed, do nothing. */
-
-	if (windat->transaction_window == NULL)
-		return TRUE;
-
 	debug_printf("Adding a new transaction to the window: transaction=%d, index=%d", transaction, windat->display_lines);
 
 	/* Extend the index array. */
@@ -4307,11 +4302,6 @@ osbool transact_list_window_delete_transaction(struct transact_list_window *wind
 
 	if (windat == NULL || windat->line_data == NULL)
 		return FALSE;
-
-	/* If the window is closed, do nothing. */
-
-	if (windat->transaction_window == NULL)
-		return TRUE;
 
 	/* Find the transaction, and decrement any index entries above it. */
 

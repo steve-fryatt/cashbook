@@ -1621,11 +1621,6 @@ osbool preset_list_window_add_preset(struct preset_list_window *windat, preset_t
 	if (windat == NULL || windat->line_data == NULL)
 		return FALSE;
 
-	/* If the window is closed, do nothing. */
-
-	if (windat->preset_window == NULL)
-		return TRUE;
-
 	/* Extend the index array. */
 
 	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct preset_list_window_redraw), windat->display_lines + 1))
@@ -1663,11 +1658,6 @@ osbool preset_list_window_delete_preset(struct preset_list_window *windat, prese
 
 	if (windat == NULL || windat->line_data == NULL)
 		return FALSE;
-
-	/* If the window is closed, do nothing. */
-
-	if (windat->preset_window == NULL)
-		return TRUE;
 
 	/* Find the preset, and decrement any index entries above it. */
 

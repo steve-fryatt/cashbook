@@ -1646,11 +1646,6 @@ osbool sorder_list_window_add_sorder(struct sorder_list_window *windat, sorder_t
 	if (windat == NULL || windat->line_data == NULL)
 		return FALSE;
 
-	/* If the window is closed, do nothing. */
-
-	if (windat->sorder_window == NULL)
-		return TRUE;
-
 	/* Extend the index array. */
 
 	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct sorder_list_window_redraw), windat->display_lines + 1))
@@ -1688,11 +1683,6 @@ osbool sorder_list_window_delete_sorder(struct sorder_list_window *windat, sorde
 
 	if (windat == NULL || windat->line_data == NULL)
 		return FALSE;
-
-	/* If the window is closed, do nothing. */
-
-	if (windat->sorder_window == NULL)
-		return TRUE;
 
 	/* Find the standing order, and decrement any index entries above it. */
 

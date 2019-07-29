@@ -223,7 +223,7 @@ void sorder_open_window(struct file_block *file)
 	if (file == NULL || file->sorders == NULL || file->sorders->sorder_window == NULL)
 		return;
 
-	sorder_list_window_open(file->sorders->sorder_window, file->sorders->sorder_count);
+	sorder_list_window_open(file->sorders->sorder_window);
 }
 
 

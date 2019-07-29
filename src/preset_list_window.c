@@ -451,10 +451,9 @@ void preset_list_window_delete_instance(struct preset_list_window *windat)
  * Create and open a Preset List window for the given instance.
  *
  * \param *windat		The instance to open a window for.
- * \param presets		The number of presets to include.
  */
 
-void preset_list_window_open(struct preset_list_window *windat, int presets)
+void preset_list_window_open(struct preset_list_window *windat)
 {
 	int			height;
 	os_error		*error;

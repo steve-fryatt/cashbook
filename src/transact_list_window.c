@@ -691,10 +691,9 @@ void transact_list_window_delete_instance(struct transact_list_window *windat)
  * Create and open a Transaction List window for the given instance.
  *
  * \param *windat		The instance to open a window for.
- * \param transacts		The number of transactions to include.
  */
 
-void transact_list_window_open(struct transact_list_window *windat, int transacts)
+void transact_list_window_open(struct transact_list_window *windat)
 {
 	int			height;
 	os_error		*error;

@@ -214,7 +214,7 @@ void preset_open_window(struct file_block *file)
 	if (file == NULL || file->presets == NULL)
 		return;
 
-	preset_list_window_open(file->presets->preset_window, file->presets->preset_count);
+	preset_list_window_open(file->presets->preset_window);
 }
 
 

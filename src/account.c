@@ -1440,7 +1440,7 @@ char *account_get_next_cheque_number(struct file_block *file, acct_t from_accoun
 	/* Check which accounts have active ID numbers. */
 
 	from_ok = ((from_account != NULL_ACCOUNT) && account_idnum_active(&(file->accounts->accounts[from_account].cheque_number)));
-	to_ok = ((to_account != NULL_ACCOUNT) && account_idnum_active(&(file->accounts->accounts[from_account].payin_number)));
+	to_ok = ((to_account != NULL_ACCOUNT) && account_idnum_active(&(file->accounts->accounts[to_account].payin_number)));
 
 	/* If both have, we need to ask the user which to use. */
 
@@ -1458,7 +1458,7 @@ char *account_get_next_cheque_number(struct file_block *file, acct_t from_accoun
 	if (from_ok)
 		account_idnum_get_next(&(file->accounts->accounts[from_account].cheque_number), buffer, size, increment);
 	else if (to_ok)
-		account_idnum_get_next(&(file->accounts->accounts[from_account].payin_number), buffer, size, increment);
+		account_idnum_get_next(&(file->accounts->accounts[to_account].payin_number), buffer, size, increment);
 	else if (buffer != NULL && size > 0)
 		buffer[0] = '\0';
 

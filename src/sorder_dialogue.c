@@ -365,7 +365,7 @@ static osbool sorder_dialogue_process(struct file_block *file, wimp_w window, wi
 	else if (icons_get_selected(window, SORDER_DIALOGUE_PERMONTHS))
 		period_unit = DATE_PERIOD_MONTHS;
 	else if (icons_get_selected(window, SORDER_DIALOGUE_PERYEARS))
-		period_unit = SORDER_DIALOGUE_PERYEARS;
+		period_unit = DATE_PERIOD_YEARS;
 	else
 		period_unit = DATE_PERIOD_NONE;
 

@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -54,7 +54,7 @@
 #include "account_heading_dialogue.h"
 
 #include "account.h"
-#include "caret.h"
+#include "dialogue.h"
 
 /* Window Icons. */
 
@@ -72,67 +72,67 @@
 /* Global Variables */
 
 /**
- * The handle of the Heading Edit window.
+ * The handle of the Heading Edit dialogue.
  */
 
-static wimp_w			account_heading_dialogue_window = NULL;
-
-/**
- * The starting name for the heading.
- */
-
-static char			account_heading_dialogue_initial_name[ACCOUNT_NAME_LEN];
-
-/**
- * The starting ident for the heading.
- */
-
-static char			account_heading_dialogue_initial_ident[ACCOUNT_IDENT_LEN];
-
-/**
- * The starting budget limit for the heading.
- */
-
-static amt_t			account_heading_dialogue_initial_budget;
-
-/**
- * The starting type for the heading.
- */
-
-static enum account_type	account_heading_dialogue_initial_type;
+static struct dialogue_block	*account_heading_dialogue = NULL;
 
 /**
  * Callback function to return updated settings.
  */
 
-static osbool			(*account_heading_dialogue_update_callback)(struct account_block *, acct_t, char *, char *, amt_t, enum account_type);
-
-/**
- * Callback function to request the deletion of a heading.
- */
-
-static osbool			(*account_heading_dialogue_delete_callback)(struct account_block *, acct_t);
-
-/**
- * The account block to which the currently open Heading Edit window belongs.
- */
-
-static struct account_block	*account_heading_dialogue_owner = NULL;
-
-/**
- * The number of the heading being edited by the Heading Edit window.
- */
-
-static acct_t			account_heading_dialogue_account = NULL_ACCOUNT;
+static osbool			(*account_heading_dialogue_callback)(void *, struct account_heading_dialogue_data *);
 
 /* Static Function Prototypes. */
 
-static void			account_heading_dialogue_click_handler(wimp_pointer *pointer);
-static osbool			account_heading_dialogue_keypress_handler(wimp_key *key);
-static void			account_heading_dialogue_refresh(void);
-static void			account_heading_dialogue_fill(void);
-static osbool			account_heading_dialogue_process(void);
-static osbool			account_heading_dialogue_delete(void);
+static void account_heading_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data);
+static osbool account_heading_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data);
+static void account_heading_dialogue_close(struct file_block *file, wimp_w window, void *data);
+
+/**
+ * The Heading Edit Dialogue Icon Set.
+ */
+
+static struct dialogue_icon account_heading_dialogue_icon_list[] = {
+	{DIALOGUE_ICON_OK,					ACCOUNT_HEADING_DIALOGUE_OK,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_CANCEL,					ACCOUNT_HEADING_DIALOGUE_CANCEL,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_ACTION | DIALOGUE_ICON_EDIT_DELETE,	ACCOUNT_HEADING_DIALOGUE_DELETE,	DIALOGUE_NO_ICON},
+
+
+	/* The title and ident fields. */
+
+	{DIALOGUE_ICON_REFRESH,					ACCOUNT_HEADING_DIALOGUE_NAME,		DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_REFRESH,					ACCOUNT_HEADING_DIALOGUE_IDENT,		DIALOGUE_NO_ICON},
+
+	/* The heading type icons. */
+
+	{DIALOGUE_ICON_RADIO,					ACCOUNT_HEADING_DIALOGUE_INCOMING,	DIALOGUE_NO_ICON},
+	{DIALOGUE_ICON_RADIO,					ACCOUNT_HEADING_DIALOGUE_OUTGOING,	DIALOGUE_NO_ICON},
+
+	/* The budget field. */
+
+	{DIALOGUE_ICON_REFRESH,					ACCOUNT_HEADING_DIALOGUE_BUDGET,	DIALOGUE_NO_ICON},
+
+	{DIALOGUE_ICON_END,					DIALOGUE_NO_ICON,			DIALOGUE_NO_ICON}
+};
+
+/**
+ * The Heading Edit Dialogue Definition.
+ */
+
+static struct dialogue_definition account_heading_dialogue_definition = {
+	"EditHeading",
+	"EditHeading",
+	account_heading_dialogue_icon_list,
+	DIALOGUE_GROUP_EDIT,
+	DIALOGUE_FLAGS_TAKE_FOCUS,
+	account_heading_dialogue_fill,
+	account_heading_dialogue_process,
+	account_heading_dialogue_close,
+	NULL,
+	NULL,
+	NULL
+};
 
 
 /**
@@ -141,247 +141,137 @@ static osbool			account_heading_dialogue_delete(void);
 
 void account_heading_dialogue_initialise(void)
 {
-	account_heading_dialogue_window = templates_create_window("EditHeading");
-	ihelp_add_window(account_heading_dialogue_window, "EditHeading", NULL);
-	event_add_window_mouse_event(account_heading_dialogue_window, account_heading_dialogue_click_handler);
-	event_add_window_key_event(account_heading_dialogue_window, account_heading_dialogue_keypress_handler);
-	event_add_window_icon_radio(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, TRUE);
-	event_add_window_icon_radio(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, TRUE);
+	account_heading_dialogue = dialogue_create(&account_heading_dialogue_definition);
 }
 
 
 /**
- * Open the Section Edit dialogue for a given account list window.
+ * Open the Heading Edit dialogue for a given account list window.
  *
  * \param *ptr			The current Wimp pointer position.
  * \param *owner		The account instance to own the dialogue.
- * \param account		The account number of the heading to be edited, or NULL_ACCOUNT.
- * \param *update_callback	The callback function to use to return new values.
- * \param *delete_callback	The callback function to use to request deletion.
- * \param *name			The initial name to use for the heading.
- * \param *ident		The initial ident to use for the heading.
- * \param budget		The initial budget limit to use for the heading.
- * \param type			The initial incoming/outgoing type for the heading.
+ * \param *file			The file instance to own the dialogue.
+ * \param *callback		The callback function to use to return new values.
+ * \param *content		Pointer to structure to hold the dialogue content.
  */
 
-void account_heading_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acct_t account,
-		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, enum account_type),
-		osbool (*delete_callback)(struct account_block *, acct_t), char *name, char *ident, amt_t budget, enum account_type type)
+void account_heading_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file,
+		osbool (*callback)(void *, struct account_heading_dialogue_data *), struct account_heading_dialogue_data *content)
 {
-	string_copy(account_heading_dialogue_initial_name, name, ACCOUNT_NAME_LEN);
-	string_copy(account_heading_dialogue_initial_ident, ident, ACCOUNT_IDENT_LEN);
+	if (content == NULL)
+		return;
 
-	account_heading_dialogue_initial_budget = budget;
-	account_heading_dialogue_initial_type = type;
+	account_heading_dialogue_callback = callback;
 
-	account_heading_dialogue_update_callback = update_callback;
-	account_heading_dialogue_delete_callback = delete_callback;
-	account_heading_dialogue_owner = owner;
-	account_heading_dialogue_account = account;
+	/* Set up the dialogue title and action buttons. */
 
-	/* If the window is already open, another account is being edited or created.  Assume the user wants to lose
-	 * any unsaved data and just close the window.
-	 *
-	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
-	 */
-
-	if (windows_get_open(account_heading_dialogue_window))
-		wimp_close_window(account_heading_dialogue_window);
-
-	/* Select the window to use and set the contents up. */
-
-	account_heading_dialogue_fill();
-
-	if (account == NULL_ACCOUNT) {
-		windows_title_msgs_lookup(account_heading_dialogue_window, "NewHdr");
-		icons_msgs_lookup(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OK, "NewAcctAct");
+	if (content->account == NULL_ACCOUNT) {
+		dialogue_set_title(account_heading_dialogue, "NewHdr", NULL, NULL, NULL, NULL);
+		dialogue_set_icon_text(account_heading_dialogue, DIALOGUE_ICON_OK, "NewAcctAct", NULL, NULL, NULL, NULL);
+		dialogue_set_hidden_icons(account_heading_dialogue, DIALOGUE_ICON_EDIT_DELETE, TRUE);
 	} else {
-		windows_title_msgs_lookup(account_heading_dialogue_window, "EditHdr");
-		icons_msgs_lookup(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OK, "EditAcctAct");
+		dialogue_set_title(account_heading_dialogue, "EditHdr", NULL, NULL, NULL, NULL);
+		dialogue_set_icon_text(account_heading_dialogue, DIALOGUE_ICON_OK, "EditAcctAct", NULL, NULL, NULL, NULL);
+		dialogue_set_hidden_icons(account_heading_dialogue, DIALOGUE_ICON_EDIT_DELETE, FALSE);
 	}
 
 	/* Open the window. */
 
-	windows_open_centred_at_pointer(account_heading_dialogue_window, ptr);
-	place_dialogue_caret(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_NAME);
+	dialogue_open(account_heading_dialogue, FALSE, file, owner, ptr, content);
 }
 
 
 /**
- * Force the closure of the account section edit dialogue if it relates
- * to a given accounts instance.
+ * Fill the Heading Edit Dialogue with values.
  *
- * \param *parent		The parent of the dialogue to be closed,
- *				or NULL to force close.
+ * \param *file		The file instance associated with the dialogue.
+ * \param window	The handle of the dialogue box to be filled.
+ * \param restore	TRUE if the dialogue should restore previous settings.
+ * \param *data		Client data pointer, to the dialogue data structure.
  */
 
-void account_heading_dialogue_force_close(struct account_block *parent)
+static void account_heading_dialogue_fill(struct file_block *file, wimp_w window, osbool restore, void *data)
 {
-	if (account_heading_dialogue_is_open(parent))
-		close_dialogue_with_caret(account_heading_dialogue_window);
+	struct account_heading_dialogue_data *content = data;
+
+	if (content == NULL)
+		return;
+
+	icons_strncpy(window, ACCOUNT_HEADING_DIALOGUE_NAME, content->name);
+	icons_strncpy(window, ACCOUNT_HEADING_DIALOGUE_IDENT, content->ident);
+
+	currency_convert_to_string(content->budget,
+			icons_get_indirected_text_addr(window, ACCOUNT_HEADING_DIALOGUE_BUDGET),
+			icons_get_indirected_text_length(window, ACCOUNT_HEADING_DIALOGUE_BUDGET));
+
+	icons_set_shaded(window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (content->account != NULL_ACCOUNT));
+	icons_set_selected(window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (content->type & ACCOUNT_IN));
+
+	icons_set_shaded(window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (content->account != NULL_ACCOUNT));
+	icons_set_selected(window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (content->type & ACCOUNT_OUT));
 }
 
 
 /**
- * Check whether the Edit Section dialogue is open for a given accounts
- * instance.
+ * Process OK clicks in the Heading Edit Dialogue.
  *
- * \param *parent		The accounts list instance to check.
- * \return			TRUE if the dialogue is open; else FALSE.
+ * \param *file		The file instance associated with the dialogue.
+ * \param window	The handle of the dialogue box to be processed.
+ * \param *pointer	The Wimp pointer state.
+ * \param type		The type of icon selected by the user.
+ * \param *parent	The parent goto instance.
+ * \param *data		Client data pointer, to the dialogue data structure.
+ * \return		TRUE if the dialogue should close; otherwise FALSE.
  */
 
-osbool account_heading_dialogue_is_open(struct account_block *parent)
+static osbool account_heading_dialogue_process(struct file_block *file, wimp_w window, wimp_pointer *pointer, enum dialogue_icon_type type, void *parent, void *data)
 {
-	return ((account_heading_dialogue_owner == parent || parent == NULL) && windows_get_open(account_heading_dialogue_window)) ? TRUE : FALSE;
-}
+	struct account_heading_dialogue_data *content = data;
 
-
-/**
- * Process mouse clicks in the Section Edit dialogue.
- *
- * \param *pointer		The mouse event block to handle.
- */
-
-static void account_heading_dialogue_click_handler(wimp_pointer *pointer)
-{
-	switch (pointer->i) {
-	case ACCOUNT_HEADING_DIALOGUE_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(account_heading_dialogue_window);
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_heading_dialogue_refresh();
-		break;
-
-	case ACCOUNT_HEADING_DIALOGUE_OK:
-		if (account_heading_dialogue_process() && pointer->buttons == wimp_CLICK_SELECT)
-			close_dialogue_with_caret(account_heading_dialogue_window);
-		break;
-
-	case ACCOUNT_HEADING_DIALOGUE_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && account_heading_dialogue_delete())
-			close_dialogue_with_caret(account_heading_dialogue_window);
-		break;
-	}
-}
-
-
-/**
- * Process keypresses in the Section Edit window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool account_heading_dialogue_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (account_heading_dialogue_process())
-			close_dialogue_with_caret(account_heading_dialogue_window);
-		break;
-
-	case wimp_KEY_ESCAPE:
-		close_dialogue_with_caret(account_heading_dialogue_window);
-		break;
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Refresh the contents of the Section Edit window.
- */
-
-static void account_heading_dialogue_refresh(void)
-{
-	account_heading_dialogue_fill();
-	icons_redraw_group(account_heading_dialogue_window, 3, ACCOUNT_HEADING_DIALOGUE_NAME, ACCOUNT_HEADING_DIALOGUE_IDENT, ACCOUNT_HEADING_DIALOGUE_BUDGET);
-	icons_replace_caret_in_window(account_heading_dialogue_window);
-}
-
-
-/**
- * Update the contents of the Section Edit window to reflect the current
- * settings of the given file and section.
- */
-
-static void account_heading_dialogue_fill(void)
-{
-	icons_strncpy(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_NAME, account_heading_dialogue_initial_name);
-	icons_strncpy(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_IDENT, account_heading_dialogue_initial_ident);
-
-	currency_convert_to_string(account_heading_dialogue_initial_budget,
-			icons_get_indirected_text_addr(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_BUDGET),
-			icons_get_indirected_text_length(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_BUDGET));
-
-	icons_set_shaded(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (account_heading_dialogue_account != NULL_ACCOUNT));
-	icons_set_selected(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_INCOMING, (account_heading_dialogue_initial_type & ACCOUNT_IN));
-
-	icons_set_shaded(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (account_heading_dialogue_account != NULL_ACCOUNT));
-	icons_set_selected(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING, (account_heading_dialogue_initial_type & ACCOUNT_OUT));
-
-	icons_set_deleted(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_DELETE, (account_heading_dialogue_account == NULL_ACCOUNT));
-}
-
-
-/**
- * Take the contents of an updated Section Edit window and process the data.
- *
- * \return			TRUE if the data was valid; FALSE otherwise.
- */
-
-static osbool account_heading_dialogue_process(void)
-{
-	if (account_heading_dialogue_update_callback == NULL)
+	if (content == NULL || account_heading_dialogue_callback == NULL)
 		return FALSE;
 
 	/* Extract the information from the dialogue. */
 
-	icons_copy_text(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_NAME, account_heading_dialogue_initial_name, ACCOUNT_NAME_LEN);
-	icons_copy_text(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_IDENT, account_heading_dialogue_initial_ident, ACCOUNT_IDENT_LEN);
+	if (type & DIALOGUE_ICON_OK)
+		content->action = ACCOUNT_HEADING_DIALOGUE_ACTION_OK;
+	else if (type & DIALOGUE_ICON_EDIT_DELETE)
+		content->action = ACCOUNT_HEADING_DIALOGUE_ACTION_DELETE;
 
-	account_heading_dialogue_initial_budget =
-			currency_convert_from_string(icons_get_indirected_text_addr(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_BUDGET));
+	icons_copy_text(window, ACCOUNT_HEADING_DIALOGUE_NAME, content->name, ACCOUNT_NAME_LEN);
+	icons_copy_text(window, ACCOUNT_HEADING_DIALOGUE_IDENT, content->ident, ACCOUNT_IDENT_LEN);
 
-	if (icons_get_selected(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_INCOMING))
-		account_heading_dialogue_initial_type = ACCOUNT_IN;
-	else if (icons_get_selected(account_heading_dialogue_window, ACCOUNT_HEADING_DIALOGUE_OUTGOING))
-		account_heading_dialogue_initial_type = ACCOUNT_OUT;
+	content->budget =
+			currency_convert_from_string(icons_get_indirected_text_addr(window, ACCOUNT_HEADING_DIALOGUE_BUDGET));
+
+	if (icons_get_selected(window, ACCOUNT_HEADING_DIALOGUE_INCOMING))
+		content->type = ACCOUNT_IN;
+	else if (icons_get_selected(window, ACCOUNT_HEADING_DIALOGUE_OUTGOING))
+		content->type = ACCOUNT_OUT;
 	else
-		account_heading_dialogue_initial_type = ACCOUNT_NULL;
+		content->type = ACCOUNT_NULL;
 
 	/* Call the client back. */
 
-	return account_heading_dialogue_update_callback(account_heading_dialogue_owner, account_heading_dialogue_account,
-			account_heading_dialogue_initial_name, account_heading_dialogue_initial_ident,
-			account_heading_dialogue_initial_budget, account_heading_dialogue_initial_type);
+	return account_heading_dialogue_callback(parent, content);
 }
 
 
 /**
- * Delete the section associated with the currently open Section Edit
- * window.
+ * The Edit Heading dialogue has been closed.
  *
- * \return			TRUE if deleted; else FALSE.
+ * \param *file		The file instance associated with the dialogue.
+ * \param window	The handle of the dialogue box to be filled.
+ * \param *data		Client data pointer, to the dialogue data structure.
  */
 
-static osbool account_heading_dialogue_delete(void)
+static void account_heading_dialogue_close(struct file_block *file, wimp_w window, void *data)
 {
-	if (account_heading_dialogue_delete_callback == NULL)
-		return FALSE;
+	account_heading_dialogue_callback = NULL;
 
-	/* Check that the user really wishes to proceed. */
+	/* The client is assuming that we'll delete this after use. */
 
-	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 4)
-		return FALSE;
-
-	/* Call the client back. */
-
-	return account_heading_dialogue_delete_callback(account_heading_dialogue_owner, account_heading_dialogue_account);
+	if (data != NULL)
+		heap_free(data);
 }
 

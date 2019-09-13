@@ -42,6 +42,8 @@ struct account_list_window;
 
 /**
  * Initialise the Account List Window.
+ *
+ * \param *sprites		The application sprite area.
  */
 
 void account_list_window_initialise(osspriteop_area *sprites);

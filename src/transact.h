@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -24,7 +24,7 @@
 /**
  * \file: transact.h
  *
- * Transaction and transaction window implementation.
+ * Transaction interface.
  */
 
 #ifndef CASHBOOK_TRANSACT
@@ -38,7 +38,7 @@ struct transact_block;
 #include "account.h"
 #include "currency.h"
 #include "filing.h"
-#include "presets.h"
+#include "preset.h"
 
 #define NULL_TRANSACTION ((tran_t) (-1))
 
@@ -183,16 +183,6 @@ void transact_set_window_extent(struct file_block *file);
 
 
 /**
- * Minimise the extent of the transaction window, by removing unnecessary
- * blank lines as they are scrolled out of sight.
- *
- * \param *file			The file containing the window to update.
- */
-
-void transact_minimise_window_extent(struct file_block *file);
-
-
-/**
  * Get the window state of the transaction window belonging to
  * the specified file.
  *
@@ -298,6 +288,16 @@ int transact_get_count(struct file_block *file);
 
 
 /**
+ * Return the file associated with a transactions instance.
+ *
+ * \param *instance		The transactions instance to query.
+ * \return			The associated file, or NULL.
+ */
+
+struct file_block *transact_get_file(struct transact_block *instance);
+
+
+/**
  * Find the display line number of the current transaction entry line.
  *
  * \param *file			The file to interrogate.
@@ -354,6 +354,17 @@ void transact_add_raw_entry(struct file_block *file, date_t date, acct_t from, a
  */
 
 void transact_clear_raw_entry(struct file_block *file, tran_t transaction);
+
+
+/**
+ * Test to see if a transaction entry in a file is completely empty.
+ *
+ * \param *file			The file containing the transaction.
+ * \param transaction		The transaction to be tested.
+ * \return			TRUE if the transaction is empty; FALSE if not.
+ */
+
+osbool transact_is_blank(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -467,14 +478,14 @@ char *transact_get_description(struct file_block *file, tran_t transaction, char
 
 
 /**
- * Return the sort workspace for a transaction.
+ * Return the new index for a transaction, following a date sort.
  *
  * \param *file			The file containing the transaction.
  * \param transaction		The transaction to return the workspace of.
  * \return			The sort workspace for the transaction, or 0.
  */
 
-int transact_get_sort_workspace(struct file_block *file, tran_t transaction);
+int transact_get_new_sort_index(struct file_block *file, tran_t transaction);
 
 
 /**
@@ -505,9 +516,10 @@ int transact_find_first_blank_line(struct file_block *file);
  * \param *file		The file to edit.
  * \param transaction	The transaction to edit.
  * \param new_date	The new date to set the transaction to.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_date(struct file_block *file, tran_t transaction, date_t new_date);
+osbool transact_change_date(struct file_block *file, tran_t transaction, date_t new_date);
 
 
 /**
@@ -517,9 +529,11 @@ void transact_change_date(struct file_block *file, tran_t transaction, date_t ne
  * \param transaction	The transaction to edit.
  * \param target	The target field to change.
  * \param new_account	The new account to set the field to.
+ * \param reconciled	TRUE if the account is reconciled; else FALSE.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account);
+osbool transact_change_account(struct file_block *file, tran_t transaction, enum transact_field target, acct_t new_account, osbool reconciled);
 
 
 /**
@@ -528,9 +542,10 @@ void transact_change_account(struct file_block *file, tran_t transaction, enum t
  * \param *file		The file to edit.
  * \param transaction	The transaction to edit.
  * \param change_flag	Indicate which reconciled flags to change.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag);
+osbool transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction, enum transact_flags change_flag);
 
 
 /**
@@ -539,9 +554,10 @@ void transact_toggle_reconcile_flag(struct file_block *file, tran_t transaction,
  * \param *file		The file to edit.
  * \param transaction	The transaction to edit.
  * \param new_amount	The new amount to set the transaction to.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_amount(struct file_block *file, tran_t transaction, amt_t new_amount);
+osbool transact_change_amount(struct file_block *file, tran_t transaction, amt_t new_amount);
 
 
 /**
@@ -551,22 +567,10 @@ void transact_change_amount(struct file_block *file, tran_t transaction, amt_t n
  * \param transaction	The transaction to edit.
  * \param target	The target field to change.
  * \param new_text	The new text to set the field to.
+ * \return		TRUE if the data changed; otherwise FALSE.
  */
 
-void transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text);
-
-
-/**
- * Insert a preset into a pre-existing transaction, taking care of updating all
- * the file data in a clean way.
- *
- * \param *file		The file to edit.
- * \param line		The line in the transaction window to update.
- * \param preset	The preset to insert into the transaction.
- * \return		TRUE if successful; FALSE on failure.
- */
-
-osbool transact_insert_preset_into_line(struct file_block *file, int line, preset_t preset);
+osbool transact_change_refdesc(struct file_block *file, tran_t transaction, enum transact_field target, char *new_text);
 
 
 /**
@@ -602,6 +606,19 @@ void transact_purge(struct file_block *file, date_t cutoff);
 
 
 /**
+ * Insert a preset into a pre-existing transaction, taking care of updating all
+ * the file data in a clean way.
+ *
+ * \param *file		The file to be updated.
+ * \param line		The line in the transaction window to update.
+ * \param preset	The preset to insert into the transaction.
+ * \return		TRUE if successful; FALSE on failure.
+ */
+
+osbool transact_insert_preset_into_line(struct file_block *file, int line, preset_t preset);
+
+
+/**
  * Save the transaction details from a file to a CashBook file
  *
  * \param *file			The file to write.
@@ -633,6 +650,34 @@ osbool transact_read_file(struct file_block *file, struct filing_block *in);
  */
 
 int transact_find_date(struct file_block *file, date_t target);
+
+
+/**
+ * Search the transaction list from a file for a set of matching entries.
+ *
+ * \param *file			The file containing transaction list window to search in.
+ * \param *line			Pointer to the line (under current display sort
+ *				order) to search from. Updated on exit to show
+ *				the matched line.
+ * \param back			TRUE to search back up the file; FALSE to search
+ *				down.
+ * \param case_sensitive	TRUE to match case in strings; FALSE to ignore.
+ * \param logic_and		TRUE to combine the parameters in an AND logic;
+ *				FALSE to use an OR logic.
+ * \param date			A date to match, or NULL_DATE for none.
+ * \param from			A from account to match, or NULL_ACCOUNT for none.
+ * \param to			A to account to match, or NULL_ACCOUNT for none.
+ * \param flags			Reconcile flags for the from and to accounts, if
+ *				these have been specified.
+ * \param amount		An amount to match, or NULL_AMOUNT for none.
+ * \param *ref			A wildcarded reference to match; NULL or '\0' for none.
+ * \param *desc			A wildcarded description to match; NULL or '\0' for none.
+ * \return			Transaction field flags set for each matching field;
+ *				TRANSACT_FIELD_NONE if no match found.
+ */
+
+enum transact_field transact_search(struct file_block *file, int *line, osbool back, osbool case_sensitive, osbool logic_and,
+		date_t date, acct_t from, acct_t to, enum transact_flags flags, amt_t amount, char *ref, char *desc);
 
 
 /**

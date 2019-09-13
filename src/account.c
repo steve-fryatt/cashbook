@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -79,12 +79,13 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
 #include "interest.h"
-#include "presets.h"
+#include "preset.h"
 #include "print_dialogue.h"
 #include "report.h"
 #include "sorder.h"
@@ -94,7 +95,7 @@
 
 /**
  * The number of Account List Windows.
- */ 
+ */
 
 #define ACCOUNT_LIST_WINDOWS 3
 
@@ -178,10 +179,8 @@ struct account_block {
 
 
 
-static osbool account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
-		amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
-		acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN]);
-static osbool account_process_heading_edit_window(struct account_block *instance, acct_t account, char* name, char *ident, amt_t budget, enum account_type type);
+static osbool account_process_account_edit_window(void *parent, struct account_account_dialogue_data *content);
+static osbool account_process_heading_edit_window(void *parent, struct account_heading_dialogue_data *content);
 static osbool account_delete_from_edit_window(struct account_block *instance, acct_t account);
 static void account_add_to_lists(struct file_block *file, acct_t account);
 static int account_find_window_entry_from_type(struct file_block *file, enum account_type type);
@@ -305,6 +304,8 @@ void account_open_window(struct file_block *file, enum account_type type)
 {
 	int			entry;
 
+        if (file == NULL)
+           return;
 
 	entry = account_find_window_entry_from_type(file, type);
 
@@ -370,8 +371,10 @@ void account_redraw_all(struct file_block *file)
 
 void account_open_edit_window(struct file_block *file, acct_t account, enum account_type type, wimp_pointer *ptr)
 {
-	struct account	*data;
-	rate_t		rate;
+	struct account				*data = NULL;
+	struct account_account_dialogue_data	*account_content = NULL;
+	struct account_heading_dialogue_data	*heading_content = NULL;
+	int					i;
 
 	if (file == NULL || file->accounts == NULL)
 		return;
@@ -382,32 +385,95 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 	 * We don't use the close_dialogue_with_caret () as the caret is just moving from one dialogue to another.
 	 */
 
-	account_account_dialogue_force_close(NULL);
-	account_heading_dialogue_force_close(NULL);
-	account_section_dialogue_force_close(NULL);
+	dialogue_force_group_closed(DIALOGUE_GROUP_EDIT);
 
 	/* Select the window to use and set the contents up. */
 
 	if (account == NULL_ACCOUNT) {
 		if (type & ACCOUNT_FULL) {
-			account_account_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_account_edit_window, account_delete_from_edit_window,
-					"", "", NULL_CURRENCY, NULL_CURRENCY, NULL, NULL, NULL_RATE, NULL_ACCOUNT, "", "", NULL);
+			account_content = heap_alloc(sizeof(struct account_account_dialogue_data));
+			if (account_content == NULL)
+				return;
+
+			account_content->action = ACCOUNT_ACCOUNT_DIALOGUE_ACTION_NONE;
+			account_content->account = account;
+			account_content->credit_limit = NULL_CURRENCY;
+			account_content->opening_balance = NULL_CURRENCY;
+			account_content->interest_rate = NULL_RATE;
+			account_content->offset_against = NULL_ACCOUNT;
+
+			account_idnum_copy(&(account_content->cheque_number), NULL);
+			account_idnum_copy(&(account_content->payin_number), NULL);
+
+			*(account_content->name) = '\0';
+			*(account_content->ident) = '\0';
+			*(account_content->account_num) = '\0';
+			*(account_content->sort_code) = '\0';
+
+			for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
+				*(account_content->address[i]) = '\0';
+
+			account_account_dialogue_open(ptr, file->accounts, file, account_process_account_edit_window, account_content);
 		} else if (type & ACCOUNT_IN || type & ACCOUNT_OUT) {
-			account_heading_dialogue_open(ptr, file->accounts, NULL_ACCOUNT, account_process_heading_edit_window, account_delete_from_edit_window,
-					"", "", NULL_CURRENCY, type);
+			heading_content = heap_alloc(sizeof(struct account_heading_dialogue_data));
+			if (heading_content == NULL)
+				return;
+
+			heading_content->action = ACCOUNT_HEADING_DIALOGUE_ACTION_NONE;
+			heading_content->account = NULL_ACCOUNT;
+			heading_content->type = type;
+			heading_content->budget = NULL_CURRENCY;
+
+			*(heading_content->name) = '\0';
+			*(heading_content->ident) = '\0';
+
+			account_heading_dialogue_open(ptr, file->accounts, file, account_process_heading_edit_window, heading_content);
 		}
 	} else if (account_valid(file->accounts, account)) {
 		data = &(file->accounts->accounts[account]);
 
 		if (data->type & ACCOUNT_FULL) {
-			rate = interest_get_current_rate(file->interest, account, date_today());
-			account_account_dialogue_open(ptr, file->accounts, account, account_process_account_edit_window, account_delete_from_edit_window,
-					data->name, data->ident, data->credit_limit, data->opening_balance,
-					&(data->cheque_number), &(data->payin_number), rate, data->offset_against,
-					data->account_no, data->sort_code, data->address);
+			account_content = heap_alloc(sizeof(struct account_account_dialogue_data));
+			if (account_content == NULL)
+				return;
+
+			data = &(file->accounts->accounts[account]);
+
+			account_content->action = ACCOUNT_ACCOUNT_DIALOGUE_ACTION_NONE;
+			account_content->account = account;
+			account_content->credit_limit = data->credit_limit;
+			account_content->opening_balance = data->opening_balance;
+			account_content->interest_rate = interest_get_current_rate(file->interest, account, date_today());;
+			account_content->offset_against = data->offset_against;
+
+			account_idnum_copy(&(account_content->cheque_number), &(data->cheque_number));
+			account_idnum_copy(&(account_content->payin_number), &(data->payin_number));
+
+			string_copy(account_content->name, data->name, ACCOUNT_NAME_LEN);
+			string_copy(account_content->ident, data->ident, ACCOUNT_IDENT_LEN);
+			string_copy(account_content->account_num, data->account_no, ACCOUNT_NO_LEN);
+			string_copy(account_content->sort_code, data->sort_code, ACCOUNT_SRTCD_LEN);
+
+			for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
+				string_copy(account_content->address[i], data->address[i], ACCOUNT_ADDR_LEN);
+
+			account_account_dialogue_open(ptr, file->accounts, file, account_process_account_edit_window, account_content);
 		} else if (data->type & ACCOUNT_IN || data->type & ACCOUNT_OUT) {
-			account_heading_dialogue_open(ptr, file->accounts, account, account_process_heading_edit_window, account_delete_from_edit_window,
-					data->name, data->ident, data->budget_amount, data->type);
+			heading_content = heap_alloc(sizeof(struct account_heading_dialogue_data));
+			if (heading_content == NULL)
+				return;
+
+			data = &(file->accounts->accounts[account]);
+
+			heading_content->action = ACCOUNT_HEADING_DIALOGUE_ACTION_NONE;
+			heading_content->account = account;
+			heading_content->type = data->type;
+			heading_content->budget = data->budget_amount;
+
+			string_copy(heading_content->name, data->name, ACCOUNT_NAME_LEN);
+			string_copy(heading_content->ident, data->ident, ACCOUNT_IDENT_LEN);
+
+			account_heading_dialogue_open(ptr, file->accounts, file, account_process_heading_edit_window, heading_content);
 		}
 	}
 }
@@ -416,72 +482,67 @@ void account_open_edit_window(struct file_block *file, acct_t account, enum acco
 /**
  * Take the contents of an updated Account Edit window and process the data.
  *
- * \param *instance		The accounts instance to which the account belongs.
- * \param account		The account number of the account, or NULL_ACCOUNT
- *				for a new one.
- * \param *name			The name of the account.
- * \param *ident		The ident of the account.
- * \param credit_limit		The credit limit for the aaccount.
- * \param opening_balance	The opening balance for the account.
- * \param *cheque_number	The cheque number details for the account.
- * \param *payin_number		The paying in slip number details for the account.
- * \param offset_against	The account to offset this account against.
- * \param *account_num		The account number of the account.
- * \param *sort_code		The sort code of this account.
- * \param **address		The address details of this account.
+ * \param *parent		The accounts instance to which the account belongs.
+ * \param *content		The content of the dialogue.
  * \return			TRUE if the data was valid; FALSE otherwise.
  */
 
-static osbool account_process_account_edit_window(struct account_block *instance, acct_t account, char* name, char *ident,
-		amt_t credit_limit, amt_t opening_balance, struct account_idnum *cheque_number, struct account_idnum *payin_number,
-		acct_t offset_against, char *account_num, char *sort_code, char address[][ACCOUNT_ADDR_LEN])
+static osbool account_process_account_edit_window(void *parent, struct account_account_dialogue_data *content)
 {
-	int	i;
-	acct_t	check_ident;
+	struct account_block	*instance = parent;
+	int			i;
+	acct_t			check_ident;
 
+	/* Check the requested action from the user. */
+debug_printf("One");
+	if (content->action == ACCOUNT_ACCOUNT_DIALOGUE_ACTION_DELETE)
+		return account_delete_from_edit_window(instance, content->account);
+	else if (content->action != ACCOUNT_ACCOUNT_DIALOGUE_ACTION_OK)
+		return FALSE;
+debug_printf("Two");
 	/* Check that the ident is valid and unused. As a full account,
 	 * we need to check all full accounts and also all headers.
 	 */
 
-	check_ident = account_find_by_ident(instance->file, ident, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT);
+	check_ident = account_find_by_ident(instance->file, content->ident, ACCOUNT_FULL | ACCOUNT_IN | ACCOUNT_OUT);
 
-	if ((check_ident != NULL_ACCOUNT) && (check_ident != account)) {
+	if ((check_ident != NULL_ACCOUNT) && (check_ident != content->account)) {
 		error_msgs_report_error("UsedAcctIdent");
 		return FALSE;
 	}
 
 	/* If the account doesn't exist, create it. */
 
-	if (account == NULL_ACCOUNT) {
-		account = account_add(instance->file, name, ident, ACCOUNT_FULL);
+	if (content->account == NULL_ACCOUNT) {
+		content->account = account_add(instance->file, content->name, content->ident, ACCOUNT_FULL);
 
-		if (account == NULL_ACCOUNT)
+		if (content->account == NULL_ACCOUNT)
 			return FALSE;
 	} else {
-		string_copy(instance->accounts[account].name, name, ACCOUNT_NAME_LEN);
-		string_copy(instance->accounts[account].ident, ident, ACCOUNT_IDENT_LEN);
+		string_copy(instance->accounts[content->account].name, content->name, ACCOUNT_NAME_LEN);
+		string_copy(instance->accounts[content->account].ident, content->ident, ACCOUNT_IDENT_LEN);
 	}
 
 	/* Store the remaining data. */
 
-	instance->accounts[account].credit_limit = credit_limit;
-	instance->accounts[account].opening_balance = opening_balance;
-	instance->accounts[account].opening_balance = opening_balance;
+	instance->accounts[content->account].credit_limit = content->credit_limit;
+	instance->accounts[content->account].opening_balance = content->opening_balance;
+	instance->accounts[content->account].opening_balance = content->opening_balance;
 
-	account_idnum_copy(&(instance->accounts[account].cheque_number), cheque_number);
-	account_idnum_copy(&(instance->accounts[account].payin_number), payin_number);
+	account_idnum_copy(&(instance->accounts[content->account].cheque_number), &(content->cheque_number));
+	account_idnum_copy(&(instance->accounts[content->account].payin_number), &(content->payin_number));
 
-	string_copy(instance->accounts[account].account_no, account_num, ACCOUNT_NO_LEN);
-	string_copy(instance->accounts[account].sort_code, sort_code, ACCOUNT_SRTCD_LEN);
+	string_copy(instance->accounts[content->account].account_no, content->account_num, ACCOUNT_NO_LEN);
+	string_copy(instance->accounts[content->account].sort_code, content->sort_code, ACCOUNT_SRTCD_LEN);
 
 	for (i = 0; i < ACCOUNT_ADDR_LINES; i++)
-		string_copy(instance->accounts[account].address[i], address[i], ACCOUNT_ADDR_LEN);
+		string_copy(instance->accounts[content->account].address[i], content->address[i], ACCOUNT_ADDR_LEN);
 
 	/* Tidy up and redraw the windows */
 
 	sorder_trial(instance->file);
 	account_recalculate_all(instance->file);
-	accview_recalculate(instance->file, account, 0);
+	accview_recalculate(instance->file, content->account, 0);
 	transact_redraw_all(instance->file);
 	accview_redraw_all(instance->file);
 	file_set_data_integrity(instance->file, TRUE);
@@ -493,47 +554,53 @@ static osbool account_process_account_edit_window(struct account_block *instance
 /**
  * Take the contents of an updated Heading Edit window and process the data.
  *
- * \param *instance		The accounts instance to which the heading belongs.
- * \param account		The account number of the heading, or NULL_ACCOUNT
- *				for a new one.
- * \param *name			The name of the heading.
- * \param *ident		The ident of the heading.
- * \param budget		The budget amount for the heading.
- * \param type			The incoming/outgoing type of the heading.
+ * \param *parent		The accounts instance to which the heading belongs.
+ * \param *content		The content of the dialogue.
  * \return			TRUE if the data was valid; FALSE otherwise.
  */
 
-static osbool account_process_heading_edit_window(struct account_block *instance, acct_t account, char *name, char *ident, amt_t budget, enum account_type type)
+static osbool account_process_heading_edit_window(void *parent, struct account_heading_dialogue_data *content)
 {
-	acct_t check_ident;
+	struct account_block	*instance = parent;
+	acct_t			check_ident;
+
+	if (instance == NULL || instance->accounts == NULL || instance->file == NULL || content == NULL)
+		return FALSE;
+
+	/* Check the requested action from the user. */
+
+	if (content->action == ACCOUNT_HEADING_DIALOGUE_ACTION_DELETE)
+		return account_delete_from_edit_window(instance, content->account);
+	else if (content->action != ACCOUNT_HEADING_DIALOGUE_ACTION_OK)
+		return FALSE;
 
 	/* Check that the ident is valid and unused. As a header, we need
 	 * to check all full accounts and also any headers in the same
 	 * category as this one.
 	 */
 
-	check_ident = account_find_by_ident(instance->file, ident, ACCOUNT_FULL | type);
+	check_ident = account_find_by_ident(instance->file, content->ident, ACCOUNT_FULL | content->type);
 
-	if ((check_ident != NULL_ACCOUNT) && (check_ident != account)) {
+	if ((check_ident != NULL_ACCOUNT) && (check_ident != content->account)) {
 		error_msgs_report_error("UsedAcctIdent");
 		return FALSE;
 	}
 
 	/* If the heading doesn't exist, create it. */
 
-	if (account == NULL_ACCOUNT) {
-		account = account_add(instance->file, name, ident, type);
+	if (content->account == NULL_ACCOUNT) {
+		content->account = account_add(instance->file, content->name, content->ident, content->type);
 
-		if (account == NULL_ACCOUNT)
+		if (content->account == NULL_ACCOUNT)
 			return FALSE;
 	} else {
-		string_copy(instance->accounts[account].name, name, ACCOUNT_NAME_LEN);
-		string_copy(instance->accounts[account].ident, ident, ACCOUNT_IDENT_LEN);
+		string_copy(instance->accounts[content->account].name, content->name, ACCOUNT_NAME_LEN);
+		string_copy(instance->accounts[content->account].ident, content->ident, ACCOUNT_IDENT_LEN);
 	}
 
 	/* Store the remaining data. */
 
-	instance->accounts[account].budget_amount = budget;
+	instance->accounts[content->account].budget_amount = content->budget;
 
 	/* Tidy up and redraw the windows */
 
@@ -566,6 +633,11 @@ static osbool account_delete_from_edit_window(struct account_block *instance, ac
 		error_msgs_report_info("CantDelAcct");
 		return FALSE;
 	}
+
+	/* Check that the user really wishes to proceed. */
+
+	if (error_msgs_report_question("DeleteAcct", "DeleteAcctB") == 4)
+		return FALSE;
 
 	return account_delete(instance->file, account);
 }
@@ -1480,7 +1552,7 @@ char *account_get_next_cheque_number(struct file_block *file, acct_t from_accoun
 	/* Check which accounts have active ID numbers. */
 
 	from_ok = ((from_account != NULL_ACCOUNT) && account_idnum_active(&(file->accounts->accounts[from_account].cheque_number)));
-	to_ok = ((to_account != NULL_ACCOUNT) && account_idnum_active(&(file->accounts->accounts[from_account].payin_number)));
+	to_ok = ((to_account != NULL_ACCOUNT) && account_idnum_active(&(file->accounts->accounts[to_account].payin_number)));
 
 	/* If both have, we need to ask the user which to use. */
 
@@ -1498,7 +1570,7 @@ char *account_get_next_cheque_number(struct file_block *file, acct_t from_accoun
 	if (from_ok)
 		account_idnum_get_next(&(file->accounts->accounts[from_account].cheque_number), buffer, size, increment);
 	else if (to_ok)
-		account_idnum_get_next(&(file->accounts->accounts[from_account].payin_number), buffer, size, increment);
+		account_idnum_get_next(&(file->accounts->accounts[to_account].payin_number), buffer, size, increment);
 	else if (buffer != NULL && size > 0)
 		buffer[0] = '\0';
 

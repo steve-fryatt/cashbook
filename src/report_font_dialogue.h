@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -30,6 +30,50 @@
 #ifndef CASHBOOK_REPORT_FONT_DIALOGUE
 #define CASHBOOK_REPORT_FONT_DIALOGUE
 
+#include "oslib/font.h"
+
+/**
+ * The font data held by the dialogue.
+ */
+
+struct report_font_dialogue_data {
+	/**
+	 * The normal font name.
+	 */
+
+	char	normal[font_NAME_LIMIT];
+
+	/**
+	 * The bold font name.
+	 */
+
+	char	bold[font_NAME_LIMIT];
+
+	/**
+	 * The italic font name.
+	 */
+
+	char	italic[font_NAME_LIMIT];
+
+	/**
+	 * The bold italic font name.
+	 */
+
+	char	bold_italic[font_NAME_LIMIT];
+
+	/**
+	 * The font size.
+	 */
+
+	int	size;
+
+	/**
+	 * The font line spacing.
+	 */
+
+	int	spacing;
+};
+
 /**
  * Initialise the report format dialogue.
  */
@@ -43,26 +87,11 @@ void report_font_dialogue_initialise(void);
  * \param *ptr			The current Wimp pointer position.
  * \param *report		The report to own the dialogue.
  * \param *callback		The callback function to use to return the results.
- * \param *normal		The initial normal font name.
- * \param *bold			The initial bold font name.
- * \param *italic		The initial italic font name.
- * \param *bold_italic		The initial bold-italic font name.
- * \param size			The initial font size.
- * \param spacing		The initial line spacing.
+ * \param *content		Pointer to structure to hold the dialogue content.
  */
 
-void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(struct report *, char *, char *, char *, char *, int, int),
-		char *normal, char *bold, char *italic, char *bold_italic, int size, int spacing);
-
-
-/**
- * Force the closure of the report format dialogue if it relates to a
- * given report instance.
- *
- * \param *report		The report to be closed.
- */
-
-void report_font_dialogue_force_close(struct report *report);
+void report_font_dialogue_open(wimp_pointer *ptr, struct report *report, void (*callback)(void *, struct report_font_dialogue_data *),
+		struct report_font_dialogue_data *content);
 
 #endif
 

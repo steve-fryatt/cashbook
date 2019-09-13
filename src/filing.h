@@ -44,17 +44,29 @@
 
 #define FILING_DELIMITED_FIELD_LEN 256
 
+/**
+ * Delimited file types.
+ */
+
 enum filing_delimit_type {
 	DELIMIT_TAB,								/**< Fields delimited by tabs.							*/
 	DELIMIT_COMMA,								/**< Fields delimited by commas; text quoted when whitespace requires.		*/
 	DELIMIT_QUOTED_COMMA							/**< Fields delimited by commas; text always quoted.				*/
 };
 
+/**
+ * Delimited file field flags.
+ */
+
 enum filing_delimit_flags {
 	DELIMIT_NONE	= 0,							/**< Flags unset.								*/
 	DELIMIT_LAST	= 0x01,							/**< Last field on the line (no delimiter follows).				*/
 	DELIMIT_NUM	= 0x02							/**< Numeric field, so no quoting required.					*/
 };
+
+/**
+ * File load result statuses.
+ */
 
 enum filing_status {
 	FILING_STATUS_OK,							/**< The operation is OK.							*/
@@ -64,6 +76,10 @@ enum filing_status {
 	FILING_STATUS_BAD_MEMORY,						/**< Something went wrong with the memory allocation.				*/
 	FILING_STATUS_CORRUPT							/**< The file contents appeared to be corrupt.					*/
 };
+
+/** 
+ * A load or save operation instance block.
+ */
 
 struct filing_block;
 
@@ -109,17 +125,6 @@ void filing_save_cashbook_file(struct file_block *file, char *filename);
  */
 
 void filing_import_csv_file(struct file_block *file, char *filename);
-
-
-/**
- * Force the closure of the Import windows if the owning file disappears.
- * There's no need to delete any associated report, because it will be handled
- * via the Report module when the file disappears.
- *
- * \param *file			The file which has closed.
- */
-
-void filing_force_windows_closed(struct file_block *file);
 
 
 /**
@@ -216,11 +221,9 @@ char *filing_get_text_value(struct filing_block *in, char *buffer, size_t length
 /**
  * Return the boolean value of a token in a file, which will be in "Yes"
  * or "No" format.
- * The file's data is updated to identify the next field in the record. If
- * the field is missing or empty, the file is marked as corrupt.
  *
  * \param *in			The file being loaded.
- * \return			The integer value, or FALSE.
+ * \return			The boolean value, or FALSE.
  */
 
 osbool filing_get_opt_value(struct filing_block *in);

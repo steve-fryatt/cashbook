@@ -42,6 +42,7 @@
 #include "sflib/debug.h"
 #include "sflib/event.h"
 #include "sflib/icons.h"
+#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -132,7 +133,7 @@ void close_dialogue_with_caret(wimp_w window)
 		debug_printf("Close dialogue %d (caret location %d)", window, caret.w);
 		#endif
 
-		if (caret.w == window && event_get_window_user_data(caret_old_window) != NULL) {
+		if (caret.w == window && windows_get_open(caret_old_window) && event_get_window_user_data(caret_old_window) != NULL) {
 			wimp_set_caret_position(caret_old_window, caret_old_icon, 0, 0, -1, caret_old_index);
 
 			caret_old_window = NULL;

@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -41,7 +41,9 @@ void analysis_template_save_initialise(void);
 
 
 /**
- * Open the Save Template dialogue box.
+ * Open the Save Template dialogue box. When open, the dialogue's parent
+ * object is the template handle of the template being renamed (ie. the
+ * value passed as *template).
  *
  * \param *template		The report template to be saved.
  * \param *ptr			The current Wimp Pointer details.
@@ -51,14 +53,18 @@ void analysis_template_save_open_window(struct analysis_report *template, wimp_p
 
 
 /**
- * Open the Rename Template dialogue box.
+ * Open the Rename Template dialogue box. When open, the dialogue's parent
+ * object is the global instance of the analysis dialogue which has opened
+ * it. CashBook can only have one of each dialogue open at a time, so
+ * there is no need to make this file-based.
  *
  * \param *parent		The analysis instance owning the template.
+ * \param *dialogue		The analysis dialogue instance owning the template.
  * \param template_number	The template to be renamed.
  * \param *ptr			The current Wimp Pointer details.
  */
 
-void analysis_template_save_open_rename_window(struct analysis_block *parent, int template_number, wimp_pointer *ptr);
+void analysis_template_save_open_rename_window(struct analysis_block *parent, void *dialogue, int template_number, wimp_pointer *ptr);
 
 
 /**
@@ -70,36 +76,5 @@ void analysis_template_save_open_rename_window(struct analysis_block *parent, in
  */
 
 void analysis_template_save_delete_template(struct analysis_block *parent, template_t template);
-
-
-/**
- * Force the closure of the Save / Rename Template dialogue if the file
- * owning it closes.
- *
- * \param *parent		The parent analysis instance.
- */
-
-void analysis_template_save_force_close(struct analysis_block *parent);
-
-
-/**
- * Force the closure of the Save Template window if it is open to save the
- * given template.
- *
- * \param *template		The template of interest.
- */
-
-void analysis_template_save_force_template_close(struct analysis_report *template);
-
-
-/**
- * Force the closure of the Rename Template window if it is open to rename the
- * given template.
- *
- * \param *parent		The analysis block in which the template is held.
- * \param template		The template which is to be closed.
- */
-
-void analysis_template_save_force_rename_close(struct analysis_block *parent, template_t template);
 
 #endif

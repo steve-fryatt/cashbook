@@ -75,6 +75,7 @@
 #include "analysis.h"
 #include "analysis_template_save.h"
 #include "caret.h"
+#include "dialogue.h"
 #include "file.h"
 #include "filing.h"
 #include "fontlist.h"
@@ -354,6 +355,7 @@ static osbool			report_add_cell(struct report *report, char *text, enum report_c
 static void			report_reflow_content(struct report *report);
 
 static void			report_view_close_window_handler(wimp_close *close);
+static void			report_view_delete_window(struct report *report);
 static void			report_view_redraw_handler(wimp_draw *redraw);
 static void			report_view_toolbar_prepare(struct report *report);
 static void			report_view_toolbar_click_handler(wimp_pointer *pointer);
@@ -368,10 +370,10 @@ static void			report_view_redraw_page_handler(struct report *report, wimp_draw *
 
 
 static void			report_open_format_window(struct report *report, wimp_pointer *ptr);
-static void			report_process_format_window(struct report *report, char *normal, char *bold, char* italic, char *bold_italic, int size, int spacing);
+static void			report_process_format_window(void *parent, struct report_font_dialogue_data *content);
 
 static void			report_open_print_window(struct report *report, wimp_pointer *ptr, osbool restore);
-static struct report		*report_print_window_closed(struct report *report, void *data);
+static struct report		*report_print_window_closed(struct report *report, void *data, date_t from, date_t to);
 
 static osbool			report_save_text(char *filename, osbool selection, void *data);
 static osbool			report_save_csv(char *filename, osbool selection, void *data);
@@ -754,7 +756,6 @@ static void report_close_and_calculate(struct report *report)
 
 void report_delete(struct report *report)
 {
-	struct file_block	*file;
 	struct report		**rep;
 
 #ifdef DEBUG
@@ -764,25 +765,9 @@ void report_delete(struct report *report)
 	if (report == NULL)
 		return;
 
-	file = report->file;
+	/* Delete any window that is still associated with the report. */
 
-	if (report->toolbar != NULL) {
-		ihelp_remove_window(report->toolbar);
-		event_delete_window(report->toolbar);
-		wimp_delete_window(report->toolbar);
-		report->toolbar = NULL;
-	}
-
-	if (report->window != NULL) {
-		ihelp_remove_window(report->window);
-		event_delete_window(report->window);
-		wimp_delete_window(report->window);
-		report->window = NULL;
-	}
-
-	/* Close any related dialogues. */
-
-	report_font_dialogue_force_close(report);
+	report_view_delete_window(report);
 
 	/* Free the flex blocks. */
 
@@ -799,7 +784,7 @@ void report_delete(struct report *report)
 
 	/* Delink the block and delete it. */
 
-	rep = &(file->reports);
+	rep = &(report->file->reports);
 
 	while (*rep != NULL && *rep != report)
 		rep = &((*rep)->next);
@@ -808,6 +793,22 @@ void report_delete(struct report *report)
 		*rep = report->next;
 
 	heap_free(report);
+}
+
+
+/**
+ * Return the file instance to which a report belongs.
+ *
+ * \param *instance		The instance to look up.
+ * \return			The parent file, or NULL.
+ */
+
+struct file_block *report_get_file(struct report *report)
+{
+	if (report == NULL)
+		return NULL;
+
+	return report->file;
 }
 
 
@@ -1149,17 +1150,50 @@ static void report_view_close_window_handler(wimp_close *close)
 
 	/* Close the window */
 
-	if (report->window != NULL) {
-		analysis_template_save_force_template_close(report->template);
+	report_view_delete_window(report);
 
+	/* Delete the report, if there are no pending print jobs. */
+
+	if (report->print_pending == 0)
+		report_delete(report);
+}
+
+
+/**
+ * Delete a report window and any associated dialogues.
+ *
+ * \param *report		The report to be closed.
+ */
+
+static void report_view_delete_window(struct report *report)
+{
+	if (report == NULL)
+		return;
+
+	if (report->toolbar != NULL) {
+		ihelp_remove_window(report->toolbar);
+		event_delete_window(report->toolbar);
+		wimp_delete_window(report->toolbar);
+		report->toolbar = NULL;
+	}
+
+	if (report->window != NULL) {
 		ihelp_remove_window(report->window);
 		event_delete_window(report->window);
 		wimp_delete_window(report->window);
 		report->window = NULL;
 	}
 
-	if (report->print_pending == 0)
-		report_delete(report);
+	/* Close any related dialogues. */
+
+	dialogue_force_all_closed(NULL, report);
+
+	/* The Save Report Template will be opened with a parent of
+	 * the template handle.
+	 */
+
+	if (report->template != NULL)
+		dialogue_force_all_closed(NULL, report->template);
 }
 
 
@@ -1629,33 +1663,43 @@ void report_redraw_all(struct file_block *file)
 
 static void report_open_format_window(struct report *report, wimp_pointer *ptr)
 {
-	char	normal[font_NAME_LIMIT], bold[font_NAME_LIMIT], italic[font_NAME_LIMIT], bold_italic[font_NAME_LIMIT];
-	int	size, spacing;
+	struct report_font_dialogue_data *content = NULL;
 
 	if (report == NULL || ptr == NULL)
 		return;
 
-	report_fonts_get_faces(report->fonts, normal, bold, italic, bold_italic, font_NAME_LIMIT);
-	report_fonts_get_size(report->fonts, &size, &spacing);
+	/* Open the dialogue box. */
 
-	report_font_dialogue_open(ptr, report, report_process_format_window,
-			normal, bold, italic, bold_italic, size, spacing);
+	content = heap_alloc(sizeof(struct report_font_dialogue_data));
+	if (content == NULL)
+		return;
+
+	report_fonts_get_faces(report->fonts, content->normal, content->bold, content->italic, content->bold_italic, font_NAME_LIMIT);
+	report_fonts_get_size(report->fonts, &(content->size), &(content->spacing));
+
+	report_font_dialogue_open(ptr, report, report_process_format_window, content);
 }
 
 
 /**
  * Take the contents of an updated report format window and process the data.
+ *
+ * \param *parent		The report owning the session.
+ * \param *content		The content of the dialogue box.
+ * \return			TRUE if processed; else FALSE.
  */
 
-static void report_process_format_window(struct report *report, char *normal, char *bold, char* italic, char *bold_italic, int size, int spacing)
+static void report_process_format_window(void *parent, struct report_font_dialogue_data *content)
 {
-	if (report == NULL)
+	struct report *report = parent;
+
+	if (report == NULL || content == NULL)
 		return;
 
 	/* Extract the information. */
 
-	report_fonts_set_faces(report->fonts, normal, bold, italic, bold_italic);
-	report_fonts_set_size(report->fonts, size, spacing);
+	report_fonts_set_faces(report->fonts, content->normal, content->bold, content->italic, content->bold_italic);
+	report_fonts_set_size(report->fonts, content->size, content->spacing);
 
 	/* Tidy up and redraw the windows */
 
@@ -1690,7 +1734,7 @@ static void report_open_print_window(struct report *report, wimp_pointer *ptr, o
 	if (report == NULL || report->file == NULL)
 		return;
 
-	print_dialogue_open_simple(report->file->print, ptr, restore, "PrintReport", NULL, report_print_window_closed, report);
+	print_dialogue_open(report->file->print, ptr, FALSE, restore, "PrintReport", NULL, report, report_print_window_closed, report);
 }
 
 
@@ -1700,10 +1744,12 @@ static void report_open_print_window(struct report *report, wimp_pointer *ptr, o
  *
  * \param *report		Printing-system supplied report handle, which should be NULL.
  * \param *data			The report to be printed.
+ * \param from			The date to print from.
+ * \param to			The date to print to.
  * \return			Pointer to the report to print, or NULL on failure.
  */
 
-static struct report *report_print_window_closed(struct report *report, void *data)
+static struct report *report_print_window_closed(struct report *report, void *data, date_t from, date_t to)
 {
 #ifdef DEBUG
 	debug_printf("Report print received data from simple print window");

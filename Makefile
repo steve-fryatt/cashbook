@@ -1,4 +1,4 @@
-# Copyright 2010-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2010-2018, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of CashBook:
 #
@@ -47,7 +47,6 @@ OBJS = account.o			\
        analysis_cashflow.o		\
        analysis_data.o			\
        analysis_dialogue.o		\
-       analysis_lookup.o		\
        analysis_period.o		\
        analysis_template.o		\
        analysis_template_menu.o		\
@@ -55,28 +54,38 @@ OBJS = account.o			\
        analysis_transaction.o		\
        analysis_unreconciled.o		\
        budget.o				\
+       budget_dialogue.o		\
        caret.o				\
        choices.o			\
        clipboard.o			\
        column.o				\
        currency.o			\
        date.o				\
+       dialogue.o			\
+       dialogue_lookup.o		\
        edit.o				\
        file.o				\
        file_info.o			\
        filing.o				\
        find.o				\
+       find_result_dialogue.o		\
+       find_search_dialogue.o		\
        flexutils.o			\
        fontlist.o			\
        goto.o				\
+       goto_dialogue.o			\
        iconbar.o			\
+       import_dialogue.o		\
        interest.o			\
        main.o				\
-       presets.o			\
+       preset.o				\
+       preset_dialogue.o		\
+       preset_list_window.o		\
        preset_menu.o			\
        print_dialogue.o			\
        print_protocol.o			\
        purge.o				\
+       purge_dialogue.o			\
        refdesc_menu.o			\
        report.o				\
        report_font_dialogue.o		\
@@ -89,10 +98,14 @@ OBJS = account.o			\
        report_tabs.o			\
        report_textdump.o		\
        sorder.o				\
+       sorder_dialogue.o		\
+       sorder_full_report.o		\
+       sorder_list_window.o		\
        sort.o				\
        sort_dialogue.o			\
        stringbuild.o			\
        transact.o			\
+       transact_list_window.o		\
        window.o
 
 include $(SFTOOLS_MAKE)/CApp

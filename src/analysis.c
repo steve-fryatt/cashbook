@@ -64,14 +64,12 @@
 #include "analysis_cashflow.h"
 #include "analysis_data.h"
 #include "analysis_dialogue.h"
-#include "analysis_lookup.h"
 #include "analysis_period.h"
 #include "analysis_template.h"
 #include "analysis_template_save.h"
 #include "analysis_transaction.h"
 #include "analysis_unreconciled.h"
 #include "budget.h"
-#include "caret.h"
 #include "currency.h"
 #include "date.h"
 #include "file.h"
@@ -150,7 +148,6 @@ void analysis_initialise(void)
 	analysis_report_types[REPORT_TYPE_CASHFLOW] = analysis_cashflow_initialise();
 	analysis_report_types[REPORT_TYPE_BALANCE] = analysis_balance_initialise();
 	analysis_template_save_initialise();
-	analysis_lookup_initialise();
 }
 
 
@@ -236,10 +233,6 @@ void analysis_delete_instance(struct analysis_block *instance)
 	if (instance == NULL)
 		return;
 
-	/* Close the template save/rename dialogue. */
-
-	analysis_template_save_force_close(instance);
-
 	/* Free any saved report data. */
 
 	if (instance->templates != NULL)
@@ -250,6 +243,8 @@ void analysis_delete_instance(struct analysis_block *instance)
 	for (type = 0; type < ANALYSIS_REPORT_TYPE_COUNT; type++) {
 		if (instance->reports[type] == NULL)
 			continue;
+
+		dialogue_force_all_closed(NULL, instance->reports[type]);
 
 		report_details = analysis_get_report_details(type);
 

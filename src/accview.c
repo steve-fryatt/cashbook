@@ -65,6 +65,7 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "flexutils.h"
@@ -618,6 +619,10 @@ void accview_delete_window(struct file_block *file, acct_t account)
 
 	account_set_accview(file, account, NULL);
 	heap_free(view);
+
+	/* Close any related dialogues. */
+
+	dialogue_force_all_closed(NULL, view);
 }
 
 
@@ -1444,7 +1449,7 @@ static void accview_open_print_window(struct accview_window *view, wimp_pointer 
 	if (view == NULL || view->file == NULL)
 		return;
 
-	print_dialogue_open_advanced(view->file->print, ptr, restore, "PrintAccview", "PrintTitleAccview", accview_print, view);
+	print_dialogue_open(view->file->print, ptr, TRUE, restore, "PrintAccview", "PrintTitleAccview", view, accview_print, view);
 }
 
 
@@ -1929,8 +1934,10 @@ void accview_reindex_all(struct file_block *file)
 		if (view != NULL && view->line_data != NULL) {
 			for (line = 0; line < view->display_lines; line++) {
 				transaction = (view->line_data)[line].transaction;
-				(view->line_data)[line].transaction = transact_get_sort_workspace(file, transaction);
+				(view->line_data)[line].transaction = transact_get_new_sort_index(file, transaction);
 			}
+
+			// \TODO - Does this require a full redraw?
 
 			accview_force_window_redraw(view, 0, view->display_lines - 1, ACCVIEW_PANE_ROW);
 		}
@@ -2210,7 +2217,6 @@ void accview_read_file_sortorder(struct file_block *file, char *order)
 {
 	sort_read_from_text(file->accviews->sort, order);
 }
-
 
 
 /**

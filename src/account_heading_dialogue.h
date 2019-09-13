@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -33,6 +33,63 @@
 #include "account.h"
 
 /**
+ * The requested action from the dialogue.
+ */
+
+enum account_heading_dialogue_action {
+	/**
+	 * No action defined.
+	 */
+	ACCOUNT_HEADING_DIALOGUE_ACTION_NONE,
+
+	/**
+	 * Create or update the heading using the supplied details.
+	 */
+	ACCOUNT_HEADING_DIALOGUE_ACTION_OK,
+
+	/**
+	 * Delete the heading.
+	 */
+	ACCOUNT_HEADING_DIALOGUE_ACTION_DELETE
+};
+
+/**
+ * The analysis heading data held by the dialogue.
+ */
+
+struct account_heading_dialogue_data {
+	/**
+	 * The requested action from the dialogue.
+	 */
+	enum account_heading_dialogue_action	action;
+
+	/**
+	 * The target heading account.
+	 */
+	acct_t					account;
+
+	/**
+	 * The name for the heading.
+	 */
+	char					name[ACCOUNT_NAME_LEN];
+
+	/**
+	 * The ident for the heading.
+	 */
+	char					ident[ACCOUNT_IDENT_LEN];
+
+	/**
+	 * The budget limit for the heading.
+	 */
+	amt_t					budget;
+
+	/**
+	 * The type for the heading.
+	 */
+	enum account_type			type;
+};
+
+/**
  * Initialise the Heading Edit dialogue.
  */
 
@@ -40,44 +97,17 @@ void account_heading_dialogue_initialise(void);
 
 
 /**
- * Open the Section Edit dialogue for a given account list window.
+ * Open the Heading Edit dialogue for a given account list window.
  *
  * \param *ptr			The current Wimp pointer position.
  * \param *owner		The account instance to own the dialogue.
- * \param account		The account number of the heading to be edited, or NULL_ACCOUNT.
- * \param *update_callback	The callback function to use to return new values.
- * \param *delete_callback	The callback function to use to request deletion.
- * \param *name			The initial name to use for the heading.
- * \param *ident		The initial ident to use for the heading.
- * \param budget		The initial budget limit to use for the heading.
- * \param type			The initial incoming/outgoing type for the heading.
+ * \param *file			The file instance to own the dialogue.
+ * \param *callback		The callback function to use to return new values.
+ * \param *content		Pointer to structure to hold the dialogue content.
  */
 
-void account_heading_dialogue_open(wimp_pointer *ptr, struct account_block *owner, acct_t account,
-		osbool (*update_callback)(struct account_block *, acct_t, char *, char *, amt_t, enum account_type),
-		osbool (*delete_callback)(struct account_block *, acct_t), char *name, char *ident, amt_t budget, enum account_type type);
-
-
-/**
- * Force the closure of the account section edit dialogue if it relates
- * to a given accounts instance.
- *
- * \param *parent		The parent of the dialogue to be closed,
- *				or NULL to force close.
- */
-
-void account_heading_dialogue_force_close(struct account_block *parent);
-
-
-/**
- * Check whether the Edit Section dialogue is open for a given accounts
- * instance.
- *
- * \param *parent		The accounts list instance to check.
- * \return			TRUE if the dialogue is open; else FALSE.
- */
-
-osbool account_heading_dialogue_is_open(struct account_block *parent);
+void account_heading_dialogue_open(wimp_pointer *ptr, void *owner, struct file_block *file,
+		osbool (*callback)(void *, struct account_heading_dialogue_data *), struct account_heading_dialogue_data *content);
 
 #endif
 

@@ -291,7 +291,7 @@ int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int tool
 	row = WINDOW_ROW(toolbar_height, y);
 	row_y_pos = WINDOW_ROW_Y_POS(toolbar_height, y);
 
-	if ((row < 0) || ((max_lines > 0) && (row >= max_lines)) || WINDOW_ROW_ABOVE(row_y_pos) || WINDOW_ROW_BELOW(row_y_pos))
+	if ((row < 0) || ((max_lines >= 0) && (row >= max_lines)) || WINDOW_ROW_ABOVE(row_y_pos) || WINDOW_ROW_BELOW(row_y_pos))
 		row = -1;
 
 	return row;

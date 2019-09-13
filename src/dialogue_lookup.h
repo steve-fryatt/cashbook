@@ -22,13 +22,13 @@
  */
 
 /**
- * \file: analysis_lookup.h
+ * \file: dialogue_lookup.h
  *
  * Analysis account lookup dialogue interface.
  */
 
-#ifndef CASHBOOK_ANALYSIS_LOOKUP
-#define CASHBOOK_ANALYSIS_LOOKUP
+#ifndef CASHBOOK_DIALOGUE_LOOKUP
+#define CASHBOOK_DIALOGUE_LOOKUP
 
 #include "account.h"
 
@@ -37,20 +37,20 @@
  * Initialise the Account Lookup dialogue.
  */
 
-void analysis_lookup_initialise(void);
+void dialogue_lookup_initialise(void);
 
 
 /**
  * Open the account lookup window as a menu, allowing an account to be
  * entered into an account list using a graphical interface.
  *
- * \param *parent		The analysis_instance to which the operation relates.
+ * \param *file		The dialogue instance to which the operation relates.
  * \param window		The window to own the lookup dialogue.
  * \param icon			The icon to own the lookup dialogue.
  * \param account		An account to seed the window, or NULL_ACCOUNT.
  * \param type			The types of account to be accepted.
  */
 
-void analysis_lookup_open_window(struct analysis_block *parent, wimp_w window, wimp_i icon, acct_t account, enum account_type type);
+void dialogue_lookup_open_window(struct file_block *file, wimp_w window, wimp_i icon, acct_t account, enum account_type type);
 
 #endif

@@ -190,6 +190,8 @@ void analysis_template_delete_instance(struct analysis_template_block *instance)
 
 	if (instance->saved_reports != NULL)
 		flexutils_free((void **) &(instance->saved_reports));
+
+	heap_free(instance);
 }
 
 
@@ -608,10 +610,6 @@ osbool analysis_template_delete(struct analysis_template_block *instance, templa
 	file = analysis_get_file(instance->parent);
 	if (file != NULL)
 		file_set_data_integrity(file, TRUE);
-
-	/* If the rename template window is open for this template, close it now before the pointer is lost. */
-
-	analysis_template_save_force_rename_close(instance->parent, template);
 
 	/* Update any affected report dialogue. */
 

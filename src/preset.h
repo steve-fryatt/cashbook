@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -157,6 +157,16 @@ int preset_get_count(struct file_block *file);
 
 
 /**
+ * Return the file associated with a preset instance.
+ *
+ * \param *instance		The preset instance to query.
+ * \return			The associated file, or NULL.
+ */
+
+struct file_block *preset_get_file(struct preset_block *instance);
+
+
+/**
  * Test the validity of a preset index.
  *
  * \param *file			The file to test against.
@@ -190,6 +200,127 @@ char *preset_get_name(struct file_block *file, preset_t preset, char *buffer, si
 
 
 /**
+ * Find the caret target for the given preset.
+ *
+ * \param *file			The file holding the preset.
+ * \param preset		The preset to check.
+ * \return			The preset's caret target.
+ */
+
+enum preset_caret preset_get_caret_destination(struct file_block *file, preset_t preset);
+
+
+/**
+ * Find the action key for the given preset.
+ *
+ * \param *file			The file holding the preset.
+ * \param preset		The preset to check.
+ * \return			The preset's action key.
+ */
+
+char preset_get_action_key(struct file_block *file, preset_t preset);
+
+
+/**
+ * Return the date for the given preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the date for.
+ * \return			The preset's date, or NULL_DATE.
+ */
+
+date_t preset_get_date(struct file_block *file, preset_t preset);
+
+
+/**
+ * Return the from account of a preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the from account for.
+ * \return			The from account of the preset, or NULL_ACCOUNT.
+ */
+
+acct_t preset_get_from(struct file_block *file, preset_t preset);
+
+
+/**
+ * Return the to account of a preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the to account for.
+ * \return			The to account of the preset, or NULL_ACCOUNT.
+ */
+
+acct_t preset_get_to(struct file_block *file, preset_t preset);
+
+
+/**
+ * Return the preset flags for a preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the flags for.
+ * \return			The flags of the preset, or TRANS_FLAGS_NONE.
+ */
+
+enum transact_flags preset_get_flags(struct file_block *file, preset_t preset);
+
+
+/**
+ * Return the amount of a preset.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the amount of.
+ * \return			The amount of the preset, or NULL_CURRENCY.
+ */
+
+amt_t preset_get_amount(struct file_block *file, preset_t preset);
+
+
+/**
+ * Return the reference for a preset.
+ *
+ * If a buffer is supplied, the reference is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * reference in the preset array is returned instead. In the latter
+ * case, this pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the reference of.
+ * \param *buffer		Pointer to a buffer to take the reference, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting reference string,
+ *				either the supplied buffer or the original.
+ */
+
+char *preset_get_reference(struct file_block *file, preset_t preset, char *buffer, size_t length);
+
+
+/**
+ * Return the description for a preset.
+ *
+ * If a buffer is supplied, the description is copied into that buffer and a
+ * pointer to the buffer is returned; if one is not, then a pointer to the
+ * description in the preset array is returned instead. In the latter
+ * case, this pointer will become invalid as soon as any operation is carried
+ * out which might shift blocks in the flex heap.
+ *
+ * \param *file			The file containing the preset.
+ * \param preset		The preset to return the description of.
+ * \param *buffer		Pointer to a buffer to take the description, or
+ *				NULL to return a volatile pointer to the
+ *				original data.
+ * \param length		Length of the supplied buffer, in bytes, or 0.
+ * \return			Pointer to the resulting description string,
+ *				either the supplied buffer or the original.
+ */
+
+char *preset_get_description(struct file_block *file, preset_t preset, char *buffer, size_t length);
+
+
+/**
  * Open the Preset Edit dialogue for a given preset list window.
  *
  * \param *file			The file to own the dialogue.
@@ -219,35 +350,6 @@ void preset_sort(struct preset_block *windat);
  */
 
 preset_t preset_find_from_keypress(struct file_block *file, char key);
-
-
-/**
- * Find the caret target for the given preset.
- *
- * \param *file			The file holding the preset.
- * \param preset		The preset to check.
- * \return			The preset's caret target.
- */
-
-enum preset_caret preset_get_caret_destination(struct file_block *file, preset_t preset);
-
-
-/**
- * Apply a preset to fields of a transaction.
- *
- * \param *file			The file holding the preset.
- * \param preset		The preset to apply.
- * \param *date			The date field to be updated.
- * \param *from			The from field to be updated.
- * \param *to			The to field to be updated.
- * \param *flags		The flags field to be updated.
- * \param *amount		The amount field to be updated.
- * \param *reference		The reference field to be updated.
- * \param *description		The description field to be updated.
- * \return			Bitfield indicating which fields have changed.
- */
-
-enum transact_field preset_apply(struct file_block *file, preset_t preset, date_t *date, acct_t *from, acct_t *to, unsigned *flags, amt_t *amount, char *reference, char *description);
 
 
 /**

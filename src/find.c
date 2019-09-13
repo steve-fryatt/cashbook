@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -52,6 +52,9 @@
 //#include "global.h"
 #include "find.h"
 
+#include "find_result_dialogue.h"
+#include "find_search_dialogue.h"
+
 #include "account.h"
 #include "account_menu.h"
 #include "caret.h"
@@ -62,62 +65,6 @@
 #include "file.h"
 #include "transact.h"
 
-#define FIND_ICON_OK 26
-#define FIND_ICON_CANCEL 27
-
-#define FIND_ICON_DATE 2
-#define FIND_ICON_FMIDENT 4
-#define FIND_ICON_FMREC 5
-#define FIND_ICON_FMNAME 6
-#define FIND_ICON_TOIDENT 8
-#define FIND_ICON_TOREC 9
-#define FIND_ICON_TONAME 10
-#define FIND_ICON_REF 12
-#define FIND_ICON_AMOUNT 14
-#define FIND_ICON_DESC 16
-
-#define FIND_ICON_AND 18
-#define FIND_ICON_OR 19
-
-#define FIND_ICON_CASE 17
-#define FIND_ICON_WHOLE 28
-
-#define FIND_ICON_START 22
-#define FIND_ICON_DOWN 23
-#define FIND_ICON_UP 25
-#define FIND_ICON_END 24
-
-#define FOUND_ICON_CANCEL 1
-#define FOUND_ICON_PREVIOUS 0
-#define FOUND_ICON_NEXT 2
-#define FOUND_ICON_NEW 3
-#define FOUND_ICON_INFO 4
-
-#define FIND_MESSAGE_BUFFER_LENGTH 64
-
-/**
- * Search logic options.
- */
-
-enum find_logic {
-	FIND_NOLOGIC = 0,							/**< No logic has been specified.					*/
-	FIND_AND = 1,								/**< Search using AND logic to combine the fields.			*/
-	FIND_OR = 2								/**< Search using OR logic to comnine the fields.			*/
-};
-
-/**
- * Search direction options.
- */
-
-enum find_direction {
-	FIND_NODIR = 0,								/**< No direction has been specified.					*/
-	FIND_START = 1,								/**< Begin searching down from the start of the file.			*/
-	FIND_END = 2,								/**< Begin searching up from the end of the file.			*/
-	FIND_UP = 3,								/**< Continue searching up.						*/
-	FIND_DOWN = 4,								/**< Continue searching down.						*/
-	FIND_NEXT = 5,								/**< Find the next match in the current direction.			*/
-	FIND_PREVIOUS = 6							/**< Find the previous match in the current direction.			*/
-};
 
 /**
  * Search data.
@@ -140,24 +87,12 @@ struct find_block {
 	enum find_direction	direction;					/**< The direction to search in.					*/
 };
 
-static struct find_block	*find_window_owner = NULL;			/**< The file currently owning the Find dialogue.			*/
-static struct find_block	find_params;					/**< A copy of the settings for the current search.			*/
-static osbool			find_restore = FALSE;				/**< The restore setting for the current dialogue.			*/
+/* Static Function Prototypes. */
 
-static wimp_w			find_window = NULL;				/**< The handle of the find window.					*/
-static wimp_w			find_result_window = NULL;			/**< The handle of the 'found' window.					*/
-
-
-static void		find_reopen_window(wimp_pointer *ptr);
-static void		find_close_window(void);
-static void		find_result_close_window(void);
-static void		find_click_handler(wimp_pointer *pointer);
-static osbool		find_keypress_handler(wimp_key *key);
-static void		find_result_click_handler(wimp_pointer *pointer);
-static void		find_refresh_window(void);
-static void		find_fill_window(struct find_block *find_data, osbool restore);
-static osbool		find_process_window(void);
-static int		find_from_line(struct find_block *new_params, int new_dir, int start);
+static void find_reopen_window(struct find_block *windat, struct find_result_dialogue_data *parameters, wimp_pointer *ptr);
+static osbool find_process_search_window(void *owner, struct find_search_dialogue_data *content);
+static osbool find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content);
+static osbool find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters);
 
 
 /**
@@ -166,22 +101,8 @@ static int		find_from_line(struct find_block *new_params, int new_dir, int start
 
 void find_initialise(void)
 {
-	find_window  = templates_create_window("Find");
-	ihelp_add_window(find_window , "Find", NULL);
-	event_add_window_mouse_event(find_window, find_click_handler);
-	event_add_window_key_event(find_window, find_keypress_handler);
-	event_add_window_icon_radio(find_window, FIND_ICON_AND, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_OR, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_START, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_END, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_UP, TRUE);
-	event_add_window_icon_radio(find_window, FIND_ICON_DOWN, TRUE);
-
-
-
-	find_result_window = templates_create_window("Found");
-	ihelp_add_window(find_result_window, "Found", NULL);
-	event_add_window_mouse_event(find_result_window, find_result_click_handler);
+	find_search_dialogue_initialise();
+	find_result_dialogue_initialise();
 }
 
 
@@ -227,14 +148,6 @@ struct find_block *find_create(struct file_block *file)
 
 void find_delete(struct find_block *windat)
 {
-	if (find_window_owner == windat) {
-		if (windows_get_open(find_window))
-			find_close_window();
-
-		if (windows_get_open(find_result_window))
-			find_result_close_window();
-	}
-
 	if (windat != NULL)
 		heap_free(windat);
 }
@@ -251,25 +164,29 @@ void find_delete(struct find_block *windat)
 
 void find_open_window(struct find_block *windat, wimp_pointer *ptr, osbool restore)
 {
-	/* If either of the find/found windows are already open, close them to start with. */
+	struct find_search_dialogue_data *content = NULL;
 
-	if (windows_get_open(find_window))
-		wimp_close_window(find_window);
+	if (windat == NULL || ptr == NULL)
+		return;
 
-	if (windows_get_open(find_result_window))
-		wimp_close_window(find_result_window);
+	content = heap_alloc(sizeof(struct find_search_dialogue_data));
+	if (content == NULL)
+		return;
 
-	/* Blank out the icon contents. */
+	content->date = windat->date;
+	content->from = windat->from;
+	content->to = windat->to;
+	content->reconciled = windat->reconciled;
+	content->amount = windat->amount;
+	content->logic = windat->logic;
+	content->case_sensitive = windat->case_sensitive;
+	content->whole_text = windat->whole_text;
+	content->direction = windat->direction;
 
-	find_fill_window(windat, restore);
+	string_copy(content->ref, windat->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(content->desc, windat->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	/* Set the pointer up to find the window again and open the window. */
-
-	find_window_owner = windat;
-	find_restore = restore;
-
-	windows_open_centred_at_pointer(find_window, ptr);
-	place_dialogue_caret(find_window, FIND_ICON_DATE);
+	find_search_dialogue_open(ptr, restore, windat, windat->file, find_process_search_window, content);
 }
 
 
@@ -277,425 +194,241 @@ void find_open_window(struct find_block *windat, wimp_pointer *ptr, osbool resto
  * Re-open the Find window, from the 'modify' icon in the Found window, with
  * the current search params.
  *
+ * \param *parameters		The search data to use as a base for the new search.
  * \param *ptr			The Wimp pointer details.
  */
 
-static void find_reopen_window(wimp_pointer *ptr)
+static void find_reopen_window(struct find_block *windat, struct find_result_dialogue_data *parameters, wimp_pointer *ptr)
 {
-	/* If either of the find/found windows are already open, close them to start with. */
+	struct find_search_dialogue_data *content = NULL;
 
-	if (windows_get_open(find_window))
-		wimp_close_window(find_window);
+	if (parameters == NULL || ptr == NULL)
+		return;
 
-	if (windows_get_open(find_result_window))
-		wimp_close_window(find_result_window);
+	content = heap_alloc(sizeof(struct find_search_dialogue_data));
+	if (content == NULL)
+		return;
 
-	/* Blank out the icon contents. */
+	content->date = parameters->date;
+	content->from = parameters->from;
+	content->to = parameters->to;
+	content->reconciled = parameters->reconciled;
+	content->amount = parameters->amount;
+	content->logic = parameters->logic;
+	content->case_sensitive = parameters->case_sensitive;
+	content->whole_text = parameters->whole_text;
+	content->direction = parameters->direction;
 
-	find_fill_window(&find_params, TRUE);
+	string_copy(content->ref, parameters->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(content->desc, parameters->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	find_restore = TRUE;
-
-	windows_open_centred_at_pointer(find_window, ptr);
-	place_dialogue_caret(find_window, FIND_ICON_DATE);
+	find_search_dialogue_open(ptr, TRUE, windat, windat->file, find_process_search_window, content);
 }
 
 
 /**
- * Close the Find dialogue, and deregister it from its client.
- */
-
-static void find_close_window(void)
-{
-	close_dialogue_with_caret(find_window);
-
-	if (!windows_get_open(find_result_window))
-		find_window_owner = NULL;
-}
-
-
-/**
- * Close the Find Result dialogue, and deregister it from its client.
- */
-
-static void find_result_close_window(void)
-{
-	wimp_close_window(find_result_window);
-
-	if (!windows_get_open(find_window))
-		find_window_owner = NULL;
-}
-
-
-/**
- * Process mouse clicks in the Find dialogue.
+ * Process the contents of the Find window, store the details and
+ * perform a find operation.
  *
- * \param *pointer		The mouse event block to handle.
+ * \param *owner		The find instance currently owning the dialogue.
+ * \param *content		The data from the dialogue which is to be processed.
+ * \return			TRUE if the operation completed OK; FALSE if there
+ *				was an error.
  */
 
-static void find_click_handler(wimp_pointer *pointer)
+static osbool find_process_search_window(void *owner, struct find_search_dialogue_data *content)
 {
-	switch (pointer->i) {
-	case FIND_ICON_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			find_close_window();
-		else if (pointer->buttons == wimp_CLICK_ADJUST)
-			find_refresh_window();
-		break;
+	struct find_block			*windat = owner;
+	struct find_result_dialogue_data	*parameters = NULL;
 
-	case FIND_ICON_OK:
-		if (find_process_window() && pointer->buttons == wimp_CLICK_SELECT)
-			find_close_window();
-		break;
+	if (windat == NULL || content == NULL)
+		return TRUE;
 
-	case FIND_ICON_FMNAME:
-		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(find_window_owner->file, ACCOUNT_MENU_FROM, NULL, find_window,
-					FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC, pointer);
-		break;
+	/* Store the new data. */
 
-	case FIND_ICON_TONAME:
-		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_menu_open_icon(find_window_owner->file, ACCOUNT_MENU_TO, NULL, find_window,
-					FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC, pointer);
-		break;
+	windat->date = content->date;
+	windat->from = content->from;
+	windat->to = content->to;
+	windat->reconciled = content->reconciled;
+	windat->amount = content->amount;
+	windat->logic = content->logic;
+	windat->case_sensitive = content->case_sensitive;
+	windat->whole_text = content->whole_text;
+	windat->direction = content->direction;
 
-	case FIND_ICON_FMREC:
-		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_toggle_reconcile_icon(find_window, FIND_ICON_FMREC);
-		break;
+	string_copy(windat->ref, content->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(windat->desc, content->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	case FIND_ICON_TOREC:
-		if (pointer->buttons == wimp_CLICK_ADJUST)
-			account_toggle_reconcile_icon(find_window, FIND_ICON_TOREC);
-		break;
+	/* Take a copy of the saved parameters. */
+
+	parameters = heap_alloc(sizeof(struct find_result_dialogue_data));
+	if (parameters == NULL)
+		return FALSE;
+
+	parameters->date = windat->date;
+	parameters->from = windat->from;
+	parameters->to = windat->to;
+	parameters->reconciled = windat->reconciled;
+	parameters->amount = windat->amount;
+	string_copy(parameters->ref, windat->ref, TRANSACT_REF_FIELD_LEN);
+	string_copy(parameters->desc, windat->desc, TRANSACT_DESCRIPT_FIELD_LEN);
+
+	parameters->logic = windat->logic;
+	parameters->case_sensitive = windat->case_sensitive;
+	parameters->whole_text = windat->whole_text;
+	parameters->direction = windat->direction;
+
+	parameters->result = TRANSACT_FIELD_NONE;
+	parameters->action = FIND_RESULT_DIALOGUE_NONE;
+
+	/* Get the start line. */
+
+	if (content->direction == FIND_START) {
+		parameters->transaction = 0;
+		parameters->direction = FIND_DOWN;
+	} else if (content->direction == FIND_END) {
+		parameters->transaction = transact_get_count(windat->file) - 1;
+		parameters->direction = FIND_UP;
+	} else if (content->direction == FIND_DOWN) {
+		parameters->transaction = transact_get_caret_line(windat->file) + 1;
+		if (parameters->transaction >= transact_get_count(windat->file))
+			parameters->transaction = transact_get_count(windat->file) - 1;
+	} else if (content->direction == FIND_UP) {
+		parameters->transaction = transact_get_caret_line(windat->file) - 1;
+		if (parameters->transaction < 0)
+			parameters->transaction = 0;
+	} else {
+		return FALSE;
 	}
-}
 
+	/* Start the search. */
 
-/**
- * Process keypresses in the Find window.
- *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
- */
-
-static osbool find_keypress_handler(wimp_key *key)
-{
-	switch (key->c) {
-	case wimp_KEY_RETURN:
-		if (find_process_window())
-			find_close_window();
-		break;
-
-	case wimp_KEY_ESCAPE:
-		find_close_window();
-		break;
-
-	default:
-		if (key->i != FIND_ICON_FMIDENT && key->i != FIND_ICON_TOIDENT)
-			return FALSE;
-
-		if (key->i == FIND_ICON_FMIDENT)
-			account_lookup_field(find_window_owner->file, key->c, ACCOUNT_IN | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-					find_window, FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC);
-
-		else if (key->i == FIND_ICON_TOIDENT)
-			account_lookup_field(find_window_owner->file, key->c, ACCOUNT_OUT | ACCOUNT_FULL, NULL_ACCOUNT, NULL,
-					find_window, FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC);
-		break;
-	}
+	find_from_line(windat, parameters);
 
 	return TRUE;
 }
 
 
 /**
- * Process mouse clicks in the Find Result dialogue.
+ * Process the contents of the Found window, store the details and
+ * perform a new find operation as required.
  *
+ * \param *pointer		The Wimp pointer data from the last dialogue click.
+ * \param *owner		The find instance currently owning the dialogue.
+ * \param *content		The data from the dialogue which is to be processed.
  * \param *pointer		The mouse event block to handle.
+ * \return			TRUE if the operation completed and the window should
+ *				close; FALSE to hold it open.
  */
 
-static void find_result_click_handler(wimp_pointer *pointer)
+static osbool find_process_result_window(wimp_pointer *pointer, void *owner, struct find_result_dialogue_data *content)
 {
-	switch (pointer->i) {
-	case FOUND_ICON_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			find_result_close_window();
+	struct find_block			*windat = owner;
+
+	if (windat == NULL || content == NULL)
+		return TRUE;
+
+	/* Reset the match data. */
+
+	content->result = TRANSACT_FIELD_NONE;
+
+	/* Adjust the search direction for next/previous. */
+
+	switch (content->action) {
+	case FIND_RESULT_DIALOGUE_PREVIOUS:
+		if (content->direction == FIND_UP)		// \TODO -- Not sure if this gets the old logic correct?
+			content->direction = FIND_DOWN;
+		else if (content->direction == FIND_DOWN)
+			content->direction = FIND_UP;
 		break;
 
-	case FOUND_ICON_PREVIOUS:
-		if (pointer->buttons == wimp_CLICK_SELECT && (find_from_line(NULL, FIND_PREVIOUS, NULL_TRANSACTION) == NULL_TRANSACTION))
-			find_result_close_window();
+	case FIND_RESULT_DIALOGUE_NEXT:
 		break;
 
-	case FOUND_ICON_NEXT:
-		if (pointer->buttons == wimp_CLICK_SELECT && (find_from_line(NULL, FIND_NEXT, NULL_TRANSACTION) == NULL_TRANSACTION))
-			find_result_close_window();
-		break;
+	case FIND_RESULT_DIALOGUE_NEW:
+		find_reopen_window(windat, content, pointer);
+		return TRUE;
 
-	case FOUND_ICON_NEW:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			find_reopen_window(pointer);
+	case FIND_RESULT_DIALOGUE_NONE:
 		break;
 	}
-}
 
+	/* Step past the current line, where the match is. */
 
-/**
- * Refresh the contents of the current Find window.
- */
-
-static void find_refresh_window(void)
-{
-	find_fill_window(find_window_owner, find_restore);
-	icons_redraw_group(find_window, 10, FIND_ICON_DATE,
-			FIND_ICON_FMIDENT, FIND_ICON_FMREC, FIND_ICON_FMNAME,
-			FIND_ICON_TOIDENT, FIND_ICON_TOREC, FIND_ICON_TONAME,
-			FIND_ICON_REF, FIND_ICON_AMOUNT, FIND_ICON_DESC);
-	icons_replace_caret_in_window(find_window);
-}
-
-
-/**
- * Fill the Find window with values.
- *
- * \param: *find_data		Saved settings to use if restore == FALSE.
- * \param: restore		TRUE to keep the supplied settings; FALSE to
- *				use system defaults.
- */
-
-static void find_fill_window(struct find_block *find_data, osbool restore)
-{
-	if (!restore) {
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_DATE) = '\0';
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_FMIDENT) = '\0';
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_FMREC) = '\0';
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_FMNAME) = '\0';
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_TOIDENT) = '\0';
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_TOREC) = '\0';
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_TONAME) = '\0';
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_REF) = '\0';
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT) = '\0';
-		*icons_get_indirected_text_addr(find_window, FIND_ICON_DESC) = '\0';
-
-		icons_set_selected(find_window, FIND_ICON_AND, 1);
-		icons_set_selected(find_window, FIND_ICON_OR, 0);
-
-		icons_set_selected(find_window, FIND_ICON_START, 1);
-		icons_set_selected(find_window, FIND_ICON_DOWN, 0);
-		icons_set_selected(find_window, FIND_ICON_UP, 0);
-		icons_set_selected(find_window, FIND_ICON_END, 0);
-		icons_set_selected(find_window, FIND_ICON_CASE, 0);
-	} else {
-		date_convert_to_string(find_data->date, icons_get_indirected_text_addr(find_window, FIND_ICON_DATE),
-				icons_get_indirected_text_length(find_window, FIND_ICON_DATE));
-
-		account_fill_field(find_data->file, find_data->from, (find_data->reconciled & TRANS_REC_FROM) ? TRUE : FALSE,
-				find_window, FIND_ICON_FMIDENT, FIND_ICON_FMNAME, FIND_ICON_FMREC);
-
-		account_fill_field(find_data->file, find_data->to, (find_data->reconciled & TRANS_REC_TO) ? TRUE : FALSE,
-				find_window, FIND_ICON_TOIDENT, FIND_ICON_TONAME, FIND_ICON_TOREC);
-
-		icons_strncpy(find_window, FIND_ICON_REF, find_data->ref);
-		currency_convert_to_string(find_data->amount, icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT),
-				icons_get_indirected_text_length(find_window, FIND_ICON_AMOUNT));
-		icons_strncpy(find_window, FIND_ICON_DESC, find_data->desc);
-
-		icons_set_selected(find_window, FIND_ICON_AND, find_data->logic == FIND_AND);
-		icons_set_selected(find_window, FIND_ICON_OR, find_data->logic == FIND_OR);
-
-		icons_set_selected(find_window, FIND_ICON_START, find_data->direction == FIND_START);
-		icons_set_selected(find_window, FIND_ICON_DOWN, find_data->direction == FIND_DOWN);
-		icons_set_selected(find_window, FIND_ICON_UP, find_data->direction == FIND_UP);
-		icons_set_selected(find_window, FIND_ICON_END, find_data->direction == FIND_END);
-
-		icons_set_selected(find_window, FIND_ICON_CASE, find_data->case_sensitive);
-		icons_set_selected(find_window, FIND_ICON_WHOLE, find_data->whole_text);
-	}
-}
-
-
-/**
- * Process the contents of the Find window, store the details and
- * perform a find operation with them.
- *
- * \return			TRUE if the operation completed OK; FALSE if there
- *				was an error.
- */
-
-static osbool find_process_window(void)
-{
-	int		line;
-
-	/* Get the window contents. */
-
-	find_window_owner->date = date_convert_from_string(icons_get_indirected_text_addr(find_window, FIND_ICON_DATE), NULL_DATE, 0);
-	find_window_owner->from = account_find_by_ident(find_window_owner->file, icons_get_indirected_text_addr(find_window, FIND_ICON_FMIDENT),
-			ACCOUNT_FULL | ACCOUNT_IN);
-	find_window_owner->to = account_find_by_ident(find_window_owner->file, icons_get_indirected_text_addr(find_window, FIND_ICON_TOIDENT),
-			ACCOUNT_FULL | ACCOUNT_OUT);
-	find_window_owner->reconciled = TRANS_FLAGS_NONE;
-	if (*icons_get_indirected_text_addr(find_window, FIND_ICON_FMREC) != '\0')
-		find_window_owner->reconciled |= TRANS_REC_FROM;
-	if (*icons_get_indirected_text_addr(find_window, FIND_ICON_TOREC) != '\0')
-		find_window_owner->reconciled |= TRANS_REC_TO;
-	find_window_owner->amount = currency_convert_from_string(icons_get_indirected_text_addr(find_window, FIND_ICON_AMOUNT));
-	icons_copy_text(find_window, FIND_ICON_REF, find_window_owner->ref, TRANSACT_REF_FIELD_LEN);
-	icons_copy_text(find_window, FIND_ICON_DESC, find_window_owner->desc, TRANSACT_DESCRIPT_FIELD_LEN);
-
-	/* Read find logic. */
-
-	if (icons_get_selected(find_window, FIND_ICON_AND))
-		find_window_owner->logic = FIND_AND;
-	else if (icons_get_selected(find_window, FIND_ICON_OR))
-		find_window_owner->logic = FIND_OR;
-
-	/* Read search direction. */
-
-	if (icons_get_selected(find_window, FIND_ICON_START))
-		find_window_owner->direction = FIND_START;
-	else if (icons_get_selected(find_window, FIND_ICON_END))
-		find_window_owner->direction = FIND_END;
-	else if (icons_get_selected(find_window, FIND_ICON_DOWN))
-		find_window_owner->direction = FIND_DOWN;
-	else if (icons_get_selected(find_window, FIND_ICON_UP))
-		find_window_owner->direction = FIND_UP;
-
-	find_window_owner->case_sensitive = icons_get_selected(find_window, FIND_ICON_CASE);
-	find_window_owner->whole_text = icons_get_selected(find_window, FIND_ICON_WHOLE);
-
-	/* Get the start line. */
-
-	if (find_window_owner->direction == FIND_START)
-		line = 0;
-	else if (find_window_owner->direction == FIND_END)
-		line = transact_get_count(find_window_owner->file) - 1;
-	else if (find_window_owner->direction == FIND_DOWN) {
-		line = transact_get_caret_line(find_window_owner->file) + 1;
-		if (line >= transact_get_count(find_window_owner->file))
-			line = transact_get_count(find_window_owner->file) - 1;
-	} else /* FUND_UP */ {
-		line = transact_get_caret_line(find_window_owner->file) - 1;
-		if (line < 0)
-			line = 0;
+	switch (content->direction) {				// \TODO -- What happens if line is 0 or (max_lines-1)?
+	case FIND_UP:
+		content->transaction -= 1;
+		if (content->transaction < 0)
+			content->transaction = 0;
+		break;
+	case FIND_DOWN:
+		content->transaction += 1;
+		if (content->transaction >= transact_get_count(windat->file))
+			content->transaction = transact_get_count(windat->file) - 1;
+		break;
+	default:
+		break;
 	}
 
-	/* Start the search. */
+	/* Resume the search. */
 
-	line = find_from_line(find_window_owner, FIND_NODIR, line);
-
-	return (line != NULL_TRANSACTION) ? TRUE : FALSE;
+	return !find_from_line(windat, content);
 }
 
 
 /**
  * Perform a search
  *
- * \param *new_params		The search parameters to use, or NULL to continue
- *				with the existing set.
- * \param new_dir		The direction to search in.
- * \param start			The line to start the search from (inclusive).
- * \return			The resulting matching transaction.
+ * \param *windat		The parent Find instance.
+ * \param *parameters		The search parameters to use.
+ * \return			TRUE if a match was found; otherwise FALSE.
  */
 
-static int find_from_line(struct find_block *new_params, int new_dir, int start)
+static osbool find_from_line(struct find_block *windat, struct find_result_dialogue_data *parameters)
 {
-	int			line;
-	enum find_direction	direction;
-	enum transact_field	result;
-	wimp_pointer		pointer;
-	char			buf1[FIND_MESSAGE_BUFFER_LENGTH], buf2[FIND_MESSAGE_BUFFER_LENGTH], ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
+	int					line;
+	enum transact_field			result;
+	wimp_pointer				pointer;
+	char					ref[TRANSACT_REF_FIELD_LEN + 2], desc[TRANSACT_DESCRIPT_FIELD_LEN + 2];
 
-	/* If new parameters are being supplied, take copies. */
-
-	if (new_params != NULL) {
-		find_params.file = new_params->file;
-		find_params.date = new_params->date;
-		find_params.from = new_params->from;
-		find_params.to = new_params->to;
-		find_params.reconciled = new_params->reconciled;
-		find_params.amount = new_params->amount;
-		string_copy(find_params.ref, new_params->ref, TRANSACT_REF_FIELD_LEN);
-		string_copy(find_params.desc, new_params->desc, TRANSACT_DESCRIPT_FIELD_LEN);
-
-		find_params.logic = new_params->logic;
-		find_params.case_sensitive = new_params->case_sensitive;
-		find_params.whole_text = new_params->whole_text;
-		find_params.direction = new_params->direction;
-
-		/* Start and End have served their purpose; they now need to convert into up and down. */
-
-		if (find_params.direction == FIND_START)
-			find_params.direction = FIND_DOWN;
-
-		if (find_params.direction == FIND_END)
-			find_params.direction = FIND_UP;
-	}
+	if (windat == NULL || parameters == NULL)
+		return FALSE;
 
 	/* Take local copies of the two text fields, and add bracketing wildcards as necessary. */
 
-	if ((!find_params.whole_text) && (*(find_params.ref) != '\0'))
-		string_printf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", find_params.ref);
+	if ((!parameters->whole_text) && (*(parameters->ref) != '\0'))
+		string_printf(ref, TRANSACT_REF_FIELD_LEN + 2, "*%s*", parameters->ref);
 	else
-		string_copy(ref, find_params.ref, TRANSACT_REF_FIELD_LEN + 2);
+		string_copy(ref, parameters->ref, TRANSACT_REF_FIELD_LEN + 2);
 
-	if ((!find_params.whole_text) && (*(find_params.desc) != '\0'))
-		string_printf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", find_params.desc);
+	if ((!parameters->whole_text) && (*(parameters->desc) != '\0'))
+		string_printf(desc, TRANSACT_DESCRIPT_FIELD_LEN + 2, "*%s*", parameters->desc);
 	else
-		string_copy(desc, find_params.desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
+		string_copy(desc, parameters->desc, TRANSACT_DESCRIPT_FIELD_LEN + 2);
 
-	/* If the search needs to change direction, do so now. */
+	/* Run the search. */
 
-	if (new_dir == FIND_NEXT || new_dir == FIND_PREVIOUS) {
-		if (find_params.direction == FIND_UP)
-			direction = (new_dir == FIND_NEXT) ? FIND_UP : FIND_DOWN;
-		else
-			direction = (new_dir == FIND_NEXT) ? FIND_DOWN : FIND_UP;
-	} else {
-		direction = find_params.direction;
-	}
+	line = parameters->transaction;
 
-	/* If a new start line is being specified, take note, else use the current edit line. */
-
-	if (start == NULL_TRANSACTION) {
-		if (direction == FIND_DOWN) {
-			line = transact_get_caret_line(find_window_owner->file) + 1;
-			if (line >= transact_get_count(find_window_owner->file))
-				line = transact_get_count(find_window_owner->file) - 1;
-		} else /* FIND_UP */ {
-			line = transact_get_caret_line(find_window_owner->file) - 1;
-			if (line < 0)
-				line = 0;
-		}
-	} else {
-		line = start;
-	}
-
-	result = transact_search(find_window_owner->file, &line, direction == FIND_UP, find_params.case_sensitive, find_params.logic == FIND_AND,
-			find_params.date, find_params.from, find_params.to, find_params.reconciled, find_params.amount, ref, desc);
+	result = transact_search(windat->file, &line, parameters->direction == FIND_UP, parameters->case_sensitive, parameters->logic == FIND_AND,
+			parameters->date, parameters->from, parameters->to, parameters->reconciled, parameters->amount, ref, desc);
 
 	if (result == TRANSACT_FIELD_NONE) {
+		heap_free(parameters);
 		error_msgs_report_info ("BadFind");
-		return NULL_TRANSACTION;
+		return FALSE;
 	}
 
-	wimp_close_window(find_window);
+	/* Store and act on the result. */
 
-	transact_place_caret(find_window_owner->file, line, result);
+	transact_place_caret(windat->file, line, result);
 
-	transact_get_column_name(find_window_owner->file, result, buf1, FIND_MESSAGE_BUFFER_LENGTH);
-	string_printf(buf2, FIND_MESSAGE_BUFFER_LENGTH, "%d", transact_get_transaction_number(line));
+	parameters->result = result;
+	parameters->transaction = line;
 
-	icons_msgs_param_lookup(find_result_window, FOUND_ICON_INFO, "Found", buf1, buf2, NULL, NULL);
+	wimp_get_pointer_info(&pointer);
+	find_result_dialogue_open(&pointer, windat, windat->file, find_process_result_window, parameters);
 
-	if (!windows_get_open(find_result_window)) {
-		wimp_get_pointer_info(&pointer);
-		windows_open_centred_at_pointer(find_result_window, &pointer);
-	} else {
-		icons_redraw_group(find_result_window, 1, FOUND_ICON_INFO);
-	}
-
-	return line;
+	return TRUE;
 }
 

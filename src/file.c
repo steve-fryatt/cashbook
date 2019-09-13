@@ -67,13 +67,14 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "filing.h"
 #include "find.h"
 #include "flexutils.h"
 #include "goto.h"
 #include "interest.h"
-#include "presets.h"
+#include "preset.h"
 #include "print_dialogue.h"
 #include "purge.h"
 #include "report.h"
@@ -334,7 +335,16 @@ void delete_file(struct file_block *file)
 	if (report_get_pending_print_jobs(file) && error_msgs_report_question("PendingPrints", "PendingPrintsB") == 4)
 		return;
 
-	/* Delete the windows. */
+	/* Delete any reports that are open. */
+
+	while (file->reports != NULL)
+		report_delete(file->reports);
+
+	/* Force close any dialogues which are open. */
+
+	dialogue_force_all_closed(file, NULL);
+
+	/* Delete the windows and data structures. */
 
 	if (file->transacts != NULL)
 		transact_delete_instance(file->transacts);
@@ -348,29 +358,14 @@ void delete_file(struct file_block *file)
 	if (file->presets != NULL)
 		preset_delete_instance(file->presets);
 
-	/* Delete the Interest Rate data. */
-
 	if (file->interest != NULL)
 		interest_delete_instance(file->interest);
-
-	/* Delete the Account View data. */
 
 	if (file->accviews != NULL)
 		accview_delete_instance(file->accviews);
 
-	/* Delete any reports that are open. */
-
-	while (file->reports != NULL)
-		report_delete(file->reports);
-
-	/* Delete any analysis report data. */
-
 	if (file->analysis != NULL)
 		analysis_delete_instance(file->analysis);
-
-	/* Do the same for any file-related dialogues that are open. */
-
-	filing_force_windows_closed(file);
 
 	/* Delink the block from the list of open files. */
 

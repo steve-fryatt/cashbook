@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -78,12 +78,13 @@
 #include "column.h"
 #include "currency.h"
 #include "date.h"
+#include "dialogue.h"
 #include "edit.h"
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
 #include "interest.h"
-#include "presets.h"
+#include "preset.h"
 #include "print_dialogue.h"
 #include "report.h"
 #include "sorder.h"
@@ -230,7 +231,7 @@ enum account_list_window_overdrawn {
  * Account List Window line redraw data.
  */
 
-struct account_redraw {
+struct account_list_window_redraw {
 	/**
 	 * The type of line (account, section heading, section footer, blank, etc).
 	 */
@@ -259,7 +260,7 @@ struct account_redraw {
 
 
 /**
- * Account Window instance data structure.
+ * Account List Window instance data structure.
  */
 
 struct account_list_window {
@@ -309,9 +310,9 @@ struct account_list_window {
 	int					display_lines;
 
 	/**
-	 * flex array holding the line data for the window.
+	 * Flex array holding the line data for the window.
 	 */
-	struct account_redraw			*line_data;
+	struct account_list_window_redraw	*line_data;
 };
 
 /**
@@ -358,7 +359,7 @@ static struct saveas_block		*account_list_window_saveas_tsv = NULL;
 
 
 /**
- * Data relating to line dragging dragging.
+ * Data relating to line dragging.
  */
 
 struct account_list_window_drag_data {
@@ -401,10 +402,9 @@ static void account_list_window_set_extent(struct account_list_window *windat);
 static void account_list_window_force_redraw(struct account_list_window *windat, int from, int to, wimp_i column);
 static void account_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 static void account_list_window_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr);
-static osbool account_list_window_process_section_edit_window(struct account_list_window *window, int line, char* name, enum account_line_type type);
-static osbool account_list_window_delete_from_section_edit_window(struct account_list_window *window, int line);
+static osbool account_list_window_process_section_edit_window(void *parent, struct account_section_dialogue_data *content);
 static void account_list_window_open_print_window(struct account_list_window *window, wimp_pointer *ptr, osbool restore);
-static struct report *account_list_window_print(struct report *report, void *data);
+static struct report *account_list_window_print(struct report *report, void *data, date_t from, date_t to);
 static int account_list_window_add_line(struct account_list_window *windat);
 static void account_list_window_start_drag(struct account_list_window *windat, wimp_window_state *window, int line);
 static void account_list_window_terminate_drag(wimp_dragged *drag, void *data);
@@ -414,7 +414,7 @@ static void account_list_window_export_delimited(struct account_list_window *win
 
 
 /**
- * Test whether an account number is safe to look up in the account data array.
+ * Test whether a line number is safe to look up in the redraw data array.
  */
 
 #define account_list_window_line_valid(windat, line) (((line) >= 0) && ((line) < ((windat)->display_lines)))
@@ -423,6 +423,8 @@ static void account_list_window_export_delimited(struct account_list_window *win
 
 /**
  * Initialise the Account List Window system.
+ *
+ * \param *sprites		The application sprite area.
  */
 
 void account_list_window_initialise(osspriteop_area *sprites)
@@ -478,6 +480,8 @@ struct account_list_window *account_list_window_create_instance(struct account_b
 	*new->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_CURRENT] = '\0';
 	*new->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_FINAL] = '\0';
 	*new->footer_icon[ACCOUNT_LIST_WINDOW_NUM_COLUMN_BUDGET] = '\0';
+
+	/* Initialise the window columns. */
 
 	new->columns = column_create_instance(ACCOUNT_LIST_WINDOW_COLUMNS, account_list_window_columns, account_list_window_extra_columns, wimp_ICON_WINDOW);
 	if (new->columns == NULL) {
@@ -662,12 +666,6 @@ static void account_list_window_delete(struct account_list_window *windat)
 	debug_printf ("\\RDeleting accounts list window");
 	#endif
 
-	/* Close any dialogues which belong to this window. */
-
-	account_account_dialogue_force_close(windat->instance);
-	account_heading_dialogue_force_close(windat->instance);
-	account_section_dialogue_force_close(windat);
-
 	/* Delete the window, if it exists. */
 
 	if (windat->account_window != NULL) {
@@ -689,6 +687,11 @@ static void account_list_window_delete(struct account_list_window *windat)
 		wimp_delete_window(windat->account_footer);
 		windat->account_footer = NULL;
 	}
+
+	/* Close any dialogues which belong to this window. */
+
+	dialogue_force_all_closed(NULL, windat->instance);
+	dialogue_force_all_closed(NULL, windat);
 }
 
 
@@ -1235,7 +1238,7 @@ void account_list_window_remove_account(struct account_list_window *windat, acct
 			debug_printf("Deleting entry type %x", windat->line_data[line].type);
 			#endif
 
-			if (!flexutils_delete_object((void **) &(windat->line_data), sizeof(struct account_redraw), line)) {
+			if (!flexutils_delete_object((void **) &(windat->line_data), sizeof(struct account_list_window_redraw), line)) {
 				error_msgs_report_error("BadDelete");
 				continue;
 			}
@@ -1426,106 +1429,119 @@ static void account_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os
 
 static void account_list_window_open_section_edit_window(struct account_list_window *window, int line, wimp_pointer *ptr)
 {
+	struct account_section_dialogue_data	*content = NULL;
+	struct file_block			*file = NULL;
+
 	if (window == NULL)
+		return;
+
+	file = account_get_file(window->instance);
+	if (file == NULL)
 		return;
 
 	/* Close any other edit dialogues relating to this account list window. */
 
-	account_account_dialogue_force_close(NULL);
-	account_heading_dialogue_force_close(NULL);
-	account_section_dialogue_force_close(NULL);
+	dialogue_force_group_closed(DIALOGUE_GROUP_EDIT);
 
 	/* Open the dialogue box. */
 
-	account_section_dialogue_open(ptr, window, line, account_list_window_process_section_edit_window, account_list_window_delete_from_section_edit_window,
-			(line == -1) ? "" : window->line_data[line].heading,
-			(line == -1) ? ACCOUNT_LINE_HEADER : window->line_data[line].type);
+	content = heap_alloc(sizeof(struct account_section_dialogue_data));
+	if (content == NULL)
+		return;
+
+	content->action = ACCOUNT_SECTION_DIALOGUE_ACTION_NONE;
+	content->line = line;
+
+	if (line == -1) {
+		*(content->name) = '\0';
+		content->type = ACCOUNT_LINE_HEADER;
+	} else {
+		string_copy(content->name, window->line_data[line].heading, ACCOUNT_SECTION_LEN);
+		content->type = window->line_data[line].type;
+	}
+
+	account_section_dialogue_open(ptr, window, file,
+			account_list_window_process_section_edit_window, content);
 }
 
 
 /**
  * Process data associated with the currently open Section Edit window.
  *
- * \param *windat		The Account List window holding the section.
- * \param line			The selected section to be updated, or -1.
- * \param *name			The new name for the section.
- * \param type			The new type of section.
+ * \param *parent		The Account List window holding the section.
+ * \param *content		The content of the dialogue box.
  * \return			TRUE if processed; else FALSE.
  */
 
-static osbool account_list_window_process_section_edit_window(struct account_list_window *windat, int line, char* name, enum account_line_type type)
+static osbool account_list_window_process_section_edit_window(void *parent, struct account_section_dialogue_data *content)
 {
-	struct file_block *file;
+	struct account_list_window	*windat = parent;
+	struct file_block		*file = NULL;
+	int				redraw_to = 0;
 
-	if (windat == NULL || windat->instance == NULL)
+	if (content == NULL || windat == NULL || windat->instance == NULL)
 		return FALSE;
 
 	file = account_get_file(windat->instance);
 	if (file == NULL)
 		return FALSE;
 
-	/* If the section doesn't exsit, create space for it. */
+	switch (content->action) {
+	case ACCOUNT_SECTION_DIALOGUE_ACTION_OK:
+		/* If the section doesn't exsit, create space for it. */
 
-	if (line == -1) {
-		line = account_list_window_add_line(windat);
+		if (content->line == -1) {
+			content->line = account_list_window_add_line(windat);
 
-		if (line == -1) {
-			error_msgs_report_error("NoMemNewSect");
+			if (content->line == -1) {
+				error_msgs_report_error("NoMemNewSect");
+				return FALSE;
+			}
+		}
+
+		/* Update the line details. */
+
+		string_copy(windat->line_data[content->line].heading, content->name, ACCOUNT_SECTION_LEN);
+		windat->line_data[content->line].type = content->type;
+
+		/* Set the redraw range. */
+
+		redraw_to = content->line;
+		break;
+
+	case ACCOUNT_SECTION_DIALOGUE_ACTION_DELETE:
+		if (content->line == -1)
+			return FALSE;
+
+		/* Check that the user really wishes to proceed. */
+
+		if (error_msgs_report_question("DeleteSection", "DeleteSectionB") == 4)
+			return FALSE;
+
+		/* Delete the heading */
+
+		if (!flexutils_delete_object((void **) &(windat->line_data), sizeof(struct account_list_window_redraw), content->line)) {
+			error_msgs_report_error("BadDelete");
 			return FALSE;
 		}
+
+		windat->display_lines--;
+
+		/* Set the redraw range. */
+
+		redraw_to = windat->display_lines - 1;
+		break;
+
+	case ACCOUNT_SECTION_DIALOGUE_ACTION_NONE:
+		return FALSE;
 	}
-
-	/* Update the line details. */
-
-	string_copy(windat->line_data[line].heading, name, ACCOUNT_SECTION_LEN);
-	windat->line_data[line].type = type;
 
 	/* Tidy up and redraw the windows */
 
 	account_recalculate_all(file);
 	account_list_window_set_extent(windat);
 	windows_open(windat->account_window);
-	account_list_window_force_redraw(windat, line, line, wimp_ICON_WINDOW);
-	file_set_data_integrity(file, TRUE);
-
-	return TRUE;
-}
-
-
-/**
- * Delete the section associated with the currently open Section Edit
- * window.
- *
- * \param *windat		The Account List window holding the section.
- * \param line			The selected line to be deleted.
- * \return			TRUE if deleted; else FALSE.
- */
-
-static osbool account_list_window_delete_from_section_edit_window(struct account_list_window *windat, int line)
-{
-	struct file_block *file;
-
-	if (windat == NULL || windat->instance == NULL || line == -1)
-		return FALSE;
-
-	file = account_get_file(windat->instance);
-	if (file == NULL)
-		return FALSE;
-
-	/* Delete the heading */
-
-	if (!flexutils_delete_object((void **) &(windat->line_data), sizeof(struct account_redraw), line)) {
-		error_msgs_report_error("BadDelete");
-		return FALSE;
-	}
-
-	windat->display_lines--;
-
-	/* Update the accounts display window. */
-
-	account_list_window_set_extent(windat);
-	windows_open(windat->account_window);
-	account_list_window_force_redraw(windat, line, windat->display_lines - 1, wimp_ICON_WINDOW);
+	account_list_window_force_redraw(windat, content->line, redraw_to, wimp_ICON_WINDOW);
 	file_set_data_integrity(file, TRUE);
 
 	return TRUE;
@@ -1555,11 +1571,11 @@ static void account_list_window_open_print_window(struct account_list_window *wi
 	/* Open the print dialogue box. */
 
 	if (windat->type & ACCOUNT_FULL) {
-		print_dialogue_open_simple(file->print, ptr, restore, "PrintAcclistAcc", "PrintTitleAcclistAcc",
-				account_list_window_print, windat);
+		print_dialogue_open(file->print, ptr, FALSE, restore, "PrintAcclistAcc", "PrintTitleAcclistAcc",
+				windat, account_list_window_print, windat);
 	} else if (windat->type & ACCOUNT_IN || windat->type & ACCOUNT_OUT) {
-		print_dialogue_open_simple(file->print, ptr, restore, "PrintAcclistHead", "PrintTitleAcclistHead",
-				account_list_window_print, windat);
+		print_dialogue_open(file->print, ptr, FALSE, restore, "PrintAcclistHead", "PrintTitleAcclistHead",
+				windat, account_list_window_print, windat);
 	}
 }
 
@@ -1570,10 +1586,12 @@ static void account_list_window_open_print_window(struct account_list_window *wi
  *
  * \param *report		The report handle to use for output.
  * \param *data			The account window structure to be printed.
+ * \param from			The date to print from.
+ * \param to			The date to print to.
  * \return			Pointer to the report, or NULL on failure.
  */
 
-static struct report *account_list_window_print(struct report *report, void *data)
+static struct report *account_list_window_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct account_list_window	*windat = data;
 	struct file_block		*file;
@@ -1801,7 +1819,7 @@ static int account_list_window_add_line(struct account_list_window *windat)
 	if (windat == NULL)
 		return -1;
 
-	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct account_redraw), windat->display_lines + 1))
+	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct account_list_window_redraw), windat->display_lines + 1))
 		return -1;
 
 	line = windat->display_lines++;
@@ -1922,7 +1940,7 @@ static void account_list_window_start_drag(struct account_list_window *windat, w
 	 * the data moving beneath them.
 	 */
 
-	if (account_account_dialogue_is_open(windat->instance) || account_heading_dialogue_is_open(windat->instance) || account_section_dialogue_is_open(windat))
+	if (dialogue_any_open(NULL, windat->instance) || dialogue_any_open(NULL, windat))
 		return;
 
 	ox = window->visible.x0 - window->xscroll;
@@ -1995,7 +2013,7 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 	wimp_window_state			window;
 	int					line;
 	struct file_block			*file;
-	struct account_redraw			block;
+	struct account_list_window_redraw	block;
 	struct account_list_window_drag_data	*drag_data = data;
 	struct account_list_window		*windat;
 
@@ -2043,13 +2061,13 @@ static void account_list_window_terminate_drag(wimp_dragged *drag, void *data)
 
 	if (line < drag_data->start_line) {
 		memmove(&(windat->line_data[line + 1]), &(windat->line_data[line]),
-				(drag_data->start_line - line) * sizeof(struct account_redraw));
+				(drag_data->start_line - line) * sizeof(struct account_list_window_redraw));
 
 		windat->line_data[line] = block;
 	} else if (line > drag_data->start_line) {
 		memmove(&(windat->line_data[drag_data->start_line]),
 				&(windat->line_data[drag_data->start_line + 1]),
-				(line - drag_data->start_line) * sizeof(struct account_redraw));
+				(line - drag_data->start_line) * sizeof(struct account_list_window_redraw));
 
 		windat->line_data[line] = block;
 	}
@@ -2259,7 +2277,7 @@ osbool account_list_window_read_file(struct account_list_window *windat, struct 
 
 	/* Identify the current size of the flex block allocation. */
 
-	if (!flexutils_load_initialise((void **) &(windat->line_data), sizeof(struct account_redraw), &block_size)) {
+	if (!flexutils_load_initialise((void **) &(windat->line_data), sizeof(struct account_list_window_redraw), &block_size)) {
 		filing_set_status(in, FILING_STATUS_BAD_MEMORY);
 		return FALSE;
 	}

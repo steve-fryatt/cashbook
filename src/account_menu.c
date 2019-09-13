@@ -318,8 +318,10 @@ static void account_menu_decode(wimp_selection *selection)
 			break;
 		}
 
+		account = account_menu_entry_link[selection->items[1]].account;
+
 		transact_change_account(account_menu_file, transact_get_transaction_from_line(account_menu_file, account_menu_line),
-				target, account_menu_entry_link[selection->items[1]].account);
+				target, account, account_get_type(account_menu_file, account) != ACCOUNT_FULL);
 	} else if (account_menu_window != NULL && account_menu_ident_icon != wimp_ICON_WINDOW && account_menu_name_icon != wimp_ICON_WINDOW && account_menu_rec_icon != wimp_ICON_WINDOW) {
 		/* If the window is not NULL, the menu was opened over a dialogue box. */
 

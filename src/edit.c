@@ -66,7 +66,7 @@
 #include "date.h"
 #include "edit.h"
 #include "file.h"
-#include "presets.h"
+#include "preset.h"
 #include "transact.h"
 #include "window.h"
 

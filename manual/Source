@@ -1582,6 +1582,15 @@ Update to fifth stable release.
 <li>Fix errors writing cheque number details to file, introduced in 1.40 (ticket&nbsp;#659).
 </list>
 
+
+<subhead title="1.42 (15 September 2019)">
+
+Update to fifth stable release.
+
+<list>
+<li>Fix problems inserting paying in slip numbers, introduced in 1.40 (ticket&nbsp;#689).
+</list>
+
  
 <subhead title="Test Build">
  

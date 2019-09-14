@@ -1582,6 +1582,15 @@ Update to fifth stable release.
 <li>Fix errors writing cheque number details to file, introduced in 1.40 (ticket&nbsp;#659).
 </list>
 
+ 
+<subhead title="Test Build">
+ 
+Alpha release for feedback and comment.
+ 
+<list>
+<li>Start to add support for entering interest rate data (incomplete and non-functional).
+</list>
+
 </chapter>
 
 
